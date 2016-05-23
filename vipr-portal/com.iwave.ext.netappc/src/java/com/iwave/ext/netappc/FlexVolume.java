@@ -104,7 +104,7 @@ public class FlexVolume {
     }
 
     public boolean createFlexibleVolume(String containingAggrName,
-            String path, String size, String spaceReserve, String permission, String state, String type) {
+            String path, String size, String spaceReserve, String permission, String state, String type, String langCode) {
         NaElement elem = new NaElement("volume-create");
         elem.addNewChild("volume", name);
 
@@ -133,6 +133,10 @@ public class FlexVolume {
         // type of volume dp, ls & rw (default is rw)
         if (state != null && !state.isEmpty()) {
             elem.addNewChild("volume-type", type);
+        }
+
+        if (langCode != null && !langCode.isEmpty()) {
+            elem.addNewChild("language-code", langCode);
         }
 
         try {

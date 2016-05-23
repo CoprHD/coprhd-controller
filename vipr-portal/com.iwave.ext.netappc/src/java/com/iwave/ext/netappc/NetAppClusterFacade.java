@@ -177,9 +177,10 @@ public class NetAppClusterFacade {
      * @param permission - Optional. Unix permission bits in octal string format.
      * @param state - optional online, offline, restricted, or force-online
      * @return type - optinal read-write, data-protection, or data-cache
+     * @return languageCode - language code
      */
     public boolean createFlexibleVolume(String volName, String containingAggrName, String path, String size, String spaceReserve,
-            String permission, String state, String type)
+            String permission, String state, String type, String languageCode)
     {
         if (log.isDebugEnabled()) {
             StringBuilder sb = new StringBuilder("Creating new flexible volume offline with params" +
@@ -196,7 +197,7 @@ public class NetAppClusterFacade {
         }
         // First create the volume
         FlexVolume vol = new FlexVolume(server.getNaServer(), volName);
-        boolean result = vol.createFlexibleVolume(containingAggrName, path, size, spaceReserve, permission, state, type);
+        boolean result = vol.createFlexibleVolume(containingAggrName, path, size, spaceReserve, permission, state, type, languageCode);
         return result;
     }
 

@@ -162,7 +162,7 @@ public class NetAppClusterModeDevice extends AbstractFileStorageDevice {
             Boolean isCreateSuccess = false;
 
             if (FileShare.PersonalityTypes.TARGET.toString().equals(args.getFs().getPersonality())) {
-                isCreateSuccess = ncApi.createFS(args.getFsName(), args.getPoolNativeId(),
+                isCreateSuccess = ncApi.createFsMirrorTarget(args.getFsName(), args.getPoolNativeId(),
                         strFsSize, args.getThinProvision(), null, "dp");
             } else {
                 isCreateSuccess = ncApi.createFS(args.getFsName(), args.getPoolNativeId(),

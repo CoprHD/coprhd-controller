@@ -62,6 +62,9 @@ public class NetAppClusterApi {
     private static final String VOL_ATTR_RESULT_NAME = "name";
     private static final String VOL_PERMISSION = "0777";
     private static final String VOL_ROOT = "/vol/";
+
+    private static final String DEFAULT_LANGUAGE = "en";
+
     public String NetBIOSName;
 
     static {
@@ -173,7 +176,8 @@ public class NetAppClusterApi {
         return status;
     }
 
-    public Boolean createVolume(String volName, String aggregate, String path, String size, Boolean isThin, String state, String type) {
+    public Boolean createVolume(String volName, String aggregate, String path, String size, Boolean isThin, String state, String type,
+            String languageCode) {
         netAppClusterFacade = new NetAppClusterFacade(_ipAddress, _portNumber, _userName,
                 _password, _https, true, _svmName);
         String spaceReserve = "";
@@ -196,7 +200,7 @@ public class NetAppClusterApi {
             }
         }
         Boolean status = netAppClusterFacade.createFlexibleVolume(volName, aggregate,
-                path, size, spaceReserve, permissionVol, stateVol, typeVol);
+                path, size, spaceReserve, permissionVol, stateVol, typeVol, languageCode);
         if (status) {
             Collection<String> attrs = new ArrayList<String>();
             attrs.add(VOL_ATTR_NAME);
@@ -249,7 +253,7 @@ public class NetAppClusterApi {
         return true;
     }
 
-    public Boolean createFS(String fsName, String aggregate, String size, Boolean isThin, String state, String type)
+    public Boolean createFsMirrorTarget(String fsName, String aggregate, String size, Boolean isThin, String state, String type)
             throws NetAppCException {
         Boolean FailedStatus = false;
         try {
@@ -259,7 +263,7 @@ public class NetAppClusterApi {
                 path = null;
             }
 
-            boolean createVolStatus = createVolume(fsName, aggregate, path, size, isThin, state, type);
+            boolean createVolStatus = createVolume(fsName, aggregate, path, size, isThin, state, type, DEFAULT_LANGUAGE);
             if (createVolStatus) {
                 // Delete the NFS export that is created by default.
                 if (path != null) {

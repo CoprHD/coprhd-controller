@@ -5402,7 +5402,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         try {
             WorkflowStepCompleter.stepExecuting(opId);
 
-            _log.info("Activating a bookmark on the RP CG(s)");
+            _log.info(String.format("Activating bookmark %s on the RP CG(s)", bookmarkName));
 
             completer = new CloneActivateCompleter(fullCopyIds, opId);
 

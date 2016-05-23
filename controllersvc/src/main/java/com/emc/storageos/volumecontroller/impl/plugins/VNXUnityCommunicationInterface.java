@@ -34,6 +34,7 @@ import com.emc.storageos.db.client.model.StorageProtocol;
 import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StorageTier;
+import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.VirtualNAS.VirtualNasState;
@@ -54,13 +55,17 @@ import com.emc.storageos.vnxe.models.RaidGroup;
 import com.emc.storageos.vnxe.models.RaidTypeEnum;
 import com.emc.storageos.vnxe.models.VNXeBase;
 import com.emc.storageos.vnxe.models.VNXeCifsServer;
+import com.emc.storageos.vnxe.models.VNXeCifsShare;
 import com.emc.storageos.vnxe.models.VNXeEthernetPort;
 import com.emc.storageos.vnxe.models.VNXeFCPort;
 import com.emc.storageos.vnxe.models.VNXeFileInterface;
+import com.emc.storageos.vnxe.models.VNXeFileSystem;
+import com.emc.storageos.vnxe.models.VNXeFileSystemSnap;
 import com.emc.storageos.vnxe.models.VNXeIscsiNode;
 import com.emc.storageos.vnxe.models.VNXeIscsiPortal;
 import com.emc.storageos.vnxe.models.VNXeNasServer;
 import com.emc.storageos.vnxe.models.VNXeNfsServer;
+import com.emc.storageos.vnxe.models.VNXeNfsShare;
 import com.emc.storageos.vnxe.models.VNXePool;
 import com.emc.storageos.vnxe.models.VNXeStorageProcessor;
 import com.emc.storageos.vnxe.models.VNXeStorageSystem;
@@ -68,6 +73,7 @@ import com.emc.storageos.vnxe.models.VNXeStorageTier;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.StoragePoolAssociationHelper;
 import com.emc.storageos.volumecontroller.impl.StoragePortAssociationHelper;
+import com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.MetricsKeys;
 import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ImplicitPoolMatcher;
 import com.emc.storageos.volumecontroller.impl.vnxunity.VNXUnityUnManagedObjectDiscoverer;
@@ -82,11 +88,22 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
     private static final Logger _logger = LoggerFactory.getLogger(VNXUnityCommunicationInterface.class);
     private static final String NEW = "new";
     private static final String EXISTING = "existing";
+    private static final String TRUE = "true";
+    private static final String FALSE = "false";
     private static final int LOCK_WAIT_SECONDS = 300;
 
+    private static final Long MAX_NFS_EXPORTS = 1500L;
+    private static final Long MAX_CIFS_SHARES = 40000L;
+    private static final Long MAX_STORAGE_OBJECTS = 40000L;
+    private static final Long MAX_CAPACITY = 1443658767269888L;
+
+    private static final Long GB_IN_BYTES = 1073741824L;
+    private static final Long GB_IN_KB = 1048576L;
+    private static final Long MB_IN_BYTES = 1048576L;
+    private static final Long KB_IN_BYTES = 1024L;
+
     // Reference to the VNX unity client factory allows us to get a VNX unity
-    // client
-    // and execute requests to the VNX Unity storage system.
+    // client  and execute requests to the VNX Unity storage system.
     private VNXeApiClientFactory clientFactory;
     private VNXUnityUnManagedObjectDiscoverer unityUnManagedObjectDiscoverer;
 
@@ -1407,15 +1424,191 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
     @Override
     public void collectStatisticsInformation(AccessProfile accessProfile) throws VNXeException {
 
-        _logger.info("Start collecting statistics for ip address {}", accessProfile.getIpAddress());
+        URI storageSystemId = accessProfile.getSystemId();
+        StorageSystem storageSystem = null;
 
-        _logger.info("End collecting statistics for ip address {}", accessProfile.getIpAddress());
+        try {
+            _logger.info("Start collecting statistics for ip address {}",
+                    accessProfile.getIpAddress());
+            VNXeApiClient client = getVnxUnityClient(accessProfile);
+            long latestSampleTime = accessProfile.getLastSampleTime();
+            storageSystem = _dbClient.queryObject(StorageSystem.class, storageSystemId);
+            String serialNumber = storageSystem.getSerialNumber();
+            String deviceType = storageSystem.getSystemType();
+            // compute static load processor code
+            computeStaticLoadMetrics(accessProfile);
+
+            // TODO: Do we need usage stats?
+
+            _logger.info("End collecting statistics for ip address {}",
+                    accessProfile.getIpAddress());
+        } catch (Exception e) {
+            _logger.error("CollectStatisticsInformation failed. Storage system: " + storageSystemId, e);
+            throw VNXeException.exceptions.discoveryError("Failed to collect statistics ", e);
+        }
+    }
+
+    private void computeStaticLoadMetrics(AccessProfile accessProfile) throws BaseCollectionException {
+        URI storageSystemId = accessProfile.getSystemId();
+        StorageSystem storageSystem = null;
+
+        try {
+            storageSystem = _dbClient.queryObject(StorageSystem.class, storageSystemId);
+            _logger.info("started computeStaticLoadMetrics for storagesystem: {}", storageSystem.getLabel());
+            VNXeApiClient client = getVnxUnityClient(accessProfile);
+
+            List<VNXeNasServer> nasServers = client.getNasServers();
+            for (VNXeNasServer nasServer : nasServers) {
+                if ((nasServer.getMode() == VNXeNasServer.NasServerModeEnum.DESTINATION)
+                        || (nasServer.getIsReplicationDestination() == true)) {
+                    _logger.debug("Found a replication destination NasServer");
+                    continue;
+                }
+
+                if (nasServer.getIsSystem()) {
+                    // skip system nasServer
+                    continue;
+                }
+                VirtualNAS virtualNAS = findvNasByNativeId(storageSystem, nasServer.getId());
+                if (virtualNAS != null) {
+                    _logger.info("Process db metrics for nas server : {}", nasServer.getName());
+                    StringMap dbMetrics = virtualNAS.getMetrics();
+                    if (dbMetrics == null) {
+                        dbMetrics = new StringMap();
+                    }
+                    // process db metrics
+                    populateDbMetrics(nasServer, client, dbMetrics);
+
+                    // set dbMetrics in db
+                    virtualNAS.setMetrics(dbMetrics);
+                    _dbClient.updateObject(virtualNAS);
+                }
+            }
+        } catch (Exception e) {
+            _logger.error("CollectStatisticsInformation failed. Storage system: " + storageSystemId, e);
+        }
+    }
+
+    private void populateDbMetrics(final VNXeNasServer nasServer, VNXeApiClient client, StringMap dbMetrics) {
+        long totalProvCap = 0L;
+        long totalFsCount = 0L;
+
+        // get total exports
+        int nfsSharesCount = 0;
+        int cifsSharesCount = 0;
+
+        List<VNXeFileSystem> fileSystemList = client.getFileSystemsForNasServer(nasServer.getId());
+        if (fileSystemList != null && !fileSystemList.isEmpty()) {
+            for (VNXeFileSystem fs : fileSystemList) {
+                totalProvCap = totalProvCap + fs.getSizeTotal();
+                totalFsCount++;
+                List<VNXeNfsShare> nfsShares = client.getNfsSharesForFileSystem(fs.getId());
+                if (nfsShares != null && !nfsShares.isEmpty()) {
+                    for (VNXeNfsShare nfsShare : nfsShares) {
+                        nfsSharesCount++;
+                    }
+                }
+                List<VNXeCifsShare> cifsShares = client.getCifsSharesForFileSystem(fs.getId());
+                if (cifsShares != null && !cifsShares.isEmpty()) {
+                    for (VNXeCifsShare cifsShare : cifsShares) {
+                        cifsSharesCount++;
+                    }
+                }
+                List<VNXeFileSystemSnap> snapshotsList = client.getFileSystemSnaps(fs.getId());
+                if (snapshotsList != null && !snapshotsList.isEmpty()) {
+                    for (VNXeFileSystemSnap snap : snapshotsList) {
+                        totalProvCap = totalProvCap + snap.getSize();
+                        totalFsCount++;
+
+                        List<VNXeNfsShare> snapNfsShares = client.getNfsSharesForSnap(snap.getId());
+                        if (snapNfsShares != null && !snapNfsShares.isEmpty()) {
+                            for (VNXeNfsShare nfsShare : snapNfsShares) {
+                                nfsSharesCount++;
+                            }
+                        }
+                        List<VNXeCifsShare> snapCifsShares = client.getCifsSharesForSnap(snap.getId());
+                        if (snapCifsShares != null && !snapCifsShares.isEmpty()) {
+                            for (VNXeCifsShare cifsShare : snapCifsShares) {
+                                cifsSharesCount++;
+                            }
+                        }
+                    }
+                }
+            }
+
+        }
+
+        if (totalProvCap > 0) {
+            totalProvCap = (totalProvCap / KB_IN_BYTES);
+        }
+        _logger.info("Total fs Count {} for nas server : {}", String.valueOf(totalFsCount), nasServer.getName());
+        _logger.info("Total fs Capacity {} for nas server : {}", String.valueOf(totalProvCap), nasServer.getName());
+
+        if (dbMetrics == null) {
+            dbMetrics = new StringMap();
+        }
+
+        // Set max limits in dbMetrics
+        setMaxDbMetrics(client, dbMetrics);
+
+        // set total nfs and cifs exports for this nas server
+        dbMetrics.put(MetricsKeys.totalNfsExports.name(), String.valueOf(nfsSharesCount));
+        dbMetrics.put(MetricsKeys.totalCifsShares.name(), String.valueOf(cifsSharesCount));
+        // set total fs objects and their sum of capacity for this nas server
+        dbMetrics.put(MetricsKeys.storageObjects.name(), String.valueOf(totalFsCount));
+        dbMetrics.put(MetricsKeys.usedStorageCapacity.name(), String.valueOf(totalProvCap));
+
+        Long maxExports = MetricsKeys.getLong(MetricsKeys.maxNFSExports, dbMetrics) +
+                MetricsKeys.getLong(MetricsKeys.maxCifsShares, dbMetrics);
+        Long maxStorObjs = MetricsKeys.getLong(MetricsKeys.maxStorageObjects, dbMetrics);
+        Long maxCapacity = MetricsKeys.getLong(MetricsKeys.maxStorageCapacity, dbMetrics);
+
+        Long totalExports = Long.valueOf(nfsSharesCount + cifsSharesCount);
+        // setting overLoad factor (true or false)
+        String overLoaded = FALSE;
+        if (totalExports >= maxExports || totalProvCap >= maxCapacity || totalFsCount >= maxStorObjs) {
+            overLoaded = TRUE;
+        }
+
+        double percentageLoadExports = 0.0;
+        // percentage calculator
+        if (totalExports > 0.0) {
+            percentageLoadExports = ((double) (totalExports) / maxExports) * 100;
+        }
+        double percentageLoadStorObj = ((double) (totalProvCap) / maxCapacity) * 100;
+        double percentageLoad = (percentageLoadExports + percentageLoadStorObj) / 2;
+
+        dbMetrics.put(MetricsKeys.percentLoad.name(), String.valueOf(percentageLoad));
+        dbMetrics.put(MetricsKeys.overLoaded.name(), overLoaded);
+        return;
 
     }
 
     /**
-     * Check if the pool's autotiering is enabled. if there are more than one
-     * tier in the pool, then it is enabled.
+     * set the Max limits for static db metrics
+     * 
+     * @param system
+     * @param dbMetrics
+     */
+    private void setMaxDbMetrics(final VNXeApiClient client, StringMap dbMetrics) {
+        // Set the Limit Metric keys!!
+        dbMetrics.put(MetricsKeys.maxStorageObjects.name(), String.valueOf(MAX_STORAGE_OBJECTS));
+
+        Long MaxNfsExports = MAX_NFS_EXPORTS;
+        Long MaxCifsShares = MAX_CIFS_SHARES;
+
+        dbMetrics.put(MetricsKeys.maxNFSExports.name(), String.valueOf(MaxNfsExports));
+        dbMetrics.put(MetricsKeys.maxCifsShares.name(), String.valueOf(MaxCifsShares));
+
+
+        // set the max capacity in bytes
+        long MaxCapacity = MAX_CAPACITY;
+        dbMetrics.put(MetricsKeys.maxStorageCapacity.name(), String.valueOf(MaxCapacity / KB_IN_BYTES));
+        return;
+    }
+
+    /**
+     * Check if the pool's autotiering is enabled. if there are more than one tier in the pool, then it is enabled.
      * 
      * @param vnxePool
      * @param system

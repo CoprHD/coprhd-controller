@@ -43,9 +43,9 @@ import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.VolumeURIHLU;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
-import com.emc.storageos.xiv.api.XIVApiFactory;
-import com.emc.storageos.xiv.api.XIVRESTOperations;
-import com.emc.storageos.xiv.api.XIVRESTOperations.HOST_STATUS;
+import com.emc.storageos.xiv.api.XIVRestClient;
+import com.emc.storageos.xiv.api.XIVRestClientFactory;
+import com.emc.storageos.xiv.api.XIVRestClient.HOST_STATUS;
 import com.emc.storageos.xiv.api.XIVRestException;
 import com.google.common.base.Joiner;
 
@@ -57,12 +57,12 @@ import com.google.common.base.Joiner;
  * Create Export Mask
  *
  */
-public class XIVRESTOperationsHelper {
+public class XIVRestOperationsHelper {
 
-    private static Logger _log = LoggerFactory.getLogger(XIVRESTOperationsHelper.class);
+    private static Logger _log = LoggerFactory.getLogger(XIVRestOperationsHelper.class);
 
     private DbClient _dbClient;
-    private XIVApiFactory _restAPIFactory;
+    private XIVRestClientFactory _restClientFactory;
 
     private static final int MAXIMUM_LUN = 511;
     private static final String INVALID_LUN_ERROR_MSG = "Logical unit number provided (%d) is larger than allowed (%d).";
@@ -71,8 +71,8 @@ public class XIVRESTOperationsHelper {
         _dbClient = dbClient;
     }
 
-    public void setRestAPIFactory(XIVApiFactory factory) {
-        _restAPIFactory = factory;
+    public void setXivRestClientFactory(XIVRestClientFactory factory) {
+        _restClientFactory = factory;
     }
 
     /**
@@ -81,17 +81,17 @@ public class XIVRESTOperationsHelper {
      * @param storage StorageSystem instance
      * @return XIVRESTExportOperations instance
      */
-    private XIVRESTOperations getRestClient(StorageSystem storage) {
-        XIVRESTOperations restExportOpr = null;
+    private XIVRestClient getRestClient(StorageSystem storage) {
+        XIVRestClient restClient = null;
         StorageProvider provider = _dbClient.queryObject(StorageProvider.class, storage.getActiveProviderURI());
         String providerUser = provider.getSecondaryUsername();
         String providerPassword = provider.getSecondaryPassword();
         String providerURL = provider.getElementManagerURL();
 
         if (StringUtils.isNotEmpty(providerURL) && StringUtils.isNotEmpty(providerPassword) && StringUtils.isNotEmpty(providerUser)) {
-            restExportOpr = _restAPIFactory.getRESTClient(URI.create(providerURL), providerUser, providerPassword);
+            restClient = (XIVRestClient) _restClientFactory.getRESTClient(URI.create(providerURL), providerUser, providerPassword);
         }
-        return restExportOpr;
+        return restClient;
     }
 
     /**
@@ -107,26 +107,22 @@ public class XIVRESTOperationsHelper {
         ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
 
         List<ExportGroup> exportGroups = ExportMaskUtils.getExportGroups(_dbClient, exportMask);
-        if (null != exportGroups && !exportGroups.isEmpty()) {
+        XIVRestClient restExportOpr = getRestClient(storage);
+        if (null != restExportOpr && null != exportGroups && !exportGroups.isEmpty()) {
             for (ExportGroup exportGroup : exportGroups) {
                 if (!isClusteredHost && exportGroup.forCluster()) {
-                    XIVRESTOperations restExportOpr = getRestClient(storage);
-                    if (null != restExportOpr) {
-                        String hostName = null;
-
-                        if (null == initiators) {
-                            Set<Initiator> exportMaskInits = ExportMaskUtils.getInitiatorsForExportMask(_dbClient, exportMask, null);
-                            Iterator<Initiator> exportMaskInitsItr = exportMaskInits.iterator();
-                            if (exportMaskInitsItr.hasNext()) {
-                                hostName = exportMaskInitsItr.next().getHostName();
-                            }
-                        } else {
-                            Host host = _dbClient.queryObject(Host.class, initiators.get(0).getHost());
-                            hostName = host.getLabel();
+                    String hostName = null;
+                    if (null == initiators) {
+                        Set<Initiator> exportMaskInits = ExportMaskUtils.getInitiatorsForExportMask(_dbClient, exportMask, null);
+                        Iterator<Initiator> exportMaskInitsItr = exportMaskInits.iterator();
+                        if (exportMaskInitsItr.hasNext()) {
+                            hostName = exportMaskInitsItr.next().getHostName();
                         }
-
-                        isClusteredHost = isClusteredHostOnArray(storage, hostName);
+                    } else {
+                        Host host = _dbClient.queryObject(Host.class, initiators.get(0).getHost());
+                        hostName = host.getLabel();
                     }
+                    isClusteredHost = isClusteredHostOnArray(storage, hostName);
                 }
             }
         }
@@ -142,7 +138,7 @@ public class XIVRESTOperationsHelper {
      */
     private boolean isClusteredHostOnArray(StorageSystem storage, String hostName) {
         boolean isClusteredHost = false;
-        XIVRESTOperations restExportOpr = getRestClient(storage);
+        XIVRestClient restExportOpr = getRestClient(storage);
         if (null != restExportOpr && null != hostName) {
             HOST_STATUS hostStatus = null;
 
@@ -186,7 +182,7 @@ public class XIVRESTOperationsHelper {
         try {
 
             ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
-            XIVRESTOperations restExportOpr = getRestClient(storage);
+            XIVRestClient restExportOpr = getRestClient(storage);
 
             final String storageIP = storage.getSmisProviderIP();
             final Host host = _dbClient.queryObject(Host.class, initiatorList.get(0).getHost());
@@ -290,7 +286,7 @@ public class XIVRESTOperationsHelper {
             final String storageIP = storage.getSmisProviderIP();
             final String name = mask.getMaskName();
 
-            XIVRESTOperations restExportOpr = getRestClient(storage);
+            XIVRestClient restExportOpr = getRestClient(storage);
             StringBuilder builder = new StringBuilder();
 
             boolean addInitiators = false;
@@ -379,7 +375,7 @@ public class XIVRESTOperationsHelper {
             final StringSet emInitiatorURIs = exportMask.getInitiators();
             final StringMap emVolumeURIs = exportMask.getVolumes();
 
-            XIVRESTOperations restExportOpr = getRestClient(storage);
+            XIVRestClient restExportOpr = getRestClient(storage);
             URI hostURI = null;
 
             // Un export Volumes

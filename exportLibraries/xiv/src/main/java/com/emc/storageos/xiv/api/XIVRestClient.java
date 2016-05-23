@@ -19,16 +19,21 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.model.ExportGroup;
+import com.emc.storageos.services.restutil.StandardRestClient;
+import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
+import com.sun.jersey.api.client.WebResource;
+import com.sun.jersey.api.client.WebResource.Builder;
+import com.sun.jersey.api.client.filter.HTTPBasicAuthFilter;
+import com.sun.jersey.api.client.filter.LoggingFilter;
 
 /**
  * Performs all the operations on XIV - Hyperscale Manager using its REST APIs
  */
-public class XIVRESTOperations {
+public class XIVRestClient extends StandardRestClient{
 
-    private static Logger _log = LoggerFactory.getLogger(XIVRESTOperations.class);
-    private final RESTClient _client;
-    private final URI _baseURI;
+    private static Logger _log = LoggerFactory.getLogger(XIVRestClient.class);
+    private static final String ERROR_CODE = "httpStatusCode";
 
     private static final String SEPARATOR = ":";
     private static final String NAME = "name";
@@ -171,9 +176,67 @@ public class XIVRESTOperations {
      * @param endpoint Base URI of Hyperscale Manager
      * @param client REST Client instance
      */
-    public XIVRESTOperations(URI endpoint, RESTClient client) {
-        _baseURI = endpoint;
+    
+    /**
+     * 
+     * @param baseURI Base URI of Hyperscale Manager
+     * @param username user name of XIV 
+     * @param password password of XIV
+     * @param client REST Client instance
+     */
+    public XIVRestClient(URI baseURI, String username, String password, Client client) {
         _client = client;
+        _base = baseURI;
+        _username = username;
+        _password = password;
+        _client.addFilter(new HTTPBasicAuthFilter(username, password));
+    }
+    
+    /**
+     * Sets User Name
+     * @param username User Name of XIV
+     */
+    public void setUsername(String username) {
+        _username = username;
+    }
+
+    /**
+     * Sets password
+     * @param password Password of XIV
+     */
+    public void setPassword(String password) {
+        _password = password;
+    }
+    
+    /*
+     * (non-Javadoc)
+     * @see com.emc.storageos.services.restutil.StandardRestClient#setResourceHeaders(com.sun.jersey.api.client.WebResource)
+     */
+    @Override
+    protected Builder setResourceHeaders(WebResource resource) {
+        return resource.getRequestBuilder();
+    }
+
+    /*
+     * (non-Javadoc)
+     * @see com.emc.storageos.services.restutil.StandardRestClient#authenticate()
+     */
+    @Override
+    protected void authenticate() {
+        _client.addFilter(new HTTPBasicAuthFilter(_username, _password));
+        if (_log.isDebugEnabled()) {
+            _client.addFilter(new LoggingFilter(System.out));
+        }
+    }
+
+    /*
+     * (non-Javadoc)
+     * @see com.emc.storageos.services.restutil.StandardRestClient#checkResponse(java.net.URI, com.sun.jersey.api.client.ClientResponse)
+     */
+    @Override
+    protected int checkResponse(URI uri, ClientResponse response) {
+        ClientResponse.Status status = response.getClientResponseStatus();
+        return status.getStatusCode();
     }
 
     /**
@@ -210,7 +273,7 @@ public class XIVRESTOperations {
         JSONObject instance = null;
         ClientResponse response = null;
         try {
-            response = _client.get(_baseURI.resolve(uri));
+            response = get(_base.resolve(uri));
             instance = response.getEntity(JSONObject.class);
         } catch (Exception e) {
             throw XIVRestException.exceptions.xivRestRequestFailure(uri, response.getStatus());
@@ -231,7 +294,7 @@ public class XIVRESTOperations {
         ResponseValidator failureStatus = new ResponseValidator();
         ClientResponse response = null;
         try {
-            response = _client.post(_baseURI.resolve(uri), jsonBody);
+            response = post(_base.resolve(uri), jsonBody);
             JSONObject arrayClusters = response.getEntity(JSONObject.class);
             failureStatus.validate(arrayClusters);
         } catch (Exception e) {

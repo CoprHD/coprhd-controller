@@ -644,11 +644,7 @@ public class KHRequests<T> {
                 throw VNXeException.exceptions.authenticationFailure(_url.toString());
             }
             String code = null;
-            if (status != null) {
-                code=Integer.toString(response.getStatus());
-               // code = status.toString();
-            }
-
+            code = Integer.toString(response.getStatus());
             StringBuilder errorBuilder = new StringBuilder();
             errorBuilder.append(requestType).append(" request to:");
             errorBuilder.append(_url);

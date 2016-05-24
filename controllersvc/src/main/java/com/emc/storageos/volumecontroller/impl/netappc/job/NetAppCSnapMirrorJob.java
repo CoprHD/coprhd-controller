@@ -71,15 +71,17 @@ public class NetAppCSnapMirrorJob extends Job implements Serializable {
                 SnapmirrorState currMirrorState = snapmirrorResp.getMirrorState();
 
                 if (snapmirrorResp.getCurrentTransferError() == null) {
-                    if (SnapmirrorState.READY.equals(mirrorState) && mirrorState.equals(currMirrorState)) {
-                        if (SnapmirrorRelationshipStatus.idle.equals(snapmirrorResp.getRelationshipStatus())) {
+                    if (SnapmirrorState.READY.equals(mirrorState)) {
+                        if (mirrorState.equals(currMirrorState)
+                                && SnapmirrorRelationshipStatus.idle.equals(snapmirrorResp.getRelationshipStatus())) {
                             setSuccessStatus(snapmirrorResp);
                         } else {
                             setProgressStatus(snapmirrorResp);
                         }
 
-                    } else if (SnapmirrorState.SYNCRONIZED.equals(mirrorState) && mirrorState.equals(currMirrorState)) {
-                        if (SnapmirrorRelationshipStatus.idle.equals(snapmirrorResp.getRelationshipStatus())) {
+                    } else if (SnapmirrorState.SYNCRONIZED.equals(mirrorState)) {
+                        if (mirrorState.equals(currMirrorState)
+                                && SnapmirrorRelationshipStatus.idle.equals(snapmirrorResp.getRelationshipStatus())) {
                             setSuccessStatus(snapmirrorResp);
                         } else {
                             setProgressStatus(snapmirrorResp);
@@ -96,7 +98,6 @@ public class NetAppCSnapMirrorJob extends Job implements Serializable {
                             setProgressStatus(snapmirrorResp);
                         }
                     } else {
-                        netAppCApi.releaseSnapMirror(snapmirrorResp.getSourceLocation());
                         setProgressStatus(snapmirrorResp);
                     }
                 } else {

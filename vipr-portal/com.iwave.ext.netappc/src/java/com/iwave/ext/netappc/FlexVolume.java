@@ -216,8 +216,13 @@ public class FlexVolume {
         if (name != null && !name.isEmpty()) {
             NaElement volumeIdAttrs = new NaElement("volume-id-attributes");
             volumeIdAttrs.addNewChild("name", name);
+
+            NaElement volumeLangAttrs = new NaElement("volume-language-attributes");
+
             NaElement volumeAttrs = new NaElement("volume-attributes");
             volumeAttrs.addChildElem(volumeIdAttrs);
+            volumeAttrs.addChildElem(volumeLangAttrs);
+
             NaElement query = new NaElement("query");
             query.addChildElem(volumeAttrs);
             elem.addChildElem(query);
@@ -246,6 +251,14 @@ public class FlexVolume {
                                 result.put(info.getName(), info.getContent());
                             }
                         }
+
+                        NaElement volLanguageAttrs = volInfo.getChildByName("volume-language-attributes");
+                        if (volLanguageAttrs != null) {
+                            for (NaElement info : (List<NaElement>) volLanguageAttrs.getChildren()) {
+                                result.put(info.getName(), info.getContent());
+                            }
+                        }
+
                     }
                 }
                 if (tag != null && !tag.isEmpty()) {

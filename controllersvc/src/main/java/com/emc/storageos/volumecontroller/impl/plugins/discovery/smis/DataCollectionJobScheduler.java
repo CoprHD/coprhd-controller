@@ -67,12 +67,14 @@ public class DataCollectionJobScheduler {
     private ScheduledExecutorService _dataCollectionExecutorService = null;
     private static final String ENABLE_METERING = "enable-metering";
     private static final String ENABLE_AUTODISCOVER = "enable-autodiscovery";
+    private static final String ENABLE_ARRAYAFFINITY_DISCOVER = "enable-arrayaffinity-discovery";
     private static final String ENABLE_AUTOSCAN = "enable-autoscan";
     private static final String TOLERANCE = "time-tolerance";
     private static final String PROP_HEADER_CONTROLLER = "controller_";
 
     private static final int initialScanDelay = 30;
     private static final int initialDiscoveryDelay = 90;
+    private static final int initialArrayAffinityDiscoveryDelay = 90;
     private static final int initialMeteringDelay = 60;
     private static final int initialConnectionRefreshDelay = 10;
 
@@ -93,6 +95,7 @@ public class DataCollectionJobScheduler {
 
         SCAN_INTERVALS("scan-interval", "scan-refresh-interval", initialScanDelay),
         DISCOVER_INTERVALS("discovery-interval", "discovery-refresh-interval", initialDiscoveryDelay),
+        ARRAYAFFINITY_DISCOVER_INTERVALS("arrayaffinity-discovery-interval", "arrayaffinity-discovery-refresh-interval", initialArrayAffinityDiscoveryDelay),       
         CS_DISCOVER_INTERVALS("cs-discovery-interval", "cs-discovery-refresh-interval", initialDiscoveryDelay),
         NS_DISCOVER_INTERVALS("ns-discovery-interval", "ns-discovery-refresh-interval", initialDiscoveryDelay),
         COMPUTE_DISCOVER_INTERVALS("compute-discovery-interval", "compute-discovery-refresh-interval", initialDiscoveryDelay),
@@ -137,6 +140,9 @@ public class DataCollectionJobScheduler {
             if (ControllerServiceImpl.DISCOVERY.equalsIgnoreCase(jobType)) {
                 return DISCOVER_INTERVALS;
             }
+            if (ControllerServiceImpl.ARRAYAFFINITY_DISCOVERY.equalsIgnoreCase(jobType)) {
+                return ARRAYAFFINITY_DISCOVER_INTERVALS;
+            }
             if (ControllerServiceImpl.NS_DISCOVERY.equalsIgnoreCase(jobType)) {
                 return NS_DISCOVER_INTERVALS;
             }
@@ -178,6 +184,7 @@ public class DataCollectionJobScheduler {
 
         boolean enableAutoScan = Boolean.parseBoolean(_configInfo.get(ENABLE_AUTOSCAN));
         boolean enableAutoDiscovery = Boolean.parseBoolean(_configInfo.get(ENABLE_AUTODISCOVER));
+        boolean enableArrayAffinityDiscovery = Boolean.parseBoolean(_configInfo.get(ENABLE_ARRAYAFFINITY_DISCOVER));
         boolean enableAutoMetering = Boolean.parseBoolean(_configInfo.get(ENABLE_METERING));
 
         LeaderSelectorListenerForPeriodicTask schedulingProcessor = new LeaderSelectorListenerForPeriodicTask(
@@ -206,6 +213,12 @@ public class DataCollectionJobScheduler {
 
             intervals = JobIntervals.get(ControllerServiceImpl.CS_DISCOVERY);
             schedulingProcessor.addScheduledTask(new DiscoveryScheduler(ControllerServiceImpl.CS_DISCOVERY),
+                    intervals.getInitialDelay(),
+                    intervals.getInterval());
+        }
+        if (enableArrayAffinityDiscovery) {
+            JobIntervals intervals = JobIntervals.get(ControllerServiceImpl.ARRAYAFFINITY_DISCOVERY);
+            schedulingProcessor.addScheduledTask(new DiscoveryScheduler(ControllerServiceImpl.ARRAYAFFINITY_DISCOVERY),
                     intervals.getInitialDelay(),
                     intervals.getInterval());
         }
@@ -450,6 +463,9 @@ public class DataCollectionJobScheduler {
             MeteringTaskCompleter completer = new MeteringTaskCompleter(systemClass, systemURI,
                     taskId);
             job = new DataCollectionMeteringJob(completer, DataCollectionJob.JobOrigin.SCHEDULER);
+        } else if (ControllerServiceImpl.ARRAYAFFINITY_DISCOVERY.equalsIgnoreCase(jobType)) {
+            DiscoverTaskCompleter completer = new DiscoverTaskCompleter(systemClass, systemURI, taskId, jobType);
+            job = new DataCollectionDiscoverJob(completer, DataCollectionJob.JobOrigin.SCHEDULER, Discovery_Namespaces.ARRAY_AFFINITY.name());
         } else if (ControllerServiceImpl.isDiscoveryJobTypeSupported(jobType)) {
             DiscoverTaskCompleter completer = new DiscoverTaskCompleter(systemClass, systemURI, taskId, jobType);
             job = new DataCollectionDiscoverJob(completer, DataCollectionJob.JobOrigin.SCHEDULER, Discovery_Namespaces.ALL.toString());

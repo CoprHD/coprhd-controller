@@ -1278,6 +1278,18 @@
         <property name="networkDeviceController" ref="networkDeviceController"/>
     </bean>
 
+    <bean id="arrayAffinityDiscoverJobConsumer"
+          class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.DataCollectionJobConsumer">
+        <property name="dbClient" ref="dbclient" />
+        <property name="coordinator" ref="coordinator" />
+        <property name="util" ref="dataCollectionJobUtil" />
+        <property name="configInfo" ref="configinfo" />
+        <property name="connectionFactory" ref="CIMConnectionFactory" />
+        <property name="jobScheduler" ref="dataCollectionJobScheduler" />
+        <property name="locker" ref="locker" />
+        <property name="networkDeviceController" ref="networkDeviceController"/>
+    </bean>
+
     <bean id="computeDiscoverJobConsumer"
           class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.DataCollectionJobConsumer">
         <property name="dbClient" ref="dbclient" />
@@ -1330,6 +1342,7 @@
 		<property name="jobTracker" ref="jobTracker" />
 		<property name="scanJobConsumer" ref="scanJobConsumer" />
         <property name="discoverJobConsumer" ref="discoverJobConsumer" />
+        <property name="arrayAffinityDiscoverJobConsumer" ref="arrayAffinityDiscoverJobConsumer" />
         <property name="computeDiscoverJobConsumer" ref="computeDiscoverJobConsumer" />
         <property name="meteringJobConsumer" ref="meteringJobConsumer" />
         <property name="jobScheduler" ref="dataCollectionJobScheduler" />

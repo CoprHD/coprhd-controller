@@ -12,7 +12,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.curator.framework.recipes.leader.LeaderSelector;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
-import org.eclipse.jetty.util.log.Log;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
@@ -21,8 +20,6 @@ import org.springframework.context.ApplicationContext;
 
 import com.emc.storageos.cinder.api.CinderApiFactory;
 import com.emc.storageos.coordinator.client.beacon.ServiceBeacon;
-import com.emc.storageos.coordinator.client.model.Site;
-import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.ConnectionStateListener;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DistributedAroundHook;
@@ -75,11 +72,13 @@ public class ControllerServiceImpl implements ControllerService {
     // constants
     private static final String JOB_QUEUE_NAME = "jobqueue";
     private static final String DISCOVER_JOB_QUEUE_NAME = "discoverjobqueue";
+    private static final String ARRAYAFFINITY_DISCOVER_JOB_QUEUE_NAME = "arrayaffinitydiscoverjobqueue";
     private static final String COMPUTE_DISCOVER_JOB_QUEUE_NAME = "computediscoverjobqueue";
     private static final String SCAN_JOB_QUEUE_NAME = "scanjobqueue";
     public static final String MONITORING_JOB_QUEUE_NAME = "monitoringjobqueue";
     private static final String METERING_JOB_QUEUE_NAME = "meteringjobqueue";
     public static final String DISCOVERY = "Discovery";
+    public static final String ARRAYAFFINITY_DISCOVERY = "ArrayAffinity";
     public static final String DISCOVERY_RECONCILE_TZ = "DiscoveryReconcileTZ";
     public static final String SCANNER = "Scanner";
     public static final String METERING = "Metering";
@@ -89,6 +88,7 @@ public class ControllerServiceImpl implements ControllerService {
     public static final String COMPUTE_DISCOVERY = "Compute_Discovery";
     public static final String CS_DISCOVERY = "CS_Discovery";
     private static final String DISCOVERY_COREPOOLSIZE = "discovery-core-pool-size";
+    private static final String ARRAYAFFINITY_DISCOVERY_COREPOOLSIZE = "arrayaffinity-discovery-core-pool-size";
     private static final String COMPUTE_DISCOVERY_COREPOOLSIZE = "compute-discovery-core-pool-size";
     private static final String METERING_COREPOOLSIZE = "metering-core-pool-size";
     private static final int DEFAULT_MAX_THREADS = 100;
@@ -102,7 +102,7 @@ public class ControllerServiceImpl implements ControllerService {
     public static final long DEFAULT_CAPACITY_COMPUTE_INTERVAL = 3600;
 
     // list of support discovery job type
-    private static final String[] DISCOVERY_JOB_TYPES = new String[] { DISCOVERY, NS_DISCOVERY, CS_DISCOVERY, COMPUTE_DISCOVERY };
+    private static final String[] DISCOVERY_JOB_TYPES = new String[] { DISCOVERY, NS_DISCOVERY, CS_DISCOVERY, COMPUTE_DISCOVERY, ARRAYAFFINITY_DISCOVERY };
 
     private static final Logger _log = LoggerFactory.getLogger(ControllerServiceImpl.class);
     private Dispatcher _dispatcher;
@@ -118,6 +118,7 @@ public class ControllerServiceImpl implements ControllerService {
     private Map<String, String> _configInfo;
     private static volatile ApplicationContext _context;
     private static volatile DistributedQueue<DataCollectionJob> _discoverJobQueue = null;
+    private static volatile DistributedQueue<DataCollectionJob> _arrayAffinityDiscoverJobQueue = null;
     private static volatile DistributedQueue<DataCollectionJob> _computeDiscoverJobQueue = null;
     private static volatile DistributedQueue<DataCollectionJob> _scanJobQueue = null;
     private static volatile DistributedQueue<DataCollectionJob> _meteringJobQueue = null;
@@ -132,6 +133,7 @@ public class ControllerServiceImpl implements ControllerService {
     private XIVSmisCommandHelper _xivSmisCommandHelper;
     private static volatile DataCollectionJobConsumer _scanJobConsumer;
     private static volatile DataCollectionJobConsumer _discoverJobConsumer;
+    private static volatile DataCollectionJobConsumer _arrayAffinityDiscoverJobConsumer;
     private static volatile DataCollectionJobConsumer _computeDiscoverJobConsumer;
     private static volatile DataCollectionJobConsumer _meteringJobConsumer;
     private static volatile DataCollectionJobScheduler _jobScheduler;
@@ -150,6 +152,7 @@ public class ControllerServiceImpl implements ControllerService {
     public static enum Lock {
         SCAN_COLLECTION_LOCK("lock-scancollectionjob-"),
         DISCOVER_COLLECTION_LOCK("lock-discovercollectionjob-"),
+        ARRAYAFFINITY_DISCOVER_COLLECTION_LOCK("lock-arrayaffinity-discovercollectionjob-"),
         METERING_COLLECTION_LOCK("lock-meteringcollectionjob-"),
         NS_DATA_COLLECTION_LOCK("lock-ns-datacollectionjob-"),
         COMPUTE_DATA_COLLECTION_LOCK("lock-compute-datacollectionjob-"),
@@ -242,6 +245,8 @@ public class ControllerServiceImpl implements ControllerService {
         public static Lock getLock(String type) {
             if (type.equals(DISCOVERY)) {
                 return DISCOVER_COLLECTION_LOCK;
+            } else if (type.equals(ARRAYAFFINITY_DISCOVERY)) {
+                return ARRAYAFFINITY_DISCOVER_COLLECTION_LOCK;
             } else if (type.equals(SCANNER)) {
                 return SCAN_COLLECTION_LOCK;
             } else if (type.equals(NS_DISCOVERY)) {
@@ -377,18 +382,27 @@ public class ControllerServiceImpl implements ControllerService {
     }
 
     /**
-     * Set Scan Consumer
+     * Set Discover Consumer
      * 
-     * @param dataCollectionJobConsumer
+     * @param discoverJobConsumer
      */
     public void setDiscoverJobConsumer(DataCollectionJobConsumer discoverJobConsumer) {
         _discoverJobConsumer = discoverJobConsumer;
     }
 
     /**
+     * Set Array Affinity Discover Consumer
+     *
+     * @param arrayAffinitydiscoverJobConsumer
+     */
+    public void setArrayAffinityDiscoverJobConsumer(DataCollectionJobConsumer arrayAffinityDiscoverJobConsumer) {
+        _arrayAffinityDiscoverJobConsumer = arrayAffinityDiscoverJobConsumer;
+    }
+
+    /**
      * Set Compute Discover Consumer
      * 
-     * @param dataCollectionJobConsumer
+     * @param computeDiscoverJobConsumer
      */
     public void setComputeDiscoverJobConsumer(DataCollectionJobConsumer computeDiscoverJobConsumer) {
         _computeDiscoverJobConsumer = computeDiscoverJobConsumer;
@@ -467,11 +481,14 @@ public class ControllerServiceImpl implements ControllerService {
          * which schedules Loading Devices from DB every X minutes.
          */
         _discoverJobConsumer.start();
+        _arrayAffinityDiscoverJobConsumer.start();
         _computeDiscoverJobConsumer.start();
         _scanJobConsumer.start();
         _meteringJobConsumer.start();
         _discoverJobQueue = _coordinator.getQueue(DISCOVER_JOB_QUEUE_NAME, _discoverJobConsumer,
                 new DataCollectionJobSerializer(), Integer.parseInt(_configInfo.get(DISCOVERY_COREPOOLSIZE)), 200);
+        _arrayAffinityDiscoverJobQueue = _coordinator.getQueue(ARRAYAFFINITY_DISCOVER_JOB_QUEUE_NAME, _arrayAffinityDiscoverJobConsumer,
+                new DataCollectionJobSerializer(), Integer.parseInt(_configInfo.get(ARRAYAFFINITY_DISCOVERY_COREPOOLSIZE)), 200);
         _computeDiscoverJobQueue = _coordinator.getQueue(COMPUTE_DISCOVER_JOB_QUEUE_NAME, _computeDiscoverJobConsumer,
                 new DataCollectionJobSerializer(), Integer.parseInt(_configInfo.get(COMPUTE_DISCOVERY_COREPOOLSIZE)), 50000);
         _meteringJobQueue = _coordinator.getQueue(METERING_JOB_QUEUE_NAME, _meteringJobConsumer,
@@ -521,6 +538,7 @@ public class ControllerServiceImpl implements ControllerService {
         _dispatcher.stop();
         _scanJobConsumer.stop();
         _discoverJobConsumer.stop();
+        _arrayAffinityDiscoverJobConsumer.stop();
         _computeDiscoverJobConsumer.stop();
         _meteringJobConsumer.stop();
         _monitoringJobConsumer.stop();
@@ -646,6 +664,8 @@ public class ControllerServiceImpl implements ControllerService {
         String jobType = job.getType();
         if (jobType.equals(CS_DISCOVERY)) {
             _computeDiscoverJobQueue.put(job);
+        } else if (jobType.equals(ARRAYAFFINITY_DISCOVERY)) {
+            _arrayAffinityDiscoverJobQueue.put(job);
         }
         else if (isDiscoveryJobTypeSupported(jobType)) {
             _discoverJobQueue.put(job);

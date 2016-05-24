@@ -9,6 +9,7 @@
         <entry key="Discovery-block-unmanaged_volumes" value="volumediscovery-block-context.xml" />
         <entry key="Discovery-block-block_snapshots" value="snapshotdiscovery-block-context.xml" />
         <entry key="Discovery-block-array_affinity" value="arrayaffinitydiscovery-block-context.xml" />
+        <entry key="ArrayAffinity-block-array_affinity" value="arrayaffinitydiscovery-block-context.xml" />
         <entry key="Discovery-vplex-unmanaged_volumes" value="discovery-vplex-context.xml" />
         <entry key="Discovery-netapp-unmanaged_filesystems" value="discovery-netapp-context.xml" />
         <entry key="Discovery-netappc-unmanaged_filesystems" value="discovery-netappc-context.xml" />
@@ -73,6 +74,7 @@
         <!-- how often the job should be scheduled automatically -->
         <entry key="metering-interval" value="3600" />
         <entry key="discovery-interval" value="3600" />
+        <entry key="arrayaffinity-discovery-interval" value="3600" />
         <entry key="compute-discovery-interval" value="3600" />
         <entry key="ns-discovery-interval" value="3600" />
         <entry key="cs-discovery-interval" value="86400" />
@@ -84,6 +86,7 @@
         <entry key="metering-refresh-interval" value="720" />
          <!--Increased the refresh interval from 60sec to 10min to avoid frequent refreshes -->
         <entry key="discovery-refresh-interval" value="600" />
+        <entry key="arrayaffinity-discovery-refresh-interval" value="600" />
         <entry key="ns-discovery-refresh-interval" value="60" />
         <entry key="compute-discovery-refresh-interval" value="60" />
         <entry key="cs-discovery-refresh-interval" value="60" />
@@ -95,6 +98,7 @@
         <!-- used in restricting the number of Arrays simultaneously running data
                   Collection Jobs -->
         <entry key="discovery-core-pool-size" value="3" />
+        <entry key="arrayaffinity-discovery-core-pool-size" value="3" />
         <entry key="compute-discovery-core-pool-size" value="3" />
         <entry key="metering-core-pool-size" value="1" />
 
@@ -106,6 +110,7 @@
         <entry key="sblim-timeout" value="1200000" />
         <entry key="enable-metering" value="true" />
         <entry key="enable-autodiscovery" value="true" />
+        <entry key="enable-arrayaffinity-discovery" value="true" />
         <entry key="enable-autoscan" value="false" />
 
         <entry key="capacity-compute-delay" value="5"/>

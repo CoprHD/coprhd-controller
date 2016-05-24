@@ -9,6 +9,7 @@
         <entry key="Discovery-block-unmanaged_volumes" value="volumediscovery-block-context.xml" />
         <entry key="Discovery-block-block_snapshots" value="snapshotdiscovery-block-context.xml" />
         <entry key="Discovery-block-array_affinity" value="arrayaffinitydiscovery-block-context.xml" />
+        <entry key="ArrayAffinity-block-array_affinity" value="arrayaffinitydiscovery-block-context.xml" />
         <entry key="Discovery-vplex-unmanaged_volumes" value="discovery-vplex-context.xml" />
         <entry key="Discovery-netapp-unmanaged_filesystems" value="discovery-netapp-context.xml" />
         <entry key="Discovery-netappc-unmanaged_filesystems" value="discovery-netappc-context.xml" />
@@ -77,6 +78,7 @@
         <!-- how often the job should be scheduled automatically -->
         <entry key="metering-interval" value="${controller_metering_interval}" />
         <entry key="discovery-interval" value="${controller_discovery_interval}" />
+        <entry key="arrayaffinity-discovery-interval" value="${controller_arrayaffinity_discovery_interval}" />
         <entry key="ns-discovery-interval" value="${controller_ns_discovery_interval}" />
         <entry key="compute-discovery-interval" value="${controller_compute_discovery_interval}" />
         <entry key="cs-discovery-interval" value="${controller_cs_discovery_interval}" />
@@ -86,6 +88,7 @@
         <!-- intervals to guard against refresh requests from the user -->
         <entry key="metering-refresh-interval" value="${controller_metering_refresh_interval}" />
         <entry key="discovery-refresh-interval" value="${controller_discovery_refresh_interval}" />
+        <entry key="arrayaffinity-discovery-refresh-interval" value="${controller_arrayaffinity_discovery_refresh_interval}" />
         <entry key="ns-discovery-refresh-interval" value="${controller_ns_discovery_refresh_interval}" />
         <entry key="compute-discovery-refresh-interval" value="${controller_compute_discovery_refresh_interval}" />
         <entry key="cs-discovery-refresh-interval" value="${controller_cs_discovery_refresh_interval}" />
@@ -99,6 +102,7 @@
         <!-- used in restricting the number of Arrays simultaneously running data
                   Collection Jobs -->
         <entry key="discovery-core-pool-size" value="${controller_discovery_core_pool_size}" />
+        <entry key="arrayaffinity-discovery-core-pool-size" value="${controller_arrayaffinity_discovery_core_pool_size}" />
 
         <entry key="compute-discovery-core-pool-size" value="3" />
         
@@ -112,6 +116,7 @@
         <entry key="sblim-timeout" value="1200000" />
         <entry key="enable-metering" value="${controller_enable_metering}" />
         <entry key="enable-autodiscovery" value="${controller_enable_autodiscovery}" />
+        <entry key="enable-arrayaffinity-discovery" value="${controller_enable_arrayaffinity_discovery}" />
         <entry key="enable-autoscan" value="${controller_enable_autoscan}" />
         <entry key="cim-connection-max-inactive-time" value="${cim_connection_max_inactive_time}" />
     </util:map>

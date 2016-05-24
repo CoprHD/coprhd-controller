@@ -1025,9 +1025,36 @@
 		<property name="value" value="3600" />
 		<property name="controlNodeOnly" value="true" />
 	</bean>
+	<bean id="controller_arrayaffinity_discovery_interval" class="com.emc.storageos.model.property.PropertyMetadata">
+		<property name="label" value="Array Affinity Discovery" />
+		<property name="description" value="Number of seconds between array affinity discovery operations." />
+		<property name="type" value="uint32" />
+		<property name="tag" value="Discovery" />
+		<property name="advanced" value="true" />
+		<property name="userMutable" value="true" />
+		<property name="userConfigurable" value="false" />
+		<property name="reconfigRequired" value="false" />
+		<property name="rebootRequired" value="true" />
+		<property name="value" value="3600" />
+		<property name="controlNodeOnly" value="true" />
+	</bean>
 	<bean id="controller_discovery_core_pool_size" class="com.emc.storageos.model.property.PropertyMetadata">
 		<property name="label" value="Discovery Threads" />
 		<property name="description" value="Number of threads each node uses for discovery of storage system." />
+		<property name="type" value="uint16" />
+		<property name="allowedValues" value="1,2,3" />
+		<property name="tag" value="Discovery" />
+		<property name="advanced" value="true" />
+		<property name="userMutable" value="true" />
+		<property name="userConfigurable" value="true" />
+		<property name="reconfigRequired" value="true" />
+		<property name="rebootRequired" value="true" />
+		<property name="value" value="3" />
+		<property name="controlNodeOnly" value="true" />
+	</bean>
+	<bean id="controller_arrayaffinity_discovery_core_pool_size" class="com.emc.storageos.model.property.PropertyMetadata">
+		<property name="label" value="Array Affinity Discovery Threads" />
+		<property name="description" value="Number of threads each node uses for array affinity discovery." />
 		<property name="type" value="uint16" />
 		<property name="allowedValues" value="1,2,3" />
 		<property name="tag" value="Discovery" />
@@ -1117,6 +1144,19 @@
 		<property name="value" value="600" />
 		<property name="controlNodeOnly" value="true" />
 	</bean>
+	<bean id="controller_arrayaffinity_discovery_refresh_interval" class="com.emc.storageos.model.property.PropertyMetadata">
+		<property name="label" value="Array Affinity Refresh Interval" />
+		<property name="description" value="Number of seconds before a new discovery operation is allowed since the last array affinity discovery operation." />
+		<property name="type" value="uint32" />
+		<property name="tag" value="Discovery" />
+		<property name="advanced" value="true" />
+		<property name="userMutable" value="true" />
+		<property name="userConfigurable" value="false" />
+		<property name="reconfigRequired" value="false" />
+		<property name="rebootRequired" value="true" />
+		<property name="value" value="600" />
+		<property name="controlNodeOnly" value="true" />
+	</bean>
 	<bean id="controller_scan_refresh_interval" class="com.emc.storageos.model.property.PropertyMetadata">
 		<property name="label" value="Scan Refresh Interval" />
 		<property name="description" value="Number of seconds before a new scan operation is allowed since the last scan of SMI-S provider operation." />
@@ -1186,6 +1226,20 @@
 	<bean id="controller_enable_autodiscovery" class="com.emc.storageos.model.property.PropertyMetadata">
 		<property name="label" value="Enable Auto-Discovery" />
 		<property name="description" value="Indicates whether auto-discovery is enabled." />
+		<property name="type" value="string" />
+		<property name="allowedValues" value="true,false" />
+		<property name="tag" value="Discovery" />
+		<property name="advanced" value="true" />
+		<property name="userMutable" value="true" />
+		<property name="userConfigurable" value="false" />
+		<property name="reconfigRequired" value="false" />
+		<property name="rebootRequired" value="true" />
+		<property name="value" value="true" />
+		<property name="controlNodeOnly" value="true" />
+	</bean>
+	<bean id="controller_enable_arrayaffinity_discovery" class="com.emc.storageos.model.property.PropertyMetadata">
+		<property name="label" value="Enable Array Affinity Discovery" />
+		<property name="description" value="Indicates whether array affinity discovery is enabled." />
 		<property name="type" value="string" />
 		<property name="allowedValues" value="true,false" />
 		<property name="tag" value="Discovery" />
@@ -2753,19 +2807,23 @@
 				<entry key="system_permit_root_console" value-ref="system_permit_root_console" />
 				<entry key="controller_metering_interval" value-ref="controller_metering_interval" />
 				<entry key="controller_discovery_interval" value-ref="controller_discovery_interval" />
+				<entry key="controller_arrayaffinity_discovery_interval" value-ref="controller_arrayaffinity_discovery_interval" />
 				<entry key="controller_discovery_core_pool_size" value-ref="controller_discovery_core_pool_size" />
+				<entry key="controller_arrayaffinity_discovery_core_pool_size" value-ref="controller_arrayaffinity_discovery_core_pool_size" />
 				<entry key="controller_scan_interval" value-ref="controller_scan_interval" />
 				<entry key="controller_ns_discovery_interval" value-ref="controller_ns_discovery_interval" />
 				<entry key="controller_compute_discovery_interval" value-ref="controller_compute_discovery_interval" />
 				<entry key="controller_cs_discovery_interval" value-ref="controller_cs_discovery_interval" />
 				<entry key="controller_metering_refresh_interval" value-ref="controller_metering_refresh_interval" />
 				<entry key="controller_discovery_refresh_interval" value-ref="controller_discovery_refresh_interval" />
+				<entry key="controller_arrayaffinity_discovery_refresh_interval" value-ref="controller_arrayaffinity_discovery_refresh_interval" />
 				<entry key="controller_scan_refresh_interval" value-ref="controller_scan_refresh_interval" />
 				<entry key="controller_ns_discovery_refresh_interval" value-ref="controller_ns_discovery_refresh_interval" />
 				<entry key="controller_compute_discovery_refresh_interval" value-ref="controller_compute_discovery_refresh_interval" />
 				<entry key="controller_cs_discovery_refresh_interval" value-ref="controller_cs_discovery_refresh_interval" />
 				<entry key="controller_enable_metering" value-ref="controller_enable_metering" />
 				<entry key="controller_enable_autodiscovery" value-ref="controller_enable_autodiscovery" />
+				<entry key="controller_enable_arrayaffinity_discovery" value-ref="controller_enable_arrayaffinity_discovery" />
 				<entry key="controller_enable_autoscan" value-ref="controller_enable_autoscan" />
 				<entry key="controller_enable_monitoring" value-ref="controller_enable_monitoring" />
 				<entry key="controller_smis_provider_version" value-ref="controller_smis_provider_version" />

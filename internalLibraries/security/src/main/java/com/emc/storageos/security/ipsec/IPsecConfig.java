@@ -12,17 +12,15 @@ package com.emc.storageos.security.ipsec;
 
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
-import com.emc.storageos.security.exceptions.*;
 import com.emc.storageos.security.exceptions.SecurityException;
 import com.emc.storageos.security.keystore.impl.CoordinatorConfigStoringHelper;
-import org.apache.commons.codec.binary.StringUtils;
-import org.apache.commons.lang.RandomStringUtils;
 import org.jsoup.helper.StringUtil;
 import org.slf4j.Logger;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
+import java.util.Calendar;
 
 /**
  * The class to read and write IPsec Configurations to ZK.
@@ -35,6 +33,7 @@ public class IPsecConfig {
     private static final String IPSEC_CONFIG_ID = "ipsec_config";
     private static final String IPSEC_PSK_KEY = "ipsec_key";
     public static final String IPSEC_STATUS = "ipsec_status";
+    private static final java.lang.String IPSEC_KEY_UPDATED_TIME = "ipsec_key_updated_time";
 
     // Properties injected by spring
     private CoordinatorClient coordinator;
@@ -72,6 +71,8 @@ public class IPsecConfig {
     public void setPreSharedKey(String preSharedKey) throws CoordinatorException {
         try {
             getCoordinatorHelper().createOrUpdateConfig(preSharedKey, IPSEC_CONFIG_LOCK, IPSEC_CONFIG_KIND, IPSEC_CONFIG_ID, IPSEC_PSK_KEY);
+            String updatedTime = Long.toString(Calendar.getInstance().getTime().getTime());
+            getCoordinatorHelper().createOrUpdateConfig(updatedTime, IPSEC_CONFIG_LOCK, IPSEC_CONFIG_KIND, IPSEC_CONFIG_ID, IPSEC_KEY_UPDATED_TIME);
         } catch (Exception e) {
             throw CoordinatorException.fatals.unableToPersistTheConfiguration(e);
         }
@@ -134,6 +135,14 @@ public class IPsecConfig {
         try {
             getCoordinatorHelper().createOrUpdateConfig(status.toLowerCase(),
                     IPSEC_CONFIG_LOCK, IPSEC_CONFIG_KIND, IPSEC_CONFIG_ID, IPSEC_STATUS);
+        } catch (Exception e) {
+            throw SecurityException.fatals.failToChangeIPsecStatus(e.getMessage());
+        }
+    }
+
+    public String getIpsecKeyUpdatedTime() {
+        try {
+            return getCoordinatorHelper().readConfig(IPSEC_CONFIG_KIND, IPSEC_CONFIG_ID, IPSEC_KEY_UPDATED_TIME);
         } catch (Exception e) {
             throw SecurityException.fatals.failToChangeIPsecStatus(e.getMessage());
         }

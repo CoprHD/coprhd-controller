@@ -63,7 +63,10 @@ public class MailHelper {
         this.coordinatorClient = coordinatorClient;
     }
 
-    public void sendMailMessage(String to, String subject, String html) {
+    /**
+     * @return true if mail is sent out successfully, otherwise return false
+     */
+    public boolean sendMailMessage(String to, String subject, String html) {
         try {
             JavaMailSender mailSender = getMailSender();
             if (mailSender != null) {
@@ -81,15 +84,15 @@ public class MailHelper {
                 helper.setSubject(subject);
 
                 mailSender.send(mimeMessage);
+                return true;
             }
             else {
                 log.warn("Unable to send notification email.  Email settings not configured.");
             }
         } catch (MailException | MessagingException ex) {
-            String message = String.format("Failed to notify user by email");
-            log.error(message, ex);
-            throw APIException.internalServerErrors.genericApisvcError(message, ex);
+            log.error("Failed to notify user by email", ex);
         }
+        return false;
     }
 
     private JavaMailSender getMailSender() {

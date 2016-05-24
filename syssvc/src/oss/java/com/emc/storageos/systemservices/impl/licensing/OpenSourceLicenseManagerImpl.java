@@ -32,9 +32,9 @@ public class OpenSourceLicenseManagerImpl implements LicenseManager{
     private static final Logger _log = LoggerFactory.getLogger(OpenSourceLicenseManagerImpl.class);
 
     private static final String LICENSE_TEXT = "INCREMENT ViPR_Controller EMCLM 1.0 permanent uncounted " +
-            "VENDOR_STRING=CAPACITY=300;CAPACITY_UNIT=TB;CAPACITY_TYPE=MANAGED;SWID=R27WRZ98BBF6XS;PLC=VIPR; " +
-            "HOSTID=ANY dist_info=\"ACTIVATED TO CoprHD\" ISSUER=CoprHD " +
-            "ISSUED=10-Jan-2014 NOTICE=\"ACTIVATED TO Apache License v2.0\" " +
+            "VENDOR_STRING=CAPACITY=10000;CAPACITY_UNIT=TB;CAPACITY_TYPE=MANAGED;SWID=R27WRZ98BBF6XS;PLC=VIPR; " +
+            "HOSTID=ANY dist_info=\"Distributed under the Apache License, Version 2.0\" ISSUER=CoprHD " +
+            "ISSUED=10-Jan-2014 NOTICE=\"Distributed under the Apache License, Version 2.0\" " +
             "SN=CoprHD SIGN=\"00E7 2A99 8BF5 1676 9FB1 " +
             "297E 83A6 C000 8165 7A29 B14E 478D 3759 98DD 250E\"";
 
@@ -75,7 +75,7 @@ public class OpenSourceLicenseManagerImpl implements LicenseManager{
         LicenseFeature licenseFeature = new LicenseFeature();
         licenseFeature.setDateExpires(null);
         licenseFeature.setExpired(false);
-        licenseFeature.setStorageCapacity("322122547200");
+        licenseFeature.setStorageCapacity("32212254720000");
         licenseFeature.setProductId("R27WRZ98BBF6XS");
         licenseFeature.setSerial("R27WRZ98BBF6XS");
         String subModelId=LicenseFeature.NEW_MANAGED_LICENSE_SUBMODEL;
@@ -83,7 +83,7 @@ public class OpenSourceLicenseManagerImpl implements LicenseManager{
         licenseFeature.setDateIssued("01/10/2014");
         licenseFeature.setLicenseIdIndicator("U");
         licenseFeature.setVersion("2.0");
-        licenseFeature.setNotice("ACTIVATED TO CoprHD");
+        licenseFeature.setNotice("Distributed under the Apache License, Version 2.0");
         licenseFeature.setTrialLicense(false);
         licenseFeature.setLicensed(true);
 

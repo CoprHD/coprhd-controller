@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2016 EMC Corporation
+ * All Rights Reserved
+ */
+
 package com.emc.storageos.driver.driversimulator;
 
 import java.util.ArrayList;
@@ -10,6 +15,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import com.emc.storageos.storagedriver.DefaultStorageDriver;
 import org.apache.commons.lang.mutable.MutableBoolean;
 import org.apache.commons.lang.mutable.MutableInt;
 import org.slf4j.Logger;
@@ -26,6 +32,7 @@ import com.emc.storageos.storagedriver.model.StorageHostComponent;
 import com.emc.storageos.storagedriver.model.StorageObject;
 import com.emc.storageos.storagedriver.model.StoragePool;
 import com.emc.storageos.storagedriver.model.StoragePort;
+import com.emc.storageos.storagedriver.model.StorageProvider;
 import com.emc.storageos.storagedriver.model.StorageSystem;
 import com.emc.storageos.storagedriver.model.StorageVolume;
 import com.emc.storageos.storagedriver.model.VolumeClone;
@@ -36,7 +43,7 @@ import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
 
 
-public class StorageDriverSimulator extends AbstractStorageDriver implements BlockStorageDriver {
+public class StorageDriverSimulator extends DefaultStorageDriver implements BlockStorageDriver {
 
     private static final Logger _log = LoggerFactory.getLogger(StorageDriverSimulator.class);
     private static final String DRIVER_NAME = "SimulatorDriver";
@@ -86,7 +93,16 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
 
     @Override
     public RegistrationData getRegistrationData() {
-        RegistrationData registrationData = new RegistrationData("driverSimulator", "driversystem", null);
+        RegistrationData registrationData = new RegistrationData();
+        registrationData.setDriverClassName(this.getClass().getName());
+        registrationData.setStorageSystemType("driversystem");
+        registrationData.setStorageSystemTypeDisplayName("Driver Simulator");
+        registrationData.setIsManagedByProvider(false);
+        registrationData.setSupportsSsl(false);
+        registrationData.setPortNumber("8080");
+        registrationData.setStorageType(RegistrationData.SupportedStorageType.BLOCK);
+        registrationData.setDriverVersion("1.0.0.0");
+        registrationData.setSupportedSdkVersions(Arrays.asList("3.2.0.0"));
         return registrationData;
     }
 
@@ -887,4 +903,8 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
         return null;
     }
 
+    @Override
+    public DriverTask discoverStorageProvider(StorageProvider storageProvider, List<StorageSystem> storageSystems) {
+        return null;
+    }
 }

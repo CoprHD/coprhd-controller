@@ -12,13 +12,15 @@ import com.emc.storageos.vnxe.models.VNXeIscsiNode;
 public class IscsiNodeRequests extends KHRequests<VNXeIscsiNode> {
     private static final String URL = "/api/instances/iscsiNode/";
     private static final String URL_ALL = "/api/types/iscsiNode/instances";
+    private static final String FIELDS = "name,alias,ethernetPort.id,ethernetPort.storageProcessor, ethernetPort.health";
 
     public IscsiNodeRequests(KHClient client) {
         super(client);
+        _fields = FIELDS;
     }
 
     public VNXeIscsiNode get(String id) {
-        _url = URL + id;
+        _url = URL + id ;
         return getDataForOneObject(VNXeIscsiNode.class);
     }
 

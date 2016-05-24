@@ -303,7 +303,7 @@ public class HDSBatchApiExportManager {
             unDeletedHSDs.addAll(hsdList);
             boolean operationSucceeds = false;
             int retryCount = 0;
-            while (!operationSucceeds && retryCount <= MAX_RETRIES) {
+            while (!operationSucceeds && retryCount < MAX_RETRIES) {
                 retryCount++;
                 String deleteHSDsQuery = constructDeleteHSDsQuery(systemId, unDeletedHSDs, model);
                 log.info("Batch Query to delete HSD's: {}", deleteHSDsQuery);
@@ -321,6 +321,7 @@ public class HDSBatchApiExportManager {
                         Error error = javaResult.getBean(Error.class);
                         if (error != null && (error.getDescription().contains("2010")
                                 || error.getDescription().contains("5132") || error.getDescription().contains("7473"))) {
+                            log.error("Error response recieved from HiCommandManger: {}", error.getDescription());
                             log.info("Exception from HICommand Manager recieved during delete operation, retrying operation {} time",
                                     retryCount);
                             Thread.sleep(60000); // Wait for a minute before retry
@@ -374,39 +375,11 @@ public class HDSBatchApiExportManager {
      * @throws Exception
      */
     public HostStorageDomain getHostStorageDomain(String systemId, String hsdId) {
-        InputStream responseStream = null;
         HostStorageDomain hsd = null;
         try {
-            Map<String, Object> attributeMap = new HashMap<String, Object>();
-            StorageArray array = new StorageArray(systemId);
-            attributeMap.put(HDSConstants.STORAGEARRAY, array);
-            Get getOp = new Get(HDSConstants.STORAGEARRAY);
-            attributeMap.put(HDSConstants.GET, getOp);
-            HostStorageDomain inputHsd = new HostStorageDomain(hsdId);
-            attributeMap.put(HDSConstants.HOST_STORAGE_DOMAIN, inputHsd);
-
-            String getHSDQuery = InputXMLGenerationClient.getInputXMLString(
-                    HDSConstants.GET_HSD_INFO_OP, attributeMap,
-                    HDSConstants.HITACHI_INPUT_XML_CONTEXT_FILE,
-                    HDSConstants.HITACHI_SMOOKS_CONFIG_FILE);
-
-            log.info("Query to get HostStorageDomain: {}", getHSDQuery);
-            URI endpointURI = hdsApiClient.getBaseURI();
-            ClientResponse response = hdsApiClient.post(endpointURI, getHSDQuery);
-            if (HttpStatus.SC_OK == response.getStatus()) {
-                responseStream = response.getEntityInputStream();
-                JavaResult javaResult = SmooksUtil.getParsedXMLJavaResult(responseStream,
-                        HDSConstants.SMOOKS_CONFIG_FILE);
-                hsd = javaResult.getBean(HostStorageDomain.class);
-            } 
-        } finally {
-            if (null != responseStream) {
-                try {
-                    responseStream.close();
-                } catch (IOException e) {
-                    log.warn("IOException occurred while closing the response stream");
-                }
-            }
+            hsd = hdsApiClient.getHDSApiExportManager().getHostStorageDomain(systemId, hsdId);
+        } catch (Exception e) {//Nothing much can be done, So log exception and ignore the HSD in question
+            log.warn("Exception occured while getting HostStorageDomain", e);
         }
         return hsd;
     }
@@ -429,7 +402,7 @@ public class HDSBatchApiExportManager {
         try {
             boolean operationSucceeds = false;
             int retryCount = 0;
-            while (!operationSucceeds && retryCount <= MAX_RETRIES) {
+            while (!operationSucceeds && retryCount < MAX_RETRIES) {
                 retryCount++;
                 String deleteLUNsQuery = constructRemoveLUNsQuery(systemId,
                         pathList, model);
@@ -448,6 +421,7 @@ public class HDSBatchApiExportManager {
                         Error error = javaResult.getBean(Error.class);
                         if (error != null && (error.getDescription().contains("2010")
                                 || error.getDescription().contains("5132") || error.getDescription().contains("7473"))) {
+                            log.error("Error response recieved from HiCommandManger: {}", error.getDescription());
                             log.info("Exception from HICommand Manager recieved during delete operation, retrying operation {} time",
                                     retryCount);
                             Thread.sleep(60000); // Wait for a minute before retry
@@ -459,7 +433,6 @@ public class HDSBatchApiExportManager {
                                                     response.getStatus()));
                         }
                     }
-                    operationSucceeds = true;
                     log.info("Deleted {} LUN paths from system:{}",
                             pathList.size(), systemId);
                 } else {

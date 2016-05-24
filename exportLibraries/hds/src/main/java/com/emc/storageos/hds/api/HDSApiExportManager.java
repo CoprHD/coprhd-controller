@@ -974,7 +974,7 @@ public class HDSApiExportManager {
         try {
             boolean operationSucceeds = false;
             int retryCount = 0;
-            while (!operationSucceeds && retryCount <= MAX_RETRIES) {
+            while (!operationSucceeds && retryCount < MAX_RETRIES) {
                 retryCount++;
                 String deleteLUNsQuery = constructDeleteLunPathsQuery(systemObjectId,
                         pathObjectIdList, model);
@@ -993,6 +993,7 @@ public class HDSApiExportManager {
                         Error error = javaResult.getBean(Error.class);
                         if (error != null && (error.getDescription().contains("2010")
                                 || error.getDescription().contains("5132") || error.getDescription().contains("7473"))) {
+                            log.error("Error response recieved from HiCommandManger: {}", error.getDescription());
                             log.info("Exception from HICommand Manager recieved during delete operation, retrying operation {} time",
                                     retryCount);
                             Thread.sleep(60000); // Wait for a minute before retry
@@ -1004,7 +1005,6 @@ public class HDSApiExportManager {
                                                     response.getStatus()));
                         }
                     }
-                    operationSucceeds = true; // Operation succeeded
                     log.info("Deleted {} LUN paths from system:{}",
                             pathObjectIdList.size(), systemObjectId);
                 } else {

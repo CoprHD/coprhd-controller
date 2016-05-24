@@ -3863,6 +3863,10 @@ public class VolumeIngestionUtil {
             BlockConsistencyGroup cg = new BlockConsistencyGroup();
             cg.setId(URIUtil.createId(BlockConsistencyGroup.class));
             cg.setLabel(cgName);
+            if (NullColumnValueGetter.isNotNullValue(umcg.getNativeId())) {
+                cg.setNativeId(umcg.getNativeId());
+            }
+
             cg.setProject(new NamedURI(projectUri, context.getProject().getLabel()));
             cg.setTenant(context.getProject().getTenantOrg());
             cg.addConsistencyGroupTypes(Types.LOCAL.name());

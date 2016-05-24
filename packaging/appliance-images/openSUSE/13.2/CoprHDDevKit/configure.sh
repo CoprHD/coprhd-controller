@@ -26,6 +26,10 @@ function installRepositories
          --no-gpgcheck http://download.opensuse.org/repositories/Virtualization:/Appliances/openSUSE_13.2 suse-13.2-appliances
   zypper --non-interactive --no-gpg-checks addrepo --no-check --name suse-13.2-containers \
          --no-gpgcheck http://download.opensuse.org/repositories/Virtualization:/containers/openSUSE_13.2 suse-13.2-containers
+  zypper --non-interactive --no-gpg-checks addrepo --no-check --name suse-13.2-filesystems-ceph \
+         --no-gpgcheck http://download.opensuse.org/repositories/filesystems:/ceph:/Unstable/openSUSE_13.2 suse-13.2-filesystems-ceph
+  zypper --non-interactive --no-gpg-checks addrepo --no-check --name suse-13.2-electronics \
+         --no-gpgcheck http://download.opensuse.org/repositories/electronics/openSUSE_13.2 suse-13.2-electronics
 
   zypper --non-interactive --no-gpg-checks modifyrepo --priority  3 suse-13.2-oss
   zypper --non-interactive --no-gpg-checks modifyrepo --priority  3 suse-13.2-oss-update
@@ -37,6 +41,8 @@ function installRepositories
   zypper --non-interactive --no-gpg-checks modifyrepo --priority  5 suse-13.2-building
   zypper --non-interactive --no-gpg-checks modifyrepo --priority  1 suse-13.2-appliances
   zypper --non-interactive --no-gpg-checks modifyrepo --priority  1 suse-13.2-containers
+  zypper --non-interactive --no-gpg-checks modifyrepo --priority  1 suse-13.2-filesystems-ceph
+  zypper --non-interactive --no-gpg-checks modifyrepo --priority  1 suse-13.2-electronics
 
   return 0
 }
@@ -51,6 +57,8 @@ function installPackages
   cp -f /etc/zypp/repos.d/suse-13.2-network.repo /tmp/coprhd.d/
   cp -f /etc/zypp/repos.d/suse-13.2-seife.repo /tmp/coprhd.d/
   cp -f /etc/zypp/repos.d/suse-13.2-containers.repo /tmp/coprhd.d/
+  cp -f /etc/zypp/repos.d/suse-13.2-filesystems-ceph.repo /tmp/coprhd.d/
+  cp -f /etc/zypp/repos.d/suse-13.2-electronics.repo /tmp/coprhd.d/
 
   ISO=$(mount | grep openSUSE-13.2-DVD-x86_64.iso | cut -d ' ' -f 3)
   if [ ! -z "${ISO}" ]; then
@@ -60,7 +68,7 @@ function installPackages
   fi
 
   zypper --reposd-dir=/tmp/coprhd.d --non-interactive --no-gpg-checks refresh
-  zypper --reposd-dir=/tmp/coprhd.d --non-interactive --no-gpg-checks install --details --no-recommends --force-resolution ant apache2-mod_perl apache2-prefork atop bind-libs bind-utils ca-certificates-cacert ca-certificates-mozilla curl createrepo dhcpcd docker docker-compose expect fontconfig fonts-config gcc-c++ GeoIP GeoIP-data git git-core glib2-devel gpgme grub2 ifplugd inst-source-utils iproute2 iputils java-1_7_0-openjdk java-1_7_0-openjdk-devel java-1_8_0-openjdk java-1_8_0-openjdk-devel keepalived kernel-default kernel-default-devel kernel-source kiwi kiwi-desc-isoboot kiwi-desc-oemboot kiwi-desc-vmxboot kiwi-templates libaudiofile1 libesd0 libgcrypt-devel libGeoIP1 libgpg-error-devel libmng2 libopenssl-devel libpcrecpp0 libpcreposix0 libqt4 libqt4-sql libqt4-x11 libSDL-1_2-0 libserf-devel libtool libuuid-devel libvpx1 libxml2-devel libXmu6 lvm2 make mkfontdir mkfontscale mozilla-nss-certs netcfg net-tools ndisc6 nfs-client openssh openssh-fips p7zip pam-devel parted pcre-devel perl-Config-General perl-Error perl-Tk plymouth python-cjson python-devel python-gpgme python-iniparse python-libxml2 python-py python-requests python-setools qemu qemu-tools readline-devel regexp rpm-build setools-libs sipcalc sshpass strongswan strongswan-ipsec strongswan-libs0 subversion sudo SuSEfirewall2 sysconfig sysconfig-netconfig syslinux sysstat systemd-logger tar telnet unixODBC vim virtualbox virtualbox-guest-tools virtualbox-guest-kmp-default virtualbox-host-kmp-default wget xbitmaps xfsprogs xml-commons-jaxp-1.3-apis xmlstarlet xorg-x11-essentials xorg-x11-fonts xorg-x11-server xz-devel yum zlib-devel
+  zypper --reposd-dir=/tmp/coprhd.d --non-interactive --no-gpg-checks install --details --no-recommends --force-resolution ant apache2-mod_perl apache2-prefork atop bind-libs bind-utils ca-certificates-cacert ca-certificates-mozilla curl createrepo dhcpcd docker docker-compose expect fontconfig fonts-config gcc-c++ GeoIP GeoIP-data git git-core glib2-devel gpgme grub2 ifplugd inst-source-utils iproute2 iputils java-1_7_0-openjdk java-1_7_0-openjdk-devel java-1_8_0-openjdk java-1_8_0-openjdk-devel keepalived kernel-default kernel-default-devel kernel-source kiwi kiwi-desc-isoboot kiwi-desc-oemboot kiwi-desc-vmxboot kiwi-templates libaudiofile1 libesd0 libgcrypt-devel libGeoIP1 libgpg-error-devel libmng2 libopenssl-devel libpcrecpp0 libpcreposix0 libqt4 libqt4-sql libqt4-x11 libSDL-1_2-0 libserf-devel libtool libuuid-devel libvpx1 libxml2-devel libXmu6 lvm2 make mkfontdir mkfontscale mozilla-nss-certs netcfg net-tools ndisc6 nfs-client openssh openssh-fips p7zip pam-devel parted pcre-devel perl-Config-General perl-Error perl-Tk plymouth python-cjson python-devel python-gpgme python-iniparse python-libxml2 python-py python-requests python-setools qemu qemu-tools readline-devel regexp rpm-build setools-libs sipcalc sshpass strongswan strongswan-ipsec strongswan-libs0 subversion sudo SuSEfirewall2 sysconfig sysconfig-netconfig syslinux sysstat systemd-logger tar telnet unixODBC vim virtualbox virtualbox-guest-tools virtualbox-guest-kmp-default virtualbox-host-kmp-default wget xbitmaps xfsprogs xml-commons-jaxp-1.3-apis xmlstarlet xorg-x11-essentials xorg-x11-fonts xorg-x11-server xz-devel yum zlib-devel boost-license1_58_0 libboost_system1_58_0 libboost_thread1_58_0 librados2 librbd1
   rm -fr /tmp/coprhd.d
 
   # distribution updates and security fixes
@@ -68,9 +76,8 @@ function installPackages
   cp -f /etc/zypp/repos.d/*.repo /tmp/coprhd.d/
 
   zypper --reposd-dir=/tmp/coprhd.d --non-interactive --no-gpg-checks refresh
-  zypper --reposd-dir=/tmp/coprhd.d --non-interactive --no-gpg-checks install --oldpackage docker=1.8.3-43.1 lvm2=2.02.98-43.24.1 udev=210.1448627060.53ee915-25.27.1 libudev1=210.1448627060.53ee915-25.27.1
   # package updates from the repo above (suse-13.2-oss-update)
-  zypper --reposd-dir=/tmp/coprhd.d --non-interactive --no-gpg-checks patch -g security --no-recommends
+  zypper --reposd-dir=/tmp/coprhd.d --non-interactive --non-interactive-include-reboot-patches --no-gpg-checks patch -g security --no-recommends
   rm -fr /tmp/coprhd.d
 
   zypper --non-interactive clean
@@ -88,12 +95,18 @@ function installJava
 function installNginx
 {
   mkdir -p /tmp/nginx
-  wget --continue --output-document=/tmp/nginx/nginx-1.6.2.tar.gz http://nginx.org/download/nginx-1.6.2.tar.gz
-  wget --continue --output-document=/tmp/nginx/v0.3.0.tar.gz https://github.com/yaoweibin/nginx_upstream_check_module/archive/v0.3.0.tar.gz
-  wget --continue --output-document=/tmp/nginx/v0.25.tar.gz https://github.com/openresty/headers-more-nginx-module/archive/v0.25.tar.gz
-  tar --directory=/tmp/nginx -xzf /tmp/nginx/nginx-1.6.2.tar.gz
-  tar --directory=/tmp/nginx -xzf /tmp/nginx/v0.3.0.tar.gz
-  tar --directory=/tmp/nginx -xzf /tmp/nginx/v0.25.tar.gz
+  if [ -d /nginx-1.6.2 -a -d /nginx_upstream_check_module-0.3.0 -a -d /headers-more-nginx-module-0.25 ]; then
+    mv /nginx-1.6.2 /tmp/nginx/
+    mv /nginx_upstream_check_module-0.3.0 /tmp/nginx/
+    mv /headers-more-nginx-module-0.25 /tmp/nginx/
+  else
+    wget --continue --output-document=/tmp/nginx/nginx-1.6.2.tar.gz http://nginx.org/download/nginx-1.6.2.tar.gz
+    wget --continue --output-document=/tmp/nginx/v0.3.0.tar.gz https://github.com/yaoweibin/nginx_upstream_check_module/archive/v0.3.0.tar.gz
+    wget --continue --output-document=/tmp/nginx/v0.25.tar.gz https://github.com/openresty/headers-more-nginx-module/archive/v0.25.tar.gz
+    tar --directory=/tmp/nginx -xzf /tmp/nginx/nginx-1.6.2.tar.gz
+    tar --directory=/tmp/nginx -xzf /tmp/nginx/v0.3.0.tar.gz
+    tar --directory=/tmp/nginx -xzf /tmp/nginx/v0.25.tar.gz
+  fi
   patch --directory=/tmp/nginx/nginx-1.6.2 -p1 < /tmp/nginx/nginx_upstream_check_module-0.3.0/check_1.5.12+.patch
   bash -c "cd /tmp/nginx/nginx-1.6.2; ./configure --add-module=/tmp/nginx/nginx_upstream_check_module-0.3.0 --add-module=/tmp/nginx/headers-more-nginx-module-0.25 --with-http_ssl_module --prefix=/usr --conf-path=/etc/nginx/nginx.conf"
   make --directory=/tmp/nginx/nginx-1.6.2
@@ -352,7 +365,10 @@ EOF
 function updateOVF
 {
   OVF=$2
+  DISK=$( grep -oP 'ovf:href="\K[^"]*' ${OVF} )
+  SIZE=$( stat -c %s "$( dirname ${OVF} )/${DISK}" )
 
+  sed -i "s|ovf:id=\"file1\"|ovf:id=\"file1\" ovf:size=\"${SIZE}\"|g" ${OVF}
   cat ${OVF} | head -n -2 > ${OVF}.tmp
   sed -i "s|<VirtualHardwareSection>|<VirtualHardwareSection ovf:transport=\"iso\" ovf:required=\"false\">|g" ${OVF}.tmp
   sed -i "s|<vssd:VirtualSystemType>virtualbox-[0-9a-z.]\{1,\}</vssd:VirtualSystemType>|<vssd:VirtualSystemType>vmx-07</vssd:VirtualSystemType>|g" ${OVF}.tmp

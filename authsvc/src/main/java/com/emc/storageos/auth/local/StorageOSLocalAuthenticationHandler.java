@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.auth.local;
 
+import com.emc.storageos.auth.impl.LdapFailureHandler;
 import com.emc.storageos.auth.StorageOSAuthenticationHandler;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.model.property.PropertyInfo;
@@ -124,5 +125,10 @@ public class StorageOSLocalAuthenticationHandler implements StorageOSAuthenticat
         return credentials != null
                 && (UsernamePasswordCredentials.class.isAssignableFrom(credentials.getClass()))
                 && exists(((UsernamePasswordCredentials) (credentials)).getUserName());
+    }
+
+    @Override
+    public void setFailureHandler(LdapFailureHandler failureHandler) {
+        return;
     }
 }

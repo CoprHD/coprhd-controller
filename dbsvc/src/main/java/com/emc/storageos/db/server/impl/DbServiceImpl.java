@@ -453,7 +453,7 @@ public class DbServiceImpl implements DbService {
         }
 
         Long offlineTime = dbOfflineEventInfo.getOfflineTimeInMS(localNodeId);
-        if (offlineTime != null && offlineTime >= MAX_SERVICE_OUTAGE_TIME) {
+        if (!isDirEmpty && offlineTime != null && offlineTime >= MAX_SERVICE_OUTAGE_TIME) {
             String errMsg = String.format("This node is offline for more than %s days. It may bring stale data into " +
                     "database, so the service cannot continue to boot. Please poweroff this node and follow our " +
                     "node recovery procedure to recover this node", offlineTime/TimeUtils.DAYS);

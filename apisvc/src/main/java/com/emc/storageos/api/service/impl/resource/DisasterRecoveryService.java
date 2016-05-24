@@ -454,6 +454,7 @@ public class DisasterRecoveryService {
             isActiveSite.setIsActive(localSite.getState() == SiteState.ACTIVE);
             isActiveSite.setLocalSiteName(localSite.getName());
             isActiveSite.setLocalUuid(localSite.getUuid());
+            isActiveSite.setIsMultiSite(drUtil.isMultisite());
             return isActiveSite;
         } catch (Exception e) {
             log.error("Can't get site is Active or Standby");

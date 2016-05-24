@@ -21,7 +21,6 @@ import com.emc.storageos.volumecontroller.Job;
 import com.emc.storageos.volumecontroller.JobContext;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.JobPollResult;
-import com.iwave.ext.netappc.NetAppCException;
 import com.iwave.ext.netappc.model.SnapmirrorInfoResp;
 
 public class NetAppSnapMirrorDestroyJob extends Job implements Serializable {
@@ -77,7 +76,7 @@ public class NetAppSnapMirrorDestroyJob extends Job implements Serializable {
                     } else {
                         setSuccessStatus(currentJob);
                     }
-                } catch (NetAppCException ex) {
+                } catch (Exception ex) {
                     if (!_storageSystemUri.equals(_storageSystemUriSource)) {
                         netAppCApi = getNetappCApiSource(jobContext);
                         if (netAppCApi == null) {

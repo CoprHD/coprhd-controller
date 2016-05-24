@@ -24,7 +24,14 @@ def clusterip_querystatus(args):
 def clusterip_reconfig(args):
     bourne.connect(args.vip)
     return bourne.clusterip_reconfig(args.ipinfo);
-    return
+
+def clusterip_shuffle(args):
+    bourne.connect(args.vip)
+    return bourne.clusterip_shuffle(args.ipinfo);
+
+def clusterip_waitfor_reconfig_finish(args):
+    bourne.connect(args.vip)
+    return bourne.clusterip_waitfor_reconfig_finish(args.interval, args.timeout);
 
 #----------------------------------------------------------------------
 # command-line parsing
@@ -37,7 +44,7 @@ except:
 
 # ipreconfig <cmd> <cmd_args> [--ip ipaddr]
 parser = argparse.ArgumentParser(description = 'Bourne ipchange cli usage.')
-parser.add_argument('cmd', help = 'cmd = ( query | querystatus | reconfig) ')
+parser.add_argument('cmd', help = 'cmd = ( query | querystatus | reconfig | shuffle | waitfor_reconfig_finish ) ')
 parser.add_argument('--vip',	metavar = 'ipaddr',	help = 'VIP address of bourne', default=bourne_ip)
 
 # query cluster ip
@@ -48,8 +55,15 @@ querystatus = argparse.ArgumentParser(parents = [parser], conflict_handler='reso
 
 # reconfig cluster IPs
 reconfig = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
-reconfig.add_argument('ipinfo',    help = 'cluster IPs info. Format is like: <site1 ShortId>:<VIP>,<GW>,<NETMASK>,<Node1 IP>,<Node2 IP>..;<site2 ShortId>:<VIP>,...<Node1 IP>...;...')
+reconfig.add_argument('ipinfo',    help = 'cluster IPs info. Format is like: <site1 ShortId>:<VIP>,<Node1 IP>,<Node2 IP>,..,<GW>,<NETMASK>;<site2 ShortId>:<VIP><Node1 IP>...;...')
 
+# shuffle cluster IPs
+shuffle = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+shuffle.add_argument('ipinfo',    help = 'cluster IPs info. Format is like: <site1 ShortId>:<VIP>,<Node1 IP>,<Node2 IP>,..,<GW>,<NETMASK>;<site2 ShortId>:<VIP><Node1 IP>...;...')
+
+waitfor_reconfig_finish = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+waitfor_reconfig_finish.add_argument('interval',    help = 'interval to query ipreconfig status. Unit is second.', type=float)
+waitfor_reconfig_finish.add_argument('timeout',    help = 'timeout to wait ipreconfig finish, either succeed or failed. Unit is second.', type=float)
 
 try:
 
@@ -60,17 +74,25 @@ try:
 
     bourne = Bourne()
 
+    rc=1
     if  (cmd == "query"):
         args = query.parse_args()
-        clusterip_query(args)
+        rc = clusterip_query(args)
     elif (cmd == "querystatus"):
         args = querystatus.parse_args()
-        clusterip_querystatus(args)
+        rc = clusterip_querystatus(args)
     elif (cmd == "reconfig"):
         args = reconfig.parse_args()
-        clusterip_reconfig(args)
+        rc = clusterip_reconfig(args)
+    elif (cmd == "shuffle"):
+        args = shuffle.parse_args()
+        rc = clusterip_shuffle(args)
+    elif (cmd == "waitfor_reconfig_finish"):
+        args = waitfor_reconfig_finish.parse_args()
+        rc = clusterip_waitfor_reconfig_finish(args)
     else:
         parser.print_help()
+    exit(rc)
 
 except:
     raise

@@ -7583,6 +7583,24 @@ dr_tests()
     fi
 }
 
+ipreconfig_test()
+{
+    active_site_ip=${1}
+
+    currIpinfo=$(iptool query --vip "${active_site_ip}" 2>&1| grep ^vdc_vdc)
+    [ $? -eq 0 ] || { echo "Failed to query cluster ip. Errstr:"; echo $currIpinfo; exit 1; }
+
+    newIpinfo=$(iptool shuffle --vip "${active_site_ip}" "${currIpinfo}" 2>&1| grep ^vdc_vdc)
+    [ $? -eq 0 ] || { echo "Failed to shuffle cluster ip. Errstr:"; echo $newIpinfo; exit 1; }
+    
+    reconfig_rc=$(iptool reconfig --vip "${active_site_ip}" "${newIpinfo}" 2>&1)
+    [ $? -eq 0 ] || { echo "Failed to trigger cluster ip reconfiguration. Errstr:"; echo $reconfig_rc; exit 1; }
+   
+    iptool waitfor_reconfig_finish --vip "${active_site_ip}" 10 300
+    rc=$?
+    [ rc -eq 0 ] || { echo "Failed to reconfig cluster ip. Err status: "; echo $rc; exit 1; } # 1 for 5m timeout (for sanity test), 2 for failure
+}
+
 dr_basic_tests()
 {
     projectid=$(project query $PROJECT)
@@ -7665,6 +7683,11 @@ dr_basic_tests()
     # wait for both sites stable so able to pause standby
     wait_for_site_stable "${DR_SITE_A_IP}" "${DR_SITE_B_IP}"
 
+    # ipreconfig test after standby addition
+    ipreconfig_test "${DR_SITE_A_IP}"
+    # wait for both sites stable so able to pause standby
+    wait_for_site_stable "${DR_SITE_A_IP}" "${DR_SITE_B_IP}"
+
     # pause standby
     echo "---PAUSE SITE $standby_site---"
     BOURNE_IPADDR=$DR_SITE_A_IP
@@ -7700,6 +7723,10 @@ dr_basic_tests()
     echo "wait for $standby_site to become stable"
     dr waitforstable 30 1200
     project show ${projectid_new}
+
+    # ipreconfig test after standby pause&resume
+    ipreconfig_test "${DR_SITE_A_IP}"
+    wait_for_site_stable "${DR_SITE_A_IP}" "${DR_SITE_B_IP}"
 
     echo "---PREPARING STANDBY_DEGRADED TEST---"
     syssvc $CONFIG_FILE "$DR_SITE_A_IP" set_prop system_permit_root_ssh yes
@@ -7751,6 +7778,10 @@ dr_basic_tests()
 
     # NOTE: active site and standby site has been switched, site A is standby and site B is active now
 
+    # ipreconfig test after switchover
+    ipreconfig_test "${DR_SITE_B_IP}"
+    wait_for_site_stable "${DR_SITE_A_IP}" "${DR_SITE_B_IP}"
+
     # failover test part
     echo "Stopping active site $DR_SITE_B_NAME services to prepare for failover test ..."
     stop_vdc_services "$DR_SITE_B_IP"
@@ -7777,6 +7808,10 @@ dr_basic_tests()
 
     echo "Wait site state to become ACTIVE after failover ..."
     dr waitforstate $active_site ACTIVE 30 600 --ip "${DR_SITE_A_IP}"
+
+    # ipreconfig test after failover
+    ipreconfig_test "${DR_SITE_A_IP}"
+    wait_for_site_stable "${DR_SITE_A_IP}"
 
     # failback test part
     echo "Starting old active site $DR_SITE_B_NAME services ..."
@@ -7805,6 +7840,10 @@ dr_basic_tests()
 
     # NOTE: after switchover and failover (then resume old active), site A is active and site B is standby (STANDBY_SYNCED state)
 
+    # ipreconfig test
+    ipreconfig_test "${DR_SITE_A_IP}"
+    wait_for_site_stable "${DR_SITE_A_IP}" "${DR_SITE_B_IP}"
+
     # delete standby
     echo "---DELETE STANDBY $standby_site---"
     BOURNE_IPADDR=$DR_SITE_A_IP
@@ -7827,6 +7866,10 @@ dr_basic_tests()
     project create $TESTPROJECT --tenant $TENANT
     test_projectid=$(project query $TESTPROJECT)
     echo "Project id of $TESTPROJECT is $test_projectid."
+
+    # ipreconfig test
+    ipreconfig_test "${DR_SITE_A_IP}"
+    wait_for_site_stable "${DR_SITE_A_IP}"
 
     #disabling pipefail option to pipe exit codes
     set +o pipefail

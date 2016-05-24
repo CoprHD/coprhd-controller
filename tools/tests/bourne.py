@@ -32,6 +32,7 @@ import socket
 import zlib
 import struct
 from time import sleep
+from random import shuffle
 
 try:
     # OpenSUSE CoprHD kits tend to display certificate warnings which aren't
@@ -8872,8 +8873,8 @@ class Bourne:
             raise Exception('Query cluster IPs failed')
         print 'Query cluster IPs succeed. Result: ' + response.text
         data=response.json()
-        for vdcsiteid in data['sites']:
-            print 'Query cluster IPs succeed. Result: ' + data["sites"][vdcsiteid]["ipv4_setting"]["network_netmask"]
+        print self.clusterip_map2str(data['sites'])
+        return 0
 
     def clusterip_querystatus(self):
         print 'Querying cluster IP reconfig status ...';
@@ -8881,17 +8882,65 @@ class Bourne:
         if (response.status_code != 200):
             print "Query cluster IP reconfig status", response.status_code
             raise Exception('Query cluster IP reconfig status')
-        print 'Query cluster IP reconfig status succeed. Result: ' + response.text
+        data=response.json()
+        return data['status']
 
     def clusterip_reconfig(self, ipinfo):
         print 'Reconfiguring cluster IPs ...';
         params=dict()
+        params['sites']=self.clusterip_str2map(ipinfo)
+        response = self.__api('POST', URI_CLUSTERIP_RECONF, params)
+        if (response.status_code != 202):
+            print "Failed to reconfig cluster IP", response.status_code
+            raise Exception('Failed to reconfig cluster IP')
+        print 'Successfully sent cluster IPs reconfiguration request. Result: ' + response.text
+        return 0
+
+    def clusterip_shuffle(self, ipinfo):
+        params=dict()
+        siteipmap=dict()
+        siteipmap=self.clusterip_str2map(ipinfo)
+       
+        wholeIpList=[] 
+        for vdcsiteid in siteipmap:
+            for nodeip in siteipmap[vdcsiteid]["ipv4_setting"]["network_addrs"]:
+                wholeIpList.append(nodeip)
+
+        shuffle(wholeIpList)
+
+        count = 0
+        for vdcsiteid in siteipmap:
+            iplist=siteipmap[vdcsiteid]["ipv4_setting"]["network_addrs"]
+            size = len(iplist)
+            del iplist[0:size]
+            for i in range(0, size):
+                iplist.append(wholeIpList[count])
+                count+=1
+        
+        print self.clusterip_map2str(siteipmap)
+        return 0
+
+    def clusterip_map2str(self, siteipmap):
+        ipinfo=""
+        for vdcsiteid in siteipmap:
+            vip=siteipmap[vdcsiteid]["ipv4_setting"]["network_vip"]
+            ipinfo+=vdcsiteid+':'+vip
+            for nodeip in siteipmap[vdcsiteid]["ipv4_setting"]["network_addrs"]:
+                ipinfo+=','+nodeip
+            gateway=siteipmap[vdcsiteid]["ipv4_setting"]["network_gateway"]
+            netmask=siteipmap[vdcsiteid]["ipv4_setting"]["network_netmask"]
+            ipinfo+=','+gateway+','+netmask+';'
+        return ipinfo 
+
+    def clusterip_str2map(self, ipinfo):
         siteipmap=dict()
         site_ipinfo=dict()
         ipv4_setting=dict()
         ipv6_setting=dict()
 
         for siteipinfo in ipinfo.split(';'):
+            if(len(siteipinfo)==0):
+                continue;
             tmppair = siteipinfo.split(':') 
             vdcsiteid = tmppair[0]
             ips = tmppair[1]
@@ -8903,27 +8952,36 @@ class Bourne:
             ipv6_setting={}
 
             ipv4_setting['network_vip']=ippair[0]
-            ipv4_setting['network_gateway']=ippair[1]
-            ipv4_setting['network_netmask']=ippair[2]
             ipv6_setting['network_vip6']="::0"
+
+            ipv4_setting['network_addrs']=[]
+            ipv6_setting['network_addrs']=[]
+            for i in range(1, len(ippair)-2):
+                ipv4_setting['network_addrs'].append(ippair[i])
+                ipv6_setting['network_addrs'].append("::0")
+ 
+            ipv4_setting['network_gateway']=ippair[len(ippair)-2]
+            ipv4_setting['network_netmask']=ippair[len(ippair)-1]
             ipv6_setting['network_prefix_length']="64"
             ipv6_setting['network_gateway6']="::0"
  
-            ipv4_setting['network_addrs']=[]
-            ipv6_setting['network_addrs']=[]
-
-            for i in range(3, len(ippair)):
-                ipv4_setting['network_addrs'].append(ippair[i])
-                ipv6_setting['network_addrs'].append("::0")
-   
             site_ipinfo['ipv4_setting']=ipv4_setting        
             site_ipinfo['ipv6_setting']=ipv6_setting        
             siteipmap[vdcsiteid]=site_ipinfo
+        return siteipmap
 
-        params['sites']=siteipmap
-        response = self.__api('POST', URI_CLUSTERIP_RECONF, params)
-        if (response.status_code != 202):
-            print "Failed to reconfig cluster IP", response.status_code
-            raise Exception('Failed to reconfig cluster IP')
-        print 'Successfully sent cluster IPs reconfiguration request. Result: ' + response.text
+    def clusterip_waitfor_reconfig_finish(self, interval, timeout):
+        rc=1
+        while (timeout > 0 or rc!=2): 
+            status=self.clusterip_querystatus()
+            if (status=="SUCCEED"):
+                rc=0
+                return
+            if (status=="FAILED"):
+                rc=2
+                return
+            time.sleep(interval)
+            timeout-=interval
+    
+        return rc
 

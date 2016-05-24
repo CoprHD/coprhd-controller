@@ -1996,13 +1996,14 @@ public class VNXeApiClient {
     /**
      * given host name and initiators, find/create hosts/initiators in the
      * 
-     * @param hosts
-     * @return
+     * @param hostInitiators
+     * @return 
      */
     private VNXeBase prepareHostsForExport(List<VNXeHostInitiator> hostInitiators) {
 
         String hostId = null;
         Set<VNXeHostInitiator> notExistingInits = new HashSet<VNXeHostInitiator>();
+        String hostOsType = null;
         for (VNXeHostInitiator init : hostInitiators) {
             VNXeHostInitiator existingInit = null;
             HostInitiatorRequest initReq = new HostInitiatorRequest(_khClient);
@@ -2015,6 +2016,9 @@ public class VNXeApiClient {
             } else {
                 notExistingInits.add(init);
             }
+            if (hostOsType == null) {
+                hostOsType = init.getHostOsType();
+            }
         }
         if (hostId == null) {
             // create host and hostInitiator
@@ -2024,6 +2028,9 @@ public class VNXeApiClient {
 
             hostCreateParm.setType(HostTypeEnum.HOSTMANUAL.getValue());
 
+            if (isUnityClient() && hostOsType != null) {
+                hostCreateParm.setOsType(hostOsType);
+            }
             VNXeCommandResult result = hostReq.createHost(hostCreateParm);
             hostId = result.getId();
         }

@@ -397,6 +397,15 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
 
     }
 
+    /**
+     * Update the ViPR storage system with the system information from the Unity array.
+     * @param client Unity API Client
+     * @param accessProfile 
+     * @param system Unity system 
+     * @param isFASTVPEnabled
+     * @param viprStorageSystem ViPR storage system instance
+     * @return updated ViPR storage system
+     */
     private StorageSystem discoverStorageSystemInfo(VNXeApiClient client, AccessProfile accessProfile,
             VNXeStorageSystem system, Boolean isFASTVPEnabled, StorageSystem viprStorageSystem) {
         if (system != null) {
@@ -561,8 +570,6 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
                     pool.setStorageDevice(system.getId());
                     pool.setNativeId(vnxePool.getId());
                     pool.setPoolName(vnxePool.getName());
-                    pool.setCompatibilityStatus(DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name());
-                    pool.setDiscoveryStatus(DiscoveredDataObject.DiscoveryStatus.VISIBLE.name());
                     // Supported resource type indicates what type of file
                     // systems are supported.
                     pool.setSupportedResourceTypes(StoragePool.SupportedResourceTypes.THIN_AND_THICK.toString());
@@ -598,7 +605,9 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
                     pool.setSupportedRaidLevels(raidLevels);
                 }
                 pool.setAutoTieringEnabled(getPoolAutoTieringEnabled(vnxePool, system));
-                List<PoolTier> poolTiers = vnxePool.getTiers();
+                pool.setDiscoveryStatus(DiscoveredDataObject.DiscoveryStatus.VISIBLE.name());
+                pool.setCompatibilityStatus(DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name());
+                List<PoolTier> poolTiers = vnxePool.getTiers();                
                 StringSet diskTypes = new StringSet();
                 if (poolTiers != null) {
                     for (PoolTier poolTier : poolTiers) {

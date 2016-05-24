@@ -52,7 +52,7 @@ public class MDSDialog extends SSHDialog {
 
     private static final Logger _log = LoggerFactory.getLogger(MDSDialog.class);
     private final String wwnRegex = "([0-9A-Fa-f][0-9A-Fa-f]:){7}[0-9A-Fa-f][0-9A-Fa-f]";
-    private final static Integer sessionLockRetryMax = 20;
+    private final static Integer sessionLockRetryMax = 5;
 
     public MDSDialog(SSHSession session, Integer defaultTimeout) {
         super(session, defaultTimeout);

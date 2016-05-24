@@ -92,15 +92,41 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
     private static final String FALSE = "false";
     private static final int LOCK_WAIT_SECONDS = 300;
 
-    private static final Long MAX_NFS_EXPORTS = 1500L;
-    private static final Long MAX_CIFS_SHARES = 40000L;
-    private static final Long MAX_STORAGE_OBJECTS = 40000L;
-    private static final Long MAX_CAPACITY = 1443658767269888L;
+    private static final String UNITY_300 = "Unity 300";
+    private static final String UNITY_400 = "Unity 400";
+    private static final String UNITY_500 = "Unity 500";
+    private static final String UNITY_600 = "Unity 600";
+    private static final String UNITY_VSA = "UnityVSA";
+
+    private static final Long MAX_EXPORTS = 600L;
+    private static final Long MAX_STORAGE_OBJECTS = 1000L;
+    private static final Long MAX_CAPACITY_TB = 788L;
+
+    private static final Long MAX_EXPORTS_UNITY300 = 600L;
+    private static final Long MAX_STORAGE_OBJECTS_UNITY300 = 1000L;
+    private static final Long MAX_CAPACITY_UNITY300_TB = 788L;
+
+    private static final Long MAX_EXPORTS_UNITY400 = 600L;
+    private static final Long MAX_STORAGE_OBJECTS_UNITY400 = 2000L;
+    private static final Long MAX_CAPACITY_UNITY400_TB = 1313L;
+
+    private static final Long MAX_EXPORTS_UNITY500 = 4500L;
+    private static final Long MAX_STORAGE_OBJECTS_UNITY500 = 1250L;
+    private static final Long MAX_CAPACITY_UNITY500_TB = 1838L;
+
+    private static final Long MAX_EXPORTS_UNITY600 = 4500L;
+    private static final Long MAX_STORAGE_OBJECTS_UNITY600 = 2500L;
+    private static final Long MAX_CAPACITY_UNITY600_TB = 2635L;
+
+    private static final Long MAX_EXPORTS_UNITYVSA = 300L;
+    private static final Long MAX_STORAGE_OBJECTS_UNITYVSA = 64L;
+    private static final Long MAX_CAPACITY_UNITYVSA_TB = 50L;
 
     private static final Long GB_IN_BYTES = 1073741824L;
     private static final Long GB_IN_KB = 1048576L;
     private static final Long MB_IN_BYTES = 1048576L;
     private static final Long KB_IN_BYTES = 1024L;
+    private static final Long TB_IN_GB = 1024L;
 
     // Reference to the VNX unity client factory allows us to get a VNX unity
     // client and execute requests to the VNX Unity storage system.
@@ -397,15 +423,6 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
 
     }
 
-    /**
-     * Update the ViPR storage system with the system information from the Unity array.
-     * @param client Unity API Client
-     * @param accessProfile 
-     * @param system Unity system 
-     * @param isFASTVPEnabled
-     * @param viprStorageSystem ViPR storage system instance
-     * @return updated ViPR storage system
-     */
     private StorageSystem discoverStorageSystemInfo(VNXeApiClient client, AccessProfile accessProfile,
             VNXeStorageSystem system, Boolean isFASTVPEnabled, StorageSystem viprStorageSystem) {
         if (system != null) {
@@ -570,6 +587,8 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
                     pool.setStorageDevice(system.getId());
                     pool.setNativeId(vnxePool.getId());
                     pool.setPoolName(vnxePool.getName());
+                    pool.setCompatibilityStatus(DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name());
+                    pool.setDiscoveryStatus(DiscoveredDataObject.DiscoveryStatus.VISIBLE.name());
                     // Supported resource type indicates what type of file
                     // systems are supported.
                     pool.setSupportedResourceTypes(StoragePool.SupportedResourceTypes.THIN_AND_THICK.toString());
@@ -605,9 +624,7 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
                     pool.setSupportedRaidLevels(raidLevels);
                 }
                 pool.setAutoTieringEnabled(getPoolAutoTieringEnabled(vnxePool, system));
-                pool.setDiscoveryStatus(DiscoveredDataObject.DiscoveryStatus.VISIBLE.name());
-                pool.setCompatibilityStatus(DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name());
-                List<PoolTier> poolTiers = vnxePool.getTiers();                
+                List<PoolTier> poolTiers = vnxePool.getTiers();
                 StringSet diskTypes = new StringSet();
                 if (poolTiers != null) {
                     for (PoolTier poolTier : poolTiers) {
@@ -1552,8 +1569,7 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
         dbMetrics.put(MetricsKeys.storageObjects.name(), String.valueOf(totalFsCount));
         dbMetrics.put(MetricsKeys.usedStorageCapacity.name(), String.valueOf(totalProvCap));
 
-        Long maxExports = MetricsKeys.getLong(MetricsKeys.maxNFSExports, dbMetrics) +
-                MetricsKeys.getLong(MetricsKeys.maxCifsShares, dbMetrics);
+        Long maxExports = MetricsKeys.getLong(MetricsKeys.maxExports, dbMetrics);
         Long maxStorObjs = MetricsKeys.getLong(MetricsKeys.maxStorageObjects, dbMetrics);
         Long maxCapacity = MetricsKeys.getLong(MetricsKeys.maxStorageCapacity, dbMetrics);
 
@@ -1586,18 +1602,44 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
      */
     private StringMap getMaxDbMetrics(final VNXeApiClient client) {
         StringMap dbMetrics = new StringMap();
-        // Set the Limit Metric keys!!
-        dbMetrics.put(MetricsKeys.maxStorageObjects.name(), String.valueOf(MAX_STORAGE_OBJECTS));
+        // Set the Limit Metric keys
 
-        Long MaxNfsExports = MAX_NFS_EXPORTS;
-        Long MaxCifsShares = MAX_CIFS_SHARES;
+        // default values
+        Long MaxTotalExports = MAX_EXPORTS;
+        long MaxCapacityInTB = MAX_CAPACITY_TB;
+        Long MaxStorObjects = MAX_STORAGE_OBJECTS;
 
-        dbMetrics.put(MetricsKeys.maxNFSExports.name(), String.valueOf(MaxNfsExports));
-        dbMetrics.put(MetricsKeys.maxCifsShares.name(), String.valueOf(MaxCifsShares));
+        BasicSystemInfo unitySystem = client.getBasicSystemInfo();
+        String model = unitySystem.getModel();
 
-        // set the max capacity in bytes
-        long MaxCapacity = MAX_CAPACITY;
-        dbMetrics.put(MetricsKeys.maxStorageCapacity.name(), String.valueOf(MaxCapacity / KB_IN_BYTES));
+        if (model.equals(UNITY_300)) {
+            MaxTotalExports = MAX_EXPORTS_UNITY300;
+            MaxCapacityInTB = MAX_CAPACITY_UNITY300_TB;
+            MaxStorObjects = MAX_STORAGE_OBJECTS_UNITY300;
+        } else if (model.equals(UNITY_400)) {
+            MaxTotalExports = MAX_EXPORTS_UNITY400;
+            MaxCapacityInTB = MAX_CAPACITY_UNITY400_TB;
+            MaxStorObjects = MAX_STORAGE_OBJECTS_UNITY400;
+        } else if (model.equals(UNITY_500)) {
+            MaxTotalExports = MAX_EXPORTS_UNITY500;
+            MaxCapacityInTB = MAX_CAPACITY_UNITY500_TB;
+            MaxStorObjects = MAX_STORAGE_OBJECTS_UNITY500;
+        } else if (model.equals(UNITY_600)) {
+            MaxTotalExports = MAX_EXPORTS_UNITY600;
+            MaxCapacityInTB = MAX_CAPACITY_UNITY600_TB;
+            MaxStorObjects = MAX_STORAGE_OBJECTS_UNITY600;
+        } else if (model.equals(UNITY_VSA)) {
+            MaxTotalExports = MAX_EXPORTS_UNITYVSA;
+            MaxCapacityInTB = MAX_CAPACITY_UNITYVSA_TB;
+            MaxStorObjects = MAX_STORAGE_OBJECTS_UNITYVSA;
+        } else {
+            _logger.info("Cannot determine Max nas server limits for Unity model: {}. Using defaults", model);
+        }
+
+        dbMetrics.put(MetricsKeys.maxExports.name(), String.valueOf(MaxTotalExports));
+        dbMetrics.put(MetricsKeys.maxStorageObjects.name(), String.valueOf(MaxStorObjects));
+        // set the max capacity in KB
+        dbMetrics.put(MetricsKeys.maxStorageCapacity.name(), String.valueOf(MaxCapacityInTB * TB_IN_GB * GB_IN_KB));
         return dbMetrics;
     }
 

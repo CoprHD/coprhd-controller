@@ -147,8 +147,7 @@ public class DiscoveredDataObject extends DataObject {
                         type.equals(vplex) ||
                         type.equals(ibmxiv) ||
                         type.equals(xtremio) ||
-                        type.equals(scaleio) ||
-                        type.equals(unity);
+                        type.equals(scaleio);
             }
         }
 

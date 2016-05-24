@@ -58,6 +58,8 @@ public class DbsvcQuorumMonitor implements Runnable {
             return;
         }
 
+        boolean hasConnectedStandbySite = false;
+
         List<Site> standbySites = drUtil.listStandbySites();
         List<Site> sitesToDegrade = new ArrayList<>();
         for (Site standbySite : standbySites) {
@@ -72,8 +74,19 @@ public class DbsvcQuorumMonitor implements Runnable {
             
             if (siteState.equals(SiteState.STANDBY_SYNCED)) {
                 SiteMonitorResult monitorResult = updateSiteMonitorResult(standbySite);
+                if (monitorResult.getDbQuorumLostSince() == 0) {
+                    log.info("Standby site {} is connected now", standbySite.getUuid());
+                    hasConnectedStandbySite = true;
+                }
                 checkEligibleForDegrade(monitorResult, standbySite, sitesToDegrade);
             }
+        }
+
+        // update local site's monitor result
+        // if local site is active and there's connected standby site
+        Site localSite = drUtil.getLocalSite();
+        if (localSite.getState() == SiteState.ACTIVE && hasConnectedStandbySite) {
+            updateSiteMonitorResult(localSite);
         }
 
         // degrade all standby sites in a single batch
@@ -297,7 +310,8 @@ public class DbsvcQuorumMonitor implements Runnable {
             monitorResult.setDbQuorumLastActive(current);
         }
         coordinatorClient.setTargetInfo(siteId, monitorResult);
-        
+        log.info(String.format("Update db quorum monitor result: quorum lost since %s, last active at %s, for site %s",
+                monitorResult.getDbQuorumLostSince(), monitorResult.getDbQuorumLastActive(), siteId));
         return monitorResult;
     }
 }

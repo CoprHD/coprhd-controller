@@ -1526,6 +1526,7 @@ public class VolumeIngestionUtil {
                     "ExportGroup %s has no initiators and therefore unmanaged export mask %s can't be ingested with it.",
                     exportGroup.getLabel(), unManagedExportMask.getMaskName());
             errorMessages.add(errorMessage.toString());
+            _logger.warn(errorMessage);
             return false;
         }
 
@@ -1535,6 +1536,7 @@ public class VolumeIngestionUtil {
                     "Unmanaged export mask %s has no initiators and therefore it can't be ingested.  (ExportGroup: %s)",
                     unManagedExportMask.getMaskName(), exportGroup.getLabel());
             errorMessages.add(errorMessage.toString());
+            _logger.warn(errorMessage);
             return false;
         }
 
@@ -1552,6 +1554,7 @@ public class VolumeIngestionUtil {
                 "ExportGroup %s has no initiators that match unmanaged export mask %s and therefore can't be ingested with it.",
                 exportGroup.getLabel(), unManagedExportMask.getMaskName());
         errorMessages.add(errorMessage.toString());
+        _logger.warn(errorMessage);
         return false;
     }
 
@@ -1632,6 +1635,7 @@ public class VolumeIngestionUtil {
             errorMessage.append(" in unmanaged export mask ").append(mask.getMaskName());
             errorMessage.append(" are not available in Virtual Array ").append(getVarrayName(varray, dbClient));
             errorMessages.add(errorMessage.toString());
+            _logger.warn(errorMessages.toString());
             return false;
         }
         return true;

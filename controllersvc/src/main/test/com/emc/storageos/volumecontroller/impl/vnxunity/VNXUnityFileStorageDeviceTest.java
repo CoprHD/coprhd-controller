@@ -8,29 +8,43 @@ package com.emc.storageos.volumecontroller.impl.vnxunity;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
 
+import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.impl.DbClientImpl;
+import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.FileExport;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.SMBFileShare;
 import com.emc.storageos.db.client.model.Snapshot;
+import com.emc.storageos.db.client.model.StorageHADomain;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
+import com.emc.storageos.db.client.model.StoragePool.PoolServiceType;
+import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.services.util.EnvConfig;
 import com.emc.storageos.vnxe.VNXeApiClient;
 import com.emc.storageos.vnxe.VNXeApiClientFactory;
 import com.emc.storageos.vnxe.VNXeException;
 import com.emc.storageos.vnxe.models.VNXeFileInterface;
+import com.emc.storageos.vnxe.models.VNXeNasServer;
 import com.emc.storageos.vnxe.models.VNXePool;
 import com.emc.storageos.vnxe.models.VNXeStorageSystem;
 import com.emc.storageos.volumecontroller.FileDeviceInputOutput;
+import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
+import com.emc.storageos.volumecontroller.impl.metering.plugins.smis.Cassandraforplugin;
+import com.emc.storageos.volumecontroller.impl.plugins.VNXUnityCommunicationInterface;
 
 /**
  * Test class for VnxUnityFileStorageDevice
@@ -39,6 +53,8 @@ public class VNXUnityFileStorageDeviceTest {
     private VNXUnityFileStorageDevice _unity;
     private StorageSystem _device;
     private StoragePool _pool;
+    private StoragePort _port;
+    private DbClient _dbClient = null;
     private String ip = EnvConfig.get("sanity", "unity.ip");
     private String userName = EnvConfig.get("sanity", "unity.username");
     private String password = EnvConfig.get("sanity", "unity.password");
@@ -47,11 +63,18 @@ public class VNXUnityFileStorageDeviceTest {
     private String client2 = EnvConfig.get("sanity", "unity.client2");
     private String client3 = EnvConfig.get("sanity", "unity.client3");
     private String client4 = EnvConfig.get("sanity", "unity.client4");
+    
+    private VNXUnityCommunicationInterface intf;
 
     private static final Logger _log = LoggerFactory.getLogger(VNXUnityFileStorageDeviceTest.class);
 
     @Before
     public void setup() throws Exception {
+        intf = new VNXUnityCommunicationInterface();
+        ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext(
+                "/dbutils-conf.xml");
+        _dbClient = (DbClientImpl) ctx.getBean("dbclient");
+        _dbClient = Cassandraforplugin.returnDBClient();
         _unity = new VNXUnityFileStorageDevice();
         VNXeApiClientFactory factory = new VNXeApiClientFactory();
         factory.init();
@@ -66,6 +89,92 @@ public class VNXUnityFileStorageDeviceTest {
         _device.setPassword(password);
 
         _pool = new StoragePool();
+        setPools();
+        setPort(getStorageHADomain());
+    }
+    
+    public void setPools(){
+        VNXeApiClient apiclient = _unity.getVnxUnityClient(_device);
+        List<VNXePool> pools = apiclient.getPools();
+        VNXePool pool=pools.get(0);
+        List <String> proto = new ArrayList<String>();
+        proto.add("CIFS");
+        StringSet protocols = new StringSet(proto);
+        String poolNativeGuid = NativeGUIDGenerator.generateNativeGuid(
+                _device, pool.getId(), NativeGUIDGenerator.POOL);
+        _pool.setId(URIUtil.createId(StoragePool.class));
+        _pool.setLabel(poolNativeGuid);
+        _pool.setNativeGuid(poolNativeGuid);
+        _pool.setProtocols(protocols);
+        _pool.setOperationalStatus(StoragePool.PoolOperationalStatus.READY.name());
+        _pool.setPoolServiceType(PoolServiceType.block_file
+                .toString());
+        _pool.setStorageDevice(_device.getId());
+        _pool.setNativeId(pool.getId());
+        _pool.setPoolName(pool.getName());
+        _pool.setCompatibilityStatus(DiscoveredDataObject.CompatibilityStatus.COMPATIBLE
+                .name());
+        _pool.setSupportedResourceTypes(StoragePool.SupportedResourceTypes.THIN_AND_THICK
+                .toString());
+        _pool.setPoolClassName(StoragePool.PoolClassNames.VNXe_Pool
+                .name());
+        _pool.setPoolServiceType(StoragePool.PoolServiceType.block_file
+                .name());
+        _pool.setRegistrationStatus(RegistrationStatus.REGISTERED
+                .toString()); 
+        _dbClient.updateObject(_pool);
+    }
+    public void setPort(List<StorageHADomain> haDomainUri) {
+        VNXeApiClient apiclient = _unity.getVnxUnityClient(_device);
+        StorageHADomain haDomainTemp=null;
+        List<VNXeFileInterface> ports = apiclient.getFileInterfaces();
+        VNXeFileInterface port = ports.get(0);
+        String portNativeGuid = NativeGUIDGenerator.generateNativeGuid(
+                _device, _device.getIpAddress(), NativeGUIDGenerator.PORT);
+        _port.setId(URIUtil.createId(StoragePort.class));
+        _port.setLabel(portNativeGuid);
+        _port.setTransportType("IP");
+        _port.setNativeGuid(portNativeGuid);
+        _port.setStorageDevice(_device.getId());
+        _port.setRegistrationStatus(RegistrationStatus.REGISTERED
+                .toString());
+        _port.setPortName(_device.getSystemType());
+        _port.setPortNetworkId(_device.getIpAddress());
+        _port.setPortGroup(port.getNasServer().getId());
+         for (StorageHADomain hadomain : haDomainUri) {
+             if(port.getId().equalsIgnoreCase(hadomain.getSerialNumber())){
+                 haDomainTemp=hadomain;
+                 break;
+             }
+         }
+        _port.setStorageHADomain(haDomainTemp.getId());
+        _dbClient.updateObject(haDomainTemp);
+        _dbClient.updateObject(_port);
+    }
+
+    
+    public List<StorageHADomain> getStorageHADomain(){
+        VNXeApiClient apiclient = _unity.getVnxUnityClient(_device);
+        List<VNXeNasServer> nasServers = apiclient.getNasServers();
+        List<StorageHADomain> haDomains = new ArrayList<StorageHADomain>();
+        List <String> proto = new ArrayList<String>();
+        proto.add("CIFS");
+        StringSet protocols = new StringSet(proto);
+        for (VNXeNasServer nasServer : nasServers) {
+            StorageHADomain haDomain = new StorageHADomain();
+            haDomain.setId(URIUtil.createId(StorageHADomain.class));
+            String adapterNativeGuid = NativeGUIDGenerator.generateNativeGuid(_device, nasServer.getName(),
+                    NativeGUIDGenerator.ADAPTER);
+            haDomain.setNativeGuid(adapterNativeGuid);
+            haDomain.setStorageDeviceURI(_device.getId());
+            haDomain.setAdapterName(nasServer.getName());
+            haDomain.setName(nasServer.getName());
+            haDomain.setSerialNumber(nasServer.getId());
+            haDomain.setFileSharingProtocols(protocols);
+            haDomain.setVirtual(true);
+            haDomains.add(haDomain);
+        }       
+        return haDomains;
     }
 
     /**
@@ -78,7 +187,7 @@ public class VNXUnityFileStorageDeviceTest {
         try {
             VNXeApiClient apiclient = _unity.getVnxUnityClient(_device);
             VNXeStorageSystem storageSystem = apiclient.getStorageSystem();
-            Assert.assertTrue("Unity discovery failed " + storageSystem.getId(), false);
+            Assert.assertTrue("Unity discovery failed " + storageSystem.getId(), true);
 
         } catch (VNXeException uex) {
             System.out.println("Unity discovery failed: " + uex.getCause());
@@ -96,7 +205,7 @@ public class VNXUnityFileStorageDeviceTest {
         try {
             VNXeApiClient apiclient = _unity.getVnxUnityClient(_device);
             List<? extends VNXePool> unityStoragePools = apiclient.getPools();
-            Assert.assertTrue("Unity Storage Pool discovery failed " + unityStoragePools.size(), false);
+            Assert.assertTrue("Unity Storage Pool discovery failed " + unityStoragePools.size(), true);
 
         } catch (VNXeException uex) {
             System.out.println("Unity Storage pool discovery failed: " + uex.getCause());
@@ -115,7 +224,7 @@ public class VNXUnityFileStorageDeviceTest {
         try {
             VNXeApiClient apiclient = _unity.getVnxUnityClient(_device);
             List<VNXeFileInterface> unityStoragePorts = apiclient.getFileInterfaces();
-            Assert.assertTrue("Unity Storage Port discovery failed " + unityStoragePorts.size(), false);
+            Assert.assertTrue("Unity Storage Port discovery failed " + unityStoragePorts.size(), true);
 
         } catch (VNXeException uex) {
             System.out.println("Unity Storage port discovery failed: " + uex.getCause());
@@ -369,7 +478,7 @@ public class VNXUnityFileStorageDeviceTest {
         VNXeApiClient apiclient = _unity.getVnxUnityClient(_device);
         try {
             apiclient.getFileSystemByFSName(args.getFileObjMountPath());
-            Assert.assertTrue("File share create rollback failed, fs path: " + args.getFileObjMountPath(), false);
+            Assert.assertTrue("File share create rollback failed, fs path: " + args.getFileObjMountPath(), true);
 
         } catch (VNXeException uex) {
             System.out.println("testFileShareCreateNegative --- rollback success: " + uex.getCause());

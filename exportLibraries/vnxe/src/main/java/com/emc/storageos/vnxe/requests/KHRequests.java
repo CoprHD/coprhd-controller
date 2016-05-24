@@ -645,7 +645,8 @@ public class KHRequests<T> {
             }
             String code = null;
             if (status != null) {
-                code = status.toString();
+                code=Integer.toString(response.getStatus());
+               // code = status.toString();
             }
 
             StringBuilder errorBuilder = new StringBuilder();

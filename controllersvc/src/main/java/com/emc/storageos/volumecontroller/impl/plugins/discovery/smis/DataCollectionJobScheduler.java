@@ -370,6 +370,8 @@ public class DataCollectionJobScheduler {
             addToList(allSystemsURIs, _dbClient.queryByType(Vcenter.class, true).iterator());
         } else if (jobType.equalsIgnoreCase(ControllerServiceImpl.COMPUTE_DISCOVERY)) {
             addToList(allSystemsURIs, _dbClient.queryByType(ComputeSystem.class, true).iterator());
+        } else if (jobType.equalsIgnoreCase(ControllerServiceImpl.ARRAYAFFINITY_DISCOVERY)) {
+            addToList(allSystemsURIs, _dbClient.queryByType(StorageSystem.class, true).iterator());
         }
         else {
             addToList(allSystemsURIs, _dbClient.queryByType(StorageSystem.class, true).iterator());

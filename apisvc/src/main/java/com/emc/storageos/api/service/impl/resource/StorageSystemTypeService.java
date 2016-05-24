@@ -55,7 +55,7 @@ public class StorageSystemTypeService extends TaskResourceService {
 
 	private static final Logger log = LoggerFactory.getLogger(StorageSystemTypeService.class);
 	private static final String EVENT_SERVICE_TYPE = "StorageSystemTypeService";
-	private static final String UPLOAD_DEVICE_DRIVER = "/tmp/drivers/";
+	private static final String UPLOAD_DEVICE_DRIVER = "/data/storagedrivers/";
 	private static final String ALL_TYPE = "all";
 
 	/**

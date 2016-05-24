@@ -91,6 +91,7 @@ public class StorageSystemTypeServiceUtils {
 		sslPortmap.put(IBMXIV, "5989");
 		sslPortmap.put(XTREMIO, "443");
 		sslPortmap.put(ECS, "4443");
+		sslPortmap.put(VNXe, "443");
 		sslPortmap.put("vnxfile_smis", "5989");
 	}
 
@@ -99,6 +100,7 @@ public class StorageSystemTypeServiceUtils {
 		nonSslPortmap.put("smis", "5988");
 		nonSslPortmap.put("vplex", "443");
 		nonSslPortmap.put("cinder", "22");
+		nonSslPortmap.put("openstack", "22");
 		nonSslPortmap.put("scaleio", "22");
 		nonSslPortmap.put("scaleioapi", "80");
 		nonSslPortmap.put("ddmc", "3009");

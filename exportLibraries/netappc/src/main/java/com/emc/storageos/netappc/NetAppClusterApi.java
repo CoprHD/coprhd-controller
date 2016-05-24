@@ -253,7 +253,20 @@ public class NetAppClusterApi {
         return true;
     }
 
-    public Boolean createFsMirrorTarget(String fsName, String aggregate, String size, Boolean isThin, String state, String type)
+    public String getVolumeLang(String volName) {
+        try {
+            netAppClusterFacade = new NetAppClusterFacade(_ipAddress, _portNumber, _userName,
+                    _password, _https, true, _svmName);
+            return netAppClusterFacade.getVolumeLanguage(volName);
+        } catch (Exception e) {
+            _logger.error("get language type for filesystem {} failed ", volName);
+            throw NetAppCException.exceptions.getFileSystemInfo(volName, _ipAddress, e.getMessage());
+        }
+
+    }
+
+    public Boolean createFsMirrorTarget(String fsName, String aggregate, String size, Boolean isThin, String state, String type,
+            String langCode)
             throws NetAppCException {
         Boolean FailedStatus = false;
         try {
@@ -262,8 +275,12 @@ public class NetAppClusterApi {
             if ("dp".equals(type)) {
                 path = null;
             }
+            String languageCode = DEFAULT_LANGUAGE;
+            if (langCode != null && !langCode.isEmpty()) {
+                languageCode = langCode;
+            }
 
-            boolean createVolStatus = createVolume(fsName, aggregate, path, size, isThin, state, type, DEFAULT_LANGUAGE);
+            boolean createVolStatus = createVolume(fsName, aggregate, path, size, isThin, state, type, languageCode);
             if (createVolStatus) {
                 // Delete the NFS export that is created by default.
                 if (path != null) {

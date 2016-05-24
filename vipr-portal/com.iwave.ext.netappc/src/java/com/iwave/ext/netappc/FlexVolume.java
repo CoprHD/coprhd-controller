@@ -56,6 +56,15 @@ public class FlexVolume {
     }
 
     /**
+     * get language Code
+     * 
+     * @return
+     */
+    String getVolumeLang() {
+        return getVolumeInfo().get("language-code");
+    }
+
+    /**
      * Creates a new flexible volume. Only parameters for flexible volumes are provided.
      * Note the volume may not be operational immediately after this method returns. Use
      * getVolumeInfo() to query the status of the new volume.

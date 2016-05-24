@@ -162,8 +162,12 @@ public class NetAppClusterModeDevice extends AbstractFileStorageDevice {
             Boolean isCreateSuccess = false;
 
             if (FileShare.PersonalityTypes.TARGET.toString().equals(args.getFs().getPersonality())) {
+                URI uriSourceFs = args.getFs().getParentFileShare().getURI();
+                // get the language code
+                String langCode = getVolumeLanguage(uriSourceFs);
+
                 isCreateSuccess = ncApi.createFsMirrorTarget(args.getFsName(), args.getPoolNativeId(),
-                        strFsSize, args.getThinProvision(), null, "dp");
+                        strFsSize, args.getThinProvision(), null, "dp", langCode);
             } else {
                 isCreateSuccess = ncApi.createFS(args.getFsName(), args.getPoolNativeId(),
                         strFsSize, args.getThinProvision());
@@ -1826,6 +1830,22 @@ public class NetAppClusterModeDevice extends AbstractFileStorageDevice {
         }
         return result;
 
+    }
+
+    /**
+     * get language Code
+     * 
+     * @param uri
+     * @return
+     */
+    private String getVolumeLanguage(URI uri) {
+        FileShare fs = _dbClient.queryObject(FileShare.class, uri);
+        StorageSystem storage = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
+        String portGroup = findSVMName(fs);
+        NetAppClusterApi ncApi = new NetAppClusterApi.Builder(storage.getIpAddress(),
+                storage.getPortNumber(), storage.getUsername(),
+                storage.getPassword()).https(true).svm(portGroup).build();
+        return ncApi.getVolumeLang(fs.getName());
     }
 
     private String constructQtreePath(String volumeName, String qtreeName) throws NetAppCException {

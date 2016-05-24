@@ -10,19 +10,25 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
-import com.emc.storageos.netapp.NetAppApi;
+import com.emc.storageos.netappc.NetAppCApiClientFactory;
+import com.emc.storageos.netappc.NetAppClusterApi;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.volumecontroller.Job;
 import com.emc.storageos.volumecontroller.JobContext;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.JobPollResult;
+import com.iwave.ext.netappc.NetAppCException;
+import com.iwave.ext.netappc.model.SnapmirrorInfoResp;
 
 public class NetAppSnapMirrorDestroyJob extends Job implements Serializable {
     private static final Logger _logger = LoggerFactory.getLogger(NetAppSnapMirrorDestroyJob.class);
-    private static final long ERROR_TRACKING_LIMIT = 60 * 1000;
+    private static final long ERROR_TRACKING_LIMIT = 60 * 1000; // tracking limit for transient errors. set for 2 hours
+
     private String _jobName;
     private URI _storageSystemUri;
+    private URI _storageSystemUriSource;
     private TaskCompleter _taskCompleter;
     private List<String> _jobIds = new ArrayList<String>();
 
@@ -32,30 +38,78 @@ public class NetAppSnapMirrorDestroyJob extends Job implements Serializable {
     private JobPollResult _pollResult = new JobPollResult();
     private String _errorDescription = null;
 
-    public NetAppSnapMirrorDestroyJob(String jobId, URI storageSystemUri, TaskCompleter taskCompleter, String jobName) {
+    public NetAppSnapMirrorDestroyJob(String jobId, URI storageSystemUri, TaskCompleter taskCompleter, URI storageSourceUri,
+            String jobSourceLocation) {
         this._storageSystemUri = storageSystemUri;
+        this._storageSystemUriSource = storageSourceUri;
         this._taskCompleter = taskCompleter;
-        this._jobName = jobName;
+        this._jobName = jobSourceLocation;
         this._jobIds.add(jobId);
     }
 
     public NetAppSnapMirrorDestroyJob(String jobId, URI storageSystemUri, TaskCompleter taskCompleter) {
         this._storageSystemUri = storageSystemUri;
         this._taskCompleter = taskCompleter;
-        this._jobName = "netAppSnapMirrorDestroyJob";
+        this._jobName = "netAppSnapMirrorCreateJob";
         this._jobIds.add(jobId);
     }
 
     @Override
     public JobPollResult poll(JobContext jobContext, long trackingPeriodInMillis) {
-        // TODO Auto-generated method stub
-        return null;
+        String currentJob = _jobIds.get(0);
+        SnapmirrorInfoResp snapmirrorResp = null;
+        NetAppClusterApi netAppCApi = null;
+        try {
+            netAppCApi = getNetappCApi(jobContext);
+            if (netAppCApi == null) {
+                String errorMessage = "No NetAppCluster API found for: " + _storageSystemUri;
+                processTransientError(currentJob, trackingPeriodInMillis, errorMessage, null);
+            } else {
+                _pollResult.setJobName(_jobName);
+                _pollResult.setJobId(_taskCompleter.getOpId());
+
+                try {
+                    snapmirrorResp = netAppCApi.getSnapMirrorInfo(currentJob);
+                    if (snapmirrorResp != null) {
+                        setProgressStatus(snapmirrorResp, currentJob);
+                    } else {
+                        setSuccessStatus(currentJob);
+                    }
+                } catch (NetAppCException ex) {
+                    if (!_storageSystemUri.equals(_storageSystemUriSource)) {
+                        netAppCApi = getNetappCApiSource(jobContext);
+                        if (netAppCApi == null) {
+                            String errorMessage = "No NetAppCluster API found for: " + _storageSystemUriSource;
+                            processTransientError(currentJob, trackingPeriodInMillis, errorMessage, null);
+                        } else {
+                            // release on target also
+                            netAppCApi.releaseSnapMirror(_jobName);
+                            setSuccessStatus(_jobName);
+                        }
+                    } else {
+                        setSuccessStatus(_jobName);
+                    }
+                }
+            }
+            _pollResult.setJobStatus(_status);
+            return _pollResult;
+        } catch (Exception e) {
+            processTransientError(_jobName, trackingPeriodInMillis, e.getMessage(), e);
+        } finally {
+            try {
+                updateStatus(jobContext);
+            } catch (Exception e) {
+                setErrorStatus(e.getMessage());
+                _logger.error("Problem while trying to update status", e);
+            }
+        }
+        _pollResult.setJobStatus(_status);
+        return _pollResult;
     }
 
     @Override
     public TaskCompleter getTaskCompleter() {
-        // TODO Auto-generated method stub
-        return null;
+        return _taskCompleter;
     }
 
     public void updateStatus(JobContext jobContext) throws Exception {
@@ -70,6 +124,18 @@ public class NetAppSnapMirrorDestroyJob extends Job implements Serializable {
     public void setErrorStatus(String errorDescription) {
         _status = JobStatus.FATAL_ERROR;
         _errorDescription = errorDescription;
+    }
+
+    public void setSuccessStatus(String jobName) {
+        _status = JobStatus.SUCCESS;
+        _pollResult.setJobPercentComplete(100);
+        _logger.info("SnapMirror Job Name: {} succeeded - {}", this._jobName,
+                jobName);
+    }
+
+    public void setProgressStatus(SnapmirrorInfoResp snapmirrorResp, String jobName) {
+        _status = JobStatus.IN_PROGRESS;
+        _logger.info("SnapMirror JobName {} :  and progress details {} ", jobName, snapmirrorResp.toString());
     }
 
     public void setErrorTrackingTime(long trackingTime) {
@@ -104,8 +170,35 @@ public class NetAppSnapMirrorDestroyJob extends Job implements Serializable {
      * @param jobContext
      * @return
      */
-    public NetAppApi getNetappCApi(JobContext jobContext) {
+    public NetAppClusterApi getNetappCApi(JobContext jobContext) {
+        String vserver = _jobIds.get(0);
+        int i = vserver.indexOf(':');
+        vserver = vserver.substring(0, i);
+        StorageSystem device = jobContext.getDbClient().queryObject(StorageSystem.class, _storageSystemUri);
+        NetAppCApiClientFactory factory = jobContext.getNetAppCApiClientFactory();
+        if (factory != null) {
+            return factory.getClient(device.getIpAddress(), device.getPortNumber(),
+                    device.getUsername(), device.getPassword(), true, vserver);
+        }
         return null;
     }
 
+    /**
+     * Get NetAppC Mode API client
+     * 
+     * @param jobContext
+     * @return
+     */
+    public NetAppClusterApi getNetappCApiSource(JobContext jobContext) {
+        String vserver = _jobName;
+        int i = vserver.indexOf(':');
+        vserver = vserver.substring(0, i);
+        StorageSystem device = jobContext.getDbClient().queryObject(StorageSystem.class, _storageSystemUriSource);
+        NetAppCApiClientFactory factory = jobContext.getNetAppCApiClientFactory();
+        if (factory != null) {
+            return factory.getClient(device.getIpAddress(), device.getPortNumber(),
+                    device.getUsername(), device.getPassword(), true, vserver);
+        }
+        return null;
+    }
 }

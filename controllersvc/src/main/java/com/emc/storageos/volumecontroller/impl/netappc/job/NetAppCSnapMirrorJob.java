@@ -80,8 +80,7 @@ public class NetAppCSnapMirrorJob extends Job implements Serializable {
                         }
 
                     } else if (SnapmirrorState.SYNCRONIZED.equals(mirrorState)) {
-                        if (mirrorState.equals(currMirrorState)
-                                && SnapmirrorRelationshipStatus.idle.equals(snapmirrorResp.getRelationshipStatus())) {
+                        if (SnapmirrorRelationshipStatus.idle.equals(snapmirrorResp.getRelationshipStatus())) {
                             setSuccessStatus(snapmirrorResp);
                         } else {
                             setProgressStatus(snapmirrorResp);

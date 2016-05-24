@@ -26,11 +26,13 @@ import com.emc.storageos.volumecontroller.impl.file.FileMirrorOperations;
 import com.emc.storageos.volumecontroller.impl.job.QueueJob;
 import com.emc.storageos.volumecontroller.impl.netappc.job.NetAppCSnapMirrorJob;
 import com.emc.storageos.volumecontroller.impl.netappc.job.NetAppSnapMirrorAbortJob;
+import com.emc.storageos.volumecontroller.impl.netappc.job.NetAppSnapMirrorDestroyJob;
 import com.iwave.ext.netappc.model.SnapMirrorVolumeStatus;
 import com.iwave.ext.netappc.model.SnapmirrorCreateParam;
 import com.iwave.ext.netappc.model.SnapmirrorCronScheduleInfo;
 import com.iwave.ext.netappc.model.SnapmirrorInfo;
 import com.iwave.ext.netappc.model.SnapmirrorInfoResp;
+import com.iwave.ext.netappc.model.SnapmirrorRelationshipStatus;
 import com.iwave.ext.netappc.model.SnapmirrorResp;
 import com.iwave.ext.netappc.model.SnapmirrorState;
 
@@ -94,8 +96,8 @@ public class NetAppCMirrorOperations implements FileMirrorOperations {
         // TODO Auto-generated method stub
         FileShare sourceFs = _dbClient.queryObject(FileShare.class, targetFs.getParentFileShare().getURI());
         StorageSystem sourceSystem = _dbClient.queryObject(StorageSystem.class, sourceFs.getStorageDevice());
-
-        BiosCommandResult cmdResult = doDestroySnapMirror(sourceSystem, targetSystem, sourceFs, targetFs, taskCompleter);
+        VirtualPool virtualPool = _dbClient.queryObject(VirtualPool.class, sourceFs.getVirtualPool());
+        BiosCommandResult cmdResult = doDestroySnapMirror(sourceSystem, targetSystem, sourceFs, targetFs, taskCompleter, virtualPool);
         updateTaskStatus(cmdResult, taskCompleter);
     }
 
@@ -109,8 +111,9 @@ public class NetAppCMirrorOperations implements FileMirrorOperations {
 
         StorageSystem sourceSystem = _dbClient.queryObject(StorageSystem.class, sourceFs.getStorageDevice());
         StorageSystem targetSystem = _dbClient.queryObject(StorageSystem.class, targetFs.getStorageDevice());
+        VirtualPool virtualPool = _dbClient.queryObject(VirtualPool.class, sourceFs.getVirtualPool());
 
-        cmdResult = doDestroySnapMirror(sourceSystem, targetSystem, sourceFs, targetFs, taskCompleter);
+        cmdResult = doDestroySnapMirror(sourceSystem, targetSystem, sourceFs, targetFs, taskCompleter, virtualPool);
         updateTaskStatus(cmdResult, taskCompleter);
     }
 
@@ -381,8 +384,7 @@ public class NetAppCMirrorOperations implements FileMirrorOperations {
             NetAppClusterApi ncApi = getNetAppcClient(targetSystem, targetFs);
             SnapmirrorInfoResp mirrorInfoResp = ncApi.getSnapMirrorInfo(destLocation);
 
-            if (SnapmirrorState.PAUSED.equals(mirrorInfoResp.getMirrorState()) ||
-                    SnapmirrorState.SOURCE.equals(mirrorInfoResp.getMirrorState())) {
+            if (SnapmirrorRelationshipStatus.quiesced.equals(mirrorInfoResp.getRelationshipStatus())) {
 
                 ncApi.resumeSnapMirror(destLocation);
 
@@ -450,23 +452,24 @@ public class NetAppCMirrorOperations implements FileMirrorOperations {
 
     BiosCommandResult doDestroySnapMirror(StorageSystem sourceSystem, StorageSystem targetSystem, FileShare sourceFs,
             FileShare targetFs,
-            TaskCompleter taskCompleter) {
+            TaskCompleter taskCompleter, VirtualPool vpool) {
         SnapmirrorInfo snapMirrorInfo = prepareSnapMirrorInfo(sourceSystem, targetSystem, sourceFs, targetFs);
         String destLocation = snapMirrorInfo.getDestinationLocation();
 
         _log.info("NetAppCMirrorOperations - doDestroySnapMirror sourcelocation {} and destinationlocation {}- start",
                 snapMirrorInfo.getSourceLocation(), snapMirrorInfo.getDestinationLocation());
-
+        SnapmirrorInfoResp mirrorInfoResp = null;
         try {
             NetAppClusterApi ncApi = getNetAppcClient(targetSystem, targetFs);
-            SnapmirrorInfoResp mirrorInfoResp = ncApi.getSnapMirrorInfo(destLocation);
-
+            mirrorInfoResp = ncApi.getSnapMirrorInfo(destLocation);
+            NetAppSnapMirrorDestroyJob netappCSnapMirrorJob = null;
             if (mirrorInfoResp != null) {
 
                 ncApi.destorySnapMirror(destLocation);
 
-                NetAppCSnapMirrorJob netappCSnapMirrorJob = new NetAppCSnapMirrorJob(destLocation, targetSystem.getId(), taskCompleter,
-                        SnapmirrorState.UNKNOWN.toString());
+                netappCSnapMirrorJob = new NetAppSnapMirrorDestroyJob(destLocation, targetSystem.getId(),
+                        taskCompleter,
+                        sourceSystem.getId(), snapMirrorInfo.getSourceLocation());
 
                 ControllerServiceImpl.enqueueJob(new QueueJob(netappCSnapMirrorJob));
                 return BiosCommandResult.createPendingResult();

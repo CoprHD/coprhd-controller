@@ -201,6 +201,15 @@ public class NetAppClusterFacade {
         return result;
     }
 
+    public String getVolumeLanguage(String volName) {
+        if (log.isDebugEnabled()) {
+            log.debug("volume language with params[name]: " + volName);
+        }
+        // First create the volume
+        FlexVolume vol = new FlexVolume(server.getNaServer(), volName);
+        return vol.getVolumeLang();
+    }
+
     /**
      * Unmounts a volume.
      * 

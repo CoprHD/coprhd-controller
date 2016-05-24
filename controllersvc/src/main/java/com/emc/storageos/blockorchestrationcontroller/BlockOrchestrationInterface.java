@@ -136,7 +136,7 @@ public interface BlockOrchestrationInterface {
             List<VolumeDescriptor> volumes, String taskId) throws InternalException;
 
     /**
-     * Adds the steps necessary for creating a full copy of
+     * Adds the steps necessary for running before creating a replica (such as a full copy) of
      * volumes of a given technology (Block, RP, VPlex, etc.) to the given
      * Workflow.
      * 
@@ -144,14 +144,14 @@ public interface BlockOrchestrationInterface {
      * @param waitFor -- The String key that should be used in the
      *            Workflow.createStep waitFor parameter in order to wait on the
      *            previous controller's actions to complete.
-     * @param volumes -- The entire list of VolumeDescriptors for this request
+     * @param volumeDescriptors -- The entire list of VolumeDescriptors for this request
      *            (all technologies).
      * @param taskId -- The top level operation's taskId.
      * @return -- A waitFor key that can be used by subsequent controllers to
      *         wait on the Steps created by this controller.
      * @throws InternalException
      */
-    public String addStepsForCreateFullCopy(Workflow workflow, String waitFor,
+    public String addStepsForPreCreateReplica(Workflow workflow, String waitFor,
             List<VolumeDescriptor> volumeDescriptors, String taskId) throws InternalException;
 
     /**
@@ -163,7 +163,7 @@ public interface BlockOrchestrationInterface {
      * @param waitFor -- The String key that should be used in the
      *            Workflow.createStep waitFor parameter in order to wait on the
      *            previous controller's actions to complete.
-     * @param volumes -- The entire list of VolumeDescriptors for this request
+     * @param volumeDescriptors -- The entire list of VolumeDescriptors for this request
      *            (all technologies).
      * @param taskId -- The top level operation's taskId.
      * @return -- A waitFor key that can be used by subsequent controllers to

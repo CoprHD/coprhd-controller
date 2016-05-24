@@ -105,8 +105,8 @@ public interface BlockOrchestrationController extends Controller {
     /**
      * Create snapshot sessions.
      * 
-     * @param volumeDescriptors
-     * @param taskId
+     * @param volumeDescriptors descriptors for snapshot sessions
+     * @param taskId a task id for the create snapshot operation
      * @throws InternalException
      */
     public void createSnapshotSession(List<VolumeDescriptor> volumeDescriptors, String taskId)

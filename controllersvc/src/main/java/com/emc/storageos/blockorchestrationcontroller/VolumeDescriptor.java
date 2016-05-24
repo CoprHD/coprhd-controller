@@ -45,7 +45,7 @@ public class VolumeDescriptor implements Serializable {
         SRDF_TARGET(16),     // SRDF remote mirror target
         SRDF_EXISTING_SOURCE(17),  // SRDF existing source volume
         VPLEX_MIGRATE_VOLUME(18),
-        BLOCK_SNAPSHOT_SESSION(3);  // snapshot session
+        BLOCK_SNAPSHOT_SESSION(19);  // snapshot session
 
         private final int order;
 
@@ -110,6 +110,17 @@ public class VolumeDescriptor implements Serializable {
         this(type, deviceURI, volumeURI, poolURI, null, capabilities);
     }
     
+    /**
+     * constructor for snapshot session volume descriptor
+     * 
+     * @param type type of volume desccriptor (snapshot session)
+     * @param deviceURI storage controller id
+     * @param volumeURI BlockSnapshotSession id
+     * @param poolURI virtual pool id
+     * @param consistencyGroupURI consistency group id
+     * @param capabilities capabilities object
+     * @param snapSessionSnapshotURIs list of snapshot ids for create and link to snapshot
+     */
     public VolumeDescriptor(Type type,
             URI deviceURI, URI volumeURI, URI poolURI, URI consistencyGroupURI,
             VirtualPoolCapabilityValuesWrapper capabilities, List<List<URI>> snapSessionSnapshotURIs) {

@@ -665,12 +665,12 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
 
             s_logger.info("Adding steps for RecoverPoint create full copy");
             // Call the RPDeviceController to add its methods if there are RP protections
-            waitFor = _rpDeviceController.addStepsForCreateFullCopy(
+            waitFor = _rpDeviceController.addStepsForPreCreateReplica(
                     workflow, waitFor, volumeDescriptors, taskId);
 
             s_logger.info("Adding steps for storage array create full copies");
             // First, call the BlockDeviceController to add its methods.
-            waitFor = _blockDeviceController.addStepsForCreateFullCopy(
+            waitFor = _blockDeviceController.addStepsForPreCreateReplica(
                     workflow, waitFor, volumeDescriptors, taskId);
             
             // post recoverpoint steps disables image access which should be done after the 
@@ -682,7 +682,7 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
 
             s_logger.info("Checking for VPLEX steps");
             // Call the VPlexDeviceController to add its methods if there are VPLEX volumes.
-            waitFor = _vplexDeviceController.addStepsForCreateFullCopy(
+            waitFor = _vplexDeviceController.addStepsForPreCreateReplica(
                     workflow, waitFor, volumeDescriptors, taskId);
 
             // Finish up and execute the plan.
@@ -707,16 +707,16 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
     @Override
     public void createSnapshotSession(List<VolumeDescriptor> volumeDescriptors, String taskId) throws InternalException {
         
-        List<URI> volUris = VolumeDescriptor.getVolumeURIs(volumeDescriptors);
         Workflow workflow = null;
         
-        List<VolumeDescriptor> blockVolmeDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
-                new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_SNAPSHOT_SESSION, VolumeDescriptor.Type.VPLEX_IMPORT_VOLUME },
+        List<VolumeDescriptor> snapshotSessionDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
+                new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_SNAPSHOT_SESSION },
                 new VolumeDescriptor.Type[] {});
-        List<URI> blockVolUris = VolumeDescriptor.getVolumeURIs(blockVolmeDescriptors);
+        List<URI> snapshotSessionURIs = VolumeDescriptor.getVolumeURIs(snapshotSessionDescriptors);
         
-        TaskCompleter completer = new BlockSnapshotSessionCreateWorkflowCompleter(volUris.get(0), blockVolmeDescriptors.get(0).getSnapSessionSnapshotURIs(), taskId);
-        ControllerUtils.checkSnapshotSessionConsistencyGroup(blockVolUris.get(0), getDbClient(), completer);
+        // we expect just one snapshot session volume descriptor per create snapshot session operation
+        TaskCompleter completer = new BlockSnapshotSessionCreateWorkflowCompleter(snapshotSessionURIs.get(0), snapshotSessionDescriptors.get(0).getSnapSessionSnapshotURIs(), taskId);
+        ControllerUtils.checkSnapshotSessionConsistencyGroup(snapshotSessionURIs.get(0), getDbClient(), completer);
         
         try {
             // Generate the Workflow.
@@ -726,7 +726,7 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
 
             s_logger.info("Adding steps for RecoverPoint create snapshot session");
             // Call the RPDeviceController to add its methods if there are RP protections
-            waitFor = _rpDeviceController.addStepsForCreateFullCopy(
+            waitFor = _rpDeviceController.addStepsForPreCreateReplica(
                     workflow, waitFor, volumeDescriptors, taskId);
 
             s_logger.info("Adding steps for storage array create snapshot session");
@@ -739,22 +739,15 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
             waitFor = _rpDeviceController.addStepsForPostCreateReplica(
                     workflow, waitFor, volumeDescriptors, taskId);
 
-            s_logger.info("Checking for VPLEX steps for create snapshot session");
-            // Call the VPlexDeviceController to add its methods if there are VPLEX volumes.
-            waitFor = _vplexDeviceController.addStepsForCreateFullCopy(
-                    workflow, waitFor, volumeDescriptors, taskId);
-
             // Finish up and execute the plan.
             // The Workflow will handle the TaskCompleter
-            String successMessage = "Create volumes successful for: " + volUris.toString();
-            Object[] callbackArgs = new Object[] { volUris };
+            String successMessage = "Create volumes successful for: " + snapshotSessionURIs.toString();
+            Object[] callbackArgs = new Object[] { snapshotSessionURIs };
             workflow.executePlan(completer, successMessage, new WorkflowCallback(), callbackArgs, null, null);
         } catch (Exception ex) {
-            s_logger.error("Could not create volumes: " + volUris, ex);
+            s_logger.error("Could not create snapshot session: " + snapshotSessionURIs, ex);
             releaseWorkflowLocks(workflow);
-            String opName = ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME.getName();
-            ServiceError serviceError = DeviceControllerException.errors.createVolumesFailed(
-                    volUris.toString(), opName, ex);
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(ex);
             completer.error(s_dbClient, _locker, serviceError);
         }
     }

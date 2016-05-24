@@ -221,8 +221,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     private static final String METHOD_ENABLE_IMAGE_ACCESS_ROLLBACK_STEP = "enableImageAccessStepRollback";
 
     // Methods in the create full copy workflow
-    private static final String METHOD_ENABLE_IMAGE_ACCESS_FULL_COPY_STEP = "enableImageAccessForFullCopyStep";
-    private static final String METHOD_DISABLE_IMAGE_ACCESS_FULL_COPY_STEP = "disableImageAccessForFullCopyStep";
+    private static final String METHOD_ENABLE_IMAGE_ACCESS_CREATE_REPLICA_STEP = "enableImageAccessForCreateReplicaStep";
+    private static final String METHOD_DISABLE_IMAGE_ACCESS_CREATE_REPLICA_STEP = "disableImageAccessForCreateReplicaStep";
 
     // Methods in the export group delete workflow
     private static final String METHOD_DISABLE_IMAGE_ACCESS_STEP = "disableImageAccessStep";
@@ -4511,20 +4511,20 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     }
     
     /* (non-Javadoc)
-     * @see com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationInterface#addStepsForCreateFullCopy(com.emc.storageos.workflow.Workflow, java.lang.String, java.util.List, java.lang.String)
+     * @see com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationInterface#addStepsForPreCreateReplica(com.emc.storageos.workflow.Workflow, java.lang.String, java.util.List, java.lang.String)
      */
     @Override
-    public String addStepsForCreateFullCopy(Workflow workflow, String waitFor, List<VolumeDescriptor> volumeDescriptors, String taskId) throws InternalException {
+    public String addStepsForPreCreateReplica(Workflow workflow, String waitFor, List<VolumeDescriptor> volumeDescriptors, String taskId) throws InternalException {
               
         _log.info("Adding steps for create full copy");
-        return addStepsForPreOrPostCreateCopy(workflow, waitFor, volumeDescriptors, true, taskId);
+        return addStepsForPreOrPostCreateReplica(workflow, waitFor, volumeDescriptors, true, taskId);
     }
     
     @Override
     public String addStepsForPostCreateReplica(Workflow workflow, String waitFor,
             List<VolumeDescriptor> volumeDescriptors, String taskId) throws InternalException {
         _log.info("Adding steps for post create full copy");
-        return addStepsForPreOrPostCreateCopy(workflow, waitFor, volumeDescriptors, false, taskId);
+        return addStepsForPreOrPostCreateReplica(workflow, waitFor, volumeDescriptors, false, taskId);
     }
     
     /**
@@ -4537,7 +4537,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * @return
      * @throws InternalException
      */
-    private String addStepsForPreOrPostCreateCopy(Workflow workflow, String waitFor, List<VolumeDescriptor> volumeDescriptors, 
+    private String addStepsForPreOrPostCreateReplica(Workflow workflow, String waitFor, List<VolumeDescriptor> volumeDescriptors, 
             boolean preCreate, String taskId) throws InternalException {
         
         List<VolumeDescriptor> blockVolmeDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
@@ -4649,10 +4649,10 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 }
     
                 // Step 2 - Enable image access
-                return addEnableImageAccessForFullCopyStep(workflow, protectionSystem, clazz, new ArrayList<URI>(copyList), bookmarkName, volumeWWNs, rpWaitFor);
+                return addEnableImageAccessForCreateReplicaStep(workflow, protectionSystem, clazz, new ArrayList<URI>(copyList), bookmarkName, volumeWWNs, rpWaitFor);
             
             } else {
-                return addDisableImageAccessForFullCopyStep(workflow, protectionSystem, clazz, new ArrayList<URI>(copyList), volumeWWNs, waitFor);
+                return addDisableImageAccessForCreateReplicaStep(workflow, protectionSystem, clazz, new ArrayList<URI>(copyList), volumeWWNs, waitFor);
             }
         }
         
@@ -5383,22 +5383,24 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     }
 
     /**
-     * Method that adds the steps to the workflow to enable image access
+     * Method that adds the steps to the workflow to enable image access before create native array replica operation
      *
      * @param workflow
-     *            workflow object
      * @param rpSystem
-     *            RP system
-     * @param snapshots
-     *            snapshot map
-     * @throws WorkflowException
+     * @param clazz type of replica (such as Volume, BlockSnapshot or BlockSnapshotSession)
+     * @param copyList list of replica ids
+     * @param bookmarkName name of the bookmark created for this operation
+     * @param volumeWWNs wwns of volumes that are parents to replica objects
+     * @param waitFor
+     * @return
+     * @throws InternalException
      */
-    private String addEnableImageAccessForFullCopyStep(Workflow workflow, ProtectionSystem rpSystem, Class<? extends DataObject> clazz, List<URI> copyList,
+    private String addEnableImageAccessForCreateReplicaStep(Workflow workflow, ProtectionSystem rpSystem, Class<? extends DataObject> clazz, List<URI> copyList,
             String bookmarkName, Set<String> volumeWWNs, String waitFor) throws InternalException {
         String stepId = workflow.createStepId();
-        Workflow.Method enableImageAccessExecuteMethod = new Workflow.Method(METHOD_ENABLE_IMAGE_ACCESS_FULL_COPY_STEP, rpSystem.getId(),
+        Workflow.Method enableImageAccessExecuteMethod = new Workflow.Method(METHOD_ENABLE_IMAGE_ACCESS_CREATE_REPLICA_STEP, rpSystem.getId(),
                 clazz, copyList, bookmarkName, volumeWWNs);
-        Workflow.Method enableImageAccessExecutionRollbackMethod = new Workflow.Method(METHOD_DISABLE_IMAGE_ACCESS_FULL_COPY_STEP,
+        Workflow.Method enableImageAccessExecutionRollbackMethod = new Workflow.Method(METHOD_DISABLE_IMAGE_ACCESS_CREATE_REPLICA_STEP,
                 rpSystem.getId(), clazz, copyList, volumeWWNs);
 
         workflow.createStep(STEP_ENABLE_IMAGE_ACCESS, String.format("Enable image access for bookmark %s", bookmarkName), waitFor, 
@@ -5411,18 +5413,18 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     }
 
     /**
-     * Enable image access for RP full copies.
+     * Enable image access before create native array replica operation
      *
      * @param protectionDevice
-     *            protection system
-     * @param fullCopyIds
-     *            list of full copies (used for completer only)
+     * @param clazz type of replica (such as Volume, BlockSnapshot or BlockSnapshotSession)
+     * @param copyList list of replica ids
+     * @param bookmarkName name of the bookmark created for this operation
+     * @param volumeWWNs wwns of volumes that are parents to replica objects
      * @param opId
-     *            task ID
-     * @return true if operation was successful
+     * @return
      * @throws ControllerException
      */
-    public boolean enableImageAccessForFullCopyStep(URI protectionDevice, Class<? extends DataObject> clazz, List<URI> copyList, String bookmarkName,
+    public boolean enableImageAccessForCreateReplicaStep(URI protectionDevice, Class<? extends DataObject> clazz, List<URI> copyList, String bookmarkName,
             Set<String> volumeWWNs, String opId)
             throws ControllerException {
         TaskCompleter completer = null;
@@ -5475,19 +5477,22 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     }
 
     /**
-     * Method that adds the steps to the workflow to disable image access (for full copies)
+     * Method that adds the steps to the workflow to disable image access during create native array replica operation
      * 
      * @param workflow
-     * @param waitFor
-     * @param snapshots
      * @param rpSystem
+     * @param clazz type of replica (such as Volume, BlockSnapshot or BlockSnapshotSession)
+     * @param copyList list of replica ids
+     * @param volumeWWNs wwns of volumes that are parents to replica objects
+     * @param waitFor
+     * @return
      * @throws InternalException
      */
-    private String addDisableImageAccessForFullCopyStep(Workflow workflow, ProtectionSystem rpSystem, Class<? extends DataObject> clazz, List<URI> copyList,
+    private String addDisableImageAccessForCreateReplicaStep(Workflow workflow, ProtectionSystem rpSystem, Class<? extends DataObject> clazz, List<URI> copyList,
             Set<String> volumeWWNs, String waitFor) throws InternalException {
         String stepId = workflow.createStepId();
 
-        Workflow.Method disableImageAccessExecuteMethod = new Workflow.Method(METHOD_DISABLE_IMAGE_ACCESS_FULL_COPY_STEP, rpSystem.getId(),
+        Workflow.Method disableImageAccessExecuteMethod = new Workflow.Method(METHOD_DISABLE_IMAGE_ACCESS_CREATE_REPLICA_STEP, rpSystem.getId(),
                 clazz, copyList, volumeWWNs);
 
         workflow.createStep(STEP_DISABLE_IMAGE_ACCESS, String.format("Disable image access for bookmark"), waitFor, rpSystem.getId(),
@@ -5498,16 +5503,16 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     }
 
     /**
-     * Disable image access for RP full copies.
+     * Disable image access for after create native array replica operation
      *
      * @param protectionDevice
-     * @param fullCopyIds
-     * @param emName
-     * @param volumeWWNs
+     * @param clazz type of replica (such as Volume, BlockSnapshot or BlockSnapshotSession)
+     * @param copyList list of replica ids
+     * @param volumeWWNs wwns of volumes that are parents to replica objects
      * @param opId
      * @throws ControllerException
      */
-    public void disableImageAccessForFullCopyStep(URI protectionDevice, Class<? extends DataObject> clazz, List<URI> copyList, Set<String> volumeWWNs,
+    public void disableImageAccessForCreateReplicaStep(URI protectionDevice, Class<? extends DataObject> clazz, List<URI> copyList, Set<String> volumeWWNs,
             String opId) throws ControllerException {
         TaskCompleter completer = null;
         try {

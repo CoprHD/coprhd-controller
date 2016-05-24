@@ -138,7 +138,7 @@ public class VPlexStorageViewInfo extends VPlexResourceInfo {
         for (String volumeInfoStr : virtualVolumes) {
             StringTokenizer tokenizer = new StringTokenizer(volumeInfoStr, ",");
             String hluStr = tokenizer.nextToken();
-            Integer volumeHLU = -1;
+            Integer volumeHLU = VPlexApiConstants.LUN_UNASSIGNED;
             hluStr = hluStr.substring(1); // skips the opening "("
             if (null != hluStr && !VPlexApiConstants.NULL_ATT_VAL.equals(hluStr)) {
                 try {
@@ -175,7 +175,9 @@ public class VPlexStorageViewInfo extends VPlexResourceInfo {
      * @return The HLU of the volume.
      */
     public Integer getHLUForStorageViewVolume(String volumeName) {
-        return virtualVolumeHLUMap.get(volumeName);
+        // if the LUN value is not set for this volume name, return LUN_UNASSIGNED
+        Integer hlu = virtualVolumeHLUMap.get(volumeName);
+        return hlu != null ? hlu : VPlexApiConstants.LUN_UNASSIGNED;
     }
 
     /**

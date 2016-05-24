@@ -150,7 +150,8 @@ public class StorageProvider extends DataObject {
         cinder,
         ibmxiv,
         scaleioapi,
-        xtremio;
+        xtremio,
+        ceph;
 
         /**
          * Gets the supported system types for the given interface type.
@@ -174,6 +175,8 @@ public class StorageProvider extends DataObject {
                 systemTypes.add(Type.scaleio.name());
             } else if (xtremio.equals(interfaceType)) {
                 systemTypes.add(Type.xtremio.name());
+            } else if (ceph.equals(interfaceType)) {
+                systemTypes.add(Type.ceph.name());
             }
             return systemTypes;
         }

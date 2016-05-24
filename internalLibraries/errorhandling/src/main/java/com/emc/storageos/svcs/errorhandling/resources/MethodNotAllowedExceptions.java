@@ -75,4 +75,7 @@ public interface MethodNotAllowedExceptions {
 
     @DeclareServiceCode(ServiceCode.API_METHOD_NOT_SUPPORTED)
     public MethodNotAllowedException notSupportedForHDS();
+
+    @DeclareServiceCode(ServiceCode.API_METHOD_NOT_SUPPORTED)
+    public MethodNotAllowedException notSupportedForCeph();
 }

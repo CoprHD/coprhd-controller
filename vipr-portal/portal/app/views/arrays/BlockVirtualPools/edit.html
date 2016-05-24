@@ -130,7 +130,7 @@
           <select-one options="systemTypeOptions" auto-default available="systemTypeAvailableOptions" v-disabled='locked'></select-one>
         </control-group>
 
-        <div ng-if="['${models.StorageSystemTypes.NONE}','${models.StorageSystemTypes.SCALEIO}','${models.StorageSystemTypes.XTREMIO}','${models.StorageSystemTypes.IBMXIV}'].indexOf(vpool.systemType) == -1">
+        <div ng-if="['${models.StorageSystemTypes.NONE}','${models.StorageSystemTypes.SCALEIO}','${models.StorageSystemTypes.XTREMIO}','${models.StorageSystemTypes.IBMXIV}','${models.StorageSystemTypes.CEPH}'].indexOf(vpool.systemType) == -1">
           <control-group v-field='vpool.raidLevels' type="array" >
             <select-many options="raidLevelsAvailableOptions" no-max-height search-threshold="{{raidLevelsOptions.length}}" v-disabled='locked'></select-many>
           </control-group>
@@ -155,9 +155,11 @@
             <select-one v-disabled="locked" auto-default options="autoTierPolicyOptions" empty-option="none"></select-one>
           </control-group>
         </div>
-        <control-group v-field='vpool.multiVolumeConsistency'>
-          <boolean-checkbox v-disabled='locked'></boolean-checkbox>
-        </control-group>
+        <div ng-if="['${models.StorageSystemTypes.CEPH}'].indexOf(vpool.systemType) == -1">
+          <control-group v-field='vpool.multiVolumeConsistency'>
+            <boolean-checkbox v-disabled='locked'></boolean-checkbox>
+          </control-group>
+        </div>
 
         <control-group v-field='vpool.expandable'>
           <boolean-checkbox v-disabled='locked'></boolean-checkbox>
@@ -188,7 +190,7 @@
         </div>
       </collapse>
       
-      <div ng-if="vpool.systemType != '${models.StorageSystemTypes.SCALEIO}'">
+      <div ng-if="vpool.systemType != '${models.StorageSystemTypes.SCALEIO}' && vpool.systemType != '${models.StorageSystemTypes.CEPH}'">
         <collapse title-key='vpool.group.sanPaths' icon='random'>
           <control-group v-field='vpool.minPaths'>
             <select-one v-disabled='locked' auto-default options="numPathsOptions" type="number" required></select-one>
@@ -204,7 +206,7 @@
         </collapse>
       </div>
 
-      <div ng-if="vpool.systemType != '${models.StorageSystemTypes.SCALEIO}' && vpool.systemType != '${models.StorageSystemTypes.IBMXIV}'">
+      <div ng-if="vpool.systemType != '${models.StorageSystemTypes.SCALEIO}' && vpool.systemType != '${models.StorageSystemTypes.IBMXIV}' && vpool.systemType != '${models.StorageSystemTypes.CEPH}'">
         <collapse title-key='vpool.group.highAvailability' icon='globe'>
           <control-group v-field='vpool.highAvailability'>
             <select-one options=highAvailabilityOptions auto-default empty-option="none"></select-one>
@@ -238,7 +240,7 @@
           <input-text></input-text>
         </control-group>
 
-        <div ng-if="vpool.systemType != '${models.StorageSystemTypes.SCALEIO}' && vpool.systemType != '${models.StorageSystemTypes.IBMXIV}' && vpool.systemType != '${models.StorageSystemTypes.VNXe}'">
+        <div ng-if="vpool.systemType != '${models.StorageSystemTypes.SCALEIO}' && vpool.systemType != '${models.StorageSystemTypes.IBMXIV}' && vpool.systemType != '${models.StorageSystemTypes.VNXe}' && vpool.systemType != '${models.StorageSystemTypes.CEPH}'">
           <control-group v-field='vpool.maxContinuousCopies'>
             <input-text ng-disabled="vpool.expandable"></input-text>
           </control-group>

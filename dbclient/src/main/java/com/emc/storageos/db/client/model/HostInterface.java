@@ -125,6 +125,7 @@ public abstract class HostInterface extends DataObject {
         IPV4,
         IPV6,
         ScaleIO,
+        RBD,
     }
 
     /**

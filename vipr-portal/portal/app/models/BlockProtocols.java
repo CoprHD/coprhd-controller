@@ -15,6 +15,7 @@ public class BlockProtocols {
     public static final String FCoE = "FCoE";
     public static final String iSCSI = "iSCSI";
     public static final String ScaleIO = "ScaleIO";
+    public static final String RBD = "RBD";
 
     public static boolean isFC(String type) {
         return FC.equals(type);
@@ -32,8 +33,12 @@ public class BlockProtocols {
         return ScaleIO.equals(type);
     }
 
+    public static boolean isRBD(String type) {
+        return RBD.equals(type);
+    }
+
     public static boolean isBlockProtocol(String type) {
-        return isFC(type) || isFCoE(type) || isISCSI(type) || isScaleIO(type);
+        return isFC(type) || isFCoE(type) || isISCSI(type) || isScaleIO(type) || isRBD(type);
     }
 
     public static StringOption option(String type) {

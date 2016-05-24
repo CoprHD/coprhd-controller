@@ -52,7 +52,7 @@ public class DataObjectInactiveFieldScrubber extends BaseCustomMigrationCallback
         try {
             scanner.scan(Cf.class);
         } catch (Exception e) {
-        	throw new MigrationCallbackException(DataObjectInactiveFieldScrubber.class.getSimpleName()+" process failed ", e);
+        	throw new MigrationCallbackException(this.getName()+" process failed ", e);
         }
     }
 

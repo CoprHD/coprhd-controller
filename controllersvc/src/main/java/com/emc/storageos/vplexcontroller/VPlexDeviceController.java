@@ -565,8 +565,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // Set the project and tenant to those of an underlying volume.
                 // These are used to set the project and tenant of a new ExportGroup if needed.
                 Volume firstVolume = volumeMap.values().iterator().next();
-                URI projectURI = firstVolume.getProject().getURI();
-                URI tenantURI = firstVolume.getTenant().getURI();
+                Project vplexProject = VPlexUtil.lookupVplexProject(vplexSystem, _dbClient);
+                URI projectURI = (vplexProject != null) ? vplexProject.getId() : firstVolume.getProject().getURI();
+                URI tenantURI = (vplexProject != null) ? vplexProject.getTenantOrg().getURI() : firstVolume.getTenant().getURI();
+                _log.info("Project is {}, Tenant is {}", projectURI, tenantURI);
 
                 try {
                     // Now we need to do the necessary zoning and export steps to ensure
@@ -5008,10 +5010,12 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             String waitFor = _blockDeviceController.addStepsForCreateVolumes(workflow,
                     null, descriptors, wfId);
 
-            // Set the project and tenant.
+            // Set the project and tenant. We prefer a project created for the Vplex system,
+            // but will fallback to the volume's project if there isn't a project for the VPlex.
             Volume firstVolume = volumeMap.values().iterator().next();
-            URI projectURI = firstVolume.getProject().getURI();
-            URI tenantURI = firstVolume.getTenant().getURI();
+            Project vplexProject = VPlexUtil.lookupVplexProject(vplexSystem, _dbClient);
+            URI projectURI = (vplexProject != null) ? vplexProject.getId() : firstVolume.getProject().getURI();
+            URI tenantURI = (vplexProject != null) ? vplexProject.getTenantOrg().getURI() : firstVolume.getTenant().getURI();
             _log.info("Project is {}, Tenant is {}", projectURI, tenantURI);
 
             // Now we need to do the necessary zoning and export steps to ensure
@@ -5162,8 +5166,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             // Set the project and tenant.
             Volume firstVolume = volumeMap.values().iterator().next();
-            URI projectURI = firstVolume.getProject().getURI();
-            URI tenantURI = firstVolume.getTenant().getURI();
+            Project vplexProject = VPlexUtil.lookupVplexProject(vplexSystem, _dbClient);
+            URI projectURI = (vplexProject != null) ? vplexProject.getId() : firstVolume.getProject().getURI();
+            URI tenantURI = (vplexProject != null) ? vplexProject.getTenantOrg().getURI() : firstVolume.getTenant().getURI();
             _log.info("Project is {}, Tenant is {}", projectURI, tenantURI);
 
             waitFor = createWorkflowStepsForBlockVolumeExport(workflow, vplexSystem,

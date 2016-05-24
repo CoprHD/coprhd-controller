@@ -8,7 +8,6 @@ import static com.emc.storageos.db.client.constraint.AlternateIdConstraint.Facto
 
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -25,6 +24,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
@@ -39,10 +39,12 @@ import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.HostInterface;
 import com.emc.storageos.db.client.model.Initiator;
+import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VplexMirror;
@@ -52,6 +54,7 @@ import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.db.joiner.Joiner;
+import com.emc.storageos.security.authorization.BasePermissionsHelper;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
@@ -1516,5 +1519,36 @@ public class VPlexUtil {
         }
 
         return client.getClusterName(vplexClusterId);
+    }
+    
+    /**
+     * Lookup the Project assigned to this VPlex for its artifacts.
+     * If there is no existing Project, one is created.
+     *
+     * @param vplexSystem A StorageSystem instance representing a VPlex.
+     * @param dbClient A reference to a database client.
+     *
+     * @return Project instance that holds a VPlex's private volumes/export groups.
+     * Returns null if no such project was found
+     */
+    public static Project lookupVplexProject(StorageSystem vplexSystem, DbClient dbClient) {
+        BasePermissionsHelper helper = new BasePermissionsHelper(dbClient);
+        TenantOrg rootTenant = helper.getRootTenant();
+        PrefixConstraint constraint = PrefixConstraint.Factory.getLabelPrefixConstraint(Project.class, vplexSystem.getNativeGuid());
+        URIQueryResultList result = new URIQueryResultList();
+        dbClient.queryByConstraint(constraint, result);
+        Iterator<URI> iter = result.iterator();
+        while (iter.hasNext()) {
+            Project project = dbClient.queryObject(Project.class, iter.next());
+            if (project == null || project.getInactive() == true) {
+                continue;
+            }
+            if (project.getLabel().equals(vplexSystem.getNativeGuid())
+                    && project.getTenantOrg().getURI().toString().equals(rootTenant.getId().toString())) {
+                return project;
+            }
+        }
+        // Project not found
+        return null;
     }
 }

@@ -337,10 +337,7 @@ public class VNXUnityUnManagedObjectDiscoverer {
         URIQueryResultList result = new URIQueryResultList();
         dbClient.queryByConstraint(AlternateIdConstraint.Factory
                 .getFileSystemNativeGUIdConstraint(nativeGuid), result);
-        if (result.iterator().hasNext()) {
-            return true;
-        }
-        return false;
+        return (result.iterator().hasNext());
     }
 
     private StoragePort getStoragePortPool(StorageSystem storageSystem, DbClient dbClient, VNXeApiClient apiClient, VNXeFileSystem fs)
@@ -505,51 +502,24 @@ public class VNXUnityUnManagedObjectDiscoverer {
                     log.error("IOException occured in discoverAllExportRules()", e);
                 }
             }
-
-            if (!unManagedExportRulesInsert.isEmpty() &&
-                    unManagedExportRulesInsert.size() >= Constants.DEFAULT_PARTITION_SIZE) {
-                // Add UnManage export rules
-                partitionManager.insertInBatches(unManagedExportRulesInsert,
-                        Constants.DEFAULT_PARTITION_SIZE, dbClient, UNMANAGED_EXPORT_RULE);
-                unManagedExportRulesInsert.clear();
-            }
-
-            if (!unManagedExportRulesUpdate.isEmpty() &&
-                    unManagedExportRulesUpdate.size() >= Constants.DEFAULT_PARTITION_SIZE) {
-                // Update UnManage export rules
-                partitionManager.updateInBatches(unManagedExportRulesUpdate,
-                        Constants.DEFAULT_PARTITION_SIZE, dbClient, UNMANAGED_EXPORT_RULE);
-                unManagedExportRulesUpdate.clear();
-            }
-
-            if (!unManagedFilesystemsUpdate.isEmpty() &&
-                    unManagedFilesystemsUpdate.size() >= Constants.DEFAULT_PARTITION_SIZE) {
-                // Update UnManagedFilesystem
-                partitionManager.updateInBatches(unManagedFilesystemsUpdate,
-                        Constants.DEFAULT_PARTITION_SIZE, dbClient, UNMANAGED_FILESYSTEM);
-                unManagedFilesystemsUpdate.clear();
-            }
         }
 
         if (!unManagedExportRulesInsert.isEmpty()) {
             // Add UnManage export rules
             partitionManager.insertInBatches(unManagedExportRulesInsert,
                     Constants.DEFAULT_PARTITION_SIZE, dbClient, UNMANAGED_EXPORT_RULE);
-            unManagedExportRulesInsert.clear();
         }
 
         if (!unManagedExportRulesUpdate.isEmpty()) {
             // Update UnManage export rules
             partitionManager.updateInBatches(unManagedExportRulesUpdate,
                     Constants.DEFAULT_PARTITION_SIZE, dbClient, UNMANAGED_EXPORT_RULE);
-            unManagedExportRulesUpdate.clear();
         }
 
         if (!unManagedFilesystemsUpdate.isEmpty()) {
             // Update UnManagedFilesystem
             partitionManager.updateInBatches(unManagedFilesystemsUpdate,
                     Constants.DEFAULT_PARTITION_SIZE, dbClient, UNMANAGED_FILESYSTEM);
-            unManagedFilesystemsUpdate.clear();
         }
     }
 

@@ -192,50 +192,6 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
         return isFSExists;
     }
 
-    /*
-     * @Override
-     * public BiosCommandResult doDeleteFS(StorageSystem storage,
-     * FileDeviceInputOutput fileInOut) throws ControllerException {
-     * _logger.info("deleting file system: ", fileInOut.getFsName());
-     * VNXeApiClient apiClient = getVnxUnityClient(storage);
-     * VNXeCommandJob job = null;
-     * VNXeFileTaskCompleter completer = null;
-     * try {
-     * job = apiClient.deleteFileSystem(fileInOut.getFsNativeId(), fileInOut.getForceDelete());
-     * if (job != null) {
-     * completer = new VNXeFileTaskCompleter(FileShare.class, fileInOut.getFsId(), fileInOut.getOpId(),
-     * OperationTypeEnum.DELETE_FILE_SYSTEM);
-     * VNXeDeleteFileSystemJob deleteFSJob = new VNXeDeleteFileSystemJob(job.getId(), storage.getId(),
-     * completer, fileInOut.getForceDelete());
-     * ControllerServiceImpl.enqueueJob(new QueueJob(deleteFSJob));
-     * } else {
-     * _logger.error("No job returned from deleteFileSystem");
-     * ServiceError error = DeviceControllerErrors.vnxe.jobFailed("DeleteFileSystem",
-     * "No Job returned from deleteFileSystem");
-     * return BiosCommandResult.createErrorResult(error);
-     * }
-     * 
-     * }catch (VNXeException e) {
-     * _logger.error("Delete file system got the exception", e);
-     * if (completer != null) {
-     * completer.error(dbClient, e);
-     * }
-     * return BiosCommandResult.createErrorResult(e);
-     * } catch (Exception ex) {
-     * _logger.error("Delete file system got the exception", ex);
-     * ServiceError error = DeviceControllerErrors.vnxe.jobFailed("DeleteFileSystem", ex.getMessage());
-     * if (completer != null) {
-     * completer.error(dbClient, error);
-     * }
-     * return BiosCommandResult.createErrorResult(error);
-     * }
-     * StringBuilder logMsgBuilder = new StringBuilder(String.format(
-     * "Delete filesystem job submitted - Array:%s, fileSystem: %s", storage.getSerialNumber(),
-     * fileInOut.getFsName()));
-     * _logger.info(logMsgBuilder.toString());
-     * return BiosCommandResult.createPendingResult();
-     * }
-     */
 
     /*
      * To get around the KH API delete file system async issues, using sync call for now.

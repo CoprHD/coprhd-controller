@@ -103,7 +103,7 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
     private static final Long KB_IN_BYTES = 1024L;
 
     // Reference to the VNX unity client factory allows us to get a VNX unity
-    // client  and execute requests to the VNX Unity storage system.
+    // client and execute requests to the VNX Unity storage system.
     private VNXeApiClientFactory clientFactory;
     private VNXUnityUnManagedObjectDiscoverer unityUnManagedObjectDiscoverer;
 
@@ -578,16 +578,6 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
                     if (ImplicitPoolMatcher.checkPoolPropertiesChanged(pool.getProtocols(), supportedProtocols)) {
                         isModified = true;
                     }
-                    pool.setProtocols(supportedProtocols);
-                    StringSet raidLevels = new StringSet();
-                    RaidTypeEnum raid = vnxePool.getRaidTypeEnum();
-                    if (raid != null) {
-                        raidLevels.add(vnxePool.getRaidTypeEnum().name());
-                        pool.setSupportedRaidLevels(raidLevels);
-                    }
-                    pool.setDiscoveryStatus(DiscoveredDataObject.DiscoveryStatus.VISIBLE.name());
-                    pool.setCompatibilityStatus(DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name());
-                    pool.setAutoTieringEnabled(getPoolAutoTieringEnabled(vnxePool, system));
                     existingPools.add(pool);
                 }
 
@@ -670,7 +660,7 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
             _logger.info("Old Storage Pool : " + pool);
             _logger.info("Old Storage Pool : {} : {}", pool.getNativeGuid(), pool.getId());
         }
-        
+
         storagePools.put(NEW, newPools);
         storagePools.put(EXISTING, existingPools);
         _logger.info("Number of pools found {} : ", storagePools.size());
@@ -780,15 +770,13 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
                 haDomain.setAdapterName(nasServer.getName());
                 haDomain.setName(nasServer.getName());
                 haDomain.setSerialNumber(nasServer.getId());
-                haDomain.setFileSharingProtocols(protocols);
-                haDomain.setVirtual(true);
                 newNasServers.add(haDomain);
 
             } else {
-                haDomain.setFileSharingProtocols(protocols);
-                haDomain.setVirtual(true);
                 existingNasServers.add(haDomain);
             }
+            haDomain.setFileSharingProtocols(protocols);
+            haDomain.setVirtual(true);
             nasServerIdMap.put(nasServer.getId(), haDomain.getId());
 
             CifsServerMap cifsServersMap = new CifsServerMap();
@@ -823,16 +811,13 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
                 vNas.setStorageDeviceURI(system.getId());
                 vNas.setNasName(nasServer.getName());
                 vNas.setNativeId(nasServer.getId());
-                vNas.setNasState(VirtualNasState.LOADED.name());
-                vNas.setProtocols(protocols);
-                vNas.setCifsServersMap(cifsServersMap);
                 newVirtualNas.add(vNas);
             } else {
-                vNas.setProtocols(protocols);
-                vNas.setNasState(VirtualNasState.LOADED.name());
-                vNas.setCifsServersMap(cifsServersMap);
                 existingVirtualNas.add(vNas);
             }
+            vNas.setProtocols(protocols);
+            vNas.setNasState(VirtualNasState.LOADED.name());
+            vNas.setCifsServersMap(cifsServersMap);
 
         }
 
@@ -1444,6 +1429,12 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
         }
     }
 
+    /**
+     * Compute static load metrics.
+     * 
+     * @param accessProfile
+     * @return
+     */
     private void computeStaticLoadMetrics(AccessProfile accessProfile) throws BaseCollectionException {
         URI storageSystemId = accessProfile.getSystemId();
         StorageSystem storageSystem = null;
@@ -1456,7 +1447,7 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
             List<VNXeNasServer> nasServers = client.getNasServers();
             for (VNXeNasServer nasServer : nasServers) {
                 if ((nasServer.getMode() == VNXeNasServer.NasServerModeEnum.DESTINATION)
-                        || nasServer.getIsReplicationDestination() ) {
+                        || nasServer.getIsReplicationDestination()) {
                     _logger.debug("Found a replication destination NasServer");
                     continue;
                 }
@@ -1486,6 +1477,13 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
         }
     }
 
+    /**
+     * Calculate nas server metrics
+     * 
+     * @param nasServer
+     * @param apiClient
+     * @return StringMap containing calculated metrics
+     */
     private StringMap populateDbMetrics(final VNXeNasServer nasServer, VNXeApiClient client) {
         StringMap dbMetrics = new StringMap();
         long totalProvCap = 0L;
@@ -1520,7 +1518,7 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
                         }
                         List<VNXeCifsShare> snapCifsShares = client.getCifsSharesForSnap(snap.getId());
                         if (snapCifsShares != null && !snapCifsShares.isEmpty()) {
-                            cifsSharesCount =  cifsSharesCount + snapCifsShares.size();
+                            cifsSharesCount = cifsSharesCount + snapCifsShares.size();
                         }
                     }
                 }
@@ -1587,7 +1585,6 @@ public class VNXUnityCommunicationInterface extends ExtendedCommunicationInterfa
 
         dbMetrics.put(MetricsKeys.maxNFSExports.name(), String.valueOf(MaxNfsExports));
         dbMetrics.put(MetricsKeys.maxCifsShares.name(), String.valueOf(MaxCifsShares));
-
 
         // set the max capacity in bytes
         long MaxCapacity = MAX_CAPACITY;

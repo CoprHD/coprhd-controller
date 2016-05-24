@@ -16,8 +16,8 @@ public class CifsServerListRequest extends KHRequests<VNXeCifsServer> {
 
     public CifsServerListRequest(KHClient client) {
         super(client);
-        _url = URL ;
-	_fields = FIELDS;
+        _url = URL;
+        _fields = FIELDS;
     }
 
     public List<VNXeCifsServer> get() {

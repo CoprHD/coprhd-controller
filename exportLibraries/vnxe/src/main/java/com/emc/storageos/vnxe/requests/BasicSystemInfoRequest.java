@@ -11,12 +11,12 @@ import com.emc.storageos.vnxe.models.BasicSystemInfo;
 
 public class BasicSystemInfoRequest extends KHRequests<BasicSystemInfo> {
     private static final String URL = "/api/types/basicSystemInfo/instances";
-	private static final String FIELDS = "model,name,apiVersion,earliestApiVersion,softwareVersion";
+    private static final String FIELDS = "model,name,apiVersion,earliestApiVersion,softwareVersion";
 
     public BasicSystemInfoRequest(KHClient client) {
         super(client);
         _url = URL;
-	_fields = FIELDS;
+        _fields = FIELDS;
     }
 
     /*

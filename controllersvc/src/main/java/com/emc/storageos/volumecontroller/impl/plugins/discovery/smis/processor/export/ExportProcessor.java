@@ -38,6 +38,7 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.ZoneInfo;
 import com.emc.storageos.db.client.model.ZoneInfoMap;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.WWNUtility;
 import com.emc.storageos.db.client.util.iSCSIUtility;
 import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
@@ -73,6 +74,7 @@ public class ExportProcessor extends Processor {
 
     private Set<URI> _allCurrentUnManagedExportMaskUris = null;
     private Map<String, Set<UnManagedExportMask>> _volumeToExportMasksMap = null;
+    private Map<URI, Set<UnManagedExportMask>> _hostToExportMasksMap = null;
     private List<UnManagedExportMask> _unManagedExportMasksToCreate = null;
     private List<UnManagedExportMask> _unManagedExportMasksToUpdate = null;
 
@@ -363,6 +365,24 @@ public class ExportProcessor extends Processor {
     }
 
     /**
+     * Gets the Map of hosts to UnManagedExportMasks that is being tracked in the keyMap.
+     *
+     * @return a Map of hosts to UnManagedExportMasks
+     */
+    protected Map<URI, Set<UnManagedExportMask>> getHostToExportMasksMap() {
+
+        // find or create the Volume -> UnManagedExportMask tracking data structure in the key map
+        _hostToExportMasksMap =
+                (Map<URI, Set<UnManagedExportMask>>) _keyMap.get(Constants.HOST_UNMANAGED_EXPORT_MASKS_MAP);
+        if (_hostToExportMasksMap == null) {
+            _hostToExportMasksMap = new HashMap<URI, Set<UnManagedExportMask>>();
+            _keyMap.put(Constants.HOST_UNMANAGED_EXPORT_MASKS_MAP, _hostToExportMasksMap);
+        }
+
+        return _hostToExportMasksMap;
+    }
+
+    /**
      * Gets the Set of UnManagedExportMask URIs that are being tracked in the keyMap.
      * They represent the any UnManagedExportMasks that are being updated or created
      * in the database during the discovery run. This collection will be used
@@ -502,7 +522,7 @@ public class ExportProcessor extends Processor {
             _logger.info("looking at classname: " + cimi.getClassName());
             switch (cimi.getClassName()) {
 
-            // process initiators
+                // process initiators
                 case SmisConstants.CP_SE_STORAGE_HARDWARE_ID:
 
                     String initiatorNetworkId = this.getCIMPropertyValue(cimi, SmisConstants.CP_STORAGE_ID);
@@ -532,6 +552,18 @@ public class ExportProcessor extends Processor {
                         knownNetworkIdSet.add(knownInitiator.getInitiatorPort());
                         if (HostInterface.Protocol.FC.toString().equals(knownInitiator.getProtocol())) {
                             matchedInitiators.add(knownInitiator);
+                        }
+
+                        // add to map of host to export masks
+                        URI hostId  = knownInitiator.getHost();
+                        if (!NullColumnValueGetter.isNullURI(hostId)) {
+                            Set<UnManagedExportMask> maskSet = getHostToExportMasksMap().get(hostId);
+                            if (maskSet == null) {
+                                maskSet = new HashSet<UnManagedExportMask>();
+                                _logger.info("Creating maskSet for host {}" + hostId);
+                                getHostToExportMasksMap().put(hostId, maskSet);
+                            }
+                            maskSet.add(mask);
                         }
                     } else {
                         _logger.info("   no hosts in ViPR found configured for initiator " + initiatorNetworkId);

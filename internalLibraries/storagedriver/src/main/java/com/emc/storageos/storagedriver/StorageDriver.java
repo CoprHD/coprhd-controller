@@ -14,11 +14,6 @@ public interface StorageDriver {
     public static final String SDK_VERSION_NUMBER = "3.2.0.0";
 
     /**
-     *  Get driver registration data.
-     */
-    public RegistrationData getRegistrationData();
-
-    /**
      * Return driver task with a given id.
      *
      * @param taskId

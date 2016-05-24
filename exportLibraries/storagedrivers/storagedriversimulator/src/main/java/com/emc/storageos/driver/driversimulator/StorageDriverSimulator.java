@@ -25,7 +25,6 @@ import com.emc.storageos.storagedriver.AbstractStorageDriver;
 import com.emc.storageos.storagedriver.BlockStorageDriver;
 import com.emc.storageos.storagedriver.DriverTask;
 import com.emc.storageos.storagedriver.HostExportInfo;
-import com.emc.storageos.storagedriver.RegistrationData;
 import com.emc.storageos.storagedriver.model.Initiator;
 import com.emc.storageos.storagedriver.model.StorageBlockObject;
 import com.emc.storageos.storagedriver.model.StorageHostComponent;
@@ -90,21 +89,6 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
     }
 
     //StorageDriver implementation
-
-    @Override
-    public RegistrationData getRegistrationData() {
-        RegistrationData registrationData = new RegistrationData();
-        registrationData.setDriverClassName(this.getClass().getName());
-        registrationData.setStorageSystemType("driversystem");
-        registrationData.setStorageSystemTypeDisplayName("Driver Simulator");
-        registrationData.setIsManagedByProvider(false);
-        registrationData.setSupportsSsl(false);
-        registrationData.setPortNumber("8080");
-        registrationData.setStorageType(RegistrationData.SupportedStorageType.BLOCK);
-        registrationData.setDriverVersion("1.0.0.0");
-        registrationData.setSupportedSdkVersions(Arrays.asList("3.2.0.0"));
-        return registrationData;
-    }
 
     @Override
     public DriverTask getTask(String taskId) {

@@ -60,7 +60,7 @@ public class VNXeDeleteFileSystemJob extends VNXeJob {
             // from pool's reserved capacity map.
             if (_status == JobStatus.SUCCESS || _status == JobStatus.FAILED) {
                 if (fsObj != null) {
-                    VNXeJob.updateStoragePoolCapacity(dbClient, vnxeApiClient, fsObj.getPool());
+                    VNXeJob.updateStoragePoolCapacity(dbClient, vnxeApiClient, fsObj.getPool(), null);
                 }
             }
             if (_status == JobStatus.SUCCESS && fsObj != null) {

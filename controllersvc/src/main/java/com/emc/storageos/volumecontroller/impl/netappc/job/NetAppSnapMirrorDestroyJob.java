@@ -2,6 +2,8 @@
  * Copyright (c) 2016 EMC Corporation
  * All Rights Reserved
  */
+package com.emc.storageos.volumecontroller.impl.netappc.job;
+
 import java.io.Serializable;
 import java.net.URI;
 import java.util.ArrayList;

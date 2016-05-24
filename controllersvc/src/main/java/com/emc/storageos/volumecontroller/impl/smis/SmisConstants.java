@@ -152,6 +152,8 @@ public interface SmisConstants {
     static final String CLAR_STORAGE_POOL_SETTING = "Clar_StoragePoolSetting";
     static final String SYMM_STORAGE_POOL_SETTING = "Symm_StoragePoolSetting";
     static final String CIM_STORAGE_VOLUME = "CIM_StorageVolume";
+    static final String CIM_STORAGE_HARDWARE_ID = "CIM_StorageHardwareId";
+    static final String CIM_PROTOCOL_CONTROLLER = "CIM_ProtocolController";
     static final String CIM_ALLOCATED_FROM_STORAGEPOOL = "CIM_AllocatedFromStoragePool";
     static final String CIM_SETTINGS_DEFINE_STATE = "CIM_SettingsDefineState";
     static final String CIM_PROTOCOL_CONTROLLER_FOR_UNIT = "CIM_ProtocolControllerForUnit";

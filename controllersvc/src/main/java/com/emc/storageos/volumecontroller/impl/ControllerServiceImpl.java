@@ -43,6 +43,7 @@ import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.StorageSystemViewObject;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.vnxe.VNXeApiClientFactory;
+import com.emc.storageos.volumecontroller.ArrayAffinityAsyncTask;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.ControllerService;
 import com.emc.storageos.volumecontroller.JobContext;
@@ -57,6 +58,8 @@ import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.DataCollec
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.DataCollectionJobScheduler;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.DataCollectionJobSerializer;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.DiscoverTaskCompleter;
+import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.ArrayAffinityDataCollectionDiscoverJob;
+import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.ArrayAffinityDiscoverTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.ScanTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.smis.CIMConnectionFactory;
 import com.emc.storageos.volumecontroller.impl.smis.SmisCommandHelper;
@@ -644,12 +647,19 @@ public class ControllerServiceImpl implements ControllerService {
     private static ArrayList<DataCollectionJob> createDiscoverJobsForTasks(AsyncTask[] tasks, String jobType) {
         ArrayList<DataCollectionJob> jobs = new ArrayList<DataCollectionJob>();
         for (AsyncTask task : tasks) {
-            DiscoverTaskCompleter completer = new DiscoverTaskCompleter(task, jobType);
-            if (null == task._namespace) {
-                task._namespace = Discovery_Namespaces.ALL.toString();
+            if (task instanceof ArrayAffinityAsyncTask) {
+                URI hostURI = ((ArrayAffinityAsyncTask) task).getHostId();
+                ArrayAffinityDiscoverTaskCompleter completer = new ArrayAffinityDiscoverTaskCompleter((ArrayAffinityAsyncTask) task, jobType);
+                DataCollectionJob job = new ArrayAffinityDataCollectionDiscoverJob(completer, task._namespace);
+                jobs.add(job);
+            } else {
+                DiscoverTaskCompleter completer = new DiscoverTaskCompleter(task, jobType);
+                if (null == task._namespace) {
+                    task._namespace = Discovery_Namespaces.ALL.toString();
+                }
+                DataCollectionJob job = new DataCollectionDiscoverJob(completer, task._namespace);
+                jobs.add(job);
             }
-            DataCollectionJob job = new DataCollectionDiscoverJob(completer, task._namespace);
-            jobs.add(job);
         }
         return jobs;
     }

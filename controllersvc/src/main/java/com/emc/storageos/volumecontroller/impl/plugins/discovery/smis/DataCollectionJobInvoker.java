@@ -8,6 +8,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
@@ -17,6 +18,7 @@ import org.springframework.context.support.ClassPathXmlApplicationContext;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.db.client.model.StorageSystem.Discovery_Namespaces;
 import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
@@ -78,6 +80,12 @@ class DataCollectionJobInvoker {
                 // Discovery-vnxFile-all | Discovery-block-all |
                 // CS_Discovery-host-all | CS_Discovery-vcenter-all
                 contextkey = contextkey + "-" + _namespace.toLowerCase();
+                if (Discovery_Namespaces.ARRAY_AFFINITY.name().equals(_namespace) && _accessProfile.getProps() != null) {
+                    String host = _accessProfile.getProps().get(Constants.HOST);
+                    if (StringUtils.isNotEmpty(host)) {
+                        contextkey = contextkey + "-" + Constants.HOST;
+                    }
+                }
             }
             if (contextDeviceType.equalsIgnoreCase(DiscoveredDataObject.Type.rp.toString())) {
                 _logger.info("{} task Started using protection system {} using Namespace {}",

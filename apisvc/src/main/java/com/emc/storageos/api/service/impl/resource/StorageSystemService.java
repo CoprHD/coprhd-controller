@@ -173,7 +173,7 @@ public class StorageSystemService extends TaskResourceService {
     // Is used with "system delete" operation.
     private int _retry_attempts;
 
-    private static class DiscoverJobExec implements AsyncTaskExecutorIntf {
+    protected static class DiscoverJobExec implements AsyncTaskExecutorIntf {
 
         private final StorageController _controller;
 

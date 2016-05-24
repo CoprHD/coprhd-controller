@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+	<!-- List of supported Namespaces -->
+	<bean id="namespaces"
+		class="com.emc.storageos.plugins.common.domainmodel.NamespaceList">
+		<property name="nsList">
+			<map>
+				<entry key="discover" value-ref="arrayAffinityDiscoverer" />
+
+			</map>
+		</property>
+	</bean>
+
+	<!-- List of operations for this performance namespace -->
+	<bean id="arrayAffinityDiscoverer" class="com.emc.storageos.plugins.common.domainmodel.Namespace">
+		<property name="operations">
+			<list>
+				<ref bean="start" />
+				<!-- All processors after this -->
+
+				<!-- This should be executed at the end of the array affinity discovery -->
+				<ref bean="updatePreferredSystems" />
+
+				<!-- "complete" should be the last step. All new steps above this -->
+				<ref bean="complete" />
+			</list>
+		</property>
+	</bean>
+
+	<bean id="start" class="com.emc.storageos.plugins.common.domainmodel.Operation">
+		<property name="arguments">
+			<list>
+				<ref bean="accessProfile"/>
+				<ref bean="dbclient"/>
+			</list>
+		</property>
+		<property name="instance" ref="connectionManagerUtils"/>
+		<property name="method" value="disallowReaping"/>
+		<property name="message" value="Setting keep alive for CIM Connections"/>
+	</bean>
+
+	<bean id="complete" class="com.emc.storageos.plugins.common.domainmodel.Operation">
+		<property name="arguments">
+			<list>
+				<ref bean="accessProfile"/>
+				<ref bean="dbclient"/>
+			</list>
+		</property>
+		<property name="instance" ref="connectionManagerUtils"/>
+		<property name="method" value="allowReaping"/>
+		<property name="message" value="Allow CIM connections for provider to be cleaned up"/>
+	</bean>
+
+	<bean id="connectionManagerUtils" class="com.emc.storageos.volumecontroller.impl.utils.ConnectionManagerUtils"/>
+
+	<bean id="accessProfile" class="com.emc.storageos.plugins.common.domainmodel.Argument">
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getReferenceValue" />
+		<property name="value" value="accessProfile" />
+	</bean>
+
+	<bean id="dbclient" class="com.emc.storageos.plugins.common.domainmodel.Argument">
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getReferenceValue" />
+		<property name="value" value="dbClient" />
+	</bean>
+
+    <!-- This should be executed at the end of the array affinity discovery -->
+	<bean id="updatePreferredSystems" class="com.emc.storageos.plugins.common.domainmodel.Operation">
+		<property name="arguments">
+			<list>
+				<ref bean="systemId" />
+				<ref bean="accessProfile"/>
+				<ref bean="cimClient"/>
+				<ref bean="dbclient" />
+			</list>
+		</property>
+		<property name="instance" ref="arrayAffinityPostProcessor" />
+		<property name="method" value="updatePreferredSystems" />
+		<property name="message" value="Invoking updatePreferredSystems" />
+	</bean>
+
+	<bean id="systemId"
+		class="com.emc.storageos.plugins.common.domainmodel.Argument">
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getReferenceValue" />
+		<property name="value" value="systemId" />
+	</bean>
+
+	<bean id="arrayAffinityProcessor"
+		class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.export.ArrayAffinityProcessor">
+	</bean>
+
+	<!-- ArgsCreator Instance -->
+	<bean id="argscreator"
+		class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.SmisDiscoveryArgsCreator">
+		<constructor-arg ref="smiutility" />
+	</bean>
+
+	<!-- SMIUtility -->
+	<bean id="smiutility" class="com.emc.storageos.plugins.common.Util" />
+
+	<!-- cimClient -->
+	<bean id="cimClient" class="com.emc.storageos.plugins.common.domainmodel.Argument">
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getReferenceValue" />
+		<property name="value" value="cimClient" />
+	</bean>
+
+	<!-- Common for vnxBlock & VMAX -->
+	<bean id="block"
+		class="com.emc.storageos.volumecontroller.impl.plugins.SMICommunicationInterface">
+		<property name="executor" ref="executor" />
+		<property name="namespaces" ref="namespaces" />
+	</bean>
+
+	<bean id="commandgenerator"
+		class="com.emc.storageos.plugins.common.commandgenerator.CommandGenerator">
+		<property name="util" ref="smiutility" />
+	</bean>
+
+	<bean id="executor"
+		class="com.emc.storageos.volumecontroller.impl.plugins.metering.smis.SMIExecutor">
+
+		<property name="util" ref="smiutility" />
+		<property name="generator" ref="commandgenerator" />
+	</bean>
+
+</beans>

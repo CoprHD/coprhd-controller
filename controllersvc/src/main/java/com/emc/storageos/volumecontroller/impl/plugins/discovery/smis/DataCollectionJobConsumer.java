@@ -36,6 +36,7 @@ import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.StorageSystemViewObject;
+import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.ControllerLockingService;
@@ -132,6 +133,9 @@ public class DataCollectionJobConsumer extends
                 completer.getId(),
                 jobType, job.getNamespace());
         profile.setProps(_configInfo);
+        if (job instanceof ArrayAffinityDataCollectionDiscoverJob) {
+            profile.getProps().put(Constants.HOST, ((ArrayAffinityDataCollectionDiscoverJob) job).getHostId().toString());
+        }
         profile.setCimConnectionFactory(_connectionFactory);
         profile.setCurrentSampleTime(System.currentTimeMillis());
         DataCollectionJobInvoker invoker = new DataCollectionJobInvoker(

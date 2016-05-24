@@ -34,6 +34,7 @@ import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.block.BlockDeviceController;
 import com.emc.storageos.volumecontroller.impl.block.ReplicaDeviceController;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotRestoreCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotSessionCreateWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneCreateWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneRestoreCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeCreateWorkflowCompleter;
@@ -707,7 +708,6 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
     public void createSnapshotSession(List<VolumeDescriptor> volumeDescriptors, String taskId) throws InternalException {
         
         List<URI> volUris = VolumeDescriptor.getVolumeURIs(volumeDescriptors);
-        TaskCompleter completer = new CloneCreateWorkflowCompleter(volUris, taskId);
         Workflow workflow = null;
         
         List<VolumeDescriptor> blockVolmeDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
@@ -715,6 +715,7 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
                 new VolumeDescriptor.Type[] {});
         List<URI> blockVolUris = VolumeDescriptor.getVolumeURIs(blockVolmeDescriptors);
         
+        TaskCompleter completer = new BlockSnapshotSessionCreateWorkflowCompleter(volUris.get(0), blockVolmeDescriptors.get(0).getSnapSessionSnapshotURIs(), taskId);
         ControllerUtils.checkSnapshotSessionConsistencyGroup(blockVolUris.get(0), getDbClient(), completer);
         
         try {

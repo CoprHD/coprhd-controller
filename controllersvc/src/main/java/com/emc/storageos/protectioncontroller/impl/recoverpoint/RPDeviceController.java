@@ -4543,7 +4543,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         List<VolumeDescriptor> blockVolmeDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
                 new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_DATA, 
                         VolumeDescriptor.Type.BLOCK_SNAPSHOT,
-                        VolumeDescriptor.Type.VPLEX_IMPORT_VOLUME },
+                        VolumeDescriptor.Type.VPLEX_IMPORT_VOLUME,
+                        VolumeDescriptor.Type.BLOCK_SNAPSHOT_SESSION },
                 new VolumeDescriptor.Type[] {});
         
         // If no volumes to create, just return
@@ -4552,48 +4553,76 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             return waitFor;
         }
 
-        // A temporary date/time stamp for the bookmark name
-        String bookmarkName = VIPR_SNAPSHOT_PREFIX + new Random().toString();
-        
-        ProtectionSystem protectionSystem = null;
-        Volume aSrcVolume = null;
-
-        Set<String> volumeWWNs = new HashSet<String>();
-        List<URI> copyList = new ArrayList<URI>();
+        // get the list of parent volumes that are to be copied
+        Map<VolumeDescriptor, List<URI>> descriptorToParentIds = new HashMap<VolumeDescriptor, List<URI>>();
         Class<? extends DataObject> clazz = Volume.class;
         for (VolumeDescriptor descriptor : blockVolmeDescriptors) {
-            URI parentId = null;
-            if (URIUtil.isType(descriptor.getVolumeURI(), BlockSnapshot.class)) {
-                BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, descriptor.getVolumeURI());
-                if (snapshot != null && !snapshot.getInactive()) {
-                    parentId = snapshot.getParent().getURI();
-                }
-                clazz = BlockSnapshot.class;
-            } else if (URIUtil.isType(descriptor.getVolumeURI(), BlockSnapshotSession.class)) {
+            List<URI> parentIds = new ArrayList<>();
+            if (URIUtil.isType(descriptor.getVolumeURI(), BlockSnapshotSession.class)) {
+                // for snapshot sessions, if its a single volume snapshot session, parent will be filled in
+                // for CG snapshot sessions, get all the parents in the group from the replication group name
                 BlockSnapshotSession snapshotSession = _dbClient.queryObject(BlockSnapshotSession.class, descriptor.getVolumeURI());
                 if (snapshotSession != null && !snapshotSession.getInactive()) {
-                    parentId = snapshotSession.getParent().getURI();
-                }
-                clazz = BlockSnapshotSession.class;
-            } else {
-                Volume volume = _dbClient.queryObject(Volume.class, descriptor.getVolumeURI());
-                if (volume != null && !volume.getInactive()) {
-                    parentId = volume.getAssociatedSourceVolume();
-                }
-            }
-            if (!NullColumnValueGetter.isNullURI(parentId) && URIUtil.isType(parentId, Volume.class)) {
-                Volume parentVolume = _dbClient.queryObject(Volume.class, parentId);
-                if (parentVolume != null && !parentVolume.getInactive()) {
-                    if (Volume.checkForVplexBackEndVolume(_dbClient, parentVolume)) {
-                        parentVolume = Volume.fetchVplexVolume(_dbClient, parentVolume);
+                    if (!NullColumnValueGetter.isNullNamedURI(snapshotSession.getParent())) {
+                        parentIds.add(snapshotSession.getParent().getURI());
+                    } else if (!NullColumnValueGetter.isNullValue(snapshotSession.getReplicationGroupInstance())){
+                        List<Volume> volsInRG = ControllerUtils.getVolumesPartOfRG(snapshotSession.getStorageController(), snapshotSession.getReplicationGroupInstance(), _dbClient);
+                        for (Volume vol : volsInRG) {
+                            parentIds.add(vol.getId());
+                        }
+                    } else {
+                        _log.warn(String.format("Skipping BlockSnapshotSession object with null parent and null replicationGroupInstance: %s", snapshotSession.getId().toString()));
                     }
-                    if (StringUtils.equals(parentVolume.getPersonality(), Volume.PersonalityTypes.TARGET.toString())) {
-                        volumeWWNs.add(RPHelper.getRPWWn(parentVolume.getId(), _dbClient));
-                        copyList.add(descriptor.getVolumeURI());
-                        if (protectionSystem == null) {
-                            if (!NullColumnValueGetter.isNullURI(parentVolume.getProtectionController())) {
-                                aSrcVolume = RPHelper.getRPSourceVolumeFromTarget(_dbClient, parentVolume);
-                                protectionSystem = _dbClient.queryObject(ProtectionSystem.class, aSrcVolume.getProtectionController());
+                    clazz = BlockSnapshotSession.class;
+                }
+            } else if (URIUtil.isType(descriptor.getVolumeURI(), BlockSnapshot.class)) {
+                BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, descriptor.getVolumeURI());
+                if (snapshot != null && !snapshot.getInactive() && !NullColumnValueGetter.isNullNamedURI(snapshot.getParent())) {
+                    parentIds.add(snapshot.getParent().getURI());
+                    clazz = BlockSnapshot.class;
+                } else {
+                    _log.warn(String.format("Skipping snapshot with null parent: %s", descriptor.getVolumeURI().toString()));
+                }
+            } else if (URIUtil.isType(descriptor.getVolumeURI(), Volume.class)) {
+                Volume volume = _dbClient.queryObject(Volume.class, descriptor.getVolumeURI());
+                if (volume != null && !volume.getInactive() && !NullColumnValueGetter.isNullURI(volume.getAssociatedSourceVolume())) {
+                    parentIds.add(volume.getAssociatedSourceVolume());
+                } else {
+                    _log.warn(String.format("Skipping full copy with null parent: %s", descriptor.getVolumeURI().toString()));
+                }
+            } else {
+                _log.warn(String.format("Skipping unsupported copy type: %s", descriptor.getVolumeURI().toString()));
+            }
+            if (!parentIds.isEmpty()) {
+                descriptorToParentIds.put(descriptor, parentIds);
+            }
+        }
+        
+        // get the descriptor and wwn of each target volume being copied
+        // also get the protection system and one source volume to be used for locking
+        ProtectionSystem protectionSystem = null;
+        Volume aSrcVolume = null;
+        Set<String> volumeWWNs = new HashSet<String>();
+        Set<URI> copyList = new HashSet<URI>();
+        for (Entry<VolumeDescriptor, List<URI>> entry : descriptorToParentIds.entrySet()) {
+            VolumeDescriptor descriptor = entry.getKey();
+            List<URI> parentIds = entry.getValue();
+            for (URI parentId : parentIds) {
+                if (URIUtil.isType(parentId, Volume.class)) {
+                    Volume parentVolume = _dbClient.queryObject(Volume.class, parentId);
+                    if (parentVolume != null && !parentVolume.getInactive()) {
+                        if (Volume.checkForVplexBackEndVolume(_dbClient, parentVolume)) {
+                            parentVolume = Volume.fetchVplexVolume(_dbClient, parentVolume);
+                        }
+                        // recoverpoint enable image access is only required if target volumes are copied
+                        if (StringUtils.equals(parentVolume.getPersonality(), Volume.PersonalityTypes.TARGET.toString())) {
+                            volumeWWNs.add(RPHelper.getRPWWn(parentVolume.getId(), _dbClient));
+                            copyList.add(descriptor.getVolumeURI());
+                            if (protectionSystem == null) {
+                                if (!NullColumnValueGetter.isNullURI(parentVolume.getProtectionController())) {
+                                    aSrcVolume = RPHelper.getRPSourceVolumeFromTarget(_dbClient, parentVolume);
+                                    protectionSystem = _dbClient.queryObject(ProtectionSystem.class, aSrcVolume.getProtectionController());
+                                }
                             }
                         }
                     }
@@ -4604,6 +4633,9 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         if (!volumeWWNs.isEmpty()) {
             
             if (preCreate) {
+
+                // A temporary date/time stamp for the bookmark name
+                String bookmarkName = VIPR_SNAPSHOT_PREFIX + (new Random()).nextInt();
             
                 // Step 1 - Create a RP bookmark
                 String rpWaitFor = addCreateBookmarkStep(workflow, new ArrayList<URI>(), protectionSystem, bookmarkName, volumeWWNs, false, waitFor);
@@ -4617,11 +4649,10 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 }
     
                 // Step 2 - Enable image access
-                return addEnableImageAccessForFullCopyStep(workflow, protectionSystem, clazz, copyList, bookmarkName, volumeWWNs, rpWaitFor);
+                return addEnableImageAccessForFullCopyStep(workflow, protectionSystem, clazz, new ArrayList<URI>(copyList), bookmarkName, volumeWWNs, rpWaitFor);
             
             } else {
-                return addDisableImageAccessForFullCopyStep(workflow, protectionSystem, clazz, copyList, volumeWWNs, waitFor);
-                
+                return addDisableImageAccessForFullCopyStep(workflow, protectionSystem, clazz, new ArrayList<URI>(copyList), volumeWWNs, waitFor);
             }
         }
         
@@ -5476,7 +5507,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * @param opId
      * @throws ControllerException
      */
-    public void disableImageAccessForFullCopies(URI protectionDevice, Class<? extends DataObject> clazz, List<URI> copyList, Set<String> volumeWWNs,
+    public void disableImageAccessForFullCopyStep(URI protectionDevice, Class<? extends DataObject> clazz, List<URI> copyList, Set<String> volumeWWNs,
             String opId) throws ControllerException {
         TaskCompleter completer = null;
         try {

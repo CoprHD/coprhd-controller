@@ -36,6 +36,9 @@ public class RegistrationData {
     // Indicates if storage systems managed by driver can support SSL protocol
     private boolean supportsSsl = false;
 
+    // Indicates if SSL protocol is default protocol
+    private boolean isDefaultSsl = false;
+
     // Management port number for storage system or provider
     private String portNumber;
 
@@ -102,6 +105,14 @@ public class RegistrationData {
 
     public void setSupportsSsl(boolean supportsSsl) {
         this.supportsSsl = supportsSsl;
+    }
+
+    public boolean isDefaultSsl() {
+        return isDefaultSsl;
+    }
+
+    public void setIsDefaultSsl(boolean isDefaultSsl) {
+        this.isDefaultSsl = isDefaultSsl;
     }
 
     public String getPortNumber() {

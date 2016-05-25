@@ -824,6 +824,7 @@ public class IpReconfigManager implements Runnable {
      * @throws Exception
      */
     public ClusterIpInfo queryCurrentClusterIpinfo() throws Exception {
+        loadClusterIpProps();
         return currentIpinfo;
     }
 

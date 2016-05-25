@@ -31,6 +31,8 @@ bootfs_vdc_props=${bootfs_vdc_props:-${bootfs_mntp}/etc/vdcconfig.properties}
 datafs_ip_props=${datafs_ip_props:-/data/cluster_network.properties}
 newip_temp_path=${newip_temp_path:-/data/ipreconfig/newip}
 oldip_temp_path=${oldip_temp_path:-/data/ipreconfig/oldip}
+ipreconfig_forceflag=${ipreconfig_forceflag:-/data/cluster_network_forceflag}
+
 ACTION_POWEROFF="poweroff"
 ACTION_TIMEOUT_CONT="continue"
 
@@ -192,8 +194,8 @@ _handleClusterIPs() {
             chmod 600 "${datafs_ip_props}"
             setfacl -m u:storageos:r "${datafs_ip_props}"
 
-            #TODO: set force flag
-            errstr=""
+            # set force flag
+            touch $ipreconfig_forceflag
         fi
     fi
 }

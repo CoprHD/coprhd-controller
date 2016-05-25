@@ -225,7 +225,11 @@ public class IpReconfigManager implements Runnable {
     private synchronized void handleIpReconfig() throws Exception {
         config = _coordinator.getCoordinatorClient().queryConfiguration(IpReconfigConstants.CONFIG_KIND, IpReconfigConstants.CONFIG_ID);
         if (config == null) {
-            log.info("no ipreconfig request coming in yet.");
+            if (FileUtils.exists(IpReconfigConstants.CLUSTER_NETWORK_FORCEFLAG)) {
+                log.info("User is forcing to reset single site IPs ...");
+                assureIPConsistent(true);
+            }
+            log.info("no ipreconfig REST API request coming in yet.");
             return;
         }
 
@@ -364,7 +368,7 @@ public class IpReconfigManager implements Runnable {
                     // New IP has taken effect in local node, set total status to "Succeed" when all nodes are "Local_Succeed".
                     target_nodestatus = IpReconfigConstants.NodeStatus.CLUSTER_SUCCEED;
                     if (isReadyForNextStatus(localnode_status, target_nodestatus)) {
-                        assureIPConsistent();
+                        assureIPConsistent(false);
                         FileUtils.deleteFile(IpReconfigConstants.NODESTATUS_PATH);
                     }
                     break;
@@ -833,8 +837,9 @@ public class IpReconfigManager implements Runnable {
 
     /**
      * Copy cluster IP info from disk to ZK.
+     * @param force set IPs manually provided by user compulsively
      */
-    void assureIPConsistent() {
+    void assureIPConsistent(boolean force) {
         if (!drUtil.isActiveSite()) {
             log.info("Only active site would sync IPs info into ZK.");
             return;
@@ -849,13 +854,14 @@ public class IpReconfigManager implements Runnable {
 
             config = _coordinator.getCoordinatorClient().queryConfiguration(IpReconfigConstants.CONFIG_KIND, IpReconfigConstants.CONFIG_ID);
             if (config != null) {
-                if (isSucceed(config)) {
+                if (isSucceed(config) || force) {
                     log.info("new IPs has been set succesfully by other nodes.");
                     return;
                 }
             }
 
-            // wake up syssvc to regenerate configurations
+            // update IP info into ZK
+            _coordinator.getCoordinatorClient().startTransaction();
             long vdcConfigVersion = DrUtil.newVdcConfigVersion();
             for(Site site : drUtil.listSites()) {
                 int vdc_index = Integer.valueOf(site.getVdcShortId().split(PropertyConstants.VDC_SHORTID_PREFIX)[1]);
@@ -908,10 +914,12 @@ public class IpReconfigManager implements Runnable {
                 }
             }
 
+            _coordinator.getCoordinatorClient().commitTransaction();
             setSucceed();
             log.info("Finished update local site IPs into ZK");
         } catch (Exception e) {
             log.warn("Unexpected exception during updating local site IPs into ZK", e);
+            _coordinator.getCoordinatorClient().discardTransaction();
         } finally {
             if (lock != null) {
                 try {

@@ -531,6 +531,13 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         Set<NamedRelatedResourceRep> exports = getUniqueExportsForSnapshot(ctx, snapshotId);
         return createNamedResourceOptions(exports);
     }
+    
+    @Asset("continuousCopyExport")
+    @AssetDependencies("exportedBlockContinuousCopy")
+    public List<AssetOption> getExportsForContinuousCopy(AssetOptionsContext ctx, URI copyId) {
+        Set<NamedRelatedResourceRep> exports = getUniqueExportsForVolume(ctx, copyId);
+        return createNamedResourceOptions(exports);
+    }
 
     @Asset("volumeExport")
     @AssetDependencies("sourceBlockVolume")
@@ -669,6 +676,26 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 //        List<VolumeRestRep> volumes = client.blockVolumes().findByProject(projectId, unexportedFilter.and(sourceTargetVolumesFilter));
 //
 //        return createBaseResourceOptions(volumes);
+    }
+    
+    @Asset("exportedBlockContinuousCopy")
+    @AssetDependencies({ "project", "volumeWithContinuousCopies" })
+    public List<AssetOption> getExportedBlockContinuousCopyByVolume(AssetOptionsContext ctx, URI project, URI volume) {
+        debug("getting exported blockContinuousCopy (project=%s) (parent=%s)", project, volume);
+        final ViPRCoreClient client = api(ctx);
+        List<URI> copyIds = Lists.newArrayList();
+        for (ExportGroupRestRep export : client.blockExports().findByProject(project)) {
+            for (ExportBlockParam resource : export.getVolumes()) {
+                if (ResourceType.isType(ResourceType.BLOCK_CONTINUOUS_COPY, resource.getId())) {
+                    copyIds.add(resource.getId());
+                }
+            }
+        }
+        List<BlockMirrorRestRep> copies = Lists.newArrayList();
+        for (URI id: copyIds) {
+            copies.add(client.blockVolumes().getContinuousCopy(volume, id));
+        }
+        return createVolumeWithVarrayOptions(client, copies);
     }
 
     @Asset("vplexVolumeWithSnapshots")

@@ -1146,6 +1146,10 @@ class Bourne:
                 self.pretty_print_json(obj_op)
                 raise Exception('There was an error encountered:\n' + json.dumps(obj_op, sort_keys=True, indent=4))
 
+	    if (obj_op['state'] == 'suspended_no_error'):
+		# Important to not change this format as sanity and other scripts rely on it in this order with commas
+		print 'Operation suspended, ' + obj_op['id'] + ", " + obj_op['workflow']['id']
+
         return obj_op
 
     #
@@ -4870,6 +4874,7 @@ class Bourne:
             print 'Path parameters', pathParam
 	    parms['path_parameters'] = pathParam
 
+
         # Build volume parameter, if specified
         if (volspec):
            vols = volspec.split(',')
@@ -4921,7 +4926,7 @@ class Bourne:
         try:
 	    s = self.api_sync_2(o['resource']['id'], o['op_id'], self.export_show_task)
         except:
-            print o
+	    print o
         return (o, s)
 
     def export_group_update(self, groupId, addVolspec, addInitList, addHostList, addClusterList, remVolList, remInitList, remHostList, remClusterList, pathParam):
@@ -8258,7 +8263,8 @@ class Bourne:
         # since we are using sysadmin as user, check on all subtenants for now
         # go in reverse order, most likely, we are in the latest subtenant
         for tenant in reversed(tenants):
-            print tenant
+	    if(BOURNE_DEBUG == '1'):
+		print tenant
             hosts = self.host_list(tenant['id'])
             for host in hosts:
 	        host_detail = self.host_show(host['id'])

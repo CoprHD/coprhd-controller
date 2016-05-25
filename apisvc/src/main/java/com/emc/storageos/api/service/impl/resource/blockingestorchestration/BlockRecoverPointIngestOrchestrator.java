@@ -331,7 +331,13 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         // For MetroPoint, the same VPLEX Distributed/Metro volume will be exported to
         // two VPLEX Export Groups (aka Storage Views). One for each RPA Cluster in the
         // MetroPoint configuration.
-        if (RPHelper.isVPlexDistributedVolume(volume)) {
+        boolean isVPlexDistributedVolume = false;
+        if (volumeContext.getVolumeContext() instanceof RpVplexVolumeIngestionContext) {
+            VplexVolumeIngestionContext vplexVolumeContext = ((RpVplexVolumeIngestionContext) volumeContext.getVolumeContext())
+                    .getVplexVolumeIngestionContext();
+            isVPlexDistributedVolume = vplexVolumeContext.getAssociatedVolumeIds(volume).size() > 1;
+        }
+        if (isVPlexDistributedVolume) {
             // Get the internal site and copy names
             String rpInternalSiteName = PropertySetterUtil.extractValueFromStringSet(
                     SupportedVolumeInformation.RP_INTERNAL_SITENAME.toString(), unManagedVolumeInformation);

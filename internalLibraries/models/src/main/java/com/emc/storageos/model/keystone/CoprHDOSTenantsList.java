@@ -16,25 +16,38 @@
  */
 package com.emc.storageos.model.keystone;
 
-import javax.xml.bind.annotation.*;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlRootElement;
+
+import com.emc.storageos.model.NamedRelatedResourceRep;
+
 @XmlRootElement(name = "coprhd_os_tenant_list")
-@XmlAccessorType(XmlAccessType.PROPERTY)
-public class CoprhdOsTenantListRestRep {
+public class CoprhdOsTenantsList {
+    private List<NamedRelatedResourceRep> tenants;
 
-    private List<CoprhdOsTenant> coprhd_os_tenants;
-
-    @XmlElementRef
-    public List<CoprhdOsTenant> getCoprhd_os_tenants() {
-        if (coprhd_os_tenants == null) {
-            coprhd_os_tenants = new ArrayList<>();
-        }
-        return coprhd_os_tenants;
+    public CoprhdOsTenantsList() {
     }
 
-    public void setCoprhd_os_tenants(List<CoprhdOsTenant> coprhd_os_tenants) {
-        this.coprhd_os_tenants = coprhd_os_tenants;
+    public CoprhdOsTenantsList(List<NamedRelatedResourceRep> tenants) {
+        this.tenants = tenants;
+    }
+
+    /**
+     * List of OpenStack tenants.
+     *
+     */
+    @XmlElement(name = "coprhd_os_tenant")
+    public List<NamedRelatedResourceRep> getTenants() {
+        if (tenants == null) {
+            tenants = new ArrayList<NamedRelatedResourceRep>();
+        }
+        return tenants;
+    }
+
+    public void setTenants(List<NamedRelatedResourceRep> tenants) {
+        this.tenants = tenants;
     }
 }

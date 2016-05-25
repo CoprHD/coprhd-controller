@@ -1,0 +1,12 @@
+{
+  baseKey:"EditOSTenants.Keystone",
+  serviceId:"EditOSTenants",
+  fields:{
+
+    ostenants:{
+      type: "assetType.vipr.ostenants",
+      required: "false",
+      select: "many"
+    }
+  }
+}

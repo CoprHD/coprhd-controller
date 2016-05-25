@@ -9,6 +9,9 @@ import com.emc.storageos.model.auth.AuthnCreateParam;
 import com.emc.storageos.model.auth.AuthnProviderList;
 import com.emc.storageos.model.auth.AuthnProviderRestRep;
 import com.emc.storageos.model.auth.AuthnUpdateParam;
+import com.emc.storageos.model.block.VolumeRestRep;
+import com.emc.vipr.client.Task;
+import com.emc.vipr.client.Tasks;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.filters.ResourceFilter;
 import com.emc.vipr.client.core.impl.PathConstants;
@@ -93,6 +96,20 @@ public class AuthnProviders extends AbstractCoreResources<AuthnProviderRestRep> 
         return client.put(AuthnProviderRestRep.class, input, getIdUrl(), id);
     }
 
+    /**
+     * Updates an authentication provider.
+     * <p>
+     * API Call: <tt>PUT /vdc/admin/authnproviders/{id}</tt>
+     *
+     * @param id
+     *            the authentication provider ID.
+     * @param input
+     *            the update configuration.
+     * @return the updated authentication provider.
+     */
+    public Task<AuthnProviderRestRep> updateWithTask(URI id, AuthnUpdateParam input) {
+        return putTask(input, baseUrl, id);
+    }
     /**
      * Updates an authentication provider with allow_group_attr_change set to true.
      * <p>

@@ -570,6 +570,24 @@ public class AuthnConfigurationService extends TaggedResource {
             authn.setServerUrls(ssOld);
         }
 
+        if (param.getTenantsSynchronizationOptionsChanges() != null) {
+            StringSet oldOptions = authn.getTenantsSynchronizationOptions();
+            if (oldOptions == null) {
+                oldOptions = new StringSet();
+            }
+            if (param.getTenantsSynchronizationOptionsChanges().getAdd() != null) {
+                oldOptions.addAll(param.getTenantsSynchronizationOptionsChanges().getAdd());
+            }
+            if (param.getTenantsSynchronizationOptionsChanges().getRemove() != null) {
+                oldOptions.removeAll(new HashSet<String>(param.getTenantsSynchronizationOptionsChanges().getRemove()));
+            }
+            if (oldOptions.isEmpty()) {
+                ArgValidator.checkFieldNotEmpty(oldOptions,
+                        "Interval cannots be empty. Please provide the vales.");
+            }
+            authn.setTenantsSynchronizationOptions(oldOptions);
+        }
+
         if (param.getMode() != null) {
             authn.setMode(param.getMode());
         }

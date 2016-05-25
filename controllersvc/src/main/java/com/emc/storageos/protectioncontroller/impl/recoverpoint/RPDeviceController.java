@@ -6808,4 +6808,14 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         }
         return lockName;
     }
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationInterface#addStepsForCreateFullCopy(com.emc.storageos.workflow.Workflow, java.lang.String, java.util.List, java.lang.String)
+     */
+    @Override
+    public String addStepsForCreateFullCopy(Workflow workflow, String waitFor, List<VolumeDescriptor> volumeDescriptors, String taskId)
+            throws InternalException {
+        // full copy steps are added with addStepsForPreCreateReplica and addStepsForPostCreateReplica
+        return waitFor;
+    }
 }

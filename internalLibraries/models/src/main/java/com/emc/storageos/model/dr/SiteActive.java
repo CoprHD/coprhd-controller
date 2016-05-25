@@ -14,6 +14,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class SiteActive {
 
     private boolean isActiveSite;
+    private boolean isMultiSite;
     private String localSiteName;
     private String localUuid;
 
@@ -46,5 +47,14 @@ public class SiteActive {
 
     public void setLocalUuid(String uuid) {
         this.localUuid = uuid;
+    }
+
+    @XmlElement(name = "is_multi_site")
+    public boolean getIsMultiSite() {
+        return this.isMultiSite;
+    }
+
+    public void setIsMultiSite(boolean isMultiSite) {
+        this.isMultiSite = isMultiSite;
     }
 }

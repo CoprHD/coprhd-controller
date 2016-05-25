@@ -939,6 +939,7 @@ disasterRecovery.confirm.switchover=WARNING: Are you sure you want to Switchover
 disasterRecovery.confirm.failover=WARNING: Failover could lead to loss of data that has not yet been synced to this site. Please login to each Standby site to verify the last sync time of that site before continuing. Are you sure you still want to Failover to this Standby site ?
 disasterRecovery.confirm.retry=WARNING: Are you sure you want to Retry the last Operation on Standby site ?
 disasterRecovery.confirm.pause=WARNING: Are you sure you want to Pause the Standby site(s)?
+disasterRecovery.confirm.add=WARNING: Adding a Standby site will replace all data on that site with the data of the Active site. After syncing is complete you will need to use your Active site credentials to access the new Standby site.
 disasterRecovery.error.code=Error Code
 disasterRecovery.error.code.name=Error Code Name
 disasterRecovery.error.message=Error Message

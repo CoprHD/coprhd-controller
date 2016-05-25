@@ -74,6 +74,11 @@ public class FindHostScsiDiskForLun extends ExecutionTask<HostScsiDisk> {
         return null;
     }
 
+    private void attachDisk(HostScsiDisk disk) {
+        logInfo("find.host.scsi.lun.esx.attach", disk.getDeviceName(), host.getName());
+        new HostStorageAPI(host).attachScsiLun(disk);
+    }
+
     private void rescan() {
         pause(FIND_DISK_DELAY);
         logInfo("find.host.scsi.lun.esx.rescan", host.getName());
@@ -88,12 +93,23 @@ public class FindHostScsiDiskForLun extends ExecutionTask<HostScsiDisk> {
             disk = getLunDisk();
             if (disk == null) {
                 diskNotFound();
+            } else if (isDiskOff(disk)) {
+                attachDisk(disk);
             }
         }
         if (!isValidState(disk)) {
             diskInvalid(disk);
         }
         return disk;
+    }
+
+    private boolean isDiskOff(HostScsiDisk disk) {
+        String[] state = disk.getOperationalState();
+        if (state == null || state.length == 0) {
+            return false;
+        }
+        String primaryState = state[0];
+        return StringUtils.equals(primaryState, ScsiLunState.off.name());
     }
 
     private boolean isValidState(HostScsiDisk disk) {

@@ -488,6 +488,14 @@ public class DefaultStorageDriver extends AbstractStorageDriver implements Block
     }
 
     @Override
+    public RegistrationData getRegistrationData() {
+        String driverName = this.getClass().getSimpleName();
+        String msg = String.format("%s: %s --- operation is not supported.", driverName, "getRegistrationData");
+        _log.warn(msg);
+        throw new UnsupportedOperationException(msg);
+    }
+
+    @Override
     public DriverTask getTask(String taskId) {
         String driverName = this.getClass().getSimpleName();
         String msg = String.format("%s: %s --- operation is not supported.", driverName, "getTask");

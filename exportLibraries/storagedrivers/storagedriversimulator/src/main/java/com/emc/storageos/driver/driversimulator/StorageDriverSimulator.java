@@ -25,6 +25,7 @@ import com.emc.storageos.storagedriver.AbstractStorageDriver;
 import com.emc.storageos.storagedriver.BlockStorageDriver;
 import com.emc.storageos.storagedriver.DriverTask;
 import com.emc.storageos.storagedriver.HostExportInfo;
+import com.emc.storageos.storagedriver.RegistrationData;
 import com.emc.storageos.storagedriver.model.Initiator;
 import com.emc.storageos.storagedriver.model.StorageBlockObject;
 import com.emc.storageos.storagedriver.model.StorageHostComponent;
@@ -89,6 +90,12 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
     }
 
     //StorageDriver implementation
+
+    @Override
+    public RegistrationData getRegistrationData() {
+        RegistrationData registrationData = new RegistrationData("driverSimulator", "driversystem", null);
+        return registrationData;
+    }
 
     @Override
     public DriverTask getTask(String taskId) {

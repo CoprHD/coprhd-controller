@@ -8877,13 +8877,17 @@ class Bourne:
         return 0
 
     def clusterip_querystatus(self):
-        print 'Querying cluster IP reconfig status ...';
-        response = self.__api('GET', URI_CLUSTERIP_RECONF_STATUS)
-        if (response.status_code != 200):
-            print "Query cluster IP reconfig status", response.status_code
-            raise Exception('Query cluster IP reconfig status')
-        data=response.json()
-        return data['status']
+        try:
+            response = self.__api('GET', URI_CLUSTERIP_RECONF_STATUS)
+            if (response.status_code == 200):
+                data=response.json()
+                print data['status']
+                return 0
+            else:
+                print "Failed to query cluster IP reconfig status", response.status_code
+        except:
+            print "Exception while quering cluster IP reconfig status"
+        return 1
 
     def clusterip_reconfig(self, ipinfo):
         print 'Reconfiguring cluster IPs ...';
@@ -8924,12 +8928,12 @@ class Bourne:
         ipinfo=""
         for vdcsiteid in siteipmap:
             vip=siteipmap[vdcsiteid]["ipv4_setting"]["network_vip"]
-            ipinfo+=vdcsiteid+':'+vip
+            ipinfo+=vdcsiteid+'='+vip
             for nodeip in siteipmap[vdcsiteid]["ipv4_setting"]["network_addrs"]:
                 ipinfo+=','+nodeip
             gateway=siteipmap[vdcsiteid]["ipv4_setting"]["network_gateway"]
             netmask=siteipmap[vdcsiteid]["ipv4_setting"]["network_netmask"]
-            ipinfo+=','+gateway+','+netmask+';'
+            ipinfo+=','+gateway+','+netmask+':'
         return ipinfo 
 
     def clusterip_str2map(self, ipinfo):
@@ -8938,10 +8942,10 @@ class Bourne:
         ipv4_setting=dict()
         ipv6_setting=dict()
 
-        for siteipinfo in ipinfo.split(';'):
+        for siteipinfo in ipinfo.split(':'):
             if(len(siteipinfo)==0):
                 continue;
-            tmppair = siteipinfo.split(':') 
+            tmppair = siteipinfo.split('=') 
             vdcsiteid = tmppair[0]
             ips = tmppair[1]
             ippair = ips.split(',')
@@ -8969,19 +8973,4 @@ class Bourne:
             site_ipinfo['ipv6_setting']=ipv6_setting        
             siteipmap[vdcsiteid]=site_ipinfo
         return siteipmap
-
-    def clusterip_waitfor_reconfig_finish(self, interval, timeout):
-        rc=1
-        while (timeout > 0 or rc!=2): 
-            status=self.clusterip_querystatus()
-            if (status=="SUCCEED"):
-                rc=0
-                return
-            if (status=="FAILED"):
-                rc=2
-                return
-            time.sleep(interval)
-            timeout-=interval
-    
-        return rc
 

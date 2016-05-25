@@ -7588,24 +7588,42 @@ ipreconfig_test()
     active_site_ip=${1}
 
     currIpinfo=$(iptool query --vip "${active_site_ip}" 2>&1| grep ^vdc_vdc)
-    [ $? -eq 0 ] || { echo "Failed to query cluster ip. Errstr:"; echo $currIpinfo; exit 1; }
+    [ $? -eq 0 ] || { echo -n "Failed to query cluster ip. Errstr:"; echo $currIpinfo; exit 1; }
 
     newIpinfo=$(iptool shuffle --vip "${active_site_ip}" "${currIpinfo}" 2>&1| grep ^vdc_vdc)
-    [ $? -eq 0 ] || { echo "Failed to shuffle cluster ip. Errstr:"; echo $newIpinfo; exit 1; }
+    [ $? -eq 0 ] || { echo -n "Failed to shuffle cluster ip. Errstr:"; echo $newIpinfo; exit 1; }
+    while [ "${newIpinfo}" = "${currIpinfo}" ];
+    do
+        newIpinfo=$(iptool shuffle --vip "${active_site_ip}" "${currIpinfo}" 2>&1| grep ^vdc_vdc)
+        [ $? -eq 0 ] || { echo -n "Failed to shuffle cluster ip. Errstr:"; echo $newIpinfo; exit 1; }
+    done
     
     reconfig_rc=$(iptool reconfig --vip "${active_site_ip}" "${newIpinfo}" 2>&1)
-    [ $? -eq 0 ] || { echo "Failed to trigger cluster ip reconfiguration. Errstr:"; echo $reconfig_rc; exit 1; }
+    [ $? -eq 0 ] || { echo -n "Failed to trigger cluster ip reconfiguration. Errstr:"; echo $reconfig_rc; exit 1; }
    
-    iptool waitfor_reconfig_finish --vip "${active_site_ip}" 10 300
-    rc=$?
-    [ rc -eq 0 ] || { echo "Failed to reconfig cluster ip. Err status: "; echo $rc; exit 1; } # 1 for 5m timeout (for sanity test), 2 for failure
+    timeout=300
+    interval=10
+    rc=1
+    while [ $timeout -gt 0 ] && [ $rc -eq 1 ]; do
+        security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD 10 600
+        status=$(iptool querystatus --vip "${active_site_ip}")
+        if [ "$status" = "SUCCEED" ]; then
+            rc=0
+            break
+        elif [ "$status" = "FAILED" ]; then
+            rc=2
+            break
+        fi
+        sleep $interval
+        timeout=$(($timeout-$interval))
+    done
+    [ $rc -eq 0 ] || { echo -n "Failed to reconfig cluster ip. Err status: "; echo $rc; exit 1; } # 1 for 5m timeout (for sanity test), 2 for failure
 }
 
 dr_basic_tests()
 {
     projectid=$(project query $PROJECT)
     echo "Project id of $PROJECT is $projectid."
-    
     active_site=$(dr find state ACTIVE|tail -1) || { echo "get dr active site failed."; echo $active_site; exit 1; }
     echo "active uuid is $active_site"
     

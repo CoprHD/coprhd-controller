@@ -55,15 +55,11 @@ querystatus = argparse.ArgumentParser(parents = [parser], conflict_handler='reso
 
 # reconfig cluster IPs
 reconfig = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
-reconfig.add_argument('ipinfo',    help = 'cluster IPs info. Format is like: <site1 ShortId>:<VIP>,<Node1 IP>,<Node2 IP>,..,<GW>,<NETMASK>;<site2 ShortId>:<VIP><Node1 IP>...;...')
+reconfig.add_argument('ipinfo',    help = 'cluster IPs info. Format is like: <site1 ShortId>=<VIP>,<Node1 IP>,<Node2 IP>,..,<GW>,<NETMASK>:<site2 ShortId>=<VIP><Node1 IP>...;...')
 
 # shuffle cluster IPs
 shuffle = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
-shuffle.add_argument('ipinfo',    help = 'cluster IPs info. Format is like: <site1 ShortId>:<VIP>,<Node1 IP>,<Node2 IP>,..,<GW>,<NETMASK>;<site2 ShortId>:<VIP><Node1 IP>...;...')
-
-waitfor_reconfig_finish = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
-waitfor_reconfig_finish.add_argument('interval',    help = 'interval to query ipreconfig status. Unit is second.', type=float)
-waitfor_reconfig_finish.add_argument('timeout',    help = 'timeout to wait ipreconfig finish, either succeed or failed. Unit is second.', type=float)
+shuffle.add_argument('ipinfo',    help = 'cluster IPs info. Format is like: <site1 ShortId>:<VIP>,<Node1 IP>,<Node2 IP>,..,<GW>,<NETMASK>:<site2 ShortId>=<VIP><Node1 IP>...;...')
 
 try:
 
@@ -87,9 +83,6 @@ try:
     elif (cmd == "shuffle"):
         args = shuffle.parse_args()
         rc = clusterip_shuffle(args)
-    elif (cmd == "waitfor_reconfig_finish"):
-        args = waitfor_reconfig_finish.parse_args()
-        rc = clusterip_waitfor_reconfig_finish(args)
     else:
         parser.print_help()
     exit(rc)

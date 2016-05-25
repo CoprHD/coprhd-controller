@@ -58,6 +58,7 @@
                 <ref bean="nasDynamicPerformancePlacementEnabled"/>
                 <ref bean="nasUsePhysicalNASForProvisioning"/>
                 <ref bean="nasShareVNASWithMultipleProjects"/>
+                <ref bean="hostResourceMaximumNumberOfArrays"/>
             </list>
         </property>
     </bean>
@@ -1054,7 +1055,39 @@
             </map>
         </property>
     </bean>
-    
+
+    <bean id="hostResourceMaximumNumberOfArrays" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+        <property name="name" value="HostResourceMaximumNumberOfArrays"/>
+        <property name="configType" value="SimpleValue"/>
+        <property name="type" value="Integer"/>
+        <property name="scope">
+            <map>
+                <entry key="global" value="default"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="default" value="4096"/>
+            </map>
+        </property>
+        <property name="constraints">
+            <list>
+                <ref bean="minConstraintOne"/>
+                <ref bean="maxArraysForHostResources"/>
+            </list>
+        </property>
+    </bean>
+
+    <bean id="maxArraysForHostResources" class="com.emc.storageos.customconfigcontroller.MaxConstraint">
+        <property name="maxVals">
+            <map>
+                <entry key="default" value="4096"/>
+            </map>
+        </property>
+        <property name="description" value="The maximum number of arrayas that resources can be placed for a host/cluster is 4096"/>
+        <property name="name" value="maxArraysForHostResources"/>
+    </bean>
+
     <!-- We can optionally have a similar property for initiatorPortIqn which would be the same -->
     <!-- except that for the "sample" and the display name -->
     <bean id="initiatorPortWWn" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
@@ -1350,7 +1383,7 @@
                 <entry key="default" value="1000"/>
             </map>
         </property>
-        <property name="description" value="The maximum number of volumes that a MaskingView should be 1000 or more"/>
+        <property name="description" value="The minimum number of volumes that a MaskingView should be 1000 or more"/>
         <property name="name" value="minVolumeCountForMaskingView"/>
     </bean>
 

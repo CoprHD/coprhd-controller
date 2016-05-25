@@ -77,6 +77,7 @@ import com.emc.sa.service.vipr.block.tasks.GetActiveFullCopiesForVolume;
 import com.emc.sa.service.vipr.block.tasks.GetActiveSnapshotSessionsForVolume;
 import com.emc.sa.service.vipr.block.tasks.GetActiveSnapshotsForVolume;
 import com.emc.sa.service.vipr.block.tasks.GetBlockConsistencyGroup;
+import com.emc.sa.service.vipr.block.tasks.GetBlockCopies;
 import com.emc.sa.service.vipr.block.tasks.GetBlockExport;
 import com.emc.sa.service.vipr.block.tasks.GetBlockExports;
 import com.emc.sa.service.vipr.block.tasks.GetBlockResource;
@@ -221,11 +222,20 @@ public class BlockStorageUtils {
     private static List<BlockSnapshotRestRep> getBlockSnapshots(List<URI> uris) {
         return execute(new GetBlockSnapshots(uris));
     }
-
+    
+    private static List<BlockMirrorRestRep> getBlockCopies(List<URI> uris, URI parentId) {
+        return execute(new GetBlockCopies(uris, parentId));
+    }
+    
     public static List<BlockObjectRestRep> getBlockResources(List<URI> resourceIds) {
+        return getBlockResources(resourceIds, null);
+    }
+
+    public static List<BlockObjectRestRep> getBlockResources(List<URI> resourceIds, URI parentId) {
         List<BlockObjectRestRep> blockResources = Lists.newArrayList();
         List<URI> blockVolumes = new ArrayList<URI>();
         List<URI> blockSnapshots = new ArrayList<URI>();
+        List<URI> blockCopies = new ArrayList<URI>();
         for (URI resourceId : resourceIds) {
             ResourceType volumeType = ResourceType.fromResourceId(resourceId.toString());
             switch (volumeType) {
@@ -235,12 +245,16 @@ public class BlockStorageUtils {
                 case BLOCK_SNAPSHOT:
                     blockSnapshots.add(resourceId);
                     break;
+                case BLOCK_CONTINUOUS_COPY:
+                    blockCopies.add(resourceId);
+                    break;
                 default:
                     break;
             }
         }
         blockResources.addAll(getVolumes(blockVolumes));
         blockResources.addAll(getBlockSnapshots(blockSnapshots));
+        blockResources.addAll(getBlockCopies(blockCopies, parentId));
         return blockResources;
     }
 

@@ -57,6 +57,7 @@ import com.emc.storageos.model.application.VolumeGroupCopySetParam;
 import com.emc.storageos.model.application.VolumeGroupList;
 import com.emc.storageos.model.application.VolumeGroupRestRep;
 import com.emc.storageos.model.block.BlockConsistencyGroupRestRep;
+import com.emc.storageos.model.block.BlockMirrorRestRep;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.emc.storageos.model.block.BlockSnapshotRestRep;
 import com.emc.storageos.model.block.BlockSnapshotSessionList;
@@ -648,6 +649,26 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         UnexportedBlockResourceFilter<BlockSnapshotRestRep> unexportedSnapshotFilter =
                 new UnexportedBlockResourceFilter<BlockSnapshotRestRep>(exportedBlockResources);
         return getSnapshotOptionsForProject(ctx, projectId, unexportedSnapshotFilter);
+    }
+    
+    @Asset("unassignedBlockContinuousCopies")
+    @AssetDependencies({ "host", "project", "volumeWithContinuousCopies"})
+    public List<AssetOption> getBlockContinuousCopy(AssetOptionsContext ctx, URI hostOrClusterId, URI projectId, URI volume) {
+        // get a list of all continuous copies that are in this project that are not exported to the given host/cluster
+        Set<URI> exportedBlockResources = getExportedVolumes(api(ctx), projectId, hostOrClusterId, null);
+        UnexportedBlockResourceFilter<BlockMirrorRestRep> unexportedCopyFilter =
+                new UnexportedBlockResourceFilter<BlockMirrorRestRep>(exportedBlockResources);
+        return getContinuousCopyOptionsForProject(ctx, projectId, volume, unexportedCopyFilter);
+        
+//        
+//        ViPRCoreClient client = api(ctx);
+//        Set<URI> exportedBlockResources = BlockProvider.getExportedVolumes(api(ctx), projectId, hostOrClusterId, null);
+//        UnexportedBlockResourceFilter<VolumeRestRep> unexportedFilter = new UnexportedBlockResourceFilter<VolumeRestRep>(
+//                exportedBlockResources);
+//        SourceTargetVolumesFilter sourceTargetVolumesFilter = new SourceTargetVolumesFilter();
+//        List<VolumeRestRep> volumes = client.blockVolumes().findByProject(projectId, unexportedFilter.and(sourceTargetVolumesFilter));
+//
+//        return createBaseResourceOptions(volumes);
     }
 
     @Asset("vplexVolumeWithSnapshots")
@@ -2833,6 +2854,27 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         Map<URI, VolumeRestRep> volumeNames = getProjectVolumeNames(client, project);
         for (BlockSnapshotSessionRestRep snapshotSession : snapshotSessions) {
             options.add(new AssetOption(snapshotSession.getId(), getBlockObjectLabel(client, snapshotSession, volumeNames)));
+        }
+        AssetOptionsUtils.sortOptionsByLabel(options);
+        return options;
+    }
+    
+    private List<AssetOption>
+            getContinuousCopyOptionsForProject(AssetOptionsContext ctx, URI project, URI volumeId, ResourceFilter<BlockMirrorRestRep> filter) {
+        ViPRCoreClient client = api(ctx);
+        
+        VolumeRestRep volume = client.blockVolumes().get(volumeId);
+        
+        List<BlockMirrorRestRep> copies = client.blockVolumes().getContinuousCopies(volume.getId(), filter);
+        //List<BlockMirrorRestRep> copies = client.blockSnapshots().findByProject(project, filter);
+        return constructCopiesOptions(client, project, copies);
+    }
+    
+    protected List<AssetOption> constructCopiesOptions(ViPRCoreClient client, URI project, List<BlockMirrorRestRep> copies) {
+        List<AssetOption> options = Lists.newArrayList();
+        Map<URI, VolumeRestRep> volumeNames = getProjectVolumeNames(client, project);
+        for (BlockMirrorRestRep copy : copies) {
+            options.add(new AssetOption(copy.getId(), getBlockObjectLabel(client, copy, volumeNames)));
         }
         AssetOptionsUtils.sortOptionsByLabel(options);
         return options;

@@ -359,7 +359,7 @@ public class StoragePortService extends TaggedResource {
 
         // Update the virtual nas virtual arrays with network virtual arrays!!!
         if (DiscoveredDataObject.Type.vnxfile.name().equals(system.getSystemType())
-        		|| DiscoveredDataObject.Type.isilon.name().equals(system.getSystemType())) {
+        		|| DiscoveredDataObject.Type.isilon.name().equals(system.getSystemType()) || DiscoveredDataObject.Type.netappc.name().equals(system.getSystemType())) {
 
             Network newNetwork = null;
             boolean removePort = false;

@@ -60,27 +60,14 @@ public class StorageProviders extends ViprResourceController {
 	private static final int SAVE_WAIT_MILLIS = 300000;
 
 	private static void addReferenceData() {
-		// renderArgs.put("interfaceTypeOptions", StorageProviderTypes.OPTIONS);
 		renderArgs.put("interfaceTypeOptions", StorageProviderTypes.getProviderOption());
-		// renderArgs.put("optionsSIO", StorageProviderTypes.optionSIO);
 		renderArgs.put("optionsSIO", StorageProviderTypes.getScaleIoOption());
-		// renderArgs.put("sslDefaultStorageProviderList",
-		// Arrays.asList(StorageProviderTypes.SSL_DEFAULT_OPTIONS));
 		renderArgs.put("sslDefaultStorageProviderList", StorageProviderTypes.getProvidersWithSSL());
-		// renderArgs.put("nonSSLStorageSystemList",
-		// Arrays.asList(StorageSystemTypes.NON_SSL_OPTIONS));
 		renderArgs.put("nonSSLStorageSystemList", StorageProviderTypes.getProvidersWithoutSSL());
-		// renderArgs.put("mdmDefaultStorageProviderList",
-		// Arrays.asList(StorageSystemTypes.MDM_DEFAULT_OPTIONS));
 		renderArgs.put("mdmDefaultStorageProviderList", StorageProviderTypes.getProvidersWithMDM());
-		// renderArgs.put("mdmonlyProviderList",
-		// Arrays.asList(StorageSystemTypes.MDM_ONLY_OPTIONS));
 		renderArgs.put("mdmonlyProviderList", StorageProviderTypes.getProvidersWithOnlyMDM());
-		// renderArgs.put("elementManagerStorageProviderList",
-		// Arrays.asList(StorageSystemTypes.ELEMENT_MANAGER_OPTIONS));
 		renderArgs.put("elementManagerStorageProviderList", StorageProviderTypes.getProvidersWithEMS());
-		// List<EnumOption> defaultStorageProviderPortMap =
-		// Arrays.asList(EnumOption.options(DefaultStorageProviderPortMap.values()));
+
 		List<EnumOption> defaultStorageProviderPortMap = StorageProviderTypes.getStoragePortMap();
 		renderArgs.put("defaultStorageProviderPortMap", defaultStorageProviderPortMap);
 	}
@@ -91,7 +78,8 @@ public class StorageProviders extends ViprResourceController {
 	}
 
 	public static void listJson() {
-		performListJson(StorageProviderUtils.getStorageProviders(), new JsonItemOperation());
+		performListJson(StorageProviderUtils.getStorageProviders(),
+				new JsonItemOperation());
 	}
 
 	public static void itemsJson(@As(",") String[] ids) {
@@ -99,15 +87,18 @@ public class StorageProviders extends ViprResourceController {
 	}
 
 	private static void itemsJson(List<URI> ids) {
-		performItemsJson(StorageProviderUtils.getStorageProviders(ids), new JsonItemOperation());
+		performItemsJson(StorageProviderUtils.getStorageProviders(ids),
+				new JsonItemOperation());
 	}
 
 	public static void itemDetails(String id) {
-		StorageProviderRestRep storageProvider = StorageProviderUtils.getStorageProvider(uri(id));
+		StorageProviderRestRep storageProvider = StorageProviderUtils
+				.getStorageProvider(uri(id));
 		if (storageProvider == null) {
 			error(MessagesUtils.get(UNKNOWN, id));
 		}
-		Set<NamedRelatedResourceRep> storageSystems = StorageProviderUtils.getConnectedStorageSystems(uri(id));
+		Set<NamedRelatedResourceRep> storageSystems = StorageProviderUtils
+				.getConnectedStorageSystems(uri(id));
 		render(storageProvider, storageSystems);
 	}
 
@@ -126,14 +117,16 @@ public class StorageProviders extends ViprResourceController {
 
 	private static Integer getDefaultPort(DefaultStorageProviderPortMap value) {
 		String defaultValue = MessagesUtils
-				.get(DefaultStorageProviderPortMap.class.getSimpleName() + "." + value.name());
+				.get(DefaultStorageProviderPortMap.class.getSimpleName() + "."
+						+ value.name());
 		return Integer.valueOf(StringUtils.defaultIfBlank(defaultValue, "0"));
 	}
 
 	@FlashException("list")
 	public static void edit(String id) {
 		addReferenceData();
-		StorageProviderRestRep provider = StorageProviderUtils.getStorageProvider(uri(id));
+		StorageProviderRestRep provider = StorageProviderUtils
+				.getStorageProvider(uri(id));
 		if (provider != null) {
 			StorageProviderForm smisProvider = new StorageProviderForm(provider);
 			copyRenderArgsToAngular();
@@ -169,7 +162,8 @@ public class StorageProviders extends ViprResourceController {
 			list();
 		}
 
-		List<OperationResult<Void, URI>> results = perform(ids, new DeactivateOperation());
+		List<OperationResult<Void, URI>> results = perform(ids,
+				new DeactivateOperation());
 		List<OperationResult<Void, URI>> failed = getFailedResults(results);
 
 		if (failed.isEmpty()) {
@@ -178,7 +172,8 @@ public class StorageProviders extends ViprResourceController {
 			String errorMessage = StringUtils.join(errorMessages(failed), "\n");
 			int total = results.size();
 			int deleted = total - failed.size();
-			flash.error(MessagesUtils.get(DELETED_ERROR, deleted, total, errorMessage));
+			flash.error(MessagesUtils.get(DELETED_ERROR, deleted, total,
+					errorMessage));
 		}
 		list();
 	}
@@ -204,7 +199,6 @@ public class StorageProviders extends ViprResourceController {
 		public String name;
 
 		@MaxSize(2048)
-
 		public String userName;
 
 		@HostNameOrIpAddress
@@ -280,13 +274,16 @@ public class StorageProviders extends ViprResourceController {
 		}
 
 		public StorageProviderRestRep update() {
-			return StorageProviderUtils.update(uri(id), name, ipAddress, portNumber, userName, password, useSSL,
-					interfaceType, secondaryUsername, secondaryPassword, elementManagerURL);
+			return StorageProviderUtils.update(uri(id), name, ipAddress,
+					portNumber, userName, password, useSSL, interfaceType,
+					secondaryUsername, secondaryPassword, elementManagerURL);
 		}
 
 		public Task<StorageProviderRestRep> create() {
-			Task<StorageProviderRestRep> task = StorageProviderUtils.create(name, ipAddress, portNumber, userName,
-					password, useSSL, interfaceType, secondaryUsername, secondaryPassword, elementManagerURL);
+			Task<StorageProviderRestRep> task = StorageProviderUtils.create(
+					name, ipAddress, portNumber, userName, password, useSSL,
+					interfaceType, secondaryUsername, secondaryPassword,
+					elementManagerURL);
 			new SaveWaitJob(getViprClient(), task).now();
 			return task;
 		}
@@ -295,24 +292,33 @@ public class StorageProviders extends ViprResourceController {
 			Validation.valid(fieldName, this);
 
 			if (isScaleIOApi()) {
-				Validation.required(fieldName + ".secondaryPassword", this.secondaryPassword);
-				Validation.required(fieldName + ".secondaryPasswordConfirm", this.secondaryPasswordConfirm);
+				Validation.required(fieldName + ".secondaryPassword",
+						this.secondaryPassword);
+				Validation.required(fieldName + ".secondaryPasswordConfirm",
+						this.secondaryPasswordConfirm);
 			}
 
 			if (isNew() && !isScaleIOApi()) {
 				Validation.required(fieldName + ".userName", this.userName);
 				Validation.required(fieldName + ".password", this.password);
-				Validation.required(fieldName + ".confirmPassword", this.confirmPassword);
+				Validation.required(fieldName + ".confirmPassword",
+						this.confirmPassword);
 			}
 
-			if (!StringUtils.equals(StringUtils.trim(password), StringUtils.trim(confirmPassword))) {
+			if (!StringUtils.equals(StringUtils.trim(password),
+					StringUtils.trim(confirmPassword))) {
 				Validation.addError(fieldName + ".confirmPassword",
-						MessagesUtils.get("smisProvider.confirmPassword.not.match"));
+						MessagesUtils
+								.get("smisProvider.confirmPassword.not.match"));
 			}
 
-			if (!StringUtils.equals(StringUtils.trim(secondaryPassword), StringUtils.trim(secondaryPasswordConfirm))) {
-				Validation.addError(fieldName + ".secondaryPasswordConfirm",
-						MessagesUtils.get("smisProvider.secondaryPassword.confirmPassword.not.match"));
+			if (!StringUtils.equals(StringUtils.trim(secondaryPassword),
+					StringUtils.trim(secondaryPasswordConfirm))) {
+				Validation
+						.addError(
+								fieldName + ".secondaryPasswordConfirm",
+								MessagesUtils
+										.get("smisProvider.secondaryPassword.confirmPassword.not.match"));
 			}
 		}
 
@@ -323,7 +329,8 @@ public class StorageProviders extends ViprResourceController {
 		private final ViPRCoreClient client;
 		private final Task<StorageProviderRestRep> task;
 
-		public SaveWaitJob(ViPRCoreClient client, Task<StorageProviderRestRep> task) {
+		public SaveWaitJob(ViPRCoreClient client,
+				Task<StorageProviderRestRep> task) {
 			this.client = client;
 			this.task = task;
 		}
@@ -340,15 +347,17 @@ public class StorageProviders extends ViprResourceController {
 		}
 	}
 
-	protected static class JsonItemOperation
-			implements ResourceValueOperation<StorageProviderInfo, StorageProviderRestRep> {
+	protected static class JsonItemOperation implements
+			ResourceValueOperation<StorageProviderInfo, StorageProviderRestRep> {
 		@Override
-		public StorageProviderInfo performOperation(StorageProviderRestRep provider) throws Exception {
+		public StorageProviderInfo performOperation(
+				StorageProviderRestRep provider) throws Exception {
 			return new StorageProviderInfo(provider);
 		}
 	}
 
-	protected static class DeactivateOperation implements ResourceIdOperation<Void> {
+	protected static class DeactivateOperation implements
+			ResourceIdOperation<Void> {
 		@Override
 		public Void performOperation(URI id) throws Exception {
 			StorageProviderUtils.deactivate(id);

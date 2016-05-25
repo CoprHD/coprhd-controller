@@ -1,5 +1,5 @@
 %{
-  titleKey = 'storageSystemTypes.' + (storageSystemTypes?.storageTypeId ? 'edit' : 'create') + '.title';
+  titleKey = 'storageSystemTypes.' + (storageSystemTypes?.id ? 'edit' : 'create') + '.title';
   descriptionKey = 'storageSystemTypes.description';
   image = '/public/img/assets/AddStandbySite.png';
 }%
@@ -46,10 +46,11 @@
       }%
       #{Form.inputTextControlGroup field:field /}
     #{/field}
-	<control-group v-field="storageSystemTypes.isProvider">
-     	<boolean-checkbox v-default-value="false"></boolean-checkbox>
-    </control-group>
-	#{if !editing }
+	#{if !editing }	
+		<control-group v-field="storageSystemTypes.isProvider">
+     		<boolean-checkbox v-disabled='locked'></boolean-checkbox>
+    	</control-group>
+
 	    #{field 'storageSystemTypes.storageSystemTypeType'}
             %{
                 field.required = true

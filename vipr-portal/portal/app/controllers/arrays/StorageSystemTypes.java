@@ -76,8 +76,8 @@ public class StorageSystemTypes extends ViprResourceController {
 		}
 	}
 
-	private static void edit(StorageSystemTypeForm storageSystemType) {
-		render("@edit", storageSystemType);
+	private static void edit(StorageSystemTypeForm storageSystemTypes) {
+		render("@edit", storageSystemTypes);
 	}
 
 	public static void listJson() {
@@ -89,6 +89,7 @@ public class StorageSystemTypes extends ViprResourceController {
 		}
 		renderJSON(DataTablesSupport.createJSON(storageSystemTypes, params));
 	}
+
 
 	@FlashException("list")
 	@Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })
@@ -128,11 +129,11 @@ public class StorageSystemTypes extends ViprResourceController {
 
 				restResponse = StorageSystemTypeUtils.uploadDriver(mdf);
 
-				flash.success("Device driver jar file uploaded");
+				flash.success("Device Driver jar file uploaded");
 				list();
 			} catch (FileNotFoundException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				flash.error("Device Driver jar not Found");
+				list();
 			}
 		}
 	}

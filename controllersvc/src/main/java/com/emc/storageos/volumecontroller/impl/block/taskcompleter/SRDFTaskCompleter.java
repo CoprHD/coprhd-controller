@@ -61,6 +61,7 @@ public class SRDFTaskCompleter extends TaskCompleter {
     @Override
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded)
             throws DeviceControllerException {
+        setDbClient(dbClient);
         setStatus(dbClient, status, coded);
         updateWorkflowStatus(status, coded);
         updateVolumeStatus(dbClient, status);

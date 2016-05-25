@@ -169,7 +169,6 @@ public class Main {
             isoFile.delete();
         }
 
-        /*TODO: uncomment after test */
         if (bNewIp) {
             FileUtils.deleteFile(IpReconfigConstants.NEWIP_PATH);
             FileUtils.deleteFile(IpReconfigConstants.NEWIP_EXPIRATION);
@@ -177,7 +176,6 @@ public class Main {
             IpReconfigUtil.writeNodeStatusFile(IpReconfigConstants.NodeStatus.LOCAL_ROLLBACK.toString());
             FileUtils.deleteFile(IpReconfigConstants.OLDIP_PATH);
         }
-
     }
 
     /**

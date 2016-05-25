@@ -31,6 +31,8 @@ bootfs_vdc_props=${bootfs_vdc_props:-${bootfs_mntp}/etc/vdcconfig.properties}
 datafs_ip_props=${datafs_ip_props:-/data/cluster_network.properties}
 newip_temp_path=${newip_temp_path:-/data/ipreconfig/newip}
 oldip_temp_path=${oldip_temp_path:-/data/ipreconfig/oldip}
+ACTION_POWEROFF="poweroff"
+ACTION_TIMEOUT_CONT="continue"
 
 test -r "${STORAGEOS_SYSCONFIG}"       || exit 6
 . ${STORAGEOS_SYSCONFIG}
@@ -48,6 +50,32 @@ _get_ipv6_compressed(){
         ipaddr=$(sipcalc ${1} | egrep '^Compressed address' | awk '{print $4}')
         [ ! -z ${ipaddr} ] && echo ${ipaddr} || echo ${1}
     fi
+}
+
+_prompt() {
+    errstr=${1}
+    action=${1}
+
+    echo $errstr >> /var/log/boot-ovfenv.log
+
+    promptstr="\n\e[1;31m***\n*** $errstr. \n"
+    if [ "${action}" = "poweroff" ]; then
+        promptstr+="*** Please press any key to power off the vApp and use vSphere Client to edit network properties.\n***"
+    else
+        promptstr+="*** Please power off the vApp and use vSphere Client to edit network properties.\n***"
+        promptstr+="*** If not, system would still bootup with original IPs in 30s.  IPs in vCenter would NOT take effect!!!\n***"
+    fi
+    promptstr+="\e[0m"
+
+    echo -e ${promptstr}
+
+    if [ "${action}" = "${$ACTION_POWEROFF}" ]; then
+        read -n 1
+        /etc/systool --poweroff
+    else
+        sleep 30
+    fi
+    exit
 }
 
 # handle kinds of scenarios related with cluster IPs during boot-up.
@@ -75,10 +103,13 @@ _handleClusterIPs() {
     if [ -e "${newip_temp_path}" -a "${STORAGEOS_IPRECONFIG_MODE}" = "commit" ] || [ -e "${oldip_temp_path}" -a "${STORAGEOS_IPRECONFIG_MODE}" = "rollback" ]; then
         bRestAPI="true"
         /opt/storageos/bin/ipreconfig ${vdc_myid} ${site_active_id} ${site_myid} ${STORAGEOS_IPRECONFIG_MODE}
+        if [ $? -ne 0 ]; then
+            errstr="Failed to execute ipreconfig tool.  Please check ipreconfig.log for details."
+            _prompt $errstr $ACTION_TIMEOUT_CONT
+        fi
     fi
 
     # 2. check whether there is IP inconsistent b/w ovfenv device and IP prop file
-
     # 2.1 load current cluster ip properties if exists
     declare -A currIpPropMap
     while read -r line
@@ -125,25 +156,27 @@ _handleClusterIPs() {
     /etc/getovfproperties --is-vapp
     if [ $? -ne 0 ]; then
         # for non-vApp and hyper-v, ipreconfig tool would guarantee the IP consistency.
-        errstr="Internal error: IP inconsistent between ovfenv device and IP prop file.  Please check."
-        echo $errstr >> /var/log/boot-ovfenv.log
-        echo -e "\n\e[1;31m***\n*** $errstr. \n*** Please contact with customer support to check.\n***\e[0m"
-        read -n 1
-        exit
+        errstr="Internal error: IP inconsistent between ovfenv device and IP prop file.\n"
+        errstr+="Please contact with customer support to check.\n"
+        _prompt $errstr $ACTION_POWEROFF
     fi
 
     # 5. Handle IP inconsistency in vApp environment
+    # TODO: change to vdc_vdcX_site_ids
     if [[ "${currVdcPropMap["site_ids"]}" == *,* ]]; then
         # multiple sites
         if [ "${bRestAPI}" = "true" ]; then
             errstr="IPs are changed via REST API or rollbacked to original IPs while the local site is vApp environment.  So you also need to manually change IPs via vCenter to align with the desired IPs."
+            _prompt $errstr $ACTION_TIMEOUT_CONT
         else
-            errstr="IPs are changed via vCenter in a multiple sites environment which is not allowed.  Please revert the change via vCenter, use GUI/REST API to change cluster IPs, then change IPs via vCenter to align with the desired IPs."
+            errstr="IPs are changed via vCenter in a multiple sites environment which is not allowed.  Please revert the change via vCenter, then use GUI/REST API to change cluster IPs."
+            _prompt $errstr $ACTION_POWEROFF
         fi
     else
         # single site
         if [ "${bRestAPI}" = "true" ]; then
-            errstr="IPs are changed via REST API or rollbacked to original IPs in the vApp environment.  So you also need to manually change IPs via vCenter to align with the desired IPs."
+            errstr="IPs are changed via REST API or rollbacked to original IPs in the vApp environment.  You must manually change IPs via vCenter to align with the desired IPs."
+            _prompt $errstr $ACTION_POWEROFF
         else
             # User is changing IPs via vCenter or installer in non-vApp/hyper-v environment.
             # We need to write it back to IP prop file and propagate to all the nodes in the current single site
@@ -162,13 +195,6 @@ _handleClusterIPs() {
             #TODO: set force flag
             errstr=""
         fi
-    fi
-    echo $errstr >> /var/log/boot-ovfenv.log
-    if [ ! -z $errstr ]; then
-        echo -e "\n\e[1;31m***\n*** $errstr. \n*** Please power off the vApp and use vSphere Client to edit network properties.\n***\n*** Press any key to power off this VM\n***\e[0m"
-        read -n 1
-        /etc/systool --poweroff
-        exit
     fi
 }
 

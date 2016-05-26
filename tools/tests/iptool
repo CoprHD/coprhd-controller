@@ -70,22 +70,20 @@ try:
 
     bourne = Bourne()
 
-    rc=1
     if  (cmd == "query"):
         args = query.parse_args()
-        rc = clusterip_query(args)
+        clusterip_query(args)
     elif (cmd == "querystatus"):
         args = querystatus.parse_args()
-        rc = clusterip_querystatus(args)
+        clusterip_querystatus(args)
     elif (cmd == "reconfig"):
         args = reconfig.parse_args()
-        rc = clusterip_reconfig(args)
+        clusterip_reconfig(args)
     elif (cmd == "shuffle"):
         args = shuffle.parse_args()
-        rc = clusterip_shuffle(args)
+        clusterip_shuffle(args)
     else:
         parser.print_help()
-    exit(rc)
 
 except:
     raise

@@ -7588,18 +7588,17 @@ ipreconfig_test()
     active_site_ip=${1}
 
     currIpinfo=$(iptool query --vip "${active_site_ip}" 2>&1| grep ^vdc_vdc)
-    [ $? -eq 0 ] || { echo -n "Failed to query cluster ip. Errstr:"; echo $currIpinfo; exit 1; }
+    [ -z $currIpinfo ] && { echo -n "Failed to query cluster ip. Errstr:"; echo $currIpinfo; exit 1; }
 
     newIpinfo=$(iptool shuffle --vip "${active_site_ip}" "${currIpinfo}" 2>&1| grep ^vdc_vdc)
-    [ $? -eq 0 ] || { echo -n "Failed to shuffle cluster ip. Errstr:"; echo $newIpinfo; exit 1; }
+    [ -z $newIpinfo ] && { echo -n "Failed to shuffle cluster ip. Errstr:"; echo $newIpinfo; exit 1; }
     while [ "${newIpinfo}" = "${currIpinfo}" ];
     do
         newIpinfo=$(iptool shuffle --vip "${active_site_ip}" "${currIpinfo}" 2>&1| grep ^vdc_vdc)
-        [ $? -eq 0 ] || { echo -n "Failed to shuffle cluster ip. Errstr:"; echo $newIpinfo; exit 1; }
+        [ -z $newIpinfo ] && { echo -n "Failed to shuffle cluster ip. Errstr:"; echo $newIpinfo; exit 1; }
     done
     
-    reconfig_rc=$(iptool reconfig --vip "${active_site_ip}" "${newIpinfo}" 2>&1)
-    [ $? -eq 0 ] || { echo -n "Failed to trigger cluster ip reconfiguration. Errstr:"; echo $reconfig_rc; exit 1; }
+    iptool reconfig --vip "${active_site_ip}" "${newIpinfo}" || { echo -n "Failed to trigger cluster ip reconfiguration. Errstr:"; echo $reconfig_rc; exit 1; }
    
     timeout=300
     interval=10

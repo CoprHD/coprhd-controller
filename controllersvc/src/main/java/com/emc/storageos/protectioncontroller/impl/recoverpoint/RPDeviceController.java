@@ -4516,14 +4516,14 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     @Override
     public String addStepsForPreCreateReplica(Workflow workflow, String waitFor, List<VolumeDescriptor> volumeDescriptors, String taskId) throws InternalException {
               
-        _log.info("Adding steps for create full copy");
+        _log.info("Adding steps for create replica");
         return addStepsForPreOrPostCreateReplica(workflow, waitFor, volumeDescriptors, true, taskId);
     }
     
     @Override
     public String addStepsForPostCreateReplica(Workflow workflow, String waitFor,
             List<VolumeDescriptor> volumeDescriptors, String taskId) throws InternalException {
-        _log.info("Adding steps for post create full copy");
+        _log.info("Adding steps for post create replica");
         return addStepsForPreOrPostCreateReplica(workflow, waitFor, volumeDescriptors, false, taskId);
     }
     
@@ -4549,7 +4549,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         
         // If no volumes to create, just return
         if (blockVolmeDescriptors.isEmpty()) {
-            _log.warn("Skipping RP create steps for full copy because no block volume descriptors were found");
+            _log.warn("Skipping RP create steps for create replica because no block volume descriptors were found");
             return waitFor;
         }
 

@@ -15,7 +15,7 @@ import org.slf4j.LoggerFactory;
  * Implements upload protocol using CIFS
  */
 public class CifsUploader extends Uploader {
-    private static final Logger log = LoggerFactory.getLogger(FtpsUploader.class);
+    private static final Logger log = LoggerFactory.getLogger(CifsUploader.class);
 
     private final CifsClient cifsClient;
 
@@ -30,8 +30,7 @@ public class CifsUploader extends Uploader {
 
     @Override
     public Long getFileSize(String fileName) throws Exception {
-        return 0L;
-        //return cifsClient.getFileSize(fileName);
+        return cifsClient.getFileSize(fileName);
     }
 
     @Override

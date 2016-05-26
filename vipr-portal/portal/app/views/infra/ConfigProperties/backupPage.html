@@ -11,7 +11,10 @@
         $maxManualCopies.on('change', function () {
             checkIsZero(this.value, 'manual');
         });
-
+        $externalServerType = $("#${util.ConfigProperty.BACKUP_EXTERNAL_TYPE}");
+        $externalServerType.on('change', function () {
+            checkIsCIFS(this.value);
+        });
         var intervalId = "backup_scheduler_interval";
         $backup_interval = $("#" + intervalId);
         $selector_interval = $("#" + intervalId + "_selector");
@@ -55,6 +58,19 @@
                 alert("&{'configProperties.backup.setToZero.scheduler'}");
             }
         }
+    }
+    function checkIsCIFS(value) {
+       var displayControl = $("#${util.ConfigProperty.BACKUP_EXTERNAL_DOMAIN}ControlGroup");
+       var control = $("#${util.ConfigProperty.BACKUP_EXTERNAL_DOMAIN}");
+       if (value === 'CIFS') {
+           displayControl.show();
+           control.removeClass('disabled');
+           control.prop('disabled', false);
+       } else {
+           displayControl.hide();
+           control.addClass('disabled');
+           control.prop('disabled', true);
+       }
     }
 </script>
 #{/set}
@@ -124,7 +140,35 @@ disabled:unstable;
 #{ConfigProperties.property property:page.maxManualCopies, disabled:unstable/}
 #{/ConfigProperties.propertySet}
 #{ConfigProperties.propertySet titleKey:'configProperties.backup.server'}
+#{ConfigProperties.property property:page.externalLocationType, disabled:unstable/}
 #{ConfigProperties.property property:page.externalLocationUrl, disabled:unstable/}
+
+%{
+property = page.externalLocationDomain
+id = property.name
+name = property.name
+originalValue = property.value
+value = flash[name] ?: originalValue
+label = property.label
+description = property.description
+textArea = property.largeField
+maxLength = property.maxLength
+
+typeProperty = page.externalLocationType
+type = typeProperty.value
+}%
+#{if type == 'CIFS'}<div id="${id}ControlGroup" class="form-group" >#{/if}#{else}
+    <div id="${id}ControlGroup" class="form-group" hidden>#{/else}
+        <label class="control-label col-sm-3" for="${id}">${label}:</label>
+        <div class="col-sm-6 controls">
+            <input type="text" class="form-control" id="${id}" name="${name}" value="${value}" #{if maxLength}maxlength="${maxLength}"#{/if} data-originalvalue="${originalValue}" data-reboot="false" autocomplete="off">
+            <p class="help-block clear">${description}#{if rebootRequired} <span class="text-danger">&{'configProperties.rebootRequired'}</span>#{/if}</p>
+        </div>
+        <div class="col-sm-3">
+            <span class="help-inline clearfix">${error}</span>
+        </div>
+    </div>
+
 #{ConfigProperties.property property:page.externalLocationUsername, disabled:unstable/}
 #{ConfigProperties.property property:page.externalLocationPassword, disabled:unstable/}
 #{/ConfigProperties.propertySet}

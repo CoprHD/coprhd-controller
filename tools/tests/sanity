@@ -114,15 +114,17 @@ elif [ ${SS} = "dr" ]; then
     fi
     echo AUTH=$AUTH
 elif [ ${SS} = "backuprestore" ]; then
-    if [[ $# -ne 6 ]]; then
+    if [[ $# -lt 7 ]]; then
 	echo "Invalid backuprestore parameters."
 	echo "usage: backuprestore backup-server-uri username password"
 	exit 1
     fi
-    
-    BACKUP_SERVER_URL=$4
-    BACKUP_SERVER_USERNAME=$5
-    BACKUP_SERVER_PASSWORD=$6
+
+    BACKUP_SERVER_TYPE=$4
+    BACKUP_SERVER_URL=$5
+    BACKUP_SERVER_USERNAME=$6
+    BACKUP_SERVER_PASSWORD=$7
+    BACKUP_SERVER_DOMAIN=$8
 
     if [ -n "${BOURNE_IPV6_MODE}" ]; then
 	AUTH=ipv6
@@ -8735,8 +8737,9 @@ start_vdc_services()
     done
 }
 
-#Usage: sanity <conf path> <vip> backuprestore backup-server-uri username password
-# E.g.: sanity conf/sanity.conf 137.69.169.21 backuprestore ftp://X.X.X.X/foo root root-password 
+#Usage: sanity <conf path> <vip> backuprestore backup-server-type backup-server-uri username password domain
+# E.g.: sanity conf/sanity.conf 137.69.169.21 backuprestore ftp ftp://X.X.X.X/foo root root-password
+# E.g.: sanity conf/sanity.conf 137.69.169.21 backuprestore cifs smb://X.X.X.X/foo user1 user1-password user1-domain
 backuprestore_setup()
 {
     echo "Setup backup restore environment begin"
@@ -8746,11 +8749,14 @@ backuprestore_setup()
     echo "Enable root ssh permit and configure backup server"
     syssvc $CONFIG_FILE "$vip" set_prop system_permit_root_ssh yes
 
+    syssvc $CONFIG_FILE "$vip" set_prop backup_external_location_type "${BACKUP_SERVER_TYPE}"
     syssvc $CONFIG_FILE "$vip" set_prop backup_external_location_username "${BACKUP_SERVER_USERNAME}"
     syssvc $CONFIG_FILE "$vip" set_prop backup_external_location_password "${BACKUP_SERVER_PASSWORD}"
+    syssvc $CONFIG_FILE "$vip" set_prop backup_external_location_domain "${BACKUP_SERVER_DOMAIN}"
+
     syssvc $CONFIG_FILE "$vip" set_prop backup_external_location_url "${BACKUP_SERVER_URL}"
 
-    echo -e "Done\nurl=${BACKUP_SERVER_URL} username=${BACKUP_SERVER_USERNAME} password=${BACKUP_SERVER_PASSWORD}"
+    echo -e "Done\nurl=${BACKUP_SERVER_URL} username=${BACKUP_SERVER_USERNAME} password=${BACKUP_SERVER_PASSWORD} domain=${BACKUP_SERVER_DOMAIN}"
 }
 
 backuprestore_tests()

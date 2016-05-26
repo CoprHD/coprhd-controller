@@ -2299,11 +2299,10 @@
         value : "FTP",
         controlNodeOnly : true,
     },
-
     {
         key : "backup_external_location_url",
         label : "External Server URL",
-        description : "A FTPS file server to store backup files.",
+        description : "The URL of file server to store backup files.",
         type : "string",
         tag : "Backup",
         userMutable : true,

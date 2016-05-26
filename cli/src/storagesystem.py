@@ -64,6 +64,7 @@ class StorageSystem(object):
         'ibmxiv',
         'netappc',	
         'vnxe',
+        'unity',
         'ecs' ,
         'datadomain']
 
@@ -75,6 +76,7 @@ class StorageSystem(object):
         'scaleio',
         'xtremio',
         'ibmxiv',
+        'unity',
         'vnxe']
 
     FILE_SYSTEM_LIST = [
@@ -83,6 +85,7 @@ class StorageSystem(object):
         'netapp',
         'netappc',	
         'vnxe',
+        'unity',
         'datadomain']
     
     OBJECT_SYSTEM_LIST =['ecs']
@@ -97,7 +100,8 @@ class StorageSystem(object):
         'openstack',
         'ibmxiv',
         'netappc',
-        'ecs' ,	
+        'ecs' ,
+        'unity',
         'vnxe']
 
     def __init__(self, ipAddr, port):

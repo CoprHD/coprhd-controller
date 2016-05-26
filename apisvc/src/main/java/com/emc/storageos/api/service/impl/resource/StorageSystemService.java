@@ -273,7 +273,7 @@ public class StorageSystemService extends TaskResourceService {
             ArgValidator.checkFieldValueFromSystemType(param.getSystemType(), "system_type",
                     Arrays.asList(StorageSystem.Type.vnxfile, StorageSystem.Type.isilon, StorageSystem.Type.rp,
                             StorageSystem.Type.netapp, StorageSystem.Type.netappc, StorageSystem.Type.vnxe,
-                            StorageSystem.Type.xtremio, StorageSystem.Type.ecs));
+                            StorageSystem.Type.xtremio, StorageSystem.Type.ecs, StorageSystem.Type.unity));
         }
         StorageSystem.Type systemType = StorageSystem.Type.valueOf(param.getSystemType());
         if (systemType.equals(StorageSystem.Type.vnxfile)) {
@@ -998,7 +998,8 @@ public class StorageSystemService extends TaskResourceService {
                 || systemType.equals(StorageSystem.Type.vnxfile.toString())
                 || systemType.equals(StorageSystem.Type.netapp.toString())
                 || systemType.equals(StorageSystem.Type.netappc.toString())
-                || systemType.equals(StorageSystem.Type.vnxe.toString())) {
+                || systemType.equals(StorageSystem.Type.vnxe.toString())
+                || systemType.equals(StorageSystem.Type.unity.toString())) {
             return FileController.class;
         } else if (systemType.equals(StorageSystem.Type.rp.toString())) {
             return RPController.class;
@@ -1920,8 +1921,9 @@ public class StorageSystemService extends TaskResourceService {
             return false;
         }
 
-        // VNXe storage system supports both block and file type unmanaged objects discovery
-        if (Type.vnxe.toString().equalsIgnoreCase(storageSystem.getSystemType())) {
+        // VNXe and Unity storage system supports both block and file type unmanaged objects discovery
+        if (Type.vnxe.toString().equalsIgnoreCase(storageSystem.getSystemType()) ||
+                Type.unity.toString().equalsIgnoreCase(storageSystem.getSystemType())) {
             if (nameSpace.equalsIgnoreCase(Discovery_Namespaces.UNMANAGED_FILESYSTEMS.toString()) ||
                     nameSpace.equalsIgnoreCase(Discovery_Namespaces.UNMANAGED_VOLUMES.toString()) ||
                     nameSpace.equalsIgnoreCase(Discovery_Namespaces.ALL.toString())) {

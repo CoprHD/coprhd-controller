@@ -1126,6 +1126,12 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                     String.format("Snapshot resynchronization is not possible on third-party storage systems"));
         }
 
+        // resync for IBM XIV storage system type is not supported
+        if (Type.ibmxiv.name().equalsIgnoreCase(storage.getSystemType())) {
+            throw APIException.methodNotAllowed.notSupportedWithReason(
+                    "Snapshot resynchronization is not supported on IBM XIV storage systems");
+        }
+
         // resync for VNX storage system type is not supported
         if (Type.vnxblock.name().equalsIgnoreCase(storage.getSystemType())) {
             throw APIException.methodNotAllowed.notSupportedWithReason(
@@ -1329,6 +1335,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                 && !systemType.equals(DiscoveredDataObject.Type.vnxblock.name())
                 && !systemType.equals(DiscoveredDataObject.Type.vmax.name())
                 && !systemType.equals(DiscoveredDataObject.Type.vnxe.name())
+                && !systemType.equals(DiscoveredDataObject.Type.unity.name())
                 && !systemType.equals(DiscoveredDataObject.Type.ibmxiv.name())
                 && !systemType.equals(DiscoveredDataObject.Type.scaleio.name())
                 && !systemType.equals(DiscoveredDataObject.Type.xtremio.name())) {
@@ -1634,6 +1641,15 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // Verify the consistency group in the requests and get the
         // volumes in the consistency group.
         List<Volume> cgVolumes = verifyCGForFullCopyRequest(cgURI);
+
+        // Get the storage system for the consistency group.
+        StorageSystem storage = _permissionsHelper.getObjectById(cgVolumes.get(0).getStorageController(), StorageSystem.class);
+
+        // Group clone for IBM XIV storage system type is not supported
+        if (Type.ibmxiv.name().equalsIgnoreCase(storage.getSystemType())) {
+            throw APIException.methodNotAllowed.notSupportedWithReason(
+                    "Consistency Group Full Copy is not supported on IBM XIV storage systems");
+        }
 
         // block CG operation if any of its volumes is in COPY type VolumeGroup (Application)
         validateVolumeNotPartOfApplication(cgVolumes, FULL_COPY);

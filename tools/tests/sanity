@@ -16,7 +16,7 @@ Usage()
 {
     echo 'Usage: sanity <configuration_file> <bourne_ip>|<[bourne_ipv6]> {all | snapvx | isilon | vplex | vplexexport | vplexsnap | vnxblock | ingestblock | vnxblock_flex_varray | netapp | netappc | recoverpoint | xtremio | srdf |
  vnxfile | datadomainfile | vnxfile_flex_varray | vmaxblock | hds | vmaxblock_flex_varray | combined_block | blocksnapshot | blockmirror | full_copy | blockconsistencygroup | init | quick |
- errorhandling | vnxe | security | syssvc | audit | monitor | vdc | catalog | recovery | backuprestore backupserver-uri username password | dr | ipsec} [local|ldap] [<timeslot>] | sanzoning | application'
+ errorhandling | vnxe | security | syssvc | audit | monitor | vdc | catalog | recovery | backuprestore backupserver-uri username password | dr | ipsec} [local|ldap] [<timeslot>] | sanzoning | application | unity'
     echo 'E.g.:  sanity conf/sanity.conf 137.69.169.21 all'
     echo 'E.g.:  sanity ~/.sanity/sanity.conf 137.69.169.21 isilon'
     echo 'Note: IPv6 needs to be square bracket surrounded. E.g.:  sanity [2620:0:170:2842::180] security'
@@ -156,7 +156,7 @@ done
 
 case $SS in
 
-    all|snapvx|isilon|vplex|vplexexport|vplexsnap|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxfile_flex_varray|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore|sanzoning|dr|ipsec|application|driversystem)
+    all|snapvx|isilon|vplex|vplexexport|vplexsnap|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxfile_flex_varray|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore|sanzoning|dr|ipsec|application|driversystem|unity)
     ;;
 
     # These tests are handled by sanity integration tests written with the code
@@ -348,6 +348,7 @@ LOCAL_SECURE_LDAP_USER_USERNAME_WITH_SPACES='       secureLdapViPRUser1@'${LOCAL
 #
 COS_VNXFILE=cosvnxf
 COS_VNXE=cosvnxe
+COS_UNITY=cosunity
 COS_ISIFILE=cosisi
 COS_NETAPP=cosnetappf
 COS_NETAPPC=cosnetappcf
@@ -373,6 +374,7 @@ COS_VNXEBLOCK_CG=cosvnxe_cg
 COS_VNXEBLOCK_FC=cosvnxe_fc
 COS_VNXEBLOCK_ISCSI=cosvnxe_iscsi
 COS_ECS=ecs_vpool
+COS_UNITYBLOCK_CG=cosunity_cg
 
 #
 # Isilon configuration
@@ -449,6 +451,11 @@ VNXE_DEV=vnxe_device
 VNXE_NATIVEGUID=VNXE+$VNXE_SN
 VNXE_SMBFILESHARE1=cifs1$(date +%Y%m%d%H%M%S) 
 
+#
+# UNITY  device configuration
+#
+UNITY_DEV=unity_device
+UNITY_NATIVEGUID=UNITY+$UNITY_SN
 #
 # DataDomain file device configuration
 #
@@ -562,6 +569,9 @@ FSEXP_DEFAULT_EPS="$FSEXP1 $FSEXP2 $FSEXP3"
 SNAPEXP_DEFAULT_EPS="www.emc.com www.abc.com www.amazon.com"
 FS_VNXE_SIZE=2000000000
 FS_VNXE_EXPAND_SIZE=3000000000
+FS_UNITY_SIZE=3000000000
+FS_UNITY_EXPAND_SIZE=4000000000
+
 
 # Alternate configuration file for alternate hardware/variables
 ALTERNATE_CONFIG_FILE=myhardware.conf
@@ -9561,6 +9571,109 @@ snapvx_single_tests()
     # Delete the snapshot session source volume.
     secho "Deleting the VMAX3 source volume"
     volume delete $PROJECT/$VOLUME_NAME --wait
+}
+
+unity_setup()
+{
+    networksystem show $BROCADE_NETWORK &> /dev/null && return $?
+    networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
+    secho "Starting storage system create"
+    discoveredsystem create $UNITY_DEV unity $UNITY_IP $UNITY_PORT $UNITY_USER $UNITY_PW --serialno=$UNITY_SN
+    storagedevice list
+
+    project_setup
+
+    secho "Setup ACLs on neighborhood for $TENANT"
+    run neighborhood allow $NH $TENANT
+    run neighborhood allow $NH $TENANT
+    run transportzone assign ${SRDF_VMAXA_VSAN} $NH
+    storagepool update $UNITY_NATIVEGUID --type block --volume_type THIN_AND_THICK
+    run transportzone add ${SRDF_VMAXA_VSAN} $UNITY_INIT_PWWN1
+    run transportzone add ${SRDF_VMAXA_VSAN} $UNITY_INIT_PWWN2
+    unity_cos_setup
+    run cos update block $COS_UNITYBLOCK_CG --storage $UNITY_NATIVEGUID
+
+    storagepool update $UNITY_NATIVEGUID --type file
+    storageport update $UNITY_NATIVEGUID IP --tzone nh/iptz
+    run cos update file $COS_UNITY --storage $UNITY_NATIVEGUID
+    run transportzone add $NH/$IP_ZONE $UNITY_IP_ENDPOINT1
+    run storagedevice discover_all
+}
+
+unity_tests()
+{
+    FS_SIZEMB=$FS_UNITY_SIZE;
+    FS_SIZE=$FS_UNITY_SIZE;
+    FS_EXPAND_SIZE=$FS_UNITY_EXPAND_SIZE;
+    file_tests $COS_UNITY default
+
+
+    vol1=unity1-${RANDOM};
+    vol2=unity-cg-${RANDOM};
+    host=$PROJECT.lss.emc.com
+    hostLbl=$PROJECT
+    iqn1=iqn.1998-01.com.vmware:lgly6193-7ae20d76
+    consistency_group=cg-${RANDOM}
+    snap1_label=snap1-${RANDOM}
+    snap2_label=snap2-${RANDOM}
+    eg=eg-${RANDOM}
+	    
+	    run transportzone add $NH/$IP_ZONE $iqn1
+    run volume create $vol1 $PROJECT $NH $COS_UNITYBLOCK_CG $BLK_SIZE
+    sleep 60
+    run volume expand $PROJECT/$vol1 $BLK_SIZE_EXPAND
+	
+    run hosts create $hostLbl $TENANT Windows $host --port 8111 --username user --password 'password' --osversion 1.0
+    run initiator create $hostLbl FC $UNITY_INIT_PWWN1 --node $UNITY_INIT_NODE
+    run initiator create $hostLbl FC $UNITY_INIT_PWWN2 --node $UNITY_INIT_NODE
+	
+    run export_group create $PROJECT $eg $NH --type Host --volspec $PROJECT/$vol1 --hosts $hostLbl
+		
+    run blocksnapshot create $PROJECT/$vol1 $snap1_label
+    run blocksnapshot list $PROJECT/$vol1
+    run blocksnapshot delete $PROJECT/$vol1/${snap1_label}
+    run export_group delete $PROJECT/$eg
+    run volume delete $PROJECT/$vol1 --wait
+    run hosts delete $hostLbl
+	    
+    echo "unity consistency group tests"
+	    
+    run blockconsistencygroup create $PROJECT $consistency_group
+    run volume create $vol2 $PROJECT $NH $COS_UNITYBLOCK_CG 1280000000 --consistencyGroup $consistency_group
+    sleep 60
+    run blocksnapshot create $PROJECT/$vol2 $snap2_label
+    sleep 30
+    run blocksnapshot delete $PROJECT/$vol2/${snap2_label}
+    sleep 30
+    run volume delete $PROJECT/$vol2 --wait
+    run blockconsistencygroup delete $consistency_group
+    echo "**** Done unity"
+}
+
+unity_cos_setup()
+{
+    secho "setting up Unity Virtual Pool"
+
+    run cos create file $COS_UNITY                               \
+         --description 'Virtual-Pool-for-unity-file' true \
+                         --protocols NFS CIFS --max_snapshots 10    \
+                         --provisionType 'Thin' \
+                         --neighborhoods $NH
+    ROOT_TENANT=`tenant root|tail -1`
+    run cos allow $COS_UNITY file $ROOT_TENANT
+
+    
+    run cos create block $COS_UNITYBLOCK_CG                            \
+	--description 'Virtual-Pool-for-unity-block-cg' true         \
+                         --protocols FC                   \
+                         --numpaths 2 \
+                         --max_snapshots 10 \
+                         --system_type unity \
+                         --provisionType 'Thin' \
+                         --expandable true \
+                         --neighborhoods $NH \
+                         --multiVolumeConsistency 
+                                
 }
 
 ${SS}_setup

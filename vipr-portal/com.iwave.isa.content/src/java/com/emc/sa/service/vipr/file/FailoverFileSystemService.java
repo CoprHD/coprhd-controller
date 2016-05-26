@@ -18,10 +18,10 @@ public class FailoverFileSystemService extends ViPRService {
 
     @Param(FILESYSTEM)
     protected URI failoverSource;
-    
+
     @Param(FAILOVER_TARGET_FILE)
     protected URI failoverTarget;
-    
+
     @Override
     public void execute() throws Exception {
         FileStorageUtils.failoverFileSystem(failoverSource, failoverTarget);

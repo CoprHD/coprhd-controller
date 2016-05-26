@@ -32,6 +32,7 @@ import socket
 import zlib
 import struct
 from time import sleep
+from random import shuffle
 
 try:
     # OpenSUSE CoprHD kits tend to display certificate warnings which aren't
@@ -488,6 +489,10 @@ URI_CHUNKDATA                   = URI_GEO_SERVICES_BASE + '/chunkdata/{0}'
 
 URI_OBJ_CERT                    = '/object-cert/keystore'
 URI_OBJ_SECRET_KEY                    = '/object-cert/secret-key'
+
+URI_CLUSTERIP_QUERY             = URI_SERVICES_BASE + '/control/cluster/ipinfo'
+URI_CLUSTERIP_RECONF_STATUS     = URI_SERVICES_BASE + '/control/cluster/ipreconfig_status'
+URI_CLUSTERIP_RECONF            = URI_SERVICES_BASE + '/control/cluster/ipreconfig'
 
 OBJCTRL_INSECURE_PORT           = '9010'
 OBJCTRL_PORT                    = '4443'
@@ -8859,3 +8864,113 @@ class Bourne:
         # complete, then they are all complete.
         task = self.api_sync_2(session_uri, task_opid, self.block_snapshot_session_show_task)
         return (tasklist, task['state'], task['message'])
+
+    def clusterip_query(self):
+        print 'Querying cluster IPs ...';
+        response = self.__api('GET', URI_CLUSTERIP_QUERY)
+        if (response.status_code != 200):
+            print "Query cluster IPs failed", response.status_code
+            raise Exception('Query cluster IPs failed')
+        print 'Query cluster IPs succeed. Result: ' + response.text
+        data=response.json()
+        print self.clusterip_map2str(data['sites'])
+        return 0
+
+    def clusterip_querystatus(self):
+        try:
+            response = self.__api('GET', URI_CLUSTERIP_RECONF_STATUS)
+            if (response.status_code == 200):
+                data=response.json()
+                print data['status']
+                return 0
+            else:
+                print "Failed to query cluster IP reconfig status", response.status_code
+        except:
+            print "Exception while quering cluster IP reconfig status"
+        return 1
+
+    def clusterip_reconfig(self, ipinfo):
+        print 'Reconfiguring cluster IPs ...';
+        params=dict()
+        params['sites']=self.clusterip_str2map(ipinfo)
+        response = self.__api('POST', URI_CLUSTERIP_RECONF, params)
+        if (response.status_code != 202):
+            print "Failed to reconfig cluster IP", response.status_code
+            raise Exception('Failed to reconfig cluster IP')
+        print 'Successfully sent cluster IPs reconfiguration request. Result: ' + response.text
+        return 0
+
+    def clusterip_shuffle(self, ipinfo):
+        params=dict()
+        siteipmap=dict()
+        siteipmap=self.clusterip_str2map(ipinfo)
+       
+        wholeIpList=[] 
+        for vdcsiteid in siteipmap:
+            for nodeip in siteipmap[vdcsiteid]["ipv4_setting"]["network_addrs"]:
+                wholeIpList.append(nodeip)
+
+        shuffle(wholeIpList)
+
+        count = 0
+        for vdcsiteid in siteipmap:
+            iplist=siteipmap[vdcsiteid]["ipv4_setting"]["network_addrs"]
+            size = len(iplist)
+            del iplist[0:size]
+            for i in range(0, size):
+                iplist.append(wholeIpList[count])
+                count+=1
+        
+        print self.clusterip_map2str(siteipmap)
+        return 0
+
+    def clusterip_map2str(self, siteipmap):
+        ipinfo=""
+        for vdcsiteid in siteipmap:
+            vip=siteipmap[vdcsiteid]["ipv4_setting"]["network_vip"]
+            ipinfo+=vdcsiteid+'='+vip
+            for nodeip in siteipmap[vdcsiteid]["ipv4_setting"]["network_addrs"]:
+                ipinfo+=','+nodeip
+            gateway=siteipmap[vdcsiteid]["ipv4_setting"]["network_gateway"]
+            netmask=siteipmap[vdcsiteid]["ipv4_setting"]["network_netmask"]
+            ipinfo+=','+gateway+','+netmask+':'
+        return ipinfo 
+
+    def clusterip_str2map(self, ipinfo):
+        siteipmap=dict()
+        site_ipinfo=dict()
+        ipv4_setting=dict()
+        ipv6_setting=dict()
+
+        for siteipinfo in ipinfo.split(':'):
+            if(len(siteipinfo)==0):
+                continue;
+            tmppair = siteipinfo.split('=') 
+            vdcsiteid = tmppair[0]
+            ips = tmppair[1]
+            ippair = ips.split(',')
+            
+            site_ipinfo={}
+
+            ipv4_setting={}
+            ipv6_setting={}
+
+            ipv4_setting['network_vip']=ippair[0]
+            ipv6_setting['network_vip6']="::0"
+
+            ipv4_setting['network_addrs']=[]
+            ipv6_setting['network_addrs']=[]
+            for i in range(1, len(ippair)-2):
+                ipv4_setting['network_addrs'].append(ippair[i])
+                ipv6_setting['network_addrs'].append("::0")
+ 
+            ipv4_setting['network_gateway']=ippair[len(ippair)-2]
+            ipv4_setting['network_netmask']=ippair[len(ippair)-1]
+            ipv6_setting['network_prefix_length']="64"
+            ipv6_setting['network_gateway6']="::0"
+ 
+            site_ipinfo['ipv4_setting']=ipv4_setting        
+            site_ipinfo['ipv6_setting']=ipv6_setting        
+            siteipmap[vdcsiteid]=site_ipinfo
+        return siteipmap
+

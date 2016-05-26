@@ -8,6 +8,7 @@ package com.emc.storageos.systemservices.impl.ipreconfig;
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
+import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.client.service.NodeListener;
@@ -95,14 +96,37 @@ public class IpReconfigManager implements Runnable {
             return null;
         }
 
-        // 2. Load cluster promisc network info from ZK if they do not exist which happens during
-        //    site addition and upgrade etc. scenarios.
+        // 2. Load additional cluster network info from ZK for following scenarios
+        // 2.1) During site addition and upgrade, there is no other sites' promisc network info in local site.
+        // 2.2) After failover etc. DR operation, there is no unhealthy sites' regular&promisc network info in local site
         CoordinatorClient coordinatorClient = _coordinator.getCoordinatorClient();
         for (Site site: drUtil.listSites()) {
+            log.info("Getting additional IP info of site {}({}) from ZK ...", site.getSiteShortId(), site.getState());
+
             int vdc_index = Integer.valueOf(site.getVdcShortId().substring(PropertyConstants.VDC_SHORTID_PREFIX.length()));
             int site_index = Integer.valueOf(site.getSiteShortId().substring(PropertyConstants.SITE_SHORTID_PREFIX.length()));
             String ipprop_prefix = String.format(PropertyConstants.IPPROP_PREFIX, vdc_index, site_index);
-            String key = ipprop_prefix + PropertyConstants.UNDERSCORE_DELIMITER + PropertyConstants.IPV4_NETMASK_KEY;
+
+            // Local site might not have unhealthy sites' network info before ipreconfig, so get from ZK.
+            String key = ipprop_prefix + PropertyConstants.UNDERSCORE_DELIMITER + PropertyConstants.IPV4_VIP_KEY;
+            if (ipProperties.getProperty(key) == null || ipProperties.getProperty(key).isEmpty()) {
+                key = ipprop_prefix + PropertyConstants.UNDERSCORE_DELIMITER + PropertyConstants.IPV4_VIP_KEY;
+                ipProperties.setProperty(key, site.getVip());
+                for (int i=1; i <= site.getNodeCount(); i++) {
+                    key = ipprop_prefix + PropertyConstants.UNDERSCORE_DELIMITER + String.format(PropertyConstants.IPV4_ADDR_KEY, i);
+                    ipProperties.setProperty(key, site.getHostIPv4AddressMap().get(String.format("node%d", i)));
+                }
+
+                key = ipprop_prefix + PropertyConstants.UNDERSCORE_DELIMITER + PropertyConstants.IPV6_VIP_KEY;
+                ipProperties.setProperty(key, site.getVip6());
+                for (int i=1; i <= site.getNodeCount(); i++) {
+                    key = ipprop_prefix + PropertyConstants.UNDERSCORE_DELIMITER + String.format(PropertyConstants.IPV6_ADDR_KEY, i);
+                    ipProperties.setProperty(key, site.getHostIPv6AddressMap().get(String.format("node%d", i)));
+                }
+            }
+
+            // Each site would not have other sites' promisc network info before ipreconfig, so get from ZK.
+            key = ipprop_prefix + PropertyConstants.UNDERSCORE_DELIMITER + PropertyConstants.IPV4_NETMASK_KEY;
             if (ipProperties.getProperty(key) == null || ipProperties.getProperty(key).isEmpty()) {
                 Configuration config = coordinatorClient.queryConfiguration(site.getUuid(), CONFIG_KIND, Constants.GLOBAL_ID);
 
@@ -745,13 +769,23 @@ public class IpReconfigManager implements Runnable {
      * Check if cluster is in health status
      */
     private void checkClusterStatus() throws Exception {
-        // TODO: all the sites stable ...
+        String errmsg;
         ClusterInfo.ClusterState controlNodeState = _coordinator.getCoordinatorClient().getControlNodesState();
         if (controlNodeState == null ||
                 !controlNodeState.equals(ClusterInfo.ClusterState.STABLE)) {
-            String errmsg = "Cluster is not stable.";
+            errmsg = "Cluster is not stable.";
             log.error(errmsg);
             throw new IllegalStateException(errmsg);
+        }
+
+        for (Site site: drUtil.listSites()) {
+            if (! (site.getState().equals(SiteState.ACTIVE)
+                || site.getState().equals(SiteState.STANDBY_SYNCED)
+                || site.getState().equals(SiteState.STANDBY_SYNCING))) {
+                errmsg=String.format("Site %s is at unexpected status %s", site.getUuid(), site.getState());
+                log.error(errmsg);
+                throw new IllegalStateException(errmsg);
+            }
         }
     }
 
@@ -832,6 +866,7 @@ public class IpReconfigManager implements Runnable {
      * @throws Exception
      */
     public ClusterIpInfo queryCurrentClusterIpinfo() throws Exception {
+        loadClusterIpProps();
         return currentIpinfo;
     }
 

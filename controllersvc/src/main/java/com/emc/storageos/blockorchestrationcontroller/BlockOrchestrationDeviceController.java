@@ -670,7 +670,7 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
 
             s_logger.info("Adding steps for storage array create full copies");
             // First, call the BlockDeviceController to add its methods.
-            waitFor = _blockDeviceController.addStepsForPreCreateReplica(
+            waitFor = _blockDeviceController.addStepsForCreateFullCopy(
                     workflow, waitFor, volumeDescriptors, taskId);
             
             // post recoverpoint steps disables image access which should be done after the 
@@ -682,7 +682,7 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
 
             s_logger.info("Checking for VPLEX steps");
             // Call the VPlexDeviceController to add its methods if there are VPLEX volumes.
-            waitFor = _vplexDeviceController.addStepsForPreCreateReplica(
+            waitFor = _vplexDeviceController.addStepsForCreateFullCopy(
                     workflow, waitFor, volumeDescriptors, taskId);
 
             // Finish up and execute the plan.

@@ -84,6 +84,7 @@ import com.emc.storageos.volumecontroller.impl.utils.attrmatchers.MaxResourcesMa
  */
 public class StorageScheduler implements Scheduler {
     public static final Logger _log = LoggerFactory.getLogger(StorageScheduler.class);
+    private static final String SCHEDULER_NAME = "block";
     private DbClient _dbClient;
 
     private CoordinatorClient _coordinator;
@@ -140,12 +141,12 @@ public class StorageScheduler implements Scheduler {
      * @return list of VolumeRecommendation instances
      */
     @Override
-    public List<VolumeRecommendation> getRecommendationsForResources(VirtualArray neighborhood, Project project, VirtualPool cos,
+    public List<Recommendation> getRecommendationsForResources(VirtualArray neighborhood, Project project, VirtualPool cos,
             VirtualPoolCapabilityValuesWrapper capabilities) {
 
         _log.debug("Schedule storage for {} resource(s) of size {}.", capabilities.getResourceCount(), capabilities.getSize());
 
-        List<VolumeRecommendation> volumeRecommendations = new ArrayList<VolumeRecommendation>();
+        List<Recommendation> volumeRecommendations = new ArrayList<Recommendation>();
 
         // Initialize a list of recommendations to be returned.
         List<Recommendation> recommendations = new ArrayList<Recommendation>();
@@ -174,6 +175,11 @@ public class StorageScheduler implements Scheduler {
             while (count > 0) {
                 VolumeRecommendation volumeRecommendation = new VolumeRecommendation(VolumeRecommendation.VolumeType.BLOCK_VOLUME,
                         capabilities.getSize(), cos, neighborhood.getId());
+                volumeRecommendation.setSourceStoragePool(recommendation.getSourceStoragePool());
+                volumeRecommendation.setSourceStorageSystem(recommendation.getSourceStorageSystem());
+                volumeRecommendation.setVirtualArray(neighborhood.getId());
+                volumeRecommendation.setVirtualPool(cos);
+                volumeRecommendation.setResourceCount(1);
                 volumeRecommendation.addStoragePool(recommendation.getSourceStoragePool());
                 volumeRecommendation.addStorageSystem(recommendation.getSourceStorageSystem());
                 volumeRecommendations.add(volumeRecommendation);
@@ -470,6 +476,15 @@ public class StorageScheduler implements Scheduler {
             } else {
                 provMapBuilder.putAttributeInMap(AttributeMatcher.Attributes.multi_volume_consistency.name(), true);
             }
+        }
+        
+        // If Storage System specified in capabilities, set that value (which may override CG) in the attributes.
+        // This is used by the VPLEX to control consistency groups.
+        if (capabilities.getSourceStorageDevice() != null) {
+            StorageSystem sourceStorageSystem = capabilities.getSourceStorageDevice();
+            Set<String> storageSystemSet = new HashSet<String>();
+            storageSystemSet.add(sourceStorageSystem.getId().toString());
+            provMapBuilder.putAttributeInMap(AttributeMatcher.Attributes.storage_system.name(), storageSystemSet);
         }
 
         // populate DriveType,and Raid level and Policy Name for FAST Initial Placement Selection
@@ -1058,7 +1073,24 @@ public class StorageScheduler implements Scheduler {
      * @param cosCapabilities virtual pool wrapper
      * @param createInactive create the device in an inactive state
      */
-    public void prepareRecommendedVolumes(VolumeCreate param, String task, TaskList taskList,
+    /**
+     * Create volumes from recommendations objects.
+     * @param size -- size of volumes in bytes
+     * @param task -- overall task id
+     * @param taskList -- a TaskList new tasks may be inserted into
+     * @param project -- Project object
+     * @param neighborhood -- Virtual array
+     * @param vPool -- Virtual pool
+     * @param volumeCount -- number of like volumes to be created
+     * @param recommendations -- List of Recommendation objects describing pools to use for volumes
+     * @param consistencyGroup -- The BlockConsistencyGroup object to be used for the volumes
+     * @param volumeCounter -- The current volume counter, used to generate unique names for like volumes
+     * @param volumeLabel -- Label (prefix) of the volumes to be created
+     * @param preparedVolumes -- Output argument that receives the prepared volumes
+     * @param cosCapabilities - VirtualPoolCapabilityValuesWrapper contains parameters for volume creation
+     * @param createInactive-- used to set the Volume syncActive flag (to the inverted sense of createInactive)
+     */
+    public void prepareRecommendedVolumes(Long size, String task, TaskList taskList,
             Project project, VirtualArray neighborhood, VirtualPool vPool, Integer volumeCount,
             List<Recommendation> recommendations, BlockConsistencyGroup consistencyGroup, int volumeCounter,
             String volumeLabel, List<Volume> preparedVolumes, VirtualPoolCapabilityValuesWrapper cosCapabilities,
@@ -1081,7 +1113,6 @@ public class StorageScheduler implements Scheduler {
                     volumePrecreated = true;
                 }
 
-                long size = SizeUtil.translateSize(param.getSize());
                 long thinVolumePreAllocationSize = 0;
                 if (null != vPool.getThinVolumePreAllocationPercentage()) {
                     thinVolumePreAllocationSize = VirtualPoolUtil.getThinVolumePreAllocationSize(
@@ -1541,6 +1572,27 @@ public class StorageScheduler implements Scheduler {
         StringMap reservationMap = pool.getReservedCapacityMap();
         reservationMap.put(volume.getId().toString(), String.valueOf(reservedCapacity));
         _dbClient.persistObject(pool);
+    }
+
+    @Override
+    public List<Recommendation> getRecommendationsForVpool(VirtualArray vArray, Project project, 
+            VirtualPool vPool, VpoolUse vPoolUse,
+            VirtualPoolCapabilityValuesWrapper capabilities, Map<VpoolUse, List<Recommendation>> currentRecommendations) {
+        // Initially we're only going to return one recommendation set.
+        List<Recommendation> recommendations = 
+                getRecommendationsForResources(vArray, project, vPool, capabilities);
+        return recommendations;
+    }
+
+    @Override
+    public String getSchedulerName() {
+        return SCHEDULER_NAME;
+    }
+
+    @Override
+    public boolean handlesVpool(VirtualPool vPool, VpoolUse vPoolUse) {
+        // This is a bottom level scheduler, it handles everything.
+        return true;
     }
 
 }

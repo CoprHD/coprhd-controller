@@ -37,6 +37,7 @@ import javax.cim.UnsignedInteger16;
 import javax.wbem.CloseableIterator;
 import javax.wbem.WBEMException;
 
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.NullTaskCompleter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -64,6 +65,7 @@ import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
+import com.emc.storageos.util.VPlexSrdfUtil;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
@@ -74,6 +76,7 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFLinkStopC
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFMirrorCreateCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.providerfinders.FindProviderFactory;
+import com.emc.storageos.volumecontroller.impl.smis.job.SmisCreateMultiVolumeJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisSRDFCreateMirrorJob;
 import com.emc.storageos.volumecontroller.impl.smis.srdf.AbstractSRDFOperationContextFactory;
 import com.emc.storageos.volumecontroller.impl.smis.srdf.AbstractSRDFOperationContextFactory.SRDFOperation;
@@ -401,14 +404,7 @@ public class SRDFOperations implements SmisConstants {
             Volume target, boolean isGrouprollback) {
         log.info("START Rolling back SRDF mirror");
         try {
-            performDetach(system, target, isGrouprollback, new TaskCompleter() {
-                @Override
-                protected void complete(DbClient dbClient,
-                        Operation.Status status, ServiceCoded coded)
-                        throws DeviceControllerException {
-                    // ignore
-                }
-            });
+            performDetach(system, target, isGrouprollback, new NullTaskCompleter());
 
             if (target.hasConsistencyGroup()) {
                 log.info("Removing Volume from device Group on roll back");
@@ -469,7 +465,7 @@ public class SRDFOperations implements SmisConstants {
                     // Clear the CG types and add the LOCAL types
 
                     if (null != sourceCG.getTypes()) {
-                        sourceCG.getTypes().clear();
+                        sourceCG.getTypes().remove(Types.SRDF.name());
                     }
                     sourceCG.addConsistencyGroupTypes(Types.LOCAL.name());
 
@@ -642,6 +638,8 @@ public class SRDFOperations implements SmisConstants {
         try {
             Volume source = dbClient.queryObject(Volume.class, sourceURI);
             Volume target = dbClient.queryObject(Volume.class, targetURI);
+            log.info("START removeSyncPair: {} -> {}", source.getNativeId(), target.getNativeId());
+
             StorageSystem sourceSystem = dbClient.queryObject(StorageSystem.class,
                     source.getStorageController());
             RemoteDirectorGroup group = dbClient.queryObject(RemoteDirectorGroup.class,
@@ -668,8 +666,7 @@ public class SRDFOperations implements SmisConstants {
                     group.getVolumes().remove(source.getNativeGuid());
                     group.getVolumes().remove(target.getNativeGuid());
                 }
-                dbClient.persistObject(group);
-
+                dbClient.updateObject(group);
             } else {
                 log.warn("Expected Group Synchronized not found for volume {}, probably removed already.", sourceURI);
                 // proceed with next step even if it fails.
@@ -1103,11 +1100,9 @@ public class SRDFOperations implements SmisConstants {
         cgObj.addSystemConsistencyGroup(system.getId().toString(), cgName);
 
         // Update CG requested types
-        cgObj.getRequestedTypes().clear();
         cgObj.getRequestedTypes().add(Types.SRDF.toString());
 
         // Update CG types
-        cgObj.getTypes().clear();
         cgObj.getTypes().add(Types.SRDF.toString());
 
         // volumes from same array will reside in one CG
@@ -2000,8 +1995,58 @@ public class SRDFOperations implements SmisConstants {
                 invalidTgt.setSrdfParent(new NamedURI(trustedSrc.getId(), trustedSrc.getLabel()));
                 trustedSrc.getSrdfTargets().add(invalidTgt.getId().toString());
                 invalidSrc.getSrdfTargets().remove(invalidTgt.getId().toString());
-
+                
+                // Update the volume labels (and labels on associated Vplex volume if any)
+                updateVolumeLabels(trustedSrc, invalidTgt);
+                // Rename the volume on the vmax array itself and update the deviceLabel
+                helper.renameVolume(dbClient, targetSystem, invalidTgt, invalidTgt.getLabel());
                 dbClient.updateAndReindexObject(asList(invalidTgt, trustedSrc, invalidSrc));
+            }
+        }
+    }
+    
+    /**
+     * Updates the label field of the invalidTgt, and if the volume is fronted by
+     * a Vplex Volume, also updates the target vplex volume label.
+     * @param trustedSrc -- source volume with correct label (vmax)
+     * @param invalidTgt -- target volume with incorrect label (vmax)
+     */
+    private void updateVolumeLabels(Volume trustedSrc, Volume invalidTgt) {
+     // Update the label of the invalid target to match it's new source.
+        VirtualArray invalidTgtVA = dbClient.queryObject(VirtualArray.class, invalidTgt.getVirtualArray());
+        StringBuilder newLabel = new StringBuilder();
+        newLabel.append(trustedSrc.getLabel());
+        newLabel.append("-target-");
+        newLabel.append(invalidTgtVA.getLabel());
+        log.info("Revised name for target: " + newLabel.toString());
+        invalidTgt.setLabel(newLabel.toString());
+        NamedURI projectURI = invalidTgt.getProject();
+        projectURI.setName(newLabel.toString());
+        invalidTgt.setProject(projectURI);
+        NamedURI tenantURI = invalidTgt.getTenant();
+        tenantURI.setName(newLabel.toString());
+        invalidTgt.setTenant(tenantURI);
+        
+        
+        // See if there is a corresponding Vplex volume. If so update its label as well.
+        Volume tgtVplexVolume = VPlexSrdfUtil.getVplexVolumeFromSrdfVolume(dbClient, invalidTgt);
+        if (tgtVplexVolume != null) {
+            // If the target volume is fronted by Vplex, the source volume should also be Vplex fronted
+            Volume srcVplexVolume = VPlexSrdfUtil.getVplexVolumeFromSrdfVolume(dbClient, trustedSrc);
+            if (srcVplexVolume != null) {
+                newLabel.setLength(0);
+                newLabel.append(srcVplexVolume.getLabel());
+                newLabel.append("-target-");
+                newLabel.append(invalidTgtVA.getLabel());
+                log.info("Revised name for VPlex target: " + newLabel.toString());
+                tgtVplexVolume.setLabel(newLabel.toString());
+                projectURI = tgtVplexVolume.getProject();
+                projectURI.setName(newLabel.toString());
+                tgtVplexVolume.setProject(projectURI);
+                tenantURI = tgtVplexVolume.getTenant();
+                tenantURI.setName(newLabel.toString());
+                tgtVplexVolume.setTenant(tenantURI);
+                dbClient.updateAndReindexObject(tgtVplexVolume);
             }
         }
     }

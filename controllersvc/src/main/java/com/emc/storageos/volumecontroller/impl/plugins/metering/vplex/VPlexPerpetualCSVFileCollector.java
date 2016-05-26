@@ -101,7 +101,7 @@ public class VPlexPerpetualCSVFileCollector implements VPlexStatsCollector {
             // Process each of the data files that we found on the VPlex management station
             List<String> fileNames = listDataFileNamesCmd.getResults();
             for (String fileName : fileNames) {
-                log.info("Processing VPLEX prformance statistics file {}", fileName);
+                log.info("Processing VPLEX performance statistics file {}", fileName);
                 // Extract and hold the data for this data file
                 ReadAndParseVPlexPerpetualCSVFile readDataFile = new ReadAndParseVPlexPerpetualCSVFile(fileName);
                 cli.executeCommand(readDataFile);

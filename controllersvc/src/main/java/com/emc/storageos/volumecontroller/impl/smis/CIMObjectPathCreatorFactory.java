@@ -28,7 +28,6 @@ import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.plugins.common.Constants;
-import com.sun.xml.internal.xsom.impl.scd.Iterators.Map;
 
 /**
  * This class will contain functions and properties related to creating CIMObjectPath objects.

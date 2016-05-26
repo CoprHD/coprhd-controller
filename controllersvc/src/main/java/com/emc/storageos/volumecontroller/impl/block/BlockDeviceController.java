@@ -6601,45 +6601,33 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         // nothing to do post create replica
         return waitFor;
     }
-
+    
     /**
-     * @param workflow
-     * @param waitFor
-     * @param volumeDescriptors
+     * add steps for create snapshot session
+     * 
+     * @param workflow workflow to add steps to
+     * @param waitFor tag for first step to wait for
+     * @param storageURI storage array id
+     * @param snapshotSessionURI snapshot session id
+     * @param snapSessionSnapshotURIs linked target snapshots
+     * @param copyMode copy or nocopy
      * @param taskId
      * @return
      */
-    public String addStepsForCreateSnapshotSession(Workflow workflow, String waitFor, List<VolumeDescriptor> volumeDescriptors,
-            String taskId) {
+    public String addStepsForCreateSnapshotSession(Workflow workflow, String waitFor, URI storageURI, URI snapshotSessionURI, List<List<URI>> snapSessionSnapshotURIs,
+            String copyMode, String taskId) {
         
-        List<VolumeDescriptor> blockVolmeDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
-                new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_SNAPSHOT_SESSION },
-                new VolumeDescriptor.Type[] {});
-        
-        // If no volumes to create, just return
-        if (blockVolmeDescriptors.isEmpty()) {
-            return waitFor;
-        }
-        
-        // we expect just one snapshot session volume descriptor
-        VolumeDescriptor descriptor = blockVolmeDescriptors.get(0);
-        BlockSnapshotSession session = _dbClient.queryObject(BlockSnapshotSession.class, descriptor.getVolumeURI());
-        if (session != null && !session.getInactive()) {
-            String stepId = workflow.createStepId();
-            // Now add the steps to create the snapshot session on the storage system
-            URI storageURI = session.getStorageController();
-            StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storageURI);
-            Workflow.Method createSnapshotSessionMethod = new Workflow.Method(METHOD_CREATE_SNAPSHOT_SESSION_STEP, storageURI, 
-                    descriptor.getVolumeURI(),  
-                    descriptor.getSnapSessionSnapshotURIs(), 
-                    descriptor.getCapabilitiesValues().getSnapshotSessionCopyMode());
-            Workflow.Method nullRollbackMethod = new Workflow.Method(ROLLBACK_METHOD_NULL);
+        String stepId = workflow.createStepId();
+        StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storageURI);
+        Workflow.Method createSnapshotSessionMethod = new Workflow.Method(METHOD_CREATE_SNAPSHOT_SESSION_STEP, storageURI, 
+                snapshotSessionURI,  
+                snapSessionSnapshotURIs, 
+                copyMode);
+        Workflow.Method nullRollbackMethod = new Workflow.Method(ROLLBACK_METHOD_NULL);
 
-            waitFor = workflow.createStep(SNAPSHOT_SESSION_CREATE_ORCHESTRATION_STEP, "Create Block Snapshot Session", waitFor, storageSystem.getId(),
-                    storageSystem.getSystemType(), this.getClass(), createSnapshotSessionMethod, nullRollbackMethod, stepId);
-            _log.info(String.format("Added %s step [%s] in workflow", SNAPSHOT_SESSION_CREATE_STEP_GROUP, stepId));
-            
-        }
+        waitFor = workflow.createStep(SNAPSHOT_SESSION_CREATE_ORCHESTRATION_STEP, "Create Block Snapshot Session", waitFor, storageSystem.getId(),
+                storageSystem.getSystemType(), this.getClass(), createSnapshotSessionMethod, nullRollbackMethod, stepId);
+        _log.info(String.format("Added %s step [%s] in workflow", SNAPSHOT_SESSION_CREATE_STEP_GROUP, stepId));
         
         return waitFor;
     }

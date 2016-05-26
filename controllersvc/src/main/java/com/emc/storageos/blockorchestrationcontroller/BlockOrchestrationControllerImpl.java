@@ -99,10 +99,11 @@ public class BlockOrchestrationControllerImpl implements BlockOrchestrationContr
     }
 
     /* (non-Javadoc)
-     * @see com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationController#createSnapshotSession(java.util.List, java.lang.String)
+     * @see com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationController#createSnapshotSession(java.net.URI, java.net.URI, java.util.List, java.lang.String, java.lang.String)
      */
     @Override
-    public void createSnapshotSession(List<VolumeDescriptor> volumeDescriptors, String taskId) throws InternalException {
-        execOrchestration("createSnapshotSession", volumeDescriptors, taskId);
+    public void createSnapshotSession(URI storageURI, URI snapshotSessionURI, List<List<URI>> snapSessionSnapshotURIs, String copyMode,
+            String taskId) throws InternalException {
+        execOrchestration("createSnapshotSession", storageURI, snapshotSessionURI, snapSessionSnapshotURIs, copyMode, taskId);
     }
 }

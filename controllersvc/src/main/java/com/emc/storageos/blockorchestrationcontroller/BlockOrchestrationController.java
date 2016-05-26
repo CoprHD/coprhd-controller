@@ -105,10 +105,14 @@ public interface BlockOrchestrationController extends Controller {
     /**
      * Create snapshot sessions.
      * 
-     * @param volumeDescriptors descriptors for snapshot sessions
-     * @param taskId a task id for the create snapshot operation
+     * @param storageURI storage array id
+     * @param snapshotSessionURI snapshot session id
+     * @param snapSessionSnapshotURIs linked target snapshot ids
+     * @param copyMode copy or nocopy
+     * @param taskId
      * @throws InternalException
      */
-    public void createSnapshotSession(List<VolumeDescriptor> volumeDescriptors, String taskId)
+    public void createSnapshotSession(URI storageURI, URI snapshotSessionURI, List<List<URI>> snapSessionSnapshotURIs,
+            String copyMode, String taskId)
             throws InternalException;
 }

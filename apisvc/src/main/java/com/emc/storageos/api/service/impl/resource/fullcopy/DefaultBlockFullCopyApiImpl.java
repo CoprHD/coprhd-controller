@@ -135,9 +135,13 @@ public class DefaultBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
         // get all tasks
         TaskList tasks = getTasksForCreateFullCopy(aFCSource, volumesList, taskId);
         
-        BlockOrchestrationController controller = getController(BlockOrchestrationController.class,
-                BlockOrchestrationController.BLOCK_ORCHESTRATION_DEVICE);
-        controller.createFullCopy(volumeDescriptors, taskId);
+        try {
+            BlockOrchestrationController controller = getController(BlockOrchestrationController.class,
+                    BlockOrchestrationController.BLOCK_ORCHESTRATION_DEVICE);
+            controller.createFullCopy(volumeDescriptors, taskId);
+        } catch (InternalException ie) {
+            handleFailedRequest(taskId, tasks, volumesList, ie, true);
+        }
 
         return tasks;
 

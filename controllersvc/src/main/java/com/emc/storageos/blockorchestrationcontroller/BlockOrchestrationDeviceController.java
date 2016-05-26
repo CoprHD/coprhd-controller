@@ -700,23 +700,18 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
         }
     }
 
-
     /* (non-Javadoc)
      * @see com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationController#createSnapshotSession(java.util.List, java.lang.String)
      */
     @Override
-    public void createSnapshotSession(List<VolumeDescriptor> volumeDescriptors, String taskId) throws InternalException {
+    public void createSnapshotSession(URI storageURI, URI snapshotSessionURI, List<List<URI>> snapSessionSnapshotURIs,
+            String copyMode, String taskId) throws InternalException {
         
         Workflow workflow = null;
         
-        List<VolumeDescriptor> snapshotSessionDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
-                new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_SNAPSHOT_SESSION },
-                new VolumeDescriptor.Type[] {});
-        List<URI> snapshotSessionURIs = VolumeDescriptor.getVolumeURIs(snapshotSessionDescriptors);
-        
         // we expect just one snapshot session volume descriptor per create snapshot session operation
-        TaskCompleter completer = new BlockSnapshotSessionCreateWorkflowCompleter(snapshotSessionURIs.get(0), snapshotSessionDescriptors.get(0).getSnapSessionSnapshotURIs(), taskId);
-        ControllerUtils.checkSnapshotSessionConsistencyGroup(snapshotSessionURIs.get(0), getDbClient(), completer);
+        TaskCompleter completer = new BlockSnapshotSessionCreateWorkflowCompleter(snapshotSessionURI, snapSessionSnapshotURIs, taskId);
+        ControllerUtils.checkSnapshotSessionConsistencyGroup(snapshotSessionURI, getDbClient(), completer);
         
         try {
             // Generate the Workflow.
@@ -726,26 +721,26 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
 
             s_logger.info("Adding steps for RecoverPoint create snapshot session");
             // Call the RPDeviceController to add its methods if there are RP protections
-            waitFor = _rpDeviceController.addStepsForPreCreateReplica(
-                    workflow, waitFor, volumeDescriptors, taskId);
+            waitFor = _rpDeviceController.addStepsForPreCreateReplicaForSnapshotSessions(
+                    workflow, waitFor, snapshotSessionURI, taskId);
 
             s_logger.info("Adding steps for storage array create snapshot session");
             // First, call the BlockDeviceController to add its methods.
             waitFor = _blockDeviceController.addStepsForCreateSnapshotSession(
-                    workflow, waitFor, volumeDescriptors, taskId);
+                    workflow, waitFor, storageURI, snapshotSessionURI, snapSessionSnapshotURIs, copyMode, taskId);
             
             s_logger.info("Adding steps for RecoverPoint post create snapshot session");
             // Call the RPDeviceController to add its methods if there are RP protections
-            waitFor = _rpDeviceController.addStepsForPostCreateReplica(
-                    workflow, waitFor, volumeDescriptors, taskId);
+            waitFor = _rpDeviceController.addStepsForPostCreateReplicaForSnapshotSessions(
+                    workflow, waitFor, snapshotSessionURI, taskId);
 
             // Finish up and execute the plan.
             // The Workflow will handle the TaskCompleter
-            String successMessage = "Create volumes successful for: " + snapshotSessionURIs.toString();
-            Object[] callbackArgs = new Object[] { snapshotSessionURIs };
+            String successMessage = "Create volumes successful for: " + snapshotSessionURI.toString();
+            Object[] callbackArgs = new Object[] { snapshotSessionURI };
             workflow.executePlan(completer, successMessage, new WorkflowCallback(), callbackArgs, null, null);
         } catch (Exception ex) {
-            s_logger.error("Could not create snapshot session: " + snapshotSessionURIs, ex);
+            s_logger.error("Could not create snapshot session: " + snapshotSessionURI, ex);
             releaseWorkflowLocks(workflow);
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(ex);
             completer.error(s_dbClient, _locker, serviceError);

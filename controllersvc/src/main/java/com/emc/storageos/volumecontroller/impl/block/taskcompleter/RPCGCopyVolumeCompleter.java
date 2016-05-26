@@ -35,7 +35,7 @@ public class RPCGCopyVolumeCompleter extends RPCGTaskCompleter {
             // Tell the workflow we're done.
             super.complete(dbClient, status, coded);
             _log.info(String.format("Done RPCGCopyVolume - Id: %s, OpId: %s, status: %s",
-                    getId().toString(), getOpId(), status.name()));
+                    (getId() == null ? "unknown copy" : getId().toString()), getOpId(), status.name()));
 
             // Tell the individual objects we're done.
             for (URI id : getIds()) {
@@ -61,7 +61,7 @@ public class RPCGCopyVolumeCompleter extends RPCGTaskCompleter {
             }
         } catch (DatabaseException e) {
             _log.error(String.format("Failed updating status for RP Volume Copy - Id: %s, OpId: %s",
-                    getId().toString(), getOpId()), e);
+                    (getId() == null ? "unknown copy" : getId().toString()), getOpId()), e);
 
         }
     }

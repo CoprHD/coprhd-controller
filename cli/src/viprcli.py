@@ -73,6 +73,7 @@ import snapshotsession
 import schedulepolicy
 import objectuser
 import requests
+import ipreconfig
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
 warnings.filterwarnings(
@@ -187,6 +188,7 @@ snapshotsession.snapshotsession_parser(module_parsers, common_parser)
 schedulepolicy.schedulepolicy_parser(module_parsers, common_parser)
 objectuser.objectuser_parser(module_parsers, common_parser)
 network.network_parser(module_parsers, common_parser)
+ipreconfig.ipreconfig_parser(module_parsers, common_parser)
 
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 

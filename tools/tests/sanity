@@ -10090,6 +10090,34 @@ application_sim_vpool_setup()
 
         run cos update block $APP_VPOOL_VMAX2_VPLEX_DIST --storage $APPLICATION_VMAX2_NATIVEGUID1
         run cos allow $APP_VPOOL_VMAX2_VPLEX_DIST block $TENANT
+
+        run cos create block $APP_VPOOL_VMAX2_BLOCK_RPTGT               \
+            --description 'Consistency-Group-Block-rp-tgt-VMAX2-CoS' false   \
+                            --protocols FC        \
+                            --numpaths 1               \
+                            --max_snapshots 10         \
+                            --provisionType 'Thin'     \
+                            --neighborhoods $APP_VARRAY2
+
+        run cos update block $APP_VPOOL_VMAX2_BLOCK_RPTGT --storage $APPLICATION_VMAX2_NATIVEGUID2
+        run cos allow $APP_VPOOL_VMAX2_BLOCK_RPTGT block $TENANT
+
+        run cos create block $APP_VPOOL_VMAX2_BLOCK_RPSRC               \
+            --description 'Consistency-Group-Block-rp-src-VMAX2-CoS' false   \
+                            --protocols FC        \
+                            --numpaths 2               \
+                            --max_snapshots 10         \
+                            --provisionType 'Thin'     \
+                            --neighborhoods $APP_VARRAY1        \
+                            --multiVolumeConsistency \
+                            --protectionCoS $APP_VARRAY2':'$APP_VPOOL_VMAX2_BLOCK_RPTGT':min' \
+                            --rp_copy_mode ASYNCHRONOUS \
+                            --rp_rpo_value 5 \
+                            --rp_rpo_type MINUTES
+
+        run cos update block $APP_VPOOL_VMAX2_BLOCK_RPSRC --storage $APPLICATION_VMAX2_NATIVEGUID1
+        run cos allow $APP_VPOOL_VMAX2_BLOCK_RPSRC block $TENANT
+
     fi
 
     if [ $APPLICATION_TEST_VMAX3 -eq 1 ]; then
@@ -10594,7 +10622,7 @@ application_tests()
             secho "completed running block vplex+vmax2 tests"
         fi
         if [ $APPLICATION_TEST_VPLEX_DIST -eq 1 ]; then
-            secho "running block vplex+vmax2 dist tests"
+            secho "running vplex+vmax2 dist tests"
             VG_VPOOL_CG=$APP_VPOOL_VMAX2_VPLEX_DIST
             VG_VARRAY_CG=$APP_VARRAY1
             APP_RUNNING_BLOCK_TEST=0
@@ -10609,7 +10637,25 @@ application_tests()
             application_add_remove_volume_tests
             application_copy_tests
             application_deleteall
-            secho "completed running block vplex+vmax2 dist tests"
+            secho "completed running vplex+vmax2 dist tests"
+        fi
+        if [ $APPLICATION_TEST_RP_BLOCK -eq 1 ]; then
+            secho "running block rp tests"
+            VG_VPOOL_CG=$APP_VPOOL_VMAX2_BLOCK_RPSRC
+            VG_VARRAY_CG=$APP_VARRAY1
+            APP_RUNNING_BLOCK_TEST=0
+            APPLICATION_CREATE_INACTIVE_SUPPORTED=0
+
+            app_test_subgroup1a="${VG_CGNAME1}a"
+            app_test_subgroup1b="${VG_CGNAME1}b"
+            app_test_subgroup2a="${VG_CGNAME2}a"
+            app_test_subgroup2b="${VG_CGNAME2}b"
+
+            application_createvols
+            application_add_remove_volume_tests
+            application_copy_tests
+            application_deleteall
+            secho "completed running block rp tests"
         fi
     fi
     if [ $APPLICATION_TEST_VMAX3 -eq 1 ]; then

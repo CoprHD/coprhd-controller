@@ -666,16 +666,6 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         UnexportedBlockResourceFilter<BlockMirrorRestRep> unexportedCopyFilter =
                 new UnexportedBlockResourceFilter<BlockMirrorRestRep>(exportedBlockResources);
         return getContinuousCopyOptionsForProject(ctx, projectId, volume, unexportedCopyFilter);
-        
-//        
-//        ViPRCoreClient client = api(ctx);
-//        Set<URI> exportedBlockResources = BlockProvider.getExportedVolumes(api(ctx), projectId, hostOrClusterId, null);
-//        UnexportedBlockResourceFilter<VolumeRestRep> unexportedFilter = new UnexportedBlockResourceFilter<VolumeRestRep>(
-//                exportedBlockResources);
-//        SourceTargetVolumesFilter sourceTargetVolumesFilter = new SourceTargetVolumesFilter();
-//        List<VolumeRestRep> volumes = client.blockVolumes().findByProject(projectId, unexportedFilter.and(sourceTargetVolumesFilter));
-//
-//        return createBaseResourceOptions(volumes);
     }
     
     @Asset("exportedBlockContinuousCopy")
@@ -2897,7 +2887,6 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         VolumeRestRep volume = client.blockVolumes().get(volumeId);
         
         List<BlockMirrorRestRep> copies = client.blockVolumes().getContinuousCopies(volume.getId(), filter);
-        //List<BlockMirrorRestRep> copies = client.blockSnapshots().findByProject(project, filter);
         return constructCopiesOptions(client, project, copies);
     }
     

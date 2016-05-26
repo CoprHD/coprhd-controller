@@ -18,7 +18,9 @@ import com.emc.storageos.hp3par.command.CPGCommandResult;
 import com.emc.storageos.hp3par.command.CPGMember;
 import com.emc.storageos.hp3par.command.PortCommandResult;
 import com.emc.storageos.hp3par.command.PortStatisticsCommandResult;
+import com.emc.storageos.hp3par.command.Privileges;
 import com.emc.storageos.hp3par.command.SystemCommandResult;
+import com.emc.storageos.hp3par.command.UserRoleCommandResult;
 import com.emc.storageos.hp3par.command.VolumeDetailsCommandResult;
 import com.emc.storageos.hp3par.connection.RESTClient;
 import com.google.gson.Gson;
@@ -41,6 +43,7 @@ public class HP3PARApi {
 
     private static final URI URI_LOGIN = URI.create("/api/v1/credentials");
     private static final String URI_SYSTEM = "/api/v1/system";
+    private static final String URI_USER_ROLE = "/api/v1/users/{0}";
     private static final String URI_CPGS = "/api/v1/cpgs";
     private static final String URI_CPG_DETAILS = "/api/v1/cpgs/{0}";
     private static final String URI_PORTS = "/api/v1/ports";
@@ -140,6 +143,53 @@ public class HP3PARApi {
         } //end try/catch/finally
     }
 
+    public void verifyUserRole(String name) throws Exception {
+        _log.info("3PARDriver:verifyUserRole enter");
+        ClientResponse clientResp = null;
+        final String path = MessageFormat.format(URI_USER_ROLE, name);
+
+        try {
+            clientResp = get(path);
+            if (clientResp == null) {
+                _log.error("3PARDriver:There is no response from 3PAR");
+                throw new HP3PARException("There is no response from 3PAR");
+            } else if (clientResp.getStatus() != 200) {
+                String errResp = getResponseDetails(clientResp);
+                throw new HP3PARException(errResp);
+            } else {
+                String responseString = clientResp.getEntity(String.class);
+                _log.info("3PARDriver:getSystemDetails 3PAR response is {}", responseString);
+                UserRoleCommandResult roleRes = new Gson().fromJson(sanitize(responseString),
+                        UserRoleCommandResult.class);
+
+                boolean superUser = false;
+                for (int i = 0; i < roleRes.getPrivileges().size(); i++) {
+                    Privileges currPriv = roleRes.getPrivileges().get(i);
+
+                    if ( (currPriv.getDomain().compareToIgnoreCase("all") == 0) && 
+                            (currPriv.getRole().compareToIgnoreCase("super") == 0)) {
+                        superUser = true;
+                    }
+                }
+                
+                if (superUser == false) {
+                    _log.error("3PARDriver:User does not have sufficient privilege to discover");
+                    throw new HP3PARException("User does not have sufficient privilege");
+                } else {
+                    _log.info("3PARDriver:User is super user");
+                }
+                
+            }
+        } catch (Exception e) {
+            throw e;
+        } finally {
+            if (clientResp != null) {
+                clientResp.close();
+            }
+            _log.info("3PARDriver:verifyUserRole enter");
+        } //end try/catch/finally
+    }
+    
     /**
      * Gets the storage array information
      * @return array details
@@ -453,10 +503,11 @@ public class HP3PARApi {
     
     private String getResponseFieldValue(ClientResponse clientResp, String field) {
         String value = null;
+        field = "privileges";
         try {
             JSONObject jObj = clientResp.getEntity(JSONObject.class);
+            _log.info("3PARDriver:getResponseFieldValue 3PAR response is : {}", jObj.toString());
             value = jObj.getString(field);
-            _log.debug("3PARDriver:getResponseFieldValue 3PAR response is : {}", jObj.toString());
         } catch (Exception e) {
             _log.error("3PARDriver:Unable to get field value in response: %s", field);
         }

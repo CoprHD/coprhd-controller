@@ -1,3 +1,4 @@
+
 /*
  * Copyright 2016 EMC Corporation
  * All Rights Reserved
@@ -30,8 +31,8 @@ import com.emc.storageos.hp3par.connection.HP3PARApiFactory;
 import com.emc.storageos.storagedriver.AbstractStorageDriver;
 import com.emc.storageos.storagedriver.BlockStorageDriver;
 import com.emc.storageos.storagedriver.DriverTask;
+import com.emc.storageos.storagedriver.HostExportInfo;
 import com.emc.storageos.storagedriver.RegistrationData;
-import com.emc.storageos.storagedriver.model.ITL;
 import com.emc.storageos.storagedriver.model.Initiator;
 import com.emc.storageos.storagedriver.model.StorageHostComponent;
 import com.emc.storageos.storagedriver.model.StorageObject;
@@ -82,12 +83,6 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	}
 	
 	@Override
-	public List<String> getSystemTypes() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
 	public DriverTask getTask(String taskId) {
 		// TODO Auto-generated method stub
 		return null;
@@ -128,6 +123,9 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	            if (authToken == null) {
 	                break;
 	            }
+	            
+	            // Verify user role
+	            hp3parApi.verifyUserRole(storageSystem.getUsername());
 	            
 	            // get storage details
 	            SystemCommandResult systemRes = hp3parApi.getSystemDetails();
@@ -175,10 +173,8 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
                         storageSystem.getSystemName(), storageSystem.getIpAddress(), e.getMessage());
 	            _log.error(msg);
 	            task.setMessage(msg);
-	            task.setStatus(DriverTask.TaskStatus.FAILED);
+	            task.setStatus(DriverTask.TaskStatus.PARTIALLY_FAILED);
 	            e.printStackTrace();
-	            // return error task immediately
-	            break;
 	        }
 	    } // end for each StorageSystem
 	    
@@ -476,10 +472,8 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
                         volume.getDisplayName(), volume.getStoragePoolId(), volume.getStorageSystemId(), e.getMessage());
                 _log.error(msg);
                 task.setMessage(msg);
-                task.setStatus(DriverTask.TaskStatus.FAILED);
+                task.setStatus(DriverTask.TaskStatus.PARTIALLY_FAILED);
                 e.printStackTrace();
-                // return error task immediately
-                break;
             }
         } // end for each volume
         
@@ -556,149 +550,190 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
                         volume.getDisplayName(), volume.getStoragePoolId(), volume.getStorageSystemId(), e.getMessage());
                 _log.error(msg);
                 task.setMessage(msg);
-                task.setStatus(DriverTask.TaskStatus.FAILED);
+                task.setStatus(DriverTask.TaskStatus.PARTIALLY_FAILED);
                 e.printStackTrace();
-                // return error task immediately
-                break;
             }
         } // end for each volume
         
         return task;
 	}
-
-	@Override
-	public DriverTask createVolumeSnapshot(List<VolumeSnapshot> snapshots, StorageCapabilities capabilities) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public DriverTask restoreSnapshot(StorageVolume volume, VolumeSnapshot snapshot) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public DriverTask deleteVolumeSnapshot(List<VolumeSnapshot> snapshots) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public DriverTask createVolumeClone(List<VolumeClone> clones, StorageCapabilities capabilities) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public DriverTask detachVolumeClone(List<VolumeClone> clones) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public DriverTask restoreFromClone(List<VolumeClone> clones) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public DriverTask deleteVolumeClone(List<VolumeClone> clones) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public DriverTask createVolumeMirror(List<VolumeMirror> mirrors, StorageCapabilities capabilities) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public DriverTask deleteVolumeMirror(List<VolumeMirror> mirrors) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public DriverTask splitVolumeMirror(List<VolumeMirror> mirrors) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public DriverTask resumeVolumeMirror(List<VolumeMirror> mirrors) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public DriverTask restoreVolumeMirror(StorageVolume volume, VolumeMirror mirror) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public List<ITL> getITL(StorageSystem storageSystem, List<Initiator> initiators) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public DriverTask exportVolumesToInitiators(List<Initiator> initiators, List<StorageVolume> volumes,
-			Map<String, String> volumeToHLUMap, List<StoragePort> recommendedPorts, List<StoragePort> availablePorts,
-			StorageCapabilities capabilities, MutableBoolean usedRecommendedPorts, List<StoragePort> selectedPorts) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public DriverTask unexportVolumesFromInitiators(List<Initiator> initiators, List<StorageVolume> volumes) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public DriverTask createConsistencyGroup(VolumeConsistencyGroup consistencyGroup) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public DriverTask deleteConsistencyGroup(VolumeConsistencyGroup consistencyGroup) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public DriverTask createConsistencyGroupSnapshot(VolumeConsistencyGroup consistencyGroup,
-			List<VolumeSnapshot> snapshots, List<CapabilityInstance> capabilities) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public DriverTask deleteConsistencyGroupSnapshot(List<VolumeSnapshot> snapshots) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public DriverTask createConsistencyGroupClone(VolumeConsistencyGroup consistencyGroup, List<VolumeClone> clones,
-			List<CapabilityInstance> capabilities) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public DriverTask deleteConsistencyGroupClone(List<VolumeClone> clones) {
-		// TODO Auto-generated method stub
-		return null;
-	}
 	
-	/*
-	 * Internal methods in the driver
-	 */
+    @Override
+    public List<VolumeSnapshot> getVolumeSnapshots(StorageVolume volume) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public List<VolumeClone> getVolumeClones(StorageVolume volume) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public List<VolumeMirror> getVolumeMirrors(StorageVolume volume) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public DriverTask createVolumeSnapshot(List<VolumeSnapshot> snapshots, StorageCapabilities capabilities) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public DriverTask restoreSnapshot(List<VolumeSnapshot> snapshots) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public DriverTask deleteVolumeSnapshot(List<VolumeSnapshot> snapshots) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public DriverTask createVolumeClone(List<VolumeClone> clones, StorageCapabilities capabilities) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public DriverTask detachVolumeClone(List<VolumeClone> clones) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public DriverTask restoreFromClone(List<VolumeClone> clones) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public DriverTask deleteVolumeClone(List<VolumeClone> clones) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public DriverTask createVolumeMirror(List<VolumeMirror> mirrors, StorageCapabilities capabilities) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public DriverTask createConsistencyGroupMirror(VolumeConsistencyGroup consistencyGroup, List<VolumeMirror> mirrors,
+            List<CapabilityInstance> capabilities) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public DriverTask deleteVolumeMirror(List<VolumeMirror> mirrors) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public DriverTask deleteConsistencyGroupMirror(List<VolumeMirror> mirrors) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public DriverTask splitVolumeMirror(List<VolumeMirror> mirrors) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public DriverTask resumeVolumeMirror(List<VolumeMirror> mirrors) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public DriverTask restoreVolumeMirror(List<VolumeMirror> mirrors) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public Map<String, HostExportInfo> getVolumeExportInfoForHosts(StorageVolume volume) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public Map<String, HostExportInfo> getSnapshotExportInfoForHosts(VolumeSnapshot snapshot) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public Map<String, HostExportInfo> getCloneExportInfoForHosts(VolumeClone clone) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public Map<String, HostExportInfo> getMirrorExportInfoForHosts(VolumeMirror mirror) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public DriverTask exportVolumesToInitiators(List<Initiator> initiators, List<StorageVolume> volumes, Map<String, String> volumeToHLUMap,
+            List<StoragePort> recommendedPorts, List<StoragePort> availablePorts, StorageCapabilities capabilities,
+            MutableBoolean usedRecommendedPorts, List<StoragePort> selectedPorts) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public DriverTask unexportVolumesFromInitiators(List<Initiator> initiators, List<StorageVolume> volumes) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public DriverTask createConsistencyGroup(VolumeConsistencyGroup consistencyGroup) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public DriverTask deleteConsistencyGroup(VolumeConsistencyGroup consistencyGroup) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public DriverTask createConsistencyGroupSnapshot(VolumeConsistencyGroup consistencyGroup, List<VolumeSnapshot> snapshots,
+            List<CapabilityInstance> capabilities) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public DriverTask deleteConsistencyGroupSnapshot(List<VolumeSnapshot> snapshots) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public DriverTask createConsistencyGroupClone(VolumeConsistencyGroup consistencyGroup, List<VolumeClone> clones,
+            List<CapabilityInstance> capabilities) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+    
+    /*
+     * Internal methods in the driver
+     */
     private HP3PARApi getHP3PARDevice(StorageSystem hp3parSystem) throws HP3PARException {
         URI deviceURI;
         _log.info("getHP3PARDevice input storage system");

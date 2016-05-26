@@ -234,19 +234,19 @@
           "baseService": "RemoveContinuousCopy"
         },
         {
-          "image": "icon_host_add_copy.png",
+          "image": "icon_host_add_snapshot.png",
           "baseService": "ExportSnapshot"
         },
         {
-          "image": "icon_host_remove_copy.png",
+          "image": "icon_host_remove_snapshot.png",
           "baseService": "UnexportSnapshot"
         },
         {
-          "image": "icon_host_add_snapshot.png",
+          "image": "icon_host_add_copy.png",
           "baseService": "ExportContinuousCopy"
         },
         {
-          "image": "icon_host_remove_snapshot.png",
+          "image": "icon_host_remove_copy.png",
           "baseService": "UnexportContinuousCopy"
         },
         {

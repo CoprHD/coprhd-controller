@@ -1522,16 +1522,18 @@ public class VPlexUtil {
     }
     
     /**
-     * Lookup the Project assigned to this VPlex for its artifacts.
-     * If there is no existing Project, one is created.
+     * Lookup the Project assigned to this VPlex for its artifact, using the Vplex nativeGuid
+     * as the project name. If one is found thatbelongs to the root tenant, it is returned.
+     * Otherwise the project from the protoVolume is returned.
      *
+     * @protoVolume A volume from the backend array. 
+     * If no Vplex project is found, the proto volume's project is returned.
      * @param vplexSystem A StorageSystem instance representing a VPlex.
      * @param dbClient A reference to a database client.
      *
-     * @return Project instance that holds a VPlex's private volumes/export groups.
-     * Returns null if no such project was found
+     * @return Project instance (vplex project if created, otherwise protoVolume's project).
      */
-    public static Project lookupVplexProject(StorageSystem vplexSystem, DbClient dbClient) {
+    public static Project lookupVplexProject(Volume protoVolume, StorageSystem vplexSystem, DbClient dbClient) {
         BasePermissionsHelper helper = new BasePermissionsHelper(dbClient);
         TenantOrg rootTenant = helper.getRootTenant();
         PrefixConstraint constraint = PrefixConstraint.Factory.getLabelPrefixConstraint(Project.class, vplexSystem.getNativeGuid());
@@ -1548,7 +1550,7 @@ public class VPlexUtil {
                 return project;
             }
         }
-        // Project not found
-        return null;
+        // VPlex project not found. Return on from proto volume.
+        return dbClient.queryObject(Project.class, protoVolume.getProject().getURI());
     }
 }

@@ -397,7 +397,7 @@ public class MDSDialog extends SSHDialog {
 
         Map<String, String> aliasDatabase = showDeviceAliasDatabase();
 
-        for (String line : lines) {
+        for (String line : lines) {        	
             int index = match(line, regex, groups);
             switch (index) {
                 case 0:
@@ -468,7 +468,7 @@ public class MDSDialog extends SSHDialog {
         };
 
         Zoneset activeZoneset = null;
-        for (String line : lines) {
+        for (String line : lines) {       	
             int index = match(line, regex2, groups);
             switch (index) {
                 case 0:     // found the active one

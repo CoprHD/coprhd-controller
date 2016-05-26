@@ -64,6 +64,7 @@ class StorageSystem(object):
         'ibmxiv',
         'netappc',	
         'vnxe',
+        'unity',
         'ecs' ,
         'datadomain',
         'ceph']
@@ -78,6 +79,7 @@ class StorageSystem(object):
         'ibmxiv',
         'vnxe',
         'ceph']
+        'unity',
 
     FILE_SYSTEM_LIST = [
         'isilon',
@@ -85,6 +87,7 @@ class StorageSystem(object):
         'netapp',
         'netappc',	
         'vnxe',
+        'unity',
         'datadomain']
     
     OBJECT_SYSTEM_LIST =['ecs']
@@ -99,7 +102,8 @@ class StorageSystem(object):
         'openstack',
         'ibmxiv',
         'netappc',
-        'ecs' ,	
+        'ecs' ,
+        'unity',
         'vnxe']
 
     def __init__(self, ipAddr, port):

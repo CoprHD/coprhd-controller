@@ -890,7 +890,8 @@ public class FileStorageScheduler implements Scheduler {
             if (!storage.getSystemType().equals(Type.netapp.toString())
                     && !storage.getSystemType().equals(Type.netappc.toString())
                     && !storage.getSystemType().equals(Type.vnxe.toString())
-                    && !storage.getSystemType().equals(Type.vnxfile.toString())
+                    && !storage.getSystemType().equals(Type.vnxfile.toString()) 
+                    && !storage.getSystemType().equals(Type.unity.toString())
                     && !storage.getSystemType().equals(
                             Type.datadomain.toString())) {
                 result.add(rec);
@@ -962,8 +963,7 @@ public class FileStorageScheduler implements Scheduler {
             } else {
                 _log.info("No valid storage port found from the storage system : "
                         + storageUri
-                        + ", All ports belongs to invalid vNas "
-                        );
+                        + ", All ports belongs to invalid vNas ");
             }
         }
         return result;

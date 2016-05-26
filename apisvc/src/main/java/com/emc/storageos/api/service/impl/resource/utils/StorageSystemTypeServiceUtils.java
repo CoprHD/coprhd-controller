@@ -2,16 +2,11 @@ package com.emc.storageos.api.service.impl.resource.utils;
 
 import static java.util.Arrays.asList;
 
-import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.model.StorageSystemType;
 
 public class StorageSystemTypeServiceUtils {
 	private static final Logger log = LoggerFactory.getLogger(StorageSystemTypeServiceUtils.class);
@@ -120,198 +115,198 @@ public class StorageSystemTypeServiceUtils {
 		nonSslPortmap.put("hds", "2001");
 	}
 
-	public static void InitializeStorageSystemTypes(DbClient _dbClient) {
-		log.info("Intializing storage system type Column Family for default storage drivers");
-		// Default SSL providers
-		HashMap<String, Boolean> defaultSSL = new HashMap<String, Boolean>();
-		initializeDefaultSSL(defaultSSL);
-
-		HashMap<String, Boolean> defaultMDM = new HashMap<String, Boolean>();
-		defaultMDM.put(SCALEIO, true);
-		defaultMDM.put(SCALEIOAPI, true);
-
-		HashMap<String, Boolean> onlyMDM = new HashMap<String, Boolean>();
-		onlyMDM.put(SCALEIOAPI, true);
-
-		HashMap<String, Boolean> elementManager = new HashMap<String, Boolean>();
-		elementManager.put(SCALEIO, true);
-
-		// Name of Array and its Display Name mapping
-		HashMap<String, String> nameDisplayNameMap = new HashMap<String, String>();
-		initializeDisplayName(nameDisplayNameMap);
-
-		HashMap<String, String> sslPortMap = new HashMap<String, String>();
-		initializeSSLPort(sslPortMap);
-
-		HashMap<String, String> nonSslPortMap = new HashMap<String, String>();
-		initializeNonSslPort(nonSslPortMap);
-
-		for (String file : storageArrayFile) {
-			StorageSystemType ssType = new StorageSystemType();
-			URI ssTyeUri = URIUtil.createId(StorageSystemType.class);
-			ssType.setId(ssTyeUri);
-			ssType.setStorageTypeId(ssTyeUri.toString());
-			ssType.setStorageTypeName(file);
-			ssType.setStorageTypeDispName(nameDisplayNameMap.get(file));
-			ssType.setStorageTypeType("file");
-			ssType.setDriverClassName("file");
-			ssType.setIsSmiProvider(false);
-
-			if (defaultSSL.get(file) != null) {
-				ssType.setIsDefaultSsl(true);
-			}
-
-			if (defaultMDM.get(file) != null) {
-				ssType.setIsDefaultMDM(true);
-			}
-			if (onlyMDM.get(file) != null) {
-				ssType.setIsOnlyMDM(true);
-			}
-			if (elementManager.get(file) != null) {
-				ssType.setIsElementMgr(true);
-			}
-			if (sslPortMap.get(file) != null) {
-				ssType.setSslPort(sslPortMap.get(file));
-			}
-			if (nonSslPortMap.get(file) != null) {
-				ssType.setNonSslPort(nonSslPortMap.get(file));
-			}
-
-			_dbClient.createObject(ssType);
-		}
-		log.info("All default file type drivers added");
-
-		for (String file : storageProviderFile) {
-			StorageSystemType ssType = new StorageSystemType();
-			URI ssTyeUri = URIUtil.createId(StorageSystemType.class);
-			ssType.setId(ssTyeUri);
-			ssType.setStorageTypeId(ssTyeUri.toString());
-			ssType.setStorageTypeName(file);
-			ssType.setStorageTypeDispName(nameDisplayNameMap.get(file));
-			ssType.setStorageTypeType("file");
-			ssType.setDriverClassName("file");
-			ssType.setIsSmiProvider(true);
-			if (defaultSSL.get(file) != null) {
-				ssType.setIsDefaultSsl(true);
-			}
-			if (defaultMDM.get(file) != null) {
-				ssType.setIsDefaultMDM(true);
-			}
-			if (onlyMDM.get(file) != null) {
-				ssType.setIsOnlyMDM(true);
-			}
-			if (elementManager.get(file) != null) {
-				ssType.setIsElementMgr(true);
-			}
-			if (sslPortMap.get(file) != null) {
-				ssType.setSslPort(sslPortMap.get(file));
-			}
-			if (nonSslPortMap.get(file) != null) {
-				ssType.setNonSslPort(nonSslPortMap.get(file));
-			}
-			_dbClient.createObject(ssType);
-		}
-		log.info("All default file type provider drivers added");
-
-		for (String block : storageArrayBlock) {
-			StorageSystemType ssType = new StorageSystemType();
-			URI ssTyeUri = URIUtil.createId(StorageSystemType.class);
-			ssType.setId(ssTyeUri);
-			ssType.setStorageTypeId(ssTyeUri.toString());
-			ssType.setStorageTypeName(block);
-			ssType.setStorageTypeDispName(nameDisplayNameMap.get(block));
-			ssType.setStorageTypeType("block");
-			ssType.setDriverClassName("block");
-			ssType.setIsSmiProvider(false);
-			if (defaultSSL.get(block) != null) {
-				ssType.setIsDefaultSsl(true);
-			}
-			if (defaultMDM.get(block) != null) {
-				ssType.setIsDefaultMDM(true);
-			}
-			if (onlyMDM.get(block) != null) {
-				ssType.setIsOnlyMDM(true);
-			}
-			if (elementManager.get(block) != null) {
-				ssType.setIsElementMgr(true);
-			}
-			if (sslPortMap.get(block) != null) {
-				ssType.setSslPort(sslPortMap.get(block));
-			}
-			if (nonSslPortMap.get(block) != null) {
-				ssType.setNonSslPort(nonSslPortMap.get(block));
-			}
-
-			_dbClient.createObject(ssType);
-		}
-		log.info("All default block type drivers added");
-
-		for (String block : storageProviderBlock) {
-			StorageSystemType ssType = new StorageSystemType();
-			URI ssTyeUri = URIUtil.createId(StorageSystemType.class);
-			ssType.setId(ssTyeUri);
-			ssType.setStorageTypeId(ssTyeUri.toString());
-			ssType.setStorageTypeName(block);
-			ssType.setStorageTypeDispName(nameDisplayNameMap.get(block));
-			ssType.setStorageTypeType("block");
-			ssType.setDriverClassName("block");
-			ssType.setIsSmiProvider(true);
-			if (defaultSSL.get(block) != null) {
-				ssType.setIsDefaultSsl(true);
-			}
-			if (defaultMDM.get(block) != null) {
-				ssType.setIsDefaultMDM(true);
-			}
-			if (onlyMDM.get(block) != null) {
-				ssType.setIsOnlyMDM(true);
-			}
-			if (elementManager.get(block) != null) {
-				ssType.setIsElementMgr(true);
-			}
-			if (sslPortMap.get(block) != null) {
-				ssType.setSslPort(sslPortMap.get(block));
-			}
-			if (nonSslPortMap.get(block) != null) {
-				ssType.setNonSslPort(nonSslPortMap.get(block));
-			}
-
-			_dbClient.createObject(ssType);
-		}
-		log.info("All default block provider type drivers added");
-
-		for (String object : storageArrayObject) {
-			StorageSystemType ssType = new StorageSystemType();
-			URI ssTyeUri = URIUtil.createId(StorageSystemType.class);
-			ssType.setId(ssTyeUri);
-			ssType.setStorageTypeId(ssTyeUri.toString());
-			ssType.setStorageTypeName(object);
-			ssType.setStorageTypeDispName(nameDisplayNameMap.get(object));
-			ssType.setStorageTypeType("object");
-			ssType.setDriverClassName("object");
-			ssType.setIsSmiProvider(false);
-			if (defaultSSL.get(object) != null) {
-				ssType.setIsDefaultSsl(true);
-			}
-			if (defaultMDM.get(object) != null) {
-				ssType.setIsDefaultMDM(true);
-			}
-			if (onlyMDM.get(object) != null) {
-				ssType.setIsOnlyMDM(true);
-			}
-			if (elementManager.get(object) != null) {
-				ssType.setIsElementMgr(true);
-			}
-			if (sslPortMap.get(object) != null) {
-				ssType.setSslPort(sslPortMap.get(object));
-			}
-			if (nonSslPortMap.get(object) != null) {
-				ssType.setNonSslPort(nonSslPortMap.get(object));
-			}
-
-			_dbClient.createObject(ssType);
-		}
-		log.info("All default object type drivers added");
-		log.info("Default drivers initialization done....");
-	}
+//	public static void InitializeStorageSystemTypes(DbClient _dbClient) {
+//		log.info("Intializing storage system type Column Family for default storage drivers");
+//		// Default SSL providers
+//		HashMap<String, Boolean> defaultSSL = new HashMap<String, Boolean>();
+//		initializeDefaultSSL(defaultSSL);
+//
+//		HashMap<String, Boolean> defaultMDM = new HashMap<String, Boolean>();
+//		defaultMDM.put(SCALEIO, true);
+//		defaultMDM.put(SCALEIOAPI, true);
+//
+//		HashMap<String, Boolean> onlyMDM = new HashMap<String, Boolean>();
+//		onlyMDM.put(SCALEIOAPI, true);
+//
+//		HashMap<String, Boolean> elementManager = new HashMap<String, Boolean>();
+//		elementManager.put(SCALEIO, true);
+//
+//		// Name of Array and its Display Name mapping
+//		HashMap<String, String> nameDisplayNameMap = new HashMap<String, String>();
+//		initializeDisplayName(nameDisplayNameMap);
+//
+//		HashMap<String, String> sslPortMap = new HashMap<String, String>();
+//		initializeSSLPort(sslPortMap);
+//
+//		HashMap<String, String> nonSslPortMap = new HashMap<String, String>();
+//		initializeNonSslPort(nonSslPortMap);
+//
+//		for (String file : storageArrayFile) {
+//			StorageSystemType ssType = new StorageSystemType();
+//			URI ssTyeUri = URIUtil.createId(StorageSystemType.class);
+//			ssType.setId(ssTyeUri);
+//			ssType.setStorageTypeId(ssTyeUri.toString());
+//			ssType.setStorageTypeName(file);
+//			ssType.setStorageTypeDispName(nameDisplayNameMap.get(file));
+//			ssType.setStorageTypeType("file");
+//			ssType.setDriverClassName("file");
+//			ssType.setIsSmiProvider(false);
+//
+//			if (defaultSSL.get(file) != null) {
+//				ssType.setIsDefaultSsl(true);
+//			}
+//
+//			if (defaultMDM.get(file) != null) {
+//				ssType.setIsDefaultMDM(true);
+//			}
+//			if (onlyMDM.get(file) != null) {
+//				ssType.setIsOnlyMDM(true);
+//			}
+//			if (elementManager.get(file) != null) {
+//				ssType.setIsElementMgr(true);
+//			}
+//			if (sslPortMap.get(file) != null) {
+//				ssType.setSslPort(sslPortMap.get(file));
+//			}
+//			if (nonSslPortMap.get(file) != null) {
+//				ssType.setNonSslPort(nonSslPortMap.get(file));
+//			}
+//
+//			_dbClient.createObject(ssType);
+//		}
+//		log.info("All default file type drivers added");
+//
+//		for (String file : storageProviderFile) {
+//			StorageSystemType ssType = new StorageSystemType();
+//			URI ssTyeUri = URIUtil.createId(StorageSystemType.class);
+//			ssType.setId(ssTyeUri);
+//			ssType.setStorageTypeId(ssTyeUri.toString());
+//			ssType.setStorageTypeName(file);
+//			ssType.setStorageTypeDispName(nameDisplayNameMap.get(file));
+//			ssType.setStorageTypeType("file");
+//			ssType.setDriverClassName("file");
+//			ssType.setIsSmiProvider(true);
+//			if (defaultSSL.get(file) != null) {
+//				ssType.setIsDefaultSsl(true);
+//			}
+//			if (defaultMDM.get(file) != null) {
+//				ssType.setIsDefaultMDM(true);
+//			}
+//			if (onlyMDM.get(file) != null) {
+//				ssType.setIsOnlyMDM(true);
+//			}
+//			if (elementManager.get(file) != null) {
+//				ssType.setIsElementMgr(true);
+//			}
+//			if (sslPortMap.get(file) != null) {
+//				ssType.setSslPort(sslPortMap.get(file));
+//			}
+//			if (nonSslPortMap.get(file) != null) {
+//				ssType.setNonSslPort(nonSslPortMap.get(file));
+//			}
+//			_dbClient.createObject(ssType);
+//		}
+//		log.info("All default file type provider drivers added");
+//
+//		for (String block : storageArrayBlock) {
+//			StorageSystemType ssType = new StorageSystemType();
+//			URI ssTyeUri = URIUtil.createId(StorageSystemType.class);
+//			ssType.setId(ssTyeUri);
+//			ssType.setStorageTypeId(ssTyeUri.toString());
+//			ssType.setStorageTypeName(block);
+//			ssType.setStorageTypeDispName(nameDisplayNameMap.get(block));
+//			ssType.setStorageTypeType("block");
+//			ssType.setDriverClassName("block");
+//			ssType.setIsSmiProvider(false);
+//			if (defaultSSL.get(block) != null) {
+//				ssType.setIsDefaultSsl(true);
+//			}
+//			if (defaultMDM.get(block) != null) {
+//				ssType.setIsDefaultMDM(true);
+//			}
+//			if (onlyMDM.get(block) != null) {
+//				ssType.setIsOnlyMDM(true);
+//			}
+//			if (elementManager.get(block) != null) {
+//				ssType.setIsElementMgr(true);
+//			}
+//			if (sslPortMap.get(block) != null) {
+//				ssType.setSslPort(sslPortMap.get(block));
+//			}
+//			if (nonSslPortMap.get(block) != null) {
+//				ssType.setNonSslPort(nonSslPortMap.get(block));
+//			}
+//
+//			_dbClient.createObject(ssType);
+//		}
+//		log.info("All default block type drivers added");
+//
+//		for (String block : storageProviderBlock) {
+//			StorageSystemType ssType = new StorageSystemType();
+//			URI ssTyeUri = URIUtil.createId(StorageSystemType.class);
+//			ssType.setId(ssTyeUri);
+//			ssType.setStorageTypeId(ssTyeUri.toString());
+//			ssType.setStorageTypeName(block);
+//			ssType.setStorageTypeDispName(nameDisplayNameMap.get(block));
+//			ssType.setStorageTypeType("block");
+//			ssType.setDriverClassName("block");
+//			ssType.setIsSmiProvider(true);
+//			if (defaultSSL.get(block) != null) {
+//				ssType.setIsDefaultSsl(true);
+//			}
+//			if (defaultMDM.get(block) != null) {
+//				ssType.setIsDefaultMDM(true);
+//			}
+//			if (onlyMDM.get(block) != null) {
+//				ssType.setIsOnlyMDM(true);
+//			}
+//			if (elementManager.get(block) != null) {
+//				ssType.setIsElementMgr(true);
+//			}
+//			if (sslPortMap.get(block) != null) {
+//				ssType.setSslPort(sslPortMap.get(block));
+//			}
+//			if (nonSslPortMap.get(block) != null) {
+//				ssType.setNonSslPort(nonSslPortMap.get(block));
+//			}
+//
+//			_dbClient.createObject(ssType);
+//		}
+//		log.info("All default block provider type drivers added");
+//
+//		for (String object : storageArrayObject) {
+//			StorageSystemType ssType = new StorageSystemType();
+//			URI ssTyeUri = URIUtil.createId(StorageSystemType.class);
+//			ssType.setId(ssTyeUri);
+//			ssType.setStorageTypeId(ssTyeUri.toString());
+//			ssType.setStorageTypeName(object);
+//			ssType.setStorageTypeDispName(nameDisplayNameMap.get(object));
+//			ssType.setStorageTypeType("object");
+//			ssType.setDriverClassName("object");
+//			ssType.setIsSmiProvider(false);
+//			if (defaultSSL.get(object) != null) {
+//				ssType.setIsDefaultSsl(true);
+//			}
+//			if (defaultMDM.get(object) != null) {
+//				ssType.setIsDefaultMDM(true);
+//			}
+//			if (onlyMDM.get(object) != null) {
+//				ssType.setIsOnlyMDM(true);
+//			}
+//			if (elementManager.get(object) != null) {
+//				ssType.setIsElementMgr(true);
+//			}
+//			if (sslPortMap.get(object) != null) {
+//				ssType.setSslPort(sslPortMap.get(object));
+//			}
+//			if (nonSslPortMap.get(object) != null) {
+//				ssType.setNonSslPort(nonSslPortMap.get(object));
+//			}
+//
+//			_dbClient.createObject(ssType);
+//		}
+//		log.info("All default object type drivers added");
+//		log.info("Default drivers initialization done....");
+//	}
 
 }

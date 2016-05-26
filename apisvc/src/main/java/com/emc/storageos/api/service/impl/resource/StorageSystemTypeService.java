@@ -70,9 +70,9 @@ public class StorageSystemTypeService extends TaskResourceService {
 	@Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
 	public StorageSystemTypeRestRep getStorageSystemType(@PathParam("id") URI id) {
 		log.info("GET getStorageSystemType on Uri: " + id);
-		if (!checkForStorageSystemType()) {
-			StorageSystemTypeServiceUtils.InitializeStorageSystemTypes(_dbClient);
-		}
+//		if (!checkForStorageSystemType()) {
+//			StorageSystemTypeServiceUtils.InitializeStorageSystemTypes(_dbClient);
+//		}
 		ArgValidator.checkFieldUriType(id, StorageSystemType.class, "id");
 		StorageSystemType storageType = queryResource(id);
 		ArgValidator.checkEntity(storageType, id, isIdEmbeddedInURL(id));
@@ -92,9 +92,9 @@ public class StorageSystemTypeService extends TaskResourceService {
 	@CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
 	public StorageSystemTypeList getStorageSystemTypeType(@PathParam("type") String type) {
 		log.info("GET getStorageSystemType on type: " + type);
-		if (!checkForStorageSystemType()) {
-			StorageSystemTypeServiceUtils.InitializeStorageSystemTypes(_dbClient);
-		}
+//		if (!checkForStorageSystemType()) {
+//			StorageSystemTypeServiceUtils.InitializeStorageSystemTypes(_dbClient);
+//		}
 
 		if (type != null) {
 			ArgValidator.checkFieldValueFromEnum(type, "storageTypeType", StorageSystemType.storageSupportedType.class);
@@ -132,9 +132,9 @@ public class StorageSystemTypeService extends TaskResourceService {
 	@CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
 	public StorageSystemTypeRestRep addStorageSystemType(StorageSystemTypeAddParam addparam) {
 		log.info("addStorageSystemType");
-		if (!checkForStorageSystemType()) {
-			StorageSystemTypeServiceUtils.InitializeStorageSystemTypes(_dbClient);
-		}
+//		if (!checkForStorageSystemType()) {
+//			StorageSystemTypeServiceUtils.InitializeStorageSystemTypes(_dbClient);
+//		}
 
 		ArgValidator.checkFieldNotEmpty(addparam.getStorageTypeName(), "storageTypeName");
 		checkDuplicateLabel(StorageSystemType.class, addparam.getStorageTypeName());

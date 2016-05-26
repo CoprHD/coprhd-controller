@@ -234,11 +234,11 @@
           "baseService": "RemoveContinuousCopy"
         },
         {
-          "image": "icon_host_add_snapshot.png",
+          "image": "icon_host_add_copy.png",
           "baseService": "ExportSnapshot"
         },
         {
-          "image": "icon_host_remove_snapshot.png",
+          "image": "icon_host_remove_copy.png",
           "baseService": "UnexportSnapshot"
         },
         {

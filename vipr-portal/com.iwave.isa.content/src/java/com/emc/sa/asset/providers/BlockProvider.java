@@ -2793,6 +2793,10 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             return getMessage("block.snapshotsession.label", snapshotSession.getName(),
                     getBlockSnapshotSessionParentVolumeName(volumeNames, snapshotSession));
         }
+        else if (blockObject instanceof BlockMirrorRestRep) {
+            BlockMirrorRestRep mirror = (BlockMirrorRestRep) blockObject;
+            return getMessage("block.volume", mirror.getName(), mirror.getProvisionedCapacity());
+        }
         return blockObject.getName();
     }
 

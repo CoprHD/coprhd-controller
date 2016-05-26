@@ -6516,6 +6516,11 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
             ApplicationAddVolumeList addSourceVols = new ApplicationAddVolumeList();
             ApplicationAddVolumeList addTargetVols = new ApplicationAddVolumeList();
+            boolean existingSnapOrClone = false;
+            URI protectionSystemId = null;
+            ProtectionSystem protectionSystem = null;
+            Set<String> volumeWWNs = new HashSet<String>();
+            Volume aSrcVolume = null;
             if (addVolList != null && addVolList.getVolumes() != null && !addVolList.getVolumes().isEmpty()) {
                 URI addVolCg = null;
                 // get source and target volumes to be added the application
@@ -6525,6 +6530,9 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 List<URI> allAddTargetVolumes = new ArrayList<URI>();
                 for (URI volUri : addVolumeSet) {
                     Volume vol = _dbClient.queryObject(Volume.class, volUri);
+                    if (protectionSystemId == null) {
+                        protectionSystemId = vol.getProtectionController();
+                    }
                     URI cguri = vol.getConsistencyGroup();
                     if (addVolCg == null && cguri != null) {
                         addVolCg = cguri;
@@ -6532,18 +6540,41 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     impactedCGs.add(cguri);
                     if (vol.checkPersonality(Volume.PersonalityTypes.SOURCE.name())) {
                         addBackendVolumes(vol, true, allAddSourceVolumes, vplexVolumes);
+                        aSrcVolume = vol;
                     } else if (vol.checkPersonality(Volume.PersonalityTypes.TARGET.name())) {
                         addBackendVolumes(vol, true, allAddTargetVolumes, vplexVolumes);
+                        volumeWWNs.add(RPHelper.getRPWWn(vol.getId(), _dbClient));
                     }
+                }
+                
+                if (protectionSystemId != null) {
+                    protectionSystem = _dbClient.queryObject(ProtectionSystem.class, protectionSystemId);
                 }
 
                 addSourceVols.setConsistencyGroup(addVolCg);
                 addSourceVols.setReplicationGroupName(addVolList.getReplicationGroupName());
                 addSourceVols.setVolumes(allAddSourceVolumes);
 
+                String targetReplicationGroupName = addVolList.getReplicationGroupName() + REPLICATION_GROUP_RPTARGET_SUFFIX;
                 addTargetVols.setConsistencyGroup(addVolCg);
-                addTargetVols.setReplicationGroupName(addVolList.getReplicationGroupName() + REPLICATION_GROUP_RPTARGET_SUFFIX);
+                addTargetVols.setReplicationGroupName(targetReplicationGroupName);
                 addTargetVols.setVolumes(allAddTargetVolumes);
+
+                // if there are any target clones or snapshots, need to create a bookmark and enable image access
+                List<Volume> existingVols = CustomQueryUtility.queryActiveResourcesByConstraint(
+                        _dbClient, Volume.class, AlternateIdConstraint.Factory.getVolumeByReplicationGroupInstance(targetReplicationGroupName));
+                for (Volume existingVol : existingVols) {
+                    if (existingVol.getFullCopies() != null && !existingVol.getFullCopies().isEmpty()) {
+                        existingSnapOrClone = true;
+                        break;
+                    } else if (ControllerUtils.checkIfVolumeHasSnapshotSession(existingVol.getId(), _dbClient)) {
+                        existingSnapOrClone = true;
+                        break;                        
+                    } else if (ControllerUtils.checkIfVolumeHasSnapshot(existingVol, _dbClient)) {
+                        existingSnapOrClone = true;
+                        break;                        
+                    }
+                }
             }
 
             // Get a new workflow to execute the volume group update.
@@ -6552,13 +6583,36 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
             // create the completer add the steps and execute the plan.
             completer = new VolumeGroupUpdateTaskCompleter(applicationId, addVolumeSet, removeVolumeSet, impactedCGs, taskId);
-
-            // add steps for add source and remove vols
             String waitFor = null;
+            
+            if (existingSnapOrClone) {
+                // A temporary date/time stamp for the bookmark name
+                String bookmarkName = VIPR_SNAPSHOT_PREFIX + (new Random()).nextInt();
+            
+                // Step 1 - Create a RP bookmark
+                String rpWaitFor = addCreateBookmarkStep(workflow, new ArrayList<URI>(), protectionSystem, bookmarkName, volumeWWNs, false, waitFor);
+    
+                // Lock CG for the duration of the workflow so enable and disable can complete before another workflow tries to enable image access
+                List<String> locks = new ArrayList<String>();
+                String lockName = generateRPLockCG(_dbClient, aSrcVolume.getId());
+                if (null != lockName) {
+                    locks.add(lockName);
+                    acquireWorkflowLockOrThrow(workflow, locks);
+                }
+    
+                // Step 2 - Enable image access
+                waitFor = addEnableImageAccessForCreateReplicaStep(workflow, protectionSystem, null, new ArrayList<URI>(), bookmarkName, volumeWWNs, rpWaitFor);
+            }
+            
+            // add steps for add source and remove vols
             waitFor = _blockDeviceController.addStepsForUpdateApplication(workflow, addSourceVols, allRemoveVolumes, waitFor, taskId);
 
             // add steps for add target vols
             waitFor = _blockDeviceController.addStepsForUpdateApplication(workflow, addTargetVols, null, waitFor, taskId);
+            
+            if (existingSnapOrClone) {
+                waitFor = addDisableImageAccessForCreateReplicaStep(workflow, protectionSystem, null, new ArrayList<URI>(), volumeWWNs, waitFor);
+            }
 
             if (!vplexVolumes.isEmpty()) {
                 _vplexDeviceController.addStepsForImportClonesOfApplicationVolumes(workflow, waitFor, new ArrayList<URI>(vplexVolumes),

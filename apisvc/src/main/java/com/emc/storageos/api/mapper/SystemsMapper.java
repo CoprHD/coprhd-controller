@@ -328,7 +328,7 @@ public class SystemsMapper {
         if (percentBusy != null) {
             to.setPortPercentBusy(percentBusy);
         }
-        percentBusy = MetricsKeys.getDoubleOrNull(MetricsKeys.avgPercentBusy, from.getMetrics());
+        percentBusy = MetricsKeys.getDoubleOrNull(MetricsKeys.avgCpuPercentBusy, from.getMetrics());
         if (percentBusy != null) {
             to.setCpuPercentBusy(percentBusy);
         }

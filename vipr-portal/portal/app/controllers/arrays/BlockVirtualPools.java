@@ -470,6 +470,7 @@ public class BlockVirtualPools extends ViprResourceController {
                 StorageSystemTypes.VMAX,
                 StorageSystemTypes.VNX_BLOCK,
                 StorageSystemTypes.VNXe,
+                StorageSystemTypes.UNITY,
                 StorageSystemTypes.HITACHI,
                 StorageSystemTypes.OPENSTACK,
                 StorageSystemTypes.SCALEIO,

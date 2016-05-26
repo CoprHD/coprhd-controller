@@ -9,10 +9,13 @@ import com.emc.storageos.vnxe.models.VNXeNasServer;
 
 public class NasServerRequest extends KHRequests<VNXeNasServer> {
     private static final String URL = "/api/instances/nasServer/";
+    private static final String FIELDS = "name,isReplicationDestination";
+
 
     public NasServerRequest(KHClient client, String id) {
         super(client);
         _url = URL + id;
+	_fields = FIELDS;
     }
 
     public VNXeNasServer get() {

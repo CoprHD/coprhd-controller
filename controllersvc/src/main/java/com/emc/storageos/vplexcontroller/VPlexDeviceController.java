@@ -7010,10 +7010,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     if (!NullColumnValueGetter.isNullURI(primarySourceObject.getConsistencyGroup())) {
                         completer.addConsistencyGroupId(primarySourceObject.getConsistencyGroup());
                     }
-                    
-                } else {
-                    // For snapshot full copy
-                    vplexSrcVolumeURI = vplexURI;
                 }
 
                 // Next, create a step to create and start an import volume

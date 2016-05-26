@@ -23,7 +23,7 @@ public class RackHdGetWorkflowTasks extends ViPRExecutionTask<List<Task>> {
     private static final String USER = "root";
     private static final String PASSWORD = "ChangeMe1!";
     private static final String RACKHDSCHEME = "http"; // include, else URI.resolve(..) fails
-    private static final String RACKHDSERVER = "lgloc189.lss.emc.com";
+    private static final String RACKHDSERVER = "localhost";
     private static final String RACKHDSERVERPORT = "8080";
 
     private String workflowName;

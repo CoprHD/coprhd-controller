@@ -257,14 +257,14 @@ public class ExportGroupService extends TaskResourceService {
         // validate input for the type of export
         validateCreateInputForExportType(param);
 
-        //Add check for PassThruParam
+        //Add check for PassThroughParam
         if (param.getExportPassThroughParam() != null && !param.getExportPassThroughParam().isEmpty()){
 
-                String passThruParam = param.getExportPassThroughParam();
+                String passThroughParam = param.getExportPassThroughParam();
 
-                if (passThruParam.equalsIgnoreCase("direct")) {
+                if (passThroughParam.equalsIgnoreCase("direct")) {
 
-                        ExportGroup exportGroup = preparePassThruExportGroup(param);
+                        ExportGroup exportGroup = preparePassThroughExportGroup(param);
 
                         Map<URI, Map<URI, Integer>> storageMap = new HashMap<URI, Map<URI, Integer>>();
                         Map<URI, Integer> volumeMap = validatePassThroughBlockObjectsAndGetMap(param.getVolumes(), exportGroup, storageMap, true);
@@ -284,7 +284,7 @@ public class ExportGroupService extends TaskResourceService {
 
                         TaskResourceRep taskRes = toTask(exportGroup, task, op);
 
-                        CreateExportGroupSchedulingThread.executePassThruApiTask(this, _asyncTaskService.getExecutorService(), _dbClient,
+                        CreateExportGroupSchedulingThread.executePassThroughApiTask(this, _asyncTaskService.getExecutorService(), _dbClient,
                         exportGroup, storageMap, param.getClusters(), param.getHosts(),
                         param.getInitiators(), volumeMap, param.getExportPathParameters(), task, taskRes);
 
@@ -293,7 +293,7 @@ public class ExportGroupService extends TaskResourceService {
                         return taskRes;
                 }
                 else {
-                        throw APIException.badRequests.parameterValueIsNotValid("passThruParam");
+                        throw APIException.badRequests.parameterValueIsNotValid("passThroughParam");
                 }
         }
         // Validate that the create is not attempting to add VPLEX
@@ -1773,7 +1773,7 @@ public class ExportGroupService extends TaskResourceService {
      * @param param
      * @return
      */
-    private ExportGroup preparePassThruExportGroup(ExportCreateParam param) {
+    private ExportGroup preparePassThroughExportGroup(ExportCreateParam param) {
         ExportGroup exportGroup = new ExportGroup();
         exportGroup.setLabel(param.getName());
         // TODO - For temporary backward compatibility

@@ -708,15 +708,15 @@ public class BlockService extends TaskResourceService {
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public TaskList createVolume(VolumeCreate param) throws InternalException {
-	if (param.getPassThrouhParams() != null && !param.getPassThrouhParams().isEmpty()){
+	if (param.getPassThroughParams() != null && !param.getPassThroughParams().isEmpty()){
 
-                Map<String, String> passThruParam = param.getPassThrouhParams();
+                Map<String, String> passThroughParam = param.getPassThroughParams();
 
-                String storageSystemId=passThruParam.get ("storage-system");
-                String storagePortId=passThruParam.get ("storage-pool");
+                String storageSystemId=passThroughParam.get ("storage-system");
+                String storagePortId=passThroughParam.get ("storage-pool");
 
                 if (storageSystemId ==null  || storagePortId == null ){
-                         throw APIException.badRequests.parameterIsNullOrEmpty("passThruParam");
+                         throw APIException.badRequests.parameterIsNullOrEmpty("passThroughParam");
                 }
 
 

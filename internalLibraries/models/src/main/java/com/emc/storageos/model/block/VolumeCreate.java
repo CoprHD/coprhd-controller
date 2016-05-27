@@ -16,7 +16,7 @@ import com.emc.storageos.model.valid.Length;
  * Volume creation parameters
  */
 @XmlRootElement(name = "volume_create")
-public class VolumeCreate extends PassThrouhParam{
+public class VolumeCreate extends PassThroughParam{
 
     private String name;
     private String size;
@@ -54,11 +54,11 @@ public class VolumeCreate extends PassThrouhParam{
     }
 
     public VolumeCreate(String name, String size, Integer count, URI vpool,
-            URI varray, URI project, Map<String, String> passThrouhParams ) {
-        super(passThrouhParams);
+            URI varray, URI project, Map<String, String> passThroughParams ) {
+        super(passThroughParams);
 //    public VolumeCreate(String name, String size, Integer count, URI vpool,
-//            URI varray, URI project, String passThrouhParams ) {
-//        super(passThrouhParams);    
+//            URI varray, URI project, String passThroughParams ) {
+//        super(passThroughParams);    
         this.name = name;
         this.size = size;
         this.count = count;

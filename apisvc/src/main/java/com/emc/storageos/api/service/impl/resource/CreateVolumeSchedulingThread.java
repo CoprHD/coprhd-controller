@@ -101,10 +101,10 @@ class CreateVolumeSchedulingThread implements Runnable {
 			// Initialize a list of recommendations to be returned.
 			List<Recommendation> recommendations = new ArrayList<Recommendation>();
 
-			Map<String, String> passThruParam = param.getPassThrouhParams();
+			Map<String, String> passThroughParam = param.getPassThroughParams();
 
-			String storageSystemId = passThruParam.get("storage-system");
-			String storagePoolId = passThruParam.get("storage-pool");
+			String storageSystemId = passThroughParam.get("storage-system");
+			String storagePoolId = passThroughParam.get("storage-pool");
 
 			// StorageSystem
 			// storageSystem=this.blockService._dbClient.queryObject(StorageSystem.class,
@@ -293,7 +293,7 @@ class CreateVolumeSchedulingThread implements Runnable {
         // Call out placementManager to get the recommendation for placement.
         try {
         	List recommendations = null;
-        	if (param.getPassThrouhParams() != null && !param.getPassThrouhParams().isEmpty()){
+        	if (param.getPassThroughParams() != null && !param.getPassThroughParams().isEmpty()){
         		recommendations = this.bypassRecommendationsForResources(param);
         		this.createVolumes(param,  recommendations, taskList, task, capabilities);
                         

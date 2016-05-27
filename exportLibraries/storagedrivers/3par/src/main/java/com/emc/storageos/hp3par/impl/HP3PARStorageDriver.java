@@ -578,20 +578,99 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 
     @Override
     public DriverTask createVolumeSnapshot(List<VolumeSnapshot> snapshots, StorageCapabilities capabilities) {
-        // TODO Auto-generated method stub
-        return null;
+
+    	DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_CREATE_SNAPSHOT_VOLUMES);
+
+    	for (VolumeSnapshot snap : snapshots) {
+            try {
+            	//native id = null , 
+                _log.info("3PARDriver: createVolumeSnapshot for storage system native id {}, volume name {} - start",
+                		snap.toString(), snap.getDisplayName());  
+                Boolean readWrite = true;
+                
+                // get Api client
+                HP3PARApi hp3parApi = getHP3PARDeviceFromNativeId(snap.getStorageSystemId());
+
+                // Create volume
+                VolumeDetailsCommandResult volResult = null;
+                if (snap.getAccessStatus() != AccessStatus.READ_WRITE) {
+                	readWrite = false;
+                }
+                
+                hp3parApi.createVolumeVirtualCopy(snap.getParentId(),snap.getDisplayName(),readWrite);
+                volResult = hp3parApi.getVolumeDetails(snap.getDisplayName());
+                                
+                // actual size of the volume in array
+                //snap.setProvisionedCapacity(volResult.getSizeMiB() * HP3PARConstants.MEGA_BYTE);
+                snap.setWwn(volResult.getWwn());
+                snap.setNativeId(snap.getDisplayName()); //required for volume delete
+                snap.setDeviceLabel(snap.getDisplayName());
+                snap.setAccessStatus(snap.getAccessStatus());
+
+                task.setStatus(DriverTask.TaskStatus.READY);
+                _log.info("createVolumeSnapshot for storage system native id {}, volume name {} - end",
+                		snap.getStorageSystemId(), snap.getDisplayName());            
+            } catch (Exception e) {
+                String msg = String.format(
+                        "3PARDriver: Unable to create volume snap name %s for parent base volume id %s whose storage system native id is %s; Error: %s.\n",
+                        snap.getDisplayName(), snap.getParentId(), snap.getStorageSystemId(), e.getMessage());
+                _log.error(msg);
+                task.setMessage(msg);
+                task.setStatus(DriverTask.TaskStatus.PARTIALLY_FAILED);
+                e.printStackTrace();
+            }
+        } // end for each volume
+        
+        return task;
     }
 
     @Override
     public DriverTask restoreSnapshot(List<VolumeSnapshot> snapshots) {
         // TODO Auto-generated method stub
+    	for (VolumeSnapshot snap : snapshots) {
+            try {
+                _log.info("3PARDriver: restoreSnapshot for storage system native id {}, volume name {} - start",
+                		snap.toString(), snap.getDisplayName());  
+            } catch(Exception e) {
+            	_log.info("testing exception");	
+            
+            }
+    	}
         return null;
     }
 
     @Override
     public DriverTask deleteVolumeSnapshot(List<VolumeSnapshot> snapshots) {
-        // TODO Auto-generated method stub
-        return null;
+
+	    DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_DELETE_STORAGE_VOLUMES);
+
+        // For each requested volume snapshot (in one or more 3par system)
+        for (VolumeSnapshot snap : snapshots) {
+            try {
+                _log.info("3PARDriver: deleteVolumeSnapshot for storage system native id {}, volume name {} , native id {} - start",
+                		snap.getStorageSystemId(), snap.getDisplayName(), snap.getNativeId());     
+
+                // get Api client
+                HP3PARApi hp3parApi = getHP3PARDeviceFromNativeId(snap.getStorageSystemId());
+
+                // Delete volume
+                hp3parApi.deleteVolumeVirtualCopy(snap.getNativeId());
+                
+                task.setStatus(DriverTask.TaskStatus.READY);
+                _log.info("3PARDriver: deleteVolumeSnapshot for storage system native id {}, volume name {} - end",
+                		snap.getStorageSystemId(), snap.getDisplayName());            
+            } catch (Exception e) {
+                String msg = String.format(
+                        "3PARDriver: Unable to delete volume name %s with native id %s for storage system native id %s; Error: %s.\n",
+                        snap.getDisplayName(), snap.getNativeId(), snap.getStorageSystemId(), e.getMessage());
+                _log.error(msg);
+                task.setMessage(msg);
+                task.setStatus(DriverTask.TaskStatus.PARTIALLY_FAILED);
+                e.printStackTrace();
+            }
+        } // end for each volume snapshot
+        
+        return task;
     }
 
     @Override

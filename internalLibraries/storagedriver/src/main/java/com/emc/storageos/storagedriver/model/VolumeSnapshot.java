@@ -67,6 +67,24 @@ public class VolumeSnapshot extends StorageBlockObject {
 
     @Override
     public String toString() {
-        return getNativeId();
+        return "getNativeId = " + getNativeId() +
+        		"getDeviceLabel = " + getDeviceLabel() + 
+        		"getWwn = " + getWwn() + 
+        		"getDisplayName = " + getDisplayName() +
+        		"getDeviceLabel = " + getDeviceLabel() + 
+        		"getAccessStatus = " + getAccessStatus() + 
+        		/*
+        		"getConsistencyGroup = " + getConsistencyGroup() +
+        		"getCommonCapabilities = " + getCommonCapabilities() + 
+        		"getCustomCapabilities = " + getCustomCapabilities() + 
+        		"getConsistencyGroup String = " + getConsistencyGroup().toString() +
+        		"getCommonCapabilities String = " + getCommonCapabilities().toString() + 
+        		"getCustomCapabilities String = " + getCustomCapabilities().toString() + 
+        		*/
+        		" getParentId = " + getParentId() + 
+        		" getStorageSystemId = " + getStorageSystemId() +
+        		"getSnapSetId = " + getSnapSetId() + 
+        		" getProvisionedCapacity = " + getProvisionedCapacity() + 
+        		" getAllocatedCapacity = " + getAllocatedCapacity();
     }
 }

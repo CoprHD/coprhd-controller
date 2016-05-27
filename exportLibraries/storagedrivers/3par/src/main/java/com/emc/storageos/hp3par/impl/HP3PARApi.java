@@ -52,7 +52,8 @@ public class HP3PARApi {
     private static final String URI_VOLUME_DETAILS = "/api/v1/volumes/{0}";
     private static final String URI_EXPAND_VOLUME = "/api/v1/volumes/{0}";
     private static final String URI_DELETE_VOLUME = "/api/v1/volumes/{0}";
-    
+    private static final String URI_VOLUME_SNAPSHOT = "/api/v1/volumes/{0}";
+    private static final String URI_DELETE_VOLUME_SNAPSHOT = "/api/v1/volumes/{0}";
 
     public HP3PARApi(URI endpoint, RESTClient client, String userName, String pass) {
         _baseUrl = endpoint;
@@ -360,7 +361,7 @@ public class HP3PARApi {
         _log.info("3PARDriver:createVolume enter");
         ClientResponse clientResp = null;
         String body = "{\"name\":\"" + name + "\", \"cpg\":\"" + cpg + 
-                "\", \"tpvv\":" + thin.toString() + ", \"sizeMiB\":" + size.toString() + "}";
+                "\",\"snapCPG\":\"" + cpg + "\", \"tpvv\":" + thin.toString() + ", \"sizeMiB\":" + size.toString() + "}";
 
         try {
             clientResp = post(URI_CREATE_VOLUME, body);
@@ -381,6 +382,46 @@ public class HP3PARApi {
                 clientResp.close();
             }
             _log.info("3PARDriver:createVolume leave");
+        } //end try/catch/finally
+    }
+
+    public void createVolumeVirtualCopy(String baseVolumeName, String snapName, Boolean readWrite) throws Exception {
+        _log.info("3PARDriver:createVolumeVirtualCopy enter");
+        ClientResponse clientResp = null;
+        
+        // NOTE: need to add read type for snapshot 
+        String payload = "{\"action\":\"createSnapshot\", \"parameters\": { \"name\": \"" + snapName +"\" } }";
+
+        final String path = MessageFormat.format(URI_VOLUME_SNAPSHOT, baseVolumeName);
+        
+        _log.info(" 3PARDriver:createVolumeVirtualCopy uri = {} payload {} ",path,payload);
+        try {
+            clientResp = post(path, payload);
+            if (clientResp == null) {
+                _log.error("3PARDriver:There is no response from 3PAR");
+                throw new HP3PARException("There is no response from 3PAR");
+            } else if (clientResp.getStatus() != 201) {
+                String errResp = getResponseDetails(clientResp);
+                throw new HP3PARException(errResp);
+            } else {
+            	
+            	_log.info("3PARDriver:createVolumeSnapshot success");
+            	// below needed for multiple volume snashot creation
+                /*
+            	String responseString = clientResp.getEntity(String.class);
+                _log.info("3PARDriver:getVolumeDetails 3PAR response is {}", responseString);
+                VolumeDetailsCommandResult volResult = new Gson().fromJson(sanitize(responseString),
+                        VolumeDetailsCommandResult.class);
+                return volResult;
+                */
+            }
+        } catch (Exception e) {
+            throw e;
+        } finally {
+            if (clientResp != null) {
+                clientResp.close();
+            }
+            _log.info("3PARDriver:createVolumeVirtualCopy leave");
         } //end try/catch/finally
     }
 
@@ -465,6 +506,32 @@ public class HP3PARApi {
                 clientResp.close();
             }
             _log.info("3PARDriver:deleteVolume leave");
+        } //end try/catch/finally
+    }
+
+    public void deleteVolumeVirtualCopy(String name) throws Exception {
+        _log.info("3PARDriver: deleteVolumeVirtualCOpy enter");
+        ClientResponse clientResp = null;
+        final String path = MessageFormat.format(URI_DELETE_VOLUME_SNAPSHOT, name);
+
+        try {
+            clientResp = delete(path);
+            if (clientResp == null) {
+                _log.error("3PARDriver:There is no response from 3PAR");
+                throw new HP3PARException("There is no response from 3PAR");
+            } else if (clientResp.getStatus() != 200) {
+                String errResp = getResponseDetails(clientResp);
+                throw new HP3PARException(errResp);
+            } else {
+                _log.info("3PARDriver: deleteVolumeVirtualCOpy success");
+            }
+        } catch (Exception e) {
+            throw e;
+        } finally {
+            if (clientResp != null) {
+                clientResp.close();
+            }
+            _log.info("3PARDriver: deleteVolumeVirtualCOpy leave");
         } //end try/catch/finally
     }
 

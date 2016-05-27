@@ -33,6 +33,7 @@ public abstract class PassThrouhParam {
 
 	
 	private Map<String, String> passThrouhParams ;
+	private String exportPassThroughParam ;
 
 	
 	public PassThrouhParam() {
@@ -42,17 +43,30 @@ public abstract class PassThrouhParam {
     public PassThrouhParam(Map<String, String> passThrouhParams) {
     	this.passThrouhParams = passThrouhParams;
 	}
+    
+    public PassThrouhParam(String exportPassThroughParam) {
+    	this.exportPassThroughParam = exportPassThroughParam;
+	}
 
  	@XmlElement(name="passthrouh_params")
 	public Map<String, String> getPassThrouhParams() {
 		return passThrouhParams;
 	}
+ 	
+ 	@XmlElement(name="exportPassThroughParam")
+	public String getExportPassThroughParam() {
+		return exportPassThroughParam;
+	}
 
 	public void setPassThrouhParams(Map<String, String> passThrouhParams) {
 		this.passThrouhParams = passThrouhParams;
 	}
+	
+	public void setExportPassThroughParam(String exportPassThroughParam) {
+		this.exportPassThroughParam = exportPassThroughParam;
+	}
 	 
-	abstract void reverseMapPassThroughParams();
+	abstract public void reverseMapPassThroughParams();
 
 
 }

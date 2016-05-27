@@ -53,6 +53,14 @@ public class Initiator extends StorageObject {
     }
 
     /**
+     * Type of host OS.
+     */
+    private HostOsType hostOsType;
+    public static enum HostOsType {
+        Windows, HPUX, Linux, Esx, AIX, AIXVIO, SUNVCS, No_OS, Other
+    }
+
+    /**
      * The FQDN of the initiator host.
      */
     private String hostName;
@@ -137,6 +145,14 @@ public class Initiator extends StorageObject {
 
     public void setNetworkId(String networkId) {
         this.networkId = networkId;
+    }
+
+    public HostOsType getHostOsType() {
+        return hostOsType;
+    }
+
+    public void setHostOsType(HostOsType hostOsType) {
+        this.hostOsType = hostOsType;
     }
 
     @Override

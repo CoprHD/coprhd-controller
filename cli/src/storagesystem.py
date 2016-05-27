@@ -78,8 +78,8 @@ class StorageSystem(object):
         'xtremio',
         'ibmxiv',
         'vnxe',
-        'ceph']
-        'unity',
+        'ceph',
+        'unity']
 
     FILE_SYSTEM_LIST = [
         'isilon',

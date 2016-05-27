@@ -3522,8 +3522,12 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             ProtectionSystem rpSystem = _dbClient.queryObject(ProtectionSystem.class, rpSystemId);
             RecoverPointClient rp = RPHelper.getRecoverPointClient(rpSystem);
 
+            Volume tempVol = null;
             for (URI volumeId : volumeIds) {
                 Volume volume = _dbClient.queryObject(Volume.class, volumeId);
+                if (tempVol == null) {
+                    tempVol = volume;
+                }
                 RecoverPointVolumeProtectionInfo volumeProtectionInfo = rp.getProtectionInfoForVolume(RPHelper.getRPWWn(volume.getId(),
                         _dbClient));
                 // Get the volume's source volume in order to determine if we are dealing with a MetroPoint
@@ -3535,6 +3539,18 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 volumeProtectionInfoList.add(volumeProtectionInfo);
 
                 replicationSetNames.add(volume.getRSetName());
+            }
+            
+            // lock around create and delete operations on the same CG
+            if (tempVol != null) {
+                List<String> lockKeys = new ArrayList<String>();
+                lockKeys.add(ControllerLockingUtil.getConsistencyGroupStorageKey(_dbClient, tempVol.getConsistencyGroup(), rpSystemId));
+                boolean lockAcquired = _workflowService.acquireWorkflowStepLocks(token, lockKeys, LockTimeoutValue.get(LockType.RP_CG));
+                if (!lockAcquired) {
+                    BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, tempVol.getConsistencyGroup());
+                    throw DeviceControllerException.exceptions.failedToAcquireLock(lockKeys.toString(),
+                            String.format("Delete or remove volumes from RP consistency group %s", cg.getCgNameOnStorageSystem(rpSystemId)));
+                }
             }
 
             if (!volumeProtectionInfoList.isEmpty()) {

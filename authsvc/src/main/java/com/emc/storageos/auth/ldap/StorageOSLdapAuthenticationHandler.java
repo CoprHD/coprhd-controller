@@ -81,25 +81,18 @@ public class StorageOSLdapAuthenticationHandler implements
      * @return
      */
     private boolean doAuthentication(UsernamePasswordCredentials credentials) {
-        boolean authResult = false;
-
         List<LdapOrADServer> connectedServers = _ldapServers.getConnectedServers();
         for (LdapOrADServer server : connectedServers) {
             try {
-                authResult = doAuthenticationOverSingleServer(server, credentials);
-            } catch (CommunicationException e) {
+                return doAuthenticationOverSingleServer(server, credentials);
+            } catch (CommunicationException e) { // Continue only if communicate issue happens on last server
                 _failureHandler.handle(_ldapServers, server);
                 _alertLog.error(MessageFormat.format("Connection to LDAP server {0} failed for domain(s) {1}. {2}",
                         Arrays.toString(server.getContextSource().getUrls()), _domains, e.getMessage()));
             }
         }
 
-        if (connectedServers.isEmpty()) { // All servers are disconnected
-            throw UnauthorizedException.unauthorized.ldapCommunicationException();
-        }
-
-        // Finally return result;
-        return authResult;
+        throw UnauthorizedException.unauthorized.ldapCommunicationException();
     }
 
     private boolean doAuthenticationOverSingleServer(LdapOrADServer server, UsernamePasswordCredentials usernamePasswordCredentials) {

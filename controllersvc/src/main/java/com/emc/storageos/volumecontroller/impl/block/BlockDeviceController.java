@@ -2232,12 +2232,13 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 snapSession.setProject(blockSnapshot.getProject());
                 snapSession.setStorageController(storage);
                 snapSession.addInternalFlags(Flag.INTERNAL_OBJECT);
-                if (NullColumnValueGetter.isNullURI(cgURI)) {
-                    snapSession.setParent(new NamedURI(blockSnapshot.getId(), blockSnapshot.getLabel()));
-                } else {
+
+                if (!NullColumnValueGetter.isNullURI(cgURI) && NullColumnValueGetter.isNotNullValue(replicationGroupName)) {
                     snapSession.setConsistencyGroup(cgURI);
                     snapSession.setReplicationGroupInstance(replicationGroupName);
                     snapSession.setSessionSetName(replicationGroupName);
+                } else {
+                    snapSession.setParent(new NamedURI(blockSnapshot.getId(), blockSnapshot.getLabel()));
                 }
                 snapSession.setLinkedTargets(linkedTargets);
                 _dbClient.createObject(snapSession);
@@ -2260,13 +2261,15 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 // is group operation the source target group will be linked to the created
                 // group session.
                 Workflow.Method linkMethod;
-                if (NullColumnValueGetter.isNullURI(cgURI)) {
-                    linkMethod = linkBlockSnapshotSessionTargetMethod(storage, snapSessionURI, sourceSnapshotURIs.get(0),
-                            BlockSnapshotSession.CopyMode.copy.name(), Boolean.TRUE);
-                } else {
+
+                if (!NullColumnValueGetter.isNullURI(cgURI) && NullColumnValueGetter.isNotNullValue(replicationGroupName)) {
                     linkMethod = linkBlockSnapshotSessionTargetGroupMethod(storage, snapSessionURI, sourceSnapshotURIs,
                             BlockSnapshotSession.CopyMode.copy.name(), Boolean.TRUE);
+                } else {
+                    linkMethod = linkBlockSnapshotSessionTargetMethod(storage, snapSessionURI, sourceSnapshotURIs.get(0),
+                            BlockSnapshotSession.CopyMode.copy.name(), Boolean.TRUE);
                 }
+
                 waitFor = workflow.createStep(
                         LINK_SNAPSHOT_SESSION_TARGET_STEP_GROUP,
                         String.format("Link source volume %s to snapshot session for snapshot target volume %s", volume, snapshot),

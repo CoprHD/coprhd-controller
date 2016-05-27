@@ -133,7 +133,8 @@ public class VolumeWWNUtils {
         } else if (actualLength > partialLength) {
             if (actual.toLowerCase().endsWith(partial.toLowerCase())) {
                 return true;
-            } else if (partialLength == PARTIAL_WWN_LENGTH && actual.toLowerCase().contains(partial)) {
+            } else if (partialLength == PARTIAL_WWN_LENGTH &&
+                    actual.toLowerCase().contains(partial.toLowerCase())) {
                 return true;
             }
         }

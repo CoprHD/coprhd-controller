@@ -29,9 +29,13 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.ControllerLockingService;
+import com.emc.storageos.volumecontroller.TaskCompleter;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.block.BlockDeviceController;
 import com.emc.storageos.volumecontroller.impl.block.ReplicaDeviceController;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotRestoreCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotSessionCreateWorkflowCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneCreateWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneRestoreCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeCreateWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeVarrayChangeTaskCompleter;
@@ -60,6 +64,8 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
     static final String CHANGE_VPOOL_WF_NAME = "CHANGE_VPOOL_WORKFLOW";
     static final String CHANGE_VARRAY_WF_NAME = "CHANGE_VARRAY_WORKFLOW";
     static final String RESTORE_FROM_FULLCOPY_WF_NAME = "RESTORE_FROM_FULLCOPY_WORKFLOW";
+    static final String CREATE_FULL_COPIES_WF_NAME = "CREATE_FULL_COPIES_WORKFLOW";
+    static final String CREATE_SNAPSHOT_SESSION_WF_NAME = "CREATE_SNAPSHOT_SESSION_WORKFLOW";
 
     /*
      * (non-Javadoc)
@@ -635,4 +641,115 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
             completer.error(s_dbClient, _locker, serviceError);
         }
     }
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationController#createFullCopy(java.util.List, java.lang.String)
+     */
+    @Override
+    public void createFullCopy(List<VolumeDescriptor> volumeDescriptors, String taskId) throws InternalException {
+        List<URI> volUris = VolumeDescriptor.getVolumeURIs(volumeDescriptors);
+        TaskCompleter completer = new CloneCreateWorkflowCompleter(volUris, taskId);
+        Workflow workflow = null;
+        
+        List<VolumeDescriptor> blockVolmeDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
+                new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_DATA, VolumeDescriptor.Type.VPLEX_IMPORT_VOLUME },
+                new VolumeDescriptor.Type[] {});
+        List<URI> blockVolUris = VolumeDescriptor.getVolumeURIs(blockVolmeDescriptors);
+        ControllerUtils.checkCloneConsistencyGroup(blockVolUris.get(0), getDbClient(), completer);
+        
+        try {
+            // Generate the Workflow.
+            workflow = _workflowService.getNewWorkflow(this,
+                    CREATE_FULL_COPIES_WF_NAME, false, taskId);
+            String waitFor = null;    // the wait for key returned by previous call
+
+            s_logger.info("Adding steps for RecoverPoint create full copy");
+            // Call the RPDeviceController to add its methods if there are RP protections
+            waitFor = _rpDeviceController.addStepsForPreCreateReplica(
+                    workflow, waitFor, volumeDescriptors, taskId);
+
+            s_logger.info("Adding steps for storage array create full copies");
+            // First, call the BlockDeviceController to add its methods.
+            waitFor = _blockDeviceController.addStepsForCreateFullCopy(
+                    workflow, waitFor, volumeDescriptors, taskId);
+            
+            // post recoverpoint steps disables image access which should be done after the 
+            // create clone steps but before the vplex steps.
+            s_logger.info("Adding steps for RecoverPoint post create full copy");
+            // Call the RPDeviceController to add its methods if there are RP protections
+            waitFor = _rpDeviceController.addStepsForPostCreateReplica(
+                    workflow, waitFor, volumeDescriptors, taskId);
+
+            s_logger.info("Checking for VPLEX steps");
+            // Call the VPlexDeviceController to add its methods if there are VPLEX volumes.
+            waitFor = _vplexDeviceController.addStepsForCreateFullCopy(
+                    workflow, waitFor, volumeDescriptors, taskId);
+
+            // Finish up and execute the plan.
+            // The Workflow will handle the TaskCompleter
+            String successMessage = "Create volumes successful for: " + volUris.toString();
+            Object[] callbackArgs = new Object[] { volUris };
+            workflow.executePlan(completer, successMessage, new WorkflowCallback(), callbackArgs, null, null);
+        } catch (Exception ex) {
+            s_logger.error("Could not create full copy volumes: " + volUris, ex);
+            releaseWorkflowLocks(workflow);
+            String opName = ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME.getName();
+            ServiceError serviceError = DeviceControllerException.errors.createVolumesFailed(
+                    volUris.toString(), opName, ex);
+            completer.error(s_dbClient, _locker, serviceError);
+        }
+    }
+
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationController#createSnapshotSession(java.util.List, java.lang.String)
+     */
+    @Override
+    public void createSnapshotSession(List<VolumeDescriptor> volumeDescriptors, String taskId) throws InternalException {
+        
+        Workflow workflow = null;
+        
+        List<VolumeDescriptor> snapshotSessionDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
+                new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_SNAPSHOT_SESSION },
+                new VolumeDescriptor.Type[] {});
+        List<URI> snapshotSessionURIs = VolumeDescriptor.getVolumeURIs(snapshotSessionDescriptors);
+        
+        // we expect just one snapshot session volume descriptor per create snapshot session operation
+        TaskCompleter completer = new BlockSnapshotSessionCreateWorkflowCompleter(snapshotSessionURIs.get(0), snapshotSessionDescriptors.get(0).getSnapSessionSnapshotURIs(), taskId);
+        ControllerUtils.checkSnapshotSessionConsistencyGroup(snapshotSessionURIs.get(0), getDbClient(), completer);
+        
+        try {
+            // Generate the Workflow.
+            workflow = _workflowService.getNewWorkflow(this,
+                    CREATE_SNAPSHOT_SESSION_WF_NAME, false, taskId);
+            String waitFor = null;    // the wait for key returned by previous call
+
+            s_logger.info("Adding steps for RecoverPoint create snapshot session");
+            // Call the RPDeviceController to add its methods if there are RP protections
+            waitFor = _rpDeviceController.addStepsForPreCreateReplica(
+                    workflow, waitFor, volumeDescriptors, taskId);
+
+            s_logger.info("Adding steps for storage array create snapshot session");
+            // First, call the BlockDeviceController to add its methods.
+            waitFor = _blockDeviceController.addStepsForCreateSnapshotSession(
+                    workflow, waitFor, volumeDescriptors, taskId);
+            
+            s_logger.info("Adding steps for RecoverPoint post create snapshot session");
+            // Call the RPDeviceController to add its methods if there are RP protections
+            waitFor = _rpDeviceController.addStepsForPostCreateReplica(
+                    workflow, waitFor, volumeDescriptors, taskId);
+
+            // Finish up and execute the plan.
+            // The Workflow will handle the TaskCompleter
+            String successMessage = "Create volumes successful for: " + snapshotSessionURIs.toString();
+            Object[] callbackArgs = new Object[] { snapshotSessionURIs };
+            workflow.executePlan(completer, successMessage, new WorkflowCallback(), callbackArgs, null, null);
+        } catch (Exception ex) {
+            s_logger.error("Could not create snapshot session: " + snapshotSessionURIs, ex);
+            releaseWorkflowLocks(workflow);
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(ex);
+            completer.error(s_dbClient, _locker, serviceError);
+        }
+    }
+        
 }

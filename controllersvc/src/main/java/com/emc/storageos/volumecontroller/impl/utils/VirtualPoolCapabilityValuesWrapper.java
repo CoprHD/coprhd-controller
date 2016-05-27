@@ -59,6 +59,10 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
     public static final String META_VOLUME_MEMBER_SIZE = "metaVolumeMemberSize";
     public static final String META_VOLUME_MEMBER_COUNT = "metaVolumeMemberCount";
     public static final String META_VOLUME_TYPE = "metaVolumeType";
+    
+    // replica options
+    public static final String REPLICA_CREATE_INACTIVE = "replicaActiveInactiveMode";
+    public static final String SNAPSHOT_SESSION_COPY_MODE = "snapshotSessionCopyMode";
 
     private final Map<String, Object> _vpoolCapabilities = new HashMap<String, Object>();
 
@@ -363,6 +367,16 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
 
     public String getFileTargetCopyName() {
         Object value = _vpoolCapabilities.get(FILE_TARGET_COPY_NAME);
+        return value != null ? (String) value : null;
+    }
+
+    public String getReplicaCreateInactive() {
+        Object value = _vpoolCapabilities.get(REPLICA_CREATE_INACTIVE);
+        return value != null ? (String) value : null;
+    }
+    
+    public String getSnapshotSessionCopyMode() {
+        Object value = _vpoolCapabilities.get(SNAPSHOT_SESSION_COPY_MODE);
         return value != null ? (String) value : null;
     }
 

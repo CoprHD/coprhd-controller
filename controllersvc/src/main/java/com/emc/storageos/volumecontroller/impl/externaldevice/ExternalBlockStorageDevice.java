@@ -460,14 +460,30 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
     public void doCreateClone(StorageSystem storageSystem, URI volume, URI clone, Boolean createInactive,
                               TaskCompleter taskCompleter) {
         Volume cloneObject = null;
-        try {//gd
-            cloneObject = dbClient.queryObject(Volume.class, clone);
-            Volume sourceVolume = dbClient.queryObject(Volume.class, volume);
+        try {
+        	cloneObject = dbClient.queryObject(Volume.class, clone);
+            VolumeClone.SourceType sourceType;
+            BlockObject sourceVolume = dbClient.queryObject(BlockObject.class, volume);
+            if (sourceVolume instanceof Volume) {
+                sourceType = VolumeClone.SourceType.VOLUME;
+            } else if (sourceVolume instanceof BlockSnapshot) {
+                sourceType = VolumeClone.SourceType.SNAPSHOT;
+           } else {
+                cloneObject.setInactive(true);
+                dbClient.updateObject(cloneObject);
+                String errorMsg = String.format("doCreateClone -- Failed to create volume clone: unexpected source type %s .",
+                        sourceVolume.getClass().getSimpleName());
+                _log.error(errorMsg);
+                ServiceError serviceError = ExternalDeviceException.errors.createVolumeCloneFailed("doCreateClone", errorMsg);
+                taskCompleter.error(dbClient, serviceError);
+                return;
+            }
 
             List<VolumeClone> driverClones = new ArrayList<>();
             // Prepare driver clone
             VolumeClone driverClone = new VolumeClone();
             driverClone.setParentId(sourceVolume.getNativeId());
+            driverClone.setSourceType(sourceType);
             driverClone.setStorageSystemId(storageSystem.getNativeId());
             driverClone.setDisplayName(cloneObject.getLabel());
             driverClone.setRequestedCapacity(cloneObject.getCapacity());

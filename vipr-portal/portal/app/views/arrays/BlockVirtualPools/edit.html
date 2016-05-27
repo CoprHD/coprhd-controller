@@ -204,7 +204,7 @@
         </collapse>
       </div>
 
-      <div ng-if="vpool.systemType != '${models.StorageSystemTypes.SCALEIO}' && vpool.systemType != '${models.StorageSystemTypes.IBMXIV}'">
+      <div ng-if="vpool.systemType != '${models.StorageSystemTypes.SCALEIO}'">
         <collapse title-key='vpool.group.highAvailability' icon='globe'>
           <control-group v-field='vpool.highAvailability'>
             <select-one options=highAvailabilityOptions auto-default empty-option="none"></select-one>

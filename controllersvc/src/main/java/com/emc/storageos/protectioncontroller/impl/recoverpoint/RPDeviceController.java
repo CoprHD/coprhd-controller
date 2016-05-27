@@ -3522,11 +3522,11 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             ProtectionSystem rpSystem = _dbClient.queryObject(ProtectionSystem.class, rpSystemId);
             RecoverPointClient rp = RPHelper.getRecoverPointClient(rpSystem);
 
-            Volume tempVol = null;
+            Set<URI> cgUris = new HashSet<URI>();
             for (URI volumeId : volumeIds) {
                 Volume volume = _dbClient.queryObject(Volume.class, volumeId);
-                if (tempVol == null) {
-                    tempVol = volume;
+                if (volume != null && !volume.getInactive() && !NullColumnValueGetter.isNullURI(volume.getConsistencyGroup())) {
+                    cgUris.add(volume.getConsistencyGroup());
                 }
                 RecoverPointVolumeProtectionInfo volumeProtectionInfo = rp.getProtectionInfoForVolume(RPHelper.getRPWWn(volume.getId(),
                         _dbClient));
@@ -3542,14 +3542,15 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             }
             
             // lock around create and delete operations on the same CG
-            if (tempVol != null) {
-                List<String> lockKeys = new ArrayList<String>();
-                lockKeys.add(ControllerLockingUtil.getConsistencyGroupStorageKey(_dbClient, tempVol.getConsistencyGroup(), rpSystemId));
+            List<String> lockKeys = new ArrayList<String>();
+            for (URI cgUri : cgUris) {
+                lockKeys.add(ControllerLockingUtil.getConsistencyGroupStorageKey(_dbClient, cgUri, rpSystemId));
+            }
+            if (!lockKeys.isEmpty()) {
                 boolean lockAcquired = _workflowService.acquireWorkflowStepLocks(token, lockKeys, LockTimeoutValue.get(LockType.RP_CG));
                 if (!lockAcquired) {
-                    BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, tempVol.getConsistencyGroup());
                     throw DeviceControllerException.exceptions.failedToAcquireLock(lockKeys.toString(),
-                            String.format("Delete or remove volumes from RP consistency group %s", cg.getCgNameOnStorageSystem(rpSystemId)));
+                            String.format("Delete or remove volumes from RP consistency group(s) %s", StringUtils.join(cgUris, ",")));
                 }
             }
 

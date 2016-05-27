@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2016 EMC Corporation
+ * All Rights Reserved
+ */
+
 package models.datatable;
 
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeRestRep;

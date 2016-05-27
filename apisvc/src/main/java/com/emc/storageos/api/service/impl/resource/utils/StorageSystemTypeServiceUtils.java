@@ -1,5 +1,10 @@
-package com.emc.storageos.api.service.impl.resource.utils;
+/*
+ * Copyright (c) 2016 EMC Corporation
+ * All Rights Reserved
+ */
 
+
+package com.emc.storageos.api.service.impl.resource.utils;
 
 import java.util.HashMap;
 

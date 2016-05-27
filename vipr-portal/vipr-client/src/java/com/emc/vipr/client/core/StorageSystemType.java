@@ -1,12 +1,11 @@
+/*
+ * Copyright (c) 2016 EMC Corporation
+ * All Rights Reserved
+ */
+
 package com.emc.vipr.client.core;
 
-import java.io.File;
-import java.io.InputStream;
-
-import javax.ws.rs.core.Response;
 import com.sun.jersey.multipart.MultiPart;
-import com.sun.jersey.multipart.file.StreamDataBodyPart;
-
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeAddParam;
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeList;
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeRestRep;

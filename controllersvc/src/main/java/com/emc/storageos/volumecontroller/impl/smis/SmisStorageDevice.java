@@ -595,6 +595,9 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             MultiVolumeTaskCompleter multiVolumeTaskCompleter = (MultiVolumeTaskCompleter) taskCompleter;
             Set<CIMInstance> parkingSLOStorageGroups = new HashSet<>();
             Set<Volume> cloneVolumes = new HashSet<Volume>();
+
+            _helper.callRefreshSystem(storageSystem, null, false);
+
             for (Volume volume : volumes) {
                 logMsgBuilder.append(String.format("%nVolume:%s", volume.getLabel()));
                 if (storageSystem.checkIfVmax3()) {

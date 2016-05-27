@@ -220,11 +220,11 @@ public class BlockVolumes extends ResourceController {
 
         VolumeRestRep volume = client.blockVolumes().get(uri(volumeId));
 
-        URI consistencygroup = volume.getConsistencyGroup().getId();
-
         List<BlockSnapshotSessionRestRep> snapshotSessions = Lists.newArrayList();
 
         if (volume.getConsistencyGroup() != null) {
+            
+            URI consistencygroup = volume.getConsistencyGroup().getId();
 
             List<NamedRelatedResourceRep> cgSessions = client.blockConsistencyGroups().getSnapshotSessions(consistencygroup);
 

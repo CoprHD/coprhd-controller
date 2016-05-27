@@ -2232,12 +2232,13 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 snapSession.setProject(blockSnapshot.getProject());
                 snapSession.setStorageController(storage);
                 snapSession.addInternalFlags(Flag.INTERNAL_OBJECT);
-                if (NullColumnValueGetter.isNullURI(cgURI)) {
-                    snapSession.setParent(new NamedURI(blockSnapshot.getId(), blockSnapshot.getLabel()));
-                } else {
+
+                if (!NullColumnValueGetter.isNullURI(cgURI) && NullColumnValueGetter.isNotNullValue(replicationGroupName)) {
                     snapSession.setConsistencyGroup(cgURI);
                     snapSession.setReplicationGroupInstance(replicationGroupName);
                     snapSession.setSessionSetName(replicationGroupName);
+                } else {
+                    snapSession.setParent(new NamedURI(blockSnapshot.getId(), blockSnapshot.getLabel()));
                 }
                 snapSession.setLinkedTargets(linkedTargets);
                 _dbClient.createObject(snapSession);

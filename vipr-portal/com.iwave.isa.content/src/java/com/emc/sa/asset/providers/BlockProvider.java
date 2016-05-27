@@ -685,7 +685,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         for (URI id: copyIds) {
             copies.add(client.blockVolumes().getContinuousCopy(volume, id));
         }
-        return createVolumeWithVarrayOptions(client, copies);
+        return createVolumeOptions(client, copies);
     }
 
     @Asset("vplexVolumeWithSnapshots")
@@ -2771,8 +2771,13 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     private static String getBlockObjectLabel(ViPRCoreClient client, BlockObjectRestRep blockObject, Map<URI, VolumeRestRep> volumeNames) {
         if (blockObject instanceof VolumeRestRep) {
-            VolumeRestRep volume = (VolumeRestRep) blockObject;
-            return getMessage("block.volume", volume.getName(), volume.getProvisionedCapacity());
+            if (blockObject instanceof BlockMirrorRestRep) {
+                BlockMirrorRestRep mirror = (BlockMirrorRestRep) blockObject;
+                return getMessage("block.mirror", mirror.getName());
+            } else {
+                VolumeRestRep volume = (VolumeRestRep) blockObject;
+                return getMessage("block.volume", volume.getName(), volume.getProvisionedCapacity());
+            }
         }
         else if (blockObject instanceof BlockSnapshotRestRep) {
             BlockSnapshotRestRep snapshot = (BlockSnapshotRestRep) blockObject;
@@ -2782,10 +2787,6 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             BlockSnapshotSessionRestRep snapshotSession = (BlockSnapshotSessionRestRep) blockObject;
             return getMessage("block.snapshotsession.label", snapshotSession.getName(),
                     getBlockSnapshotSessionParentVolumeName(volumeNames, snapshotSession));
-        }
-        else if (blockObject instanceof BlockMirrorRestRep) {
-            BlockMirrorRestRep mirror = (BlockMirrorRestRep) blockObject;
-            return getMessage("block.volume", mirror.getName(), mirror.getProvisionedCapacity());
         }
         return blockObject.getName();
     }

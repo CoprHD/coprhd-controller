@@ -1535,10 +1535,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         List<ExportRule> exportsToModify = new ArrayList<>();
         List<ExportRule> exportsToAdd = new ArrayList<>();
 
-        // ALL EXPORTS
-        List<ExportRule> exportsToProcess = args.getExistingDBExportRules();
-        Map<String, ArrayList<ExportRule>> existingExportsMapped = new HashMap();
-
         // Calculate Export Path
         String exportPath;
         String subDir = args.getSubDirectory();
@@ -1561,57 +1557,36 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         _log.info("exportPath : {}", exportPath);
         args.setExportPath(exportPath);
 
-        if (exportsToProcess == null) {
-            exportsToProcess = new ArrayList<>();
-        }
-
-        // Process Exports
-        for (ExportRule existingRule : exportsToProcess) {
-            ArrayList<ExportRule> exps = existingExportsMapped.get(existingRule.getExportPath());
-            if (exps == null) {
-                exps = new ArrayList<>();
-            }
-            exps.add(existingRule);
-            _log.info("Checking existing export for {} : exps : {}", existingRule.getExportPath(), exps);
-            existingExportsMapped.put(existingRule.getExportPath(), exps);
-        }
-
-        // Handle Add export Rules
-        if (exportAdd != null && !exportAdd.isEmpty()) {
-            // Check for existing exports for the export path including
-            // subdirectory
-            ArrayList<ExportRule> exps = existingExportsMapped.get(exportPath);
-            if (exps != null && !exps.isEmpty()) {
-                _log.error(
-                        "Adding export rules is not supported as there can be only one export rule for Isilon for a path.");
-                ServiceError error = DeviceControllerErrors.isilon
-                        .jobFailed("updateExportRules : Adding export rule is not supported for Isilon");
-                return BiosCommandResult.createErrorResult(error);
+        // ALL EXPORTS
+        List<ExportRule> existingDBExportRule = args.getExistingDBExportRules();
+        List<ExportRule> exportsToprocess = new ArrayList<>();
+        for (ExportRule rule : existingDBExportRule) {
+            if (rule.getExportPath().equalsIgnoreCase(exportPath)) {
+                exportsToprocess.add(rule);
             }
         }
 
-        _log.info("Number of existing Rules found {}", exportsToProcess.size());
-
+        _log.info("Number of existing Rules found {} for exportPath {}", exportsToprocess.size(), exportPath);
         // Isilon have separate entry for read only and read/write host list
         // if we want to modify export from host H1 with permission read to H2
         // with read/write. then need to delete the entry from read
         // list and add to read/Write list.
-        if (existingExportsMapped.get(exportPath) != null && !existingExportsMapped.get(exportPath).isEmpty()) {
+        if (!exportsToprocess.isEmpty() && !exportAdd.isEmpty()) {
             if (exportModify != null && !exportModify.isEmpty()) {
-                for (ExportRule existingRule : existingExportsMapped.get(exportPath)) {
+                for (ExportRule existingRule : exportsToprocess) {
                     for (ExportRule newExportRule : exportModify) {
+                        // <TODO>
+                        // List of sec type and compare both list of sec!!
                         if (newExportRule.getSecFlavor().equals(existingRule.getSecFlavor())) {
-
                             newExportRule.setDeviceExportId(existingRule.getDeviceExportId());
                             exportsToModify.add(newExportRule);
-
                         }
                     }
                 }
             }
             // Handle Delete export Rules
             if (exportDelete != null && !exportDelete.isEmpty()) {
-                for (ExportRule existingRule : existingExportsMapped.get(exportPath)) {
+                for (ExportRule existingRule : exportsToprocess) {
                     for (ExportRule oldExport : exportDelete) {
                         if (oldExport.getSecFlavor().equals(existingRule.getSecFlavor())) {
                             _log.info("Deleting Export Rule {}", existingRule);
@@ -1620,19 +1595,11 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     }
                 }
             }
-
             // No of exports found to remove from the list
             _log.info("No of exports found to remove from the existing exports list {}", exportsToRemove.size());
-            exportsToProcess.removeAll(exportsToRemove);
-
-        } else {
-
-            if (exportsToProcess == null) {
-                exportsToProcess = new ArrayList<>();
-            }
+            exportsToprocess.removeAll(exportsToRemove);
 
             // Handle Add Export Rules
-            // This is valid only if no rules to modify exists
             if (exportAdd != null && !exportAdd.isEmpty()) {
                 for (ExportRule newExport : exportAdd) {
                     _log.info("Add Export Rule {}", newExport);
@@ -1640,7 +1607,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                     exportsToAdd.add(newExport);
                 }
             }
-            exportsToProcess.addAll(exportAdd);
+            exportsToprocess.addAll(exportAdd);
         }
 
         // Process Mods

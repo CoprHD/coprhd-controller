@@ -945,10 +945,10 @@ public class SchemaUtil {
                     insertVdcVersion(dbClient);
                     // insert local user's password history if not exist for local db
                     insertPasswordHistory(dbClient);
-                }
-                // Check if we have native Storage System in DB
-                if (!checkForStorageSystemType(dbClient)) {
-                    StorageSystemTypesInitUtils.InitializeStorageSystemTypes(dbClient);
+                    // Check if we have native Storage System in DB
+                    if (!checkForStorageSystemType(dbClient)) {
+                        StorageSystemTypesInitUtils.InitializeStorageSystemTypes(dbClient);
+                    }
                 }
 
                 done = true;

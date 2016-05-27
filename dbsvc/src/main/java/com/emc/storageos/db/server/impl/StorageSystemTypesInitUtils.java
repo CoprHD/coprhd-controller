@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2016 EMC Corporation
+ * All Rights Reserved
+ */
+
 package com.emc.storageos.db.server.impl;
 
 import static java.util.Arrays.asList;
@@ -59,7 +64,7 @@ public class StorageSystemTypesInitUtils {
         dsslMap.put(IBMXIV, true);
     }
 
-    public static void initializeDisplayName(HashMap<String, String> nameDisplayNameMap) {
+    private static void initializeDisplayName(HashMap<String, String> nameDisplayNameMap) {
         nameDisplayNameMap.put(VNX_FILE, "EMC VNX File");
         nameDisplayNameMap.put(ISILON, "EMC Isilon");
         nameDisplayNameMap.put(NETAPP, "NetApp 7-mode");

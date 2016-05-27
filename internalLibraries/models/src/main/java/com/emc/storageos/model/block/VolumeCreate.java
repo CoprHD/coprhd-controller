@@ -183,7 +183,7 @@ public class VolumeCreate extends PassThrouhParam{
     }
 
 	@Override
-        void reverseMapPassThroughParams() {
+        public void reverseMapPassThroughParams() {
 
 
         }

@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.model.block.export;
 
+import com.emc.storageos.model.block.PassThrouhParam;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
@@ -20,7 +21,7 @@ import com.emc.storageos.model.valid.Length;
  * Parameter for block export creation.
  */
 @XmlRootElement(name = "block_export_create")
-public class ExportCreateParam {
+public class ExportCreateParam extends PassThrouhParam{
 
     private URI project;
     private URI varray;
@@ -45,6 +46,17 @@ public class ExportCreateParam {
         this.project = project;
         this.varray = varray;
         this.name = name;
+        this.type = type;
+        this.volumes = volumes;
+        this.initiators = initiators;
+        this.hosts = hosts;
+        this.clusters = clusters;
+    }
+    
+    public ExportCreateParam(String name, String type, List<VolumeParam> volumes, List<URI> initiators, List<URI> hosts,
+            List<URI> clusters, String exportPassThroughParam) {
+        super(exportPassThroughParam);
+    	this.name = name;
         this.type = type;
         this.volumes = volumes;
         this.initiators = initiators;
@@ -199,5 +211,9 @@ public class ExportCreateParam {
 
     public void setExportPathParameters(ExportPathParameters pathParam) {
         this.exportPathParameters = pathParam;
+    }
+    
+    public void reverseMapPassThroughParams() {
+    	int i = 1+2;
     }
 }

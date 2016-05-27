@@ -137,7 +137,50 @@ public class BlockStorageScheduler {
         }
         return assignmentMap;
     }
-
+    
+    /**
+     * Invoke placement to select storage ports for export, and then
+     * to assign specific storage ports to specific initiators.
+     * 
+     * Note: This method returns only new assignments but validates minPaths
+     * for all assignments(existing and new).
+     * 
+     * @param storage
+     * @param initiators - The new initiators to be provisioned.
+     * @param pathParams - the Export Path parameters (maxPaths, pathsPerInitiator)
+     * @param existingZoningMap the zones that already exist on the mask plus any new mapping added
+     *            by assigning pre-zoned ports.
+     * @param volumeURIs the URIs of the volumes in the mask
+     * @return Map<URI, List<URI> map of Initiator URIs to list of StoragePort URIs to be used by Initiator
+     * @throws DeviceControllerException if there is an unexpected error
+     * @throws PlacementException if we were unable to meet the placement constraints (such as minPaths.)
+     */
+    public Map<URI, List<URI>> assignPassThroughStoragePorts(StorageSystem storage,
+            List<Initiator> initiators,
+            ExportPathParams pathParams,
+            StringSetMap existingZoningMap,
+            Collection<URI> volumeURIs) throws DeviceControllerException {
+        Map<URI, List<URI>> assignmentMap = null;
+        boolean backend = ExportMaskUtils.areBackendInitiators(initiators);
+        if (!allocateFromPassThroughPrezonedPortsOnly(storage.getSystemType(), backend)) {
+            try {
+            	assignmentMap = internalAssignPassThroughStoragePorts(storage,
+                        initiators, volumeURIs, pathParams, existingZoningMap);
+            } catch (PlacementException e) {
+                _log.error("Unable to assign storage Ports", e);
+                throw DeviceControllerException.exceptions.exceptionAssigningStoragePorts(e.getMessage(), e);
+            } catch (Exception e) {
+                _log.error("Unable to assign Storage Ports", e);
+                throw DeviceControllerException.exceptions.unexpectedExceptionAssigningPorts(e);
+            }
+        } else {
+            // assignment should be made solely based on pre-zoned ports
+            _log.info("Manual zoning is specified for this virtual array and the system configuration is to use "
+                    + "existing zones. Assign port storage will not add any additional ports.");
+            assignmentMap = new HashMap<URI, List<URI>>();
+        }
+        return assignmentMap;
+    }
     /**
      * Assigns storage ports to initiators.
      *
@@ -227,6 +270,62 @@ public class BlockStorageScheduler {
         // allocate ports balancing across networks and considering port metrics
         Map<NetworkLite, List<StoragePort>> allocatedPorts = allocatePorts(system,
                 varray, initiatorsByNetwork, portsByNetwork, volumeURIs, pathParams, existingZoningMap);
+
+        StoragePortsAssigner assigner = StoragePortsAssignerFactory.getAssigner(system.getSystemType());
+        Map<Initiator, List<StoragePort>> assignments = new HashMap<Initiator, List<StoragePort>>();
+        
+        // Call StoragePortsAssigner once per host to do the assignments
+        Map <URI, Map<URI, List<Initiator>>> hostsToNetToInitiators = 
+                getHostInitiatorsMapFromNetworkLite(initiatorsByNetwork);
+        Map<URI, List<StoragePort>> allocatedPortsMap = getAllocatedPortsMap(allocatedPorts);
+        
+        // For each host, assign the ports to the appropriate initiators.
+        for (URI hostURI : hostsToNetToInitiators.keySet()) {
+            assigner.assignPortsToHost(assignments, hostsToNetToInitiators.get(hostURI), 
+                    allocatedPortsMap, pathParams, existingAssignments, hostURI, initiatorsToNetworkLiteMap);
+            
+        }
+
+        // Validate that minPaths was met across all assignments (existing and new).
+        validateMinPaths(system, pathParams, existingAssignments, assignments, newInitiators);
+        return convertAssignmentsToURIs(assignments);
+    }
+    
+    /**
+     * Same as internalAssignStoragePorts (Allocates and assigns StoragePorts). We just don't need vArray.
+     * 
+     * @param system - The StorageSystem the ports will be assigned from.
+     * @param newInitiators - The new initiators to be provisioned.
+     * @param volumeURIs - list of volumes
+     * @param pathParams - Export path parameters (maxPaths, pathsPerInitiator)
+     * @param existingZoningMap - A map of initiators to a set of previously allocated port URI strings.
+     * @return Map<URI, List<URI>> Initiator URI to list of Target StoragePort URIs
+     */
+    private Map<URI, List<URI>> internalAssignPassThroughStoragePorts(StorageSystem system,
+            List<Initiator> newInitiators,
+            Collection<URI> volumeURIs,
+            ExportPathParams pathParams,
+            StringSetMap existingZoningMap) {
+
+        // Make reasonable defaults for the path parameters.
+        checkPathParams(pathParams, system);
+
+        _log.info(String.format("Assigning Ports for Array %s params %s",
+                system.getNativeGuid(),
+                pathParams.toString()));
+
+        // Get the existing assignments in object form.
+        Map<Initiator, List<StoragePort>> existingAssignments =
+                generatePassThroughInitiatorsToStoragePortsMap(existingZoningMap);
+        // Group the new initiators by their networks - filter out those not in a network 
+        Map<NetworkLite, List<Initiator>> initiatorsByNetwork = getInitiatorsByNetwork(newInitiators, existingZoningMap, _dbClient);
+        Map<Initiator, NetworkLite> initiatorsToNetworkLiteMap = getInitiatorToNetworkLiteMap(initiatorsByNetwork);
+        // Get the storage ports in the storage system that can be used in the initiators networks
+        Map<NetworkLite, List<StoragePort>> portsByNetwork =
+                selectPassThroughStoragePortsInNetworks(system.getId(), initiatorsByNetwork.keySet(), pathParams);
+        // allocate ports balancing across networks and considering port metrics
+        Map<NetworkLite, List<StoragePort>> allocatedPorts = allocatePassThroughPorts(system,
+                initiatorsByNetwork, portsByNetwork, volumeURIs, pathParams, existingZoningMap);
 
         StoragePortsAssigner assigner = StoragePortsAssignerFactory.getAssigner(system.getSystemType());
         Map<Initiator, List<StoragePort>> assignments = new HashMap<Initiator, List<StoragePort>>();
@@ -400,6 +499,132 @@ public class BlockStorageScheduler {
             // Allocate the storage ports.
             portsAllocated.put(network, allocatePortsFromNetwork(
                     system.getId(), network, varray, portsNeeded,
+                    portUsageMap.get(netURI), allocator, existingPortsMap.get(netURI),
+                    true));
+        }
+        return portsAllocated;
+    }
+    
+    /**
+     * Given a collection of storage ports on a storage system, a given list of initiators
+     * belonging to a host or cluster, and given an export for which some port may already
+     * be allocated ('add initiator' use case), apply the port selection algorithm to find
+     * the ports that should be used by (or 'added to' for 'add initiator' use case).
+     * 
+     * @param system the storage system of the export
+     * @param varray the export varray
+     * @param initiatorsByNetwork the initiators to which the ports will be assigned,
+     *            grouped by network
+     * @param portsByNetwork the ports from which the allocation will be made. Note
+     *            this function can be called to select ports from pre-zoned ports, in
+     *            which can be a subset of all the available ports on the storage system.
+     * @param volumeURIs all the export volumes, new and existing
+     * @param pathParams the export path parameter which accounts for the paths
+     *            requirement for all the volumes vpools.
+     * @param existingZoningMap existing allocations, null is no allocations exist.
+     * @return the selected ports to be used in the export.
+     * 
+     */
+    public Map<NetworkLite, List<StoragePort>> allocatePassThroughPorts(StorageSystem system,
+            Map<NetworkLite, List<Initiator>> initiatorsByNetwork,
+            Map<NetworkLite, List<StoragePort>> portsByNetwork,
+            Collection<URI> volumeURIs,
+            ExportPathParams pathParams,
+            StringSetMap existingZoningMap) {
+
+        // Make reasonable defaults for the path parameters.
+        checkPathParams(pathParams, system);
+
+        _log.info(String.format("Assigning Ports for Array %s params %s",
+                system.getNativeGuid(),
+                pathParams.toString()));
+
+        // Get the existing assignments in object form.
+        Map<Initiator, List<StoragePort>> existingAssignments =
+                generatePassThroughInitiatorsToStoragePortsMap(existingZoningMap);
+        // Get a map of Network URIs to Initiators for the existing Initiators.
+        Map<URI, Set<Initiator>> existingInitiatorsMap = generateNetworkToInitiatorsMap(existingAssignments, _dbClient);
+        // Get a map of Network URIs to StoragePorts for the existing Storage Ports.
+        Map<URI, Set<StoragePort>> existingPortsMap = generateNetworkToStoragePortsMap(existingAssignments, existingInitiatorsMap);
+
+        // Make Net to Initiators Map and URI to Network map.
+        Map<URI, List<Initiator>> net2InitiatorsMap = new HashMap<URI, List<Initiator>>();
+        Map<URI, NetworkLite> networkMap = new HashMap<URI, NetworkLite>();
+        for (NetworkLite network : initiatorsByNetwork.keySet()) {
+            if (!networkMap.containsKey(network.getId())) {
+                networkMap.put(network.getId(), network);
+                net2InitiatorsMap.put(network.getId(), initiatorsByNetwork.get(network));
+            }
+        }
+
+        // Filter Initiators by access - if a host has local access to the storage system
+        // remove initiators that are routed to it - Should this be done when initiators are added or is this an override?
+        
+        //filterRemoteInitiators(system, varray, net2InitiatorsMap, networkMap);
+
+        // Compute the number of Ports needed for each Network, and get the network ordering for allocation.
+        List<URI> orderedNetworks = new ArrayList<URI>();
+        StoragePortsAssigner assigner = StoragePortsAssignerFactory.getAssigner(system.getSystemType());
+        Map<URI, Integer> net2PortsNeeded = assigner.getPortsNeededPerNetwork(net2InitiatorsMap,
+                pathParams, existingPortsMap, existingInitiatorsMap, orderedNetworks);
+        for (Map.Entry<URI, Integer> entry : net2PortsNeeded.entrySet()) {
+            if (networkMap.get(entry.getKey()) != null) {
+                _log.info(String.format("Network %s (%s) requested ports %d",
+                        networkMap.get(entry.getKey()).getLabel(), entry.getKey().toString(), entry.getValue()));
+            }
+        }
+
+        // For each Network, allocate the ports required, and then assign the ports.
+        StoragePortsAllocator allocator = new StoragePortsAllocator();
+
+        // In case this is an update of existing allocation, add all the previously
+        // allocated ports into the context _alreadyAllocatedXXX fields.
+        // This allows knowledge that an previous allocation in director A was made
+        // so that in a Vpool upgrade we can allocate a different director
+        // in a different network.
+        for (URI netURI : existingPortsMap.keySet()) {
+            NetworkLite network = networkMap.get(netURI);
+            Set<StoragePort> existingPorts = existingPortsMap.get(netURI);
+            allocator.addPortsToAlreadyAllocatedContext(_dbClient, network, existingPorts);
+        }
+
+        // Compute the StoragePort usage map. 
+        Map<URI, Map<StoragePort, Long>> portUsageMap =
+                computePassThroughStoragePortUsageMapForPorts(system.getId(),
+                        networkMap, portsByNetwork);
+
+        // Filter out the ports in the case of VMAX and RP splitting: (CTRL-7288)
+        // https://support.emc.com/docu10627_RecoverPoint-Deploying-with-Symmetrix-Arrays-and-Splitter-Technical-Notes.pdf?language=en_US
+        // We need to align the masking of volumes to hosts to the same ports as the RP masking view.
+        
+        //portUsageMap = filterStoragePortsForRPVMAX(system.getId(), networkMap, varray, portUsageMap, volumeURIs);
+
+        // Loop through all the required Networks, allocating ports as necessary.
+        Map<NetworkLite, List<StoragePort>> portsAllocated = new HashMap<NetworkLite, List<StoragePort>>();
+        for (URI netURI : orderedNetworks) {
+            // This is the network of the initiator
+            NetworkLite network = networkMap.get(netURI);
+            Integer portsNeeded = net2PortsNeeded.get(netURI);
+            if (portsNeeded == null || portsNeeded == 0) {
+                _log.info("No ports to be assigned for network: " + netURI);
+                continue;
+            }
+
+            List<Initiator> initiators = net2InitiatorsMap.get(netURI);
+            // Check that there are initiators to get assignments. This check is
+            // needed for when initiators were eliminate by #filterRemoteInitiators
+            if (initiators == null || initiators.isEmpty()) {
+                _log.info("No initiators to be assigned for network: " + netURI);
+                continue;
+            }
+
+            if (portUsageMap.get(netURI).isEmpty()) {
+                _log.warn(String.format("No ports available for network: %s. Hence skipping allocation of ports in this network", netURI));
+                continue;                
+            }
+            // Allocate the storage ports.
+            portsAllocated.put(network, allocatePassThroughPortsFromNetwork(
+                    system.getId(), network, portsNeeded,
                     portUsageMap.get(netURI), allocator, existingPortsMap.get(netURI),
                     true));
         }
@@ -783,6 +1008,48 @@ public class BlockStorageScheduler {
         }
         return sports;
     }
+    
+    /**
+     * Allocate ports from a Network. It is assumed that the port usage metrics have
+     * already been calculated.
+     * 
+     * @param storageURI Storage System
+     * @param network NetworkLite
+     * @param numPaths Number of ports to be allocated
+     * @param portUsageMap The port usage map computed by computeStoragePortUsageMap
+     * @param allocator The StoragePortsAllocator to use
+     * @param previouslyAllocatedPorts A set of previously allocated ports in this Network
+     * @param allowFewerPorts Boolean if true allows allocating fewer ports than requested
+     * @return List of the allocated ports in an order for good redundancy.
+     * @throws PlacementException
+     */
+    
+    private List<StoragePort> allocatePassThroughPortsFromNetwork(
+            URI storageURI, NetworkLite network, int numPaths,
+            Map<StoragePort, Long> portUsageMap,
+            StoragePortsAllocator allocator, Set<StoragePort> previouslyAllocatedPorts,
+            boolean allowFewerPorts) throws PlacementException {
+        List<StoragePort> sports = new ArrayList<StoragePort>();
+        if (network.getTransportType().equals(StorageProtocol.Transport.FC.name()) ||
+                network.getTransportType().equals(StorageProtocol.Transport.IP.name())) {
+            List<StoragePort> portList = allocator.selectPassThroughStoragePorts(
+                    _dbClient, portUsageMap, network, numPaths, previouslyAllocatedPorts, allowFewerPorts);
+            for (StoragePort port : portList) {
+                if (!sports.contains(port)) {
+                    sports.add(port);
+                }
+            }
+        } else {
+            // Otherwise, follow the existing code and select one storage port per network
+            List<StoragePort> spList = new ArrayList<StoragePort>();
+            spList.addAll(portUsageMap.keySet());
+            StoragePort storagePort = selectStoragePort(spList);
+            if (!sports.contains(storagePort)) {
+                sports.add(storagePort);
+            }
+        }
+        return sports;
+    }
 
     /**
      * Compute the ports available and their usage.
@@ -795,6 +1062,45 @@ public class BlockStorageScheduler {
      */
     private Map<URI, Map<StoragePort, Long>> computeStoragePortUsageMapForPorts(
             URI storageUri, Map<URI, NetworkLite> networkMap, URI varrayURI, 
+            Map<NetworkLite, List<StoragePort>> storagePortsMap)
+            throws PlacementException {
+        Map<URI, Map<StoragePort, Long>> result = new HashMap<URI, Map<StoragePort, Long>>();
+        // Then put them in the result map and the usageQueue.
+        for (URI networkURI : networkMap.keySet()) {
+            NetworkLite network = networkMap.get(networkURI);
+            List<StoragePort> spList = storagePortsMap.get(network);
+            if (spList == null || spList.isEmpty()) {
+                throw PlacementException.exceptions.noStoragePortsInNetwork(network.getLabel());
+            }
+            if (network.getTransportType().equals(StorageProtocol.Transport.FC.name()) ||
+                    network.getTransportType().equals(StorageProtocol.Transport.IP.name())) {
+                Map<StoragePort, Long> portUsage = computeStoragePortUsage(spList);
+                // If there are no ports in the requested network, throw an error
+                if (portUsage.isEmpty()) {
+                    throw PlacementException.exceptions.noStoragePortsInNetwork(network.getLabel());
+                }
+                result.put(networkURI, portUsage);
+            } else {
+                Map<StoragePort, Long> portUsage = new HashMap<StoragePort, Long>();
+                for (StoragePort sp : spList) {
+                    portUsage.put(sp, 0L);
+                }
+                result.put(networkURI, portUsage);
+            }
+        }
+        return result;
+    }
+    
+    /**
+     * Compute the ports available and their usage.
+     * 
+     * @param storageUri -- StorageSystem URI
+     * @param networkMap -- a map of Network URI to NetworkLite indicating networks to process
+     * @param storagePortsMap a map of network-to-ports of ports that can be allocated
+     * @return -- a Map of Network URI to a Map of Storage Port to Long usage factor
+     */
+    private Map<URI, Map<StoragePort, Long>> computePassThroughStoragePortUsageMapForPorts(
+            URI storageUri, Map<URI, NetworkLite> networkMap, 
             Map<NetworkLite, List<StoragePort>> storagePortsMap)
             throws PlacementException {
         Map<URI, Map<StoragePort, Long>> result = new HashMap<URI, Map<StoragePort, Long>>();
@@ -1076,6 +1382,28 @@ public class BlockStorageScheduler {
 
         return selectStoragePortsInNetworks(storagePorts, networks, varrayURI, pathParams);
     }
+    
+    /**
+     * Return list of storage ports for the passed storage device connected
+     * to the given network
+     * 
+     * Port must be REGISTERED, and the OperationalStatus must not be NOT_OK
+     * and it must be a frontend port.
+     *
+     * @param storageSystemURI The URI of the storage system
+     * @param networks collection of networks
+     * @param pathParams The ExportPathParameter settings which may contain a set of allowed ports. 
+     *              Optional, can be null.
+     * 
+     * @return The list of storage ports.
+     */
+    public Map<NetworkLite, List<StoragePort>> selectPassThroughStoragePortsInNetworks(URI storageSystemURI, Collection<NetworkLite> networks,
+            ExportPathParams pathParams) {
+        List<StoragePort> storagePorts = ExportUtils.getPassThroughStorageSystemAssignablePorts(
+                _dbClient, storageSystemURI, pathParams);
+
+        return selectPassThroughStoragePortsInNetworks(storagePorts, networks, pathParams);
+    }
 
     /**
      * Return list of storage ports from the given storage ports connected
@@ -1141,6 +1469,69 @@ public class BlockStorageScheduler {
         }
         return portsInNetwork;
     }
+    
+    /**
+     * Return list of storage ports from the given storage ports connected
+     * to the given network
+     * @param storagePorts storage ports to process
+     * @param networks collection of networks
+     * @param pathParams The ExportPathParameter settings which may contain a set of allowed ports.
+     *              Optional, can be null.
+     *
+     * @return The list of storage ports.
+     */
+    public Map<NetworkLite, List<StoragePort>> selectPassThroughStoragePortsInNetworks(List<StoragePort> storagePorts, Collection<NetworkLite> networks,
+                                                                            ExportPathParams pathParams) {
+        Map<NetworkLite, List<StoragePort>> portsInNetwork = new HashMap<>();
+        for (NetworkLite networkLite : networks) {
+            URI networkURI = networkLite.getId();
+            _log.info("Selecting ports for network {} {}", networkLite.getLabel(), networkLite.getId());
+            // The list of storage ports in networkURI
+            List<StoragePort> spList = new ArrayList<StoragePort>();
+            // The list of storage ports in networks that are routed to networkURI
+            List<StoragePort> rspList = new ArrayList<StoragePort>();
+            List<String> unroutedPorts = new ArrayList<String>();
+            List<String> routedPorts = new ArrayList<String>();
+            List<String> wrongNetwork = new ArrayList<String>();
+
+            for (StoragePort sp : storagePorts) {
+                // Make sure the storage port is in the passed network.
+                if (sp.getNetwork().equals(networkURI) || (networkLite != null &&
+                        networkLite.hasRoutedNetworks(sp.getNetwork()))) {
+                    // Now make sure the port has connectivity/assignment
+                    // to the passed virtual array.
+                    if (sp.getNetwork().equals(networkURI)) {
+                        spList.add(sp);
+                        unroutedPorts.add(portName(sp));
+                    } else {
+                        _log.debug("Storage port {} is not in the requested network {} " +
+                                "but it is routed to it.", sp.getNativeGuid(), networkURI);
+                        rspList.add(sp);
+                        // Duplicate list with just name for better error message.
+                        routedPorts.add(portName(sp));
+                    }
+                } else {
+                    _log.debug("Storage port {} not selected because its network {} " +
+                            "is not the requested network {}",
+                            new Object[] { sp.getNativeGuid(), sp.getNetwork(), networkURI });
+                    wrongNetwork.add(portName(sp));
+                }
+            }
+            if (!wrongNetwork.isEmpty()) {
+                _log.info("Ports not selected because they are not in the requested network: "
+                        + networkURI + " " + Joiner.on(" ").join(wrongNetwork));
+            }
+            if (!rspList.isEmpty() && !spList.isEmpty()) {
+                _log.info("Ports not selected because they are routed and local ports are available: "
+                        + networkURI + " " + Joiner.on(" ").join(routedPorts));
+            }
+            _log.info("Ports that were selected: " +
+                    (spList.isEmpty() ? Joiner.on(" ").join(routedPorts) : Joiner.on(" ").join(unroutedPorts)));
+            portsInNetwork.put(networkLite, spList.isEmpty() ? rspList : spList);
+        }
+        return portsInNetwork;
+    }
+    
 
     /**
      * Returns a port name guaranteed to have the director identification.
@@ -1258,6 +1649,50 @@ public class BlockStorageScheduler {
                 StoragePort port = _dbClient.queryObject(StoragePort.class, URI.create(portId));
                 if (port != null && port.getTaggedVirtualArrays() != null
                         && port.getTaggedVirtualArrays().contains(varray.toString())
+                        && port.getRegistrationStatus().toString()
+                                .equals(DiscoveredDataObject.RegistrationStatus.REGISTERED.name())
+                        && DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name().equals(port.getCompatibilityStatus().toString())
+                        && DiscoveryStatus.VISIBLE.name().equals(port.getDiscoveryStatus().toString())) {
+                    if (initiatorsToStoragePortsMap.get(initiator) == null) {
+                        initiatorsToStoragePortsMap.put(initiator, new ArrayList<StoragePort>());
+                    }
+                    initiatorsToStoragePortsMap.get(initiator).add(port);
+                    portNames.append(port.getPortName() + " (" + port.getPortNetworkId() + ")  ");
+                }
+            }
+            _log.info(String.format("Existing initiator %s (%s) network %s ports %s",
+                    initiator.getInitiatorPort(), initiator.getHostName(), networkLabel, portNames.toString()));
+        }
+        return initiatorsToStoragePortsMap;
+    }
+    
+    /**
+     * Given the existingZoningMap from the ExportMask, get a map of
+     * Initiators to a List<StoragePort> of the StoragePorts assigned to that Initiator.
+     * 
+     * @param existingZoningMap -- StringSetMap
+     * @return Map<Initiator, List<StoragePort>> existing assignment map with Objects
+     */
+    public Map<Initiator, List<StoragePort>> generatePassThroughInitiatorsToStoragePortsMap(StringSetMap existingZoningMap) {
+        Map<Initiator, List<StoragePort>> initiatorsToStoragePortsMap = new HashMap<Initiator, List<StoragePort>>();
+        if (existingZoningMap == null) {
+            return initiatorsToStoragePortsMap;
+        }
+        for (String initiatorId : existingZoningMap.keySet()) {
+            Initiator initiator = _dbClient.queryObject(Initiator.class, URI.create(initiatorId));
+            if (initiator == null || initiator.getInactive()) {
+                continue;
+            }
+            NetworkLite network = getInitiatorNetwork(initiator, _dbClient);
+            String networkLabel = (network != null ? network.getLabel() : "<unknown network>");
+            StringSet ports = existingZoningMap.get(initiatorId);
+            if (ports == null) {
+                continue;
+            }
+            StringBuilder portNames = new StringBuilder();
+            for (String portId : ports) {
+                StoragePort port = _dbClient.queryObject(StoragePort.class, URI.create(portId));
+                if (port != null
                         && port.getRegistrationStatus().toString()
                                 .equals(DiscoveredDataObject.RegistrationStatus.REGISTERED.name())
                         && DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name().equals(port.getCompatibilityStatus().toString())
@@ -2130,6 +2565,16 @@ public class BlockStorageScheduler {
     private boolean allocateFromPrezonedPortsOnly(URI virtualArrayUri, String storageSystemType, boolean backend) {
         return _networkScheduler.portAllocationUseExistingZones(storageSystemType, backend)
                 && !NetworkScheduler.isZoningRequired(_dbClient, virtualArrayUri);
+    }
+    /**
+     *Same as allocateFromPrezonedPortsOnly. We just don't need vArray.
+     * @param storageSystemType
+     * @param backend
+     * @return
+     */
+    private boolean allocateFromPassThroughPrezonedPortsOnly(String storageSystemType, boolean backend) {
+        return _networkScheduler.portAllocationUseExistingZones(storageSystemType, backend)
+                && true;
     }
 
     /**

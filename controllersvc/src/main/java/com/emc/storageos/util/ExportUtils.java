@@ -1238,6 +1238,57 @@ public class ExportUtils {
         }
         return spList;
     }
+    
+    /**
+     * Find all the ports in a storage system that can be assigned. These are
+     * registered ports, in good discovery and operational status.
+     * 
+     * @param dbClient an instance of {@link DbClient}
+     * @param storageSystemURI the URI of the storage system
+     * @param pathParams ExportPathParams may contain a set of allowable ports. Optional, can be null.
+     * @return a list of storage ports that are in good operational status and assigned to the virtual array
+     */
+    public static List<StoragePort> getPassThroughStorageSystemAssignablePorts(DbClient dbClient, URI storageSystemURI, 
+            ExportPathParams pathParams) {
+        URIQueryResultList sports = new URIQueryResultList();
+        dbClient.queryByConstraint(ContainmentConstraint.Factory.
+                getStorageDeviceStoragePortConstraint(storageSystemURI), sports);
+        Iterator<URI> it = sports.iterator();
+        List<StoragePort> spList = new ArrayList<StoragePort>();
+        List<String> notRegisteredOrOk = new ArrayList<String>();
+        List<String> notInPathParams = new ArrayList<String>();
+        while (it.hasNext()) {
+            StoragePort sp = dbClient.queryObject(StoragePort.class, it.next());
+            if (sp.getInactive() || sp.getNetwork() == null
+                    || !DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name().equals(sp.getCompatibilityStatus())
+                    || !DiscoveryStatus.VISIBLE.name().equals(sp.getDiscoveryStatus())
+                    || !sp.getRegistrationStatus().equals(StoragePort.RegistrationStatus.REGISTERED.name())
+                    || StoragePort.OperationalStatus.NOT_OK.equals(StoragePort.OperationalStatus.valueOf(sp.getOperationalStatus()))
+                    || StoragePort.PortType.valueOf(sp.getPortType()) != StoragePort.PortType.frontend) {
+                _log.debug(
+                        "Storage port {} is not selected because it is inactive, is not compatible, is not visible, has no network assignment, "
+                                +
+                                "is not registered, has a status other than OK, or is not a frontend port", sp.getLabel());
+                notRegisteredOrOk.add(sp.qualifiedPortName());
+            } else if (pathParams != null && !pathParams.getStoragePorts().isEmpty() 
+                    && !pathParams.getStoragePorts().contains(sp.getId().toString())) {
+                _log.debug("Storage port {} not selected because it is not in ExportPathParams port list", sp.getNativeGuid());
+                notInPathParams.add(sp.qualifiedPortName());
+            } else {
+                spList.add(sp);
+            }
+        }
+        if (!notRegisteredOrOk.isEmpty()) {
+            _log.info("Ports not selected because they are inactive, have no network assignment, " +
+                    "are not registered, bad operational status, or not type front-end: "
+                    + Joiner.on(" ").join(notRegisteredOrOk));
+        }
+        if (!notInPathParams.isEmpty()) {
+            _log.info("Ports not selected because they are not in the ExportPathParams port list: " 
+                    + Joiner.on(" ").join(notInPathParams));
+        }
+        return spList;
+    }
 
     /**
      * Given a list of storage ports and networks, map the ports to the networks. If the port network

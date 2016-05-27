@@ -982,6 +982,51 @@ public class ConnectivityUtil {
                         initiator.getInitiatorPort(), storageSystem.getNativeGuid()));
         return false;
     }
+    
+    /**
+     * Given an initiator and StorageSystem object, find if the initiator is connect to the StorageSystem
+     * through one of its network associations.
+     *
+     * @param initiator [in] Initiator object representing the initiator for which we would like
+     *            to check the connection.
+     * @param storageSystem [in] StorageSystem object representing the array we want to check the connection to.
+     * @param dbClient [in] DbClient
+     * @return true - iff, there is at least one network found that is shared by the initiator and one of the
+     *         StorageSystems StoragePorts.
+     */
+    public static boolean isPassThroughInitiatorConnectedToStorageSystem(Initiator initiator, StorageSystem storageSystem,
+            DbClient dbClient) {
+        if (initiator == null || storageSystem == null || dbClient == null) {
+            _log.info(String.format("isInitiatorConnectedToStorageSystem - Invalid parameters"));
+            return false;
+        }
+        _log.info(String.format("isInitiatorConnectedToStorageSystem(%s, %s) -- Entered",
+                initiator.getInitiatorPort(), storageSystem.getNativeGuid()));
+        NetworkLite networkLite = NetworkUtil.getEndpointNetworkLite(initiator.getInitiatorPort(), dbClient);
+        if (networkLite == null) {
+            _log.info(String.format("isInitiatorConnectedToStorageSystem(%s, %s) -- Initiator is not associated with any network",
+                    initiator.getInitiatorPort(), storageSystem.getNativeGuid()));
+            return false;
+        }
+        URI networkUri = networkLite.getId();
+        List<StoragePort> ports = NetworkAssociationHelper.
+                getNetworkConnectedStoragePorts(networkUri.toString(), dbClient);
+        _log.info(String.format("isInitiatorConnectedToStorageSystem(%s, %s) -- Checking for port connections on %s network",
+                initiator.getInitiatorPort(), storageSystem.getNativeGuid(), networkLite.getLabel()));
+        for (StoragePort port : ports) {
+            if (storageSystem.getId().equals(port.getStorageDevice())) {
+                _log.info(String
+                            .format("isInitiatorConnectedToStorageSystem(%s, %s) -- Found one port in the same network as initiator, %s (%s). Returning true.",
+                                    initiator.getInitiatorPort(), storageSystem.getNativeGuid(), port.getNativeGuid(),
+                                    port.getId()));
+                return true;
+            }
+        }
+        _log.info(String
+                .format("isInitiatorConnectedToStorageSystem(%s, %s) -- Could not find any ports in the same networks as the initiator. Returning false.",
+                        initiator.getInitiatorPort(), storageSystem.getNativeGuid()));
+        return false;
+    }
 
     /**
      * Find a storage system based on its serial number. Keep in mind, we may

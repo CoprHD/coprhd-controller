@@ -77,7 +77,7 @@ import com.emc.sa.service.vipr.block.tasks.GetActiveFullCopiesForVolume;
 import com.emc.sa.service.vipr.block.tasks.GetActiveSnapshotSessionsForVolume;
 import com.emc.sa.service.vipr.block.tasks.GetActiveSnapshotsForVolume;
 import com.emc.sa.service.vipr.block.tasks.GetBlockConsistencyGroup;
-import com.emc.sa.service.vipr.block.tasks.GetBlockCopies;
+import com.emc.sa.service.vipr.block.tasks.GetBlockContinuousCopies;
 import com.emc.sa.service.vipr.block.tasks.GetBlockExport;
 import com.emc.sa.service.vipr.block.tasks.GetBlockExports;
 import com.emc.sa.service.vipr.block.tasks.GetBlockResource;
@@ -223,8 +223,8 @@ public class BlockStorageUtils {
         return execute(new GetBlockSnapshots(uris));
     }
     
-    private static List<BlockMirrorRestRep> getBlockCopies(List<URI> uris, URI parentId) {
-        return execute(new GetBlockCopies(uris, parentId));
+    private static List<BlockMirrorRestRep> getBlockContinuousCopies(List<URI> uris, URI parentId) {
+        return execute(new GetBlockContinuousCopies(uris, parentId));
     }
     
     public static List<BlockObjectRestRep> getBlockResources(List<URI> resourceIds) {
@@ -235,7 +235,7 @@ public class BlockStorageUtils {
         List<BlockObjectRestRep> blockResources = Lists.newArrayList();
         List<URI> blockVolumes = new ArrayList<URI>();
         List<URI> blockSnapshots = new ArrayList<URI>();
-        List<URI> blockCopies = new ArrayList<URI>();
+        List<URI> blockContinuousCopies = new ArrayList<URI>();
         for (URI resourceId : resourceIds) {
             ResourceType volumeType = ResourceType.fromResourceId(resourceId.toString());
             switch (volumeType) {
@@ -246,7 +246,7 @@ public class BlockStorageUtils {
                     blockSnapshots.add(resourceId);
                     break;
                 case BLOCK_CONTINUOUS_COPY:
-                    blockCopies.add(resourceId);
+                    blockContinuousCopies.add(resourceId);
                     break;
                 default:
                     break;
@@ -254,7 +254,7 @@ public class BlockStorageUtils {
         }
         blockResources.addAll(getVolumes(blockVolumes));
         blockResources.addAll(getBlockSnapshots(blockSnapshots));
-        blockResources.addAll(getBlockCopies(blockCopies, parentId));
+        blockResources.addAll(getBlockContinuousCopies(blockContinuousCopies, parentId));
         return blockResources;
     }
 

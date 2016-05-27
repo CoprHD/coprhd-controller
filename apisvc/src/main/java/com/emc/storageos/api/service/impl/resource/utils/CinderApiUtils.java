@@ -107,6 +107,34 @@ public class CinderApiUtils {
     }
 
     /**
+    public static Response getCinderResponse(Object obj, HttpHeaders header, boolean isJsonRootElementRequired, int expectedCode) {
+        String mediaType = getMediaType(header);
+        if (StringUtils.isNotEmpty(mediaType)) {
+            if (mediaType.equals(XML)) {
+                _log.debug("Requested Media type : XML");
+                return Response.ok().entity(obj).build();
+            } else if (mediaType.equals(JSON)) {
+                _log.debug("Requested Media type : JSON");
+                ObjectMapper objectMapper = new ObjectMapper();
+                if (isJsonRootElementRequired) {
+                    objectMapper.enable(SerializationConfig.Feature.WRAP_ROOT_VALUE);
+                }
+                try {
+                    String jsonResponse = objectMapper.writeValueAsString(obj);
+                    _log.debug("Expected return code ={}",expectedCode);
+                    return Response.status(expectedCode).entity(jsonResponse).build();
+                } catch (JsonGenerationException e) {
+                    throw APIException.badRequests.parameterIsNotValid(obj.getClass().getName());
+                } catch (JsonMappingException e) {
+                    throw APIException.badRequests.parameterIsNotValid(obj.getClass().getName());
+                } catch (IOException e) {
+                    throw APIException.internalServerErrors.ioWriteError(obj.getClass().getName());
+                }
+            }
+        }
+        return Response.status(415).entity("Unsupported Media Type")
+                .build();
+    }   
      * method for getting media type based on http header
      * 
      * @param header http header request

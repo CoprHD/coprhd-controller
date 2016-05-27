@@ -42,7 +42,6 @@ public interface BackupConstants {
 
     public static final int BACKUP_RETRY_COUNT = 3;
 
-
     // The sleep time for scheduler when the cluster is upgrading
     public static final int SCHEDULER_SLEEP_TIME_FOR_UPGRADING = 10 * 60 * 1000;
 

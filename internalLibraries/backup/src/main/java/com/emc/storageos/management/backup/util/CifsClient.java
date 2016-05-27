@@ -17,7 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Created by yangg8 on 4/28/2016.
+ * Implements of smb protocol  using JCIFS
  */
 public class CifsClient implements BackupClient{
     private static final Logger log = LoggerFactory.getLogger(CifsClient.class);
@@ -32,6 +32,8 @@ public class CifsClient implements BackupClient{
         this.domain = domain;
         this.username = username;
         this.password = password;
+        jcifs.Config.setProperty("jcifs.resolveOrder", "DNS");
+        jcifs.Config.setProperty("jcifs.util.loglevel","3");
         if ( this.domain != null && !this.domain.equals("")){
             auth = new NtlmPasswordAuthentication(domain,username,password);
         }else {

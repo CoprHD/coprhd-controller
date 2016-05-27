@@ -20,6 +20,6 @@ public class FailbackFileSystemService extends ViPRService {
 
     @Override
     public void execute() throws Exception {
-        FileStorageUtils.failoverFileSystem(failbackSource, failbackTarget);
+        FileStorageUtils.failbackFileSystem(failbackSource, failbackTarget);
     }
 }

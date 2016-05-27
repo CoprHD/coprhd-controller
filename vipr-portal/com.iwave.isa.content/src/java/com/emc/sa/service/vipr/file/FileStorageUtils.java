@@ -45,6 +45,7 @@ import com.emc.sa.service.vipr.file.tasks.DeactivateFileSystemShare;
 import com.emc.sa.service.vipr.file.tasks.DeactivateQuotaDirectory;
 import com.emc.sa.service.vipr.file.tasks.DissociateFilePolicyFromFileSystem;
 import com.emc.sa.service.vipr.file.tasks.ExpandFileSystem;
+import com.emc.sa.service.vipr.file.tasks.FailbackFileSystem;
 import com.emc.sa.service.vipr.file.tasks.FailoverFileSystem;
 import com.emc.sa.service.vipr.file.tasks.FindFileSnapshotExportRules;
 import com.emc.sa.service.vipr.file.tasks.FindFileSystemExportRules;
@@ -376,6 +377,11 @@ public class FileStorageUtils {
         addAffectedResources(tasks);
     }
 
+    public static void failbackFileSystem(URI fileId, URI targetId) {
+        Tasks<FileShareRestRep> tasks = execute(new FailbackFileSystem(fileId, targetId, FileTechnologyType.REMOTE_MIRROR.name()));
+        addAffectedResources(tasks);
+    }
+
     public static void changeFileVirtualPool(URI fileId, URI targetVirtualPool) {
         Task<FileShareRestRep> task = execute(new ChangeFileVirtualPool(fileId, targetVirtualPool));
         addAffectedResource(task);
@@ -592,7 +598,7 @@ public class FileStorageUtils {
         }
 
         for (FileStorageUtils.FileSystemACLs element : toRemove) {
-            fileACLs = (FileStorageUtils.FileSystemACLs[]) ArrayUtils.removeElement(fileACLs, element);
+            fileACLs = ArrayUtils.removeElement(fileACLs, element);
         }
 
         return fileACLs;

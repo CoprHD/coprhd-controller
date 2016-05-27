@@ -114,6 +114,7 @@ public class StorageSystems extends ViprResourceController {
         renderArgs.put("vnxfileStorageSystemType", StorageSystemTypes.VNX_FILE);
         renderArgs.put("scaleIOStorageSystemType", StorageSystemTypes.SCALEIO);
         renderArgs.put("scaleIOApiStorageSystemType", StorageSystemTypes.SCALEIOAPI);
+        renderArgs.put("cephStorageSystemType", StorageSystemTypes.CEPH);
     }
 
     public static void list() {
@@ -708,6 +709,8 @@ public class StorageSystems extends ViprResourceController {
 
         public String elementManagerURL;
 
+        public String secretKey;
+
         public boolean useSSL;
 
         public Integer resourceLimit;
@@ -815,6 +818,10 @@ public class StorageSystems extends ViprResourceController {
                 storageArray.setPassword(secondaryPassword);
             }
 
+            if (isCeph()) {
+                storageArray.setPassword(StringUtils.trimToNull(secretKey));
+            }
+
             return StorageSystemUtils.update(id, storageArray);
         }
 
@@ -855,6 +862,7 @@ public class StorageSystems extends ViprResourceController {
             storageProviderForm.secondaryUsername = this.secondaryUsername;
             storageProviderForm.secondaryPassword = this.secondaryPassword;
             storageProviderForm.elementManagerURL = this.elementManagerURL;
+            storageProviderForm.secretKey = this.secretKey;
 
             return storageProviderForm.create();
         }
@@ -882,7 +890,10 @@ public class StorageSystems extends ViprResourceController {
             }
 
             if (isNew()) {
-                if (isScaleIOApi()) {
+                if (isCeph()) {
+                    Validation.required(fieldName + ".userName", this.userName);
+                    Validation.required(fieldName + ".secretKey", this.secretKey);
+                } else if (isScaleIOApi()) {
                     Validation.required(fieldName + ".secondaryUsername", this.secondaryUsername);
                     Validation.required(fieldName + ".secondaryPassword", this.secondaryPassword);
                     Validation.required(fieldName + ".secondaryPasswordConfirm", this.secondaryPasswordConfirm);
@@ -949,6 +960,10 @@ public class StorageSystems extends ViprResourceController {
 
         private boolean isIsilon() {
             return StorageSystemTypes.isIsilon(type);
+        }
+
+        private boolean isCeph() {
+            return StorageSystemTypes.isCeph(type);
         }
     }
 

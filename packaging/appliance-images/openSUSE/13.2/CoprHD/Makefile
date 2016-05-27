@@ -9,7 +9,7 @@
 export DO_NOT_START := yes
 WORKSPACE := $(shell dirname $(MAKEFILE_LIST))
 NAME := CoprHD
-VERSION := 3.0.0.0
+VERSION := 3.5.0.0
 JOB := 999
 VENDOR := EMC
 ISO_FILE := openSUSE-13.2-DVD-x86_64.iso
@@ -17,7 +17,7 @@ ISO_URL := http://download.opensuse.org/distribution/13.2/iso/$(ISO_FILE)
 RAM := 8192
 MAC := $(shell printf "00%02X%02X%02X%02X%02X" $$[RANDOM%256] $$[RANDOM%256] $$[RANDOM%256] $$[RANDOM%256] $$[RANDOM%256])
 SOURCE_RPM := jenkins
-STORAGEOS_VERSION := 3.0.0.0
+STORAGEOS_VERSION := 3.5.0.0
 STORAGEOS_STABLE := $(shell wget --no-check-certificate --quiet -O - https://build.coprhd.org/jenkins/job/CH-coprhd-controller-master/lastStableBuild/buildNumber)
 ifeq ($(SOURCE_RPM),jenkins)
     JOB := $(STORAGEOS_STABLE)
@@ -72,18 +72,21 @@ downloadRPM:
 	zypper $(ZYPPER_PARAMS) addrepo --name suse-13.2-seife --no-gpgcheck http://download.opensuse.org/repositories/home:/seife:/testing/openSUSE_13.2 suse-13.2-seife
 	zypper $(ZYPPER_PARAMS) addrepo --name suse-13.2-python --no-gpgcheck http://download.opensuse.org/repositories/devel:/languages:/python/openSUSE_13.2 suse-13.2-python
 	zypper $(ZYPPER_PARAMS) addrepo --name suse-13.2-network --no-gpgcheck http://download.opensuse.org/repositories/network:/utilities/openSUSE_13.2 suse-13.2-network
+	zypper $(ZYPPER_PARAMS) addrepo --name suse-13.2-filesystems-ceph --no-gpgcheck http://download.opensuse.org/repositories/filesystems:/ceph:/Unstable/openSUSE_13.2 suse-13.2-filesystems-ceph
+	zypper $(ZYPPER_PARAMS) addrepo --name suse-13.2-electronics --no-gpgcheck http://download.opensuse.org/repositories/electronics/openSUSE_13.2 suse-13.2-electronics
 	zypper $(ZYPPER_PARAMS) modifyrepo --priority  3 suse-13.2-oss
 	zypper $(ZYPPER_PARAMS) modifyrepo --priority  2 suse-13.2-monitoring
 	zypper $(ZYPPER_PARAMS) modifyrepo --priority  2 suse-13.2-seife
 	zypper $(ZYPPER_PARAMS) modifyrepo --priority  4 suse-13.2-python
 	zypper $(ZYPPER_PARAMS) modifyrepo --priority  4 suse-13.2-network
+	zypper $(ZYPPER_PARAMS) modifyrepo --priority  4 suse-13.2-filesystems-ceph
+	zypper $(ZYPPER_PARAMS) modifyrepo --priority  4 suse-13.2-electronics
 	zypper $(ZYPPER_PARAMS) refresh
-	zypper $(ZYPPER_PARAMS) download atop ca-certificates-cacert fbiterm fribidi GeoIP GeoIP-data java-1_8_0-openjdk-devel keepalived libGeoIP1 libserf-devel ndisc6 openssh-fips perl-Tk python-cjson python-gpgme python-iniparse python-py python-requests python-setools setools-libs sipcalc sshpass strongswan strongswan-ipsec strongswan-libs0 sysstat yum
+	zypper $(ZYPPER_PARAMS) download atop ca-certificates-cacert fbiterm fribidi GeoIP GeoIP-data java-1_8_0-openjdk-devel keepalived libGeoIP1 libserf-devel ndisc6 openssh-fips perl-Tk python-cjson python-gpgme python-iniparse python-py python-requests python-setools setools-libs sipcalc sshpass strongswan strongswan-ipsec strongswan-libs0 sysstat yum boost-license1_58_0 libboost_system1_58_0 libboost_thread1_58_0 librados2 librbd1
 	zypper $(ZYPPER_PARAMS) addrepo --name suse-13.2-oss-update --no-gpgcheck http://download.opensuse.org/repositories/openSUSE:/13.2:/Update/standard suse-13.2-oss-update
 	zypper $(ZYPPER_PARAMS) modifyrepo --priority  1 suse-13.2-oss-update
 	zypper $(ZYPPER_PARAMS) refresh
-	zypper $(ZYPPER_PARAMS) download libudev1 lvm2 udev grub2 grub2-x86_64-efi grub2-i386-pc
-	zypper $(ZYPPER_PARAMS) patch --download-only -g security --no-recommends
+	zypper $(ZYPPER_PARAMS) download libudev1 lvm2 udev grub2 grub2-x86_64-efi grub2-i386-pc kernel-default kernel-default-devel kernel-devel kernel-source kernel-macros virtualbox virtualbox-guest-tools virtualbox-guest-kmp-default virtualbox-host-kmp-default
 	$(call targetLog,-)
 
 downloadTGZ:

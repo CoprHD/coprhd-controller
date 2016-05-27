@@ -90,6 +90,7 @@ public class RemoteMirrorProtectionValidator extends
             _logger.info("Not SRDF Specified");
             return;
         }
+        validateVPlexProtection(updateParam, dbClient);
         checkSystemIsVMAX(vpool, updateParam);
         Map<URI, VpoolRemoteCopyProtectionSettings> remoteSettingsMap =
                 VirtualPool.getRemoteProtectionSettings(vpool, dbClient);
@@ -146,7 +147,8 @@ public class RemoteMirrorProtectionValidator extends
      * 
      * @param createParam
      */
-    private void checkForVPlexProtectionEnabled(final BlockVirtualPoolParam createParam) {
+    private void checkForVPlexProtectionEnabled(
+            final BlockVirtualPoolParam createParam, DbClient dbClient) {
         // RP not allowed if SRDF Protection is specified in VPOOL
         if (null != createParam.getProtection()
                 && null != createParam.getProtection().getRecoverPoint()
@@ -154,12 +156,55 @@ public class RemoteMirrorProtectionValidator extends
                 && !createParam.getProtection().getRecoverPoint().getCopies().isEmpty()) {
             throw APIException.badRequests.parameterRPNotSupportedWithSRDF();
         }
-        // VPLEX HA not allowed if SRDF Protection specified in VPOOL
-        if (null != createParam.getHighAvailability()
-                && null != createParam.getHighAvailability().getHaVirtualArrayVirtualPool()
-                && null != createParam.getHighAvailability().getHaVirtualArrayVirtualPool()
-                        .getVirtualArray()) {
-            throw APIException.badRequests.parameterVPLEXNotSupportedWithSRDF();
+        // VPLEX checks with SRDF
+        if (createParam.specifiesHighAvailability()) {
+            // SRDF Copy Mode Active not supported with Vplex
+            if (createParam.hasRemoteCopyProtection()) {
+                for (VirtualPoolRemoteProtectionVirtualArraySettingsParam remoteSettings : createParam
+                        .getProtection().getRemoteCopies().getRemoteCopySettings()) {
+                    if (Mode.ACTIVE.name().equals(remoteSettings.getRemoteCopyMode())) {
+                        throw APIException.badRequests.vplexNotSupportedWithSRDFActive(); 
+                    }
+                    if (null != remoteSettings.getVpool()) {
+                        URI uri = remoteSettings.getVpool();
+                        VirtualPool vpool = dbClient.queryObject(VirtualPool.class, uri);
+                        if (vpool != null && VirtualPool.vPoolSpecifiesHighAvailabilityDistributed(vpool)) {
+                            throw APIException.badRequests.vplexDistributedNotSupportedOnSRDFTarget();
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    /**
+     * Check vplex / srdf compatibility on update.
+     * 
+     * @param updateParam -- BlockVirtualPoolUpdateParam
+     * @param dbClient -- database handle
+     */
+    private void validateVPlexProtection(
+            final BlockVirtualPoolUpdateParam updateParam, DbClient dbClient) {
+        // VPLEX checks with SRDF
+        if (updateParam.specifiesHighAvailability()) {
+            // SRDF Copy Mode Active not supported with Vplex
+            if (updateParam.getProtection() != null 
+                    && updateParam.getProtection().getRemoteCopies()!= null
+                    && updateParam.getProtection().getRemoteCopies().getAdd() != null) {
+                for (VirtualPoolRemoteProtectionVirtualArraySettingsParam remoteSettings : 
+                    updateParam.getProtection().getRemoteCopies().getAdd()) {
+                    if (Mode.ACTIVE.name().equals(remoteSettings.getRemoteCopyMode())) {
+                        throw APIException.badRequests.vplexNotSupportedWithSRDFActive(); 
+                    }
+                    if (null != remoteSettings.getVpool()) {
+                        URI uri = remoteSettings.getVpool();
+                        VirtualPool vpool = dbClient.queryObject(VirtualPool.class, uri);
+                        if (vpool != null && VirtualPool.vPoolSpecifiesHighAvailabilityDistributed(vpool)) {
+                            throw APIException.badRequests.vplexDistributedNotSupportedOnSRDFTarget();
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -168,7 +213,7 @@ public class RemoteMirrorProtectionValidator extends
             final DbClient dbClient) {
         _logger.info("Entered Remote Protection creation validator");
         // RP or VPlex enabled
-        checkForVPlexProtectionEnabled(createParam);
+        checkForVPlexProtectionEnabled(createParam, dbClient);
         // remote Mirroring is applicable only for VMAX system type
         checkSystemTypeIsVMAX(createParam);
         // Validate whether remote Copy Settings are valid for the source VPool

@@ -349,7 +349,7 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     }
 
     public static enum SystemType {
-        NONE, isilon, vnxblock, vnxfile, vmax, netapp, netappc, hds, openstack, vnxe, scaleio, datadomain, xtremio, ibmxiv, ecs;
+        NONE, isilon, vnxblock, vnxfile, vmax, netapp, netappc, hds, openstack, vnxe, scaleio, datadomain, xtremio, ibmxiv, ecs, ceph, unity;
         private static final SystemType[] copyOfValues = values();
 
         public static SystemType lookup(final String name) {
@@ -367,6 +367,7 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
                     || netapp.name().equalsIgnoreCase(name)
                     || netappc.name().equalsIgnoreCase(name)
                     || vnxe.name().equalsIgnoreCase(name)
+                    || unity.name().equalsIgnoreCase(name)
                     || datadomain.name().equalsIgnoreCase(name);
         }
 
@@ -374,7 +375,8 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
             return vnxblock.name().equalsIgnoreCase(name) || vmax.name().equalsIgnoreCase(name)
                     || hds.name().equalsIgnoreCase(name) || openstack.name().equalsIgnoreCase(name)
                     || scaleio.name().equalsIgnoreCase(name) || xtremio.name().equalsIgnoreCase(name)
-                    || ibmxiv.name().equalsIgnoreCase(name) || vnxe.name().equalsIgnoreCase(name);
+                    || ibmxiv.name().equalsIgnoreCase(name) || vnxe.name().equalsIgnoreCase(name)
+                    || ceph.name().equalsIgnoreCase(name) || unity.name().equalsIgnoreCase(name);
         }
 
         public static boolean isObjectTypeSystem(final String name) {

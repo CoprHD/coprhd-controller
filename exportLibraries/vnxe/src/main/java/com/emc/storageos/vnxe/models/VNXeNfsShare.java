@@ -24,6 +24,8 @@ public class VNXeNfsShare extends VNXeBase {
     private List<VNXeBase> readOnlyHosts;
     private NFSShareDefaultAccessEnum defaultAccess;
     private String path;
+    private VNXeBase filesystem;
+    private VNXeBase snap;
 
     public String getName() {
         return name;
@@ -111,6 +113,22 @@ public class VNXeNfsShare extends VNXeBase {
 
     public void setDefaultAccess(NFSShareDefaultAccessEnum defaultAccess) {
         this.defaultAccess = defaultAccess;
+    }
+
+    public VNXeBase getFilesystem() {
+        return filesystem;
+    }
+
+    public void setFilesystem(VNXeBase filesystem) {
+        this.filesystem = filesystem;
+    }
+
+    public VNXeBase getSnap() {
+        return snap;
+    }
+
+    public void setSnap(VNXeBase snap) {
+        this.snap = snap;
     }
 
 }

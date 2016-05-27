@@ -883,7 +883,11 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             _dbClient.queryByConstraint(AlternateIdConstraint.Factory
                     .getVolumeNativeIdConstraint(volumeNativeGuid), result);
             if (result.iterator().hasNext()) {
-                return _dbClient.queryObject(Volume.class, result.iterator().next());
+                Volume volume = _dbClient.queryObject(Volume.class, result.iterator().next());
+                // only return active volumes
+                if (null != volume && !volume.getInactive()) {
+                    return volume;
+                }
             }
         }
 
@@ -1989,16 +1993,10 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
     @Override
     public void collectStatisticsInformation(AccessProfile accessProfile)
             throws BaseCollectionException {
-        // https://coprhd.atlassian.net/browse/COP-18616. This code is commented out on purpose for the
-        // time being. The ancillary code to support metrics collection is there, but we just don't want
-        // this to be enabled until there is adequate time to test VPlex frontent port allocations based
-        // on port metrics. Once there's a time available to testing, this comment should be removed and
-        // the commented code below should be uncommented.
-
-        // initializeContext(accessProfile);
-        // _statsCollector.collect(accessProfile, _keyMap);
-        // dumpStatRecords();
-        // injectStats();
+        initializeContext(accessProfile);
+        _statsCollector.collect(accessProfile, _keyMap);
+        dumpStatRecords();
+        injectStats();
     }
 
     /**
@@ -2332,6 +2330,11 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
         }
     }
 
+    /**
+     * Initializes the performance statistics collection context with required key mappings.
+     * 
+     * @param accessProfile Profile providing context for this discovery session.
+     */
     private void initializeContext(AccessProfile accessProfile) {
         _keyMap.put(Constants._serialID, accessProfile.getserialID());
         _keyMap.put(Constants.dbClient, _dbClient);
@@ -2342,7 +2345,6 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
         _keyMap.put(Constants._Stats, new LinkedList<Stat>());
         _keyMap.put(Constants.ACCESSPROFILE, accessProfile);
         _keyMap.put(Constants.PROPS, accessProfile.getProps());
-        _keyMap.put(Constants._Stats, new LinkedList<Stat>());
         _keyMap.put(Constants._TimeCollected, accessProfile.getCurrentSampleTime());
     }
 }

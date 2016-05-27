@@ -459,4 +459,7 @@ ext {
          "org.samba.jcifs:jcifs:1.3.14-kohsuke-1"
     ]
 
+    ceph = [
+        "com.ceph:rados:0.3.0"
+    ]
 }

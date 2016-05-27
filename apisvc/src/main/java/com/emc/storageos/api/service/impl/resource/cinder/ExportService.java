@@ -188,7 +188,7 @@ public class ExportService extends VolumeService {
             bInitCon = true;
         if (input.contains(ExportOperations.OS_EXTEND.getOperation())){ 
 		        // for expand volume verify passed extendsize is in numeric format
-			// otherwise it will result in Bad Request for improper format
+			    // otherwise it will result in Bad Request for improper input
         		String[] extendStrings =input.split(":");
         		String sizeString = extendStrings[2].replaceAll("}","");
         		_log.debug("extend string size value  = {}", sizeString);

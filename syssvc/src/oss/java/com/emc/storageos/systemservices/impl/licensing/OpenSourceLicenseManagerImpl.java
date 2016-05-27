@@ -47,7 +47,7 @@ public class OpenSourceLicenseManagerImpl implements LicenseManager{
 
     /**
      * Check if it is trial package
-     * @return flase in CoprHD environment
+     * @return false in CoprHD environment
      */
     public boolean isTrialPackage() {
         // always return false in CoprHD environment

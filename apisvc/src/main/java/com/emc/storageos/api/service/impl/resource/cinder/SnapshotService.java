@@ -91,6 +91,7 @@ import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 
+import org.apache.commons.lang.RandomStringUtils;
 @Path("/v2/{tenant_id}/snapshots")
 @DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, readAcls = {
         ACL.OWN, ACL.ALL }, writeRoles = { Role.TENANT_ADMIN }, writeAcls = {
@@ -168,6 +169,10 @@ public class SnapshotService extends TaskResourceService {
             snapshotDescription = param.snapshot.description;
         }
 
+        if (snapshotName == null)
+        {
+        	snapshotName = "snapshot-random-" + RandomStringUtils.random(10);
+        }
         if (snapshotName == null || (snapshotName.length() <= 2))
         {
             throw APIException.badRequests
@@ -661,7 +666,8 @@ public class SnapshotService extends TaskResourceService {
         BlockSnapshot snapshot = findSnapshot(snapshot_id, openstack_tenant_id);
         
         if(snapshot==null) {
-            throw APIException.badRequests.parameterIsNotValid(snapshot_id);
+        	_log.error("Invalid snapshot ID ={} ",snapshot_id);
+        	return CinderApiUtils.createErrorResponse(400, "Bad Request : Invalid snapshot " + snapshot_id);
         }
 
         response = getSnapshotDetail(snapshot, isV1Call, openstack_tenant_id);            
@@ -694,7 +700,8 @@ public class SnapshotService extends TaskResourceService {
             @Context HttpHeaders header) {
         BlockSnapshot snapshot = findSnapshot(snapshot_id, openstack_tenant_id);
         if(snapshot==null) {
-            throw APIException.badRequests.parameterIsNotValid(snapshot_id);
+        	_log.error("Invalid snapshot ID ={} ",snapshot_id);
+        	return CinderApiUtils.createErrorResponse(400, "Bad Request : Invalid snapshot " + snapshot_id);
         }
         
         return CinderApiUtils.getCinderResponse(

@@ -4,7 +4,7 @@
  */
 package com.emc.storageos.model.block.export;
 
-import com.emc.storageos.model.block.PassThrouhParam;
+import com.emc.storageos.model.block.PassThroughParam;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
@@ -21,7 +21,7 @@ import com.emc.storageos.model.valid.Length;
  * Parameter for block export creation.
  */
 @XmlRootElement(name = "block_export_create")
-public class ExportCreateParam extends PassThrouhParam{
+public class ExportCreateParam extends PassThroughParam{
 
     private URI project;
     private URI varray;

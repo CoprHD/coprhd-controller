@@ -159,7 +159,7 @@ class CreateExportGroupSchedulingThread implements Runnable {
         }
     }
 
-    public static void executePassThruApiTask(ExportGroupService exportGroupService, ExecutorService executorService, DbClient dbClient,
+    public static void executePassThroughApiTask(ExportGroupService exportGroupService, ExecutorService executorService, DbClient dbClient,
                 ExportGroup exportGroup, Map<URI, Map<URI, Integer>> storageMap, List<URI> clusters,
                 List<URI> hosts, List<URI> initiators, Map<URI, Integer> volumeMap, ExportPathParameters pathParam, String task,
                 TaskResourceRep taskRes) {

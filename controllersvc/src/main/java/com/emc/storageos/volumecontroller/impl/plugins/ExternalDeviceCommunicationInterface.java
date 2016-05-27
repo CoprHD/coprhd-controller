@@ -17,8 +17,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.emc.storageos.storagedriver.BlockStorageDriver;
-import com.emc.storageos.storagedriver.StorageDriver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,15 +30,19 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
+import com.emc.storageos.plugins.StorageSystemViewObject;
 import com.emc.storageos.storagedriver.AbstractStorageDriver;
+import com.emc.storageos.storagedriver.BlockStorageDriver;
 import com.emc.storageos.storagedriver.DiscoveryDriver;
 import com.emc.storageos.storagedriver.DriverTask;
 import com.emc.storageos.storagedriver.LockManager;
 import com.emc.storageos.storagedriver.Registry;
+import com.emc.storageos.storagedriver.StorageDriver;
 import com.emc.storageos.storagedriver.impl.LockManagerImpl;
 import com.emc.storageos.storagedriver.impl.RegistryImpl;
 import com.emc.storageos.storagedriver.model.StoragePool;
 import com.emc.storageos.storagedriver.model.StoragePort;
+import com.emc.storageos.storagedriver.model.StorageProvider;
 import com.emc.storageos.storagedriver.model.StorageSystem;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
@@ -122,7 +124,65 @@ public class ExternalDeviceCommunicationInterface extends
 
     @Override
     public void scan(AccessProfile accessProfile) throws BaseCollectionException {
-        // todo: need to define driver api and implement support for scan.
+        // Initialize driver storage provider, call driver to scan the provider to get list of managed storage systems,
+        // update the system with this information.
+        _log.info("Scanning started for provider: {}", accessProfile.getSystemId());
+        // Get discovery driver class based on storage device type
+        String deviceType = accessProfile.getSystemType();
+        AbstractStorageDriver driver = getDriver(deviceType);
+        if (driver == null) {
+            String errorMsg = String.format("No driver entry defined for device type: %s . ", deviceType);
+            _log.info(errorMsg);
+            throw new ExternalDeviceCollectionException(false, ServiceCode.DISCOVERY_ERROR,
+                    null, errorMsg, null, null);
+        }
+
+        try {
+            com.emc.storageos.db.client.model.StorageProvider storageProvider =
+                    _dbClient.queryObject(com.emc.storageos.db.client.model.StorageProvider.class, accessProfile.getSystemId());
+            String username = storageProvider.getUserName();
+            String password = storageProvider.getPassword();
+            String hostName = storageProvider.getIPAddress();
+            Integer portNumber = storageProvider.getPortNumber();
+            String msg = String.format("Storage provider info: host: %s, port: %s, user: %s", hostName, portNumber, username);
+            _log.info(msg);
+
+            StorageProvider driverProvider = new StorageProvider();
+            // initialize driver provider
+            driverProvider.setProviderHost(hostName);
+            driverProvider.setPortNumber(portNumber);
+            driverProvider.setUsername(username);
+            driverProvider.setPassword(password);
+
+            // call the driver
+            List<StorageSystem> systems = new ArrayList<>();
+            DriverTask scanTask = driver.discoverStorageProvider(driverProvider, systems);
+
+            // process results, populate cache
+            _log.info("Scan: found {} systems for provider {}", systems.size(), accessProfile.getSystemId());
+            Map<String, StorageSystemViewObject> storageSystemsCache = accessProfile.getCache();
+            for (StorageSystem driverStorageSystem : systems) {
+                String systemType = driverStorageSystem.getSystemType();
+                String nativeGuid = NativeGUIDGenerator.generateNativeGuid(accessProfile.getSystemType(),
+                        driverStorageSystem.getNativeId());
+                StorageSystemViewObject storageSystem = storageSystemsCache.get(nativeGuid);
+                if (storageSystem == null) {
+                    storageSystem = new StorageSystemViewObject();
+                }
+                storageSystem.setDeviceType(systemType);
+                storageSystem.addprovider(accessProfile.getSystemId().toString());
+                storageSystem.setProperty(StorageSystemViewObject.SERIAL_NUMBER, driverStorageSystem.getSerialNumber());
+                storageSystem.setProperty(StorageSystemViewObject.VERSION, driverStorageSystem.getFirmwareVersion());
+                storageSystem.setProperty(StorageSystemViewObject.STORAGE_NAME, nativeGuid);
+                storageSystemsCache.put(nativeGuid, storageSystem);
+                _log.info("Storage system info {} for provider ip {}",
+                        driverStorageSystem.getSerialNumber(), accessProfile.getIpAddress());
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+
     }
 
     @Override

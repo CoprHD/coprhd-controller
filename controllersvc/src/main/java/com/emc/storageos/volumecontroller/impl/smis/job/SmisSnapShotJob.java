@@ -13,7 +13,6 @@ import javax.cim.CIMProperty;
 import javax.wbem.CloseableIterator;
 import javax.wbem.client.WBEMClient;
 
-import com.emc.storageos.volumecontroller.impl.smis.SmisUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,9 +25,10 @@ import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
-import com.emc.storageos.plugins.common.Constants;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
+import com.emc.storageos.volumecontroller.impl.smis.SmisUtils;
 
 public class SmisSnapShotJob extends SmisJob {
     private static final Logger _log = LoggerFactory.getLogger(SmisSnapShotJob.class);
@@ -164,7 +164,7 @@ public class SmisSnapShotJob extends SmisJob {
     }
 
     private void setParentOrConsistencyGroupAssociation(BlockSnapshotSession session, BlockSnapshot snapshot, DbClient dbClient) {
-        if (snapshot.hasConsistencyGroup()) {
+        if (snapshot.hasConsistencyGroup() && NullColumnValueGetter.isNotNullValue(snapshot.getReplicationGroupInstance())) {
             session.setConsistencyGroup(snapshot.getConsistencyGroup());
             BlockObject parent = BlockObject.fetch(dbClient, snapshot.getParent().getURI());
             if (parent != null) {

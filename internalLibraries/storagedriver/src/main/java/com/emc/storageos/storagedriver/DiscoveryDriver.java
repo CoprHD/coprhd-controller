@@ -74,5 +74,4 @@ public interface DiscoveryDriver extends StorageDriver {
      * @return driver task
      */
     public DriverTask discoverStorageProvider(StorageProvider storageProvider, List<StorageSystem> storageSystems);
-
 }

@@ -360,7 +360,7 @@ public class HP3PARApi {
         _log.info("3PARDriver:createVolume enter");
         ClientResponse clientResp = null;
         String body = "{\"name\":\"" + name + "\", \"cpg\":\"" + cpg + 
-                "\", \"tpvv\":" + thin.toString() + ", \"sizeMiB\":" + size.toString() + "}";
+                "\", \"tpvv\":" + thin.toString() + ", \"sizeMiB\":" + size.toString() + ", \"snapCPG\":\"" + cpg + "\"}";
 
         try {
             clientResp = post(URI_CREATE_VOLUME, body);

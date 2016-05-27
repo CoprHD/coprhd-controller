@@ -179,8 +179,7 @@ public class HP3PARApiFactory {
         String authToken = hp3parApi.getAuthToken("superme", "superme");
         System.out.println(authToken);
         
-        hp3parApi.verifyUserRole("test2");
-        
+//        hp3parApi.verifyUserRole("test2");
 //        SystemCommandResult sysRes = hp3parApi.getSystemDetails();
 //        System.out.println(sysRes.toString());
 //        CPGCommandResult cpgRes = hp3parApi.getAllCPGDetails();
@@ -188,8 +187,8 @@ public class HP3PARApiFactory {
 //        hp3parApi.getPortDetails();
 //        PortStatisticsCommandResult portStatRes = hp3parApi.getPortStatisticsDetail();
         
-//        String vol = "3par_vol6";
-//        hp3parApi.createVolume(vol, "One", true, (long)1024);
+        String vol = "3par_vol10";
+        hp3parApi.createVolume(vol, "One", true, (long)1024);
 //        hp3parApi.expandVolume(vol, (long)2048);
 //        hp3parApi.getCPGDetails("One");
 //        hp3parApi.deleteVolume(vol);

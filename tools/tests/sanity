@@ -7826,10 +7826,6 @@ dr_basic_tests()
     echo "Wait site state to become ACTIVE after failover ..."
     dr waitforstate $active_site ACTIVE 30 600 --ip "${DR_SITE_A_IP}"
 
-    # ipreconfig test after failover
-    ipreconfig_test "${DR_SITE_A_IP}"
-    wait_for_site_stable "${DR_SITE_A_IP}"
-
     # failback test part
     echo "Starting old active site $DR_SITE_B_NAME services ..."
     start_vdc_services "$DR_SITE_B_IP"
@@ -7857,7 +7853,7 @@ dr_basic_tests()
 
     # NOTE: after switchover and failover (then resume old active), site A is active and site B is standby (STANDBY_SYNCED state)
 
-    # ipreconfig test
+    # ipreconfig test after resuming original active
     ipreconfig_test "${DR_SITE_A_IP}"
     wait_for_site_stable "${DR_SITE_A_IP}" "${DR_SITE_B_IP}"
 
@@ -7884,7 +7880,7 @@ dr_basic_tests()
     test_projectid=$(project query $TESTPROJECT)
     echo "Project id of $TESTPROJECT is $test_projectid."
 
-    # ipreconfig test
+    # ipreconfig test after removing standby
     ipreconfig_test "${DR_SITE_A_IP}"
     wait_for_site_stable "${DR_SITE_A_IP}"
 

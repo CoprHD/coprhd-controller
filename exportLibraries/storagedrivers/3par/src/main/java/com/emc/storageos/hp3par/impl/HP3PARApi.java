@@ -54,6 +54,8 @@ public class HP3PARApi {
     private static final String URI_DELETE_VOLUME = "/api/v1/volumes/{0}";
     private static final String URI_VOLUME_SNAPSHOT = "/api/v1/volumes/{0}";
     private static final String URI_DELETE_VOLUME_SNAPSHOT = "/api/v1/volumes/{0}";
+    private static final String URI_RESTORE_VOLUME_SNAPSHOT = "/api/v1/volumes/{0}";
+    
 
     public HP3PARApi(URI endpoint, RESTClient client, String userName, String pass) {
         _baseUrl = endpoint;
@@ -384,12 +386,12 @@ public class HP3PARApi {
         } //end try/catch/finally
     }
 
-    public void createVolumeVirtualCopy(String baseVolumeName, String snapName, Boolean readWrite) throws Exception {
+    public void createVirtualCopy(String baseVolumeName, String snapName, Boolean readOnly) throws Exception {
         _log.info("3PARDriver:createVolumeVirtualCopy enter");
         ClientResponse clientResp = null;
         
-        // NOTE: need to add read type for snapshot 
-        String payload = "{\"action\":\"createSnapshot\", \"parameters\": { \"name\": \"" + snapName +"\" } }";
+        // for snapshot creation 
+        String payload = "{\"action\":\"createSnapshot\", \"parameters\": { \"name\": \"" + snapName +"\" , \"readOnly\": " + readOnly +"} }";
 
         final String path = MessageFormat.format(URI_VOLUME_SNAPSHOT, baseVolumeName);
         
@@ -508,7 +510,7 @@ public class HP3PARApi {
         } //end try/catch/finally
     }
 
-    public void deleteVolumeVirtualCopy(String name) throws Exception {
+    public void deleteVirtualCopy(String name) throws Exception {
         _log.info("3PARDriver: deleteVolumeVirtualCOpy enter");
         ClientResponse clientResp = null;
         final String path = MessageFormat.format(URI_DELETE_VOLUME_SNAPSHOT, name);
@@ -534,7 +536,48 @@ public class HP3PARApi {
         } //end try/catch/finally
     }
 
-
+	public void restoreVirtualCopy(String name) throws Exception {
+        _log.info("3PARDriver: restoreVirtualCopy enter");
+        ClientResponse clientResp = null;
+        final String path = MessageFormat.format(URI_RESTORE_VOLUME_SNAPSHOT, name);
+        Boolean online = true;
+        Boolean offline = false;
+        
+        // for snapshot restoration  {"action":4, "online":true
+        String onlinePayload = "{\"action\":4, \"online\": " + online +" }";
+        
+        // Offline restore is faster
+        String offlinePayload = "{\"action\":4, \"online\": " + offline +" }";
+        
+        try {
+        	// trying offline restore
+            clientResp = put(path,offlinePayload);
+            
+            // if related volume is exported, we will get error here. Trying online restore
+            if (clientResp.getStatus() != 200) {
+            	String errResp = getResponseDetails(clientResp);
+            	clientResp = put(path,onlinePayload);
+            }
+            
+            if (clientResp == null) {
+                _log.error("3PARDriver:There is no response from 3PAR");
+                throw new HP3PARException("There is no response from 3PAR");
+            } else if (clientResp.getStatus() != 200) {
+                String errResp = getResponseDetails(clientResp);
+                throw new HP3PARException(errResp);
+            } else {
+                _log.info("3PARDriver: restoreVirtualCopy success");
+            }
+        } catch (Exception e) {
+            throw e;
+        } finally {
+            if (clientResp != null) {
+                clientResp.close();
+            }
+            _log.info("3PARDriver: restoreVirtualCopy leave");
+        } //end try/catch/finally
+    }
+	
     private String getResponseDetails(ClientResponse clientResp) {
         String detailedResponse = null, ref=null;;
         try {
@@ -615,5 +658,7 @@ public class HP3PARApi {
         }
         return clientResp;
     }
+
+
 }
 

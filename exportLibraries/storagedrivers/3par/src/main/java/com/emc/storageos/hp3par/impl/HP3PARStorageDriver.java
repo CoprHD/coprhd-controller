@@ -576,6 +576,11 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
         return null;
     }
 
+    /**
+     * 
+     * Virtual Copy is HP3PAR term for Snapshot. 
+     * 
+     */
     @Override
     public DriverTask createVolumeSnapshot(List<VolumeSnapshot> snapshots, StorageCapabilities capabilities) {
 
@@ -586,21 +591,21 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
             	//native id = null , 
                 _log.info("3PARDriver: createVolumeSnapshot for storage system native id {}, volume name {} - start",
                 		snap.toString(), snap.getDisplayName());  
-                Boolean readWrite = true;
+                Boolean readOnly = true;
                 
                 // get Api client
                 HP3PARApi hp3parApi = getHP3PARDeviceFromNativeId(snap.getStorageSystemId());
 
-                // Create volume
+
                 VolumeDetailsCommandResult volResult = null;
-                if (snap.getAccessStatus() != AccessStatus.READ_WRITE) {
-                	readWrite = false;
+                if (snap.getAccessStatus() != AccessStatus.READ_ONLY) {
+                	readOnly = false;
                 }
-                
-                hp3parApi.createVolumeVirtualCopy(snap.getParentId(),snap.getDisplayName(),readWrite);
+                // Create volume snapshot
+                hp3parApi.createVirtualCopy(snap.getParentId(),snap.getDisplayName(),readOnly);
                 volResult = hp3parApi.getVolumeDetails(snap.getDisplayName());
                                 
-                // actual size of the volume in array
+                // Actual size of the volume in array
                 //snap.setProvisionedCapacity(volResult.getSizeMiB() * HP3PARConstants.MEGA_BYTE);
                 snap.setWwn(volResult.getWwn());
                 snap.setNativeId(snap.getDisplayName()); //required for volume delete
@@ -619,30 +624,53 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
                 task.setStatus(DriverTask.TaskStatus.PARTIALLY_FAILED);
                 e.printStackTrace();
             }
-        } // end for each volume
+        } // end for each volume snapshot creation
+        
+        return task;
+    }
+
+    /**
+     * Promote Virtual Copy is HP3PAR term for restore Snapshot.
+     * First offline restore then online restore will be tried. 
+     */
+    @Override
+    public DriverTask restoreSnapshot(List<VolumeSnapshot> snapshots) {
+
+	    DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_RESTORE_SNAPSHOT_VOLUMES);
+
+        // Executing restore for each requested volume snapshot (in one or more 3par system)
+        for (VolumeSnapshot snap : snapshots) {
+            try {
+                _log.info("3PARDriver: restoreSnapshot for storage system system id {}, volume name {} , native id {} , all = {} - start",
+                		snap.getStorageSystemId(), snap.getDisplayName(), snap.getNativeId(), snap.toString());     
+
+                // get Api client
+                HP3PARApi hp3parApi = getHP3PARDeviceFromNativeId(snap.getStorageSystemId());
+
+                // restore virtual copy
+                hp3parApi.restoreVirtualCopy(snap.getNativeId());
+                
+                task.setStatus(DriverTask.TaskStatus.READY);
+                _log.info("3PARDriver: restoreSnapshot for storage system  id {}, volume snap display name {} - end",
+                		snap.getStorageSystemId(), snap.getDisplayName());            
+            } catch (Exception e) {
+                String msg = String.format(
+                        "3PARDriver: Unable to restore volume display name %s with native id %s for storage system id %s; Error: %s.\n",
+                        snap.getDisplayName(), snap.getNativeId(), snap.getStorageSystemId(), e.getMessage());
+                _log.error(msg);
+                task.setMessage(msg);
+                task.setStatus(DriverTask.TaskStatus.PARTIALLY_FAILED);
+                e.printStackTrace();
+            }
+        } // end for each restore snapshot
         
         return task;
     }
 
     @Override
-    public DriverTask restoreSnapshot(List<VolumeSnapshot> snapshots) {
-        // TODO Auto-generated method stub
-    	for (VolumeSnapshot snap : snapshots) {
-            try {
-                _log.info("3PARDriver: restoreSnapshot for storage system native id {}, volume name {} - start",
-                		snap.toString(), snap.getDisplayName());  
-            } catch(Exception e) {
-            	_log.info("testing exception");	
-            
-            }
-    	}
-        return null;
-    }
-
-    @Override
     public DriverTask deleteVolumeSnapshot(List<VolumeSnapshot> snapshots) {
 
-	    DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_DELETE_STORAGE_VOLUMES);
+	    DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_DELETE_SNAPSHOT_VOLUMES);
 
         // For each requested volume snapshot (in one or more 3par system)
         for (VolumeSnapshot snap : snapshots) {
@@ -653,8 +681,8 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
                 // get Api client
                 HP3PARApi hp3parApi = getHP3PARDeviceFromNativeId(snap.getStorageSystemId());
 
-                // Delete volume
-                hp3parApi.deleteVolumeVirtualCopy(snap.getNativeId());
+                // Delete virtual copy
+                hp3parApi.deleteVirtualCopy(snap.getNativeId());
                 
                 task.setStatus(DriverTask.TaskStatus.READY);
                 _log.info("3PARDriver: deleteVolumeSnapshot for storage system native id {}, volume name {} - end",
@@ -668,7 +696,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
                 task.setStatus(DriverTask.TaskStatus.PARTIALLY_FAILED);
                 e.printStackTrace();
             }
-        } // end for each volume snapshot
+        } // end for each delete snapshot
         
         return task;
     }

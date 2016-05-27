@@ -460,7 +460,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
     public void doCreateClone(StorageSystem storageSystem, URI volume, URI clone, Boolean createInactive,
                               TaskCompleter taskCompleter) {
         Volume cloneObject = null;
-        try {
+        try {//gd
             cloneObject = dbClient.queryObject(Volume.class, clone);
             Volume sourceVolume = dbClient.queryObject(Volume.class, volume);
 

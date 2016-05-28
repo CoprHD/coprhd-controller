@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.emc.storageos.storagedriver.StorageDriver;
 import com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils;
 import com.google.common.base.Joiner;
 import org.slf4j.Logger;
@@ -115,6 +116,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
         driver.setDriverRegistry(driverRegistry);
         LockManager lockManager = LockManagerImpl.getInstance(locker);
         driver.setLockManager(lockManager);
+        driver.setSdkVersionNumber(StorageDriver.SDK_VERSION_NUMBER);
     }
 
 
@@ -331,7 +333,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
             Iterator<BlockSnapshot> snapshots = dbClient.queryIterativeObjects(BlockSnapshot.class, snapshotList);
             List<BlockSnapshot> blockSnapshots = new ArrayList<>();
             while (snapshots.hasNext()) {
-                blockSnapshots.add(snapshots.next());
+               blockSnapshots.add(snapshots.next());
             }
 
             if (ControllerUtils.checkSnapshotsInConsistencyGroup(blockSnapshots, dbClient, taskCompleter)) {
@@ -1047,7 +1049,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
 
 
     private void updateVolumesWithDriverVolumeInfo(DbClient dbClient, Map<StorageVolume, Volume> driverVolumesMap, Set<URI> consistencyGroups)
-            throws IOException {
+                  throws IOException {
         for (Map.Entry driverVolumeToVolume : driverVolumesMap.entrySet()) {
             StorageVolume driverVolume = (StorageVolume)driverVolumeToVolume.getKey();
             Volume volume = (Volume)driverVolumeToVolume.getValue();
@@ -1086,7 +1088,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
             driverSnapshot.setStorageSystemId(storageSystemNativeId);
             driverSnapshot.setDisplayName(snapshot.getLabel());
             if (readOnly) {
-                driverSnapshot.setAccessStatus(StorageObject.AccessStatus.READ_ONLY);
+               driverSnapshot.setAccessStatus(StorageObject.AccessStatus.READ_ONLY);
             } else {
                 driverSnapshot.setAccessStatus(StorageObject.AccessStatus.READ_WRITE);
             }
@@ -1129,7 +1131,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
     }
 
     private void createGroupSnapshots(StorageSystem storageSystem, List<BlockSnapshot> snapshots, Boolean createInactive, Boolean readOnly,
-                                      TaskCompleter taskCompleter) {
+                                       TaskCompleter taskCompleter) {
         _log.info("Creating snapshot of consistency group .....");
         List<VolumeSnapshot> driverSnapshots = new ArrayList<>();
         Map<VolumeSnapshot, BlockSnapshot> driverSnapshotToSnapshotMap = new HashMap<>();

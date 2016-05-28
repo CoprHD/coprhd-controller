@@ -150,7 +150,7 @@
             <boolean-checkbox v-disabled='locked'></boolean-checkbox>
           </control-group>
         </div>
-        <div ng-if="['${models.StorageSystemTypes.VMAX}','${models.StorageSystemTypes.VNX_BLOCK}','${models.StorageSystemTypes.HITACHI}','${models.StorageSystemTypes.VNXe}'].indexOf(vpool.systemType) > -1">
+        <div ng-if="['${models.StorageSystemTypes.VMAX}','${models.StorageSystemTypes.VNX_BLOCK}','${models.StorageSystemTypes.HITACHI}','${models.StorageSystemTypes.VNXe}','${models.StorageSystemTypes.UNITY}'].indexOf(vpool.systemType) > -1">
           <control-group v-field='vpool.autoTierPolicy'>
             <select-one v-disabled="locked" auto-default options="autoTierPolicyOptions" empty-option="none"></select-one>
           </control-group>
@@ -165,7 +165,7 @@
           <boolean-checkbox v-disabled='locked'></boolean-checkbox>
         </control-group>
 
-        <div ng-if="['${models.StorageSystemTypes.VMAX}','${models.StorageSystemTypes.VNX_BLOCK}', '${models.StorageSystemTypes.VNXe}',',${models.StorageSystemTypes.HITACHI}'].indexOf(vpool.systemType) > -1">
+        <div ng-if="['${models.StorageSystemTypes.VMAX}','${models.StorageSystemTypes.VNX_BLOCK}', '${models.StorageSystemTypes.VNXe}','${models.StorageSystemTypes.UNITY}','${models.StorageSystemTypes.HITACHI}'].indexOf(vpool.systemType) > -1">
           <div ng-if="vpool.expandable">
             <control-group v-field='vpool.fastExpansion'>
               <boolean-checkbox v-disabled='locked'></boolean-checkbox>
@@ -240,7 +240,7 @@
           <input-text></input-text>
         </control-group>
 
-        <div ng-if="vpool.systemType != '${models.StorageSystemTypes.SCALEIO}' && vpool.systemType != '${models.StorageSystemTypes.IBMXIV}' && vpool.systemType != '${models.StorageSystemTypes.VNXe}' && vpool.systemType != '${models.StorageSystemTypes.CEPH}'">
+        <div ng-if="vpool.systemType != '${models.StorageSystemTypes.SCALEIO}' && vpool.systemType != '${models.StorageSystemTypes.IBMXIV}' && vpool.systemType != '${models.StorageSystemTypes.VNXe}' && vpool.systemType != '${models.StorageSystemTypes.CEPH}' && vpool.systemType != '${models.StorageSystemTypes.UNITY}'">
           <control-group v-field='vpool.maxContinuousCopies'>
             <input-text ng-disabled="vpool.expandable"></input-text>
           </control-group>

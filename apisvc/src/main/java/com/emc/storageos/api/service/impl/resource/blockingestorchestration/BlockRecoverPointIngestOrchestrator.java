@@ -714,8 +714,9 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
                         vplexVolumeContext.getBlockObjectsToBeCreatedMap(),
                         vplexVolumeContext.getDataObjectsToBeUpdatedMap(),
                         associatedVolumeIdStr);
+                String internalSiteName = associatedVolume.getInternalSiteName();
                 // If we don't already have an entry for this internal site name, let's add it now.
-                if (!internalSiteToVarrayMap.containsKey(associatedVolume.getInternalSiteName())) {
+                if (!internalSiteToVarrayMap.containsKey(internalSiteName)) {
                     internalSiteToVarrayMap.put(associatedVolume.getInternalSiteName(),
                             _dbClient.queryObject(VirtualArray.class, associatedVolume.getVirtualArray()));
                 }

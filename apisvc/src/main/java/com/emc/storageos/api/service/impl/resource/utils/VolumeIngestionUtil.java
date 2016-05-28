@@ -2919,6 +2919,22 @@ public class VolumeIngestionUtil {
             String exportGroupType = unManagedVolume.getVolumeCharacterstics().get(
                     SupportedVolumeCharacterstics.EXPORTGROUP_TYPE.toString());
 
+            Set<URI> supportedVirtualArrays = new HashSet<URI>();
+            supportedVirtualArrays.add(blockObject.getVirtualArray());
+            // If this is a MetroPoint volume we're going to have multiple ExportGroups which may belong to more than one
+            // virtual array
+            if (blockObject instanceof Volume && RPHelper.isMetroPointVolume(dbClient, (Volume) blockObject)) {
+                StringSet vplexBackendVolumes = PropertySetterUtil.extractValuesFromStringSet(
+                        SupportedVolumeInformation.VPLEX_BACKEND_VOLUMES.toString(), unManagedVolume.getVolumeInformation());
+                if (vplexBackendVolumes != null && !vplexBackendVolumes.isEmpty()) {
+                    StringSet vplexBackendVolumeGUIDs = getListofVolumeIds(vplexBackendVolumes);
+                    List<BlockObject> associatedVolumes = getVolumeObjects(vplexBackendVolumeGUIDs, requestContext, dbClient);
+                    for (BlockObject associatedVolume : associatedVolumes) {
+                        supportedVirtualArrays.add(associatedVolume.getVirtualArray());
+                    }
+                }
+            }
+
             // If there are unmanaged export masks, get the corresponding ViPR export masks
             StringSet unmanagedExportMasks = unManagedVolume.getUnmanagedExportMasks();
             if (null != unmanagedExportMasks && !unmanagedExportMasks.isEmpty()) {
@@ -3009,8 +3025,9 @@ public class VolumeIngestionUtil {
                                     "Block object is not associated with RP journal mask but export group is marked for RP journals. Not adding to the export group");
                             continue;
                         }
+
                         if (exportGroup.getProject().getURI().equals(getBlockProject(blockObject)) &&
-                                exportGroup.getVirtualArray().equals(blockObject.getVirtualArray()) &&
+                                supportedVirtualArrays.contains(exportGroup.getVirtualArray()) &&
                                 (exportGroupTypeMatches || isVplexBackendVolume)) {
                             // check if this ExportGroup URI has already been loaded in this ingestion request
                             ExportGroup loadedExportGroup = requestContext.findDataObjectByType(ExportGroup.class, exportGroup.getId(),

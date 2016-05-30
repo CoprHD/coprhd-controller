@@ -1789,7 +1789,7 @@ public class BlockService extends TaskResourceService {
 
         Copy copy = copies.get(0);
         if (vplexVolume && copy.getType().equalsIgnoreCase(TechnologyType.NATIVE.toString())) {
-            throw APIException.badRequests.actionNotApplicableForVplexVolumeMirrors(ProtectionOp.FAILOVER.getRestOp());
+            throw APIException.badRequests.actionNotApplicableForVplexVolumeMirrors(ProtectionOp.CHANGE_ACCESS_MODE.getRestOp());
         }
 
         ArgValidator.checkFieldNotEmpty(copy.getType(), "type");
@@ -5225,9 +5225,9 @@ public class BlockService extends TaskResourceService {
     /*
      * Validate if the physical array that the consistency group bonded to is associated
      * with the virtual array
-     * 
+     *
      * @param consistencyGroup
-     * 
+     *
      * @param varray virtual array
      */
     private void validateCGValidWithVirtualArray(BlockConsistencyGroup consistencyGroup,

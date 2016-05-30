@@ -9,6 +9,8 @@ import jcifs.smb.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.MalformedURLException;
@@ -32,8 +34,6 @@ public class CifsClient implements BackupClient{
         this.domain = domain;
         this.username = username;
         this.password = password;
-        jcifs.Config.setProperty("jcifs.resolveOrder", "DNS");
-        jcifs.Config.setProperty("jcifs.util.loglevel","3");
         if ( this.domain != null && !this.domain.equals("")){
             auth = new NtlmPasswordAuthentication(domain,username,password);
         }else {
@@ -44,7 +44,7 @@ public class CifsClient implements BackupClient{
 
     public OutputStream upload(String fileName, long offset) throws Exception {
         SmbFile uploadFile = new SmbFile(uri + fileName, auth);
-        return new SmbFileOutputStream(uploadFile);
+        return new BufferedOutputStream(new SmbFileOutputStream(uploadFile));
     }
 
     public List<String> listFiles(String prefix) throws Exception {
@@ -69,7 +69,7 @@ public class CifsClient implements BackupClient{
 
     public InputStream download(String BackupFileName) throws MalformedURLException, SmbException, UnknownHostException {
         SmbFile remoteBackupFile = new SmbFile(uri + BackupFileName, auth);
-        return new SmbFileInputStream(remoteBackupFile);
+        return new BufferedInputStream(new SmbFileInputStream(remoteBackupFile));
     }
 
     public void rename (String sourceFileName ,String destFileName) throws Exception {
@@ -85,7 +85,13 @@ public class CifsClient implements BackupClient{
 
     public long getFileSize(String fileName) throws Exception{
         SmbFile smbFile = new SmbFile(uri + fileName,auth);
-        return smbFile.length();
+        long len = 0;
+        try {
+            len = smbFile.length();
+        }catch ( SmbException e ){
+            log.warn("failed to get {} size,return lenth 0",fileName);
+        }
+        return len;
     }
 
     public static Boolean isSupported (String url) {

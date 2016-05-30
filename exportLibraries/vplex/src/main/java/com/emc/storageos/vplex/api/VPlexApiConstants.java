@@ -135,6 +135,7 @@ public class VPlexApiConstants {
     public static final String REBUILD_STATUS_DONE = "done";
     public static final String REBUILD_STATUS_ERROR = "error";
     public static final String ATTRIBUTE_CG_RP_ENABLED = "recoverpoint-enabled";
+    public static final String ATTRIBUTE_CG_READ_ONLY = "read-only";
     public static final String ATTRIBUTE_CG_AUTO_RESUME = "auto-resume-at-loser";
     public static final String ATTRIBUTE_DEVICE_VISIBILITY = "visibility";
     public static final String EXCEPTION_MSG_JSON_KEY = "exception";
@@ -313,7 +314,13 @@ public class VPlexApiConstants {
     // VPLEX API error response fragment used to check if
     // the failure were due to duplicate storage view
     public static final String DUPLICATE_STORAGE_VIEW_ERROR_FRAGMENT = "failed with Status 537: Duplicate view";
-
+    
+    // VPLEX API error response fragment used to check Consistency Group read-only flag not supported
+    public static final String CG_READ_ONLY_INVALID_ATTRIBUTE = "Invalid attribute 'read-only'";
+    public static final String CG_CANNOT_MAKE_READ_ONLY = "Cannot make a consistency-group read-only";
+    // Reason given to user
+    public static final String CG_READ_ONLY_ATTRIBUTE_NOT_SUPPORTED = "Consistency Group read-only attribute is not supported";
+    
     // delimiter for cause in VPLEX API error responses
     public static final String CAUSE_DELIM = "cause:";
     

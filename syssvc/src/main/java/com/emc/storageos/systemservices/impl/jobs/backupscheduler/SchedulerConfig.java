@@ -134,8 +134,8 @@ public class SchedulerConfig {
 
         initBackupInterval(propInfo);
         this.schedulerEnabled = isSchedulerEnabled(propInfo);
-        this.startOffsetMinutes = getStartOffsetMinutes(propInfo);
-        this.copiesToKeep = getCopiesToKeep(propInfo);
+        this.startOffsetMinutes = fetchStartOffsetMinutes(propInfo);
+        this.copiesToKeep = fetchCopiesToKeep(propInfo);
         this.uploadServerType = getExternalServerType();
         this.uploadUrl = getExternalServerUrl(propInfo);
         this.uploadDomain = getExternalDomain();
@@ -170,7 +170,7 @@ public class SchedulerConfig {
         return (enableStr == null || enableStr.length() == 0) ? false : Boolean.parseBoolean(enableStr);
     }
 
-    private int getStartOffsetMinutes(PropertyInfo propInfo) {
+    private int fetchStartOffsetMinutes(PropertyInfo propInfo) {
         int startOffset = 0;
         String startTimeStr = propInfo.getProperty(BackupConstants.SCHEDULE_TIME);
         if (startTimeStr != null && startTimeStr.length() > 0) {
@@ -186,7 +186,7 @@ public class SchedulerConfig {
         return startOffset;
     }
 
-    private int getCopiesToKeep(PropertyInfo propInfo) {
+    private int fetchCopiesToKeep(PropertyInfo propInfo) {
         int retentionNumber = BackupConstants.DEFAULT_BACKUP_COPIES_TO_KEEP;
         String copiesStr = propInfo.getProperty(BackupConstants.COPIES_TO_KEEP);
         if (copiesStr != null && copiesStr.length() > 0) {

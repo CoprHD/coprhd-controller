@@ -59,6 +59,7 @@ public class UnManagedExportMask extends UnManagedDiscoveredObject {
     }
 
     @Name("maskName")
+    @AlternateId("AltIdIndex")
     public String getMaskName() {
         return _maskName;
     }
@@ -253,16 +254,16 @@ public class UnManagedExportMask extends UnManagedDiscoveredObject {
     public String toString() {
         StringBuilder str = new StringBuilder("UnManagedExportMask: ");
         str.append(_maskingViewPath);
-        str.append("; maskName: ").append(_maskName);
-        str.append("; nativeId: ").append(_nativeId);
-        str.append("; known initiators: ").append(this.getKnownInitiatorUris());
-        str.append("; known initiator network ids: ").append(this.getKnownInitiatorNetworkIds());
-        str.append("; unmanaged initiators network ids: ").append(this.getUnmanagedInitiatorNetworkIds());
-        str.append("; known storage ports: ").append(this.getKnownStoragePortUris());
-        str.append("; unmanaged storage ports: ").append(this.getUnmanagedStoragePortNetworkIds());
-        str.append("; known storage volumes: ").append(this.getKnownVolumeUris());
-        str.append("; unmanaged storage volumes: ").append(this.getUnmanagedVolumeUris());
-        str.append("; zoning map: ").append(this.getZoningMap());
+        str.append("; \n\t maskName: ").append(_maskName);
+        str.append("; \n\t nativeId: ").append(_nativeId);
+        str.append("; \n\t known initiators: ").append(this.getKnownInitiatorUris());
+        str.append("; \n\t known initiator network ids: ").append(this.getKnownInitiatorNetworkIds());
+        str.append("; \n\t unmanaged initiators network ids: ").append(this.getUnmanagedInitiatorNetworkIds());
+        str.append("; \n\t known storage ports: ").append(this.getKnownStoragePortUris());
+        str.append("; \n\t unmanaged storage ports: ").append(this.getUnmanagedStoragePortNetworkIds());
+        str.append("; \n\t known storage volumes: ").append(this.getKnownVolumeUris());
+        str.append("; \n\t unmanaged storage volumes: ").append(this.getUnmanagedVolumeUris());
+        str.append("; \n\t zoning map: ").append(this.getZoningMap());
         return str.toString();
     }
 

@@ -21,7 +21,7 @@
         <bootloader-theme>openSUSE</bootloader-theme>
     </preferences>
     <preferences profiles="appliance">
-        <type image="vmx" filesystem="ext3" boot="vmxboot/suse-13.2" format="vmdk" bootloader="grub2" kernelcmdline="splash">
+        <type image="vmx" filesystem="ext3" boot="vmxboot/suse-13.2" format="vmdk" bootloader="grub2" kernelcmdline="splash net.ifnames=0 biosdevname=0">
             <machine memory="__RAM__" guestOS="suse">
                 <vmdisk controller="lsilogic" id="0"/>
                 <vmnic interface="e1000" mode="bridged"/>
@@ -33,7 +33,7 @@
         </type>
     </preferences>
     <preferences profiles="openstack">
-        <type image="vmx" filesystem="ext3" boot="vmxboot/suse-13.2" format="vmdk" bootloader="grub2" kernelcmdline="splash">
+        <type image="vmx" filesystem="ext3" boot="vmxboot/suse-13.2" format="vmdk" bootloader="grub2" kernelcmdline="splash net.ifnames=0 biosdevname=0">
             <machine memory="__RAM__" guestOS="suse">
                 <vmdisk controller="lsilogic" id="0"/>
                 <vmnic interface="e1000" mode="bridged"/>
@@ -176,6 +176,11 @@
         <package name="xz-devel"/>
         <package name="yum"/>
         <package name="zlib-devel"/>
+        <package name="boost-license1_58_0"/>
+        <package name="libboost_system1_58_0"/>
+        <package name="libboost_thread1_58_0"/>
+        <package name="librados2"/>
+        <package name="librbd1"/>
     </packages>
     <packages type="bootstrap">
         <package name="udev"/>

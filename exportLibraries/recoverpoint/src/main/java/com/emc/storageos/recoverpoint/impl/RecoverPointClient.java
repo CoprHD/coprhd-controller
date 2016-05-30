@@ -3301,7 +3301,10 @@ public class RecoverPointClient {
 
                 RecoverPointImageManagementUtils rpiMgmt = new RecoverPointImageManagementUtils();
                 logger.info("Waiting for links to become active for CG ");
-                rpiMgmt.waitForCGLinkState(functionalAPI, cgID, RecoverPointImageManagementUtils.getPipeActiveState(functionalAPI, cgID));
+                // Wait for the active state or paused state. If a copy is in direct access mode, the link
+                // will be paused but it's still a valid state.
+                rpiMgmt.waitForCGLinkState(functionalAPI, cgID, RecoverPointImageManagementUtils.getPipeActiveState(functionalAPI, cgID),
+                        PipeState.PAUSED);
             } catch (FunctionalAPIActionFailedException_Exception e) {
                 throw RecoverPointException.exceptions.failedToRecreateReplicationSet(volumeWWNs.toString(), e);
             } catch (FunctionalAPIInternalError_Exception e) {

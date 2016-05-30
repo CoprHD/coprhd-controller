@@ -38,10 +38,10 @@ public interface BackupClient {
 
     /**
      * Download file from to external server to vipr
-     * @param BackupFileName download filename
+     * @param backupFileName download filename
      * @return InputStream of to be downloaded file on external server
      */
-    public InputStream download(String BackupFileName) throws Exception;
+    public InputStream download(String backupFileName) throws Exception;
 
     /**
      * Rename the filename on external server

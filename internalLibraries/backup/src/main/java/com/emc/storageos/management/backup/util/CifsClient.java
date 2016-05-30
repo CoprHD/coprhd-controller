@@ -67,8 +67,8 @@ public class CifsClient implements BackupClient{
         return listFiles(null);
     }
 
-    public InputStream download(String BackupFileName) throws MalformedURLException, SmbException, UnknownHostException {
-        SmbFile remoteBackupFile = new SmbFile(uri + BackupFileName, auth);
+    public InputStream download(String backupFileName) throws MalformedURLException, SmbException, UnknownHostException {
+        SmbFile remoteBackupFile = new SmbFile(uri + backupFileName, auth);
         return new BufferedInputStream(new SmbFileInputStream(remoteBackupFile));
     }
 

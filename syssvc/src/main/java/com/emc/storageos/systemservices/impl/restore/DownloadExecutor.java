@@ -231,8 +231,6 @@ public final class DownloadExecutor implements  Runnable {
         }
 
         byte[] buf = new byte[BackupConstants.DOWNLOAD_BUFFER_SIZE];
-        //debug for cifs
-        //InputStream in = client.download(remoteBackupFileName);
         InputStream in = client.download(remoteBackupFileName);
 
 

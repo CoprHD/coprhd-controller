@@ -2073,7 +2073,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         ArgValidator.checkFieldNotEmpty(copy.getType(), "type");
 
         if (TechnologyType.RP.name().equalsIgnoreCase(copy.getType())) {
-            taskResp = performProtectionAction(id, copy.getCopyID(), copy.getPointInTime(), ProtectionOp.SWAP.getRestOp());
+            taskResp = performProtectionAction(id, copy, ProtectionOp.SWAP.getRestOp());
             taskList.getTaskList().add(taskResp);
         } else if (TechnologyType.SRDF.name().equalsIgnoreCase(copy.getType())) {
             taskResp = performSRDFProtectionAction(id, copy, ProtectionOp.SWAP.getRestOp());
@@ -2114,7 +2114,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         TaskResourceRep taskResp = null;
         TaskList taskList = new TaskList();
 
-        // Validate the source volume URI
+        // Validate the consistency group URI
         ArgValidator.checkFieldUriType(id, BlockConsistencyGroup.class, "id");
         // Validate the list of copies
         ArgValidator.checkFieldNotEmpty(param.getCopies(), "copies");
@@ -2137,12 +2137,67 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         ArgValidator.checkFieldNotEmpty(copy.getType(), "type");
 
         if (TechnologyType.RP.name().equalsIgnoreCase(copy.getType())) {
-            taskResp = performProtectionAction(id, copy.getCopyID(), copy.getPointInTime(),
-                    ProtectionOp.FAILOVER.getRestOp());
+            taskResp = performProtectionAction(id, copy, ProtectionOp.FAILOVER.getRestOp());
             taskList.getTaskList().add(taskResp);
         } else if (TechnologyType.SRDF.name().equalsIgnoreCase(copy.getType())) {
             taskResp = performSRDFProtectionAction(id, copy, ProtectionOp.FAILOVER.getRestOp());
             taskList.getTaskList().add(taskResp);
+        } else {
+            throw APIException.badRequests.invalidCopyType(copy.getType());
+        }
+
+        return taskList;
+    }
+
+    /**
+     * Request to change the access mode on the provided copy.
+     *
+     * NOTE: This is an asynchronous operation.
+     *
+     * Currently only supported for RecoverPoint protected volumes. If volume is SRDF protected,
+     * then we do nothing and return the task.
+     *
+     * @prereq none
+     *
+     * @param id the URN of a ViPR Source volume
+     * @param param Copy to change access mode on
+     *
+     * @brief Changes the access mode for a copy.
+     * @return TaskList
+     *
+     * @throws ControllerException
+     */
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/protection/continuous-copies/accessmode")
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
+    public TaskList changeAccessMode(@PathParam("id") URI id, CopiesParam param) throws ControllerException {
+
+        TaskResourceRep taskResp = null;
+        TaskList taskList = new TaskList();
+
+        // Validate the consistency group URI
+        ArgValidator.checkFieldUriType(id, BlockConsistencyGroup.class, "id");
+        // Validate the list of copies
+        ArgValidator.checkFieldNotEmpty(param.getCopies(), "copies");
+
+        List<Copy> copies = param.getCopies();
+
+        if (copies.size() != 1) {
+            // Change access mode operations can only be performed on a single copy
+            throw APIException.badRequests.changeAccessCopiesParamCanOnlyBeOne();
+        }
+
+        Copy copy = copies.get(0);
+
+        ArgValidator.checkFieldNotEmpty(copy.getType(), "type");
+        ArgValidator.checkFieldNotEmpty(copy.getAccessMode(), "accessMode");
+        if (copy.getType().equalsIgnoreCase(TechnologyType.RP.toString())) {
+            taskResp = performProtectionAction(id, copy, ProtectionOp.CHANGE_ACCESS_MODE.getRestOp());
+            taskList.getTaskList().add(taskResp);
+        } else if (copy.getType().equalsIgnoreCase(TechnologyType.SRDF.toString())) {
+            return taskList;
         } else {
             throw APIException.badRequests.invalidCopyType(copy.getType());
         }
@@ -2194,8 +2249,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         ArgValidator.checkFieldNotEmpty(copy.getType(), "type");
 
         if (TechnologyType.RP.name().equalsIgnoreCase(copy.getType())) {
-            taskResp = performProtectionAction(id, copy.getCopyID(), copy.getPointInTime(),
-                    ProtectionOp.FAILOVER_CANCEL.getRestOp());
+            taskResp = performProtectionAction(id, copy, ProtectionOp.FAILOVER_CANCEL.getRestOp());
             taskList.getTaskList().add(taskResp);
         } else if (TechnologyType.SRDF.name().equalsIgnoreCase(copy.getType())) {
             taskResp = performSRDFProtectionAction(id, copy, ProtectionOp.FAILOVER_CANCEL.getRestOp());
@@ -2219,17 +2273,17 @@ public class BlockConsistencyGroupService extends TaskResourceService {
      * @throws InternalException
      */
     private TaskResourceRep
-            performProtectionAction(URI consistencyGroupId, URI targetVarrayId, String pointInTime, String op)
+            performProtectionAction(URI consistencyGroupId, Copy copy, String op)
                     throws InternalException {
         ArgValidator.checkFieldUriType(consistencyGroupId, BlockConsistencyGroup.class, "id");
-        ArgValidator.checkFieldUriType(targetVarrayId, VirtualArray.class, "copyId");
+        ArgValidator.checkFieldUriType(copy.getCopyID(), VirtualArray.class, "copyId");
 
         // Get the BlockConsistencyGroup and target VirtualArray associated with the request.
         final BlockConsistencyGroup consistencyGroup = (BlockConsistencyGroup) queryResource(consistencyGroupId);
-        final VirtualArray targetVirtualArray = _permissionsHelper.getObjectById(targetVarrayId, VirtualArray.class);
+        final VirtualArray targetVirtualArray = _permissionsHelper.getObjectById(copy.getCopyID(), VirtualArray.class);
 
         ArgValidator.checkEntity(consistencyGroup, consistencyGroupId, true);
-        ArgValidator.checkEntity(targetVirtualArray, targetVarrayId, true);
+        ArgValidator.checkEntity(targetVirtualArray, copy.getCopyID(), true);
 
         // The consistency group needs to be associated with RecoverPoint in order to perform the operation.
         if (!consistencyGroup.checkForType(Types.RP)) {
@@ -2237,12 +2291,18 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             throw APIException.badRequests.consistencyGroupMustBeRPProtected(consistencyGroupId);
         }
 
+        // Catch any attempts to use an invalid access mode
+        if (op.equalsIgnoreCase(ProtectionOp.CHANGE_ACCESS_MODE.getRestOp()) &&
+                !Copy.ImageAccessMode.DIRECT_ACCESS.name().equalsIgnoreCase(copy.getAccessMode())) {
+            throw APIException.badRequests.unsupportedAccessMode(copy.getAccessMode());
+        }
+
         // Verify that the supplied target Virtual Array is being referenced by at least one target volume in the CG.
-        List<Volume> targetVolumes = getTargetVolumes(consistencyGroup, targetVarrayId);
+        List<Volume> targetVolumes = getTargetVolumes(consistencyGroup, copy.getCopyID());
 
         if (targetVolumes == null || targetVolumes.isEmpty()) {
             // The supplied target varray is not referenced by any target volumes in the CG.
-            throw APIException.badRequests.targetVirtualArrayDoesNotMatch(consistencyGroupId, targetVarrayId);
+            throw APIException.badRequests.targetVirtualArrayDoesNotMatch(consistencyGroupId, copy.getCopyID());
         }
 
         // Get the first target volume
@@ -2263,7 +2323,8 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         RPController controller = getController(RPController.class, system.getSystemType());
 
-        controller.performProtectionOperation(system.getId(), consistencyGroupId, targetVolume.getId(), pointInTime, null, op, task);
+        controller.performProtectionOperation(system.getId(), consistencyGroupId, targetVolume.getId(), copy.getPointInTime(),
+                copy.getAccessMode(), op, task);
         /*
          * auditOp(OperationTypeEnum.PERFORM_PROTECTION_ACTION, true, AuditLogManager.AUDITOP_BEGIN,
          * op, copyID.toString(), id.toString(), system.getId().toString());

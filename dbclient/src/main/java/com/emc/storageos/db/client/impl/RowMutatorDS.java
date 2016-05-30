@@ -5,7 +5,9 @@ import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.Session;
+import com.datastax.driver.core.SimpleStatement;
 import com.datastax.driver.core.querybuilder.Delete;
+import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.utils.UUIDs;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.ScopedLabel;
@@ -108,15 +110,16 @@ public class RowMutatorDS {
 
     public void deleteColumn(String tableName, String recordKey) {
         log.info("hlj delete column, table={}, key={}", tableName, recordKey);
-        Delete deleteColumn = delete().from(String.format("\"%s\"", tableName)).where(eq("key", recordKey)).ifExists();
-        recordAndIndexBatch.add(deleteColumn);
+        //Delete deleteColumn = delete().from(String.format("\"%s\"", tableName)).where(eq("key", recordKey)).ifExists();
+        SimpleStatement deleteStatement = new SimpleStatement(String.format("delete from \"%s\" where key='%s'", tableName, recordKey));
+        recordAndIndexBatch.add(deleteStatement);
     }
 
     public void deleteIndex(String tableName, String indexRowKey, IndexColumnName column) {
         log.info("hlj delete index, table={}, key={}, column={}", tableName, indexRowKey, column);
-        Delete deleteIndex = delete().from(String.format("\"%s\"", tableName)).where(eq("key", indexRowKey))
-                .and(eq("column1", column.getOne())).ifExists();
-        recordAndIndexBatch.add(deleteIndex);
+        //Delete deleteIndex = delete().from(String.format("\"%s\"", tableName)).where(eq("key", indexRowKey)).ifExists();
+        SimpleStatement deleteStatement = new SimpleStatement(String.format("delete from \"%s\" where key='%s'", tableName, indexRowKey));
+        recordAndIndexBatch.add(deleteStatement);
     }
 
     public static ByteBuffer getByteBufferFromPrimitiveValue(Object val) {

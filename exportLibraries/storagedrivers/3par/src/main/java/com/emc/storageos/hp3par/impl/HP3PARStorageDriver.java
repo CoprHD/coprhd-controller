@@ -689,7 +689,9 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
     public DriverTask exportVolumesToInitiators(List<Initiator> initiators, List<StorageVolume> volumes, Map<String, String> volumeToHLUMap,
             List<StoragePort> recommendedPorts, List<StoragePort> availablePorts, StorageCapabilities capabilities,
             MutableBoolean usedRecommendedPorts, List<StoragePort> selectedPorts) {
-        // TODO Auto-generated method stub
+
+        _log.info("3PARDriver:exportVolumesToInitiators");
+        
         return null;
     }
 

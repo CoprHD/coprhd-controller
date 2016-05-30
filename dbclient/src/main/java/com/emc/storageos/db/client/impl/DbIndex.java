@@ -50,6 +50,12 @@ public abstract class DbIndex {
     abstract boolean removeColumn(String recordKey, Column<CompositeColumnName> column, String className,
             RowMutator mutator, Map<String, List<Column<CompositeColumnName>>> fieldColumnMap);
 
+    //todo abstract
+    boolean removeColumn(String recordKey, Column<CompositeColumnName> column, String className, RowMutatorDS mutatorDS){
+        _log.info("hlj in dbindex, do nothing");
+        return false;
+    }
+
     boolean removeColumn(String recordKey, Column<CompositeColumnName> column, String className,
             RowMutator mutator, Map<String, List<Column<CompositeColumnName>>> fieldColumnMap,
             DataObject obj) {

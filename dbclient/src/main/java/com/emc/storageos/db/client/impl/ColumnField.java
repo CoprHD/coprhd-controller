@@ -372,6 +372,14 @@ public class ColumnField {
         return _index.removeColumn(recordKey, column, _parentType.getDataObjectClass().getSimpleName(), mutator, fieldColumnMap);
     }
 
+    public boolean removeIndexDS(String recordKey, Column<CompositeColumnName> column, RowMutatorDS mutatorDS) {
+        if (_index == null || column instanceof ColumnWrapper || isDeletionMark(column)) {
+            return false;
+        }
+        //only remove index
+        return _index.removeColumn(recordKey, column, _parentType.getDataObjectClass().getSimpleName(), mutatorDS);
+    }
+
     private void addDeletionMark(String recordKey, CompositeColumnName colName, RowMutator mutator) {
         addColumn(recordKey, colName, null, mutator);
     }

@@ -63,6 +63,14 @@ public class RelationDbIndex extends DbIndex {
         return true;
     }
 
+    @Override
+    boolean removeColumn(String recordKey, Column<CompositeColumnName> column, String className, RowMutatorDS mutatorDS) {
+        String rowKey = getRowKey(column);
+        UUID uuid = column.getName().getTimeUUID();
+        mutatorDS.deleteIndex(indexCF.getName(), rowKey, new IndexColumnName(className, recordKey, uuid));
+        return true;
+    }
+
     String getRowKey(CompositeColumnName column, Object value) {
         if (indexByKey) {
             return column.getTwo();

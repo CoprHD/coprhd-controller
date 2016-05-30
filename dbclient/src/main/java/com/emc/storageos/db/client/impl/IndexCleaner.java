@@ -103,6 +103,22 @@ public class IndexCleaner {
         mutator.executeIndexFirst();
     }
 
+    public void removeIndexAndColumnDS(RowMutatorDS rowMutatorDS, DataObjectType doType, RemovedColumnsList listToClean) {
+        Map<String, List<Column<CompositeColumnName>>> cleanList = listToClean.getColumnsToClean();
+        Iterator<Map.Entry<String, List<Column<CompositeColumnName>>>> entryIt = cleanList.entrySet().iterator();
+        while (entryIt.hasNext()) {
+            Map.Entry<String, List<Column<CompositeColumnName>>> entry = entryIt.next();
+
+            String rowKey = entry.getKey();
+            List<Column<CompositeColumnName>> cols = entry.getValue();
+            for (int i = 0; i < cols.size(); i++) {
+                Column<CompositeColumnName> column = cols.get(i);
+                ColumnField field = doType.getColumnField(column.getName().getOne());
+                field.removeIndexDS(rowKey, column, rowMutatorDS);
+            }
+        }
+    }
+
     public void removeIndexOfInactiveObjects(RowMutator mutator, DataObjectType doType, IndexCleanupList indexCleanList,
             boolean forChangedObjectsOnly) {
         // Get list of columns to cleanup for objects has changes on their indexed fields

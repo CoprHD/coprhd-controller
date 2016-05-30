@@ -1355,6 +1355,41 @@ public class DbClientImpl implements DbClient {
         }
     }
 
+    //For DataStax POC
+    public void removeObjectDS(Class<? extends DataObject> clazz, DataObject... object) {
+        List<DataObject> allObjects = Arrays.asList(object);
+        Keyspace ks = getKeyspace(clazz);
+        Session session = getSession(clazz);
+
+        DataObjectType doType = null;
+        RemovedColumnsList removedList = new RemovedColumnsList();
+        RowMutatorDS removeRowMutatorDS = new RowMutatorDS(session);
+        for (DataObject dataObject : allObjects) {
+            checkGeoVersionForMutation(dataObject);
+            doType = TypeMap.getDoType(dataObject.getClass());
+            if (doType == null) {
+                throw new IllegalArgumentException();
+            }
+            //remove dataobject
+            removeRowMutatorDS.deleteColumn(doType.getCF().getName(), dataObject.getId().toString());
+
+            Row<String, CompositeColumnName> row = queryRowWithAllColumns(ks, dataObject.getId(), doType.getCF());
+            if (row != null) {
+                Iterator<Column<CompositeColumnName>> it = row.getColumns().iterator();
+                String key = row.getKey();
+                while (it.hasNext()) {
+                    Column<CompositeColumnName> column = it.next();
+                    removedList.add(key, column);
+                }
+            }
+        }
+        if (!removedList.isEmpty()) {
+            boolean retryFailedWriteWithLocalQuorum = shouldRetryFailedWriteWithLocalQuorum(clazz);
+            _indexCleaner.removeIndexAndColumnDS(removeRowMutatorDS, doType, removedList);
+        }
+
+    }
+
     @Override
     public <T extends TimeSeriesSerializer.DataPoint> String insertTimeSeries(
             Class<? extends TimeSeries> tsType, T... data) {

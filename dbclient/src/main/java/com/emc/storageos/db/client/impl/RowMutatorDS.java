@@ -5,6 +5,7 @@ import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.Session;
+import com.datastax.driver.core.querybuilder.Delete;
 import com.datastax.driver.core.utils.UUIDs;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.ScopedLabel;
@@ -37,7 +38,6 @@ public class RowMutatorDS {
     private PreparedStatement updateRecord;
     private PreparedStatement deleteRecord;
 
-
     private BatchStatement recordAndIndexBatch;
 
     private UUID timeUUID;
@@ -56,16 +56,23 @@ public class RowMutatorDS {
         this.timeUUID = UUIDs.timeBased();
     }
 
+    public RowMutatorDS(Session session) {
+        this.session = session;
+        this.recordAndIndexBatch = new BatchStatement();
+        this.timeUUID = UUIDs.timeBased();
+    }
+
     public void addColumn(String recordKey, CompositeColumnName column, Object val) {
-        //todo we should consider 'ttl'
+        // todo we should consider 'ttl'
         log.info("hlj, id={}, column={}, val={}, typeofval={}", recordKey, column, val, val.getClass());
         BoundStatement insert = insertRecord.bind();
         insert.setString("key", recordKey);
-        //For PRIMARY KEY (key, column1, column2, column3, column4), the primary key cannot be null
+        // For PRIMARY KEY (key, column1, column2, column3, column4), the primary key cannot be null
         insert.setString("column1", column.getOne() == null ? StringUtils.EMPTY : column.getOne());
         insert.setString("column2", column.getTwo() == null ? StringUtils.EMPTY : column.getTwo());
         insert.setString("column3", column.getThree() == null ? StringUtils.EMPTY : column.getThree());
-        //todo when column4 is null, "Invalid null value for clustering key part column4" exception will be thrown, so we should set column4 with an empty UUID here(but don't find how to). but below is timeBased() not empty.
+        // todo when column4 is null, "Invalid null value for clustering key part column4" exception will be thrown, so we should set
+        // column4 with an empty UUID here(but don't find how to). but below is timeBased() not empty.
         insert.setUUID("column4", column.getTimeUUID() == null ? UUIDs.timeBased() : column.getTimeUUID());
         ByteBuffer blobVal = RowMutatorDS.getByteBufferFromPrimitiveValue(val);
         insert.setBytes("value", blobVal);
@@ -74,8 +81,9 @@ public class RowMutatorDS {
     }
 
     public void addIndexColumn(String tableName, String indexRowKey, IndexColumnName column, Object val) {
-        log.info("hlj INDEX, rowKey={}, tableName={}, column={}, val={}, typeofval={}", indexRowKey, tableName, column, val, val != null ? val.getClass(): null);
-        //todo move to constructed method
+        log.info("hlj INDEX, rowKey={}, tableName={}, column={}, val={}, typeofval={}", indexRowKey, tableName, column, val,
+                val != null ? val.getClass() : null);
+        // todo move to constructed method
         PreparedStatement insertIndex = session.prepare(insertInto(String.format("\"%s\"", tableName))
                 .value("key", bindMarker())
                 .value("column1", bindMarker())
@@ -96,6 +104,19 @@ public class RowMutatorDS {
         insert.setBytes("value", blobVal);
         log.info("hlj INDEX insert={}, blobval={}", insert, blobVal);
         recordAndIndexBatch.add(insert);
+    }
+
+    public void deleteColumn(String tableName, String recordKey) {
+        log.info("hlj delete column, table={}, key={}", tableName, recordKey);
+        Delete deleteColumn = delete().from(String.format("\"%s\"", tableName)).where(eq("key", recordKey)).ifExists();
+        recordAndIndexBatch.add(deleteColumn);
+    }
+
+    public void deleteIndex(String tableName, String indexRowKey, IndexColumnName column) {
+        log.info("hlj delete index, table={}, key={}, column={}", tableName, indexRowKey, column);
+        Delete deleteIndex = delete().from(String.format("\"%s\"", tableName)).where(eq("key", indexRowKey))
+                .and(eq("column1", column.getOne())).ifExists();
+        recordAndIndexBatch.add(deleteIndex);
     }
 
     public static ByteBuffer getByteBufferFromPrimitiveValue(Object val) {

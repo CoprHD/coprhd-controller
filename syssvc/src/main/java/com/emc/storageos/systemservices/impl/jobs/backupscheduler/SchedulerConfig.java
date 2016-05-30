@@ -22,7 +22,6 @@ import com.emc.storageos.management.backup.BackupConstants;
 import com.emc.storageos.model.property.PropertyInfo;
 import com.emc.storageos.security.mail.MailHelper;
 import com.emc.storageos.coordinator.client.service.InterProcessLockHolder;
-import com.emc.storageos.services.util.Strings;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
 import com.emc.vipr.model.sys.ClusterInfo.ClusterState;
 import com.emc.vipr.model.sys.backup.BackupUploadStatus;
@@ -36,9 +35,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
 import java.net.URI;
-import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
@@ -98,14 +95,14 @@ public class SchedulerConfig {
         return getExternalServerUrl(propInfo);
     }
 
-    public String getUploadServerType() {
+    public String getExternalServerType() {
         PropertyInfo propInfo = coordinator.getCoordinatorClient().getPropertyInfo();
-        return getUploadServerType(propInfo);
+        return getExternalServerType(propInfo);
     }
 
-    public String getUploadDomain() {
+    public String getExternalDomain() {
         PropertyInfo propInfo = coordinator.getCoordinatorClient().getPropertyInfo();
-        return getUploadDomain(propInfo);
+        return getExternalDomain(propInfo);
     }
 
     public String getExternalServerUserName() {
@@ -139,9 +136,9 @@ public class SchedulerConfig {
         this.schedulerEnabled = isSchedulerEnabled(propInfo);
         this.startOffsetMinutes = getStartOffsetMinutes(propInfo);
         this.copiesToKeep = getCopiesToKeep(propInfo);
-        this.uploadServerType = getUploadServerType();
+        this.uploadServerType = getExternalServerType();
         this.uploadUrl = getExternalServerUrl(propInfo);
-        this.uploadDomain = getUploadDomain();
+        this.uploadDomain = getExternalDomain();
         this.uploadUserName = getExternalServerUserName(propInfo);
         this.uploadPassword = getExternalServerPassword(propInfo);
 
@@ -211,11 +208,11 @@ public class SchedulerConfig {
         return url;
     }
 
-    private String getUploadServerType(PropertyInfo propInfo) {
+    private String getExternalServerType(PropertyInfo propInfo) {
         return propInfo.getProperty(BackupConstants.UPLOAD_SERVER_TYPE);
     }
 
-    private String getUploadDomain(PropertyInfo propInfo) {
+    private String getExternalDomain(PropertyInfo propInfo) {
         return propInfo.getProperty(BackupConstants.UPLOAD_SERVER_DOMAIN);
     }
 

@@ -21,7 +21,7 @@ public class CifsUploader extends Uploader {
 
     public CifsUploader(SchedulerConfig cfg, BackupScheduler cli) {
         super(cfg, cli);
-        cifsClient = new CifsClient(cfg.uploadUrl,cfg.getUploadDomain(), cfg.uploadUserName, cfg.getExternalServerPassword());
+        cifsClient = new CifsClient(cfg.uploadUrl,cfg.uploadDomain, cfg.uploadUserName, cfg.getExternalServerPassword());
     }
 
     public static boolean isSupported(String url) {

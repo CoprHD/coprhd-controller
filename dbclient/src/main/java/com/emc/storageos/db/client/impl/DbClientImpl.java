@@ -1320,7 +1320,7 @@ public class DbClientImpl implements DbClient {
         }
         for (Entry<Class<? extends DataObject>, List<DataObject>> entry : typeObjMap.entrySet()) {
             List<DataObject> dbObjList = entry.getValue();
-            removeObject(entry.getKey(), dbObjList.toArray(new DataObject[dbObjList.size()]));
+            removeObjectDS(entry.getKey(), dbObjList.toArray(new DataObject[dbObjList.size()]));
         }
     }
 
@@ -1370,7 +1370,7 @@ public class DbClientImpl implements DbClient {
             if (doType == null) {
                 throw new IllegalArgumentException();
             }
-            //remove dataobject
+            //remove dataobject directly
             removeRowMutatorDS.deleteColumn(doType.getCF().getName(), dataObject.getId().toString());
 
             Row<String, CompositeColumnName> row = queryRowWithAllColumns(ks, dataObject.getId(), doType.getCF());
@@ -1388,6 +1388,7 @@ public class DbClientImpl implements DbClient {
             _indexCleaner.removeIndexAndColumnDS(removeRowMutatorDS, doType, removedList);
         }
 
+        removeRowMutatorDS.execute();
     }
 
     @Override

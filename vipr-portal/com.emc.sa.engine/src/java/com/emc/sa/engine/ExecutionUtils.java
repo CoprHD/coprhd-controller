@@ -73,7 +73,8 @@ public class ExecutionUtils {
 
     protected static <T> T execute(ExecutionTask<T> task, ExecutionContext context) throws ExecutionException {
         ExecutionTaskLog log = context.logCurrentTask(task);
-
+        // TODO only execute if order not in a paused state. If paused, poll while waiting for order to go into executing state
+        // May need to look up status (ex: context.getOrder().getOrderStatus();)
         long startTime = System.currentTimeMillis();
         try {
             injectValues(task, context);

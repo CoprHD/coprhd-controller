@@ -1509,10 +1509,18 @@ public class DbClientImpl implements DbClient {
         ResultSet resultSet = cassandraSession.execute(statement);
         
         List<CassandraRows> result = new ArrayList<CassandraRows>();
-        CassandraRows rows = new CassandraRows();
+        CassandraRows rows = null;
+        String lastKey = null;
         for (com.datastax.driver.core.Row row : resultSet) {
             String currentKey = row.getString(0);
-                
+            
+            if (lastKey == null || (!lastKey.equals(currentKey))) {
+            	rows = new CassandraRows();
+            	result.add(rows);
+            	
+            	lastKey = currentKey;
+            }
+            
             CassandraRow lastCassandraRow = new CassandraRow();
             rows.getRows().add(lastCassandraRow);
             rows.setKey(currentKey);

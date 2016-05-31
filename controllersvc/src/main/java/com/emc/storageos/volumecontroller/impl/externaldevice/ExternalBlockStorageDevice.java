@@ -469,6 +469,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
             BlockObject sourceVolume = null;
             StorageVolume driverClone;
             StorageVolume driverCloneResult;
+            BlockObject newObject = dbClient.queryObject(BlockObject.class, volume);
             
             if (blockVol != null) {
             	sourceVolume = blockVol;
@@ -527,7 +528,8 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                 	cloneObject.setReplicaState(((SnapshotClone) driverCloneResult).getReplicationState().name());                	
                 } else{
                 	cloneObject.setReplicaState(((VolumeClone) driverCloneResult).getReplicationState().name());
-                }                
+                }
+                
                 cloneObject.setProvisionedCapacity(driverCloneResult.getProvisionedCapacity());
                 cloneObject.setAllocatedCapacity(driverCloneResult.getAllocatedCapacity());
                 cloneObject.setInactive(false);

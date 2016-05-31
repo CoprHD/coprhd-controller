@@ -26,6 +26,9 @@ public class StorageSystemTypeServiceUtils {
     private static final String XTREMIO = "xtremio";
     private static final String DATA_DOMAIN = "datadomain";
     private static final String ECS = "ecs";
+    
+    private StorageSystemTypeServiceUtils () {
+    }
 
     public static void initializeDisplayName(HashMap<String, String> nameDisplayNameMap) {
         nameDisplayNameMap.put(VNX_FILE, "EMC VNX File");

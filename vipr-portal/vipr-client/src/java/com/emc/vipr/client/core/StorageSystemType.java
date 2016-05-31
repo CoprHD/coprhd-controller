@@ -37,8 +37,4 @@ public class StorageSystemType {
 		return client.get(StorageSystemTypeList.class,
 				PathConstants.STORAGE_SYSTEM_TYPE_URL + "/type/" + type);
 	}
-
-	public ClientResponse uploadDeviceDriver(MultiPart fileInputStream) {
-		return client.postMultiPart(ClientResponse.class, fileInputStream, PathConstants.STORAGE_SYSTEM_TYPE_URL + "/upload");
-	}
 }

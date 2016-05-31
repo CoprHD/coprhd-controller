@@ -187,7 +187,9 @@ public class StorageSystemTypeService extends TaskResourceService {
 	 *
 	 * @param id
 	 * 
-	 * @brief Delete Storage System Type.
+	 * @brief Delete Storage System Type. Please note this API is available for short term solution.
+     * This will be discontinued and mechanism will be provided to delete given storage system 
+     * type as part of device driver un-install process.
 	 * @return No data returned in response body
 	 */
 	@POST

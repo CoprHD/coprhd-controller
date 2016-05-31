@@ -36,11 +36,6 @@ public class EnumOption implements Comparable<EnumOption> {
         name = getDisplayValue(id, StringUtils.defaultString(namePrefix, value.getClass().getSimpleName()));
     }
 
-//    public EnumOption(String value, String namePrefix) {
-//        id = value;
-//        name = getDisplayValue(value, StringUtils.defaultString(namePrefix, value.getClass().getSimpleName()));
-//    }
-
     public EnumOption(String value, String port) {
         id = value;
         name = port;

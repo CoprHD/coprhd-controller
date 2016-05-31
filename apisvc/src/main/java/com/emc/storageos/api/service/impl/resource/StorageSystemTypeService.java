@@ -75,9 +75,7 @@ public class StorageSystemTypeService extends TaskResourceService {
 	@Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
 	public StorageSystemTypeRestRep getStorageSystemType(@PathParam("id") URI id) {
 		log.info("GET getStorageSystemType on Uri: " + id);
-//		if (!checkForStorageSystemType()) {
-//			StorageSystemTypeServiceUtils.InitializeStorageSystemTypes(_dbClient);
-//		}
+
 		ArgValidator.checkFieldUriType(id, StorageSystemType.class, "id");
 		StorageSystemType storageType = queryResource(id);
 		ArgValidator.checkEntity(storageType, id, isIdEmbeddedInURL(id));
@@ -97,9 +95,6 @@ public class StorageSystemTypeService extends TaskResourceService {
 	@CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
 	public StorageSystemTypeList getStorageSystemTypeType(@PathParam("type") String type) {
 		log.info("GET getStorageSystemType on type: " + type);
-//		if (!checkForStorageSystemType()) {
-//			StorageSystemTypeServiceUtils.InitializeStorageSystemTypes(_dbClient);
-//		}
 
 		if (type != null) {
 			ArgValidator.checkFieldValueFromEnum(type, "storageTypeType", StorageSystemType.storageSupportedType.class);
@@ -128,7 +123,9 @@ public class StorageSystemTypeService extends TaskResourceService {
 	 * @param param
 	 *            The StorageSystemTypeAddParam object contains all the parameters for
 	 *            creation.
-	 * @brief Create storage system type
+	 * @brief Create storage system type: Please note this API is available for short term solution.
+	 * This will be discontinued and mechanism will be provided to add new storage type during driver deployment.
+	 * 
 	 * @return StorageSystemTypeRestRep object.
 	 */
 	@POST
@@ -137,9 +134,6 @@ public class StorageSystemTypeService extends TaskResourceService {
 	@CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
 	public StorageSystemTypeRestRep addStorageSystemType(StorageSystemTypeAddParam addparam) {
 		log.info("addStorageSystemType");
-//		if (!checkForStorageSystemType()) {
-//			StorageSystemTypeServiceUtils.InitializeStorageSystemTypes(_dbClient);
-//		}
 
 		ArgValidator.checkFieldNotEmpty(addparam.getStorageTypeName(), "storageTypeName");
 		checkDuplicateLabel(StorageSystemType.class, addparam.getStorageTypeName());
@@ -229,13 +223,14 @@ public class StorageSystemTypeService extends TaskResourceService {
 	 * @brief Upload the specified device driver file
 	 * @return Response information.
 	 */
-
-	@POST
-	@Path("/upload")
-	@CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
-	@Consumes({ MediaType.APPLICATION_OCTET_STREAM, MediaType.MULTIPART_FORM_DATA })
-	@Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-	public Response uploadFile (
+// This is not supported in 3.2 release. Uncomment for later use.
+	
+//	@POST
+//	@Path("/upload")
+//	@CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+//	@Consumes({ MediaType.APPLICATION_OCTET_STREAM, MediaType.MULTIPART_FORM_DATA })
+//	@Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+	private Response uploadFile (
 			@FormDataParam("deviceDriver") InputStream fileInputStream,
 			@FormDataParam("deviceDriver") FormDataContentDisposition contentDispositionHeader) {
 		log.info("Upload of device driver file started, time: " + System.currentTimeMillis());
@@ -262,20 +257,6 @@ public class StorageSystemTypeService extends TaskResourceService {
 		return storageType;
 	}
 
-	/**
-	 * Check if there are Storage System Type, if not we should initialized
-	 */
-	private boolean checkForStorageSystemType() {
-		boolean storageTypeExist = true;
-		List<URI> storageTypes = _dbClient.queryByType(StorageSystemType.class, true);
-
-		ArrayList<URI> tempList = Lists.newArrayList(storageTypes.iterator());
-
-		if (tempList.isEmpty()) {
-			storageTypeExist = false;
-		}
-		return storageTypeExist;
-	}
 
 	@Override
 	protected ResourceTypeEnum getResourceType() {

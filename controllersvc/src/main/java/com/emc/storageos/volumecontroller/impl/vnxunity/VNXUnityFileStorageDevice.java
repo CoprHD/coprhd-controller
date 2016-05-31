@@ -1317,6 +1317,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
                         }
                     }
                     fsExport = new FileShareExport(exp);
+
                 }
                 for (ExportRule rule : allExports) {
                     _logger.info("Delete UnityExport id for path {} f containing subdirectory {}",

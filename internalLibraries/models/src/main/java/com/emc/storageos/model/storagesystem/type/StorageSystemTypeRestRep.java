@@ -58,7 +58,7 @@ public class StorageSystemTypeRestRep extends DataObjectRestRep {
 		this.storageTypeType = storageType;
 	}
 
-	@XmlElement(name = "isSmiProvider")
+	@XmlElement(name = "is__smi_provider")
 	public boolean getIsSmiProvider() {
 		return isSmiProvider;
 	}
@@ -76,7 +76,7 @@ public class StorageSystemTypeRestRep extends DataObjectRestRep {
 		this.storageTypeDispName = storageTypeDispName;
 	}
 
-	@XmlElement(name = "isDefaultSsl")
+	@XmlElement(name = "is_default_ssl")
 	public boolean getIsDefaultSsl() {
 		return isDefaultSsl;
 	}
@@ -85,7 +85,7 @@ public class StorageSystemTypeRestRep extends DataObjectRestRep {
 		this.isDefaultSsl = isDefaultSsl;
 	}
 
-	@XmlElement(name = "isDefaultMDM")
+	@XmlElement(name = "is_default_mdm")
 	public boolean getIsDefaultMDM() {
 		return isDefaultMDM;
 	}
@@ -94,7 +94,7 @@ public class StorageSystemTypeRestRep extends DataObjectRestRep {
 		this.isDefaultMDM = isDefaultMDM;
 	}
 
-	@XmlElement(name = "isOnlyMDM")
+	@XmlElement(name = "is_only_mdm")
 	public boolean getIsOnlyMDM() {
 		return isOnlyMDM;
 	}
@@ -103,7 +103,7 @@ public class StorageSystemTypeRestRep extends DataObjectRestRep {
 		this.isOnlyMDM = isOnlyMDM;
 	}
 
-	@XmlElement(name = "isElementMgr")
+	@XmlElement(name = "is_element_mgr")
 	public boolean getIsElementMgr() {
 		return isElementMgr;
 	}
@@ -112,7 +112,7 @@ public class StorageSystemTypeRestRep extends DataObjectRestRep {
 		this.isElementMgr = isElementMgr;
 	}
 
-	@XmlElement(name = "sslPort")
+	@XmlElement(name = "ssl_port")
 	public String getSslPort() {
 		return sslPort;
 	}
@@ -121,7 +121,7 @@ public class StorageSystemTypeRestRep extends DataObjectRestRep {
 		this.sslPort = sslPort;
 	}
 
-	@XmlElement(name = "nonSslPort")
+	@XmlElement(name = "non_ssl_port")
 	public String getNonSslPort() {
 		return nonSslPort;
 	}
@@ -130,7 +130,7 @@ public class StorageSystemTypeRestRep extends DataObjectRestRep {
 		this.nonSslPort = nonSslPort;
 	}
 
-	@XmlElement(name = "driverClassName")
+	@XmlElement(name = "driver_class_name")
 	public String getDriverClassName() {
 		return driverClassName;
 	}

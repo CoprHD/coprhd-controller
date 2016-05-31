@@ -25,9 +25,9 @@ import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.api.service.impl.resource.utils.StorageSystemTypeServiceUtils;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.StorageSystemType;
+import com.emc.storageos.db.server.impl.StorageSystemTypesInitUtils;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeAddParam;
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeList;
@@ -200,8 +200,7 @@ public class StorageSystemTypeService extends TaskResourceService {
 	public Response deleteStorageSystemType(@PathParam("id") URI id) {
 		log.info("deleteStorageSystemType: {}", id);
 		// Name of Array and its Display Name mapping, cannot delete native drivers
-		HashMap<String, String> nativeDriverNameMap = new HashMap<String, String>();
-		StorageSystemTypeServiceUtils.initializeDisplayName(nativeDriverNameMap);
+		HashMap<String, String> nativeDriverNameMap = StorageSystemTypesInitUtils.initializeDisplayName();
 		
 		StorageSystemType sstype = queryObject(StorageSystemType.class, id, true);
 		ArgValidator.checkEntity(sstype, id, isIdEmbeddedInURL(id));

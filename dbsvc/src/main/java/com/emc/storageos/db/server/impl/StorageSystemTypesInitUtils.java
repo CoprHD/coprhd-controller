@@ -83,24 +83,25 @@ public class StorageSystemTypesInitUtils {
         defaultSSL.put(IBMXIV, true);
     }
 
-    private static void initializeDisplayName() {
-        nameDisplayNameMap = new HashMap<String, String>();
-        nameDisplayNameMap.put(VNX_FILE, "EMC VNX File");
-        nameDisplayNameMap.put(ISILON, "EMC Isilon");
-        nameDisplayNameMap.put(NETAPP, "NetApp 7-mode");
-        nameDisplayNameMap.put(NETAPPC, "NetApp Cluster-mode");
-        nameDisplayNameMap.put(SCALEIOAPI, "ScaleIO Gateway");
-        nameDisplayNameMap.put(VNX_BLOCK, "EMC VNX Block");
-        nameDisplayNameMap.put(VNXe, "EMC VNXe");
-        nameDisplayNameMap.put(VMAX, "Storage Provider for EMC VMAX or VNX Block");
-        nameDisplayNameMap.put(HITACHI, "Storage Provider for Hitachi storage systems");
-        nameDisplayNameMap.put(VPLEX, "Storage Provider for EMC VPLEX");
-        nameDisplayNameMap.put(OPENSTACK, "Storage Provider for Third-party block storage systems");
-        nameDisplayNameMap.put(SCALEIO, "Block Storage Powered by ScaleIO");
-        nameDisplayNameMap.put(DATA_DOMAIN, "Storage Provider for Data Domain Management Center");
-        nameDisplayNameMap.put(IBMXIV, "Storage Provider for IBM XIV");
-        nameDisplayNameMap.put(XTREMIO, "Storage Provider for EMC XtremIO");
-        nameDisplayNameMap.put(ECS, "EMC Elastic Cloud Storage");
+    public static HashMap<String, String> initializeDisplayName() {
+        HashMap<String, String> displayNameMap = new HashMap<String, String>();
+        displayNameMap.put(VNX_FILE, "EMC VNX File");
+        displayNameMap.put(ISILON, "EMC Isilon");
+        displayNameMap.put(NETAPP, "NetApp 7-mode");
+        displayNameMap.put(NETAPPC, "NetApp Cluster-mode");
+        displayNameMap.put(SCALEIOAPI, "ScaleIO Gateway");
+        displayNameMap.put(VNX_BLOCK, "EMC VNX Block");
+        displayNameMap.put(VNXe, "EMC VNXe");
+        displayNameMap.put(VMAX, "Storage Provider for EMC VMAX or VNX Block");
+        displayNameMap.put(HITACHI, "Storage Provider for Hitachi storage systems");
+        displayNameMap.put(VPLEX, "Storage Provider for EMC VPLEX");
+        displayNameMap.put(OPENSTACK, "Storage Provider for Third-party block storage systems");
+        displayNameMap.put(SCALEIO, "Block Storage Powered by ScaleIO");
+        displayNameMap.put(DATA_DOMAIN, "Storage Provider for Data Domain Management Center");
+        displayNameMap.put(IBMXIV, "Storage Provider for IBM XIV");
+        displayNameMap.put(XTREMIO, "Storage Provider for EMC XtremIO");
+        displayNameMap.put(ECS, "EMC Elastic Cloud Storage");
+        return displayNameMap;
     }
 
     private static void initializeSSLPort() {
@@ -334,7 +335,7 @@ public class StorageSystemTypesInitUtils {
         elementManager.put(SCALEIO, true);
 
         // Name of Array and its Display Name mapping
-        initializeDisplayName();
+        nameDisplayNameMap = initializeDisplayName();
         // SSL port
         initializeSSLPort();
         // Storage Array/Provider port

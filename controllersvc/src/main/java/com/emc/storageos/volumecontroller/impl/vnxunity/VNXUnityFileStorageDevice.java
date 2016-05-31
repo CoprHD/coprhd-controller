@@ -192,7 +192,6 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
         return isFSExists;
     }
 
-
     /*
      * To get around the KH API delete file system async issues, using sync call for now.
      */
@@ -225,7 +224,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
     @Override
     public BiosCommandResult doExport(StorageSystem storage,
             FileDeviceInputOutput args, List<FileExport> exportList)
-                    throws ControllerException {
+            throws ControllerException {
 
         _logger.info("exporting the file system: " + args.getFsName());
         if (args.getFileObjExports() == null || args.getFileObjExports().isEmpty()) {
@@ -884,9 +883,9 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
                 // Check for existing exports for the export path including subdirectory
                 ArrayList<ExportRule> exps = existingExportsMapped.get(exportPath);
                 if (exps != null && !exps.isEmpty()) {
-                    _logger.error("Adding export rules is not supported as there can be only one export rule for VNXe.");
+                    _logger.error("Adding export rules is not supported as there can be only one export rule for VNX Unity.");
                     ServiceError error = DeviceControllerErrors.vnxe.jobFailed("updateExportRules",
-                            "Adding export rule is not supported for VNXe");
+                            "Adding export rule is not supported for VNX unity");
                     return BiosCommandResult.createErrorResult(error);
                 }
             }
@@ -1239,7 +1238,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
                         fsExport = new FileShareExport(exp);
                     }
                     String vnxeShareId = rule.getDeviceExportId();
-                    _logger.info("Delete IsilonExport id {} for path {}",
+                    _logger.info("Delete UnityExport id {} for path {}",
                             rule.getDeviceExportId(), rule.getExportPath());
                     if (isFile) {
                         String fsId = args.getFs().getNativeId();
@@ -1274,7 +1273,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
                         fsExport = new FileShareExport(exp);
                         if (fsExport != null) {
                             String vnxeShareId = fsExport.getIsilonId();
-                            _logger.info("Delete IsilonExport id {} for path {}",
+                            _logger.info("Delete UnityExport id {} for path {}",
                                     vnxeShareId, fsExport.getPath());
                             if (isFile) {
                                 String fsId = args.getFs().getNativeId();
@@ -1320,7 +1319,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
                     fsExport = new FileShareExport(exp);
                 }
                 for (ExportRule rule : allExports) {
-                    _logger.info("Delete IsilonExport id for path {} f containing subdirectory {}",
+                    _logger.info("Delete UnityExport id for path {} f containing subdirectory {}",
                             rule.getDeviceExportId() + ":" + rule.getExportPath(), subDir);
 
                     if (rule.getExportPath().equalsIgnoreCase(subDirExportPath)) {
@@ -1333,7 +1332,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
                         vnxeShareId = fsExport.getIsilonId();
                     }
                 }
-                _logger.info("Delete IsilonExport id {} for path {}",
+                _logger.info("Delete UnityExport id {} for path {}",
                         vnxeShareId, subDirExportPath);
 
                 if (isFile) {
@@ -1388,7 +1387,7 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
                         vnxeShareId = fsExport.getIsilonId();
                     }
                 }
-                _logger.info("Delete IsilonExport id {} for path {}",
+                _logger.info("Delete UnityExport id {} for path {}",
                         vnxeShareId, fsExport.getPath());
                 if (isFile) {
                     String fsId = args.getFs().getNativeId();

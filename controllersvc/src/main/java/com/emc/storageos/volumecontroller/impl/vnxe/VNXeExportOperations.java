@@ -20,6 +20,7 @@ import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
+import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.HostInterface.Protocol;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -43,6 +44,7 @@ import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 
 public class VNXeExportOperations extends VNXeOperations implements ExportMaskOperations {
     private static final Logger _logger = LoggerFactory.getLogger(VNXeExportOperations.class);
+    private static final String OTHER = "other";
 
     @Override
     public void createExportMask(StorageSystem storage, URI exportMask,
@@ -111,6 +113,16 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
                 _logger.info("The initiator {} protocol {} is not supported, skip",
                         init.getId(), init.getProtocol());
                 continue;
+            }
+            URI hostUri = init.getHost();
+            if (!NullColumnValueGetter.isNullURI(hostUri)) {
+                Host host = _dbClient.queryObject(Host.class, hostUri);
+                if (host != null) {
+                    String hostType = host.getType();
+                    if (NullColumnValueGetter.isNotNullValue(hostType) && !hostType.equalsIgnoreCase(OTHER)) {
+                        hostInit.setHostOsType(hostType);
+                    }
+                }
             }
 
             hostInit.setName(init.getHostName());

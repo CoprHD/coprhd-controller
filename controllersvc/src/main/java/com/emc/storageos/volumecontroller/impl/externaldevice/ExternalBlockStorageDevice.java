@@ -43,6 +43,7 @@ import com.emc.storageos.storagedriver.LockManager;
 import com.emc.storageos.storagedriver.Registry;
 import com.emc.storageos.storagedriver.impl.LockManagerImpl;
 import com.emc.storageos.storagedriver.impl.RegistryImpl;
+import com.emc.storageos.storagedriver.model.SnapshotClone;
 import com.emc.storageos.storagedriver.model.StorageObject;
 import com.emc.storageos.storagedriver.model.StorageVolume;
 import com.emc.storageos.storagedriver.model.VolumeClone;
@@ -462,13 +463,24 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
         Volume cloneObject = null;
         try {
         	cloneObject = dbClient.queryObject(Volume.class, clone);
-            VolumeClone.SourceType sourceType;
-            BlockObject sourceVolume = dbClient.queryObject(BlockObject.class, volume);
-            if (sourceVolume instanceof Volume) {
-                sourceType = VolumeClone.SourceType.VOLUME;
-            } else if (sourceVolume instanceof BlockSnapshot) {
-                sourceType = VolumeClone.SourceType.SNAPSHOT;
-           } else {
+
+            Volume blockVol = dbClient.queryObject(Volume.class, volume);
+            BlockSnapshot blockSnap  = dbClient.queryObject(BlockSnapshot.class, volume);
+            BlockObject sourceVolume = null;
+            StorageVolume driverClone;
+            StorageVolume driverCloneResult;
+            
+            if (blockVol != null) {
+            	sourceVolume = blockVol;
+            	driverCloneResult = driverClone = new VolumeClone();
+            	((VolumeClone) driverClone).setParentId(sourceVolume.getNativeId());
+            } else if (blockSnap != null) {
+            	sourceVolume = blockSnap;
+            	driverCloneResult = driverClone = new SnapshotClone();
+            	((SnapshotClone) driverClone).setParentId(sourceVolume.getNativeId());
+            	
+            } else {
+            	
                 cloneObject.setInactive(true);
                 dbClient.updateObject(cloneObject);
                 String errorMsg = String.format("doCreateClone -- Failed to create volume clone: unexpected source type %s .",
@@ -478,30 +490,44 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                 taskCompleter.error(dbClient, serviceError);
                 return;
             }
-
-            List<VolumeClone> driverClones = new ArrayList<>();
+            
+            
             // Prepare driver clone
-            VolumeClone driverClone = new VolumeClone();
-            driverClone.setParentId(sourceVolume.getNativeId());
-            driverClone.setSourceType(sourceType);
+//            VolumeClone driverClone = new VolumeClone();
+            
             driverClone.setStorageSystemId(storageSystem.getNativeId());
             driverClone.setDisplayName(cloneObject.getLabel());
             driverClone.setRequestedCapacity(cloneObject.getCapacity());
             driverClone.setThinlyProvisioned(cloneObject.getThinlyProvisioned());
-            driverClones.add(driverClone);
+            
 
             // Call driver
             BlockStorageDriver driver = getDriver(storageSystem.getSystemType());
-            DriverTask task = driver.createVolumeClone(Collections.unmodifiableList(driverClones), null);
+            DriverTask task ;
+            if (blockVol != null) {
+            	List<SnapshotClone> driverClones = new ArrayList<>();
+            	driverClones.add((SnapshotClone) driverClone);
+            	task = driver.createSnapshotClone(Collections.unmodifiableList(driverClones), null);
+            }
+            else {
+            	List<VolumeClone> driverClones = new ArrayList<>();
+            	driverClones.add((VolumeClone) driverClone);
+            	task = driver.createVolumeClone(Collections.unmodifiableList(driverClones), null);
+            }
+          
             // todo: need to implement support for async case.
             if (task.getStatus() == DriverTask.TaskStatus.READY) {
                 // Update clone
-                VolumeClone driverCloneResult = driverClones.get(0);
+//                VolumeClone driverCloneResult = driverClones.get(0);
                 cloneObject.setNativeId(driverCloneResult.getNativeId());
                 cloneObject.setWWN(driverCloneResult.getWwn());
                 cloneObject.setDeviceLabel(driverCloneResult.getDeviceLabel());
                 cloneObject.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(dbClient, cloneObject));
-                cloneObject.setReplicaState(driverCloneResult.getReplicationState().name());
+                if (blockVol != null) {
+                	cloneObject.setReplicaState(((SnapshotClone) driverCloneResult).getReplicationState().name());                	
+                } else{
+                	cloneObject.setReplicaState(((VolumeClone) driverCloneResult).getReplicationState().name());
+                }                
                 cloneObject.setProvisionedCapacity(driverCloneResult.getProvisionedCapacity());
                 cloneObject.setAllocatedCapacity(driverCloneResult.getAllocatedCapacity());
                 cloneObject.setInactive(false);

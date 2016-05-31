@@ -13,29 +13,15 @@ public class VolumeClone extends StorageVolume {
     // storage system of this volume. Type: Input.
     private String storageSystemId;
     
-    // source type of the clone.
-    SourceType sourceType = SourceType.UNKNOWN;
 
     // replication state of this clone. Type: Output.
     ReplicationState replicationState = ReplicationState.UNKNOWN;
 
 
-    
-    public static enum SourceType {
-    	UNKNOWN, VOLUME, SNAPSHOT
-    }
-
     public static enum ReplicationState {
         UNKNOWN, SYNCHRONIZED, CREATED, RESYNCED, INACTIVE, DETACHED, RESTORED;
     }
     
-    public void setSourceType(SourceType newSourceType) {
-    	this.sourceType = newSourceType;
-    }
-    
-    public SourceType getSourceType() {
-    	return sourceType;
-    }
 
     public String getParentId() {
         return parentId;

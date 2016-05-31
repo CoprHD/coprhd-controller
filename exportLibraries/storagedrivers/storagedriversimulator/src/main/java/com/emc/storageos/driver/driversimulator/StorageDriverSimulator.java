@@ -39,6 +39,7 @@ import com.emc.storageos.storagedriver.model.VolumeClone;
 import com.emc.storageos.storagedriver.model.VolumeConsistencyGroup;
 import com.emc.storageos.storagedriver.model.VolumeMirror;
 import com.emc.storageos.storagedriver.model.VolumeSnapshot;
+import com.emc.storageos.storagedriver.model.SnapshotClone;
 import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
 
@@ -430,6 +431,28 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
         task.setStatus(DriverTask.TaskStatus.READY);
 
         String msg = String.format("StorageDriver: createVolumeClone information for storage system %s, clone nativeIds %s - end",
+                clones.get(0).getStorageSystemId(), clones.toString());
+        _log.info(msg);
+        task.setMessage(msg);
+        return task;
+    }
+    
+    @Override
+    public DriverTask createSnapshotClone(List<SnapshotClone> clones, StorageCapabilities capabilities) {
+        for (SnapshotClone clone : clones) {
+            clone.setNativeId("clone-" + clone.getParentId() + clone.getDisplayName());
+            clone.setWwn(String.format("%s%s", clone.getStorageSystemId(), clone.getNativeId()));
+            clone.setReplicationState(SnapshotClone.ReplicationState.SYNCHRONIZED);
+            clone.setProvisionedCapacity(clone.getRequestedCapacity());
+            clone.setAllocatedCapacity(clone.getRequestedCapacity());
+            clone.setDeviceLabel(clone.getNativeId());
+        }
+        String taskType = "create-snapshot-clone";
+        String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
+        DriverTask task = new DriverSimulatorTask(taskId);
+        task.setStatus(DriverTask.TaskStatus.READY);
+
+        String msg = String.format("StorageDriver: createSnapshotClone information for storage system %s, clone nativeIds %s - end",
                 clones.get(0).getStorageSystemId(), clones.toString());
         _log.info(msg);
         task.setMessage(msg);

@@ -172,6 +172,7 @@ import com.emc.storageos.util.VPlexSrdfUtil;
 import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.ControllerException;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.volumecontroller.placement.ExportPathUpdater;
 import com.emc.storageos.vplexcontroller.VPlexDeviceController;
@@ -5403,7 +5404,8 @@ public class BlockService extends TaskResourceService {
      * @throws Exception if cannot be expanded
      */
     private void validateExpandingSrdfVolume(Volume volume) {
-        if (BlockServiceUtils.getNumNativeSnapshots(volume.getId(), _dbClient) > 0) {
+        if (ControllerUtils.checkIfVolumeHasSnapshot(volume, _dbClient)
+                || BlockSnapshotSessionUtils.volumeHasSnapshotSession(volume, _dbClient)) {
             throw BadRequestException.badRequests.cannotExpandSRDFVolumeWithSnapshots(volume.getLabel());
         }
         Volume srdfVolume = volume;
@@ -5411,16 +5413,18 @@ public class BlockService extends TaskResourceService {
             // Find associated SRDF volume
             srdfVolume = VPlexSrdfUtil.getSrdfVolumeFromVplexVolume(_dbClient, volume);
             if (srdfVolume != null) {
-                if (BlockServiceUtils.getNumNativeSnapshots(srdfVolume.getId(), _dbClient) > 0) {
+                if (ControllerUtils.checkIfVolumeHasSnapshot(srdfVolume, _dbClient) 
+                        || BlockSnapshotSessionUtils.volumeHasSnapshotSession(srdfVolume, _dbClient)) {
                     throw BadRequestException.badRequests.cannotExpandSRDFVolumeWithSnapshots(srdfVolume.getLabel());
                 }
             }
         }   
         // Check target volumes    
         if (srdfVolume.getSrdfTargets() != null) {
-            for (String target : volume.getSrdfTargets()) {
+            for (String target : srdfVolume.getSrdfTargets()) {
                 Volume targetVolume = _dbClient.queryObject(Volume.class, URI.create(target));
-                if (BlockServiceUtils.getNumNativeSnapshots(targetVolume.getId(), _dbClient) > 0) {
+                if (BlockSnapshotSessionUtils.volumeHasSnapshotSession(targetVolume, _dbClient)
+                        || BlockSnapshotSessionUtils.volumeHasSnapshotSession(targetVolume, _dbClient)) {
                     throw BadRequestException.badRequests.cannotExpandSRDFVolumeWithSnapshots(targetVolume.getLabel());
                 }
             }

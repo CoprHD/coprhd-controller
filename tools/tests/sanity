@@ -9060,7 +9060,8 @@ dr_multisite_tests()
     # step4: power off site C
     echo "step4: poweroff site $DR_SITE_C_NAME to prepare failover ..."
     stop_vdc_services "$DR_SITE_C_IP"
-
+    echo "sleep 180 seconds to wait standby site recognize the broken network ..."
+    sleep 180
     # step5: failover to ACTIVE_DEGRADED site and wait it to be stable and ACTIVE
     echo "step5: failover to $DR_SITE_A_NAME ..."
     dr failover --ip "${DR_SITE_A_IP}" $active_site || { echo "failover to site $DR_SITE_A_NAME failed."; exit 1; }

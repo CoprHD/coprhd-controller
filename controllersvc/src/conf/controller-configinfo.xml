@@ -113,7 +113,7 @@
         <entry key="sblim-timeout" value="1200000" />
         <entry key="enable-metering" value="true" />
         <entry key="enable-autodiscovery" value="true" />
-        <entry key="enable-arrayaffinity-discovery" value="true" />
+        <entry key="enable-arrayaffinity-discovery" value="false" />
         <entry key="enable-autoscan" value="false" />
 
         <entry key="capacity-compute-delay" value="5"/>

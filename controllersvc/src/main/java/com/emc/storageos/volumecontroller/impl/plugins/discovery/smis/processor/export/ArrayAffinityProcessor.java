@@ -5,13 +5,12 @@
 package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.export;
 
 import java.net.URI;
-import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import javax.cim.CIMInstance;
 import javax.cim.CIMObjectPath;
-import javax.wbem.CloseableIterator;
-import javax.wbem.WBEMException;
 import javax.wbem.client.WBEMClient;
 
 import org.apache.commons.lang.StringUtils;
@@ -23,14 +22,15 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
-import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
+import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
 
 /*
- * Refresh preferredSystemIds for a host
+ * Refresh preferredPoolIds for a host
  */
 public class ArrayAffinityProcessor {
     private static final Logger _logger = LoggerFactory.getLogger(ArrayAffinityProcessor.class);
@@ -44,8 +44,8 @@ public class ArrayAffinityProcessor {
      * @param cimClient WBEMClient
      * @return true if there is mapped volume
      */
-    public void updatePreferredSystems(URI systemId, AccessProfile profile, WBEMClient cimClient, DbClient dbClient) {
-        _logger.info("Calling updatePreferredSystems");
+    public void updatePreferredPoolIds(URI systemId, AccessProfile profile, WBEMClient cimClient, DbClient dbClient) {
+        _logger.info("Calling updatePreferredPoolIds");
 
         try {
             if (profile != null && profile.getProps() != null) {
@@ -53,19 +53,9 @@ public class ArrayAffinityProcessor {
                 if (StringUtils.isNotEmpty(hostIdStr)) {
                     Host host = dbClient.queryObject(Host.class, URI.create(hostIdStr));
                     if (host != null && !host.getInactive()) {
-                        boolean isPreferredSystem = hasMappedVolumes(host.getId(), profile, cimClient, dbClient);
-                        StringSet existingPreferredSystems = host.getPreferredSystemIds();
-                        String systemIdStr = systemId.toString();
-                        if (isPreferredSystem) {
-                            if (!existingPreferredSystems.contains(systemIdStr)) {
-                                existingPreferredSystems.add(systemIdStr);
-                                dbClient.updateObject(host);
-                            }
-                        } else {
-                            if (existingPreferredSystems.contains(systemIdStr)) {
-                                existingPreferredSystems.remove(systemIdStr);
-                                dbClient.updateObject(host);
-                            }
+                        Set<URI> preferredPoolURIs = getPreferredPoolIds(host.getId(), profile, cimClient, dbClient);
+                        if (ArrayAffinityDiscoveryUtils.updatePreferredPools(host, systemId, dbClient, preferredPoolURIs)) {
+                            dbClient.updateObject(host);
                         }
                     }
                 }
@@ -76,15 +66,17 @@ public class ArrayAffinityProcessor {
     }
 
     /**
-     * Check if there is mapped volume for the host.
+     * Get preferred pool Ids for a host
      *
      * @param hostId Id of Host instance
      * @param profile AccessProfile
      * @param cimClient WBEMClient
      * @param dbClient DbClient
-     * @return true if there is mapped volume
+     * @return set of URIs of preferred pools
      */
-    private boolean hasMappedVolumes(URI hostId, AccessProfile profile, WBEMClient cimClient, DbClient dbClient) {
+    private Set<URI> getPreferredPoolIds(URI hostId, AccessProfile profile, WBEMClient cimClient, DbClient dbClient) {
+        Set<URI> preferredPools = new HashSet<URI>();
+
         List<Initiator> allInitiators = CustomQueryUtility
                 .queryActiveResourcesByConstraint(dbClient,
                         Initiator.class, ContainmentConstraint.Factory
@@ -100,78 +92,24 @@ public class ArrayAffinityProcessor {
                             SmisConstants.CIM_STORAGE_HARDWARE_ID, SmisConstants.CP_ELEMENT_NAME, normalizedPortName);
             CIMObjectPath hardwareIdPath = CimObjectPathCreator.createInstance(
                     SmisConstants.CIM_STORAGE_HARDWARE_ID, Constants.EMC_NAMESPACE, null);
-            List<CIMInstance> hardwareIds = executeQuery(cimClient, hardwareIdPath, query, CQL);
+            List<CIMInstance> hardwareIds = DiscoveryUtils.executeQuery(cimClient, hardwareIdPath, query, CQL);
             if (!hardwareIds.isEmpty()) {
-                List<CIMObjectPath> maskPaths = getAssociatorNames(cimClient, hardwareIds.get(0).getObjectPath(), null,
+                List<CIMObjectPath> maskPaths = DiscoveryUtils.getAssociatorNames(cimClient, hardwareIds.get(0).getObjectPath(), null,
                         SmisConstants.CIM_PROTOCOL_CONTROLLER, null, null);
                 for (CIMObjectPath path : maskPaths) {
                     if (profile.getserialID().equals(path.getKeyValue(SmisConstants.CP_SYSTEM_NAME).toString())) {
-                        List<CIMObjectPath> volumePaths = getAssociatorNames(cimClient, path, null, SmisConstants.CIM_STORAGE_VOLUME, null, null);
-                        if (!volumePaths.isEmpty()) {
-                            return true;
+                        List<CIMObjectPath> volumePaths = DiscoveryUtils.getAssociatorNames(cimClient, path, null, SmisConstants.CIM_STORAGE_VOLUME, null, null);
+                        for (CIMObjectPath volumePath : volumePaths) {
+                            URI poolURI = ArrayAffinityDiscoveryUtils.getStoragePool(volumePath, cimClient, dbClient);
+                            if (!NullColumnValueGetter.isNullURI(poolURI)) {
+                                preferredPools.add(poolURI);
+                            }
                         }
                     }
                 }
             }
         }
 
-        return false;
-    }
-
-    /**
-     * Executes query
-     *
-     * @param storageSystem
-     * @param query
-     * @param queryLanguage
-     * @return list of matched instances
-     */
-    private List<CIMInstance> executeQuery(WBEMClient cimClient,
-            CIMObjectPath objectPath, String query, String queryLanguage) {
-        _logger.info(String.format(
-                "Executing query: %s, objectPath: %s, query language: %s",
-                query, objectPath, queryLanguage));
-
-        CloseableIterator<CIMInstance> iterator = null;
-        List<CIMInstance> instanceList = new ArrayList<CIMInstance>();
-        try {
-            iterator = cimClient.execQuery(objectPath, query, queryLanguage);
-            while (iterator.hasNext()) {
-                instanceList.add(iterator.next());
-            }
-
-        } catch (WBEMException we) {
-            _logger.error(
-                    "Caught an error while attempting to execute query and process query result. Query: "
-                            + query,
-                    we);
-        } finally {
-            if (iterator != null) {
-                iterator.close();
-            }
-        }
-
-        return instanceList;
-    }
-
-    private List<CIMObjectPath> getAssociatorNames(WBEMClient cimClient,
-            CIMObjectPath objectPath, String assocClass, String resultClass, String role, String resultRole) {
-        CloseableIterator<CIMObjectPath> iterator = null;
-        List<CIMObjectPath> objectPaths = new ArrayList<CIMObjectPath>();
-        try {
-            iterator = cimClient.associatorNames(objectPath, assocClass, resultClass, role, resultRole);
-            while (iterator.hasNext()) {
-                objectPaths.add(iterator.next());
-            }
-
-        } catch (WBEMException we) {
-            _logger.error("Caught an error while attempting to execute associatorNames");
-        } finally {
-            if (iterator != null) {
-                iterator.close();
-            }
-        }
-
-        return objectPaths;
+        return preferredPools;
     }
 }

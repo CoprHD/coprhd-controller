@@ -21,7 +21,6 @@ import javax.wbem.CloseableIterator;
 import javax.wbem.client.EnumerateResponse;
 import javax.wbem.client.WBEMClient;
 
-import com.emc.storageos.volumecontroller.impl.plugins.SMICommunicationInterface;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,6 +32,7 @@ import com.emc.storageos.db.client.model.HostInterface;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StoragePort.TransportType;
+import com.emc.storageos.db.client.model.StorageSystem.Discovery_Namespaces;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.ZoneInfo;
@@ -42,6 +42,7 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.WWNUtility;
 import com.emc.storageos.db.client.util.iSCSIUtility;
 import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
+import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.common.PartitionManager;
@@ -50,7 +51,9 @@ import com.emc.storageos.plugins.common.domainmodel.Operation;
 import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.util.VPlexUtil;
+import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
+import com.emc.storageos.volumecontroller.impl.plugins.SMICommunicationInterface;
 import com.emc.storageos.volumecontroller.impl.smis.CIMPropertyFactory;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
@@ -74,11 +77,13 @@ public class ExportProcessor extends Processor {
 
     private Set<URI> _allCurrentUnManagedExportMaskUris = null;
     private Map<String, Set<UnManagedExportMask>> _volumeToExportMasksMap = null;
-    private Map<URI, Set<UnManagedExportMask>> _hostToExportMasksMap = null;
+    private Map<URI, Set<String>> _hostToExportMasksMap = null;
+    private Map<String, Set<URI>> _maskToStoragePoolsMap = null;
     private List<UnManagedExportMask> _unManagedExportMasksToCreate = null;
     private List<UnManagedExportMask> _unManagedExportMasksToUpdate = null;
 
     private PartitionManager _partitionManager;
+    private boolean _isArrayAffinity = false;
 
     /**
      * Method for setting the partition manager via injection.
@@ -102,6 +107,9 @@ public class ExportProcessor extends Processor {
             Map<String, Object> keyMap) {
         _keyMap = keyMap;
         _dbClient = (DbClient) keyMap.get(Constants.dbClient);
+        AccessProfile profile = (AccessProfile) keyMap.get(Constants.ACCESSPROFILE);
+        _isArrayAffinity = Discovery_Namespaces.ARRAY_AFFINITY.name().equals(profile.getnamespace()) ||
+                ControllerServiceImpl.ARRAYAFFINITY_DISCOVERY.equals(profile.getProfileName());
 
         _vplexPortInitiators =
                 (Set<URI>) _keyMap.get(Constants.UNMANAGED_EXPORT_MASKS_VPLEX_INITS_SET);
@@ -173,18 +181,17 @@ public class ExportProcessor extends Processor {
             // set storage system id
             URI systemId = (URI) keyMap.get(Constants.SYSTEMID);
             mask.setStorageSystemUri(systemId);
-            mask.setHasUnknownVolume(false);
 
             response = (EnumerateResponse<CIMInstance>) resultObj;
             processVolumesAndInitiatorsPaths(response.getResponses(), mask, matchedInitiators, matchedPorts, knownIniSet,
-                    knownNetworkIdSet, knownPortSet, knownVolumeSet);
+                    knownNetworkIdSet, knownPortSet, knownVolumeSet, client);
 
             while (!response.isEnd()) {
                 _logger.info("Processing next Chunk");
                 response = client.getInstancesWithPath(Constants.MASKING_PATH, response.getContext(),
                         new UnsignedInteger32(BATCH_SIZE));
                 processVolumesAndInitiatorsPaths(response.getResponses(), mask, matchedInitiators, matchedPorts, knownIniSet,
-                        knownNetworkIdSet, knownPortSet, knownVolumeSet);
+                        knownNetworkIdSet, knownPortSet, knownVolumeSet, client);
             }
 
             // CTRL - 8918 - always update the mask with new initiators and volumes.
@@ -365,21 +372,37 @@ public class ExportProcessor extends Processor {
     }
 
     /**
-     * Gets the Map of hosts to UnManagedExportMasks that is being tracked in the keyMap.
+     * Gets the Map of hosts to maskingViewPaths that is being tracked in the keyMap.
      *
-     * @return a Map of hosts to UnManagedExportMasks
+     * @return a Map of hosts to maskingViewPaths
      */
-    protected Map<URI, Set<UnManagedExportMask>> getHostToExportMasksMap() {
-
-        // find or create the Volume -> UnManagedExportMask tracking data structure in the key map
+    protected Map<URI, Set<String>> getHostToExportMasksMap() {
+        // find or create the Host -> maskingViewPaths tracking data structure in the key map
         _hostToExportMasksMap =
-                (Map<URI, Set<UnManagedExportMask>>) _keyMap.get(Constants.HOST_UNMANAGED_EXPORT_MASKS_MAP);
+                (Map<URI, Set<String>>) _keyMap.get(Constants.HOST_UNMANAGED_EXPORT_MASKS_MAP);
         if (_hostToExportMasksMap == null) {
-            _hostToExportMasksMap = new HashMap<URI, Set<UnManagedExportMask>>();
+            _hostToExportMasksMap = new HashMap<URI, Set<String>>();
             _keyMap.put(Constants.HOST_UNMANAGED_EXPORT_MASKS_MAP, _hostToExportMasksMap);
         }
 
         return _hostToExportMasksMap;
+    }
+
+    /**
+     * Gets the Map of maskingViewPaths to StoragePools that is being tracked in the keyMap.
+     *
+     * @return a Map of maskingViewPaths to StoragePools
+     */
+    protected Map<String, Set<URI>> getMaskToStoragePoolsMap() {
+        // find or create the maskingViewPath -> StoragePools tracking data structure in the key map
+        _maskToStoragePoolsMap =
+                (Map<String, Set<URI>>) _keyMap.get(Constants.UNMANAGED_EXPORT_MASK_STORAGE_POOLS_MAP);
+        if (_maskToStoragePoolsMap == null) {
+            _maskToStoragePoolsMap = new HashMap<String, Set<URI>>();
+            _keyMap.put(Constants.UNMANAGED_EXPORT_MASK_STORAGE_POOLS_MAP, _maskToStoragePoolsMap);
+        }
+
+        return _maskToStoragePoolsMap;
     }
 
     /**
@@ -515,7 +538,7 @@ public class ExportProcessor extends Processor {
 
     private void processVolumesAndInitiatorsPaths(CloseableIterator<CIMInstance> it, UnManagedExportMask mask,
             List<Initiator> matchedInitiators, List<StoragePort> matchedPorts, Set<String> knownIniSet,
-            Set<String> knownNetworkIdSet, Set<String> knownPortSet, Set<String> knownVolumeSet) {
+            Set<String> knownNetworkIdSet, Set<String> knownPortSet, Set<String> knownVolumeSet, WBEMClient client) {
         while (it.hasNext()) {
             CIMInstance cimi = it.next();
 
@@ -555,15 +578,17 @@ public class ExportProcessor extends Processor {
                         }
 
                         // add to map of host to export masks
-                        URI hostId  = knownInitiator.getHost();
-                        if (!NullColumnValueGetter.isNullURI(hostId)) {
-                            Set<UnManagedExportMask> maskSet = getHostToExportMasksMap().get(hostId);
-                            if (maskSet == null) {
-                                maskSet = new HashSet<UnManagedExportMask>();
-                                _logger.info("Creating maskSet for host {}" + hostId);
-                                getHostToExportMasksMap().put(hostId, maskSet);
+                        if (_isArrayAffinity) {
+                            URI hostId  = knownInitiator.getHost();
+                            if (!NullColumnValueGetter.isNullURI(hostId)) {
+                                Set<String> maskingViewPaths = getHostToExportMasksMap().get(hostId);
+                                if (maskingViewPaths == null) {
+                                    maskingViewPaths = new HashSet<String>();
+                                    _logger.info("Creating mask set for host {}" + hostId);
+                                    getHostToExportMasksMap().put(hostId, maskingViewPaths);
+                                }
+                                maskingViewPaths.add(mask.getMaskingViewPath());
                             }
-                            maskSet.add(mask);
                         }
                     } else {
                         _logger.info("   no hosts in ViPR found configured for initiator " + initiatorNetworkId);
@@ -638,17 +663,32 @@ public class ExportProcessor extends Processor {
                     URIQueryResultList result = new URIQueryResultList();
                     _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getVolumeNativeGuidConstraint(nativeGuid), result);
 
+                    URI poolURI = null;
                     Volume volume = null;
                     Iterator<URI> volumes = result.iterator();
                     if (volumes.hasNext()) {
                         volume = _dbClient.queryObject(Volume.class, volumes.next());
                         if (null != volume) {
                             knownVolumeSet.add(volume.getId().toString());
+                            poolURI = volume.getPool();
                         }
                     }
 
-                    if (volume == null) {
-                        mask.setHasUnknownVolume(true);
+                    if (_isArrayAffinity) {
+                        if (volume == null) {
+                            poolURI = ArrayAffinityDiscoveryUtils.getStoragePool(volumePath, client, _dbClient);
+                        }
+
+                        if (!NullColumnValueGetter.isNullURI(poolURI)) {
+                            String maskingViewPath = mask.getMaskingViewPath();
+                            Set<URI> pools = getMaskToStoragePoolsMap().get(maskingViewPath);
+                            if (pools == null) {
+                                pools = new HashSet<URI>();
+                                _logger.info("Creating pool set for mask {}" + maskingViewPath);
+                                getMaskToStoragePoolsMap().put(maskingViewPath, pools);
+                            }
+                            pools.add(poolURI);
+                        }
                     }
 
                     nativeGuid = NativeGUIDGenerator.generateNativeGuidForPreExistingVolume(systemName.toUpperCase(), id);

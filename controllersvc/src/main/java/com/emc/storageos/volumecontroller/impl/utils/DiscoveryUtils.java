@@ -14,6 +14,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import javax.cim.CIMInstance;
+import javax.cim.CIMObjectPath;
+import javax.wbem.CloseableIterator;
+import javax.wbem.WBEMException;
+import javax.wbem.client.WBEMClient;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,6 +52,7 @@ import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.common.PartitionManager;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.StoragePoolAssociationHelper;
+import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
@@ -857,5 +864,73 @@ public class DiscoveryUtils {
             }
         }
     }
-    
+
+    /**
+     * Run WBEMClient execQuery method
+     *
+     * @param cimClient WBEMClient
+     * @param objectPath CIMObjectPath
+     * @param query query string
+     * @param queryLanguage
+     * @return list of matched instances
+     */
+    public static List<CIMInstance> executeQuery(WBEMClient cimClient,
+            CIMObjectPath objectPath, String query, String queryLanguage) {
+        _log.info(String.format(
+                "Executing query: %s, objectPath: %s, query language: %s",
+                query, objectPath, queryLanguage));
+
+        CloseableIterator<CIMInstance> iterator = null;
+        List<CIMInstance> instanceList = new ArrayList<CIMInstance>();
+        try {
+            iterator = cimClient.execQuery(objectPath, query, queryLanguage);
+            while (iterator.hasNext()) {
+                instanceList.add(iterator.next());
+            }
+
+        } catch (WBEMException we) {
+            _log.error(
+                    "Caught an error while attempting to execute query and process query result. Query: "
+                            + query,
+                    we);
+        } finally {
+            if (iterator != null) {
+                iterator.close();
+            }
+        }
+
+        return instanceList;
+    }
+
+    /**
+     * Run WBEMClient associatorNames method
+     *
+     * @param cimClient WBEMClient
+     * @param objectPath CIMObjectPath
+     * @param assocClass associate class
+     * @param resultClass
+     * @param role
+     * @param resultRole
+     * @return list of CIMObjectPaths
+     */
+    public static List<CIMObjectPath> getAssociatorNames(WBEMClient cimClient,
+            CIMObjectPath objectPath, String assocClass, String resultClass, String role, String resultRole) {
+        CloseableIterator<CIMObjectPath> iterator = null;
+        List<CIMObjectPath> objectPaths = new ArrayList<CIMObjectPath>();
+        try {
+            iterator = cimClient.associatorNames(objectPath, assocClass, resultClass, role, resultRole);
+            while (iterator.hasNext()) {
+                objectPaths.add(iterator.next());
+            }
+
+        } catch (WBEMException we) {
+            _log.error("Caught an error while attempting to execute associatorNames");
+        } finally {
+            if (iterator != null) {
+                iterator.close();
+            }
+        }
+
+        return objectPaths;
+    }
 }

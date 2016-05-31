@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2008-2016 EMC Corporation
+ *  Copyright (c) 2016 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.export;
@@ -7,6 +7,7 @@ package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -17,18 +18,15 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.Host;
-import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.plugins.common.PartitionManager;
 
 /*
- * Refresh preferredSystemIds for all hosts
+ * Refresh preferredPoolIds for all hosts
  */
 public class ArrayAffinityPostProcessor {
     private static final Logger _logger = LoggerFactory
             .getLogger(ArrayAffinityPostProcessor.class);
-    private static final List<String> HOST_PROPERTIES =
-            Arrays.asList("preferredSystemIds", "label");
+    private static final List<String> HOST_PROPERTIES = Arrays.asList("preferredPoolIds", "label");
 
     private static final String HOST = "Host";
     private static final int BATCH_SIZE = 100;
@@ -39,7 +37,8 @@ public class ArrayAffinityPostProcessor {
         _partitionManager = partitionManager;
     }
 
-    public void updatePreferredSystems(Map<URI, Set<UnManagedExportMask>> hostUnManagedExportMasks, URI systemId, DbClient dbClient) {
+    public void updatePreferredPoolIds(Map<URI, Set<String>> hostUnManagedExportMasks,
+            Map<String, Set<URI>> maskStroagePools, URI systemId, DbClient dbClient) {
         List<Host> hostsToUpdate = new ArrayList<Host>();
 
         try {
@@ -50,22 +49,20 @@ public class ArrayAffinityPostProcessor {
                 Host host = hosts.next();
                 if (host != null) {
                     _logger.info("Processing host {}", host.getLabel());
-                    StringSet existingPreferredSystems = host.getPreferredSystemIds();
-                    boolean notPreferredSystem = true;
-                    String systemIdStr = systemId.toString();
+                    Set<URI> preferredPoolURIs = new HashSet<URI>();
                     if (hostUnManagedExportMasks != null && !hostUnManagedExportMasks.isEmpty()) {
-                        Set<UnManagedExportMask> masks = hostUnManagedExportMasks.get(host.getId());
-                        if (masks != null && !masks.isEmpty() && allUnKnownVolumesInMasks(masks)) {
-                            if (!existingPreferredSystems.contains(systemIdStr)) {
-                                notPreferredSystem = false;
-                                existingPreferredSystems.add(systemIdStr);
-                                hostsToUpdate.add(host);
+                        Set<String> masks = hostUnManagedExportMasks.get(host.getId());
+                        if (masks != null && !masks.isEmpty()) {
+                            for (String mask : masks) {
+                                Set<URI> pools = maskStroagePools.get(mask);
+                                if (pools != null && !pools.isEmpty()) {
+                                    preferredPoolURIs.addAll(pools);
+                                }
                             }
                         }
                     }
 
-                    if (notPreferredSystem && existingPreferredSystems.contains(systemIdStr)) {
-                        existingPreferredSystems.remove(systemIdStr);
+                    if (ArrayAffinityDiscoveryUtils.updatePreferredPools(host, systemId, dbClient, preferredPoolURIs)) {
                         hostsToUpdate.add(host);
                     }
                 }
@@ -83,25 +80,5 @@ public class ArrayAffinityPostProcessor {
         } catch (Exception e) {
             _logger.warn("Exception on updatePreferredSystems {}", e.getMessage());
         }
-    }
-
-    /**
-     * Check if all volumes in mask are unknown.
-     *
-     * @param masks UnManagedExportMasks to check
-     * @return true if all volumes are unknown in at least one of the masks
-     */
-    private boolean allUnKnownVolumesInMasks(Set<UnManagedExportMask> masks) {
-        for (UnManagedExportMask mask : masks) {
-            _logger.info("Processing unmanaged export mask {}", mask.getMaskName());
-            if (mask != null && !mask.getInactive()) {
-                // all volumes in the mask are unknown to ViPR
-                if (mask.getHasUnknownVolume() && mask.getKnownVolumeUris().isEmpty()) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
     }
 }

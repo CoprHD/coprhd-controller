@@ -71,6 +71,7 @@
         <property name="dbClient" ref="dbclient"/>
         <property name="coordinator" ref="coordinator"/>
         <property name="matcherFramework" ref="matcherFramework"/>
+        <property name="customConfigHandler" ref="customConfigHandler"/>
         <property name="portMetricsProcessor" ref="portMetricsProcessor"/>
     </bean>
 

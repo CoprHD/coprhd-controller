@@ -41,7 +41,7 @@ public class Host extends AbstractComputeSystem {
     private Boolean discoverable;
     private String provisioningStatus;
     private StringSet volumeGroupIds;
-    private StringSet _preferredSystemIds;
+    private StringSet _preferredPoolIds;
 
     /**
      * This is for recording the volumeId that was used in the OsInstallation phase. Will be used to remove the associated volume when
@@ -403,23 +403,23 @@ public class Host extends AbstractComputeSystem {
     }
 
     /**
-     * Getter for the ids of the preferred storage systems
+     * Getter for the ids of the preferred storage pools
      * 
-     * @return The set of storage system ids
+     * @return The set of storage pool ids
      */
-    @Name("preferredSystemIds")
-    public StringSet getPreferredSystemIds() {
-        if (_preferredSystemIds == null) {
-            _preferredSystemIds = new StringSet();
+    @Name("preferredPoolIds")
+    public StringSet getPreferredPoolIds() {
+        if (_preferredPoolIds == null) {
+            _preferredPoolIds = new StringSet();
         }
-        return _preferredSystemIds;
+        return _preferredPoolIds;
     }
 
     /**
-     * Setter for the the preferred storage system ids
+     * Setter for the the preferred storage pool ids
      */
-    public void setPreferredSystemIds(StringSet preferredSystemIds) {
-        _preferredSystemIds = preferredSystemIds;
-        setChanged("preferredSystemIds");
+    public void setPreferredPoolIds(StringSet preferredPoolIds) {
+        _preferredPoolIds = preferredPoolIds;
+        setChanged("preferredPoolIds");
     }
 }

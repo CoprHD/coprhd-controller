@@ -1254,7 +1254,7 @@
 		<property name="userConfigurable" value="false" />
 		<property name="reconfigRequired" value="false" />
 		<property name="rebootRequired" value="true" />
-		<property name="value" value="true" />
+		<property name="value" value="false" />
 		<property name="controlNodeOnly" value="true" />
 	</bean>
 	<bean id="controller_enable_autoscan" class="com.emc.storageos.model.property.PropertyMetadata">

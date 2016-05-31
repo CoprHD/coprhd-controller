@@ -8332,10 +8332,6 @@ dr_multisite_tests()
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD 10 600
     project show $test_projectid
 
-    # ipreconfig after deletion of siteB
-    ipreconfig_test "$DR_SITE_A_IP"
-    wait_for_site_stable "${DR_SITE_A_IP}" "${DR_SITE_C_IP}"
-
     #disabling pipefail option to pipe exit codes
     set +o pipefail
 }

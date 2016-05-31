@@ -747,6 +747,7 @@ public class IpReconfigManager implements Runnable {
      * @throws Exception
      */
     private void validateParameter(ClusterIpInfo clusterIpInfo, String shutdownSites) throws Exception {
+        boolean bValid = true;
         String errmsg = "";
 
         String[] siteIds = shutdownSites.split(",");

@@ -945,10 +945,26 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
         }
         return false;
     }
+    
+    public static boolean isVPLEXToNonVPLEXSupported(VirtualPool current, VirtualPool requested, StringBuffer notSuppReasonBuff) {
+        if (!(VirtualPool.vPoolSpecifiesHighAvailability(current) && !VirtualPool.vPoolSpecifiesHighAvailability(requested))) {
+            String msg = String.format("The target virtual pool [%s] is not suitable for this operation.", requested.getLabel());
+            s_logger.info(msg);
+            if (notSuppReasonBuff != null) {
+                notSuppReasonBuff.append(msg);
+            }
+            return true;
+        }
+        return false;
+    }
 
     private static boolean isSameVirtualPool(VirtualPool current, VirtualPool requested) {
         return isSameVirtualPool(current, requested, null);
     }
+    
+    
+    
+    
 
     /**
      * Checks to see if the replication mode change is supported.

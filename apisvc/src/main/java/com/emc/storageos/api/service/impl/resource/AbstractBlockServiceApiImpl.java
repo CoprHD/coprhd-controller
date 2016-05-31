@@ -613,6 +613,14 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
                 allowedOperations.add(VirtualPoolChangeOperationEnum.EXPORT_PATH_PARAMS);
             }
 
+            
+            // check if vplex to non-vplex change is supported
+            StringBuffer vplexToNonVPLEXChangeReasonBuff = new StringBuffer();
+            if (VirtualPoolChangeAnalyzer.isVPLEXToNonVPLEXSupported(
+                    currentVpool, newVpool, vplexToNonVPLEXChangeReasonBuff)) {
+                allowedOperations.add(VirtualPoolChangeOperationEnum.VPLEX_TO_NON_VPLEX);
+            }
+            
             // check if replication mode change is supported
             StringBuffer replicationModeChangeReasonBuff = new StringBuffer();
             if (VirtualPoolChangeAnalyzer.isSupportedReplicationModeChange(

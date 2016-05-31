@@ -32,7 +32,7 @@ public class OpenSourceLicenseManagerImpl implements LicenseManager{
     private static final Logger _log = LoggerFactory.getLogger(OpenSourceLicenseManagerImpl.class);
 
     private static final String LICENSE_TEXT = "INCREMENT ViPR_Controller EMCLM 1.0 permanent uncounted " +
-            "VENDOR_STRING=CAPACITY=10000;CAPACITY_UNIT=TB;CAPACITY_TYPE=MANAGED;SWID=R27WRZ98BBF6XS;PLC=VIPR; " +
+            "VENDOR_STRING=CAPACITY=1000;CAPACITY_UNIT=PB;CAPACITY_TYPE=MANAGED;SWID=R27WRZ98BBF6XS;PLC=VIPR; " +
             "HOSTID=ANY dist_info=\"Distributed under the Apache License, Version 2.0\" ISSUER=CoprHD " +
             "ISSUED=10-Jan-2014 NOTICE=\"Distributed under the Apache License, Version 2.0\" " +
             "SN=CoprHD SIGN=\"00E7 2A99 8BF5 1676 9FB1 " +
@@ -75,7 +75,7 @@ public class OpenSourceLicenseManagerImpl implements LicenseManager{
         LicenseFeature licenseFeature = new LicenseFeature();
         licenseFeature.setDateExpires(null);
         licenseFeature.setExpired(false);
-        licenseFeature.setStorageCapacity("32212254720000");
+        licenseFeature.setStorageCapacity("1152921504606846976");
         licenseFeature.setProductId("R27WRZ98BBF6XS");
         licenseFeature.setSerial("R27WRZ98BBF6XS");
         String subModelId=LicenseFeature.NEW_MANAGED_LICENSE_SUBMODEL;

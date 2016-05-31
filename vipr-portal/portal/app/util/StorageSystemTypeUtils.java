@@ -36,7 +36,8 @@ public class StorageSystemTypeUtils {
 		return getViprClient().storageSystemType().createStorageSystemType(addparam);
 	}
 
-	public static ClientResponse uploadDriver(MultiPart deviceDriverFile) {
-		return getViprClient().storageSystemType().uploadDeviceDriver(deviceDriverFile);
-	}
+	// Keeping commented code for future use.
+	//public static ClientResponse uploadDriver(MultiPart deviceDriverFile) {
+	//	return getViprClient().storageSystemType().uploadDeviceDriver(deviceDriverFile);
+	//}
 }

@@ -947,7 +947,7 @@ public class SchemaUtil {
                     insertPasswordHistory(dbClient);
                     // Check if we have native Storage System in DB
                     if (!checkForStorageSystemType(dbClient)) {
-                        StorageSystemTypesInitUtils.InitializeStorageSystemTypes(dbClient);
+                        StorageSystemTypesInitUtils.initializeStorageSystemTypes(dbClient);
                     }
                 }
 

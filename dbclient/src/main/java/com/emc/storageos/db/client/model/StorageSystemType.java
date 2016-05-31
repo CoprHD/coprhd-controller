@@ -26,11 +26,12 @@ public class StorageSystemType extends DataObject {
 	// Storage array URI in string
 	private String storageTypeId;
 
-	// Default SSL
+	// By default SSL port is enabled
 	private Boolean isDefaultSsl = false;
 
 	private Boolean isDefaultMDM = false;
 	private Boolean isOnlyMDM = false;
+	// Connect to storage array only thru element manager
 	private Boolean isElementMgr = false;
 
 	private String sslPort;

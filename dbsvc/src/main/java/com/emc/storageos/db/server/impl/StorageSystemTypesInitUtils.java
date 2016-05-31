@@ -54,17 +54,37 @@ public class StorageSystemTypesInitUtils {
     // Default object arrays
     private static List<String> storageArrayObject = asList(ECS);
 
-    private static void initializeDefaultSSL(HashMap<String, Boolean> dsslMap) {
-        dsslMap.put(VNX_BLOCK, true);
-        dsslMap.put(VMAX, true);
-        dsslMap.put(SCALEIOAPI, true);
-        dsslMap.put(VPLEX, true);
-        dsslMap.put(VNX_FILE, true);
-        dsslMap.put(VNXe, true);
-        dsslMap.put(IBMXIV, true);
+    private StorageSystemTypesInitUtils() {
     }
 
-    private static void initializeDisplayName(HashMap<String, String> nameDisplayNameMap) {
+    private static HashMap<String, Boolean> defaultSSL = null;
+
+    private static HashMap<String, Boolean> defaultMDM = null;
+
+    private static HashMap<String, Boolean> onlyMDM = null;
+
+    private static HashMap<String, Boolean> elementManager = null;
+
+    // Name of Array and its Display Name mapping
+    private static HashMap<String, String> nameDisplayNameMap = null;
+
+    private static HashMap<String, String> sslPortMap = null;
+
+    private static HashMap<String, String> nonSslPortMap = null;
+
+    private static void initializeDefaultSSL() {
+        defaultSSL = new HashMap<String, Boolean>();
+        defaultSSL.put(VNX_BLOCK, true);
+        defaultSSL.put(VMAX, true);
+        defaultSSL.put(SCALEIOAPI, true);
+        defaultSSL.put(VPLEX, true);
+        defaultSSL.put(VNX_FILE, true);
+        defaultSSL.put(VNXe, true);
+        defaultSSL.put(IBMXIV, true);
+    }
+
+    private static void initializeDisplayName() {
+        nameDisplayNameMap = new HashMap<String, String>();
         nameDisplayNameMap.put(VNX_FILE, "EMC VNX File");
         nameDisplayNameMap.put(ISILON, "EMC Isilon");
         nameDisplayNameMap.put(NETAPP, "NetApp 7-mode");
@@ -83,74 +103,51 @@ public class StorageSystemTypesInitUtils {
         nameDisplayNameMap.put(ECS, "EMC Elastic Cloud Storage");
     }
 
-    private static void initializeSSLPort(HashMap<String, String> sslPortmap) {
-        sslPortmap.put(VNX_FILE, "5989");
-        sslPortmap.put(SCALEIOAPI, "443");
-        sslPortmap.put(VNX_BLOCK, "5989");
-        sslPortmap.put(VMAX, "5989");
-        sslPortmap.put(HITACHI, "2001");
-        sslPortmap.put(VPLEX, "443");
-        sslPortmap.put(OPENSTACK, "22");
-        sslPortmap.put(SCALEIO, "22");
-        sslPortmap.put(DATA_DOMAIN, "3009");
-        sslPortmap.put(IBMXIV, "5989");
-        sslPortmap.put(XTREMIO, "443");
-        sslPortmap.put(ECS, "4443");
-        sslPortmap.put(VNXe, "443");
-        sslPortmap.put("vnxfile_smis", "5989");
+    private static void initializeSSLPort() {
+        sslPortMap = new HashMap<String, String>();
+        sslPortMap.put(VNX_FILE, "5989");
+        sslPortMap.put(SCALEIOAPI, "443");
+        sslPortMap.put(VNX_BLOCK, "5989");
+        sslPortMap.put(VMAX, "5989");
+        sslPortMap.put(HITACHI, "2001");
+        sslPortMap.put(VPLEX, "443");
+        sslPortMap.put(OPENSTACK, "22");
+        sslPortMap.put(SCALEIO, "22");
+        sslPortMap.put(DATA_DOMAIN, "3009");
+        sslPortMap.put(IBMXIV, "5989");
+        sslPortMap.put(XTREMIO, "443");
+        sslPortMap.put(ECS, "4443");
+        sslPortMap.put(VNXe, "443");
+        sslPortMap.put("vnxfile_smis", "5989");
     }
 
-    private static void initializeNonSslPort(HashMap<String, String> nonSslPortmap) {
-        nonSslPortmap.put("hicommand", "2001");
-        nonSslPortmap.put("smis", "5988");
-        nonSslPortmap.put("vplex", "443");
-        nonSslPortmap.put("cinder", "22");
-        nonSslPortmap.put("openstack", "22");
-        nonSslPortmap.put("scaleio", "22");
-        nonSslPortmap.put("scaleioapi", "80");
-        nonSslPortmap.put("ddmc", "3009");
-        nonSslPortmap.put("ibmxiv", "5989");
-        nonSslPortmap.put("xtremio", "443");
-        nonSslPortmap.put("vnxblock", "5988");
-        nonSslPortmap.put("vmax", "5988");
-        nonSslPortmap.put("ibmxiv", "5989");
-        nonSslPortmap.put("isilon", "8080");
-        nonSslPortmap.put("netapp", "443");
-        nonSslPortmap.put("netappc", "443");
-        nonSslPortmap.put("vplex", "443");
-        nonSslPortmap.put("xtremio", "443");
-        nonSslPortmap.put("vnxfile", "443");
-        nonSslPortmap.put("vnxe", "443");
-        nonSslPortmap.put("vnxfile_smis", "5988");
-        nonSslPortmap.put("hds", "2001");
+    private static void initializeNonSslPort() {
+        nonSslPortMap = new HashMap<String, String>();
+        nonSslPortMap.put("hicommand", "2001");
+        nonSslPortMap.put("smis", "5988");
+        nonSslPortMap.put("vplex", "443");
+        nonSslPortMap.put("cinder", "22");
+        nonSslPortMap.put("openstack", "22");
+        nonSslPortMap.put("scaleio", "22");
+        nonSslPortMap.put("scaleioapi", "80");
+        nonSslPortMap.put("ddmc", "3009");
+        nonSslPortMap.put("ibmxiv", "5989");
+        nonSslPortMap.put("xtremio", "443");
+        nonSslPortMap.put("vnxblock", "5988");
+        nonSslPortMap.put("vmax", "5988");
+        nonSslPortMap.put("ibmxiv", "5989");
+        nonSslPortMap.put("isilon", "8080");
+        nonSslPortMap.put("netapp", "443");
+        nonSslPortMap.put("netappc", "443");
+        nonSslPortMap.put("vplex", "443");
+        nonSslPortMap.put("xtremio", "443");
+        nonSslPortMap.put("vnxfile", "443");
+        nonSslPortMap.put("vnxe", "443");
+        nonSslPortMap.put("vnxfile_smis", "5988");
+        nonSslPortMap.put("hds", "2001");
     }
 
-    public static void InitializeStorageSystemTypes(DbClient _dbClient) {
-        log.info("Intializing storage system type Column Family for default storage drivers");
-        // Default SSL providers
-        HashMap<String, Boolean> defaultSSL = new HashMap<String, Boolean>();
-        initializeDefaultSSL(defaultSSL);
-
-        HashMap<String, Boolean> defaultMDM = new HashMap<String, Boolean>();
-        defaultMDM.put(SCALEIO, true);
-        defaultMDM.put(SCALEIOAPI, true);
-
-        HashMap<String, Boolean> onlyMDM = new HashMap<String, Boolean>();
-        onlyMDM.put(SCALEIOAPI, true);
-
-        HashMap<String, Boolean> elementManager = new HashMap<String, Boolean>();
-        elementManager.put(SCALEIO, true);
-
-        // Name of Array and its Display Name mapping
-        HashMap<String, String> nameDisplayNameMap = new HashMap<String, String>();
-        initializeDisplayName(nameDisplayNameMap);
-
-        HashMap<String, String> sslPortMap = new HashMap<String, String>();
-        initializeSSLPort(sslPortMap);
-
-        HashMap<String, String> nonSslPortMap = new HashMap<String, String>();
-        initializeNonSslPort(nonSslPortMap);
-
+    private static void insertFileArrays(DbClient dbClient) {
         for (String file : storageArrayFile) {
             StorageSystemType ssType = new StorageSystemType();
             URI ssTyeUri = URIUtil.createId(StorageSystemType.class);
@@ -182,10 +179,11 @@ public class StorageSystemTypesInitUtils {
                 ssType.setNonSslPort(nonSslPortMap.get(file));
             }
 
-            _dbClient.createObject(ssType);
+            dbClient.createObject(ssType);
         }
-        log.info("All default file type drivers added");
+    }
 
+    private static void insertFileProviders(DbClient dbClient) {
         for (String file : storageProviderFile) {
             StorageSystemType ssType = new StorageSystemType();
             URI ssTyeUri = URIUtil.createId(StorageSystemType.class);
@@ -214,10 +212,11 @@ public class StorageSystemTypesInitUtils {
             if (nonSslPortMap.get(file) != null) {
                 ssType.setNonSslPort(nonSslPortMap.get(file));
             }
-            _dbClient.createObject(ssType);
+            dbClient.createObject(ssType);
         }
-        log.info("All default file type provider drivers added");
+    }
 
+    private static void insertBlockArrays(DbClient dbClient) {
         for (String block : storageArrayBlock) {
             StorageSystemType ssType = new StorageSystemType();
             URI ssTyeUri = URIUtil.createId(StorageSystemType.class);
@@ -247,10 +246,11 @@ public class StorageSystemTypesInitUtils {
                 ssType.setNonSslPort(nonSslPortMap.get(block));
             }
 
-            _dbClient.createObject(ssType);
+            dbClient.createObject(ssType);
         }
-        log.info("All default block type drivers added");
+    }
 
+    private static void insertBlockProviders(DbClient dbClient) {
         for (String block : storageProviderBlock) {
             StorageSystemType ssType = new StorageSystemType();
             URI ssTyeUri = URIUtil.createId(StorageSystemType.class);
@@ -280,10 +280,11 @@ public class StorageSystemTypesInitUtils {
                 ssType.setNonSslPort(nonSslPortMap.get(block));
             }
 
-            _dbClient.createObject(ssType);
+            dbClient.createObject(ssType);
         }
-        log.info("All default block provider type drivers added");
+    }
 
+    private static void insertObjectArrays(DbClient dbClient) {
         for (String object : storageArrayObject) {
             StorageSystemType ssType = new StorageSystemType();
             URI ssTyeUri = URIUtil.createId(StorageSystemType.class);
@@ -313,9 +314,47 @@ public class StorageSystemTypesInitUtils {
                 ssType.setNonSslPort(nonSslPortMap.get(object));
             }
 
-            _dbClient.createObject(ssType);
+            dbClient.createObject(ssType);
         }
-        log.info("All default object type drivers added");
+    }
+
+    public static void initializeStorageSystemTypes(DbClient dbClient) {
+        log.info("Intializing storage system type Column Family for default storage drivers");
+
+        initializeDefaultSSL();
+
+        defaultMDM = new HashMap<String, Boolean>();
+        defaultMDM.put(SCALEIO, true);
+        defaultMDM.put(SCALEIOAPI, true);
+
+        onlyMDM = new HashMap<String, Boolean>();
+        onlyMDM.put(SCALEIOAPI, true);
+
+        elementManager = new HashMap<String, Boolean>();
+        elementManager.put(SCALEIO, true);
+
+        // Name of Array and its Display Name mapping
+        initializeDisplayName();
+        // SSL port
+        initializeSSLPort();
+        // Storage Array/Provider port
+        initializeNonSslPort();
+
+        // Insert File Arrays
+        insertFileArrays(dbClient);
+
+        // Insert File Providers
+        insertFileProviders(dbClient);
+
+        // Insert Block Arrays
+        insertBlockArrays(dbClient);
+
+        // Insert Block Providers
+        insertBlockProviders(dbClient);
+
+        // Insert Object Arrays
+        insertObjectArrays(dbClient);
+
         log.info("Default drivers initialization done....");
     }
 }

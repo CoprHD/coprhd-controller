@@ -131,8 +131,8 @@ public class StorageSystemTypes extends ViprResourceController {
 
 				@SuppressWarnings("resource")
 				MultiPart mdf = new FormDataMultiPart().bodyPart(fdp);
-
-				restResponse = StorageSystemTypeUtils.uploadDriver(mdf);
+				// Keeping commented code for future use
+				//restResponse = StorageSystemTypeUtils.uploadDriver(mdf);
 
 				flash.success("Device Driver jar file uploaded");
 				list();

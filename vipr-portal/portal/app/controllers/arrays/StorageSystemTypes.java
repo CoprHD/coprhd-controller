@@ -54,244 +54,243 @@ import util.datatable.DataTablesSupport;
 @Restrictions({ @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
 public class StorageSystemTypes extends ViprResourceController {
 
-	protected static final String UNKNOWN = "disasterRecovery.unknown";
-	protected static final String DELETED_SUCCESS = "disasterRecovery.delete.success";
-	protected static final String SAVED = "SMISProviders.saved";
+    protected static final String UNKNOWN = "disasterRecovery.unknown";
+    protected static final String DELETED_SUCCESS = "disasterRecovery.delete.success";
+    protected static final String SAVED = "SMISProviders.saved";
 
-	public static void create() {
-		StorageSystemTypeForm storageSystemType = new StorageSystemTypeForm();
-		renderArgs.put("supportedTypeOptions", StorageProviderTypes.getSupportedStorageType());
-		render("@edit", storageSystemType);
-	}
+    public static void create() {
+        StorageSystemTypeForm storageSystemType = new StorageSystemTypeForm();
+        renderArgs.put("supportedTypeOptions", StorageProviderTypes.getSupportedStorageType());
+        render("@edit", storageSystemType);
+    }
 
-	public static void list() {
-		StorageSystemTypeDataTable dataTable = new StorageSystemTypeDataTable();
-		render(dataTable);
-	}
+    public static void list() {
+        StorageSystemTypeDataTable dataTable = new StorageSystemTypeDataTable();
+        render(dataTable);
+    }
 
-	@Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })
-	public static void edit(String id) {
-		StorageSystemTypeRestRep typeRest = StorageSystemTypeUtils.getStorageSystemType(id);
-		if (typeRest != null) {
-			StorageSystemTypeForm storageSystemType = new StorageSystemTypeForm(typeRest);
-			edit(storageSystemType);
-		} else {
-			flash.error(MessagesUtils.get(UNKNOWN, id));
-			list();
-		}
-	}
+    @Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })
+    public static void edit(String id) {
+        StorageSystemTypeRestRep typeRest = StorageSystemTypeUtils.getStorageSystemType(id);
+        if (typeRest != null) {
+            StorageSystemTypeForm storageSystemType = new StorageSystemTypeForm(typeRest);
+            edit(storageSystemType);
+        } else {
+            flash.error(MessagesUtils.get(UNKNOWN, id));
+            list();
+        }
+    }
 
-	private static void edit(StorageSystemTypeForm storageSystemTypes) {
-		render("@edit", storageSystemTypes);
-	}
+    private static void edit(StorageSystemTypeForm storageSystemTypes) {
+        render("@edit", storageSystemTypes);
+    }
 
-	public static void listJson() {
-		List<StorageSystemTypeDataTable.StorageSystemTypeInfo> storageSystemTypes = Lists.newArrayList();
+    public static void listJson() {
+        List<StorageSystemTypeDataTable.StorageSystemTypeInfo> storageSystemTypes = Lists.newArrayList();
 
-		for (StorageSystemTypeRestRep storageSysType : StorageSystemTypeUtils.getAllStorageSystemTypes("all")
-				.getStorageSystemTypes()) {
-			storageSystemTypes.add(new StorageSystemTypeInfo(storageSysType));
-		}
-		renderJSON(DataTablesSupport.createJSON(storageSystemTypes, params));
-	}
+        for (StorageSystemTypeRestRep storageSysType : StorageSystemTypeUtils.getAllStorageSystemTypes("all")
+                .getStorageSystemTypes()) {
+            storageSystemTypes.add(new StorageSystemTypeInfo(storageSysType));
+        }
+        renderJSON(DataTablesSupport.createJSON(storageSystemTypes, params));
+    }
 
+    @FlashException("list")
+    @Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })
+    public static void delete(@As(",") String[] ids) {
+        for (String id : ids) {
+            StorageSystemTypeUtils.deleteStorageSystemType(id);
+        }
+        flash.success(MessagesUtils.get(DELETED_SUCCESS));
+        list();
+    }
 
-	@FlashException("list")
-	@Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })
-	public static void delete(@As(",") String[] ids) {
-		for (String id : ids) {
-			StorageSystemTypeUtils.deleteStorageSystemType(id);
-		}
-		flash.success(MessagesUtils.get(DELETED_SUCCESS));
-		list();
-	}
+    @FlashException(keep = true, referrer = { "create", "edit" })
+    public static void save(StorageSystemTypeForm storageSystemTypes) {
+        storageSystemTypes.validate("storageSystemType");
+        if (Validation.hasErrors()) {
+            Common.handleError();
+        }
 
-	@FlashException(keep = true, referrer = { "create", "edit" })
-	public static void save(StorageSystemTypeForm storageSystemTypes) {
-		storageSystemTypes.validate("storageSystemType");
-		if (Validation.hasErrors()) {
-			Common.handleError();
-		}
+        storageSystemTypes.save();
+        flash.success(MessagesUtils.get(SAVED, storageSystemTypes.name));
+        backToReferrer();
+        list();
+    }
 
-		storageSystemTypes.save();
-		flash.success(MessagesUtils.get(SAVED, storageSystemTypes.name));
-		backToReferrer();
-		list();
-	}
+    public static void uploadDriver(File deviceDriverFile) {
 
-	public static void uploadDriver(File deviceDriverFile) {
+        if (deviceDriverFile != null) {
+            ClientResponse restResponse;
+            try {
+                FileInputStream fs = new FileInputStream(deviceDriverFile);
+                deviceDriverFile.getName();
 
-		if (deviceDriverFile != null) {
-			ClientResponse restResponse;
-			try {
-				FileInputStream fs = new FileInputStream(deviceDriverFile);
-				deviceDriverFile.getName();
+                FileDataBodyPart fdp = new FileDataBodyPart("deviceDriver", deviceDriverFile, MediaType.APPLICATION_OCTET_STREAM_TYPE);
 
-				FileDataBodyPart fdp = new FileDataBodyPart("deviceDriver", deviceDriverFile, MediaType.APPLICATION_OCTET_STREAM_TYPE);
+                @SuppressWarnings("resource")
+                MultiPart mdf = new FormDataMultiPart().bodyPart(fdp);
+                // Keeping commented code for future use
+                // restResponse = StorageSystemTypeUtils.uploadDriver(mdf);
 
-				@SuppressWarnings("resource")
-				MultiPart mdf = new FormDataMultiPart().bodyPart(fdp);
-				// Keeping commented code for future use
-				//restResponse = StorageSystemTypeUtils.uploadDriver(mdf);
+                flash.success("Device Driver jar file uploaded");
+                list();
+            } catch (FileNotFoundException e) {
+                flash.error("Device Driver jar not Found");
+                list();
+            }
+        }
+    }
 
-				flash.success("Device Driver jar file uploaded");
-				list();
-			} catch (FileNotFoundException e) {
-				flash.error("Device Driver jar not Found");
-				list();
-			}
-		}
-	}
-
-	public static void itemsJson(@As(",") String[] ids) {
-		List<String> uuids = Arrays.asList(ids);
-		itemsJson(uuids);
-	}
+    public static void itemsJson(@As(",") String[] ids) {
+        List<String> uuids = Arrays.asList(ids);
+        itemsJson(uuids);
+    }
 
     public static void upload(String ids) {
-    	render(ids);
+        render(ids);
     }
-    
-	private static void itemsJson(List<String> uuids) {
-		List<StorageSystemTypeRestRep> standbySites = new ArrayList<StorageSystemTypeRestRep>();
-		for (String uuid : uuids) {
-			StorageSystemTypeRestRep standbySite = StorageSystemTypeUtils.getStorageSystemType(uuid);
-			if (standbySite != null) {
-				standbySites.add(standbySite);
-			}
-		}
-		performItemsJson(standbySites, new JsonItemOperation());
-	}
 
-	protected static class JsonItemOperation
-			implements ResourceValueOperation<StorageSystemTypeInfo, StorageSystemTypeRestRep> {
-		@Override
-		public StorageSystemTypeInfo performOperation(StorageSystemTypeRestRep provider) throws Exception {
-			return new StorageSystemTypeInfo(provider);
-		}
-	}
+    private static void itemsJson(List<String> uuids) {
+        List<StorageSystemTypeRestRep> standbySites = new ArrayList<StorageSystemTypeRestRep>();
+        for (String uuid : uuids) {
+            StorageSystemTypeRestRep standbySite = StorageSystemTypeUtils.getStorageSystemType(uuid);
+            if (standbySite != null) {
+                standbySites.add(standbySite);
+            }
+        }
+        performItemsJson(standbySites, new JsonItemOperation());
+    }
 
-	@SuppressWarnings("squid:S2068")
-	public static class StorageSystemTypeForm {
+    protected static class JsonItemOperation
+            implements ResourceValueOperation<StorageSystemTypeInfo, StorageSystemTypeRestRep> {
+        @Override
+        public StorageSystemTypeInfo performOperation(StorageSystemTypeRestRep provider) throws Exception {
+            return new StorageSystemTypeInfo(provider);
+        }
+    }
 
-		public String id;
+    @SuppressWarnings("squid:S2068")
+    public static class StorageSystemTypeForm {
 
-		@MaxSize(128)
-		@MinSize(2)
-		@Required
-		public String name;
+        public String id;
 
-		@MaxSize(128)
-		public String storageSystemTypeDisplayName;
+        @MaxSize(128)
+        @MinSize(2)
+        @Required
+        public String name;
 
-		@Required
-		public String storageSystemTypeType;
+        @MaxSize(128)
+        public String storageSystemTypeDisplayName;
 
-		@Required
-		public String portNumber;
+        @Required
+        public String storageSystemTypeType;
 
-		@Required
-		public String sslPortNumber;
+        @Required
+        public String portNumber;
 
-		public String driverClassName;
+        @Required
+        public String sslPortNumber;
 
-		public Boolean useSSL = false;
+        public String driverClassName;
 
-		public Boolean isOnlyMDM = false;
+        public Boolean useSSL = false;
 
-		public Boolean isElementMgr = false;
+        public Boolean isOnlyMDM = false;
 
-		public Boolean useMDM = false;
+        public Boolean isElementMgr = false;
 
-		public Boolean isProvider = false;
+        public Boolean useMDM = false;
 
-		public StorageSystemTypeForm() {
-		}
+        public Boolean isProvider = false;
 
-		public StorageSystemTypeForm(StorageSystemTypeRestRep storageSysType) {
-			readFrom(storageSysType);
-		}
+        public StorageSystemTypeForm() {
+        }
 
-		public void readFrom(StorageSystemTypeRestRep storageSysType) {
-			this.id = storageSysType.getStorageTypeId();
-			this.name = storageSysType.getStorageTypeName();
-			this.storageSystemTypeDisplayName = storageSysType.getStorageTypeDispName();
-			this.storageSystemTypeType = storageSysType.getStorageTypeType();
-			if (null != storageSysType.getNonSslPort()) {
-				this.portNumber = storageSysType.getNonSslPort();
-			}
-			if (null != storageSysType.getSslPort()) {
-				this.sslPortNumber = storageSysType.getSslPort();
-			}
-			if (storageSysType.getDriverClassName() != null) {
-				this.driverClassName = storageSysType.getDriverClassName();
-			}
+        public StorageSystemTypeForm(StorageSystemTypeRestRep storageSysType) {
+            readFrom(storageSysType);
+        }
 
-			this.useSSL = storageSysType.getIsDefaultSsl();
-			this.isOnlyMDM = storageSysType.getIsOnlyMDM();
-			this.isElementMgr = storageSysType.getIsElementMgr();
-			this.useMDM = storageSysType.getIsDefaultMDM();
-			this.isProvider = storageSysType.getIsSmiProvider();
-		}
+        public void readFrom(StorageSystemTypeRestRep storageSysType) {
+            this.id = storageSysType.getStorageTypeId();
+            this.name = storageSysType.getStorageTypeName();
+            this.storageSystemTypeDisplayName = storageSysType.getStorageTypeDispName();
+            this.storageSystemTypeType = storageSysType.getStorageTypeType();
+            if (null != storageSysType.getNonSslPort()) {
+                this.portNumber = storageSysType.getNonSslPort();
+            }
+            if (null != storageSysType.getSslPort()) {
+                this.sslPortNumber = storageSysType.getSslPort();
+            }
+            if (storageSysType.getDriverClassName() != null) {
+                this.driverClassName = storageSysType.getDriverClassName();
+            }
 
-		public StorageSystemTypeRestRep save() {
-			if (isNew()) {
-				return create();
-			}
-			return null;
-		}
+            this.useSSL = storageSysType.getIsDefaultSsl();
+            this.isOnlyMDM = storageSysType.getIsOnlyMDM();
+            this.isElementMgr = storageSysType.getIsElementMgr();
+            this.useMDM = storageSysType.getIsDefaultMDM();
+            this.isProvider = storageSysType.getIsSmiProvider();
+        }
 
-		public boolean isNew() {
-			return StringUtils.isBlank(id);
-		}
+        public StorageSystemTypeRestRep save() {
+            if (isNew()) {
+                return create();
+            }
+            return null;
+        }
 
-		public StorageSystemTypeRestRep create() {
-			StorageSystemTypeAddParam addParams = new StorageSystemTypeAddParam();
-			addParams.setStorageTypeName(name);
-			addParams.setStorageTypeDispName(storageSystemTypeDisplayName);
-			addParams.setStorageTypeType(storageSystemTypeType);
-			addParams.setDriverClassName(driverClassName);
+        public boolean isNew() {
+            return StringUtils.isBlank(id);
+        }
 
-			if (isProvider != null) {
-				addParams.setIsSmiProvider(isProvider);
-			} else {
-				addParams.setIsSmiProvider(false);
-			}
-			if (useSSL != null) {
-				addParams.setIsDefaultSsl(useSSL);
-			} else {
-				addParams.setIsDefaultSsl(false);
-			}
-			if (sslPortNumber != null) {
-				addParams.setSslPort(sslPortNumber);
-			}
-			if (portNumber != null) {
-				addParams.setNonSslPort(portNumber);
-			}
-			if (useMDM != null) {
-				addParams.setIsDefaultMDM(useMDM);
-			} else {
-				addParams.setIsDefaultMDM(false);
-			}
-			if (isOnlyMDM != null) {
-				addParams.setIsOnlyMDM(isOnlyMDM);
-			} else {
-				addParams.setIsOnlyMDM(false);
-			}
-			if (isElementMgr != null) {
-				addParams.setIsElementMgr(isElementMgr);
-			} else {
-				addParams.setIsElementMgr(false);
-			}
+        public StorageSystemTypeRestRep create() {
+            StorageSystemTypeAddParam addParams = new StorageSystemTypeAddParam();
+            addParams.setStorageTypeName(name);
+            addParams.setStorageTypeDispName(storageSystemTypeDisplayName);
+            addParams.setStorageTypeType(storageSystemTypeType);
+            addParams.setDriverClassName(driverClassName);
 
-			StorageSystemTypeRestRep task = StorageSystemTypeUtils.addStorageSystemType(addParams);
-			return task;
-		}
+            if (isProvider != null) {
+                addParams.setIsSmiProvider(isProvider);
+            } else {
+                addParams.setIsSmiProvider(false);
+            }
+            if (useSSL != null) {
+                addParams.setIsDefaultSsl(useSSL);
+            } else {
+                addParams.setIsDefaultSsl(false);
+            }
+            if (sslPortNumber != null) {
+                addParams.setSslPort(sslPortNumber);
+            }
+            if (portNumber != null) {
+                addParams.setNonSslPort(portNumber);
+            }
+            if (useMDM != null) {
+                addParams.setIsDefaultMDM(useMDM);
+            } else {
+                addParams.setIsDefaultMDM(false);
+            }
+            if (isOnlyMDM != null) {
+                addParams.setIsOnlyMDM(isOnlyMDM);
+            } else {
+                addParams.setIsOnlyMDM(false);
+            }
+            if (isElementMgr != null) {
+                addParams.setIsElementMgr(isElementMgr);
+            } else {
+                addParams.setIsElementMgr(false);
+            }
 
-		public void validate(String fieldName) {
-			Validation.valid(fieldName, this);
-		}
+            StorageSystemTypeRestRep task = StorageSystemTypeUtils.addStorageSystemType(addParams);
+            return task;
+        }
 
-	}
+        public void validate(String fieldName) {
+            Validation.valid(fieldName, this);
+        }
+
+    }
 
 }

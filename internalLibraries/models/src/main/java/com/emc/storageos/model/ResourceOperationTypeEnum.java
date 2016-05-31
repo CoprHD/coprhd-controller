@@ -39,6 +39,7 @@ public enum ResourceOperationTypeEnum {
     DELETE_BLOCK_VOLUME("DELETE VOLUME", "delete operation"),
     EXPAND_BLOCK_VOLUME("EXPAND VOLUME", "expand volume operation"),
     IMPORT_BLOCK_VOLUME("IMPORT BLOCK VOLULME", "import block volume"),
+    DECOMPOSE_VOLUME("DECOMPOSE VIRTUAL VOLUME", "decompose virtual volume"),
     INGEST_VOLUMES("INGEST VOLUMES", "ingest volumes"),
     INGEST_EXPORTED_BLOCK_OBJECTS("INGEST EXPORTED BLOCK OBJECTS", "ingest exported block objects"),
     INGEST_EXPORT_MASKS("INGEST EXPORT MASKS", "ingest export masks"),

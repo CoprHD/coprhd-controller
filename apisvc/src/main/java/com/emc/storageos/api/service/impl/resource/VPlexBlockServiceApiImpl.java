@@ -866,6 +866,26 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         _tenantsService = tenantsService;
     }
 
+    
+    /**
+     * Dismantle VPLEX volume. This should be a local unexported volume. Remove the 
+     * devices and extents and then unexport the backend volume and make VPLEX forget the volume.
+     * At this point, the back-end volume should be made visible in ViPR.
+     * 
+     * @param arrayURI -- the URI of the Storage Array holding the existing
+     *            Volume.
+     * @param VPLEXVolume -- An existing local VPLEX Volume that is being decomposed.
+     * @param vpool -- The vpool requested on the vpool change request.
+     * @param taskId -- The taskId
+     * @throws InternalException
+     */
+    public void decomposeVirtualVolume(URI arrayURI, Volume VPLEXVolume, VirtualPool vpool,
+            String taskId) throws InternalException{
+    	 s_logger.info("Request to decompose {} virtual volume", VPLEXVolume);
+    	 VPlexController controller = getController();
+         controller.decomposeVolume(arrayURI, VPLEXVolume, taskId);
+    }
+    
     /**
      * Import an existing volume to a VPLEX to make it a Virtual Volume.
      * Outline: 1. Determine the VPLEX(s) that could be used. 2. If this is to
@@ -1188,7 +1208,16 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         // vnxblock, or other block storage system.
         StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, systemURI);
         String systemType = storageSystem.getSystemType();
-        if (!DiscoveredDataObject.Type.vplex.name().equals(systemType)) {
+        
+        if (VirtualPool.vPoolSpecifiesHighAvailability(volumeVirtualPool) && 
+            !VirtualPool.vPoolSpecifiesHighAvailability(vpool)) {
+        	 // Source pool is VPLEX and Destination pool is non-VPLEX. This is a case where 
+        	 // we want to move the volume out of VPLEX.
+        	 s_logger.info("VirtualPool change from vplex to non-vplex");
+   
+        	 // TODO: Need to happen only for local volume and also vPools should differ in only HA field.
+        	 decomposeVirtualVolume(systemURI, volume, vpool, taskId);
+        } else if (!DiscoveredDataObject.Type.vplex.name().equals(systemType)) {
             // If it is not a VPLEX volume, then this must be an import to VPLEX.
             s_logger.info("High availability VirtualPool change for vmax or vnx volume.");
             importVirtualVolume(systemURI, volume, vpool, taskId);

@@ -14,6 +14,7 @@ import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.DiscoveredSystemObject;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.impl.AbstractDiscoveredSystemController;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
@@ -68,6 +69,12 @@ public class VPlexControllerImpl extends AbstractDiscoveredSystemController impl
             String opId) throws InternalException {
         queueRequest("importVolume", vplexURI, descriptors,
                 vplexSystemProject, vplexSystemTenant, newCos, newLabel, setTransferSpeed, opId);
+    }
+    
+    @Override
+    public void decomposeVolume(URI vplexURI, Volume VPLEXVolume, 
+            String opId) throws InternalException {
+        queueRequest("decomposeVolume", vplexURI, VPLEXVolume, opId);
     }
 
     @Override

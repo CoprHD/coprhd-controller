@@ -10,6 +10,7 @@ import java.util.Map;
 
 import com.emc.storageos.Controller;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.ApplicationAddVolumeList;
@@ -71,6 +72,13 @@ public interface VPlexController extends Controller {
     public abstract void importVolume(URI vplexURI, List<VolumeDescriptor> descriptors,
             URI vplexSystemProject, URI vplexSystemTenant, URI newCos, String newLabel, String setTransferSpeed, 
             String opId) throws InternalException;
+    
+    /*
+     * TODO
+     */
+    public abstract void decomposeVolume(URI vplexURI, Volume VPLEXVolume, 
+            String opId) throws InternalException;
+    
 
     /**
      * Expands the virtual volume by migrating the backend volumes to new

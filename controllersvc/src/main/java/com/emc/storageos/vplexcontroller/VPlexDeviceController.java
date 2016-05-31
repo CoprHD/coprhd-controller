@@ -202,6 +202,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private static final String MIGRATE_VOLUMES_WF_NAME = "migrateVolumes";
     private static final String DELETE_MIGRATION_SOURCES_WF_NAME = "deleteMigrationSources";
     private static final String IMPORT_VOLUMES_WF_NAME = "importVolumes";
+    private static final String DECOMPOSE_VOLUME_WF_NAME = "decomposeVolume";
     private static final String EXPAND_VOLUME_WF_NAME = "expandVolume";
     private static final String DELETE_CG_WF_NAME = "deleteConsistencyGroup";
     private static final String UPDATE_CG_WF_NAME = "updateConsistencyGroup";
@@ -5835,6 +5836,52 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // regardless of the result after the sub workflow has completed.
             WorkflowStepCompleter.stepSucceded(args[0].toString());
         }
+    }
+    
+    public void decomposeVolume(URI vplexURI, Volume volume, 
+            String opId) throws ControllerException {
+    	
+    	List<VolumeDescriptor> descriptors = new ArrayList<VolumeDescriptor>();
+    	List<URI> volUris = new ArrayList<URI>();
+    	volUris.add(volume.getId());
+        VolumeWorkflowCompleter completer = new VolumeWorkflowCompleter(volUris, opId);
+        Workflow workflow = null;
+        try {
+            // Generate the Workflow.
+            workflow = _workflowService.getNewWorkflow(this,
+                    DECOMPOSE_VOLUME_WF_NAME, true, opId);
+            String waitFor = null;    // the wait for key returned by previous call        
+
+            // Add steps to delete the virtual volume and its devices and extents. Also unexport
+            // the backend volume
+            // Call the VPlexDeviceController to add its methods if there are VPLEX volumes.
+            
+            VolumeDescriptor desc = new VolumeDescriptor(VolumeDescriptor.Type.VPLEX_VIRT_VOLUME,
+                    vplexURI, volume.getId(), null, null);
+            descriptors.add(desc);
+            
+            waitFor = addStepsForDeleteVolumes(
+                    workflow, waitFor, descriptors, opId);
+
+            // This step should forget the backend volume for the VPLEX volume
+            // Call the VPlexDeviceController to add its post-delete methods.
+            waitFor = addStepsForPostDeleteVolumes(
+                    workflow, waitFor, descriptors, opId, completer);            
+
+            // Finish up and execute the plan.
+            // The Workflow will handle the TaskCompleter
+            String successMessage = "Decompose volume successful for: " + volUris.toString();
+            workflow.executePlan(completer, successMessage);
+            
+            // TODO: At this stage we should have a BE vol that we should be able to operate upon
+            
+        } catch (Exception ex) {
+        	String failMsg = " Decompose volume failed for:" + volUris.toString();
+            ServiceError serviceError = VPlexApiException.errors.jobFailed(ex);
+            serviceError.setMessage(failMsg);
+            completer.error(_dbClient, serviceError);
+        }
+        
     }
 
     /**

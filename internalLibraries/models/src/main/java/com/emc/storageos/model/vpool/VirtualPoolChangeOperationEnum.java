@@ -17,7 +17,8 @@ public enum VirtualPoolChangeOperationEnum {
     ADD_MIRRORS("Change one or more volumes to include continuous copies protection"),
     EXPORT_PATH_PARAMS("Change one or more volumes' path paramters"),
     AUTO_TIERING_POLICY("Change one or more volumes' Auto-tiering policy"),
-    REPLICATION_MODE("Change one or more RP protected volumes' replication mode");
+    REPLICATION_MODE("Change one or more RP protected volumes' replication mode"),
+    VPLEX_TO_NON_VPLEX("Tear down the local virtual volume and expose the backend volume");
 
     private String description;
 

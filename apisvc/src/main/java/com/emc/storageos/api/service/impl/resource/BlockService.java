@@ -3147,6 +3147,8 @@ public class BlockService extends TaskResourceService {
      * Change the virtual pool of a VMAX and VNX volumes to allow change of Auto-tiering policy
      * associated with it.
      *
+     * Change the virtual pool to expose the backend volume. Destination vpool should satisfy 
+     * the storage capability for the backend volume.
      *
      * Note: Operations other than Auto-tiering Policy change will call the
      * internal single volume method (BlockServiceApiImpl) in a loop.

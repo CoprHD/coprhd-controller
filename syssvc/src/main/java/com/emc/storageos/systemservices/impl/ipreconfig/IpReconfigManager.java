@@ -589,9 +589,12 @@ public class IpReconfigManager implements Runnable {
     /**
      * Poweroff/Reboot the node
      */
-    public void haltNode(String postOperation) throws Exception {
+    public void haltNode(String shutdownSites) throws Exception {
         Thread.sleep(6 * 1000);
-        if (postOperation.equals("poweroff")) {
+
+        String[] siteIds = shutdownSites.split(",");
+        Set<String> siteIdSet = new HashSet<String>(Arrays.asList(siteIds));
+        if(siteIdSet.contains(drUtil.getLocalSite().getSiteShortId())) {
             localRepository.poweroff();
         } else {
             localRepository.reboot();
@@ -685,12 +688,15 @@ public class IpReconfigManager implements Runnable {
      * trigger ip reconfiguration
      * 
      * @param clusterIpInfo
-     * @param postOperation
+     * @param shutdownSites
      * @throws Exception
      */
-    public void triggerIpReconfig(ClusterIpInfo clusterIpInfo, String postOperation) throws Exception {
+    public void triggerIpReconfig(ClusterIpInfo clusterIpInfo, String shutdownSites) throws Exception {
+        // 0. load latest cluster IP properties
+        loadClusterIpProps();
+
         // 1. validate cluster ip reconfig parameter
-        validateParameter(clusterIpInfo, postOperation);
+        validateParameter(clusterIpInfo, shutdownSites);
 
         // 2. check env
         sanityCheckEnv();
@@ -708,7 +714,7 @@ public class IpReconfigManager implements Runnable {
         }
 
         // 4. Initial ip reconfig procedure
-        initIpReconfig(clusterIpInfo, postOperation);
+        initIpReconfig(clusterIpInfo, shutdownSites);
     }
 
     /**
@@ -733,19 +739,20 @@ public class IpReconfigManager implements Runnable {
      * Valide cluster ip reconfig param
      * 
      * @param clusterIpInfo
-     * @param postOperation
+     * @param shutdownSites
      * @return error msg
      * @throws Exception
      */
-    private void validateParameter(ClusterIpInfo clusterIpInfo, String postOperation) throws Exception {
+    private void validateParameter(ClusterIpInfo clusterIpInfo, String shutdownSites) throws Exception {
         boolean bValid = true;
         String errmsg = "";
 
-        loadClusterIpProps();
-
-        if (!postOperation.equals("poweroff") && !postOperation.equals("reboot")) {
-            bValid = false;
-            errmsg = "post operation is invalid.";
+        String[] siteIds = shutdownSites.split(",");
+        for (String siteid : siteIds) {
+            if (currentIpinfo.getSiteIpInfoMap().keySet().contains(siteid) == false) {
+                bValid = false;
+                errmsg = "shutdownSites info is invalid.";
+            }
         }
 
         errmsg = clusterIpInfo.validate(currentIpinfo);
@@ -798,10 +805,10 @@ public class IpReconfigManager implements Runnable {
      * expiration time for the procedure
      * 
      * @param clusterIpInfo The new cluster ip info
-     * @param postOperation
+     * @param shutdownSites
      * @throws Exception
      */
-    private void initIpReconfig(ClusterIpInfo clusterIpInfo, String postOperation) throws Exception {
+    private void initIpReconfig(ClusterIpInfo clusterIpInfo, String shutdownSites) throws Exception {
         log.info("Initiating ip reconfiguraton procedure {}", clusterIpInfo.toString());
 
         ConfigurationImpl cfg = new ConfigurationImpl();
@@ -830,7 +837,7 @@ public class IpReconfigManager implements Runnable {
         expiration_time = System.currentTimeMillis() + IPRECONFIG_TIMEOUT;
 
         cfg.setConfig(IpReconfigConstants.CONFIG_EXPIRATION_KEY, String.valueOf(expiration_time));
-        cfg.setConfig(IpReconfigConstants.CONFIG_POST_OPERATION_KEY, postOperation);
+        cfg.setConfig(IpReconfigConstants.CONFIG_POST_OPERATION_KEY, shutdownSites);
         config = cfg;
 
         _coordinator.getCoordinatorClient().persistServiceConfiguration(config);

@@ -8094,6 +8094,9 @@ dr_multisite_tests()
 
     wait_for_site_stable "${DR_SITE_A_IP}" "${DR_SITE_B_IP}" "${DR_SITE_C_IP}"
 
+    # ipreconfig after added the 2nd standby site
+    ipreconfig_test "${DR_SITE_A_IP}"
+
     # pause standby b
     echo "---PAUSE SITE $standby_site_b---"
     BOURNE_IPADDR=$DR_SITE_A_IP
@@ -8171,6 +8174,9 @@ dr_multisite_tests()
     dr waitforstable 30 1200
     project show ${projectid_new}
 
+    # ipreconfig after pause&resume
+    ipreconfig_test "$DR_SITE_A_IP"
+
     echo "---PREPARING STANDBY_DEGRADED TEST---"
     syssvc $CONFIG_FILE "$DR_SITE_A_IP" set_prop system_permit_root_ssh yes
     dr waitforstable 10 600
@@ -8229,6 +8235,8 @@ dr_multisite_tests()
     time_finish switchover_standby_c
 
     # NOTE: active site and standby site has been switched, site A is standby and site C is active now
+    # ipreconfig after switchover
+    ipreconfig_test "$DR_SITE_C_IP"
 
     # failover test part
     echo "Stopping active site $DR_SITE_C_NAME services to prepare for failover test ..."
@@ -8292,6 +8300,9 @@ dr_multisite_tests()
     dr waitforstate $standby_site_c STANDBY_SYNCED 30 1200
     time_finish failback_standby_c
 
+    # ipreconfig after failover&failback
+    ipreconfig_test "$DR_SITE_A_IP"
+
     # delete standby
     echo "---DELETE STANDBY $standby_site_b---"
     BOURNE_IPADDR=$DR_SITE_A_IP
@@ -8321,6 +8332,9 @@ dr_multisite_tests()
     BOURNE_IPADDR=$DR_SITE_C_IP
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD 10 600
     project show $test_projectid
+
+    # ipreconfig after deletion
+    ipreconfig_test "$DR_SITE_A_IP"
 
     #disabling pipefail option to pipe exit codes
     set +o pipefail

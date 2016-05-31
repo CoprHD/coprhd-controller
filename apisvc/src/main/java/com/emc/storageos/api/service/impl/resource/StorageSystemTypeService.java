@@ -239,7 +239,6 @@ public class StorageSystemTypeService extends TaskResourceService {
 		String filePath = UPLOAD_DEVICE_DRIVER + contentDispositionHeader.getFileName();
 		// save the file to the server
 		saveFile(fileInputStream, filePath);
-		//String output = "File saved to server location : " + filePath;
 		log.info("Device driver file uploaded at " + filePath);
 		Response myhttpresponse = Response.status(Response.Status.OK).build();
 		return myhttpresponse;
@@ -261,13 +260,11 @@ public class StorageSystemTypeService extends TaskResourceService {
 
 	@Override
 	protected ResourceTypeEnum getResourceType() {
-		// TODO Auto-generated method stub
 		return ResourceTypeEnum.STORAGE_SYSTEM_TYPE;
 	}
 
 	@Override
 	protected URI getTenantOwner(URI id) {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
@@ -277,14 +274,13 @@ public class StorageSystemTypeService extends TaskResourceService {
 			OutputStream outpuStream = new FileOutputStream(new File(serverLocation));
 			int read = 0;
 			byte[] bytes = new byte[1024];
-			//outpuStream = new FileOutputStream(new File(serverLocation));
 			while ((read = uploadedInputStream.read(bytes)) != -1) {
 				outpuStream.write(bytes, 0, read);
 			}
 			outpuStream.flush();
 			outpuStream.close();
-		} catch (IOException e) {
-			e.printStackTrace();
+		} catch (IOException ex) {
+			log.error(ex.getMessage());
 		}
 	}
 

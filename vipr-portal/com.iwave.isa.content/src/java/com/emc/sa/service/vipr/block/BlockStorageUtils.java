@@ -227,9 +227,25 @@ public class BlockStorageUtils {
         return execute(new GetBlockContinuousCopies(uris, parentId));
     }
     
+    /**
+     * Retrieve a list of block resources based on the resource ids provided. This will gather
+     * the appropriate resources based on the resource type of the ids provided.
+     *
+     * @param resourceIds of the resources to retrieve.
+     * @return list of block resources
+     */
     public static List<BlockObjectRestRep> getBlockResources(List<URI> resourceIds) {
         return getBlockResources(resourceIds, null);
     }
+
+    /**
+     * Retrieve a list of block resources based on the resource ids provided. This will gather
+     * the appropriate resources based on the resource type of the ids provided.
+     *
+     * @param resourceIds of the resources to retrieve.
+     * @param parentId of a continuous copy. This will be null for all other resource types.
+     * @return list of block resources
+     */
 
     public static List<BlockObjectRestRep> getBlockResources(List<URI> resourceIds, URI parentId) {
         List<BlockObjectRestRep> blockResources = Lists.newArrayList();

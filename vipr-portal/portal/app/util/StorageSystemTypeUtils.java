@@ -19,6 +19,9 @@ import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.multipart.MultiPart;
 
 public class StorageSystemTypeUtils {
+    
+    private StorageSystemTypeUtils() {
+    }
 
 	public static StorageSystemTypeList getAllStorageSystemTypes(String storageTypetype) {
 		return getViprClient().storageSystemType().listStorageSystemTypeTypes(storageTypetype);

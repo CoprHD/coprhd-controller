@@ -19,9 +19,7 @@ package com.emc.storageos.keystone.restapi.utils;
 
 import com.emc.storageos.cinder.CinderConstants;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.model.AuthnProvider;
-import com.emc.storageos.db.client.model.StringMap;
-import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.*;
 import com.emc.storageos.keystone.KeystoneConstants;
 import com.emc.storageos.keystone.restapi.KeystoneApiClient;
 import com.emc.storageos.keystone.restapi.KeystoneRestClientFactory;
@@ -33,6 +31,8 @@ import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Keystone API Utils class.
@@ -44,6 +44,8 @@ public class KeystoneUtils {
     public static final String OPENSTACK_CINDER_V1_NAME = "cinder";
     public static final String OPENSTACK_TENANT_ID = "tenant_id";
     public static final String OPENSTACK_DEFAULT_REGION = "RegionOne";
+    public static final String TENANT_ID = "tenant_id";
+    public static final String VALUES = "values";
 
     private KeystoneRestClientFactory _keystoneApiFactory;
     private Properties _ovfProperties;
@@ -451,4 +453,119 @@ public class KeystoneUtils {
         return null;
     }
 
+    /**
+     * Retrieves OpenStack Tenants from Keystone.
+     *
+     * @return List of OpenStack Tenants.
+     */
+    public List<TenantV2> getOpenStackTenants() {
+
+        AuthnProvider keystoneProvider = getKeystoneProvider();
+
+        if (keystoneProvider == null) {
+            throw APIException.internalServerErrors.targetIsNullOrEmpty("Keystone provider");
+        }
+
+        // Get Keystone API client.
+        KeystoneApiClient keystoneApiClient = getKeystoneApi(keystoneProvider.getManagerDN(),
+                keystoneProvider.getServerUrls(), keystoneProvider.getManagerPassword());
+
+        // Get OpenStack Tenants.
+        // You cannot remove or add elements dynamically to Arrays (Arrays.asList) that is why this needs to be wrapped in a new list.
+        return new ArrayList<>(Arrays.asList(keystoneApiClient.getKeystoneTenants().getTenants()));
+    }
+
+    /**
+     * Retrieves CoprHD Tenants with OpenStack ID parameter.
+     *
+     * @return List of CoprHD Tenants.
+     */
+    public List<TenantOrg> getCoprhdTenantsWithOpenStackId() {
+
+        List<URI> coprhdTenantsURI = _dbClient.queryByType(TenantOrg.class, true);
+        Iterator<TenantOrg> tenantsIter = _dbClient.queryIterativeObjects(TenantOrg.class, coprhdTenantsURI);
+        List<TenantOrg> tenants = new ArrayList<>();
+
+        // Iterate over CoprHD Tenants and get only those that contain tenant_id parameter.
+        while (tenantsIter.hasNext()) {
+            TenantOrg tenant = tenantsIter.next();
+            if (getCoprhdTenantUserMapping(tenant) != null) {
+                tenants.add(tenant);
+            }
+        }
+
+        return tenants;
+    }
+
+    /**
+     * Retrieves UserMapping from CoprHD Tenant.
+     *
+     * @param tenant CoprHD Tenant.
+     * @return User Mapping for given Tenant.
+     */
+    public String getCoprhdTenantUserMapping(TenantOrg tenant) {
+
+        StringSetMap userMappings = tenant.getUserMappings();
+        // Ignore root Tenant.
+        if (!TenantOrg.isRootTenant(tenant) && userMappings != null) {
+            // Return mapping that contains tenant_id.
+            for (AbstractChangeTrackingSet<String> userMappingSet : userMappings.values()) {
+                for (String mapping : userMappingSet) {
+                    if (mapping.contains(TENANT_ID)) {
+                        return mapping;
+                    }
+                }
+            }
+        }
+
+        // Return null whether Tenant has no mapping with tenant_id parameter.
+        return null;
+    }
+
+    /**
+     * Retrieves OpenStack Tenant ID from UserMapping.
+     *
+     * @param userMapping CoprHD UserMapping.
+     * @return OpenStack Tenant ID.
+     */
+    public String getTenantIdFromUserMapping(String userMapping) {
+
+        // Create split pattern.
+        Pattern p = Pattern.compile("\\[(.*?)\\]");
+        // Apply pattern.
+        Matcher m = p.matcher(userMapping);
+        String result;
+
+        while (m.find()) {
+
+            if (m.group().contains(VALUES)) {
+                result = m.group().split(":")[1];
+
+                return result.substring(2, result.length() - 2);
+            }
+        }
+
+        return "";
+    }
+
+    /**
+     * Finds CoprHD representation of OpenStack Tenant with given OS ID.
+     *
+     * @param tenantId OpenStack Tenant ID.
+     * @return CoprHD Tenant.
+     */
+    public OSTenant findOpenstackTenantInCoprhd(String tenantId) {
+
+        List<URI> osTenantURI = _dbClient.queryByType(OSTenant.class, true);
+        Iterator<OSTenant> osTenantIter = _dbClient.queryIterativeObjects(OSTenant.class, osTenantURI);
+
+        while (osTenantIter.hasNext()) {
+            OSTenant osTenant = osTenantIter.next();
+            if (osTenant.getOsId().equals(tenantId)) {
+                return osTenant;
+            }
+        }
+
+        return null;
+    }
 }

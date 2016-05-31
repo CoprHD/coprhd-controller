@@ -28,7 +28,6 @@ import com.emc.storageos.db.client.model.AuthnProvider;
 
 import com.emc.storageos.model.keystone.OpenStackTenantListParam;
 import com.emc.storageos.model.keystone.OpenStackTenantParam;
-import com.emc.vipr.client.core.OpenStackTenants;
 import models.SearchScopes;
 import models.TenantsSynchronizationOptions;
 import models.datatable.LDAPsourcesDataTable;
@@ -36,7 +35,6 @@ import models.datatable.LDAPsourcesDataTable.LDAPsourcesInfo;
 
 //import models.datatable.StorageSystemDataTable;
 import models.datatable.OpenStackTenantsDataTable;
-import models.datatable.TenantsDataTable;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.util.CollectionUtils;
 
@@ -213,7 +211,7 @@ public class LDAPsources extends ViprResourceController {
             }
         }
         OpenStackTenantListParam params = new OpenStackTenantListParam();
-        params.setOpenstack_tenants(tenants);
+        params.setOpenstackTenants(tenants);
 
         OpenStackTenantsUtils.addOpenStackTenants(params);
 

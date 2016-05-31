@@ -27,17 +27,17 @@ import java.util.List;
 @XmlAccessorType(XmlAccessType.PROPERTY)
 public class CoprhdOsTenantListRestRep {
 
-    private List<CoprhdOsTenant> coprhd_os_tenants;
+    private List<CoprhdOsTenant> coprhdOsTenants;
 
     @XmlElement(name = "coprhd_os_tenants")
-    public List<CoprhdOsTenant> getCoprhd_os_tenants() {
-        if (coprhd_os_tenants == null) {
-            coprhd_os_tenants = new ArrayList<>();
+    public List<CoprhdOsTenant> getCoprhdOsTenants() {
+        if (coprhdOsTenants == null) {
+            coprhdOsTenants = new ArrayList<>();
         }
-        return coprhd_os_tenants;
+        return coprhdOsTenants;
     }
 
-    public void setCoprhd_os_tenants(List<CoprhdOsTenant> coprhd_os_tenants) {
-        this.coprhd_os_tenants = coprhd_os_tenants;
+    public void setCoprhdOsTenants(List<CoprhdOsTenant> coprhdOsTenants) {
+        this.coprhdOsTenants = coprhdOsTenants;
     }
 }

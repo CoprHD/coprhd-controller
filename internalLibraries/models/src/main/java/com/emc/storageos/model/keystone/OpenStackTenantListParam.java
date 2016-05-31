@@ -26,17 +26,17 @@ import java.util.List;
 @XmlAccessorType(XmlAccessType.PROPERTY)
 public class OpenStackTenantListParam {
 
-    private List<OpenStackTenantParam> openstack_tenants;
+    private List<OpenStackTenantParam> openstackTenants;
 
     /**
      * List of OpenStack Tenants.
      */
     @XmlElement(name = "openstack_tenants")
-    public List<OpenStackTenantParam> getOpenstack_tenants() {
-        return openstack_tenants;
+    public List<OpenStackTenantParam> getOpenstackTenants() {
+        return openstackTenants;
     }
 
-    public void setOpenstack_tenants(List<OpenStackTenantParam> openstack_tenants) {
-        this.openstack_tenants = openstack_tenants;
+    public void setOpenstackTenants(List<OpenStackTenantParam> openstackTenants) {
+        this.openstackTenants = openstackTenants;
     }
 }

@@ -20,7 +20,6 @@ import com.emc.storageos.api.service.impl.resource.*;
 import com.emc.storageos.cinder.CinderConstants;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.*;
-import com.emc.storageos.keystone.restapi.KeystoneApiClient;
 import com.emc.storageos.keystone.restapi.model.response.TenantV2;
 import com.emc.storageos.keystone.restapi.utils.KeystoneUtils;
 import com.emc.storageos.model.tenant.TenantCreateParam;
@@ -38,8 +37,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class OpenStackSynchronizationTask extends ResourceService {
 
@@ -57,10 +54,8 @@ public class OpenStackSynchronizationTask extends ResourceService {
     // Default excluded option for OSTenant.
     private static final boolean DEFAULT_EXCLUDED_TENANT_OPTION = false;
 
-    private static final String TENANT_ID = "tenant_id";
     private static final String OPENSTACK = "OpenStack";
     private static final String ROOT = "root";
-    private static final String VALUES = "values";
 
     // Services
     private KeystoneUtils _keystoneUtilsService;
@@ -121,54 +116,6 @@ public class OpenStackSynchronizationTask extends ResourceService {
     }
 
     /**
-     * Retrieves OpenStack Tenants from Keystone.
-     *
-     * @return List of OpenStack Tenants.
-     */
-    private List<TenantV2> getOpenStackTenants() {
-
-        AuthnProvider keystoneProvider = getKeystoneProvider();
-
-        if (keystoneProvider == null) {
-            throw APIException.internalServerErrors.targetIsNullOrEmpty("Keystone provider");
-        }
-
-        // Get Keystone API client.
-        KeystoneApiClient keystoneApiClient = _keystoneUtilsService.getKeystoneApi(keystoneProvider.getManagerDN(),
-                keystoneProvider.getServerUrls(), keystoneProvider.getManagerPassword());
-
-        // Get OpenStack Tenants.
-        // You cannot remove or add elements dynamically to Arrays (Arrays.asList) that is why this needs to be wrapped in a new list.
-        List<TenantV2> OSTenantList = new ArrayList<>(Arrays.asList(keystoneApiClient.getKeystoneTenants().getTenants()));
-
-        _log.debug("OpenStack tenants[{}]: {}", OSTenantList.size(), listToString(OSTenantList));
-        return OSTenantList;
-    }
-
-    /**
-     * Retrieves CoprHD Tenants with OpenStack ID parameter.
-     *
-     * @return List of CoprHD Tenants.
-     */
-    public List<TenantOrg> getCoprhdTenantsWithOpenStackId() {
-
-        List<URI> coprhdTenantsURI = _dbClient.queryByType(TenantOrg.class, true);
-        Iterator<TenantOrg> tenantsIter = _dbClient.queryIterativeObjects(TenantOrg.class, coprhdTenantsURI);
-        List<TenantOrg> tenants = new ArrayList<>();
-
-        // Iterate over CoprHD Tenants and get only those that contain tenant_id parameter.
-        while (tenantsIter.hasNext()) {
-            TenantOrg tenant = tenantsIter.next();
-            if (getCoprhdTenantUserMapping(tenant) != null) {
-                tenants.add(tenant);
-            }
-        }
-
-        _log.debug("CoprHD tenants[{}]", tenants.size());
-        return tenants;
-    }
-
-    /**
      * Retrieves Keystone Authentication Provider from CoprHD.
      *
      * @return Keystone Authentication Provider.
@@ -211,68 +158,6 @@ public class OpenStackSynchronizationTask extends ResourceService {
     }
 
     /**
-     * Retrieves UserMapping from CoprHD Tenant.
-     *
-     * @param tenant CoprHD Tenant.
-     * @return User Mapping for given Tenant.
-     */
-    public String getCoprhdTenantUserMapping(TenantOrg tenant) {
-
-        StringSetMap userMappings = tenant.getUserMappings();
-        // Ignore root Tenant.
-        if (!TenantOrg.isRootTenant(tenant) && userMappings != null) {
-            // Return mapping that contains tenant_id.
-            for (AbstractChangeTrackingSet<String> userMappingSet : userMappings.values()) {
-                for (String mapping : userMappingSet) {
-                    if (mapping.contains(TENANT_ID)) {
-                        return mapping;
-                    }
-                }
-            }
-        }
-
-        // Return null whether Tenant has no mapping with tenant_id parameter.
-        return null;
-    }
-
-    /**
-     * Retrieves OpenStack Tenant ID from UserMapping.
-     *
-     * @param userMapping CoprHD UserMapping.
-     * @return OpenStack Tenant ID.
-     */
-    private String getTenantIdFromUserMapping(String userMapping) {
-
-        // Create split pattern.
-        Pattern p = Pattern.compile("\\[(.*?)\\]");
-        // Apply pattern.
-        Matcher m = p.matcher(userMapping);
-        String result;
-
-        while (m.find()) {
-
-            if (m.group().contains(VALUES)) {
-                result = m.group().split(":")[1];
-
-                return result.substring(2, result.length() - 2);
-            }
-        }
-
-        return "";
-    }
-
-    private String listToString(List<?> list) {
-
-        StringBuilder sb = new StringBuilder();
-        for (Object o : list) {
-            sb.append(o.toString());
-            sb.append("\t");
-        }
-
-        return sb.toString();
-    }
-
-    /**
      * Finds CoprHD Tenants with OpenStack ID that are different from their reflection in OpenStack. Those Tenants needs to be updated.
      *
      * @param osTenantList List of OpenStack Tenants.
@@ -294,11 +179,11 @@ public class OpenStackSynchronizationTask extends ResourceService {
             while (coprhdIter.hasNext()) {
 
                 TenantOrg coprhdTenant = coprhdIter.next();
-                String tenantMapping = getCoprhdTenantUserMapping(coprhdTenant);
+                String tenantMapping = _keystoneUtilsService.getCoprhdTenantUserMapping(coprhdTenant);
                 if (tenantMapping == null) {
                     throw APIException.internalServerErrors.targetIsNullOrEmpty("TenantMapping");
                 }
-                String tenantId = getTenantIdFromUserMapping(tenantMapping);
+                String tenantId = _keystoneUtilsService.getTenantIdFromUserMapping(tenantMapping);
                 if (tenantId.equals(osTenant.getId())) {
                     if (!areTenantsIdentical(osTenant, coprhdTenant)) {
                         coprhdTenant.setDescription(osTenant.getDescription());
@@ -330,7 +215,7 @@ public class OpenStackSynchronizationTask extends ResourceService {
      */
     private OSTenant updateOrCreateOpenstackTenantInCoprhd(TenantV2 tenant) {
 
-        OSTenant osTenant = findOpenstackTenantInCoprhd(tenant.getId());
+        OSTenant osTenant = _keystoneUtilsService.findOpenstackTenantInCoprhd(tenant.getId());
 
         if (osTenant != null) {
             if (!osTenant.getDescription().equals(tenant.getDescription())) {
@@ -348,32 +233,11 @@ public class OpenStackSynchronizationTask extends ResourceService {
             return osTenant;
         }
 
-        osTenant = mapTenant(tenant);
+        osTenant = mapToOsTenant(tenant);
         osTenant.setId(URIUtil.createId(OSTenant.class));
         _dbClient.createObject(osTenant);
 
         return osTenant;
-    }
-
-    /**
-     * Finds CoprHD representation of OpenStack Tenant.
-     *
-     * @param tenantId OpenStack Tenant ID.
-     * @return CoprHD Tenant.
-     */
-    private OSTenant findOpenstackTenantInCoprhd(String tenantId) {
-
-        List<URI> osTenantURI = _dbClient.queryByType(OSTenant.class, true);
-        Iterator<OSTenant> osTenantIter = _dbClient.queryIterativeObjects(OSTenant.class, osTenantURI);
-
-        while (osTenantIter.hasNext()) {
-            OSTenant osTenant = osTenantIter.next();
-            if (osTenant.getOsId().equals(tenantId)) {
-                return osTenant;
-            }
-        }
-
-        return null;
     }
 
     /**
@@ -459,7 +323,7 @@ public class OpenStackSynchronizationTask extends ResourceService {
         return project;
     }
 
-    private OSTenant mapTenant(TenantV2 tenant) {
+    private OSTenant mapToOsTenant(TenantV2 tenant) {
 
         OSTenant osTenant = new OSTenant();
         osTenant.setOsId(tenant.getId());
@@ -504,9 +368,9 @@ public class OpenStackSynchronizationTask extends ResourceService {
         public void run() {
             try {
                 // List of OpenStack Tenants.
-                List<TenantV2> osTenantList = getOpenStackTenants();
+                List<TenantV2> osTenantList = _keystoneUtilsService.getOpenStackTenants();
                 // List of CoprHD Tenants.
-                List<TenantOrg> coprhdTenantList = getCoprhdTenantsWithOpenStackId();
+                List<TenantOrg> coprhdTenantList = _keystoneUtilsService.getCoprhdTenantsWithOpenStackId();
                 // List of CoprHD Tenants to update.
                 List<TenantOrg> tenantsToUpdate = getListOfTenantsToUpdate(osTenantList, coprhdTenantList);
 
@@ -534,11 +398,12 @@ public class OpenStackSynchronizationTask extends ResourceService {
                         syncOptions.contains(AuthnProvider.TenantsSynchronizationOptions.ADDITION.toString())) {
                     for (TenantV2 tenant : osTenantList) {
 
-                        OSTenant osTenant = findOpenstackTenantInCoprhd(tenant.getId());
+                        OSTenant osTenant = _keystoneUtilsService.findOpenstackTenantInCoprhd(tenant.getId());
                         if (osTenant != null && !osTenant.getExcluded()) {
-                            TenantOrg tenantOrg = createTenant(mapTenant(tenant));
-                            Project project = createProject(tenantOrg, mapTenant(tenant));
-                            _authnConfigurationService.tagProjectWithOpenstackId(project.getId(), tenant.getId(), tenantOrg.getId().toString());
+                            TenantOrg tenantOrg = createTenant(mapToOsTenant(tenant));
+                            Project project = createProject(tenantOrg, mapToOsTenant(tenant));
+                            _authnConfigurationService.tagProjectWithOpenstackId(project.getId(), tenant.getId(),
+                                    tenantOrg.getId().toString());
                         }
                     }
                 }
@@ -546,14 +411,14 @@ public class OpenStackSynchronizationTask extends ResourceService {
                 // Remove CoprHD representation of OpenStack Tenant that are removed from OpenStack.
                 if (syncOptions.contains(AuthnProvider.TenantsSynchronizationOptions.DELETION.toString())) {
                     for (TenantOrg tenant : coprhdTenantList) {
-                        String tenantMapping = getCoprhdTenantUserMapping(tenant);
+                        String tenantMapping = _keystoneUtilsService.getCoprhdTenantUserMapping(tenant);
 
                         if (tenantMapping == null) {
                             throw APIException.internalServerErrors.targetIsNullOrEmpty("TenantMapping");
                         }
 
-                        String tenantId = getTenantIdFromUserMapping(tenantMapping);
-                        OSTenant osTenant = findOpenstackTenantInCoprhd(tenantId);
+                        String tenantId = _keystoneUtilsService.getTenantIdFromUserMapping(tenantMapping);
+                        OSTenant osTenant = _keystoneUtilsService.findOpenstackTenantInCoprhd(tenantId);
 
                         if (osTenant == null) {
                             throw APIException.internalServerErrors.targetIsNullOrEmpty("OSTenant");

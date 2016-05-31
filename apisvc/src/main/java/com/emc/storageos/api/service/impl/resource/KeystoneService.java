@@ -102,7 +102,7 @@ public class KeystoneService extends TaskResourceService {
             List<TenantV2> OSTenantList = new ArrayList<>(Arrays.asList(keystoneApiClient.getKeystoneTenants().getTenants()));
 
             TenantListRestResp response = new TenantListRestResp();
-            response.setOpenstack_tenants(OSTenantList);
+            response.setOpenstackTenants(OSTenantList);
 
             return response;
         }
@@ -124,9 +124,13 @@ public class KeystoneService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public OpenStackTenantParam getOpenstackTenant(@PathParam("id") URI id) {
 
+        if (id == null) {
+            throw APIException.internalServerErrors.targetIsNullOrEmpty("Tenant ID");
+        }
+
         _log.debug("Keystone Service - getOpenstackTenant with id: {}", id.toString());
 
-        List<TenantV2> tenants = listOpenstackTenants().getOpenstack_tenants();
+        List<TenantV2> tenants = listOpenstackTenants().getOpenstackTenants();
 
         for (TenantV2 tenant : tenants) {
             if (tenant.getId().equals(id.toString())) {
@@ -134,7 +138,7 @@ public class KeystoneService extends TaskResourceService {
             }
         }
 
-        throw APIException.internalServerErrors.targetIsNullOrEmpty("Openstack Tenant");
+        throw APIException.notFound.unableToFindEntityInURL(id);
     }
 
     /**
@@ -154,9 +158,13 @@ public class KeystoneService extends TaskResourceService {
 
         _log.debug("Keystone Service - saveOpenstackTenants");
 
+        if (param.getOpenstackTenants() == null) {
+            throw APIException.internalServerErrors.targetIsNullOrEmpty("Tenant list param");
+        }
+
         List<OSTenant> openstackTenants = new ArrayList<>();
 
-        for (OpenStackTenantParam openStackTenantParam : param.getOpenstack_tenants()) {
+        for (OpenStackTenantParam openStackTenantParam : param.getOpenstackTenants()) {
             openstackTenants.add(prepareOpenstackTenant(openStackTenantParam));
         }
 
@@ -184,6 +192,7 @@ public class KeystoneService extends TaskResourceService {
 
     /**
      * Updates representation of OpenStack Tenants in CoprHD.
+     * Creates Tenants and Projects for new Tenants and deletes them for excluded Tenants.
      *
      * @param param OpenStackTenantListParam OpenStack Tenants representation with all necessary elements for update.
      * @brief Updates representation of OpenStack Tenants in CoprHD.
@@ -199,29 +208,40 @@ public class KeystoneService extends TaskResourceService {
 
         _log.debug("Keystone Service - updateOpenstackTenants");
 
+        if (param.getOpenstackTenants() == null) {
+            throw APIException.internalServerErrors.targetIsNullOrEmpty("Tenant list param");
+        }
+
         CoprhdOsTenantListRestRep resp = new CoprhdOsTenantListRestRep();
         List<OSTenant> tenantsToUpdate = new ArrayList<>();
         List<OSTenant> tenantsToDelete = new ArrayList<>();
         OSTenant osTenant;
-        for (OpenStackTenantParam tenant : param.getOpenstack_tenants()) {
+        for (OpenStackTenantParam tenant : param.getOpenstackTenants()) {
             osTenant = _dbClient.queryObject(OSTenant.class, tenant.getId());
-            if ((osTenant.getExcluded() && !osTenant.getExcluded().equals(tenant.getExcluded()))
-                    || (!osTenant.getExcluded() && !osTenant.getExcluded().equals(tenant.getExcluded()))) {
-                // Tenant changed from included to excluded so we have to delete related Tenant and Project.
+            /*if ((osTenant.getExcluded() && !osTenant.getExcluded().equals(tenant.getExcluded()))
+                    || (!osTenant.getExcluded() && !osTenant.getExcluded().equals(tenant.getExcluded()))) {*/
+            if (!osTenant.getExcluded().equals(tenant.getExcluded())) {
+                // Tenant changed from included to excluded. Mark for deletion related Tenant and Project.
                 if (!osTenant.getExcluded()) {
                     tenantsToDelete.add(osTenant);
                 } else {
                     tenantsToUpdate.add(osTenant);
                 }
                 osTenant.setExcluded(tenant.getExcluded());
+                resp.getCoprhdOsTenants().add(mapToCoprhdOsTenant(osTenant));
             }
-            resp.getCoprhd_os_tenants().add(mapToCoprhdOsTenant(osTenant));
         }
 
+        // List of CoprHD Tenants mapped with OpenStack ID.
+        List<TenantOrg> tenantOrgs = _keystoneUtils.getCoprhdTenantsWithOpenStackId();
+
         if (!tenantsToUpdate.isEmpty()) {
+            AuthnProvider keystoneProvider = _keystoneUtils.getKeystoneProvider();
             // Create Tenant and Project for included Tenants.
             for (OSTenant tenant : tenantsToUpdate) {
-                _authService.createTenantAndProjectForOpenstackTenant(tenant, _keystoneUtils.getKeystoneProvider());
+                if (getTenantWithOsId(tenantOrgs, tenant.getOsId()) == null) {
+                    _authService.createTenantAndProjectForOpenstackTenant(tenant, keystoneProvider);
+                }
             }
         }
 
@@ -232,15 +252,15 @@ public class KeystoneService extends TaskResourceService {
         }
 
         if (!tenantsToDelete.isEmpty()) {
-            List<TenantOrg> tenantOrgs = _openStackSynchronizationTask.getCoprhdTenantsWithOpenStackId();
 
             for (OSTenant tenant : tenantsToDelete) {
                 TenantOrg tenantOrg = getTenantWithOsId(tenantOrgs, tenant.getOsId());
-                if (tenantOrg != null) {
+                if (tenantOrg != null && !TenantOrg.isRootTenant(tenantOrg)) {
                     URIQueryResultList uris = new URIQueryResultList();
                     _dbClient.queryByConstraint(
                             PrefixConstraint.Factory.getTagsPrefixConstraint(
-                                    Project.class, tenant.getOsId(), tenantOrg.getId()), uris);
+                                    Project.class, tenant.getOsId(), tenantOrg.getId()),
+                            uris);
 
                     for (URI projectUri : uris) {
                         Project project = _dbClient.queryObject(Project.class, projectUri);
@@ -290,6 +310,10 @@ public class KeystoneService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public CoprhdOsTenant getCoprhdOsTenant(@PathParam("id") URI id) {
 
+        if (id == null) {
+            throw APIException.internalServerErrors.targetIsNullOrEmpty("Tenant ID");
+        }
+
         _log.debug("Keystone Service - getCoprhdOsTenant with id: {}", id.toString());
 
         OSTenant osTenant = _dbClient.queryObject(OSTenant.class, id);
@@ -298,7 +322,7 @@ public class KeystoneService extends TaskResourceService {
             return mapToCoprhdOsTenant(osTenant);
         }
 
-        throw APIException.internalServerErrors.targetIsNullOrEmpty("OSTenant");
+        throw APIException.notFound.unableToFindEntityInURL(id);
     }
 
     private OSTenant prepareOpenstackTenant(OpenStackTenantParam param) {
@@ -320,7 +344,7 @@ public class KeystoneService extends TaskResourceService {
         for (OSTenant osTenant : tenants) {
             coprhdOsTenants.add(mapToCoprhdOsTenant(osTenant));
         }
-        response.setCoprhd_os_tenants(coprhdOsTenants);
+        response.setCoprhdOsTenants(coprhdOsTenants);
 
         return response;
     }
@@ -353,7 +377,7 @@ public class KeystoneService extends TaskResourceService {
     private TenantOrg getTenantWithOsId(List<TenantOrg> tenants, String id) {
 
         for (TenantOrg tenant : tenants) {
-            if (_openStackSynchronizationTask.getCoprhdTenantUserMapping(tenant).contains(id)) {
+            if (_keystoneUtils.getCoprhdTenantUserMapping(tenant).contains(id)) {
                 return tenant;
             }
         }

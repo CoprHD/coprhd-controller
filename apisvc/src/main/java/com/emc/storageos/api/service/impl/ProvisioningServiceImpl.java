@@ -61,7 +61,8 @@ public class ProvisioningServiceImpl extends AbstractSecuredWebServer implements
     public synchronized void stop() throws Exception {
         _server.stop();
         _dbClient.stop();
-        if (_openStackSynchronizationTask.doesKeystoneProviderExist()){
+        AuthnProvider keystoneProvider = _openStackSynchronizationTask.getKeystoneProvider();
+        if (keystoneProvider != null && keystoneProvider.getAutoRegCoprHDNImportOSProjects()) {
             _openStackSynchronizationTask.stop();
         }
     }

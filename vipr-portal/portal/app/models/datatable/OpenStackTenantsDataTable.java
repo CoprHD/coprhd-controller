@@ -33,7 +33,7 @@ public class OpenStackTenantsDataTable extends DataTable {
         public String name;
         public String description;
         public boolean enabled;
-        public boolean exclude = false;
+        public boolean exclude;
 
         public OpenStackTenant(OpenStackTenantParam tenant) {
             this.id = tenant.getOsId();

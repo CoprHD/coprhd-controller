@@ -251,6 +251,10 @@ public class ViPRCoreClient {
         return new OpenStackTenants(this, client);
     }
 
+    public CoprhdOsTenants coprhdOsTenants() {
+        return new CoprhdOsTenants(this, client);
+    }
+
     public StoragePorts storagePorts() {
         return new StoragePorts(this, client);
     }

@@ -660,6 +660,22 @@
           "baseService": "DeleteBucket"
         }
       ]
+    },
+    {
+      "title": "keystoneservice.title",
+      "image": "AuthProvider.png",
+      "description": "keystoneservice.description",
+      "services": [
+        {
+          "image": "AuthProvider.png",
+          "baseService": "EditSynchronizationOptions"
+        },
+        {
+          "image": "AuthProvider.png",
+          "baseService": "EditOSTenants"
+        }
+      ]
+
     }
   ]
 }

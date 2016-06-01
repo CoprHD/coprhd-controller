@@ -757,31 +757,22 @@ class Monitoring(object):
 
     def cluster_ipreconfig(self,args):
         uri=Monitoring.URI_CONTROL_CLUSTER_IPRECONFIG
+        if (args.shutdownsites is not None):
+            uri= uri + "?shutdownsites=" + args.shutdownsites
+
         body=None
 
-        params={
-            "ipv4_setting":
-                {
-                    "network_vip": args.network_vip,
-                    "network_addrs": args.network_addrs,
-                    "network_netmask": args.network_mask,
-                    "network_gateway": args.network_gateway
-                },
-            "ipv6_setting":
-                {
-                    "network_vip6": args.network_vip6,
-                    "network_addrs": args.network_addrs6,
-                    "network_prefix_length": args.network_prefix_length,
-                    "network_gateway6": args.network_gateway6
-                }
-        }
+        # read authentication provider  parameters from configuration file
+        with open(args.configfile) as data_file:
+            params = json.load(data_file)
+
         if(params):
             body=json.dumps(params)
         (s, h) = common.service_json_request(self.__ipAddr, self.__port,"POST", uri,body)
         if(not s):
-            return None
-        o = common.json_decode(s)
-        return o
+            return "request submitted successfully."
+        else:
+            return s
 
 class Configuration(object):
 
@@ -2470,48 +2461,19 @@ def cluster_ipreconfig_parser(subcommand_parsers,common_parser):
         help='Reconfigure Cluster IP')
 
     mandatory_args = ipreconfig_parser.add_argument_group(
-        'mandatory arguments')
+            'mandatory arguments')
 
-    mandatory_args.add_argument('-network_vip','-nvip',
-                                help='IPV4 address',
-                                dest='network_vip',
-                                required='True')
-    mandatory_args.add_argument('-network_addrs','-naddr',
-                                help='IPV4 addresses',
-                                dest='network_addrs',
-                                nargs='*',
-                                required='True')
-    mandatory_args.add_argument('-network_mask','-nmask',
-                                help='IPV4 addresses',
-                                dest='network_mask',
-                                required='True')
-    mandatory_args.add_argument('-network_gateway','-ng',
-                                help='Network gateway',
-                                dest='network_gateway',
-                                required='True')
+    mandatory_args.add_argument(
+        '-configfile',
+        metavar='<configfile>',
+        help='config file for new cluster ip information (includes all sites)',
+        dest='configfile',
+        required=True)
 
-
-    mandatory_args.add_argument('-network_vip6','-nvip6',
-                                help='IPV4 address',
-                                dest='network_vip6',
-                                required='True')
-    mandatory_args.add_argument('-network_addrs6','-naddr6',
-                                help='IPV4 addresses',
-                                dest='network_addrs6',
-                                nargs='*',
-                                required='True')
-    mandatory_args.add_argument('-prefix_length','-npl',
-                                help='IPV4 addresses',
-                                type=int,
-                                choices=xrange(1, 128),
-                                metavar='[1-128]',
-                                dest='network_prefix_length',
-                                required='True')
-    mandatory_args.add_argument('-network_gateway6','-ng6',
-                                help='Network gateway IPv6',
-                                dest='network_gateway6',
-                                required='True')
-
+    ipreconfig_parser.add_argument('-shutdownsites', '-s',
+        metavar='<site1>',
+        dest='shutdownsites',
+        help='list of sites need be shutdown after ip change, separated by comma.')
 
     ipreconfig_parser.set_defaults(func=cluster_ipreconfig)
 

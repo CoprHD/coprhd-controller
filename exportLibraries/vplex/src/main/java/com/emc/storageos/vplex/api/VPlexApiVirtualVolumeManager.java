@@ -1084,7 +1084,7 @@ public class VPlexApiVirtualVolumeManager {
             Map<String, String> argsMap = new HashMap<String, String>();
             argsMap.put(VPlexApiConstants.ARG_DASH_R, devicePath);
             if (thinEnabled) {
-                argsMap.put(VPlexApiConstants.ARG_THIN_ENABLED, devicePath);
+                argsMap.put(VPlexApiConstants.ARG_THIN_ENABLED, "");
             }
             JSONObject postDataObject = VPlexApiUtils.createPostData(argsMap, false);
             s_logger.info("Create virtual volume POST data is {}", postDataObject.toString());

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 EMC Corporation
+ * Copyright (c) 2016 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.auth.impl;
@@ -12,6 +12,7 @@ import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.AuthnProvider;
 import com.emc.storageos.db.exceptions.DatabaseException;
+import com.emc.storageos.services.util.NamedScheduledThreadPoolExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ldap.core.DistinguishedName;
@@ -19,6 +20,7 @@ import org.springframework.ldap.core.LdapTemplate;
 import org.springframework.ldap.core.support.LdapContextSource;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -30,10 +32,12 @@ public class LdapProviderMonitor {
 
     private static final Logger log = LoggerFactory.getLogger(LdapProviderMonitor.class);
     private static final long MONITOR_INTERVAL_MIN = 10;
+    private static final String LDAP_MONITOR_NAME = "LdapProviderMonitor";
 
     private ImmutableAuthenticationProviders providerList;
     private DbClient dbClient;
     private CoordinatorClient coordinator;
+    private NamedScheduledThreadPoolExecutor threadPoolExecutor = null;
 
     public LdapProviderMonitor(CoordinatorClient coordinator, DbClient dbClient, ImmutableAuthenticationProviders providerList) {
         this.coordinator = coordinator;
@@ -42,35 +46,62 @@ public class LdapProviderMonitor {
     }
 
     public void start() {
-        ScheduledExecutorService scheduleService = Executors.newScheduledThreadPool(1);
-        scheduleService.scheduleAtFixedRate(new LdapMonitorWorker(), 0, MONITOR_INTERVAL_MIN, TimeUnit.MINUTES);
+        NamedScheduledThreadPoolExecutor threadPoolExecutor = new NamedScheduledThreadPoolExecutor(LDAP_MONITOR_NAME, 1);
+        threadPoolExecutor.scheduleAtFixedRate(new LdapMonitorWorker(), 0, MONITOR_INTERVAL_MIN, TimeUnit.MINUTES);
+        log.info("LdapProvider Monitor started.");
+    }
+
+    public void stop() {
+        if (threadPoolExecutor != null) {
+            threadPoolExecutor.shutdown();
+        }
+    }
+
+    public void setAuthnProviders(ImmutableAuthenticationProviders authnProviders) {
+            this.providerList = authnProviders;
     }
 
     private class LdapMonitorWorker implements Runnable {
 
         @Override
         public void run() {
-            while (true) {
-                List<AuthenticationProvider> providers = providerList.getAuthenticationProviders();
+            log.info("Ldap Monitor Worker wake up ...");
+            try {
+                List<AuthenticationProvider> providers = null;
+                providers = providerList.getAuthenticationProviders();
+                log.info("Ldap Monitor Worker got provider list. Size is {}.", providers.size());
                 for (AuthenticationProvider provider : providers) {
                     if (!(provider.getHandler() instanceof StorageOSLdapAuthenticationHandler)) { // That's for AD or Ldap
+                        log.info("Found a provider but is not ldap mode. Skipping ...");
                         continue;
                     }
+                    log.info("Found a provider which is ldap mode.");
                     StorageOSLdapAuthenticationHandler handler = (StorageOSLdapAuthenticationHandler) provider.getHandler();
                     LdapServerList ldapServers = handler.getLdapServers();
                     List<LdapOrADServer> disconnectedServers = ldapServers.getDisconnectedServers();
+                    log.info("Disconnected servers is {}", disconnectedServers);
 
                     AuthnProvider authnProvider = queryAuthnProviderFromDB(handler.getDomains());
 
                     // Do check.
-                    for (LdapOrADServer server : disconnectedServers) {
+                    List<LdapOrADServer> backServers = new ArrayList<>();
+                    for (LdapOrADServer server : ldapServers.getDisconnectedServers()) {
+                        log.info("Checking if server {}'s connection get back.", server);
                         boolean isGood = checkLdapServerConnectivity(authnProvider, server.getContextSource().getUrls()[0]);
                         if (isGood) {
-                            ldapServers.updateWithConnected(server);
+                            backServers.add(server);
+                            log.info("The AD or ldap server {} came back.", server);
                         }
                     }
+                    for (LdapOrADServer backServer : backServers) {
+                        ldapServers.markAsConnected(backServer);
+                    }
                 }
+            } catch (Exception e) {
+                log.warn("Error to check ldap status. {}", e);
             }
+
+            log.info("Ldap Monitor Worker done a cycle");
         }
     }
 
@@ -107,7 +138,6 @@ public class LdapProviderMonitor {
             log.error("Could not query for authn providers to check for existing domain {}", domain, ex);
             throw ex;
         }
-
         return null;
     }
 }

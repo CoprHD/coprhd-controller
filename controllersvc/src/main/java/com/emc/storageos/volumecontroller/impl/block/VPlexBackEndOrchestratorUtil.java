@@ -216,8 +216,9 @@ public class VPlexBackEndOrchestratorUtil {
             if (virtualArray != null) {
                 virtualArrayName = virtualArray.getLabel();
             }
-            throw VPlexApiException.exceptions.cantUseBackendExportMaskNotAllPortsInVarray(mask.getMaskName(), 
-                    virtualArrayName, portsNotInVarray.toString());
+            _log.warn(String.format("Validation of ExportMask %s failed; the mask has ports which are not in varray %s;\n" +
+                    " \tPorts not in varray: %s", mask.getMaskName(), virtualArrayName, portsNotInVarray));
+            passed = false;
         }
 
         int volumeCount = (mask.getVolumes() != null) ? mask.getVolumes().size() : 0;

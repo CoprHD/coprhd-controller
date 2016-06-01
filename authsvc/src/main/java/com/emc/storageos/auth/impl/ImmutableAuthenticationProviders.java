@@ -267,7 +267,7 @@ public class ImmutableAuthenticationProviders {
         }
         SearchControls searchControls = new SearchControls();
         searchControls.setCountLimit(SEARCH_CTL_COUNT_LIMIT);
-        searchControls.setTimeLimit(SystemPropertyUtil.getLdapConnectionTimeout(coordinator));
+        searchControls.setTimeLimit(SystemPropertyUtil.getLdapConnectionTimeout(coordinator) * 1000);
         searchControls.setSearchScope(convertSearchScope(authenticationConfiguration
                 .getSearchScope()));
         searchControls.setReturningAttributes(returningAttributes);
@@ -414,7 +414,6 @@ public class ImmutableAuthenticationProviders {
 
         LdapOrADServer server = new LdapOrADServer();
         server.setContextSource(createConfiguredLDAPContextSource(coordinator, authenticationConfiguration, timeout, url));
-        server.setIsGood(true);
         return server;
     }
 
@@ -531,11 +530,13 @@ public class ImmutableAuthenticationProviders {
 
         LdapServerList servers = createLdapServerList(coordinator, authConfig, SystemPropertyUtil.getLdapConnectionTimeout(coordinator));
 
+        _log.info("Checking the status of the provider whose urls are {}", param.getUrls());
         boolean good = false;
         // Checking in order and return good if meeting one good.
         for (LdapOrADServer server : servers.getConnectedServers()) {
             good = doCheckProviderStatusOnSingleServer(server, param, errorString, dbClient);
             if (good) {
+                _log.info("Checked provider against server {} successfully", server.getContextSource().getUrls()[0]);
                 return true;
             }
         }

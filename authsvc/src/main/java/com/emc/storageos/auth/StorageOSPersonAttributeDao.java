@@ -8,6 +8,7 @@ import java.net.URI;
 import java.util.Map;
 import java.util.List;
 
+import com.emc.storageos.auth.impl.LdapFailureHandler;
 import org.apache.commons.httpclient.Credentials;
 
 import com.emc.storageos.auth.AuthenticationManager.ValidationFailureReason;

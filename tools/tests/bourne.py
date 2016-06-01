@@ -3709,7 +3709,10 @@ class Bourne:
     def volume_detach(self, sourceVolume, fullCopyVolume):
         resp = self.api('POST', URI_VOLUME_FULL_COPY_DETACH.format(sourceVolume, fullCopyVolume), {}, {})
         self.assert_is_dict(resp)
-        result = self.api_sync_2(resp['resource']['id'], resp['op_id'], self.volume_show_task)
+        try: 
+            result = self.api_sync_2(resp['resource']['id'], resp['op_id'], self.volume_show_task)
+        except:
+            print resp
         return result
 
     def volume_full_copies(self, uri):
@@ -3807,9 +3810,12 @@ class Bourne:
         o = self.api('POST', posturi)
         if (wait):
            self.assert_is_dict(o)
-           sync = self.api_sync_2(o['resource']['id'], o['op_id'], self.volume_show_task)
-           s = sync['state']
-           m = sync['message']
+           try:
+               sync = self.api_sync_2(o['resource']['id'], o['op_id'], self.volume_show_task)
+               s = sync['state']
+               m = sync['message']
+           except:
+               print o
         return (o, s, m)
 
     def volume_multi_delete(self, uris, wait, vipronly, force):
@@ -4720,7 +4726,10 @@ class Bourne:
         req['use_ssl'] = usessl
 
         o = self.api('POST', URI_SMISPROVIDERS, req)
-        s = self.api_sync_2(o['resource']['id'], o['op_id'], self.smisprovider_show_task)
+        try:
+            s = self.api_sync_2(o['resource']['id'], o['op_id'], self.smisprovider_show_task)
+        except:
+            print o
         return  s
 
     def smisprovider_delete(self, uri):
@@ -5134,8 +5143,12 @@ class Bourne:
         s = self.api_sync_2(o['resource']['id'], o['op_id'], self.block_snapshot_show_task)
         return (o, s['state'], s['message'])
 
-    def block_snapshot_delete(self, uri):
-        o = self.api('POST', URI_RESOURCE_DEACTIVATE.format(URI_BLOCK_SNAPSHOTS.format(uri)))
+    def block_snapshot_delete(self, uri, vipronly):
+	posturi = URI_RESOURCE_DEACTIVATE.format(URI_BLOCK_SNAPSHOTS.format(uri))
+	if (vipronly):
+            posturi = posturi + '?type=VIPR_ONLY'
+            
+        o = self.api('POST', posturi)
         self.assert_is_dict(o)
         tasks = []
         for task in o['task']:

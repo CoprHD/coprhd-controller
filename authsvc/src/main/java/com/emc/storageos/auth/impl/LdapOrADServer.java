@@ -1,20 +1,19 @@
 /*
- * Copyright (c) 2015 EMC Corporation
+ * Copyright (c) 2016 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.auth.impl;
 
 import org.springframework.ldap.core.support.LdapContextSource;
 
+import java.util.Arrays;
+
 /**
  * Represent a ldap or AD server used by StorageOSAuthenticationHandler and StorageOSPersonAttributeDao.
- * Besides the instance of ContextSource, containing more information about the connection status and how long it's in bad state.
  */
 public class LdapOrADServer {
 
     private LdapContextSource contextSource;
-    private boolean isGood;
-    private long badDuration;
 
     public LdapContextSource getContextSource() {
         return contextSource;
@@ -24,19 +23,10 @@ public class LdapOrADServer {
         this.contextSource = contextSource;
     }
 
-    public boolean isGood() {
-        return isGood;
-    }
-
-    public void setIsGood(boolean isGood) {
-        this.isGood = isGood;
-    }
-
-    public long getBadDuration() {
-        return badDuration;
-    }
-
-    public void setBadDuration(long badDuration) {
-        this.badDuration = badDuration;
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("IP: " + Arrays.toString(contextSource.getUrls()));
+        return sb.toString();
     }
 }

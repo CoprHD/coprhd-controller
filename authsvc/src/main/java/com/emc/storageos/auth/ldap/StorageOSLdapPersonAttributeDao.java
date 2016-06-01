@@ -5,7 +5,7 @@
 package com.emc.storageos.auth.ldap;
 
 import com.emc.storageos.auth.AuthenticationManager.ValidationFailureReason;
-import com.emc.storageos.auth.LdapFailureHandler;
+import com.emc.storageos.auth.impl.LdapFailureHandler;
 import com.emc.storageos.auth.StorageOSPersonAttributeDao;
 import com.emc.storageos.auth.impl.LdapOrADServer;
 import com.emc.storageos.auth.impl.LdapServerList;
@@ -673,12 +673,8 @@ public class StorageOSLdapPersonAttributeDao implements StorageOSPersonAttribute
             final SearchControls searchControls, final AttributesMapper mapper,
             ValidationFailureReason[] failureReason) {
         try {
+            _log.debug("Ldap query to get user's attributes is {}", ldapQuery);
             return doLdapSearch(base, ldapQuery, searchControls, mapper);
-        } catch (CommunicationException e) {
-            // all caught exceptions must return null. Spring LDAP returns empty list for empty search result.
-            _log.error("Caught communication exception connecting to ldap server", e);
-            failureReason[0] = ValidationFailureReason.LDAP_CONNECTION_FAILED;
-            return null;
         } catch (AuthenticationException e) {
             _log.error("Caught authentication exception connecting to ldap server", e);
             failureReason[0] = ValidationFailureReason.LDAP_MANAGER_AUTH_FAILED;
@@ -687,23 +683,17 @@ public class StorageOSLdapPersonAttributeDao implements StorageOSPersonAttribute
     }
 
     private List doLdapSearch(String base, String ldapQuery, SearchControls searchControls, AttributesMapper mapper) {
-        ArrayList<LdapOrADServer> failedServers = new ArrayList<>();
-        List results = null;
-
         List<LdapOrADServer> connectedServers = _ldapServers.getConnectedServers();
         for (LdapOrADServer server : connectedServers) {
             try {
-                results = doLdapSearchOnSingleServer(base, ldapQuery, searchControls, mapper, server);
-
-                // After search, lets handle failed ldap servers
-                _failureHandler.handle(failedServers);
-
-                return results;
+                return doLdapSearchOnSingleServer(base, ldapQuery, searchControls, mapper, server);
             } catch (CommunicationException e) {
-                failedServers.add(server);
+                _failureHandler.handle(_ldapServers, server);
                 _log.info("Failed to connect to all AD/Ldap servers.", e);
             }
         }
+
+        // Going here means attempts on all servers failed
         throw UnauthorizedException.unauthorized.ldapCommunicationException();
     }
 

@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.auth;
 
+import com.emc.storageos.auth.impl.LdapFailureHandler;
 import org.apache.commons.httpclient.Credentials;
 
 public interface StorageOSAuthenticationHandler {

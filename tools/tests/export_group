@@ -54,7 +54,11 @@ def export_group_update(args):
     except:
         print 'No path parameters (optional)'
     groupId = bourne.export_group_query(args.groupId)
-    o = bourne.export_group_update(groupId, args.addVolspec, args.addInits, args.addHosts, args.addClusters, args.remVols, args.remInits, args.remHosts, args.remClusters, path_param)
+    (o, s) = bourne.export_group_update(groupId, args.addVolspec, args.addInits, args.addHosts, args.addClusters, args.remVols, args.remInits, args.remHosts, args.remClusters, path_param)
+    if (s['state'] == 'ready'):
+	print 'Export group updated with id ' + s['resource']['id']
+    elif (s['state'] != 'suspended_no_error'):
+	print 'Export group update failed.'
 
 def export_group_delete(args):
     bourne.connect(args.ip)

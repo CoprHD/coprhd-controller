@@ -78,6 +78,7 @@ import com.emc.storageos.locking.LockRetryException;
 import com.emc.storageos.locking.LockTimeoutValue;
 import com.emc.storageos.locking.LockType;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
+import com.emc.storageos.model.block.Copy;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.protectioncontroller.RPController;
 import com.emc.storageos.recoverpoint.exceptions.RecoverPointException;
@@ -4324,6 +4325,13 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 copyParams.setImageAccessMode(imageAccessMode);
                 if (imageAccessMode != null) {
                     rp.updateImageAccessMode(copyParams);
+
+                    // RecoverPoint will remove all bookmarks on any copy set to direct access mode. We need to remove any
+                    // BlockSnapshot objects that reference the target copy being set to direct access mode.
+                    if (Copy.ImageAccessMode.DIRECT_ACCESS.name().equalsIgnoreCase(imageAccessMode)) {
+                        RPHelper.cleanupSnapshots(_dbClient, rpSystem);
+                    }
+
                     taskCompleter.ready(_dbClient, _locker);
                 } else {
                     taskCompleter.error(_dbClient, _locker,

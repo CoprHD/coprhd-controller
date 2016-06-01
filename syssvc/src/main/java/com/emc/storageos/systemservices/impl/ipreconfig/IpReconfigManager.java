@@ -250,7 +250,7 @@ public class IpReconfigManager implements Runnable {
         config = _coordinator.getCoordinatorClient().queryConfiguration(IpReconfigConstants.CONFIG_KIND, IpReconfigConstants.CONFIG_ID);
         if (config == null) {
             if (FileUtils.exists(IpReconfigConstants.CLUSTER_NETWORK_FORCEFLAG)) {
-                log.info("User is forcing to reset single site IPs ...");
+                log.info("User is forcing to reset cluster IPs ...");
                 assureIPConsistent(true);
                 FileUtils.deleteFile(IpReconfigConstants.CLUSTER_NETWORK_FORCEFLAG);
             }
@@ -259,6 +259,8 @@ public class IpReconfigManager implements Runnable {
         }
 
         if (isRollback()) {
+            log.info("User is rollbacking to original IPs ...");
+            assureIPConsistent(true);
             return;
         }
 

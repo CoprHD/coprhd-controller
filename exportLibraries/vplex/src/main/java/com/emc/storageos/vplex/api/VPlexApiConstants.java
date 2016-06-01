@@ -169,6 +169,7 @@ public class VPlexApiConstants {
     public static final String ARG_GEOMETRY_RAIDC = "raid-C";
     public static final String ARG_UNCLAIM = "--unclaim-storage-volumes";
     public static final String ARG_APPC = "--appc";
+    public static final String ARG_THIN_ENABLED = "--thin";
     public static final String ARG_THIN_REBUILD = "--thin-rebuild";
     public static final String ARG_TRANSFER_SIZE = "--transfer-size";
     public static final String ARG_DEVICES = "--devices";

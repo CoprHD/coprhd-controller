@@ -840,6 +840,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 String clusterId = ConnectivityUtil.getVplexClusterForVarray(
                         vplexVolumeVarrayURI, vplexVolume.getStorageController(), _dbClient);
                 List<VolumeInfo> vinfos = new ArrayList<VolumeInfo>();
+                boolean thinEnabled = false;
                 for (Volume storageVolume : volumeMap.get(vplexVolume)) {
                     StorageSystem storage = storageMap.get(storageVolume.getStorageController());
                     List<String> itls = VPlexControllerUtils.getVolumeITLs(storageVolume);
@@ -855,6 +856,12 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         vinfos.add(0, info);
                     } else {
                         vinfos.add(info);
+                    }
+
+                    if (info.getIsThinProvisioned()) {
+                        // if either or both legs of distributed is thin, try for thin-enabled
+                        // (or if local and the single backend volume is thin, try as well)
+                        thinEnabled = true;
                     }
                 }
                 // Update rollback information.
@@ -872,7 +879,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // physical volumes.
                 boolean isDistributed = (vinfos.size() >= 2);
                 VPlexVirtualVolumeInfo vvInfo = client.createVirtualVolume(vinfos, isDistributed, false, false, clusterId, clusterInfoList,
-                        false);
+                        false, thinEnabled);
 
                 if (vvInfo == null) {
                     VPlexApiException ex = VPlexApiException.exceptions.cantFindRequestedVolume(vplexVolume.getLabel());
@@ -6256,11 +6263,12 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 StorageSystem array = getDataObject(StorageSystem.class, existingVolume.getStorageController(), _dbClient);
                 List<String> itls = VPlexControllerUtils.getVolumeITLs(existingVolume);
                 List<VolumeInfo> vinfos = new ArrayList<VolumeInfo>();
+                boolean thinEnabled = existingVolume.getThinlyProvisioned().booleanValue();
                 vinfo = new VolumeInfo(array.getNativeGuid(), array.getSystemType(),
                         existingVolume.getWWN().toUpperCase().replaceAll(":", ""),
-                        existingVolume.getNativeId(), existingVolume.getThinlyProvisioned().booleanValue(), itls);
+                        existingVolume.getNativeId(), thinEnabled, itls);
                 vinfos.add(vinfo);
-                virtvinfo = client.createVirtualVolume(vinfos, false, true, true, null, null, true);
+                virtvinfo = client.createVirtualVolume(vinfos, false, true, true, null, null, true, thinEnabled);
                 if (virtvinfo == null) {
                     String opName = ResourceOperationTypeEnum.CREATE_VVOLUME_FROM_IMPORT.getName();
                     ServiceError serviceError = VPlexApiException.errors.createVirtualVolumeFromImportStepFailed(opName);

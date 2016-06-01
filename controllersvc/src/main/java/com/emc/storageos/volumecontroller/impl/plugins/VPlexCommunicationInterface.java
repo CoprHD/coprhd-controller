@@ -1075,6 +1075,14 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             }
         }
 
+        // set thin provisioning state from virtual-volume thin-enabled property
+        String thinlyProvisioned = info.getThinEnabled();
+        if (thinlyProvisioned != null && !thinlyProvisioned.isEmpty()) {
+            StringSet set = new StringSet();
+            set.add(thinlyProvisioned);
+            unManagedVolumeInformation.put(SupportedVolumeInformation.IS_THINLY_PROVISIONED.name(), set);
+        }
+
         // add this info to the unmanaged volume object
         volume.setVolumeCharacterstics(unManagedVolumeCharacteristics);
         volume.addVolumeInformation(unManagedVolumeInformation);
@@ -1169,18 +1177,6 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                         set.add(syncActive);
                         volume.putVolumeInfo(
                                 SupportedVolumeInformation.IS_SYNC_ACTIVE.name(), set);
-                    }
-
-                    // set thin provisioning state on parent if found in backend volume
-                    String thinlyProvisioned = VplexBackendIngestionContext
-                            .extractValueFromStringSet(
-                                    SupportedVolumeInformation.IS_THINLY_PROVISIONED.name(),
-                                    bvol.getVolumeInformation());
-                    if (thinlyProvisioned != null && !thinlyProvisioned.isEmpty()) {
-                        StringSet set = new StringSet();
-                        set.add(thinlyProvisioned);
-                        volume.putVolumeInfo(
-                                SupportedVolumeInformation.IS_THINLY_PROVISIONED.name(), set);
                     }
                 }
 

@@ -70,6 +70,7 @@ public class VPlexApiVirtualVolumeManager {
      * @param clusterInfoList A list of VPlexClusterInfo specifying the info for the VPlex
      *            clusters.
      * @param findVirtualVolume If true findVirtualVolume method is called after virtual volume is created.
+     * @param thinEnabled If true, the virtual volume should be created as a thin-enabled virtual volume.
      *
      * @return The information for the created virtual volume.
      *
@@ -78,7 +79,8 @@ public class VPlexApiVirtualVolumeManager {
      */
     VPlexVirtualVolumeInfo createVirtualVolume(List<VolumeInfo> nativeVolumeInfoList,
             boolean isDistributed, boolean discoveryRequired, boolean preserveData,
-            String winningClusterId, List<VPlexClusterInfo> clusterInfoList, boolean findVirtualVolume)
+            String winningClusterId, List<VPlexClusterInfo> clusterInfoList, 
+            boolean findVirtualVolume, boolean thinEnabled)
             throws VPlexApiException {
 
         s_logger.info("Request to create {} virtual volume.",
@@ -90,6 +92,18 @@ public class VPlexApiVirtualVolumeManager {
             throw VPlexApiException.exceptions.oneDevicesRequiredForLocalVolume();
         }
 
+        // validate thin-enabled flag against backend volumes
+        if (thinEnabled) {
+            s_logger.info("Virtual Volume should be created as thin-enabled.");
+            for (VolumeInfo volume : nativeVolumeInfoList) {
+                s_logger.info("Volume {} thin setting: {}", volume.getVolumeName(), volume.getIsThinProvisioned());
+                if (!volume.getIsThinProvisioned()) {
+                    // TODO add proper exception
+                    throw new VPlexApiException("request for thin virtual volume, but backend volumes are not thin-provisioned");
+                }
+            }
+        }
+        
         // Find the storage volumes corresponding to the passed native
         // volume information, discovery them if required.
         if (null == clusterInfoList) {
@@ -160,7 +174,7 @@ public class VPlexApiVirtualVolumeManager {
             }
 
             // Create virtual volume
-            createVirtualVolume(devicePath);
+            createVirtualVolume(devicePath, thinEnabled);
             s_logger.info("Created virtual volume on device {}", devicePath);
 
             VPlexVirtualVolumeInfo virtualVolumeInfo = new VPlexVirtualVolumeInfo();
@@ -1059,7 +1073,7 @@ public class VPlexApiVirtualVolumeManager {
      *
      * @throws VPlexApiException When an error occurs creating the virtual volume.
      */
-    private void createVirtualVolume(String devicePath)
+    private void createVirtualVolume(String devicePath, Boolean thinEnabled)
             throws VPlexApiException {
         ClientResponse response = null;
         try {
@@ -1069,6 +1083,9 @@ public class VPlexApiVirtualVolumeManager {
             s_logger.info("Create virtual volume URI is {}", requestURI.toString());
             Map<String, String> argsMap = new HashMap<String, String>();
             argsMap.put(VPlexApiConstants.ARG_DASH_R, devicePath);
+            if (thinEnabled) {
+                argsMap.put(VPlexApiConstants.ARG_THIN_ENABLED, devicePath);
+            }
             JSONObject postDataObject = VPlexApiUtils.createPostData(argsMap, false);
             s_logger.info("Create virtual volume POST data is {}", postDataObject.toString());
             response = _vplexApiClient.post(requestURI, postDataObject.toString());

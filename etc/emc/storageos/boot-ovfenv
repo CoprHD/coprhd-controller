@@ -31,6 +31,7 @@ bootfs_mntp=${bootfs_mntp:-'/.volumes/bootfs'}
 bootfs_vdc_props=${bootfs_vdc_props:-${bootfs_mntp}/etc/vdcconfig.properties}
 datafs_ip_props=${datafs_ip_props:-/data/cluster_network.properties}
 ovf_props_file='/etc/ovfenv.properties'
+desired_ovf_props_file='/etc/desired_ovf_props_file.properties'
 newip_temp_path=${newip_temp_path:-/data/ipreconfig/newip}
 oldip_temp_path=${oldip_temp_path:-/data/ipreconfig/oldip}
 ipreconfig_forceflag=${ipreconfig_forceflag:-/data/cluster_network_forceflag}
@@ -65,14 +66,13 @@ _prompt() {
 
     #promptstr="\n\e[1;31m***\n*** $errstr. \n"
     if [ "${action}" = "${ACTION_POWEROFF}" ]; then
-        errstr+="*** Please press any key to power off the vApp and use vSphere Client to edit network properties.\n"
+        errstr+="*** Please press any key to power off the vApp and edit IP properties via vCenter.\n"
     elif [ "${action}" = "${ACTION_CONTINUE}" ]; then
         :
     else
-        errstr+="*** Please power off the vApp and use vSphere Client to edit network properties.\n"
-        errstr+="*** If not, system would continue to bootup in 10s.  But IPs in vCenter would NOT take effect!!!\n"
+        errstr+="*** Please power off the vApp and edit IP properties via vCenter.\n"
+        errstr+="*** Otherwise, system would continue to bootup in 10s.  But IPs in vCenter would NOT take effect!!!\n"
     fi
-    echo $errstr
     promptstr="\n\e[1;31m***\n$errstr***\e[0m"
 
     echo -e ${promptstr}
@@ -85,7 +85,6 @@ _prompt() {
     else
         sleep 10
     fi
-    exit
 }
 
 # handle kinds of scenarios related with cluster IPs during boot-up.
@@ -142,6 +141,8 @@ _handleClusterIPs() {
     done < "${ovf_props_file}"
 
     bConsistent="true"
+    rm -f "${desired_ovf_props_file}.bak"
+    errstr=""
     for key in "${!currOvfenvPropMap[@]}"
     do
        if [[ "${key}" == network* ]]; then
@@ -156,16 +157,21 @@ _handleClusterIPs() {
             fi
 
             if [ "${vdcprop_value}" != "${ovfenvprop_value}" ]; then
-                errstr="Value of ${key} in local ovfenv device (${ovfenvprop_value}) is different from that in cluster IP (${vdcprop_value})"
-                echo $errstr >> /var/log/boot-ovfenv.log
+                errstr+="Value of ${key} in local ovfenv device (${ovfenvprop_value}) is different from that in cluster IP (${vdcprop_value})"
                 bConsistent="false"
-                break
             fi
+            echo "${key}=${vdcprop_value}" >> "${desired_ovf_props_file}.bak"
+        else
+            echo "${key}=${currOvfenvPropMap[${key}]}" >> "${desired_ovf_props_file}.bak"
         fi
     done
 
     # 3. Do nothing if IP info is consistent
-    [ "${bConsistent}" = "true" ] && return
+    if [ "${bConsistent}" = "false" ]; then
+        echo "${errstr}" >> /var/log/boot-ovfenv.log
+    else 
+        return
+    fi
 
     # 4.
     /etc/getovfproperties --is-vapp 
@@ -185,6 +191,8 @@ _handleClusterIPs() {
         if [ "${bRestAPI}" = "true" ]; then
             errstr="*** IPs are changed via REST API or rollbacked to original IPs while the local site is vApp environment.\n*** Please also manually change IPs via vCenter to align with the desired IPs.\n"
             _prompt "${errstr}" $ACTION_TIMEOUT_CONT
+            # generate desired ovf_props_file which will override default ovfenv properties
+            mv -f "${desired_ovf_props_file}.bak" "${desired_ovf_props_file}" 
         else
             errstr="*** IPs are changed via vCenter in a multiple sites environment which is not allowed.\n*** Please revert the change via vCenter, then use GUI/REST API to change cluster IPs.\n"
             _prompt "${errstr}" $ACTION_POWEROFF
@@ -192,7 +200,7 @@ _handleClusterIPs() {
     else
         # single site
         if [ "${bRestAPI}" = "true" ]; then
-            errstr="*** IPs are changed via REST API or rollbacked to original IPs in the vApp environment.\n*** Please also manually change IPs via vCenter to align with the desired IPs.\n"
+            errstr="*** IPs are changed via REST API or rollbacked in the vApp environment.\n*** Please also manually change IPs via vCenter to align with the desired IPs.\n"
             _prompt "${errstr}" $ACTION_POWEROFF
         else
             echo "IPs are changed via vCenter in single site environment.  Syncing it to IP prop file..." >> /var/log/boot-ovfenv.log

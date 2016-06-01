@@ -1849,6 +1849,11 @@ public class DisasterRecoveryService {
         Configuration config = null;
         final String CONFIG_KIND = "ipreconfig";
         final String CONFIG_STATUS_KEY = "status";
+
+        config = coordinator.queryConfiguration(CONFIG_KIND, Constants.GLOBAL_ID);
+        if (config == null)
+            return;
+
         String status = config.getConfig(CONFIG_STATUS_KEY);
         String errstr;
         if ( status.equals(ClusterNetworkReconfigStatus.Status.STARTED.toString()) ) {

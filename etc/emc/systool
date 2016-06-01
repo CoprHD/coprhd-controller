@@ -748,8 +748,16 @@ _migrate_props() {
     fi
 }
 
+# IPs might be different b/w ovfenv device and IP.prop.
+# In multi-sites, desired_ovf_props_file is merged from local ovfenv device and IP.prop file
 _initialize_ovfenv_props() {
-   /etc/getovfproperties --readCDROM &>/dev/null
+   if [ -e "${desired_ovf_props_file}" ]; then
+       mv -f ${desired_ovf_props_file} "${ovf_props_file}"
+       chown storageos:storageos "${ovf_props_file}"
+       chmod 400 "${ovf_props_file}"
+   else
+       /etc/getovfproperties --readCDROM &>/dev/null
+   fi
 }
 
 _initialize_iterable_props() {
@@ -1000,6 +1008,7 @@ old_props='/.volumes/bootfs/etc/ovf-env.properties'
 old_dflts_file='/etc/patch-props.defaults'
 dflts_file='/etc/config.defaults'
 ovf_props_file='/etc/ovfenv.properties'
+desired_ovf_props_file='/etc/desired_ovf_props_file.properties'
 ssl_props_file='/etc/ssl.properties'
 iters_file='/etc/.iterable.properties'
 props_temp='/tmp/config.properties'

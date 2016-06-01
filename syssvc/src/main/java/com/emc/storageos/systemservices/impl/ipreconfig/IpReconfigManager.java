@@ -745,23 +745,19 @@ public class IpReconfigManager implements Runnable {
      * @throws Exception
      */
     private void validateParameter(ClusterIpInfo clusterIpInfo, String shutdownSites) throws Exception {
-        boolean bValid = true;
         String errmsg = "";
 
         String[] siteIds = shutdownSites.split(",");
         for (String siteid : siteIds) {
+            if (siteid.isEmpty()) continue; 
             if (currentIpinfo.getSiteIpInfoMap().keySet().contains(siteid) == false) {
-                bValid = false;
                 errmsg = "shutdownSites info is invalid.";
+                throw new IllegalStateException(errmsg);
             }
         }
 
         errmsg = clusterIpInfo.validate(currentIpinfo);
         if (!errmsg.isEmpty()) {
-            bValid = false;
-        }
-
-        if (!bValid) {
             throw new IllegalStateException(errmsg);
         }
     }

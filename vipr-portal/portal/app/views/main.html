@@ -277,7 +277,7 @@
               #{deadbolt.restrict roles:[['SECURITY_ADMIN'], ['RESTRICTED_SECURITY_ADMIN'],['SYSTEM_MONITOR'], ['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN']]}
             	#{nav.item 'disasterRecovery', href: @infra.DisasterRecovery.list()/}
               #{/deadbolt.restrict}
-			  #{if util.SetupUtils.isOssBuild()}
+			  #{if util.SetupUtils.isOssBuild() || !util.SetupUtils.isAppliance()}
               	#{deadbolt.restrict roles:[['SECURITY_ADMIN'], ['RESTRICTED_SECURITY_ADMIN'],['SYSTEM_MONITOR'], ['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN']]}
             		#{nav.item 'storageSystemTypes', href: @arrays.StorageSystemTypes.list()/}
               	#{/deadbolt.restrict}

@@ -974,6 +974,7 @@ public class HDSApiExportManager {
         try {
             boolean operationSucceeds = false;
             int retryCount = 0;
+            StringBuilder errorDescriptionBuilder = new StringBuilder();
             while (!operationSucceeds && retryCount < MAX_RETRIES) {
                 retryCount++;
                 String deleteLUNsQuery = constructDeleteLunPathsQuery(systemObjectId,
@@ -988,7 +989,7 @@ public class HDSApiExportManager {
                             responseStream, HDSConstants.SMOOKS_CONFIG_FILE);
                     try {
                         verifyErrorPayload(javaResult);
-                        operationSucceeds = true; //If no exception then operation succeeds
+                        operationSucceeds = true; // If no exception then operation succeeds
                     } catch (HDSException hdsException) {
                         Error error = javaResult.getBean(Error.class);
                         if (error != null && (error.getDescription().contains("2010")
@@ -996,6 +997,8 @@ public class HDSApiExportManager {
                             log.error("Error response recieved from HiCommandManger: {}", error.getDescription());
                             log.info("Exception from HICommand Manager recieved during delete operation, retrying operation {} time",
                                     retryCount);
+                            errorDescriptionBuilder.append("error ").append(retryCount).append(" : ").append(error.getDescription())
+                                    .append("-#####-");
                             Thread.sleep(60000); // Wait for a minute before retry
                             continue; // Retry the operation again if retry count not exceeded
                         } else {
@@ -1014,10 +1017,11 @@ public class HDSApiExportManager {
                                             response.getStatus()));
                 }
             }
-            if(!operationSucceeds) {// Delete operation failed ever after repeated retries
+            if (!operationSucceeds) {// Delete operation failed ever after repeated retries
                 throw HDSException.exceptions
-                .invalidResponseFromHDS(String
-                        .format("Not able to delete LunPaths due to repeated errors from HiCommand server"));
+                        .invalidResponseFromHDS(String
+                                .format("Not able to delete LunPaths due to repeated errors from HiCommand server, errors description are as %s",
+                                        errorDescriptionBuilder.toString()));
             }
         } finally {
             if (null != responseStream) {

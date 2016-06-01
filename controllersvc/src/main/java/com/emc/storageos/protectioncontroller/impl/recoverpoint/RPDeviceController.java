@@ -3536,7 +3536,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
                 replicationSetNames.add(volume.getRSetName());
             }
-            
+
             if (!volumeProtectionInfoList.isEmpty()) {
                 rp.deleteReplicationSets(volumeProtectionInfoList);
             }

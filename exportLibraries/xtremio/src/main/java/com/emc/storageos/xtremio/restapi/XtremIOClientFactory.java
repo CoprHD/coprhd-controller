@@ -17,18 +17,17 @@ public class XtremIOClientFactory extends RestClientFactory {
     private static final String DOT_OPERATOR = "\\.";
     private static final Integer XIO_MIN_4X_VERSION = 4;
 
-    private String model;
-
-    public void setModel(String model) {
-        this.model = model;
-    }
-
     @Override
     protected RestClientItf createNewRestClient(URI endpoint, String username,
             String password, Client client) {
+        return null;
+    }
+
+    protected RestClientItf createNewRestClient(URI endpoint, String username,
+            String password, String version, Client client) {
         XtremIOClient xioClient = null;
         // Based on the storagesystem/provider version, create v2 or v1 client.
-        if (model != null && !model.isEmpty() && Integer.valueOf(model.split(DOT_OPERATOR)[0]) >= XIO_MIN_4X_VERSION) {
+        if (version != null && !version.isEmpty() && Integer.valueOf(version.split(DOT_OPERATOR)[0]) >= XIO_MIN_4X_VERSION) {
             xioClient = new XtremIOV2Client(endpoint, username, password, client);
         } else {
             xioClient = new XtremIOV1Client(endpoint, username, password, client);
@@ -37,8 +36,7 @@ public class XtremIOClientFactory extends RestClientFactory {
         return xioClient;
     }
 
-    @Override
-    public RestClientItf getRESTClient(URI endpoint, String username, String password, boolean authFilter) {
+    public RestClientItf getRESTClient(URI endpoint, String username, String password, String version, boolean authFilter) {
         // removed caching RestClient session as it is not actually a session, just a java RestClient object
         // RestClientItf clientApi = _clientMap.get(endpoint.toString() + ":" + username + ":" + password + ":" + model);
 
@@ -46,7 +44,7 @@ public class XtremIOClientFactory extends RestClientFactory {
         if (authFilter) {
             jerseyClient.addFilter(new HTTPBasicAuthFilter(username, password));
         }
-        RestClientItf clientApi = createNewRestClient(endpoint, username, password, jerseyClient);
+        RestClientItf clientApi = createNewRestClient(endpoint, username, password, version, jerseyClient);
         return clientApi;
     }
 

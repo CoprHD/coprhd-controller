@@ -11,6 +11,12 @@ import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
 import com.emc.storageos.model.block.BlockMirrorRestRep;
 import com.google.common.collect.Lists;
 
+/**
+ * Task to return a list of Block Mirrors based on the resource ids provided. 
+ *
+ * @author cormij4
+ *
+ */
 public class GetBlockContinuousCopies extends ViPRExecutionTask<List<BlockMirrorRestRep>> {
     private List<URI> resourceIds;
     private URI parentId;

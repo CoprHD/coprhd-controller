@@ -11,6 +11,8 @@ import com.emc.storageos.storagedriver.model.StorageObject;
 public interface StorageDriver {
 
 
+    public static final String SDK_VERSION_NUMBER = "3.2.0.0";
+
     /**
      *  Get driver registration data.
      */

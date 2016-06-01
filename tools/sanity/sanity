@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+#
+# Copyright (c) 2016 EMC Corporation
+# All Rights Reserved
+#
+
+BASEDIR="${BASH_SOURCE%/*}"
+if [[ ! -d "$BASEDIR" ]]; then BASEDIR="$PWD"; fi
+
+source $BASEDIR/conf/sanity.conf # TODO make user-defined
+source $BASEDIR/framework/init.sh
+
+# if we got this far, then we're starting sanity
+load_test_context
+run_tests

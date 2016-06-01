@@ -1,0 +1,19 @@
+USAGE: sanity test_context [test_suite [test_case]]
+       sanity config [setting_key setting_value | list | show setting_key]
+       sanity prime text_context
+       sanity mock [test_context [test_suite [test_case]]]
+       sanity status
+       sanity clean
+
+       test_contexts:
+
+            datadomainfile, ecs, hds, isilon, netapp, netappc,
+            recoverpoint, srdf, vmaxblock, vmaxblock_flex_varray,
+            vnxblock, vnxblock_flex_varray, vnxe, vnxfile,
+            vnxfile_flex_varray, vplex, vplex_srdf, xtremio
+
+       test_suites:
+
+            volume, export, snapshot, mirror, full_copy,
+            consistency_group, change_vpool, change_varray
+        

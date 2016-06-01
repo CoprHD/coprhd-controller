@@ -54,10 +54,10 @@ public class IpReconfigManager implements Runnable {
     Configuration config = null;
 
 
-    private ClusterIpInfo currentIpinfo = null;   // current ip info of the cluster
+    private ClusterIpInfo currentIpinfo = null;   // current cluster IPs loaded from local IP prop file
     private boolean bNeedRefresh = true;         // need refresh current cluster IPs or not
 
-    private ClusterIpInfo newIpinfo = null;     // new ip info of the cluster
+    private ClusterIpInfo newIpinfo = null;     // new cluster IPs set via REST API
     private Integer vdcnodeId;                // identical node id within local VDC (multiple DR sites)
     private Integer nodeCount;
     private long expiration_time = 0L;         // ipreconfig would fail if not finished at this time
@@ -895,12 +895,21 @@ public class IpReconfigManager implements Runnable {
             lock.acquire();
             log.info("Got lock for updating local site IPs into ZK ...");
 
-            config = _coordinator.getCoordinatorClient().queryConfiguration(IpReconfigConstants.CONFIG_KIND, IpReconfigConstants.CONFIG_ID);
-            if (config != null) {
-                if (isSucceed(config) || force) {
-                    log.info("new IPs has been set succesfully by other nodes.");
-                    return;
+            ClusterIpInfo targetIpInfo = null;
+            if (force) {
+                // use local IPs compulsively
+                targetIpInfo = currentIpinfo;
+            } else {
+                config = _coordinator.getCoordinatorClient().queryConfiguration(IpReconfigConstants.CONFIG_KIND, IpReconfigConstants.CONFIG_ID);
+                if (config != null) {
+                    if (isSucceed(config)) {
+                        log.info("new IPs has been set succesfully by other nodes.");
+                        return;
+                    }
                 }
+
+                // use IPs set via REST API
+                targetIpInfo = newIpinfo;
             }
 
             // update IP info into ZK
@@ -908,10 +917,10 @@ public class IpReconfigManager implements Runnable {
             long vdcConfigVersion = DrUtil.newVdcConfigVersion();
             for(Site site : drUtil.listSites()) {
                 int vdc_index = Integer.valueOf(site.getVdcShortId().substring(PropertyConstants.VDC_SHORTID_PREFIX.length()));
-                int site_index = Integer.valueOf(site.getSiteShortId().substring(PropertyConstants.SITE_SHORTID_PREFIX.length()))
+                int site_index = Integer.valueOf(site.getSiteShortId().substring(PropertyConstants.SITE_SHORTID_PREFIX.length()));
                 String ipprop_prefix = String.format(PropertyConstants.IPPROP_PREFIX, vdc_index, site_index);
-                if (newIpinfo.getSiteIpInfoMap().containsKey(ipprop_prefix)) {
-                    SiteIpInfo siteIpInfo = newIpinfo.getSiteIpInfoMap().get(ipprop_prefix);
+                if (targetIpInfo.getSiteIpInfoMap().containsKey(ipprop_prefix)) {
+                    SiteIpInfo siteIpInfo = targetIpInfo.getSiteIpInfoMap().get(ipprop_prefix);
                     log.info("Going to persist site {} IPs into ZK ...", ipprop_prefix);
                     log.info("    local ipinfo:{}", siteIpInfo.toString());
                     log.info("    zk ipinfo: vip={}", site.getVip());
@@ -958,7 +967,9 @@ public class IpReconfigManager implements Runnable {
             }
 
             _coordinator.getCoordinatorClient().commitTransaction();
-            setSucceed();
+            if (!force) {
+                setSucceed();
+            }
             log.info("Finished update local site IPs into ZK");
         } catch (Exception e) {
             log.warn("Unexpected exception during updating local site IPs into ZK", e);

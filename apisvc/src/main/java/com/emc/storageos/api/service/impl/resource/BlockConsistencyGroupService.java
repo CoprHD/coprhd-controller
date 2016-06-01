@@ -2197,6 +2197,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             taskResp = performProtectionAction(id, copy, ProtectionOp.CHANGE_ACCESS_MODE.getRestOp());
             taskList.getTaskList().add(taskResp);
         } else if (copy.getType().equalsIgnoreCase(TechnologyType.SRDF.toString())) {
+            _log.info("Changing access mode is currently not supported for SRDF.  Returning empty task list (no-op).");
             return taskList;
         } else {
             throw APIException.badRequests.invalidCopyType(copy.getType());

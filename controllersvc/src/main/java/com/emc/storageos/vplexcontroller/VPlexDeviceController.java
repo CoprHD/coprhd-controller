@@ -27,6 +27,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -108,6 +109,7 @@ import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.ApplicationAddVolumeList;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.TaskCompleter;
+import com.emc.storageos.volumecontroller.impl.ControllerLockingUtil;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.block.AbstractDefaultMaskingOrchestrator;
@@ -11275,6 +11277,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             List<Volume> vplexVolumes, String waitFor) {
         List<URI> vplexVolumeURIs = new ArrayList<>();
         Map<String, RecreateReplicationSetRequestParams> params = getRecreateReplicationSetParams(rpSystem, vplexVolumes, vplexVolumeURIs);
+        
+        acquireRPWorkflowLock(workflow, rpSystem.getId(), vplexVolumeURIs);
+        
         Workflow.Method executeMethod = new Workflow.Method(RPDeviceController.METHOD_DELETE_RSET_STEP, rpSystem.getId(), vplexVolumeURIs);
         Workflow.Method rollbackMethod = new Workflow.Method(RPDeviceController.METHOD_RECREATE_RSET_STEP, rpSystem.getId(),
                 vplexVolumeURIs, params);
@@ -11284,6 +11289,35 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 executeMethod, rollbackMethod, null);
 
         return RPDeviceController.STEP_PRE_VOLUME_RESTORE;
+    }
+
+    /**
+     * acquires a step lock for the RecoverPoint CG
+     * 
+     * @param rpSystemId RP system
+     * @param volumeIds list of volumes to acquire locks for
+     * @param token
+     */
+    private void acquireRPWorkflowLock(Workflow workflow, URI rpSystemId, List<URI> volumeIds) {
+        Set<URI> cgUris = new HashSet<URI>();
+        for (URI volumeId : volumeIds) {
+            Volume volume = _dbClient.queryObject(Volume.class, volumeId);
+            if (volume != null && !volume.getInactive() && !NullColumnValueGetter.isNullURI(volume.getConsistencyGroup())) {
+                cgUris.add(volume.getConsistencyGroup());
+            }
+        }
+        // lock around create and delete operations on the same CG
+        List<String> lockKeys = new ArrayList<String>();
+        for (URI cgUri : cgUris) {
+            lockKeys.add(ControllerLockingUtil.getConsistencyGroupStorageKey(_dbClient, cgUri, rpSystemId));
+        }
+        if (!lockKeys.isEmpty()) {
+            boolean lockAcquired = _workflowService.acquireWorkflowLocks(workflow, lockKeys, LockTimeoutValue.get(LockType.RP_CG));
+            if (!lockAcquired) {
+                throw DeviceControllerException.exceptions.failedToAcquireLock(lockKeys.toString(),
+                        String.format("acquire lock for RP consistency group(s) %s", StringUtils.join(cgUris, ",")));
+            }
+        }
     }
 
     /**

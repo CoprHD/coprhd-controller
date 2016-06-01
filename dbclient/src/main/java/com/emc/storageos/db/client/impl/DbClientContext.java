@@ -25,6 +25,12 @@ import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
+import com.datastax.driver.core.KeyspaceMetadata;
+import com.datastax.driver.core.Session;
+import com.datastax.driver.core.Statement;
+import com.datastax.driver.core.TableMetadata;
+import com.datastax.driver.core.WriteType;
+import com.datastax.driver.core.exceptions.DriverException;
 import com.netflix.astyanax.AstyanaxContext;
 import com.netflix.astyanax.CassandraOperationType;
 import com.netflix.astyanax.Cluster;
@@ -47,6 +53,16 @@ import com.netflix.astyanax.shallows.EmptyKeyspaceTracerFactory;
 import com.netflix.astyanax.thrift.AbstractOperationImpl;
 import com.netflix.astyanax.thrift.ThriftFamilyFactory;
 import com.netflix.astyanax.thrift.ddl.ThriftKeyspaceDefinitionImpl;
+import org.apache.cassandra.service.StorageProxy;
+import org.apache.cassandra.thrift.Cassandra;
+import org.apache.cassandra.thrift.KsDef;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.emc.storageos.coordinator.client.model.Site;
+import com.emc.storageos.coordinator.client.model.SiteState;
+import com.emc.storageos.coordinator.client.service.DrUtil;
+import com.emc.storageos.db.exceptions.DatabaseException;
 
 public class DbClientContext {
 
@@ -60,7 +76,7 @@ public class DbClientContext {
     private static final String DEFAULT_CN_POOL_NANE = "DbClientPool";
     private static final long DEFAULT_CONNECTION_POOL_MONITOR_INTERVAL = 1000;
     private static final int MAX_QUERY_RETRY = 5;
-    private static final int QUERY_RETRY_SLEEP_SECONDS = 1000;
+    private static final int QUERY_RETRY_SLEEP_MS = 1000;
     private static final String LOCAL_HOST = "localhost";
     private static final int DB_THRIFT_PORT = 9160;
     private static final int GEODB_THRIFT_PORT = 9260;
@@ -78,7 +94,7 @@ public class DbClientContext {
     private int maxConnectionsPerHost = DEFAULT_MAX_CONNECTIONS_PER_HOST;
     private int svcListPoolIntervalSec = DEFAULT_SVCLIST_POLL_INTERVAL_SEC;
     private long monitorIntervalSecs = DEFAULT_CONNECTION_POOL_MONITOR_INTERVAL;
-    private RetryPolicy retryPolicy = new QueryRetryPolicy(MAX_QUERY_RETRY, QUERY_RETRY_SLEEP_SECONDS);
+    private RetryPolicy retryPolicy = new QueryRetryPolicy(MAX_QUERY_RETRY, QUERY_RETRY_SLEEP_MS);
     private String keyspaceName = LOCAL_KEYSPACE_NAME;
     private String clusterName = LOCAL_CLUSTER_NAME;
 
@@ -95,14 +111,14 @@ public class DbClientContext {
     private boolean isClientToNodeEncrypted;
     private ScheduledExecutorService exe = Executors.newScheduledThreadPool(1);
 
+    // whether to retry once with LOCAL_QUORUM for write failure
+    private boolean retryFailedWriteWithLocalQuorum = false; 
+    
     private static final int DB_NATIVE_TRANSPORT_PORT = 9042;
     private static final int GEODB_NATIVE_TRANSPORT_PORT = 9043;
     
     private com.datastax.driver.core.Cluster cassandraCluster;
     private Session cassandraSession;
-
-    // whether to retry once with LOCAL_QUORUM for write failure 
-    private boolean retryFailedWriteWithLocalQuorum = false; 
     
     public void setCipherSuite(String cipherSuite) {
         this.cipherSuite = cipherSuite;
@@ -297,7 +313,6 @@ public class DbClientContext {
                 }
             }, 60, DEFAULT_CONSISTENCY_LEVEL_CHECK_SEC, TimeUnit.SECONDS);
         }
-        
         // init java driver
         String[] contactPoints = new String[hosts.size()];
         for (int i = 0; i < hosts.size(); i++) {
@@ -309,6 +324,136 @@ public class DbClientContext {
         cassandraSession = cassandraCluster.connect("\"" + keyspaceName + "\"");
         
         initDone = true;
+    }
+
+    public class ViPRRetryPolicy implements com.datastax.driver.core.policies.RetryPolicy {
+        private int maxRetry;
+        private int sleepInMS;
+
+        public ViPRRetryPolicy(int maxRetry, int sleepInMS) {
+            this.maxRetry = maxRetry;
+            this.sleepInMS = sleepInMS;
+        }
+
+        public RetryDecision onReadTimeout(Statement statement, com.datastax.driver.core.ConsistencyLevel cl, int requiredResponses, int receivedResponses, boolean dataRetrieved, int nbRetry) {
+            log.warn("onReadTimeout statement={} retried={} maxRetry={}", statement, nbRetry, maxRetry);
+            if (nbRetry == maxRetry)
+                return RetryDecision.rethrow();
+
+            delay();
+
+            return RetryDecision.retry(cl);
+        }
+
+        private void delay() {
+            try {
+                Thread.sleep(sleepInMS);
+            } catch (InterruptedException e) {
+                //ignore
+            }
+        }
+
+        public RetryDecision onWriteTimeout(Statement statement, com.datastax.driver.core.ConsistencyLevel cl, WriteType writeType, int requiredAcks, int receivedAcks, int nbRetry) {
+            log.warn("write timeout statement={} retried={} maxRetry={}", statement, nbRetry, maxRetry);
+            if (nbRetry == maxRetry)
+                return RetryDecision.rethrow();
+
+            delay();
+            // If the batch log write failed, retry the operation as this might just be we were unlucky at picking candidates
+            return RetryDecision.retry(cl);
+        }
+
+        public RetryDecision onUnavailable(Statement statement, com.datastax.driver.core.ConsistencyLevel cl, int requiredReplica, int aliveReplica, int nbRetry) {
+            log.warn("onUnavailable statement={} retried={} maxRetry={}", statement, nbRetry, maxRetry);
+            if (nbRetry == maxRetry) {
+                return RetryDecision.rethrow();
+            }
+
+            delay();
+            return RetryDecision.tryNextHost(cl);
+        }
+
+        public RetryDecision onRequestError(Statement statement, com.datastax.driver.core.ConsistencyLevel cl, DriverException e, int nbRetry) {
+            log.warn("onRequestError statement={} retried={} maxRetry={}", statement, nbRetry, maxRetry);
+            if (nbRetry == maxRetry) {
+                return RetryDecision.rethrow();
+            }
+
+            delay();
+            return RetryDecision.tryNextHost(cl);
+
+        }
+
+        public void init(com.datastax.driver.core.Cluster cluster) {
+            // nothing to do
+        }
+
+        public void close() {
+            // nothing to do
+        }
+    }
+
+    private com.datastax.driver.core.Cluster initConnection(String[] contactPoints) {
+        return com.datastax.driver.core.Cluster
+                .builder()
+                .addContactPoints(contactPoints).withPort(getNativeTransportPort())
+                .withClusterName(clusterName)
+                .withRetryPolicy(new ViPRRetryPolicy(10, 1000))
+                .build();
+    }
+
+    public KeyspaceMetadata getKeyspaceMetaData() {
+        if (cassandraCluster == null) {
+            initClusterContext();
+        }
+        return cassandraCluster.getMetadata().getKeyspace("\"" + keyspaceName + "\"");
+    }
+
+    public void createCF(String cfName, int gcPeriod, String compactionStrategy, String schema, String primaryKey) {
+        String createCF = String.format("CREATE TABLE \"%s\".\"%s\" (%s,PRIMARY KEY (%s)) WITH COMPACT STORAGE AND " +
+                                "speculative_retry = 'NONE' AND "+
+                                "compaction = { 'class' : '%s' }",
+                        keyspaceName, cfName, schema, primaryKey, compactionStrategy);
+        if (gcPeriod != 0) {
+            createCF +=" AND gc_grace_seconds = ";
+            createCF += gcPeriod;
+        }
+        createCF +=";";
+
+        log.info("createCF={}", createCF);
+
+        cassandraSession.execute(createCF);
+    }
+
+    public void updateTable(TableMetadata cfd, String compactionStrategy, int gcGrace) {
+        if (compactionStrategy == null && gcGrace <=0) {
+            throw new IllegalArgumentException("compactionStrategy should not be null or gcGrace should >0");
+        }
+
+        String updateTable= String.format("ALTER TABLE \"%s\".\"%s\" with ", keyspaceName, cfd.getName());
+        StringBuilder builder = new StringBuilder(updateTable);
+
+        if (compactionStrategy != null) {
+            builder.append("compaction = { 'class' : '");
+            builder.append(compactionStrategy);
+            builder.append("' }");
+        }
+
+        if (gcGrace > 0) {
+            if (compactionStrategy != null) {
+                builder.append(" AND ");
+            }else {
+                builder.append(" gc_grace_seconds=");
+                builder.append(gcGrace);
+            }
+        }
+
+        builder.append(";");
+
+        String alterStatement = builder.toString();
+        log.info("alter statement={}", alterStatement);
+
+        cassandraSession.execute(alterStatement);
     }
 
     /**
@@ -337,6 +482,10 @@ public class DbClientContext {
                 .buildCluster(ThriftFamilyFactory.getInstance());
         clusterContext.start();
         cluster = clusterContext.getClient();
+
+        String[] contactPoints = {LOCAL_HOST};
+        cassandraCluster = initConnection(contactPoints);
+        cassandraSession = cassandraCluster.connect();
     }
 
     /**
@@ -353,11 +502,6 @@ public class DbClientContext {
         return port;
     }
     
-    protected int getNativeTransportPort() {
-        int port = isGeoDbsvc() ? GEODB_NATIVE_TRANSPORT_PORT : DB_NATIVE_TRANSPORT_PORT;
-        return port;
-    }
-
     public SSLConnectionContext getSSLConnectionContext() {
         List<String> cipherSuites = new ArrayList<>(1);
         cipherSuites.add(cipherSuite);
@@ -416,7 +560,11 @@ public class DbClientContext {
             } else if (kd != null) {
                 schemaVersion = cluster.updateKeyspace(update).getResult().getSchemaId();
             } else {
-                schemaVersion = cluster.addKeyspace(update).getResult().getSchemaId();
+                createKeySpace(strategyOptions);
+                if (wait && !hasUnreachableNodes) {
+                    waitForSchemaAgreement();
+                }
+                return;
             }
     
             if (wait && !hasUnreachableNodes) {
@@ -427,6 +575,46 @@ public class DbClientContext {
             throw DatabaseException.fatals.failedToChangeStrategyOption(ex.getMessage());
         }
     }
+
+    private void createKeySpace(Map<String, String> strategyOptions) {
+        StringBuilder replications = new StringBuilder();
+        boolean appendComma = false;
+
+        for (Map.Entry<String, String> option : strategyOptions.entrySet()) {
+            if (appendComma == false) {
+                appendComma = true;
+            }else {
+                replications.append(",");
+            }
+
+            replications.append("'")
+                    .append(option.getKey())
+                    .append("' : ")
+                    .append(option.getValue());
+        }
+
+        String createKeySpace=String.format("CREATE KEYSPACE \"%s\" WITH replication = { 'class': '%s', %s };",
+                keyspaceName, KEYSPACE_NETWORK_TOPOLOGY_STRATEGY, replications.toString());
+        log.info("create keyspace using the cql statement:{}", createKeySpace);
+        cassandraSession.execute(createKeySpace);
+    }
+
+    public void waitForSchemaAgreement() {
+        long start = System.currentTimeMillis();
+        while (System.currentTimeMillis() - start < MAX_SCHEMA_WAIT_MS) {
+            if (cassandraCluster.getMetadata().checkSchemaAgreement()) {
+                log.info("schema agreement achieved");
+                return;
+            }
+
+            log.info("waiting for schema change ...");
+            try {
+                Thread.sleep(SCHEMA_RETRY_SLEEP_MILLIS);
+            } catch (InterruptedException ex) {}
+        }
+
+        log.warn("Unable to achieve schema agressment");
+   }
 
     /**
      * Update the keyspace definition using low-level thrift API
@@ -607,4 +795,8 @@ public class DbClientContext {
         return cassandraSession;
     }
     
+    protected int getNativeTransportPort() {
+        int port = isGeoDbsvc() ? GEODB_NATIVE_TRANSPORT_PORT : DB_NATIVE_TRANSPORT_PORT;
+        return port;
+    }
 }

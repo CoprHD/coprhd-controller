@@ -12,12 +12,15 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
+import com.datastax.driver.core.ColumnMetadata;
+import com.datastax.driver.core.KeyspaceMetadata;
+import com.datastax.driver.core.TableMetadata;
+import com.datastax.driver.core.TableOptionsMetadata;
 import com.netflix.astyanax.AstyanaxContext;
 import com.netflix.astyanax.CassandraOperationType;
 import com.netflix.astyanax.Cluster;
@@ -51,8 +54,6 @@ import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
-import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
-import com.emc.storageos.coordinator.client.service.impl.DualInetAddress;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
@@ -273,18 +274,17 @@ public class SchemaUtil {
         int retryTimes = 0;
         while (true) {
             retryTimes++;
+            KeyspaceMetadata kd = clientContext.getKeyspaceMetaData();
+
+            _log.info("kd={}", kd);
             try {
-                KeyspaceDefinition kd = clientContext.getCluster().describeKeyspace(_keyspaceName);
-                boolean inited = false;
-                if (onStandby) {
-                    inited = checkAndInitSchemaOnStandby(kd);
-                } else {
-                    inited = checkAndInitSchemaOnActive(kd, waitForSchema);
-                }
-                if (inited) {
+                boolean inited = onStandby ? checkAndInitSchemaOnStandby(kd) : checkAndInitSchemaOnActive(kd, waitForSchema);
+
+                if (inited)  {
                     return;
                 }
-            } catch (ConnectionException e) {
+
+            }catch (ConnectionException e) {
                 _log.warn("Unable to verify DB keyspace, will retry in {} secs", retryIntervalSecs, e);
             } catch (InterruptedException e) {
                 _log.warn("DB keyspace verification interrupted, will retry in {} secs", retryIntervalSecs, e);
@@ -305,7 +305,7 @@ public class SchemaUtil {
         }
     }
 
-    private boolean checkAndInitSchemaOnActive(KeyspaceDefinition kd, boolean waitForSchema) throws InterruptedException, ConnectionException {
+    private boolean checkAndInitSchemaOnActive(KeyspaceMetadata kd, boolean waitForSchema) throws InterruptedException, ConnectionException {
         _log.info("try scan and setup db ...");
         if (kd == null) {
             _log.info("keyspace not exist yet");
@@ -332,9 +332,9 @@ public class SchemaUtil {
         if (kd != null) {
             String currentDbSchemaVersion = _coordinator.getCurrentDbSchemaVersion();
             String targetVersion = _service.getVersion();
-            // A known Cassandra behaviour is that schema changes cannot converge if Cassandra nodes arenot in the same 
-            // version(MessagingService.currentVersion). As the result checkCf() will fail with schema disagreement errors. So 
-            //   - During upgrade, we scan and create new column families before db migration starts(see MigrationHandlerImpl.run. 
+            // A known Cassandra behaviour is that schema changes cannot converge if Cassandra nodes arenot in the same
+            // version(MessagingService.currentVersion). As the result checkCf() will fail with schema disagreement errors. So
+            //   - During upgrade, we scan and create new column families before db migration starts(see MigrationHandlerImpl.run.
             //     All cassandra nodes has been upgraded to same version at that time
             //   - For each dbsvc startup, we run checkCf only when we are sure it is not in the middle of upgrade.
             _log.info("Current db schema version {}", currentDbSchemaVersion);
@@ -348,35 +348,36 @@ public class SchemaUtil {
         return false;
     }
 
-    private boolean checkAndInitSchemaOnStandby(KeyspaceDefinition kd) throws ConnectionException{
+    private boolean checkAndInitSchemaOnStandby(KeyspaceMetadata kd) throws ConnectionException{
         _log.info("try scan and setup db on standby site ...");
         if (kd == null) {
             _log.info("keyspace not exist yet. Wait {} seconds for schema from active site", DBINIT_RETRY_INTERVAL);
             return false;
-        } else {
-            _log.info("keyspace exist already");
+        }
 
-            String currentDbSchemaVersion = _coordinator.getCurrentDbSchemaVersion();
-            if (currentDbSchemaVersion == null) {
-                _log.info("set current version for standby site {}", _service.getVersion());
-                setCurrentVersion(_service.getVersion());
-            }
-            Site currentSite = drUtil.getLocalSite();
-            if (SiteState.STANDBY_SYNCING.equals(currentSite.getState())) {
-                // Ensure schema agreement before checking the strategy options,
-                // since the strategy options from the local site might be older than the active site
-                // and shouldn't be relied on any more.
-                while (clientContext.ensureSchemaAgreement()) {
-                    // If there are unreachable nodes, wait until there is at least
-                    // one reachable node from the other site (which contains the latest db schema).
-                    if (getReachableDcCount() > 1) {
-                        break;
-                    }
+        _log.info("keyspace exist already");
+
+        String currentDbSchemaVersion = _coordinator.getCurrentDbSchemaVersion();
+        if (currentDbSchemaVersion == null) {
+            _log.info("set current version for standby site {}", _service.getVersion());
+            setCurrentVersion(_service.getVersion());
+        }
+
+        Site currentSite = drUtil.getLocalSite();
+        if (SiteState.STANDBY_SYNCING.equals(currentSite.getState())) {
+            // Ensure schema agreement before checking the strategy options,
+            // since the strategy options from the local site might be older than the active site
+            // and shouldn't be relied on any more.
+            while (clientContext.ensureSchemaAgreement()) {
+                // If there are unreachable nodes, wait until there is at least
+                // one reachable node from the other site (which contains the latest db schema).
+                if (getReachableDcCount() > 1) {
+                    break;
                 }
             }
-            checkStrategyOptions();
-            return true;
         }
+        checkStrategyOptions();
+        return true;
     }
 
     private int getReachableDcCount() {
@@ -570,98 +571,115 @@ public class SchemaUtil {
      */
     public void checkCf() throws InterruptedException, ConnectionException {
         KeyspaceDefinition kd = clientContext.getCluster().describeKeyspace(_keyspaceName);
-        Cluster cluster = clientContext.getCluster();
 
         // Get default GC grace period for all index CFs in local DB
         Integer indexGcGrace = isGeoDbsvc() ? null : getIntProperty(DbClientImpl.DB_CASSANDRA_INDEX_GC_GRACE_PERIOD, null);
+        KeyspaceMetadata keyspaceMetaData = clientContext.getKeyspaceMetaData();
 
-        Iterator<ColumnFamily> it = getCfMap().values().iterator();
-        String latestSchemaVersion = null;
-        while (it.hasNext()) {
-            ColumnFamily cf = it.next();
-            ColumnFamilyDefinition cfd = kd.getColumnFamily(cf.getName());
+        boolean waitForSchema = false;
+        for (ColumnFamily cf : getCfMap().values()) {
             String comparator = cf.getColumnSerializer().getComparatorType().getTypeName();
+            String schema="key text,column1 text,value blob";
+            String primaryKey="key, column1";
             if (comparator.equals("CompositeType")) {
                 if (cf.getColumnSerializer() instanceof CompositeColumnNameSerializer) {
                     comparator = CompositeColumnNameSerializer.getComparatorName();
+                    schema="key text,column1 text,column2 text,column3 text,column4 timeuuid,value blob";
+                    primaryKey="key, column1 ,column2 ,column3 ,column4";
                 } else if (cf.getColumnSerializer() instanceof IndexColumnNameSerializer) {
                     comparator = IndexColumnNameSerializer.getComparatorName();
+                    schema="key text,column1 text,column2 text,column3 text,column4 text, column5 timeuuid,value blob";
+                    primaryKey="key, column1 ,column2 ,column3 ,column4, column5";
                 } else {
                     throw new IllegalArgumentException();
                 }
             }
 
+            if (comparator.equals("TimeUUIDType")) {
+                schema="key text,column1 timeuuid,value blob";
+                primaryKey="key, column1";
+            }
+
+            TableMetadata cfd =  keyspaceMetaData.getTable("\"" + cf.getName() + "\"");
+            _log.info("cfd={} comparator={}", cfd, comparator);
+
             // The CF's gc_grace_period will be set if it's an index CF
             Integer cfGcGrace = cf.getColumnSerializer() instanceof IndexColumnNameSerializer ? indexGcGrace : null;
             // If there's specific configuration particular for this CF, take it.
             cfGcGrace = getIntProperty(DbClientImpl.DB_CASSANDRA_GC_GRACE_PERIOD_PREFIX + cf.getName(), cfGcGrace);
+            String compactionStrategy = "SizeTieredCompactionStrategy";
 
             if (cfd == null) {
-                cfd = cluster.makeColumnFamilyDefinition()
-                        .setKeyspace(_keyspaceName)
-                        .setName(cf.getName())
-                        .setComparatorType(comparator)
-                        .setKeyValidationClass(cf.getKeySerializer().getComparatorType().getTypeName());
                 TimeSeriesType tsType = TypeMap.getTimeSeriesType(cf.getName());
-                if (tsType != null &&
-                        tsType.getCompactOptimized() &&
-                        _dbCommonInfo != null &&
+                if (tsType != null && tsType.getCompactOptimized() && _dbCommonInfo != null &&
                         Boolean.TRUE.toString().equalsIgnoreCase(
                                 _dbCommonInfo.getProperty(DbClientImpl.DB_STAT_OPTIMIZE_DISK_SPACE, "false"))) {
-                    String compactionStrategy = _dbCommonInfo.getProperty(DbClientImpl.DB_CASSANDRA_OPTIMIZED_COMPACTION_STRATEGY,
+                    compactionStrategy = _dbCommonInfo.getProperty(DbClientImpl.DB_CASSANDRA_OPTIMIZED_COMPACTION_STRATEGY,
                             "SizeTieredCompactionStrategy");
                     _log.info("Setting DB compaction strategy to {}", compactionStrategy);
-                    int gcGrace = Integer.parseInt(_dbCommonInfo.getProperty(DbClientImpl.DB_CASSANDRA_GC_GRACE_PERIOD,
+                    cfGcGrace = Integer.parseInt(_dbCommonInfo.getProperty(DbClientImpl.DB_CASSANDRA_GC_GRACE_PERIOD,
                             "864000"));  // default is 10 days
-                    _log.info("Setting DB GC grace period to {}", gcGrace);
-                    cfd.setCompactionStrategy(compactionStrategy)
-                            .setGcGraceSeconds(gcGrace);
-                } else if (cfGcGrace != null) {
-                    _log.info("Setting CF:{} gc_grace_period to {}", cf.getName(), cfGcGrace.intValue());
-                    cfd.setGcGraceSeconds(cfGcGrace.intValue());
+                    _log.info("Setting DB GC grace period to {}", cfGcGrace);
                 }
-                latestSchemaVersion = addColumnFamily(cfd);
+
+                int gc = cfGcGrace != null ? cfGcGrace.intValue() : 0;
+                clientContext.createCF(cf.getName(), gc, compactionStrategy, schema, primaryKey);
+                waitForSchema = true;
             } else {
                 boolean modified = false;
-                String existingComparator = cfd.getComparatorType();
-                if (!matchComparator(existingComparator, comparator)) {
-                    _log.info("Comparator mismatch: db {} / schema {}", existingComparator, comparator);
-                    cfd.setComparatorType(comparator);
+                List<ColumnMetadata> columns = cfd.getColumns();
+                StringBuilder builder = new StringBuilder();
+                boolean first = true;
+                for (ColumnMetadata column : columns) {
+                    if (first) {
+                        first = false;
+                    }else  {
+                        builder.append(",");
+                    }
+
+                    builder.append(column.getName());
+                    builder.append(" ");
+                    builder.append(column.getType());
+                }
+                String existingSchema=builder.toString();
+                if (!existingSchema.equals(schema)) {
+                    _log.info("Comparator mismatch: db {} / schema {}", existingSchema, schema);
                     modified = true;
                 }
                 TimeSeriesType tsType = TypeMap.getTimeSeriesType(cf.getName());
-                if (tsType != null &&
-                        tsType.getCompactOptimized() &&
-                        _dbCommonInfo != null) {
-                    String compactionStrategy = _dbCommonInfo.getProperty(DbClientImpl.DB_CASSANDRA_OPTIMIZED_COMPACTION_STRATEGY,
+                int gcGrace = 0;
+                TableOptionsMetadata options = cfd.getOptions();
+                Map<String,String> compactions = options.getCompaction();
+                if (tsType != null && tsType.getCompactOptimized() && _dbCommonInfo != null) {
+                    compactionStrategy = _dbCommonInfo.getProperty(DbClientImpl.DB_CASSANDRA_OPTIMIZED_COMPACTION_STRATEGY,
                             "SizeTieredCompactionStrategy");
-                    String existingStrategy = cfd.getCompactionStrategy();
+                    String existingStrategy = compactions.get("class");
                     if (existingStrategy == null || !existingStrategy.contains(compactionStrategy)) {
                         _log.info("Setting DB compaction strategy to {}", compactionStrategy);
-                        cfd.setCompactionStrategy(compactionStrategy);
                         modified = true;
                     }
-                    int gcGrace = Integer.parseInt(_dbCommonInfo.getProperty(DbClientImpl.DB_CASSANDRA_GC_GRACE_PERIOD,
+
+                    gcGrace = Integer.parseInt(_dbCommonInfo.getProperty(DbClientImpl.DB_CASSANDRA_GC_GRACE_PERIOD,
                             "864000"));
-                    if (gcGrace != cfd.getGcGraceSeconds()) {
+                    if (gcGrace != options.getGcGraceInSeconds()) {
                         _log.info("Setting DB GC grace period to {}", gcGrace);
-                        cfd.setGcGraceSeconds(gcGrace);
                         modified = true;
                     }
                 }
-                else if (cfGcGrace != null && cfd.getGcGraceSeconds() != cfGcGrace.intValue()) {
+                else if (cfGcGrace != null && options.getGcGraceInSeconds() != cfGcGrace.intValue()) {
                     _log.info("Setting CF:{} gc_grace_period to {}", cf.getName(), cfGcGrace.intValue());
-                    cfd.setGcGraceSeconds(cfGcGrace.intValue());
+                    gcGrace = cfGcGrace.intValue();
                     modified = true;
                 }
+
                 if (modified) {
-                    latestSchemaVersion = updateColumnFamily(cfd);
+                    clientContext.updateTable(cfd, compactionStrategy, gcGrace);
                 }
             }
         }
 
-        if (latestSchemaVersion != null) {
-            clientContext.waitForSchemaAgreement(latestSchemaVersion);
+        if (waitForSchema) {
+            clientContext.waitForSchemaAgreement();
         }
     }
 
@@ -965,80 +983,6 @@ public class SchemaUtil {
             codeschema = COMPARATOR_PACKAGE + codeschema;
         }
         return dbschema.equals(codeschema);
-    }
-
-    /**
-     * Adds CF to keyspace
-     * 
-     * @param def
-     * @return
-     */
-    @SuppressWarnings("unchecked")
-    public String addColumnFamily(final ColumnFamilyDefinition def) {
-        AstyanaxContext<Cluster> context = clientContext.getClusterContext();
-        final KeyspaceTracerFactory ks = EmptyKeyspaceTracerFactory.getInstance();
-        ConnectionPool<Cassandra.Client> pool = (ConnectionPool<Cassandra.Client>) context.getConnectionPool();
-        String cfname = def.getName();
-        _log.info("Adding CF: {}", cfname);
-        try {
-            return pool.executeWithFailover(
-                    new AbstractOperationImpl<String>(
-                            ks.newTracer(CassandraOperationType.ADD_COLUMN_FAMILY)) {
-                        @Override
-                        public String internalExecute(Cassandra.Client client, ConnectionContext context) throws Exception {
-                            client.set_keyspace(_keyspaceName);
-                            // This method can be retried several times, so server may already have received the 'creating CF' request
-                            // and created the CF, we check the existence of the CF first before issuing another 'creating CF' request
-                            // which will cause the 'CF already exists' exception
-                            KsDef kd = client.describe_keyspace(_keyspaceName);
-                            List<CfDef> cfs = kd.getCf_defs();
-                            for (CfDef cf : cfs) {
-                                if (cf.getName().equals(cfname)) {
-                                    _log.info("The CF {} has already been created", cfname);
-                                    return null;
-                                }
-                            }
-
-                            _log.info("To create CF {}", cfname);
-                            return client.system_add_column_family(((ThriftColumnFamilyDefinitionImpl) def)
-                                    .getThriftColumnFamilyDefinition());
-                        }
-                    }, context.getAstyanaxConfiguration().getRetryPolicy().duplicate()).getResult();
-        } catch (final OperationException e) {
-            throw DatabaseException.retryables.operationFailed(e);
-        } catch (final ConnectionException e) {
-            throw DatabaseException.retryables.connectionFailed(e);
-        }
-    }
-
-    /**
-     * Updates CF
-     * 
-     * @param def
-     * @return
-     */
-    @SuppressWarnings("unchecked")
-    public String updateColumnFamily(final ColumnFamilyDefinition def) {
-        AstyanaxContext<Cluster> context = clientContext.getClusterContext();
-        final KeyspaceTracerFactory ks = EmptyKeyspaceTracerFactory.getInstance();
-        ConnectionPool<Cassandra.Client> pool = (ConnectionPool<Cassandra.Client>) context.getConnectionPool();
-        _log.info("Updating CF: {}", def.getName());
-        try {
-            return pool.executeWithFailover(
-                    new AbstractOperationImpl<String>(
-                            ks.newTracer(CassandraOperationType.UPDATE_COLUMN_FAMILY)) {
-                        @Override
-                        public String internalExecute(Cassandra.Client client, ConnectionContext context) throws Exception {
-                            client.set_keyspace(_keyspaceName);
-                            return client.system_update_column_family(((ThriftColumnFamilyDefinitionImpl) def)
-                                    .getThriftColumnFamilyDefinition());
-                        }
-                    }, context.getAstyanaxConfiguration().getRetryPolicy().duplicate()).getResult();
-        } catch (final OperationException e) {
-            throw DatabaseException.retryables.operationFailed(e);
-        } catch (final ConnectionException e) {
-            throw DatabaseException.retryables.connectionFailed(e);
-        }
     }
 
     /**

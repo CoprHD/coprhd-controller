@@ -99,7 +99,7 @@ ext {
         "com.addthis.metrics:reporter-config:2.1.0",
         "com.thinkaurelius.thrift:thrift-server:0.3.7",
         "io.airlift:airline:0.6",
-        "io.netty:netty-handler:4.0.33.Final",
+		"io.netty:netty-handler:4.0.33.Final",
 		"com.datastax.cassandra:cassandra-driver-core:3.0.0",
     ]
 
@@ -170,7 +170,6 @@ ext {
     ]
     guava = [
         "com.google.guava:guava:16.0.1",
-
     ]
     jersey = [
         "asm:asm:3.1",

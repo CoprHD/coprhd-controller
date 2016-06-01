@@ -44,7 +44,7 @@ fw_custom_iptables() {
     #   8443 - apisvc
     #   9553 - sasvc
     #   8543 - geosvc
-	#   9042 - dbsvc
+	#	9042 - dbsvc
 	#   9043 - geodbsvc
     #   9093 - vasasvc
     #   9160 - dbsvc

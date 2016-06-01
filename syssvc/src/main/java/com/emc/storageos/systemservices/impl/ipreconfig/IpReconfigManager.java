@@ -252,6 +252,7 @@ public class IpReconfigManager implements Runnable {
             if (FileUtils.exists(IpReconfigConstants.CLUSTER_NETWORK_FORCEFLAG)) {
                 log.info("User is forcing to reset single site IPs ...");
                 assureIPConsistent(true);
+                FileUtils.deleteFile(IpReconfigConstants.CLUSTER_NETWORK_FORCEFLAG);
             }
             log.info("no ipreconfig REST API request coming in yet.");
             return;
@@ -906,8 +907,8 @@ public class IpReconfigManager implements Runnable {
             _coordinator.getCoordinatorClient().startTransaction();
             long vdcConfigVersion = DrUtil.newVdcConfigVersion();
             for(Site site : drUtil.listSites()) {
-                int vdc_index = Integer.valueOf(site.getVdcShortId().split(PropertyConstants.VDC_SHORTID_PREFIX)[1]);
-                int site_index = Integer.valueOf(site.getSiteShortId().split(PropertyConstants.SITE_SHORTID_PREFIX)[1]);
+                int vdc_index = Integer.valueOf(site.getVdcShortId().substring(PropertyConstants.VDC_SHORTID_PREFIX.length()));
+                int site_index = Integer.valueOf(site.getSiteShortId().substring(PropertyConstants.SITE_SHORTID_PREFIX.length()))
                 String ipprop_prefix = String.format(PropertyConstants.IPPROP_PREFIX, vdc_index, site_index);
                 if (newIpinfo.getSiteIpInfoMap().containsKey(ipprop_prefix)) {
                     SiteIpInfo siteIpInfo = newIpinfo.getSiteIpInfoMap().get(ipprop_prefix);

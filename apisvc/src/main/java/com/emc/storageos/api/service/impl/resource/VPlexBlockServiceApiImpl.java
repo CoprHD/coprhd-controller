@@ -63,8 +63,12 @@ import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.db.client.model.ExportGroup;
+import com.emc.storageos.db.client.model.ExportMask;
+import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
@@ -2072,12 +2076,6 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             throw APIException.badRequests.changesNotSupportedFor("VirtualArray", "distributed VPlex volumes");
         }
 
-        // The volume cannot be exported.
-        if (volume.isVolumeExported(_dbClient)) {
-            s_logger.info("The volume is exported.");
-            throw APIException.badRequests.changesNotSupportedFor("VirtualArray", "exported volumes");
-        }
-
         // Verify that the VPLEX has connectivity to the new virtual array.
         // Note that we know at this point that the current and new varrays
         // are not the same.
@@ -2087,6 +2085,56 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 _dbClient, system.getId());
         if (!vplexSystemVarrays.contains(newVarray.getId())) {
             throw APIException.badRequests.invalidVarrayForVplex(system.getLabel(), newVarray.getLabel());
+        }
+
+        // If the volume is exported, all storage ports that the volume is exported through should be in the target virtual array
+        // The hosts that volume is exported to should be in the target virtual array too.
+        URIQueryResultList exportGroupURIs = new URIQueryResultList();
+        _dbClient.queryByConstraint(ContainmentConstraint.Factory.getBlockObjectExportGroupConstraint(volume.getId()), exportGroupURIs);
+        Iterator<URI> it = exportGroupURIs.iterator();
+        Set<URI> storagePorts = new HashSet<URI>();
+        Set<URI> initiators = new HashSet<URI>();
+        while (it.hasNext()) {
+            // exported
+            URI egUri = it.next();
+            ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, egUri);
+            List<URI> inits = StringSetUtil.stringSetToUriList(exportGroup.getInitiators());
+            initiators.addAll(inits);
+            List<URI> exportMaskuris = StringSetUtil.stringSetToUriList(exportGroup.getExportMasks());
+            for (URI exportMaskUri : exportMaskuris) {
+                ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskUri);
+                storagePorts.addAll(StringSetUtil.stringSetToUriList(exportMask.getStoragePorts()));
+            }
+        }
+        if (!storagePorts.isEmpty()) {
+            String newVarrayId = newVarray.getId().toString();
+            Set<URI> newVarrayStoragePorts = new HashSet<URI>();
+            URIQueryResultList queryResults = new URIQueryResultList();
+            _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                    .getAssignedVirtualArrayStoragePortsConstraint(newVarrayId), queryResults);
+            Iterator<URI> resultsIter = queryResults.iterator();
+            while (resultsIter.hasNext()) {
+                newVarrayStoragePorts.add(resultsIter.next());
+            }
+            if (!newVarrayStoragePorts.containsAll(storagePorts)) {
+                s_logger.info("The volume is exported, the exported target storage prots are not all in the target virtual array");
+                throw APIException.badRequests.changesNotSupportedFor("VirtualArray", "exported volumes, and the target storage ports exported through"
+                        + "are not all in the target virtual array");
+            }
+            for (URI init : initiators) {
+                Initiator initiator =  _dbClient.queryObject(Initiator.class, init);
+                if (initiator != null && !initiator.getInactive()) {
+                    String pwwn = initiator.getInitiatorPort();
+                    Set<String>varrayIds = ConnectivityUtil.getInitiatorVarrays(pwwn, _dbClient);
+                    if (!varrayIds.contains(newVarrayId)) {
+                        s_logger.info("The volume is exported, the exported hosts initiators are not all in the target virtual array");
+                        throw APIException.badRequests.changesNotSupportedFor("VirtualArray", "exported volumes, and the exported host initiators"
+                                + "are not all in the target virtual array");
+                    }
+                }
+            }
+           
+            
         }
 
         // If the vpool has assigned varrays, the vpool must be assigned

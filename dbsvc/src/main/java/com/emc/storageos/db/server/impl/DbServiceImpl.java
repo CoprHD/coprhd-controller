@@ -598,7 +598,8 @@ public class DbServiceImpl implements DbService {
 
             // Check if service is allowed to get started by querying db offline info to avoid bringing back stale data.
             // Skipping hibernate mode for node recovery procedure to recover the overdue node.
-            if (mode.type != StartupMode.StartupModeType.HIBERNATE_MODE) {
+            int nodeCount = ((CoordinatorClientImpl)_coordinator).getNodeCount();
+            if (nodeCount != 1 && mode.type != StartupMode.StartupModeType.HIBERNATE_MODE) {
                 checkDBOfflineInfo();
             }
 

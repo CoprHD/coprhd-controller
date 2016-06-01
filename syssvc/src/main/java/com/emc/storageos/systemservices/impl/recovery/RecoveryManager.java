@@ -492,6 +492,7 @@ public class RecoveryManager implements Runnable {
             throw new IllegalStateException("Cluster is stable and no need to do node recovery");
         }
 
+        // Disable node recovery when standby site state is unexpected as db repair would be failed in these scenarios.
         DrUtil drUtil = new DrUtil(coordinator.getCoordinatorClient());
         if (drUtil.isMultisite()) {
             List<Site> allStandbySites = drUtil.listStandbySites();
@@ -499,13 +500,14 @@ public class RecoveryManager implements Runnable {
                 if (!site.getState().equals(SiteState.STANDBY_SYNCED)
                         && !site.getState().equals(SiteState.STANDBY_PAUSED)
                         && !site.getState().equals(SiteState.STANDBY_DEGRADED)) {
-                    log.error("Node recovery is not allowed as standby site({}) status is instability({})",
+                    log.error("Node recovery is not allowed as standby site({}) status is unexpected({})",
                             site.getName(), site.getState());
-                    throw new IllegalStateException("Node recovery is not allowed as standby site status is instability");
+                    throw new IllegalStateException("Node recovery is not allowed as standby site status is unexpected");
                 }
             }
         }
 
+        // Disable node recovery when other connected vdc cluster state is DEGRADED as geo db repair would be failed then.
         if (drUtil.isMultivdc()) {
             List<String> allOtherVdcs = drUtil.getOtherVdcIds();
             for (String vdc : allOtherVdcs) {

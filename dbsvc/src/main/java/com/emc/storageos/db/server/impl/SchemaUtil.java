@@ -899,10 +899,20 @@ public class SchemaUtil {
         boolean storageTypeExist = true;
         List<URI> storageTypes = dbClient.queryByType(StorageSystemType.class, true);
 
-        ArrayList<URI> tempList = Lists.newArrayList(storageTypes.iterator());
+        ArrayList<URI> uriList = Lists.newArrayList(storageTypes.iterator());
 
-        if (tempList.isEmpty()) {
+        if (uriList.isEmpty()) {
             storageTypeExist = false;
+        }
+        else {
+            //Compare our default-list and data available at DB are in sync
+            int dbElementCount = uriList.size();
+            HashMap<String, String> defaultDisplayName = StorageSystemTypesInitUtils.initializeDisplayName();
+            int defaultCount = defaultDisplayName.size();
+            if(dbElementCount != defaultCount) {
+                // This means default list and data at DB are not in sync, so insert again
+                storageTypeExist = false;
+            }
         }
         return storageTypeExist;
     }

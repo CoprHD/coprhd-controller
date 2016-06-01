@@ -6,10 +6,13 @@
 package com.emc.storageos.db.server.impl;
 
 import static java.util.Arrays.asList;
+
 import java.net.URI;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -71,6 +74,8 @@ public class StorageSystemTypesInitUtils {
     private static HashMap<String, String> sslPortMap = null;
 
     private static HashMap<String, String> nonSslPortMap = null;
+
+    private static HashMap<String, String> dbStorageTypeMap = null;
 
     private static void initializeDefaultSSL() {
         defaultSSL = new HashMap<String, Boolean>();
@@ -148,8 +153,28 @@ public class StorageSystemTypesInitUtils {
         nonSslPortMap.put("hds", "2001");
     }
 
+    /**
+     * Create a HashMap of existing storage system types, to avoid duplicate insertion
+     * 
+     */
+    private static void createDbStorageTypeMap(DbClient dbClient) {
+        List<URI> ids = dbClient.queryByType(StorageSystemType.class, true);
+        if (!ids.isEmpty()) {
+            Iterator<StorageSystemType> iter = dbClient.queryIterativeObjects(StorageSystemType.class, ids);
+            dbStorageTypeMap = new HashMap<String, String>();
+            while (iter.hasNext()) {
+                StorageSystemType ssType = iter.next();
+                dbStorageTypeMap.put(ssType.getStorageTypeName(), ssType.getStorageTypeName());
+            }
+        }
+    }
+
     private static void insertFileArrays(DbClient dbClient) {
         for (String file : storageArrayFile) {
+            if (dbStorageTypeMap != null && dbStorageTypeMap.get(file) != null) {
+                //avoid duplicate entries
+                continue;
+            }
             StorageSystemType ssType = new StorageSystemType();
             URI ssTyeUri = URIUtil.createId(StorageSystemType.class);
             ssType.setId(ssTyeUri);
@@ -186,6 +211,10 @@ public class StorageSystemTypesInitUtils {
 
     private static void insertFileProviders(DbClient dbClient) {
         for (String file : storageProviderFile) {
+            if (dbStorageTypeMap != null && dbStorageTypeMap.get(file) != null) {
+              //avoid duplicate entries
+                continue;
+            }
             StorageSystemType ssType = new StorageSystemType();
             URI ssTyeUri = URIUtil.createId(StorageSystemType.class);
             ssType.setId(ssTyeUri);
@@ -219,6 +248,10 @@ public class StorageSystemTypesInitUtils {
 
     private static void insertBlockArrays(DbClient dbClient) {
         for (String block : storageArrayBlock) {
+            if (dbStorageTypeMap != null && dbStorageTypeMap.get(block) != null) {
+              //avoid duplicate entries
+                continue;
+            }
             StorageSystemType ssType = new StorageSystemType();
             URI ssTyeUri = URIUtil.createId(StorageSystemType.class);
             ssType.setId(ssTyeUri);
@@ -253,6 +286,10 @@ public class StorageSystemTypesInitUtils {
 
     private static void insertBlockProviders(DbClient dbClient) {
         for (String block : storageProviderBlock) {
+            if (dbStorageTypeMap != null && dbStorageTypeMap.get(block) != null) {
+              //avoid duplicate entries
+                continue;
+            }
             StorageSystemType ssType = new StorageSystemType();
             URI ssTyeUri = URIUtil.createId(StorageSystemType.class);
             ssType.setId(ssTyeUri);
@@ -287,6 +324,10 @@ public class StorageSystemTypesInitUtils {
 
     private static void insertObjectArrays(DbClient dbClient) {
         for (String object : storageArrayObject) {
+            if (dbStorageTypeMap != null && dbStorageTypeMap.get(object) != null) {
+              //avoid duplicate entries
+                continue;
+            }
             StorageSystemType ssType = new StorageSystemType();
             URI ssTyeUri = URIUtil.createId(StorageSystemType.class);
             ssType.setId(ssTyeUri);
@@ -323,6 +364,8 @@ public class StorageSystemTypesInitUtils {
         log.info("Intializing storage system type Column Family for default storage drivers");
 
         initializeDefaultSSL();
+        // When db and default list are not in sync, re-insert is required, and make sure we avoid duplicate entry
+        createDbStorageTypeMap(dbClient);
 
         defaultMDM = new HashMap<String, Boolean>();
         defaultMDM.put(SCALEIO, true);
@@ -343,13 +386,11 @@ public class StorageSystemTypesInitUtils {
 
         // Insert File Arrays
         insertFileArrays(dbClient);
-
         // Insert File Providers
         insertFileProviders(dbClient);
 
         // Insert Block Arrays
         insertBlockArrays(dbClient);
-
         // Insert Block Providers
         insertBlockProviders(dbClient);
 

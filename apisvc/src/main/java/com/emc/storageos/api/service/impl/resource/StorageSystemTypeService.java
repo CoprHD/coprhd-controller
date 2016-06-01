@@ -66,7 +66,7 @@ public class StorageSystemTypeService extends TaskResourceService {
 	/**
 	 * Show Storage System Type detail for given URI
 	 *
-	 * @param id the URN of compute image
+	 * @param id the URN of Storage System Type
 	 * @brief Show StorageSystemType
 	 * @return Storage System Type details
 	 */
@@ -212,7 +212,7 @@ public class StorageSystemTypeService extends TaskResourceService {
 			return Response.ok().build();
 		}
 		else {
-			return Response.serverError().build();
+			return Response.status(403).build();
 		}
 
 	}

@@ -49,11 +49,9 @@ public abstract class XtremIOClient extends StandardRestClient implements XtremI
     /**
      * Check whether the given XMS is running a version 2 REST API
      *
-     * @return
+     * @return true, if version 2
      */
-    public boolean isVersion2() {
-        return false;
-    }
+    public abstract boolean isVersion2();
 
     @Override
     protected int checkResponse(URI uri, ClientResponse response) throws XtremIOApiException {

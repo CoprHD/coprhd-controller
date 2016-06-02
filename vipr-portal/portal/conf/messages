@@ -57,6 +57,7 @@ nav.storage=Resources
 nav.virtualStorage=Virtual
 nav.object=Object
 nav.settings=System
+nav.driver=Direct Driver
 nav.block=Block
 nav.block.volumes=Volumes
 nav.block.consistencygroups=Consistency Groups
@@ -103,6 +104,7 @@ nav.project=Tenant Groups
 nav.consistencygroups=Consistency Groups
 nav.tasks=Tasks
 # Subnavigation
+nav.createDriver=Create Direct Volume
 nav.vdcs=Virtual Data Centers
 nav.projects=Projects
 nav.schedulepolicies=Schedule Policies
@@ -272,6 +274,15 @@ PoolType.file=File
 
 PoolAssignment.automatic=Automatic
 PoolAssignment.manual=Manual
+
+#Direct Driver
+CreateVolume.direct.description = Enter information needed to create volume
+volume.arrayType=Storage System Type
+volume.ipAddress=Storage System Name
+volume.name = Name
+volume.pool = Storage Pool
+volume.size=Size(in GB)
+volume.count=Count
 
 StorageSystemType.NONE=None
 StorageSystemType.vmax=EMC VMAX

@@ -629,7 +629,7 @@ public class StorageScheduler implements Scheduler {
             List<StoragePool> preferredPools = new ArrayList<StoragePool>();
             List<StoragePool> nonPreferredPools = new ArrayList<StoragePool>();
             for (StoragePool pool : availablePools) {
-                if (preferredPoolURIs.contains(pool.getId())) {
+                if (preferredPoolURIs != null && preferredPoolURIs.contains(pool.getId())) {
                     preferredPools.add(pool);
                 } else {
                     nonPreferredPools.add(pool);

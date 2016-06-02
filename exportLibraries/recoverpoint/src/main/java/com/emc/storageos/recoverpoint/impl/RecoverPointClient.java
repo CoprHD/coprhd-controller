@@ -24,6 +24,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.fapiclient.ws.ActivationSettingsChangesParams;
 import com.emc.fapiclient.ws.ClusterConfiguration;
+import com.emc.fapiclient.ws.ClusterInfo;
 import com.emc.fapiclient.ws.ClusterRPAsState;
 import com.emc.fapiclient.ws.ClusterSANVolumes;
 import com.emc.fapiclient.ws.ClusterSettings;
@@ -66,6 +67,7 @@ import com.emc.fapiclient.ws.PipeState;
 import com.emc.fapiclient.ws.ProtectionMode;
 import com.emc.fapiclient.ws.Quantity;
 import com.emc.fapiclient.ws.QuantityType;
+import com.emc.fapiclient.ws.RecoverPointClustersInformation;
 import com.emc.fapiclient.ws.RemoteClusterConnectionInformation;
 import com.emc.fapiclient.ws.ReplicationSetSettings;
 import com.emc.fapiclient.ws.ReplicationSetSettingsChangesParam;
@@ -2000,6 +2002,8 @@ public class RecoverPointClient {
                             String cgCopyName = functionalAPI.getGroupCopyName(uvSettings.getGroupCopyUID());
                             protectionInfo.setRpProtectionName(cgName);
                             protectionInfo.setRpVolumeGroupCopyID(uvSettings.getGroupCopyUID().getGlobalCopyUID().getCopyUID());
+                            protectionInfo.setRpCopyName(functionalAPI.getGroupCopyName(uvSettings.getGroupCopyUID()));
+                            protectionInfo.setRpSiteName(getRecoverPointClusterName(uvSettings.getClusterUID()));
                             protectionInfo.setRpVolumeGroupID(cgID.getId());
                             protectionInfo.setRpVolumeSiteID(uvSettings.getClusterUID().getId());
                             protectionInfo.setRpVolumeRSetID(rsSettings.getReplicationSetUID().getId());
@@ -2067,6 +2071,28 @@ public class RecoverPointClient {
                     e);
         }
         throw RecoverPointException.exceptions.failureGettingProtectionInfoForVolume(volumeWWN);
+    }
+
+    /**
+     * Gets the RP cluster name corresponding to the given ClusterUID.
+     *
+     * @param clusterID the cluster id used to find the corresponding name
+     * @return the cluster name
+     * @throws FunctionalAPIActionFailedException_Exception
+     * @throws FunctionalAPIInternalError_Exception
+     */
+    private String getRecoverPointClusterName(ClusterUID clusterID) throws FunctionalAPIActionFailedException_Exception,
+            FunctionalAPIInternalError_Exception {
+        if (clusterID != null) {
+            RecoverPointClustersInformation clustersInfo = functionalAPI.getRecoverPointClustersInformation();
+            for (ClusterInfo clusterInfo : clustersInfo.getClustersInformations()) {
+                if (clusterInfo.getClusterUID().getId() == clusterID.getId()) {
+                    return clusterInfo.getClusterName();
+                }
+            }
+        }
+
+        return null;
     }
 
     /**

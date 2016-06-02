@@ -614,10 +614,12 @@ public class ControllerUtils {
                         BlockObject blockObject = BlockObject.fetch(dbClient, uri);
                         if (blockObject instanceof Volume) {
                             Volume volume = (Volume) blockObject;
-                            VirtualPool virtualPool = dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
-                            volumeURLHLU = new VolumeURIHLU(uri, hluString, policyName, volLabel,
-                                    virtualPool.getHostIOLimitBandwidth(),
-                                    virtualPool.getHostIOLimitIOPs());
+                            if(volume.getVirtualPool()!=null) {
+                            	VirtualPool virtualPool = dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
+	                            volumeURLHLU = new VolumeURIHLU(uri, hluString, policyName, volLabel,
+	                                    virtualPool.getHostIOLimitBandwidth(),
+	                                    virtualPool.getHostIOLimitIOPs());
+                            }
                         }
                     }
                     volURIsHlus[index++] = volumeURLHLU;
@@ -628,7 +630,7 @@ public class ControllerUtils {
         }
         return volURIsHlus;
     }
-
+    
     public static String getAutoTieringPolicyName(URI uri, DbClient dbClient) {
         String policyName = Constants.NONE;
         if (URIUtil.isType(uri, Volume.class)) {

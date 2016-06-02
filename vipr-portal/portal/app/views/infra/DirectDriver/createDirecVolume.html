@@ -1,0 +1,127 @@
+%{
+  titleKey = 'nav.createDriver';
+  descriptionKey = 'CreateVolume.direct.description';
+  image = '/public/img/assets/Volume.png';
+  
+}%
+#{extends 'main.html' /}
+
+#{set navSelected: ['nav.assets', 'nav.storageArrays'] /}
+#{set 'title'}&{titleKey}#{/set}
+#{set editMode:storageArray?.id ? true : false/}
+
+#{set 'moreScripts'}
+#{/set}
+
+<div class="container">
+	#{Form.header titleKey:titleKey, descriptionKey:descriptionKey, image:image /}
+	
+	#{alerts/}
+	
+#{form @saveVolume(), id:'volume', class:'form form-horizontal', autocomplete:"off"}
+
+  <fieldset>
+	  #{field 'volume.arrayType'}
+	    %{
+	      field.options = storageArrayTypeList
+	      field.addEmptyOption = true
+    	  field.emptyOptionLabel = "Select an Option"
+	      field.required = true
+	      field.cssClass = 'span6 initialFocus'
+	    }%
+	    #{Form.selectOneControlGroup field:field /}
+	  #{/field}
+    
+    #{field 'volume.ipAddress'}
+      %{
+        field.required = true        
+        field.cssClass = 'span3'
+      }%
+      #{Form.selectOneControlGroup options:ipList, field:field /}
+    #{/field}
+    
+    #{field 'volume.pool'}
+    %{
+    	field.required = true
+    	field.cssClass = 'span3'
+    }%
+    #{Form.selectOneControlGroup options:poolList, field:field /}
+    #{/field}
+    
+    #{field 'volume.name'}
+        %{
+          field.required = true
+        }%
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+	
+	#{field 'volume.size'}
+        %{
+          field.required = true
+        }%
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+    
+    #{field 'volume.count'}
+        %{
+          field.required = true
+        }%
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+    
+
+    </fieldset>
+    
+    #{Form.saveCancel /}
+  
+#{/form}
+</div>
+<script>
+var editVersion = -1;
+var ipSelectId = $('#volume_ipAddress');
+var storagePool = $('#volume_pool');
+
+$(document).ready(function () {
+	$('#volume_arrayType').on('change', systemTypeChanged);
+	
+	function systemTypeChanged(){
+		var handler = function(data, textStatus, jqXHR) {
+			ipSelectId.empty();
+            for (var i = 0; i < data.length; i++) {
+                var option ='<option value="'+data[i].id+'"';
+                option += '>'+data[i].name+'</option>';
+                ipSelectId.append(option);
+            }
+            $("#volume_ipAddress").trigger('chosen:updated');
+            loadStoragePool();
+            triggerSelectUpdated(ipSelectId);
+           
+        };
+        var type = $('#volume_arrayType').val();
+		var url = "@{getIpFromType()}";
+		$.get(url,"type="+type, handler,'json' );
+	}
+	
+	function loadStoragePool() {
+		var handler = function(data, textStatus, jqXHR) {
+			storagePool.empty();
+            for (var i = 0; i < data.length; i++) {
+                var option ='<option value="'+data[i].id+'"';
+                option += '>'+data[i].name+'</option>';
+                storagePool.append(option);
+            }
+            $("#volume_pool").trigger('chosen:updated');
+            triggerSelectUpdated(storagePool);
+           
+        };
+        var type = $('#volume_ipAddress').val();
+		var url = "@{getPoolsFromSystem()}";
+		$.get(url,"id="+type, handler,'json' );
+	}
+	
+	
+	function triggerSelectUpdated(select) {
+        select.trigger("change");
+    }
+});
+</script>

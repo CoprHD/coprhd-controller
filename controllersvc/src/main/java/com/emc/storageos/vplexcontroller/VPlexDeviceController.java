@@ -11292,13 +11292,16 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     }
 
     /**
-     * acquires a step lock for the RecoverPoint CG
+     * acquires a workflow lock for the RecoverPoint CG
      * 
-     * @param rpSystemId RP system
-     * @param volumeIds list of volumes to acquire locks for
-     * @param token
+     * @param workflow workflow to lock
+     * @param rpSystemId rp protection system id which will be part of the lock key
+     * @param volumeIds list of volumes to identify consistency groups to lock
      */
     private void acquireRPWorkflowLock(Workflow workflow, URI rpSystemId, List<URI> volumeIds) {
+        
+        // this RP specific code should be moved out of this class with https://coprhd.atlassian.net/browse/COP-22852
+        
         Set<URI> cgUris = new HashSet<URI>();
         for (URI volumeId : volumeIds) {
             Volume volume = _dbClient.queryObject(Volume.class, volumeId);

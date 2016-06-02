@@ -580,6 +580,7 @@ public class ControllerUtils {
                     nativeId = Integer.parseInt(blockObject.getNativeId(), 16);
                     nativeIdString = String.format("%04d", nativeId);
                 } else if (!storageType.equals(DiscoveredDataObject.Type.vnxe.name()) &&
+                        !storageType.equals(DiscoveredDataObject.Type.unity.name()) &&
                         blockObject.getNativeId().matches("\\d+")) {
                     nativeId = Integer.parseInt(blockObject.getNativeId());
                     nativeIdString = String.format("%04d", nativeId);
@@ -591,8 +592,15 @@ public class ControllerUtils {
             for (String nativeId : orderedByNativeId) {
                 URI uri = nativeIdToURIMap.get(nativeId);
                 Integer entryHLU = volumeMap.get(uri);
-                String hluString = (entryHLU != null) ? Integer.toHexString(entryHLU) :
+                String hluString = null;
+                if (storageType.equals(DiscoveredDataObject.Type.unity.name())) {
+                    // Don't change to hex string for Unity
+                    hluString = (entryHLU != null) ? Integer.toString(entryHLU) :
                         ExportGroup.LUN_UNASSIGNED_STR;
+                } else {
+                    hluString = (entryHLU != null) ? Integer.toHexString(entryHLU) :
+                        ExportGroup.LUN_UNASSIGNED_STR;
+                }
                 String volLabel = blockURIToLabelMap.get(uri);
                 if (storageType.equals(DiscoveredDataObject.Type.hds.name())
                         || storageType.equals(DiscoveredDataObject.Type.xtremio.name())) {

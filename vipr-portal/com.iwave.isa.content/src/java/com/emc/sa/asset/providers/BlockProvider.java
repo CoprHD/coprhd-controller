@@ -43,6 +43,7 @@ import com.emc.sa.machinetags.MachineTagUtils;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.sa.util.ResourceType;
 import com.emc.sa.util.StringComparator;
+import com.emc.sa.util.TextUtils;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
@@ -425,7 +426,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @AssetDependencies({ "project", "blockVirtualPool", "vplexMigrationChangeOperation" })
     public List<AssetOption> getMigrationTargetVirtualPools(AssetOptionsContext ctx, URI projectId, URI virtualPoolId,
             String vpoolChangeOperation) {
-        return getTargetVirtualPoolsForVpool(ctx, projectId, virtualPoolId, vpoolChangeOperation);
+        return getTargetVirtualPoolsForVpool(ctx, projectId, virtualPoolId, vpoolChangeOperation, null);
     }
 
     @Asset("mobilityMigrationTargetVirtualPool")
@@ -504,11 +505,43 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @AssetDependencies({ "project", "blockVirtualPool", "virtualPoolChangeOperation" })
     public List<AssetOption> getTargetVirtualPoolsForVpool(AssetOptionsContext ctx, URI projectId, URI virtualPoolId,
             String vpoolChangeOperation) {
-        List<VolumeRestRep> volumes = listSourceVolumes(api(ctx), projectId, new VirtualPoolFilter(virtualPoolId));
+        // This is an intermediate asset that is evaluated while waiting for the "virtualPoolChangeVolumeWithSourceFilter"
+        // asset dependency to be filled in by the user. The desired behaviour is that the below "targetVirtualPool" 
+        // asset with the dependency on "virtualPoolChangeVolumeWithSourceFilter" will be fired instead.
+        //
+        // The "virtualPoolChangeVolumeWithSourceFilter" asset is a select-many component. When there
+        // are NO values selected, the asset is not sent down at all and this "targetVirtualPool" asset will 
+        // be evaluated instead and return an empty list. 
+        //
+        // Once the user selects at least 1 volume in the "virtualPoolChangeVolumeWithSourceFilter" asset then the below 
+        // "targetVirtualPool" asset will be evaluated and the drop down will be populated.
+        info("No filtered volumes selected, returning empty list.");
+        return Collections.emptyList();
+    }
+
+    @Asset("targetVirtualPool")
+    @AssetDependencies({ "project", "blockVirtualPool", "virtualPoolChangeOperation", "virtualPoolChangeVolumeWithSourceFilter" })
+    public List<AssetOption> getTargetVirtualPoolsForVpool(AssetOptionsContext ctx, URI projectId, URI virtualPoolId,
+            String vpoolChangeOperation, String filteredVolumes) {        
         List<URI> volumeIds = Lists.newArrayList();
-        for (VolumeRestRep volume : volumes) {
-            volumeIds.add(volume.getId());
+        if (filteredVolumes != null && !filteredVolumes.isEmpty()) {
+            // Best case we are passed in the volumes selected by the user
+            // as comma delimited string so we do not have to load them from 
+            // the API.
+            info("Filtered volumes selected by user: %s", filteredVolumes);
+            List<String> parsedVolumeIds = TextUtils.parseCSV(filteredVolumes);            
+            for (String id : parsedVolumeIds) {
+                volumeIds.add(uri(id));
+            }
+        } else {
+            // Worst case we need to get the volumes from the API.
+            info("Loading all volumes for vpool: %s", virtualPoolId.toString());
+            List<VolumeRestRep> volumes = listSourceVolumes(api(ctx), projectId, new VirtualPoolFilter(virtualPoolId));
+            for (VolumeRestRep volume : volumes) {
+                volumeIds.add(volume.getId());
+            }
         }
+        
         if (CollectionUtils.isNotEmpty(volumeIds)) {
             BulkIdParam input = new BulkIdParam();
             input.setIds(volumeIds);

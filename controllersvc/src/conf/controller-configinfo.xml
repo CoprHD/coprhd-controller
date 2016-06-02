@@ -41,7 +41,13 @@
         <entry key="Discovery-vnxe-all" value="discovery-vnxe-context.xml" />
         <entry key="Discovery-vnxe-unmanaged_volumes" value="discovery-vnxe-context.xml" />
         <entry key="Discovery-vnxe-unmanaged_filesystems" value="discovery-vnxe-context.xml" />
-        
+       
+        <entry key="Discovery-unity-all" value="discovery-vnxunity-context.xml" />
+        <entry key="Discovery-unity-unmanaged_volumes" value="discovery-vnxunity-context.xml" />
+        <entry key="Discovery-unity-unmanaged_filesystems" value="discovery-vnxunity-context.xml" />
+        <entry key="Scanner-unity" value="discovery-vnxunity-context.xml"/>
+
+ 
         <entry key="Discovery-xtremio-all" value="discovery-xtremio-context.xml"/>
         <entry key="Discovery-xtremio-unmanaged_volumes" value="discovery-xtremio-context.xml"/>
         <entry key="Scanner-xtremio" value="discovery-xtremio-context.xml"/>
@@ -72,6 +78,7 @@
         <entry key="Metering-vnxe" value="metering-vnxe-context.xml" />
         <entry key="Metering-externaldevice" value="discovery-externaldevice-context.xml" />
         <entry key="Metering-xtremio" value="discovery-xtremio-context.xml" />
+        <entry key="Metering-unity" value="metering-vnxunity-context.xml" />
 
         <!-- in seconds -->
         <!-- how often the job should be scheduled automatically -->

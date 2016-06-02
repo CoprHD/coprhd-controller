@@ -1584,7 +1584,8 @@ public class VolumeIngestionUtil {
         StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, mask.getStorageSystemUri());
         boolean portsValid = true;
         if (storageSystem != null) {
-            if (storageSystem.getSystemType().equalsIgnoreCase(SystemType.xtremio.toString())) {
+            if (storageSystem.getSystemType().equalsIgnoreCase(SystemType.xtremio.toString()) ||
+                    storageSystem.getSystemType().equalsIgnoreCase(SystemType.unity.toString())) {
                 portsValid = diff.size() < portsInUnManagedMask.size();
             } else {
                 portsValid = diff.isEmpty();

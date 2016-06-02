@@ -717,7 +717,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
                 String internalSiteName = associatedVolume.getInternalSiteName();
                 // If we don't already have an entry for this internal site name, let's add it now.
                 if (!internalSiteToVarrayMap.containsKey(internalSiteName)) {
-                    internalSiteToVarrayMap.put(associatedVolume.getInternalSiteName(),
+                    internalSiteToVarrayMap.put(internalSiteName,
                             _dbClient.queryObject(VirtualArray.class, associatedVolume.getVirtualArray()));
                 }
             }
@@ -776,7 +776,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
             // If the mask for ingested volume is in a mask that contains JOURNAL keyword, make sure the ExportGroup created contains
             // that internal flag.
             boolean isJournalExport = false;
-            if (em.getMaskName().toLowerCase().contains("journal")) {
+            if (em.getMaskName().toLowerCase().contains(VolumeIngestionUtil.RP_JOURNAL)) {
                 isJournalExport = true;
             }
             String exportGroupGeneratedName = RPHelper.generateExportGroupName(protectionSystem, storageSystem, internalSiteName,

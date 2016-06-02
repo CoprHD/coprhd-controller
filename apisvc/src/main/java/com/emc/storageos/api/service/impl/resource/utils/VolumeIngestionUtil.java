@@ -112,6 +112,7 @@ public class VolumeIngestionUtil {
     public static final String VOLUME_TEXT = "Volume";
     public static final String FALSE = "false";
     public static final String TRUE = "true";
+    public static final String RP_JOURNAL = "journal";
 
     /**
      * Validation Steps 1. validate PreExistingVolume uri. 2. Check PreExistingVolume is under
@@ -3003,7 +3004,7 @@ public class VolumeIngestionUtil {
                     // If the mask for ingested volume contains JOURNAL keyword, make sure we add it to
                     // the ExportGroup created for journals
                     boolean isJournalExport = false;
-                    if (unManagedExportMask.getMaskName().toLowerCase().contains("journal")) {
+                    if (unManagedExportMask.getMaskName().toLowerCase().contains(RP_JOURNAL)) {
                         isJournalExport = true;
                     }
                     _logger.info("exportGroupType is " + exportGroupType);

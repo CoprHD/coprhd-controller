@@ -13,6 +13,12 @@
   else if ("QUEUED".equalsIgnoreCase(state)) {
     taskState = "QUEUED"
   }
+  else if ("SUSPENDED_NO_ERROR".equalsIgnoreCase(state)) {
+    taskState = "SUSPENDED_NO_ERROR"
+  }
+  else if ("SUSPENDED_ERROR".equalsIgnoreCase(state)) {
+    taskState = "SUSPENDED_ERROR"
+  }
 }%
 #{if taskState == "QUEUED"}
   <span class="glyphicon glyphicon-lock"></span> &{'resources.tasks.queued'}
@@ -25,6 +31,12 @@
 #{/elseif}
 #{elseif taskState == "ERROR"}
   <span class="glyphicon glyphicon-remove"></span> &{'resources.tasks.error'}
+#{/elseif}
+#{elseif taskState == "SUSPENDED_NO_ERROR"}
+  <span class="glyphicon glyphicon-exclamation-sign"></span> &{'resources.tasks.suspended_no_error'}
+#{/elseif}
+#{elseif taskState == "SUSPENDED_ERROR"}
+  <span class="glyphicon glyphicon-exclamation-sign"></span> &{'resources.tasks.suspended_error'}
 #{/elseif}
 #{else}
   <span class="glyphicon glyphicon-question-sign"></span> &{'resources.tasks.unknown'}

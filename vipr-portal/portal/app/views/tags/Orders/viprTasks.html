@@ -15,7 +15,23 @@
       <td>${task.name}</td>
       <td>#{Resources.link task?.resource?.id}#{Resources.image task.resource.id /} ${task?.resource?.name}#{/Resources.link}</a></td>
       <td>#{Tasks.progress task.progress, state:task.state/}</td>
-      <td>#{Tasks.state task.state/}</td>
+      #{if task.state == 'suspended_no_error' }
+      	<td>#{Tasks.state task.state/}
+      			<a href="@{resumeTask(_order.id, task.id)}"
+	              class="btn btn-default">&{'resources.tasks.resume'}</a>
+	            <a href="@{rollbackTask(_order.id, task.id)}"
+	              class="btn btn-default">&{'resources.tasks.rollback'}</a></td>
+      #{/if}
+      #{elseif task.state == 'suspended_error' }
+      	<td>#{Tasks.state task.state/}
+      			<a href="@{retryTask(_order.id, task.id)}"
+	              class="btn btn-default">&{'resources.tasks.retry'}</a>
+	            <a href="@{rollbackTask(_order.id, task.id)}"
+	              class="btn btn-default">&{'resources.tasks.rollback'}</a></td>
+      #{/elseif}
+      #{else}
+      	<td>#{Tasks.state task.state/}</td>
+      #{/else}
       <td><span data-relative-time="${task?.startTime?.timeInMillis}"></span></td>
       <td><span data-elapsed-time="${task?.startTime?.timeInMillis}#{if task.endTime}:${task.endTime.timeInMillis}#{/if}"></span></td>
     </tr>

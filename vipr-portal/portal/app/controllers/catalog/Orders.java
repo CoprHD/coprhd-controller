@@ -4,8 +4,8 @@
  */
 package controllers.catalog;
 
-import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 import static com.emc.vipr.client.core.util.ResourceUtils.id;
+import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 import static util.BourneUtil.getCatalogClient;
 import static util.BourneUtil.getViprClient;
 
@@ -17,35 +17,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.emc.sa.util.TextUtils;
-import com.emc.vipr.model.catalog.ServiceFieldRestRep;
-import com.emc.vipr.model.catalog.ServiceFieldTableRestRep;
-import com.emc.vipr.model.catalog.ServiceItemRestRep;
-
-import models.BreadCrumb;
-import models.datatable.OrderDataTable;
-import models.datatable.OrderDataTable.OrderInfo;
-import models.datatable.RecentOrdersDataTable;
-
 import org.apache.commons.lang.StringUtils;
 
-import play.Logger;
-import play.data.binding.As;
-import play.data.validation.Required;
-import play.data.validation.Validation;
-import play.mvc.Http;
-import play.mvc.Util;
-import play.mvc.With;
-import util.CatalogServiceUtils;
-import util.MessagesUtils;
-import util.ModelExtensions;
-import util.OrderUtils;
-import util.StringOption;
-import util.TagUtils;
-import util.api.ApiMapperUtils;
-import util.datatable.DataTableParams;
-import util.datatable.DataTablesSupport;
-
+import com.emc.sa.util.TextUtils;
 import com.emc.storageos.db.client.model.uimodels.OrderStatus;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.search.SearchResultResourceRep;
@@ -60,6 +34,9 @@ import com.emc.vipr.model.catalog.OrderLogRestRep;
 import com.emc.vipr.model.catalog.OrderRestRep;
 import com.emc.vipr.model.catalog.Parameter;
 import com.emc.vipr.model.catalog.ServiceDescriptorRestRep;
+import com.emc.vipr.model.catalog.ServiceFieldRestRep;
+import com.emc.vipr.model.catalog.ServiceFieldTableRestRep;
+import com.emc.vipr.model.catalog.ServiceItemRestRep;
 import com.google.common.collect.Lists;
 
 import controllers.Common;
@@ -69,7 +46,29 @@ import controllers.resources.AffectedResources;
 import controllers.resources.AffectedResources.ResourceDetails;
 import controllers.security.Security;
 import controllers.tenant.TenantSelector;
+import controllers.util.FlashException;
 import controllers.util.Models;
+import models.BreadCrumb;
+import models.datatable.OrderDataTable;
+import models.datatable.OrderDataTable.OrderInfo;
+import models.datatable.RecentOrdersDataTable;
+import play.Logger;
+import play.data.binding.As;
+import play.data.validation.Required;
+import play.data.validation.Validation;
+import play.mvc.Http;
+import play.mvc.Util;
+import play.mvc.With;
+import util.BourneUtil;
+import util.CatalogServiceUtils;
+import util.MessagesUtils;
+import util.ModelExtensions;
+import util.OrderUtils;
+import util.StringOption;
+import util.TagUtils;
+import util.api.ApiMapperUtils;
+import util.datatable.DataTableParams;
+import util.datatable.DataTablesSupport;
 
 @With(Common.class)
 public class Orders extends OrderExecution {
@@ -142,6 +141,36 @@ public class Orders extends OrderExecution {
             }
         }
         renderJSON(results);
+    }
+
+    @FlashException(referrer = { "receiptContent" })
+    public static void rollbackTask(String orderId, String taskId) {
+        if (StringUtils.isNotBlank(taskId)) {
+            ViPRCoreClient client = BourneUtil.getViprClient();
+            client.tasks().rollback(uri(taskId));
+            flash.put("info", MessagesUtils.get("resources.tasks.rollbackMessage", taskId));
+        }
+        receipt(orderId);
+    }
+
+    @FlashException(referrer = { "receiptContent" })
+    public static void retryTask(String orderId, String taskId) {
+        if (StringUtils.isNotBlank(taskId)) {
+            ViPRCoreClient client = BourneUtil.getViprClient();
+            client.tasks().resume(uri(taskId));
+            flash.put("info", MessagesUtils.get("resources.tasks.retryMessage", taskId));
+        }
+        receipt(orderId);
+    }
+
+    @FlashException(referrer = { "receiptContent" })
+    public static void resumeTask(String orderId, String taskId) {
+        if (StringUtils.isNotBlank(taskId)) {
+            ViPRCoreClient client = BourneUtil.getViprClient();
+            client.tasks().resume(uri(taskId));
+            flash.put("info", MessagesUtils.get("resources.tasks.resumeMessage", taskId));
+        }
+        receipt(orderId);
     }
 
     /**

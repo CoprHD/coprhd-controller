@@ -154,6 +154,16 @@ angular.module("config", []).constant({
                 icon: 'remove',
                 class: '',
                 key: 'resources.tasks.error'
+            },
+            '${task.suspended_no_error}':{
+                icon: 'exclamation-sign',
+                class: '',
+                key: 'resources.tasks.suspended_no_error'
+            },
+            '${task.suspended_error}':{
+                icon: 'exclamation-sign',
+                class: '',
+                key: 'resources.tasks.suspended_error'
             }
         },
         workflowStep: {

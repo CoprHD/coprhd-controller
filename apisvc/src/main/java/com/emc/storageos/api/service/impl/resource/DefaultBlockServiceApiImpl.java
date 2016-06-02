@@ -294,7 +294,9 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
             allowedOperations.add(VirtualPoolChangeOperationEnum.ADD_MIRRORS);
         }
 
-        allowedOperations.add(VirtualPoolChangeOperationEnum.DATA_MIGRATION);
+        if (VirtualPoolChangeAnalyzer.vpoolChangeRequiresMigration(volumeVirtualPool, newVirtualPool)) {
+            allowedOperations.add(VirtualPoolChangeOperationEnum.DATA_MIGRATION);
+        }
 
         return allowedOperations;
     }

@@ -4256,6 +4256,10 @@ public class BlockService extends TaskResourceService {
                     throw APIException.badRequests.changeToVirtualPoolNotSupported(newVpool.getLabel(),
                             notSuppReasonBuff.toString());
                 }
+            } else if (VirtualPoolChangeAnalyzer.vpoolChangeRequiresMigration(currentVpool, newVpool)) {
+                // Data migration case in instance where system type is not VPLEX. Handled by external
+                // host or southbound driver.
+                return;
             } else {
                 String errMsg = "there was an invalid property mismatch between source and target vPools.";
                 _log.error(errMsg);

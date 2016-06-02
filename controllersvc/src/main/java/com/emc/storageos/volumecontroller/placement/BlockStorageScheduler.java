@@ -2374,9 +2374,15 @@ public class BlockStorageScheduler {
             NetworkDeviceController networkDeviceController, URI virtualArrayUri, String token) {
         StringSetMap preZonedZoningMap = assignPrezonedStoragePorts(storage, exportGroup, initiators,
                 existingZoningMap, pathParams, volumeURIs, networkDeviceController, virtualArrayUri, token);
-        Map<URI, List<URI>> assignments =
-                assignStoragePorts(storage, virtualArrayUri, initiators,
+        Map<URI, List<URI>> assignments = null;
+        if(exportGroup.getProject() == null && exportGroup.getVirtualArray() == null) {
+        	assignments = assignPassThroughStoragePorts(storage, initiators,
+                    pathParams, preZonedZoningMap, volumeURIs);
+        }
+        else {
+        	assignments = assignStoragePorts(storage, virtualArrayUri, initiators,
                         pathParams, preZonedZoningMap, volumeURIs);
+        }
 
         return assignments;
     }
@@ -2428,7 +2434,12 @@ public class BlockStorageScheduler {
         if (existingZoningMap != null) {
             newZoningMap.putAll(existingZoningMap);
         }
-
+        
+        boolean passThrough = false;
+        //Check if this is PassThrough export
+        if(exportGroup.getProject()==null && exportGroup.getVirtualArray()==null) {
+        	passThrough = true;
+        }
         // check if this is a backend export
         boolean backend = ExportMaskUtils.areBackendInitiators(initiators);
 
@@ -2459,13 +2470,27 @@ public class BlockStorageScheduler {
             }
 
             Map<Initiator, List<StoragePort>> assignments = new HashMap<Initiator, List<StoragePort>>();
-            Map<Initiator, List<StoragePort>> existingAssignments =
+            Map<Initiator, List<StoragePort>> existingAssignments = null;
+            if(passThrough) {
+            	existingAssignments =
+                        generatePassThroughInitiatorsToStoragePortsMap(existingZoningMap);
+            }
+            else {
+            	existingAssignments =
                     generateInitiatorsToStoragePortsMap(existingZoningMap, virtualArrayUri);
+            }
             if (!newInitiators.isEmpty()) {
                 // discover existing zones that are for the storage system and varray
                 // At this time we are not discovering routed zones but we will take care of this
-                Collection<StoragePort> ports = ExportUtils.getStorageSystemAssignablePorts(
-                        _dbClient, storage.getId(), virtualArrayUri, pathParams);
+            	Collection<StoragePort> ports = null;
+            	if(passThrough) {
+            		ports = ExportUtils.getPassThroughStorageSystemAssignablePorts(
+                        _dbClient, storage.getId(), pathParams);
+            	}
+            	else {
+            		ports = ExportUtils.getStorageSystemAssignablePorts(
+                            _dbClient, storage.getId(), virtualArrayUri, pathParams);
+            	}
                 Map<NetworkLite, List<Initiator>> initiatorsByNetwork = NetworkUtil.getInitiatorsByNetwork(newInitiators, _dbClient);
                 Map<Initiator, NetworkLite> initiatorToNetworkLiteMap = getInitiatorToNetworkLiteMap(initiatorsByNetwork);
                 Map<NetworkLite, List<StoragePort>> portByNetwork = ExportUtils.mapStoragePortsToNetworks(ports,
@@ -2479,9 +2504,18 @@ public class BlockStorageScheduler {
                 if (!preZonedPortsByNetwork.isEmpty()) {
                     // trim the initiators to the pre-zoned ports
                     StringMapUtil.retainAll(initiatorsByNetwork, preZonedPortsByNetwork);
-                    Map<NetworkLite, List<StoragePort>> allocatedPortsByNetwork = allocatePorts(
-                            storage, virtualArrayUri, initiatorsByNetwork,
+                    Map<NetworkLite, List<StoragePort>> allocatedPortsByNetwork = null;
+                    if(passThrough) {
+                    	allocatedPortsByNetwork = allocatePassThroughPorts(
+                            storage, initiatorsByNetwork,
                             preZonedPortsByNetwork, volumeURIs, prezoningPathParams, existingZoningMap);
+                    }
+                    else {
+                    	allocatedPortsByNetwork = allocatePorts(
+                                storage, virtualArrayUri, initiatorsByNetwork,
+                                preZonedPortsByNetwork, volumeURIs, prezoningPathParams, existingZoningMap);
+                        
+                    }
                     Map<URI, List<StoragePort>> allocatedPortsMap = getAllocatedPortsMap(allocatedPortsByNetwork);
                     // Get a map of Host to Network to Initiators
                     Map <URI, Map<URI, List<Initiator>>> hostsToNetToInitiators = 
@@ -2499,15 +2533,28 @@ public class BlockStorageScheduler {
                     addAssignmentsToZoningMap(assignments, newZoningMap);
                 }
                 // if manual zoning is on, then make sure the paths discovered meet the path requirement
-                if (allocateFromPrezonedPortsOnly(virtualArrayUri, storage.getSystemType(), backend)) {
-                    try {
-                        validateMinPaths(storage, prezoningPathParams, existingAssignments, assignments,
-                                newInitiators);
-                    } catch (PlacementException pex) {
-                        _log.error("There are fewer pre-zoned paths than required by the virtual pool."
-                                + " Please either add the needed paths or enable automatic SAN zoning in the virtual array"
-                                + " so that the additional paths can be added by the application.", pex);
-                        throw pex;
+                if(passThrough) {
+                	if (allocateFromPassThroughPrezonedPortsOnly(storage.getSystemType(), backend)) {
+                        try {
+                            validateMinPaths(storage, prezoningPathParams, existingAssignments, assignments,
+                                    newInitiators);
+                        } catch (PlacementException pex) {
+                            _log.error("There are fewer pre-zoned paths than required in pass through algorithm.", pex);
+                            throw pex;
+                        }
+                    }
+                }
+                else {
+                	if (allocateFromPrezonedPortsOnly(virtualArrayUri, storage.getSystemType(), backend)) {
+                        try {
+                            validateMinPaths(storage, prezoningPathParams, existingAssignments, assignments,
+                                    newInitiators);
+                        } catch (PlacementException pex) {
+                            _log.error("There are fewer pre-zoned paths than required by the virtual pool."
+                                    + " Please either add the needed paths or enable automatic SAN zoning in the virtual array"
+                                    + " so that the additional paths can be added by the application.", pex);
+                            throw pex;
+                        }
                     }
                 }
             }
@@ -2518,7 +2565,13 @@ public class BlockStorageScheduler {
                 _log.error("The virtual array is configured for manual zoning and the application "
                         + "cannot assign from other storage ports. Failing the workflow.");
                 throw ex;
-            } else {
+            } 
+            else if(allocateFromPassThroughPrezonedPortsOnly(storage.getSystemType(), backend)) {
+            	_log.error("Pass Through algorithm failure. Manual zoning is configured and the application "
+                        + "cannot assign from other storage ports. Failing the workflow.");
+                throw ex;
+        	}
+        	else {
                 _log.info("The virtual array is configured for auto zoning and the application "
                         + "will attempt to assign from other storage ports. Resuming the workflow.");
             }

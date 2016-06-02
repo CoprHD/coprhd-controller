@@ -910,6 +910,18 @@ public class NetworkDeviceController implements NetworkController {
             return true;
         }
     }
+    
+    /**
+     * Returns true if zoning required; sets Workflow Step status to
+     * executing or succeeded depending. This is pass through call, we don't need virtual array.
+     * 
+     * @param token - Workflow step id.
+     * @return true if zoning required
+     */
+    private boolean checkPassThroughZoningRequired(String token) {
+         WorkflowStepCompleter.stepExecuting(token);
+            return true;
+    }
 
     // ===========================================================================================================
     // External Interfaces to BlockDeviceController
@@ -994,9 +1006,16 @@ public class NetworkDeviceController implements NetworkController {
         BiosCommandResult result = null;
         NetworkFCContext context = new NetworkFCContext();
         try {
-            if (!checkZoningRequired(token, exportGroup.getVirtualArray())) {
-                return true;
-            }
+        	if(exportGroup.getProject() == null && exportGroup.getVirtualArray() == null) {
+	            if (!checkPassThroughZoningRequired(token)) {
+	                return true;
+	            }
+        	}
+        	else {
+        		if (!checkZoningRequired(token, exportGroup.getVirtualArray())) {
+	                return true;
+	            }
+        	}
             volumeURIs = removeDuplicateURIs(volumeURIs);
 
             // In the case of export group create, we created this step before we even

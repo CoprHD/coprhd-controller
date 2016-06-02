@@ -5,25 +5,21 @@
 
 package util;
 
-import static util.BourneUtil.getViprClient;
-
-import java.util.Iterator;
-import java.util.List;
-
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.model.dr.SiteActive;
 import com.emc.storageos.model.dr.SiteAddParam;
 import com.emc.storageos.model.dr.SiteDetailRestRep;
 import com.emc.storageos.model.dr.SiteErrorResponse;
 import com.emc.storageos.model.dr.SiteIdListParam;
-import com.emc.storageos.model.dr.SiteList;
 import com.emc.storageos.model.dr.SiteRestRep;
 import com.emc.storageos.model.dr.SiteUpdateParam;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.vipr.client.exceptions.ServiceErrorException;
-import com.emc.vipr.model.sys.ClusterInfo;
 import com.google.common.collect.Lists;
 import com.sun.jersey.api.client.ClientResponse;
+import java.util.Iterator;
+import java.util.List;
+import static util.BourneUtil.getViprClient;
 
 public class DisasterRecoveryUtils {
 
@@ -191,10 +187,7 @@ public class DisasterRecoveryUtils {
     }
     
     public static boolean isMultiDrSite() {
-        int sitecount = getSiteCount();
-        if(sitecount > 1) {
-            return true;
-        }
-        return false;
+        SiteActive siteCheck = checkActiveSite();
+        return siteCheck.getIsMultiSite();
     }
 }

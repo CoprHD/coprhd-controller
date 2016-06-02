@@ -44,6 +44,7 @@ import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
@@ -85,7 +86,6 @@ import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.db.client.util.WWNUtility;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.exceptions.DeviceControllerException;
-import com.emc.storageos.locking.DistributedOwnerLockService;
 import com.emc.storageos.locking.LockTimeoutValue;
 import com.emc.storageos.locking.LockType;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
@@ -1660,8 +1660,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             Workflow workflow = _workflowService.getNewWorkflow(this, "exportGroupCreate", true, opId);
 
             // Do the source side export if there are src side volumes and initiators.
+            String srcExportStepId = null;
             if (srcVolumes != null && varrayToInitiators.get(srcVarray) != null) {
-                assembleExportMasksWorkflow(vplex, export, srcVarray,
+                srcExportStepId = assembleExportMasksWorkflow(vplex, export, srcVarray,
                         varrayToInitiators.get(srcVarray),
                         ExportMaskUtils.filterVolumeMap(volumeMap, srcVolumes), workflow, null, opId);
             }
@@ -1734,7 +1735,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             Map<URI, Integer> blockObjectMap, Workflow workflow, String waitFor, String opId) throws Exception {
 
         long startAssembly = new Date().getTime();
-        
+
         StorageSystem vplexSystem = getDataObject(StorageSystem.class, vplexURI, _dbClient);
         ExportGroup exportGroup = getDataObject(ExportGroup.class, export, _dbClient);
 
@@ -2423,7 +2424,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         Workflow.Method storageViewExecuteMethod = new Workflow.Method(CREATE_STORAGE_VIEW,
                 vplexSystem.getId(), exportGroup.getId(), exportMask.getId(), blockObjectMap, inits, hostTargets);
         // Workflow.Method storageViewRollbackMethod = new Workflow.Method(ROLLBACK_METHOD_NULL);
-        Workflow.Method storageViewRollbackMethod = deleteStorageViewMethod(vplexSystem.getId(), exportGroup.getId(), exportMask.getId());
+        Workflow.Method storageViewRollbackMethod = deleteStorageViewMethod(vplexSystem.getId(), exportMask.getId());
         storageViewStepId = workflow.createStep("storageView",
                 String.format("Create VPLEX Storage View for ExportGroup %s Mask %s", exportGroup.getId(), exportMask.getMaskName()),
                 storageViewStepId, vplexSystem.getId(), vplexSystem.getSystemType(),
@@ -2511,8 +2512,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      */
     public void createStorageView(URI vplexURI, URI exportURI, URI exportMaskURI, Map<URI, Integer> blockObjectMap,
             List<URI> initiators, List<URI> targets, String stepId) throws ControllerException {
-        String vplexApiLockName = null;
-        boolean vplexApilockAcquired = false;
+        String lockName = null;
+        boolean lockAcquired = false;
         try {
             StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
             ExportGroup exportGroup = getDataObject(ExportGroup.class, exportURI, _dbClient);
@@ -2527,9 +2528,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 PortInfo pi = new PortInfo(port.getPortNetworkId().toUpperCase()
                         .replaceAll(":", ""), null, port.getPortName(), null);
                 targetPortInfos.add(pi);
-                if (vplexApiLockName == null) {
+                if (lockName == null) {
                     String clusterId = ConnectivityUtil.getVplexClusterOfPort(port);
-                    vplexApiLockName = _vplexApiLockManager.getLockName(vplexURI, clusterId);
+                    lockName = _vplexApiLockManager.getLockName(vplexURI, clusterId);
                 }
             }
             List<PortInfo> initiatorPortInfos = new ArrayList<PortInfo>();
@@ -2542,22 +2543,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         getVPlexInitiatorType(initiator));
                 initiatorPortInfos.add(pi);
             }
-            
-            // If custom VPLEX volume naming is enabled, we need to lock the volumes
-            // at this point as the volume names may change as a result of this new
-            // export and therefore the deviceLabel for the volumes may change. If
-            // there are concurrent exports of these volumes, then the others could
-            // fail if they have already extracted the volume data from the ViPR
-            // database and then subsequently the deviceLabel for the volumes change.
-            if (VPlexCustomNameUtils.isCustomNamingEnabled(customConfigHandler)) {
-                List<String> volumeLockNames = VPlexCustomNameUtils.getVolumeLockNames(vplex, new ArrayList<>(blockObjectMap.keySet()));
-                boolean volumeLocksAcquired = _workflowService.acquireWorkflowStepLocks(stepId, volumeLockNames,
-                        LockTimeoutValue.get(LockType.VPLEX_API_LIB));
-                if (!volumeLocksAcquired) {
-                    throw VPlexApiException.exceptions.couldNotObtainConcurrencyLock(vplex.getLabel());
-                }
-            }
-            
+
             List<BlockObject> blockObjects = new ArrayList<BlockObject>();
             Map<String, Integer> boMap = new HashMap<String, Integer>();
             for (URI vol : blockObjectMap.keySet()) {
@@ -2570,8 +2556,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 boMap.put(bo.getDeviceLabel(), lun);
             }
 
-            vplexApilockAcquired = _vplexApiLockManager.acquireLock(vplexApiLockName, LockTimeoutValue.get(LockType.VPLEX_API_LIB));
-            if (!vplexApilockAcquired) {
+            lockAcquired = _vplexApiLockManager.acquireLock(lockName, LockTimeoutValue.get(LockType.VPLEX_API_LIB));
+            if (!lockAcquired) {
                 throw VPlexApiException.exceptions.couldNotObtainConcurrencyLock(vplex.getLabel());
             }
             VPlexStorageViewInfo svInfo = client.createStorageView(exportMask.getMaskName(),
@@ -2584,7 +2570,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 String deviceLabel = bo.getDeviceLabel();
                 bo.setWWN(svInfo.getWWNForStorageViewVolume(deviceLabel));
                 _dbClient.updateObject(bo);
-                updatedBlockObjectMap.put(bo.getId(), svInfo.getHLUForStorageViewVolume(deviceLabel));
+
+                updatedBlockObjectMap.put(bo.getId(),
+                        svInfo.getHLUForStorageViewVolume(deviceLabel));
             }
 
             // We also need to update the volume/lun id map in the export mask
@@ -2598,40 +2586,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // during exportGroupCreate which sets volumes to user created volumes list.
             exportMask.addToUserCreatedVolumes(blockObjects);
             _dbClient.updateObject(exportMask);
-            _dbClient.updateObject(exportGroup);
-            
-            // If custom naming is enabled, we now update the name is case the custom
-            // name reflects the the host/cluster to which it is exported. Note that
-            // the volume will only be renamed if it has changed and should not cause
-            // the workflow step to fail if the rename fails.
-            if (VPlexCustomNameUtils.isCustomNamingEnabled(customConfigHandler)) {
-                for (BlockObject bo : blockObjects) {
-                    try {
-                        Volume vplexVolume = ((Volume)bo);
-                        
-                        // We need to know if the volume is local or distributed.
-                        // However, for an ingested volume, if the backend volumes
-                        // were not ingested, we have no way of knowing this unless
-                        // we find the volume on the VPLEX.
-                        boolean isDistributed = VPlexCustomNameUtils.isVolumeDistributed(vplexVolume, client);
 
-                        // Create the VPLEX volume name custom configuration datasource and generate the
-                        // custom volume name based on whether the volume is a local or distributed volume.
-                        String customConfigName = VPlexCustomNameUtils.getCustomConfigName(isDistributed, exportGroup.getType());
-                        DataSource customNameDataSource = VPlexCustomNameUtils.getCustomConfigDataSource(vplexVolume, exportGroup,
-                                dataSourceFactory, customConfigName, _dbClient);
-                        if (customNameDataSource != null) {
-                            String customVolumeName = VPlexCustomNameUtils.getCustomName(customConfigHandler, customConfigName,
-                                    customNameDataSource);
-                            VPlexCustomNameUtils.renameVPlexVolume(vplexVolume, customVolumeName, client, _dbClient);
-                        }
-                    } catch (Exception e) {
-                        _log.warn(String.format("Error attempting to rename volume %s on export to %s",
-                                bo.getId(), exportGroup.getId()), e);
-                    }
-                }
-            }        
-            
+            _dbClient.updateObject(exportGroup);
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (VPlexApiException vae) {
             _log.error("Exception creating VPlex Storage View: " + vae.getMessage(), vae);
@@ -2655,8 +2611,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             ServiceError serviceError = VPlexApiException.errors.createStorageViewFailed(opName, ex);
             WorkflowStepCompleter.stepFailed(stepId, serviceError);
         } finally {
-            if (vplexApilockAcquired) {
-                _vplexApiLockManager.releaseLock(vplexApiLockName);
+            if (lockAcquired) {
+                _vplexApiLockManager.releaseLock(lockName);
             }
         }
     }
@@ -2789,7 +2745,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
                     } else {
                         _log.info("creating a deleteStorageView workflow step for " + exportMask.getMaskName());
-                        Workflow.Method storageViewExecuteMethod = deleteStorageViewMethod(vplex, export, exportMask.getId());
+                        Workflow.Method storageViewExecuteMethod = deleteStorageViewMethod(vplex, exportMask.getId());
                         storageViewStepId = workflow.createStep(DELETE_STORAGE_VIEW,
                                 String.format("Delete VPLEX Storage View %s for ExportGroup %s",
                                         exportMask.getMaskName(), export),
@@ -2863,38 +2819,32 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * Create a Workflow Method for deleteStorageView(). Args must match deleteStorageView
      * except for extra stepId arg.
      *
-     * @param vplexURI The URI of the VPLEX system
-     * @param exportGroupURI The URI of the export group.
-     * @param exportMaskURI The URI of the export mask.
-     * 
-     * @return The created Workflow Method
+     * @param vplexURI
+     * @param exportMaskURI
+     * @return
      */
-    private Workflow.Method deleteStorageViewMethod(URI vplexURI, URI exportGroupURI, URI exportMaskURI) {
-        return new Workflow.Method(DELETE_STORAGE_VIEW, vplexURI, exportGroupURI, exportMaskURI);
+    private Workflow.Method deleteStorageViewMethod(URI vplexURI, URI exportMaskURI) {
+        return new Workflow.Method(DELETE_STORAGE_VIEW, vplexURI, exportMaskURI);
     }
 
     /**
      * A Workflow Step do delete a VPlex Storage View.
      *
-     * @param vplexURI The URI of the VPLEX system
-     * @param exportGroupURI The URI of the export group.
-     * @param exportMaskURI The URI of the export mask.
-     * @param stepId The workflow step id.
+     * @param vplexURI
+     * @param exportMaskURI
+     * @param stepId
      * @throws WorkflowException
      */
-    public void deleteStorageView(URI vplexURI, URI exportGroupURI, URI exportMaskURI, String stepId) throws WorkflowException {
+    public void deleteStorageView(URI vplexURI, URI exportMaskURI, String stepId) throws WorkflowException {
         try {
             StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
             Boolean[] viewFound = new Boolean[] { new Boolean(false) };
             ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
-            ExportGroup exportGroup = null;
-            if (exportGroupURI != null) {
-                exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
-            }
             WorkflowStepCompleter.stepExecuting(stepId);
             VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
-            List<URI> userAddedVolumeURIs = new ArrayList<>();
+
             if (exportMask != null) {
+
                 String vplexClusterName = VPlexUtil.getVplexClusterName(exportMask, vplexURI, client, _dbClient);
                 VPlexStorageViewInfo storageView = client.getStorageView(vplexClusterName, exportMask.getMaskName());
                 if (storageView != null) {
@@ -2917,29 +2867,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     _log.warn("ExportMask {} is already inactive, so there's "
                             + "no need to delete it off the VPLEX", exportMask.getMaskName());
                 } else {
-                    // Get any user added volume still in the storage view.
-                    StringMap volumeHLUMap = exportMask.getUserAddedVolumes();
-                    for (Entry<String, String> entry : volumeHLUMap.entrySet()) {
-                        URI volumeURI = URI.create(entry.getValue());
-                        Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
-                        userAddedVolumeURIs.add(volumeURI);
-                    }
-                    
-                    // If custom VPLEX volume naming is enabled, we need to lock the volumes
-                    // at this point as the volume names may change as a result of this new
-                    // export and therefore the deviceLabel for the volumes may change. If
-                    // there are concurrent exports of these volumes, then the others could
-                    // fail if they have already extracted the volume data from the ViPR
-                    // database and then subsequently the deviceLabel for the volumes change.
-                    if (VPlexCustomNameUtils.isCustomNamingEnabled(customConfigHandler)) {
-                        List<String> volumeLockNames = VPlexCustomNameUtils.getVolumeLockNames(vplex, userAddedVolumeURIs);
-                        boolean volumeLocksAcquired = _workflowService.acquireWorkflowStepLocks(stepId, volumeLockNames,
-                                LockTimeoutValue.get(LockType.VPLEX_API_LIB));
-                        if (!volumeLocksAcquired) {
-                            throw VPlexApiException.exceptions.couldNotObtainConcurrencyLock(vplex.getLabel());
-                        }
-                    }
-                  
                     // note: there's a chance if the existing storage view originally had only
                     // storage ports configured in it, then it would be deleted by this
                     _log.info("removing this export mask from VPLEX: " + exportMask.getMaskName());
@@ -2949,62 +2876,20 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     } else {
                         _log.info("storage view was not found on the VPLEX during deletion, "
                                 + "but no errors were encountered.");
-                    }              
+                    }
                 }
                 _log.info("marking this mask for deletion from ViPR: " + exportMask.getMaskName());
                 _dbClient.markForDeletion(exportMask);
 
                 _log.info("updating ExportGroups containing this ExportMask");
                 List<ExportGroup> exportGroups = ExportMaskUtils.getExportGroups(_dbClient, exportMask);
-                for (ExportGroup eg : exportGroups) {
-                    _log.info("Removing mask from ExportGroup " + eg.getGeneratedName());
-                    eg.removeExportMask(exportMaskURI);
-                    _dbClient.updateObject(eg);
+                for (ExportGroup exportGroup : exportGroups) {
+                    _log.info("Removing mask from ExportGroup " + exportGroup.getGeneratedName());
+                    exportGroup.removeExportMask(exportMaskURI);
+                    _dbClient.updateObject(exportGroup);
                 }
             } else {
                 _log.info("ExportMask to delete could not be found in database: " + exportMaskURI);
-            }
-            
-            // If custom naming is enabled, we now update the name is case the custom
-            // name reflects the the host/cluster to which it is exported. Note that
-            // the volume will only be renamed if it has changed and should not cause
-            // the workflow step to fail if the rename fails.
-            if (VPlexCustomNameUtils.isCustomNamingEnabled(customConfigHandler)) {
-                for (URI vplexVolumeURI : userAddedVolumeURIs) {
-                    try {
-                        // We need to know if the volume is local or distributed.
-                        // However, for an ingested volume, if the backend volumes
-                        // were not ingested, we have no way of knowing this unless
-                        // we find the volume on the VPLEX.
-                        Volume vplexVolume = _dbClient.queryObject(Volume.class, vplexVolumeURI);
-                        boolean isDistributed = VPlexCustomNameUtils.isVolumeDistributed(vplexVolume, client);
-
-                        // If the volume will still be exported after being removed
-                        // from 'this' export mask, then we need to know the export 
-                        // group to which the volumes was most recently exported and
-                        // get the export type.
-                        String exportType = null;
-                        ExportGroup mostRecentExportGroup = ExportUtils.getMostRecentExportForVolume(
-                                vplexVolume, exportGroup, _dbClient);
-                        if (mostRecentExportGroup != null) {
-                            exportType = mostRecentExportGroup.getType();
-                        }
-
-                        // Create the VPLEX volume name custom configuration datasource and generate the
-                        // custom volume name based on whether the volume is a local or distributed volume.
-                        String customConfigName = VPlexCustomNameUtils.getCustomConfigName(isDistributed, exportType);
-                        DataSource customNameDataSource = VPlexCustomNameUtils.getCustomConfigDataSource(vplexVolume, mostRecentExportGroup,
-                                dataSourceFactory, customConfigName, _dbClient);
-                        if (customNameDataSource != null) {
-                            String customVolumeName = VPlexCustomNameUtils.getCustomName(customConfigHandler, customConfigName,
-                                    customNameDataSource);
-                            VPlexCustomNameUtils.renameVPlexVolume(vplexVolume, customVolumeName, client, _dbClient);
-                        }
-                    } catch (Exception e) {
-                        _log.warn(String.format("Error attempting to rename volume %s on deletion of storage view %s",
-                                vplexVolumeURI, exportMaskURI), e);
-                    }
-                }
             }
 
             WorkflowStepCompleter.stepSucceded(stepId);
@@ -3139,22 +3024,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             WorkflowStepCompleter.stepExecuting(opId);
             StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
             ExportMask exportMask = getDataObject(ExportMask.class, exportMaskURI, _dbClient);
-            ExportGroup exportGroup = getDataObject(ExportGroup.class, exportGroupURI, _dbClient);
-            
-            // If custom VPLEX volume naming is enabled, we need to lock the volumes
-            // at this point as the volume names may change as a result of this new
-            // export and therefore the deviceLabel for the volumes may change. If
-            // there are concurrent exports of these volumes, then the others could
-            // fail if they have already extracted the volume data from the ViPR
-            // database and then subsequently the deviceLabel for the volumes change.
-            if (VPlexCustomNameUtils.isCustomNamingEnabled(customConfigHandler)) {
-                List<String> volumeLockNames = VPlexCustomNameUtils.getVolumeLockNames(vplex, new ArrayList<>(volumeMap.keySet()));
-                boolean volumeLocksAcquired = _workflowService.acquireWorkflowStepLocks(opId, volumeLockNames,
-                        LockTimeoutValue.get(LockType.VPLEX_API_LIB));
-                if (!volumeLocksAcquired) {
-                    throw VPlexApiException.exceptions.couldNotObtainConcurrencyLock(vplex.getLabel());
-                }
-            }
 
             // TODO: Bharath/RPTEAM - I dont think the below call to zoneExportAddVolumes is necessary here(i have just commented it for
             // now, because i am no expert in this
@@ -3239,38 +3108,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             _log.info("Updating volume/lun map in export mask {}", exportMask.getId());
             exportMask.addVolumes(updatedVolumeMap);
             _dbClient.updateObject(exportMask);
-            
-            // If custom naming is enabled, we now update the name is case the custom
-            // name reflects the the host/cluster to which it is exported. Note that
-            // the volume will only be renamed if it has changed and should not cause
-            // the workflow step to fail if the rename fails.
-            if (VPlexCustomNameUtils.isCustomNamingEnabled(customConfigHandler)) {
-                for (BlockObject bo : volumes) {
-                    try {
-                        Volume vplexVolume = ((Volume)bo);
-                        
-                        // We need to know if the volume is local or distributed.
-                        // However, for an ingested volume, if the backend volumes
-                        // were not ingested, we have no way of knowing this unless
-                        // we find the volume on the VPLEX.
-                        boolean isDistributed = VPlexCustomNameUtils.isVolumeDistributed(vplexVolume, client);
-
-                        // Create the VPLEX volume name custom configuration datasource and generate the
-                        // custom volume name based on whether the volume is a local or distributed volume.
-                        String customConfigName = VPlexCustomNameUtils.getCustomConfigName(isDistributed, exportGroup.getType());
-                        DataSource customNameDataSource = VPlexCustomNameUtils.getCustomConfigDataSource(vplexVolume, exportGroup,
-                                dataSourceFactory, customConfigName, _dbClient);
-                        if (customNameDataSource != null) {
-                            String customVolumeName = VPlexCustomNameUtils.getCustomName(customConfigHandler, customConfigName,
-                                    customNameDataSource);
-                            VPlexCustomNameUtils.renameVPlexVolume(vplexVolume, customVolumeName, client, _dbClient);
-                        }
-                    } catch (Exception e) {
-                        _log.warn(String.format("Error attempting to rename volume %s on export to %s",
-                                bo.getId(), exportGroupURI), e);
-                    }
-                }
-            }
 
             completer.ready(_dbClient);
         } catch (VPlexApiException vae) {
@@ -3312,7 +3149,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
             Map<String, String> targetPortToPwwnMap = VPlexControllerUtils.getTargetPortToPwwnMap(client);
+
             for (ExportMask exportMask : exportMasks) {
+
                 String vplexClusterName = VPlexUtil.getVplexClusterName(exportMask, vplexURI, client, _dbClient);
                 VPlexStorageViewInfo storageView = client.getStorageView(vplexClusterName, exportMask.getMaskName());
                 VPlexControllerUtils.refreshExportMask(
@@ -3370,7 +3209,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     _log.info("this mask is not empty, so just updating: "
                             + exportMask.getMaskName());
 
-                    removeVolumesFromStorageViewAndMask(vplex, client, exportGroup, exportMask, volumeURIList);
+                    removeVolumesFromStorageViewAndMask(client, exportMask, volumeURIList);
                     List<URI> storagePortURIs = ExportUtils.checkIfStoragePortsNeedsToBeRemoved(exportMask);
 
                     if (!storagePortURIs.isEmpty()) {
@@ -3424,10 +3263,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                             + exportMask.getMaskName());
                     hasSteps = true;
                     // Remove volumes from the storage view.
-                    removeVolumesFromStorageViewAndMask(vplex, client, exportGroup, exportMask, volumeURIList);
+                    removeVolumesFromStorageViewAndMask(client, exportMask, volumeURIList);
 
                     if (!existingVolumes) {
-                        // create workflow and steps to remove zones and initiators
+                        // create workflow and steps to remove zones and inititaors
                         String completerStepId = workflow.createStepId();
                         ExportMaskRemoveInitiatorCompleter maskCompleter = new ExportMaskRemoveInitiatorCompleter(
                                 exportURI, exportMask.getId(), URIUtil.toURIList(exportMask.getInitiators()), completerStepId);
@@ -3452,16 +3291,18 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     _log.info("this mask is empty of ViPR-managed volumes, so deleting: "
                             + exportMask.getMaskName());
                     hasSteps = true;
-                    Workflow.Method deleteStorageView = deleteStorageViewMethod(vplexURI, exportGroup.getId(), exportMask.getId());
-                    String deleteStepId = workflow.createStep(DELETE_STORAGE_VIEW,
+                    Workflow.Method deleteStorageView = deleteStorageViewMethod(vplexURI, exportMask.getId());
+                    workflow.createStep(DELETE_STORAGE_VIEW,
                             String.format("Deleting storage view: %s (%s)", exportMask.getMaskName(), exportMask.getId()),
                             null, vplexURI, vplex.getSystemType(), this.getClass(), deleteStorageView, null, null);
                 }
             }
 
             if (hasSteps) {
-                workflow.executePlan(completer, String.format("Sucessfully removed volumes or deleted Storage View: %s (%s)",
-                        exportGroup.getLabel(), exportGroup.getId()));
+                workflow.executePlan(
+                        completer,
+                        String.format("Sucessfully removed volumes or deleted Storage View: %s (%s)", exportGroup.getLabel(),
+                                exportGroup.getId()));
             } else {
                 completer.ready(_dbClient);
             }
@@ -3495,7 +3336,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /**
      * @param client -- VPlexApiClient used for communication
-     * @param exportMask -- ExportMask corresponding to the StorageView
+     * @param exportMask -- ExportMask corresonding to the StorageView
      * @param volumeURIList -- URI of virtual volumes
      * @param stepId -- Workflow step id
      * @throws WorkflowException
@@ -3510,7 +3351,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             // Removes the specified volumes from the storage view
             // and updates the export mask.
-            removeVolumesFromStorageViewAndMask(vplex, client, null, exportMask, volumeURIList);
+            removeVolumesFromStorageViewAndMask(client, exportMask, volumeURIList);
 
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (VPlexApiException vae) {
@@ -3528,138 +3369,60 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * Remove the specified volumes from the VPlex Storage View.
      * If that is successful, remove the volumes from the ExportMask and persist it.
      *
-     * @param vplex -- A reference to the VPLEX storage system.
      * @param client -- VPlexApiClient used for communication
-     * @param exportGroup -- The export group if the volumes will be removed from the group, else null.
-     * @param exportMask -- ExportMask corresponding to the StorageView
+     * @param exportMask -- ExportMask corresonding to the StorageView
      * @param volumeURIList -- URI of virtual volumes
      */
     private void removeVolumesFromStorageViewAndMask(
-            StorageSystem vplex, VPlexApiClient client, ExportGroup exportGroup, ExportMask exportMask, List<URI> volumeURIList) {
+            VPlexApiClient client, ExportMask exportMask, List<URI> volumeURIList) {
         // If no volumes to remove, just return.
         if (volumeURIList.isEmpty()) {
             return;
         }
-        
-        // If custom VPLEX volume naming is enabled, we need to lock the volumes
-        // at this point as the volume names may change as a result of this 
-        // export change and therefore the deviceLabel for the volumes may change.
-        // If there are concurrent exports of these volumes, then the others could
-        // fail if they have already extracted the volume data from the ViPR
-        // database and then subsequently the deviceLabel for the volumes change.
-        // Note that we would like to use workflow step locks as was done in other
-        // methods where this same behavior is required. However, this method is
-        // not always called from an executing workflow step, so we use the DOLS
-        // directly.
-        boolean volumeLocksAcquired = false;
-        List<String> volumeLockNames = new ArrayList<>();
-        String lockOwner = UUID.randomUUID().toString();
-        DistributedOwnerLockService doLockService = _workflowService.getOwnerLocker();
-        try {
-            if (VPlexCustomNameUtils.isCustomNamingEnabled(customConfigHandler)) {
-                new HashSet<URI>(volumeURIList);
-                volumeLockNames.addAll(VPlexCustomNameUtils.getVolumeLockNames(vplex, volumeURIList));
-                volumeLocksAcquired = doLockService.acquireLocks(volumeLockNames, lockOwner, LockTimeoutValue.get(LockType.VPLEX_API_LIB));
-                if (!volumeLocksAcquired) {
-                    throw VPlexApiException.exceptions.couldNotObtainConcurrencyLock(vplex.getLabel());
-                }
-            }
-    
-            Map<URI, BlockObject> blockObjectCache = new HashMap<URI, BlockObject>();
-            // Determine the virtual volume names.
-            List<String> blockObjectNames = new ArrayList<String>();
-            for (URI boURI : volumeURIList) {
-                BlockObject blockObject = Volume.fetchExportMaskBlockObject(_dbClient, boURI);
-                blockObjectNames.add(blockObject.getDeviceLabel());
-                blockObjectCache.put(blockObject.getId(), blockObject);
-            }
-            
-            _log.info("about to remove " + blockObjectNames + " from StorageView " + exportMask.getMaskName());
-            // Remove volumes from the storage view.
-            client.removeVirtualVolumesFromStorageView(exportMask.getMaskName(),
-                    blockObjectNames);
-    
-            // Remove the volumes from the Export Mask.
-            exportMask.removeVolumes(volumeURIList);
-            for (URI volumeURI : volumeURIList) {
-                BlockObject blockObject = blockObjectCache.get(volumeURI);
-                if (blockObject != null) {
-                    if (blockObject.getWWN() != null) {
-                        exportMask.removeFromUserCreatedVolumes(blockObject);
-                    } else {
-                        _log.warn("Could not remove volume " + blockObject.getId() + " from export mask " + exportMask.getLabel() +
-                                " because it does not have a WWN.  Assumed not in mask, likely part of a rollback operation");
-                    }
-                }
-            }
-    
-            // if no vipr-managed volumes are remaining, the ExportMask object should be deleted from the database.
-            // if we don't do this, then the unmanaged storage view might be deleted out-of-band later and then we 
-            // would have inconsistent information, and any VPLEX API call to update this ExportMask would return a 404
-            if (exportMask.getVolumes().isEmpty()) {
-                _log.info("updating ExportGroups containing this ExportMask");
-                List<ExportGroup> exportGroups = ExportMaskUtils.getExportGroups(_dbClient, exportMask);
-                for (ExportGroup eg : exportGroups) {
-                    _log.info("Removing mask from ExportGroup " + eg.getGeneratedName());
-                    eg.removeExportMask(exportMask.getId());
-                    _dbClient.updateObject(eg);
-                }
-                _log.info("marking this mask for deletion from ViPR: " + exportMask.getMaskName());
-                _dbClient.markForDeletion(exportMask);
-            }
-            _dbClient.updateObject(exportMask);
-            _log.info("successfully removed " + blockObjectNames + " from StorageView " + exportMask.getMaskName());
-            
-            // If custom naming is enabled, we now update the name is case the custom
-            // name reflects the the host/cluster to which it is exported. Note that
-            // the volume will only be renamed if it has changed and should not cause
-            // a failure if the rename fails.
-            if (VPlexCustomNameUtils.isCustomNamingEnabled(customConfigHandler)) {
-                for (BlockObject bo : blockObjectCache.values()) {
-                    try {
-                        Volume vplexVolume = (Volume) bo;
-                        
-                        // We need to know if the volume is local or distributed.
-                        // However, for an ingested volume, if the backend volumes
-                        // were not ingested, we have no way of knowing this unless
-                        // we find the volume on the VPLEX.
-                        boolean isDistributed = VPlexCustomNameUtils.isVolumeDistributed(vplexVolume, client);
-                        
-                        // If the volume will still be exported after being removed
-                        // from 'this' export mask, then we need to know the export 
-                        // group to which the volumes was most recently exported and
-                        // get the export type.
-                        String exportType = null;
-                        ExportGroup mostRecentExportGroup = ExportUtils.getMostRecentExportForVolume(
-                                vplexVolume, exportGroup, _dbClient);
-                        if (mostRecentExportGroup != null) {
-                            exportType = mostRecentExportGroup.getType();
-                        }
+        Map<URI, BlockObject> blockObjectCache = new HashMap<URI, BlockObject>();
+        // Determine the virtual volume names.
+        List<String> blockObjectNames = new ArrayList<String>();
+        for (URI boURI : volumeURIList) {
+            BlockObject blockObject = Volume.fetchExportMaskBlockObject(_dbClient, boURI);
+            blockObjectNames.add(blockObject.getDeviceLabel());
+            blockObjectCache.put(blockObject.getId(), blockObject);
+        }
+        _log.info("about to remove " + blockObjectNames + " from StorageView " + exportMask.getMaskName());
+        // Remove volumes from the storage view.
+        client.removeVirtualVolumesFromStorageView(exportMask.getMaskName(),
+                blockObjectNames);
 
-                        // Create the VPLEX volume name custom configuration datasource and generate the
-                        // custom volume name based on whether the volume is a local or distributed volume.
-                        String customConfigName = VPlexCustomNameUtils.getCustomConfigName(isDistributed, exportType);
-                        DataSource customNameDataSource = VPlexCustomNameUtils.getCustomConfigDataSource(vplexVolume, mostRecentExportGroup,
-                                dataSourceFactory, customConfigName, _dbClient);
-                        if (customNameDataSource != null) {
-                            String customVolumeName = VPlexCustomNameUtils.getCustomName(customConfigHandler, customConfigName,
-                                    customNameDataSource);
-                            VPlexCustomNameUtils.renameVPlexVolume(vplexVolume, customVolumeName, client, _dbClient);
-                        }
-                    } catch (Exception e) {
-                        _log.warn(String.format("Error attempting to rename volume %s on removal from storage view %s",
-                                bo.getId(), exportMask.getMaskName()), e);
-                    }
+        // Remove the volumes from the Export Mask.
+        exportMask.removeVolumes(volumeURIList);
+        for (URI volumeURI : volumeURIList) {
+            BlockObject blockObject = blockObjectCache.get(volumeURI);
+            if (blockObject != null) {
+                if (blockObject.getWWN() != null) {
+                    exportMask.removeFromUserCreatedVolumes(blockObject);
+                } else {
+                    _log.warn("Could not remove volume " + blockObject.getId() + " from export mask " + exportMask.getLabel() +
+                            " because it does not have a WWN.  Assumed not in mask, likely part of a rollback operation");
                 }
-            }
-        } catch (Exception e) {
-            _log.error("Exception removing volumes form storage view {} ", exportMask.getMaskName(), e);
-            throw e;
-        } finally {
-            if (volumeLocksAcquired) {
-                doLockService.releaseLocks(volumeLockNames, lockOwner);
             }
         }
+
+        // if no vipr-managed volumes are remaining, the ExportMask object should be deleted from the database.
+        // if we don't do this, then the unmanaged storage view might be deleted out-of-band later and then we 
+        // would have inconsistent information, and any VPLEX API call to update this ExportMask would return a 404
+        if (exportMask.getVolumes().isEmpty()) {
+            _log.info("updating ExportGroups containing this ExportMask");
+            List<ExportGroup> exportGroups = ExportMaskUtils.getExportGroups(_dbClient, exportMask);
+            for (ExportGroup exportGroup : exportGroups) {
+                _log.info("Removing mask from ExportGroup " + exportGroup.getGeneratedName());
+                exportGroup.removeExportMask(exportMask.getId());
+                _dbClient.updateObject(exportGroup);
+            }
+            _log.info("marking this mask for deletion from ViPR: " + exportMask.getMaskName());
+            _dbClient.markForDeletion(exportMask);
+        }
+
+        _dbClient.updateObject(exportMask);
+        _log.info("successfully removed " + blockObjectNames + " from StorageView " + exportMask.getMaskName());
     }
 
     /*
@@ -4463,7 +4226,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             _log.info("all initiators are being removed and no "
                     + "other ExportGroups reference ExportMask {}", exportMask.getMaskName());
             _log.info("creating a deleteStorageView workflow step for " + exportMask.getMaskName());
-            Workflow.Method storageViewExecuteMethod = deleteStorageViewMethod(vplex.getId(), null, exportMask.getId());
+            Workflow.Method storageViewExecuteMethod = deleteStorageViewMethod(vplex.getId(), exportMask.getId());
             viewStep = workflow.createStep(DELETE_STORAGE_VIEW,
                     String.format("Delete VPLEX Storage View %s for ExportGroup %s",
                             exportMask.getMaskName(), exportGroup.getId()),
@@ -4518,7 +4281,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         // single StorageView volume remove would require a change to the
                         // MaskingOrchestrator.exportGroupRemoveVolumes interface
                         VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
-                        removeVolumesFromStorageViewAndMask(vplex, client, null, exportMask, volumeURIList);
+                        removeVolumesFromStorageViewAndMask(client, exportMask, volumeURIList);
 
                         // clean up zoning for this export mask
                         List<URI> exportMaskURIs = new ArrayList<URI>();
@@ -5121,6 +4884,28 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             }
         }
         return initiatorURIs;
+    }
+
+    /**
+     * Return a list of ExportGroups for a BlockObject on an array.
+     * This is used by deleteVolumes to find the ExportGroup(s) on the underlying array.
+     *
+     * @param volume BlockObject - Volume
+     * @return List<ExportGroup>
+     * @throws Exception
+     */
+    private List<ExportGroup> getExportGroupsForVolume(BlockObject volume) throws Exception {
+        URIQueryResultList exportGroupURIs = new URIQueryResultList();
+        _dbClient.queryByConstraint(ContainmentConstraint.Factory.getBlockObjectExportGroupConstraint(volume.getId()), exportGroupURIs);
+        List<ExportGroup> exportGroups = new ArrayList<ExportGroup>();
+        for (URI egURI : exportGroupURIs) {
+            ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, egURI);
+            if (exportGroup == null || exportGroup.getInactive() == true) {
+                continue;
+            }
+            exportGroups.add(exportGroup);
+        }
+        return exportGroups;
     }
 
     /**
@@ -6746,7 +6531,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             }
             URI sourceSystemURI = volume.getStorageController();
             _log.info("Storage system URI is {}", sourceSystemURI);
-            List<ExportGroup> sourceExportGroups = ExportUtils.getExportGroupsForBlockObject(volume, _dbClient);
+            List<ExportGroup> sourceExportGroups = getExportGroupsForVolume(volume);
             for (ExportGroup sourceExportGroup : sourceExportGroups) {
                 URI sourceExportGroupURI = sourceExportGroup.getId();
                 _log.info("Export group URI is {}", sourceExportGroupURI);

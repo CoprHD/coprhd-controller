@@ -13,13 +13,13 @@ import java.util.Map;
 import com.emc.storageos.db.client.DbModelClient;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DataObject;
-import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.DataObjectUtils;
 import com.google.common.base.Strings;
@@ -290,69 +290,39 @@ public class DataSourceFactory {
     }
     
     /**
-     * Creates a datasource that can be used to populate the custom name for a VPLEX virtual volume.
+     * Creates a datasource that can be used to populate the custom name for a volume.
      * 
      * @param project A reference to the volume's project.
-     * @param volumeLabel The user supplied label for the volume.
-     * @param srcStorageSystem A reference to the source-side backend storage system or null.
-     * @param srcNativeId The native id of the source-side backend volume or null.
-     * @param haStorageSystem A reference to the ha-side backend storage system or null.
-     * @param haNativeId The native id of the ha-side backend volume or null.
-     * @param hostOrClusterName The host or cluster name depending on the export type or null if not exported.
-     * @param exportType The export type, else null if not exported.
+     * @param tenant A reference to the passed project's tenant.
+     * @param volumeLabel The user supplied volume label.
+     * @param volumeWWN The volume WWN.
+     * @param volumeNativeId The native id of the volume.
+     * @param exportName The host or cluster name or null.
      * @param configName The name of the custom configuration.
      * 
      * @return A reference to the created DataSource instance.
      */
-    public DataSource createVPlexVolumeNameDataSource(Project project, String volumeLabel,
-            StorageSystem srcStorageSystem, String srcNativeId, StorageSystem haStorageSystem,
-            String haNativeId, String hostOrClusterName, String exportType, String configName) {
+    public DataSource createCustomVolumeNameDataSource(Project project, TenantOrg tenant, String volumeLabel,
+            String volumeWWN, String volumeNativeId, String exportName, String configName) {
         // Create a list of the DataObjects for the datasource to be created
-        // and add the passed project to the list.
+        // and add the passed project and tenant to the list.
         List<DataObject> dataObjectsList = new ArrayList<>();
-        dataObjectsList.add(project);       
-        
-        // Add the source and HA storage systems if they are not null.
-        if (srcStorageSystem != null) {
-            dataObjectsList.add(srcStorageSystem);
-        }
-        if (haStorageSystem != null) {
-            dataObjectsList.add(haStorageSystem);
-        }
+        dataObjectsList.add(project);
+        dataObjectsList.add(tenant);
         
         // Create a Volume instance and populate those components of the datasource
-        // that come from a Volume. Note that the source native id may be null if
-        // the VPLEX volume is ingested but the backend volumes are not ingested.
-        // Add the volume to the DataObjects list.
+        // that come from a Volume. Add the volume to the DataObjects list.
         Volume volume = new Volume();
         volume.setLabel(volumeLabel);
-        if (srcNativeId != null) {
-            volume.setNativeId(srcNativeId);
-        }
+        volume.setWWN(volumeWWN);
+        volume.setNativeId(volumeNativeId);
         dataObjectsList.add(volume);
         
-        // Add the host or cluster to the DataObjects list given the export type.
-        if ((exportType != null) && (ExportGroupType.Cluster.name().equals(exportType))) {
-            // Create a Cluster instance and populate those components of the datasource
-            // the come from a cluster.
-            Cluster cluster = new Cluster();
-            cluster.setLabel(hostOrClusterName);
-            dataObjectsList.add(cluster);
-        } else if ((exportType != null) && (ExportGroupType.Host.name().equals(exportType))) {
-            Host host = getHostByName(hostOrClusterName);
-            dataObjectsList.add(host);
-        }
-        
-        // Since there are potentially 2 storage systems and 2 volume instances for 
-        // distributed volumes, we use computed values to set the the HA storage 
-        // system serial number and HA native volume id in the datasource. However,
-        // note that the HA system and native id can be null if the VPLEX volume is
-        // not distributed or the it was ingested but the backend volumes were not 
-        // ingested.
+        // Add the host or cluster name if specified as a computed value since
+        // we do not know if this is a host or cluster export.
         Map<String, String> computedValueMap = new HashMap<String, String>();
-        if ((haStorageSystem != null) && (haNativeId != null)) {
-            computedValueMap.put(CustomConfigConstants.HA_SERIAL_NUMBER, haStorageSystem.getSerialNumber());
-            computedValueMap.put(CustomConfigConstants.HA_NATIVE_ID, haNativeId);
+        if (exportName != null) {
+            computedValueMap.put(CustomConfigConstants.CUSTOM_VOLUME_EXPORT_NAME, exportName);
         }
         
         // Create the datasource.

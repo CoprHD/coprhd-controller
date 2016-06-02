@@ -52,7 +52,7 @@ import static com.emc.storageos.api.mapper.SystemsMapper.map;
 /**
  * StorageSystemTypes resource implementation
  */
-@Path("/storagesystemtype")
+@Path("/vdc/storage-system-types")
 @DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR }, writeRoles = { Role.SYSTEM_ADMIN,
 		Role.RESTRICTED_SYSTEM_ADMIN })
 

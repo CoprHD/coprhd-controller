@@ -1173,33 +1173,31 @@ public class VPlexApiMigrationManager {
         // Check to see if the volume is to be renamed after migration to maintain
         // the "<local-device-name>_vol" naming convention. Since it is now using a 
         // new local device, its current name will not match this convention.
-        if (rename) {
-            if (migratedVolumeHasDefaultNaming(virtualVolumeInfo, originalVolumeName, migrationInfo, false)) {
-                // In some cases for a device migration, the virtual volume name is
-                // automatically updated by VPLEX after the commit and there is nothing 
-                // to do. In other cases it remains unchanged, and in others it simply ends
-                // up as the target volume name without the "_vol" suffix. We have seen
-                // all these behaviors on the VPLEX. So, we check if the volume name needs
-                // to be updated and if so, we update the name.
-                String migrationTgtName = migrationInfo.getTarget();
-                if ((originalVolumeName.equals(virtualVolumeInfo.getName())) || 
-                        (migrationTgtName.equals(virtualVolumeInfo.getName()))) {
-                    // If we are here then VPLEX didn't rename the volume, so make a call to 
-                    // rename the volume. Build the name for volume so as to rename the vplex 
-                    // volume that is created with the same name as the device name to follow 
-                    // the name pattern _vol as the suffix for the vplex volumes.
-                    String volumeNameAfterMigration = virtualVolumeInfo.getName();
-                    String volumePathAfterMigration = virtualVolumeInfo.getPath();
-                    StringBuilder volumeNameBuilder = new StringBuilder();
-                    volumeNameBuilder.append(migrationTgtName);
-                    volumeNameBuilder.append(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX);
-        
-                    // Rename the VPLEX volume name and update the migration information.
-                    virtualVolumeInfo = _vplexApiClient.renameResource(virtualVolumeInfo, volumeNameBuilder.toString());
-                    s_logger.info(String.format("Renamed virtual volume after migration from name: %s path: %s to %s",
-                            volumeNameAfterMigration, volumePathAfterMigration, volumeNameBuilder.toString()));
-                    migrationInfo.setVirtualVolumeInfo(virtualVolumeInfo);
-                }
+        if ((rename) && (migratedVolumeHasDefaultNaming(virtualVolumeInfo, originalVolumeName, migrationInfo, false))) {
+            // In some cases for a device migration, the virtual volume name is
+            // automatically updated by VPLEX after the commit and there is nothing 
+            // to do. In other cases it remains unchanged, and in others it simply ends
+            // up as the target volume name without the "_vol" suffix. We have seen
+            // all these behaviors on the VPLEX. So, we check if the volume name needs
+            // to be updated and if so, we update the name.
+            String migrationTgtName = migrationInfo.getTarget();
+            if ((originalVolumeName.equals(virtualVolumeInfo.getName())) || 
+                    (migrationTgtName.equals(virtualVolumeInfo.getName()))) {
+                // If we are here then VPLEX didn't rename the volume, so make a call to 
+                // rename the volume. Build the name for volume so as to rename the vplex 
+                // volume that is created with the same name as the device name to follow 
+                // the name pattern _vol as the suffix for the vplex volumes.
+                String volumeNameAfterMigration = virtualVolumeInfo.getName();
+                String volumePathAfterMigration = virtualVolumeInfo.getPath();
+                StringBuilder volumeNameBuilder = new StringBuilder();
+                volumeNameBuilder.append(migrationTgtName);
+                volumeNameBuilder.append(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX);
+    
+                // Rename the VPLEX volume name and update the migration information.
+                virtualVolumeInfo = _vplexApiClient.renameResource(virtualVolumeInfo, volumeNameBuilder.toString());
+                s_logger.info(String.format("Renamed virtual volume after migration from name: %s path: %s to %s",
+                        volumeNameAfterMigration, volumePathAfterMigration, volumeNameBuilder.toString()));
+                migrationInfo.setVirtualVolumeInfo(virtualVolumeInfo);
             }
         } else if (!originalVolumeName.equals(virtualVolumeInfo.getName())) {
             // We are not to rename the volume, but it could be that VPLEX renamed it 

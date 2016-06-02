@@ -8,12 +8,14 @@ import static com.emc.storageos.db.client.constraint.AlternateIdConstraint.Facto
 import static com.emc.storageos.db.client.constraint.AlternateIdConstraint.Factory.getVolumesByAssociatedId;
 import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnDataObjectToID;
 import static com.emc.storageos.db.client.util.CommonTransformerFunctions.FCTN_URI_TO_STRING;
+import static com.google.common.collect.Collections2.filter;
 import static com.google.common.collect.Collections2.transform;
 import static com.google.common.collect.Lists.newArrayList;
 
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -25,6 +27,9 @@ import java.util.Set;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.volumecontroller.impl.utils.labels.LabelFormat;
 import com.emc.storageos.volumecontroller.impl.utils.labels.LabelFormatFactory;
+import com.google.common.base.Predicate;
+import com.google.common.collect.Collections2;
+import com.google.common.collect.ImmutableList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -917,7 +922,6 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         return waitFor;
     }
 
-
     @Override
     public String addStepsForDeleteVolumes(Workflow workflow, String waitFor, List<VolumeDescriptor> volumes,
             String taskId) throws InternalException {
@@ -933,52 +937,20 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
             return waitFor;
         }
 
-        // Get the consistency group. If no consistency group for source
-        // volumes, just return. Get CG from any descriptor.
-        final VolumeDescriptor firstVolumeDescriptor = volumeDescriptors.get(0);
-        if (firstVolumeDescriptor != null) {
-            Volume volume = _dbClient.queryObject(Volume.class, firstVolumeDescriptor.getVolumeURI());
-            if (!(volume != null && volume.isInCG() &&
-                    (ControllerUtils.isVmaxVolumeUsing803SMIS(volume, _dbClient) 
-                            || ControllerUtils.isNotInRealVNXRG(volume, _dbClient)))) {
-                return waitFor;
-            }
-        }
+        List<URI> volumeDescriptorURIs = VolumeDescriptor.getVolumeURIs(volumeDescriptors);
+        List<Volume> unfilteredVolumes = _dbClient.queryObject(Volume.class, volumeDescriptorURIs);
 
-        // Sort the volumes by its system, and replicationGroup
-        Map<String, Set<URI>> rgVolsMap = new HashMap<String, Set<URI>>();
-        for (VolumeDescriptor volumeDescriptor : volumeDescriptors) {
-            URI volumeURI = volumeDescriptor.getVolumeURI();
-            Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
-            if (volume != null) {
-                String replicationGroup = volume.getReplicationGroupInstance(); 
-                if (NullColumnValueGetter.isNotNullValue(replicationGroup)) {
-                    URI storage = volume.getStorageController();
-                    String key = storage.toString() + replicationGroup;
-                    Set<URI> rgVolumeList = rgVolsMap.get(key);
-                    if (rgVolumeList == null) {
-                        rgVolumeList = new HashSet<URI>();
-                        rgVolsMap.put(key, rgVolumeList);
-                    }
-                    rgVolumeList.add(volumeURI);
-                }
-            }
-        }
-
-        if (rgVolsMap.isEmpty()) {
+        // Filter Volume list, returning if no volumes passed.
+        Collection<Volume> filteredVolumes = filter(unfilteredVolumes, deleteVolumeFilterPredicate());
+        if (filteredVolumes.isEmpty()) {
             return waitFor;
         }
 
+        Map<String, Set<URI>> rgVolsMap = sortVolumesBySystemAndReplicationGroup(filteredVolumes);
+
         for (Set<URI> volumeURIs : rgVolsMap.values()) {
             // find member volumes in the group
-            List<Volume> volumeList = new ArrayList<Volume>();
-            Iterator<Volume> volumeIterator = _dbClient.queryIterativeObjects(Volume.class, volumeURIs);
-            while (volumeIterator.hasNext()) {
-                Volume volume = volumeIterator.next();
-                if (volume != null && !volume.getInactive()) {
-                    volumeList.add(volume);
-                }
-            }
+            List<Volume> volumeList = getVolumes(filteredVolumes, volumeURIs);
             if (volumeList.isEmpty()) {
                 continue;
             }
@@ -1709,5 +1681,48 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         }
 
         return waitFor;
+    }
+
+    private List<Volume> getVolumes(Collection<Volume> volumes, final Collection<URI> withURIs) {
+        return ImmutableList.copyOf(Collections2.filter(volumes, new Predicate<Volume>() {
+            @Override
+            public boolean apply(Volume volume) {
+                return withURIs.contains(volume.getId());
+            }
+        }));
+    }
+
+    private Map<String, Set<URI>> sortVolumesBySystemAndReplicationGroup(Collection<Volume> volumes) {
+        Map<String, Set<URI>> rgVolsMap = new HashMap<>();
+
+        for (Volume filteredVolume : volumes) {
+            String replicationGroup = filteredVolume.getReplicationGroupInstance();
+            if (NullColumnValueGetter.isNotNullValue(replicationGroup)) {
+                URI storage = filteredVolume.getStorageController();
+                String key = storage.toString() + replicationGroup;
+                Set<URI> rgVolumeList = rgVolsMap.get(key);
+                if (rgVolumeList == null) {
+                    rgVolumeList = new HashSet<>();
+                    rgVolsMap.put(key, rgVolumeList);
+                }
+                rgVolumeList.add(filteredVolume.getId());
+            }
+        }
+
+        return rgVolsMap;
+    }
+
+    private Predicate<Volume> deleteVolumeFilterPredicate() {
+        return new Predicate<Volume>() {
+            @Override
+            public boolean apply(Volume volume) {
+                return volume != null &&
+                        !volume.getInactive() &&
+                        volume.isInCG() &&
+                        NullColumnValueGetter.isNotNullValue(volume.getReplicationGroupInstance()) &&
+                        (ControllerUtils.isVmaxVolumeUsing803SMIS(volume, _dbClient) ||
+                                ControllerUtils.isNotInRealVNXRG(volume, _dbClient));
+            }
+        };
     }
 }

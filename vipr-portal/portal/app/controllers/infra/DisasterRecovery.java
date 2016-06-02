@@ -56,7 +56,7 @@ public class DisasterRecovery extends ViprResourceController {
     protected static final String UPDATE_SUCCESS = "disasterRecovery.update.success";
     protected static final String ADD_WARNING = "disasterRecovery.add.unstable.warning";
     private static final List<SiteState> activeStates =
-            Arrays.asList(SiteState.ACTIVE, SiteState.ACTIVE_DEGRADED,SiteState.ACTIVE_FAILING_OVER, SiteState.ACTIVE_SWITCHING_OVER);
+            Arrays.asList(SiteState.ACTIVE,SiteState.ACTIVE_FAILING_OVER, SiteState.ACTIVE_SWITCHING_OVER);
 
     private static void backToReferrer() {
         String referrer = Common.getReferrer();

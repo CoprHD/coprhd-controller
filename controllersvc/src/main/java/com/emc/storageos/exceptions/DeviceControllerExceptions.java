@@ -481,4 +481,7 @@ public interface DeviceControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
     public DeviceControllerException couldNotPerformExportDelete(final String reason);
+
+    @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
+    public DeviceControllerException exportGroupInconsistentLunViolation(final String exportGroupName, final String details);
 }

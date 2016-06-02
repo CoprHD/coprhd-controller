@@ -20,9 +20,11 @@ public class HostInitiatorRequest extends KHRequests<VNXeHostInitiator> {
     private static final Logger _logger = LoggerFactory.getLogger(HostInitiatorRequest.class);
     private static final String URL = "/api/instances/hostInitiator/";
     private static final String URL_ALL = "/api/types/hostInitiator/instances";
+    private static final String FIELDS = "parentHost,nodeWWN,portWWN,type";
 
     public HostInitiatorRequest(KHClient client) {
         super(client);
+        _fields = FIELDS;
 
     }
 
@@ -34,7 +36,13 @@ public class HostInitiatorRequest extends KHRequests<VNXeHostInitiator> {
 
     public VNXeHostInitiator getByIQNorWWN(String initiatorId) {
         _url = URL_ALL;
-        setFilter(VNXeConstants.INITIATORID_FILTER + initiatorId);
+        String filter = null;
+        if (_client.isUnity()) {
+            filter = VNXeConstants.INITIATORID_FILTER + "\"" +initiatorId +"\"";
+        } else {
+            filter = VNXeConstants.INITIATORID_FILTER + initiatorId;
+        }
+        setFilter(filter);
         VNXeHostInitiator result = null;
         List<VNXeHostInitiator> initList = getDataForObjects(VNXeHostInitiator.class);
         // it should just return 1

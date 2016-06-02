@@ -151,6 +151,7 @@ public class StorageProvider extends DataObject {
         ibmxiv,
         scaleioapi,
         xtremio,
+        unity,
         ceph;
 
         /**
@@ -177,6 +178,8 @@ public class StorageProvider extends DataObject {
                 systemTypes.add(Type.xtremio.name());
             } else if (ceph.equals(interfaceType)) {
                 systemTypes.add(Type.ceph.name());
+            } else if (unity.equals(interfaceType)) {
+                systemTypes.add(Type.unity.name());
             }
             return systemTypes;
         }

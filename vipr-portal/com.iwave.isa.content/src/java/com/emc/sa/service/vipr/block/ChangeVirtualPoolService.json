@@ -14,6 +14,16 @@
       type:"assetType.vipr.blockVirtualPool"
     },
     
+    volumeFilter:{
+      type:"assetType.vipr.sourceVolumeFilter",
+      default: 0
+    },
+    
+    volume:{
+      type:"assetType.vipr.virtualPoolChangeVolumeWithSourceFilter",
+      select: "many"
+    },
+    
     virtualPoolChangeOperation:{
       type:"assetType.vipr.virtualPoolChangeOperation",
       lockable: true
@@ -23,20 +33,9 @@
       type:"assetType.vipr.targetVirtualPool"
     },
     
-    consistencyGroup: {
+    consistencyGroup:{
       type:"assetType.vipr.consistencyGroupWithVirtualPoolChangeOperation",
       required: false
-    },
-    
-    volumeFilter:{
-      type:"assetType.vipr.sourceVolumeFilter",
-      default: 0
-    },
-    
-    volume:{
-      type:"assetType.vipr.virtualPoolChangeVolumeWithSourceFilter",
-      select: "many"
     }
   }
-  
 }

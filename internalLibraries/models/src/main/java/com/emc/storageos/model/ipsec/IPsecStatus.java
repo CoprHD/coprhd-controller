@@ -14,6 +14,7 @@ public class IPsecStatus {
 
     private String status;
     private List<String> disconnectedNodes;
+    private String updatedTime;
 
     @XmlElement(name = "version")
     public String getVersion() {
@@ -43,5 +44,14 @@ public class IPsecStatus {
 
     public void setDisconnectedNodes(List<String> nodes) {
         this.disconnectedNodes = nodes;
+    }
+
+    @XmlElement(name = "update_time")
+    public String getUpdatedTime() {
+        return updatedTime;
+    }
+
+    public void setUpdatedTime(String updatedTime) {
+        this.updatedTime = updatedTime;
     }
 }

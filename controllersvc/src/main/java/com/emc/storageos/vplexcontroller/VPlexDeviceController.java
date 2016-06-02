@@ -5786,7 +5786,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 _dbClient.updateObject(volume);
             }
 
-            // If volumes are exported, and this is change varray operation, we need to remove the volume from the current exportGropu, then
+            // If volumes are exported, and this is change varray operation, we need to remove the volume from the current exportGroup, then
             // add it to another export group, which has the same new virtual array, and the same host, 
             // or create a new exportGroup 
             if (newVarrayURI != null && volume.isVolumeExported(_dbClient)) {
@@ -5800,6 +5800,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     if (eg != null) {
                         StringMap volumesMap = eg.getVolumes();
                         String lun = volumesMap.get(virtualVolumeURI.toString());
+                        if (lun == null || lun.isEmpty()) {
+                            lun = ExportGroup.LUN_UNASSIGNED_DECIMAL_STR;
+                        }
                         List<URI> initiators = StringSetUtil.stringSetToUriList(eg.getInitiators());
                         ExportGroup newEg = null;
                         if(initiators != null && !initiators.isEmpty()) {

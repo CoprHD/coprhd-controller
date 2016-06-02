@@ -9019,6 +9019,60 @@ dr_multisite_tests()
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD 10 600
     project show $test_projectid
 
+    # Below codes are used to test failover to ACTIVE_DEGRADED site
+    # power off site A, then failover to site C, then power on site A and wait it to be ACTIVE_DEGRADED, then failover to it, and wait it to be ACTIVE
+    # step1: poweroff site A, wait site C to be stable and paused
+    echo "step1: poweroff site $DR_SITE_A_NAME ..."
+    stop_vdc_services "$DR_SITE_A_IP"
+    echo "Sleep 1m to wait standby ZK switch to participant"
+    sleep 60
+    echo "Wait for stable"
+    BOURNE_IPADDR=$DR_SITE_C_IP
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD 10 600
+    dr waitforstable --ip "${DR_SITE_C_IP}" 10 600
+
+    echo "wait for site to become STANDBY_PAUSED before failover"
+    dr waitforstate $standby_site_c STANDBY_PAUSED 30 1200
+
+    echo "Sleep 1m before failover"
+    sleep 60
+
+    #step2: failover to site C, wait it to be stable and ACTIVE
+    echo "step2: failover to site $DR_SITE_C_NAME ..."
+    dr failover --ip "${DR_SITE_C_IP}" $standby_site_c || { echo "failover to site $DR_SITE_C_NAME failed."; exit 1; }
+    echo "Sleep 1m to wait failover"
+    sleep 60
+    echo "Wait for stable"
+    dr waitforstable --ip "${DR_SITE_C_IP}" 10 600
+    echo "Wait site state to be PRIAMRY after failover"
+    dr waitforstate $standby_site_c ACTIVE 30 600 --ip "${DR_SITE_C_IP}"
+
+    # step3: power on site A, wait it to become ACTIVE_DEGRADED
+    echo "step3: power on old active site $DR_SITE_A_NAME ..."
+    start_vdc_services "$DR_SITE_A_IP"
+    echo "Sleep 300 seconds to wait old site to become ACTIVE_DEGRADED ..."
+    sleep 300
+    BOURNE_IPADDR=$DR_SITE_A_IP
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD 10 600
+    dr waitforstable --ip "${DR_SITE_A_IP}" 10 600
+    dr waitforstate $active_site ACTIVE_DEGRADED 30 600 --ip "${DR_SITE_A_IP}"
+
+    # step4: power off site C
+    echo "step4: poweroff site $DR_SITE_C_NAME to prepare failover ..."
+    stop_vdc_services "$DR_SITE_C_IP"
+    echo "sleep 180 seconds to wait standby site recognize the broken network ..."
+    sleep 180
+    # step5: failover to ACTIVE_DEGRADED site and wait it to be stable and ACTIVE
+    echo "step5: failover to $DR_SITE_A_NAME ..."
+    dr failover --ip "${DR_SITE_A_IP}" $active_site || { echo "failover to site $DR_SITE_A_NAME failed."; exit 1; }
+    echo "Sleep 1m to wait failover"
+    sleep 60
+
+    echo "Wait for stable"
+    dr waitforstable --ip "${DR_SITE_A_IP}" 10 600
+
+    echo "Wait site state to be PRIAMRY after failover"
+    dr waitforstate $active_site ACTIVE 30 600 --ip "${DR_SITE_A_IP}"
     #disabling pipefail option to pipe exit codes
     set +o pipefail
 }

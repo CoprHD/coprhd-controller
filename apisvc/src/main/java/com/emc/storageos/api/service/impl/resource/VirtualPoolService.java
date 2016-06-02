@@ -706,7 +706,7 @@ public abstract class VirtualPoolService extends TaggedResource {
 
     protected VirtualPoolList getVirtualPoolList(VirtualPool.Type type, String shortVdcId, String tenantId) {
 
-        TenantOrg tenant_input = getTenantById(tenantId);
+        TenantOrg tenant_input = getTenantIfHaveAccess(tenantId);
 
         URIQueryResultList vpoolList = new URIQueryResultList();
         VirtualPoolList list = new VirtualPoolList();

@@ -172,7 +172,7 @@ public abstract class TaggedResource extends ResourceService {
      * @param tenantId the URN of a ViPR tenant
      * @return
      */
-    protected TenantOrg getTenantById(String tenantId) {
+    protected TenantOrg getTenantIfHaveAccess(String tenantId) {
         if (!StringUtils.isEmpty(tenantId)) {
             URI tenantUri = URI.create(tenantId);
             TenantOrg org = _permissionsHelper.getObjectById(tenantUri, TenantOrg.class);

@@ -156,7 +156,7 @@ public class VirtualArrayService extends TaggedResource {
             @DefaultValue("") @QueryParam(TENANT_ID_QUERY_PARAM) String tenantId ) {
         _geoHelper.verifyVdcId(shortVdcId);
 
-        TenantOrg tenant_input = getTenantById(tenantId);
+        TenantOrg tenant_input = getTenantIfHaveAccess(tenantId);
 
         VirtualArrayList list = new VirtualArrayList();
         List<VirtualArray> nhObjList = Collections.emptyList();
@@ -709,7 +709,7 @@ public class VirtualArrayService extends TaggedResource {
     public VirtualPoolList getVirtualArrayVirtualPool(
             @PathParam("id") URI id,
             @DefaultValue("") @QueryParam(TENANT_ID_QUERY_PARAM) String tenantId) {
-        TenantOrg tenant_input = getTenantById(tenantId);
+        TenantOrg tenant_input = getTenantIfHaveAccess(tenantId);
 
         VirtualPoolList cosList = new VirtualPoolList();
         URIQueryResultList resultList = new URIQueryResultList();

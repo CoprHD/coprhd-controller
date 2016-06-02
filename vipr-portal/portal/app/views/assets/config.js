@@ -156,18 +156,15 @@ angular.module("config", []).constant({
                 key: 'resources.tasks.error'
             },
             '${task.suspended_no_error}':{
-                icon: 'refresh',
-                iconClass: 'rotate',
+                icon: 'exclamation-sign',
                 class: '',
                 key: 'resources.tasks.suspended_no_error'
             },
             '${task.suspended_error}':{
-                icon: 'refresh',
-                iconClass: 'rotate',
+                icon: 'exclamation-sign',
                 class: '',
                 key: 'resources.tasks.suspended_error'
             }
-
         },
         workflowStep: {
             '${workflowStep.CREATED}': {

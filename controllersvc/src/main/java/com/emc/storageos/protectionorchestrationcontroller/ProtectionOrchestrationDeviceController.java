@@ -314,7 +314,7 @@ public class ProtectionOrchestrationDeviceController implements ProtectionOrches
                 readWriteVolumes.add(vplexVolume.getId());
                 volumeNames.append(vplexVolume.getLabel() + " ");
             } else if (vplexVolume != null) {
-                s_logger.info("Volume inactive or not in CG: " + vplexVolume.getLabel());
+                s_logger.info("Volume inactive or not in CG: " + vplexVolume.forDisplay());
             }
         }
         return readWriteVolumes;

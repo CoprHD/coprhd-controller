@@ -763,7 +763,8 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
     
     @Override
     public String addStepsForAddingVolumesToSRDFTargetCG(Workflow workflow, StorageSystem vplexSystem,
-            List<URI> vplexVolumeURIs, String waitFor) {
+            List<URI> vplexVolumeURIs, String argWaitFor) {
+        String waitFor = argWaitFor;    // to fix Sonar
         StringBuilder volumeList = new StringBuilder();
         for (URI vplexVolumeURI : vplexVolumeURIs) {
             Volume volume = dbClient.queryObject(Volume.class, vplexVolumeURI);
@@ -1082,7 +1083,8 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
      */
     public String addStepForUpdateConsistencyGroupReadOnlyState(Workflow workflow, 
             List<URI> vplexVolumeURIs, boolean setToReadOnly,
-            String stepDescription, String waitFor) {
+            String stepDescription, String argWaitFor) {
+        String waitFor = argWaitFor;    // to fix Sonar
         if (vplexVolumeURIs.isEmpty()) {
             return waitFor;
         }
@@ -1161,7 +1163,7 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
         } catch (VPlexApiException ex) {
             if (ServiceCode.VPLEX_API_FIRMWARE_UPDATE_NEEDED.equals(ex.getServiceCode())) {
                 // The firmware doesn't support read-only flag, inform the user, but do not fail.
-                WorkflowStepCompleter.stepSucceded(stepId, ex.getLocalizedMessage());
+                WorkflowStepCompleter.stepSucceeded(stepId, ex.getLocalizedMessage());
             } else {
                 log.info("Exception setting Consistency Group read-only state: " + ex.getMessage());
                 ServiceError svcError = VPlexApiException.errors.jobFailed(ex);

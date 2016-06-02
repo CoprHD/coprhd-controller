@@ -47,8 +47,8 @@ public class WorkflowStepCompleter implements Serializable {
      * @param warningMessage
      * @throws WorkflowException
      */
-    static public void stepSucceded(String stepId, String warningMessage) throws WorkflowException {
-        WorkflowService.completerStepSucceded(stepId, warningMessage);
+    static public void stepSucceeded(String stepId, String warningMessage) throws WorkflowException {
+        WorkflowService.completerStepSucceeded(stepId, warningMessage);
     }
 
     /**

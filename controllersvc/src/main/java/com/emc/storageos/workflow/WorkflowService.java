@@ -1794,7 +1794,7 @@ public class WorkflowService {
      * @param stepId - the stepId to be marked suceeded
      * @param warningMessage - warning message(s) or empty string or null
      */
-    public static void completerStepSucceded(String stepId, String warningMessage) {
+    public static void completerStepSucceeded(String stepId, String warningMessage) {
         if (warningMessage != null && warningMessage.length() > 0) {
         _instance.updateStepStatus(stepId, StepState.SUCCESS, null, warningMessage);
         } else {

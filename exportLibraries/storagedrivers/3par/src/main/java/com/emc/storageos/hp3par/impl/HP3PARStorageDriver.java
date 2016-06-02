@@ -59,7 +59,8 @@ import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
 import com.emc.storageos.storagedriver.storagecapabilities.CommonStorageCapabilities;
 import com.emc.storageos.storagedriver.storagecapabilities.CustomStorageCapabilities;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
-
+import com.emc.storageos.hp3par.command.VolumesCommandResult;
+import com.emc.storageos.hp3par.command.VolumeMember;
 /**
  * 
  * Implements functions to discover the HP 3PAR storage and provide provisioning
@@ -291,6 +292,69 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
         return task;
 	}
 
+        @Override
+	public DriverTask getStorageVolumes(StorageSystem storageSystem, List<StorageVolume> storageVolumes,
+			MutableInt token) {
+
+		if (token.intValue() == 0) {
+            //arrayToVolumeToVolumeExportInfoMap.clear();
+        }
+		
+        DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_GET_STORAGE_VOLUMES);
+
+	List<StoragePort> ports = new ArrayList<>();
+        discoverStoragePorts(storageSystem, ports);
+
+	try{
+        // get Api client
+        HP3PARApi hp3parApi = getHP3PARDeviceFromNativeId(storageSystem.getNativeId());
+        VolumesCommandResult objStorageVolumes = hp3parApi.getStorageVolumes();
+        		
+                
+        for (int volIndex = 0; volIndex < objStorageVolumes.getTotal() ; volIndex++) {
+        	VolumeMember objVolMember = objStorageVolumes.getMembers().get(volIndex);
+            StorageVolume driverVolume = new StorageVolume();
+            driverVolume.setStorageSystemId(storageSystem.getNativeId());
+            driverVolume.setStoragePoolId(objVolMember.getUserCPG());
+            driverVolume.setNativeId(objVolMember.getName());
+//            if (VOLUMES_IN_CG) {
+//                driverVolume.setConsistencyGroup("driverSimulatorCG-" + token.intValue());
+//            }
+            
+            if(objVolMember.getProvisioningType() == HP3PARConstants.provisioningType.TPVV.getValue() ){
+            	driverVolume.setThinlyProvisioned(true);
+            }
+            else{
+            	driverVolume.setThinlyProvisioned(false);
+            }
+            driverVolume.setProvisionedCapacity(objVolMember.getSizeMiB() * HP3PARConstants.MEGA_BYTE);
+            driverVolume.setWwn(objVolMember.getWwn());
+            driverVolume.setNativeId(objVolMember.getName()); //required for volume delete
+            driverVolume.setDeviceLabel(objVolMember.getName());
+            
+            if(objVolMember.isReadOnly()){
+            	driverVolume.setAccessStatus(StorageVolume.AccessStatus.READ_ONLY);
+            }
+            else{
+            	driverVolume.setAccessStatus(StorageVolume.AccessStatus.READ_WRITE);
+            }
+            
+            driverVolume.setThinVolumePreAllocationSize(3000L);
+            driverVolume.setProvisionedCapacity(3*1024*1024*1024L);
+            driverVolume.setAllocatedCapacity(50000L);                        
+            storageVolumes.add(driverVolume);
+            _log.info("Unmanaged volume info: pool {}, volume {}", driverVolume.getStoragePoolId(), driverVolume);
+            
+        }		
+	task.setStatus(DriverTask.TaskStatus.READY);
+	}
+	catch(Exception e){
+
+	}
+	return task;
+		
+	}
+
 	/**
 	 * Get storage port information
 	 */
@@ -418,12 +482,6 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 		return null;
 	}
 
-	@Override
-	public DriverTask getStorageVolumes(StorageSystem storageSystem, List<StorageVolume> storageVolumes,
-			MutableInt token) {
-		// TODO Auto-generated method stub
-		return null;
-	}
 
 	/**
 	 * Create requested volumes

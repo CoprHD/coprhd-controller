@@ -26,6 +26,7 @@ import com.emc.storageos.hp3par.connection.RESTClient;
 import com.google.gson.Gson;
 import com.google.json.JsonSanitizer;
 import com.sun.jersey.api.client.ClientResponse;
+import com.emc.storageos.hp3par.command.VolumesCommandResult;
 
 import static com.google.json.JsonSanitizer.*;
 
@@ -55,6 +56,7 @@ public class HP3PARApi {
     private static final String URI_VOLUME_SNAPSHOT = "/api/v1/volumes/{0}";
     private static final String URI_DELETE_VOLUME_SNAPSHOT = "/api/v1/volumes/{0}";
     private static final String URI_RESTORE_VOLUME_SNAPSHOT = "/api/v1/volumes/{0}";
+    private static final String URI_STORAGE_VOLUMES = "/api/v1/volumes";
     
 
     public HP3PARApi(URI endpoint, RESTClient client, String userName, String pass) {
@@ -455,6 +457,37 @@ public class HP3PARApi {
             _log.info("3PARDriver:getVolumeDetails leave");
         } //end try/catch/finally
     }
+
+    public VolumesCommandResult getStorageVolumes() throws Exception {
+        _log.info("3PARDriver:getVolumeDetails enter");
+        ClientResponse clientResp = null;
+        final String path = URI_STORAGE_VOLUMES;
+        
+        try {
+            clientResp = get(path);
+            if (clientResp == null) {
+                _log.error("3PARDriver:There is no response from 3PAR");
+                throw new HP3PARException("There is no response from 3PAR");
+            } else if (clientResp.getStatus() != 200) {
+                String errResp = getResponseDetails(clientResp);
+                throw new HP3PARException(errResp);
+            } else {
+                String responseString = clientResp.getEntity(String.class);
+                _log.info("3PARDriver:getVolumeDetails 3PAR response is {}", responseString);
+                VolumesCommandResult storageVolsResult = new Gson().fromJson(sanitize(responseString),
+                        VolumesCommandResult.class);
+                return storageVolsResult;
+            }
+        } catch (Exception e) {
+            throw e;
+        } finally {
+            if (clientResp != null) {
+                clientResp.close();
+            }
+            _log.info("3PARDriver:getVolumeDetails leave");
+        } //end try/catch/finally
+    }
+    
 
     public void expandVolume(String name, Long additionalSize) throws Exception {
         _log.info("3PARDriver:expandVolume enter");

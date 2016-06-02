@@ -1571,7 +1571,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         // if we want to modify export from host H1 with permission read to H2
         // with read/write. then need to delete the entry from read
         // list and add to read/Write list.
-        if (!exportsToprocess.isEmpty() && !exportAdd.isEmpty()) {
+        if (!exportsToprocess.isEmpty() || !exportAdd.isEmpty()) {
             if (exportModify != null && !exportModify.isEmpty()) {
                 for (ExportRule existingRule : exportsToprocess) {
                     for (ExportRule newExportRule : exportModify) {

@@ -1931,6 +1931,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
         _log.info("processing the export masks to be created");
         for (ExportMask exportMask : exportMasksToCreateOnDevice) {
+
             storageViewStepId = handleExportMaskCreate(blockObjectMap, workflow, vplexSystem, exportGroup,
                     storageViewStepId, exportMask);
         }
@@ -1947,6 +1948,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     exportMasksToUpdateOnDeviceWithInitiators,
                     exportMasksToUpdateOnDeviceWithStoragePorts,
                     storageViewStepId, exportMask, shared);
+
         }
 
         long elapsed = new Date().getTime() - startAssembly;
@@ -2543,7 +2545,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         getVPlexInitiatorType(initiator));
                 initiatorPortInfos.add(pi);
             }
-
             List<BlockObject> blockObjects = new ArrayList<BlockObject>();
             Map<String, Integer> boMap = new HashMap<String, Integer>();
             for (URI vol : blockObjectMap.keySet()) {
@@ -2588,6 +2589,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             _dbClient.updateObject(exportMask);
 
             _dbClient.updateObject(exportGroup);
+
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (VPlexApiException vae) {
             _log.error("Exception creating VPlex Storage View: " + vae.getMessage(), vae);
@@ -3295,6 +3297,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     workflow.createStep(DELETE_STORAGE_VIEW,
                             String.format("Deleting storage view: %s (%s)", exportMask.getMaskName(), exportMask.getId()),
                             null, vplexURI, vplex.getSystemType(), this.getClass(), deleteStorageView, null, null);
+
                 }
             }
 
@@ -5198,7 +5201,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     migrationSources.add(migration.getSource());
                 } else {
                     rename = Boolean.FALSE;
-                }                
+                }
                 _log.info("Added migration source {}", migration.getSource());
                 String stepId = workflow.createStepId();
                 _log.info("Commit operation id is {}", stepId);
@@ -9194,6 +9197,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             _dbClient.updateObject(promoteVolume);
 
             WorkflowStepCompleter.stepSucceded(stepId);
+
         } catch (VPlexApiException vae) {
             _log.error("Exception promoting mirror volume: " + vae.getMessage(), vae);
             WorkflowStepCompleter.stepFailed(stepId, vae);

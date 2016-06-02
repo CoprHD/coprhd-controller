@@ -33,7 +33,7 @@ public interface ObjectController extends StorageController {
      */
 
     public void createBucket(URI storage, URI Pool, URI bkt, String label, String namespace, Integer retention,
-            Long hardQuota, Long softQuota, String owner, String opId) throws InternalException;
+            Long hardQuota, Long softQuota, String owner, Boolean encryptionEnabled, String opId) throws InternalException;
 
     /**
      * Deactivates Bucket

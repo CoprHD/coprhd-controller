@@ -81,7 +81,7 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
         String aceName = "";
         try {
             _log.info("Initiated for Bucket creation. Name : {} Namespace : {}", args.getName(), args.getNamespace());
-            bktNativeId = ecsApi.createBucket(args.getName(), args.getNamespace(), args.getDevStoragePool());
+            bktNativeId = ecsApi.createBucket(args.getName(), args.getNamespace(), args.getDevStoragePool(), args.getEncryptionEnabled());
             ecsApi.updateBucketRetention(args.getName(), args.getNamespace(), args.getRetentionPeriod());
             ecsApi.updateBucketQuota(args.getName(), args.getNamespace(), args.getNotSizeSQ(), args.getBlkSizeHQ());
             currentOwner = ecsApi.getBucketOwner(args.getName(), args.getNamespace());

@@ -261,11 +261,12 @@ public class ECSApi {
      * @param repGroup Volume
      * @return Source ID of the Bucket created
      */
-    public String createBucket(String bucketName, String namespace, String repGroup) {
+    public String createBucket(String bucketName, String namespace, String repGroup, Boolean encryptionEnabled ) {
         _log.debug("ECSApi:createBucket Create bucket initiated for : {}", bucketName);
         String id = null;
         ClientResponse clientResp = null;
-        String body = " { \"name\": \"" + bucketName + "\", " + "\"vpool\": \"" + repGroup + "\", \"namespace\": \"" + namespace + "\"}  ";
+        String body = " { \"name\": \"" + bucketName + "\", " + "\"vpool\": \"" + repGroup + "\", \"namespace\": \"" + namespace
+                + "\", \"is_encryption_enabled\":\"" + encryptionEnabled + "}  ";
         try {
             clientResp = post(URI_CREATE_BUCKET, body);
         } catch (Exception e) {

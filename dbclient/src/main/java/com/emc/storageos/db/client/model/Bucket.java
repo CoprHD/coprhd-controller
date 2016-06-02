@@ -45,6 +45,8 @@ public class Bucket extends DataObject implements ProjectResource {
     private String _nativeId;
     // version of the bucket created. Used by vipr developers only.
     private String version;
+    // Flag for the Bucket encryption. 
+    private Boolean _encryptionEnabled = false;
 
     @NamedRelationIndex(cf = "NamedRelation", type = Project.class)
     @Name("project")
@@ -213,5 +215,15 @@ public class Bucket extends DataObject implements ProjectResource {
         this.version = version;
         setChanged("version");
     }
+
+    @Name("encryptionEnabled")
+    public Boolean getEncryptionEnabled() {
+		return _encryptionEnabled;
+	}
+
+	public void setEncryptionEnabled(Boolean encryptionEnabled) {
+		this._encryptionEnabled = encryptionEnabled;
+		setChanged("encryptionEnabled");
+	}
     
 }

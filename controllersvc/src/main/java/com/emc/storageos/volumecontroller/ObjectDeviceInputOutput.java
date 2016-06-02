@@ -39,6 +39,8 @@ public class ObjectDeviceInputOutput {
     private List<BucketACE> bucketAclToModify = new ArrayList<>();
     private List<BucketACE> bucketAclToDelete = new ArrayList<>();
     private List<BucketACE> existingBucketAcl = new ArrayList<>();
+    
+    private Boolean encryptionEnabled = false;
 
     /*
      * get and set of each members
@@ -155,5 +157,15 @@ public class ObjectDeviceInputOutput {
         }
 
     }
+
+	public Boolean getEncryptionEnabled() {
+		return encryptionEnabled;
+	}
+
+	public void setEncryptionEnabled(Boolean encryptionEnabled) {
+		this.encryptionEnabled = encryptionEnabled;
+	}
+    
+    
     
 }

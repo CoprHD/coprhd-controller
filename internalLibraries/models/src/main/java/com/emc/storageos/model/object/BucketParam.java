@@ -26,17 +26,19 @@ public class BucketParam {
     private String retention;
     private String owner;
     private String path;
+    private Boolean encryptionEnabled = false;
 
     public BucketParam() {
     }
 
-    public BucketParam(String label, String softQuota, String hardQuota, URI vpool, URI varray, String retention) {
+    public BucketParam(String label, String softQuota, String hardQuota, URI vpool, URI varray, String retention, Boolean encryptionEnabled) {
         this.label = label;
         this.softQuota = softQuota;
         this.hardQuota = hardQuota;
         this.vpool = vpool;
         this.varray = varray;
         this.retention = retention;
+        this.encryptionEnabled = encryptionEnabled;
     }
 
     /**
@@ -134,4 +136,14 @@ public class BucketParam {
     public void setPath(String path) {
         this.path = path;
     }
+
+    @XmlElement(required = false, name = "is_encryption_enabled")
+    public Boolean getEncryptionEnabled() {
+		return encryptionEnabled;
+	}
+
+	public void setEncryptionEnabled(Boolean encryptionEnabled) {
+		this.encryptionEnabled = encryptionEnabled;
+	}
+    
 }

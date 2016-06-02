@@ -242,7 +242,7 @@ public class BucketService extends TaskResourceService {
         ObjectController controller = getController(ObjectController.class, system.getSystemType());
         controller.createBucket(recommendation.getSourceStorageSystem(), recommendation.getSourceStoragePool(), bucket.getId(),
                 bucket.getName(), bucket.getNamespace(), bucket.getRetention(), bucket.getHardQuota(),
-                bucket.getSoftQuota(), bucket.getOwner(), task);
+                bucket.getSoftQuota(), bucket.getOwner(), bucket.getEncryptionEnabled(), task);
 
         auditOp(OperationTypeEnum.CREATE_BUCKET, true, AuditLogManager.AUDITOP_BEGIN,
                 param.getLabel(), param.getHardQuota(), neighborhood.getId().toString(),
@@ -364,6 +364,9 @@ public class BucketService extends TaskResourceService {
         bucket.setOwner(param.getOwner());
         bucket.setNamespace(tenantOrg.getNamespace());
         bucket.setVirtualPool(param.getVpool());
+        if (param.getEncryptionEnabled() != null) {
+            bucket.setEncryptionEnabled(param.getEncryptionEnabled());
+        }
         if (project != null) {
             bucket.setProject(new NamedURI(project.getId(), bucket.getLabel()));
         }

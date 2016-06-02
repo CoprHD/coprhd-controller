@@ -95,7 +95,7 @@ public class ObjectDeviceController implements ObjectController {
 
     @Override
     public void createBucket(URI storage, URI uriPool, URI bkt, String label, String namespace, Integer retention,
-            Long hardQuota, Long softQuota, String owner, String task) throws ControllerException {
+            Long hardQuota, Long softQuota, String owner, Boolean encryptionEnabled, String task) throws ControllerException {
 
         _log.info("ObjectDeviceController:createBucket Bucket URI : {} ", bkt);
         StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
@@ -109,6 +109,7 @@ public class ObjectDeviceController implements ObjectController {
         args.setBlkSizeHQ(hardQuota);
         args.setNotSizeSQ(softQuota);
         args.setOwner(owner);
+        args.setEncryptionEnabled(encryptionEnabled);
 
         _log.info("ObjectDeviceController:createBucket URI and Type: " + storage.toString() + "   " +
                 storageObj.getSystemType());

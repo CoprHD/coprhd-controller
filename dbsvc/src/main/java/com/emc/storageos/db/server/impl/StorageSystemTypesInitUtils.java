@@ -8,6 +8,7 @@ package com.emc.storageos.db.server.impl;
 import static java.util.Arrays.asList;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -19,6 +20,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.StorageSystemType;
+import com.google.common.collect.Lists;
 
 public class StorageSystemTypesInitUtils {
 
@@ -159,7 +161,8 @@ public class StorageSystemTypesInitUtils {
      */
     private static void createDbStorageTypeMap(DbClient dbClient) {
         List<URI> ids = dbClient.queryByType(StorageSystemType.class, true);
-        if (!ids.isEmpty()) {
+        ArrayList<URI> uriList = Lists.newArrayList(ids.iterator());
+        if (!uriList.isEmpty()) {
             Iterator<StorageSystemType> iter = dbClient.queryIterativeObjects(StorageSystemType.class, ids);
             dbStorageTypeMap = new HashMap<String, String>();
             while (iter.hasNext()) {

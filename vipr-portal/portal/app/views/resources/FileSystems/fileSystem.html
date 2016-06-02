@@ -156,6 +156,65 @@
   #{/Modal.body}
 #{/Modal.dialog}
 
+#{Modal.dialog id:'addRule'}
+  #{Modal.header}
+    <h4 class="modal-title">&{'button.addExportRule'}</h4>
+  #{/Modal.header}
+  #{Modal.body}
+    <div ng-controller="FileRessourceCtrl" id="rule">
+       <div class="container-fluid">
+           <div class="row">
+                <control-group v-field='rule.security' labelWidth="1">
+                    <select-one options="secOpt" ng-disabled="edit"></select-one>
+                </control-group>
+           </div>
+           <div class="row">
+                <control-group v-field='rule.anon' labelWidth="1" required >
+                    <input-text></input-text>
+                </control-group>
+           </div>
+           <div class="row" ng-show="!edit">
+                <control-group v-field='rule.subDir' labelWidth="1">
+                    <input-text></input-text>
+                </control-group>
+           </div>
+           <div class="row" style="padding-top:20px; padding-bottom:0px;">
+                <div class="pull-left col-sm-6" style="text-align:center;"><strong>&{'resources.filesystem.export.endpoints'}</strong></div>
+                <div class="pull-left col-sm-5" style="text-align:center;"><strong>&{'resources.filesystem.export.permission'}</strong></div>
+                <div class="pull-left col-sm-1"></div>
+           </div>
+           <hr style="margin:5px;"/>
+           <div class="row" ng-repeat="info in rule.endpoints" style="margin-bottom:5px;">
+               <div class="pull-left col-sm-6" v-field="info.endpoint"><input-text></input-text></div>
+               <div class="pull-left col-sm-5" v-field="info.permission" style="padding-right:0px;"><select-one options="permOpt"></select-one></div>
+               <div class="pull-left col-sm-1" style="padding-left:0px; margin-top:5px;"><button type="button" ng-click="deleteEndpoint($index)" class="close">&times;</button></div>
+           </div>
+           <div class="row">
+               <div class="pull-left col-sm-11"><button type="button" ng-click="addEndpoint()" class="btn btn-sm btn-success"><i v-icon=plus></i> &{'button.add'}</button></div>
+           </div>
+           #{form @save(), id:'modifyExportForm', class:'form form-horizontal', autocomplete:"off"}
+             <input type="hidden" name="edit" ng-value="edit"/>
+             <input type="hidden" name="id" value="${fileSystem.id}" />
+             <input type="hidden" name="fsPath" value="${fileSystem.mountPath}" />
+             <input type="hidden" name="exportPath" ng-value="exportPath" />
+             <input type="hidden" name="security" ng-value="rule.security" />
+             <input type="hidden" name="anon" ng-value="rule.anon" />
+             <input type="hidden" name="subDir" ng-value="rule.subDir" />
+             <input type="hidden" name="ro" ng-value="ro"/>
+             <input type="hidden" name="rw" ng-value="rw"/>
+             <input type="hidden" name="root" ng-value="root"/>
+             <div class="row">
+               #{Modal.buttonBar}
+                 <button type="submit" style="margin-left:45px;" class="btn btn-primary"><i v-icon=ok-sign></i> &{'button.save'}</button>
+               #{/Modal.buttonBar}
+             </div>
+           #{/form}
+       </div>
+    </div>
+  #{/Modal.body}
+#{/Modal.dialog}
+
+
 #{Modal.dialog id:'subDirectory'}
   #{Modal.header}
     <h4 class="modal-title">&{'resources.filesystem.share.add.subdir'}</h4>
@@ -323,7 +382,7 @@
   function addRule() {
 	var scope = angular.element($('#rule')).scope();
 	scope.populateModal(false);
-	$('#exportRule').modal('show');
+	$('#addRule').modal('show');
   }
 
   function addSubDir() {

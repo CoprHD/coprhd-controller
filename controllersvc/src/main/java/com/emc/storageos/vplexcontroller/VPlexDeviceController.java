@@ -843,23 +843,23 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     } else {
                         vinfos.add(info);
                     }
-                }
-                                
+                }                                
                 // Update rollback information.
                 rollbackData.add(vinfos);
                 _workflowService.storeStepData(stepId, rollbackData);
 
                 // Make a call to get cluster info
                 if (null == clusterInfoList) {
+
                     boolean isItlFetch = VPlexApiUtils.isITLBasedSearch(vinfos.get(0));
                     clusterInfoList = client.getClusterInfo(false, isItlFetch);
                 }
 
                 // Make the call to create a virtual volume. It is distributed if there are two (or more?)
                 // physical volumes.
-                boolean isDistributed = (vinfos.size() == 2);
-                VPlexVirtualVolumeInfo vvInfo = client.createVirtualVolume(vinfos, isDistributed,
-                        false, false, clusterId, clusterInfoList, false);
+                boolean isDistributed = (vinfos.size() >= 2);
+                VPlexVirtualVolumeInfo vvInfo = client.createVirtualVolume(vinfos, isDistributed, false, false, clusterId, clusterInfoList,
+                        false);
 
                 if (vvInfo == null) {
                     VPlexApiException ex = VPlexApiException.exceptions.cantFindRequestedVolume(vplexVolume.getLabel());
@@ -870,8 +870,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 virtualVolumeInfos.add(vvInfo);
             }
 
-            // Find the volumes just created to collect all the required attributes,
-            // and update the volume instances in the database.
             Map<String, VPlexVirtualVolumeInfo> foundVirtualVolumes = client.findVirtualVolumes(clusterInfoList, virtualVolumeInfos);
 
             if (!foundVirtualVolumes.isEmpty()) {
@@ -899,7 +897,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                             }
                         }
                     } catch (Exception e){
-                        
+                        _log.warn(String.format("Error renaming newly created VPLEX volume %s:%s",
+                                vplexVolume.getId(), vplexVolume.getLabel()), e);                        
                     }
                     buf.append(vvInfo.getName() + " ");
                     _log.info(String.format("Created virtual volume: %s path: %s", vvInfo.getName(), vvInfo.getPath()));

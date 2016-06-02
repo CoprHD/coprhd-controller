@@ -636,7 +636,6 @@ public class VPlexApiClient {
      * @param cleanup true to automatically cleanup after the commit.
      * @param remove true to automatically remove the migration record.
      * @param rename true to rename the volumes after committing the migration.
-     * @param usingCustomNames true if custom naming is enabled.
      * 
      * @return A list of VPlexMigrationInfo instances for the committed
      *         migrations each of which contains a reference to the
@@ -647,9 +646,9 @@ public class VPlexApiClient {
      * @throws VPlexApiException When an error occurs committing the migrations.
      */
     public List<VPlexMigrationInfo> commitMigrations(String virtualVolumeName, List<String> migrationNames,
-            boolean cleanup, boolean remove, boolean rename, boolean usingCustomNames) throws VPlexApiException {
+            boolean cleanup, boolean remove, boolean rename) throws VPlexApiException {
         s_logger.info("Request to commit migrations on VPlex at {}", _baseURI);
-        return _migrationMgr.commitMigrations(virtualVolumeName, migrationNames, cleanup, remove, rename, usingCustomNames);
+        return _migrationMgr.commitMigrations(virtualVolumeName, migrationNames, cleanup, remove, rename);
     }
 
     /**

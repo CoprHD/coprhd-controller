@@ -843,7 +843,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     } else {
                         vinfos.add(info);
                     }
-                }                                
+                }
                 // Update rollback information.
                 rollbackData.add(vinfos);
                 _workflowService.storeStepData(stepId, rollbackData);
@@ -5055,11 +5055,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 _log.info("Added migration source {}", migration.getSource());
                 String stepId = workflow.createStepId();
                 _log.info("Commit operation id is {}", stepId);
-                Boolean usingCustomNames = CustomVolumeNamingUtils.isCustomVolumeNamingEnabled(
-                        customConfigHandler, vplexSystem.getSystemType());
                 Workflow.Method vplexExecuteMethod = new Workflow.Method(
                         COMMIT_MIGRATION_METHOD_NAME, vplexURI, virtualVolumeURI,
-                        migrationURI, rename, usingCustomNames);
+                        migrationURI, rename);
                 Workflow.Method vplexRollbackMethod = new Workflow.Method(
                         RB_COMMIT_MIGRATION_METHOD_NAME, migrationURIs, stepId);
                 _log.info("Creating workflow step to commit migration");
@@ -5208,11 +5206,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 _log.info("Added migration source {}", migration.getSource());
                 String stepId = workflow.createStepId();
                 _log.info("Commit operation id is {}", stepId);
-                Boolean usingCustomNames = CustomVolumeNamingUtils.isCustomVolumeNamingEnabled(
-                        customConfigHandler, vplexSystem.getSystemType());
                 Workflow.Method vplexExecuteMethod = new Workflow.Method(
                         COMMIT_MIGRATION_METHOD_NAME, vplexURI, virtualVolumeURI,
-                        migrationURI, rename, usingCustomNames);
+                        migrationURI, rename);
                 Workflow.Method vplexRollbackMethod = new Workflow.Method(
                         RB_COMMIT_MIGRATION_METHOD_NAME, migrationURIs, stepId);
                 _log.info("Creating workflow step to commit migration");
@@ -5490,13 +5486,12 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @param migrationURI The URI of the data migration.
      * @param rename Indicates if the volume should be renamed after commit to
      *            conform to ViPR standard naming conventions.
-     * @param usingCustomNames true if custom naming is enabled.
      * @param stepId The workflow step identifier.
      *
      * @throws WorkflowException
      */
     public void commitMigration(URI vplexURI, URI virtualVolumeURI, URI migrationURI,
-            Boolean rename, Boolean usingCustomNames, String stepId) throws WorkflowException {
+            Boolean rename, String stepId) throws WorkflowException {
         _log.info("Committing migration {}", migrationURI);
         Migration migration = null;
         VPlexApiClient client = null;
@@ -5523,8 +5518,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 Volume virtualVolume = getDataObject(Volume.class, virtualVolumeURI, _dbClient);
                 try {
                     migrationInfoList = client.commitMigrations(virtualVolume.getDeviceLabel(),
-                            Arrays.asList(migration.getLabel()), true, true, rename.booleanValue(),
-                            usingCustomNames.booleanValue());
+                            Arrays.asList(migration.getLabel()), true, true, rename.booleanValue());
                     _log.info("Committed migration {}", migration.getLabel());
                 } catch (VPlexApiException vae) {
                     _log.error("Exception committing VPlex migration: " + vae.getMessage(), vae);

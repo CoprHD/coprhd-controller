@@ -36,6 +36,7 @@ import com.emc.storageos.storagedriver.RegistrationData;
 import com.emc.storageos.storagedriver.model.Initiator;
 import com.emc.storageos.storagedriver.model.StorageHostComponent;
 import com.emc.storageos.storagedriver.model.StorageObject;
+import com.emc.storageos.storagedriver.model.StorageObject.AccessStatus;
 import com.emc.storageos.storagedriver.model.StoragePool;
 import com.emc.storageos.storagedriver.model.StoragePool.PoolOperationalStatus;
 import com.emc.storageos.storagedriver.model.StoragePool.PoolServiceType;
@@ -44,20 +45,15 @@ import com.emc.storageos.storagedriver.model.StoragePool.RaidLevels;
 import com.emc.storageos.storagedriver.model.StoragePool.SupportedDriveTypes;
 import com.emc.storageos.storagedriver.model.StoragePool.SupportedResourceType;
 import com.emc.storageos.storagedriver.model.StoragePort;
-import com.emc.storageos.storagedriver.model.StoragePort.PortType;
 import com.emc.storageos.storagedriver.model.StoragePort.TransportType;
 import com.emc.storageos.storagedriver.model.StorageSystem;
+import com.emc.storageos.storagedriver.model.StorageSystem.SupportedProvisioningType;
 import com.emc.storageos.storagedriver.model.StorageVolume;
 import com.emc.storageos.storagedriver.model.VolumeClone;
 import com.emc.storageos.storagedriver.model.VolumeConsistencyGroup;
 import com.emc.storageos.storagedriver.model.VolumeMirror;
 import com.emc.storageos.storagedriver.model.VolumeSnapshot;
-import com.emc.storageos.storagedriver.model.StorageObject.AccessStatus;
-import com.emc.storageos.storagedriver.model.StorageSystem.SupportedProvisioningType;
-import com.emc.storageos.storagedriver.model.StorageSystem.SupportedReplication;
 import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
-import com.emc.storageos.storagedriver.storagecapabilities.CommonStorageCapabilities;
-import com.emc.storageos.storagedriver.storagecapabilities.CustomStorageCapabilities;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
 
 /**
@@ -449,15 +445,9 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
                         volume.getRequestedCapacity() / HP3PARConstants.MEGA_BYTE);
                 volResult = hp3parApi.getVolumeDetails(volume.getDisplayName());
                 
-                // allocated capacity in pool 
-                CPGMember cpgDetails = hp3parApi.getCPGDetails(volume.getStoragePoolId());
-                volume.setAllocatedCapacity((cpgDetails.getUsrUsage().getUsedMiB().longValue() +
-                        cpgDetails.getSAUsage().getUsedMiB().longValue() +
-                        cpgDetails.getSDUsage().getUsedMiB().longValue()) *
-                        HP3PARConstants.KILO_BYTE);
-                
-                // actual size of the volume in array
+                // Attributes of the volume in array
                 volume.setProvisionedCapacity(volResult.getSizeMiB() * HP3PARConstants.MEGA_BYTE);
+                volume.setAllocatedCapacity(volResult.getSizeMiB() * HP3PARConstants.MEGA_BYTE);
                 volume.setWwn(volResult.getWwn());
                 volume.setNativeId(volume.getDisplayName()); //required for volume delete
                 volume.setDeviceLabel(volume.getDisplayName());
@@ -501,13 +491,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
             // actual size of the volume in array
             VolumeDetailsCommandResult volResult = hp3parApi.getVolumeDetails(volume.getDisplayName());
             volume.setProvisionedCapacity(volResult.getSizeMiB() * HP3PARConstants.MEGA_BYTE);
-
-            // allocated capacity in pool 
-            CPGMember cpgDetails = hp3parApi.getCPGDetails(volume.getStoragePoolId());
-            volume.setAllocatedCapacity((cpgDetails.getUsrUsage().getUsedMiB().longValue() +
-                    cpgDetails.getSAUsage().getUsedMiB().longValue() +
-                    cpgDetails.getSDUsage().getUsedMiB().longValue()) *
-                    HP3PARConstants.KILO_BYTE);
+            volume.setAllocatedCapacity(volResult.getSizeMiB() * HP3PARConstants.MEGA_BYTE);
 
             task.setStatus(DriverTask.TaskStatus.READY);
             _log.info("3PARDriver:expandVolumes for storage system native id {}, volume name {} - end",
@@ -845,7 +829,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
      */
     private HP3PARApi getHP3PARDevice(StorageSystem hp3parSystem) throws HP3PARException {
         URI deviceURI;
-        _log.info("getHP3PARDevice input storage system");
+        _log.info("3PARDriver:getHP3PARDevice input storage system");
         
         try {
             deviceURI = new URI("https", null, hp3parSystem.getIpAddress(), hp3parSystem.getPortNumber(), "/", null, null);
@@ -860,7 +844,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 
     private HP3PARApi getHP3PARDevice(String ip, String port, String user, String pass) throws HP3PARException {
         URI deviceURI;
-        _log.info("getHP3PARDevice input full details");
+        _log.info("3PARDriver:getHP3PARDevice input full details");
         
         try {
             deviceURI = new URI("https", null, ip, Integer.parseInt(port), "/", null, null);

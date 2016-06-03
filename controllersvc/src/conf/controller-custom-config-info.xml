@@ -59,7 +59,7 @@
                 <ref bean="nasUsePhysicalNASForProvisioning"/>
                 <ref bean="nasShareVNASWithMultipleProjects"/>
                 <ref bean="volumeNamingEnabled"/>
-                <ref bean="volumeNamingProvision"/>
+                <ref bean="volumeNamingProvisionNoExport"/>
                 <ref bean="volumeNamingProvisionWithExport"/>
             </list>
         </property>
@@ -680,8 +680,8 @@
         </property>
     </bean>
     
-    <bean id="volumeNamingProvision" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
-        <property name="name" value="VolumeNamingProvision"/>
+    <bean id="volumeNamingProvisionNoExport" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+        <property name="name" value="VolumeNamingProvisionNoExport"/>
         <property name="configType" value="CustomName"/>
         <property name="type" value="String"/>
         <property name="dataSourceVariables">

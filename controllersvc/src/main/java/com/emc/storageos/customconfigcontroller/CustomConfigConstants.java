@@ -57,7 +57,7 @@ public interface CustomConfigConstants {
 
     public String VPLEX_STORAGE_VIEW_NAME = "VPlexStorageViewName";
     public String CUSTOM_VOLUME_NAMING_ENABLED = "VolumeNamingEnabled";
-    public String CUSTOM_VOLUME_NAME = "VolumeNamingProvision";
+    public String CUSTOM_VOLUME_NAME = "VolumeNamingProvisionNoExport";
     public String CUSTOM_VOLUME_NAME_WITH_EXPORT = "VolumeNamingProvisionWithExport";
     public String CUSTOM_VOLUME_EXPORT_NAME = "exportName";
 

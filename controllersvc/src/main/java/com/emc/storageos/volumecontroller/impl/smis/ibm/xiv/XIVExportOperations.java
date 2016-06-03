@@ -427,8 +427,7 @@ public class XIVExportOperations implements ExportMaskOperations {
         _log.info("{} deleteExportMask END...", storage.getLabel());
     }
 
-    @Override
-    public void addVolume(StorageSystem storage, URI exportMaskURI,
+    public void addVolumeUsingSMIS(StorageSystem storage, URI exportMaskURI,
             VolumeURIHLU[] volumeURIHLUs, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         _log.info("{} addVolume START...", storage.getLabel());
@@ -458,8 +457,7 @@ public class XIVExportOperations implements ExportMaskOperations {
         _log.info("{} addVolume END...", storage.getLabel());
     }
 
-    @Override
-    public void removeVolume(StorageSystem storage, URI exportMaskURI,
+    public void removeVolumeUsingSMIS(StorageSystem storage, URI exportMaskURI,
             List<URI> volumeURIList, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         _log.info("{} removeVolume START...", storage.getLabel());
@@ -568,21 +566,7 @@ public class XIVExportOperations implements ExportMaskOperations {
         _log.info("{} removeInitiator END...", storage.getLabel());
     }
 
-    /**
-     * This call can be used to look up the passed in initiator/port names and
-     * find (if any) to which export masks they belong on the 'storage' array.
-     * 
-     * 
-     * @param storage
-     *            [in] - StorageSystem object representing the array
-     * @param initiatorNames
-     *            [in] - normalized Port identifiers (WWPN or iSCSI name) (all initiators of all hosts involved)
-     * @param mustHaveAllPorts
-     *            [in] NOT APPLICABLE FOR XIV
-     * @return Map of port name to Set of ExportMask URIs
-     */
-    @Override
-    public Map<String, Set<URI>> findExportMasks(StorageSystem storage,
+    private Map<String, Set<URI>> findSMISExportMasks(StorageSystem storage,
             List<String> initiatorNames, boolean mustHaveAllPorts) {
         long startTime = System.currentTimeMillis();
         Map<String, Set<URI>> matchingMasks = new HashMap<String, Set<URI>>();
@@ -1223,5 +1207,59 @@ public class XIVExportOperations implements ExportMaskOperations {
         }
         _log.info("{} deleteExportMask END...", storage.getLabel());
     }
-        
+    
+    /**
+     * This call can be used to look up the passed in initiator/port names and
+     * find (if any) to which export masks they belong on the 'storage' array.
+     * 
+     * 
+     * @param storage
+     *            [in] - StorageSystem object representing the array
+     * @param initiatorNames
+     *            [in] - normalized Port identifiers (WWPN or iSCSI name) (all initiators of all hosts involved)
+     * @param mustHaveAllPorts
+     *            [in] NOT APPLICABLE FOR XIV
+     * @return Map of port name to Set of ExportMask URIs
+     */
+    @Override
+    public Map<String, Set<URI>> findExportMasks(StorageSystem storage, List<String> initiatorNames, boolean mustHaveAllPorts) throws DeviceControllerException {
+        _log.info("{} findExportMasks START...", storage.getLabel());
+        Map<String, Set<URI>> result = null;
+        if (_restAPIHelper.isClusteredHost(storage, initiatorNames)) {
+            _log.info("Executing findExportMasks using REST on Storage {}", storage.getLabel());
+            result = _restAPIHelper.findRESTExportMasks(storage, initiatorNames, mustHaveAllPorts);
+        } else {
+            _log.info("Executing findExportMasks using SMIS on Storage {}", storage.getLabel());
+            result = findSMISExportMasks(storage, initiatorNames, mustHaveAllPorts);
+        }
+        _log.info("{} deleteExportMask END...", storage.getLabel());
+        return result;
+    }
+    
+    @Override
+    public void addVolume(StorageSystem storage, URI exportMaskURI, VolumeURIHLU[] volumeURIHLUs, TaskCompleter taskCompleter){
+    	_log.info("{} addVolume START...", storage.getLabel());
+        if (_restAPIHelper.isClusteredHost(storage, exportMaskURI, null)) {
+            _log.info("Executing addVolume using REST on Storage {}", storage.getLabel());
+            _restAPIHelper.addVolumeUsingREST(storage, exportMaskURI, volumeURIHLUs, taskCompleter);
+        } else {
+            _log.info("Executing addVolume using SMIS on Storage {}", storage.getLabel());
+            addVolumeUsingSMIS(storage, exportMaskURI, volumeURIHLUs, taskCompleter);
+        }
+        _log.info("{} addVolume END...", storage.getLabel());
+    }
+    
+    @Override
+    public void removeVolume(StorageSystem storage, URI exportMaskURI,
+            List<URI> volumeURIList, TaskCompleter taskCompleter) throws DeviceControllerException {
+    	_log.info("{} removeVolume START...", storage.getLabel());
+        if (_restAPIHelper.isClusteredHost(storage, exportMaskURI, null)) {
+            _log.info("Executing removeVolume using REST on Storage {}", storage.getLabel());
+            _restAPIHelper.removeVolumeUsingREST(storage, exportMaskURI, volumeURIList, taskCompleter);
+        } else {
+            _log.info("Executing removeVolume using SMIS on Storage {}", storage.getLabel());
+            removeVolumeUsingSMIS(storage, exportMaskURI, volumeURIList, taskCompleter);
+        }
+        _log.info("{} removeVolume END...", storage.getLabel());
+    }
 }

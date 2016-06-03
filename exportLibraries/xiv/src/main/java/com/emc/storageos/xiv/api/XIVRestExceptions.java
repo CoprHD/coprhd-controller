@@ -58,9 +58,6 @@ public interface XIVRestExceptions {
     public Exception hostPartofCluster(String xivSystem, String hostName, String clusterName);
     
     @DeclareServiceCode(ServiceCode.XIV_COMMAND_FAILURE)
-    public Exception refreshExistingMaskFailure(final String message);
-
-    @DeclareServiceCode(ServiceCode.XIV_COMMAND_FAILURE)
     public XIVRestException authenticationFailure(String uri) ;
 
     @DeclareServiceCode(ServiceCode.XIV_COMMAND_FAILURE)
@@ -68,4 +65,11 @@ public interface XIVRestExceptions {
 
     @DeclareServiceCode(ServiceCode.XIV_COMMAND_FAILURE)
     public XIVRestException internalError(String uri);
+    
+    @DeclareServiceCode(ServiceCode.XIV_COMMAND_FAILURE)
+    public XIVRestException refreshExistingMaskFailure(final String message);
+    
+    @DeclareServiceCode(ServiceCode.XIV_COMMAND_FAILURE)
+    public XIVRestException queryExistingMasksFailure(final String message, final Throwable cause);
+
 }

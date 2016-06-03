@@ -47,6 +47,7 @@ public class XIVRestClient extends StandardRestClient{
     private static final String TOTALCOUNT = "total_count";
     private static final String DATA = "data";
     private static final String HOST = "host";
+    private static final String PORT = "port";
     private static final String HOSTPORT = "host_port";
     private static final String VOLMAP = "vol_map";
     private static final String CLUSTER = "cluster";
@@ -640,5 +641,21 @@ public class XIVRestClient extends StandardRestClient{
         }
 
         return discVolWWNMappedToHost;
+    }
+    
+    public JSONArray getPortDetails(final String xivSystem, final String portName) throws Exception {
+        JSONArray result = new JSONArray();
+        String hostPortSearchURL = MessageFormat.format(HOST_PORT_URL + SEARCH_URL, xivSystem, PORT, portName);
+        JSONObject hostPortInstances = getInstance(hostPortSearchURL);
+        if (findAvailability(hostPortInstances)) {
+            JSONObject response = hostPortInstances.optJSONObject(RESPONSE);
+            if (null != response) {
+                JSONObject data = response.optJSONObject(DATA);
+                if (null != data) {
+                    result = data.optJSONArray(HOSTPORT);
+                }
+            }
+        }
+        return result;
     }
 }

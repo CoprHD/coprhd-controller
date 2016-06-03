@@ -374,12 +374,11 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
         return value != null ? (String) value : null;
     }
     
-<<<<<<< HEAD
     public String getChangeVpoolVolume() {
         Object value = _vpoolCapabilities.get(CHANGE_VPOOL_VOLUME);
         return value != null ? (String) value : null;
     }    
-=======
+
     public String getReplicaCreateInactive() {
         Object value = _vpoolCapabilities.get(REPLICA_CREATE_INACTIVE);
         return value != null ? (String) value : null;
@@ -389,6 +388,4 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
         Object value = _vpoolCapabilities.get(SNAPSHOT_SESSION_COPY_MODE);
         return value != null ? (String) value : null;
     }
-
->>>>>>> origin/integration-3.0-patch1
 }

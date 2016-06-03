@@ -706,10 +706,19 @@ public abstract class VirtualPoolService extends TaggedResource {
 
     protected VirtualPoolList getVirtualPoolList(VirtualPool.Type type, String shortVdcId, String tenantId) {
 
-        TenantOrg tenant_input = getTenantIfHaveAccess(tenantId);
-
         URIQueryResultList vpoolList = new URIQueryResultList();
         VirtualPoolList list = new VirtualPoolList();
+        TenantOrg tenant_input = null;
+
+        // if input tenant is not empty, but user have no access to it, return empty list.
+        if (!StringUtils.isEmpty(tenantId)) {
+            tenant_input = getTenantIfHaveAccess(tenantId);
+            if (tenant_input == null) {
+                return list;
+            }
+        }
+
+
         StorageOSUser user = getUserFromContext();
 
         List<VirtualPool> vpoolObjects = null;

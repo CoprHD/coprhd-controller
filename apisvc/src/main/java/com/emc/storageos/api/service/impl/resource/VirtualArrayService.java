@@ -156,9 +156,18 @@ public class VirtualArrayService extends TaggedResource {
             @DefaultValue("") @QueryParam(TENANT_ID_QUERY_PARAM) String tenantId ) {
         _geoHelper.verifyVdcId(shortVdcId);
 
-        TenantOrg tenant_input = getTenantIfHaveAccess(tenantId);
-
         VirtualArrayList list = new VirtualArrayList();
+        TenantOrg tenant_input = null;
+
+        // if input tenant is not empty, but user have no access to it, return empty list.
+        if (!StringUtils.isEmpty(tenantId)) {
+            tenant_input = getTenantIfHaveAccess(tenantId);
+            if (tenant_input == null) {
+                return list;
+            }
+        }
+
+
         List<VirtualArray> nhObjList = Collections.emptyList();
         if (_geoHelper.isLocalVdcId(shortVdcId)) {
             _log.debug("retrieving virtual arrays via dbclient");

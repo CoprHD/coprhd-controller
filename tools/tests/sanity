@@ -8455,7 +8455,6 @@ dr_basic_tests()
 
     # ipreconfig test after standby addition
     ipreconfig_test "${DR_SITE_A_IP}"
-    # wait for both sites stable so able to pause standby
     wait_for_site_stable "${DR_SITE_A_IP}" "${DR_SITE_B_IP}"
 
     # pause standby
@@ -8632,10 +8631,6 @@ dr_basic_tests()
     project create $TESTPROJECT --tenant $TENANT
     test_projectid=$(project query $TESTPROJECT)
     echo "Project id of $TESTPROJECT is $test_projectid."
-
-    # ipreconfig test after removing standby
-    ipreconfig_test "${DR_SITE_A_IP}"
-    wait_for_site_stable "${DR_SITE_A_IP}"
 
     #disabling pipefail option to pipe exit codes
     set +o pipefail
@@ -8849,6 +8844,7 @@ dr_multisite_tests()
 
     # ipreconfig after added the 2nd standby site
     ipreconfig_test "${DR_SITE_A_IP}"
+    wait_for_site_stable "${DR_SITE_A_IP}" "${DR_SITE_B_IP}" "${DR_SITE_C_IP}"
 
     # pause standby b
     echo "---PAUSE SITE $standby_site_b---"
@@ -8929,6 +8925,7 @@ dr_multisite_tests()
 
     # ipreconfig after pause&resume
     ipreconfig_test "$DR_SITE_A_IP"
+    wait_for_site_stable "${DR_SITE_A_IP}" "${DR_SITE_B_IP}" "${DR_SITE_C_IP}"
 
     echo "---PREPARING STANDBY_DEGRADED TEST---"
     syssvc $CONFIG_FILE "$DR_SITE_A_IP" set_prop system_permit_root_ssh yes
@@ -8990,6 +8987,7 @@ dr_multisite_tests()
     # NOTE: active site and standby site has been switched, site A is standby and site C is active now
     # ipreconfig after switchover
     ipreconfig_test "$DR_SITE_C_IP"
+    wait_for_site_stable "${DR_SITE_A_IP}" "${DR_SITE_B_IP}" "${DR_SITE_C_IP}"
 
     # failover test part
     echo "Stopping active site $DR_SITE_C_NAME services to prepare for failover test ..."
@@ -9055,6 +9053,7 @@ dr_multisite_tests()
 
     # ipreconfig after failover&failback
     ipreconfig_test "$DR_SITE_A_IP"
+    wait_for_site_stable "${DR_SITE_A_IP}" "${DR_SITE_B_IP}" "${DR_SITE_C_IP}"
 
     # delete standby
     echo "---DELETE STANDBY $standby_site_b---"
@@ -9086,8 +9085,9 @@ dr_multisite_tests()
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD 10 600
     project show $test_projectid
 
-    # ipreconfig after deletion
+    # ipreconfig after deletion of siteB
     ipreconfig_test "$DR_SITE_A_IP"
+    wait_for_site_stable "${DR_SITE_A_IP}" "${DR_SITE_C_IP}"
 
     # Below codes are used to test failover to ACTIVE_DEGRADED site
     # power off site A, then failover to site C, then power on site A and wait it to be ACTIVE_DEGRADED, then failover to it, and wait it to be ACTIVE

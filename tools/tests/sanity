@@ -5759,8 +5759,7 @@ syssvc_setup()
 
 security_setup()
 {
-    echo "Enable root ssh permit"
-    syssvc $CONFIG_FILE $BOURNE_IPADDR set_prop system_permit_root_ssh yes
+    echo "security setup, do nothing."
 }
 
 all_setup()
@@ -7412,46 +7411,8 @@ security_tests()
 			run security login $AD_USER_USERNAME $AD_USER_PASSWORD --ip=${BOURNE_IP_ARRAY[$i]} 
 		done
 	fi
-
-	# verify java support ssl3 and don't have keysize restriction
-	verify_java_security_file $BOURNE_IPADDR
 }
 
-verify_java_security_file() {
-    VIP=$1
-    OPT=""
-    if [[ $VIP == \[* ]];
-    then
-        tmp=${VIP#*[}
-        VIP=${tmp%]*}
-        OPT="-6"
-    fi
-    echo "VIP=${VIP} OPT=${OPT}"
-
-    # make sure line jdk.tls.disabledAlgorithms=SSLv3 was comented out
-    cmd="find /usr/lib64 -name java.security -exec grep jdk.tls.disabledAlgorithms {} \; | grep SSLv3 | grep -v '#' > /dev/null || echo ok"
-    echo "CMD=${cmd}"
-    result=`SSH ${VIP} "$cmd" ${OPT}`
-    if [[ $result != "ok" ]];
-    then
-        echo "***"
-        echo "*** FAILED! vipr java.security disabled ssl3"
-        echo "***"
-        exit 1
-    fi
-
-    # make sure line jdk.certpath.disabledAlgorithms don't contains 'keySize' restriction
-    cmd="find /usr/lib64 -name java.security -exec grep jdk.certpath.disabledAlgorithms {} \; | grep keySize | grep -v '#' > /dev/null || echo ok"
-    echo "CMD=${cmd}"
-    result=`SSH ${VIP} "$cmd" ${OPT}`
-    if [[ $result != "ok" ]];
-    then
-        echo "***"
-        echo "*** FAILED! vipr java.security contains keySize restriction"
-        echo "***"
-        exit 1
-    fi
-}
 
 ##### full_copy tests 
 #######################

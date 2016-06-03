@@ -41,8 +41,6 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.hds.api.HDSApiFactory;
-import com.emc.storageos.model.property.PropertyConstants;
-import com.emc.storageos.services.util.PlatformUtils;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.ceph.CephUtils;
 import com.emc.storageos.volumecontroller.impl.cinder.CinderUtils;
@@ -71,7 +69,6 @@ public class DataCollectionJobScheduler {
     private static final String ENABLE_METERING = "enable-metering";
     private static final String ENABLE_AUTODISCOVER = "enable-autodiscovery";
     private static final String ENABLE_AUTOSCAN = "enable-autoscan";
-    private static final String ENABLE_AUTO_OPS_SINGLENODE = "enable-auto-discovery-metering-scan-single-node-deployments";
     private static final String TOLERANCE = "time-tolerance";
     private static final String PROP_HEADER_CONTROLLER = "controller_";
 
@@ -210,10 +207,7 @@ public class DataCollectionJobScheduler {
             schedulingProcessor.addScheduledTask(new DiscoveryScheduler(ControllerServiceImpl.SCANNER),
                     intervals.getInitialDelay(),
                     intervals.getInterval());
-        } else {
-            _logger.info("Auto scan is disabled.");
         }
-        
         if (enableAutoDiscovery) {
             JobIntervals intervals = JobIntervals.get(ControllerServiceImpl.DISCOVERY);
             schedulingProcessor.addScheduledTask(new DiscoveryScheduler(ControllerServiceImpl.DISCOVERY),
@@ -233,10 +227,7 @@ public class DataCollectionJobScheduler {
             schedulingProcessor.addScheduledTask(new DiscoveryScheduler(ControllerServiceImpl.CS_DISCOVERY),
                     intervals.getInitialDelay(),
                     intervals.getInterval());
-        } else {
-            _logger.info("Auto discovery is disabled.");
         }
-        
         if (enableAutoMetering) {
             JobIntervals intervals = JobIntervals.get(ControllerServiceImpl.METERING);
             schedulingProcessor.addScheduledTask(new DiscoveryScheduler(ControllerServiceImpl.METERING),

@@ -47,7 +47,7 @@ public class VNXeExpandFileSystemJob extends VNXeJob {
             FileShare fsObj = dbClient.queryObject(FileShare.class, fsId);
             // If terminal state update storage pool capacity
             if (_status == JobStatus.SUCCESS || _status == JobStatus.FAILED) {
-                VNXeJob.updateStoragePoolCapacity(dbClient, vnxeApiClient, fsObj.getPool());
+                VNXeJob.updateStoragePoolCapacity(dbClient, vnxeApiClient, fsObj.getPool(), null);
             }
 
             if (_status == JobStatus.SUCCESS && fsObj != null) {

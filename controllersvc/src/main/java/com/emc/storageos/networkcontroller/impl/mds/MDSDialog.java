@@ -397,7 +397,7 @@ public class MDSDialog extends SSHDialog {
 
         Map<String, String> aliasDatabase = showDeviceAliasDatabase();
 
-        for (String line : lines) {
+        for (String line : lines) {        	
             int index = match(line, regex, groups);
             switch (index) {
                 case 0:
@@ -468,7 +468,7 @@ public class MDSDialog extends SSHDialog {
         };
 
         Zoneset activeZoneset = null;
-        for (String line : lines) {
+        for (String line : lines) {       	
             int index = match(line, regex2, groups);
             switch (index) {
                 case 0:     // found the active one
@@ -975,13 +975,16 @@ public class MDSDialog extends SSHDialog {
 
         String busyKey = "MDSDialog.checkForEnhancedZoneSession.busy";
         String createdKey = "MDSDialog.checkForEnhancedZoneSession.created";
-
+        String pendingKey = "MDSDialog.checkForEnhancedZoneSession.pending";
+        
         if (forIvr) {
             busyKey = "MDSDialog.ivr.checkForEnhancedZoneSession.busy";
             createdKey = "MDSDialog.ivr.checkForEnhancedZoneSession.created";
+            pendingKey = "MDSDialog.ivr.checkForEnhancedZoneSession.pending";
         }
-
+        
         for (String s : lines) {
+        	_log.debug("line : {}", s);
             if (s.startsWith(MDSDialogProperties.getString(createdKey))) { // Enhanced zone session has been created
                 inSession = true;
                 return false;
@@ -998,6 +1001,20 @@ public class MDSDialog extends SSHDialog {
                 }
                 _log.error("Zone session lock is busy, gave up after " + sessionLockRetryMax + " retries!");
                 throw NetworkDeviceControllerException.exceptions.zoneSessionLocked(retryCount + 1);
+            }
+            
+            if (s.contains(MDSDialogProperties.getString(pendingKey))) {            	
+            	   if ((retryCount + 1) < sessionLockRetryMax) {
+                       _log.info("There is a pending session, will retry after " + defaultTimeout / 1000 + " seconds...");
+                       try {
+                           Thread.sleep(defaultTimeout);
+                       } catch (InterruptedException ex) {
+                           _log.warn(ex.getLocalizedMessage());
+                       }
+                       return true;
+                   }
+                   _log.error("There is a pending session still, gave up after " + sessionLockRetryMax + " retries!");
+                   throw NetworkDeviceControllerException.exceptions.timeoutWaitingOnPendingActions();
             }
         }
         return false;

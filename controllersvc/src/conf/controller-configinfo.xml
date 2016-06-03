@@ -70,8 +70,8 @@
         <entry key="Metering-netapp" value="metering-block-context.xml" />
         <entry key="Metering-netappc" value="metering-block-context.xml" />
         <entry key="Metering-vplex" value="metering-block-context.xml" />
-		<entry key="Metering-hds" value="metering-hds-context.xml" />
-		<entry key="Metering-openstack" value="discovery-cinder-context.xml" />
+        <entry key="Metering-hds" value="metering-hds-context.xml" />
+        <entry key="Metering-openstack" value="discovery-cinder-context.xml" />
         <entry key="Metering-ibmxiv" value="metering-ibmxiv-context.xml" />
         <entry key="Metering-scaleio" value="discovery-scaleio-context.xml"/>
         <entry key="Metering-datadomain" value="discovery-datadomain-context.xml" />
@@ -111,22 +111,21 @@
 
         <entry key="time-tolerance" value="600" />
 
-
         <entry key="metering-dump" value="false" />
         <entry key="metering-dump-location" value="/tmp" />
         <entry key="metering-records-partition-size" value="1000" />
         <entry key="sblim-timeout" value="1200000" />
 
-		<!-- On single node deployments (devkits, standalone, 1+0), default to NO auto-discovery.
-		     This value overrides the three values for "enable-metering", "enable-autodiscovery",
-		     and "enable-autoscan" to prevent over-use of managed resource (providers) during testing 
-		     and PoC deployments of ViPR. 
-		     
-		     This value is ignored on multi-node deployments of ViPR and all deployments of CoprHD.
-		     
-		     "false" ==> On single node deployments, NEVER auto-discover anything.  Do manual discoveries only.
-		     "true"  ==> On single node deployments, refer to the three variables below for auto operations.  
-		     -->
+        <!-- On single node deployments (devkits, standalone, 1+0), default to NO auto-discovery.
+             This value overrides the three values for "enable-metering", "enable-autodiscovery",
+             and "enable-autoscan" to prevent over-use of managed resource (providers) during testing 
+             and PoC deployments of ViPR. 
+             
+             This value is ignored on multi-node deployments of ViPR and all deployments of CoprHD.
+             
+             "false" ==> On single node deployments, NEVER auto-discover anything.  Do manual discoveries only.
+             "true"  ==> On single node deployments, refer to the three variables below for auto operations.  
+             -->
         <entry key="enable-auto-discovery-metering-scan-single-node-deployments" value="false" />
         
         <entry key="enable-metering" value="true" />

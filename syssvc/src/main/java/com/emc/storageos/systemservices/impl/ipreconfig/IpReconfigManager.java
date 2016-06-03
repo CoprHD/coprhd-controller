@@ -54,10 +54,10 @@ public class IpReconfigManager implements Runnable {
     Configuration config = null;
 
 
-    private ClusterIpInfo currentIpinfo = null;   // current ip info of the cluster
+    private ClusterIpInfo currentIpinfo = null;   // current cluster IPs loaded from local IP prop file
     private boolean bNeedRefresh = true;         // need refresh current cluster IPs or not
 
-    private ClusterIpInfo newIpinfo = null;     // new ip info of the cluster
+    private ClusterIpInfo newIpinfo = null;     // new cluster IPs set via REST API
     private Integer vdcnodeId;                // identical node id within local VDC (multiple DR sites)
     private Integer nodeCount;
     private long expiration_time = 0L;         // ipreconfig would fail if not finished at this time
@@ -249,11 +249,18 @@ public class IpReconfigManager implements Runnable {
     private synchronized void handleIpReconfig() throws Exception {
         config = _coordinator.getCoordinatorClient().queryConfiguration(IpReconfigConstants.CONFIG_KIND, IpReconfigConstants.CONFIG_ID);
         if (config == null) {
-            log.info("no ipreconfig request coming in yet.");
+            if (FileUtils.exists(IpReconfigConstants.CLUSTER_NETWORK_FORCEFLAG)) {
+                log.info("User is forcing to reset cluster IPs ...");
+                assureIPConsistent(true);
+                FileUtils.deleteFile(IpReconfigConstants.CLUSTER_NETWORK_FORCEFLAG);
+            }
+            log.info("no ipreconfig REST API request coming in yet.");
             return;
         }
 
         if (isRollback()) {
+            log.info("User is rollbacking to original IPs ...");
+            assureIPConsistent(true);
             return;
         }
 
@@ -274,6 +281,7 @@ public class IpReconfigManager implements Runnable {
         if (System.currentTimeMillis() >= expiration_time) {
             // set procedure failed when it is expired
             setFailed(IpReconfigConstants.ERRSTR_TIMEOUT);
+            FileUtils.deleteFile(IpReconfigConstants.NODESTATUS_PATH);
             return;
         }
 
@@ -365,6 +373,7 @@ public class IpReconfigManager implements Runnable {
                     log.error("unexpected node status before reboot: {}", localnode_status);
                     // if installer is used before the procedure finished, we will get unexpected node status
                     setFailed(IpReconfigConstants.ERRSTR_MANUAL_CONFIGURED);
+                    FileUtils.deleteFile(IpReconfigConstants.NODESTATUS_PATH);
                     break;
             }
         } else {
@@ -386,7 +395,7 @@ public class IpReconfigManager implements Runnable {
                     // New IP has taken effect in local node, set total status to "Succeed" when all nodes are "Local_Succeed".
                     target_nodestatus = IpReconfigConstants.NodeStatus.CLUSTER_SUCCEED;
                     if (isReadyForNextStatus(localnode_status, target_nodestatus)) {
-                        assureIPConsistent();
+                        assureIPConsistent(false);
                         FileUtils.deleteFile(IpReconfigConstants.NODESTATUS_PATH);
                     }
                     break;
@@ -394,6 +403,7 @@ public class IpReconfigManager implements Runnable {
                     log.error("unexpected node status after reboot: {}", localnode_status);
                     // if installer is used before the procedure finished, we will get unexpected node status
                     setFailed(IpReconfigConstants.ERRSTR_MANUAL_CONFIGURED);
+                    FileUtils.deleteFile(IpReconfigConstants.NODESTATUS_PATH);
                     break;
             }
         }
@@ -582,9 +592,12 @@ public class IpReconfigManager implements Runnable {
     /**
      * Poweroff/Reboot the node
      */
-    public void haltNode(String postOperation) throws Exception {
+    public void haltNode(String shutdownSites) throws Exception {
         Thread.sleep(6 * 1000);
-        if (postOperation.equals("poweroff")) {
+
+        String[] siteIds = shutdownSites.split(",");
+        Set<String> siteIdSet = new HashSet<String>(Arrays.asList(siteIds));
+        if(siteIdSet.contains(drUtil.getLocalSite().getSiteShortId())) {
             localRepository.poweroff();
         } else {
             localRepository.reboot();
@@ -618,6 +631,7 @@ public class IpReconfigManager implements Runnable {
                                 expiration_time = Long.valueOf(config.getConfig(IpReconfigConstants.CONFIG_EXPIRATION_KEY));
                                 if (expiration_time < System.currentTimeMillis()) {
                                     setFailed(IpReconfigConstants.ERRSTR_TIMEOUT);
+                                    FileUtils.deleteFile(IpReconfigConstants.NODESTATUS_PATH);
                                     return;
                                 }
                             }
@@ -677,12 +691,15 @@ public class IpReconfigManager implements Runnable {
      * trigger ip reconfiguration
      * 
      * @param clusterIpInfo
-     * @param postOperation
+     * @param shutdownSites
      * @throws Exception
      */
-    public void triggerIpReconfig(ClusterIpInfo clusterIpInfo, String postOperation) throws Exception {
+    public void triggerIpReconfig(ClusterIpInfo clusterIpInfo, String shutdownSites) throws Exception {
+        // 0. load latest cluster IP properties
+        loadClusterIpProps();
+
         // 1. validate cluster ip reconfig parameter
-        validateParameter(clusterIpInfo, postOperation);
+        validateParameter(clusterIpInfo, shutdownSites);
 
         // 2. check env
         sanityCheckEnv();
@@ -700,7 +717,7 @@ public class IpReconfigManager implements Runnable {
         }
 
         // 4. Initial ip reconfig procedure
-        initIpReconfig(clusterIpInfo, postOperation);
+        initIpReconfig(clusterIpInfo, shutdownSites);
     }
 
     /**
@@ -725,27 +742,24 @@ public class IpReconfigManager implements Runnable {
      * Valide cluster ip reconfig param
      * 
      * @param clusterIpInfo
-     * @param postOperation
+     * @param shutdownSites
      * @return error msg
      * @throws Exception
      */
-    private void validateParameter(ClusterIpInfo clusterIpInfo, String postOperation) throws Exception {
-        boolean bValid = true;
+    private void validateParameter(ClusterIpInfo clusterIpInfo, String shutdownSites) throws Exception {
         String errmsg = "";
 
-        loadClusterIpProps();
-
-        if (!postOperation.equals("poweroff") && !postOperation.equals("reboot")) {
-            bValid = false;
-            errmsg = "post operation is invalid.";
+        String[] siteIds = shutdownSites.split(",");
+        for (String siteid : siteIds) {
+            if (siteid.isEmpty()) continue; 
+            if (currentIpinfo.getSiteIpInfoMap().keySet().contains(siteid) == false) {
+                errmsg = "shutdownSites info is invalid.";
+                throw new IllegalStateException(errmsg);
+            }
         }
 
         errmsg = clusterIpInfo.validate(currentIpinfo);
         if (!errmsg.isEmpty()) {
-            bValid = false;
-        }
-
-        if (!bValid) {
             throw new IllegalStateException(errmsg);
         }
     }
@@ -790,10 +804,10 @@ public class IpReconfigManager implements Runnable {
      * expiration time for the procedure
      * 
      * @param clusterIpInfo The new cluster ip info
-     * @param postOperation
+     * @param shutdownSites
      * @throws Exception
      */
-    private void initIpReconfig(ClusterIpInfo clusterIpInfo, String postOperation) throws Exception {
+    private void initIpReconfig(ClusterIpInfo clusterIpInfo, String shutdownSites) throws Exception {
         log.info("Initiating ip reconfiguraton procedure {}", clusterIpInfo.toString());
 
         ConfigurationImpl cfg = new ConfigurationImpl();
@@ -822,7 +836,7 @@ public class IpReconfigManager implements Runnable {
         expiration_time = System.currentTimeMillis() + IPRECONFIG_TIMEOUT;
 
         cfg.setConfig(IpReconfigConstants.CONFIG_EXPIRATION_KEY, String.valueOf(expiration_time));
-        cfg.setConfig(IpReconfigConstants.CONFIG_POST_OPERATION_KEY, postOperation);
+        cfg.setConfig(IpReconfigConstants.CONFIG_POST_OPERATION_KEY, shutdownSites);
         config = cfg;
 
         _coordinator.getCoordinatorClient().persistServiceConfiguration(config);
@@ -864,8 +878,9 @@ public class IpReconfigManager implements Runnable {
 
     /**
      * Copy cluster IP info from disk to ZK.
+     * @param force set IPs manually provided by user compulsively
      */
-    void assureIPConsistent() {
+    void assureIPConsistent(boolean force) {
         if (!drUtil.isActiveSite()) {
             log.info("Only active site would sync IPs info into ZK.");
             return;
@@ -878,22 +893,32 @@ public class IpReconfigManager implements Runnable {
             lock.acquire();
             log.info("Got lock for updating local site IPs into ZK ...");
 
-            config = _coordinator.getCoordinatorClient().queryConfiguration(IpReconfigConstants.CONFIG_KIND, IpReconfigConstants.CONFIG_ID);
-            if (config != null) {
-                if (isSucceed(config)) {
-                    log.info("new IPs has been set succesfully by other nodes.");
-                    return;
+            ClusterIpInfo targetIpInfo = null;
+            if (force) {
+                // use local IPs compulsively
+                targetIpInfo = currentIpinfo;
+            } else {
+                config = _coordinator.getCoordinatorClient().queryConfiguration(IpReconfigConstants.CONFIG_KIND, IpReconfigConstants.CONFIG_ID);
+                if (config != null) {
+                    if (isSucceed(config)) {
+                        log.info("new IPs has been set succesfully by other nodes.");
+                        return;
+                    }
                 }
+
+                // use IPs set via REST API
+                targetIpInfo = newIpinfo;
             }
 
-            // wake up syssvc to regenerate configurations
+            // update IP info into ZK
+            _coordinator.getCoordinatorClient().startTransaction();
             long vdcConfigVersion = DrUtil.newVdcConfigVersion();
             for(Site site : drUtil.listSites()) {
-                int vdc_index = Integer.valueOf(site.getVdcShortId().split(PropertyConstants.VDC_SHORTID_PREFIX)[1]);
-                int site_index = Integer.valueOf(site.getSiteShortId().split(PropertyConstants.SITE_SHORTID_PREFIX)[1]);
+                int vdc_index = Integer.valueOf(site.getVdcShortId().substring(PropertyConstants.VDC_SHORTID_PREFIX.length()));
+                int site_index = Integer.valueOf(site.getSiteShortId().substring(PropertyConstants.SITE_SHORTID_PREFIX.length()));
                 String ipprop_prefix = String.format(PropertyConstants.IPPROP_PREFIX, vdc_index, site_index);
-                if (newIpinfo.getSiteIpInfoMap().containsKey(ipprop_prefix)) {
-                    SiteIpInfo siteIpInfo = newIpinfo.getSiteIpInfoMap().get(ipprop_prefix);
+                if (targetIpInfo.getSiteIpInfoMap().containsKey(ipprop_prefix)) {
+                    SiteIpInfo siteIpInfo = targetIpInfo.getSiteIpInfoMap().get(ipprop_prefix);
                     log.info("Going to persist site {} IPs into ZK ...", ipprop_prefix);
                     log.info("    local ipinfo:{}", siteIpInfo.toString());
                     log.info("    zk ipinfo: vip={}", site.getVip());
@@ -939,10 +964,14 @@ public class IpReconfigManager implements Runnable {
                 }
             }
 
-            setSucceed();
+            _coordinator.getCoordinatorClient().commitTransaction();
+            if (!force) {
+                setSucceed();
+            }
             log.info("Finished update local site IPs into ZK");
         } catch (Exception e) {
             log.warn("Unexpected exception during updating local site IPs into ZK", e);
+            _coordinator.getCoordinatorClient().discardTransaction();
         } finally {
             if (lock != null) {
                 try {

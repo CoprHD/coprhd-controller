@@ -497,16 +497,25 @@ public class ControlService {
 
     /**
      * Trigger ip reconfiguration
+     * @param
+     *     clusterIpInfo
+     *         The cluster's IP info
+     *     shutdownSites
+     *         By default, all sites would be automatically rebooted.
+     *         Instead, user could shutdown desired sites and change underlying network environment (i.e gateway, switch etc.)
+     *         then reboot the site manually later when the network environment is ready.
+     *         Example:  "site2,site3"
+     *
      */
     @POST
     @Path("cluster/ipreconfig")
     @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public Response clusterIpReconfig(ClusterIpInfo clusterIpInfo,
-            @DefaultValue("reboot") @QueryParam("postOperation") String postOperation) throws Exception {
+                    @DefaultValue("") @QueryParam("shutdownSites") String shutdownSites) throws Exception {
         _log.info("Received a cluster ip reconfiguration request");
         try {
-            ipreconfigManager.triggerIpReconfig(clusterIpInfo, postOperation);
+            ipreconfigManager.triggerIpReconfig(clusterIpInfo, shutdownSites);
             auditControl(OperationTypeEnum.RECONFIG_IP, AuditLogManager.AUDITLOG_SUCCESS, null);
         } catch (Exception e) {
             auditControl(OperationTypeEnum.RECONFIG_IP, AuditLogManager.AUDITLOG_FAILURE, null);

@@ -36,6 +36,8 @@ public class IpReconfigConstants {
     public static final String ERRSTR_MANUAL_CONFIGURED = "Network reconfiguration has been interrupted";
 
     public static final String CLUSTER_NETWORK_PROPFILE = "/data/cluster_network.properties";
+    public static final String CLUSTER_NETWORK_FORCEFLAG = "/data/cluster_network_forceflag";
+
     /**
      * Each node's statuses during the whole ip reconfiguration procedure
      * 1. None

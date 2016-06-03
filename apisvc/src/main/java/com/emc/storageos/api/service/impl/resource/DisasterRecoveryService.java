@@ -36,6 +36,7 @@ import javax.ws.rs.core.Response;
 
 import com.emc.storageos.coordinator.client.service.impl.DualInetAddress;
 
+import com.emc.vipr.model.sys.ipreconfig.ClusterNetworkReconfigStatus;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.recipes.barriers.DistributedBarrier;
@@ -179,6 +180,7 @@ public class DisasterRecoveryService {
 
         precheckForSiteNumber();
         precheckForGeo();
+        precheckForIpReconfig();
 
         List<Site> existingSites = drUtil.listStandbySites();
         // parameter validation and precheck
@@ -856,6 +858,7 @@ public class DisasterRecoveryService {
             throw APIException.internalServerErrors.pauseStandbyPrecheckFailed(siteNames, "ipsec has been disabled." +
                     "Please make sure to keep it enabled until every standby site has been resumed");
         }
+        precheckForIpReconfig();
     }
 
     /**
@@ -1029,6 +1032,7 @@ public class DisasterRecoveryService {
             log.error("site {} lastState was {}, retry is only supported for Pause, Resume and Failover", uuid, standby.getLastState());
             throw APIException.badRequests.operationRetryOnlyAllowedOnLastState(standby.getName(), standby.getLastState().toString());
         }
+        precheckForIpReconfig();
 
         //Reuse the current action required
         Site localSite = drUtil.getLocalSite();
@@ -1252,6 +1256,7 @@ public class DisasterRecoveryService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public Response switchover(@QueryParam("newActiveSiteUUid") String newActiveSiteUUID, @QueryParam("vdcVersion") String vdcTargetVersion) {
         log.info("Begin to switchover internally for standby UUID {}", newActiveSiteUUID);
+        precheckForIpReconfig();
 
         Site newActiveSite = null;
         Site oldActiveSite = null;
@@ -1396,6 +1401,8 @@ public class DisasterRecoveryService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public Response failover(@QueryParam("newActiveSiteUUid") String newActiveSiteUUID,
             @QueryParam("oldActiveSiteUUid") String oldActiveSiteUUID, @QueryParam("vdcVersion") String vdcTargetVersion) {
+        precheckForIpReconfig();
+
         log.info("Begin to failover internally with newActiveSiteUUid {}, oldActiveSiteUUid {}", newActiveSiteUUID, oldActiveSiteUUID);
 
         Site currentSite = drUtil.getLocalSite();
@@ -1577,6 +1584,7 @@ public class DisasterRecoveryService {
         if (!isClusterStable()) {
             throw APIException.serviceUnavailable.clusterStateNotStable();
         }
+        precheckForIpReconfig();
 
         for (Site site : drUtil.listStandbySites()) {
             if (excludedSiteIds.contains(site.getUuid())) {
@@ -1831,6 +1839,28 @@ public class DisasterRecoveryService {
             log.info("Active site is available now, can't do failover");
             throw APIException.internalServerErrors.failoverPrecheckFailed(standbyName, "Active site is available now, can't do failover");
         }
+        precheckForIpReconfig();
+    }
+
+    /**
+     * precheck if allow to proceed due to IpReconfiguration status
+     */
+    void precheckForIpReconfig() {
+        Configuration config = null;
+        final String CONFIG_KIND = "ipreconfig";
+        final String CONFIG_STATUS_KEY = "status";
+
+        config = coordinator.queryConfiguration(CONFIG_KIND, Constants.GLOBAL_ID);
+        if (config == null)
+            return;
+
+        String status = config.getConfig(CONFIG_STATUS_KEY);
+        String errstr;
+        if ( status.equals(ClusterNetworkReconfigStatus.Status.STARTED.toString()) ) {
+            errstr = "Failed to trigger DR operation, ip reconfiguration is ongoing.";
+            log.warn(errstr);
+            throw new IllegalStateException(errstr);
+        }
     }
 
     protected SiteRestRep findRecommendFailoverSite(List<SiteRestRep> responseSiteFromRemote, Site currentSite) {
@@ -2026,6 +2056,7 @@ public class DisasterRecoveryService {
                         String.format("Site %s is not stable", site.getName()));
             }
         }
+        precheckForIpReconfig();
     }
 
     private void precheckForSwitchoverForLocalStandby() {

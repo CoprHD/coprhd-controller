@@ -169,7 +169,6 @@ public class Main {
             isoFile.delete();
         }
 
-        /*TODO: uncomment after test
         if (bNewIp) {
             FileUtils.deleteFile(IpReconfigConstants.NEWIP_PATH);
             FileUtils.deleteFile(IpReconfigConstants.NEWIP_EXPIRATION);
@@ -177,52 +176,54 @@ public class Main {
             IpReconfigUtil.writeNodeStatusFile(IpReconfigConstants.NodeStatus.LOCAL_ROLLBACK.toString());
             FileUtils.deleteFile(IpReconfigConstants.OLDIP_PATH);
         }
-        */
     }
 
     /**
-     * If the local node is in LocalAware_ClusterPersistent status, the cluster might be using either
+     * If the node is in LocalAware_ClusterPersistent status, the cluster might be using either
      * original IPs or the new IPs.
-     * The local node should commit new IPs if quorum nodes of cluster (with new IPs) are available.
+     * The node should commit new IPs if quorum nodes of active site (with new IPs) are available.
      * 
      * @param newIpinfo
      * @param node_id
-     * @param node_count
      * @throws Exception
      */
     private static void handlePossibleJump(ClusterIpInfo newIpinfo, String node_id) throws Exception {
-/* TODO:
         Integer node_id_number = Integer.valueOf(node_id.split("vipr")[1]);
         boolean bIpv4 = true;
-        if (newIpinfo.getIpv4Setting().getNetworkNetmask().equals(PropertyConstants.IPV4_ADDR_DEFAULT)) {
+
+        boolean isActiveSite = active_site_id.equals(my_site_id)? true : false;
+        SiteIpInfo activeSiteIpinfo = newIpinfo.getSiteIpInfoMap().get(active_site_id);
+        SiteIpInfo currentSiteIpinfo = newIpinfo.getSiteIpInfoMap().get(my_site_id);
+
+        if (currentSiteIpinfo.getIpv4Setting().getNetworkNetmask().equals(PropertyConstants.IPV4_ADDR_DEFAULT)) {
             bIpv4 = false;
         }
 
-        log.info("Checking if new IPs had already been commited...");
-        for (int i = 1; i < 120; i++) {
-            // Here we assume each node would startup with functional network within at most 10m.
+        log.info("Checking if new IPs had already been committed...");
+        for (int i = 1; i < 60; i++) {
+            // Here we assume each node would startup with functional network within at most 5m.
             // So we will check new IPs for 24 times (5s interval).
             log.info("Trying to ping other nodes ...");
             int alivenodes = 0;
-            for (String network_addr : newIpinfo.getIpv4Setting().getNetworkAddrs()) {
+            for (String network_addr : activeSiteIpinfo.getIpv4Setting().getNetworkAddrs()) {
                 if (ping(network_addr, bIpv4) == 0) {
                     alivenodes++;
                 }
             }
 
-            // do not count local node
-            alivenodes--;
+            if (isActiveSite) {
+                // do not count local node in active site
+                alivenodes--;
+            }
 
-            if (alivenodes > node_count / 2) {
+            if (alivenodes > activeSiteIpinfo.getNodeCount() / 2) {
                 log.info("new IPs have been commited in quorum nodes of the cluster, so committing it in local node...");
-                applyIpinfo(newIpinfo, node_id, node_count, true);
+                applyIpinfo(newIpinfo, node_id, true);
                 return;
             }
             Thread.sleep(5 * 1000);
         }
-        log.info("New IPs seems have NOT been commited in quorum nodes of the cluster, so still using current IPs.");
-*/
-
+        log.info("New IPs seems have NOT been committed in quorum nodes of the active site, so still using current IPs.");
         return;
     }
 

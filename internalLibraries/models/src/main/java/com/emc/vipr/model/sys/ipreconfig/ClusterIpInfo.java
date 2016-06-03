@@ -160,22 +160,68 @@ public class ClusterIpInfo implements Serializable {
         }
     }
 
+    /**
+     * Validate if target addresses are acceptable
+     *
+     * @return
+     */
     public String validate(ClusterIpInfo currentIpInfo) {
         String errmsg = "";
-        log.info("current cluster ip prop = {}", currentIpInfo.toVdcSiteString());
         log.info("target cluster ip prop = {}", toVdcSiteString());
 
         for (Map.Entry<String, SiteIpInfo> me: getSiteIpInfoMap().entrySet()) {
             int nodecount = currentIpInfo.getSiteIpInfoMap().get(me.getKey()).getNodeCount();
-            log.info("current site {} node count = {}", me.getKey(), nodecount);
             errmsg = me.getValue().validate(nodecount);
             if (!errmsg.isEmpty()) {
                 return errmsg;
             }
         }
 
-        // TODO: unique detection among sites.
+        if(this.equals(currentIpInfo)) {
+            errmsg="Target IPs are the same as current ones.";
+        }
+
+        if(isDuplicated()) {
+            errmsg="IPs duplicate among sites.";
+        }
         return errmsg;
+    }
+
+    /**
+     * Validate if address duplicats among sites
+     *
+     * @return
+     */
+    public boolean isDuplicated() {
+        List<String> list = new ArrayList<String>();
+
+        for (Map.Entry<String, SiteIpInfo> me: getSiteIpInfoMap().entrySet()) {
+            SiteIpInfo siteipInfo = me.getValue();
+            SiteIpv4Setting ipv4 = siteipInfo.getIpv4Setting();
+            if(!ipv4.getNetworkVip().equals(PropertyConstants.IPV4_ADDR_DEFAULT)) {
+                list.add(ipv4.getNetworkVip());
+            }
+            for (String network_addr : ipv4.getNetworkAddrs()) {
+                if(!network_addr.equals(PropertyConstants.IPV4_ADDR_DEFAULT)) {
+                    list.add(network_addr);
+                }
+            }
+            SiteIpv6Setting ipv6 = siteipInfo.getIpv6Setting();
+            if(!ipv6.getNetworkVip6().equals(PropertyConstants.IPV6_ADDR_DEFAULT)) {
+                list.add(ipv6.getNetworkVip6());
+            }
+            for (String network_addr : ipv6.getNetworkAddrs()) {
+                if(!network_addr.equals(PropertyConstants.IPV6_ADDR_DEFAULT)) {
+                    list.add(network_addr);
+                }
+            }
+        }
+
+        Set<String> set = new HashSet<String>(list);
+        if (set.size() < list.size()) {
+            return true;
+        }
+        return false;
     }
 
 }

@@ -27,22 +27,25 @@
 # Source /etc/sysconfig/storageos 
 #
 STORAGEOS_SYSCONFIG=${STORAGEOS_SYSCONFIG:-'/etc/sysconfig/storageos'}
+bootfs_mntp=${bootfs_mntp:-'/.volumes/bootfs'}
+bootfs_vdc_props=${bootfs_vdc_props:-${bootfs_mntp}/etc/vdcconfig.properties}
+datafs_ip_props=${datafs_ip_props:-/data/cluster_network.properties}
+ovf_props_file='/etc/ovfenv.properties'
+desired_ovf_props_file='/etc/desired_ovf_props_file.properties'
+newip_temp_path=${newip_temp_path:-/data/ipreconfig/newip}
+oldip_temp_path=${oldip_temp_path:-/data/ipreconfig/oldip}
+ipreconfig_forceflag=${ipreconfig_forceflag:-/data/cluster_network_forceflag}
+
+ACTION_POWEROFF="poweroff"
+ACTION_CONTINUE="continue"
+ACTION_TIMEOUT_CONT="timeout_continue"
+
 test -r "${STORAGEOS_SYSCONFIG}"       || exit 6
 . ${STORAGEOS_SYSCONFIG}
 
 . /etc/rc.status
 
 rc_reset
-
-_checkConfigurable() {
-    /etc/getovfproperties --is-vapp
-    if [ $? -eq 0 ]; then
-        echo -e "\n\e[1;31m***\n*** VMware vApp network configuration can not be altered using ViPR Installer.\n*** Please power off the vApp and use vSphere Client to edit network properties.\n***\n*** Press any key to power off this VM\n***\e[0m"
-        read -n 1
-        /etc/systool --poweroff
-        exit
-    fi
-}
 
 #get expanded form of IPV6 address
 _get_ipv6_compressed(){
@@ -53,6 +56,178 @@ _get_ipv6_compressed(){
         ipaddr=$(sipcalc ${1} | egrep '^Compressed address' | awk '{print $4}')
         [ ! -z ${ipaddr} ] && echo ${ipaddr} || echo ${1}
     fi
+}
+
+_prompt() {
+    errstr=${1}
+    action=${2}
+
+    echo "${errstr}" >> /var/log/boot-ovfenv.log
+
+    #promptstr="\n\e[1;31m***\n*** $errstr. \n"
+    if [ "${action}" = "${ACTION_POWEROFF}" ]; then
+        errstr+="*** Please press any key to power off the vApp and edit IP properties via vCenter.\n"
+    elif [ "${action}" = "${ACTION_CONTINUE}" ]; then
+        :
+    else
+        errstr+="*** Please power off the vApp and edit IP properties via vCenter.\n"
+        errstr+="*** Otherwise, system would continue to bootup in 10s.  But IPs in vCenter would NOT take effect!!!\n"
+    fi
+    promptstr="\n\e[1;31m***\n$errstr***\e[0m"
+
+    echo -e ${promptstr}
+
+    if [ "${action}" = "${ACTION_POWEROFF}" ]; then
+        read -n 1
+        /etc/systool --poweroff
+    elif [ "${action}" = "${ACTION_CONTINUE}" ]; then
+        :
+    else
+        sleep 10
+    fi
+}
+
+# handle kinds of scenarios related with cluster IPs during boot-up.
+_handleClusterIPs() {
+    echo -n "\nStarting to handle cluster IPs info during bootup at " >> /var/log/boot-ovfenv.log
+    date >> /var/log/boot-ovfenv.log
+
+    if [ ! -e "${datafs_ip_props}" ]; then
+        # fresh-installation, no IP prop file yet
+        echo "No need to handle cluster IPs during fresh installation." >> /var/log/boot-ovfenv.log
+        return
+    fi
+
+    # 0. load current vdc prop file
+    declare -A currVdcPropMap
+    while read -r line
+    do
+      IFS='=' read -ra pair <<< "$line"
+      currVdcPropMap[${pair[0]}]=${pair[1]}
+    done < "${bootfs_vdc_props}"
+
+    vdc_myid=${currVdcPropMap["vdc_myid"]}
+    site_myid=${currVdcPropMap["site_myid"]}
+    site_active_id=${currVdcPropMap["site_active_id"]}
+
+    # 1. Commit new IPs (triggered by REST API) or rollback old IPs (revert latest IPs changed by REST API)
+    bRestAPI="false"
+    if [ -e "${newip_temp_path}" -a "${STORAGEOS_IPRECONFIG_MODE}" = "commit" ] || [ -e "${oldip_temp_path}" -a "${STORAGEOS_IPRECONFIG_MODE}" = "rollback" ]; then
+        bRestAPI="true"
+        /opt/storageos/bin/ipreconfig ${vdc_myid} ${site_active_id} ${site_myid} ${STORAGEOS_IPRECONFIG_MODE}
+        if [ $? -ne 0 ]; then
+            errstr="*** Failed to execute ipreconfig tool.\n"
+            errstr+="*** Please contact with customer support to check.\n"
+            _prompt "${errstr}" $ACTION_CONTINUE
+        fi
+    fi
+
+    # 2. check whether there is IP inconsistent b/w ovfenv device and IP prop file
+    # 2.1 load current cluster ip properties if exists
+    declare -A currIpPropMap
+    while read -r line
+    do
+      IFS='=' read -ra pair <<< "$line"
+      currIpPropMap[${pair[0]}]=${pair[1]}
+    done < "${datafs_ip_props}"
+
+    # 2.2 load current local ovfenv prop file
+    /etc/getovfproperties --readCDROM >> /var/log/boot-ovfenv.log 2>&1
+    declare -A currOvfenvPropMap
+    while read -r line
+    do
+      IFS='=' read -ra pair <<< "$line"
+      currOvfenvPropMap[${pair[0]}]=${pair[1]}
+    done < "${ovf_props_file}"
+
+    bConsistent="true"
+    rm -f "${desired_ovf_props_file}.bak"
+    errstr=""
+    for key in "${!currOvfenvPropMap[@]}"
+    do
+       if [[ "${key}" == network* ]]; then
+            tmpkey="vdc_"${vdc_myid}"_"${site_myid}"_"${key}
+
+            if [[ "${key}" == *6 ]]; then
+               vdcprop_value=$(_get_ipv6_compressed "${currIpPropMap[${tmpkey}]}")
+               ovfenvprop_value=$(_get_ipv6_compressed "${currOvfenvPropMap[${key}]}")
+            else
+               vdcprop_value="${currIpPropMap[${tmpkey}]}"
+               ovfenvprop_value="${currOvfenvPropMap[${key}]}"
+            fi
+
+            if [ "${vdcprop_value}" != "${ovfenvprop_value}" ]; then
+                errstr+="Value of ${key} in local ovfenv device (${ovfenvprop_value}) is different from that in cluster IP (${vdcprop_value})"
+                bConsistent="false"
+            fi
+            echo "${key}=${vdcprop_value}" >> "${desired_ovf_props_file}.bak"
+        else
+            echo "${key}=${currOvfenvPropMap[${key}]}" >> "${desired_ovf_props_file}.bak"
+        fi
+    done
+
+    # 3. Do nothing if IP info is consistent
+    if [ "${bConsistent}" = "false" ]; then
+        echo "${errstr}" >> /var/log/boot-ovfenv.log
+    else 
+        return
+    fi
+
+    # 4.
+    /etc/getovfproperties --is-vapp 
+    if [ $? -ne 0 ]; then
+        # for non-vApp and hyper-v, ipreconfig tool would guarantee the IP consistency.
+        errstr="*** Internal error: IP inconsistent between ovfenv device and IP prop file.\n"
+        errstr+="*** Please contact with customer support to check.\n"
+        _prompt "${errstr}" $ACTION_CONTINUE
+    fi
+
+    # 5. Handle IP inconsistency in vApp environment
+    echo "Handle cluster IPs inconsistency in vApp environment ..." >> /var/log/boot-ovfenv.log
+    # TODO: change to vdc_vdcX_site_ids
+    #if [[ "${currIpPropMap["vdc_vdcX_site_ids"]}" == *,* ]]; then
+    if [[ "${currVdcPropMap["site_ids"]}" == *,* ]]; then
+        # multiple sites
+        if [ "${bRestAPI}" = "true" ]; then
+            errstr="*** IPs are changed via REST API or rollbacked to original IPs while the local site is vApp environment.\n*** Please also manually change IPs via vCenter to align with the desired IPs.\n"
+            _prompt "${errstr}" $ACTION_TIMEOUT_CONT
+            # generate desired ovf_props_file which will override default ovfenv properties
+            mv -f "${desired_ovf_props_file}.bak" "${desired_ovf_props_file}" 
+        else
+            errstr="*** IPs are changed via vCenter in a multiple sites environment which is not allowed.\n*** Please revert the change via vCenter, then use GUI/REST API to change cluster IPs.\n"
+            _prompt "${errstr}" $ACTION_POWEROFF
+        fi
+    else
+        # single site
+        if [ "${bRestAPI}" = "true" ]; then
+            errstr="*** IPs are changed via REST API or rollbacked in the vApp environment.\n*** Please also manually change IPs via vCenter to align with the desired IPs.\n"
+            _prompt "${errstr}" $ACTION_POWEROFF
+        else
+            echo "IPs are changed via vCenter in single site environment.  Syncing it to IP prop file..." >> /var/log/boot-ovfenv.log
+            # User is changing IPs via vCenter or installer in non-vApp/hyper-v environment.
+            # We need to write it back to IP prop file and propagate to all the nodes in the current single site
+            rm -f "${datafs_ip_props}.bak"
+            for key in "${!currOvfenvPropMap[@]}"
+            do
+                if [[ "${key}" == network_* || "${key}" == node_count ]]; then
+                    tmpkey="vdc_"${vdc_myid}"_"${site_myid}"_"${key}
+                    echo "${tmpkey}=${currOvfenvPropMap[${key}]}" >> "${datafs_ip_props}.bak"
+                fi
+            done
+            mv -f "${datafs_ip_props}.bak" "${datafs_ip_props}"
+            chmod 600 "${datafs_ip_props}"
+            setfacl -m u:storageos:r "${datafs_ip_props}"
+
+            # set force flag
+            touch $ipreconfig_forceflag
+            echo "Synced cluster IPs to IP prop file and set forceflag for propagation." >> /var/log/boot-ovfenv.log
+        fi
+    fi
+}
+
+_checkConfigurable() {
+   #TODO: do not support installer to reconfig ip in geo env
+   :
 }
 
 _set_storageos_variable() {
@@ -100,10 +275,7 @@ case ${1} in
 
         /etc/diskresizetool
 
-        my_vdc_id=$(/etc/systool --getvdcprops | grep vdc_myid | cut -d'=' -f2)
-        active_site_id=$(/etc/systool --getvdcprops | grep site_active_id | cut -d'=' -f2)
-        my_site_id=$(/etc/systool --getvdcprops | grep site_myid | cut -d'=' -f2)
-        /opt/storageos/bin/ipreconfig ${my_vdc_id} ${active_site_id} ${my_site_id} ${STORAGEOS_IPRECONFIG_MODE}
+        _handleClusterIPs
 
         echo -n "Initializing configuration properties"
         /etc/systool --initializeprops 2>>/var/log/genconfig.log || rc_failed 1

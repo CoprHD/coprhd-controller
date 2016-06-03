@@ -174,8 +174,8 @@ public class ConfigProperties extends Controller {
             addPage(pages, new SmtpPropertyPage(properties));
             addPage(pages, new UpgradePropertyPage(properties));
             addPage(pages, new PasswordPropertyPage(properties));
-            addPage(pages, new BackupPropertyPage(properties));
             addPage(pages, new SyslogPropertiesPage(properties));
+            addPage(pages, new BackupPropertyPage(properties));
         }
         else {
             if (PlatformUtils.isAppliance()) {

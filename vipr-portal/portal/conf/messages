@@ -2577,6 +2577,9 @@ configProperties.backup.setToZero.manual=WARNING: Setting the value as zero woul
 configProperties.backup.interval.invalid=WARNING: Invalid backup interval, please set it to a correct value.
 configProperties.backup.interval.invalid.inline=Please select an option value
 
+configProperties.syslog.servers=Remote Syslog Servers
+configProperties.syslog.logs=Service Logs
+
 #Upgrade
 upgrade.title=Software Upgrade
 upgrade.targetVersion=Version

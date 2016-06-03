@@ -100,7 +100,7 @@ ext {
         "com.thinkaurelius.thrift:thrift-server:0.3.7",
         "io.airlift:airline:0.6",
 		"io.netty:netty-handler:4.0.33.Final",
-		"com.datastax.cassandra:cassandra-driver-core:3.0.0",
+		"com.datastax.cassandra:cassandra-driver-core:3.0.2",
     ]
 
     zookeeper = [

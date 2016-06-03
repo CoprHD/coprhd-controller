@@ -48,6 +48,14 @@
     #{Form.selectOneControlGroup options:poolList, field:field /}
     #{/field}
     
+    #{field 'volume.hosts'}
+    %{
+    	field.required = true
+    	field.cssClass = 'span3'
+    }%
+    #{Form.selectOneControlGroup options:hostList, field:field /}
+    #{/field}
+    
     #{field 'volume.name'}
         %{
           field.required = true

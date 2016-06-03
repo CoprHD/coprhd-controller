@@ -104,7 +104,7 @@ nav.project=Tenant Groups
 nav.consistencygroups=Consistency Groups
 nav.tasks=Tasks
 # Subnavigation
-nav.createDriver=Create Direct Volume
+nav.createDriver=Create and Export Direct Volume
 nav.vdcs=Virtual Data Centers
 nav.projects=Projects
 nav.schedulepolicies=Schedule Policies
@@ -279,6 +279,7 @@ PoolAssignment.manual=Manual
 CreateVolume.direct.description = Enter information needed to create volume
 volume.arrayType=Storage System Type
 volume.ipAddress=Storage System Name
+volume.hosts=Hosts
 volume.name = Name
 volume.pool = Storage Pool
 volume.size=Size(in GB)

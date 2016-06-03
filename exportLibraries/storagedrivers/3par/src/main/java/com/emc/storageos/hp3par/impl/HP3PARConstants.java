@@ -40,4 +40,11 @@ public class HP3PARConstants {
     public static final String TASK_TYPE_RESTORE_CLONE_VOLUMES="restore-clone-volumes";
     public static final String TASK_TYPE_DETACH_CLONE_VOLUMES="detach-clone-volumes";
     public static final String TASK_TYPE_DELETE_CLONE_VOLUMES="delete-clone-volumes";
+	
+    public static final String TASK_TYPE_CREATE_CONSISTENCY_GROUP = "create-consistency-group";
+    public static final String TASK_TYPE_DELETE_CONSISTENCY_GROUP = "delete-consistency-group";
+    public static final String TASK_TYPE_SNAPSHOT_CONSISTENCY_GROUP = "snapshot-consistency-group";
+    public static final String TASK_TYPE_CLONE_CONSISTENCY_GROUP = "clone-consistency-group";
+    public static final String TASK_TYPE_UPDATE_CONSISTENCY_GROUP = "eupdate-consistency-group";
+	
 }

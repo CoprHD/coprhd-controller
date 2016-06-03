@@ -1173,7 +1173,7 @@ public class VPlexApiMigrationManager {
         // Check to see if the volume is to be renamed after migration to maintain
         // the "<local-device-name>_vol" naming convention. Since it is now using a 
         // new local device, its current name will not match this convention.
-        if ((rename) && (migratedVolumeHasDefaultNaming(virtualVolumeInfo, originalVolumeName, migrationInfo, false))) {
+        if ((rename) && (volumeHasDefaultNamingConvention(originalVolumeName, false))) {
             // In some cases for a device migration, the virtual volume name is
             // automatically updated by VPLEX after the commit and there is nothing 
             // to do. In other cases it remains unchanged, and in others it simply ends
@@ -1300,224 +1300,76 @@ public class VPlexApiMigrationManager {
         // the passed rename flag is false or the volume does not conform to the 
         // default ViPR naming convention for example, ingested volumes.
         if (rename) {
-            if (migratedVolumeHasDefaultNaming(virtualVolumeInfo, originalVolumeName, migrationInfo, false)) {
+            boolean isDistributed = VPlexVirtualVolumeInfo.Locality.distributed.name().equals(virtualVolumeInfo.getLocality());
+            if (volumeHasDefaultNamingConvention(originalVolumeName, isDistributed)) {
                 renameVolumeAfterExtentMigration(virtualVolumeInfo, migrationInfo);
                 renameSupportingDevicesAfterExtentMigration(virtualVolumeInfo, migrationInfo);
-            } else if (migratedVolumeHasDefaultNaming(virtualVolumeInfo, originalVolumeName, migrationInfo, true)) {
+            } else if (supportingDeviceHasDefaultNamingConvention(virtualVolumeInfo.getSupportingDevice(), isDistributed)) {
                 renameSupportingDevicesAfterExtentMigration(virtualVolumeInfo, migrationInfo);
             }
         }
     }
     
     /**
-     * Determines if a volume that has undergone a migration of the backend storage
-     * has the default naming convention.
+     * Determines if the volume has default naming conventions
      * 
-     * @param vvInfo The virtual volume info for the volume after the migration is committed.
-     * @param originalVolumeName The original name of the volume before the migration.
-     * @param migrationInfo The migration info.
-     * @param checkSupportingDeviceOnly true to just verify the supporting device rather than the volume.
-     * 
-     * @return true if the volume had the default naming convention, else false.
+     * @param volumeName The volume name.
+     * @param isDistributed true if the volume is distributed, false for local.
+     *  
+     * @return true if the volume has the default naming convention, else false.
      */
-    private boolean migratedVolumeHasDefaultNaming(VPlexVirtualVolumeInfo vvInfo, String originalVolumeName,
-            VPlexMigrationInfo migrationInfo, boolean checkSupportingDeviceOnly) {
-        if (migrationInfo.getIsDeviceMigration()) {
-            return deviceMigratedVolumeHasDefaultNaming(originalVolumeName, migrationInfo);
-        } else if (VPlexVirtualVolumeInfo.Locality.local.name().equals(vvInfo.getLocality())) {
-            return extentMigratedLocalVolumeHasDefaultNaming(vvInfo, migrationInfo, checkSupportingDeviceOnly);
-        } else {
-            return extentMigratedDistVolumeHasDefaultNaming(vvInfo, migrationInfo, checkSupportingDeviceOnly);            
+    private boolean volumeHasDefaultNamingConvention(String volumeName, boolean isDistributed) {
+        try {
+            int endIndex = volumeName.length() - VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX.length();
+            String supportingDeviceName = volumeName.substring(0, endIndex);
+            List<String> claimedVolumeNames = new ArrayList<String>();
+            if (!isDistributed) {
+                int startIndex = VPlexApiConstants.DEVICE_PREFIX.length();
+                claimedVolumeNames.add(volumeName.substring(startIndex, endIndex));
+            } else {
+                String distVolPrefix = VPlexApiConstants.DIST_DEVICE_PREFIX + VPlexApiConstants.DIST_DEVICE_NAME_DELIM;
+                int startIndex = distVolPrefix.length();
+                String supportingDeviceNameNoPrefix = supportingDeviceName.substring(startIndex);
+                claimedVolumeNames.addAll(Arrays.asList(supportingDeviceNameNoPrefix.split(VPlexApiConstants.DIST_DEVICE_NAME_DELIM)));
+            }
+            
+            return VPlexApiUtils.volumeHasDefaultNamingConvention(volumeName, supportingDeviceName, isDistributed, claimedVolumeNames);
+        } catch (Exception e) {
+            // Exceptions will occur while indexing the passed volume name if the volume
+            // does not conform to the default naming convention.
+            s_logger.info("Volume {} does not conform to default naming convention: {}", volumeName, e.getMessage());
+            return false;
         }
     }
     
     /**
-     * Determines if a volume that has undergone a device migration of the backend storage
-     * has the default naming convention.
+     * Determines if the supporting device has default naming conventions
      * 
-     * @param originalVolumeName The original name of the volume before the migration.
-     * @param migrationInfo The migration info.
-     * 
-     * @return true if the volume has the default naming convention, else false.
+     * @param deviceName The deviceName
+     * @param isDistributed true if the device is distributed, false for local.
+     *  
+     * @return true if the device has the default naming convention, else false.
      */
-    private boolean deviceMigratedVolumeHasDefaultNaming(String originalVolumeName, VPlexMigrationInfo migrationInfo) {
-        // Get the name of the source device being migrated and make sure it starts
-        // with the expected prefix.
-        String srcDeviceName = migrationInfo.getSource();
-        if (!srcDeviceName.startsWith(VPlexApiConstants.DEVICE_PREFIX)) {
-            s_logger.info("Source device name {} does not start with the expected prefix", srcDeviceName);
-            return false;
-        }
-        
-        // Extract the value after the prefix, which in the default naming convention
-        // is the claimed storage volume name.
-        if (srcDeviceName.length() == VPlexApiConstants.DEVICE_PREFIX.length()) {
-            s_logger.info("Source device name {} consists only of the device prefix", srcDeviceName);
-            return false;
-        }
-        int startIndex = VPlexApiConstants.DEVICE_PREFIX.length();
-        String claimedVolumeName = srcDeviceName.substring(startIndex);
-
-        // Make sure the volume name starts and ends with the expected prefix and suffix.
-        if (!originalVolumeName.startsWith(VPlexApiConstants.DEVICE_PREFIX)
-                || !originalVolumeName.endsWith(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX)) {
-            s_logger.info("The volume name {} does not start and end with the expected prefix and suffix", originalVolumeName);
-            return false;
-        }
-        
-        // Extract the value between the volume name prefix and suffix, which in the 
-        // default naming convention is the claimed storage volume name.
-        int endIndex = originalVolumeName.length() - VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX.length();
-        if (startIndex == endIndex) {
-            s_logger.info("The volume name {} consists only of the expected prefix and suffix", originalVolumeName);
-            return false;
-        }
-        
-        // Extract the value between the prefix and suffix, which should also be the claimed volume name.
-        if (!claimedVolumeName.equals(originalVolumeName.substring(startIndex, endIndex))) {
-            s_logger.info("The volume name {} does not conform to the default naming convention", originalVolumeName);
-            return false;
-        }
-        
-        return true;
-    }
-    
-    /**
-     * Determines if a local volume that has undergone an extent migration of the backend storage
-     * has the default naming convention.
-     * 
-     * @param vvInfo The virtual volume info for the volume after the migration is committed.
-     * @param migrationInfo The migration info.
-     * @param checkSupportingDeviceOnly true to just verify the supporting device rather than the volume.
-     * 
-     * @return true if the volume has the default naming convention, else false.
-     */
-    private boolean extentMigratedLocalVolumeHasDefaultNaming(VPlexVirtualVolumeInfo vvInfo,
-            VPlexMigrationInfo migrationInfo, boolean checkSupportingDeviceOnly) {
-        // Get the name of the source extent being migrated and make sure it starts and
-        // end with the expected prefix and suffix.
-        String srcExtentName = migrationInfo.getSource();
-        if (!srcExtentName.startsWith(VPlexApiConstants.EXTENT_PREFIX)
-                || !srcExtentName.endsWith(VPlexApiConstants.EXTENT_SUFFIX)) {
-            s_logger.info("Source extent name {} does not start and end with the expected prefix and suffix", srcExtentName);
-            return false;
-        }
-        
-        // Verify the name is not just the prefix and suffix.
-        int startIndex = VPlexApiConstants.EXTENT_PREFIX.length();
-        int endIndex = srcExtentName.length() - VPlexApiConstants.EXTENT_SUFFIX.length();
-        if (startIndex == endIndex) {
-            s_logger.info("Source extent name {} consists only of the extent prefix and suffix", srcExtentName);
-            return false;
-        }
-        String srcExtentVolumeName = srcExtentName.substring(startIndex, endIndex);
-        
-        // Now append the local device prefix to this value. In the default naming convention
-        // This should be the name of the supporting local device for the virtual volume.
-        String srcLocalDeviceName = VPlexApiConstants.DEVICE_PREFIX + srcExtentVolumeName;
-        String supportingDeviceName = vvInfo.getSupportingDevice();
-        if (!srcLocalDeviceName.equals(supportingDeviceName)) {
-            s_logger.info("The migration source local device name {} does not match the supporting device of the virtual volume",
-                    srcLocalDeviceName, supportingDeviceName);
-            return false;                
-        }
-
-        // Finally, the supporting local device with the virtual volume suffix should match
-        // the virtual volume name.
-        if (!checkSupportingDeviceOnly) {
-            String expectedVolumeName = srcLocalDeviceName + VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX;
-            if (!expectedVolumeName.equals(vvInfo.getName())) {
-                s_logger.info("The expected virtual volume name {} does not match the actual volume name {}",
-                        expectedVolumeName, vvInfo.getName());
-                return false;
+    private boolean supportingDeviceHasDefaultNamingConvention(String deviceName, boolean isDistributed) {
+        try {
+            List<String> claimedVolumeNames = new ArrayList<String>();
+            if (!isDistributed) {
+                int startIndex = VPlexApiConstants.DEVICE_PREFIX.length();
+                claimedVolumeNames.add(deviceName.substring(startIndex));
+            } else {
+                String distVolPrefix = VPlexApiConstants.DIST_DEVICE_PREFIX + VPlexApiConstants.DIST_DEVICE_NAME_DELIM;
+                int startIndex = distVolPrefix.length();
+                String supportingDeviceNameNoPrefix = deviceName.substring(startIndex);
+                claimedVolumeNames.addAll(Arrays.asList(supportingDeviceNameNoPrefix.split(VPlexApiConstants.DIST_DEVICE_NAME_DELIM)));
             }
-        }
-        
-        return true;
-    }
-    
-    /**
-     * Determines if a distributed volume that has undergone an extent migration of the backend storage
-     * has the default naming convention.
-     * 
-     * @param vvInfo The virtual volume info for the volume after the migration is committed.
-     * @param migrationInfo The migration info.
-     * @param checkSupportingDeviceOnly true to just verify the supporting device rather than the volume.
-     * 
-     * @return true if the volume has the default naming convention, else false.
-     */
-    private boolean extentMigratedDistVolumeHasDefaultNaming(VPlexVirtualVolumeInfo vvInfo,
-            VPlexMigrationInfo migrationInfo, boolean checkSupportingDeviceOnly) {
-        // Get the name of the source extent being migrated and make sure it starts and
-        // end with the expected prefix and suffix.
-        String srcExtentName = migrationInfo.getSource();
-        if (!srcExtentName.startsWith(VPlexApiConstants.EXTENT_PREFIX)
-                || !srcExtentName.endsWith(VPlexApiConstants.EXTENT_SUFFIX)) {
-            s_logger.info("Source extent name {} does not start and end with the expected prefix and suffix", srcExtentName);
+            
+            return VPlexApiUtils.deviceHasDefaultNamingConvention(deviceName, isDistributed, claimedVolumeNames);
+        } catch (Exception e) {
+            // Exceptions will occur while indexing the passed volume name if the volume
+            // does not conform to the default naming convention.
+            s_logger.info("Device {} does not conform to default naming convention: {}", deviceName, e.getMessage());
             return false;
         }
-        
-        // Extract the value between the extent prefix and suffix, which in the 
-        // default naming convention is the claimed storage volume name.
-        int startIndex = VPlexApiConstants.EXTENT_PREFIX.length();
-        int endIndex = srcExtentName.length() - VPlexApiConstants.EXTENT_SUFFIX.length();
-        if (startIndex == endIndex) {
-            s_logger.info("Source extent name {} consists only of the extent prefix and suffix", srcExtentName);
-            return false;
-        }
-        String srcExtentVolumeName = srcExtentName.substring(startIndex, endIndex);
-        
-        // Get the supporting distributed device for the virtual volume and verify that the
-        // distributed device starts with the expected prefix.
-        String supportingDeviceName = vvInfo.getSupportingDevice();
-        String distDevicePrefix = VPlexApiConstants.DIST_DEVICE_PREFIX + VPlexApiConstants.DIST_DEVICE_NAME_DELIM;
-        if (!supportingDeviceName.startsWith(distDevicePrefix)) {
-            s_logger.info("The supporting device {} does not start with the expected prefix", supportingDeviceName);
-            return false;
-        }
-
-        // Verify the name is not exactly just the prefix.
-        if (supportingDeviceName.equals(distDevicePrefix)) {
-            s_logger.info("The supporting device {} consists only of the expected prefix", supportingDeviceName);
-            return false;                
-        }
-
-        // Get the distributed device name without the prefix.
-        String supportingDeviceNameNoPrefix = supportingDeviceName.substring(distDevicePrefix.length());
-        String[] supportingDeviceVolumeNames = supportingDeviceNameNoPrefix.split(VPlexApiConstants.DIST_DEVICE_NAME_DELIM);
-        if (supportingDeviceVolumeNames.length != 2) {
-            s_logger.info("The supporting device {} does not consist of exactly 2 storage volume names", supportingDeviceName);
-            return false;                
-        }
-        
-        // The source extent volume name should match one of the supporting device volume names
-        boolean matchedSupportingDeviceVolumeName = false;
-        for (String supportingDeviceVolumeName : supportingDeviceVolumeNames) {
-            if (srcExtentVolumeName.equals(supportingDeviceVolumeName)) {
-                matchedSupportingDeviceVolumeName = true;
-                break;
-            }
-        }
-        if (!matchedSupportingDeviceVolumeName) {
-            s_logger.info("The source extent volume name {} does not match any of the supporting device {} volumes names",
-                    srcExtentVolumeName, supportingDeviceName);
-            return false;                
-        }
-        
-        // Lastly check to see that the supporting device name with the virtual volume suffix
-        // the virtual volume name.
-        // Finally, the supporting local device with the virtual volume suffix should match
-        // the virtual volume name.
-        if (!checkSupportingDeviceOnly) {
-            String expectedVolumeName = supportingDeviceName + VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX;
-            if (!expectedVolumeName.equals(vvInfo.getName())) {
-                s_logger.info("The expected virtual volume name {} does not match the actual volume name {}",
-                        expectedVolumeName, vvInfo.getName());
-                return false;
-            }
-        }
-        
-        return true;
     }
 
     /**

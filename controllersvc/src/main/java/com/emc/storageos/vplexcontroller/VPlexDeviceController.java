@@ -6275,7 +6275,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         newVolume.getNativeId(), newVolume.getThinlyProvisioned().booleanValue(), itls);
                 // Add rollback data.
                 _workflowService.storeStepData(stepId, vinfo);
-                virtvinfo = client.upgradeVirtualVolumeToDistributed(virtvinfo, vinfo, true, true, clusterId, transferSize);
+                virtvinfo = client.upgradeVirtualVolumeToDistributed(virtvinfo, vinfo, true, clusterId, transferSize);
                 if (virtvinfo == null) {
                     String opName = ResourceOperationTypeEnum.UPGRADE_VPLEX_LOCAL_TO_DISTRIBUTED.getName();
                     ServiceError serviceError = VPlexApiException.errors.upgradeLocalToDistributedFailed(opName);
@@ -6352,26 +6352,33 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 vplexVolume.setVirtualPool(newCosURI);
             }
 
-            // Set custom name if custom naming is enabled.
-            if (CustomVolumeNamingUtils.isCustomVolumeNamingEnabled(customConfigHandler, vplex.getSystemType())) {
-                try {
+            // Set custom name if custom naming is enabled and this is not an upgrade from local to distributed.
+            // If this is a simple upgrade from local to distributed and the volume has a custom name, then the
+            // name would not change. However whenever we are importing a new VPLEX virtual volume is being 
+            // created and we need to make sure it has the correct name.
+            try {
+                if ((CustomVolumeNamingUtils.isCustomVolumeNamingEnabled(customConfigHandler, vplex.getSystemType())) &&
+                    (existingVolume == null)) {
                     // Create the VPLEX volume name custom configuration datasource and generate the
-                    // custom volume name based on whether the volume is a local or distributed volume.
-                    boolean isDistributed = newVolume != null;
-                    String customConfigName = CustomVolumeNamingUtils.getCustomConfigName(isDistributed, exportType);
-                    DataSource customNameDataSource = CustomVolumeNamingUtils.getCustomConfigDataSource(vplexVolume,
-                            mostRecentExportGroup, dataSourceFactory, customConfigName, _dbClient);
+                    // custom volume name.
+                    String customConfigName = CustomVolumeNamingUtils.getCustomConfigName(false);
+                    Project project = getDataObject(Project.class, vplexVolume.getProject().getURI(), _dbClient);
+                    TenantOrg tenant = getDataObject(TenantOrg.class, vplexVolume.getTenant().getURI(), _dbClient);
+                    DataSource customNameDataSource = CustomVolumeNamingUtils.getCustomConfigDataSource(project, tenant,
+                            vplexVolume.getLabel(), vplexVolume.getWWN(), null, null, dataSourceFactory, customConfigName,
+                            _dbClient);
                     if (customNameDataSource != null) {
                         String customVolumeName = CustomVolumeNamingUtils.getCustomName(customConfigHandler,
-                                customConfigName, customNameDataSource);
+                                customConfigName, customNameDataSource, vplex.getSystemType());
                         virtvinfo = CustomVolumeNamingUtils.renameVolumeOnVPlex(virtvinfo, customVolumeName, client);
                         vplexVolume.setNativeId(virtvinfo.getPath());
                         vplexVolume.setNativeGuid(virtvinfo.getPath());
                         vplexVolume.setDeviceLabel(virtvinfo.getName());
+                        vplexVolume.setLabel(virtvinfo.getName());
                     }
-                } catch (Exception e) {
-                    _log.warn(String.format("Error attempting to rename VPLEX volume %s", vplexVolumeURI), e);
                 }
+            } catch (Exception e) {
+                _log.warn(String.format("Error attempting to rename VPLEX volume %s", vplexVolumeURI), e);
             }
             
             // Update the volume.

@@ -2036,6 +2036,8 @@ public class SmisCommandHelper implements SmisConstants {
     public CIMArgument[] getCreateTargetPortGroupInputArguments(StorageSystem storageDevice, String groupName, List<URI> targetURIList) {
         CIMObjectPath[] targetPortPaths;
         try {
+        	StorageSystem st = storageDevice;
+        	List<URI> tu = targetURIList;
             targetPortPaths = _cimPath.getTargetPortPaths(storageDevice, targetURIList);
         } catch (Exception e) {
             _log.error(String.

@@ -1600,15 +1600,18 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                             }
 
                             VirtualPool virtualPool = null;
-                            if (bo instanceof Volume) {
-                                Volume volume = (Volume) bo;
-                                virtualPool = uriVirtualPoolMap.get(volume.getVirtualPool());
-                                if (virtualPool == null) {
-                                    virtualPool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
-                                    uriVirtualPoolMap.put(volume.getVirtualPool(), virtualPool);
-                                }
+                            
+                            //Added for PasThrough code
+                            if(!(exportGroup.getProject()==null && exportGroup.getVirtualArray()==null)) {
+	                            if (bo instanceof Volume) {
+	                                Volume volume = (Volume) bo;
+	                                virtualPool = uriVirtualPoolMap.get(volume.getVirtualPool());
+	                                if (virtualPool == null) {
+	                                    virtualPool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
+	                                    uriVirtualPoolMap.put(volume.getVirtualPool(), virtualPool);
+	                                }
+	                            }
                             }
-
                             // There is no policy in the mask and volume: that's an exact match.
                             // There is a policy in the mask and it's exactly the only policy for this mask.
                             // Exact is either a simple mask with our policy, or a non-simple mask with our policy and only our policy
@@ -1661,6 +1664,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                                     }
 
                                     // verify host io limits match if policy name is a match
+                                    //No need to add If condition for PassThrough Export as virtualPool is null itself because of previous check
                                     if (virtualPool != null) {
                                         match &= HostIOLimitsParam.isEqualsLimit(policy.getHostIOLimitBandwidth(),
                                                 virtualPool.getHostIOLimitBandwidth())

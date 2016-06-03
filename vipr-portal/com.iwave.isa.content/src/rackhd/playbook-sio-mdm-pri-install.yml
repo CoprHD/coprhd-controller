@@ -13,6 +13,8 @@
   - set_fact: scaleio_mdm_primary_hostname="{{ ansible_fqdn }}" #"
   - debug: var=scaleio_mdm_primary_hostname
 
+  - debug: var=inventory_hostname
+
     #-------------- common ----------------
   - name: install required packages
     yum: name="{{ item }}" state=latest   #"
@@ -47,7 +49,7 @@
   - name: add primary mdm
     command: scli --add_primary_mdm --primary_mdm_ip {{ scaleio_mdm_primary_ip }} --accept_license
     run_once: true
-    delegate_to: "{{ scaleio_mdm_primary_hostname }}"
+    delegate_to: "{{ inventory_hostname }}"
     ignore_errors: true
     register: add_primary_mdm
     changed_when: "'already configured' not in add_primary_mdm.stderr"
@@ -55,23 +57,23 @@
   - name: wait for mdm to be active
     wait_for: port=6611 state=started
     run_once: true
-    delegate_to: "{{ scaleio_mdm_primary_hostname }}"
+    delegate_to: "{{ inventory_hostname }}"
   
   - name: initial login
     command: scli --login --username admin --password admin
     run_once: true
-    delegate_to: "{{ scaleio_mdm_primary_hostname }}"
+    delegate_to: "{{ inventory_hostname }}"
     ignore_errors: true
     register: initial_login
   
   - name: login with new password
     command: scli --login --username admin --password "{{ scaleio_password }}"
     run_once: true
-    delegate_to: "{{ scaleio_mdm_primary_hostname }}"
+    delegate_to: "{{ inventory_hostname }}"
     when: initial_login.rc == 7
   
   - name: set password
     command: scli --set_password --old_password admin --new_password "{{ scaleio_password }}"
     run_once: true
-    delegate_to: "{{ scaleio_mdm_primary_hostname }}"
+    delegate_to: "{{ inventory_hostname }}"
     when: initial_login.rc == 0

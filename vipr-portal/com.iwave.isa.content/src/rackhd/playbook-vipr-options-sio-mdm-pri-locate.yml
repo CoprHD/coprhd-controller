@@ -2,7 +2,7 @@
 - hosts: rackhd
   tasks:
 
-  - name: Query ScaleIO cluster for Info
+  - name: Getting AssetOptions for ScaleIO MDMs 
     command: scli --mdm_ip={{ hostvars[inventory_hostname]['ansible_' + item]['ipv4']['address'] }} --query_cluster 
     with_items:
       - "{{ansible_interfaces}}"

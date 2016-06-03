@@ -2,7 +2,8 @@
 - hosts: localhost 
   tasks:
 
-  - include: playbook-vipr-login.yml
+  - name: Getting AssetOptions for Varray
+    include: playbook-vipr-login.yml
 
   - set_fact: path="/vdc/varrays/bulk.json" #API path to get IDs
   - include: playbook-rest-request.yml 

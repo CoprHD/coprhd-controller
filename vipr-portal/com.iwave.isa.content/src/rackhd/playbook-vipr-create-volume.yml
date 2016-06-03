@@ -12,7 +12,7 @@
   - name: Call script to publish results of creating volume
     include: playbook-vipr-create-volume-publish.yml
 
-  - name: Call script to wait for ViPR task
+  - name: Call script to wait for ViPR tasks
     include: playbook-vipr-waitfortasks.yml
 
   - name: Call script to log out of ViPR

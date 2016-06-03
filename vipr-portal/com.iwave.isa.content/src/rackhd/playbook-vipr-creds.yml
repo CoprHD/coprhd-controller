@@ -2,5 +2,5 @@
   - name: Setting ViPR login credentials
     set_fact: login_user="root"
   - set_fact: login_password="ChangeMe1!"
-  - set_fact: host_address="10.247.87.142"
+  - set_fact: host_address="127.0.0.1" # change to ViPR VIP
   - set_fact: api_port="4443" 

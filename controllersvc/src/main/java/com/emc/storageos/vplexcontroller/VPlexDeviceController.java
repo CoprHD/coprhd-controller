@@ -919,7 +919,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                             } else if (URIUtil.isType(computeResourceURI, Host.class)){
                                 hostOrCluster = getDataObject(Host.class, computeResourceURI, _dbClient);                             
                             }
-                            if (hostOrCluster != null) {
+                            if ((hostOrCluster != null) && 
+                                 ((vplexVolume.getPersonality() == null) || 
+                                         (Volume.PersonalityTypes.SOURCE.name().equals(vplexVolume.getPersonality())))) {
                                 hostOrClusterName = hostOrCluster.getLabel();
                             }
                         }

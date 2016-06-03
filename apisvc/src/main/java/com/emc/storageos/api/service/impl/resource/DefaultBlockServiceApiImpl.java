@@ -851,8 +851,12 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
         boolean premadeRecs = false;
 
         if (recommendations == null || recommendations.isEmpty()) {
-            recommendations = getBlockScheduler().getRecommendationsForResources(
-                    varray, targetProject, vpool, capabilities);
+            if (isHostMigration) {
+                recommendations = getBlockScheduler().getRecommendationsForResources(varray, targetProject, vpool, capabilities);
+            } else {
+                recommendations = getBlockScheduler().getRecommendationsForDriverMigration(storageSystem.getId(), varray, targetProject,
+                        vpool, capabilities);
+            }
             if (recommendations.isEmpty()) {
                 throw APIException.badRequests.noStorageFoundForVolumeMigration(vpool.getLabel(), varray.getLabel(), sourceVolumeURI);
             }
@@ -865,11 +869,6 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
         URI targetStorageSystem = recommendations.get(0).getSourceStorageSystem();
         URI targetStoragePool = recommendations.get(0).getSourceStoragePool();
 
-        // If a driver assisted migration was requested, verify that the driver can handle
-        // the migration.
-        if (!isHostMigration) {
-            verifyDriverCapabilities(sourceVolume.getStorageController(), targetStorageSystem);
-        }
         // Create a volume for the new backend volume to which
         // data will be migrated.
         Volume targetVolume = prepareVolumeForRequest(capacity,
@@ -936,18 +935,6 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
         _log.info("Prepared migration {}.", migration.getId());
 
         return descriptors;
-    }
-
-    /**
-     * Verify that the storage systems provided support assisted volume migration
-     *
-     * @param sourceStorageSystemURI The URI of the source storage system
-     * @param targetStorageSystemURI The URI of the target storage system
-     */
-    private void verifyDriverCapabilities(URI sourceStorageSystemURI, URI targetStorageSystemURI)
-            throws InternalException {
-        // Not yet implemented
-        return;
     }
 
     /**

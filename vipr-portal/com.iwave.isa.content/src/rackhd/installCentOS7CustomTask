@@ -1,0 +1,38 @@
+{
+  "friendlyName": "Install CentOS Custom",
+  "injectableName": "Task.Os.Install.CentOS.Custom",
+  "implementsTask": "Task.Base.Os.Install",
+  "options": { 
+    "osType": "linux",
+    "profile": "install-centos.ipxe",
+    "hostname": "lgloc120",
+    "comport": "ttyS0",
+    "domain": "rackhd",
+    "completionUri": "renasar-ansible.pub",
+    "version": null,
+    "repo": "{{api.server}}/centos/{{options.version}}/os/x86_64",
+    "rootPassword": "RackHDRocks!",
+    "rootSshKey": null,
+    "users": [],
+    "networkDevices": [
+     {
+      "device":"ens4f0",
+      "ipv4":{
+       "ipAddr":"10.247.15.120",
+       "netmask":"255.255.255.0",
+       "gateway":"10.247.15.1"
+      }
+     }
+    ],
+    "dnsServers": [],
+    "installDisk": null,
+    "kvm": false
+  },
+  "properties": {
+    "os": {
+      "linux": {
+        "distribution": "centos"
+      }
+    }
+  }
+}

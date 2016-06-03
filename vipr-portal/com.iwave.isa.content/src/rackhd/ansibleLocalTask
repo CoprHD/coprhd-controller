@@ -1,0 +1,11 @@
+{
+  "friendlyName": "Local Ansible Task",
+  "injectableName": "Task.Ansible.Local",
+  "implementsTask": "Task.Base.Ansible",
+  "options": {
+    "playbook": "playbook.yml",
+    "vars": {},
+    "limit":"localhost"
+  },
+  "properties": {}
+} 

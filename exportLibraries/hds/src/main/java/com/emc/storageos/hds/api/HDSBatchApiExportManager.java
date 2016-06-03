@@ -354,7 +354,7 @@ public class HDSBatchApiExportManager {
             if (!operationSucceeds) {// Delete operation failed ever after repeated retries
                 throw HDSException.exceptions
                         .invalidResponseFromHDS(String.format(
-                                "Not able to delete LunPaths due to repeated errors from HiCommand server, errors description are as %s",
+                                "Not able to delete HostStorageDomains due to repeated errors from HiCommand server, errors description are as %s",
                                 errorDescriptionBuilder.toString()));
             }
         } finally {

@@ -8,15 +8,18 @@ import java.io.Serializable;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.Controller;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -41,6 +44,7 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeCreateW
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeVarrayChangeTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeVpoolChangeTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeWorkflowCompleter;
+import com.emc.storageos.volumecontroller.impl.utils.ConsistencyGroupUtils;
 import com.emc.storageos.vplexcontroller.VPlexDeviceController;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowException;
@@ -655,7 +659,18 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
                 new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_DATA, VolumeDescriptor.Type.VPLEX_IMPORT_VOLUME },
                 new VolumeDescriptor.Type[] {});
         List<URI> blockVolUris = VolumeDescriptor.getVolumeURIs(blockVolmeDescriptors);
-        ControllerUtils.checkCloneConsistencyGroup(blockVolUris.get(0), getDbClient(), completer);
+        
+        // add all consistency groups to the completer
+        Set<URI> cgIds = new HashSet<URI>();
+        for (URI blockId : blockVolUris) {
+            BlockConsistencyGroup group = ConsistencyGroupUtils.getCloneConsistencyGroup(blockId, getDbClient());
+            if (group != null) {
+                cgIds.add(group.getId());
+            }
+        }
+        for (URI cgId : cgIds) {
+            completer.addConsistencyGroupId(cgId);
+        }
         
         try {
             // Generate the Workflow.

@@ -184,9 +184,8 @@ _handleClusterIPs() {
 
     # 5. Handle IP inconsistency in vApp environment
     echo "Handle cluster IPs inconsistency in vApp environment ..." >> /var/log/boot-ovfenv.log
-    # TODO: change to vdc_vdcX_site_ids
-    #if [[ "${currIpPropMap["vdc_vdcX_site_ids"]}" == *,* ]]; then
-    if [[ "${currVdcPropMap["site_ids"]}" == *,* ]]; then
+    currVdcSiteIDs="vdc_"${vdc_myid}"_site_ids"
+    if [[ "${currVdcPropMap[${currVdcSiteIDs}]}" == *,* ]]; then
         # multiple sites
         if [ "${bRestAPI}" = "true" ]; then
             errstr="*** IPs are changed via REST API or rollbacked to original IPs while the local site is vApp environment.\n*** Please also manually change IPs via vCenter to align with the desired IPs.\n"

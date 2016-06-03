@@ -596,9 +596,10 @@ public class IpReconfigManager implements Runnable {
     public void haltNode(String shutdownSites) throws Exception {
         Thread.sleep(6 * 1000);
 
-        String[] siteIds = shutdownSites.split(",");
-        Set<String> siteIdSet = new HashSet<String>(Arrays.asList(siteIds));
-        if(siteIdSet.contains(drUtil.getLocalSite().getSiteShortId())) {
+        String[] vdcsiteIds = shutdownSites.split(",");
+        Set<String> vdcsiteIdSet = new HashSet<String>(Arrays.asList(vdcsiteIds));
+        String vdcsiteId_str = drUtil.getLocalSite().getVdcShortId() + PropertyConstants.UNDERSCORE_DELIMITER + drUtil.getLocalSite().getSiteShortId();
+        if(vdcsiteIdSet.contains(vdcsiteId_str)) {
             localRepository.poweroff();
         } else {
             localRepository.reboot();
@@ -748,11 +749,12 @@ public class IpReconfigManager implements Runnable {
     private void validateParameter(ClusterIpInfo clusterIpInfo, String shutdownSites) throws Exception {
         String errmsg = "";
 
-        String[] siteIds = shutdownSites.split(",");
-        for (String siteid : siteIds) {
-            if (siteid.isEmpty()) continue; 
-            if (currentIpinfo.getSiteIpInfoMap().keySet().contains(siteid) == false) {
-                errmsg = "shutdownSites info is invalid. Format:vdc_<vdcShortId>_<siteShortId>,... Example: vdc_vdc1_site2,vdc_vdc1_site3";
+        String[] vdcsiteIds = shutdownSites.split(",");
+        for (String vdcsiteid : vdcsiteIds) {
+            if (vdcsiteid.isEmpty()) continue;
+            String vdcsiteid_str=PropertyConstants.VDC_SHORTID_PREFIX + PropertyConstants.UNDERSCORE_DELIMITER + vdcsiteid;
+            if (currentIpinfo.getSiteIpInfoMap().keySet().contains(vdcsiteid_str) == false) {
+                errmsg = "shutdownSites info is invalid. Format:<vdcShortId>_<siteShortId>,... Example: vdc1_site2,vdc1_site3";
                 throw new IllegalStateException(errmsg);
             }
         }

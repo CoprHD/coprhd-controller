@@ -74,12 +74,29 @@ public class FindHostScsiDiskForLun extends ExecutionTask<HostScsiDisk> {
         return null;
     }
 
+    /**
+     * Attaches the scsi disk to the host
+     * 
+     * @param disk the scsi disk to attach
+     */
+    private void attachDisk(HostScsiDisk disk) {
+        logInfo("find.host.scsi.lun.esx.attach", disk.getDeviceName(), host.getName());
+        new HostStorageAPI(host).attachScsiLun(disk);
+    }
+
     private void rescan() {
         pause(FIND_DISK_DELAY);
         logInfo("find.host.scsi.lun.esx.rescan", host.getName());
         new HostStorageAPI(host).rescanHBAs();
     }
 
+    /**
+     * Waits for a valid state of the given scsi disk.
+     * If the disk is in an 'off' state, the disk is attached to the host.
+     * 
+     * @param disk the scsi disk to monitor
+     * @return the scsi disk once it is in a valid state
+     */
     private HostScsiDisk waitForValidState(HostScsiDisk disk) {
         logInfo("find.host.scsi.lun.esx.wait.valid", disk.getDeviceName(), host.getName());
         long startTime = System.currentTimeMillis();
@@ -88,12 +105,29 @@ public class FindHostScsiDiskForLun extends ExecutionTask<HostScsiDisk> {
             disk = getLunDisk();
             if (disk == null) {
                 diskNotFound();
+            } else if (isDiskOff(disk)) {
+                attachDisk(disk);
             }
         }
         if (!isValidState(disk)) {
             diskInvalid(disk);
         }
         return disk;
+    }
+
+    /**
+     * Returns true if the disk operational state is 'off'
+     * 
+     * @param disk the scsi disk
+     * @return true if the disk operational state is 'off', otherwise returns false
+     */
+    private boolean isDiskOff(HostScsiDisk disk) {
+        String[] state = disk.getOperationalState();
+        if (state == null || state.length == 0) {
+            return false;
+        }
+        String primaryState = state[0];
+        return StringUtils.equals(primaryState, ScsiLunState.off.name());
     }
 
     private boolean isValidState(HostScsiDisk disk) {

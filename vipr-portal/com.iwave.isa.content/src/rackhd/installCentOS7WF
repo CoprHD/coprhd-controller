@@ -1,0 +1,61 @@
+{
+ "friendlyName": "Install CentOS7 for SIO",
+ "injectableName": "Graph.InstallCentOSForSIO",
+ "options": { 
+  "defaults":{ 
+   "version": 7,
+   "repo": "{{api.server}}/centos/{{options.version}}/os/x86_64",
+   "rootPassword":"dangerous", 
+   "hostname":"localhost",
+   "domain":"lss.emc.com",
+   "ip":"127.0.0.1",
+   "rootSshKey": "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDRi4IbkXUvDWqjcKrhDOwJpyp8tZlakyHX0GR5xH70HhDcKcU2uasifhY2u7EMHdZ9mdbGZ/BiLcIooDGasqCpXMZVQsT/pz7tkI9z+0f+sc6knd+20oNxbORuhvGHfeFJkhSS+jzzS59vvVjQVVdVzRGY6BQZvGTiEpQzir0UlsWKkeXoxYdPMk2OJOaAcpU1pCXw006ROLh4GXy0ML0z9l8ItzelS31z+5jG41s0QNYn96Ef/jL58wSZMVC4CdYsXNE9m2aARdTy3s6aYx3kJsdweo5DWcvXM5gwomMa3KPWuzRte/0cmyD0iBVw2dUC+74VDAD0pHT3W5WBOEDV root@lgloc189",
+   "users":[ 
+    { 
+     "name":"monorail",
+     "uid":12345,
+     "password":"password",
+     "sshKey": "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDRi4IbkXUvDWqjcKrhDOwJpyp8tZlakyHX0GR5xH70HhDcKcU2uasifhY2u7EMHdZ9mdbGZ/BiLcIooDGasqCpXMZVQsT/pz7tkI9z+0f+sc6knd+20oNxbORuhvGHfeFJkhSS+jzzS59vvVjQVVdVzRGY6BQZvGTiEpQzir0UlsWKkeXoxYdPMk2OJOaAcpU1pCXw006ROLh4GXy0ML0z9l8ItzelS31z+5jG41s0QNYn96Ef/jL58wSZMVC4CdYsXNE9m2aARdTy3s6aYx3kJsdweo5DWcvXM5gwomMa3KPWuzRte/0cmyD0iBVw2dUC+74VDAD0pHT3W5WBOEDV root@lgloc189"
+    }
+   ], 
+   "dnsServers":[
+    "10.254.66.23",
+    "10.254.66.24"
+   ], 
+   "schedulerOverrides": {
+    "timeout": 3600000
+   }
+  },
+  "validate-ssh": {
+   "retries": 10
+  }
+ },
+ "tasks": [
+  {
+   "label": "validate-ssh",
+   "taskName": "Task.Ssh.Validation",
+   "waitOn": {
+     "install-os": "succeeded"
+   }
+  },
+  {
+   "label": "set-boot-pxe",
+   "taskName": "Task.Obm.Node.PxeBoot",
+   "ignoreFailure": true
+  },
+  {
+   "label": "reboot",
+   "taskName": "Task.Obm.Node.Reboot",
+   "waitOn": {
+    "set-boot-pxe": "finished"
+   }
+  },
+  {
+   "label": "install-os",
+   "taskName": "Task.Os.Install.CentOS.Custom",
+   "waitOn": {
+    "reboot": "succeeded"
+   }
+  }
+ ]
+}

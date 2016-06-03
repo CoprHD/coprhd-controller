@@ -12,16 +12,21 @@
       required: "true",
       lockable: true
     },
+    Hostname:{
+      type:"text",
+      required:"false",
+      lockable:"true"
+    },
+    IP:{
+      type:"text",
+      required:"false",
+      lockable:"true"
+    },
     Interface:{
       type:"assetType.rackhd.interface.node",
       required: "false",
       lockable: true
-    },
-    Node_ScaleIO_MDM_Primaries:{
-      type:"assetType.rackhd.sio_mdm_pri",
-      required: "false",
-      lockable: true
-    },
+    }, 
     Playbook:{
       type:"text",
       required: "false",
@@ -58,6 +63,41 @@
     },
     email_address:{
       type:"text",
+      lockable: true
+    },
+    SioName:{
+      initialValue: "ScaleIO_via_OE",
+      type:"text",
+      lockable: true
+    },
+    SioIpAddress:{
+      initialValue: "10.247.15.118",
+      type:"text",
+      lockable: true
+    },
+    SioUseSsl:{
+      initialValue: "true",
+      type:"text",
+      lockable: true
+    },
+    SioPortNumber:{
+      initialValue: "443",
+      type:"text",
+      lockable: true
+    },
+    SioUserName:{
+      initialValue: "admin",
+      type:"text",
+      lockable: true
+    },
+    SioPassword:{
+      initialValue: "Cluster1!",
+      type:"text",
+      lockable: true
+    },
+    Node_ScaleIO_MDM_Primaries:{
+      type:"assetType.rackhd.sio_mdm_pri",
+      required: "false",
       lockable: true
     }
   }

@@ -1,6 +1,48 @@
-    #wait for vipr task to complete
 
-  - name: Call included file to test variable apssing
-    include: playbook-vipr-taskpoller.yml task={{item}}
-    with_items:  "{{restResult.json.task}}"
+  - name: Extract ViPR Task IDs from restResults
+    set_fact: id_item="{{ item.id }}"  #"
+    with_items: "{{ restResult.json.task }}"
+    register: ids_result
 
+  - name: Make a list of ViPR IDs
+    set_fact: ids="{{ ids_result.results |  selectattr('ansible_facts', 'defined') | map(attribute='ansible_facts.id_item') | list }}"  #"
+
+  - name: Log list of ViPR Task IDs
+    debug: var=ids
+
+  - name: Make REST Requests for status of ViPR Tasks until done
+    uri:
+      url: https://{{ host_address }}:{{ port }}/vdc/tasks/{{item}}.json
+      validate_certs: no  # TODO: enable for production
+      HEADER_X-SDS-AUTH-TOKEN: "{{ loginToken|default(omit) }}"
+      HEADER_Content-Type: "application/json"
+      body_format: json
+      method: "GET"
+      return_content: yes
+    with_items: "{{ ids }}"
+    ignore_errors: true
+    register: restResult
+    until: restResult.json.state != 'pending'
+    retries: 60
+    delay: 10
+
+  - name: Log ViPR Tasks that failed
+    debug: msg="ViPR Task failed {{ item.json.name }} {{ item.json.id }}" #"
+    with_items: "{{ restResult.results }}"
+    when: item.json.state == 'error'
+
+  - name: Log ViPR Tasks that timed out
+    debug: msg="Timed out waiting for ViPR Task {{ item.json.name }} {{ item.json.id }}" #"
+    with_items: "{{ restResult.results }}"
+    when: item.json.state == 'pending'
+
+  - name: Fail if ViPR Tasks failed
+    fail: msg="Failing workflow due to ViPR Task failure {{ item.json.name }} {{ item.json.id }}" #"
+    with_items: "{{ restResult.results }}"
+    when: item.json.state == 'error'
+
+  - name: Fail if ViPR Tasks timed out
+    fail: msg="Failing workflow due to time out waiting for ViPR Task {{ item.json.name }} {{ item.json.id }}" #"
+    with_items: "{{ restResult.results }}"
+    when: item.json.state == 'pending'
+ 

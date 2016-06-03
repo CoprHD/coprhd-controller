@@ -1,0 +1,18 @@
+---
+- hosts: 127.0.0.1
+  tasks:
+
+  - name: Call script to login to ViPR
+    include: playbook-vipr-login.yml
+
+  - name: Set body for REST volume create call to ViPR 
+    set_fact: body='{"name":"{{ SioName }}","ip_address":"{{ SioIpAddress }}","use_ssl":"{{ SioUseSsl }}","interface_type":"scaleioapi","port_number":"{{ SioPortNumber }}","user_name":"{{ SioUserName }}","password":"{{ SioPassword }}"}'
+
+  - name: Set path for REST call
+    set_fact: path="/vdc/storage-providers.json"
+
+  - name: include script for REST request to Discover ScaleIO
+    include: playbook-rest-request.yml 
+
+  - include: playbook-vipr-logout.yml
+

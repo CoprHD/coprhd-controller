@@ -111,4 +111,30 @@ public interface ConsistencyGroupManager {
     public void removeVolumeFromCg(URI cgURI, Volume vplexVolume, VPlexApiClient client, boolean removeFromViPRCg) throws Exception;
 
     public ClusterConsistencyGroupWrapper getClusterConsistencyGroup(Volume vplexVolume, BlockConsistencyGroup cg) throws Exception;
+    
+    /**
+     * Add steps to add volumes to an SRDF Target CG. These CGs are special because they come into existence
+     * only once the SRDF link is created. 
+     * @param workflow -- Workflow the Vplex steps are being added to.
+     * @param vplexSystem -- VPlex system that will contain the Consistency Group.
+     * @param vplexVolumeURIs -- List of Vplex Volume URIs to be added to the Consistency Group.
+     * @param waitFor -- previous step or step group identifier that these steps should wait on
+     * @return new waitFor value that subsequent steps should wait on
+     * @throws Exception
+     */
+    public String addStepsForAddingVolumesToSRDFTargetCG(Workflow workflow, StorageSystem vplexSystem,
+            List<URI> vplexVolumeURIs, String waitFor) throws Exception;
+    
+    /**
+     * Adds steps to remove volumes from a SRDF Target CG, and if no more Vplex volumes exist,
+     * to delete the corresponding Vplex CG.
+     * @param workflow
+     * @param vplexSystem
+     * @param vplexVolumeURIs
+     * @param waitFor
+     * @return
+     * @throws Exception
+     */
+    public String addStepsForRemovingVolumesFromSRDFTargetCG(Workflow workflow, StorageSystem vplexSystem,
+            List<URI> vplexVolumeURIs, String waitFor) throws Exception;
 }

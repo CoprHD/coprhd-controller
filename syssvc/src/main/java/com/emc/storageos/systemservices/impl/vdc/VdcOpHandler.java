@@ -945,7 +945,7 @@ public abstract class VdcOpHandler {
             if (failoverBarrier == null) {
                 failoverBarrier = new VdcPropertyBarrier(Constants.FAILOVER_BARRIER, VDC_OP_BARRIER_TIMEOUT, site.getNodeCount(), true);
             }
-            
+
             if (isNewActiveSiteForFailover(site)) {
                 setConcurrentRebootNeeded(true);
                 coordinator.stopCoordinatorSvcMonitor();
@@ -1203,7 +1203,8 @@ public abstract class VdcOpHandler {
     }
     
     protected void refreshCoordinator() {
-        if (coordinator.isStandby()) {
+        if (coordinator.isStandby() ||
+                drUtil.getLocalSite().getState().equals(SiteState.STANDBY_FAILING_OVER)) {
             String localZkMode = drUtil.getLocalCoordinatorMode();
             if(drUtil.isParticipantNode(localZkMode)) {
                 log.info("No need to reconfig coordinator on participant standby nodes");

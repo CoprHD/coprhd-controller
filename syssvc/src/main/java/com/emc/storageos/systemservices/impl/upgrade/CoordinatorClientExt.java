@@ -1499,8 +1499,10 @@ public class CoordinatorClientExt {
                     return new Thread(r, "DbsvcQuorumMonitor");
                 }
             });
+            // delay for a period of time for start db quorum monitor. For sometimes when active site start after sudden poweroff
+            // there may be stale standby sites' service beacons which may mislead monitor thread, wait 3 mins for them to disappear
             exe.scheduleAtFixedRate(new DbsvcQuorumMonitor(_coordinator),
-                    0, DB_MONITORING_INTERVAL, TimeUnit.SECONDS);
+                    3 * DB_MONITORING_INTERVAL, DB_MONITORING_INTERVAL, TimeUnit.SECONDS);
         }
 
         Thread drNetworkMonitorThread = new Thread(drSiteNetworkMonitor);
@@ -1588,19 +1590,20 @@ public class CoordinatorClientExt {
         private void checkAndUpdateLocalSiteState() {
             Site localSite = drUtil.getLocalSite();
 
-            if (SiteState.STANDBY_SYNCED.equals(localSite.getState())) {
+            SiteState state = localSite.getState();
+            if (SiteState.STANDBY_SYNCED.equals(state) || SiteState.STANDBY_INCR_SYNCING.equals(state)) {
                 _log.info("Updating local site from {} to STANDBY_PAUSED since active is unreachable",
-                        localSite.getState());
+                        state);
                 localSite.setState(SiteState.STANDBY_PAUSED);
                 _coordinator.persistServiceConfiguration(localSite.toConfiguration());
                 rescheduleDrSiteNetworkMonitor();
-            } else if (SiteState.STANDBY_SYNCING.equals(localSite.getState()) ||
-                    SiteState.STANDBY_RESUMING.equals(localSite.getState()) ||
-                    SiteState.STANDBY_ADDING.equals(localSite.getState())){
+            } else if (SiteState.STANDBY_SYNCING.equals(state) ||
+                    SiteState.STANDBY_RESUMING.equals(state) ||
+                    SiteState.STANDBY_ADDING.equals(state)){
                 _log.info("Updating local site from {} to STANDBY_ERROR since active is unreachable",
                         localSite.getState());
 
-                localSite.setLastState(localSite.getState());
+                localSite.setLastState(state);
                 localSite.setState(SiteState.STANDBY_ERROR);
                 _coordinator.persistServiceConfiguration(localSite.toConfiguration());
             }

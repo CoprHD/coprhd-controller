@@ -104,7 +104,11 @@ public class DbServiceImpl implements DbService {
     @Autowired
     private DbManager dbMgr;
 
-    /**
+    public void setDbMgr(DbManager dbMgr) {
+		this.dbMgr = dbMgr;
+	}
+
+	/**
      * Set db client
      */
     public void setDbClient(DbClientImpl dbClient) {
@@ -449,7 +453,7 @@ public class DbServiceImpl implements DbService {
         }
 
         Long offlineTime = dbOfflineEventInfo.getOfflineTimeInMS(localNodeId);
-        if (offlineTime != null && offlineTime >= MAX_SERVICE_OUTAGE_TIME) {
+        if (!isDirEmpty && offlineTime != null && offlineTime >= MAX_SERVICE_OUTAGE_TIME) {
             String errMsg = String.format("This node is offline for more than %s days. It may bring stale data into " +
                     "database, so the service cannot continue to boot. Please poweroff this node and follow our " +
                     "node recovery procedure to recover this node", offlineTime/TimeUtils.DAYS);
@@ -660,6 +664,8 @@ public class DbServiceImpl implements DbService {
         if (!isGeoDbsvc()) {
             _schemaUtil.checkAndSetupBootStrapInfo(_dbClient);
         }
+        
+        dbMgr.init();
         
         if (_handler.run()) {
             // Setup the bootstrap info root tenant, if root tenant migrated from local db, then skip it

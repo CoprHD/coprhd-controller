@@ -87,7 +87,7 @@ public class AdminDashboard extends Controller {
         @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
     public static void disasterRecovery() {
         Date disasterRecoveryLastUpdated = AdminDashboardUtils.getNodeHealthListLastUpdated();
-        List<SiteRestRep> drsites = DisasterRecoveryUtils.getAllSites().getSites();
+        List<SiteRestRep> drsites = DisasterRecoveryUtils.getSites();
         render(disasterRecoveryLastUpdated, drsites);
     }
 

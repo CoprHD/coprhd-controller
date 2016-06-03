@@ -504,7 +504,7 @@ public class ControlService {
      *         By default, all sites would be automatically rebooted.
      *         Instead, user could shutdown desired sites and change underlying network environment (i.e gateway, switch etc.)
      *         then reboot the site manually later when the network environment is ready.
-     *         Example:  "site2,site3"
+     *         Example:  "vdc_vdc1_site2,vdc_vdc1_site3"
      *
      */
     @POST

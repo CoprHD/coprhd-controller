@@ -281,7 +281,6 @@ public class IpReconfigManager implements Runnable {
         if (System.currentTimeMillis() >= expiration_time) {
             // set procedure failed when it is expired
             setFailed(IpReconfigConstants.ERRSTR_TIMEOUT);
-            FileUtils.deleteFile(IpReconfigConstants.NODESTATUS_PATH);
             return;
         }
 
@@ -373,7 +372,6 @@ public class IpReconfigManager implements Runnable {
                     log.error("unexpected node status before reboot: {}", localnode_status);
                     // if installer is used before the procedure finished, we will get unexpected node status
                     setFailed(IpReconfigConstants.ERRSTR_MANUAL_CONFIGURED);
-                    FileUtils.deleteFile(IpReconfigConstants.NODESTATUS_PATH);
                     break;
             }
         } else {
@@ -403,7 +401,6 @@ public class IpReconfigManager implements Runnable {
                     log.error("unexpected node status after reboot: {}", localnode_status);
                     // if installer is used before the procedure finished, we will get unexpected node status
                     setFailed(IpReconfigConstants.ERRSTR_MANUAL_CONFIGURED);
-                    FileUtils.deleteFile(IpReconfigConstants.NODESTATUS_PATH);
                     break;
             }
         }
@@ -465,6 +462,9 @@ public class IpReconfigManager implements Runnable {
     private void setSucceed() throws Exception {
         log.info("Succeed to reconfig cluster ip!");
         setStatus(ClusterNetworkReconfigStatus.Status.SUCCEED);
+        FileUtils.deleteFile(IpReconfigConstants.NODESTATUS_PATH);
+        // Avoid using not-uptodate old IPs to rollback after DR sites addition/removal etc.
+        FileUtils.deleteFile(IpReconfigConstants.OLDIP_PATH);
         bNeedRefresh = true;
     }
 
@@ -479,6 +479,7 @@ public class IpReconfigManager implements Runnable {
         config.setConfig(IpReconfigConstants.CONFIG_STATUS_KEY, ClusterNetworkReconfigStatus.Status.FAILED.toString());
         config.setConfig(IpReconfigConstants.CONFIG_ERROR_KEY, error);
         _coordinator.getCoordinatorClient().persistServiceConfiguration(config);
+        FileUtils.deleteFile(IpReconfigConstants.NODESTATUS_PATH);
         bNeedRefresh = true;
     }
 
@@ -631,7 +632,6 @@ public class IpReconfigManager implements Runnable {
                                 expiration_time = Long.valueOf(config.getConfig(IpReconfigConstants.CONFIG_EXPIRATION_KEY));
                                 if (expiration_time < System.currentTimeMillis()) {
                                     setFailed(IpReconfigConstants.ERRSTR_TIMEOUT);
-                                    FileUtils.deleteFile(IpReconfigConstants.NODESTATUS_PATH);
                                     return;
                                 }
                             }
@@ -677,7 +677,6 @@ public class IpReconfigManager implements Runnable {
                 if (localnode_status == IpReconfigConstants.NodeStatus.LOCAL_ROLLBACK) {
                     log.info("User is trying to rollback last ip reconfiguration.");
                     setFailed(IpReconfigConstants.ERRSTR_ROLLBACK);
-                    FileUtils.deleteFile(IpReconfigConstants.NODESTATUS_PATH);
                     return true;
                 }
             }
@@ -753,7 +752,7 @@ public class IpReconfigManager implements Runnable {
         for (String siteid : siteIds) {
             if (siteid.isEmpty()) continue; 
             if (currentIpinfo.getSiteIpInfoMap().keySet().contains(siteid) == false) {
-                errmsg = "shutdownSites info is invalid.";
+                errmsg = "shutdownSites info is invalid. Format:vdc_<vdcShortId>_<siteShortId>,... Example: vdc_vdc1_site2,vdc_vdc1_site3";
                 throw new IllegalStateException(errmsg);
             }
         }

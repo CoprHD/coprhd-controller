@@ -168,7 +168,8 @@ public class UnManagedVolume extends UnManagedDiscoveredObject {
         RP_UNMANAGED_SOURCE_VOLUME("rpUnManagedSourceVolume", "rpUnManagedSourceVolume"),
         RP_MANAGED_SOURCE_VOLUME("rpManagedSourceVolume", "rpManagedSourceVolume"),
         RP_ACCESS_STATE("rpAccessState", "rpAccessState"),
-        SNAPSHOT_CONSISTENCY_GROUP_NAME("snapshotConsistencyGroupName", "snapshotConsistencyGroupName");
+        SNAPSHOT_CONSISTENCY_GROUP_NAME("snapshotConsistencyGroupName", "snapshotConsistencyGroupName"),
+        FULL_COPY_CONSISTENCY_GROUP_NAME("fullCopyConsistencyGroupName", "fullCopyConsistencyGroupName");
 
         private final String _infoKey;
         private final String _alternateKey;

@@ -19,7 +19,7 @@ public class StorageObject {
     private String deviceLabel;
 
     // Access status. Should be set by driver.
-    private AccessStatus accessStatus;
+    private AccessStatus accessStatus = AccessStatus.READ_WRITE;
 
     public static enum AccessStatus {
         READ_ONLY,

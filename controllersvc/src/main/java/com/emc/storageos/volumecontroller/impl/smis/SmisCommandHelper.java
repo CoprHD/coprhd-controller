@@ -75,6 +75,7 @@ import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.ExportMaskNameGenerator;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.WWNUtility;
+import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
@@ -4035,15 +4036,20 @@ public class SmisCommandHelper implements SmisConstants {
      * @return
      */
     public String generateGroupName(Set<String> existingGroupNames, String storageGroupName) {
-        String result = storageGroupName;
+        // replace "+" in the group name with "-" to make sure that we do not hit limitation on vmax3 for group names with
+        // "+" and do not return false positive here for such a mask. For example, mask with "+"s does not exist on array, but
+        // when we replace "+"s bu "_"s we hit the existing mask on device.
+        String storageGroupNameTemp = storageGroupName.replaceAll(Constants.SMIS_PLUS_REGEX, Constants.HYPHEN);
+        _log.info("Converted storage group name from {} to {} .", storageGroupName, storageGroupNameTemp);
+        String result = storageGroupNameTemp;
         // Is 'storageGroupName' already in the list of existing names?
-        if (existingGroupNames.contains(storageGroupName)) {
+        if (existingGroupNames.contains(storageGroupNameTemp)) {
             // Yes -- name is already in the existing group name list. We're going to have to generate a unique name by using an appended
             // numeric index. The format will be storageGroupName_<[N]>, where N is a number between 1 and the size of existingGroupNames.
             int size = existingGroupNames.size();
             for (int index = 1; index <= size; index++) {
                 // Generate an indexed name ...
-                result = String.format("%s_%d", storageGroupName, index);
+                result = String.format("%s_%d", storageGroupNameTemp, index);
                 // If the indexed name does not exist, then exit the loop and return 'result'
                 if (!existingGroupNames.contains(result)) {
                     break;
@@ -4051,7 +4057,7 @@ public class SmisCommandHelper implements SmisConstants {
             }
         }
         _log.info(String.format("generateGroupName(existingGroupNames.size = %d, %s), returning %s", existingGroupNames.size(),
-                storageGroupName, result));
+                storageGroupNameTemp, result));
         return result;
     }
 
@@ -4363,7 +4369,8 @@ public class SmisCommandHelper implements SmisConstants {
                     CIMObjectPath seSystemRegistrationSvc =
                             getRegistrationService(storage);
                     UnsignedInteger32[] syncType = new UnsignedInteger32[] {
-                            new UnsignedInteger32(8L)
+                            new UnsignedInteger32(REPLICATION_DATA_SYNC_TYPE),
+                            new UnsignedInteger32(DEVICES_SYNC_TYPE)
                     };
                     CIMObjectPath[] systems = new CIMObjectPath[] {
                             _cimPath.getStorageSystem(storage)
@@ -7304,5 +7311,34 @@ public class SmisCommandHelper implements SmisConstants {
             _log.error("get EMCSFSEntries -- WBEMException: ", e);
         }
         return null;
+    }
+    
+    /**
+     * Rename a volume on the SMIS storage device. Used by SRDF.
+     * @param dbClient - database reference (volume deviceLabel is updated)
+     * @param storageSystem - StorageSystem
+     * @param volume - Volume
+     * @param name - new name String
+     */
+    public void renameVolume(DbClient dbClient, StorageSystem storageSystem, Volume volume, String name) {
+        try {
+            CIMObjectPath volumePath = _cimPath.getBlockObjectPath(storageSystem, volume);
+            _log.info(String.format("Attempting to modify volume %s to %s", volumePath.toString(), name));
+            CIMInstance toUpdate = new CIMInstance(volumePath,
+                    new CIMProperty[] {
+                            new CIMPropertyFactory().string(SmisConstants.CP_ELEMENT_NAME, name)
+                    }
+                    );
+            modifyInstance(storageSystem, toUpdate, SmisConstants.PS_ELEMENT_NAME);
+            volume.setDeviceLabel(name);
+            dbClient.updateAndReindexObject(volume);
+            _log.info(String.format("Volume name has been modified to %s", name));
+        } catch (WBEMException e) {
+            _log.error("Encountered an error while trying to set the volume name", e);
+        } catch (DatabaseException e) {
+            _log.error("Encountered an error while trying to set the volume name", e);
+        } catch (Exception e) {
+            _log.error("Encountered an error while trying to set the volume name", e);
+        } 
     }
 }

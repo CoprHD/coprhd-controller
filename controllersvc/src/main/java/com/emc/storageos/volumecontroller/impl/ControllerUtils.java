@@ -6,6 +6,7 @@ package com.emc.storageos.volumecontroller.impl;
 
 import static com.emc.storageos.db.client.constraint.AlternateIdConstraint.Factory.getBlockSnapshotSessionBySessionInstance;
 import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getVolumesByConsistencyGroup;
+import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnBlockObjectToLabel;
 import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnDataObjectToID;
 import static com.google.common.collect.Collections2.transform;
 import static com.google.common.collect.Lists.newArrayList;
@@ -579,6 +580,7 @@ public class ControllerUtils {
                     nativeId = Integer.parseInt(blockObject.getNativeId(), 16);
                     nativeIdString = String.format("%04d", nativeId);
                 } else if (!storageType.equals(DiscoveredDataObject.Type.vnxe.name()) &&
+                        !storageType.equals(DiscoveredDataObject.Type.unity.name()) &&
                         blockObject.getNativeId().matches("\\d+")) {
                     nativeId = Integer.parseInt(blockObject.getNativeId());
                     nativeIdString = String.format("%04d", nativeId);
@@ -590,8 +592,15 @@ public class ControllerUtils {
             for (String nativeId : orderedByNativeId) {
                 URI uri = nativeIdToURIMap.get(nativeId);
                 Integer entryHLU = volumeMap.get(uri);
-                String hluString = (entryHLU != null) ? Integer.toHexString(entryHLU) :
+                String hluString = null;
+                if (storageType.equals(DiscoveredDataObject.Type.unity.name())) {
+                    // Don't change to hex string for Unity
+                    hluString = (entryHLU != null) ? Integer.toString(entryHLU) :
                         ExportGroup.LUN_UNASSIGNED_STR;
+                } else {
+                    hluString = (entryHLU != null) ? Integer.toHexString(entryHLU) :
+                        ExportGroup.LUN_UNASSIGNED_STR;
+                }
                 String volLabel = blockURIToLabelMap.get(uri);
                 if (storageType.equals(DiscoveredDataObject.Type.hds.name())
                         || storageType.equals(DiscoveredDataObject.Type.xtremio.name())) {
@@ -1558,6 +1567,11 @@ public class ControllerUtils {
             existingSnapSnapSetLabel = snapshots.get(0).getSnapsetLabel();
         }
         return existingSnapSnapSetLabel;
+    }
+
+    public static Set<String> getSnapshotLabelsFromExistingSnaps(String repGroupName, URI storage, DbClient dbClient) {
+        List<BlockSnapshot> snapshots = getSnapshotsPartOfReplicationGroup(repGroupName, storage, dbClient);
+        return new HashSet(transform(snapshots, fctnBlockObjectToLabel()));
     }
 
     /**

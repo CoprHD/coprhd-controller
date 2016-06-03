@@ -494,6 +494,15 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     VolumeDescriptor.Type.VPLEX_VIRT_VOLUME, vplexStorageSystemURI, volumeId,
                     null, consistencyGroup == null ? null : consistencyGroup.getId(),
                     vPoolCapabilities, volume.getCapacity());
+            
+            // Set the compute resource in the descriptor if the volume to be created will be exported
+            // to a host/cluster after it has been created.
+            URI computeResourceURI = param.getComputeResource();
+            if (computeResourceURI != null) {
+                s_logger.info(String.format("Volume %s - will be exported to Host/Cluster: %s", volume.getLabel(),
+                        computeResourceURI.toString()));
+                descriptor.setComputeResource(computeResourceURI);
+            }
             descriptors.add(descriptor);
         }
 

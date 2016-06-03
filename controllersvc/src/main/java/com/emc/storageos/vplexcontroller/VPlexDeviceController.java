@@ -52,6 +52,7 @@ import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
+import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
@@ -580,10 +581,20 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     completer.error(_dbClient, serviceError);
                     throw ex;
                 }
+                
+                
+                Map<URI, URI> computeResourceMap = new HashMap<>();
+                List<VolumeDescriptor> vplexDescrs = vplexDescMap.get(vplexURI);
+                for (VolumeDescriptor descr : vplexDescrs) {
+                    URI computeResourceURI = descr.getComputeResource();
+                    if (computeResourceURI != null) {
+                        computeResourceMap.put(descr.getVolumeURI(), computeResourceURI);
+                    }
+                }
+                
 
                 // Now create each of the Virtual Volumes that may be necessary.
-                List<URI> vplexVolumeURIs = VolumeDescriptor.getVolumeURIs(vplexDescMap
-                        .get(vplexURI));
+                List<URI> vplexVolumeURIs = VolumeDescriptor.getVolumeURIs(vplexDescrs);
 
                 // Now make a Step to create the VPlex Virtual volume.
                 // This will be done from this controller.
@@ -594,7 +605,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                                 vplexSystem.getId().toString(),
                                 BlockDeviceController.getVolumesMsg(_dbClient, vplexVolumeURIs)),
                         lastStep, vplexURI, vplexSystem.getSystemType(), this.getClass(),
-                        createVirtualVolumesMethod(vplexURI, vplexVolumeURIs),
+                        createVirtualVolumesMethod(vplexURI, vplexVolumeURIs, computeResourceMap),
                         rollbackCreateVirtualVolumesMethod(vplexURI, vplexVolumeURIs, stepId),
                         stepId);
 
@@ -753,12 +764,14 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     /**
      * Returns a Workflow.Method for creating Virtual Volumes.
      *
-     * @param vplexURI
-     * @param vplexVolumeURIs
-     * @return
+     * @param vplexURI The URI of the VPLEX
+     * @param vplexVolumeURIs The URIs of the volumes
+     * @param computeResourceMap A Map of the compute resource for each volume.
+     * 
+     * @return The create virtual volumes method.
      */
-    private Workflow.Method createVirtualVolumesMethod(URI vplexURI, List<URI> vplexVolumeURIs) {
-        return new Workflow.Method(CREATE_VIRTUAL_VOLUMES_METHOD_NAME, vplexURI, vplexVolumeURIs);
+    private Workflow.Method createVirtualVolumesMethod(URI vplexURI, List<URI> vplexVolumeURIs, Map<URI, URI> computeResourceMap) {
+        return new Workflow.Method(CREATE_VIRTUAL_VOLUMES_METHOD_NAME, vplexURI, vplexVolumeURIs, computeResourceMap);
     }
 
     /**
@@ -768,10 +781,11 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @param vplexURI -- URI of the VPlex StorageSystem
      * @param vplexVolumeURIs -- URI of the VPlex volumes to be created. They must contain
      *            associatedVolumes (URI of the underlying Storage Volumes).
+     * @param computeResourceMap A Map of the compute resource for each volume.
      * @param stepId - The stepId used for completion.
      * @throws WorkflowException
      */
-    public void createVirtualVolumes(URI vplexURI, List<URI> vplexVolumeURIs, String stepId) throws WorkflowException {
+    public void createVirtualVolumes(URI vplexURI, List<URI> vplexVolumeURIs, Map<URI, URI> computeResourceMap, String stepId) throws WorkflowException {
         List<List<VolumeInfo>> rollbackData = new ArrayList<List<VolumeInfo>>();
         List<URI> createdVplexVolumeURIs = new ArrayList<URI>();
         try {
@@ -881,13 +895,25 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         // is disabled the custom name will not be generated and will be null.
                         // Create the VPLEX volume name custom configuration datasource and generate the
                         // custom volume name based on whether the volume is a local or distributed volume.
-                        Boolean withExport = false; // TBD use pass host/cluster name.
+                        String hostOrClusterName = null;
+                        URI computeResourceURI = computeResourceMap.get(vplexVolume.getId());
+                        if (computeResourceURI != null) {
+                            DataObject hostOrCluster = null;
+                            if (URIUtil.isType(computeResourceURI, Cluster.class)) {
+                                hostOrCluster = getDataObject(Cluster.class, computeResourceURI, _dbClient);
+                            } else if (URIUtil.isType(computeResourceURI, Host.class)){
+                                hostOrCluster = getDataObject(Host.class, computeResourceURI, _dbClient);                             
+                            }
+                            if (hostOrCluster != null) {
+                                hostOrClusterName = hostOrCluster.getLabel();
+                            }
+                        }
                         if (CustomVolumeNamingUtils.isCustomVolumeNamingEnabled(customConfigHandler, vplex.getSystemType())) {
-                            String customConfigName = CustomVolumeNamingUtils.getCustomConfigName(withExport);
+                            String customConfigName = CustomVolumeNamingUtils.getCustomConfigName(hostOrClusterName != null);
                             Project project = getDataObject(Project.class, vplexVolume.getProject().getURI(), _dbClient);
                             TenantOrg tenant = getDataObject(TenantOrg.class, vplexVolume.getTenant().getURI(), _dbClient);
                             DataSource customNameDataSource = CustomVolumeNamingUtils.getCustomConfigDataSource(
-                                    project, tenant, vplexVolume.getLabel(), vvInfo.getWwn(), null, null, dataSourceFactory,
+                                    project, tenant, vplexVolume.getLabel(), vvInfo.getWwn(), null, hostOrClusterName, dataSourceFactory,
                                     customConfigName, _dbClient);
                             if (customNameDataSource != null) {
                                 String customVolumeName = CustomVolumeNamingUtils.getCustomName(customConfigHandler,

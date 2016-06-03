@@ -3966,6 +3966,13 @@ public class BlockService extends TaskResourceService {
             _log.info("New VPool specifies a replication mode change");
             return;
         }
+        
+        // TODO Other things to be checked too...
+        if (VirtualPoolChangeAnalyzer.isVPLEXToNonVPLEXSupported(currentVpool, newVpool,
+                notSuppReasonBuff)) {
+            _log.info("New VPool specifies a non VPLEX and old vpool is VPLEX");
+            return;
+        }
 
         if (DiscoveredDataObject.Type.vplex.name().equals(systemType)) {
             _log.info("Volume is a VPlex virtual volume.");

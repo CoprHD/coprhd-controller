@@ -72,9 +72,9 @@ public class VPlexControllerImpl extends AbstractDiscoveredSystemController impl
     }
     
     @Override
-    public void decomposeVolume(URI vplexURI, Volume VPLEXVolume, 
+    public void decomposeVolume(URI vplexURI, URI vPool, List<VolumeDescriptor> VPLEXVolumeDesc, 
             String opId) throws InternalException {
-        queueRequest("decomposeVolume", vplexURI, VPLEXVolume, opId);
+        queueRequest("decomposeVolume", vplexURI, vPool, VPLEXVolumeDesc, opId);
     }
 
     @Override

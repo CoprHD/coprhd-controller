@@ -5838,12 +5838,37 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         }
     }
     
-    public void decomposeVolume(URI vplexURI, Volume volume, 
-            String opId) throws ControllerException {
+    public void decomposeVolume(URI vplexURI, URI vPool, List<VolumeDescriptor> VPLEXVolumeDesc, 
+             String opId) throws ControllerException {
     	
-    	List<VolumeDescriptor> descriptors = new ArrayList<VolumeDescriptor>();
+    	// For now, we always are operating on one volume, needs to change if we are productizing
+    	// this.
+    	VolumeDescriptor vplexDescriptor = VPLEXVolumeDesc.get(0);
+        URI vplexVolumeURI = vplexDescriptor.getVolumeURI();
+        
+        Volume vplexVolume = getDataObject(Volume.class, vplexVolumeURI, _dbClient);
+        URI project = vplexVolume.getProject().getURI();
+        URI tenant = vplexVolume.getTenant().getURI();
+        Volume srcVolume = null;
+        
+        for (String assocVolumeId : vplexVolume.getAssociatedVolumes()) {
+            URI assocVolumeURI = null;
+			try {
+				assocVolumeURI = new URI(assocVolumeId);
+			} catch (URISyntaxException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+            srcVolume = _dbClient.queryObject(Volume.class, assocVolumeURI);
+            if (srcVolume == null || srcVolume.getInactive() == true) {
+                continue;
+            }
+            
+            break;
+        }
+    	
     	List<URI> volUris = new ArrayList<URI>();
-    	volUris.add(volume.getId());
+    	volUris.add(vplexVolumeURI);
         VolumeWorkflowCompleter completer = new VolumeWorkflowCompleter(volUris, opId);
         Workflow workflow = null;
         try {
@@ -5856,17 +5881,13 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // the backend volume
             // Call the VPlexDeviceController to add its methods if there are VPLEX volumes.
             
-            VolumeDescriptor desc = new VolumeDescriptor(VolumeDescriptor.Type.VPLEX_VIRT_VOLUME,
-                    vplexURI, volume.getId(), null, null);
-            descriptors.add(desc);
-            
             waitFor = addStepsForDeleteVolumes(
-                    workflow, waitFor, descriptors, opId);
+                    workflow, waitFor, VPLEXVolumeDesc, opId);
 
             // This step should forget the backend volume for the VPLEX volume
             // Call the VPlexDeviceController to add its post-delete methods.
             waitFor = addStepsForPostDeleteVolumes(
-                    workflow, waitFor, descriptors, opId, completer);            
+                    workflow, waitFor, VPLEXVolumeDesc, opId, completer);            
 
             // Finish up and execute the plan.
             // The Workflow will handle the TaskCompleter
@@ -5874,6 +5895,12 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             workflow.executePlan(completer, successMessage);
             
             // TODO: At this stage we should have a BE vol that we should be able to operate upon
+            // Set the project and tenant to VPLEX VV's project and tenant and clear the internal flags
+            srcVolume.setProject(new NamedURI(project, srcVolume.getLabel()));
+            srcVolume.setTenant(new NamedURI(tenant, srcVolume.getLabel()));
+            srcVolume.clearInternalFlags(Flag.INTERNAL_OBJECT);
+            srcVolume.setVirtualPool(vPool);
+            _dbClient.updateObject(srcVolume);
             
         } catch (Exception ex) {
         	String failMsg = " Decompose volume failed for:" + volUris.toString();

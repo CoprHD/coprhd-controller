@@ -76,7 +76,7 @@ public interface VPlexController extends Controller {
     /*
      * TODO
      */
-    public abstract void decomposeVolume(URI vplexURI, Volume VPLEXVolume, 
+    public abstract void decomposeVolume(URI vplexURI, URI vPool, List<VolumeDescriptor> VPLEXVolumeDesc, 
             String opId) throws InternalException;
     
 

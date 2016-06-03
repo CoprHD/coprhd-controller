@@ -881,9 +881,14 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      */
     public void decomposeVirtualVolume(URI arrayURI, Volume VPLEXVolume, VirtualPool vpool,
             String taskId) throws InternalException{
+    	
+    	 List<VolumeDescriptor> descriptors = new ArrayList<VolumeDescriptor>();
     	 s_logger.info("Request to decompose {} virtual volume", VPLEXVolume);
+    	 VolumeDescriptor desc = new VolumeDescriptor(VolumeDescriptor.Type.VPLEX_VIRT_VOLUME,
+                 arrayURI, VPLEXVolume.getId(), null, null);
+         descriptors.add(desc);
     	 VPlexController controller = getController();
-         controller.decomposeVolume(arrayURI, VPLEXVolume, taskId);
+         controller.decomposeVolume(arrayURI, vpool.getId(), descriptors, taskId);
     }
     
     /**

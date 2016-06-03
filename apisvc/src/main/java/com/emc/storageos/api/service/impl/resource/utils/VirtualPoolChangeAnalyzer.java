@@ -953,9 +953,9 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
             if (notSuppReasonBuff != null) {
                 notSuppReasonBuff.append(msg);
             }
-            return true;
+            return false;
         }
-        return false;
+        return true;
     }
 
     private static boolean isSameVirtualPool(VirtualPool current, VirtualPool requested) {

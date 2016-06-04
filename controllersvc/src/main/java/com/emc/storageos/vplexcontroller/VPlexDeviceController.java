@@ -154,7 +154,6 @@ import com.emc.storageos.vplex.api.VPlexDeviceInfo;
 import com.emc.storageos.vplex.api.VPlexDistributedDeviceInfo;
 import com.emc.storageos.vplex.api.VPlexInitiatorInfo.Initiator_Type;
 import com.emc.storageos.vplex.api.VPlexMigrationInfo;
-import com.emc.storageos.vplex.api.VPlexPortInfo;
 import com.emc.storageos.vplex.api.VPlexStorageViewInfo;
 import com.emc.storageos.vplex.api.VPlexVirtualVolumeInfo;
 import com.emc.storageos.vplex.api.VPlexVirtualVolumeInfo.WaitOnRebuildResult;

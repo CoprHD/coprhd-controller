@@ -6,6 +6,7 @@
 package com.emc.storageos.vnxe.models;
 
 import java.util.List;
+import java.util.ArrayList;
 
 import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 
@@ -18,10 +19,10 @@ public class VNXeNfsShare extends VNXeBase {
     private VNXeBase parentFilesystemSnap;
     private String creationTime;
     private boolean isReadOnly;
-    private List<VNXeBase> readWriteHosts;
-    private List<VNXeBase> noAccessHosts;
-    private List<VNXeBase> rootAccessHosts;
-    private List<VNXeBase> readOnlyHosts;
+    private List<VNXeBase> readWriteHosts = new ArrayList<VNXeBase>();
+    private List<VNXeBase> noAccessHosts = new ArrayList<VNXeBase>();
+    private List<VNXeBase> rootAccessHosts  = new ArrayList<VNXeBase>();
+    private List<VNXeBase> readOnlyHosts  = new ArrayList<VNXeBase>();
     private NFSShareDefaultAccessEnum defaultAccess;
     private String path;
     private VNXeBase filesystem;

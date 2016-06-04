@@ -532,8 +532,9 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                          *
                          * So, if the call succeeds we no longer need to perform delete target steps (set flag to false).
                          */
-                    CIMArgument[] deleteCGSnapInput = _helper.getDeleteSnapshotSynchronousInputArguments(groupSynchronized);
-                    _helper.callModifyReplica(storage, deleteCGSnapInput, outArgs);
+
+                        CIMArgument[] deleteCGSnapInput = _helper.getDeleteSnapshotSynchronousInputArguments(groupSynchronized);
+                        _helper.callModifyReplica(storage, deleteCGSnapInput, outArgs);
                         deleteTarget = false;
                     }
                 } else {

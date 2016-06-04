@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Copyright (c) 2015 EMC Corporation
+# Copyright (c) 2016 EMC Corporation
 # All Rights Reserved
 #
 #
@@ -9,6 +9,8 @@
 #
 # Requirements:
 # -------------
+# TODO: Fill this in for DU Test
+#
 # - SYMAPI should be installed, which is included in the SMI-S install. Install tars can be found on 
 #   Download the tar file for Linux, untar, run seinstall -install
 # - The provider host should allow for NOSECURE SYMAPI REMOTE access. See https://asdwiki.isus.emc.com:8443/pages/viewpage.action?pageId=28778911 for more information.
@@ -17,6 +19,7 @@
 #
 # How to read this script:
 # ------------------------
+# TODO: Fill this in for DU Test
 #
 # - This script builds up one cluster, three hosts, two initiators per host.
 # - Each test will create a series of export groups.
@@ -25,17 +28,6 @@
 #      ./symhelper <mask-name> <#-Initiators-Expected> <#-LUNs-Expected>
 #      "After the previous export_group command, I expect mask "billhost1" to have 2 initiators and 2 LUNs in it..."
 # - Exports are cleaned at the end of the script, and since remove is just as complicated, verifications are done there as well.
-#
-# These test cases exercise our ability to perform:
-# -------------------------------------------------
-# -	Create export (Host, Volumes)
-# -	Create export (Cluster, Volumes)
-# -	Add Host to export*
-# -	Remove Host from export*
-# -	Add Cluster to export*
-# -	Remove Cluster from export*
-# -     Add Volume to export
-# -     Remove Volume from export
 #
 # set -x
 
@@ -505,11 +497,9 @@ set_suspend_on_class_method() {
     runcmd syssvc $SANITY_CONFIG_FILE $BOURNE_IPADDR set_prop workflow_suspend_on_class_method "$1"
 }
 
-# Export Test 1
+# Suspend/Resume base test 1
 #
-# Basic Use Case for single host, single volume
-# Required to test suspend/resume functionality
-#
+# This tests top-level workflow suspension.  It's the simplest form of suspend/resume for a workflow.
 #
 test_1() {
     echot "Test 1 DU Check Begins"
@@ -539,14 +529,117 @@ test_1() {
     runcmd workflow resume $workflow
     # Follow the task
     runcmd task follow $task
-
     
     verify_export ${expname}1 ${HOST1} 2 1
-    runcmd export_group delete $PROJECT/${expname}1
+
+    # Turn on suspend of export after orchestration
+    set_suspend_on_class_method ExportWorkflowEntryPoints.exportGroupDelete
+    set_suspend_on_error false
+
+    # Run the export group command
+    echo === export_group delete $PROJECT/${expname}1
+    resultcmd=`export_group delete $PROJECT/${expname}1`
+
+    if [ $? -ne 0 ]; then
+	echo "export group command failed outright"
+    fi
+
+    echo $resultcmd
+
+    # Parse results (add checks here!  encapsulate!)
+    taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
+    answersarray=($taskworkflow)
+    task=${answersarray[0]}
+    workflow=${answersarray[1]}
+
+    # Resume the workflow
+    runcmd workflow resume $workflow
+    # Follow the task
+    runcmd task follow $task
+
     verify_export ${expname}1 ${HOST1} gone
 }
 
-# DU Prevention Validation Test 2
+# Suspend/Resume base test 2
+#
+# This tests child workflow suspension.  This is more complicated to control.
+#
+test_2() {
+    echot "Test 2 DU Check Begins"
+    expname=${EXPORT_GROUP_NAME}t1
+
+    verify_export ${expname}1 ${HOST1} gone
+
+    # Turn on suspend of export after orchestration
+    set_suspend_on_class_method MaskingWorkflowEntryPoints.doExportGroupCreate
+    set_suspend_on_error false
+
+    # Run the export group command
+    echo === export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
+    resultcmd=`export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"`
+
+    if [ $? -ne 0 ]; then
+	echo "export group command failed outright"
+    fi
+
+    echo $resultcmd
+
+    echo $resultcmd | grep "suspended" > /dev/null
+    if [ $? -ne 0 ]; then
+	echo "export group command did not suspend";
+	# TODO: add error handling
+	exit;
+    fi
+
+    # Parse results (add checks here!  encapsulate!)
+    taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
+    answersarray=($taskworkflow)
+    task=${answersarray[0]}
+    workflow=${answersarray[1]}
+
+    # Resume the workflow
+    runcmd workflow resume $workflow
+    # Follow the task
+    runcmd task follow $task
+    
+    verify_export ${expname}1 ${HOST1} 2 1
+
+    # Turn on suspend of export after orchestration
+    set_suspend_on_class_method MaskingWorkflowEntryPoints.doExportGroupDelete
+    set_suspend_on_error false
+
+    # Run the export group command
+    echo === export_group delete $PROJECT/${expname}1
+    resultcmd=`export_group delete $PROJECT/${expname}1`
+
+    if [ $? -ne 0 ]; then
+	echo "export group command failed outright"
+    fi
+
+    echo $resultcmd
+
+    echo $resultcmd | grep "suspended" > /dev/null
+    if [ $? -ne 0 ]; then
+	echo "export group command did not suspend";
+	# TODO: add error handling
+	exit;
+    fi
+
+    # Parse results (add checks here!  encapsulate!)
+    taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
+    answersarray=($taskworkflow)
+    task=${answersarray[0]}
+    workflow=${answersarray[1]}
+
+    # Resume the workflow
+    runcmd workflow resume $workflow
+    # Follow the task
+    runcmd task follow $task
+
+    verify_export ${expname}1 ${HOST1} gone
+}
+
+# DU Prevention Validation Test 3
 #
 # Basic Use Case for single host, single volume
 # 1. ViPR creates 1 volume, 1 host export.
@@ -557,8 +650,8 @@ test_1() {
 # 6. Remove the volume from the mask outside of ViPR.
 # 7. Attempt operation again, succeeds.
 #
-test_2() {
-    echot "Test 2: Export Group Delete doesn't delete Export Mask when extra volumes are in it"
+test_3() {
+    echot "Test 3: Export Group Delete doesn't delete Export Mask when extra volumes are in it"
     expname=${EXPORT_GROUP_NAME}t2
 
     # Make sure we start clean; no masking view on the array
@@ -628,7 +721,7 @@ test_2() {
     verify_export ${expname}1 ${HOST1} gone
 }
 
-# Export Test 3
+# Export Test 4
 #
 # Basic Use Case for single host, single volume
 # 1. ViPR creates 1 volume, 1 host export.
@@ -639,8 +732,8 @@ test_2() {
 # 6. Remove the volume from the mask outside of ViPR.
 # 7. Attempt operation again, succeeds.
 #
-test_3() {
-    echot "Test 3: Export Group Remove Volume last volume doesn't delete Export Mask when extra volumes are in it"
+test_4() {
+    echot "Test 4: Export Group Remove Volume last volume doesn't delete Export Mask when extra volumes are in it"
     expname=${EXPORT_GROUP_NAME}t3
 
     # Make sure we start clean; no masking view on the array
@@ -777,41 +870,45 @@ H3NI2=`nwwn 05`
 
 if [ "$1" = "regression" ]
 then
-   test_0;
+    test_0;
+    shift;
 fi
 
 if [ "$1" = "delete" ]
 then
-  cleanup
-  finish
+    cleanup
+    finish
 fi
 
 if [ "$1" = "setup" ]
 then
     setup $2;
+    shift;
 fi;
 
 # If there's a 2nd parameter, take that
 # as the name of the test to run
-if [ "$2" != "" ]
+if [ "$1" != "" ]
 then
-   shift
    echo Request to run $*
    for t in $*
    do
       echo Run $t
       $t
    done
-   cleanup
-   finish
+   exit
+   #cleanup
+   #finish
 fi
 
 # Passing tests:
+test_0;
+test_1;
 test_2;
 test_3;
 exit;
-test_0;
-test_1;
+
+# for now, run "delete" separately to clean up your resources.  Once things are stable, we'll turn this back on.
 cleanup;
 finish
 

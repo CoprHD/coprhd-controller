@@ -1233,11 +1233,11 @@ public class RPHelper {
     /*
      * Since there are several ways to express journal size policy, this helper method will take
      * the source size and apply the policy string to come up with a resulting size.
-     *
+     * 
      * @param sourceSizeStr size of the source volume
-     *
+     * 
      * @param journalSizePolicy the policy of the journal size. ("10gb", "min", or "3.5x" formats)
-     *
+     * 
      * @return journal volume size result
      */
     public static long getJournalSizeGivenPolicy(String sourceSizeStr, String journalSizePolicy, int resourceCount) {
@@ -2165,7 +2165,13 @@ public class RPHelper {
             // The map should have an entry for that CG with an empty list if it looked and couldn't find any. (a successful empty set)
             if (protectionSet.getProtectionId() != null &&
                     bookmarkMap.getCgBookmarkMap() != null &&
-                    bookmarkMap.getCgBookmarkMap().get(Integer.valueOf(protectionSet.getProtectionId())) != null) {
+                    bookmarkMap.getCgBookmarkMap().containsKey(new Integer(protectionSet.getProtectionId()))) {
+
+                // If the list of RPBookmark objects corresponding to the CG is null, lets replace it with an empty
+                // list to avoid issues further down.
+                if (bookmarkMap.getCgBookmarkMap().get(protectionSet.getProtectionId()) == null) {
+                    bookmarkMap.getCgBookmarkMap().put(new Integer(protectionSet.getProtectionId()), new ArrayList<RPBookmark>());
+                }
 
                 // Get all snapshots that are part of this protection set.
                 URIQueryResultList plist = new URIQueryResultList();

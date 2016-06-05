@@ -2002,7 +2002,7 @@ public class RecoverPointClient {
                             String cgCopyName = functionalAPI.getGroupCopyName(uvSettings.getGroupCopyUID());
                             protectionInfo.setRpProtectionName(cgName);
                             protectionInfo.setRpVolumeGroupCopyID(uvSettings.getGroupCopyUID().getGlobalCopyUID().getCopyUID());
-                            protectionInfo.setRpCopyName(functionalAPI.getGroupCopyName(uvSettings.getGroupCopyUID()));
+                            protectionInfo.setRpCopyName(cgCopyName);
                             protectionInfo.setRpSiteName(getRecoverPointClusterName(uvSettings.getClusterUID()));
                             protectionInfo.setRpVolumeGroupID(cgID.getId());
                             protectionInfo.setRpVolumeSiteID(uvSettings.getClusterUID().getId());

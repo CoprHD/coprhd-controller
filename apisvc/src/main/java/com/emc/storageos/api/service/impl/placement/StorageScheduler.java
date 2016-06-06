@@ -188,6 +188,40 @@ public class StorageScheduler implements Scheduler {
         return volumeRecommendations;
     }
 
+    /**
+     * Returns list of recommendations for volumes based on driver migration capabilities.
+     *
+     * Get a list of recommendations for volume placement and then filter the list based on backends
+     * that are capable of performing a driver-assisted data migration.
+     *
+     * @param sourceStorageSystem
+     * @param targetVArray
+     * @param project
+     * @param targetVPool
+     * @param capabilities
+     * @return List of recommendations for storage systems capable of driver-assisted migration
+     */
+    public List<Recommendation> getRecommendationsForDriverMigration(URI sourceStorageSystem, VirtualArray targetVArray,
+            Project project, VirtualPool targetVPool, VirtualPoolCapabilityValuesWrapper capabilities) {
+
+        List<Recommendation> volumeRecommendations = new ArrayList<Recommendation>();
+
+        List<Recommendation> recommendations = getRecommendationsForResources(targetVArray, project, targetVPool, capabilities);
+
+        for (Recommendation recommendation : recommendations) {
+            if (verifyBackendMigrationCapabilities(sourceStorageSystem, recommendation.getSourceStorageSystem())) {
+                volumeRecommendations.add(recommendation);
+            }
+        }
+
+        return volumeRecommendations;
+    }
+
+    private boolean verifyBackendMigrationCapabilities(URI sourceStorageSystem, URI targetStorageSystem) {
+        //TODO: Implement this function once the ability to get backend driver capabilities exists
+        return true;
+    }
+
     public void getRecommendationsForMirrors(VirtualArray vArray, VirtualPool vPool,
             VirtualPoolCapabilityValuesWrapper capabilities, List<Recommendation> volumeRecommendations) {
 

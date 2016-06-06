@@ -18,6 +18,14 @@
     volumes:{
       type:"assetType.vipr.virtualArrayChangeVolume",
       select: "many"
+    },
+
+    migrationType:{
+      type:"assetType.vipr.migrationType"
+    },
+
+    host:{
+      type:"assetType.vipr.linuxHost"
     }
     
   }

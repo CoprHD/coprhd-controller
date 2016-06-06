@@ -10,6 +10,7 @@ import java.util.List;
 import org.apache.commons.lang.StringUtils;
 
 import com.emc.sa.service.vipr.tasks.WaitForTasks;
+import com.emc.storageos.model.block.MigrationTypeEnum;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.model.block.VolumeVirtualArrayChangeParam;
 import com.emc.vipr.client.Tasks;
@@ -17,17 +18,23 @@ import com.google.common.collect.Lists;
 
 public class ChangeBlockVolumeVirtualArray extends WaitForTasks<VolumeRestRep> {
     private List<URI> volumeIds;
-
     private URI targetVirtualArrayId;
+    private String migrationType;
+    private URI migrationHost;
 
-    public ChangeBlockVolumeVirtualArray(List<String> volumeIds, String targetVirtualArrayId) {
-        this(uris(volumeIds), uri(targetVirtualArrayId));
+    public ChangeBlockVolumeVirtualArray(List<String> volumeIds, String targetVirtualArrayId,
+            String migrationType, URI migrationHost) {
+        this(uris(volumeIds), uri(targetVirtualArrayId), migrationType, migrationHost);
     }
 
-    public ChangeBlockVolumeVirtualArray(List<URI> volumeIds, URI targetVirtualArrayId) {
+    public ChangeBlockVolumeVirtualArray(List<URI> volumeIds, URI targetVirtualArrayId,
+            String migrationType, URI migrationHost) {
         this.volumeIds = volumeIds;
         this.targetVirtualArrayId = targetVirtualArrayId;
-        provideDetailArgs(targetVirtualArrayId, getVolumesDisplayString());
+        this.migrationType = migrationType;
+        this.migrationHost = migrationHost;
+        provideDetailArgs(targetVirtualArrayId, getVolumesDisplayString(),
+                migrationType, migrationHost);
     }
 
     @Override
@@ -35,6 +42,12 @@ public class ChangeBlockVolumeVirtualArray extends WaitForTasks<VolumeRestRep> {
         VolumeVirtualArrayChangeParam param = new VolumeVirtualArrayChangeParam();
         param.setVirtualArray(targetVirtualArrayId);
         param.setVolumes(volumeIds);
+        if (migrationType.equals(MigrationTypeEnum.HOST.toString())) {
+            param.setIsHostMigration(true);
+           param.setMigrationHost(migrationHost);
+        } else if (migrationType.equals(MigrationTypeEnum.DRIVER.toString())) {
+            param.setIsHostMigration(false);
+        }
         return getClient().blockVolumes().changeVirtualArrayForVolumes(param);
     }
 

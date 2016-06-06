@@ -272,13 +272,15 @@ public interface BlockServiceApi {
      * @param cg A reference to the volume's consistency group, or null.
      * @param cgVolumes List of volume in the CG when not null.
      * @param varray A reference to the new varray.
+     * @param isHostMigration Boolean describing if the migration will be host or driver based.
+     * @param migrationHostURI URI of the migration host.
      * @param taskId The task identifier.
      * 
      * @throws InternalException
      */
     public void changeVirtualArrayForVolumes(List<Volume> volume,
             BlockConsistencyGroup cg, List<Volume> cgVolumes, VirtualArray varray,
-            String taskId) throws InternalException;
+            boolean isHostMigration, URI migrationHostURI, String taskId) throws InternalException;
 
     /**
      * Determines whether or not the virtual array for the passed volume can be

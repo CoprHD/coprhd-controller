@@ -2108,7 +2108,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      */
     @Override
     public void changeVirtualArrayForVolumes(List<Volume> volumes,
-            BlockConsistencyGroup cg, List<Volume> cgVolumes, VirtualArray newVirtualArray, String taskId)
+            BlockConsistencyGroup cg, List<Volume> cgVolumes, VirtualArray newVirtualArray,
+            boolean isHostMigration, URI migrationHostURI, String taskId)
                     throws InternalException {
         // Since the backend volume would change and VPLEX snapshots are just
         // snapshots of the backend volume, the user would lose all snapshots

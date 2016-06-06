@@ -7,6 +7,7 @@ package com.emc.storageos.hp3par.impl;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -22,6 +23,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.hp3par.command.CPGCommandResult;
 import com.emc.storageos.hp3par.command.CPGMember;
 import com.emc.storageos.hp3par.command.ConsistencyGroupResult;
+import com.emc.storageos.hp3par.command.ConsistencyGroupsListResult;
 import com.emc.storageos.hp3par.command.PortCommandResult;
 import com.emc.storageos.hp3par.command.PortMembers;
 import com.emc.storageos.hp3par.command.PortStatMembers;
@@ -302,58 +304,104 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 		
         DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_GET_STORAGE_VOLUMES);
 
-	List<StoragePort> ports = new ArrayList<>();
-        discoverStoragePorts(storageSystem, ports);
-
-	try{
+		List<StoragePort> ports = new ArrayList<>();
+	        discoverStoragePorts(storageSystem, ports);
+	
+		try{
+			HashMap<String,ArrayList<String>> volumesToVolSetsMap = generateVolumeSetToVolumeMap(storageSystem);
+			
+	        // get Api client
+	        HP3PARApi hp3parApi = getHP3PARDeviceFromNativeId(storageSystem.getNativeId());
+	        VolumesCommandResult objStorageVolumes = hp3parApi.getStorageVolumes();
+	        			                
+	        for (int volIndex = 0; volIndex < objStorageVolumes.getTotal() ; volIndex++) {
+	        	VolumeMember objVolMember = objStorageVolumes.getMembers().get(volIndex);
+	            StorageVolume driverVolume = new StorageVolume();
+	            driverVolume.setStorageSystemId(storageSystem.getNativeId());
+	            driverVolume.setStoragePoolId(objVolMember.getUserCPG());
+	            driverVolume.setNativeId(objVolMember.getName());
+	            //if (VOLUMES_IN_CG) {
+	            //driverVolume.setConsistencyGroup("driverSimulatorCG-" + token.intValue());
+	            //}	            	           
+	            driverVolume.setProvisionedCapacity(objVolMember.getSizeMiB() * HP3PARConstants.MEGA_BYTE);
+	            driverVolume.setAllocatedCapacity(objVolMember.getSizeMiB() * HP3PARConstants.MEGA_BYTE);
+	            driverVolume.setWwn(objVolMember.getWwn());
+	            driverVolume.setNativeId(objVolMember.getName()); //required for volume delete
+	            driverVolume.setDeviceLabel(objVolMember.getName());
+	            
+	            //if the volumesToVolSetsMap contains the volume name entry. It means that volume
+	            //belongs to consistencygroup(volume set in hp3par teminology)
+	            if(volumesToVolSetsMap.containsKey(objVolMember.getName())){
+	            	driverVolume.setConsistencyGroup(volumesToVolSetsMap.get(objVolMember.getName()).get(0));
+	            }
+	            else{
+	            	_log.debug("Unmanaged volume volume {}  not part of any consistency group", driverVolume);	
+	            }
+	            
+	            if(objVolMember.isReadOnly()){
+	            	driverVolume.setAccessStatus(StorageVolume.AccessStatus.READ_ONLY);
+	            }
+	            else{
+	            	driverVolume.setAccessStatus(StorageVolume.AccessStatus.READ_WRITE);
+	            }
+	            
+	            if(objVolMember.getProvisioningType() == HP3PARConstants.provisioningType.TPVV.getValue() ){
+	            	driverVolume.setThinlyProvisioned(true);
+	            }
+	            else{
+	            	driverVolume.setThinlyProvisioned(false);
+	            }
+	            
+	            //TODO: how much should the thin volume preallocation size be.
+	            driverVolume.setThinVolumePreAllocationSize(3000L);	            	                                   
+	            storageVolumes.add(driverVolume);
+	            _log.info("Unmanaged volume info: pool {}, volume {}", driverVolume.getStoragePoolId(), driverVolume);
+	            
+	        }		
+	        task.setStatus(DriverTask.TaskStatus.READY);
+		}
+		catch(Exception e){
+			String msg = String.format
+	                ("3PARDriver: Unable to get storagevolumes for storage system %s native id %s; Error: %s.\n",
+                    storageSystem.getSystemName(), storageSystem.getNativeId(), e.getMessage());
+			task.setMessage(msg);
+	        task.setStatus(DriverTask.TaskStatus.FAILED);
+	        e.printStackTrace();
+		}
+		return task;		
+	}
+        
+    /*
+     * Returns: Hashmap of volume to volumesets mapping
+     * The key of this hashmap will be the name of the volume
+     * The value of the hasmap returned will be an array list 
+     * of volume sets that the volume belongs to.
+     * Example: {volume1: [volumeset5] , volume2:[volumeset1, volumeset2]}
+     */
+    private HashMap<String,ArrayList<String>> generateVolumeSetToVolumeMap(StorageSystem storageSystem) throws Exception{    
         // get Api client
         HP3PARApi hp3parApi = getHP3PARDeviceFromNativeId(storageSystem.getNativeId());
-        VolumesCommandResult objStorageVolumes = hp3parApi.getStorageVolumes();
-        		
-                
-        for (int volIndex = 0; volIndex < objStorageVolumes.getTotal() ; volIndex++) {
-        	VolumeMember objVolMember = objStorageVolumes.getMembers().get(volIndex);
-            StorageVolume driverVolume = new StorageVolume();
-            driverVolume.setStorageSystemId(storageSystem.getNativeId());
-            driverVolume.setStoragePoolId(objVolMember.getUserCPG());
-            driverVolume.setNativeId(objVolMember.getName());
-//            if (VOLUMES_IN_CG) {
-//                driverVolume.setConsistencyGroup("driverSimulatorCG-" + token.intValue());
-//            }
-            
-            if(objVolMember.getProvisioningType() == HP3PARConstants.provisioningType.TPVV.getValue() ){
-            	driverVolume.setThinlyProvisioned(true);
-            }
-            else{
-            	driverVolume.setThinlyProvisioned(false);
-            }
-            driverVolume.setProvisionedCapacity(objVolMember.getSizeMiB() * HP3PARConstants.MEGA_BYTE);
-            driverVolume.setWwn(objVolMember.getWwn());
-            driverVolume.setNativeId(objVolMember.getName()); //required for volume delete
-            driverVolume.setDeviceLabel(objVolMember.getName());
-            
-            if(objVolMember.isReadOnly()){
-            	driverVolume.setAccessStatus(StorageVolume.AccessStatus.READ_ONLY);
-            }
-            else{
-            	driverVolume.setAccessStatus(StorageVolume.AccessStatus.READ_WRITE);
-            }
-            
-            driverVolume.setThinVolumePreAllocationSize(3000L);
-            driverVolume.setProvisionedCapacity(3*1024*1024*1024L);
-            driverVolume.setAllocatedCapacity(50000L);                        
-            storageVolumes.add(driverVolume);
-            _log.info("Unmanaged volume info: pool {}, volume {}", driverVolume.getStoragePoolId(), driverVolume);
-            
-        }		
-	task.setStatus(DriverTask.TaskStatus.READY);
-	}
-	catch(Exception e){
-
-	}
-	return task;
+        ConsistencyGroupsListResult objConsisGroupSets = hp3parApi.getVVsetsList();
+		HashMap<String,ArrayList<String>> volumeToVolumeSetMap = new HashMap<String,ArrayList<String>>();
 		
-	}
+        for (Integer index = 0; index < objConsisGroupSets.getTotal(); index++){
+        	ConsistencyGroupResult objConsisGroupResult = objConsisGroupSets.getMembers().get(index);
+        	
+        	for (Integer volIndex = 0 ; volIndex < objConsisGroupResult.getSetmembers().size() ; volIndex++){
+        		String vVolName = objConsisGroupResult.getSetmembers().get(volIndex);
+        		if(!volumeToVolumeSetMap.containsKey(vVolName)){        		        		
+            		volumeToVolumeSetMap.put(vVolName, (ArrayList<String>)Arrays.asList(objConsisGroupResult.getName()));            		
+            	}
+        		else{
+        			volumeToVolumeSetMap.get(vVolName).add(objConsisGroupResult.getName());
+        		}
+        	}        	
+        }
+        
+        return volumeToVolumeSetMap;	
+    }
+        
+   
 
 	/**
 	 * Get storage port information

@@ -4,6 +4,7 @@ import java.util.ArrayList;
 
 public class ConsistencyGroupResult {
 	private Integer id;
+	private String name;
 	private ArrayList<String> setmembers;
 	private boolean qosEnabled;
 
@@ -13,6 +14,14 @@ public class ConsistencyGroupResult {
 
 	public void setId(Integer id) {
 		this.id = id;
+	}
+	
+	public String getName() {
+		return name;
+	}
+
+	public void setName(String name) {
+		this.name = name;
 	}
 
 	public ArrayList<String> getSetmembers() {

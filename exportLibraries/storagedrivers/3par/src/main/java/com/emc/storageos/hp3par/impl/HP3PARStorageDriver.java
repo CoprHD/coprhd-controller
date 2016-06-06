@@ -21,6 +21,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.hp3par.command.CPGCommandResult;
 import com.emc.storageos.hp3par.command.CPGMember;
+import com.emc.storageos.hp3par.command.ConsistencyGroupResult;
 import com.emc.storageos.hp3par.command.PortCommandResult;
 import com.emc.storageos.hp3par.command.PortMembers;
 import com.emc.storageos.hp3par.command.PortStatMembers;
@@ -81,6 +82,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	
 	@Override
 	public DriverTask getTask(String taskId) {
+		_log.info("3PARDriver: getTask Running ");
 		// TODO Auto-generated method stub
 		return null;
 	}
@@ -88,11 +90,13 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	@Override
 	public <T extends StorageObject> T getStorageObject(String storageSystemId, String objectId, Class<T> type) {
 		// TODO Auto-generated method stub
+		_log.info("3PARDriver: getStorageObject Running ");
 		return null;
 	}
 
 	@Override
 	public RegistrationData getRegistrationData() {
+		_log.info("3PARDriver: getStorageObject Running ");
 		// TODO Auto-generated method stub
 		return null;
 	}
@@ -474,10 +478,10 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	@Override
 	public DriverTask discoverStorageHostComponents(StorageSystem storageSystem,
 			List<StorageHostComponent> embeddedStorageHostComponents) {
+		_log.info("3PARDriver: discoverStorageHostComponents Running ");
 		// TODO Auto-generated method stub
 		return null;
 	}
-
 
 	/**
 	 * Create requested volumes
@@ -510,6 +514,14 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
                 volume.setNativeId(volume.getDisplayName()); //required for volume delete
                 volume.setDeviceLabel(volume.getDisplayName());
                 volume.setAccessStatus(AccessStatus.READ_WRITE);
+                
+                //Update Consistency Group
+                String volumeCGName = volume.getConsistencyGroup();
+                if (!volumeCGName.isEmpty()) {
+                	_log.info("3PARDriver:createVolumes Adding volume {} to consistency group {} ",volume.getDisplayName(),volumeCGName);
+                	int addMember = 1;
+                hp3parApi.updateVVset(volumeCGName,volume.getDisplayName(),addMember);
+                }
 
                 task.setStatus(DriverTask.TaskStatus.READY);
                 _log.info("3PARDriver:createVolumes for storage system native id {}, volume name {} - end",
@@ -580,6 +592,15 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
                 // get Api client
                 HP3PARApi hp3parApi = getHP3PARDeviceFromNativeId(volume.getStorageSystemId());
 
+                
+                //Remove from Consistency Group
+                String volumeCGName = volume.getConsistencyGroup();
+                if (!volumeCGName.isEmpty()) {
+                	_log.info("3PARDriver:deleteVolumes Removing volume {} from consistency group {} ",volume.getDisplayName(),volumeCGName);
+                	int removeMember = 2;
+                hp3parApi.updateVVset(volumeCGName,volume.getDisplayName(),removeMember);
+                }
+
                 // Delete volume
                 hp3parApi.deleteVolume(volume.getNativeId());
                 
@@ -602,18 +623,21 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	
     @Override
     public List<VolumeSnapshot> getVolumeSnapshots(StorageVolume volume) {
+    	_log.info("3PARDriver: getVolumeSnapshots Running ");
         // TODO Auto-generated method stub
         return null;
     }
 
     @Override
     public List<VolumeClone> getVolumeClones(StorageVolume volume) {
+    	_log.info("3PARDriver: getVolumeClones Running ");
         // TODO Auto-generated method stub
         return null;
     }
 
     @Override
     public List<VolumeMirror> getVolumeMirrors(StorageVolume volume) {
+    	_log.info("3PARDriver: getVolumeMirrors Running ");
         // TODO Auto-generated method stub
         return null;
     }
@@ -745,30 +769,35 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 
     @Override
     public DriverTask createVolumeClone(List<VolumeClone> clones, StorageCapabilities capabilities) {
+    	_log.info("3PARDriver: createVolumeClone Running ");
         // TODO Auto-generated method stub
         return null;
     }
 
     @Override
     public DriverTask detachVolumeClone(List<VolumeClone> clones) {
+    	_log.info("3PARDriver: detachVolumeClone Running ");
         // TODO Auto-generated method stub
         return null;
     }
 
     @Override
     public DriverTask restoreFromClone(List<VolumeClone> clones) {
+    	_log.info("3PARDriver: restoreFromClone Running ");
         // TODO Auto-generated method stub
         return null;
     }
 
     @Override
     public DriverTask deleteVolumeClone(List<VolumeClone> clones) {
+    	_log.info("3PARDriver: deleteVolumeClone Running ");
         // TODO Auto-generated method stub
         return null;
     }
 
     @Override
     public DriverTask createVolumeMirror(List<VolumeMirror> mirrors, StorageCapabilities capabilities) {
+    	_log.info("3PARDriver: createVolumeMirror Running ");
         // TODO Auto-generated method stub
         return null;
     }
@@ -776,60 +805,70 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
     @Override
     public DriverTask createConsistencyGroupMirror(VolumeConsistencyGroup consistencyGroup, List<VolumeMirror> mirrors,
             List<CapabilityInstance> capabilities) {
+    	_log.info("3PARDriver: createConsistencyGroupMirror Running ");
         // TODO Auto-generated method stub
         return null;
     }
 
     @Override
     public DriverTask deleteVolumeMirror(List<VolumeMirror> mirrors) {
+    	_log.info("3PARDriver: deleteVolumeMirror Running ");
         // TODO Auto-generated method stub
         return null;
     }
 
     @Override
     public DriverTask deleteConsistencyGroupMirror(List<VolumeMirror> mirrors) {
+    	_log.info("3PARDriver: deleteConsistencyGroupMirror Running ");
         // TODO Auto-generated method stub
         return null;
     }
 
     @Override
     public DriverTask splitVolumeMirror(List<VolumeMirror> mirrors) {
+    	_log.info("3PARDriver: splitVolumeMirror Running ");
         // TODO Auto-generated method stub
         return null;
     }
 
     @Override
     public DriverTask resumeVolumeMirror(List<VolumeMirror> mirrors) {
+    	_log.info("3PARDriver: resumeVolumeMirror Running ");
         // TODO Auto-generated method stub
         return null;
     }
 
     @Override
     public DriverTask restoreVolumeMirror(List<VolumeMirror> mirrors) {
+    	_log.info("3PARDriver: restoreVolumeMirror Running ");
         // TODO Auto-generated method stub
         return null;
     }
 
     @Override
     public Map<String, HostExportInfo> getVolumeExportInfoForHosts(StorageVolume volume) {
+    	_log.info("3PARDriver: getVolumeExportInfoForHosts Running ");
         // TODO Auto-generated method stub
         return null;
     }
 
     @Override
     public Map<String, HostExportInfo> getSnapshotExportInfoForHosts(VolumeSnapshot snapshot) {
+    	_log.info("3PARDriver: getSnapshotExportInfoForHosts Running ");
         // TODO Auto-generated method stub
         return null;
     }
 
     @Override
     public Map<String, HostExportInfo> getCloneExportInfoForHosts(VolumeClone clone) {
+    	_log.info("3PARDriver: getCloneExportInfoForHosts Running ");
         // TODO Auto-generated method stub
         return null;
     }
 
     @Override
     public Map<String, HostExportInfo> getMirrorExportInfoForHosts(VolumeMirror mirror) {
+    	_log.info("3PARDriver: getMirrorExportInfoForHosts Running ");
         // TODO Auto-generated method stub
         return null;
     }
@@ -839,6 +878,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
             List<StoragePort> recommendedPorts, List<StoragePort> availablePorts, StorageCapabilities capabilities,
             MutableBoolean usedRecommendedPorts, List<StoragePort> selectedPorts) {
 
+    	_log.info("3PARDriver: exportVolumesToInitiators Running ");
         _log.info("3PARDriver:exportVolumesToInitiators");
         
         return null;
@@ -846,31 +886,115 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 
     @Override
     public DriverTask unexportVolumesFromInitiators(List<Initiator> initiators, List<StorageVolume> volumes) {
+    	_log.info("3PARDriver: unexportVolumesFromInitiators Running ");
         // TODO Auto-generated method stub
         return null;
     }
 
     @Override
-    public DriverTask createConsistencyGroup(VolumeConsistencyGroup consistencyGroup) {
-        // TODO Auto-generated method stub
-        return null;
+	public DriverTask createConsistencyGroup(VolumeConsistencyGroup consistencyGroup) {
+
+		DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_CREATE_CONSISTENCY_GROUP);
+
+		try {
+			_log.info("3PARDriver: createConsistencyGroup for storage system  id {}, display name {} , native id {}, device lable id {} , cosistency group id {}  - start",
+					consistencyGroup.getStorageSystemId(), consistencyGroup.getDisplayName(),
+					consistencyGroup.getNativeId(),consistencyGroup.getDeviceLabel(),consistencyGroup.getConsistencyGroup());
+
+			// get Api client
+			HP3PARApi hp3parApi = getHP3PARDeviceFromNativeId(consistencyGroup.getStorageSystemId());
+
+			ConsistencyGroupResult cgResult = null;
+
+			// Create VV Set / Consistency Group
+			hp3parApi.createVVset(consistencyGroup.getDisplayName());
+			cgResult = hp3parApi.getVVsetDetails(consistencyGroup.getDisplayName());
+
+			_log.info("3PARDriver: createConsistencyGroup getDetails "+cgResult.getDetails());
+			consistencyGroup.setNativeId(consistencyGroup.getDisplayName());
+			consistencyGroup.setDeviceLabel(consistencyGroup.getDisplayName());
+
+			task.setStatus(DriverTask.TaskStatus.READY);
+			_log.info("3PARDriver: createConsistencyGroup for storage system  id {}, display name {} , native id {}, device lable id {} , cosistency group id {}  - end",
+					consistencyGroup.getStorageSystemId(), consistencyGroup.getDisplayName(),
+					consistencyGroup.getNativeId(),consistencyGroup.getDeviceLabel(),consistencyGroup.getConsistencyGroup());
+		} catch (Exception e) {
+			String msg = String.format(
+					"3PARDriver: Unable to create consistency group name %s in storage system native id is %s; Error: %s.\n",
+					consistencyGroup.getDisplayName(), consistencyGroup.getStorageSystemId(), e.getMessage());
+			_log.error(msg);
+			task.setMessage(msg);
+			task.setStatus(DriverTask.TaskStatus.PARTIALLY_FAILED);
+			e.printStackTrace();
+		}
+        
+        return task;
+        
     }
 
+    /**
+     * Delete VV Set or consistency group
+     * 
+     */
     @Override
     public DriverTask deleteConsistencyGroup(VolumeConsistencyGroup consistencyGroup) {
-        // TODO Auto-generated method stub
-        return null;
+		_log.info("3PARDriver: deleteConsistencyGroup for storage system  id {}, display name {} , native id {}, device lable id {} , cosistency group id {}  - start",
+				consistencyGroup.getStorageSystemId(), consistencyGroup.getDisplayName(),
+				consistencyGroup.getNativeId(),consistencyGroup.getDeviceLabel(),consistencyGroup.getConsistencyGroup());
+
+
+	    DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_DELETE_CONSISTENCY_GROUP);
+
+            try {
+
+                // get Api client
+                HP3PARApi hp3parApi = getHP3PARDeviceFromNativeId(consistencyGroup.getStorageSystemId());
+
+                // Delete virtual copy
+                hp3parApi.deleteVVset(consistencyGroup.getNativeId());
+                
+                task.setStatus(DriverTask.TaskStatus.READY);
+                _log.info("3PARDriver: deleteConsistencyGroup for storage system native id {}, volume name {} - end",
+                		consistencyGroup.getStorageSystemId(), consistencyGroup.getDisplayName());            
+            } catch (Exception e) {
+                String msg = String.format(
+                        "3PARDriver: deleteConsistencyGroup Unable to delete CG %s with native id %s which is part of storage system native id %s; Error: %s.\n",
+                        consistencyGroup.getDisplayName(), consistencyGroup.getNativeId(), consistencyGroup.getStorageSystemId(), e.getMessage());
+                _log.error(msg);
+                task.setMessage(msg);
+                task.setStatus(DriverTask.TaskStatus.PARTIALLY_FAILED);
+                e.printStackTrace();
+            }
+        
+        return task;
+    
     }
 
     @Override
     public DriverTask createConsistencyGroupSnapshot(VolumeConsistencyGroup consistencyGroup, List<VolumeSnapshot> snapshots,
             List<CapabilityInstance> capabilities) {
+    	_log.info("3PARDriver: createConsistencyGroupSnapshot for storage system  id {}, display name {} , native id {} - start",
+    			consistencyGroup.getStorageSystemId(), consistencyGroup.getDisplayName(), consistencyGroup.getNativeId());
+
+    	for (VolumeSnapshot snap : snapshots) {
+            
+            	//native id = null , 
+                _log.info("3PARDriver: createConsistencyGroupSnapshot >> for storage system native id {}, snap display name {} - start",
+                		snap.toString(), snap.getDisplayName());
+    	}
+            
         // TODO Auto-generated method stub
         return null;
     }
 
     @Override
     public DriverTask deleteConsistencyGroupSnapshot(List<VolumeSnapshot> snapshots) {
+    	for (VolumeSnapshot snap : snapshots) {
+            
+        	//native id = null , 
+            _log.info("3PARDriver: deleteConsistencyGroupSnapshot for storage system native id {}, snap display name {} - start",
+            		snap.toString(), snap.getDisplayName());
+	}
         // TODO Auto-generated method stub
         return null;
     }
@@ -878,6 +1002,9 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
     @Override
     public DriverTask createConsistencyGroupClone(VolumeConsistencyGroup consistencyGroup, List<VolumeClone> clones,
             List<CapabilityInstance> capabilities) {
+    	_log.info("3PARDriver: createConsistencyGroupClone for storage system  id {}, display name {} , native id {} - start",
+    			consistencyGroup.getStorageSystemId(), consistencyGroup.getDisplayName(), consistencyGroup.getNativeId());
+
         // TODO Auto-generated method stub
         return null;
     }

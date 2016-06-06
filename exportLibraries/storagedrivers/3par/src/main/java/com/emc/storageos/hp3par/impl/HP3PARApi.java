@@ -16,6 +16,7 @@ import org.codehaus.jettison.json.JSONObject;
 
 import com.emc.storageos.hp3par.command.CPGCommandResult;
 import com.emc.storageos.hp3par.command.CPGMember;
+import com.emc.storageos.hp3par.command.ConsistencyGroupResult;
 import com.emc.storageos.hp3par.command.PortCommandResult;
 import com.emc.storageos.hp3par.command.PortStatisticsCommandResult;
 import com.emc.storageos.hp3par.command.Privileges;
@@ -57,6 +58,13 @@ public class HP3PARApi {
     private static final String URI_DELETE_VOLUME_SNAPSHOT = "/api/v1/volumes/{0}";
     private static final String URI_RESTORE_VOLUME_SNAPSHOT = "/api/v1/volumes/{0}";
     private static final String URI_STORAGE_VOLUMES = "/api/v1/volumes";
+    
+    private static final String URI_CREATE_CG = "/api/v1/volumesets";
+    private static final String URI_DELETE_CG = "/api/v1/volumesets/{0}";
+    private static final String URI_SNAPSHOT_CG = "/api/v1/volumes/{0}";
+    private static final String URI_CLONE_CG = "/api/v1/volumes/{0}";
+    private static final String URI_UPDATE_CG = "/api/v1/volumesets/{0}";
+    private static final String URI_CG_DETAILS = "/api/v1/volumesets/{0}";
     
 
     public HP3PARApi(URI endpoint, RESTClient client, String userName, String pass) {
@@ -576,7 +584,7 @@ public class HP3PARApi {
         Boolean online = true;
         Boolean offline = false;
         
-        // for snapshot restoration  {"action":4, "online":true
+        // for snapshot restoration  {"action":4, "online":true}
         String onlinePayload = "{\"action\":4, \"online\": " + online +" }";
         
         // Offline restore is faster
@@ -589,11 +597,12 @@ public class HP3PARApi {
             // if related volume is exported, we will get error here. Trying online restore
             if (clientResp.getStatus() != 200) {
             	String errResp = getResponseDetails(clientResp);
+            	_log.error("3PARDriver: restoreVirtualCopy trying online restore option, offline restore failed with error " + errResp);
             	clientResp = put(path,onlinePayload);
             }
             
             if (clientResp == null) {
-                _log.error("3PARDriver:There is no response from 3PAR");
+                _log.error("3PARDriver: restoreVirtualCopy There is no response from 3PAR");
                 throw new HP3PARException("There is no response from 3PAR");
             } else if (clientResp.getStatus() != 200) {
                 String errResp = getResponseDetails(clientResp);
@@ -692,6 +701,167 @@ public class HP3PARApi {
         return clientResp;
     }
 
+    /**
+     * VV Set is a HP3PAR term for Consistency Group. 
+     * This deals with creation of CG, volumes will be added to the CG in create volume
+     *       
+     * @param displayName
+     * @throws Exception
+     */
+	public void createVVset(String displayName) throws Exception {
+
+        _log.info("createVVset enter");
+        ClientResponse clientResp = null;
+        
+        // for VV set creation 
+        String payload = "{\"name\": \"" + displayName +"\" }";
+
+        //final String path = MessageFormat.format(URI_CREATE_CG);
+        _log.info(" 3PARDriver: createVVset uri = {} payload {} ",URI_CREATE_CG.toString(),payload);
+        
+        try {
+        	
+            clientResp = post(URI_CREATE_CG, payload);
+            if (clientResp == null) {
+                _log.error("3PARDriver: createVVset There is no response from 3PAR");
+                throw new HP3PARException("There is no response from 3PAR");
+            } else if (clientResp.getStatus() != 201) {
+                String errResp = getResponseDetails(clientResp);
+                _log.error("3PARDriver: createVVset There is error response from 3PAR = {}" , errResp);
+                throw new HP3PARException(errResp);
+            } else {
+            	_log.info("3PARDriver: createVVset success");
+            }
+        } catch (Exception e) {
+            throw e;
+        } finally {
+            if (clientResp != null) {
+                clientResp.close();
+            }
+            _log.info("3PARDriver: createVVset leave");
+        } //end try/catch/finally
+    
+		
+	}
+
+	/**
+	 * Get Consistency Group details
+	 * 
+	 * @param displayName
+	 * @return
+	 * @throws Exception
+	 */
+	public ConsistencyGroupResult getVVsetDetails(String displayName) throws Exception {
+
+        _log.info("3PARDriver: getVVsetDetails enter");
+        ClientResponse clientResp = null;
+        final String path = MessageFormat.format(URI_CG_DETAILS, displayName);
+        
+        try {
+            clientResp = get(path);
+            if (clientResp == null) {
+                _log.error("3PARDriver: getVVsetDetails There is no response from 3PAR");
+                throw new HP3PARException("There is no response from 3PAR");
+            } else if (clientResp.getStatus() != 200) {
+                String errResp = getResponseDetails(clientResp);
+                _log.error("3PARDriver: getVVsetDetails There is error response from 3PAR = {}" , errResp);
+                throw new HP3PARException(errResp);
+            } else {
+                String responseString = clientResp.getEntity(String.class);
+                _log.info("3PARDriver: getVVsetDetails 3PAR response is {}", responseString);
+                ConsistencyGroupResult cgResult = new Gson().fromJson(sanitize(responseString),
+                		ConsistencyGroupResult.class);
+                return cgResult;
+            }
+        } catch (Exception e) {
+            throw e;
+        } finally {
+            if (clientResp != null) {
+                clientResp.close();
+            }
+            _log.info("3PARDriver: getVVsetDetails leave");
+        } //end try/catch/finally
+    
+	}
+
+	/**
+	 * delete a VV Set  or Consistency Group
+	 * 
+	 * @param nativeId
+	 * @throws Exception
+	 */
+	public void deleteVVset(String nativeId) throws Exception {
+
+        _log.info("3PARDriver: deleteVVset enter");
+        ClientResponse clientResp = null;
+        final String path = MessageFormat.format(URI_DELETE_CG, nativeId);
+
+        _log.info("3PARDriver:deleteVVset running delete VV Set " + path);
+        
+        try {
+            clientResp = delete(path);
+            if (clientResp == null) {
+                _log.error("3PARDriver:deleteVVset There is no response from 3PAR");
+                throw new HP3PARException("There is no response from 3PAR");
+            } else if (clientResp.getStatus() != 200) {
+                String errResp = getResponseDetails(clientResp);
+                throw new HP3PARException(errResp);
+            } else {
+                _log.info("3PARDriver: deleteVVset success");
+            }
+        } catch (Exception e) {
+            throw e;
+        } finally {
+            if (clientResp != null) {
+                clientResp.close();
+            }
+            _log.info("3PARDriver:deleteVVset leave");
+        } //end try/catch/finally
+    
+	}
+
+	/**
+	 * Add or remove volume from an existing consistency group or VV Set
+	 *  
+	 * @param volumeCGName
+	 * @param volName
+	 * @param actionValue
+	 * @throws Exception
+	 */
+	public void updateVVset(String volumeCGName, String volName, int actionValue) throws Exception {
+
+        _log.info("3PARDriver: updateVVset enter");
+        ClientResponse clientResp = null;
+        final String path = MessageFormat.format(URI_UPDATE_CG, volumeCGName);
+
+        // for VV set creation {"action":1,"setmembers":["vol-name","vol-name2"]} 
+        String payload = "{\"action\": " + actionValue +", \"setmembers\": [ \"" + volName + "\" ] }";
+        
+        _log.info("3PARDriver:updateVVset running update VV Set with URI {} and payload {} ", path, payload);
+        
+        try {
+            clientResp = put(path,payload);
+            if (clientResp == null) {
+                _log.error("3PARDriver:updateVVset There is no response from 3PAR");
+                throw new HP3PARException("There is no response from 3PAR");
+            } else if (clientResp.getStatus() != 200) {
+                String errResp = getResponseDetails(clientResp);
+                throw new HP3PARException(errResp);
+            } else {
+                _log.info("3PARDriver: updateVVset success");
+            }
+        } catch (Exception e) {
+            throw e;
+        } finally {
+            if (clientResp != null) {
+                clientResp.close();
+            }
+            _log.info("3PARDriver:updateVVset leave");
+        } //end try/catch/finally
+
+		
+		
+	}
 
 }
 

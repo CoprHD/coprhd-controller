@@ -59,6 +59,9 @@ public class DirectDriver extends Controller{
             if (system.getSystemType()!=null && system.getSystemType().equals(type)) {
                 results.add(system);
             }
+              if(type.equals("vmax") && system.getSystemType().equals("vnxblock")) {
+                results.add(system);
+            }
         }
         renderJSON((results));
     }

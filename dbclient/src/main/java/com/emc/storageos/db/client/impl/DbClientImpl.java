@@ -146,8 +146,6 @@ public class DbClientImpl implements DbClient {
     private String _geoVersion;
     private DrUtil drUtil;
     
-    private PreparedStatement queryAllColumnsPreparedStatement;
-    
     public String getGeoVersion() {
         if (this._geoVersion == null) {
             this._geoVersion = VdcUtil.getMinimalVdcVersion();
@@ -448,8 +446,7 @@ public class DbClientImpl implements DbClient {
         }
 
         Keyspace ks = getKeyspace(clazz);
-        Session session = getSession(clazz);
-        Map<String, List<CompositeColumnName>> result = queryRowsWithAllColumns(session, ids, doType.getCF().getName());
+        Map<String, List<CompositeColumnName>> result = queryRowsWithAllColumns(getDbClientContext(clazz), ids, doType.getCF().getName());
         List<T> objects = new ArrayList<T>(result.size());
         IndexCleanupList cleanList = new IndexCleanupList();
 
@@ -1974,13 +1971,12 @@ public class DbClientImpl implements DbClient {
         return VdcUtil.VdcVersionComparator.compare(fieldVersion, clazzVersion) > 0 ? fieldVersion : clazzVersion;
     }
     
-    protected Map<String, List<CompositeColumnName>> queryRowsWithAllColumns(Session session, Collection<URI> ids, String tableName) {
+    protected Map<String, List<CompositeColumnName>> queryRowsWithAllColumns(DbClientContext context, Collection<URI> ids, String tableName) {
+        PreparedStatement queryAllColumnsPreparedStatement = getPreparedStatement(tableName, 
+                String.format("Select * from \"%s\" where key in ?", tableName),
+                context);
         
-        if (queryAllColumnsPreparedStatement == null) {
-            queryAllColumnsPreparedStatement = session.prepare(String.format("Select * from \"%s\" where key in ?", tableName));
-        }
-        
-        ResultSet resultSet = session.execute(queryAllColumnsPreparedStatement.bind(ids));
+        ResultSet resultSet = context.getSession().execute(queryAllColumnsPreparedStatement.bind(uriList2StringList(ids)));
         
         Map<String, List<CompositeColumnName>> result = new HashMap<String, List<CompositeColumnName>>();
         List<CompositeColumnName> rows = null;
@@ -2008,5 +2004,23 @@ public class DbClientImpl implements DbClient {
             result.put(lastKey, rows);
         }
         return result;
+    }
+    
+    private List<String> uriList2StringList(Collection<URI> ids) {
+        List<String> result = new ArrayList<String>();
+        for (URI uri : ids) {
+            result.add(uri.toString());
+        }
+        
+        return result;
+    }
+    
+    private PreparedStatement getPreparedStatement(String name, String queryString, DbClientContext context) {
+        if (!context.getPrepareStatementMap().containsKey(name)) {
+            PreparedStatement statement = context.getSession().prepare(queryString);
+            context.getPrepareStatementMap().put(name, statement);
+        }
+        
+        return context.getPrepareStatementMap().get(name);
     }
 }

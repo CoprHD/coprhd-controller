@@ -14,12 +14,23 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.cassandra.service.StorageProxy;
+import org.apache.cassandra.thrift.Cassandra;
+import org.apache.cassandra.thrift.KsDef;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.datastax.driver.core.KeyspaceMetadata;
+import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.TableMetadata;
 import com.datastax.driver.core.WriteType;
 import com.datastax.driver.core.exceptions.DriverException;
+import com.emc.storageos.coordinator.client.model.Site;
+import com.emc.storageos.coordinator.client.model.SiteState;
+import com.emc.storageos.coordinator.client.service.DrUtil;
+import com.emc.storageos.db.exceptions.DatabaseException;
 import com.netflix.astyanax.AstyanaxContext;
 import com.netflix.astyanax.CassandraOperationType;
 import com.netflix.astyanax.Cluster;
@@ -27,12 +38,12 @@ import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.KeyspaceTracerFactory;
 import com.netflix.astyanax.connectionpool.ConnectionContext;
 import com.netflix.astyanax.connectionpool.ConnectionPool;
-import com.netflix.astyanax.ddl.KeyspaceDefinition;
+import com.netflix.astyanax.connectionpool.Host;
 import com.netflix.astyanax.connectionpool.SSLConnectionContext;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
-import com.netflix.astyanax.connectionpool.Host;
 import com.netflix.astyanax.connectionpool.impl.ConnectionPoolConfigurationImpl;
 import com.netflix.astyanax.connectionpool.impl.ConnectionPoolType;
+import com.netflix.astyanax.ddl.KeyspaceDefinition;
 import com.netflix.astyanax.impl.AstyanaxConfigurationImpl;
 import com.netflix.astyanax.model.ConsistencyLevel;
 import com.netflix.astyanax.partitioner.Murmur3Partitioner;
@@ -42,17 +53,6 @@ import com.netflix.astyanax.shallows.EmptyKeyspaceTracerFactory;
 import com.netflix.astyanax.thrift.AbstractOperationImpl;
 import com.netflix.astyanax.thrift.ThriftFamilyFactory;
 import com.netflix.astyanax.thrift.ddl.ThriftKeyspaceDefinitionImpl;
-
-import org.apache.cassandra.service.StorageProxy;
-import org.apache.cassandra.thrift.Cassandra;
-import org.apache.cassandra.thrift.KsDef;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.emc.storageos.coordinator.client.model.Site;
-import com.emc.storageos.coordinator.client.model.SiteState;
-import com.emc.storageos.coordinator.client.service.DrUtil;
-import com.emc.storageos.db.exceptions.DatabaseException;
 
 public class DbClientContext {
 
@@ -109,6 +109,7 @@ public class DbClientContext {
     
     private com.datastax.driver.core.Cluster cassandraCluster;
     private Session cassandraSession;
+    private Map<String, PreparedStatement> prepareStatementMap = new HashMap<String, PreparedStatement>();
     
     public void setCipherSuite(String cipherSuite) {
         this.cipherSuite = cipherSuite;
@@ -787,5 +788,9 @@ public class DbClientContext {
 
     public Session getSession() {
         return cassandraSession;
+    }
+
+    public Map<String, PreparedStatement> getPrepareStatementMap() {
+        return prepareStatementMap;
     }
 }

@@ -5,14 +5,17 @@
 
 package com.emc.storageos.db.client.impl;
 
-import com.netflix.astyanax.annotations.Component;
-
+import java.nio.ByteBuffer;
 import java.util.UUID;
+
+import com.netflix.astyanax.annotations.Component;
 
 /**
  * Composite column name for all data object fields
  */
 public class CompositeColumnName {
+    private String rowKey;
+    
     private @Component(ordinal = 0)
     String _one;
     private @Component(ordinal = 1)
@@ -21,6 +24,8 @@ public class CompositeColumnName {
     String _three;
     private @Component(ordinal = 3)
     UUID _timeUUID;
+    
+    private ByteBuffer value;
 
     public CompositeColumnName() {
     }
@@ -52,6 +57,15 @@ public class CompositeColumnName {
         _three = three;
         _timeUUID = timeUUID;
     }
+    
+    public CompositeColumnName(String rowKey, String one, String two, String three, UUID timeUUID, ByteBuffer value) {
+        this.rowKey = rowKey;
+        _one = one;
+        _two = two;
+        _three = three;
+        _timeUUID = timeUUID;
+        this.value = value;
+    }
 
     public String getOne() {
         return _one;
@@ -67,6 +81,14 @@ public class CompositeColumnName {
 
     public UUID getTimeUUID() {
         return _timeUUID;
+    }
+
+    public String getRowKey() {
+        return rowKey;
+    }
+
+    public ByteBuffer getValue() {
+        return value;
     }
 
     @Override

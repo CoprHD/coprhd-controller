@@ -32,6 +32,9 @@ import org.joda.time.DateTimeZone;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.Session;
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.DbVersionInfo;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
@@ -142,6 +145,8 @@ public class DbClientImpl implements DbClient {
     private boolean initDone = false;
     private String _geoVersion;
     private DrUtil drUtil;
+    
+    private PreparedStatement queryAllColumnsPreparedStatement;
     
     public String getGeoVersion() {
         if (this._geoVersion == null) {
@@ -349,6 +354,15 @@ public class DbClientImpl implements DbClient {
         return getDbClientContext(clazz).getKeyspace();
     }
     
+    protected Session getSession(DataObject dataObj) {
+        Class<? extends DataObject> clazz = dataObj.getClass();
+        return getSession(clazz);
+    }
+    
+    protected <T extends DataObject> Session getSession(Class<T> clazz) {
+        return getDbClientContext(clazz).getSession();
+    }
+    
     private <T extends DataObject> DbClientContext getDbClientContext(Class<T> clazz) {
         DbClientContext ctx = null;
         if (localContext == null && geoContext == null) {
@@ -434,18 +448,20 @@ public class DbClientImpl implements DbClient {
         }
 
         Keyspace ks = getKeyspace(clazz);
-        Rows<String, CompositeColumnName> rows = queryRowsWithAllColumns(ks, ids, doType.getCF());
-        List<T> objects = new ArrayList<T>(rows.size());
+        Session session = getSession(clazz);
+        Map<String, List<CompositeColumnName>> result = queryRowsWithAllColumns(session, ids, doType.getCF().getName());
+        List<T> objects = new ArrayList<T>(result.size());
         IndexCleanupList cleanList = new IndexCleanupList();
 
-        Iterator<Row<String, CompositeColumnName>> it = rows.iterator();
+        Iterator<String> it = result.keySet().iterator();
         while (it.hasNext()) {
-            Row<String, CompositeColumnName> row = it.next();
-            if (row == null || row.getColumns().size() == 0) {
+            String rowKey = it.next();
+            List<CompositeColumnName> rows = result.get(rowKey);
+            if (rows == null || rows.size() == 0) {
                 continue;
             }
 
-            T object = doType.deserialize(clazz, row, cleanList, new LazyLoader(this));
+            T object = doType.deserialize(clazz, rowKey, rows, cleanList, new LazyLoader(this));
 
             // filter base on activeOnly
             if (activeOnly) {
@@ -455,7 +471,9 @@ public class DbClientImpl implements DbClient {
             } else {
                 objects.add(object);
             }
-        }
+        } 
+        
+        // TODO Java driver: need to handle clean list for queryObject
         if (!cleanList.isEmpty()) {
             boolean retryFailedWriteWithLocalQuorum = shouldRetryFailedWriteWithLocalQuorum(clazz);
             RowMutator mutator = new RowMutator(ks, retryFailedWriteWithLocalQuorum);
@@ -1954,5 +1972,41 @@ public class DbClientImpl implements DbClient {
         String clazzVersion = clazz.getAnnotation(AllowedGeoVersion.class).version();
         String fieldVersion = property.getReadMethod().getAnnotation(AllowedGeoVersion.class).version();
         return VdcUtil.VdcVersionComparator.compare(fieldVersion, clazzVersion) > 0 ? fieldVersion : clazzVersion;
+    }
+    
+    protected Map<String, List<CompositeColumnName>> queryRowsWithAllColumns(Session session, Collection<URI> ids, String tableName) {
+        
+        if (queryAllColumnsPreparedStatement == null) {
+            queryAllColumnsPreparedStatement = session.prepare(String.format("Select * from \"%s\" where key in ?", tableName));
+        }
+        
+        ResultSet resultSet = session.execute(queryAllColumnsPreparedStatement.bind(ids));
+        
+        Map<String, List<CompositeColumnName>> result = new HashMap<String, List<CompositeColumnName>>();
+        List<CompositeColumnName> rows = null;
+        String lastKey = null;
+        
+        for (com.datastax.driver.core.Row row : resultSet) {
+            String currentKey = row.getString(0);
+            
+            if (lastKey == null || (!lastKey.equals(currentKey))) {
+                rows = new ArrayList<CompositeColumnName>();
+                result.put(currentKey, rows);
+                lastKey = currentKey;
+            }
+                
+            result.get(currentKey).add(new CompositeColumnName(
+                            currentKey,
+                            row.getString(1),
+                            row.getString(2),
+                            row.getString(3),
+                            row.getUUID(4),
+                            row.getBytes(5)));
+        }
+        
+        if (lastKey != null) {
+            result.put(lastKey, rows);
+        }
+        return result;
     }
 }

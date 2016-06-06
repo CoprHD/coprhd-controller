@@ -265,6 +265,40 @@ public class DataObjectType {
             throw DatabaseException.fatals.deserializationFailed(clazz, e);
         }
     }
+    
+    public <T extends DataObject> T deserialize(Class<T> clazz, String key, List<CompositeColumnName> rows, IndexCleanupList cleanupList,
+            LazyLoader lazyLoader) {
+        if (!_clazz.isAssignableFrom(clazz)) {
+            throw new IllegalArgumentException();
+        }
+        try {
+            Class<? extends DataObject> type = (_instrumentedClazz == null) ? clazz : _instrumentedClazz;
+            DataObject obj = DataObject.createInstance(type, URI.create(key));
+            Iterator<CompositeColumnName> it = rows.iterator();
+            while (it.hasNext()) {
+                CompositeColumnName compositeColumnName = it.next();
+                // TODO java driver: clean up list
+                //cleanupList.add(key, column);
+                
+                ColumnField columnField = _columnFieldMap.get(compositeColumnName.getOne());
+                if (columnField != null) {
+                    columnField.deserialize(compositeColumnName, obj);
+                } else {
+                    _log.debug("an unexpected column in db, it might because geo system has multiple vdc but in different version");
+                }
+            }
+            cleanupList.addObject(key, obj);
+            obj.trackChanges();
+
+            setLazyLoaders(obj, lazyLoader);
+
+            return clazz.cast(obj);
+        } catch (final InstantiationException e) {
+            throw DatabaseException.fatals.deserializationFailed(clazz, e);
+        } catch (final IllegalAccessException e) {
+            throw DatabaseException.fatals.deserializationFailed(clazz, e);
+        }
+    }
 
     /**
      * Serializes data object into database updates

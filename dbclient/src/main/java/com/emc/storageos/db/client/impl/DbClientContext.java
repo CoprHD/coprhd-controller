@@ -784,4 +784,8 @@ public class DbClientContext {
         int port = isGeoDbsvc() ? GEODB_NATIVE_TRANSPORT_PORT : DB_NATIVE_TRANSPORT_PORT;
         return port;
     }
+
+    public Session getSession() {
+        return cassandraSession;
+    }
 }

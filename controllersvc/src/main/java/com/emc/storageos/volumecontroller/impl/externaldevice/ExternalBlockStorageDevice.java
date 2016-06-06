@@ -1319,4 +1319,10 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
 
     }
 
+    @Override
+    public boolean validateStorageProviderConnection(String ipAddress, Integer portNumber) {
+        // todo.....
+        return true;
+    }
+
 }

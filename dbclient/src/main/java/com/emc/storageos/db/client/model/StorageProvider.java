@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import com.emc.storageos.services.util.StorageDriverManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,6 +25,7 @@ import com.emc.storageos.db.client.upgrade.callbacks.SMISProviderToStorageProvid
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.valid.EnumType;
+import org.springframework.context.ApplicationContext;
 
 /**
  * StorageProvider data object
@@ -37,6 +39,19 @@ public class StorageProvider extends DataObject {
     private static final long serialVersionUID = -860528426935487712L;
 
     private static final Logger logger = LoggerFactory.getLogger(StorageProvider.class);
+
+    private static StorageDriverManager storageDriverManager = null;
+    static {
+        // This class can be used in test setups without application context.
+        // Ex. DB migration test framework.
+        ApplicationContext context = StorageDriverManager.getApplicationContext();
+        if (context != null) {
+            storageDriverManager = (StorageDriverManager)StorageDriverManager.
+                    getApplicationContext().getBean(StorageDriverManager.STORAGE_DRIVER_MANAGER);
+        } else {
+            logger.warn("Cannot set storageDriverManager. Application context is null. Assuming not a real deployment.");
+        }
+    }
 
     private StringSet _storageSystems;
     // provider IP address
@@ -174,6 +189,9 @@ public class StorageProvider extends DataObject {
                 systemTypes.add(Type.scaleio.name());
             } else if (xtremio.equals(interfaceType)) {
                 systemTypes.add(Type.xtremio.name());
+            } else if (storageDriverManager != null && storageDriverManager.isDriverManaged(interfaceType.toString())) {
+                Type type = Type.valueOf(interfaceType.toString());
+                systemTypes.add(type.name());
             }
             return systemTypes;
         }

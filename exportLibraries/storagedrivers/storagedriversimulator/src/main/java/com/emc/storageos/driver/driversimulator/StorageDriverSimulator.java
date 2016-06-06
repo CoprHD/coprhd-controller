@@ -133,8 +133,12 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
         DriverTask task = new DriverSimulatorTask(taskId);
 
         try {
-            storageSystem.setSerialNumber(storageSystem.getSystemName());
-            storageSystem.setNativeId(storageSystem.getSystemName());
+            if (storageSystem.getSerialNumber() == null) {
+                storageSystem.setSerialNumber(storageSystem.getSystemName());
+            }
+            if (storageSystem.getNativeId() == null) {
+                storageSystem.setNativeId(storageSystem.getSystemName());
+            }
             storageSystem.setFirmwareVersion("2.4-3.12");
             storageSystem.setIsSupportedVersion(true);
             setConnInfoToRegistry(storageSystem.getNativeId(), storageSystem.getIpAddress(), storageSystem.getPortNumber(),
@@ -896,6 +900,23 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
 
     @Override
     public DriverTask discoverStorageProvider(StorageProvider storageProvider, List<StorageSystem> storageSystems) {
-        return null;
+
+        StorageSystem providerSystem = new StorageSystem();
+        providerSystem.setSystemType("providersystem");
+        providerSystem.setNativeId("providerSystem-1");
+        providerSystem.setSerialNumber("1234567-1");
+        providerSystem.setFirmwareVersion("1.2.3");
+        storageSystems.add(providerSystem);
+
+        String taskType = "discover-storage-provider";
+        String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
+        DriverTask task = new DriverSimulatorTask(taskId);
+        task.setStatus(DriverTask.TaskStatus.READY);
+        String msg = "Discovered provider: " + storageProvider.getProviderName();
+        task.setMessage(msg);
+        _log.info(msg);
+        
+        return task;
     }
+
 }

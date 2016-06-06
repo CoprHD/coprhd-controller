@@ -106,6 +106,8 @@ public class DataCollectionJobUtil {
                 StorageProvider.InterfaceType.xtremio.name().equalsIgnoreCase(
                         ((StorageProvider) taskObject).getInterfaceType())) {
             populateXtremIOAccessProfile(profile, (StorageProvider) taskObject);
+        } else if (clazz == StorageProvider.class && StorageSystem.Type.isDriverManagedStorageSystem(((StorageProvider) taskObject).getInterfaceType())){
+            populateExternalProviderAccessProfile(profile, (StorageProvider) taskObject);
         } else if (clazz == StorageSystem.class) {
             populateAccessProfile(profile, (StorageSystem) taskObject, nameSpace);
         } else if (clazz == ProtectionSystem.class) {
@@ -125,6 +127,16 @@ public class DataCollectionJobUtil {
         }
 
         return profile;
+    }
+
+    private void populateExternalProviderAccessProfile(AccessProfile accessProfile, StorageProvider providerInfo) {
+        accessProfile.setSystemId(providerInfo.getId());
+        accessProfile.setSystemClazz(providerInfo.getClass());
+        accessProfile.setIpAddress(providerInfo.getIPAddress());
+        accessProfile.setUserName(providerInfo.getUserName());
+        accessProfile.setPassword(providerInfo.getPassword());
+        accessProfile.setSystemType(getSystemType(providerInfo));
+        accessProfile.setProviderPort(String.valueOf(providerInfo.getPortNumber()));
     }
 
     private void populateScaleIOAccessProfile(AccessProfile accessProfile, StorageProvider providerInfo) {

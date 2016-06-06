@@ -671,6 +671,9 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
         for (URI cgId : cgIds) {
             completer.addConsistencyGroupId(cgId);
         }
+        for (URI appId : ControllerUtils.getApplicationsForFullCopies(blockVolUris, getDbClient())) {
+            completer.addVolumeGroupId(appId);
+        }
         
         try {
             // Generate the Workflow.

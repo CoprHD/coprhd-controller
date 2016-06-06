@@ -416,13 +416,22 @@ public class VPlexVirtualVolumeInfo extends VPlexResourceInfo {
         setName(updatedName);
     }
 
-    /*
+    /**
      * Returns whether or not the volume is exported.
      * 
      * @return true if the volume is exported, false otherwise.
      */
     public boolean isExported() {
         return (!ServiceStatus.unexported.name().equals(serviceStatus));
+    }
+
+    /**
+     * Returns whether or not the volume is thin-enabled.
+     * 
+     * @return true if the volume is thin enabled, false otherwise.
+     */
+    public boolean isThinEnabled() {
+        return VPlexApiConstants.TRUE.equals(getThinEnabled());
     }
 
     /**

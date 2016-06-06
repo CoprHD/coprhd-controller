@@ -189,6 +189,13 @@ public class VPlexApiVirtualVolumeManager {
                 virtualVolumeInfo.setName(volumeNameBuilder.toString());
                 virtualVolumeInfo.addCluster(clusterId);
             }
+
+            if (thinEnabled && null != virtualVolumeInfo && !virtualVolumeInfo.isThinEnabled()) {
+                // this is not considered an error situation, but we need to log it for the user's knowledge
+                s_logger.warn("Virtual Volume {} was created from a thin virtual pool, but it could not be created "
+                        + "as a thin volume. See controllersvc logs for more details.", virtualVolumeInfo.getName());
+            }
+
             return virtualVolumeInfo;
         } catch (Exception e) {
             // An error occurred. Clean up any VPLEX artifacts created for

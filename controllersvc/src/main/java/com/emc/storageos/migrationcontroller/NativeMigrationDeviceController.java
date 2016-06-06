@@ -85,10 +85,10 @@ public class NativeMigrationDeviceController implements MigrationOrchestrationIn
                         && !generalVolume.getParameters().isEmpty()) {
                     if (newVpoolURI == null) {
                         newVpoolURI = (URI) generalVolume.getParameters().get(
-                                VolumeDescriptor.PARAM_VPOOL_CHANGE_VPOOL_ID);
+                                VolumeDescriptor.PARAM_VPOOL_CHANGE_NEW_VPOOL_ID);
                     }
                     URI generalVolumeURI = (URI) generalVolume.getParameters().get(
-                            VolumeDescriptor.PARAM_VPOOL_CHANGE_VOLUME_ID);
+                            VolumeDescriptor.PARAM_VPOOL_CHANGE_EXISTING_VOLUME_ID);
                     _log.info("Adding steps for change vpool for general volume {}", generalVolumeURI);
                     changeVpoolGeneralVolumeURIs.add(generalVolumeURI);
                 }

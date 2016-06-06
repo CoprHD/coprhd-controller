@@ -341,7 +341,8 @@ public enum ResourceOperationTypeEnum {
     DELETE_CONSISTENCY_GROUP_SNAPSHOT_SESSION("DELETE CONSISTENCY GROUP SNAPSHOT SESSION", "delete consistency group snapshot session"),
     CHANGE_FILE_SYSTEM_VPOOL("CHANGE FILE SYSTEM VPOOL", "change file system vpool operation"),
     CREATE_FILE_SYSTEM_MIRROR_COPIES("CREATE FILE SYSTEM MIRROR COPIES", "create file system mirror copies operation"),
-    DELETE_MIRROR_FILE_SYSTEMS("DELETE MIRROR FILE SYSTEMS", "delete mirror file systems operation");
+    DELETE_MIRROR_FILE_SYSTEMS("DELETE MIRROR FILE SYSTEMS", "delete mirror file systems operation"),
+    HOST_MIGRATE_VOLUME("HOST MIGRATE VOLUME", "host migrate general volume");
 
     private final String name;
     private final String description;

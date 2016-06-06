@@ -20,6 +20,7 @@
                        value="rmi://${node_id}:10099/BlockExportController"/>
                 <entry key="BlockOrchestrationController" value="rmi://${node_id}:10099/BlockOrchestrationController"/>
                 <entry key="ProtectionOrchestrationController" value="rmi://${node_id}:10099/ProtectionOrchestrationController"/>
+                <entry key="MigrationOrchestrationController" value="rmi://${node_id}:10099/MigrationOrchestrationController"/>
                 <entry key="FileOrchestrationController" value="rmi://${node_id}:10099/FileOrchestrationController"/>
                 <entry key="FileReplicationController" value="rmi://${node_id}:10099/FileReplicationController" />
                 <entry key="SRDFController" value="rmi://${node_id}:10099/SRDFController" />
@@ -51,6 +52,7 @@
                 <value>vplex</value>
                 <value>export</value>
                 <value>block-orchestration</value>
+                <value>migration-orchestration</value>
                 <value>file-orchestration</value>
                 <value>ucs</value>
                 <value>host</value>

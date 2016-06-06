@@ -15,11 +15,12 @@ public enum LockType {
     VPLEX_BACKEND_EXPORT("vplex_backend_export"),
     EXPORT_GROUP_OPS("export_group_ops"),
     RP_EXPORT("rp_export"),
+    HOST_MIGRATION_EXPORT("host_migration_export"),
     VPLEX_API_LIB("vplex_api_lib"),
     SRDF_PROVISIONING("srdf_provisioning");
 
-    private String PREFIX = "controller_";
-    private String SUFFIX = "_lock_timeout";
+    private final String PREFIX = "controller_";
+    private final String SUFFIX = "_lock_timeout";
     private String key;
 
     LockType(String key) {

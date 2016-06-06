@@ -640,6 +640,9 @@ public enum ServiceCode {
     CEPH_OPERATION_EXCEPTION(67001),
     CEPH_INVALID_CREDENTIALS_ERROR(67002),
 
+    // migration error (67000-67999)
+    MIGRATION_ERROR(67001),
+
     // ****************************
     // Old style of Service codes
     // ****************************

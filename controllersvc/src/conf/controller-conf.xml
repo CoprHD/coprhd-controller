@@ -749,6 +749,24 @@
         </property>
     </bean>
     
+    <bean id="hostMigrationDeviceController" class="com.emc.storageos.migrationcontroller.HostMigrationDeviceController">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="workflowService" ref="workflowService" />
+        <property name="hostExportManager" ref="hostExportMgr" />
+        <property name="migrationControllerWorkFlowUtil" ref="migrationControllerWorkFlowUtil" />
+    </bean>
+    
+    <bean id="hostExportMgr" class="com.emc.storageos.migrationcontroller.HostExportManager">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="exportWorkflowUtils" ref="exportWorkflowUtils" />  
+        <property name="workflowService" ref="workflowService" />
+        <property name="locker" ref="locker"/> 
+    </bean>
+    
+    <bean id="migrationControllerWorkFlowUtil" class="com.emc.storageos.migrationcontroller.MigrationControllerWorkFlowUtil">
+        <property name="dbClient" ref="dbclient"/>
+    </bean>
+    
     <bean id="vplexDeviceController" class="com.emc.storageos.vplexcontroller.VPlexDeviceController">
         <property name="dbClient" ref="dbclient"/>
         <property name="workflowService" ref="workflowService" />
@@ -989,11 +1007,14 @@
                 <ref bean="networkDeviceController"/>
                 <ref bean="rpProtection"/>
                 <ref bean="vplexDeviceController"/>
+                <ref bean="hostMigrationDeviceController"/>
                 <ref bean="maskingWorkflowEntryPoints"/>
                 <ref bean="blockDeviceExportController"/>
                 <ref bean="exportWorkflowEntryPoints"/>
                 <ref bean="blockOrchestrationDeviceController"/>
                 <ref bean="protectionOrchestrationDeviceController"/>
+                <ref bean="protectionOrchestrationDeviceController"/>
+                <ref bean="migrationOrchestrationDeviceController"/>
                 <ref bean="fileOrchestrationDeviceController"/>
                 <ref bean="fileReplicationDeviceController" />
                 <ref bean="srdfDeviceController" />
@@ -1492,6 +1513,20 @@
     <bean id="blockOrchestrationController" class="com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationControllerImpl">
         <property name="dispatcher" ref="dispatcher"/>
         <property name="controller" ref="blockOrchestrationDeviceController" />
+        <property name="dbClient" ref="dbclient"/>
+    </bean>
+    
+    <bean id="migrationOrchestrationDeviceController" class="com.emc.storageos.migrationorchestrationcontroller.MigrationOrchestrationDeviceController">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="workflowService" ref="workflowService"/>
+        <property name="blockDeviceController" ref="blockDeviceController" />
+        <property name="hostMigrationDeviceController" ref="hostMigrationDeviceController" />
+        <property name="locker" ref="locker"/>
+    </bean>
+
+    <bean id="migrationOrchestrationController" class="com.emc.storageos.migrationorchestrationcontroller.MigrationOrchestrationControllerImpl">
+        <property name="dispatcher" ref="dispatcher"/>
+        <property name="controller" ref="migrationOrchestrationDeviceController" />
         <property name="dbClient" ref="dbclient"/>
     </bean>
 

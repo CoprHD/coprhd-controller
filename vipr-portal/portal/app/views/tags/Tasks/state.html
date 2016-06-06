@@ -33,10 +33,10 @@
   <span class="glyphicon glyphicon-remove"></span> &{'resources.tasks.error'}
 #{/elseif}
 #{elseif taskState == "SUSPENDED_NO_ERROR"}
-  <span class="glyphicon glyphicon-exclamation-sign"></span> &{'resources.tasks.suspended_no_error'}
+  <span class="glyphicon glyphicon-pause"></span> &{'resources.tasks.suspended_no_error'}
 #{/elseif}
 #{elseif taskState == "SUSPENDED_ERROR"}
-  <span class="glyphicon glyphicon-exclamation-sign"></span> &{'resources.tasks.suspended_error'}
+  <span class="glyphicon glyphicon-remove-circle"></span> &{'resources.tasks.suspended_error'}
 #{/elseif}
 #{else}
   <span class="glyphicon glyphicon-question-sign"></span> &{'resources.tasks.unknown'}

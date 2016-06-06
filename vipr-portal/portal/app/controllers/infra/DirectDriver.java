@@ -84,9 +84,9 @@ public class DirectDriver extends Controller{
     @FlashException(keep = true, referrer = { "createDirecVolume" })
     public static void saveVolume(DirectDriverForm volume) {
         Boolean value = volume.save();
-        if(!value) {
-            flash.success("Created and exported successfully");
-        }
+       
+            //flash.success("Created and exported successfully");
+        
         createDirecVolume();
     }
     
@@ -170,6 +170,7 @@ public class DirectDriver extends Controller{
             exportDriver.setHosts(hosts);
             exportDriver.setExportPassThroughParam(passThroughParamExport);
             getViprClient().blockExports().create(exportDriver);
+		flash.success("Created and exported successfully");
         }
     }
 }

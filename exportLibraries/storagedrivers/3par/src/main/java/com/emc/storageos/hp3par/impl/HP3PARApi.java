@@ -17,6 +17,7 @@ import org.codehaus.jettison.json.JSONObject;
 import com.emc.storageos.hp3par.command.CPGCommandResult;
 import com.emc.storageos.hp3par.command.CPGMember;
 import com.emc.storageos.hp3par.command.ConsistencyGroupResult;
+import com.emc.storageos.hp3par.command.ConsistencyGroupsListResult;
 import com.emc.storageos.hp3par.command.PortCommandResult;
 import com.emc.storageos.hp3par.command.PortStatisticsCommandResult;
 import com.emc.storageos.hp3par.command.Privileges;
@@ -65,6 +66,7 @@ public class HP3PARApi {
     private static final String URI_CLONE_CG = "/api/v1/volumes/{0}";
     private static final String URI_UPDATE_CG = "/api/v1/volumesets/{0}";
     private static final String URI_CG_DETAILS = "/api/v1/volumesets/{0}";
+    private static final String URI_CG_LIST_DETAILS = "/api/v1/volumesets";
     
 
     public HP3PARApi(URI endpoint, RESTClient client, String userName, String pass) {
@@ -862,6 +864,48 @@ public class HP3PARApi {
 		
 		
 	}
+	
+	
+	/**
+	 * Get Consistency Groups List 
+	 * 
+	 * @param displayName
+	 * @return
+	 * @throws Exception
+	 */
+	public ConsistencyGroupsListResult getVVsetsList() throws Exception {
+
+        _log.info("3PARDriver: getVVsetsList enter");
+        ClientResponse clientResp = null;
+        final String path = URI_CG_LIST_DETAILS;
+        
+        try {
+            clientResp = get(path);
+            if (clientResp == null) {
+                _log.error("3PARDriver: getVVsetsList There is no response from 3PAR");
+                throw new HP3PARException("There is no response from 3PAR");
+            } else if (clientResp.getStatus() != 200) {
+                String errResp = getResponseDetails(clientResp);
+                _log.error("3PARDriver: getVVsetsList There is error response from 3PAR = {}" , errResp);
+                throw new HP3PARException(errResp);
+            } else {
+                String responseString = clientResp.getEntity(String.class);
+                _log.info("3PARDriver: getVVsetDetails 3PAR response is {}", responseString);
+                ConsistencyGroupsListResult cgListResult = new Gson().fromJson(sanitize(responseString),
+                		ConsistencyGroupsListResult.class);
+                return cgListResult;
+            }
+        } catch (Exception e) {
+            throw e;
+        } finally {
+            if (clientResp != null) {
+                clientResp.close();
+            }
+            _log.info("3PARDriver: getVVsetsList leave");
+        } //end try/catch/finally
+    
+	}
+	
 
 }
 

@@ -100,8 +100,8 @@ public class ExportWorkflowUtils {
      * the storage system export mask
      * 
      * @param workflow the main workflow
-     * @param wfGroupId the workglow group Id, if any
-     * @param waitFor the id of a step on which this wrokflow has to wait, if any
+     * @param wfGroupId the workflow group Id, if any
+     * @param waitFor the id of a step on which this workflow has to wait, if any
      * @param storageUri the storage controller used to perform the export update.
      *            This can be either a block storage controller or protection
      *            controller.

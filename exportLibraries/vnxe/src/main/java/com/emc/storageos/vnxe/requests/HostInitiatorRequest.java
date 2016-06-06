@@ -40,7 +40,7 @@ public class HostInitiatorRequest extends KHRequests<VNXeHostInitiator> {
         _url = URL_ALL;
         String filter = null;
         if (_client.isUnity()) {
-            filter = VNXeConstants.INITIATORID_FILTER + "\"" +initiatorId +"\"";
+            filter = VNXeConstants.INITIATORID_FILTER + "\"" + initiatorId + "\"";
         } else {
             filter = VNXeConstants.INITIATORID_FILTER + initiatorId;
         }
@@ -60,16 +60,17 @@ public class HostInitiatorRequest extends KHRequests<VNXeHostInitiator> {
         _url = URL_ALL;
         return postRequestSync(param);
     }
-    
+
     /**
      * Modify the host initiator
-     * @param param
+     * 
+     * @param param The parameters to modify the host initiator. 
      * @param id The host initiator Id
-     * @return
+     * @return VNXeCommandResult, indicating if the command is successful
      */
     public VNXeCommandResult modifyHostInitiator(HostInitiatorModifyParam param, String id) {
-        _url = URL +id + MODIFY;
+        _url = URL + id + MODIFY;
         return postRequestSync(param);
-        
+
     }
 }

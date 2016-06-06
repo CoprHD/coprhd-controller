@@ -1740,14 +1740,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             oldVpoolId = changeVpoolVolume.getVirtualPool();
         }
 
-        try {
-            
-            
-            if (true) {
-                throw APIException.badRequests.rpBlockApiImplPrepareVolumeException("STOP!!"); 
-            }
-
-            
+        try {            
             // Prepare the volumes
             prepareRecommendedVolumes(param, task, taskList, project,
                     varray, vpool,

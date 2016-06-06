@@ -13,7 +13,11 @@
                 <entry key="BlockExportController"
                        value="rmi://${node_id}:10099/BlockExportController"/>
                 <entry key="BlockOrchestrationController" value="rmi://${node_id}:10099/BlockOrchestrationController"/>
+<<<<<<< HEAD
+                <entry key="ProtectionOrchestrationController" value="rmi://${node_id}:10099/ProtectionOrchestrationController"/>
+=======
                 <entry key="MigrationOrchestrationController" value="rmi://${node_id}:10099/MigrationOrchestrationController"/>
+>>>>>>> origin/feature-COP-21961-expand-volume-migration-controllersvc
                 <entry key="FileOrchestrationController" value="rmi://${node_id}:10099/FileOrchestrationController"/>
                 <entry key="ComputeSystemController" value="rmi://localhost:10099/ComputeSystemController"/>
                 <entry key="ObjectController" value="rmi://${node_id}:10099/ObjectController"/>
@@ -50,6 +54,7 @@
                 <value>scaleioapi</value>
                 <value>xtremio</value>
                 <value>ecs</value>
+                <value>ceph</value>
                 <value>externaldevice</value>
             </set>
         </property>

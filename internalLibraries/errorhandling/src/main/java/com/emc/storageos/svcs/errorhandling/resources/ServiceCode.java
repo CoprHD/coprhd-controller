@@ -265,6 +265,7 @@ public enum ServiceCode {
     WORKFLOW_IN_WRONG_STATE(14004),
     WORKFLOW_CANNOT_BE_ROLLED_BACK(14005),
     WORKFLOW_TERMINATED_DR_FAILOVER(14006),
+    WORKFLOW_CONSTRUCTION_ERROR(14007),
 
     // Dispatcher errors (15000 - 15999):
     DISPATCHER_UNABLE_FIND_CONTROLLER(15000),
@@ -634,8 +635,15 @@ public enum ServiceCode {
     EXTERNALDEVICE_ADD_EXPORT_MASK_INITIATORS_ERROR(66020),
     EXTERNALDEVICE_REMOVE_EXPORT_MASK_INITIATORS_ERROR(66021),
 
+<<<<<<< HEAD
+    // Ceph errors (67000 - 67999)
+    CEPH_CONNECTION_ERROR(67000),
+    CEPH_OPERATION_EXCEPTION(67001),
+    CEPH_INVALID_CREDENTIALS_ERROR(67002),
+=======
     // migration error (67000-67999)
     MIGRATION_ERROR(67001),
+>>>>>>> origin/feature-COP-21961-expand-volume-migration-controllersvc
 
     // ****************************
     // Old style of Service codes

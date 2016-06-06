@@ -6431,11 +6431,11 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             // Set custom name if custom naming is enabled and this is not an upgrade from local to distributed.
             // If this is a simple upgrade from local to distributed and the volume has a custom name, then the
-            // name would not change. However whenever we are importing a new VPLEX virtual volume is being 
+            // name would not change. However whenever we are importing, a new VPLEX virtual volume is being 
             // created and we need to make sure it has the correct name.
             try {
                 if ((CustomVolumeNamingUtils.isCustomVolumeNamingEnabled(customConfigHandler, vplex.getSystemType())) &&
-                    (existingVolume == null)) {
+                    (existingVolume != null)) {
                     // Create the VPLEX volume name custom configuration datasource and generate the
                     // custom volume name.
                     String customConfigName = CustomVolumeNamingUtils.getCustomConfigName(false);

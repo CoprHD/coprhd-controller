@@ -3749,7 +3749,7 @@ class Bourne:
         result = self.api_sync_2(tr['resource']['id'], tr['op_id'], self.volume_show_task)
         return result
 
-    def volume_change_link(self, uri, operation, copy_uri, type, pit):
+    def volume_change_link(self, uri, operation, copy_uri, type, am, pit):
         copies_param = dict()
         copy = dict()
         copy_entries = []
@@ -3759,6 +3759,9 @@ class Bourne:
 
         if (pit):
             copy['pointInTime'] = pit
+
+        if (am):
+            copy['accessMode'] = am
 
         copy_entries.append(copy)
         copies_param['copy'] = copy_entries
@@ -4210,7 +4213,7 @@ class Bourne:
 
         return s
 
-    def block_consistency_group_failover(self, group, copyType, targetVarray, pit):
+    def block_consistency_group_failover(self, group, copyType, targetVarray, am, pit):
         copies_param = dict()
         copy = dict()
         copy_entries = []
@@ -4220,6 +4223,9 @@ class Bourne:
 
         if (pit):
             copy['pointInTime'] = pit
+
+        if (am):
+            copy['accessMode'] = am
 
         copy_entries.append(copy)
         copies_param['copy'] = copy_entries

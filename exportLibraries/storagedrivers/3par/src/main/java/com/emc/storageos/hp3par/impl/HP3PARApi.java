@@ -61,8 +61,8 @@ public class HP3PARApi {
     
     private static final String URI_CREATE_CG = "/api/v1/volumesets";
     private static final String URI_DELETE_CG = "/api/v1/volumesets/{0}";
-    private static final String URI_SNAPSHOT_CG = "/api/v1/volumes/{0}";
-    private static final String URI_CLONE_CG = "/api/v1/volumes/{0}";
+    private static final String URI_SNAPSHOT_CG = "/api/v1/volumesets/{0}";
+    private static final String URI_CLONE_CG = "/api/v1/volumesets/{0}";
     private static final String URI_UPDATE_CG = "/api/v1/volumesets/{0}";
     private static final String URI_CG_DETAILS = "/api/v1/volumesets/{0}";
     
@@ -863,12 +863,13 @@ public class HP3PARApi {
 		
 	}
 
-	public void createVVsetVirtualCopy(String nativeId, String displayName, Boolean readOnly) throws Exception {
+	public void createVVsetVirtualCopy(String nativeId, String snapshotName, Boolean readOnly) throws Exception {
 
 	        _log.info("3PARDriver:createVVsetVirtualCopy enter");
+	        _log.info(" 3PARDriver:createVVsetVirtualCopy CG name {} , CG snapshot name given {} ", nativeId,snapshotName);
 	        ClientResponse clientResp = null;
 	        
-	        String cgSnapshotString = displayName + "@count@";
+	        String cgSnapshotString = snapshotName + "@count@";
 	        // for snapshot creation 
 	        String payload = "{\"action\":\"createSnapshot\", \"parameters\": { \"name\": \"" + cgSnapshotString + "\" , \"readOnly\": " + readOnly +"} }";
 

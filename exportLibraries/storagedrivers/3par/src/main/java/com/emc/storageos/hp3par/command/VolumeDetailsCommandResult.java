@@ -4,8 +4,16 @@ public class VolumeDetailsCommandResult {
     private Long sizeMiB;
     private String wwn;
     private String uuid;
+    private String copyOf;
     
-    public Long getSizeMiB() {
+    
+    public String getCopyOf() {
+		return copyOf;
+	}
+	public void setCopyOf(String copyOf) {
+		this.copyOf = copyOf;
+	}
+	public Long getSizeMiB() {
         return sizeMiB;
     }
     public void setSizeMiB(Long sizeMiB) {

@@ -35,6 +35,7 @@ import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyUtils;
 import com.emc.storageos.api.service.impl.resource.utils.VirtualPoolChangeAnalyzer;
 import com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationController;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
+import com.emc.storageos.migrationorchestrationcontroller.MigrationOrchestrationController;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
@@ -407,10 +408,10 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
 
         try {
             // Orchestrate the virtual array change.
-            //MigrationOrchestrationController controller = getController(
-            //        MigrationOrchestrationController.class,
-            //        MigrationOrchestrationController.MIGRATION_ORCHESTRATION_DEVICE);
-            //controller.changeVirtualArray(descriptors, taskId);
+            MigrationOrchestrationController controller = getController(
+                    MigrationOrchestrationController.class,
+                    MigrationOrchestrationController.MIGRATION_ORCHESTRATION_DEVICE);
+            controller.changeVirtualArray(descriptors, taskId);
             _log.info("Successfully invoked migration orchestrator.");
         } catch (InternalException e) {
             _log.error("Controller error", e);
@@ -599,10 +600,10 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
      */
     private void orchestrateVPoolChanges(List<Volume> volumes, List<VolumeDescriptor> descriptors, String taskId) {
         try {
-            //MigrationOrchestrationController controller = getController(
-            //        MigrationOrchestrationController.class,
-            //        MigrationOrchestrationController.MIGRATION_ORCHESTRATION_DEVICE);
-            //controller.changeVirtualPool(descriptors, taskId);
+            MigrationOrchestrationController controller = getController(
+                    MigrationOrchestrationController.class,
+                    MigrationOrchestrationController.MIGRATION_ORCHESTRATION_DEVICE);
+            controller.changeVirtualPool(descriptors, taskId);
         } catch (InternalException e) {
             if (_log.isErrorEnabled()) {
                 _log.error("Controller error", e);

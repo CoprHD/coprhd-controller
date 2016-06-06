@@ -349,6 +349,7 @@ public abstract class CommandHandler {
 
     public static class QueryHandler extends CommandHandler {
         String id = null;
+        int count = 100;
 
         public QueryHandler(String[] args, DBClient client) {
             if (args.length < 3) {
@@ -359,13 +360,14 @@ public abstract class CommandHandler {
                 client.setShowModificationTime(true);
             }
 
-            cfName = args[args.length - 2];
-            id = args[args.length - 1];
+            cfName = args[args.length - 3];
+            id = args[args.length - 2];
+            count = Integer.parseInt(args[args.length - 1]);
         }
 
         @Override
         public void process(DBClient _client) throws Exception {
-            _client.query(id, cfName);
+            _client.query(id, cfName, count);
         }
     }
 

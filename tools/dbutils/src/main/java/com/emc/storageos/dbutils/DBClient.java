@@ -218,8 +218,22 @@ public class DBClient {
      * @param clazz
      * @param <T>
      */
-    private <T extends DataObject> void queryAndPrintRecord(URI id, Class<T> clazz) throws Exception {
+    private <T extends DataObject> void queryAndPrintRecord(URI id, Class<T> clazz, int total) throws Exception {
         T object = queryObject(id, clazz);
+        // hlj for test
+        if (object instanceof Host) {
+            Host host = (Host) object;
+            int count = 0;
+            System.out.println("start time: "+System.currentTimeMillis());
+            while (count < total) {
+                host.setLabel("hlj"+count);
+                _dbClient.createObject(host);
+                count++;
+            }
+            System.out.println("done: "+System.currentTimeMillis());
+            return;
+        }
+
 
         if (object == null) {
             // its deleted
@@ -363,12 +377,12 @@ public class DBClient {
      * @throws Exception
      */
     @SuppressWarnings("unchecked")
-    public void query(String id, String cfName) throws Exception {
+    public void query(String id, String cfName, int count) throws Exception {
         Class clazz = getClassFromCFName(cfName);
         if(clazz == null) {
             return;
         }
-        queryAndPrintRecord(URI.create(id), clazz);
+        queryAndPrintRecord(URI.create(id), clazz, count);
     }
 
     /**

@@ -6,7 +6,9 @@ import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.SimpleStatement;
+import com.datastax.driver.core.querybuilder.Batch;
 import com.datastax.driver.core.querybuilder.Delete;
+import com.datastax.driver.core.querybuilder.Insert;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.utils.UUIDs;
 import com.emc.storageos.db.client.model.NamedURI;
@@ -41,8 +43,11 @@ public class RowMutatorDS {
     private PreparedStatement deleteRecord;
 
     private BatchStatement recordAndIndexBatch;
+    private Batch unloggedBatch;
+    private String objectTableName;
 
     private UUID timeUUID;
+    private long timeCount = 0;
 
     public RowMutatorDS(Session session, String tableName) {
         this.session = session;
@@ -53,7 +58,9 @@ public class RowMutatorDS {
                 .value("column3", bindMarker())
                 .value("column4", bindMarker())
                 .value("value", bindMarker())).setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM);
-        this.recordAndIndexBatch = new BatchStatement();
+        //this.recordAndIndexBatch = new BatchStatement();//atomic batch
+        this.unloggedBatch = QueryBuilder.unloggedBatch();
+        this.objectTableName = tableName;
 
         this.timeUUID = UUIDs.timeBased();
     }
@@ -67,7 +74,7 @@ public class RowMutatorDS {
     public void addColumn(String recordKey, CompositeColumnName column, Object val) {
         // todo we should consider 'ttl'
         log.info("hlj, id={}, column={}, val={}, typeofval={}", recordKey, column, val, val.getClass());
-        BoundStatement insert = insertRecord.bind();
+        /*BoundStatement insert = insertRecord.bind();
         insert.setString("key", recordKey);
         // For PRIMARY KEY (key, column1, column2, column3, column4), the primary key cannot be null
         insert.setString("column1", column.getOne() == null ? StringUtils.EMPTY : column.getOne());
@@ -75,18 +82,24 @@ public class RowMutatorDS {
         insert.setString("column3", column.getThree() == null ? StringUtils.EMPTY : column.getThree());
         // todo when column4 is null, "Invalid null value for clustering key part column4" exception will be thrown, so we should set
         // column4 with an empty UUID here(but don't find how to). but below is timeBased() not empty.
-        insert.setUUID("column4", column.getTimeUUID() == null ? UUIDs.timeBased() : column.getTimeUUID());
+        insert.setUUID("column4", column.getTimeUUID() == null ? UUIDs.timeBased() : column.getTimeUUID());*/
         ByteBuffer blobVal = RowMutatorDS.getByteBufferFromPrimitiveValue(val);
-        insert.setBytes("value", blobVal);
-        log.info("hlj insert={}, blobval={}", insert, blobVal);
-        recordAndIndexBatch.add(insert);
+        //insert.setBytes("value", blobVal);
+        Insert regularInsert = insertInto(String.format("\"%s\"", objectTableName)).value("key", recordKey).value("column1", column.getOne() == null ? StringUtils.EMPTY : column.getOne()).value("column2", column.getTwo() == null ? StringUtils.EMPTY : column.getTwo()).value("column3", column.getThree() == null ? StringUtils.EMPTY : column.getThree()).value("column4", column.getTimeUUID() == null ? UUIDs.timeBased() : column.getTimeUUID()).value("value", blobVal);
+        //log.info("hlj insert={}, blobval={}", insert, blobVal);
+        //recordAndIndexBatch.add(insert);
+        //unloggedBatch.add(regularInsert);
+        long start = System.currentTimeMillis();
+        session.executeAsync(regularInsert);
+        long end = System.currentTimeMillis();
+        timeCount  += (end-start);
     }
 
     public void addIndexColumn(String tableName, String indexRowKey, IndexColumnName column, Object val) {
         log.info("hlj INDEX, rowKey={}, tableName={}, column={}, val={}, typeofval={}", indexRowKey, tableName, column, val,
                 val != null ? val.getClass() : null);
         // todo move to constructed method
-        PreparedStatement insertIndex = session.prepare(insertInto(String.format("\"%s\"", tableName))
+        /*PreparedStatement insertIndex = session.prepare(insertInto(String.format("\"%s\"", tableName))
                 .value("key", bindMarker())
                 .value("column1", bindMarker())
                 .value("column2", bindMarker())
@@ -104,8 +117,15 @@ public class RowMutatorDS {
         insert.setUUID("column5", column.getTimeUUID() == null ? UUIDs.timeBased() : column.getTimeUUID());
         ByteBuffer blobVal = RowMutatorDS.getByteBufferFromPrimitiveValue(val);
         insert.setBytes("value", blobVal);
-        log.info("hlj INDEX insert={}, blobval={}", insert, blobVal);
-        recordAndIndexBatch.add(insert);
+        log.info("hlj INDEX insert={}, blobval={}", insert, blobVal);*/
+        ByteBuffer blobVal = RowMutatorDS.getByteBufferFromPrimitiveValue(val);
+        Insert regularInsert = insertInto(String.format("\"%s\"", tableName)).value("key", indexRowKey).value("column1", column.getOne() == null ? StringUtils.EMPTY : column.getOne()).value("column2", column.getTwo() == null ? StringUtils.EMPTY : column.getTwo()).value("column3", column.getThree() == null ? StringUtils.EMPTY : column.getThree()).value("column4", column.getFour() == null ? StringUtils.EMPTY : column.getFour()).value("column5", column.getTimeUUID() == null ? UUIDs.timeBased() : column.getTimeUUID()).value("value", blobVal);
+        //recordAndIndexBatch.add(insert);
+        long start = System.currentTimeMillis();
+        session.executeAsync(regularInsert);
+        long end = System.currentTimeMillis();
+        timeCount  += (end-start);
+        //unloggedBatch.add(regularInsert);
     }
 
     public void deleteColumn(String tableName, String recordKey) {
@@ -166,9 +186,12 @@ public class RowMutatorDS {
     }
 
     public void execute() {
-        log.info("hlj in execute={} size={}", recordAndIndexBatch, recordAndIndexBatch.size());
-        session.execute(recordAndIndexBatch);
+        System.out.println("startexecute: "+System.currentTimeMillis());
+        log.info("hlj in execute={} ", unloggedBatch);
+        //session.executeAsync(unloggedBatch);
+        System.out.println("timecount: "+timeCount);
         log.info("hlj in execute done.");
+        System.out.println("done execute: " + System.currentTimeMillis());
     }
 
     public UUID getTimeUUID() {

@@ -1148,7 +1148,7 @@ public class DbClientImpl implements DbClient {
             }
             mutatorDS.execute();
         }
-        mutator.executeRecordFirst();
+        //mutator.executeRecordFirst();
 
         return objectsToCleanup;
     }

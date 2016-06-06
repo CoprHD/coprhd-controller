@@ -630,7 +630,7 @@ public class ColumnField {
                     break;
                 }
                 default:
-                    this.serialize(obj, mutator);
+                    //this.serialize(obj, mutator);
             }
 
             return changed;

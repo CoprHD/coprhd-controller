@@ -462,24 +462,20 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                               TaskCompleter taskCompleter) {
         Volume cloneObject = null;
         try {
+        	
         	cloneObject = dbClient.queryObject(Volume.class, clone);
-
-            Volume blockVol = dbClient.queryObject(Volume.class, volume);
-            BlockSnapshot blockSnap  = dbClient.queryObject(BlockSnapshot.class, volume);
-            BlockObject sourceVolume = null;
+            BlockObject sourceVolume = BlockObject.fetch(dbClient, volume);
             StorageVolume driverClone;
             StorageVolume driverCloneResult;
-            BlockObject newObject = dbClient.queryObject(BlockObject.class, volume);
             
-            if (blockVol != null) {
-            	sourceVolume = blockVol;
+            if (sourceVolume instanceof Volume) {
+
             	driverCloneResult = driverClone = new VolumeClone();
             	((VolumeClone) driverClone).setParentId(sourceVolume.getNativeId());
-            } else if (blockSnap != null) {
-            	sourceVolume = blockSnap;
+            } else if (sourceVolume instanceof BlockSnapshot) {
+
             	driverCloneResult = driverClone = new SnapshotClone();
             	((SnapshotClone) driverClone).setParentId(sourceVolume.getNativeId());
-            	
             } else {
             	
                 cloneObject.setInactive(true);
@@ -492,52 +488,47 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                 return;
             }
             
-            
             // Prepare driver clone
-//            VolumeClone driverClone = new VolumeClone();
-            
             driverClone.setStorageSystemId(storageSystem.getNativeId());
             driverClone.setDisplayName(cloneObject.getLabel());
             driverClone.setRequestedCapacity(cloneObject.getCapacity());
             driverClone.setThinlyProvisioned(cloneObject.getThinlyProvisioned());
-            
 
             // Call driver
             BlockStorageDriver driver = getDriver(storageSystem.getSystemType());
             DriverTask task ;
-            if (blockVol != null) {
-            	List<SnapshotClone> driverClones = new ArrayList<>();
-            	driverClones.add((SnapshotClone) driverClone);
-            	task = driver.createSnapshotClone(Collections.unmodifiableList(driverClones), null);
-            }
-            else {
+            if (sourceVolume instanceof Volume) {
             	List<VolumeClone> driverClones = new ArrayList<>();
             	driverClones.add((VolumeClone) driverClone);
             	task = driver.createVolumeClone(Collections.unmodifiableList(driverClones), null);
+            }
+            else {
+            	List<SnapshotClone> driverClones = new ArrayList<>();
+            	driverClones.add((SnapshotClone) driverClone);
+            	task = driver.createSnapshotClone(Collections.unmodifiableList(driverClones), null);
             }
           
             // todo: need to implement support for async case.
             if (task.getStatus() == DriverTask.TaskStatus.READY) {
                 // Update clone
-//                VolumeClone driverCloneResult = driverClones.get(0);
                 cloneObject.setNativeId(driverCloneResult.getNativeId());
                 cloneObject.setWWN(driverCloneResult.getWwn());
                 cloneObject.setDeviceLabel(driverCloneResult.getDeviceLabel());
                 cloneObject.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(dbClient, cloneObject));
-                if (blockVol != null) {
-                	cloneObject.setReplicaState(((SnapshotClone) driverCloneResult).getReplicationState().name());                	
+                if (sourceVolume instanceof Volume) {
+                	cloneObject.setReplicaState(((VolumeClone) driverCloneResult).getReplicationState().name());                	
                 } else{
-                	cloneObject.setReplicaState(((VolumeClone) driverCloneResult).getReplicationState().name());
+                	cloneObject.setReplicaState(((SnapshotClone) driverCloneResult).getReplicationState().name());
                 }
                 
                 cloneObject.setProvisionedCapacity(driverCloneResult.getProvisionedCapacity());
                 cloneObject.setAllocatedCapacity(driverCloneResult.getAllocatedCapacity());
                 cloneObject.setInactive(false);
                 dbClient.updateObject(cloneObject);
-
                 String msg = String.format("doCreateClone -- Created volume clone: %s .", task.getMessage());
                 _log.info(msg);
                 taskCompleter.ready(dbClient);
+                
             } else {
                 cloneObject.setInactive(true);
                 dbClient.updateObject(cloneObject);

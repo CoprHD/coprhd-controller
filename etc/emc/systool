@@ -360,11 +360,23 @@ _write_props_file() {
 # 1. ip related file in data fs
 # 2. non-ip related file in boot fs 
 _set_vdc_props() {
-    # de-couple ip related properties and site_ids into dedicated ip prop file
+    # set IP related properties into dedicated IP prop file
     _set_ip_props "${1}"
     sed -i '/^vdc_vdc/d' "${1}"
 
-   # put all other vdc properties into vdc property file 
+    # remove the IP related properties of current VDC(multiple sites) from tmp vdc property file
+    declare -A newVdcPropMap
+    while read -r line
+    do
+      [[ "$line" != *=* ]] && continue
+      IFS='=' read -ra pair <<< "$line"
+      newVdcPropMap[${pair[0]}]=${pair[1]}
+    done < "${1}"
+    vdc_myid=${newVdcPropMap["vdc_myid"]}
+    currVdcPropPrefix="vdc_"${vdc_myid}
+    sed -i "/^${currVdcPropPrefix}_site[1-9]/d" "${1}"
+
+    # put all other vdc properties into vdc property file 
     _write_props_file "${1}" "${bootfs_vdc_props}"
 }
 
@@ -393,9 +405,12 @@ _set_ip_props() {
       IFS='=' read -ra pair <<< "$line"
       newVdcPropMap[${pair[0]}]=${pair[1]}
     done < "${1}"
+    vdc_myid=${newVdcPropMap["vdc_myid"]}
+    currVdcPropPrefix="vdc_"${vdc_myid}
 
     # 2. load original cluster ip properties if exists
     declare -A origIpPropMap
+    origSiteIdsArray=()
     if [ -e "${datafs_ip_props}" ]; then
         while read -r line
         do
@@ -403,17 +418,17 @@ _set_ip_props() {
           IFS='=' read -ra pair <<< "$line"
           origIpPropMap[${pair[0]}]=${pair[1]}
         done < "${datafs_ip_props}"
+
+        # get original siteId array for current VDC
+        while read -r -d $'\n'; do
+            origSiteIdsArray+=("$REPLY")
+        done < <(cat ${datafs_ip_props} | grep ${currVdcPropPrefix} | cut -d'_' -f3 | sort -u)
     fi
 
-    # 3. If sites are not changed, no need to update IP prop file
+    # 3. If local VDC's sites are not changed, no need to update IP prop file
     # 3.1 sort original site IDs
-    origSiteIdsArray=()
-    while read -r -d $'\n'; do
-        # TODO: enable it for vdc_vdcX_site_ids
-        # [ "$REPLY" = "site" ] && continue;
-        origSiteIdsArray+=("$REPLY")
-    done < <(cat ${datafs_ip_props} | grep 'vdc_vdc' | cut -d'_' -f3 | sort -u)
     count=0
+    orig_sites_ids=""
     for origSiteId in "${origSiteIdsArray[@]}"; do
         if [ $count -eq 0 ]; then
             orig_sites_ids=${origSiteId}

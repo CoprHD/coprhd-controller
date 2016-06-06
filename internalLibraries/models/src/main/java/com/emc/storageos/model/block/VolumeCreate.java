@@ -73,7 +73,7 @@ public class VolumeCreate extends PassThroughParam{
      * established, the snapshot operations for any volume in
      * the group would apply to all volumes in the group.
      * 
-     * @valid example: Currently not supported for VMAX volumes.
+     * valid example: Currently not supported for VMAX volumes.
      */
     @XmlElement(name = "consistency_group")
     public URI getConsistencyGroup() {
@@ -87,7 +87,7 @@ public class VolumeCreate extends PassThroughParam{
     /**
      * Number of volumes to be created.
      * 
-     * @valid none
+     * valid none
      */
     @XmlElement(name = "count")
     public Integer getCount() {
@@ -101,8 +101,8 @@ public class VolumeCreate extends PassThroughParam{
     /**
      * Name with which the volume is to be created.
      * 
-     * @valid minimum of 2 characters
-     * @valid maximum of 128 characters
+     * valid minimum of 2 characters
+     * valid maximum of 128 characters
      */
     @XmlElement(required = true)
     @Length(min = 2, max = 128)
@@ -117,7 +117,7 @@ public class VolumeCreate extends PassThroughParam{
     /**
      * The ViPR project to which the volume will belong.
      * 
-     * @valid example: a valid URI of a ViPR project
+     * valid example: a valid URI of a ViPR project
      */
     @XmlElement(required = true)
     public URI getProject() {
@@ -131,7 +131,7 @@ public class VolumeCreate extends PassThroughParam{
     /**
      * Size of the volume (in GB) to be created.
      * 
-     * @valid none
+     * valid none
      */
     @XmlElement(required = true)
     public String getSize() {
@@ -145,7 +145,7 @@ public class VolumeCreate extends PassThroughParam{
     /**
      * The virtual array to which the volume will belong.
      * 
-     * @valid example: a valid URI of a varray
+     * valid example: a valid URI of a varray
      */
     @XmlElement(required = true)
     public URI getVarray() {
@@ -159,7 +159,7 @@ public class VolumeCreate extends PassThroughParam{
     /**
      * The virtual pool to which the volume will belong.
      * 
-     * @valid example: a valid URI of a vpool
+     * valid example: a valid URI of a vpool
      */
     @XmlElement(required = true)
     public URI getVpool() {

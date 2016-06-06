@@ -5,6 +5,7 @@
 package com.emc.vipr.model.sys.ipreconfig;
 
 import com.emc.storageos.model.property.PropertyConstants;
+import org.codehaus.jackson.annotate.JsonIgnore;
 
 import java.io.*;
 import java.util.Map;
@@ -134,6 +135,7 @@ public class SiteIpInfo implements Serializable {
         ipv6_setting.loadFromPropertyMap(propMap);
     }
 
+    @JsonIgnore
     public boolean isDefault() {
         if (ipv4_setting.isDefault() && ipv6_setting.isDefault()) {
             return true;
@@ -191,6 +193,7 @@ public class SiteIpInfo implements Serializable {
         return errmsg;
     }
 
+    @JsonIgnore
     public int getNodeCount() {
         int nodeCount = ipv4_setting.getNetworkAddrs().size();
         if (nodeCount == 0) {

@@ -5,6 +5,7 @@
 package com.emc.vipr.model.sys.ipreconfig;
 
 import com.emc.storageos.model.property.PropertyConstants;
+import org.codehaus.jackson.annotate.JsonIgnore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -192,6 +193,7 @@ public class ClusterIpInfo implements Serializable {
      *
      * @return
      */
+    @JsonIgnore
     public boolean isDuplicated() {
         List<String> list = new ArrayList<String>();
 

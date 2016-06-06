@@ -152,6 +152,12 @@ public class FileUtils {
         }
     }
 
+    /**
+     * read properties from propertyFile
+     * @param propertyFile
+     * @return
+     * @throws Exception
+     */
     public static Properties readProperties(String propertyFile) throws Exception {
         Properties props = new Properties();
         InputStream in = null;
@@ -181,6 +187,12 @@ public class FileUtils {
         return props;
     }
 
+    /**
+     * write properties to propertyFile
+     * @param propertyFile
+     * @param props
+     * @throws Exception
+     */
     public static void writeProperties(String propertyFile, Properties props) throws Exception {
         File f = null;
         OutputStream out = null;
@@ -252,6 +264,11 @@ public class FileUtils {
         }
     }
 
+    /**
+     * modify acl for the target file
+     * @param file target file
+     * @param faclperm acl permission. e.g. "u:storageos:r"
+     */
     public static void setfacl(File file, String faclperm) {
         if (file == null || file.exists() == false) {
             return;

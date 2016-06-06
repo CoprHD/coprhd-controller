@@ -8340,6 +8340,9 @@ ipreconfig_test()
 {
     active_site_ip=${1}
 
+    # env var DR_IPRECONFIG is required to run ipreconfig test during dr sanity
+    [ -z ${DR_IPRECONFIG} ] && return;
+
     currIpinfo=$(iptool query --vip "${active_site_ip}" 2>&1| grep ^vdc_vdc)
     [ -z $currIpinfo ] && { echo -n "Failed to query cluster ip. Errstr:"; echo $currIpinfo; exit 1; }
 

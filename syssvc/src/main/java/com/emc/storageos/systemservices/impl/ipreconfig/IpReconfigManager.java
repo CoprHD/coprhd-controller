@@ -45,7 +45,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 public class IpReconfigManager implements Runnable {
     private static final Logger log = LoggerFactory.getLogger(IpReconfigManager.class);
     private static Charset UTF_8 = Charset.forName("UTF-8");
-    private static final long IPRECONFIG_TIMEOUT = 24 * 60 * 60 * 1000; // 24 hours timeout for the procedure. TODO: suitable for DR?
+    private static final long IPRECONFIG_TIMEOUT = 24 * 60 * 60 * 1000; // 24 hours timeout for the procedure
     private static final long POLL_INTERVAL = 10 * 1000; // 10 second polling interval
     private static final String UPDATE_ZKIP_LOCK = "update_zkip";
     private static final String CONFIG_KIND = "promiscnetwork";
@@ -87,6 +87,10 @@ public class IpReconfigManager implements Runnable {
 
     private Properties ipProperties = null;    // current ip properties of all sites
 
+    /**
+     * load cluster IP info from IP prop file and ZK (for netmask etc.) if necessary.
+     * @return
+     */
     public Map<String, String> getIpProps() {
         // 1. Load cluster network property file
         try {
@@ -394,7 +398,6 @@ public class IpReconfigManager implements Runnable {
                     target_nodestatus = IpReconfigConstants.NodeStatus.CLUSTER_SUCCEED;
                     if (isReadyForNextStatus(localnode_status, target_nodestatus)) {
                         assureIPConsistent(false);
-                        FileUtils.deleteFile(IpReconfigConstants.NODESTATUS_PATH);
                     }
                     break;
                 default:
@@ -460,9 +463,10 @@ public class IpReconfigManager implements Runnable {
      * @throws Exception
      */
     private void setSucceed() throws Exception {
-        log.info("Succeed to reconfig cluster ip!");
+        log.info("Succeed to reconfig cluster IPs!");
         setStatus(ClusterNetworkReconfigStatus.Status.SUCCEED);
         FileUtils.deleteFile(IpReconfigConstants.NODESTATUS_PATH);
+
         // Avoid using not-uptodate old IPs to rollback after DR sites addition/removal etc.
         FileUtils.deleteFile(IpReconfigConstants.OLDIP_PATH);
         bNeedRefresh = true;
@@ -475,7 +479,7 @@ public class IpReconfigManager implements Runnable {
      * @throws Exception
      */
     private void setFailed(String error) throws Exception {
-        log.error("ipreconfig failed. Error: {}", error);
+        log.error("Failed to reconfig cluster IPs. Error: {}", error);
         config.setConfig(IpReconfigConstants.CONFIG_STATUS_KEY, ClusterNetworkReconfigStatus.Status.FAILED.toString());
         config.setConfig(IpReconfigConstants.CONFIG_ERROR_KEY, error);
         _coordinator.getCoordinatorClient().persistServiceConfiguration(config);
@@ -902,7 +906,7 @@ public class IpReconfigManager implements Runnable {
                 config = _coordinator.getCoordinatorClient().queryConfiguration(IpReconfigConstants.CONFIG_KIND, IpReconfigConstants.CONFIG_ID);
                 if (config != null) {
                     if (isSucceed(config)) {
-                        log.info("new IPs has been set succesfully by other nodes.");
+                        log.info("new IPs has been set successfully by other nodes.");
                         return;
                     }
                 }
@@ -965,10 +969,10 @@ public class IpReconfigManager implements Runnable {
                 }
             }
 
-            _coordinator.getCoordinatorClient().commitTransaction();
             if (!force) {
                 setSucceed();
             }
+            _coordinator.getCoordinatorClient().commitTransaction();
             log.info("Finished update local site IPs into ZK");
         } catch (Exception e) {
             log.warn("Unexpected exception during updating local site IPs into ZK", e);

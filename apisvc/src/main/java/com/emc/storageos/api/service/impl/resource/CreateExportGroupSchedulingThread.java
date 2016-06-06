@@ -103,14 +103,7 @@ class CreateExportGroupSchedulingThread implements Runnable {
             // push it to storage devices
         	BlockExportController exportController = this.exportGroupService.getExportController();
             _log.info("createExportGroup request is submitted.");
-            if (project == null && virtualArray == null) {
-            	//This is pass through export
-            	task = task + "direct";
-            	exportController.exportGroupCreate(exportGroup.getId(), volumeMap, affectedInitiators, task);
-            }
-            else {
-            	exportController.exportGroupCreate(exportGroup.getId(), volumeMap, affectedInitiators, task);
-            }
+            exportController.exportGroupCreate(exportGroup.getId(), volumeMap, affectedInitiators, task);
         } catch (Exception ex) {
             if (ex instanceof ServiceCoded) {
                 this.exportGroupService._dbClient.error(ExportGroup.class, taskRes.getResource().getId(), taskRes.getOpId(),

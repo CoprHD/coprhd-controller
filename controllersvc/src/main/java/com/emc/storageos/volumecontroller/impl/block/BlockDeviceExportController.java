@@ -96,17 +96,16 @@ public class BlockDeviceExportController implements BlockExportController {
             List<URI> initiatorURIs, String opId)
             throws ControllerException {
     	boolean passThroughFlag = false;
-    	if(opId.endsWith("direct")) {
-    		passThroughFlag = true;
-    		opId = opId.substring(0, opId.length() - 6);
-    	}
-        ExportTaskCompleter taskCompleter = new ExportCreateCompleter(export, opId);
+    	ExportTaskCompleter taskCompleter = new ExportCreateCompleter(export, opId);
         Workflow workflow = null;
         try {
             // Do some initial sanitizing of the export parameters
             StringSetUtil.removeDuplicates(initiatorURIs);
             workflow = _wfUtils.newWorkflow("exportGroupCreate", false, opId);
             ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, export);
+            if(exportGroup.getProject() == null && exportGroup.getVirtualArray() == null) {
+            	passThroughFlag = true;
+            }
 
             Map<URI, Map<URI, Integer>> storageToVolumes =
                     getStorageToVolumeMap(volumeMap);

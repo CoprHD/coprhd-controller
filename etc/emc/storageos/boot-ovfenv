@@ -93,9 +93,19 @@ _handleClusterIPs() {
     date >> /var/log/boot-ovfenv.log
 
     if [ ! -e "${datafs_ip_props}" ]; then
-        # fresh-installation, no IP prop file yet
-        echo "No need to handle cluster IPs during fresh installation." >> /var/log/boot-ovfenv.log
-        return
+        if [ ! -e "${bootfs_vdc_props}" ]; then
+            # 1. Fresh-installation scenario: no IP prop file yet, Sysvc vdcPropMgr would write initialize vdc prop and ip prop file during 1st bootup.
+            echo "No need to handle cluster IPs during fresh installation." >> /var/log/boot-ovfenv.log
+            return
+        else
+            # 2. Upgrade scenario: handle vdc&ip prop de-couple.
+            echo "Handling cluster IPs decoupling for upgrade scenario ..." >> /var/log/boot-ovfenv.log
+            tmp_bootfs_vdc_props="/tmp/vdcconfig.properties"
+            cp -f "${bootfs_vdc_props}" "${tmp_bootfs_vdc_props}"
+            /etc/systool --setvdcprops "${tmp_bootfs_vdc_props}"
+            rm -f "${tmp_bootfs_vdc_props}"
+            return
+        fi
     fi
 
     # 0. load current vdc prop file

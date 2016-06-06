@@ -635,6 +635,11 @@ public enum ServiceCode {
     EXTERNALDEVICE_ADD_EXPORT_MASK_INITIATORS_ERROR(66020),
     EXTERNALDEVICE_REMOVE_EXPORT_MASK_INITIATORS_ERROR(66021),
 
+    // Ceph errors (67000 - 67999)
+    CEPH_CONNECTION_ERROR(67000),
+    CEPH_OPERATION_EXCEPTION(67001),
+    CEPH_INVALID_CREDENTIALS_ERROR(67002),
+
     // ****************************
     // Old style of Service codes
     // ****************************

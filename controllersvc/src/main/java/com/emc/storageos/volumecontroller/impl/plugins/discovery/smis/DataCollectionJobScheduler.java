@@ -44,6 +44,7 @@ import com.emc.storageos.hds.api.HDSApiFactory;
 import com.emc.storageos.model.property.PropertyConstants;
 import com.emc.storageos.services.util.PlatformUtils;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
+import com.emc.storageos.volumecontroller.impl.ceph.CephUtils;
 import com.emc.storageos.volumecontroller.impl.cinder.CinderUtils;
 import com.emc.storageos.volumecontroller.impl.datadomain.DataDomainUtils;
 import com.emc.storageos.volumecontroller.impl.hds.prov.utils.HDSUtils;
@@ -852,6 +853,11 @@ public class DataCollectionJobScheduler {
                 _dbClient, xioClientFactory));
 
         activeProviderURIs.addAll(ScaleIOStorageDevice.getInstance().refreshConnectionStatusForAllSIOProviders());
+
+        activeProviderURIs.addAll(CephUtils.refreshCephConnections(
+                CustomQueryUtility.getActiveStorageProvidersByInterfaceType(
+                        _dbClient, StorageProvider.InterfaceType.ceph.name()),
+                _dbClient));
 
         return activeProviderURIs;
     }

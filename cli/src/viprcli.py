@@ -75,6 +75,7 @@ import objectuser
 import requests
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
+from requests.packages.urllib3.exceptions import InsecurePlatformWarning
 warnings.filterwarnings(
     'ignore',
     message='BaseException.message has been deprecated as of Python 2.6',
@@ -190,6 +191,7 @@ network.network_parser(module_parsers, common_parser)
 
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
+requests.packages.urllib3.disable_warnings(InsecurePlatformWarning)
 
 # Parse Command line Arguments and execute the corresponding routines
 try:

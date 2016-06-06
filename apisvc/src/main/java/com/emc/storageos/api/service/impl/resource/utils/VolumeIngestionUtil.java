@@ -1584,7 +1584,8 @@ public class VolumeIngestionUtil {
         StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, mask.getStorageSystemUri());
         boolean portsValid = true;
         if (storageSystem != null) {
-            if (storageSystem.getSystemType().equalsIgnoreCase(SystemType.xtremio.toString())) {
+            if (storageSystem.getSystemType().equalsIgnoreCase(SystemType.xtremio.toString()) ||
+                    storageSystem.getSystemType().equalsIgnoreCase(SystemType.unity.toString())) {
                 portsValid = diff.size() < portsInUnManagedMask.size();
             } else {
                 portsValid = diff.isEmpty();
@@ -3863,6 +3864,10 @@ public class VolumeIngestionUtil {
             BlockConsistencyGroup cg = new BlockConsistencyGroup();
             cg.setId(URIUtil.createId(BlockConsistencyGroup.class));
             cg.setLabel(cgName);
+            if (NullColumnValueGetter.isNotNullValue(umcg.getNativeId())) {
+                cg.setNativeId(umcg.getNativeId());
+            }
+
             cg.setProject(new NamedURI(projectUri, context.getProject().getLabel()));
             cg.setTenant(context.getProject().getTenantOrg());
             cg.addConsistencyGroupTypes(Types.LOCAL.name());

@@ -565,14 +565,15 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // Set the project and tenant to those of an underlying volume.
                 // These are used to set the project and tenant of a new ExportGroup if needed.
                 Volume firstVolume = volumeMap.values().iterator().next();
-                URI projectURI = firstVolume.getProject().getURI();
-                URI tenantURI = firstVolume.getTenant().getURI();
+                Project vplexProject = VPlexUtil.lookupVplexProject(firstVolume, vplexSystem, _dbClient);
+                URI tenantURI = vplexProject.getTenantOrg().getURI();
+                _log.info("Project is {}, Tenant is {}", vplexProject.getId(), tenantURI);
 
                 try {
                     // Now we need to do the necessary zoning and export steps to ensure
                     // the VPlex can see these new backend volumes.
                     lastStep = createWorkflowStepsForBlockVolumeExport(workflow, vplexSystem, arrayMap,
-                            volumeMap, projectURI, tenantURI, lastStep);
+                            volumeMap, vplexProject.getId(), tenantURI, lastStep);
                 } catch (Exception ex) {
                     _log.error("Could not create volumes for vplex: " + vplexURI, ex);
                     TaskCompleter completer = new VPlexTaskCompleter(Volume.class, vplexURI,
@@ -1768,6 +1769,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
         blockObjectMap = filteredBlockObjectMap;
         _log.info("object map after filtering for this VPLEX: " + blockObjectMap);
+
+        // validate volume to lun map to make sure there aren't any duplicate LUN entries
+        ExportUtils.validateExportGroupVolumeMap(exportGroup.getLabel(), blockObjectMap);
 
         VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplexSystem, _dbClient);
 
@@ -5008,16 +5012,17 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             String waitFor = _blockDeviceController.addStepsForCreateVolumes(workflow,
                     null, descriptors, wfId);
 
-            // Set the project and tenant.
+            // Set the project and tenant. We prefer a project created for the Vplex system,
+            // but will fallback to the volume's project if there isn't a project for the VPlex.
             Volume firstVolume = volumeMap.values().iterator().next();
-            URI projectURI = firstVolume.getProject().getURI();
-            URI tenantURI = firstVolume.getTenant().getURI();
-            _log.info("Project is {}, Tenant is {}", projectURI, tenantURI);
+            Project vplexProject = VPlexUtil.lookupVplexProject(firstVolume, vplexSystem, _dbClient);
+            URI tenantURI = vplexProject.getTenantOrg().getURI();
+            _log.info("Project is {}, Tenant is {}", vplexProject.getId(), tenantURI);
 
             // Now we need to do the necessary zoning and export steps to ensure
             // the VPlex can see these new backend volumes.
             createWorkflowStepsForBlockVolumeExport(workflow, vplexSystem,
-                    storageSystemMap, volumeMap, projectURI, tenantURI, waitFor);
+                    storageSystemMap, volumeMap, vplexProject.getId(), tenantURI, waitFor);
             _log.info("Created workflow steps for volume export.");
 
             // Now make a migration Step for each passed target to which data
@@ -5162,12 +5167,12 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             // Set the project and tenant.
             Volume firstVolume = volumeMap.values().iterator().next();
-            URI projectURI = firstVolume.getProject().getURI();
-            URI tenantURI = firstVolume.getTenant().getURI();
-            _log.info("Project is {}, Tenant is {}", projectURI, tenantURI);
+            Project vplexProject = VPlexUtil.lookupVplexProject(firstVolume, vplexSystem, _dbClient);
+            URI tenantURI = vplexProject.getTenantOrg().getURI();
+            _log.info("Project is {}, Tenant is {}", vplexProject.getId(), tenantURI);
 
             waitFor = createWorkflowStepsForBlockVolumeExport(workflow, vplexSystem,
-                    storageSystemMap, volumeMap, projectURI, tenantURI, waitFor);
+                    storageSystemMap, volumeMap, vplexProject.getId(), tenantURI, waitFor);
             _log.info("Created workflow steps for volume export.");
 
             // Now make a migration Step for each passed target to which data

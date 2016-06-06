@@ -1499,8 +1499,10 @@ public class CoordinatorClientExt {
                     return new Thread(r, "DbsvcQuorumMonitor");
                 }
             });
+            // delay for a period of time for start db quorum monitor. For sometimes when active site start after sudden poweroff
+            // there may be stale standby sites' service beacons which may mislead monitor thread, wait 3 mins for them to disappear
             exe.scheduleAtFixedRate(new DbsvcQuorumMonitor(_coordinator),
-                    0, DB_MONITORING_INTERVAL, TimeUnit.SECONDS);
+                    3 * DB_MONITORING_INTERVAL, DB_MONITORING_INTERVAL, TimeUnit.SECONDS);
         }
 
         Thread drNetworkMonitorThread = new Thread(drSiteNetworkMonitor);

@@ -88,9 +88,9 @@ public class PrefixDbIndex extends DbIndex {
     public String getRowKey(String value) {
         if (value.length() < minPrefixChars) {
             _log.warn("Value is too short for prefix index : {}", value);
-            return value;        
+            return value;
         }
-        
+
         return value.toLowerCase().substring(0, minPrefixChars);
     }
 

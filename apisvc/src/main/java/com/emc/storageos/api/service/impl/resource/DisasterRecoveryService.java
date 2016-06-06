@@ -454,6 +454,7 @@ public class DisasterRecoveryService {
             isActiveSite.setIsActive(localSite.getState() == SiteState.ACTIVE);
             isActiveSite.setLocalSiteName(localSite.getName());
             isActiveSite.setLocalUuid(localSite.getUuid());
+            isActiveSite.setIsMultiSite(drUtil.isMultisite());
             return isActiveSite;
         } catch (Exception e) {
             log.error("Can't get site is Active or Standby");
@@ -1296,18 +1297,6 @@ public class DisasterRecoveryService {
 
         List<Site> allStandbySites = drUtil.listStandbySites();
 
-        for (Site site : allStandbySites) {
-            if (!site.getUuid().equals(uuid)) {
-                try (InternalSiteServiceClient client = new InternalSiteServiceClient(site)) {
-                    client.setCoordinatorClient(coordinator);
-                    client.setKeyGenerator(apiSignatureGenerator);
-                    client.failoverPrecheck();
-                } catch (Exception e){
-                    log.error("Failed to do failover precheck for site {}, ignore it for failover", site.toBriefString());
-                }
-            }
-        }
-
         try {
             coordinator.startTransaction();
             // set state
@@ -1504,14 +1493,6 @@ public class DisasterRecoveryService {
         return false;
     }
 
-    private Date getLastSyncTime(Site site) {
-        SiteMonitorResult monitorResult = coordinator.getTargetInfo(site.getUuid(), SiteMonitorResult.class);
-        if (monitorResult != null && monitorResult.getDbQuorumLastActive() != 0) {
-            return new Date(monitorResult.getDbQuorumLastActive());
-        } 
-        return null;
-    }
-
     /**
      * Query the details, such as transition timings, for specific standby site
      * 
@@ -1533,7 +1514,7 @@ public class DisasterRecoveryService {
             standbyDetails.setCreationTime(new Date(standby.getCreationTime()));
             Double latency = drUtil.getSiteNetworkState(uuid).getNetworkLatencyInMs();
             standbyDetails.setNetworkLatencyInMs(latency);
-            Date lastSyncTime = getLastSyncTime(standby);
+            Date lastSyncTime = drUtil.getLastSyncTime(standby);
             if (lastSyncTime != null) {
                 standbyDetails.setLastSyncTime(lastSyncTime);
             }
@@ -1798,12 +1779,39 @@ public class DisasterRecoveryService {
         }
 
         // should be PAUSED, either marked by itself or user
-        if (standby.getState() != SiteState.STANDBY_PAUSED) {
+        // Also allow user to failover to an ACTIVE_DEGRADED site
+        if (standby.getState() != SiteState.STANDBY_PAUSED && standby.getState() != SiteState.ACTIVE_DEGRADED) {
             throw APIException.internalServerErrors.failoverPrecheckFailed(standby.getName(),
                     "Please wait for this site to recognize the Active site is down and automatically switch to a Paused state before failing over.");
         }
 
+        // Need to check every site state via HMAC way when failing over to ACTIVE_DEGRADED site
+        if (standby.getState() == SiteState.ACTIVE_DEGRADED) {
+            for (Site site : drUtil.listSites()) {
+                if (!site.getUuid().equals(drUtil.getLocalSite().getUuid()) && isSiteAvailable(site)) {
+                    throw APIException.internalServerErrors.failoverPrecheckFailed(standby.getName(),
+                            String.format("Site %s is available, so it's not allowed to failover to an ACTIVE_DEGRADED site", site.getName()));
+                }
+            }
+        }
+
         precheckForFailover();
+    }
+
+    /**
+     * Reuse /site/internal/list API to check if it can return result correctly
+     * @return true if result can be returned correctly, otherwise return false
+     */
+    private boolean isSiteAvailable(Site site) {
+        try (InternalSiteServiceClient client = new InternalSiteServiceClient(site, coordinator, apiSignatureGenerator)) {
+            SiteList sites = client.getSiteList();
+            if (!sites.getSites().isEmpty()) {
+                return true;
+            }
+        } catch (Exception e) {
+            log.warn("Error happened when trying to get sites from site {} via HMAC way", site.getUuid(), e);
+        }
+        return false;
     }
 
     void precheckForFailover() {
@@ -2118,7 +2126,9 @@ public class DisasterRecoveryService {
                 List<Site> standbySites = drUtil.listStandbySites();
                 
                 Site localSite = drUtil.getLocalSite();
+                SiteState lastState = localSite.getState();
                 localSite.setState(SiteState.ACTIVE_DEGRADED);
+                localSite.setLastState(lastState);
                 coordinator.persistServiceConfiguration(localSite.toConfiguration());
                 
                 for (Site standbySite : standbySites) {
@@ -2127,7 +2137,7 @@ public class DisasterRecoveryService {
                         coordinator.persistServiceConfiguration(standbySite.toConfiguration());
                     }
                 }
-                
+
                 // At this moment this site is disconnected with others, so ok to have own vdc version.
                 drUtil.updateVdcTargetVersion(coordinator.getSiteId(), SiteInfo.DR_OP_FAILBACK_DEGRADE, DrUtil.newVdcConfigVersion());
 

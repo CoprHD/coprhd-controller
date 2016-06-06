@@ -16,6 +16,7 @@ import javax.xml.bind.annotation.XmlElementWrapper;
 import com.emc.storageos.model.property.PropertyConstants;
 import com.emc.storageos.model.valid.Range;
 import com.google.common.net.InetAddresses;
+import org.codehaus.jackson.annotate.JsonIgnore;
 
 /**
  * Physical Site Ipv6 Information
@@ -169,6 +170,7 @@ public class SiteIpv6Setting implements Serializable {
         }
     }
 
+    @JsonIgnore
     public boolean isDefault() {
         if (network_vip6.equals(PropertyConstants.IPV6_ADDR_DEFAULT)) {
             return true;
@@ -189,6 +191,7 @@ public class SiteIpv6Setting implements Serializable {
      * 
      * @return
      */
+    @JsonIgnore
     public boolean isValid() {
         if (!validateIpv6Addr(network_vip6)) {
             return false;
@@ -218,6 +221,7 @@ public class SiteIpv6Setting implements Serializable {
      * 
      * @return
      */
+    @JsonIgnore
     public boolean isDuplicated() {
         if (isDefault()) {
             return false;
@@ -242,6 +246,7 @@ public class SiteIpv6Setting implements Serializable {
      * 
      * @return true if on the same net false otherwise
      */
+    @JsonIgnore
     public boolean isOnSameNetworkIPv6() {
         List<String> list = new ArrayList<String>();
         list.add(network_gateway6);

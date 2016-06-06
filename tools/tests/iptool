@@ -10,7 +10,7 @@ import os
 from bourne import Bourne
 
 #----------------------------------------------------------------------
-# audit cli functions
+# iptool cli functions
 #----------------------------------------------------------------------
 
 def clusterip_query(args):

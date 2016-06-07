@@ -111,7 +111,7 @@ public class DiscoveredDataObject extends DataObject {
                 types.put(typeName, new Type(typeName, types.values().size()));
                 return types.get(typeName);
             } else {
-                throw new IllegalArgumentException("Class "+ Type.class.getSimpleName() + "does not have member: " +typeName);
+                throw new IllegalArgumentException("Class "+ Type.class.getSimpleName() + " does not have member: " +typeName);
             }
         }
 

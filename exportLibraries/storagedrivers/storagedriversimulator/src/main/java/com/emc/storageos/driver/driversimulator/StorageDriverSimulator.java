@@ -902,7 +902,7 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
     public DriverTask discoverStorageProvider(StorageProvider storageProvider, List<StorageSystem> storageSystems) {
 
         StorageSystem providerSystem = new StorageSystem();
-        providerSystem.setSystemType("providersystem");
+        providerSystem.setSystemType("driversystem");
         providerSystem.setNativeId("providerSystem-1");
         providerSystem.setSerialNumber("1234567-1");
         providerSystem.setFirmwareVersion("1.2.3");
@@ -915,7 +915,7 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
         String msg = "Discovered provider: " + storageProvider.getProviderName();
         task.setMessage(msg);
         _log.info(msg);
-        
+
         return task;
     }
 

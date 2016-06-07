@@ -3138,15 +3138,18 @@ public class RecoverPointScheduler implements Scheduler {
         _log.info(String.format("RP Placement: Trying to determine if RP cluster [%s - %s] can protect to Target varray[%s](%s) "
                 + "for Storage System [%s](%s).",                
                 actualSourceRPSiteName, sourceInternalSiteName,
-                targetVarray.getLabel(), targetVarray.getId(),
-                targetStorageSystem.getLabel(), targetStorageSystem.getId()));
+                (targetVarray != null) ? targetVarray.getLabel() : "target varray is null",
+                (targetVarray != null) ? targetVarray.getId() : "target varray is null",        
+                (targetStorageSystem != null) ? targetStorageSystem.getLabel() : "target StorageSystem is null",
+                (targetStorageSystem != null) ? targetStorageSystem.getId() : "target StorageSystem is null"));
 
         Set<URI> vplexs = null;
         // If this is an RP+VPLEX or MetroPoint request, we need to find the VPLEX(s). We are only interested in
         // connectivity between the RP Sites and the VPLEX(s). The backend Storage Systems are irrelevant in this case.
         if (isRPVPlex) {
             _log.info(String.format("RP Placement: Storage System [%s](%s) is fronted by VPLEX. Only considering VPLEX for RP connectivity.",
-                    targetStorageSystem.getLabel(), targetStorageSystem.getId()));  
+                    (targetStorageSystem.getLabel() != null) ? targetStorageSystem.getLabel() : "target StorageSystem label missing",
+                    (targetStorageSystem.getId() != null) ? targetStorageSystem.getId() : "target StorageSystem id missing"));  
             // Find the VPLEX(s) associated to the Storage System (derived from Storage Pool) and varray
             vplexs = ConnectivityUtil.getVPlexSystemsAssociatedWithArray(dbClient, targetPool.getStorageDevice(),
                     new HashSet<String>(Arrays.asList(targetVarray.getId().toString())), null);
@@ -3195,7 +3198,8 @@ public class RecoverPointScheduler implements Scheduler {
             if (validAssociatedStorageSystem) {
                 _log.info(String.format("RP Placement: %s [%s](%s) visible to RP Cluster [%s]%s. Can Source [%s] protect to Target [%s]?", 
                         (isRPVPlex ? "VPLEX" : "Storage System"),
-                        storageSystem.getLabel(), storageSystem.getId(), 
+                        (storageSystem != null) ? storageSystem.getLabel() : "StorageSystem is null",
+                        (storageSystem != null) ? storageSystem.getId() : "StorageSystem is null", 
                         actualTargetRPSiteName, 
                         (isRPVPlex ? (" through VPLEX cluster " + arraySerialNumber) : ""),
                         actualSourceRPSiteName, actualTargetRPSiteName));                
@@ -3466,6 +3470,10 @@ public class RecoverPointScheduler implements Scheduler {
         // passed in list of protectionVarrays. This protectionVarray will be removed from the list before
         // recursively calling back into the method (in the case that we do not find a solution).
         VirtualArray targetVarray = targetVarrays.get(0);
+        if (targetVarray == null) {
+            _log.warn("RP Placement : One of the target varrays was null, it can not be processed...continue on.");
+            return false;
+        }
         placementStatus.getProcessedProtectionVArrays().put(targetVarray.getId(), true);
 
         // Find the correct target vpool. It is either implicitly the same as the source vpool or has been

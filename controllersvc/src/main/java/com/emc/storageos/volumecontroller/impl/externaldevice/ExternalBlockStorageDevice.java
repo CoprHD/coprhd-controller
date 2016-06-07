@@ -496,8 +496,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
         	List<VolumeClone> driverClones = new ArrayList<>();
         	driverClones.add(driverClone);
         	task = driver.createVolumeClone(Collections.unmodifiableList(driverClones), null);
-
-          
+        	
             // todo: need to implement support for async case.
             if (task.getStatus() == DriverTask.TaskStatus.READY) {
                 // Update clone
@@ -506,9 +505,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                 cloneObject.setWWN(driverCloneResult.getWwn());
                 cloneObject.setDeviceLabel(driverCloneResult.getDeviceLabel());
                 cloneObject.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(dbClient, cloneObject));
-                cloneObject.setReplicaState(driverCloneResult.getReplicationState().name());             	
-               
-                
+                cloneObject.setReplicaState(driverCloneResult.getReplicationState().name());
                 cloneObject.setProvisionedCapacity(driverCloneResult.getProvisionedCapacity());
                 cloneObject.setAllocatedCapacity(driverCloneResult.getAllocatedCapacity());
                 cloneObject.setInactive(false);
@@ -516,7 +513,6 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                 String msg = String.format("doCreateClone -- Created volume clone: %s .", task.getMessage());
                 _log.info(msg);
                 taskCompleter.ready(dbClient);
-                
             } else {
                 cloneObject.setInactive(true);
                 dbClient.updateObject(cloneObject);

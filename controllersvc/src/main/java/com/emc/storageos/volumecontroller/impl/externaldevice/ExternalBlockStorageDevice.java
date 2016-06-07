@@ -461,18 +461,15 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                               TaskCompleter taskCompleter) {
         Volume cloneObject = null;
         try {
-        	
         	cloneObject = dbClient.queryObject(Volume.class, clone);
             BlockObject sourceVolume = BlockObject.fetch(dbClient, volume);
             VolumeClone driverClone = new VolumeClone();
-            
             
             if (sourceVolume instanceof Volume) {
             	driverClone.setSourceType(VolumeClone.SourceType.VOLUME);
             } else if (sourceVolume instanceof BlockSnapshot) {
             	driverClone.setSourceType(VolumeClone.SourceType.SNAPSHOT);
             } else {
-            	
                 cloneObject.setInactive(true);
                 dbClient.updateObject(cloneObject);
                 String errorMsg = String.format("doCreateClone -- Failed to create volume clone: unexpected source type %s .",
@@ -482,7 +479,6 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                 taskCompleter.error(dbClient, serviceError);
                 return;
             }
-            
             // Prepare driver clone
             driverClone.setParentId(sourceVolume.getNativeId());
             driverClone.setStorageSystemId(storageSystem.getNativeId());

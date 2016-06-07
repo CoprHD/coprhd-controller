@@ -127,14 +127,7 @@ public class HostMigrationDeviceController implements MigrationOrchestrationInte
                     new VolumeDescriptor.Type[] {});
 
             if (hostMigrateVolumes != null && !hostMigrateVolumes.isEmpty()) {
-                // export source volumes
                 _hostURI = null;
-                if (hostMigrateVolumes != null && !hostMigrateVolumes.isEmpty()) {
-                    waitFor = _migrationControllerWorkFlowUtil.createWorkflowStepsForBlockVolumeExport(workflow, waitFor,
-                            changeVpoolGeneralVolumeURIs, _hostURI, taskId);
-                    _log.info("Created workflow steps for volume export.");
-                }
-                lastStep = waitFor;
                 for (URI generalVolumeURI : changeVpoolGeneralVolumeURIs) {
                     _log.info("Adding migration steps for general volume {}", generalVolumeURI);
 
@@ -179,7 +172,10 @@ public class HostMigrationDeviceController implements MigrationOrchestrationInte
                             localSystemsToRemoveCG.add(migSrc.getStorageController());
                         }
                     }
-
+                    // export source volumes
+                    waitFor = _migrationControllerWorkFlowUtil.createWorkflowStepsForBlockVolumeExport(workflow, waitFor,
+                            Arrays.asList(generalVolumeURI), _hostURI, taskId);
+                    _log.info("Created workflow steps for volume export.");
                     // Note that the last step here is a step group associated
                     // with deleting the migration sources after the migrations
                     // have completed and committed. This means that anything
@@ -282,14 +278,7 @@ public class HostMigrationDeviceController implements MigrationOrchestrationInte
 
             if (hostMigrateVolumes != null && !hostMigrateVolumes.isEmpty()) {
                 _hostURI = null;
-                // export source volumes
-                if (hostMigrateVolumes != null && !hostMigrateVolumes.isEmpty()) {
-                    waitFor = _migrationControllerWorkFlowUtil.createWorkflowStepsForBlockVolumeExport(workflow, waitFor,
-                            generalVolumeURIs, _hostURI, taskId);
-                    _log.info("Created workflow steps for volume export.");
-                }
 
-                lastStep = waitFor;
                 for (URI generalVolumeURI : generalVolumeURIs) {
                     _log.info("Adding migration steps for general volume {}", generalVolumeURI);
 
@@ -331,6 +320,10 @@ public class HostMigrationDeviceController implements MigrationOrchestrationInte
                             localSystemsToRemoveCG.add(migSrc.getStorageController());
                         }
                     }
+                   // export source volumes
+                   waitFor = _migrationControllerWorkFlowUtil.createWorkflowStepsForBlockVolumeExport(workflow, waitFor,
+                            Arrays.asList(generalVolumeURI), _hostURI, taskId);
+                    _log.info("Created workflow steps for volume export.");
 
                     // Note that the migrate step here is a step group associated
                     // with deleting the migration sources after the migrations
@@ -389,7 +382,7 @@ public class HostMigrationDeviceController implements MigrationOrchestrationInte
             // rollback.
             _workflowService.storeStepData(stepId, Boolean.FALSE);
 
-            Host host = getDataObject(Host.class, _hostURI, _dbClient);
+            Host host = getDataObject(Host.class, hostURI, _dbClient);
 
             // Get the general volume.
             Volume generalVolume = getDataObject(Volume.class, generalVolumeURI, _dbClient);

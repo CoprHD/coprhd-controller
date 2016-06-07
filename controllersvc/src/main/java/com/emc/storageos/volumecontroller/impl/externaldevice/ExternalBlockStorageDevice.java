@@ -43,7 +43,6 @@ import com.emc.storageos.storagedriver.LockManager;
 import com.emc.storageos.storagedriver.Registry;
 import com.emc.storageos.storagedriver.impl.LockManagerImpl;
 import com.emc.storageos.storagedriver.impl.RegistryImpl;
-import com.emc.storageos.storagedriver.model.SnapshotClone;
 import com.emc.storageos.storagedriver.model.StorageObject;
 import com.emc.storageos.storagedriver.model.StorageVolume;
 import com.emc.storageos.storagedriver.model.VolumeClone;
@@ -465,17 +464,13 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
         	
         	cloneObject = dbClient.queryObject(Volume.class, clone);
             BlockObject sourceVolume = BlockObject.fetch(dbClient, volume);
-            StorageVolume driverClone;
-            StorageVolume driverCloneResult;
+            VolumeClone driverClone = new VolumeClone();
+            
             
             if (sourceVolume instanceof Volume) {
-
-            	driverCloneResult = driverClone = new VolumeClone();
-            	((VolumeClone) driverClone).setParentId(sourceVolume.getNativeId());
+            	driverClone.setSourceType(VolumeClone.SourceType.VOLUME);
             } else if (sourceVolume instanceof BlockSnapshot) {
-
-            	driverCloneResult = driverClone = new SnapshotClone();
-            	((SnapshotClone) driverClone).setParentId(sourceVolume.getNativeId());
+            	driverClone.setSourceType(VolumeClone.SourceType.SNAPSHOT);
             } else {
             	
                 cloneObject.setInactive(true);
@@ -489,6 +484,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
             }
             
             // Prepare driver clone
+            driverClone.setParentId(sourceVolume.getNativeId());
             driverClone.setStorageSystemId(storageSystem.getNativeId());
             driverClone.setDisplayName(cloneObject.getLabel());
             driverClone.setRequestedCapacity(cloneObject.getCapacity());
@@ -497,29 +493,21 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
             // Call driver
             BlockStorageDriver driver = getDriver(storageSystem.getSystemType());
             DriverTask task ;
-            if (sourceVolume instanceof Volume) {
-            	List<VolumeClone> driverClones = new ArrayList<>();
-            	driverClones.add((VolumeClone) driverClone);
-            	task = driver.createVolumeClone(Collections.unmodifiableList(driverClones), null);
-            }
-            else {
-            	List<SnapshotClone> driverClones = new ArrayList<>();
-            	driverClones.add((SnapshotClone) driverClone);
-            	task = driver.createSnapshotClone(Collections.unmodifiableList(driverClones), null);
-            }
+        	List<VolumeClone> driverClones = new ArrayList<>();
+        	driverClones.add((VolumeClone) driverClone);
+        	task = driver.createVolumeClone(Collections.unmodifiableList(driverClones), null);
+
           
             // todo: need to implement support for async case.
             if (task.getStatus() == DriverTask.TaskStatus.READY) {
                 // Update clone
+            	VolumeClone driverCloneResult = driverClones.get(0);
                 cloneObject.setNativeId(driverCloneResult.getNativeId());
                 cloneObject.setWWN(driverCloneResult.getWwn());
                 cloneObject.setDeviceLabel(driverCloneResult.getDeviceLabel());
                 cloneObject.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(dbClient, cloneObject));
-                if (sourceVolume instanceof Volume) {
-                	cloneObject.setReplicaState(((VolumeClone) driverCloneResult).getReplicationState().name());                	
-                } else{
-                	cloneObject.setReplicaState(((SnapshotClone) driverCloneResult).getReplicationState().name());
-                }
+                cloneObject.setReplicaState(driverCloneResult.getReplicationState().name());             	
+               
                 
                 cloneObject.setProvisionedCapacity(driverCloneResult.getProvisionedCapacity());
                 cloneObject.setAllocatedCapacity(driverCloneResult.getAllocatedCapacity());

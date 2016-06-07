@@ -11,7 +11,6 @@ import org.apache.commons.lang.mutable.MutableBoolean;
 import org.apache.commons.lang.mutable.MutableInt;
 
 import com.emc.storageos.storagedriver.model.Initiator;
-import com.emc.storageos.storagedriver.model.SnapshotClone;
 import com.emc.storageos.storagedriver.model.StoragePort;
 import com.emc.storageos.storagedriver.model.StorageSystem;
 import com.emc.storageos.storagedriver.model.StorageVolume;
@@ -141,14 +140,6 @@ public interface BlockStorageDriver extends StorageDriver {
      * @return task
      */
     public DriverTask createVolumeClone(List<VolumeClone> clones, StorageCapabilities capabilities);
-    
-    /**
-     * Clone Snapshot clones.
-     * @param list  Type: Input/Output.
-     * @param capabilities capabilities of clones. Type: Input.
-     * @return task
-     */
-    public DriverTask createSnapshotClone(List<SnapshotClone> list, StorageCapabilities capabilities);
 
     /**
      * Detach volume clones.

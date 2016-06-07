@@ -14,6 +14,7 @@
         case '${com.emc.storageos.db.client.model.uimodels.OrderStatus.EXECUTING}':
         case '${com.emc.storageos.db.client.model.uimodels.OrderStatus.SCHEDULED}':
         case '${com.emc.storageos.db.client.model.uimodels.OrderStatus.APPROVAL}':
+        //case '${com.emc.storageos.db.client.model.uimodels.OrderStatus.PAUSED}':
             return true;
         }
         return false;
@@ -37,6 +38,7 @@
     $(document).ready(function() {
         Receipt.watchValue('#orderDetails #lastUpdated');
         Receipt.watchValue('#orderDetails #orderStatus');
+        Receipt.watchValue('#orderDetails #flowControl');
         Receipt.watchDisplay('#orderDetails .executionTime');
         Receipt.watchValue('#orderDetails #executionTime');
         Receipt.watchValue('#orderDetails #currentStep');
@@ -78,6 +80,35 @@
         
         updateReceipt('${orderId}');
     });
+    
+    function pauseOrder(){
+    	var lastUpdated = $('#orderDetails #lastUpdated').html();
+    	var orderId = '${orderId}';
+    	var url = #{jsAction @catalog.Orders.pauseOrder(':orderId', ':lastUpdated') /};//routes.Orders_pauseOrder({orderId: orderId, lastUpdated: lastUpdated});
+    	//@{catalog.Orders.resubmitOrder(details.order?.id)}
+    	 $.post(url({orderId: orderId, lastUpdated: lastUpdated}), function(data) {
+    		 $("#opPause").prop('disabled', true);
+             Receipt.update(data);
+             updateLocalDateTime();
+             updateTimes();
+         }).always(function() {
+             updateReceipt(orderId);
+         });
+    }
+    
+    function resumeOrder(){
+    	var lastUpdated = $('#orderDetails #lastUpdated').html();
+    	var orderId = '${orderId}';
+    	var url = #{jsAction @catalog.Orders.resumeOrder(':orderId', ':lastUpdated') /};//routes.Orders_resumeOrder({orderId: orderId, lastUpdated: lastUpdated});
+    	 $.post(url({orderId: orderId, lastUpdated: lastUpdated}), function(data) {
+    		 $("#opResume").prop('disabled', true);
+             Receipt.update(data);
+             updateLocalDateTime();
+             updateTimes();
+         }).always(function() {
+             updateReceipt(orderId);
+         });
+    }
   </script>
 #{/set}
 <div>
@@ -136,6 +167,25 @@
         %{ isLoading = details.order.isExecuting() || details.order.isPending() }%
         *{ <span id="loading" #{if !isLoading}style="display:none"}#{/if}>&nbsp;<img src="@{'/public/img/loading.gif'}"></span> }*
         <span id="currentStep">${details.runningTaskLogs?.collect{ it.message }.join(", ")}</span>
+      </dd>
+      <!--  my code goes here-->
+      
+      <dt>&nbsp;</dt>
+      <dd>&nbsp;</dd>
+      <dt>&nbsp;</dt>
+      <dd>
+      <span id="flowControl">
+      %{ isExecuting = details.order.isExecuting() || details.order.isPending() }%
+      #{if isExecuting}
+      <a href="#" onclick="pauseOrder(); return false;"><span id='opPause' class='btn btn-danger btn-xs'><span class='glyphicon glyphicon-pause'></span></span> </a>
+      
+      #{/if}
+       %{ isExecuting = details.order.isPaused() }%
+      #{if isExecuting}
+      <a href="#" onclick="resumeOrder(); return false;"><span id='opResume' class='btn btn-danger btn-xs'><span class='glyphicon glyphicon-play'></span></span> </a>
+      
+      #{/if}
+      </span>
       </dd>
     </dl>
   </div>

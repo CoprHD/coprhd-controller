@@ -75,8 +75,13 @@ public class ExecutionUtils {
         ExecutionTaskLog log = context.logCurrentTask(task);
         // TODO only execute if order not in a paused state. If paused, poll while waiting for order to go into executing state
         // May need to look up status (ex: context.getOrder().getOrderStatus();)
+        String orderStatus = context.getOrder().getOrderStatus();
         long startTime = System.currentTimeMillis();
         try {
+            if("PAUSED".equalsIgnoreCase(orderStatus)){
+                //T res = task.executeTask();
+                return null;
+            }
             injectValues(task, context);
             T result = task.executeTask();
             long elapsedTime = System.currentTimeMillis() - startTime;

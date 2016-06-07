@@ -128,6 +128,7 @@ public class HostMigrationDeviceController implements MigrationOrchestrationInte
 
             if (hostMigrateVolumes != null && !hostMigrateVolumes.isEmpty()) {
                 // export source volumes
+                _hostURI = null;
                 if (hostMigrateVolumes != null && !hostMigrateVolumes.isEmpty()) {
                     waitFor = _migrationControllerWorkFlowUtil.createWorkflowStepsForBlockVolumeExport(workflow, waitFor,
                             changeVpoolGeneralVolumeURIs, _hostURI, taskId);
@@ -151,6 +152,9 @@ public class HostMigrationDeviceController implements MigrationOrchestrationInte
                         Migration migration = getDataObject(Migration.class, desc.getMigrationId(), _dbClient);
                         if (!migration.getVolume().equals(generalVolumeURI)) {
                             continue;
+                        }
+                        if (_hostURI == null){
+                            _hostURI = migration.getMigrationHost();
                         }
 
                         // Set data required to add the migration steps.
@@ -277,6 +281,7 @@ public class HostMigrationDeviceController implements MigrationOrchestrationInte
                     new VolumeDescriptor.Type[] {});
 
             if (hostMigrateVolumes != null && !hostMigrateVolumes.isEmpty()) {
+                _hostURI = null;
                 // export source volumes
                 if (hostMigrateVolumes != null && !hostMigrateVolumes.isEmpty()) {
                     waitFor = _migrationControllerWorkFlowUtil.createWorkflowStepsForBlockVolumeExport(workflow, waitFor,
@@ -302,6 +307,9 @@ public class HostMigrationDeviceController implements MigrationOrchestrationInte
                         Migration migration = getDataObject(Migration.class, desc.getMigrationId(), _dbClient);
                         if (!migration.getVolume().equals(generalVolumeURI)) {
                             continue;
+                        }
+                        if(_hostURI == null){
+                            _hostURI = migration.getMigrationHost();
                         }
 
                         _log.info("Found migration {} for general volume", migration.getId());

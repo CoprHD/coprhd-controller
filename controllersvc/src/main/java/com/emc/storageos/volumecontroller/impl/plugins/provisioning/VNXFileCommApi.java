@@ -1342,6 +1342,23 @@ public class VNXFileCommApi {
         return result;
     }
 
+    public XMLApiResult expandFS(final StorageSystem system, final FileShare fileShare, long extendSize, boolean isMountRequired,
+            boolean isVirtualProvisioned) throws VNXException {
+    	// get the data mover
+        StorageHADomain dataMover = this.getDataMover(fileShare);
+        if (null != dataMover) {
+            sshApi.setConnParams(system.getIpAddress(), system.getUsername(), system.getPassword());
+            Map<String, String> existingMounts = sshApi.getFsMountpathMap(dataMover.getAdapterName());
+            if (existingMounts.get(fileShare.getName()) == null) {
+            	isMountRequired = true;
+            } else {
+            	isMountRequired = false;
+            }
+        } 
+        _log.info("expandFS for fileName{} and isMountRequired {}", fileShare.getName(), String.valueOf(isMountRequired));
+    	return expandFS(system, fileShare.getName(), extendSize, isMountRequired, isVirtualProvisioned);
+    }
+
     public XMLApiResult doRestoreSnapshot(final StorageSystem system, String fsId, String fsName, String id, String snapshotName)
             throws VNXException {
         _log.info("Restore Snapshot name :{} : file system : {}", snapshotName, fsName);

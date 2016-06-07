@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.emc.storageos.storagedriver.StorageDriver;
 import com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils;
 import com.google.common.base.Joiner;
 import org.slf4j.Logger;
@@ -115,6 +116,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
         driver.setDriverRegistry(driverRegistry);
         LockManager lockManager = LockManagerImpl.getInstance(locker);
         driver.setLockManager(lockManager);
+        driver.setSdkVersionNumber(StorageDriver.SDK_VERSION_NUMBER);
     }
 
 

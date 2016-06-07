@@ -4364,7 +4364,8 @@ public class SmisCommandHelper implements SmisConstants {
                     CIMObjectPath seSystemRegistrationSvc =
                             getRegistrationService(storage);
                     UnsignedInteger32[] syncType = new UnsignedInteger32[] {
-                            new UnsignedInteger32(8L)
+                            new UnsignedInteger32(REPLICATION_DATA_SYNC_TYPE),
+                            new UnsignedInteger32(DEVICES_SYNC_TYPE)
                     };
                     CIMObjectPath[] systems = new CIMObjectPath[] {
                             _cimPath.getStorageSystem(storage)

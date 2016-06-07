@@ -886,13 +886,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     throw ex;
                 }
 
-                if (thinEnabled && null != vvInfo && !vvInfo.isThinEnabled()) {
-                    // this is not considered an error situation, but we need to log it for the user's knowledge.
-                    // stepId is included so that it will appear in the Task's Logs section in the ViPR UI.
-                    _log.warn("Virtual Volume {} was created from a thin virtual pool, but it could not be created "
-                            + "as a thin volume. See controllersvc logs for more details. Task ID {}", vvInfo.getName(),
-                            stepId);
-                }
+                checkThinEnabledResult(vvInfo, thinEnabled, _workflowService.getWorkflowFromStepId(stepId).getOrchTaskId());
 
                 vplexVolumeNameMap.put(vvInfo.getName(), vplexVolume);
                 virtualVolumeInfos.add(vvInfo);
@@ -6286,6 +6280,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 _log.info(String.format("Created virtual volume: %s path: %s",
                         virtvinfo.getName(), virtvinfo.getPath()));
 
+                checkThinEnabledResult(virtvinfo, thinEnabled, _workflowService.getWorkflowFromStepId(stepId).getOrchTaskId());
+
                 // If the imported volume will be distributed, we must
                 // update the virtual volume device label and native Id.
                 // This must be done because if the update to distributed
@@ -11645,5 +11641,23 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         int maxMigrationAsyncPollingRetries = Integer.valueOf(ControllerUtils.getPropertyValueFromCoordinator(coordinator,
                 "controller_vplex_migration_max_async_polls"));
         VPlexApiClient.setMaxMigrationAsyncPollingRetries(maxMigrationAsyncPollingRetries);
+    }
+
+    /**
+     * Checks the result of a thin provisioning request after a virtual volume
+     * creation request and logs a warning if necessary.
+     * 
+     * @param info the VPlexVirtualVolumeInfo object to check
+     * @param thinEnabled true if the request was to enable thin provisioning
+     * @param taskId the current Workflow task id
+     */
+    private void checkThinEnabledResult(VPlexVirtualVolumeInfo info, boolean thinEnabled, String taskId) {
+        if (thinEnabled && null != info && !info.isThinEnabled()) {
+            // this is not considered an error situation, but we need to log it for the user's knowledge.
+            // stepId is included so that it will appear in the Task's Logs section in the ViPR UI.
+            _log.warn("Virtual Volume {} was created from a thin virtual pool, but it could not be created "
+                    + "as a thin volume. See controllersvc logs for more details. Task ID {}", info.getName(),
+                    taskId);
+        }
     }
 }

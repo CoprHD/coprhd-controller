@@ -59,6 +59,7 @@ import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
 import com.emc.storageos.vplex.api.VPlexApiClient;
 import com.emc.storageos.vplex.api.VPlexApiException;
+import com.emc.storageos.vplex.api.VPlexVirtualVolumeInfo;
 import com.google.common.collect.Collections2;
 
 public class VPlexUtil {

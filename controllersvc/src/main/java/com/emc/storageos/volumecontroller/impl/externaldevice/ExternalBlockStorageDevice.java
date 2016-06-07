@@ -494,7 +494,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
             BlockStorageDriver driver = getDriver(storageSystem.getSystemType());
             DriverTask task ;
         	List<VolumeClone> driverClones = new ArrayList<>();
-        	driverClones.add((VolumeClone) driverClone);
+        	driverClones.add(driverClone);
         	task = driver.createVolumeClone(Collections.unmodifiableList(driverClones), null);
 
           

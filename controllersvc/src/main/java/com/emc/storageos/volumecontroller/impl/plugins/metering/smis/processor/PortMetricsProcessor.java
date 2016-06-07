@@ -1360,8 +1360,10 @@ public class PortMetricsProcessor {
         if (StorageSystem.Type.vnxblock.equals(systemType) || StorageSystem.Type.vnxfile.equals(systemType)
                 || StorageSystem.Type.vnxe.equals(systemType)) {
             name = StorageSystem.Type.vnxblock.name();
-        } else if (!StorageSystem.Type.vmax.equals(systemType) && !StorageSystem.Type.hds.equals(systemType)) {
-            // for other system type besides vnx, vmax, hds are categorirzed as "other_arrays"
+        } else if (!StorageSystem.Type.vmax.equals(systemType) &&
+                !StorageSystem.Type.hds.equals(systemType) &&
+                !StorageSystem.Type.vplex.equals(systemType)) {
+            // System types other than vnx, vmax, hds, and vplex are categorized as "other_arrays"
             name = "other_arrays";
         }
         return name;

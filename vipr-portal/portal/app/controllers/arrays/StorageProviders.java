@@ -312,7 +312,7 @@ public class StorageProviders extends ViprResourceController {
     }
 
     @SuppressWarnings("rawtypes")
-    private static class SaveWaitJob extends Job {
+    public static class SaveWaitJob extends Job {
         private final ViPRCoreClient client;
         private final Task<StorageProviderRestRep> task;
 

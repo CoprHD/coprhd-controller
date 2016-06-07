@@ -125,6 +125,8 @@
             #{nav.separator/}
             #{nav.item 'customConfigs', href:@arrays.CustomConfigs.list()/}
           #{/deadbolt.restrict}
+          #{nav.separator/}
+          #{nav.item 'autodiscovery', href:@arrays.AutoDiscovery.updateCertificate()/}
         #{/nav.menuSection}
       #{/nav.menu}
     #{/if}

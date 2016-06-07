@@ -57,6 +57,7 @@ nav.storage=Resources
 nav.virtualStorage=Virtual
 nav.object=Object
 nav.settings=System
+nav.autodiscovery=Auto Discovery
 nav.block=Block
 nav.block.volumes=Volumes
 nav.block.consistencygroups=Consistency Groups
@@ -3866,7 +3867,7 @@ button.mirroring.start=Start
 button.mirroring.stop=Stop
 button.mirroring.pause=Pause
 button.mirroring.resume=Resume
-
+button.discover=Discover
 common.yes=Yes
 common.no=No
 common.security.title=Security
@@ -4553,3 +4554,6 @@ mobilityGroupResources.virtualPool=Virtual Pool
 mobilityGroupResources.type=Type
 mobilityGroupResources.hostname=Hostname
 mobilityGroupResources.tenant=Tenant
+
+AutoDiscovery.title=Discovery Automation
+impert.imp=Upload XML for discovery

@@ -1,0 +1,43 @@
+%{
+  titleKey = "AutoDiscovery.title";
+  descriptionKey = "Upload the XML file containing all the details.";
+}%
+
+#{set 'moreScripts'}
+#{get 'moreScripts'/}
+#{/set}
+#{set 'moreStyles'}
+#{get 'moreStyles'/}
+
+#{/set}
+#{extends 'main.html'/}
+#{set navSelected: ['nav.assets', 'nav.autodiscovery'] /}
+#{set 'title'}&{titleKey}#{/set}
+
+<div class="container">
+#{Form.header titleKey:titleKey, descriptionKey:descriptionKey, image:image /}
+#{alerts/}
+#{form @save(), id:'importer', class:'form form-horizontal', autocomplete:"off", enctype:'multipart/form-data'}
+
+  
+  <fieldset>
+  	    <div id="fileUploads">
+	    #{field 'impert.imp'}
+	      %{
+	        field.fieldKey = 'impert.imp'
+	      }%
+	      #{Form.fileUploadControlGroup field:field/}
+	    #{/field}
+    </div>
+  </fieldset>  
+  
+ 
+	
+  #{Form.buttonBar}
+     
+  	  <button type="submit" class="btn btn-primary btn-large">#{icon 'ok-sign'/} &{'button.discover'}</button>
+  	  &nbsp;&nbsp;&nbsp;
+  #{/Form.buttonBar}
+#{/form}
+</div>
+

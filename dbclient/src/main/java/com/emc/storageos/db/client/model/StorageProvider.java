@@ -189,7 +189,7 @@ public class StorageProvider extends DataObject {
                 systemTypes.add(Type.scaleio.name());
             } else if (xtremio.equals(interfaceType)) {
                 systemTypes.add(Type.xtremio.name());
-            } else if (storageDriverManager != null && storageDriverManager.isDriverManaged(interfaceType.toString())) {
+            } else if (storageDriverManager != null && storageDriverManager.isProvider(interfaceType.toString())) {
                 Type type = Type.valueOf(interfaceType.toString());
                 systemTypes.add(type.name());
             }

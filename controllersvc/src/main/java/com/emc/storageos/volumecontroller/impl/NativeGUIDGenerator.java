@@ -141,6 +141,7 @@ public class NativeGUIDGenerator {
 
         // add systems managed by driver
         Collection<String> storageSystems = storageDriverManager.getStorageSystemsMap().values();
+        storageSystems.addAll(storageDriverManager.getStorageProvidersMap().values());
         for (String storageSystem : storageSystems) {
             _deviceTypeMap.put(storageSystem, storageSystem);
         }

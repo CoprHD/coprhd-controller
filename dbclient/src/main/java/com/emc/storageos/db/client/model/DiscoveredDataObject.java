@@ -121,7 +121,12 @@ public class DiscoveredDataObject extends DataObject {
 
 
         static public boolean isDriverManagedStorageSystem(String storageType) {
-            return storageDriverManager != null && storageDriverManager.isDriverManaged(storageType);
+            return storageDriverManager != null && storageDriverManager.isDriverManaged(storageType)
+                    && !storageDriverManager.isProvider(storageType);
+        }
+
+        static public boolean isDriverManagedStorageProvider(String providerType) {
+            return storageDriverManager != null && storageDriverManager.isProvider(providerType);
         }
 
         static public boolean isFileStorageSystem(String storageType) {

@@ -106,7 +106,8 @@ public class DataCollectionJobUtil {
                 StorageProvider.InterfaceType.xtremio.name().equalsIgnoreCase(
                         ((StorageProvider) taskObject).getInterfaceType())) {
             populateXtremIOAccessProfile(profile, (StorageProvider) taskObject);
-        } else if (clazz == StorageProvider.class && StorageSystem.Type.isDriverManagedStorageSystem(((StorageProvider) taskObject).getInterfaceType())){
+        } else if (clazz == StorageProvider.class &&
+                StorageSystem.Type.isDriverManagedStorageProvider(((StorageProvider) taskObject).getInterfaceType())){
             populateExternalProviderAccessProfile(profile, (StorageProvider) taskObject);
         } else if (clazz == StorageSystem.class) {
             populateAccessProfile(profile, (StorageSystem) taskObject, nameSpace);
@@ -555,15 +556,20 @@ public class DataCollectionJobUtil {
         } else if (storageDevice.getSystemType().equals(Type.hds.toString())) {
             populateHDSAccessProfile(accessProfile, storageDevice, nameSpace);
         } else if (StorageSystem.Type.isDriverManagedStorageSystem(storageDevice.getSystemType())) {
-            accessProfile.setSystemType(storageDevice.getSystemType());
-            accessProfile.setIpAddress(storageDevice.getIpAddress());
-            accessProfile.setUserName(storageDevice.getUsername());
-            accessProfile.setserialID(storageDevice.getSerialNumber());
-            accessProfile.setPassword(storageDevice.getPassword());
-            accessProfile.setPortNumber(storageDevice.getPortNumber());
-            accessProfile.setLastSampleTime(0L);
-            if (null != nameSpace) {
-                accessProfile.setnamespace(nameSpace);
+            if (StorageSystem.Type.isProviderStorageSystem(storageDevice.getSystemType())) {
+                injectDiscoveryProfile(accessProfile, storageDevice);
+            } else {
+                // directly managed
+                accessProfile.setSystemType(storageDevice.getSystemType());
+                accessProfile.setIpAddress(storageDevice.getIpAddress());
+                accessProfile.setUserName(storageDevice.getUsername());
+                accessProfile.setserialID(storageDevice.getSerialNumber());
+                accessProfile.setPassword(storageDevice.getPassword());
+                accessProfile.setPortNumber(storageDevice.getPortNumber());
+                accessProfile.setLastSampleTime(0L);
+                if (null != nameSpace) {
+                    accessProfile.setnamespace(nameSpace);
+                }
             }
         } else {
             throw new RuntimeException("populateAccessProfile: Device type unknown : "

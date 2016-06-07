@@ -8,9 +8,14 @@
            <property name="storageSystemsMap">
               <map>
                  <entry key="Simulator" value="driversystem"/>
-                  <entry key="SimulatorProvider" value="driverprovider"/>
                  <entry key="ScaleioDriver" value="scaleiosystem"/>
               </map>
+           </property>
+
+           <property name="storageProvidersMap">
+               <map>
+                   <entry key="Simulator" value="driverprovider"/>
+               </map>
            </property>
 
            <!-- Set of block storage systems managed by drivers -->

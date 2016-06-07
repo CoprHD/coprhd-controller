@@ -57,7 +57,10 @@ public class SRDFVolumesInCGMigration extends BaseCustomMigrationCallback {
         DbClient dbClient = getDbClient();
         List<URI> volumeURIs = dbClient.queryByType(Volume.class, true);
         Iterator<Volume> volumes = dbClient.queryIterativeObjects(Volume.class, volumeURIs);
+        int totalVolumes = 0;
+        int volumesUpdated = 0;
         while (volumes.hasNext()) {
+            totalVolumes++;
             Volume volume = volumes.next();
             URI cgUri = volume.getConsistencyGroup();
             URI storageUri = volume.getStorageController();
@@ -76,9 +79,11 @@ public class SRDFVolumesInCGMigration extends BaseCustomMigrationCallback {
                         log.info("updating the SRDF volume {} replicationgroup {}", volume.getLabel(), replicationGroupName);
                         volume.setReplicationGroupInstance(replicationGroupName);
                         dbClient.updateObject(volume);
+                        volumesUpdated++;
                     }
                 }
             }
         }
+        log.info(String.format("%d volumes updated out of a total of %d volumes", volumesUpdated, totalVolumes));
     }
 }

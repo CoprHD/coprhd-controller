@@ -623,32 +623,31 @@ public class DbClientImpl implements DbClient {
         Keyspace ks = getKeyspace(clazz);
         Map<URI, T> objectMap = new HashMap<URI, T>();
         for (ColumnField columnField : columnFields) {
-            Rows<String, CompositeColumnName> rows = queryRowsWithAColumn(ks, ids, doType.getCF(),
-                    columnField);
-            Iterator<Row<String, CompositeColumnName>> it = rows.iterator();
+            Map<String, List<CompositeColumnName>> result = queryRowsWithAColumn(getDbClientContext(clazz), ids, doType.getCF().getName(), columnField);
+            List<T> objects = new ArrayList<T>(result.size());
+            Iterator<String> it = result.keySet().iterator();
             while (it.hasNext()) {
-                Row<String, CompositeColumnName> row = it.next();
+                String rowKey = it.next();
+                List<CompositeColumnName> rows = result.get(rowKey);
+                if (rows == null || rows.size() == 0) {
+                    continue;
+                }
                 try {
                     // Since the order of columns returned is not guaranteed to be the same as keys
                     // we have to create an object to track both id and label, for now, lets use the same type
-                    if (row.getColumns().size() == 0) {
-                        continue;
-                    }
-
-                    URI key = URI.create(row.getKey());
+                    
+                    URI key = URI.create(rowKey);
 
                     T obj = objectMap.get(key);
 
                     if (obj == null) {
-                        obj = (T) DataObject.createInstance(clazz, URI.create(row.getKey()));
+                        obj = (T) DataObject.createInstance(clazz, URI.create(rowKey));
                         objectMap.put(key, obj);
                     }
 
-                    Iterator<Column<CompositeColumnName>> columnIterator = row.getColumns().iterator();
-
+                    Iterator<CompositeColumnName> columnIterator = rows.iterator();
                     while (columnIterator.hasNext()) {
-                        Column<CompositeColumnName> column = columnIterator.next();
-                        columnField.deserialize(column, obj);
+                        columnField.deserialize(columnIterator.next(), obj);
                     }
                 } catch (final InstantiationException e) {
                     throw DatabaseException.fatals.queryFailed(e);
@@ -1551,6 +1550,41 @@ public class DbClientImpl implements DbClient {
         } catch (ConnectionException e) {
             throw DatabaseException.retryables.connectionFailed(e);
         }
+    }
+    
+    protected Map<String, List<CompositeColumnName>> queryRowsWithAColumn(DbClientContext context, Collection<URI> ids, String tableName, ColumnField column) {
+        PreparedStatement queryAllColumnsPreparedStatement = getPreparedStatement(tableName+column.getMappedByField(), 
+                String.format("Select * from \"%s\" where column1=? and key in ? ALLOW FILTERING", tableName),
+                context);
+        
+        ResultSet resultSet = context.getSession().execute(queryAllColumnsPreparedStatement.bind(column.getName(), uriList2StringList(ids)));
+        
+        Map<String, List<CompositeColumnName>> result = new HashMap<String, List<CompositeColumnName>>();
+        List<CompositeColumnName> rows = null;
+        String lastKey = null;
+        
+        for (com.datastax.driver.core.Row row : resultSet) {
+            String currentKey = row.getString(0);
+            
+            if (lastKey == null || (!lastKey.equals(currentKey))) {
+                rows = new ArrayList<CompositeColumnName>();
+                result.put(currentKey, rows);
+                lastKey = currentKey;
+            }
+                
+            result.get(currentKey).add(new CompositeColumnName(
+                            currentKey,
+                            row.getString(1),
+                            row.getString(2),
+                            row.getString(3),
+                            row.getUUID(4),
+                            row.getBytes(5)));
+        }
+        
+        if (lastKey != null) {
+            result.put(lastKey, rows);
+        }
+        return result;
     }
 
     /**

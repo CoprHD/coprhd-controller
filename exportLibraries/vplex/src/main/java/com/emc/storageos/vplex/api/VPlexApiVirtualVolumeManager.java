@@ -92,18 +92,6 @@ public class VPlexApiVirtualVolumeManager {
             throw VPlexApiException.exceptions.oneDevicesRequiredForLocalVolume();
         }
 
-        // validate thin-enabled flag against backend volumes
-        if (thinEnabled) {
-            s_logger.info("Virtual Volume should be created as thin-enabled.");
-            for (VolumeInfo volume : nativeVolumeInfoList) {
-                s_logger.info("Volume {} thin setting: {}", volume.getVolumeName(), volume.getIsThinProvisioned());
-                if (!volume.getIsThinProvisioned()) {
-                    // TODO add proper exception
-                    throw new VPlexApiException("request for thin virtual volume, but backend volumes are not thin-provisioned");
-                }
-            }
-        }
-        
         // Find the storage volumes corresponding to the passed native
         // volume information, discovery them if required.
         if (null == clusterInfoList) {
@@ -188,12 +176,6 @@ public class VPlexApiVirtualVolumeManager {
             } else {
                 virtualVolumeInfo.setName(volumeNameBuilder.toString());
                 virtualVolumeInfo.addCluster(clusterId);
-            }
-
-            if (thinEnabled && null != virtualVolumeInfo && !virtualVolumeInfo.isThinEnabled()) {
-                // this is not considered an error situation, but we need to log it for the user's knowledge
-                s_logger.warn("Virtual Volume {} was created from a thin virtual pool, but it could not be created "
-                        + "as a thin volume. See controllersvc logs for more details.", virtualVolumeInfo.getName());
             }
 
             return virtualVolumeInfo;

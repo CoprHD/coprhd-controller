@@ -120,5 +120,10 @@
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.BlockSnapshotSessionMigration"/>
             </list>
         </entry>
+        <entry key="3.0">
+            <list>
+                <bean class="com.emc.storageos.db.client.upgrade.callbacks.SRDFVolumesInCGMigration"/>
+            </list>
+        </entry>
     </util:map>
 </beans>

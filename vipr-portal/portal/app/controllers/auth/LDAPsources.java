@@ -75,6 +75,7 @@ public class LDAPsources extends ViprResourceController {
 
     private static Logger log = LoggerFactory.getLogger(LDAPsources.class);
 
+    private static String authnProviderName = "";
     protected static final String SAVED = "LDAPsources.saved";
     protected static final String DELETED = "LDAPsources.deleted";
     protected static final String FAILED = "LDAPsources.failed";
@@ -215,6 +216,7 @@ public class LDAPsources extends ViprResourceController {
 
         OpenStackTenantsUtils.addOpenStackTenants(params);
 
+        flash.success(MessagesUtils.get(SAVED, authnProviderName));
         list();
     }
 
@@ -226,10 +228,12 @@ public class LDAPsources extends ViprResourceController {
         }
 
         ldapSources.save();
+        authnProviderName = ldapSources.name;
+
         if (!ldapSources.autoRegCoprHDNImportOSProjects) {
+            flash.success(MessagesUtils.get(SAVED, ldapSources.name));
             list();
         }
-        flash.success(MessagesUtils.get(SAVED, ldapSources.name));
     }
 
     public static void delete(@As(",") String[] ids) {

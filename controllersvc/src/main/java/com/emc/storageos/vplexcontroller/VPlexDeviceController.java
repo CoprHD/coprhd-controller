@@ -11688,9 +11688,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     
     /**
      * Create a new ExportGroup based on the old ExportGroup, then add the volume to the new exportGroup
-     * @param oldExportGroup  
-     * @param volume
-     * @param lun
+     * @param oldExportGroup  The old exportGroup that will be based on for the new exportGroup.
+     * @param volume The volume that will be added to the new exportGroup
+     * @param lun The lun number for the volume.
      */
     private void createExportGroup(ExportGroup oldExportGroup, Volume volume, Integer lun) {
         ExportGroup exportGroup = new ExportGroup();

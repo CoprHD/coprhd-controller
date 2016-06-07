@@ -1975,7 +1975,7 @@ vmax_cos_setup()
        run cos create block $COS_VMAXBLOCK				\
 	   --description 'Virtual-Pool-for-VMAX-block-FC+iSCSI' true 	\
                          --protocols FC iSCSI 			\
-                         --numpaths 2 \
+                         --numpaths 1 \
                          --max_snapshots 10 \
                          --provisionType 'Thin' \
 	                 --system_type vmax \
@@ -2005,7 +2005,7 @@ vmax_cos_setup()
     run cos create block $COS_VMAXBLOCK_ISCSI			\
 	--description 'Virtual-Pool-for-VMAX-block-iSCSI' true \
                          --protocols iSCSI 			\
-                         --numpaths 2 \
+                         --numpaths 1 \
                          --max_snapshots 10 \
 	                 --system_type vmax \
                          --provisionType 'Thin' \
@@ -2014,7 +2014,7 @@ vmax_cos_setup()
     run cos create block $COS_VMAXBLOCK_THIN 				\
 	--description 'VMAX-thin-storage' true      \
                              --protocols FC iSCSI	    \
-                             --numpaths 2 \
+                             --numpaths 1 \
                              --max_snapshots 10 \
 	                     --system_type vmax \
                              --provisionType 'Thin' \
@@ -2024,7 +2024,7 @@ vmax_cos_setup()
     run cos create block $COS_VMAXBLOCK_THICK 				\
 	--description 'VMAX-thick-storage' true      \
                              --protocols FC iSCSI	    \
-                             --numpaths 2  \
+                             --numpaths 1  \
                              --max_snapshots 10 \
 	                     --system_type vmax \
                              --provisionType 'Thick' \

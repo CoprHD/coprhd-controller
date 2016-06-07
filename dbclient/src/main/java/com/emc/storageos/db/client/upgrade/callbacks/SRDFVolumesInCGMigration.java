@@ -65,6 +65,8 @@ public class SRDFVolumesInCGMigration extends BaseCustomMigrationCallback {
                 BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, cgUri);
                 StorageSystem system = dbClient.queryObject(StorageSystem.class, storageUri);
                 if (cg == null || system == null) {
+                    log.warn(String.format("Volume %s is being skipped because the refrenced CG or storage system is null; cgUri: %s; storageUri: %s", 
+                            volume.getId().toString(), cgUri.toString(), storageUri.toString())); 
                     continue;
                 }
                 if (volume.getSrdfParent() != null || volume.getSrdfTargets() != null) {

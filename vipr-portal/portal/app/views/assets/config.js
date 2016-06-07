@@ -154,6 +154,16 @@ angular.module("config", []).constant({
                 icon: 'remove',
                 class: '',
                 key: 'resources.tasks.error'
+            },
+            '${task.suspended_no_error}':{
+                icon: 'pause',
+                class: '',
+                key: 'resources.tasks.suspended_no_error'
+            },
+            '${task.suspended_error}':{
+                icon: 'remove-circle',
+                class: '',
+                key: 'resources.tasks.suspended_error'
             }
         },
         workflowStep: {

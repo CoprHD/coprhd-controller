@@ -1,14 +1,16 @@
 #!/bin/sh
 #
-# Copyright (c) 2015 EMC Corporation
+# Copyright (c) 2016 EMC Corporation
 # All Rights Reserved
 #
 #
-# VMAX Export Tests
-# =================
+# DU Validation Tests
+# ===================
 #
 # Requirements:
 # -------------
+# TODO: Fill this in for DU Test
+#
 # - SYMAPI should be installed, which is included in the SMI-S install. Install tars can be found on 
 #   Download the tar file for Linux, untar, run seinstall -install
 # - The provider host should allow for NOSECURE SYMAPI REMOTE access. See https://asdwiki.isus.emc.com:8443/pages/viewpage.action?pageId=28778911 for more information.
@@ -17,6 +19,7 @@
 #
 # How to read this script:
 # ------------------------
+# TODO: Fill this in for DU Test
 #
 # - This script builds up one cluster, three hosts, two initiators per host.
 # - Each test will create a series of export groups.
@@ -25,17 +28,6 @@
 #      ./symhelper <mask-name> <#-Initiators-Expected> <#-LUNs-Expected>
 #      "After the previous export_group command, I expect mask "billhost1" to have 2 initiators and 2 LUNs in it..."
 # - Exports are cleaned at the end of the script, and since remove is just as complicated, verifications are done there as well.
-#
-# These test cases exercise our ability to perform:
-# -------------------------------------------------
-# -	Create export (Host, Volumes)
-# -	Create export (Cluster, Volumes)
-# -	Add Host to export*
-# -	Remove Host from export*
-# -	Add Cluster to export*
-# -	Remove Cluster from export*
-# -     Add Volume to export
-# -     Remove Volume from export
 #
 # set -x
 
@@ -115,6 +107,94 @@ verify_export() {
 	finish
     fi
     VERIFY_EXPORT_COUNT=`expr $VERIFY_EXPORT_COUNT + 1`
+}
+
+# Array helper method that supports the following operations:
+# 1. add_volume_to_mask
+# 2. remove_volume_from_mask
+# 3. delete_volume
+#
+# The goal is to do minimal processing here and dispatch to the respective array type's helper to do the work.
+#
+arrayhelper() {
+    operation=$1
+    serial_number=$2
+    device_id=$3
+    
+    case $operation in
+    add_volume_to_mask)
+        pattern=$4
+	arrayhelper_volume_mask_operation $operation $serial_number $device_id $pattern
+	;;
+    remove_volume_from_mask)
+        pattern=$4
+	arrayhelper_volume_mask_operation $operation $serial_number $device_id $pattern
+	;;
+    delete_volume)
+	arrayhelper_delete_volume $operation $serial_number $device_id
+	;;
+    default)
+        echo "ERROR: Invalid operation $operation specified to arrayhelper."
+	exit
+	;;
+    esac
+}
+
+# Call the appropriate storage array helper script to perform masking operations
+# outside of the controller.
+#
+arrayhelper_volume_mask_operation() {
+    operation=$1
+    serial_number=$2
+    device_id=$3
+    pattern=$4
+
+    case $storage_type in
+    vmax)
+         runcmd symhelper.sh $operation $serial_number $device_id $pattern
+	 ;;
+    vnx)
+         runcmd navihelper.sh $operation $serial_number $device_id $pattern
+	 ;;
+    xio)
+         runcmd xiohelper.sh $operation $serial_number $device_id $pattern
+	 ;;
+    vplex)
+         runcmd vplexhelper.sh $operation $serial_number $device_id $pattern
+	 ;;
+    default)
+         echo "ERROR: Invalid platform specified in storage_type: $storage_type"
+	 exit
+	 ;;
+    esac
+}
+
+# Call the appropriate storage array helper script to perform delete volume
+# outside of the controller.
+#
+arrayhelper_delete_volume() {
+    operation=$1
+    serial_number=$2
+    device_id=$3
+
+    case $storage_type in
+    vmax)
+         runcmd symhelper.sh $operation $serial_number $device_id
+	 ;;
+    vnx)
+         runcmd navihelper.sh $operation $serial_number $device_id
+	 ;;
+    xio)
+         runcmd xiohelper.sh $operation $serial_number $device_id
+	 ;;
+    vplex)
+         runcmd vplexhelper.sh $operation $serial_number $device_id
+	 ;;
+    default)
+         echo "ERROR: Invalid platform specified in storage_type: $storage_type"
+	 exit
+	 ;;
+    esac
 }
 
 finish() {
@@ -281,7 +361,7 @@ login() {
     security login $SYSADMIN $SYSADMIN_PASSWORD
 
     echo "Seeing if there's an existing base of volumes"
-    BASENUM=`volume list project | grep YES | head -1 | awk '{print $1}' | awk -Fp '{print $2}' | awk -F- '{print $1}'`
+    BASENUM=`volume list ${PROJECT} | grep YES | head -1 | awk '{print $1}' | awk -Fp '{print $2}' | awk -F- '{print $1}'`
     if [ "${BASENUM}" != "" ]
     then
        echo "Volumes were found!  Base number is: ${BASENUM}"
@@ -291,10 +371,21 @@ login() {
        HOST2=host2export${BASENUM}
        HOST3=host3export${BASENUM}
        CLUSTER=cl${BASENUM}
+
+       # figure out what type of array we're running against
+       storage_type=`storagedevice list | grep COMPLETE | awk '{print $1}'`
+       echo "Found storage type is: $storage_type"
+
+       SERIAL_NUMBER=`storagedevice list | grep COMPLETE | awk '{print $2}' | awk -F+ '{print $2}'`
+       echo "Serial number is: $SERIAL_NUMBER"
     fi
 }
 
 setup() {
+    storage_type=$1;
+
+    # TODO: Different scripts depending on storage_type, but they should all map to the same vpool/project, if possible.
+
     syssvc $SANITY_CONFIG_FILE localhost setup
     security add_authn_provider ldap ldap://${LOCAL_LDAP_SERVER_IP} cn=manager,dc=viprsanity,dc=com secret ou=ViPR,dc=viprsanity,dc=com uid=%U CN Local_Ldap_Provider VIPRSANITY.COM ldapViPR* SUBTREE --group_object_classes groupOfNames,groupOfUniqueNames,posixGroup,organizationalRole --group_member_attributes member,uniqueMember,memberUid,roleOccupant
     tenant create $TENANT VIPRSANITY.COM OU VIPRSANITY.COM
@@ -417,11 +508,9 @@ set_suspend_on_class_method() {
     runcmd syssvc $SANITY_CONFIG_FILE $BOURNE_IPADDR set_prop workflow_suspend_on_class_method "$1"
 }
 
-# Export Test 1
+# Suspend/Resume base test 1
 #
-# Basic Use Case for single host, single volume
-# Required to test suspend/resume functionality
-#
+# This tests top-level workflow suspension.  It's the simplest form of suspend/resume for a workflow.
 #
 test_1() {
     echot "Test 1 DU Check Begins"
@@ -429,6 +518,7 @@ test_1() {
 
     # Turn on suspend of export after orchestration
     set_suspend_on_class_method ExportWorkflowEntryPoints.exportGroupCreate
+    set_suspend_on_error false
 
     # Run the export group command
     echo === export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
@@ -450,25 +540,129 @@ test_1() {
     runcmd workflow resume $workflow
     # Follow the task
     runcmd task follow $task
-
     
     verify_export ${expname}1 ${HOST1} 2 1
-    runcmd export_group delete $PROJECT/${expname}1
+
+    # Turn on suspend of export after orchestration
+    set_suspend_on_class_method ExportWorkflowEntryPoints.exportGroupDelete
+    set_suspend_on_error false
+
+    # Run the export group command
+    echo === export_group delete $PROJECT/${expname}1
+    resultcmd=`export_group delete $PROJECT/${expname}1`
+
+    if [ $? -ne 0 ]; then
+	echo "export group command failed outright"
+    fi
+
+    echo $resultcmd
+
+    # Parse results (add checks here!  encapsulate!)
+    taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
+    answersarray=($taskworkflow)
+    task=${answersarray[0]}
+    workflow=${answersarray[1]}
+
+    # Resume the workflow
+    runcmd workflow resume $workflow
+    # Follow the task
+    runcmd task follow $task
+
     verify_export ${expname}1 ${HOST1} gone
 }
 
-# Export Test 2
+# Suspend/Resume base test 2
 #
-# Basic Use Case for single host, single volume
-# 1. ViPR creates 1 volume, 1 host export.
-# 2. Customer creates a volume outside of ViPR and adds the volume to the mask.
-# 3. ViPR asked to remove the export group.
-# 4. Verify the operation fails.
-# 5. Remove the volume from the mask outside of ViPR.
-# 6. Attempt operation again, succeeds.
+# This tests child workflow suspension.  This is more complicated to control.
 #
 test_2() {
     echot "Test 2 DU Check Begins"
+    expname=${EXPORT_GROUP_NAME}t1
+
+    verify_export ${expname}1 ${HOST1} gone
+
+    # Turn on suspend of export after orchestration
+    set_suspend_on_class_method MaskingWorkflowEntryPoints.doExportGroupCreate
+    set_suspend_on_error false
+
+    # Run the export group command
+    echo === export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
+    resultcmd=`export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"`
+
+    if [ $? -ne 0 ]; then
+	echo "export group command failed outright"
+    fi
+
+    echo $resultcmd
+
+    echo $resultcmd | grep "suspended" > /dev/null
+    if [ $? -ne 0 ]; then
+	echo "export group command did not suspend";
+	# TODO: add error handling
+	exit;
+    fi
+
+    # Parse results (add checks here!  encapsulate!)
+    taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
+    answersarray=($taskworkflow)
+    task=${answersarray[0]}
+    workflow=${answersarray[1]}
+
+    # Resume the workflow
+    runcmd workflow resume $workflow
+    # Follow the task
+    runcmd task follow $task
+    
+    verify_export ${expname}1 ${HOST1} 2 1
+
+    # Turn on suspend of export after orchestration
+    set_suspend_on_class_method MaskingWorkflowEntryPoints.doExportGroupDelete
+    set_suspend_on_error false
+
+    # Run the export group command
+    echo === export_group delete $PROJECT/${expname}1
+    resultcmd=`export_group delete $PROJECT/${expname}1`
+
+    if [ $? -ne 0 ]; then
+	echo "export group command failed outright"
+    fi
+
+    echo $resultcmd
+
+    echo $resultcmd | grep "suspended" > /dev/null
+    if [ $? -ne 0 ]; then
+	echo "export group command did not suspend";
+	# TODO: add error handling
+	exit;
+    fi
+
+    # Parse results (add checks here!  encapsulate!)
+    taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
+    answersarray=($taskworkflow)
+    task=${answersarray[0]}
+    workflow=${answersarray[1]}
+
+    # Resume the workflow
+    runcmd workflow resume $workflow
+    # Follow the task
+    runcmd task follow $task
+
+    verify_export ${expname}1 ${HOST1} gone
+}
+
+# DU Prevention Validation Test 3
+#
+# Basic Use Case for single host, single volume
+# 1. ViPR creates 1 volume, 1 host export.
+# 2. ViPR asked to delete the export group, but is paused after orchestration
+# 3. Customer creates a volume outside of ViPR and adds the volume to the mask.
+# 4. Delete of export group workflow is resumed
+# 5. Verify the operation fails.
+# 6. Remove the volume from the mask outside of ViPR.
+# 7. Attempt operation again, succeeds.
+#
+test_3() {
+    echot "Test 3: Export Group Delete doesn't delete Export Mask when extra volumes are in it"
     expname=${EXPORT_GROUP_NAME}t2
 
     # Make sure we start clean; no masking view on the array
@@ -476,14 +670,15 @@ test_2() {
 
     # Turn on suspend of export after orchestration
     set_suspend_on_class_method "none"
+    set_suspend_on_error false
 
     # Create the mask with the 1 volume
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
 
     # Turn on suspend of export after orchestration
-    set_suspend_on_class_method ExportWorkflowEntryPoints.exportGroupDelete
+    set_suspend_on_class_method MaskingWorkflowEntryPoints.doExportGroupDelete
 
-    # Run the export group command
+    # Run the export group command TODO: Do this more elegantly
     echo === export_group delete $PROJECT/${expname}1
     resultcmd=`export_group delete $PROJECT/${expname}1`
 
@@ -505,46 +700,28 @@ test_2() {
     device_id=`volume show ${PROJECT}/du-hijack-volume | grep native_id | awk '{print $2}' | cut -c2-6`
     runcmd volume delete ${PROJECT}/du-hijack-volume --vipronly
 
-    # BEGIN: THIS SECTION OF CODE IS DIFFERENT DEPENDING ON THE ARRAY TYPE, SO IT SHOULD BE GENERALIZED INTO A MASKING METHOD PER ARRAY
-    # arrayhelper OPERATION SERIAL_NUMBER ${device_id} ${HOST1}
-    # arrayhelper add_vol_to_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
-
-    # Find out where the volume ended up, thanks to ViPR (formalize this!)
-    sg_short_id=`/opt/emc/SYMCLI/bin/symaccess -sid 612 list -type storage -dev ${device_id} | grep ViPR_Optimized | cut -c1-31`
-    sg_long_id=`/opt/emc/SYMCLI/bin/symaccess -sid 612 list -type storage -detail -v | grep ${sg_short_id} | awk -F: '{print $2}' | awk '{print $1}' | sed -e 's/^[[:space:]]*//'`
-
-    # Remove the volume from the storage group it is in
-    runcmd /opt/emc/SYMCLI/bin/symaccess -sid 612 -type storage -name $sg_long_id remove dev ${device_id}
-
-    # Add it to the storage group ViPR knows about
-    sg_short_id=`/opt/emc/SYMCLI/bin/symaccess -sid 612 list -type storage | grep ${HOST1}_612_SG | cut -c1-31`
-    sg_long_id=`/opt/emc/SYMCLI/bin/symaccess -sid 612 list -type storage -detail -v | grep ${sg_short_id} | awk -F: '{print $2}' | awk '{print $1}' | sed -e 's/^[[:space:]]*//'`
-    runcmd /opt/emc/SYMCLI/bin/symaccess -sid 612 -type storage -name $sg_long_id add dev ${device_id}
-
-    # END: THIS SECTION OF CODE IS DIFFERENT DEPENDING ON THE ARRAY TYPE, SO IT SHOULD BE GENERALIZED INTO A MASKING METHOD PER ARRAY
-
+    # Add the volume to the mask (done differently per array type)
+    arrayhelper add_volume_to_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
+    
     # Verify the mask has the new volume in it
     verify_export ${expname}1 ${HOST1} 2 2
 
-    # TODO: Update provider?  (ask harsha)
-
     # Resume the workflow
     runcmd workflow resume $workflow
+
     # Follow the task.  It should fail because of Poka Yoke validation
+    echo "*** Following the export_group delete task to verify it FAILS because of the additional volume"
     fail task follow $task
 
     # Now remove the volume from the storage group (masking view)
-    # array_helper remove_vol_from_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
-    runcmd /opt/emc/SYMCLI/bin/symaccess -sid 612 -type storage -name $sg_long_id remove dev ${device_id}
-    # array_helper delete_vol ${SERIAL_NUMBER} ${device_id}
+    array_helper remove_volume_from_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
 
-    # TODO: Delete the hijack device
+    # Delete the volume we created.
+    array_helper delete_volume ${SERIAL_NUMBER} ${device_id}
 
     # Verify the mask is back to normal
     verify_export ${expname}1 ${HOST1} 2 1
 
-    # TODO: Update provider?  (ask harsha)
-    
     # Turn off suspend of export after orchestration
     set_suspend_on_class_method "none"
 
@@ -553,6 +730,91 @@ test_2() {
 
     # Make sure it really did kill off the mask
     verify_export ${expname}1 ${HOST1} gone
+}
+
+# Export Test 4
+#
+# Basic Use Case for single host, single volume
+# 1. ViPR creates 1 volume, 1 host export.
+# 2. ViPR asked to remove the volume from the export group, but is paused after orchestration
+# 3. Customer creates a volume outside of ViPR and adds the volume to the mask.
+# 4. Removal of volume workflow is resumed
+# 5. Verify the operation fails.
+# 6. Remove the volume from the mask outside of ViPR.
+# 7. Attempt operation again, succeeds.
+#
+test_4() {
+    echot "Test 4: Export Group Remove Volume last volume doesn't delete Export Mask when extra volumes are in it"
+    expname=${EXPORT_GROUP_NAME}t3
+
+    # Make sure we start clean; no masking view on the array
+    verify_export ${expname}1 ${HOST1} gone
+
+    # Turn on suspend of export after orchestration
+    set_suspend_on_class_method "none"
+    set_suspend_on_error false
+
+    # Create the mask with the 1 volume
+    runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
+
+    # Turn on suspend of export after orchestration
+    set_suspend_on_class_method MaskingWorkflowEntryPoints.doExportGroupDelete
+
+    # Run the export group command TODO: Do this more elegantly
+    echo === export_group update $PROJECT/${expname}1 --remVols ${PROJECT}/${VOLNAME}-1
+    resultcmd=`export_group update $PROJECT/${expname}1 --remVols ${PROJECT}/${VOLNAME}-1`
+
+    if [ $? -ne 0 ]; then
+	echo "export group command failed outright"
+    fi
+
+    # Show the result of the export group command for now (show the task and WF IDs)
+    echo $resultcmd
+
+    # Parse results (add checks here!  encapsulate!)
+    taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
+    answersarray=($taskworkflow)
+    task=${answersarray[0]}
+    workflow=${answersarray[1]}
+
+    # Create another volume that we will inventory-only delete
+    runcmd volume create du-hijack-volume ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 1
+    device_id=`volume show ${PROJECT}/du-hijack-volume | grep native_id | awk '{print $2}' | cut -c2-6`
+    runcmd volume delete ${PROJECT}/du-hijack-volume --vipronly
+
+    # Add the volume to the mask (done differently per array type)
+    arrayhelper add_volume_to_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
+    
+    # Verify the mask has the new volume in it
+    verify_export ${expname}1 ${HOST1} 2 2
+
+    # Resume the workflow
+    runcmd workflow resume $workflow
+
+    # Follow the task.  It should fail because of Poka Yoke validation
+    echo "*** Following the export_group delete task to verify it FAILS because of the additional volume"
+    fail task follow $task
+
+    # Now remove the volume from the storage group (masking view)
+    array_helper remove_volume_from_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
+
+    # Delete the volume we created.
+    array_helper delete_volume ${SERIAL_NUMBER} ${device_id}
+
+    # Verify the mask is back to normal
+    verify_export ${expname}1 ${HOST1} 2 1
+
+    # Turn off suspend of export after orchestration
+    set_suspend_on_class_method "none"
+
+    # Try the export operation again
+    runcmd export_group update $PROJECT/${expname}1 --remVols ${PROJECT}/${VOLNAME}-1
+
+    # Make sure it really did kill off the mask
+    verify_export ${expname}1 ${HOST1} gone
+
+    # Delete the export group
+    runcmd export_group delete $PROJECT/${expname}1
 }
 
 cleanup() {
@@ -617,42 +879,47 @@ H3NI1=`nwwn 04`
 H3PI2=`pwwn 05`
 H3NI2=`nwwn 05`
 
-if [ "$2" = "regression" ]
+if [ "$1" = "regression" ]
 then
-   test_0;
+    test_0;
+    shift;
 fi
 
-if [ "$2" = "delete" ]
+if [ "$1" = "delete" ]
 then
-  cleanup
-  finish
+    cleanup
+    finish
 fi
 
-if [ "$2" = "setup" ]
+if [ "$1" = "setup" ]
 then
     setup $2;
+    shift;
 fi;
 
 # If there's a 2nd parameter, take that
 # as the name of the test to run
-if [ "$3" != "" ]
+if [ "$1" != "" ]
 then
-   shift
    echo Request to run $*
    for t in $*
    do
       echo Run $t
       $t
    done
-   cleanup
-   finish
+   exit
+   #cleanup
+   #finish
 fi
 
 # Passing tests:
-test_2;
-exit;
 test_0;
 test_1;
+test_2;
+test_3;
+exit;
+
+# for now, run "delete" separately to clean up your resources.  Once things are stable, we'll turn this back on.
 cleanup;
 finish
 

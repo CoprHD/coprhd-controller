@@ -5007,10 +5007,12 @@ class Bourne:
            clusterChanges['remove'] = clusterEntry
         parms['cluster_changes'] = clusterChanges
 
-        print str(parms)
+        if(BOURNE_DEBUG == '1'):
+	    print str(parms)
         o = self.api('PUT', URI_EXPORTGROUP_INSTANCE.format(groupId), parms)
         self.assert_is_dict(o)
-        print 'OOO: ' + str(o) + ' :OOO'
+        if(BOURNE_DEBUG == '1'):
+	    print 'OOO: ' + str(o) + ' :OOO'
         s = self.api_sync_2(o['resource']['id'], o['op_id'], self.export_show_task)
         return (o, s)
 

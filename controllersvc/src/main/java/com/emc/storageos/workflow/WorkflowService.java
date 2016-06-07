@@ -2216,6 +2216,52 @@ public class WorkflowService implements WorkflowController {
     }
 
     /**
+     * Check to see if this workflow has already been created for this step.  Used to ensure
+     * that we don't create it again if the workflow step is re-entered.
+     * 
+     * @param stepId step ID
+     * @param workflowKey identifies this workflow from other workflows that this step may create
+     * @return true if the workflow has already been created
+     */
+    public boolean hasWorkflowBeenCreated(String stepId, String workflowKey) {
+        // Check to see if we are re-entering this step after a previous execution already created the export workflow.
+        // If this is the case, do not create it again.
+        try {
+            String stepData = (String) WorkflowService.getInstance().loadStepData(generateWorkflowCreatedKey(stepId, workflowKey));
+            if (stepData != null && stepData.equalsIgnoreCase(Boolean.TRUE.toString())) {
+                _log.info("Idempotency check: we already created this workflow and therefore will not create it again.");
+                return true;
+            }
+        } catch (ClassCastException e) {
+            // This will never, ever happen.
+            _log.info("Step {} has stored workflow step data other than String. Exception: {}", stepId, e);
+        }
+        return false;
+    }
+
+    /**
+     * Marks a workflow as being created by a step so future retries of that step will not create it again.
+     * 
+     * @param stepId step ID
+     * @param workflowKey identifies thsi workflow from other workflows that this step may create
+     */
+    public void markWorkflowBeenCreated(String stepId, String workflowKey) {
+        // Mark this workflow as created/executed so we don't do it again on retry/resume
+        WorkflowService.getInstance().storeStepData(generateWorkflowCreatedKey(stepId, workflowKey), Boolean.TRUE.toString());
+    }
+    
+    /**
+     * Generate a unique key for a workflow created by a workflow step. 
+     * 
+     * @param stepId step ID
+     * @param workflowKey identifies this workflow from other workflows that this step may create
+     * @return a unique key
+     */
+    private String generateWorkflowCreatedKey(String stepId, String workflowKey) {
+        return stepId + ":" + workflowKey;
+    }
+    
+    /**
      * Given a step id in a workflow, will return the Workflow.
      * 
      * @param stepId

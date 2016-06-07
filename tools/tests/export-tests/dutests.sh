@@ -41,7 +41,7 @@
 
 Usage()
 {
-    echo 'Usage: vmaxexport.sh <sanity conf file path> [setup|delete [test1 test2 ...]]'
+    echo 'Usage: dutests.sh <sanity conf file path> {vmax | vnx | vplex | xtremio} [setup|delete [test1 test2 ...] ]'
     echo ' [setup]: Run on a new ViPR database, creates SMIS, host, initiators, vpools, varray, volumes'
     echo ' [delete]: Will exports and volumes'
     exit 2
@@ -62,6 +62,17 @@ if [ "$1"x != "x" ]; then
       source $SANITY_CONFIG_FILE
    fi
 fi
+SS=${2}
+if [ ${SS} = "xtremio" ]; then
+    XTREMIO_TESTS=1
+fi
+case $SS in
+
+vmax|vnx|vplex|xtremio)
+
+    ;;
+    Usage
+esac
 
 VERIFY_EXPORT_COUNT=0
 VERIFY_EXPORT_FAIL_COUNT=0
@@ -606,25 +617,25 @@ H3NI1=`nwwn 04`
 H3PI2=`pwwn 05`
 H3NI2=`nwwn 05`
 
-if [ "$1" = "regression" ]
+if [ "$2" = "regression" ]
 then
    test_0;
 fi
 
-if [ "$1" = "delete" ]
+if [ "$2" = "delete" ]
 then
   cleanup
   finish
 fi
 
-if [ "$1" = "setup" ]
+if [ "$2" = "setup" ]
 then
     setup $2;
 fi;
 
 # If there's a 2nd parameter, take that
 # as the name of the test to run
-if [ "$2" != "" ]
+if [ "$3" != "" ]
 then
    shift
    echo Request to run $*

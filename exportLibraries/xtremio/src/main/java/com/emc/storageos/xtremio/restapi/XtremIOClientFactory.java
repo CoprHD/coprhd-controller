@@ -17,12 +17,29 @@ public class XtremIOClientFactory extends RestClientFactory {
     private static final String DOT_OPERATOR = "\\.";
     private static final Integer XIO_MIN_4X_VERSION = 4;
 
+    /**
+     * This method will always return a REST client which will support
+     * version 1 XtremIO REST APIs. Use {@link #createNewRestClient(URI, String, String, String, Client)} to get
+     * the correct REST client supported for the given XtremIO system.
+     *
+     */
     @Override
     protected RestClientItf createNewRestClient(URI endpoint, String username,
             String password, Client client) {
-        return null;
+        return new XtremIOV1Client(endpoint, username, password, client);
     }
 
+    /**
+     * Create a new XtremIO REST client for the given endpoint, username, password and XtremIO version.
+     * For XtremIO 4.x and higher, return a REST client which will support version 2 REST APIs.
+     *
+     * @param endpoint End point URI
+     * @param username User name
+     * @param password Password
+     * @param version XtremIO version
+     * @param client A reference to a Jersey Apache HTTP client.
+     * @return XtremIO REST client
+     */
     protected RestClientItf createNewRestClient(URI endpoint, String username,
             String password, String version, Client client) {
         XtremIOClient xioClient = null;

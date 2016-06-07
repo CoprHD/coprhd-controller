@@ -2124,9 +2124,9 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 newVarrayStoragePorts.add(resultsIter.next());
             }
             if (!newVarrayStoragePorts.containsAll(storagePorts)) {
-                s_logger.info("The volume is exported, the exported target storage prots are not all in the target virtual array");
+                s_logger.info("The volume is exported, but the exported target storage ports are not all in the target virtual array");
                 throw APIException.badRequests.changesNotSupportedFor("VirtualArray", "exported volumes, and the target storage ports exported through"
-                        + "are not all in the target virtual array");
+                        + " are not all in the target virtual array");
             }
             for (URI init : initiators) {
                 Initiator initiator =  _dbClient.queryObject(Initiator.class, init);
@@ -2136,7 +2136,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     if (!varrayIds.contains(newVarrayId)) {
                         s_logger.info("The volume is exported, the exported hosts initiators are not all in the target virtual array");
                         throw APIException.badRequests.changesNotSupportedFor("VirtualArray", "exported volumes, and the exported host initiators"
-                                + "are not all in the target virtual array");
+                                + " are not all in the target virtual array");
                     }
                 }
             }

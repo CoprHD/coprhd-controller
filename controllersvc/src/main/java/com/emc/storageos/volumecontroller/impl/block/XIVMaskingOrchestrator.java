@@ -162,6 +162,10 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
                             // Make sure the zoning map is getting updated for user-created masks
                             updateZoningMap(exportGroup, exportMask, true);
+                            
+                            // Update volumeMap to find the next HLU here.
+                            updateVolumeHLU(storage, initiatorURIs, exportGroup, volumesToAdd);
+                            
                             generateExportMaskAddVolumesWorkflow(workflow, EXPORT_GROUP_ZONING_TASK, storage,
                                     exportGroup, exportMask, volumesToAdd);
                             anyVolumesAdded = true;
@@ -1019,7 +1023,7 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
      * @param volumeMap
      *            Volume and HLU mapping.
      */
-    private void updateVolumeHLU(StorageSystem system, List<URI> initiatorURIs, ExportGroup exportGroup, Map<URI, Integer> volumeMap) {
+    private void updateVolumeHLU(StorageSystem system, Collection<URI> initiatorURIs, ExportGroup exportGroup, Map<URI, Integer> volumeMap) {
         boolean findHLU = false;
         Map<String, List<URI>> computeResourceToInitiators = mapInitiatorsToComputeResource(exportGroup, initiatorURIs);
         Set<String> hostURISet = computeResourceToInitiators.keySet();

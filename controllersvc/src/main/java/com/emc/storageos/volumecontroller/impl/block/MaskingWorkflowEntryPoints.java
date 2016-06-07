@@ -248,7 +248,6 @@ public class MaskingWorkflowEntryPoints implements Controller {
                     .queryObject(ExportMask.class, exportMaskURI);
             StorageSystem storage = _dbClient
                     .queryObject(StorageSystem.class, storageURI);
-            updateVolumeHLU(storage, exportMask, volumeMap);
             getDevice(storage).doExportAddVolumes(storage, exportMask, volumeMap,
                     taskCompleter);
 
@@ -572,62 +571,6 @@ public class MaskingWorkflowEntryPoints implements Controller {
             _log.info(call + " Encountered an exception", e);
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
             taskCompleter.error(_dbClient, serviceError);
-        }
-    }
-
-    /**
-     * Finds Next available HLU for the Host/Hosts (Cluster) and updates the
-     * volume Map to the next HLU reference if user has chosen system to decide on HLU number
-     * 
-     * @param system
-     *            Storage Array on whic export operation is executed
-     * @param initiatorURIs
-     *            List of Host initiators
-     * @param exportGroup
-     *            Export group reference
-     * @param volumeMap
-     *            Volume and HLU mapping.
-     */
-    private void updateVolumeHLU(StorageSystem system, ExportMask exportMask, Map<URI, Integer> volumeMap) {
-        boolean findHLU = false;
-        //Loop through the volume entries to see if there is a request for Auto HLU.
-        for (Entry<URI, Integer> volumeMapEntry : volumeMap.entrySet()) {
-            if (volumeMapEntry.getValue() == -1) {
-                findHLU = true;
-                break;
-            }
-        }
-        //If auto HLU then start finding out the next HLU
-        if (findHLU && !volumeMap.isEmpty()) {
-            List<URI> hostURIs = new ArrayList<URI>();
-            for(String initiator : exportMask.getInitiators()){
-            	final Initiator init = _dbClient.queryObject(Initiator.class, URI.create(initiator));
-            	hostURIs.add(init.getHost());
-            }
-
-            BlockStorageDevice device = getDevice(system);
-            Map<URI, List<String>> hostToHLUsMap = device.doFindHostHLUs(system, hostURIs, null);
-            Iterator<Entry<URI, List<String>>> hostToHLUsItr = hostToHLUsMap.entrySet().iterator();
-            Set<String> commonHLUs = new HashSet<String>();
-            //Get the list of available HLU on array and then add that to the Set of common HLU
-            while (hostToHLUsItr.hasNext()) {
-                Entry<URI, List<String>> hostHLUs = hostToHLUsItr.next();
-                commonHLUs.addAll(hostHLUs.getValue());
-            }
-            // Update Volume Map to the next available HLU.
-            for (Entry<URI, Integer> volumeMapEntry : volumeMap.entrySet()) {
-                int nextHLU = 1;
-                while (commonHLUs.contains(String.valueOf(nextHLU))) {
-                    nextHLU++;
-                }
-                if (nextHLU < 512) {
-                    _log.info("Updating HLU of Volume {} from {} to " + nextHLU, volumeMapEntry.getKey(), volumeMapEntry.getValue());
-                    commonHLUs.add(String.valueOf(nextHLU));
-                    volumeMap.put(volumeMapEntry.getKey(), Integer.valueOf(nextHLU));
-                } else {
-                    DeviceControllerException.errors.voluemExportNotPossible(volumeMapEntry.getKey().toString(), nextHLU, new Throwable());
-                }
-            }
         }
     }
 }

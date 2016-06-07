@@ -254,13 +254,13 @@ public class XIVRestOperationsHelper {
                     final String lunName = getBlockObjectAlternateName(volumeURIHLU.getVolumeURI());
                     final String volumeHLU = volumeURIHLU.getHLU();
                     if (volumeHLU != null && !volumeHLU.equalsIgnoreCase(ExportGroup.LUN_UNASSIGNED_STR)) {
-                        int hluDec = Integer.parseInt(volumeHLU);
+                        int hluDec = Integer.parseInt(volumeHLU, 16);
                         if (hluDec > MAXIMUM_LUN) {
                             String errMsg = String.format(INVALID_LUN_ERROR_MSG, hluDec, MAXIMUM_LUN);
                             _log.error(errMsg);
                             throw new Exception(errMsg);
                         } else {
-                            restExportOpr.exportVolume(storageIP, exportType, exportName, lunName, volumeHLU);
+                            restExportOpr.exportVolume(storageIP, exportType, exportName, lunName, String.valueOf(hluDec));
                         }
                     }
                 }
@@ -675,13 +675,13 @@ public class XIVRestOperationsHelper {
 	                final String lunName = getBlockObjectAlternateName(volumeURIHLU.getVolumeURI());
 	                final String volumeHLU = volumeURIHLU.getHLU();
 	                if (volumeHLU != null && !volumeHLU.equalsIgnoreCase(ExportGroup.LUN_UNASSIGNED_STR)) {
-	                    int hluDec = Integer.parseInt(volumeHLU);
+	                	int hluDec = Integer.parseInt(volumeHLU, 16);
 	                    if (hluDec > MAXIMUM_LUN) {
 	                        String errMsg = String.format(INVALID_LUN_ERROR_MSG, hluDec, MAXIMUM_LUN);
 	                        _log.error(errMsg);
 	                        throw new Exception(errMsg);
 	                    } else {
-	                        restExportOpr.exportVolume(storageIP, exportType, exportName, lunName, volumeHLU);
+	                        restExportOpr.exportVolume(storageIP, exportType, exportName, lunName, String.valueOf(hluDec));
 	                    }
 	                }
 	            }

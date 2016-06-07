@@ -34,10 +34,10 @@ import com.emc.storageos.volumecontroller.AttributeMatcher;
 import com.emc.storageos.volumecontroller.AttributeMatcher.Attributes;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
-public class FileMirrorSchedular implements Scheduler {
+public class FileMirrorScheduler implements Scheduler {
 
     public final Logger _log = LoggerFactory
-            .getLogger(FileMirrorSchedular.class);
+            .getLogger(FileMirrorScheduler.class);
 
     private DbClient _dbClient;
     private StorageScheduler _storageScheduler;

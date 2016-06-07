@@ -23,7 +23,9 @@ public class VirtualPoolChangeParam {
     private URI virtualPool;
     private BlockVirtualPoolProtectionParam protection;
     private URI consistencyGroup;
-    private String transferSpeed; 
+    private String transferSpeed;
+    private Boolean migrationSuspendBeforeCommit;
+    private Boolean migrationSuspendBeforeDeleteSource;
 
     public VirtualPoolChangeParam() {
     }
@@ -68,12 +70,13 @@ public class VirtualPoolChangeParam {
      */
     @XmlElement(required = false, name = "transfer_speed")
     public String getTransferSpeedParam() {
-    	return transferSpeed; 
+        return transferSpeed;
     }
-    
+
     public void setTransferSpeedParam(String transferspeed) {
-    	this.transferSpeed = transferspeed; 
+        this.transferSpeed = transferspeed;
     }
+
     /**
      * The ViPR consistency group to associate the volume with for
      * the creation of the RecoverPoint consistency group.
@@ -87,6 +90,24 @@ public class VirtualPoolChangeParam {
 
     public void setConsistencyGroup(URI consistencyGroup) {
         this.consistencyGroup = consistencyGroup;
+    }
+
+    @XmlElement(name = "migration_suspend_before_commit")
+    public Boolean getMigrationSuspendBeforeCommit() {
+        return migrationSuspendBeforeCommit;
+    }
+
+    public void setMigrationSuspendBeforeCommit(Boolean migrationSuspendBeforeCommit) {
+        this.migrationSuspendBeforeCommit = migrationSuspendBeforeCommit;
+    }
+
+    @XmlElement(name = "migration_suspend_before_delete_source")
+    public Boolean getMigrationSuspendBeforeDeleteSource() {
+        return migrationSuspendBeforeDeleteSource;
+    }
+
+    public void setMigrationSuspendBeforeDeleteSource(Boolean migrationSuspendBeforeDeleteSource) {
+        this.migrationSuspendBeforeDeleteSource = migrationSuspendBeforeDeleteSource;
     }
 
 }

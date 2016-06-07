@@ -425,6 +425,7 @@ public class WorkflowService implements WorkflowController {
                 Step step = workflow.getStepMap().get(stepId);
                 if (StepState.ERROR == state && workflow.isSuspendOnError() && !workflow.isRollbackState()) {
                     state = StepState.SUSPENDED_ERROR;
+                    step.suspendStep = false;
                 }
 
                 // if this is a rollback step that ran as a result of a SUSPENDED_ERROR step, move over the
@@ -502,7 +503,7 @@ public class WorkflowService implements WorkflowController {
             for (Map.Entry<String, StepStatus> statusEntry : statusMap.entrySet()) {
                 if (statusEntry.getValue() != null && statusEntry.getValue().state != null &&
                         (statusEntry.getValue().state == StepState.SUSPENDED_ERROR ||
-                        statusEntry.getValue().state == StepState.SUSPENDED_NO_ERROR)) {
+                                statusEntry.getValue().state == StepState.SUSPENDED_NO_ERROR)) {
                     _log.info("Removing step " + statusEntry.getValue().description + " from the suspended steps list in workflow "
                             + workflow._workflowURI.toString());
                     URI suspendStepURI = workflow.getStepMap().get(statusEntry.getKey()).workflowStepURI;
@@ -964,7 +965,7 @@ public class WorkflowService implements WorkflowController {
                     suspendStep = true;
                 } else if (step.controllerName.endsWith(suspendClass) &&
                         (step.executeMethod.methodName.equals(suspendMethod) ||
-                        suspendMethod.equals("*"))) {
+                                suspendMethod.equals("*"))) {
                     suspendStep = true;
                 } else if (suspendClass.equals("*") && step.executeMethod.methodName.equals(suspendMethod)) {
                     suspendStep = true;
@@ -1001,6 +1002,7 @@ public class WorkflowService implements WorkflowController {
                     state = StepState.BLOCKED;
                 } else if (isStepMarkedForSuspend(workflow, step)) {
                     state = StepState.SUSPENDED_NO_ERROR;
+                    step.suspendStep = false;
                 }
             } catch (CancelledException cancelEx) {
                 state = StepState.CANCELLED;
@@ -1084,6 +1086,7 @@ public class WorkflowService implements WorkflowController {
                         if (!isBlocked(workflow, step)) {
                             again = true;
                             if (isStepMarkedForSuspend(workflow, step)) {
+                                step.suspendStep = false;
                                 logStep(workflow, step);
                                 step.status.updateState(StepState.SUSPENDED_NO_ERROR, null, "Suspending step " + step.description);
                                 persistWorkflowStepUpdate(workflow, step);
@@ -1132,6 +1135,7 @@ public class WorkflowService implements WorkflowController {
                     try {
                         if (!isBlocked(workflow, step) && isStepMarkedForSuspend(workflow, step)) {
                             again = true;
+                            step.suspendStep = false;
                             logStep(workflow, step);
                             step.status.updateState(StepState.SUSPENDED_NO_ERROR, null, "Suspending step " + step.description);
                             persistWorkflowStepUpdate(workflow, step);
@@ -1173,9 +1177,9 @@ public class WorkflowService implements WorkflowController {
      * @return true if the step is marked to be suspended
      */
     private boolean isStepMarkedForSuspend(Workflow workflow, Step step) {
-        return workflow.getSuspendSteps() != null && !workflow.getSuspendSteps().isEmpty()
+        return step.suspendStep || (workflow.getSuspendSteps() != null && !workflow.getSuspendSteps().isEmpty()
                 && (workflow.getSuspendSteps().contains(workflow.getWorkflowURI())
-                || workflow.getSuspendSteps().contains(step.workflowStepURI));
+                        || workflow.getSuspendSteps().contains(step.workflowStepURI)));
     }
 
     /**
@@ -1454,10 +1458,10 @@ public class WorkflowService implements WorkflowController {
      */
     void logStep(Workflow workflow, Step step) {
         try {
-            boolean created = false;
+            boolean create = false;
             com.emc.storageos.db.client.model.WorkflowStep logStep = null;
             if (step.workflowStepURI == null) {
-                created = true;
+                create = true;
                 logStep = new com.emc.storageos.db.client.model.WorkflowStep();
                 logStep.setId(URIUtil
                         .createId(com.emc.storageos.db.client.model.WorkflowStep.class));
@@ -1485,7 +1489,8 @@ public class WorkflowService implements WorkflowController {
             logStep.setStepGroup(step.stepGroup);
             logStep.setStepId(step.stepId);
             logStep.setWaitFor(step.waitFor);
-            if (created) {
+            logStep.setSuspendStep(step.suspendStep);
+            if (create) {
                 _dbClient.createObject(logStep);
             } else {
                 _dbClient.updateObject(logStep);
@@ -2216,11 +2221,13 @@ public class WorkflowService implements WorkflowController {
     }
 
     /**
-     * Check to see if this workflow has already been created for this step.  Used to ensure
+     * Check to see if this workflow has already been created for this step. Used to ensure
      * that we don't create it again if the workflow step is re-entered.
      * 
-     * @param stepId step ID
-     * @param workflowKey identifies this workflow from other workflows that this step may create
+     * @param stepId
+     *            step ID
+     * @param workflowKey
+     *            identifies this workflow from other workflows that this step may create
      * @return true if the workflow has already been created
      */
     public boolean hasWorkflowBeenCreated(String stepId, String workflowKey) {
@@ -2242,25 +2249,29 @@ public class WorkflowService implements WorkflowController {
     /**
      * Marks a workflow as being created by a step so future retries of that step will not create it again.
      * 
-     * @param stepId step ID
-     * @param workflowKey identifies thsi workflow from other workflows that this step may create
+     * @param stepId
+     *            step ID
+     * @param workflowKey
+     *            identifies thsi workflow from other workflows that this step may create
      */
     public void markWorkflowBeenCreated(String stepId, String workflowKey) {
         // Mark this workflow as created/executed so we don't do it again on retry/resume
         WorkflowService.getInstance().storeStepData(generateWorkflowCreatedKey(stepId, workflowKey), Boolean.TRUE.toString());
     }
-    
+
     /**
-     * Generate a unique key for a workflow created by a workflow step. 
+     * Generate a unique key for a workflow created by a workflow step.
      * 
-     * @param stepId step ID
-     * @param workflowKey identifies this workflow from other workflows that this step may create
+     * @param stepId
+     *            step ID
+     * @param workflowKey
+     *            identifies this workflow from other workflows that this step may create
      * @return a unique key
      */
     private String generateWorkflowCreatedKey(String stepId, String workflowKey) {
         return stepId + ":" + workflowKey;
     }
-    
+
     /**
      * Given a step id in a workflow, will return the Workflow.
      * 
@@ -2323,9 +2334,8 @@ public class WorkflowService implements WorkflowController {
                 rollbackStepIds.add(step.stepId);
                 if (!NullColumnValueGetter.isNullURI(step.workflowStepURI)) {
                     // Remove the rollback step from the database
-                    com.emc.storageos.db.client.model.WorkflowStep dbStep =
-                            _dbClient.queryObject(
-                                    com.emc.storageos.db.client.model.WorkflowStep.class, step.workflowStepURI);
+                    com.emc.storageos.db.client.model.WorkflowStep dbStep = _dbClient.queryObject(
+                            com.emc.storageos.db.client.model.WorkflowStep.class, step.workflowStepURI);
                     if (dbStep != null)
                         _dbClient.markForDeletion(dbStep);
                 }

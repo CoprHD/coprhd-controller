@@ -21,29 +21,30 @@ import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValues
 @SuppressWarnings("serial")
 public class VolumeDescriptor implements Serializable {
     public enum Type {
-        /* ******************************
+        /*
+         * ******************************
          * The ordering of these are important for the sortByType() method,
          * be mindful when adding/removing/changing the list.
          * Especially the RP Values, keep them in sequential order.
          * ******************************
          */
-        BLOCK_DATA(1),      // user's data volume
-        BLOCK_MIRROR(2),    // array level mirror
-        BLOCK_SNAPSHOT(3),  // array level snapshot
+        BLOCK_DATA(1), // user's data volume
+        BLOCK_MIRROR(2), // array level mirror
+        BLOCK_SNAPSHOT(3), // array level snapshot
         RP_EXISTING_PROTECTED_SOURCE(4), // RecoverPoint existing source volume that has protection already
         RP_EXISTING_SOURCE(5), // RecoverPoint existing source volume
         RP_VPLEX_VIRT_SOURCE(6), // RecoverPoint + VPLEX Virtual source
-        RP_SOURCE(7),       // RecoverPoint source
-        RP_TARGET(8),       // RecoverPoint target
+        RP_SOURCE(7), // RecoverPoint source
+        RP_TARGET(8), // RecoverPoint target
         RP_VPLEX_VIRT_TARGET(9), // RecoverPoint + VPLEX Virtual target
         RP_VPLEX_VIRT_JOURNAL(10), // RecoverPoint + VPLEX Virtual journal
-        RP_JOURNAL(11),      // RecoverPoint journal
-        VPLEX_VIRT_VOLUME(12),  // VPLEX Virtual Volume
+        RP_JOURNAL(11), // RecoverPoint journal
+        VPLEX_VIRT_VOLUME(12), // VPLEX Virtual Volume
         VPLEX_LOCAL_MIRROR(13), // VPLEX local mirror
-        VPLEX_IMPORT_VOLUME(14),  // VPLEX existing Volume to be imported
-        SRDF_SOURCE(15),     // SRDF remote mirror source
-        SRDF_TARGET(16),     // SRDF remote mirror target
-        SRDF_EXISTING_SOURCE(17),  // SRDF existing source volume
+        VPLEX_IMPORT_VOLUME(14), // VPLEX existing Volume to be imported
+        SRDF_SOURCE(15), // SRDF remote mirror source
+        SRDF_TARGET(16), // SRDF remote mirror target
+        SRDF_EXISTING_SOURCE(17), // SRDF existing source volume
         VPLEX_MIGRATE_VOLUME(18);
 
         private final int order;
@@ -57,15 +58,15 @@ public class VolumeDescriptor implements Serializable {
         }
     };
 
-    private Type type;              // The type of this volume
-    private URI deviceURI;          // Device this volume will be created on
-    private URI volumeURI;          // The volume id or BlockObject id to be created
-    private URI poolURI;            // The pool id to be used for creation
-    private VirtualPoolCapabilityValuesWrapper capabilitiesValues;  // Non-volume-specific RP policy is stored in here
-    private URI consistencyGroup;   // The consistency group this volume belongs to
-    private Long volumeSize;        // Used to separate multi-volume create requests
-    private URI migrationId;        // Reference to the migration object for this volume
-    private URI computeResource;    // Host/Cluster to which the volume will be exported to, as part of the provisioning.
+    private Type type; // The type of this volume
+    private URI deviceURI; // Device this volume will be created on
+    private URI volumeURI; // The volume id or BlockObject id to be created
+    private URI poolURI; // The pool id to be used for creation
+    private VirtualPoolCapabilityValuesWrapper capabilitiesValues; // Non-volume-specific RP policy is stored in here
+    private URI consistencyGroup; // The consistency group this volume belongs to
+    private Long volumeSize; // Used to separate multi-volume create requests
+    private URI migrationId; // Reference to the migration object for this volume
+    private URI computeResource; // Host/Cluster to which the volume will be exported to, as part of the provisioning.
 
     // Layer/device specific parameters (key/value) for this volume (serializable!)
     private Map<String, Object> parameters = new HashMap<String, Object>();
@@ -76,6 +77,8 @@ public class VolumeDescriptor implements Serializable {
     public static final String PARAM_VPOOL_CHANGE_OLD_VPOOL_ID = "vpoolChangeOldVpoolId";
     public static final String PARAM_IS_COPY_SOURCE_ID = "isCopySourceId";
     public static final String PARAM_DO_NOT_DELETE_VOLUME = "doNotDeleteVolume";
+    public static final String PARAM_MIGRATION_SUSPEND_BEFORE_COMMIT = "migrationSuspendBeforeCommit";
+    public static final String PARAM_MIGRATION_SUSPEND_BEFORE_DELETE_SOURCE = "migrationSuspendBeforeDeleteSource";
 
     public VolumeDescriptor(Type type,
             URI deviceURI, URI volumeURI, URI poolURI, URI consistencyGroupURI,
@@ -111,8 +114,10 @@ public class VolumeDescriptor implements Serializable {
     /**
      * Returns all the descriptors of a given type.
      * 
-     * @param descriptors List<VolumeDescriptor> input list
-     * @param type enum Type
+     * @param descriptors
+     *            List<VolumeDescriptor> input list
+     * @param type
+     *            enum Type
      * @return returns list elements matching given type
      */
     static public List<VolumeDescriptor> getDescriptors(List<VolumeDescriptor> descriptors, Type type) {
@@ -128,7 +133,8 @@ public class VolumeDescriptor implements Serializable {
     /**
      * Return a map of device URI to a list of descriptors in that device.
      * 
-     * @param descriptors List<VolumeDescriptors>
+     * @param descriptors
+     *            List<VolumeDescriptors>
      * @return Map of device URI to List<VolumeDescriptors> in that device
      */
     static public Map<URI, List<VolumeDescriptor>> getDeviceMap(List<VolumeDescriptor> descriptors) {
@@ -145,7 +151,8 @@ public class VolumeDescriptor implements Serializable {
     /**
      * Return a map of pool URI to a list of descriptors in that pool.
      * 
-     * @param descriptors List<VolumeDescriptors>
+     * @param descriptors
+     *            List<VolumeDescriptors>
      * @return Map of pool URI to List<VolumeDescriptors> in that pool
      */
     static public Map<URI, List<VolumeDescriptor>> getPoolMap(List<VolumeDescriptor> descriptors) {
@@ -162,7 +169,8 @@ public class VolumeDescriptor implements Serializable {
     /**
      * Return a map of pool URI to a list of descriptors in that pool of each size.
      * 
-     * @param descriptors List<VolumeDescriptors>
+     * @param descriptors
+     *            List<VolumeDescriptors>
      * @return Map of pool URI to a map of identical sized volumes to List<VolumeDescriptors> in that pool of that size
      */
     static public Map<URI, Map<Long, List<VolumeDescriptor>>> getPoolSizeMap(List<VolumeDescriptor> descriptors) {
@@ -189,7 +197,8 @@ public class VolumeDescriptor implements Serializable {
     /**
      * Return a List of URIs for the volumes.
      * 
-     * @param descriptors List<VolumeDescriptors>
+     * @param descriptors
+     *            List<VolumeDescriptors>
      * @return List<URI> of volumes in the input list
      */
     public static List<URI> getVolumeURIs(List<VolumeDescriptor> descriptors) {
@@ -203,9 +212,12 @@ public class VolumeDescriptor implements Serializable {
     /**
      * Filter a list of VolumeDescriptors by type(s).
      * 
-     * @param descriptors -- Original list.
-     * @param inclusive -- Types to be included (or null if not used).
-     * @param exclusive -- Types to be excluded (or null if not used).
+     * @param descriptors
+     *            -- Original list.
+     * @param inclusive
+     *            -- Types to be included (or null if not used).
+     * @param exclusive
+     *            -- Types to be excluded (or null if not used).
      * @return List<VolumeDescriptor>
      */
     public static List<VolumeDescriptor> filterByType(
@@ -215,7 +227,7 @@ public class VolumeDescriptor implements Serializable {
         if (descriptors == null) {
             return result;
         }
-        
+
         HashSet<Type> included = new HashSet<Type>();
         if (inclusive != null) {
             included.addAll(Arrays.asList(inclusive));
@@ -244,7 +256,8 @@ public class VolumeDescriptor implements Serializable {
     /**
      * Helper method to retrieve the vpool change volume hiding in the volume descriptors
      * 
-     * @param descriptors list of volumes
+     * @param descriptors
+     *            list of volumes
      * @return URI of the vpool change volume
      */
     public static URI getVirtualPoolChangeVolume(List<VolumeDescriptor> descriptors) {
@@ -263,7 +276,8 @@ public class VolumeDescriptor implements Serializable {
     /**
      * Helper method to find the change vpool using a single descriptor
      * 
-     * @param descriptor Volume descriptor to use
+     * @param descriptor
+     *            Volume descriptor to use
      * @return URI of the change vpool
      */
     public static URI getVirtualPoolChangeVolume(VolumeDescriptor descriptor) {
@@ -278,7 +292,8 @@ public class VolumeDescriptor implements Serializable {
     /**
      * Helper method to retrieve the source vpool change volume hiding in the volume descriptors.
      * 
-     * @param descriptors list of volumes
+     * @param descriptors
+     *            list of volumes
      * @return Map<URI,URI> of the vpool change volume and the old vpool associated to it.
      */
     public static Map<URI, URI> getAllVirtualPoolChangeSourceVolumes(List<VolumeDescriptor> descriptors) {
@@ -298,10 +313,55 @@ public class VolumeDescriptor implements Serializable {
     }
 
     /**
+     * Helper method to retrieve the suspension setting hiding in the volume descriptors.
+     * 
+     * @param descriptors
+     *            list of volumes
+     * @return boolean if we should suspend before commit
+     */
+    public static boolean getMigrationSuspendBeforeCommit(List<VolumeDescriptor> descriptors) {
+        return isPropertyEnabled(descriptors, VolumeDescriptor.PARAM_MIGRATION_SUSPEND_BEFORE_COMMIT);
+    }
+
+    /**
+     * Helper method to retrieve the suspension setting hiding in the volume descriptors.
+     * 
+     * @param descriptors
+     *            list of volumes
+     * @return boolean if we should suspend before deleting the source volumes
+     */
+    public static boolean getMigrationSuspendBeforeDeleteSource(List<VolumeDescriptor> descriptors) {
+        return isPropertyEnabled(descriptors, VolumeDescriptor.PARAM_MIGRATION_SUSPEND_BEFORE_DELETE_SOURCE);
+    }
+
+    /**
+     * Helper that checks any boolean property in the volume descriptor. False is default response.
+     * 
+     * @param descriptors
+     *            descriptor list
+     * @param param
+     *            string of parameter to check
+     * @return true if the property is set and true, false otherwise
+     */
+    private static boolean isPropertyEnabled(List<VolumeDescriptor> descriptors, String param) {
+        if (descriptors != null) {
+            for (VolumeDescriptor volumeDescriptor : descriptors) {
+                if (volumeDescriptor.getParameters() != null) {
+                    if (volumeDescriptor.getParameters().get(param) != null) {
+                        return (Boolean) volumeDescriptor.getParameters().get(param);
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
      * Sorts the descriptors using the natural order of the enum type
      * defined at the top of the class.
      * 
-     * @param descriptors VolumeDescriptors to sort
+     * @param descriptors
+     *            VolumeDescriptors to sort
      */
     public static void sortByType(List<VolumeDescriptor> descriptors) {
         Collections.sort(descriptors, new Comparator<VolumeDescriptor>() {
@@ -311,11 +371,12 @@ public class VolumeDescriptor implements Serializable {
             }
         });
     }
-    
+
     /**
      * Returns all descriptors that have the PARAM_DO_NOT_DELETE_VOLUME flag set to true.
      * 
-     * @param descriptors List of descriptors to check
+     * @param descriptors
+     *            List of descriptors to check
      * @return all descriptors that have the PARAM_DO_NOT_DELETE_VOLUME flag set to true
      */
     public static List<VolumeDescriptor> getDoNotDeleteDescriptors(List<VolumeDescriptor> descriptors) {
@@ -324,10 +385,10 @@ public class VolumeDescriptor implements Serializable {
             for (VolumeDescriptor descriptor : descriptors) {
                 if (descriptor.getParameters() != null
                         && descriptor.getParameters().get(VolumeDescriptor.PARAM_DO_NOT_DELETE_VOLUME) != null
-                        && descriptor.getParameters().get(VolumeDescriptor.PARAM_DO_NOT_DELETE_VOLUME).equals(Boolean.TRUE)) {                
+                        && descriptor.getParameters().get(VolumeDescriptor.PARAM_DO_NOT_DELETE_VOLUME).equals(Boolean.TRUE)) {
                     doNotDeleteDescriptors.add(descriptor);
                 }
-            } 
+            }
         }
         return doNotDeleteDescriptors;
     }
@@ -422,11 +483,11 @@ public class VolumeDescriptor implements Serializable {
         this.migrationId = _migrationId;
     }
 
-	public URI getComputeResource() {
-		return computeResource;
-	}
+    public URI getComputeResource() {
+        return computeResource;
+    }
 
-	public void setComputeResource(URI _computeResource) {
-		this.computeResource = _computeResource;
-	}
+    public void setComputeResource(URI _computeResource) {
+        this.computeResource = _computeResource;
+    }
 }

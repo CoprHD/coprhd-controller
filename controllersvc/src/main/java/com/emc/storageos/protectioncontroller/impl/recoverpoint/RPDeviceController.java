@@ -998,7 +998,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
         workflow.createStep(STEP_RP_EXPORT_ORCHESTRATION, "Create RP Export group orchestration subtask for RP CG",
                 waitFor, rpSystem.getId(), rpSystem.getSystemType(), false, this.getClass(),
-                rpExportOrchestrationExecuteMethod, rpExportOrchestrationExecuteRollbackMethod, stepId);
+                rpExportOrchestrationExecuteMethod, rpExportOrchestrationExecuteRollbackMethod, false, stepId);
 
         // This step creates a sub-workflow to do the orchestration. The rollback for this step calls a
         // workflow facility WorkflowService.rollbackChildWorkflow, which will roll back the entire
@@ -1014,7 +1014,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
         workflow.createStep(STEP_EXPORT_ORCHESTRATION, "Create export group orchestration subtask for RP CG",
                 STEP_RP_EXPORT_ORCHESTRATION, rpSystem.getId(), rpSystem.getSystemType(), false, this.getClass(),
-                exportOrchestrationExecuteMethod, exportOrchestrationExecutionRollbackMethod, stepId);
+                exportOrchestrationExecuteMethod, exportOrchestrationExecutionRollbackMethod, false, stepId);
     }
 
     /**

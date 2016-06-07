@@ -196,13 +196,13 @@ public class VPlexVmaxMaskingOrchestrator extends VmaxMaskingOrchestrator
         int portsPerNetPerPG = oneNetwork ? 2 : 1;
         // It is best practice if each network has at least two ports, favoring fewer port groups.
         // But if "morePortGroups" is set, will make additional portGroups if there are fewer ports.
-        if (morePortGroups) {		// This can be set true for testing environments
+        if (morePortGroups) { // This can be set true for testing environments
             if (minPorts >= 4) {
-                portsPerNetPerPG = 2;	// Makes at least two Port Groups if there are two ports
+                portsPerNetPerPG = 2; // Makes at least two Port Groups if there are two ports
             }
         } else {
             if (minPorts >= 2) {
-                portsPerNetPerPG = 2;	// Default is to require at least two ports per Port Group
+                portsPerNetPerPG = 2; // Default is to require at least two ports per Port Group
             }
         }
         if (!moreThanTwoNetworks) {
@@ -261,7 +261,8 @@ public class VPlexVmaxMaskingOrchestrator extends VmaxMaskingOrchestrator
     /**
      * Order the networks from those with least ports to those with most ports
      * 
-     * @param allocatablePorts -- Map of Network URI to list of ports
+     * @param allocatablePorts
+     *            -- Map of Network URI to list of ports
      * @return ordered list of Network URIs
      */
     private List<URI> orderNetworksByNumberOfPorts(Map<URI, List<StoragePort>> allocatablePorts) {
@@ -294,10 +295,14 @@ public class VPlexVmaxMaskingOrchestrator extends VmaxMaskingOrchestrator
     /**
      * Allocates StoragePorts (in either the simulated or production modes).
      * 
-     * @param candidatePorts -- List of ports from which to choose
-     * @param portsRequested -- Integer number of ports requested
-     * @param net -- NetworkLite network
-     * @param varrayURI -- URI of VirtualArray
+     * @param candidatePorts
+     *            -- List of ports from which to choose
+     * @param portsRequested
+     *            -- Integer number of ports requested
+     * @param net
+     *            -- NetworkLite network
+     * @param varrayURI
+     *            -- URI of VirtualArray
      * @return List of StoragePorts allocated.
      */
     private List<StoragePort> allocatePorts(StoragePortsAllocator allocator,
@@ -310,8 +315,7 @@ public class VPlexVmaxMaskingOrchestrator extends VmaxMaskingOrchestrator
             for (StoragePort port : candidatePorts) {
                 context.addPort(port, null, null, null, null);
             }
-            List<StoragePort> portsAllocated =
-                    allocator.allocatePortsForNetwork(portsRequested, context, false, null, false);
+            List<StoragePort> portsAllocated = allocator.allocatePortsForNetwork(portsRequested, context, false, null, false);
             allocator.setContext(context);
             return portsAllocated;
         } else {
@@ -332,8 +336,7 @@ public class VPlexVmaxMaskingOrchestrator extends VmaxMaskingOrchestrator
     @Override
     public Workflow.Method createOrAddVolumesToExportMaskMethod(URI arrayURI,
             URI exportGroupURI, URI exportMaskURI,
-            Map<URI, Integer> volumeMap, TaskCompleter completer)
-    {
+            Map<URI, Integer> volumeMap, TaskCompleter completer) {
         return new Workflow.Method("createOrAddVolumesToExportMask",
                 arrayURI, exportGroupURI, exportMaskURI, volumeMap, completer);
     }
@@ -408,7 +411,7 @@ public class VPlexVmaxMaskingOrchestrator extends VmaxMaskingOrchestrator
             URI exportGroupURI, URI exportMaskURI,
             List<URI> volumes, List<URI> initiatorURIs, TaskCompleter completer) {
         return new Workflow.Method("deleteOrRemoveVolumesFromExportMask", arrayURI,
-                exportGroupURI, exportMaskURI, volumes, completer);
+                exportGroupURI, exportMaskURI, volumes, initiatorURIs, completer);
     }
 
     @Override
@@ -455,14 +458,27 @@ public class VPlexVmaxMaskingOrchestrator extends VmaxMaskingOrchestrator
                     && (exportMask.getExistingVolumes() == null || exportMask.getExistingVolumes().isEmpty())) {
                 device.doExportDelete(array, exportMask, null, null, completer);
             } else {
-                List<Initiator> initiators = _dbClient.queryObject(Initiator.class, initiatorURIs);
+                List<Initiator> initiators = null;
+                // TODO DUPP:
+                // Make sure the caller to this method (the caller that assembles the steps) adds the initiator list to
+                // send down here. (then remove the log)
+                if (initiatorURIs != null && !initiatorURIs.isEmpty()) {
+                    initiators = _dbClient.queryObject(Initiator.class, initiatorURIs);
+                } else {
+                    _log.error("ERROR Poka Yoke: add the initiatorURIs to the call that assembles this step.");
+                }
                 device.doExportRemoveVolumes(array, exportMask, volumes, initiators, completer);
             }
-        } catch (Exception ex) {
+        } catch (
+
+        Exception ex)
+
+        {
             _log.error("Failed to delete or remove volumes to export mask for vmax: ", ex);
             VPlexApiException vplexex = DeviceControllerExceptions.vplex.addStepsForCreateVolumesFailed(ex);
             WorkflowStepCompleter.stepFailed(stepId, vplexex);
         }
+
     }
 
     public void setSimulation(boolean simulation) {

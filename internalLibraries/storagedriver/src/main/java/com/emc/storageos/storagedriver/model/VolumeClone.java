@@ -35,8 +35,8 @@ public class VolumeClone extends StorageVolume {
         return parentId;
     }
     
-    public void setSourceType(SourceType newSourceType){
-    	this.sourceType = newSourceType;
+    public void setSourceType(SourceType sourceType){
+    	this.sourceType = sourceType;
     }
 
     public void setParentId(String parentId) {

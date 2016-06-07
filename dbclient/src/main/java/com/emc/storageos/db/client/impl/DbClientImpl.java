@@ -105,6 +105,8 @@ import com.netflix.astyanax.util.TimeUUIDUtils;
  */
 public class DbClientImpl implements DbClient {
     private static final int COMPLETED_PROGRESS = 100;
+    private static final int SUSPENDED_NO_ERROR_PROGRESS = 25;
+    private static final int SUSPENDED_ERROR_PROGRESS = 33;
     public static final String DB_STAT_OPTIMIZE_DISK_SPACE = "DB_STAT_OPTIMIZE_DISK_SPACE";
     public static final String DB_LOG_MINIMAL_TTL = "DB_LOG_MINIMAL_TTL";
     public static final String DB_CASSANDRA_OPTIMIZED_COMPACTION_STRATEGY = "DB_CASSANDRA_OPTIMIZED_COMPACTION_STRATEGY";
@@ -1876,10 +1878,10 @@ public class DbClientImpl implements DbClient {
                     task.setMessage(operation.getMessage());
 
                     // Some code isn't updating progress to 100 when completed, so fix this here
-                    if (Objects.equal(task.getStatus(), "pending")) {
+                    if (Objects.equal(task.getStatus(), "pending") || Objects.equal(task.getStatus(), "suspended_no_error") || 
+                            Objects.equal(task.getStatus(), "suspended_error")) {
                         task.setProgress(operation.getProgress());
-                    }
-                    else {
+                    } else {
                         task.setProgress(COMPLETED_PROGRESS);
                     }
                     task.setStartTime(operation.getStartTime());

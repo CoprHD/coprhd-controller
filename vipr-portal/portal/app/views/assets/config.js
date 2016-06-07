@@ -156,12 +156,12 @@ angular.module("config", []).constant({
                 key: 'resources.tasks.error'
             },
             '${task.suspended_no_error}':{
-                icon: 'exclamation-sign',
+                icon: 'pause',
                 class: '',
                 key: 'resources.tasks.suspended_no_error'
             },
             '${task.suspended_error}':{
-                icon: 'exclamation-sign',
+                icon: 'remove-circle',
                 class: '',
                 key: 'resources.tasks.suspended_error'
             }

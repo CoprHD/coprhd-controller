@@ -1,0 +1,9 @@
+#{extends 'main.html' /}
+#{set navSelected: ['nav.driver', 'nav.listDriver'] /}
+
+#{DataTable.header titleKey:'nav.listDriver'/}
+#{DataTable.table id:'directVolume', 
+                      dataTable:dataTable,
+                      source: @listJson()}
+
+#{/DataTable.table}

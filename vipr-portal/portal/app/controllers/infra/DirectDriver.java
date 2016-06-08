@@ -92,7 +92,7 @@ public class DirectDriver extends Controller{
     public static void saveVolume(DirectDriverForm volume) {
         boolean value = volume.save();
         if(!value) {
-            flash.error("Volume created but error in exporting volume");
+            flash.error("Check ViPR logs for information.");
         }
         createDirecVolume();
     }
@@ -167,7 +167,7 @@ public class DirectDriver extends Controller{
             boolean value = false;
             URI volume = tasks.getResourceId();
             try {
-                Thread.sleep(70000);
+                Thread.sleep(120000);
             }catch(Exception e) {
                 
             }

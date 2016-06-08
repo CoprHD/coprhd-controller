@@ -851,9 +851,9 @@
         </property>
     </bean>
     
-           <bean id="isilonPathCustomization" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
-    	<property name="name" value="IsilonPathCustomization"/>
-       <property name="configType" value="CustomName"/>
+    <bean id="isilonPathCustomization" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+        <property name="name" value="IsilonPathCustomization"/>
+        <property name="configType" value="CustomName"/>
         <property name="type" value="String"/>
         <property name="dataSourceVariables">
             <map>
@@ -862,8 +862,8 @@
                 <entry key-ref="tenantName" value="true"/>
                 <entry key-ref="vpoolName" value="true"/>
             </map>
-    	</property>
- 		<property name="scope">
+        </property>
+        <property name="scope">
             <map>
          <entry key="systemType" value="isilon"/>
             </map>
@@ -881,11 +881,11 @@
         
     </bean>
     
-           <bean id="isilonSystemAccessZoneNameSpace" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
-    	<property name="name" value="IsilonSystemAccessZoneNameSpace"/>
-              <property name="configType" value="SimpleValue"/>
+    <bean id="isilonSystemAccessZoneNameSpace" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+        <property name="name" value="IsilonSystemAccessZoneNameSpace"/>
+        <property name="configType" value="SimpleValue"/>
         <property name="type" value="String"/>
- 		<property name="scope">
+        <property name="scope">
             <map>
          <entry key="systemType" value="isilon"/>
             </map>
@@ -903,8 +903,8 @@
     </bean>
     
      <bean id="isilonUnmanagedFileSystemLocations" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
-    	<property name="name" value="IsilonUnmanagedFileSystemLocations"/>
-             <property name="configType" value="CustomName"/>
+        <property name="name" value="IsilonUnmanagedFileSystemLocations"/>
+        <property name="configType" value="CustomName"/>
         <property name="type" value="String"/>
         <property name="dataSourceVariables">
             <map>
@@ -912,8 +912,8 @@
                 <entry key-ref="userAccessZone" value="false"/>
                  <entry key-ref="noAccessZone" value="false"/>
             </map>
-    	</property>
- 		<property name="scope">
+        </property>
+        <property name="scope">
             <map>
          <entry key="systemType" value="isilon"/>
             </map>
@@ -1345,13 +1345,13 @@
         <property name="name" value="IllegalCharsConstraint"/> 
     </bean>
   
-  <bean id="isilonPathIllegalCharsConstraint" class="com.emc.storageos.customconfigcontroller.IllegalCharsConstraint">
+    <bean id="isilonPathIllegalCharsConstraint" class="com.emc.storageos.customconfigcontroller.IllegalCharsConstraint">
         <property name="illegalCharsRegexMap">
             <map>
                 <entry key="default" value="[^A-Za-z0-9_\-/]"/>
             </map>
         </property>
-        <property name="description" value="Valid characters are letters, numbers , forward slash and _"/>
+        <property name="description" value="Valid characters are letters, numbers, forward slash and _"/>
         <property name="replacementMap">
             <map>
                 <entry key="default" value=""/>
@@ -1360,13 +1360,13 @@
         <property name="name" value="IllegalCharsConstraint"/> 
     </bean>
     
-     <bean id="isilonDirLocationsIllegalCharsConstraint" class="com.emc.storageos.customconfigcontroller.IllegalCharsConstraint">
+    <bean id="isilonDirLocationsIllegalCharsConstraint" class="com.emc.storageos.customconfigcontroller.IllegalCharsConstraint">
         <property name="illegalCharsRegexMap">
             <map>
                 <entry key="default" value="[^A-Za-z0-9_\-,/]"/>
             </map>
         </property>
-        <property name="description" value="Enter the Path for directories(comma seperated) .Access zone directoies are automatically included.Valid characters are letters, numbers ,comma,forward slash, dash @ and _"/>
+        <property name="description" value="Enter the Path for directories(comma separated) .Access zone directories are automatically included.Valid characters are letters, numbers ,comma,forward slash, dash @ and _"/>
         <property name="replacementMap">
             <map>
                 <entry key="default" value=""/>

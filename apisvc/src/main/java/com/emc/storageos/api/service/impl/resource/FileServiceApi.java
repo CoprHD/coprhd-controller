@@ -13,6 +13,7 @@ import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.file.FileSystemParam;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
+import com.emc.storageos.volumecontroller.FileSMBShare;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
@@ -46,7 +47,7 @@ public interface FileServiceApi {
             VirtualArray varray, VirtualPool vpool, TenantOrg tenantOrg,
             DataObject.Flag[] flags, List<Recommendation> recommendations,
             TaskList taskList, String task, VirtualPoolCapabilityValuesWrapper vpoolCapabilities)
-            throws InternalException;
+                    throws InternalException;
 
     /**
      * Delete the passed filesystems for the passed system.
@@ -100,6 +101,17 @@ public interface FileServiceApi {
     public TaskResourceRep createTargetsForExistingSource(FileShare fs, Project project,
             VirtualPool vpool, VirtualArray varray, TaskList taskList, String task, List<Recommendation> recommendations,
             VirtualPoolCapabilityValuesWrapper vpoolCapabilities)
-            throws InternalException;
+                    throws InternalException;
 
+    /**
+     * Create CIFS share for the FileSystem
+     *
+     * @param URI storageSystem
+     * @param URI fileSystem
+     * @param FileSMBShare
+     * @param String task
+     * @throws InternalException
+     */
+    public void share(URI storageSystem, URI fileSystem, FileSMBShare smbShare, String task)
+            throws InternalException;
 }

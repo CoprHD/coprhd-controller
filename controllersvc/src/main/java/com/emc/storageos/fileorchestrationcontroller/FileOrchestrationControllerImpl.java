@@ -4,11 +4,13 @@
  */
 package com.emc.storageos.fileorchestrationcontroller;
 
+import java.net.URI;
 import java.util.List;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.volumecontroller.ControllerException;
+import com.emc.storageos.volumecontroller.FileSMBShare;
 import com.emc.storageos.volumecontroller.impl.Dispatcher;
 
 public class FileOrchestrationControllerImpl implements FileOrchestrationController {
@@ -70,5 +72,11 @@ public class FileOrchestrationControllerImpl implements FileOrchestrationControl
     private void execOrchestration(String methodName, Object... args) throws ControllerException {
         _dispatcher.queue(NullColumnValueGetter.getNullURI(), FILE_ORCHESTRATION_DEVICE,
                 getController(), methodName, args);
+    }
+
+    @Override
+    public void createCIFSShare(URI storageSystem, URI fileSystem, FileSMBShare smbShare, String taskId) throws ControllerException {
+        execOrchestration("createCIFSShare", storageSystem, fileSystem, smbShare, taskId);
+
     }
 }

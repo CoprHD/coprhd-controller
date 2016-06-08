@@ -13,16 +13,19 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.Controller;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.filereplicationcontroller.FileReplicationDeviceController;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.ControllerLockingService;
+import com.emc.storageos.volumecontroller.FileSMBShare;
 import com.emc.storageos.volumecontroller.impl.FileDeviceController;
 import com.emc.storageos.volumecontroller.impl.file.CreateMirrorFileSystemsCompleter;
 import com.emc.storageos.volumecontroller.impl.file.FileCreateWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.file.FileDeleteWorkflowCompleter;
+import com.emc.storageos.volumecontroller.impl.file.FileSystemShareCreateWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.file.FileWorkflowCompleter;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowException;
@@ -42,6 +45,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     static final String EXPAND_FILESYSTEMS_WF_NAME = "EXPAND_FILESYSTEMS_WORKFLOW";
     static final String CHANGE_FILESYSTEMS_VPOOL_WF_NAME = "CHANGE_FILESYSTEMS_VPOOL_WORKFLOW";
     static final String CREATE_MIRROR_FILESYSTEMS_WF_NAME = "CREATE_MIRROR_FILESYSTEMS_WF_NAME";
+    static final String CREATE_FILESYSTEM_CIFS_SHARE_WF_NAME = "CREATE_FILESYSTEM_CIFS_SHARE_WORKFLOW";
 
     /*
      * (non-Javadoc)
@@ -297,5 +301,28 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
 
     public void setFileReplicationDeviceController(FileReplicationDeviceController fileReplicationDeviceController) {
         this._fileReplicationDeviceController = fileReplicationDeviceController;
+    }
+
+    @Override
+    public void createCIFSShare(URI storageSystem, URI fileSystem, FileSMBShare smbShare, String taskId) throws ControllerException {
+        FileShare fileShare = s_dbClient.queryObject(FileShare.class, fileSystem);
+        FileSystemShareCreateWorkflowCompleter completer = new FileSystemShareCreateWorkflowCompleter(fileSystem, taskId);
+        Workflow workflow = null;
+        try {
+            workflow = _workflowService.getNewWorkflow(this, CREATE_FILESYSTEM_CIFS_SHARE_WF_NAME, false, taskId);
+            String shareStep = workflow.createStepId();
+            String waitFor = _fileDeviceController.addStepsForCreatingCIFSShares(workflow, storageSystem, fileSystem, smbShare, taskId,
+                    shareStep);
+            String successMessage = "Creating CIFS Share for FileSystem :" + fileShare.getLabel() + "finished successfully";
+            workflow.executePlan(completer, successMessage);
+
+        } catch (Exception ex) {
+            s_logger.error("Could not create CIFS share for filesystem: " + fileSystem + fileShare.getLabel(), ex);
+            String opName = ResourceOperationTypeEnum.CREATE_FILE_SYSTEM_SHARE.getName();
+            ServiceError serviceError = DeviceControllerException.errors.createFileSharesFailed(
+                    fileSystem.toString(), opName, ex);
+            completer.error(s_dbClient, _locker, serviceError);
+        }
+
     }
 }

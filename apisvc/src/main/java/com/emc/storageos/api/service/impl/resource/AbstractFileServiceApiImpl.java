@@ -32,6 +32,7 @@ import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.file.FileSystemParam;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
+import com.emc.storageos.volumecontroller.FileSMBShare;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
@@ -139,7 +140,7 @@ public abstract class AbstractFileServiceApiImpl<T> implements FileServiceApi {
             VirtualArray varray, VirtualPool vpool, TenantOrg tenantOrg, DataObject.Flag[] flags,
             List<Recommendation> recommendations, TaskList taskList,
             String task, VirtualPoolCapabilityValuesWrapper vpoolCapabilities)
-            throws InternalException {
+                    throws InternalException {
         throw APIException.methodNotAllowed.notSupported();
 
     }
@@ -217,5 +218,13 @@ public abstract class AbstractFileServiceApiImpl<T> implements FileServiceApi {
 
         // place the expand filesystem call in queue
         controller.expandFileSystem(fileDescriptors, taskId);
+    }
+
+    @Override
+    public void share(URI storageSystem, URI fileSystem, FileSMBShare smbShare, String taskId) throws InternalException {
+        FileOrchestrationController controller = getController(FileOrchestrationController.class,
+                FileOrchestrationController.FILE_ORCHESTRATION_DEVICE);
+        controller.createCIFSShare(storageSystem, fileSystem, smbShare, taskId);
+
     }
 }

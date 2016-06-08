@@ -393,7 +393,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
                         if (fsCheck) {
                             String errMsg = new String(
-                                    "delete file system from DB failed due to either snapshots or quota directories exist for file system " + fsObj.getLabel());
+                                    "delete file system from DB failed due to either snapshots or quota directories exist for file system "
+                                            + fsObj.getLabel());
                             _log.error(errMsg);
 
                             final ServiceCoded serviceCoded = DeviceControllerException.errors.jobFailedOpMsg(
@@ -924,6 +925,16 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 args.setFileOperation(true);
                 setVirtualNASinArgs(fsObj.getVirtualNAS(), args);
 
+                // Code to acquire lock on for VNXFILE Storage System
+                WorkflowStepCompleter.stepExecuting(opId);
+                if (storageObj.deviceIsType(Type.vnxfile)) {
+                    List<String> lockKeys = new ArrayList<String>();
+                    lockKeys.add(storageObj.getNativeGuid());
+                    boolean lockAcquired = _workflowService.acquireWorkflowStepLocks(opId, lockKeys, 10000L);
+                    if (!lockAcquired) {
+                        throw DeviceControllerException.exceptions.failedToAcquireLock(lockKeys.toString(), "");
+                    }
+                }
                 BiosCommandResult result = getDevice(storageObj.getSystemType()).doShare(storageObj, args, smbFileShare);
 
                 if (result.getCommandPending()) {
@@ -937,6 +948,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
                 if (result.isCommandSuccess()) {
                     _log.info("File share created successfully");
+                    WorkflowStepCompleter.stepSucceded(opId);
                     createDefaultACEForSMBShare(uri, smbShare, storageObj.getSystemType());
                 }
 
@@ -974,6 +986,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         } catch (Exception e) {
             String[] params = { storage.toString(), uri.toString(), smbShare.getName(), e.getMessage() };
             _log.error("Unable to create file system or snapshot share: storage {}, FS/snapshot URI {}, SMB share {}: {}", params);
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            WorkflowStepCompleter.stepFailed(opId, serviceError);
             updateTaskStatus(opId, fileObject, e);
             if (URIUtil.isType(uri, FileShare.class)) {
                 if ((fsObj != null) && (storageObj != null)) {
@@ -3435,7 +3449,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         if (vNASURI != null) {
             VirtualNAS vNAS = _dbClient.queryObject(VirtualNAS.class, vNASURI);
             args.setvNAS(vNAS);
-	 }
+        }
     }
 
     /**
@@ -3912,4 +3926,15 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
     }
 
+    static final String CREATE_FILESYSTEM_SHARE_METHOD = "share";
+
+    public String addStepsForCreatingCIFSShares(Workflow workflow, URI storageSystem, URI fileSystem, FileSMBShare smbShare,
+            String taskId, String shareStep) {
+        StorageSystem system = _dbClient.queryObject(StorageSystem.class, storageSystem);
+        Object[] args = new Object[] { storageSystem, fileSystem, smbShare };
+        Workflow.Method shareCreationMethod = new Workflow.Method(CREATE_FILESYSTEM_SHARE_METHOD, args);
+        String waitFor = workflow.createStep(null, "Creating FileSystem SMB Share",
+                null, storageSystem, system.getSystemType(), getClass(), shareCreationMethod, null, shareStep);
+        return waitFor;
+    }
 }

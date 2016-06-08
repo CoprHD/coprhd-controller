@@ -22,7 +22,8 @@ public class StorageProtocol {
         iSCSI,              // block
         FC,                 // block
         FCoE,               // FC block protocol with Ethernet transport
-        ScaleIO;            // ScaleIO Data Clients
+        ScaleIO,            // ScaleIO Data Clients
+        RBD;                // Ceph Data Clients
 
         private static final Set<String> protocols = new HashSet<String>();
 
@@ -52,7 +53,7 @@ public class StorageProtocol {
 
     public static enum Transport {
         FC,         // fibre channel networks
-        IP,         // IP networks for iSCSI, NFS, CIFS
+        IP,         // IP networks for iSCSI, NFS, CIFS, RBD
         Ethernet,   // Ethernet networks for FCoE
         ScaleIO,    // ScaleIO Data Clients
     }
@@ -78,6 +79,9 @@ public class StorageProtocol {
         }
         if (Block.ScaleIO.name().equals(protocol)) {
             return Transport.ScaleIO;
+        }
+        if (Block.RBD.name().equals(protocol)) {
+            return Transport.IP;
         }
         throw new RuntimeException("Invalid block protocol");
     }

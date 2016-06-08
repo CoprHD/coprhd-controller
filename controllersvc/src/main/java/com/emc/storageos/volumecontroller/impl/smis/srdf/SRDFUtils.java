@@ -810,5 +810,29 @@ public class SRDFUtils implements SmisConstants {
         log.info("volume list size {}", volumeList.size());
         return volumeList;
     }
+    
+    /**
+     * Given a source consistency group (SRDF), find the corresponding target CG if there is one.
+     * @param dbClient -- Database handle
+     * @param sourceCG -- URI of source CG
+     * @return -- URI of target CG if found, null otherwise
+     */
+    public static URI getTargetVolumeCGFromSourceCG(DbClient dbClient, URI sourceCG) {
+        List<Volume> sourceVolumes = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient, Volume.class,
+                AlternateIdConstraint.Factory.getBlockObjectsByConsistencyGroup(sourceCG.toString()));
 
+        for (Volume sourceVolume : sourceVolumes) {
+            if (sourceVolume.getSrdfTargets() != null) {
+                for (String target : sourceVolume.getSrdfTargets()) {
+                    if (NullColumnValueGetter.isNotNullValue(target)) {
+                        Volume targetVolume = dbClient.queryObject(Volume.class, URI.create(target));
+                        if (!NullColumnValueGetter.isNullURI(targetVolume.getConsistencyGroup())) {
+                            return targetVolume.getConsistencyGroup();
+                        }
+                    }
+                }
+            }
+        }
+        return null;
+    }
 }

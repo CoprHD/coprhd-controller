@@ -5,22 +5,20 @@
 
 package com.emc.storageos.systemservices.impl.util;
 
-import java.text.DecimalFormat;
-import java.util.concurrent.TimeUnit;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteNetworkState;
 import com.emc.storageos.coordinator.client.model.SiteNetworkState.NetworkHealth;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
-import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
 import com.emc.storageos.services.util.AlertsLogger;
 import com.emc.storageos.services.util.Waiter;
+import java.text.DecimalFormat;
+import java.text.MessageFormat;
+import java.util.concurrent.TimeUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * A thread started in syssvc to monitor network health between active and standby site.
@@ -31,6 +29,7 @@ import com.emc.storageos.services.util.Waiter;
 public class DrSiteNetworkMonitor implements Runnable {
 
     private static final Logger _log = LoggerFactory.getLogger(DrSiteNetworkMonitor.class);
+    private AlertsLogger _alertLog = AlertsLogger.getAlertsLogger();
 
     @Autowired
     private MailHandler mailHandler;
@@ -123,13 +122,13 @@ public class DrSiteNetworkMonitor implements Runnable {
 
             if (ping > NETWORK_SLOW_THRESHOLD) {
                 siteNetworkState.setNetworkHealth(NetworkHealth.SLOW);
-                _log.warn("Network for standby %s is slow",site.getName());
+                _log.warn("Network for standby {} is slow",site.getName());
                 AlertsLogger.getAlertsLogger().warn(String.format("Network for standby %s is Broken:" +
                         "Latency was reported as %f ms",site.getName(),ping));
             }
             else if (ping < 0) {
                 siteNetworkState.setNetworkHealth(NetworkHealth.BROKEN);
-                _log.error("Network for standby %s is broken",site.getName());
+                _log.error("Network for standby {} is broken",site.getName());
                 AlertsLogger.getAlertsLogger().error(String.format("Network for standby %s is Broken:" +
                         "Latency was reported as %s ms",site.getName(),ping));
             }
@@ -148,6 +147,8 @@ public class DrSiteNetworkMonitor implements Runnable {
                 
                 if (!NetworkHealth.BROKEN.equals(previousState)
                         && NetworkHealth.BROKEN.equals(siteNetworkState.getNetworkHealth())){
+                    //Add to systemevent log
+                    _alertLog.error(MessageFormat.format("Network connection to site %s has been broken.",site.getName()));
                     //send email alert
                     mailHandler.sendSiteNetworkBrokenMail(site);
                 }

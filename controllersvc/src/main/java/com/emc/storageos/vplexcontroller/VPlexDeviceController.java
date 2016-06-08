@@ -5349,6 +5349,12 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             _log.info("VPlex controller migrate volume {} on VPlex {}",
                     virtualVolumeURI, vplexURI);
 
+            String volumeUserLabel = "Label Unknown";
+            Volume virtualVolume = getDataObject(Volume.class, virtualVolumeURI, _dbClient);
+            if (virtualVolume != null && virtualVolume.getDeviceLabel() != null && virtualVolume.getLabel() != null) {
+                volumeUserLabel = virtualVolume.getLabel() + " (" + virtualVolume.getDeviceLabel() + ")";
+            }
+
             // Get the VPlex storage system
             StorageSystem vplexSystem = getDataObject(StorageSystem.class, vplexURI, _dbClient);
             _log.info("Got VPlex system");
@@ -5427,10 +5433,11 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 Workflow.Method vplexRollbackMethod = new Workflow.Method(
                         RB_COMMIT_MIGRATION_METHOD_NAME, migrationURIs, stepId);
                 _log.info("Creating workflow step to commit migration");
+                String stepDescription = String.format("migration commit step on VPLEX %s of volume %s",
+                        vplexSystem.getSerialNumber(), volumeUserLabel);
                 waitForStep = workflow.createStep(
                         MIGRATION_COMMIT_STEP,
-                        String.format("VPlex %s committing volume migration",
-                                vplexSystem.getId().toString()),
+                        stepDescription,
                         waitForStep, vplexSystem.getId(),
                         vplexSystem.getSystemType(), getClass(), vplexExecuteMethod,
                         vplexRollbackMethod, suspendBeforeCommit, stepId);
@@ -5447,8 +5454,16 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             Workflow.Method vplexExecuteMethod = new Workflow.Method(
                     DELETE_MIGRATION_SOURCES_METHOD, vplexURI, virtualVolumeURI,
                     newVpoolURI, newVarrayURI, migrationSources);
+            List<String> migrationSourceLabels = new ArrayList<>();
+            Iterator<Volume> volumeIter = _dbClient.queryIterativeObjects(Volume.class, migrationSources);
+            while (volumeIter.hasNext()) {
+                migrationSourceLabels.add(volumeIter.next().getNativeGuid());
+            }
+            String stepDescription = String.format(
+                    "post-migration delete of original source backing volumes [%s] associated with virtual volume %s",
+                    Joiner.on(',').join(migrationSourceLabels), volumeUserLabel);
             workflow.createStep(DELETE_MIGRATION_SOURCES_STEP,
-                    String.format("Creating workflow to delete migration sources"),
+                    stepDescription,
                     waitForStep, vplexSystem.getId(), vplexSystem.getSystemType(),
                     getClass(), vplexExecuteMethod, null, suspendBeforeDeleteSource,
                     stepId);

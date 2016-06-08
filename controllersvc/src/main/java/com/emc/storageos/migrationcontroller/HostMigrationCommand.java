@@ -19,6 +19,9 @@ import com.iwave.ext.linux.command.powerpath.PowerPathHDSInquiry;
 import com.iwave.ext.linux.command.powerpath.PowerPathInquiry;
 import com.iwave.ext.linux.command.powerpath.PowerPathInvistaInquiry;
 import com.iwave.ext.linux.command.powerpath.PowermtCheckRegistrationCommand;
+import com.iwave.ext.linux.command.powerpath.PowermtConfigCommand;
+import com.iwave.ext.linux.command.powerpath.PowermtRestoreCommand;
+import com.iwave.ext.linux.command.powerpath.PowermtSaveCommand;
 import com.iwave.ext.linux.model.MultiPathEntry;
 import com.iwave.ext.linux.model.PathInfo;
 import com.iwave.ext.linux.model.PowerPathDevice;
@@ -66,6 +69,22 @@ public class HostMigrationCommand {
         _log.info("find.multipath.wwn", entry.toString());
         checkStatus(entry);
         return entry;
+    }
+
+    public static void updatePowerPathEntries(Host host) {
+        LinuxSystemCLI cli = LinuxHostDiscoveryAdapter.createLinuxCLI(host);
+        PowermtConfigCommand configCommand = new PowermtConfigCommand();
+        cli.executeCommand(configCommand);
+        PowermtRestoreCommand restoreCommand = new PowermtRestoreCommand();
+        cli.executeCommand(restoreCommand);
+        PowermtSaveCommand saveCommand = new PowermtSaveCommand();
+        cli.executeCommand(saveCommand);
+    }
+
+    public static void updateMultiPathEntries(Host host) {
+        LinuxSystemCLI cli = LinuxHostDiscoveryAdapter.createLinuxCLI(host);
+        MultipathCommand command = new MultipathCommand();
+        cli.executeCommand(command);
     }
 
     public static String migrationCommand(Host host, String migrationName, String srcDevice, String tgtDevice) {

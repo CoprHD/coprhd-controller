@@ -465,6 +465,11 @@ public class HostMigrationDeviceController implements MigrationOrchestrationInte
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
+        if (_usePowerPath)
+            HostMigrationCommand.updatePowerPathEntries(host);
+        else
+            HostMigrationCommand.updateMultiPathEntries(host);
+
         String srcDevice = getDevice(host, srcVolume, _usePowerPath);
         String tgtDevice = getDevice(host, tgtVolume, _usePowerPath);
         _log.info("linux.migration.block.volume", srcDevice, tgtDevice);

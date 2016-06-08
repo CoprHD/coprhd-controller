@@ -903,16 +903,23 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
 
         storageProvider.setIsSupportedVersion(true);
         StorageSystem providerSystem = new StorageSystem();
-        providerSystem.setSystemType("driversystem");
+        providerSystem.setSystemType("providersystem");
         providerSystem.setNativeId("providerSystem-1");
         providerSystem.setSerialNumber("1234567-1");
         providerSystem.setFirmwareVersion("1.2.3");
         storageSystems.add(providerSystem);
 
         providerSystem = new StorageSystem();
-        providerSystem.setSystemType("driversystem");
+        providerSystem.setSystemType("providersystem");
         providerSystem.setNativeId("providerSystem-2");
         providerSystem.setSerialNumber("1234567-2");
+        providerSystem.setFirmwareVersion("1.2.3");
+        storageSystems.add(providerSystem);
+
+        providerSystem = new StorageSystem();
+        providerSystem.setSystemType("providersystem");
+        providerSystem.setNativeId("providerSystem-3");
+        providerSystem.setSerialNumber("1234567-3");
         providerSystem.setFirmwareVersion("1.2.3");
         storageSystems.add(providerSystem);
 

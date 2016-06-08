@@ -598,7 +598,7 @@ public interface BlockStorageDevice {
      * @return command result object
      * @throws ControllerException
      */
-    public void doDisconnect(StorageSystem storage, TaskCompleter taskCompleter);
+    public void doDisconnect(StorageSystem storage);
 
     /**
      * Add a new Storage System to an SMIS Provider.

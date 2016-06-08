@@ -268,7 +268,7 @@ public class RecoverPointImageManagementUtils {
 
             String bookmarkDate = new java.util.Date(snapshotToEnable.getClosingTimeStamp().getTimeInMicroSeconds()
                     / numMicroSecondsInMilli).toString();
-            logger.info("Enable snapshot image: " + bookmarkName + " of time " + bookmarkDate + " on CG Copy" + cgCopyName
+            logger.info("Enable snapshot image: " + bookmarkName + " of time " + bookmarkDate + " on CG Copy " + cgCopyName
                     + " for CG name " + cgName);
             impl.enableImageAccess(cgCopy, snapshotToEnable, accessMode, ImageAccessScenario.NONE);
 

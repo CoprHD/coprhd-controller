@@ -154,7 +154,7 @@ public class StorageSystemTypes {
         for (StorageSystemTypeRestRep storagetypeRest : storagetypelist.getStorageSystemTypes()) {
             // Add all storage systems plus VPLEX, SCALEIO, IBMXIV, XTREMIO
             if (!storagetypeRest.getIsSmiProvider() || StringUtils.equals(VPLEX, storagetypeRest.getStorageTypeName())
-                    || StringUtils.equals(SCALEIO, storagetypeRest.getStorageTypeName()) || StringUtils.equals(IBMXIV, storagetypeRest.getStorageTypeName())
+                    || StringUtils.equals(SCALEIOAPI, storagetypeRest.getStorageTypeName()) || StringUtils.equals(IBMXIV, storagetypeRest.getStorageTypeName())
                     || StringUtils.equals(XTREMIO, storagetypeRest.getStorageTypeName())) {
                 allproviders.add(new StringOption(storagetypeRest.getStorageTypeName(),
                         storagetypeRest.getStorageTypeDispName()));

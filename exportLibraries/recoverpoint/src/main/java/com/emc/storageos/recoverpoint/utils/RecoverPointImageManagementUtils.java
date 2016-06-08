@@ -89,8 +89,8 @@ public class RecoverPointImageManagementUtils {
             cgCopyName = impl.getGroupCopyName(cgCopy);
             cgName = impl.getGroupName(cgCopy.getGroupUID());
             if (waitForLinkState) {
-                // Make sure the CG is ready for enable
-                waitForCGLinkState(impl, cgCopy.getGroupUID(),
+                // Make sure the CG copy is ready for enable
+                waitForCGCopyLinkState(impl, cgCopy,
                         RecoverPointImageManagementUtils.getPipeActiveState(impl, cgCopy.getGroupUID()));
             } else {
                 logger.info("Not waiting on any link states, proceeding with the operation");

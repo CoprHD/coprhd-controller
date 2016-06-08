@@ -99,6 +99,8 @@ public class MigrationJob extends Job implements Serializable {
             String migrationName = migration.getLabel();
             s_logger.debug("Migration is {}", migration.getId());
 
+            String migrationPid = migration.getMigrationPid();
+
             // Get the general volume associated with the migration
 
             Volume generalVolume = dbClient.queryObject(Volume.class,
@@ -109,7 +111,7 @@ public class MigrationJob extends Job implements Serializable {
                     generalVolume.getStorageController());
             s_logger.debug("storage system is {}", storageSystem.getId());
 
-            MigrationInfo migrationInfo = HostMigrationCommand.findMigration(_host, migrationName);
+            MigrationInfo migrationInfo = HostMigrationCommand.findMigration(_host, migrationName, migrationPid);
             s_logger.debug("Got migration info from host");
 
             // Update the migration in the database to reflect the
@@ -120,7 +122,7 @@ public class MigrationJob extends Job implements Serializable {
             int percentDone = getMigrationPercentDone(migrationInfo.getPercentageDone());
             s_logger.debug("Migration percent done is {}", percentDone);
             migration.setPercentDone(String.valueOf(percentDone));
-            dbClient.persistObject(migration);
+            dbClient.updateObject(migration);
 
             // Update the job info.
             _pollResult.setJobName(migrationName);

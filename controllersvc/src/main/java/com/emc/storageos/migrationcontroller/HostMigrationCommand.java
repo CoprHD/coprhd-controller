@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.computesystemcontroller.impl.adapter.LinuxHostDiscoveryAdapter;
 import com.emc.storageos.db.client.model.Host;
+import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.Volume;
 import com.iwave.ext.command.CommandOutput;
 import com.iwave.ext.linux.LinuxSystemCLI;
@@ -104,10 +105,10 @@ public class HostMigrationCommand {
         }
     }
 
-    public static MigrationInfo findMigration(Host host, String migrationName) throws Exception {
+    public static MigrationInfo findMigration(Host host, String migrationName, String migrationPid) throws Exception {
         MigrationInfo migrationInfo = null;
         LinuxSystemCLI cli = LinuxHostDiscoveryAdapter.createLinuxCLI(host);
-        String args = String.format("migrationName = %s", migrationName);
+        String args = String.format("%s ", migrationPid);
         FindMigrationCommand command = new FindMigrationCommand(args);
 
         cli.executeCommand(command);
@@ -120,7 +121,7 @@ public class HostMigrationCommand {
     }
 
 
-    public static List<MigrationInfo> findMigrations(Host host, List<String> migrationNames)
+    public static List<MigrationInfo> findMigrations(Host host, List<String> migrationNames, Migration migration)
             throws Exception {
 
         List<MigrationInfo> migrationInfoList = new ArrayList<MigrationInfo>();
@@ -128,7 +129,8 @@ public class HostMigrationCommand {
             try {
                 // First look in the device migrations and if not found, then
                 // look in the extent migrations.
-                MigrationInfo migrationInfo = findMigration(host, migrationName);
+                String migrationPid = migration.getMigrationPid();
+                MigrationInfo migrationInfo = findMigration(host, migrationName, migrationPid);
                 migrationInfo.setIsHostMigration(true);
                 migrationInfoList.add(migrationInfo);
             } catch (Exception vae) {
@@ -193,24 +195,24 @@ public class HostMigrationCommand {
      * Commits the completed migrations with the passed names and tears down the
      * old devices and unclaims the storage volumes.
      * */
-    public static String doCommitMigrationsCommand(Host host, String generalVolumeName, List<String> migrationNames,
+    public static String doCommitMigrationsCommand(Host host, String generalVolumeName, Migration migration,
+            List<String> migrationNames,
             boolean cleanup, boolean remove, boolean rename) throws Exception {
-        List<MigrationInfo> migrationInfoList = findMigrations(host, migrationNames);
+        List<MigrationInfo> migrationInfoList = findMigrations(host, migrationNames, migration);
         // Verify that the migrations have completed successfully and can be
         // committed.
-        StringBuilder migrationArgBuilder = new StringBuilder();
+
         for (MigrationInfo migrationInfo : migrationInfoList) {
             if (migrationInfo.getStatus() != "complete") {
                 throw MigrationControllerException.exceptions
                         .cantCommitedMigrationNotCompletedSuccessfully(migrationInfo.getName());
             }
-            if (migrationArgBuilder.length() != 0) {
-                migrationArgBuilder.append(",");
-            }
-            migrationArgBuilder.append(migrationInfo.getPath());
         }
+        String srcDevice = migration.getSrcDev();
+        String tgtDevice = migration.getTgtDev();
+        String args = String.format("srcDevice=%s tgtDevice=%s", srcDevice, tgtDevice);
         LinuxSystemCLI cli = LinuxHostDiscoveryAdapter.createLinuxCLI(host);
-        commitMigrationsCommand command = new commitMigrationsCommand(migrationArgBuilder.toString());
+        commitMigrationsCommand command = new commitMigrationsCommand(args);
         cli.executeCommand(command);
         try {
             CommandOutput output = command.getOutput();

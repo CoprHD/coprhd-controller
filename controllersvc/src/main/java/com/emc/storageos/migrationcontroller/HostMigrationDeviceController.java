@@ -413,7 +413,7 @@ public class HostMigrationDeviceController implements MigrationOrchestrationInte
             _dbClient.updateObject(migration);
             _log.info("Migration name is {}", migrationName);
 
-            List<MigrationInfo> migrationInfoList = hostMigrateGeneralVolume(
+            List<MigrationInfo> migrationInfoList = hostMigrateGeneralVolume(migration,
                     migrationName, generalVolume, migrationTarget);
             _log.info("Started host migration");
 
@@ -453,7 +453,7 @@ public class HostMigrationDeviceController implements MigrationOrchestrationInte
         }
     }
 
-    private List<MigrationInfo> hostMigrateGeneralVolume(String migrationName, Volume srcVolume,
+    private List<MigrationInfo> hostMigrateGeneralVolume(Migration migration, String migrationName, Volume srcVolume,
             Volume tgtVolume) throws Exception {
         // List<Initiator> hostInitiators = ComputeSystemHelper.queryInitiators(_dbClient, _hostURI);
         // todo: precheck mountpoint, multipath, filesystem, refresh storage
@@ -465,27 +465,29 @@ public class HostMigrationDeviceController implements MigrationOrchestrationInte
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
-        if (_usePowerPath)
-            HostMigrationCommand.updatePowerPathEntries(host);
-        else
-            HostMigrationCommand.updateMultiPathEntries(host);
+
+        refreshHostStorage(host, _usePowerPath);
 
         String srcDevice = getDevice(host, srcVolume, _usePowerPath);
         String tgtDevice = getDevice(host, tgtVolume, _usePowerPath);
         _log.info("linux.migration.block.volume", srcDevice, tgtDevice);
-
-        String MigrationStatus = HostMigrationCommand.migrationCommand(host, migrationName, srcDevice, tgtDevice);
-        if (MigrationStatus != "SUCCESS_STATUS") {
-            if(MigrationStatus == "ASYNC_STATUS"){
-                _log.info("host migration is completing asynchronously");
-            }else {
-                throw new Exception("host migration failed");
-            }                       
-        }    
+        migration.setSrcDev(srcDevice);
+        migration.setTgtDev(tgtDevice);
+        _dbClient.updateObject(migration);
+        String migrationPid = HostMigrationCommand.migrationCommand(host, migrationName, srcDevice, tgtDevice);
+        migration.setMigrationPid(migrationPid);
+        _dbClient.updateObject(migration);
         _log.info("Successfully started migration {}", migrationName);
-        MigrationInfo migrationInfo = HostMigrationCommand.findMigration(host, migrationName);
+        MigrationInfo migrationInfo = HostMigrationCommand.findMigration(host, migrationName, migrationPid);
         return Arrays.asList(migrationInfo);
 
+    }
+
+    private void refreshHostStorage(Host host, boolean usePowerPath) {
+        if (_usePowerPath)
+            HostMigrationCommand.updatePowerPathEntries(host);
+        else
+            HostMigrationCommand.updateMultiPathEntries(host);
     }
 
     private String getDevice(Host host, Volume volume, boolean usePowerPath) throws Exception {
@@ -582,7 +584,7 @@ public class HostMigrationDeviceController implements MigrationOrchestrationInte
 
                 // Try to cancel the migration and cleanup and remove any
                 // remnants of the migration.
-                cancelMigrations(host, Arrays.asList(migration.getLabel()), true, true);
+                cancelMigrations(host, Arrays.asList(migration.getLabel()), migration, true, true);
                 _log.info("Migration cancelled");
             }
             WorkflowStepCompleter.stepSucceded(stepId);
@@ -608,10 +610,10 @@ public class HostMigrationDeviceController implements MigrationOrchestrationInte
         }
     }
 
-    private void cancelMigrations(Host host, List<String> migrationNames, boolean cleanup,
-            boolean remove) throws Exception {
+    private void cancelMigrations(Host host, List<String> migrationNames, Migration migration,
+            boolean cleanup, boolean remove) throws Exception {
         _log.info("Canceling migrations {}", migrationNames);
-        List<MigrationInfo> migrationInfoList = HostMigrationCommand.findMigrations(host, migrationNames);
+        List<MigrationInfo> migrationInfoList = HostMigrationCommand.findMigrations(host, migrationNames, migration);
         // Verify that the migrations are in a state in which they can be
         // canceled.
         StringBuilder migrationArgBuilder = new StringBuilder();
@@ -715,7 +717,8 @@ public class HostMigrationDeviceController implements MigrationOrchestrationInte
 
                 Volume generalVolume = getDataObject(Volume.class, generalVolumeURI, _dbClient);
                 try {
-                    String commitMigrationStatus = HostMigrationCommand.doCommitMigrationsCommand(host, generalVolume.getDeviceLabel(),
+                    String commitMigrationStatus = HostMigrationCommand.doCommitMigrationsCommand(host, 
+                            generalVolume.getDeviceLabel(), migration,
                             Arrays.asList(migration.getLabel()), true, true, rename.booleanValue());
                     if (commitMigrationStatus != "SUCCESS_STATUS") {
                         if (commitMigrationStatus == "ASYNC_STATUS") {
@@ -777,8 +780,8 @@ public class HostMigrationDeviceController implements MigrationOrchestrationInte
                     migrationCommitted = true;
                     continue;
                 }
-                
-                MigrationInfo migrationInfo = HostMigrationCommand.findMigration(host, migration.getLabel());
+                String migrationPid = migration.getMigrationPid();
+                MigrationInfo migrationInfo = HostMigrationCommand.findMigration(host, migration.getLabel(), migrationPid);
                 if (migrationInfo.getStatus().equalsIgnoreCase(MigrationInfo.MigrationStatus.COMMITTED.name())) {
                     migrationCommitted = true;
                     migration.setMigrationStatus(MigrationInfo.MigrationStatus.COMMITTED.name());
@@ -888,6 +891,7 @@ public class HostMigrationDeviceController implements MigrationOrchestrationInte
             // so we return success.
             WorkflowStepCompleter.stepSucceded(stepId);
         }
+
     }
 
     public void deleteConsistencyGroup(URI hostURI, URI cgURI, String opId)

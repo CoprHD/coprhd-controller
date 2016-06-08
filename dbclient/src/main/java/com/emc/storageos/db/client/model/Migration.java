@@ -22,6 +22,11 @@ public class Migration extends DataObject {
     // The URI of the migration target.
     private URI _target;
 
+    // source dev in host and target dev in host for migration
+    private String _srcDev;
+
+    private String _tgtDev;
+
     // The migration start time.
     private String _startTime;
 
@@ -196,5 +201,45 @@ public class Migration extends DataObject {
     public void setMigrationPid(String migrationPid) {
         _migrationPid = migrationPid;
         setChanged("migrationPid");
+    }
+
+    /**
+     * Getter for the dev of the migration source.
+     * 
+     * @return The dev string of the migration source.
+     */
+    @Name("srcDev")
+    public String getSrcDev() {
+        return _srcDev;
+    }
+
+    /**
+     * Setter for the dev of the migration source.
+     * 
+     * @param name The dev of the migration source.
+     */
+    public void setSrcDev(String srcDev) {
+        _srcDev = srcDev;
+        setChanged("srcDev");
+    }
+
+    /**
+     * Getter for the dev of the migration target.
+     * 
+     * @return The dev of the migration target.
+     */
+    @Name("tgtDev")
+    public String getTgtDev() {
+        return _tgtDev;
+    }
+
+    /**
+     * Setter for the dev of the migration target.
+     * 
+     * @param name The dev of the migration target.
+     */
+    public void setTgtDev(String tgtDev) {
+        _tgtDev = tgtDev;
+        setChanged("tgtDev");
     }
 }

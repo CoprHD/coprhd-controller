@@ -1999,10 +1999,10 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
         // on port metrics. Once there's a time available to testing, this comment should be removed and
         // the commented code below should be uncommented.
 
-        // initializeContext(accessProfile);
-        // _statsCollector.collect(accessProfile, _keyMap);
-        // dumpStatRecords();
-        // injectStats();
+        initializeContext(accessProfile);
+        _statsCollector.collect(accessProfile, _keyMap);
+        dumpStatRecords();
+        injectStats();
     }
 
     /**

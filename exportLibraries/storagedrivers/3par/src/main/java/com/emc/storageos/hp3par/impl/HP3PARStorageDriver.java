@@ -46,6 +46,7 @@ import com.emc.storageos.storagedriver.model.StoragePool.SupportedDriveTypes;
 import com.emc.storageos.storagedriver.model.StoragePool.SupportedResourceType;
 import com.emc.storageos.storagedriver.model.StoragePort;
 import com.emc.storageos.storagedriver.model.StoragePort.TransportType;
+import com.emc.storageos.storagedriver.model.StorageProvider;
 import com.emc.storageos.storagedriver.model.StorageSystem;
 import com.emc.storageos.storagedriver.model.StorageSystem.SupportedProvisioningType;
 import com.emc.storageos.storagedriver.model.StorageVolume;
@@ -310,8 +311,9 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
                 StoragePort port = new StoragePort();
                 PortMembers currMember =  portResult.getMembers().get(index);
 
-                // Consider ports which are connected to hosts and free ports which can be connected to hosts
-                if (currMember.getMode() != HP3PARConstants.MODE_TARGET) {
+                // Consider online target ports 
+                if (currMember.getMode() != HP3PARConstants.MODE_TARGET ||
+                        currMember.getLinkState() != HP3PARConstants.LINK_READY) {
                     continue;
                 }
                 
@@ -904,5 +906,11 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
         attributes.put(HP3PARConstants.PASSWORD, listPwd);
         this.driverRegistry.setDriverAttributesForKey(HP3PARConstants.DRIVER_NAME, systemNativeId, attributes);
         _log.info("3PARDriver:Saving connection info in registry leave");
+    }
+
+    @Override
+    public DriverTask discoverStorageProvider(StorageProvider storageProvider, List<StorageSystem> storageSystems) {
+        // TODO Auto-generated method stub
+        return null;
     }
 }

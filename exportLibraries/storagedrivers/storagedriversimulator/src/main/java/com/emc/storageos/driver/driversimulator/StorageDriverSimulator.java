@@ -310,10 +310,10 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
     }
     
     @Override
-    public void stopManagement(StorageSystem driverStorageSystem){
+    public DriverTask stopManagement(StorageSystem driverStorageSystem){
     	_log.info("Stopping management for StorageSystem {}", driverStorageSystem.getNativeId());
-    	
-//    	return DriverTask.TaskStatus.READY;
+    	DriverTask task= null;
+    	return task;
     }
 
     @Override

@@ -142,6 +142,13 @@ public class DefaultStorageDriver extends AbstractStorageDriver implements Block
         task.setMessage(msg);
         return task;
     }
+    
+    @Override
+    public DriverTask stopManagement(StorageSystem driverStorageSystem){
+    	_log.info("Stopping management for StorageSystem {}", driverStorageSystem.getNativeId());
+    	DriverTask task = null;
+    	return task;
+    }
 
     @Override
     public DriverTask deleteVolumeSnapshot(List<VolumeSnapshot> snapshots) {

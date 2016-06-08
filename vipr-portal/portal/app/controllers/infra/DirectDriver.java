@@ -13,7 +13,11 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang.StringUtils;
+
 import models.StorageSystemTypes;
+import models.datatable.DirectDriverExportDataTable;
+import models.datatable.DirectDriverVolumeDataTable;
 import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 
 import com.emc.storageos.model.TaskResourceRep;
@@ -27,15 +31,18 @@ import com.emc.storageos.model.systems.StorageSystemRequestParam;
 import com.emc.storageos.model.systems.StorageSystemRestRep;
 import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
+import com.emc.vipr.client.ViPRCoreClient;
 import com.google.common.collect.Lists;
 
 import play.data.validation.MaxSize;
 import play.data.validation.Required;
 import play.mvc.Controller;
+import util.BourneUtil;
 import util.HostUtils;
 import util.StoragePoolUtils;
 import util.StorageSystemUtils;
 import util.TaskUtils;
+import util.datatable.DataTablesSupport;
 import util.validation.HostNameOrIpAddress;
 import controllers.deadbolt.Restrict;
 import controllers.deadbolt.Restrictions;
@@ -58,8 +65,7 @@ public class DirectDriver extends Controller{
         for(StorageSystemRestRep system : storageSystems) {
             if (system.getSystemType()!=null && system.getSystemType().equals(type)) {
                 results.add(system);
-            }
-              if(type.equals("vmax") && system.getSystemType().equals("vnxblock")) {
+            } if(type.equals("vmax") && system.getSystemType().equals("vnxblock")) {
                 results.add(system);
             }
         }
@@ -84,9 +90,6 @@ public class DirectDriver extends Controller{
     @FlashException(keep = true, referrer = { "createDirecVolume" })
     public static void saveVolume(DirectDriverForm volume) {
         Boolean value = volume.save();
-       
-            //flash.success("Created and exported successfully");
-        
         createDirecVolume();
     }
     
@@ -95,7 +98,23 @@ public class DirectDriver extends Controller{
     }
     
     public static void list() {
-        
+        renderArgs.put("dataTable", new DirectDriverVolumeDataTable());
+        render();
+    }
+    
+    public static void listJson() {
+        List<DirectDriverVolumeDataTable.DirectDriverVolume> directVolumes = DirectDriverVolumeDataTable.fetch();
+        renderJSON(DataTablesSupport.createJSON(directVolumes, params));
+    }
+    
+    public static void export() {
+        renderArgs.put("dataTable", new DirectDriverExportDataTable());
+        render();
+    }
+    
+    public static void listExportJson() {
+        List<DirectDriverExportDataTable.DirectDriverExport> directExports = DirectDriverExportDataTable.fetch();
+        renderJSON(DataTablesSupport.createJSON(directExports, params));
     }
     
     public static class DirectDriverForm {
@@ -138,6 +157,7 @@ public class DirectDriver extends Controller{
             volumeDriver.setVarray(uri("aa"));
             volumeDriver.setVpool(uri("aa"));
             volumeDriver.setProject(uri("aa"));
+            
             volumeDriver.setPassThroughParams(passThroughParamPool);
             Task<VolumeRestRep> tasks = getViprClient().blockVolumes().create(volumeDriver).firstTask();
             URI taskId = tasks.getTaskResource().getId();
@@ -170,7 +190,7 @@ public class DirectDriver extends Controller{
             exportDriver.setHosts(hosts);
             exportDriver.setExportPassThroughParam(passThroughParamExport);
             getViprClient().blockExports().create(exportDriver);
-		flash.success("Created and exported successfully");
+            flash.success("Created and exported successfully");
         }
     }
 }

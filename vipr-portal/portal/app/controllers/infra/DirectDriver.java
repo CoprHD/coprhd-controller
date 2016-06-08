@@ -18,6 +18,7 @@ import org.apache.commons.lang.StringUtils;
 import models.StorageSystemTypes;
 import models.datatable.DirectDriverExportDataTable;
 import models.datatable.DirectDriverVolumeDataTable;
+import models.datatable.DirectDriverVolumeDataTable.DirectDriverVolume;
 import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 
 import com.emc.storageos.model.TaskResourceRep;
@@ -89,7 +90,10 @@ public class DirectDriver extends Controller{
     
     @FlashException(keep = true, referrer = { "createDirecVolume" })
     public static void saveVolume(DirectDriverForm volume) {
-        Boolean value = volume.save();
+        boolean value = volume.save();
+        if(!value) {
+            flash.error("Volume created but error in exporting volume");
+        }
         createDirecVolume();
     }
     
@@ -145,7 +149,7 @@ public class DirectDriver extends Controller{
             this.count = volumeDriver.getCount();
         }
         
-        public boolean save() {
+        public Boolean save() {
             VolumeCreate volumeDriver = new VolumeCreate();
             this.passThroughParamPool.put("storage-pool", pool);
             this.passThroughParamPool.put("storage-system", ipAddress);
@@ -160,20 +164,22 @@ public class DirectDriver extends Controller{
             
             volumeDriver.setPassThroughParams(passThroughParamPool);
             Task<VolumeRestRep> tasks = getViprClient().blockVolumes().create(volumeDriver).firstTask();
-            URI taskId = tasks.getTaskResource().getId();
-            URI volume = tasks.getResourceId();
             boolean value = false;
-            while(!value) {
-                TaskResourceRep task = TaskUtils.getTask(taskId);
-                if(task.getState().equals("ready")) {
-                    value = true;
-                    export(volume);
-                } else if(task.getState().equals("error")) {
-                    flash.error("Error in creating volume");
+            URI volume = tasks.getResourceId();
+            try {
+                Thread.sleep(70000);
+            }catch(Exception e) {
+                
+            }
+            ViPRCoreClient client = BourneUtil.getViprClient();
+            List<URI> volumeList = client.blockVolumes().listBulkIds();
+            for(URI id:volumeList) {
+                if((volume).equals(id)) {
+                    export(id);
                     value = true;
                 }
             }
-            return value;            
+            return value;
         }
         
         public void export(URI volume) {
@@ -190,7 +196,7 @@ public class DirectDriver extends Controller{
             exportDriver.setHosts(hosts);
             exportDriver.setExportPassThroughParam(passThroughParamExport);
             getViprClient().blockExports().create(exportDriver);
-            flash.success("Created and exported successfully");
+            flash.success("Volume created and exported successfully");
         }
     }
 }

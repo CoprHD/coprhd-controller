@@ -1,0 +1,38 @@
+{
+    "amqp": "amqp://localhost",
+    "apiServerAddress": "${network_ipaddr_service}",
+    "apiServerPort": 9080,
+    "httpEndpoints": [
+        {
+            "address": "${network_ipaddr_service}",
+            "port": 9090,
+            "httpsEnabled": false,
+            "proxiesEnabled": true,
+            "authEnabled": false,
+            "routers": "northbound-api-router"
+        },
+        {
+            "address": "${network_ipaddr_service}",
+            "port": 9080,
+            "httpsEnabled": false,
+            "proxiesEnabled": false,
+            "authEnabled": false,
+            "routers": "southbound-api-router"
+        }
+    ],
+    "httpDocsRoot": "./build/apidoc",
+    "httpEnabled": true,
+    "httpFileServiceRoot": "./static/files",
+    "httpFileServiceType": "FileSystem",
+    "httpStaticRoot": "/opt/monorail/static/http",
+    "httpsCert": "data/dev-cert.pem",
+    "httpsEnabled": false,
+    "httpsKey": "data/dev-key.pem",
+    "httpsPfx": null,
+    "mongo": "mongodb://localhost/pxe",
+    "sharedKey": "qxfO2D3tIJsZACu7UA6Fbw0avowo8r79ALzn+WeuC8M=",
+    "statsd": "127.0.0.1:8125",
+    "syslogBindAddress": "${network_ipaddr_service}",
+    "syslogBindPort": 514
+}
+

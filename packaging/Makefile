@@ -977,6 +977,7 @@ _uninstall:
 	$(ATSIGN)$(RM) -r $(INSTALL_PREFIX)/opt/connectemc
 	$(ATSIGN)$(RM) -r $(INSTALL_PREFIX)/etc/nginx
 	$(ATSIGN)$(RM) -r $(INSTALL_PREFIX)/etc/keepalived
+	$(ATSIGN)$(RM) -r $(INSTALL_PREFIX)/etc/monorail
 	$(ATSIGN)$(RM)    $(INSTALL_PREFIX)/etc/storageos
 	$(ATSIGN)$(RM)    $(INSTALL_PREFIX)/etc/sysconfig/storageos
 	$(ATSIGN)$(RM)    $(INSTALL_PREFIX)/{.gitrevision,.gitrepo,.gitbranch,.product,.productbase}

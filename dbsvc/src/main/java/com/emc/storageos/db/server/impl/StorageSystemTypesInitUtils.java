@@ -54,10 +54,10 @@ public class StorageSystemTypesInitUtils {
     private static List<String> storageProviderFile = asList(SCALEIOAPI);
 
     // Default block arrays
-    private static List<String> storageArrayBlock = asList(VMAX, VNX_BLOCK, VNXe, HITACHI, OPENSTACK, DATA_DOMAIN);
+    private static List<String> storageArrayBlock = asList(NONE, VMAX, VNX_BLOCK, VNXe, HITACHI, OPENSTACK, DATA_DOMAIN);
 
     // Default Storage provider for Block
-    private static List<String> storageProviderBlock = asList(SMIS, HITACHI_PROVIDER, CINDER, DATA_DOMAIN_PROVIDER, VPLEX, SCALEIO, 
+    private static List<String> storageProviderBlock = asList(SMIS, HITACHI_PROVIDER, CINDER, DATA_DOMAIN_PROVIDER, VPLEX, SCALEIO,
             IBMXIV, XTREMIO);
 
     // Default object arrays
@@ -93,31 +93,6 @@ public class StorageSystemTypesInitUtils {
         defaultSSL.put(VNX_FILE, true);
         defaultSSL.put(VNXe, true);
         defaultSSL.put(IBMXIV, true);
-    }
-
-    public static HashMap<String, String> initializeDisplayName() {
-        HashMap<String, String> displayNameMap = new HashMap<String, String>();
-        displayNameMap.put(VNX_FILE, "EMC VNX File");
-        displayNameMap.put(ISILON, "EMC Isilon");
-        displayNameMap.put(NETAPP, "NetApp 7-mode");
-        displayNameMap.put(NETAPPC, "NetApp Cluster-mode");
-        displayNameMap.put(SCALEIOAPI, "ScaleIO Gateway");
-        displayNameMap.put(VNX_BLOCK, "EMC VNX Block");
-        displayNameMap.put(VNXe, "EMC VNXe");
-        displayNameMap.put(VMAX, "Storage Provider for EMC VMAX or VNX Block");
-        displayNameMap.put(SMIS, "Storage Provider for EMC VMAX or VNX Block");
-        displayNameMap.put(HITACHI, "Storage Provider for Hitachi storage systems");
-        displayNameMap.put(HITACHI_PROVIDER, "Storage Provider for Hitachi storage systems");
-        displayNameMap.put(VPLEX, "Storage Provider for EMC VPLEX");
-        displayNameMap.put(OPENSTACK, "Storage Provider for Third-party block storage systems");
-        displayNameMap.put(CINDER, "Storage Provider for Third-party block storage systems");
-        displayNameMap.put(SCALEIO, "Block Storage Powered by ScaleIO");
-        displayNameMap.put(DATA_DOMAIN, "Storage Provider for Data Domain Management Center");
-        displayNameMap.put(DATA_DOMAIN_PROVIDER, "Storage Provider for Data Domain Management Center");
-        displayNameMap.put(IBMXIV, "Storage Provider for IBM XIV");
-        displayNameMap.put(XTREMIO, "Storage Provider for EMC XtremIO");
-        displayNameMap.put(ECS, "EMC Elastic Cloud Storage");
-        return displayNameMap;
     }
 
     private static void initializeSSLPort() {
@@ -189,7 +164,7 @@ public class StorageSystemTypesInitUtils {
     private static void insertFileArrays(DbClient dbClient) {
         for (String file : storageArrayFile) {
             if (dbStorageTypeMap != null && dbStorageTypeMap.get(file) != null) {
-                //avoid duplicate entries
+                // avoid duplicate entries
                 continue;
             }
             StorageSystemType ssType = new StorageSystemType();
@@ -229,7 +204,7 @@ public class StorageSystemTypesInitUtils {
     private static void insertFileProviders(DbClient dbClient) {
         for (String file : storageProviderFile) {
             if (dbStorageTypeMap != null && dbStorageTypeMap.get(file) != null) {
-              //avoid duplicate entries
+                // avoid duplicate entries
                 continue;
             }
             StorageSystemType ssType = new StorageSystemType();
@@ -266,7 +241,7 @@ public class StorageSystemTypesInitUtils {
     private static void insertBlockArrays(DbClient dbClient) {
         for (String block : storageArrayBlock) {
             if (dbStorageTypeMap != null && dbStorageTypeMap.get(block) != null) {
-              //avoid duplicate entries
+                // avoid duplicate entries
                 continue;
             }
             StorageSystemType ssType = new StorageSystemType();
@@ -304,7 +279,7 @@ public class StorageSystemTypesInitUtils {
     private static void insertBlockProviders(DbClient dbClient) {
         for (String block : storageProviderBlock) {
             if (dbStorageTypeMap != null && dbStorageTypeMap.get(block) != null) {
-              //avoid duplicate entries
+                // avoid duplicate entries
                 continue;
             }
             StorageSystemType ssType = new StorageSystemType();
@@ -342,7 +317,7 @@ public class StorageSystemTypesInitUtils {
     private static void insertObjectArrays(DbClient dbClient) {
         for (String object : storageArrayObject) {
             if (dbStorageTypeMap != null && dbStorageTypeMap.get(object) != null) {
-              //avoid duplicate entries
+                // avoid duplicate entries
                 continue;
             }
             StorageSystemType ssType = new StorageSystemType();
@@ -375,6 +350,49 @@ public class StorageSystemTypesInitUtils {
 
             dbClient.createObject(ssType);
         }
+    }
+
+    public static HashMap<String, String> initializeDisplayName() {
+        HashMap<String, String> displayNameMap = new HashMap<String, String>();
+        displayNameMap.put(NONE, "None");
+        displayNameMap.put(VMAX, "EMC VMAX");
+        displayNameMap.put(VNX_BLOCK, "EMC VNX Block");
+        displayNameMap.put(VNX_FILE, "EMC VNX File");
+        displayNameMap.put(ISILON, "EMC Isilon");
+        displayNameMap.put(NETAPP, "NetApp 7-mode");
+        displayNameMap.put(NETAPPC, "NetApp Cluster-mode");
+        displayNameMap.put(VNXe, "EMC VNXe");
+        displayNameMap.put(VPLEX, "EMC VPLEX");
+        displayNameMap.put(HITACHI, "Hitachi");
+        displayNameMap.put(IBMXIV, "IBM XIV");
+        displayNameMap.put(OPENSTACK, "Third-party block");
+        displayNameMap.put(SCALEIO, "Block Storage Powered by ScaleIO");
+        displayNameMap.put(SCALEIOAPI, "ScaleIO Gateway");
+        displayNameMap.put(XTREMIO, "EMC XtremIO");
+        displayNameMap.put(DATA_DOMAIN, "Data Domain");
+        displayNameMap.put(ECS, "EMC Elastic Cloud Storage");
+
+        displayNameMap.put(SMIS, "Storage Provider for EMC VMAX or VNX Block");
+        displayNameMap.put(HITACHI_PROVIDER, "Storage Provider for Hitachi storage systems");
+        displayNameMap.put(CINDER, "Storage Provider for Third-party block storage systems");
+        displayNameMap.put(DATA_DOMAIN_PROVIDER, "Storage Provider for Data Domain Management Center");
+
+        return displayNameMap;
+    }
+
+    public static HashMap<String, String> arrToProviderDsiplayName() {
+        HashMap<String, String> arrProvDisplayNameMap = new HashMap<String, String>();
+        arrProvDisplayNameMap.put(VMAX, "Storage Provider for EMC VMAX, VNX Block");
+        arrProvDisplayNameMap.put(SCALEIOAPI, "ScaleIO Gateway");
+        arrProvDisplayNameMap.put(HITACHI, "Storage Provider for Hitachi storage systems");
+        arrProvDisplayNameMap.put(VPLEX, "Storage Provider for EMC VPLEX");
+        arrProvDisplayNameMap.put(OPENSTACK, "Storage Provider for Third-party block storage systems");
+        arrProvDisplayNameMap.put(SCALEIO, "Block Storage Powered by ScaleIO");
+        arrProvDisplayNameMap.put(HITACHI, "Storage Provider for Data Domain Management Center");
+        arrProvDisplayNameMap.put(IBMXIV, "Storage Provider for IBM XIV");
+        arrProvDisplayNameMap.put(XTREMIO, "Storage Provider for EMC XtremIO");
+
+        return arrProvDisplayNameMap;
     }
 
     public static void initializeStorageSystemTypes(DbClient dbClient) {

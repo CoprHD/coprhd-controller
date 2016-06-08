@@ -450,9 +450,7 @@ public class DbClientImpl implements DbClient {
         List<T> objects = new ArrayList<T>(result.size());
         IndexCleanupList cleanList = new IndexCleanupList();
 
-        Iterator<String> it = result.keySet().iterator();
-        while (it.hasNext()) {
-            String rowKey = it.next();
+        for (String rowKey : result.keySet()) {
             List<CompositeColumnName> rows = result.get(rowKey);
             if (rows == null || rows.size() == 0) {
                 continue;
@@ -620,14 +618,10 @@ public class DbClientImpl implements DbClient {
             columnFields.add(columnField);
         }
 
-        Keyspace ks = getKeyspace(clazz);
         Map<URI, T> objectMap = new HashMap<URI, T>();
         for (ColumnField columnField : columnFields) {
             Map<String, List<CompositeColumnName>> result = queryRowsWithAColumn(getDbClientContext(clazz), ids, doType.getCF().getName(), columnField);
-            List<T> objects = new ArrayList<T>(result.size());
-            Iterator<String> it = result.keySet().iterator();
-            while (it.hasNext()) {
-                String rowKey = it.next();
+            for (String rowKey : result.keySet()) {
                 List<CompositeColumnName> rows = result.get(rowKey);
                 if (rows == null || rows.size() == 0) {
                     continue;
@@ -1553,11 +1547,12 @@ public class DbClientImpl implements DbClient {
     }
     
     protected Map<String, List<CompositeColumnName>> queryRowsWithAColumn(DbClientContext context, Collection<URI> ids, String tableName, ColumnField column) {
-        PreparedStatement queryAllColumnsPreparedStatement = getPreparedStatement(tableName+column.getMappedByField(), 
+        PreparedStatement queryAllColumnsPreparedStatement = context.getPreparedStatement(tableName+column.getMappedByField(), 
                 String.format("Select * from \"%s\" where column1=? and key in ? ALLOW FILTERING", tableName),
                 context);
         
-        ResultSet resultSet = context.getSession().execute(queryAllColumnsPreparedStatement.bind(column.getName(), uriList2StringList(ids)));
+        ResultSet resultSet = context.getSession()
+                .execute(queryAllColumnsPreparedStatement.bind(column.getName(), uriList2StringList(ids)));
         
         Map<String, List<CompositeColumnName>> result = new HashMap<String, List<CompositeColumnName>>();
         List<CompositeColumnName> rows = null;
@@ -2006,11 +2001,12 @@ public class DbClientImpl implements DbClient {
     }
     
     protected Map<String, List<CompositeColumnName>> queryRowsWithAllColumns(DbClientContext context, Collection<URI> ids, String tableName) {
-        PreparedStatement queryAllColumnsPreparedStatement = getPreparedStatement(tableName, 
+        PreparedStatement queryAllColumnsPreparedStatement = context.getPreparedStatement(tableName, 
                 String.format("Select * from \"%s\" where key in ?", tableName),
                 context);
         
-        ResultSet resultSet = context.getSession().execute(queryAllColumnsPreparedStatement.bind(uriList2StringList(ids)));
+        ResultSet resultSet = context.getSession()
+                .execute(queryAllColumnsPreparedStatement.bind(uriList2StringList(ids)));
         
         Map<String, List<CompositeColumnName>> result = new HashMap<String, List<CompositeColumnName>>();
         List<CompositeColumnName> rows = null;
@@ -2045,16 +2041,6 @@ public class DbClientImpl implements DbClient {
         for (URI uri : ids) {
             result.add(uri.toString());
         }
-        
         return result;
-    }
-    
-    private PreparedStatement getPreparedStatement(String name, String queryString, DbClientContext context) {
-        if (!context.getPrepareStatementMap().containsKey(name)) {
-            PreparedStatement statement = context.getSession().prepare(queryString);
-            context.getPrepareStatementMap().put(name, statement);
-        }
-        
-        return context.getPrepareStatementMap().get(name);
     }
 }

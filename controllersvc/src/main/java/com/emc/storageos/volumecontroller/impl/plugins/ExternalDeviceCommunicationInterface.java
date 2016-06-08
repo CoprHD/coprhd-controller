@@ -18,6 +18,7 @@ import java.util.Map;
 import java.util.Set;
 
 import com.emc.storageos.storagedriver.BlockStorageDriver;
+import com.emc.storageos.storagedriver.StorageDriver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -108,6 +109,7 @@ public class ExternalDeviceCommunicationInterface extends
         driver.setDriverRegistry(driverRegistry);
         LockManager lockManager = LockManagerImpl.getInstance(_locker);
         driver.setLockManager(lockManager);
+        driver.setSdkVersionNumber(StorageDriver.SDK_VERSION_NUMBER);
     }
 
     @Override
@@ -151,7 +153,7 @@ public class ExternalDeviceCommunicationInterface extends
 
                 // discover storage pools
                 List<com.emc.storageos.db.client.model.StoragePool> storagePools = discoverStoragePools(driver, accessProfile);
-                List<com.emc.storageos.db.client.model.StoragePool> storagePoolsToMatchWithVpools = new ArrayList();
+                List<com.emc.storageos.db.client.model.StoragePool> storagePoolsToMatchWithVpools = new ArrayList<>();
                 storagePoolsToMatchWithVpools.addAll(storagePools);
                 List<com.emc.storageos.db.client.model.StoragePool> notVisiblePools = DiscoveryUtils.checkStoragePoolsNotVisible(storagePools,
                         _dbClient, accessProfile.getSystemId());

@@ -1224,6 +1224,7 @@ srdf_setup_once()
     login_nd_configure_smtp_nd_add_licenses
     tenant_setup
     run blockconsistencygroup create $SRDF_PROJECT $CONSISTENCY_GROUP_SRDF
+    run blockconsistencygroup create $SRDF_PROJECT ${CONSISTENCY_GROUP_SRDF}v3
     networksystem show $BROCADE_NETWORK &> /dev/null && return $?
     networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
     smisprovider show $SRDF_VMAXA_SMIS_DEV &> /dev/null && return $?
@@ -1295,7 +1296,7 @@ srdf_cos_setup()
     run cos update block $COS_VMAXBLOCK_SRDF_TARGET --storage ${SRDF_VMAXA_NATIVEGUID}
     run cos allow $COS_VMAXBLOCK_SRDF_TARGET block $TENANT
 
-    run cos show ${COS_VMAXBLOCK_SRDF_SOURCE}_sync block &> /dev/null && return $?
+    cos show ${COS_VMAXBLOCK_SRDF_SOURCE}_sync block &> /dev/null && return $?
     run cos create block ${COS_VMAXBLOCK_SRDF_SOURCE}_sync                 \
 	--description 'Source-Virtual-Pool-for-Synchronous-SRDF-Protection' true \
 			 --protocols FC 		        \
@@ -1310,7 +1311,7 @@ srdf_cos_setup()
     run cos update block ${COS_VMAXBLOCK_SRDF_SOURCE}_sync --storage ${SRDF_VMAXB_NATIVEGUID}
     run cos allow ${COS_VMAXBLOCK_SRDF_SOURCE}_sync block $TENANT
 
-    run cos show ${COS_VMAXBLOCK_SRDF_SOURCE}_async block &> /dev/null && return $?
+    cos show ${COS_VMAXBLOCK_SRDF_SOURCE}_async block &> /dev/null && return $?
     run cos create block ${COS_VMAXBLOCK_SRDF_SOURCE}_async                 \
 	--description 'Source-Virtual-Pool-for-Asynchronous-SRDF-Protection' true \
 			 --protocols FC 		        \
@@ -1371,6 +1372,7 @@ srdf_v3_cos_setup()
 			 --max_snapshots 10			\
 	                 --provisionType 'Thin'	        \
                          --system_type vmax                     \
+                         --multiVolumeConsistency		\
 			 --neighborhoods $V3_SRDF_VARRAY                    \
 			 --srdf "${V3_SRDF_VARRAY}:${COS_VMAXBLOCK_V3_SRDF_TARGET}:ACTIVE"
 
@@ -1482,8 +1484,12 @@ srdf_basic_active_test()
    sleep 60
    run volume delete $SRDF_PROJECT/${srdfvolume}1 --wait
    run volume delete $SRDF_PROJECT/${srdfvolume}2 --wait
-   run volume create ${srdfvolume}3 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active 1GB --consistencygroup $CONSISTENCY_GROUP_SRDF
-   run volume create ${srdfvolume}4 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active 1GB --consistencygroup $CONSISTENCY_GROUP_SRDF
+
+   # rediscover storage systems for RDF group mode getting updated
+   echo "Rediscovering storage systems"
+   storagedevice discover_all --ignore_error
+   run volume create ${srdfvolume}3 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active 1GB --consistencyGroup ${CONSISTENCY_GROUP_SRDF}v3
+   run volume create ${srdfvolume}4 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active 1GB --consistencyGroup ${CONSISTENCY_GROUP_SRDF}v3
    run volume delete $SRDF_PROJECT/${srdfvolume}3 --wait
    run volume delete $SRDF_PROJECT/${srdfvolume}4 --wait
 }
@@ -5089,7 +5095,6 @@ common_setup()
 
     if [ "${RP_INGESTTESTS}" = "0" -o "${RP_INGESTTESTS}" = "" ]; then
 	zone_setup
-	run transportzone add $NH/$FC_ZONE_A $BLK_CLIENT_FC
 	run transportzone add $NH/$IP_ZONE $BLK_CLIENT_iSCSI
     fi
 

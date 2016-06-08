@@ -100,6 +100,11 @@ GET     /storagearrays/edit/{id}                arrays.StorageSystems.edit
 *       /storagearrays/ports/{id}               arrays.StorageSystems.ports
 *       /storagearrays/{action}                 arrays.StorageSystems.{action}
 
+GET     /storagesystemtype/edit/{id}           arrays.StorageSystemTypes.edit
+GET     /storagesystemtype/list				   arrays.StorageSystemTypes.list
+*       /storagesystemtype/{action}			   arrays.StorageSystemTypes.{action}
+
+
 GET     /dataprotectionsystems/edit/{id}        arrays.DataProtectionSystems.edit
 *       /dataprotectionsystems/{action}         arrays.DataProtectionSystems.{action}
 

@@ -668,7 +668,7 @@
         <property name="scope">
             <map>
                 <entry key="global" value="default"/>
-                <entry key="systemType" value="vnxblock,vmax,hds"/>
+                <entry key="systemType" value="vnxblock,vmax,hds,vplex"/>
             </map>
         </property>
         <property name="defaultValues">
@@ -690,7 +690,7 @@
         <property name="scope">
             <map>
                 <entry key="global" value="default"/>
-                <entry key="systemType" value="vnxblock,vmax,hds"/>
+                <entry key="systemType" value="vnxblock,vmax,hds,vplex"/>
             </map>
         </property>
         <property name="defaultValues">
@@ -713,7 +713,7 @@
         <property name="scope">
             <map>
                 <entry key="global" value="default"/>
-                <entry key="systemType" value="vnxblock,vmax,hds"/>
+                <entry key="systemType" value="vnxblock,vmax,hds,vplex"/>
             </map>
         </property>
         <property name="defaultValues">
@@ -736,7 +736,7 @@
         <property name="scope">
             <map>
                 <entry key="global" value="default"/>
-                <entry key="systemType" value="vnxblock,vmax"/>
+                <entry key="systemType" value="vnxblock,vmax,vplex"/>
             </map>
         </property>
         <property name="defaultValues">
@@ -759,7 +759,7 @@
         <property name="scope">
             <map>
                 <entry key="global" value="default"/>
-                <entry key="systemType" value="vnxblock,vmax,hds"/>
+                <entry key="systemType" value="vnxblock,vmax,hds,vplex"/>
             </map>
         </property>
         <property name="defaultValues">
@@ -782,7 +782,7 @@
         <property name="scope">
             <map>
                 <entry key="global" value="default"/>
-                <entry key="systemType" value="vnxblock,vmax,hds"/>
+                <entry key="systemType" value="vnxblock,vmax,hds,vplex"/>
             </map>
         </property>
         <property name="defaultValues">

@@ -89,10 +89,36 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 		return null;
 	}
 
+	
+	/*
+	 * objectid is nothing but the native id of the storage object.
+	 * For consistency group it would be the native id of consistency group, which on the 
+	 * HP3PAR array is nothing but the name of the volume set. 
+	 */
 	@Override
 	public <T extends StorageObject> T getStorageObject(String storageSystemId, String objectId, Class<T> type) {
 		// TODO Auto-generated method stub
 		_log.info("3PARDriver: getStorageObject Running ");
+		try{
+			HP3PARApi hp3parApi = getHP3PARDeviceFromNativeId(storageSystemId);		
+			ConsistencyGroupResult cgResult = null;
+			if (VolumeConsistencyGroup.class.getSimpleName().equals(type.getSimpleName())){
+				cgResult = hp3parApi.getVVsetDetails(objectId);
+				VolumeConsistencyGroup cg = new VolumeConsistencyGroup();
+	            cg.setStorageSystemId(storageSystemId);
+	            cg.setNativeId(cgResult.getName());
+	            cg.setDeviceLabel(objectId);	            
+	            _log.info("3PARDriver: getStorageObject leaving ");
+	            return (T)cg;
+			}
+		}
+		catch(Exception e){
+			String msg = String.format("3PARDriver: Unable to get Stroage Object for id %s; Error: %s.\n",
+					objectId, e.getMessage());
+            _log.error(msg);           
+            e.printStackTrace();
+            return (T)null;
+		}
 		return null;
 	}
 
@@ -384,20 +410,27 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
         ConsistencyGroupsListResult objConsisGroupSets = hp3parApi.getVVsetsList();
 		HashMap<String,ArrayList<String>> volumeToVolumeSetMap = new HashMap<String,ArrayList<String>>();
 		
+        _log.info("3PARDriver: objConsisGroupSets.getTotal() information is {}",objConsisGroupSets.getTotal());
         for (Integer index = 0; index < objConsisGroupSets.getTotal(); index++){
         	ConsistencyGroupResult objConsisGroupResult = objConsisGroupSets.getMembers().get(index);
         	
-        	for (Integer volIndex = 0 ; volIndex < objConsisGroupResult.getSetmembers().size() ; volIndex++){
-        		String vVolName = objConsisGroupResult.getSetmembers().get(volIndex);
-        		if(!volumeToVolumeSetMap.containsKey(vVolName)){        		        		
-            		volumeToVolumeSetMap.put(vVolName, (ArrayList<String>)Arrays.asList(objConsisGroupResult.getName()));            		
-            	}
-        		else{
-        			volumeToVolumeSetMap.get(vVolName).add(objConsisGroupResult.getName());
-        		}
-        	}        	
+        	if(objConsisGroupResult.getSetmembers()!=null){
+	        	for (Integer volIndex = 0 ; volIndex < objConsisGroupResult.getSetmembers().size() ; volIndex++){
+	        		String vVolName = objConsisGroupResult.getSetmembers().get(volIndex);
+	        		if(!volumeToVolumeSetMap.containsKey(vVolName)){	        			
+	        			ArrayList<String> volSetList = new ArrayList<String>();
+	        			volSetList.add(objConsisGroupResult.getName());
+	            		volumeToVolumeSetMap.put(vVolName, volSetList);
+	            	}
+	        		else{	        			
+	        			volumeToVolumeSetMap.get(vVolName).add(objConsisGroupResult.getName());
+	        		}
+	        	}        	
+        	}
         }
         
+        
+        _log.info("3PARDriver: volumeToVolumeSetMap information is {}",volumeToVolumeSetMap.toString());
         return volumeToVolumeSetMap;	
     }
         

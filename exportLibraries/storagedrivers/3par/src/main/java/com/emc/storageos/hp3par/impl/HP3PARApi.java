@@ -890,7 +890,7 @@ public class HP3PARApi {
                 throw new HP3PARException(errResp);
             } else {
                 String responseString = clientResp.getEntity(String.class);
-                _log.info("3PARDriver: getVVsetDetails 3PAR response is {}", responseString);
+                _log.info("3PARDriver: getVVsetsList 3PAR response is {}", responseString);
                 ConsistencyGroupsListResult cgListResult = new Gson().fromJson(sanitize(responseString),
                 		ConsistencyGroupsListResult.class);
                 return cgListResult;

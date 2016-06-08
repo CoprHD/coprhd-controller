@@ -598,10 +598,10 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
                 
                 //Update Consistency Group
                 String volumeCGName = volume.getConsistencyGroup();
-                if (!volumeCGName.isEmpty()) {
+                if (volumeCGName != null && !volumeCGName.isEmpty()) {
                 	_log.info("3PARDriver:createVolumes Adding volume {} to consistency group {} ",volume.getDisplayName(),volumeCGName);
                 	int addMember = 1;
-                hp3parApi.updateVVset(volumeCGName,volume.getDisplayName(),addMember);
+                hp3parApi.updateVVset(volumeCGName,volume.getNativeId(),addMember);
                 }
 
                 task.setStatus(DriverTask.TaskStatus.READY);
@@ -676,10 +676,10 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
                 
                 //Remove from Consistency Group
                 String volumeCGName = volume.getConsistencyGroup();
-                if (!volumeCGName.isEmpty()) {
+                if (volumeCGName != null && !volumeCGName.isEmpty()) {
                 	_log.info("3PARDriver:deleteVolumes Removing volume {} from consistency group {} ",volume.getDisplayName(),volumeCGName);
                 	int removeMember = 2;
-                hp3parApi.updateVVset(volumeCGName,volume.getDisplayName(),removeMember);
+                hp3parApi.updateVVset(volumeCGName,volume.getNativeId(),removeMember);
                 }
 
                 // Delete volume
@@ -1053,19 +1053,100 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 
     @Override
     public DriverTask createConsistencyGroupSnapshot(VolumeConsistencyGroup consistencyGroup, List<VolumeSnapshot> snapshots,
-            List<CapabilityInstance> capabilities) {
-    	_log.info("3PARDriver: createConsistencyGroupSnapshot for storage system  id {}, display name {} , native id {} - start",
-    			consistencyGroup.getStorageSystemId(), consistencyGroup.getDisplayName(), consistencyGroup.getNativeId());
+			List<CapabilityInstance> capabilities) {
+		_log.info(
+				"3PARDriver: createConsistencyGroupSnapshot for storage system  id {}, display name {} , native id {} - start",
+				consistencyGroup.getStorageSystemId(), consistencyGroup.getDisplayName(),
+				consistencyGroup.getNativeId());
+		String  VVsetSnapshotName = consistencyGroup.getDisplayName();
+		
+		DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_SNAPSHOT_CONSISTENCY_GROUP);
+		VolumeDetailsCommandResult volResult = null;
+		HashMap<String,VolumeSnapshot> snapshotList = null;
+		
+		try {
 
-    	for (VolumeSnapshot snap : snapshots) {
-            
-            	//native id = null , 
-                _log.info("3PARDriver: createConsistencyGroupSnapshot >> for storage system native id {}, snap display name {} - start",
-                		snap.toString(), snap.getDisplayName());
-    	}
-            
-        // TODO Auto-generated method stub
-        return null;
+			Boolean readOnly = true;
+			
+
+			// get Api client
+			HP3PARApi hp3parApi = getHP3PARDeviceFromNativeId(consistencyGroup.getStorageSystemId());
+
+		   	for (VolumeSnapshot snap : snapshots) {
+	            
+	            	//native id = null , 
+	                _log.info("3PARDriver: createConsistencyGroupSnapshot for volume native id {}, snap shot name generated is {} - start",
+	                		snap.getParentId(), snap.getDisplayName());  
+	            
+	                if (snap.getAccessStatus() != AccessStatus.READ_ONLY) {
+	                	readOnly = false;
+	                }
+	                
+	                String generatedSnapshotName = snap.getDisplayName();
+	                VVsetSnapshotName = generatedSnapshotName.substring(0, generatedSnapshotName.lastIndexOf("-") );
+	                snapshotList.put(snap.getParentId(), snap);
+
+		   	}
+		   	
+			// Create vvset snapshot
+			hp3parApi.createVVsetVirtualCopy(consistencyGroup.getNativeId(), VVsetSnapshotName,readOnly);
+			int volumeNumber = 1;
+			
+			_log.info("3PARDriver: createConsistencyGroupSnapshot snapshotList {} keys {} values {} "
+					,snapshotList,snapshotList.keySet(),snapshotList.values());
+			
+			for (VolumeSnapshot snap : snapshots) {
+				
+				String snapshotCreated = VVsetSnapshotName+volumeNumber;
+				// native id = null ,
+				_log.info("3PARDriver: createConsistencyGroupSnapshot snapshotCreated {}, snap display name {} , its base volume {} - start",
+						snapshotCreated, snap.getDisplayName(),snap.getParentId());
+
+				volResult = hp3parApi.getVolumeDetails(VVsetSnapshotName+volumeNumber);
+
+				if (volResult != null ) {
+					
+					String baseVolume = volResult.getCopyOf();
+					VolumeSnapshot correctSnapshot = snapshotList.get(baseVolume);
+					
+				// Actual size of the volume in array
+				// snap.setProvisionedCapacity(volResult.getSizeMiB() *
+				// HP3PARConstants.MEGA_BYTE);
+					correctSnapshot.setWwn(volResult.getWwn());
+					correctSnapshot.setNativeId(snap.getDisplayName()); // required for volume
+															// delete
+					correctSnapshot.setDeviceLabel(snap.getDisplayName());
+					correctSnapshot.setAccessStatus(snap.getAccessStatus());
+					correctSnapshot.setDisplayName(snapshotCreated);
+				_log.info(
+						"createConsistencyGroupSnapshot for storage system native id {}, CG name {}, CG display Name {} - end",
+						correctSnapshot.getStorageSystemId(), correctSnapshot.getDisplayName(), correctSnapshot.getNativeId());
+				volumeNumber = volumeNumber + 1;
+				}
+				else {
+					_log.info("3PARDriver: createConsistencyGroupSnapshot volResult is null");
+					
+				}
+				
+			}
+
+			task.setStatus(DriverTask.TaskStatus.READY);
+			_log.info(
+					"createConsistencyGroupSnapshot for storage system native id {}, CG display Name {}, CG native id {} - end",
+					consistencyGroup.getStorageSystemId(), consistencyGroup.getDisplayName(),
+					consistencyGroup.getNativeId());
+		} catch (Exception e) {
+			String msg = String.format(
+					"3PARDriver: Unable to create vv set snap name %s and its native id %s whose storage system  id is %s; Error: %s.\n",
+					VVsetSnapshotName, consistencyGroup.getNativeId(), consistencyGroup.getStorageSystemId(), e.getMessage());
+			_log.error(msg);
+			task.setMessage(msg);
+			task.setStatus(DriverTask.TaskStatus.PARTIALLY_FAILED);
+			e.printStackTrace();
+		}
+        
+        return task;
+        
     }
 
     @Override

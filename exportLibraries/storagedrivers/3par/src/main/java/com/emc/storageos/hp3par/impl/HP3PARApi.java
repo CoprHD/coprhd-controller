@@ -62,8 +62,8 @@ public class HP3PARApi {
     
     private static final String URI_CREATE_CG = "/api/v1/volumesets";
     private static final String URI_DELETE_CG = "/api/v1/volumesets/{0}";
-    private static final String URI_SNAPSHOT_CG = "/api/v1/volumes/{0}";
-    private static final String URI_CLONE_CG = "/api/v1/volumes/{0}";
+    private static final String URI_SNAPSHOT_CG = "/api/v1/volumesets/{0}";
+    private static final String URI_CLONE_CG = "/api/v1/volumesets/{0}";
     private static final String URI_UPDATE_CG = "/api/v1/volumesets/{0}";
     private static final String URI_CG_DETAILS = "/api/v1/volumesets/{0}";
     private static final String URI_CG_LIST_DETAILS = "/api/v1/volumesets";
@@ -906,6 +906,43 @@ public class HP3PARApi {
     
 	}
 	
+
+	public void createVVsetVirtualCopy(String nativeId, String snapshotName, Boolean readOnly) throws Exception {
+
+	        _log.info("3PARDriver:createVVsetVirtualCopy enter");
+	        _log.info(" 3PARDriver:createVVsetVirtualCopy CG name {} , CG snapshot name given {} ", nativeId,snapshotName);
+	        ClientResponse clientResp = null;
+	        
+	        String cgSnapshotString = snapshotName + "@count@";
+	        // for snapshot creation 
+	        String payload = "{\"action\":\"createSnapshot\", \"parameters\": { \"name\": \"" + cgSnapshotString + "\" , \"readOnly\": " + readOnly +"} }";
+
+	        final String path = MessageFormat.format(URI_SNAPSHOT_CG, nativeId);
+	        
+	        _log.info(" 3PARDriver:createVVsetVirtualCopy uri = {} payload {} ",path,payload);
+	        try {
+	            clientResp = post(path, payload);
+	            if (clientResp == null) {
+	                _log.error("3PARDriver:There is no response from 3PAR");
+	                throw new HP3PARException("There is no response from 3PAR");
+	            } else if (clientResp.getStatus() != 201) {
+	                String errResp = getResponseDetails(clientResp);
+	                throw new HP3PARException(errResp);
+	            } else {
+	            	
+	            	_log.info("3PARDriver:createVVsetVirtualCopy success");
+	            	
+	            }
+	        } catch (Exception e) {
+	            throw e;
+	        } finally {
+	            if (clientResp != null) {
+	                clientResp.close();
+	            }
+	            _log.info("3PARDriver:createVVsetVirtualCopy leave");
+	        } //end try/catch/finally
+	    }
+
 
 }
 

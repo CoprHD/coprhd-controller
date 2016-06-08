@@ -396,7 +396,7 @@
                 <entry key="scaleiosystem" value-ref="scaleioStorageDriver"/>
                 -->
                 <entry key="driversystem" value-ref="storageDriverSimulator"/>
-                <entry key="3par" value-ref="3Par"/>
+                <entry key="hp3par" value-ref="3Par"/>
             </map>
         </property>
     </bean>

@@ -7,6 +7,8 @@ package models;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.commons.lang.StringUtils;
+
 import util.EnumOption;
 import util.StorageSystemTypeUtils;
 import util.StringOption;
@@ -149,12 +151,13 @@ public class StorageSystemTypes {
         List<StringOption> allproviders = new ArrayList<StringOption>();
         StorageSystemTypeList storagetypelist = StorageSystemTypeUtils
                 .getAllStorageSystemTypes(alltypes);
-        for (StorageSystemTypeRestRep storagetypeRest : storagetypelist
-                .getStorageSystemTypes()) {
-            if (!storagetypeRest.getIsSmiProvider()) {
-                allproviders.add(new StringOption(storagetypeRest
-                        .getStorageTypeName(), storagetypeRest
-                        .getStorageTypeDispName()));
+        for (StorageSystemTypeRestRep storagetypeRest : storagetypelist.getStorageSystemTypes()) {
+            // Add all storage systems plus VPLEX, SCALEIO, IBMXIV, XTREMIO
+            if (!storagetypeRest.getIsSmiProvider() || StringUtils.equals(VPLEX, storagetypeRest.getStorageTypeName())
+                    || StringUtils.equals(SCALEIO, storagetypeRest.getStorageTypeName()) || StringUtils.equals(IBMXIV, storagetypeRest.getStorageTypeName())
+                    || StringUtils.equals(XTREMIO, storagetypeRest.getStorageTypeName())) {
+                allproviders.add(new StringOption(storagetypeRest.getStorageTypeName(),
+                        storagetypeRest.getStorageTypeDispName()));
             }
         }
         return allproviders;

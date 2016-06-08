@@ -13,7 +13,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 
-import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,21 +25,26 @@ public class StorageSystemTypesInitUtils {
 
     private static final Logger log = LoggerFactory.getLogger(StorageSystemTypesInitUtils.class);
 
+    private static final String NONE = "NONE";
     private static final String ISILON = "isilon";
     private static final String VNX_BLOCK = "vnxblock";
     private static final String VNXe = "vnxe";
     private static final String VNX_FILE = "vnxfile";
-    private static final String VMAX = "smis";
+    private static final String VMAX = "vmax";
+    private static final String SMIS = "smis";
     private static final String NETAPP = "netapp";
     private static final String NETAPPC = "netappc";
     private static final String HITACHI = "hds";
+    private static final String HITACHI_PROVIDER = "hicommand";
     private static final String IBMXIV = "ibmxiv";
     private static final String VPLEX = "vplex";
     private static final String OPENSTACK = "openstack";
+    private static final String CINDER = "cinder";
     private static final String SCALEIO = "scaleio";
     private static final String SCALEIOAPI = "scaleioapi";
     private static final String XTREMIO = "xtremio";
     private static final String DATA_DOMAIN = "datadomain";
+    private static final String DATA_DOMAIN_PROVIDER = "ddmc";
     private static final String ECS = "ecs";
 
     // Default File arrays
@@ -50,10 +54,10 @@ public class StorageSystemTypesInitUtils {
     private static List<String> storageProviderFile = asList(SCALEIOAPI);
 
     // Default block arrays
-    private static List<String> storageArrayBlock = asList(VNX_BLOCK, VNXe);
+    private static List<String> storageArrayBlock = asList(VMAX, VNX_BLOCK, VNXe, HITACHI, OPENSTACK, DATA_DOMAIN);
 
     // Default Storage provider for Block
-    private static List<String> storageProviderBlock = asList(VMAX, HITACHI, VPLEX, OPENSTACK, SCALEIO, DATA_DOMAIN,
+    private static List<String> storageProviderBlock = asList(SMIS, HITACHI_PROVIDER, CINDER, DATA_DOMAIN_PROVIDER, VPLEX, SCALEIO, 
             IBMXIV, XTREMIO);
 
     // Default object arrays
@@ -83,6 +87,7 @@ public class StorageSystemTypesInitUtils {
         defaultSSL = new HashMap<String, Boolean>();
         defaultSSL.put(VNX_BLOCK, true);
         defaultSSL.put(VMAX, true);
+        defaultSSL.put(SMIS, true);
         defaultSSL.put(SCALEIOAPI, true);
         defaultSSL.put(VPLEX, true);
         defaultSSL.put(VNX_FILE, true);
@@ -100,11 +105,15 @@ public class StorageSystemTypesInitUtils {
         displayNameMap.put(VNX_BLOCK, "EMC VNX Block");
         displayNameMap.put(VNXe, "EMC VNXe");
         displayNameMap.put(VMAX, "Storage Provider for EMC VMAX or VNX Block");
+        displayNameMap.put(SMIS, "Storage Provider for EMC VMAX or VNX Block");
         displayNameMap.put(HITACHI, "Storage Provider for Hitachi storage systems");
+        displayNameMap.put(HITACHI_PROVIDER, "Storage Provider for Hitachi storage systems");
         displayNameMap.put(VPLEX, "Storage Provider for EMC VPLEX");
         displayNameMap.put(OPENSTACK, "Storage Provider for Third-party block storage systems");
+        displayNameMap.put(CINDER, "Storage Provider for Third-party block storage systems");
         displayNameMap.put(SCALEIO, "Block Storage Powered by ScaleIO");
         displayNameMap.put(DATA_DOMAIN, "Storage Provider for Data Domain Management Center");
+        displayNameMap.put(DATA_DOMAIN_PROVIDER, "Storage Provider for Data Domain Management Center");
         displayNameMap.put(IBMXIV, "Storage Provider for IBM XIV");
         displayNameMap.put(XTREMIO, "Storage Provider for EMC XtremIO");
         displayNameMap.put(ECS, "EMC Elastic Cloud Storage");
@@ -117,11 +126,15 @@ public class StorageSystemTypesInitUtils {
         sslPortMap.put(SCALEIOAPI, "443");
         sslPortMap.put(VNX_BLOCK, "5989");
         sslPortMap.put(VMAX, "5989");
+        sslPortMap.put(SMIS, "5989");
         sslPortMap.put(HITACHI, "2001");
+        sslPortMap.put(HITACHI_PROVIDER, "2001");
         sslPortMap.put(VPLEX, "443");
         sslPortMap.put(OPENSTACK, "22");
+        sslPortMap.put(CINDER, "22");
         sslPortMap.put(SCALEIO, "22");
         sslPortMap.put(DATA_DOMAIN, "3009");
+        sslPortMap.put(DATA_DOMAIN_PROVIDER, "3009");
         sslPortMap.put(IBMXIV, "5989");
         sslPortMap.put(XTREMIO, "443");
         sslPortMap.put(ECS, "4443");
@@ -139,6 +152,7 @@ public class StorageSystemTypesInitUtils {
         nonSslPortMap.put("scaleio", "22");
         nonSslPortMap.put("scaleioapi", "80");
         nonSslPortMap.put("ddmc", "3009");
+        nonSslPortMap.put("datadomain", "3009");
         nonSslPortMap.put("ibmxiv", "5989");
         nonSslPortMap.put("xtremio", "443");
         nonSslPortMap.put("vnxblock", "5988");

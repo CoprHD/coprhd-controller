@@ -31,6 +31,8 @@ import com.emc.storageos.hp3par.command.PortStatisticsCommandResult;
 import com.emc.storageos.hp3par.command.SystemCommandResult;
 import com.emc.storageos.hp3par.command.VolumeDetailsCommandResult;
 import com.emc.storageos.hp3par.connection.HP3PARApiFactory;
+import com.emc.storageos.hp3par.utils.HP3PARConstants;
+import com.emc.storageos.hp3par.utils.SanUtils;
 import com.emc.storageos.storagedriver.AbstractStorageDriver;
 import com.emc.storageos.storagedriver.BlockStorageDriver;
 import com.emc.storageos.storagedriver.DriverTask;
@@ -511,9 +513,9 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
                 if (port.getTransportType().equals(TransportType.FC.toString()) ||
                         port.getTransportType().equals(TransportType.Ethernet.toString())) {
 
-                    port.setPortNetworkId(currMember.getPortWWN());
+                    port.setPortNetworkId(SanUtils.formatWWN(currMember.getPortWWN()));
                     // Filling values as its expected by SB SDK
-                    port.setEndPointID(currMember.getPortWWN());
+                    port.setEndPointID(port.getPortNetworkId());
                 } else {
                     port.setIpAddress(currMember.getIPAddr());
                     port.setPortNetworkId(currMember.getiSCSINmae());
@@ -536,7 +538,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 
                 // To provide provisioning without proper fabric; lglap114.lss.emc.com; root/standard
                 //TEMP CODE START**********************
-                port.setNetworkId("er-network77"+ storageSystem.getNativeId());
+                //port.setNetworkId("er-network77"+ storageSystem.getNativeId());
                 //TEMP CODE END************************
                 port.setOperationalStatus(StoragePort.OperationalStatus.OK);  
                 _log.info("3PARDriver: added storage port {}, native id {}",  port.getPortName(), port.getNativeId());

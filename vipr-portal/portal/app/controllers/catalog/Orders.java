@@ -20,6 +20,7 @@ import java.util.Map;
 import org.apache.commons.lang.StringUtils;
 
 import com.emc.sa.util.TextUtils;
+import com.emc.storageos.db.client.model.Task.Status;
 import com.emc.storageos.db.client.model.uimodels.OrderStatus;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.search.SearchResultResourceRep;
@@ -38,8 +39,11 @@ import com.emc.vipr.model.catalog.ServiceFieldRestRep;
 import com.emc.vipr.model.catalog.ServiceFieldTableRestRep;
 import com.emc.vipr.model.catalog.ServiceItemRestRep;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 import controllers.Common;
+import controllers.Tasks;
+import controllers.Tasks.WorkflowStep;
 import controllers.deadbolt.Restrict;
 import controllers.deadbolt.Restrictions;
 import controllers.resources.AffectedResources;
@@ -379,6 +383,7 @@ public class Orders extends OrderExecution {
         public List<ResourceDetails> affectedResources;
         public Tags tags;
         public List<TaskResourceRep> viprTasks;
+        public Map<URI, String> viprTaskStepMessages;
 
         public OrderDetails(String orderId) {
             order = OrderUtils.getOrder(uri(orderId));
@@ -394,6 +399,7 @@ public class Orders extends OrderExecution {
             ViPRCoreClient client = getViprClient();
             List<SearchResultResourceRep> searchResults = client.tasks().performSearchBy("tag", TagUtils.createOrderIdTag(orderId));
             viprTasks = client.tasks().getByRefs(searchResults);
+            setTaskStepMessages();
 
             checkLastUpdated(viprTasks);
 
@@ -418,6 +424,24 @@ public class Orders extends OrderExecution {
                         rollbackTaskLogs.add(log);
                     }
                     checkLastUpdated(log);
+                }
+            }
+        }
+
+        private void setTaskStepMessages() {
+            viprTaskStepMessages = Maps.newHashMap();
+            for (TaskResourceRep task : viprTasks) {
+                if (task.getWorkflow() != null && (task.getState().equalsIgnoreCase(Status.suspended_error.name())
+                        || task.getState().equalsIgnoreCase(Status.suspended_no_error.name()))) {
+                    List<WorkflowStep> steps = Tasks.getWorkflowSteps(task.getWorkflow().getId());
+                    String message = "";
+                    for (WorkflowStep step : steps) {
+                        if (step.state.equalsIgnoreCase(Status.suspended_error.name())
+                                || step.state.equalsIgnoreCase(Status.suspended_no_error.name())) {
+                            message += step.message;
+                        }
+                    }
+                    viprTaskStepMessages.put(task.getId(), message);
                 }
             }
         }

@@ -5922,11 +5922,15 @@ blocksnapshot_single_vmax()
     run blocksnapshot delete ${PROJECT}/${activate_vol}/${snap1_label}
 
     # Snapshot with create_inactive=true
-    inactive_snap_label=inactive-snap-${HOSTNAME}-${RANDOM}
-    run blocksnapshot create ${PROJECT}/${activate_vol} $inactive_snap_label --create_inactive=true
-    run blocksnapshot show ${PROJECT}/${activate_vol}/${inactive_snap_label}
-    run blocksnapshot activate ${PROJECT}/${activate_vol}/${inactive_snap_label}
-    run blocksnapshot delete ${PROJECT}/${activate_vol}/${inactive_snap_label}
+	# ---------------------------------------------------------------------------------------------
+	# Creating inactive snapshot is not applicable for V3 array. hence commenting out this section.
+	# ---------------------------------------------------------------------------------------------
+    # inactive_snap_label=inactive-snap-${HOSTNAME}-${RANDOM}
+    # run blocksnapshot create ${PROJECT}/${activate_vol} $inactive_snap_label --create_inactive=true
+    # run blocksnapshot show ${PROJECT}/${activate_vol}/${inactive_snap_label}
+    # run blocksnapshot activate ${PROJECT}/${activate_vol}/${inactive_snap_label}
+    # run blocksnapshot delete ${PROJECT}/${activate_vol}/${inactive_snap_label}
+	# ---------------------------------------------------------------------------------------------
 
     # Snapshot with create_inactive=false
     active_snap_label=active-snap-${HOSTNAME}-${RANDOM}

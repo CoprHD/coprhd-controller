@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.Map;
 
 import com.emc.storageos.db.client.model.NoInactiveIndex;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -306,6 +307,14 @@ public class ColumnField {
             ColumnValue.setField(column, _property, obj);
         }
     }
+    
+    public void deserialize(CompositeColumnName compositeColumnName, Object obj) {
+        if (_encrypt && _parentType.getEncryptionProvider() != null) {
+            deserializeEncryptedColumn(compositeColumnName, obj, _parentType.getEncryptionProvider());
+        } else {
+            ColumnValue.setField(compositeColumnName, _property, obj);
+        }
+    }
 
     /**
      * Deserializes an encrypted column into object field
@@ -325,6 +334,18 @@ public class ColumnField {
             throw new IllegalArgumentException("null encryption provider");
         }
         ColumnValue.setEncryptedStringField(column, _property, obj, encryptionProvider);
+    }
+    
+    public void deserializeEncryptedColumn(CompositeColumnName compositeColumnName, Object obj,
+            EncryptionProvider encryptionProvider) {
+        if (!_encrypt) {
+            throw new IllegalArgumentException("column is not encrypted");
+        }
+
+        if (encryptionProvider == null) {
+            throw new IllegalArgumentException("null encryption provider");
+        }
+        ColumnValue.setEncryptedStringField(compositeColumnName, _property, obj, encryptionProvider);
     }
 
     /**

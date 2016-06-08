@@ -32,6 +32,9 @@ import org.joda.time.DateTimeZone;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.Session;
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.DbVersionInfo;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
@@ -349,6 +352,15 @@ public class DbClientImpl implements DbClient {
         return getDbClientContext(clazz).getKeyspace();
     }
     
+    protected Session getSession(DataObject dataObj) {
+        Class<? extends DataObject> clazz = dataObj.getClass();
+        return getSession(clazz);
+    }
+    
+    protected <T extends DataObject> Session getSession(Class<T> clazz) {
+        return getDbClientContext(clazz).getSession();
+    }
+    
     private <T extends DataObject> DbClientContext getDbClientContext(Class<T> clazz) {
         DbClientContext ctx = null;
         if (localContext == null && geoContext == null) {
@@ -434,18 +446,17 @@ public class DbClientImpl implements DbClient {
         }
 
         Keyspace ks = getKeyspace(clazz);
-        Rows<String, CompositeColumnName> rows = queryRowsWithAllColumns(ks, ids, doType.getCF());
-        List<T> objects = new ArrayList<T>(rows.size());
+        Map<String, List<CompositeColumnName>> result = queryRowsWithAllColumns(getDbClientContext(clazz), ids, doType.getCF().getName());
+        List<T> objects = new ArrayList<T>(result.size());
         IndexCleanupList cleanList = new IndexCleanupList();
 
-        Iterator<Row<String, CompositeColumnName>> it = rows.iterator();
-        while (it.hasNext()) {
-            Row<String, CompositeColumnName> row = it.next();
-            if (row == null || row.getColumns().size() == 0) {
+        for (String rowKey : result.keySet()) {
+            List<CompositeColumnName> rows = result.get(rowKey);
+            if (rows == null || rows.size() == 0) {
                 continue;
             }
 
-            T object = doType.deserialize(clazz, row, cleanList, new LazyLoader(this));
+            T object = doType.deserialize(clazz, rowKey, rows, cleanList, new LazyLoader(this));
 
             // filter base on activeOnly
             if (activeOnly) {
@@ -455,7 +466,9 @@ public class DbClientImpl implements DbClient {
             } else {
                 objects.add(object);
             }
-        }
+        } 
+        
+        // TODO Java driver: need to handle clean list for queryObject
         if (!cleanList.isEmpty()) {
             boolean retryFailedWriteWithLocalQuorum = shouldRetryFailedWriteWithLocalQuorum(clazz);
             RowMutator mutator = new RowMutator(ks, retryFailedWriteWithLocalQuorum);
@@ -605,35 +618,30 @@ public class DbClientImpl implements DbClient {
             columnFields.add(columnField);
         }
 
-        Keyspace ks = getKeyspace(clazz);
         Map<URI, T> objectMap = new HashMap<URI, T>();
         for (ColumnField columnField : columnFields) {
-            Rows<String, CompositeColumnName> rows = queryRowsWithAColumn(ks, ids, doType.getCF(),
-                    columnField);
-            Iterator<Row<String, CompositeColumnName>> it = rows.iterator();
-            while (it.hasNext()) {
-                Row<String, CompositeColumnName> row = it.next();
+            Map<String, List<CompositeColumnName>> result = queryRowsWithAColumn(getDbClientContext(clazz), ids, doType.getCF().getName(), columnField);
+            for (String rowKey : result.keySet()) {
+                List<CompositeColumnName> rows = result.get(rowKey);
+                if (rows == null || rows.size() == 0) {
+                    continue;
+                }
                 try {
                     // Since the order of columns returned is not guaranteed to be the same as keys
                     // we have to create an object to track both id and label, for now, lets use the same type
-                    if (row.getColumns().size() == 0) {
-                        continue;
-                    }
-
-                    URI key = URI.create(row.getKey());
+                    
+                    URI key = URI.create(rowKey);
 
                     T obj = objectMap.get(key);
 
                     if (obj == null) {
-                        obj = (T) DataObject.createInstance(clazz, URI.create(row.getKey()));
+                        obj = (T) DataObject.createInstance(clazz, URI.create(rowKey));
                         objectMap.put(key, obj);
                     }
 
-                    Iterator<Column<CompositeColumnName>> columnIterator = row.getColumns().iterator();
-
+                    Iterator<CompositeColumnName> columnIterator = rows.iterator();
                     while (columnIterator.hasNext()) {
-                        Column<CompositeColumnName> column = columnIterator.next();
-                        columnField.deserialize(column, obj);
+                        columnField.deserialize(columnIterator.next(), obj);
                     }
                 } catch (final InstantiationException e) {
                     throw DatabaseException.fatals.queryFailed(e);
@@ -1537,6 +1545,42 @@ public class DbClientImpl implements DbClient {
             throw DatabaseException.retryables.connectionFailed(e);
         }
     }
+    
+    protected Map<String, List<CompositeColumnName>> queryRowsWithAColumn(DbClientContext context, Collection<URI> ids, String tableName, ColumnField column) {
+        PreparedStatement queryAllColumnsPreparedStatement = context.getPreparedStatement(tableName+column.getMappedByField(), 
+                String.format("Select * from \"%s\" where column1=? and key in ? ALLOW FILTERING", tableName),
+                context);
+        
+        ResultSet resultSet = context.getSession()
+                .execute(queryAllColumnsPreparedStatement.bind(column.getName(), uriList2StringList(ids)));
+        
+        Map<String, List<CompositeColumnName>> result = new HashMap<String, List<CompositeColumnName>>();
+        List<CompositeColumnName> rows = null;
+        String lastKey = null;
+        
+        for (com.datastax.driver.core.Row row : resultSet) {
+            String currentKey = row.getString(0);
+            
+            if (lastKey == null || (!lastKey.equals(currentKey))) {
+                rows = new ArrayList<CompositeColumnName>();
+                result.put(currentKey, rows);
+                lastKey = currentKey;
+            }
+                
+            result.get(currentKey).add(new CompositeColumnName(
+                            currentKey,
+                            row.getString(1),
+                            row.getString(2),
+                            row.getString(3),
+                            row.getUUID(4),
+                            row.getBytes(5)));
+        }
+        
+        if (lastKey != null) {
+            result.put(lastKey, rows);
+        }
+        return result;
+    }
 
     /**
      * Convernts from List<URI> to List<String>.
@@ -1954,5 +1998,49 @@ public class DbClientImpl implements DbClient {
         String clazzVersion = clazz.getAnnotation(AllowedGeoVersion.class).version();
         String fieldVersion = property.getReadMethod().getAnnotation(AllowedGeoVersion.class).version();
         return VdcUtil.VdcVersionComparator.compare(fieldVersion, clazzVersion) > 0 ? fieldVersion : clazzVersion;
+    }
+    
+    protected Map<String, List<CompositeColumnName>> queryRowsWithAllColumns(DbClientContext context, Collection<URI> ids, String tableName) {
+        PreparedStatement queryAllColumnsPreparedStatement = context.getPreparedStatement(tableName, 
+                String.format("Select * from \"%s\" where key in ?", tableName),
+                context);
+        
+        ResultSet resultSet = context.getSession()
+                .execute(queryAllColumnsPreparedStatement.bind(uriList2StringList(ids)));
+        
+        Map<String, List<CompositeColumnName>> result = new HashMap<String, List<CompositeColumnName>>();
+        List<CompositeColumnName> rows = null;
+        String lastKey = null;
+        
+        for (com.datastax.driver.core.Row row : resultSet) {
+            String currentKey = row.getString(0);
+            
+            if (lastKey == null || (!lastKey.equals(currentKey))) {
+                rows = new ArrayList<CompositeColumnName>();
+                result.put(currentKey, rows);
+                lastKey = currentKey;
+            }
+                
+            result.get(currentKey).add(new CompositeColumnName(
+                            currentKey,
+                            row.getString(1),
+                            row.getString(2),
+                            row.getString(3),
+                            row.getUUID(4),
+                            row.getBytes(5)));
+        }
+        
+        if (lastKey != null) {
+            result.put(lastKey, rows);
+        }
+        return result;
+    }
+    
+    private List<String> uriList2StringList(Collection<URI> ids) {
+        List<String> result = new ArrayList<String>();
+        for (URI uri : ids) {
+            result.add(uri.toString());
+        }
+        return result;
     }
 }

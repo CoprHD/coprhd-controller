@@ -2152,18 +2152,13 @@ public class DisasterRecoveryService {
         
         private void degradeActiveSite() throws Exception {
             try {
+                log.info("Current active site {}", drUtil.getActiveSite().getUuid());
                 coordinator.startTransaction();
                 
                 List<Site> standbySites = drUtil.listStandbySites();
-                
-                Site localSite = drUtil.getLocalSite();
-                SiteState lastState = localSite.getState();
-                localSite.setState(SiteState.ACTIVE_DEGRADED);
-                localSite.setLastState(lastState);
-                coordinator.persistServiceConfiguration(localSite.toConfiguration());
-                
                 for (Site standbySite : standbySites) {
                     if (!drUtil.isLocalSite(standbySite)) {
+                        log.info("Set standby site {} from state {} to STANDBY_PAUSED", standbySite.getUuid(), standbySite.getState());
                         standbySite.setState(SiteState.STANDBY_PAUSED);
                         coordinator.persistServiceConfiguration(standbySite.toConfiguration());
                     }
@@ -2245,19 +2240,19 @@ public class DisasterRecoveryService {
                 try (InternalSiteServiceClient client = new InternalSiteServiceClient(remoteSite, coordinator, apiSignatureGenerator)) {
                     SiteList sites = client.getSiteList();
 
-                    String remoteSite_status ="";
-                    String localSite_status = SiteState.ACTIVE_DEGRADED.toString();
+                    String remoteSiteStatus ="";
+                    String localSiteStatus = SiteState.ACTIVE_DEGRADED.toString();
                     for (SiteRestRep site : sites.getSites()) {
                         if (remoteSite.getUuid().equals(site.getUuid())) {
-                            remoteSite_status = site.getState();
+                            remoteSiteStatus = site.getState();
                         }
                         if (localSiteId.equals(site.getUuid())) {
-                            localSite_status = site.getState();
+                            localSiteStatus = site.getState();
                         }
                     }
 
-                    if (SiteState.ACTIVE_DEGRADED.toString().equals(localSite_status) &&
-                        SiteState.ACTIVE.toString().equals(remoteSite_status)) {
+                    if (SiteState.ACTIVE_DEGRADED.toString().equals(localSiteStatus) &&
+                        SiteState.ACTIVE.toString().equals(remoteSiteStatus)) {
                         log.info("Local site {} is in ACTIVE_DEGRADED state according data returned from site {}", localSiteId, remoteSite.getUuid());
                         log.info("Remote site {} is in ACTIVE state according data returned from site {}", remoteSite.getUuid(), remoteSite.getUuid());
 
@@ -2266,6 +2261,13 @@ public class DisasterRecoveryService {
                         newActiveSite.setState(SiteState.ACTIVE);
                         coordinator.persistServiceConfiguration(newActiveSite.toConfiguration());
 
+                        // update local site to degraded to avoid 2 actives in the DR config
+                        Site localSite = drUtil.getLocalSite();
+                        SiteState lastState = localSite.getState();
+                        localSite.setState(SiteState.ACTIVE_DEGRADED);
+                        localSite.setLastState(lastState);
+                        coordinator.persistServiceConfiguration(localSite.toConfiguration());
+                        
                         return true;
                     }
                 } catch (Exception e) {

@@ -34,6 +34,9 @@ public class Migration extends DataObject {
     // Host initiators to be used in the case of a host based migration
     private URI _migrationHost;
 
+    // Process ID of migration dd command for host based migrations
+    private String _migrationPid;
+
     /**
      * Getter for the URI of the volume being migrated.
      * 
@@ -173,5 +176,25 @@ public class Migration extends DataObject {
     public void setMigrationHost(URI migrationHost) {
         _migrationHost = migrationHost;
         setChanged("migrationHost");
+    }
+
+    /**
+     * Getter for the migration PID
+     *
+     * @return A string representing the PID of the migration dd command
+     */
+    @Name("migrationPid")
+    public String getMigrationPid() {
+        return _migrationPid;
+    }
+
+    /**
+     * Setter for the migration PID
+     *
+     * @param migrationPid The PID of the migration dd command
+     */
+    public void setMigrationPid(String migrationPid) {
+        _migrationPid = migrationPid;
+        setChanged("migrationPid");
     }
 }

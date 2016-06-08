@@ -146,8 +146,11 @@ public class DefaultStorageDriver extends AbstractStorageDriver implements Block
     @Override
     public DriverTask stopManagement(StorageSystem driverStorageSystem){
     	_log.info("Stopping management for StorageSystem {}", driverStorageSystem.getNativeId());
-    	DriverTask task = null;
-    	return task;
+    	String driverName = this.getClass().getSimpleName();
+        String taskId = String.format("%s+%s+%s", driverName, "stopManagement", UUID.randomUUID().toString());
+        DriverTask task = new DefaultDriverTask(taskId);
+        task.setStatus(DriverTask.TaskStatus.READY);
+        return task;
     }
 
     @Override

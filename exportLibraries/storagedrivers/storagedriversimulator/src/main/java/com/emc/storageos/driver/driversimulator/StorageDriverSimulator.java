@@ -23,6 +23,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.storagedriver.AbstractStorageDriver;
 import com.emc.storageos.storagedriver.BlockStorageDriver;
+import com.emc.storageos.storagedriver.DefaultDriverTask;
 import com.emc.storageos.storagedriver.DriverTask;
 import com.emc.storageos.storagedriver.HostExportInfo;
 import com.emc.storageos.storagedriver.RegistrationData;
@@ -312,8 +313,11 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
     @Override
     public DriverTask stopManagement(StorageSystem driverStorageSystem){
     	_log.info("Stopping management for StorageSystem {}", driverStorageSystem.getNativeId());
-    	DriverTask task= null;
-    	return task;
+    	String driverName = this.getClass().getSimpleName();
+        String taskId = String.format("%s+%s+%s", driverName, "stopManagement", UUID.randomUUID().toString());
+        DriverTask task = new DefaultDriverTask(taskId);
+        task.setStatus(DriverTask.TaskStatus.READY);
+        return task;
     }
 
     @Override

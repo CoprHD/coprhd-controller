@@ -512,7 +512,28 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
             taskCompleter.error(dbClient, serviceError);
         }
     }
-
+    
+    @Override
+    public void doDisconnect(StorageSystem storage){
+    	try{
+    		_log.info("doDisconnect {} - start", storage.getId());
+    		_log.info("doDisconnect %1$s - Complete", storage.getId());
+    		
+    	} catch(Exception e){
+    		_log.error("doDisconnect failed.", e);
+    	}
+    }
+//    try {
+//        _logger.info("doConnect {} - start", storage.getId());
+//        VNXeApiClient client = getVnxeClient(storage);
+//        client.logout();
+//        String msg = String.format("doDisconnect %1$s - complete", storage.getId());
+//        _logger.info(msg);
+//
+//    } catch (VNXeException e) {
+//        _logger.error("doDisconnect failed.", e);
+//        throw DeviceControllerException.exceptions.disconnectStorageFailed(e);
+//    }
     @Override
     public void doCreateGroupClone(StorageSystem storageSystem, List<URI> cloneURIs,
                                    Boolean createInactive, TaskCompleter taskCompleter) {

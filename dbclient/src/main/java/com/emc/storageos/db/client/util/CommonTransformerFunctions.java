@@ -115,6 +115,16 @@ public class CommonTransformerFunctions {
     }
 
     public static Function<BlockObject, String>
+            fctnBlockObjectToLabel() {
+        return new Function<BlockObject, String>() {
+            @Override
+            public String apply(BlockObject blockObject) {
+                return blockObject.getLabel();
+            }
+        };
+    }
+
+    public static Function<BlockObject, String>
             fctnBlockObjectToNativeGuid() {
         return new Function<BlockObject, String>() {
 

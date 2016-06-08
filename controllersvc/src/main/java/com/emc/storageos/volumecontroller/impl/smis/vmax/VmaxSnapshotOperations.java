@@ -7,7 +7,9 @@ package com.emc.storageos.volumecontroller.impl.smis.vmax;
 import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getLinkedTargetSnapshotSessionConstraint;
 import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnBlockObjectToNativeID;
 import static com.emc.storageos.db.client.util.CustomQueryUtility.queryActiveResourcesByConstraint;
+import static com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils.callEMCRefresh;
 import static com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils.callEMCRefreshIfRequired;
+import static com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils.checkReplicationGroupAccessibleOrFail;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.COPY_STATE_MIXED_INT_VALUE;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.COPY_STATE_RESTORED_INT_VALUE;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CP_EMC_UNIQUE_ID;
@@ -505,8 +507,6 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             if (targetGroupPath != null) {
                 CIMObjectPath groupSynchronized = _cimPath.getGroupSynchronizedPath(storage, consistencyGroupName, snapshotGroupName);
                 if (_helper.checkExists(storage, groupSynchronized, false, false) != null) {
-                    deleteTarget = false;
-
                     // remove targets from parking SLO group
                     if (storage.checkIfVmax3()) {
                         Iterator<BlockSnapshot> iter = snapshotList.iterator();
@@ -515,10 +515,27 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                             _helper.removeVolumeFromParkingSLOStorageGroup(storage, blockSnapshot.getNativeId(), false);
                             _log.info("Done invoking remove volume {} from parking SLO storage group", blockSnapshot.getNativeId());
                         }
-                    }
 
-                    CIMArgument[] deleteCGSnapInput = _helper.getDeleteSnapshotSynchronousInputArguments(groupSynchronized);
-                    _helper.callModifyReplica(storage, deleteCGSnapInput, outArgs);
+                        // If VMAX3 linked target (both copy and no copy mode), detach the element synchronization before deleting it.
+                        // COP-21476 - 'no copy' mode target too needs to be detached when snap session has linked copy mode target.
+                        CIMArgument[] inArgsDetach = _helper.getUnlinkBlockSnapshotSessionTargetInputArguments(groupSynchronized);
+                        CIMArgument[] outArgsDetach = new CIMArgument[5];
+                        CIMObjectPath replicationSvcPath = _cimPath.getControllerReplicationSvcPath(storage);
+                        _helper.invokeMethodSynchronously(storage, replicationSvcPath, SmisConstants.MODIFY_REPLICA_SYNCHRONIZATION,
+                                inArgsDetach, outArgsDetach, null);
+                    } else {
+                        /*
+                         * The VMAX2 MRS(ReturnToResourcePool) call internally does 3 operations:
+                         * 1) Detach GroupSynchronized
+                         * 2) Delete target storage group
+                         * 3) Delete target devices
+                         *
+                         * So, if the call succeeds we no longer need to perform delete target steps (set flag to false).
+                         */
+                        CIMArgument[] deleteCGSnapInput = _helper.getDeleteSnapshotSynchronousInputArguments(groupSynchronized);
+                        _helper.callModifyReplica(storage, deleteCGSnapInput, outArgs);
+                        deleteTarget = false;
+                    }
                 } else {
                     _log.info("GroupSynchronized {} not found", groupSynchronized.toString());
                 }
@@ -998,7 +1015,11 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
         try {
             if (storageSystem.checkIfVmax3()) {
                 for (String deviceId : deviceIds) {
-                    _helper.removeVolumeFromParkingSLOStorageGroup(storageSystem, deviceId, false);
+                    try {
+                        _helper.removeVolumeFromParkingSLOStorageGroup(storageSystem, deviceId, false);
+                    } catch (Exception e) {
+                        _log.info("Failed to remove device {} from SLO SG.  It may have already been removed", deviceId);
+                    }
                     _log.info("Done invoking remove volume {} from parking SLO storage group", deviceId);
                 }
             }
@@ -1922,15 +1943,26 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                 Collection<String> nativeIds = transform(snapshots, fctnBlockObjectToNativeID());
 
                 if (snapshot.hasConsistencyGroup()) {
-                    deleteTargetGroup(system, snapshot.getReplicationGroupInstance());
+                    try {
+                        checkReplicationGroupAccessibleOrFail(system, snapshot, _dbClient, _helper, _cimPath);
+                        deleteTargetGroup(system, snapshot.getReplicationGroupInstance());
+                    } catch (DeviceControllerException | WBEMException e) {
+                        _log.info("Failed to delete the target group.  It may have already been deleted.");
+                    }
                 }
 
                 // Ingested non-exported snapshot could be associated with SGs outside of ViPR,
                 // remove snapshot from them before deleting it.
                 for (BlockSnapshot snap : snapshots) {
-                    _helper.removeVolumeFromStorageGroupsIfVolumeIsNotInAnyMV(system, snap);
+                    try {
+                        _helper.removeVolumeFromStorageGroupsIfVolumeIsNotInAnyMV(system, snap);
+                    } catch (Exception e) {
+                        _log.info("Failed to remove snap {} from storage groups.  It may have already been removed.",
+                                snap.getNativeGuid());
+                    }
                 }
 
+                callEMCRefresh(_helper, system, true);
                 deleteTargetDevices(system, nativeIds.toArray(new String[] {}), completer);
                 _log.info("Delete target device complete");
             } else if (!syncObjectFound) {

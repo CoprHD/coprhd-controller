@@ -5,7 +5,7 @@
 package com.emc.storageos.storagedriver.model;
 
 
-public class VolumeClone extends StorageBlockObject {
+public class VolumeClone extends StorageVolume {
 
     // parent volume id. Type: Input.
     private String parentId;
@@ -14,14 +14,29 @@ public class VolumeClone extends StorageBlockObject {
     private String storageSystemId;
 
     // replication state of this clone. Type: Output.
-    ReplicationState replicationState;
+    ReplicationState replicationState = ReplicationState.UNKNOWN;
+    
+    // sourcetype of the clone.
+    SourceType sourceType = SourceType.UNKNOWN;
 
     public static enum ReplicationState {
         UNKNOWN, SYNCHRONIZED, CREATED, RESYNCED, INACTIVE, DETACHED, RESTORED;
     }
-
+    
+    public static enum SourceType  {
+    	UNKNOWN, VOLUME, SNAPSHOT;
+    }
+    
+    public SourceType getSourceType(){
+    	return sourceType;
+    }
+    
     public String getParentId() {
         return parentId;
+    }
+    
+    public void setSourceType(SourceType sourceType){
+    	this.sourceType = sourceType;
     }
 
     public void setParentId(String parentId) {
@@ -46,6 +61,6 @@ public class VolumeClone extends StorageBlockObject {
 
     @Override
     public String toString() {
-        return "VolumeClone-"+storageSystemId+"-" + getParentId()+"-"+getNativeId();
+        return getNativeId();
     }
 }

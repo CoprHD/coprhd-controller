@@ -78,6 +78,7 @@
         <property name="dbClient" ref="dbclient"/>
         <property name="matcherFramework" ref="matcherFramework"/>
         <property name="blockScheduler" ref="storagescheduler" />
+        <property name="placementManager" ref="placementManager" />
     </bean>
 
     <bean id="rpscheduler" class="com.emc.storageos.api.service.impl.placement.RecoverPointScheduler">
@@ -401,6 +402,14 @@
             <entry key="srdf" value-ref="srdfscheduler"/>            
         </map>
         </property>
+	<property name="schedulerStack">
+        <list>
+	    <value>rp</value>
+	    <value>vplex</value>
+	    <value>srdf</value>
+	    <value>block</value>
+	</list>
+	</property>
         <property name="dbClient" ref="dbclient"/>
     </bean>
 
@@ -427,6 +436,11 @@
     </bean>
     
     <bean id="computeImageService" class="com.emc.storageos.api.service.impl.resource.ComputeImageService">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="coordinator" ref="coordinator"/>
+    </bean>
+    
+    <bean id="storageSystemTypeService" class="com.emc.storageos.api.service.impl.resource.StorageSystemTypeService">
         <property name="dbClient" ref="dbclient"/>
         <property name="coordinator" ref="coordinator"/>
     </bean>
@@ -488,6 +502,7 @@
                 <ref bean="ipInterfaceService"/>
                 <ref bean="customConfigService"/>
                 <ref bean="volumeGroupService"/>
+                <ref bean="storageSystemTypeService"/>
                 <bean class="com.emc.storageos.api.service.impl.resource.MeteringService">
                     <property name="dbClient" ref="dbclient"/>
                     <property name="coordinator" ref="coordinator"/>

@@ -153,7 +153,7 @@ login() {
 setup() {
     sleep 10
     SMISPASS=0
-    runcmd smisprovider create $VNX_SMIS_DEV $VNX_SMIS_IP 5988 $SMIS_USER "$SMIS_PASSWD" false
+    runcmd smisprovider create $VNX_SMIS_DEV $VNX_SMIS_IP $VNX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VNX_SMIS_SSL
     while [ ${SMISPASS} -eq 0 ]
       do
       runcmd storagedevice discover_all

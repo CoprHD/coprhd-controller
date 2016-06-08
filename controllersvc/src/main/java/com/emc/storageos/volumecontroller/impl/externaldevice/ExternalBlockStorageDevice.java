@@ -55,6 +55,7 @@ import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.VolumeURIHLU;
+import com.emc.storageos.volumecontroller.impl.plugins.ExternalDeviceCommunicationInterface;
 import com.emc.storageos.volumecontroller.impl.smis.ExportMaskOperations;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.google.common.base.Strings;
@@ -514,10 +515,11 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
     }
     
     @Override
-    public void doDisconnect(StorageSystem storage){
+    public void doDisconnect(StorageSystem storageSystem){
+    	com.emc.storageos.storagedriver.model.StorageSystem driverStorageSystem = ExternalDeviceCommunicationInterface.initStorageSystem(storageSystem);
     	try{
-    		_log.info("doDisconnect {} - start", storage.getId());
-    		_log.info("doDisconnect %1$s - Complete", storage.getId());
+//    		_log.info("doDisconnect {} - start", storage.getId());
+//    		_log.info("doDisconnect %1$s - Complete", storage.getId());
     		
     	} catch(Exception e){
     		_log.error("doDisconnect failed.", e);

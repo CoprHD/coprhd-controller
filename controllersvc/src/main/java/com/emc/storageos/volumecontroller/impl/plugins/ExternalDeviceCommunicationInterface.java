@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.emc.storageos.xtremio.restapi.errorhandling.XtremIOApiException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -124,9 +125,12 @@ public class ExternalDeviceCommunicationInterface extends
 
     @Override
     public void scan(AccessProfile accessProfile) throws BaseCollectionException {
-        // Initialize driver storage provider, call driver to scan the provider to get list of managed storage systems,
+        // Initialize driver instance for storage provider,
+        // call driver to scan the provider to get list of managed storage systems,
         // update the system with this information.
         _log.info("Scanning started for provider: {}", accessProfile.getSystemId());
+        com.emc.storageos.db.client.model.StorageProvider.ConnectionStatus cxnStatus =
+                com.emc.storageos.db.client.model.StorageProvider.ConnectionStatus.CONNECTED;
         // Get discovery driver class based on storage device type
         String deviceType = accessProfile.getSystemType();
         AbstractStorageDriver driver = getDriver(deviceType);
@@ -137,14 +141,16 @@ public class ExternalDeviceCommunicationInterface extends
                     null, errorMsg, null, null);
         }
 
+        com.emc.storageos.db.client.model.StorageProvider storageProvider = null;
         try {
-            com.emc.storageos.db.client.model.StorageProvider storageProvider =
+            storageProvider =
                     _dbClient.queryObject(com.emc.storageos.db.client.model.StorageProvider.class, accessProfile.getSystemId());
             String username = storageProvider.getUserName();
             String password = storageProvider.getPassword();
             String hostName = storageProvider.getIPAddress();
             Integer portNumber = storageProvider.getPortNumber();
-            String msg = String.format("Storage provider info: host: %s, port: %s, user: %s", hostName, portNumber, username);
+            Boolean useSsl = storageProvider.getUseSSL();
+            String msg = String.format("Storage provider info: host: %s, port: %s, user: %s, useSsl: %s", hostName, portNumber, username, useSsl);
             _log.info(msg);
 
             StorageProvider driverProvider = new StorageProvider();
@@ -153,36 +159,65 @@ public class ExternalDeviceCommunicationInterface extends
             driverProvider.setPortNumber(portNumber);
             driverProvider.setUsername(username);
             driverProvider.setPassword(password);
+            driverProvider.setUseSSL(useSsl);
 
             // call the driver
             List<StorageSystem> systems = new ArrayList<>();
-            DriverTask scanTask = driver.discoverStorageProvider(driverProvider, systems);
+            DriverTask task = driver.discoverStorageProvider(driverProvider, systems);
+            // todo: need to implement support for async case.
+            if (task.getStatus() == DriverTask.TaskStatus.READY) {
+                // process results, populate cache
+                _log.info("Scan: found {} systems for provider {}", systems.size(), accessProfile.getSystemId());
 
-            // process results, populate cache
-            _log.info("Scan: found {} systems for provider {}", systems.size(), accessProfile.getSystemId());
-            Map<String, StorageSystemViewObject> storageSystemsCache = accessProfile.getCache();
-            for (StorageSystem driverStorageSystem : systems) {
-                String systemType = driverStorageSystem.getSystemType();
-                String nativeGuid = NativeGUIDGenerator.generateNativeGuid(accessProfile.getSystemType(),
-                        driverStorageSystem.getNativeId());
-                StorageSystemViewObject storageSystem = storageSystemsCache.get(nativeGuid);
-                if (storageSystem == null) {
-                    storageSystem = new StorageSystemViewObject();
+                //update provider with scan info
+                storageProvider.setVersionString(driverProvider.getProviderVersion());
+                if (driverProvider.isSupportedVersion()) {
+                    storageProvider.setCompatibilityStatus(DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name());
+                } else {
+                    storageProvider.setCompatibilityStatus(DiscoveredDataObject.CompatibilityStatus.INCOMPATIBLE.name());
+                    String errorMsg = String.format("Storage provider %s has version %s which is not supported by driver",
+                            storageProvider.getIPAddress(), storageProvider.getVersionString());
+                    throw new ExternalDeviceCollectionException(false, ServiceCode.DISCOVERY_ERROR,
+                            null, errorMsg, null, null);
                 }
-                storageSystem.setDeviceType(systemType);
-                storageSystem.addprovider(accessProfile.getSystemId().toString());
-                storageSystem.setProperty(StorageSystemViewObject.SERIAL_NUMBER, driverStorageSystem.getSerialNumber());
-                storageSystem.setProperty(StorageSystemViewObject.VERSION, driverStorageSystem.getFirmwareVersion());
-                storageSystem.setProperty(StorageSystemViewObject.STORAGE_NAME, nativeGuid);
-                storageSystemsCache.put(nativeGuid, storageSystem);
-                _log.info("Storage system info {} for provider ip {}",
-                        driverStorageSystem.getSerialNumber(), accessProfile.getIpAddress());
+
+                // process storage system cache
+                Map<String, StorageSystemViewObject> storageSystemsCache = accessProfile.getCache();
+                for (StorageSystem driverStorageSystem : systems) {
+                    String systemType = driverStorageSystem.getSystemType();
+                    String nativeGuid = NativeGUIDGenerator.generateNativeGuid(accessProfile.getSystemType(),
+                            driverStorageSystem.getNativeId());
+                    StorageSystemViewObject storageSystemView = storageSystemsCache.get(nativeGuid);
+                    if (storageSystemView == null) {
+                        storageSystemView = new StorageSystemViewObject();
+                    }
+                    storageSystemView.setDeviceType(systemType);
+                    storageSystemView.addprovider(accessProfile.getSystemId().toString());
+                    storageSystemView.setProperty(StorageSystemViewObject.SERIAL_NUMBER, driverStorageSystem.getSerialNumber());
+                    storageSystemView.setProperty(StorageSystemViewObject.VERSION, driverStorageSystem.getFirmwareVersion());
+                    storageSystemView.setProperty(StorageSystemViewObject.STORAGE_NAME, nativeGuid);
+                    storageSystemsCache.put(nativeGuid, storageSystemView);
+                    _log.info(String.format("Info for storage system %s (provider ip %s): type: %s, nativeGuid: %s",
+                            driverStorageSystem.getSerialNumber(), accessProfile.getIpAddress(), systemType, nativeGuid));
+                }
+            } else {
+                // task status is not ready
+                String errorMsg = String.format("Failed to scan provider %s of type %s",
+                        accessProfile.getSystemId(), accessProfile.getSystemType());
+                throw new ExternalDeviceCollectionException(false, ServiceCode.DISCOVERY_ERROR,
+                        null, errorMsg, null, null);
             }
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (Exception ex) {
+            _log.error("Error scanning provider: {} of type: {} .", accessProfile.getIpAddress(), accessProfile.getSystemType(), ex);
+            cxnStatus = com.emc.storageos.db.client.model.StorageProvider.ConnectionStatus.NOTCONNECTED;
+           throw ex;
+        } finally {
+            if (storageProvider != null) {
+                storageProvider.setConnectionStatus(cxnStatus.name());
+                _dbClient.updateObject(storageProvider);
+            }
+            _log.info("Completed scan of {} provider: ", accessProfile.getSystemType(), accessProfile.getIpAddress());
         }
-
-
     }
 
     @Override

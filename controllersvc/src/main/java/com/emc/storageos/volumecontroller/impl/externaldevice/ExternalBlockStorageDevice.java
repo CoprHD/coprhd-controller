@@ -49,6 +49,8 @@ import com.emc.storageos.storagedriver.model.VolumeClone;
 import com.emc.storageos.storagedriver.model.VolumeConsistencyGroup;
 import com.emc.storageos.storagedriver.model.VolumeSnapshot;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
+import com.emc.storageos.vnxe.VNXeApiClient;
+import com.emc.storageos.vnxe.VNXeException;
 import com.emc.storageos.volumecontroller.ControllerLockingService;
 import com.emc.storageos.volumecontroller.DefaultBlockStorageDevice;
 import com.emc.storageos.volumecontroller.TaskCompleter;
@@ -515,19 +517,38 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
     }
     
     @Override
-    public void doDisconnect(StorageSystem storageSystem, TaskCompleter taskCompleter){
+    public void doDisconnect(StorageSystem storageSystem){
     	try{
     		_log.info("doDisconnect {} - start", storageSystem.getId());    	
         	com.emc.storageos.storagedriver.model.StorageSystem driverStorageSystem = ExternalDeviceCommunicationInterface.initStorageSystem(storageSystem);
         	BlockStorageDriver driver = getDriver(storageSystem.getSystemType());
-        	driver.stopManagement(driverStorageSystem);
+        	DriverTask task = driver.stopManagement(driverStorageSystem);
+        	if (task.getStatus() == DriverTask.TaskStatus.READY) {
+        		_log.info("doDisconnect -- Disconnected Storage System: {}", task.getMessage());
+        	} else {
+        		//todo
+        	}
     		_log.info("doDisconnect %1$s - Complete", storageSystem.getId());
     	} catch(Exception e){
-    		_log.error("doDisconnect failed. ", e);
-    		ServiceError serviceError = ExternalDeviceException.errors.doDisconnectFailed("doDisconnect", e.getMessage());
-    		taskCompleter.error(dbClient, serviceError);
+//    		_log.error("doDisconnect failed. ", e);
+//    		ServiceError serviceError = ExternalDeviceException.errors.doDisconnectFailed("doDisconnect", e.getMessage());
+//    		taskCompleter.error(dbClient, serviceError);
     	}
     }
+    
+//    public void doDisconnect(StorageSystem storage) {
+//        try {
+//            _logger.info("doConnect {} - start", storage.getId());
+//            VNXeApiClient client = getVnxeClient(storage);
+//            client.logout();
+//            String msg = String.format("doDisconnect %1$s - complete", storage.getId());
+//            _logger.info(msg);
+//
+//        } catch (VNXeException e) {
+//            _logger.error("doDisconnect failed.", e);
+//            throw DeviceControllerException.exceptions.disconnectStorageFailed(e);
+//        }
+//    }
 
     @Override
     public void doCreateGroupClone(StorageSystem storageSystem, List<URI> cloneURIs,

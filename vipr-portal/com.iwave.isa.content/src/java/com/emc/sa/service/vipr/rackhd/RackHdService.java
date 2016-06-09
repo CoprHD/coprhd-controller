@@ -156,6 +156,10 @@ public class RackHdService extends ViPRService {
             // If RackHD node ID specified, get RackHD name
             nodeId = params.get(PLAYBOOK_PARAM_NODE).toString();
         }
+
+        // pass a proxy token that OE can use to login to ViPR API
+        params.put("ProxyToken", ExecutionUtils.currentContext().
+                getExecutionState().getProxyToken());
     }
 
     @Override

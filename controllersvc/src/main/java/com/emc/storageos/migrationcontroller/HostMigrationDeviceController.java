@@ -474,7 +474,7 @@ public class HostMigrationDeviceController implements MigrationOrchestrationInte
         migration.setSrcDev(srcDevice);
         migration.setTgtDev(tgtDevice);
         _dbClient.updateObject(migration);
-        String migrationPid = HostMigrationCommand.migrationCommand(host, migrationName, srcDevice, tgtDevice);
+        String migrationPid = HostMigrationCommand.migrationCommand(host, srcDevice, tgtDevice);
         migration.setMigrationPid(migrationPid);
         _dbClient.updateObject(migration);
         _log.info("Successfully started migration {}", migrationName);

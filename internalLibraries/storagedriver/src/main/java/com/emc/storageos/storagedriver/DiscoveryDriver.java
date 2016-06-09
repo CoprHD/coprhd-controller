@@ -8,6 +8,7 @@ package com.emc.storageos.storagedriver;
 import java.util.List;
 
 import com.emc.storageos.storagedriver.model.StorageHostComponent;
+import com.emc.storageos.storagedriver.model.StorageProvider;
 import org.apache.commons.lang.mutable.MutableInt;
 
 import com.emc.storageos.storagedriver.model.StoragePool;
@@ -62,5 +63,17 @@ public interface DiscoveryDriver extends StorageDriver {
      * @return
      */
     public DriverTask discoverStorageHostComponents(StorageSystem storageSystem, List<StorageHostComponent> embeddedStorageHostComponents);
+
+    /**
+     * Discover storage provider and storage systems under this provider management.
+     * This operation is similar to provider scan.
+     * For managed storage systems driver should return key connection properties required to run detailed discovery.
+
+     * @param storageProvider Type: Input/Output.
+     * @param storageSystems  Type: Output.
+     * @return driver task
+     */
+    public DriverTask discoverStorageProvider(StorageProvider storageProvider, List<StorageSystem> storageSystems);
+
 
 }

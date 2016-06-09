@@ -133,6 +133,8 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
     private static final String CONVERT_TO_NONSRDF_DEVICES_METHOD = "convertToNonSrdfDevicesMethodStep";
     private static final String CREATE_LIST_REPLICAS_METHOD = "createListReplicas";
     private static final String UPDATE_VOLUME_PROEPERTIES_METHOD = "updateVolumeProperties";
+    private static final String ROLLBACK_REFRESH_SYSTEM_STEP_GROUP = "ROLLBACK_REFRESH_SRDF_SYSTEMS";
+    private static final String ROLLBACK_REFRESH_SYSTEM_STEP_DESC = "Null provisioning step; Refresh %s on rollback";
 
     private WorkflowService workflowService;
     private DbClient dbClient;
@@ -175,6 +177,9 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             log.info("No SRDF Steps required");
             return waitFor;
         }
+
+        waitFor = addRollbackStepsForRefreshSystems(workflow, waitFor, srdfDescriptors);
+
         log.info("Adding SRDF steps for create volumes");
         // Create SRDF relationships
         waitFor = createElementReplicaSteps(workflow, waitFor, srdfDescriptors);
@@ -205,7 +210,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             for (String target : targets) {
                 Volume targetVolume = dbClient.queryObject(Volume.class, URI.create(target));
 
-                if (null == targetVolume) {
+                if (null == targetVolume || targetVolume.getInactive()) {
                     return waitFor;
                 }
 
@@ -588,23 +593,59 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         }
     }
 
+    /**
+     * Add rollback steps for refreshing the target providers.  Currently, for SRDF workflow steps
+     * we always try to use the active source provider, so here we will filter only the target descriptors
+     * in order to determine their provider, which most likely has gotten out of sync.
+     *
+     * @param workflow          The workflow instance.
+     * @param waitFor           Step ID to wait on until complete.
+     * @param srdfDescriptors   All SRDF descriptors.
+     * @return                  Step ID.
+     */
+    private String addRollbackStepsForRefreshSystems(Workflow workflow, String waitFor, List<VolumeDescriptor> srdfDescriptors) {
+        List<VolumeDescriptor> targetDescriptors = VolumeDescriptor.filterByType(srdfDescriptors,
+                VolumeDescriptor.Type.SRDF_TARGET);
+
+        if (targetDescriptors.isEmpty()) {
+            return waitFor;
+        }
+
+        URI targetSystem = targetDescriptors.get(0).getDeviceURI();
+        StorageSystem tgt = dbClient.queryObject(StorageSystem.class, targetSystem);
+        Workflow.Method refreshTargetSystemsMethod = new Method(REFRESH_SRDF_TARGET_SYSTEM, tgt, null);
+
+        workflow.createStep(ROLLBACK_REFRESH_SYSTEM_STEP_GROUP, String.format(ROLLBACK_REFRESH_SYSTEM_STEP_DESC,
+                tgt.getSerialNumber()), waitFor, tgt.getId(), tgt.getSystemType(), this.getClass(),
+                rollbackMethodNullMethod(), refreshTargetSystemsMethod, null);
+
+        return ROLLBACK_REFRESH_SYSTEM_STEP_GROUP;
+    }
+
     private String addStepToRefreshSystem(String stepGroup, StorageSystem system, List<URI> volumeIds, String waitFor, Workflow workflow) {
         Workflow.Method refreshTargetSystemsMethod = new Method(REFRESH_SRDF_TARGET_SYSTEM, system, volumeIds);
         return workflow.createStep(stepGroup, REFRESH_SYSTEM_STEP_DESC, waitFor, system.getId(),
                 system.getSystemType(), getClass(), refreshTargetSystemsMethod, rollbackMethodNullMethod(), null);
     }
 
-    public void refreshStorageSystemStep(StorageSystem sourceSystem, List<URI> volumeIds, String opId) {
-        log.info("START refreshing system {} {}", sourceSystem.getLabel(), sourceSystem.getId());
+    /**
+     * Workflow step for refreshing the given StorageSystem via EMCRefreshSystem.
+     *
+     * @param system    The StorageSystem to refresh.
+     * @param volumeIds List of volumes IDs.  Null is allowed.
+     * @param opId      Workflow step ID.
+     */
+    public void refreshStorageSystemStep(StorageSystem system, List<URI> volumeIds, String opId) {
+        log.info("START refreshing system {} {}", system.getLabel(), system.getId());
         try {
             WorkflowStepCompleter.stepExecuting(opId);
-            getRemoteMirrorDevice().refreshStorageSystem(sourceSystem.getId(), volumeIds);
+            getRemoteMirrorDevice().refreshStorageSystem(system.getId(), volumeIds);
         } catch (Exception e) {
             log.warn("Refreshing system step failed", e);
         } finally {
             WorkflowStepCompleter.stepSucceded(opId);
         }
-        log.info("END refreshing system {} {}", sourceSystem.getLabel(), sourceSystem.getId());
+        log.info("END refreshing system {} {}", system.getLabel(), system.getId());
     }
 
     public void rollbackMethodNull(String stepId) throws WorkflowException {
@@ -1894,7 +1935,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
              * SRDF operations will be happening for all volumes available on ra group.
              * Hence adding the missing source volume ids in the taskCompleter to change the accessState and linkStatus field.
              */
-            Volume targetVol, sourceVol = null;
+            Volume targetVol = null, sourceVol = null;
             sourceVol = dbClient.queryObject(Volume.class, sourceVolumeUri);
             Iterator<String> taregtVolumeUrisIterator = targetVolumeUris.iterator();
             if (taregtVolumeUrisIterator.hasNext()) {
@@ -1932,7 +1973,17 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                 completer = new SRDFLinkFailOverCancelCompleter(combined, task);
                 getRemoteMirrorDevice().doFailoverCancelLink(system, volume, completer);
             } else if (op.equalsIgnoreCase("swap")) {
-                completer = new SRDFSwapCompleter(combined, task);
+                Volume.LinkStatus successLinkStatus = Volume.LinkStatus.SWAPPED;
+                if ((Volume.LinkStatus.SWAPPED.name().equalsIgnoreCase(volume.getLinkStatus()))) {
+                    // Already swapped. Move back to CONSISTENT or IN_SYNC.
+                    if (targetVol != null 
+                            && Mode.ASYNCHRONOUS.name().equalsIgnoreCase(targetVol.getSrdfCopyMode())) {
+                        successLinkStatus = Volume.LinkStatus.CONSISTENT;
+                    } else {
+                        successLinkStatus = Volume.LinkStatus.IN_SYNC;
+                    }
+                }
+                completer = new SRDFSwapCompleter(combined, task, successLinkStatus);
                 getRemoteMirrorDevice().doSwapVolumePair(system, volume, completer);
             } else if (op.equalsIgnoreCase("pause")) {
                 completer = new SRDFLinkPauseCompleter(combined, task);

@@ -31,6 +31,8 @@ import com.emc.storageos.hp3par.command.PortStatisticsCommandResult;
 import com.emc.storageos.hp3par.command.SystemCommandResult;
 import com.emc.storageos.hp3par.command.VolumeDetailsCommandResult;
 import com.emc.storageos.hp3par.connection.HP3PARApiFactory;
+import com.emc.storageos.hp3par.utils.HP3PARConstants;
+import com.emc.storageos.hp3par.utils.SanUtils;
 import com.emc.storageos.storagedriver.AbstractStorageDriver;
 import com.emc.storageos.storagedriver.BlockStorageDriver;
 import com.emc.storageos.storagedriver.DriverTask;
@@ -49,6 +51,7 @@ import com.emc.storageos.storagedriver.model.StoragePool.SupportedDriveTypes;
 import com.emc.storageos.storagedriver.model.StoragePool.SupportedResourceType;
 import com.emc.storageos.storagedriver.model.StoragePort;
 import com.emc.storageos.storagedriver.model.StoragePort.TransportType;
+import com.emc.storageos.storagedriver.model.StorageProvider;
 import com.emc.storageos.storagedriver.model.StorageSystem;
 import com.emc.storageos.storagedriver.model.StorageSystem.SupportedProvisioningType;
 import com.emc.storageos.storagedriver.model.StorageVolume;
@@ -89,10 +92,36 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 		return null;
 	}
 
+	
+	/*
+	 * objectid is nothing but the native id of the storage object.
+	 * For consistency group it would be the native id of consistency group, which on the 
+	 * HP3PAR array is nothing but the name of the volume set. 
+	 */
 	@Override
 	public <T extends StorageObject> T getStorageObject(String storageSystemId, String objectId, Class<T> type) {
 		// TODO Auto-generated method stub
 		_log.info("3PARDriver: getStorageObject Running ");
+		try{
+			HP3PARApi hp3parApi = getHP3PARDeviceFromNativeId(storageSystemId);		
+			ConsistencyGroupResult cgResult = null;
+			if (VolumeConsistencyGroup.class.getSimpleName().equals(type.getSimpleName())){
+				cgResult = hp3parApi.getVVsetDetails(objectId);
+				VolumeConsistencyGroup cg = new VolumeConsistencyGroup();
+	            cg.setStorageSystemId(storageSystemId);
+	            cg.setNativeId(cgResult.getName());
+	            cg.setDeviceLabel(objectId);	            
+	            _log.info("3PARDriver: getStorageObject leaving ");
+	            return (T)cg;
+			}
+		}
+		catch(Exception e){
+			String msg = String.format("3PARDriver: Unable to get Stroage Object for id %s; Error: %s.\n",
+					objectId, e.getMessage());
+            _log.error(msg);           
+            e.printStackTrace();
+            return (T)null;
+		}
 		return null;
 	}
 
@@ -384,20 +413,27 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
         ConsistencyGroupsListResult objConsisGroupSets = hp3parApi.getVVsetsList();
 		HashMap<String,ArrayList<String>> volumeToVolumeSetMap = new HashMap<String,ArrayList<String>>();
 		
+        _log.info("3PARDriver: objConsisGroupSets.getTotal() information is {}",objConsisGroupSets.getTotal());
         for (Integer index = 0; index < objConsisGroupSets.getTotal(); index++){
         	ConsistencyGroupResult objConsisGroupResult = objConsisGroupSets.getMembers().get(index);
         	
-        	for (Integer volIndex = 0 ; volIndex < objConsisGroupResult.getSetmembers().size() ; volIndex++){
-        		String vVolName = objConsisGroupResult.getSetmembers().get(volIndex);
-        		if(!volumeToVolumeSetMap.containsKey(vVolName)){        		        		
-            		volumeToVolumeSetMap.put(vVolName, (ArrayList<String>)Arrays.asList(objConsisGroupResult.getName()));            		
-            	}
-        		else{
-        			volumeToVolumeSetMap.get(vVolName).add(objConsisGroupResult.getName());
-        		}
-        	}        	
+        	if(objConsisGroupResult.getSetmembers()!=null){
+	        	for (Integer volIndex = 0 ; volIndex < objConsisGroupResult.getSetmembers().size() ; volIndex++){
+	        		String vVolName = objConsisGroupResult.getSetmembers().get(volIndex);
+	        		if(!volumeToVolumeSetMap.containsKey(vVolName)){	        			
+	        			ArrayList<String> volSetList = new ArrayList<String>();
+	        			volSetList.add(objConsisGroupResult.getName());
+	            		volumeToVolumeSetMap.put(vVolName, volSetList);
+	            	}
+	        		else{	        			
+	        			volumeToVolumeSetMap.get(vVolName).add(objConsisGroupResult.getName());
+	        		}
+	        	}        	
+        	}
         }
         
+        
+        _log.info("3PARDriver: volumeToVolumeSetMap information is {}",volumeToVolumeSetMap.toString());
         return volumeToVolumeSetMap;	
     }
         
@@ -426,8 +462,9 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
                 StoragePort port = new StoragePort();
                 PortMembers currMember =  portResult.getMembers().get(index);
 
-                // Consider ports which are connected to hosts and free ports which can be connected to hosts
-                if (currMember.getMode() != HP3PARConstants.MODE_TARGET) {
+                // Consider online target ports 
+                if (currMember.getMode() != HP3PARConstants.MODE_TARGET ||
+                        currMember.getLinkState() != HP3PARConstants.LINK_READY) {
                     continue;
                 }
                 
@@ -476,9 +513,9 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
                 if (port.getTransportType().equals(TransportType.FC.toString()) ||
                         port.getTransportType().equals(TransportType.Ethernet.toString())) {
 
-                    port.setPortNetworkId(currMember.getPortWWN());
+                    port.setPortNetworkId(SanUtils.formatWWN(currMember.getPortWWN()));
                     // Filling values as its expected by SB SDK
-                    port.setEndPointID(currMember.getPortWWN());
+                    port.setEndPointID(port.getPortNetworkId());
                 } else {
                     port.setIpAddress(currMember.getIPAddr());
                     port.setPortNetworkId(currMember.getiSCSINmae());
@@ -501,7 +538,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 
                 // To provide provisioning without proper fabric; lglap114.lss.emc.com; root/standard
                 //TEMP CODE START**********************
-                port.setNetworkId("er-network77"+ storageSystem.getNativeId());
+                //port.setNetworkId("er-network77"+ storageSystem.getNativeId());
                 //TEMP CODE END************************
                 port.setOperationalStatus(StoragePort.OperationalStatus.OK);  
                 _log.info("3PARDriver: added storage port {}, native id {}",  port.getPortName(), port.getNativeId());
@@ -1238,5 +1275,11 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
         attributes.put(HP3PARConstants.PASSWORD, listPwd);
         this.driverRegistry.setDriverAttributesForKey(HP3PARConstants.DRIVER_NAME, systemNativeId, attributes);
         _log.info("3PARDriver:Saving connection info in registry leave");
+    }
+
+    @Override
+    public DriverTask discoverStorageProvider(StorageProvider storageProvider, List<StorageSystem> storageSystems) {
+        // TODO Auto-generated method stub
+        return null;
     }
 }

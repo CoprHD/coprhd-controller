@@ -55,6 +55,7 @@ VirtualDataCenterService
 UserGroupService
 VirtualNasService
 ObjectNamespaceService
+StorageSystemTypeService
 
 
 =Tenant Services

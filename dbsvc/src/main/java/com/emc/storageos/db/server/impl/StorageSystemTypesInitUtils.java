@@ -150,20 +150,18 @@ public class StorageSystemTypesInitUtils {
      * 
      */
     private static void createDbStorageTypeMap(DbClient dbClient) {
-        List<URI> ids = dbClient.queryByType(StorageSystemType.class, true);
-        if(dbStorageTypeMap != null) { // Make sure we have empty HashMap
+        if (dbStorageTypeMap != null) { // Make sure we have empty HashMap
             dbStorageTypeMap.clear();
             dbStorageTypeMap = null;
         }
 
-        ArrayList<URI> uriList = Lists.newArrayList(ids.iterator());
-        if (!uriList.isEmpty()) {
-            Iterator<StorageSystemType> iter = dbClient.queryIterativeObjects(StorageSystemType.class, ids);
-            dbStorageTypeMap = new HashMap<String, String>();
-            while (iter.hasNext()) {
-                StorageSystemType ssType = iter.next();
-                dbStorageTypeMap.put(ssType.getStorageTypeName(), ssType.getStorageTypeName());
-            }
+        List<URI> ids = dbClient.queryByType(StorageSystemType.class, true);
+
+        Iterator<StorageSystemType> iter = dbClient.queryIterativeObjects(StorageSystemType.class, ids);
+        dbStorageTypeMap = new HashMap<String, String>();
+        while (iter.hasNext()) {
+            StorageSystemType ssType = iter.next();
+            dbStorageTypeMap.put(ssType.getStorageTypeName(), ssType.getStorageTypeName());
         }
     }
 
@@ -360,7 +358,6 @@ public class StorageSystemTypesInitUtils {
 
     public static HashMap<String, String> initializeDisplayName() {
         HashMap<String, String> displayNameMap = new HashMap<String, String>();
-        displayNameMap.put(NONE, "None");
         displayNameMap.put(VMAX, "EMC VMAX");
         displayNameMap.put(VNX_BLOCK, "EMC VNX Block");
         displayNameMap.put(VNX_FILE, "EMC VNX File");

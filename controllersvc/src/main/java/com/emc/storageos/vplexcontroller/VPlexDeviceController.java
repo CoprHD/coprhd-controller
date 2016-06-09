@@ -54,6 +54,7 @@ import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
+import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
@@ -565,14 +566,15 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // Set the project and tenant to those of an underlying volume.
                 // These are used to set the project and tenant of a new ExportGroup if needed.
                 Volume firstVolume = volumeMap.values().iterator().next();
-                URI projectURI = firstVolume.getProject().getURI();
-                URI tenantURI = firstVolume.getTenant().getURI();
+                Project vplexProject = VPlexUtil.lookupVplexProject(firstVolume, vplexSystem, _dbClient);
+                URI tenantURI = vplexProject.getTenantOrg().getURI();
+                _log.info("Project is {}, Tenant is {}", vplexProject.getId(), tenantURI);
 
                 try {
                     // Now we need to do the necessary zoning and export steps to ensure
                     // the VPlex can see these new backend volumes.
                     lastStep = createWorkflowStepsForBlockVolumeExport(workflow, vplexSystem, arrayMap,
-                            volumeMap, projectURI, tenantURI, lastStep);
+                            volumeMap, vplexProject.getId(), tenantURI, lastStep);
                 } catch (Exception ex) {
                     _log.error("Could not create volumes for vplex: " + vplexURI, ex);
                     TaskCompleter completer = new VPlexTaskCompleter(Volume.class, vplexURI,
@@ -1768,6 +1770,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
         blockObjectMap = filteredBlockObjectMap;
         _log.info("object map after filtering for this VPLEX: " + blockObjectMap);
+
+        // validate volume to lun map to make sure there aren't any duplicate LUN entries
+        ExportUtils.validateExportGroupVolumeMap(exportGroup.getLabel(), blockObjectMap);
 
         VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplexSystem, _dbClient);
 
@@ -5008,16 +5013,17 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             String waitFor = _blockDeviceController.addStepsForCreateVolumes(workflow,
                     null, descriptors, wfId);
 
-            // Set the project and tenant.
+            // Set the project and tenant. We prefer a project created for the Vplex system,
+            // but will fallback to the volume's project if there isn't a project for the VPlex.
             Volume firstVolume = volumeMap.values().iterator().next();
-            URI projectURI = firstVolume.getProject().getURI();
-            URI tenantURI = firstVolume.getTenant().getURI();
-            _log.info("Project is {}, Tenant is {}", projectURI, tenantURI);
+            Project vplexProject = VPlexUtil.lookupVplexProject(firstVolume, vplexSystem, _dbClient);
+            URI tenantURI = vplexProject.getTenantOrg().getURI();
+            _log.info("Project is {}, Tenant is {}", vplexProject.getId(), tenantURI);
 
             // Now we need to do the necessary zoning and export steps to ensure
             // the VPlex can see these new backend volumes.
             createWorkflowStepsForBlockVolumeExport(workflow, vplexSystem,
-                    storageSystemMap, volumeMap, projectURI, tenantURI, waitFor);
+                    storageSystemMap, volumeMap, vplexProject.getId(), tenantURI, waitFor);
             _log.info("Created workflow steps for volume export.");
 
             // Now make a migration Step for each passed target to which data
@@ -5162,12 +5168,12 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             // Set the project and tenant.
             Volume firstVolume = volumeMap.values().iterator().next();
-            URI projectURI = firstVolume.getProject().getURI();
-            URI tenantURI = firstVolume.getTenant().getURI();
-            _log.info("Project is {}, Tenant is {}", projectURI, tenantURI);
+            Project vplexProject = VPlexUtil.lookupVplexProject(firstVolume, vplexSystem, _dbClient);
+            URI tenantURI = vplexProject.getTenantOrg().getURI();
+            _log.info("Project is {}, Tenant is {}", vplexProject.getId(), tenantURI);
 
             waitFor = createWorkflowStepsForBlockVolumeExport(workflow, vplexSystem,
-                    storageSystemMap, volumeMap, projectURI, tenantURI, waitFor);
+                    storageSystemMap, volumeMap, vplexProject.getId(), tenantURI, waitFor);
             _log.info("Created workflow steps for volume export.");
 
             // Now make a migration Step for each passed target to which data
@@ -5759,6 +5765,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             // First update the virtual volume CoS, if necessary.
             Volume volume = _dbClient.queryObject(Volume.class, virtualVolumeURI);
+
             if (newVpoolURI != null) {
                 // Typically the source side backend volume has the same vpool as the
                 // VPLEX volume. If the source side is not being migrated when the VPLEX
@@ -5781,6 +5788,59 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 _dbClient.updateObject(volume);
             }
 
+            // If volumes are exported, and this is change varray operation, we need to remove the volume from the current exportGroup, then
+            // add it to another export group, which has the same new virtual array, and the same host, 
+            // or create a new exportGroup 
+            if (newVarrayURI != null && volume.isVolumeExported(_dbClient)) {
+                URIQueryResultList exportGroupURIs = new URIQueryResultList();
+                _dbClient.queryByConstraint(ContainmentConstraint.Factory.getBlockObjectExportGroupConstraint(virtualVolumeURI), 
+                        exportGroupURIs);
+                Iterator<URI> iterator = exportGroupURIs.iterator();
+                while (iterator.hasNext()) {
+                    URI egUri = iterator.next();
+                    ExportGroup eg = _dbClient.queryObject(ExportGroup.class, egUri);
+                    if (eg != null) {
+                        StringMap volumesMap = eg.getVolumes();
+                        String lun = volumesMap.get(virtualVolumeURI.toString());
+                        if (lun == null || lun.isEmpty()) {
+                            lun = ExportGroup.LUN_UNASSIGNED_DECIMAL_STR;
+                        }
+                        List<URI> initiators = StringSetUtil.stringSetToUriList(eg.getInitiators());
+                        ExportGroup newEg = null;
+                        if(initiators != null && !initiators.isEmpty()) {
+                            URI initiatorUri = initiators.get(0);
+                            AlternateIdConstraint constraint = AlternateIdConstraint.Factory.getExportGroupInitiatorConstraint(initiatorUri.toString());
+                            URIQueryResultList egUris = new URIQueryResultList();
+                            _dbClient.queryByConstraint(constraint, egUris);
+                            Iterator<URI> egIt = egUris.iterator();
+                            while (egIt.hasNext()) {
+                                ExportGroup theEg = _dbClient.queryObject(ExportGroup.class, egIt.next());
+                                if (theEg.getVirtualArray().equals(newVarrayURI)) {
+                                    List<URI>theEgInits = StringSetUtil.stringSetToUriList(theEg.getInitiators());
+                                    if (theEgInits.containsAll(initiators) && theEgInits.size() == initiators.size()) {
+                                        _log.info(String.format("Found existing exportGroup %s", theEg.getId().toString()));
+                                        newEg = theEg;
+                                        break;
+                                    }
+                                }
+                            }
+
+                        }
+                        if (newEg != null) {
+                            // add the volume to the export group
+                            newEg.addVolume(virtualVolumeURI, Integer.valueOf(lun));
+                            _dbClient.updateObject(newEg);
+                        } else {
+                            // create a new export group
+                            _log.info("Creating new ExportGroup");
+                            createExportGroup(eg, volume, Integer.valueOf(lun));
+                        }
+                        eg.removeVolume(virtualVolumeURI);
+                        _dbClient.updateObject(eg);
+                    }
+                }
+            }
+            
             if (!migrationSources.isEmpty()) {
                 // Now create and execute the sub workflow to delete the
                 // migration source volumes if we have any. If the volume
@@ -10583,7 +10643,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     }
                 }
             }
-
+            
             // Return the last step
             return lastStep;
         } catch (Exception ex) {
@@ -11626,5 +11686,35 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         int maxMigrationAsyncPollingRetries = Integer.valueOf(ControllerUtils.getPropertyValueFromCoordinator(coordinator,
                 "controller_vplex_migration_max_async_polls"));
         VPlexApiClient.setMaxMigrationAsyncPollingRetries(maxMigrationAsyncPollingRetries);
+    }
+    
+    /**
+     * Create a new ExportGroup based on the old ExportGroup, then add the volume to the new exportGroup
+     * @param oldExportGroup  The old exportGroup that will be based on for the new exportGroup.
+     * @param volume The volume that will be added to the new exportGroup
+     * @param lun The lun number for the volume.
+     */
+    private void createExportGroup(ExportGroup oldExportGroup, Volume volume, Integer lun) {
+        ExportGroup exportGroup = new ExportGroup();
+        exportGroup.setLabel(oldExportGroup.getLabel());
+        exportGroup.setType(oldExportGroup.getType());
+        exportGroup.setId(URIUtil.createId(ExportGroup.class));
+        exportGroup.setProject(oldExportGroup.getProject());
+        exportGroup.setVirtualArray(volume.getVirtualArray());
+        exportGroup.setTenant(oldExportGroup.getTenant());
+        exportGroup.setGeneratedName(oldExportGroup.getGeneratedName());
+        exportGroup.addVolume(volume.getId(), lun);
+        exportGroup.addInitiators(StringSetUtil.stringSetToUriList(oldExportGroup.getInitiators()));
+        exportGroup.addHosts(StringSetUtil.stringSetToUriList(oldExportGroup.getHosts()));
+        exportGroup.setClusters(oldExportGroup.getClusters());
+        StringSet exportMasks = oldExportGroup.getExportMasks();
+        if (exportMasks != null) {
+            for (String exportMask : exportMasks) {
+                exportGroup.addExportMask(exportMask);
+            }
+        }
+        exportGroup.setNumPaths(oldExportGroup.getNumPaths());
+        exportGroup.setZoneAllInitiators(oldExportGroup.getZoneAllInitiators());
+        _dbClient.createObject(exportGroup);
     }
 }

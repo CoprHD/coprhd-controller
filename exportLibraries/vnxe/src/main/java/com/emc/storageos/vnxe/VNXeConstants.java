@@ -26,5 +26,10 @@ public class VNXeConstants {
     public static final int REDIRECT_MAX = 100;
     public static final int MAX_NAME_LENGTH = 63;
     public static final String VNXE_BASE_SOFT_VER = "3.0.1";
+    public static final String FIELDS = "fields";
+    public static final String POOL_FILTER = "pool.id eq ";
+    public static final String PATH_FILTER = "path eq";
+    public static final String SNAP_GROUP_FILTER = "snapGroup.id eq ";
+    public static final String ID_FILTER = "id eq ";
 
 }

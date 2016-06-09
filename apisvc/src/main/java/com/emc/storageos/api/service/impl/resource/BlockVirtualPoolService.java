@@ -137,35 +137,25 @@ public class BlockVirtualPoolService extends VirtualPoolService {
         VirtualPool vpool = getVirtualPool(VirtualPool.Type.block, id);
         ArgValidator.checkFieldNotEmpty(param.getIds(), "volume_id");
 
-        List<Volume> volumes = _dbClient.queryObject(Volume.class, param.getIds());
+        // We only need one volume from the current vpool to determine
+        // which other vpools we can move to.
+        Volume volume = _dbClient.queryObject(Volume.class, param.getIds().get(0));
+        
+        VirtualPoolChangeList virtualPoolChangeList = new VirtualPoolChangeList();
 
-        VirtualPoolChangeList virtualPoolChangeList = null;
-
-        if (volumes != null && !volumes.isEmpty()) {
-            _log.info("Found {} volumes", volumes.size());
-
-            for (Volume volume : volumes) {
-                // throw exception if one of the volume is not in the source virtual pool
-                if (!volume.getVirtualPool().equals(id)) {
-                    throw APIException.badRequests.volumeNotInVirtualPool(volume.getLabel(), vpool.getLabel());
-                }
-
-                // get potential virtual pool change list of each volume
-                // Get the block service implementation for this volume.
-                BlockServiceApi blockServiceApi = BlockService.getBlockServiceImpl(volume, _dbClient);
-                _log.info("Got BlockServiceApi for volume");
-
-                // Return the list of potential VirtualPool for a VirtualPool change for this volume.
-                VirtualPoolChangeList volumeVirturalPoolChangeList = blockServiceApi.getVirtualPoolForVirtualPoolChange(volume);
-
-                if (virtualPoolChangeList == null) {
-                    // initialized intersected list of the very first volume to use it as based.
-                    virtualPoolChangeList = new VirtualPoolChangeList();
-                    virtualPoolChangeList.getVirtualPools().addAll(volumeVirturalPoolChangeList.getVirtualPools());
-                } else {
-                    virtualPoolChangeList.getVirtualPools().retainAll(volumeVirturalPoolChangeList.getVirtualPools());
-                }
+        if (volume != null) {
+            if (!volume.getVirtualPool().equals(id)) {
+                throw APIException.badRequests.volumeNotInVirtualPool(volume.getLabel(), vpool.getLabel());
             }
+
+            // Get the block service implementation for this volume.
+            BlockServiceApi blockServiceApi = BlockService.getBlockServiceImpl(volume, _dbClient);
+            
+            _log.info("Got BlockServiceApi for volume, now checking for vpool change candidates...");
+
+            // Return the list of candidate VirtualPools for a VirtualPool change for this volume.
+            VirtualPoolChangeList volumeVirturalPoolChangeList = blockServiceApi.getVirtualPoolForVirtualPoolChange(volume);
+            virtualPoolChangeList.getVirtualPools().addAll(volumeVirturalPoolChangeList.getVirtualPools());                
         }
 
         return virtualPoolChangeList;

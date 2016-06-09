@@ -66,12 +66,9 @@ _prompt() {
 
     #promptstr="\n\e[1;31m***\n*** $errstr. \n"
     if [ "${action}" = "${ACTION_POWEROFF}" ]; then
-        errstr+="*** Please press any key to power off the vApp and edit IP properties via vCenter.\n"
-    elif [ "${action}" = "${ACTION_CONTINUE}" ]; then
-        :
+        errstr+="*** Please press any key to power off the current node.\n"
     else
-        errstr+="*** Please power off the vApp and edit IP properties via vCenter.\n"
-        errstr+="*** Otherwise, system would continue to bootup in 10s.  But IPs in vCenter would NOT take effect!!!\n"
+        :
     fi
     promptstr="\n\e[1;31m***\n$errstr***\e[0m"
 
@@ -127,6 +124,7 @@ _handleClusterIPs() {
     declare -A currIpPropMap
     while read -r line
     do
+      [[ "$line" != *=* ]] && continue
       IFS='=' read -ra pair <<< "$line"
       currIpPropMap[${pair[0]}]=${pair[1]}
     done < "${datafs_ip_props}"
@@ -136,6 +134,7 @@ _handleClusterIPs() {
     declare -A currOvfenvPropMap
     while read -r line
     do
+      [[ "$line" != *=* ]] && continue
       IFS='=' read -ra pair <<< "$line"
       currOvfenvPropMap[${pair[0]}]=${pair[1]}
     done < "${ovf_props_file}"
@@ -188,18 +187,25 @@ _handleClusterIPs() {
     if [[ "${currVdcPropMap[${currVdcSiteIDs}]}" == *,* ]]; then
         # multiple sites
         if [ "${bRestAPI}" = "true" ]; then
-            errstr="*** IPs are changed via REST API or rollbacked to original IPs while the local site is vApp environment.\n*** Please also manually change IPs via vCenter to align with the desired IPs.\n"
+            errstr="*** IPs are changed via REST API or rolled back to original IPs while the local site is vApp environment.\n"
+            errstr+="*** User must also manually change IPs via vCenter to align with the desired IPs.\n"
+            errstr+="*** Please power off the vApp and edit IP properties via vCenter.\n"
+            errstr+="*** Otherwise, system would continue to bootup in 10s.  But IPs in vCenter would NOT take effect!!!\n"
+
             _prompt "${errstr}" $ACTION_TIMEOUT_CONT
-            # generate desired ovf_props_file which will override default ovfenv properties
+
+            # generate desired ovf_props_file which will override default ovfenv properties finally.
             mv -f "${desired_ovf_props_file}.bak" "${desired_ovf_props_file}" 
         else
-            errstr="*** IPs are changed via vCenter in a multiple sites environment which is not allowed.\n*** Please revert the change via vCenter, then use GUI/REST API to change cluster IPs.\n"
+            errstr="*** IPs are changed via vCenter in a multiple sites environment which is not allowed.\n"
+            errstr+="*** Please revert the change via vCenter, then use ViPR GUI to change cluster IPs.\n"
             _prompt "${errstr}" $ACTION_POWEROFF
         fi
     else
         # single site
         if [ "${bRestAPI}" = "true" ]; then
-            errstr="*** IPs are changed via REST API or rollbacked in the vApp environment.\n*** Please also manually change IPs via vCenter to align with the desired IPs.\n"
+            errstr="*** IPs are changed via REST API or rolled back in the vApp environment.\n"
+            errstr+="*** Please also manually change IPs via vCenter to align with the desired IPs.\n"
             _prompt "${errstr}" $ACTION_POWEROFF
         else
             echo "IPs are changed via vCenter in single site environment.  Syncing it to IP prop file..." >> /var/log/boot-ovfenv.log
@@ -225,8 +231,31 @@ _handleClusterIPs() {
 }
 
 _checkConfigurable() {
-   #TODO: do not support installer to reconfig ip in geo env
-   :
+    echo -n "\nChecking if it is viable to using ViPR Installer at: " >> /var/log/boot-ovfenv.log
+    date >> /var/log/boot-ovfenv.log
+
+    /etc/getovfproperties --is-vapp
+    if [ $? -eq 0 ]; then
+        errstr="*** Error: VMware vApp network configuration can not be altered using ViPR Installer.\n"
+        errstr+="*** Please change IPs via vCenter or ViPR GUI.\n"
+        _prompt "${errstr}" $ACTION_POWEROFF
+    fi
+
+    if [ ! -e "${datafs_ip_props}" ]; then
+        errstr="*** Error: Fresh installation is not finished yet. Please finish installation at first.\n"
+        _prompt "${errstr}" $ACTION_POWEROFF
+    fi
+
+    while read -r line
+    do
+        [[ "$line" != *=* ]] && continue
+        if [[ "${line}" == vdc_vdc*_site_ids ]]; then
+            if [[ "${line}" == *,* ]]; then
+                errstr="*** Error: ViPR Installer is disallowed in multiple sites environment.\n"
+                _prompt "${errstr}" $ACTION_POWEROFF
+            fi
+        fi
+    done < "${bootfs_vdc_props}"
 }
 
 _set_storageos_variable() {

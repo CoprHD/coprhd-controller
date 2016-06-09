@@ -169,6 +169,8 @@ public abstract class TaggedResource extends ResourceService {
      *   1. it is user's home tenant
      *   2. it is a subtenant which user has tenant role.
      *
+     * or else throw insufficient permission exception.
+     *
      * @param tenantId the URN of a ViPR tenant
      * @return
      */
@@ -188,6 +190,8 @@ public abstract class TaggedResource extends ResourceService {
                         return org;
                     }
                 }
+
+                throw APIException.forbidden.insufficientPermissionsForUser(user.getName());
             }
         }
 

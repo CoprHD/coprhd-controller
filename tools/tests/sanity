@@ -10135,7 +10135,7 @@ vplexsnap_tests()
     run volume delete $PROJECT/$localVolume --wait
 
     secho "Deleting Host"
-    hosts delete $hostLbl
+    run hosts delete $hostLbl
 
     secho "Completed VPLEX snapshot export tests"
 }

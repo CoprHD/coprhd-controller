@@ -10126,16 +10126,10 @@ vplexsnap_tests()
     initiator create $hostLbl FC $PWWN2 --node $WWNN2
 
     secho "Export VPLEX volume built from snapshot"
-    run export_group create $PROJECT $hname-1$host $NH --volspec "$PROJECT/$localSnapshot+1" --inits "$hostLbl/$PWWN1","$hostLbl/$PWWN2"
+    run export_group create $PROJECT $hname-1$host $NH --volspec "$PROJECT/$localSnapshot" --inits "$hostLbl/$PWWN1","$hostLbl/$PWWN2"
 
     secho "Unexport VPLEX volume built from snapshot"
     run export_group delete $PROJECT/$hname-1$host
-
-    secho "Deleting VPLEX volume built on snapshot"
-    run volume delete $PROJECT/$localSnapshot --wait
-
-    secho "Deleting snapshot"
-    run blocksnapshot delete $PROJECT/$localVolume/$localSnapshot
 
     secho "Deleting source VPLEX local volume"
     run volume delete $PROJECT/$localVolume --wait

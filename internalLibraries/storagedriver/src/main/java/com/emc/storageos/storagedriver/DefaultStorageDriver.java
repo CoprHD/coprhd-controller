@@ -149,7 +149,7 @@ public class DefaultStorageDriver extends AbstractStorageDriver implements Block
     	String driverName = this.getClass().getSimpleName();
         String taskId = String.format("%s+%s+%s", driverName, "stopManagement", UUID.randomUUID().toString());
         DriverTask task = new DefaultDriverTask(taskId);
-        task.setStatus(DriverTask.TaskStatus.READY);
+        task.setStatus(DriverTask.TaskStatus.FAILED);
         
         String msg = String.format("%s: %s --- operation is not supported.", driverName, "stopManagement");
         _log.warn(msg);

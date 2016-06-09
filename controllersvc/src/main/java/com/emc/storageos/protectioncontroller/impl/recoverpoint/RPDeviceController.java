@@ -5,6 +5,8 @@
 
 package com.emc.storageos.protectioncontroller.impl.recoverpoint;
 
+import static com.emc.storageos.db.client.constraint.AlternateIdConstraint.Factory.getVolumesByAssociatedId;
+
 import java.io.Serializable;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -5298,9 +5300,18 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             // acquire a workflow lock so another thread doesn't disable image access while this thread
             // is still creating the snapshot
             if (snapshotList != null && !snapshotList.isEmpty()) {
-                List<String> locks = new ArrayList<String>();
-                String lockName = generateRPLockCG(_dbClient, snapshotList.get(0));
+                BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotList.get(0));
+                Volume parent = _dbClient.queryObject(Volume.class, snapshot.getParent().getURI());
+                final List<Volume> vplexVolumes = CustomQueryUtility
+                        .queryActiveResourcesByConstraint(_dbClient, Volume.class,
+                                getVolumesByAssociatedId(parent.getId().toString()));
+
+                if (vplexVolumes != null && !vplexVolumes.isEmpty()) {
+                    parent = vplexVolumes.get(0);
+                }
+                String lockName = generateRPLockCG(_dbClient, parent.getId());
                 if (null != lockName) {
+                    List<String> locks = new ArrayList<String>();
                     locks.add(lockName);
                     acquireWorkflowLockOrThrow(_workflowService.getWorkflowFromStepId(opId), locks);
                 }

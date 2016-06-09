@@ -8,7 +8,7 @@
            <property name="storageSystemsMap">
               <map>
                  <entry key="Simulator" value="driversystem"/>
-                 <entry key="Simulator" value="providersystem"/>
+                 <entry key="SimulatorToo" value="providersystem"/>
                  <entry key="ScaleioDriver" value="scaleiosystem"/>
               </map>
            </property>

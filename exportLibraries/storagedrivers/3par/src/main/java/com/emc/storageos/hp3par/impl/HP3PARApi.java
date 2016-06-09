@@ -836,7 +836,7 @@ public class HP3PARApi {
         ClientResponse clientResp = null;
         final String path = MessageFormat.format(URI_UPDATE_CG, volumeCGName);
 
-        // for VV set creation {"action":1,"setmembers":["vol-name","vol-name2"]} 
+        // for VV set addition {"action":1,"setmembers":["vol-name","vol-name2"]} 
         String payload = "{\"action\": " + actionValue +", \"setmembers\": [ \"" + volName + "\" ] }";
         
         _log.info("3PARDriver:updateVVset running update VV Set with URI {} and payload {} ", path, payload);

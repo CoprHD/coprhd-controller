@@ -990,7 +990,6 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 				consistencyGroup.getStorageSystemId(), consistencyGroup.getDisplayName(),
 				consistencyGroup.getNativeId(),consistencyGroup.getDeviceLabel(),consistencyGroup.getConsistencyGroup());
 
-
 	    DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_DELETE_CONSISTENCY_GROUP);
 
             try {
@@ -1029,16 +1028,12 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 		
 		DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_SNAPSHOT_CONSISTENCY_GROUP);
 		VolumeDetailsCommandResult volResult = null;
-		HashMap<String,VolumeSnapshot> snapshotList = null;
 		
 		try {
 
 			Boolean readOnly = true;
-			
 
-			// get Api client
-			HP3PARApi hp3parApi = getHP3PARDeviceFromNativeId(consistencyGroup.getStorageSystemId());
-
+			// get Vipr generated Snapshot name
 		   	for (VolumeSnapshot snap : snapshots) {
 	            
 	            	//native id = null , 
@@ -1050,53 +1045,78 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	                }
 	                
 	                String generatedSnapshotName = snap.getDisplayName();
-	                VVsetSnapshotName = generatedSnapshotName.substring(0, generatedSnapshotName.lastIndexOf("-") );
-	                snapshotList.put(snap.getParentId(), snap);
+	                VVsetSnapshotName = generatedSnapshotName.substring(0, generatedSnapshotName.lastIndexOf("-")) + "-" ;
+	                _log.info("3PARDriver: createConsistencyGroupSnapshot VVsetSnapshotName {} ",VVsetSnapshotName);
 
 		   	}
 		   	
+		   	
+			// get Api client
+			HP3PARApi hp3parApi = getHP3PARDeviceFromNativeId(consistencyGroup.getStorageSystemId());
+		   	
 			// Create vvset snapshot
 			hp3parApi.createVVsetVirtualCopy(consistencyGroup.getNativeId(), VVsetSnapshotName,readOnly);
-			int volumeNumber = 1;
+			int volumeNumber = 0;
+			int snapVolumeCount  = snapshots.size();
 			
-			_log.info("3PARDriver: createConsistencyGroupSnapshot snapshotList {} keys {} values {} "
-					,snapshotList,snapshotList.keySet(),snapshotList.values());
-			
-			for (VolumeSnapshot snap : snapshots) {
-				
-				String snapshotCreated = VVsetSnapshotName+volumeNumber;
-				// native id = null ,
-				_log.info("3PARDriver: createConsistencyGroupSnapshot snapshotCreated {}, snap display name {} , its base volume {} - start",
-						snapshotCreated, snap.getDisplayName(),snap.getParentId());
+			/**
+			 * for each volume snapshot available 
+			 * find correct snapshot object and set the values
+			 */
+						
+			while (volumeNumber < snapVolumeCount) {
 
-				volResult = hp3parApi.getVolumeDetails(VVsetSnapshotName+volumeNumber);
-
-				if (volResult != null ) {
-					
-					String baseVolume = volResult.getCopyOf();
-					VolumeSnapshot correctSnapshot = snapshotList.get(baseVolume);
-					
-				// Actual size of the volume in array
-				// snap.setProvisionedCapacity(volResult.getSizeMiB() *
-				// HP3PARConstants.MEGA_BYTE);
-					correctSnapshot.setWwn(volResult.getWwn());
-					correctSnapshot.setNativeId(snap.getDisplayName()); // required for volume
-															// delete
-					correctSnapshot.setDeviceLabel(snap.getDisplayName());
-					correctSnapshot.setAccessStatus(snap.getAccessStatus());
-					correctSnapshot.setDisplayName(snapshotCreated);
+				String snapshotCreated = VVsetSnapshotName + volumeNumber;
 				_log.info(
-						"createConsistencyGroupSnapshot for storage system native id {}, CG name {}, CG display Name {} - end",
-						correctSnapshot.getStorageSystemId(), correctSnapshot.getDisplayName(), correctSnapshot.getNativeId());
-				volumeNumber = volumeNumber + 1;
-				}
-				else {
-					_log.info("3PARDriver: createConsistencyGroupSnapshot volResult is null");
-					
-				}
-				
-			}
+						"3PARDriver: createConsistencyGroupSnapshot snapshotCreated {}, volumeNumber {} , snapVolumeCount {} - start",
+						snapshotCreated, volumeNumber, snapVolumeCount);
 
+				volResult = hp3parApi.getVolumeDetails(VVsetSnapshotName + volumeNumber);
+				if (volResult != null) {
+					String baseVolume = volResult.getCopyOf();
+
+					if (baseVolume != null) {
+						for (VolumeSnapshot snap : snapshots) {
+							_log.info(
+									"createConsistencyGroupSnapshot Snapshot system native id {}, Parent Volume {}, access status {}, display name {}, native Name {}, DeviceLabel {} - Before",
+									snap.getStorageSystemId(), snap.getParentId(), snap.getAccessStatus(),
+									snap.getDisplayName(), snap.getNativeId(), snap.getDeviceLabel());
+
+							String parentName = snap.getParentId();
+							_log.info("createConsistencyGroupSnapshot +++{}++{}+++ ", parentName , baseVolume);
+							if (parentName.equals(baseVolume)) {
+								_log.info(
+										"createConsistencyGroupSnapshot snap name {} wwn {} deviceLable {} displayname {} " 
+										, snap.getNativeId(),snap.getWwn(),snap.getDeviceLabel(),snap.getDisplayName());
+								snap.setWwn(volResult.getWwn());
+								snap.setNativeId(volResult.getName());
+
+								snap.setDeviceLabel(volResult.getName());
+								// snap.setAccessStatus(volResult.getAccessStatus());
+								snap.setDisplayName(volResult.getName());
+								
+								_log.info(
+										"createConsistencyGroupSnapshot volResult name {} wwn {} " , volResult.getName(),volResult.getWwn());
+							}
+
+							_log.info(
+									"createConsistencyGroupSnapshot Snapshot system native id {}, Parent Volume {}, access status {}, display name {}, native Name {}, DeviceLabel {} - After",
+									snap.getStorageSystemId(), snap.getParentId(), snap.getAccessStatus(),
+									snap.getDisplayName(), snap.getNativeId(), snap.getDeviceLabel());
+
+						}
+					} else {
+						_log.info("3PARDriver: createConsistencyGroupSnapshot baseVolume is null");
+
+					}
+
+				} else {
+					_log.info("3PARDriver: createConsistencyGroupSnapshot volResult is null");
+
+				}
+				volumeNumber = volumeNumber + 1;
+			}
+			
 			task.setStatus(DriverTask.TaskStatus.READY);
 			_log.info(
 					"createConsistencyGroupSnapshot for storage system native id {}, CG display Name {}, CG native id {} - end",

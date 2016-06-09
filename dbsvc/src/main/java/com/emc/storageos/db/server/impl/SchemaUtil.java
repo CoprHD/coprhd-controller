@@ -909,7 +909,7 @@ public class SchemaUtil {
             int dbElementCount = uriList.size();
             HashMap<String, String> defaultDisplayName = StorageSystemTypesInitUtils.initializeDisplayName();
             int defaultCount = defaultDisplayName.size();
-            if(dbElementCount != defaultCount) {
+            if(dbElementCount < defaultCount) {
                 // This means default list and data at DB are not in sync, so insert again
                 storageTypeExist = false;
             }

@@ -1086,11 +1086,7 @@ public class WorkflowService implements WorkflowController {
                         if (!isBlocked(workflow, step)) {
                             again = true;
                             if (isStepMarkedForSuspend(workflow, step)) {
-                                step.suspendStep = false;
-                                logStep(workflow, step);
-                                step.status.updateState(StepState.SUSPENDED_NO_ERROR, null, "Suspending step " + step.description);
-                                persistWorkflowStepUpdate(workflow, step);
-                                suspendedSteps.add(step.stepId);
+                                changeStepToSuspendedNoErrorState(workflow, suspendedSteps, step);
                             } else {
                                 step.status.updateState(StepState.QUEUED, null, "Unblocked by step: " + fromStepId);
                                 persistWorkflowStepUpdate(workflow, step);
@@ -1135,11 +1131,7 @@ public class WorkflowService implements WorkflowController {
                     try {
                         if (!isBlocked(workflow, step) && isStepMarkedForSuspend(workflow, step)) {
                             again = true;
-                            step.suspendStep = false;
-                            logStep(workflow, step);
-                            step.status.updateState(StepState.SUSPENDED_NO_ERROR, null, "Suspending step " + step.description);
-                            persistWorkflowStepUpdate(workflow, step);
-                            suspendedSteps.add(step.stepId);
+                            changeStepToSuspendedNoErrorState(workflow, suspendedSteps, step);
                             fromStepId = step.stepId;
                         }
                     } catch (CancelledException ex) {
@@ -1164,6 +1156,34 @@ public class WorkflowService implements WorkflowController {
 
         // Don't bother dispatching steps. Call the completer for the workflow as suspended.
         return true;
+    }
+
+    /**
+     * Convenience method that sets all of the expected fields associated with a step going from one state to
+     * the SUSPENDED_NO_ERROR state.
+     * 
+     * @param workflow
+     *            the workflow
+     * @param suspendedSteps
+     *            the suspended steps list to add the new step to
+     * @param step
+     *            step to suspend
+     */
+    private void changeStepToSuspendedNoErrorState(Workflow workflow, Set<String> suspendedSteps, Step step) {
+        // Transitioning the step to suspended state, shut off this flag if it was set.
+        step.suspendStep = false;
+        // Persist the step information in cassandra
+        logStep(workflow, step);
+        // Change the status of the step to suspended with no error, create a good message for the user here.
+        // It would be better if we had step-specific user messages that are cataloged and I18N'able.
+        String message = String.format("Task has been suspended during step \"" + step.description +
+                "\".  The user has the opportunity to perform any manual validation before this step is executed.  " +
+                "The user may choose to rollback the operation if manual validation failed.");
+        step.status.updateState(StepState.SUSPENDED_NO_ERROR, null, message);
+        // Persist the workflow information to ZK
+        persistWorkflowStepUpdate(workflow, step);
+        // Add the step to the list of steps that are to be suspended
+        suspendedSteps.add(step.stepId);
     }
 
     /**

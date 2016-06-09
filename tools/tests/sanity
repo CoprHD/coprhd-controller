@@ -9054,10 +9054,6 @@ dr_multisite_tests()
     dr waitforstate $standby_site_c STANDBY_SYNCED 30 1200
     time_finish failback_standby_c
 
-    # ipreconfig after failover&failback
-    ipreconfig_test "$DR_SITE_A_IP"
-    wait_for_site_stable "${DR_SITE_A_IP}" "${DR_SITE_B_IP}" "${DR_SITE_C_IP}"
-
     # delete standby
     echo "---DELETE STANDBY $standby_site_b---"
     BOURNE_IPADDR=$DR_SITE_A_IP
@@ -9088,7 +9084,7 @@ dr_multisite_tests()
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD 10 600
     project show $test_projectid
 
-    # ipreconfig after deletion of siteB
+    # ipreconfig after failover&failback and deletion of siteB (STANDBY_PAUSED)
     ipreconfig_test "$DR_SITE_A_IP"
     wait_for_site_stable "${DR_SITE_A_IP}" "${DR_SITE_C_IP}"
 
@@ -9146,9 +9142,6 @@ dr_multisite_tests()
 
     echo "Wait site state to be PRIAMRY after failover"
     dr waitforstate $active_site ACTIVE 30 600 --ip "${DR_SITE_A_IP}"
-
-    # ipreconfig after failover to ACTIVE_DEGRADED site
-    ipreconfig_test "$DR_SITE_A_IP"
 
     #disabling pipefail option to pipe exit codes
     set +o pipefail

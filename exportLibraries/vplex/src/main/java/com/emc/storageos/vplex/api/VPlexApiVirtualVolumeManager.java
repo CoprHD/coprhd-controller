@@ -1059,6 +1059,7 @@ public class VPlexApiVirtualVolumeManager {
      * Creates a virtual volume for the device with the passed context path.
      *
      * @param devicePath The context path of a local or distributed device.
+     * @param thinEnabled If true, request VPLEX to create the volume as thin-enabled.
      *
      * @throws VPlexApiException When an error occurs creating the virtual volume.
      */

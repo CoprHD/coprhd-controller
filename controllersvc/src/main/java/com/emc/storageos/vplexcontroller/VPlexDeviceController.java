@@ -11710,9 +11710,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         if (thinEnabled && null != info && !info.isThinEnabled()) {
             // this is not considered an error situation, but we need to log it for the user's knowledge.
             // stepId is included so that it will appear in the Task's Logs section in the ViPR UI.
-            _log.warn("Virtual Volume {} was created from a thin virtual pool, but it could not be created "
-                    + "as a thin volume. See controllersvc logs for more details. Task ID {}", info.getName(),
-                    taskId);
+            _log.warn(String.format("Virtual Volume %s was created from a thin virtual pool, but it could not be created "
+                    + "as a thin virtual volume due to inadequate thin-capability of a child component. See controllersvc "
+                    + "and VPLEX API logs for further details. Task ID: %s", info.getName(), taskId));
         }
     }
 

@@ -1675,7 +1675,6 @@ public class CoordinatorClientExt {
                     localRepository.restartCoordinator("observer");
                 } else {
                     _log.warn("All nodes unable to enter barrier {}. Try again later", DR_SWITCH_TO_ZK_OBSERVER_BARRIER);
-                    leaveZKDoubleBarrier(switchToZkObserverBarrier, DR_SWITCH_TO_ZK_OBSERVER_BARRIER);
                 }
             } catch (Exception ex) {
                 _log.warn("Unexpected errors during switching back to zk observer. Try again later. {}", ex);
@@ -1795,23 +1794,29 @@ public class CoordinatorClientExt {
         return getServiceAvailableNodes(siteId, serviceName);
     }
 
-    public void blockUntilZookeeperIsWritableConnected(long sleepInterval) {
+    public void blockUntilZookeeperIsWritableConnected(long sleepInterval, long maxRetryTimes) {
+        int retryTimes = 0;
         while (true) {
             try {
                 States state = getConnectionState();
                 if (state.equals(States.CONNECTED))
                     return;
-                
                 _log.info("ZK connection state is {}, wait for connected", state);
             } catch (Exception e) {
                 _log.error("Can't get Zk state {}", e);
             } 
+            
+            if (retryTimes > maxRetryTimes) {
+                _log.error("Unable to connect to zookeeper server side after retrying {} times", retryTimes);
+                throw new IllegalStateException("Unable to connect to zookeeper server");
+            }
             
             try {
                 Thread.sleep(sleepInterval);
             } catch (InterruptedException e) {
                 //Ingore
             }
+            retryTimes ++;
         }
     }
 

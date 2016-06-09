@@ -298,9 +298,23 @@ public class Orders extends OrderExecution {
             return new OrderDetails(orderId);
         }
 
+        Map<URI, String> oldTasksStateMap = null;
+
         // Wait for an update to the order
         while (true) {
             OrderDetails details = new OrderDetails(orderId);
+
+            if (oldTasksStateMap != null && taskStateChanged(oldTasksStateMap, details.viprTasks)) {
+                Long updated = System.currentTimeMillis();
+                if ((lastUpdated == null) || (lastUpdated < updated)) {
+                    lastUpdated = updated;
+                    Logger.debug("Found task state change for order %s", details.order.getOrderNumber());
+                    return details;
+                }
+            } else {
+                oldTasksStateMap = createTaskStateMap(details.viprTasks);
+            }
+
             if (details.isNewer(lastUpdated)) {
                 Logger.debug("Found update for order %s newer than: %s", details.order.getOrderNumber(), lastUpdated);
                 return details;
@@ -315,6 +329,19 @@ public class Orders extends OrderExecution {
             Logger.debug("No update for order %s, waiting for %s ms", details.order.getOrderNumber(), delay);
             await(delay);
         }
+    }
+
+    private static Map<URI, String> createTaskStateMap(List<TaskResourceRep> tasks) {
+        Map<URI, String> taskMap = Maps.newHashMap();
+        for (TaskResourceRep task : tasks) {
+            taskMap.put(task.getId(), task.getState());
+        }
+        return taskMap;
+    }
+
+    private static boolean taskStateChanged(Map<URI, String> oldTasksStateMap, List<TaskResourceRep> viprTasks) {
+        Map<URI, String> currentTaskStateMap = createTaskStateMap(viprTasks);
+        return !Maps.difference(oldTasksStateMap, currentTaskStateMap).areEqual();
     }
 
     private static int getWaitDelay(OrderDetails details) {

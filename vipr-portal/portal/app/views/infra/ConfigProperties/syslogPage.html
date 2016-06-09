@@ -7,53 +7,145 @@
     }
 
     $(document).ready(function () {
-        var value = '${page.externalLocationUrl.value}';
-        var servers = value.split(',');
+        var urlId = "backup_external_location_url";
+        $backup_external_location_url = $("#" + urlId);
+
+        var maxCopiesId = "backup_max_manual_copies";
+        $backup_max_manual_copies = $("#" + maxCopiesId);
+
+
+        var urlValue = '${page.externalLocationUrl.value}';
+        var servers = urlValue.split(',');
         for (var i = 0; i < servers.length; i++) {
+            var server = servers[i];
+            var ip = server.substring(0, server.lastIndexOf(":"));
+            var port = server.substring(server.lastIndexOf(":")+1, server.length);
 
-            var [server,port] = servers[i].split(']');
-            if (port) {
-                server = server.replace('[','');
-                port = port.replace(':','');
-            }
-            else {
-                var [server,port] = server.split(/:(.+)?/);
-            }
-            addServer(server,port);
-
-            //ipv6 hack by reversing string to split by port colon
-            //reverseElement = reverse(servers[i]);
-            //var [port,server] = reverseElement.split(/:(.+)?/);
-            //server = reverse(server);
-            //port = reverse(port);
-            //addServer(server,port);
+            addServer(ip,port);
         }
+
+
+        var maxCopiesValue = '${page.maxManualCopies.value}';
+        var services = maxCopiesValue.split(',');
+        $("select-many .checkbox").each(function() {
+            var input = $(this).find('input');
+            if (!jQuery.inArray( input.val(), services )){
+                //input.attr('checked', true);
+                input.prop('checked', true);
+            }
+        });
+
     });
 
     function addServer(server,port) {
 
-      var ni = document.getElementById('server-group');
-      var numi = document.getElementById('theValue');
-      var num = (document.getElementById('theValue').value -1)+ 2;
-      numi.value = num;
-      var newdiv = document.createElement('tr');
-      var divIdName = 'server_'+num;
-      newdiv.setAttribute('id',divIdName);
-      //newdiv.setAttribute('class','form-group');
-      newdiv.innerHTML = '<td class="col-xs-8 ng-scope" v-field="config.value"> <input type="text" name="config.server" value="'+server+'" id="config_value" ng-model="field.value" class="form-control ng-scope ng-pristine ng-valid" autocomplete="off" ng-class="{errorMessage: config.error}" ng-change="config.dirty = true" ng-if="getSelectedConfigType().type !== \'Boolean\'" ng-readonly="config.systemDefault" ng-focus="config.focused = true" ng-blur="config.focused = false" style=""> <div class="text-info ng-hide" ng-show="config.focused &amp;&amp; (getSelectedConfigType().type === \'String\' || config.error)"> <small generate-preview="config" ng-class="{\'text-danger\': config.error}" class="text-danger">Required parameter value was missing or empty</small> </div> </td> <td class="col-xs-8 ng-scope" v-field="config.value"> <input type="text" name="config.port" value="'+port+'" id="config_value" ng-model="field.value" class="form-control ng-scope ng-pristine ng-valid" autocomplete="off" ng-class="{errorMessage: config.error}" ng-change="config.dirty = true" ng-if="getSelectedConfigType().type !== \'Boolean\'" ng-readonly="config.systemDefault" ng-focus="config.focused = true" ng-blur="config.focused = false" style=""> <div class="text-info ng-hide" ng-show="config.focused &amp;&amp; (getSelectedConfigType().type === \'String\' || config.error)"> <small generate-preview="config" ng-class="{\'text-danger\': config.error}" class="text-danger">Required parameter value was missing or empty</small> </div> </td> <td class="col-xs-1"> <button type="button" class="close" ng-hide="config.systemDefault" onClick="removeServer(\''+divIdName+'\')">×</button> </td>';
-      ni.appendChild(newdiv);
+        var ni = document.getElementById('server-group');
+        var numi = document.getElementById('theValue');
+        var num = (document.getElementById('theValue').value -1)+ 2;
+        numi.value = num;
+        var newdiv = document.createElement('tr');
+        var divIdName = 'server_'+num;
+        newdiv.setAttribute('id',divIdName);
+        newdiv.innerHTML = '<td class="col-xs-8 ng-scope" v-field="config.value" name="serverIp_column">' +
+                '<input type="text" name="serverIp" value="'+server+'" id="serverIp" class="form-control" onchange="verifyServers()">' +
+                '<div class="text-info ng-hide" ng-show="config.focused &amp;&amp; (getSelectedConfigType().type === \'String\' || config.error)">' +
+                    '<small generate-preview="config" class="text-danger">Required parameter value was missing or empty</small> </div>' +
+                '</div>' +
+            '</td>' +
+            '<td class="col-xs-8 ng-scope" v-field="config.value">' +
+                '<input type="text" name="serverPort" value="'+port+'" id="serverIp" class="form-control" onchange="verifyServers()">' +
+                '<div class="text-info ng-hide" ng-show="config.focused &amp;&amp; (getSelectedConfigType().type === \'String\' || config.error)">' +
+                    '<small generate-preview="config" class="text-danger">Required parameter value was missing or empty</small> </div>' +
+                '</div>' +
+            '</td>' +
+            '<td class="col-xs-1">' +
+                '<button type="button" class="close" ng-hide="config.systemDefault" onClick="removeServer(\''+divIdName+'\')">×</button>' +
+            '</td>';
+        ni.appendChild(newdiv);
 
+    }
+
+    function verifyServerIp(ip) {
+
+    }
+
+    function verifyServerPort(port) {
+
+    }
+
+    function isBlank(str) {
+        //alert("|"+str+"|")
+        return (!str || /^\s*$/.test(str));
+    }
+
+    function setTableError(object) {
+        object.parent().addClass('has-error');
+        object.siblings().removeClass('ng-hide');
+    }
+
+    function clearTableError(object) {
+        object.parent().removeClass('has-error');
+        object.siblings().addClass('ng-hide');
+    }
+
+    function verifyServers() {
+        var myTableArray = [];
+
+        $("table#server-table tbody tr").each(function() {
+            var serverIp = $(this).find('input[name=serverIp]');
+            var serverPort = $(this).find('input[name=serverPort]');
+            var hasError = false;
+            if (isBlank(serverIp.val())){
+               setTableError(serverIp);
+               hasError = true;
+            }
+            else { clearTableError(serverIp); }
+
+            if (isBlank(serverPort.val())) {
+               setTableError(serverPort);
+               hasError = true;
+            }
+            else { clearTableError(serverPort); }
+
+            if (hasError) {
+                return true;
+            }
+
+            myTableArray.push(serverIp.val()+":"+serverPort.val());
+        });
+        updateServers(myTableArray);
+    }
+
+    function updateServers(myTableArray) {
+        $backup_external_location_url.val(myTableArray);
+        checkForm();
+    }
+
+    function updateServices(myCheckBoxArray) {
+        $backup_max_manual_copies.val(myCheckBoxArray);
+        checkForm();
     }
 
     function removeServer(id) {
+        var d = document.getElementById('server-group');
+        var checkboxes = document.getElementById(id);
+        d.removeChild(checkboxes);
+        verifyServers()
+    }
 
-      var d = document.getElementById('server-group');
+    function verifyServices() {
+        var myCheckBoxArray = [];
 
-      var checkboxes = document.getElementById(id);
-
-      d.removeChild(checkboxes);
+        $("select-many .checkbox").each(function() {
+            var input = $(this).find('input')
+            if (input.is(':checked')){
+                myCheckBoxArray.push(input.val());
+            }
+        });
+        updateServices(myCheckBoxArray);
     }
 </script>
+
 #{/set}
 
 <input type="hidden" value="0" id="theValue" />
@@ -61,22 +153,23 @@
 #{ConfigProperties.propertySet titleKey:'configProperties.syslog.servers'}
 
 %{
-property = page.externalLocationUrl
-id = property.name
-name = property.name
-label = property.label
-originalValue = property.value
-value = flash[name] ?: originalValue
-rebootRequired = property.rebootRequired
-description = property.description
-disabled:unstable;
+    property = page.externalLocationUrl
+    id = property.name
+    name = property.name
+    label = property.label
+    originalValue = property.value
+    value = flash[name] ?: originalValue
+    rebootRequired = property.rebootRequired
+    description = property.description
+    disabled:unstable;
 }%
 
-<div id="backup_scheduler_enableControlGroup" class="form-group ">
+<div id="${id}ControlGroup" class="form-group ">
     <label class="control-label col-sm-3" for="${id}">${label}:</label>
     <div class="col-sm-6" z="">
         <div class="dataTables_wrapper">
-            <table class="table table-hover table-condensed dataTable" style="table-layout: fixed;">
+            <input id="${id}" type="hidden" name="${name}" value="${originalValue}" data-originalvalue="${originalValue}">
+            <table class="table table-hover table-condensed dataTable " id="server-table" >
                 <thead>
                 <tr>
                     <th style="width: 160px;">Server</th>
@@ -84,7 +177,7 @@ disabled:unstable;
                     <th style="width: 25px;"></th>
                 </tr>
                 </thead>
-                <tbody id="server-group" >
+                <tbody id="server-group">
 
                 </tbody>
             </table>
@@ -107,8 +200,52 @@ disabled:unstable;
 
 #{/ConfigProperties.propertySet}
 
+
 #{ConfigProperties.propertySet titleKey:'configProperties.syslog.logs'}
-<control-group v-field="filterDialog.service" width="6"  type="array" >
-    <select-many id="services" class="max-height-5" options=[{"id":"sasvc","name":"sasvc"},{"id":"vasasvc","name":"vasasvc"},{"id":"portalsvc","name":"portalsvc"},{"id":"coordinatorsvc","name":"coordinatorsvc"},{"id":"geodbsvc","name":"geodbsvc"},{"id":"apisvc","name":"apisvc"},{"id":"geosvc","name":"geosvc"},{"id":"dbsvc","name":"dbsvc"},{"id":"syssvc","name":"syssvc"},{"id":"authsvc","name":"authsvc"},{"id":"controllersvc","name":"controllersvc"}]></select-many>
-</control-group>
+
+%{
+    property = page.maxManualCopies
+    id = property.name
+    name = property.name
+    label = property.label
+    originalValue = property.value
+    value = flash[name] ?: originalValue
+    rebootRequired = property.rebootRequired
+    description = property.description
+    disabled:unstable;
+    allowedValues = property.metadata.allowedValues;
+/*  options = [];
+    for(value in allowedValues){
+        def option;
+        option
+        option['id'] = value;
+
+        option['name'] = value;
+        options.push(option);
+    }
+    test = options.toString();
+*/
+    options = '[';
+    for(value in allowedValues){
+        option = '{id:'+value+',name:'+value+'},';
+        options = options.concat(option);
+    }
+    options = options.concat(']');
+}%
+
+<div id="${id}ControlGroup" class="form-group ">
+    <input id="${id}" type="hidden" name="${name}" value="${originalValue}" data-originalvalue="${originalValue}">
+    <control-group v-field=${label} type="array" >
+        <select-many id="selector_${id}" options="${options}" onClick="verifyServices()"></select-many>
+    </control-group>
+    <div class="col-sm-3"></div>
+    <div class="col-sm-6" z="">
+        <div class="col-sm-12">#{if description}<p class="help-block clear">${description}</p>#{/if}</div>
+    </div>
+
+    <div class="col-sm-3">
+        <span class="help-inline clearfix">${error}</span>
+    </div>
+</div>
+
 #{/ConfigProperties.propertySet}

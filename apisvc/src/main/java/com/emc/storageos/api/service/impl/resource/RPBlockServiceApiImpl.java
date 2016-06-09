@@ -2755,7 +2755,9 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             storageControllerURI = reqVolume.getStorageController();
         }
 
-        if (RPHelper.isProtectionBasedSnapshot(reqVolume, snapshotType, _dbClient)) {
+        if (reqVolume.getProtectionController() != null
+                && (snapshotType.equalsIgnoreCase(BlockSnapshot.TechnologyType.RP.toString()) || reqVolume
+                        .getPersonality().equals(Volume.PersonalityTypes.TARGET.toString()))) {
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storageControllerURI);
             RPController controller = getController(RPController.class, protectionSystem.getSystemType());
             controller.createSnapshot(protectionSystem.getId(), storageSystem.getId(), snapshotURIs, createInactive, readOnly, taskId);

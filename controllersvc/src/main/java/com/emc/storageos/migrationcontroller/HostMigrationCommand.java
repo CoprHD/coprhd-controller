@@ -121,15 +121,16 @@ public class HostMigrationCommand {
     }
 
 
-    public static List<MigrationInfo> findMigrations(Host host, List<String> migrationNames, Migration migration)
+    public static List<MigrationInfo> findMigrations(Host host, List<Migration> migrations)
             throws Exception {
 
         List<MigrationInfo> migrationInfoList = new ArrayList<MigrationInfo>();
-        for (String migrationName : migrationNames) {
+        for (Migration migration : migrations) {
             try {
                 // First look in the device migrations and if not found, then
                 // look in the extent migrations.
                 String migrationPid = migration.getMigrationPid();
+                String migrationName = migration.getLabel();
                 MigrationInfo migrationInfo = findMigration(host, migrationName, migrationPid);
                 migrationInfo.setIsHostMigration(true);
                 migrationInfoList.add(migrationInfo);
@@ -195,10 +196,9 @@ public class HostMigrationCommand {
      * Commits the completed migrations with the passed names and tears down the
      * old devices and unclaims the storage volumes.
      * */
-    public static String doCommitMigrationsCommand(Host host, String generalVolumeName, Migration migration,
-            List<String> migrationNames,
-            boolean cleanup, boolean remove, boolean rename) throws Exception {
-        List<MigrationInfo> migrationInfoList = findMigrations(host, migrationNames, migration);
+    public static String doCommitMigrationsCommand(Host host, String generalVolumeName,
+            List<Migration> migrations) throws Exception {
+        List<MigrationInfo> migrationInfoList = findMigrations(host, migrations);
         // Verify that the migrations have completed successfully and can be
         // committed.
 
@@ -208,22 +208,25 @@ public class HostMigrationCommand {
                         .cantCommitedMigrationNotCompletedSuccessfully(migrationInfo.getName());
             }
         }
-        String srcDevice = migration.getSrcDev();
-        String tgtDevice = migration.getTgtDev();
-        String args = String.format("srcDevice=%s tgtDevice=%s", srcDevice, tgtDevice);
-        LinuxSystemCLI cli = LinuxHostDiscoveryAdapter.createLinuxCLI(host);
-        commitMigrationsCommand command = new commitMigrationsCommand(args);
-        cli.executeCommand(command);
-        try {
-            CommandOutput output = command.getOutput();
-            if (output.getStderr() != null) {
-                String string = "commit Migration failed";
-                return string;
+        for (Migration migration : migrations) {
+            String srcDevice = migration.getSrcDev();
+            String tgtDevice = migration.getTgtDev();
+            String args = String.format("srcDevice=%s tgtDevice=%s", srcDevice, tgtDevice);
+            LinuxSystemCLI cli = LinuxHostDiscoveryAdapter.createLinuxCLI(host);
+            commitMigrationsCommand command = new commitMigrationsCommand(args);
+            cli.executeCommand(command);
+            try {
+                CommandOutput output = command.getOutput();
+                if (output.getStderr() != null) {
+                    String string = "commit Migration failed";
+                    return string;
+                }
+
+            } catch (Exception e) {
+                return e.getMessage();
             }
-            return output.getStdout();
-        } catch (Exception e) {
-            return e.getMessage();
         }
+        return "SUCCESS_STATUS";
     }
     private static void checkStatus(MultiPathEntry entry) {
         for (PathInfo path : entry.getPaths()) {

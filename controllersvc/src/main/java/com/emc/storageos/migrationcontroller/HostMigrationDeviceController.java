@@ -34,7 +34,6 @@ import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.block.AbstractDefaultMaskingOrchestrator;
 import com.emc.storageos.volumecontroller.impl.block.BlockDeviceController;
 import com.emc.storageos.volumecontroller.impl.job.QueueJob;
-import com.emc.storageos.vplex.api.VPlexApiException;
 import com.emc.storageos.vplexcontroller.completers.MigrationTaskCompleter;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowException;
@@ -584,7 +583,7 @@ public class HostMigrationDeviceController implements MigrationOrchestrationInte
 
                 // Try to cancel the migration and cleanup and remove any
                 // remnants of the migration.
-                cancelMigrations(host, Arrays.asList(migration.getLabel()), migration, true, true);
+                cancelMigrations(host, Arrays.asList(migration.getLabel()), Arrays.asList(migration), true, true);
                 _log.info("Migration cancelled");
             }
             WorkflowStepCompleter.stepSucceded(stepId);
@@ -610,10 +609,10 @@ public class HostMigrationDeviceController implements MigrationOrchestrationInte
         }
     }
 
-    private void cancelMigrations(Host host, List<String> migrationNames, Migration migration,
+    private void cancelMigrations(Host host, List<String> migrationNames, List<Migration> migrations,
             boolean cleanup, boolean remove) throws Exception {
         _log.info("Canceling migrations {}", migrationNames);
-        List<MigrationInfo> migrationInfoList = HostMigrationCommand.findMigrations(host, migrationNames, migration);
+        List<MigrationInfo> migrationInfoList = HostMigrationCommand.findMigrations(host, migrations);
         // Verify that the migrations are in a state in which they can be
         // canceled.
         StringBuilder migrationArgBuilder = new StringBuilder();
@@ -684,7 +683,7 @@ public class HostMigrationDeviceController implements MigrationOrchestrationInte
             if (remove) {
                 try {
                     removeCommittedOrCanceledMigrations(host, migrationArgBuilder.toString());
-                } catch (VPlexApiException vae) {
+                } catch (Exception vae) {
                     _log.error(
                             "Error removing migration records after successful cancel: {}",
                             vae.getMessage(), vae);
@@ -718,8 +717,7 @@ public class HostMigrationDeviceController implements MigrationOrchestrationInte
                 Volume generalVolume = getDataObject(Volume.class, generalVolumeURI, _dbClient);
                 try {
                     String commitMigrationStatus = HostMigrationCommand.doCommitMigrationsCommand(host, 
-                            generalVolume.getDeviceLabel(), migration,
-                            Arrays.asList(migration.getLabel()), true, true, rename.booleanValue());
+                            generalVolume.getDeviceLabel(), Arrays.asList(migration));
                     if (commitMigrationStatus != "SUCCESS_STATUS") {
                         if (commitMigrationStatus == "ASYNC_STATUS") {
                             _log.info("commitMigration is asynchronously");

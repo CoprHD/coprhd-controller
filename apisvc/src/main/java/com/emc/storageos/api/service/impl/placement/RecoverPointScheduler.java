@@ -3469,11 +3469,7 @@ public class RecoverPointScheduler implements Scheduler {
         // We are recursively calling into "findSolution", so pop the next protectionVarray off the top of the 
         // passed in list of protectionVarrays. This protectionVarray will be removed from the list before
         // recursively calling back into the method (in the case that we do not find a solution).
-        VirtualArray targetVarray = targetVarrays.get(0);
-        if (targetVarray == null) {
-            _log.warn("RP Placement : One of the target varrays was null, it can not be processed...continue on.");
-            return false;
-        }
+        VirtualArray targetVarray = targetVarrays.get(0);        
         placementStatus.getProcessedProtectionVArrays().put(targetVarray.getId(), true);
 
         // Find the correct target vpool. It is either implicitly the same as the source vpool or has been

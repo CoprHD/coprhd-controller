@@ -1740,14 +1740,14 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             oldVpoolId = changeVpoolVolume.getVirtualPool();
         }
 
-        try {            
+        try {
             // Prepare the volumes
             prepareRecommendedVolumes(param, task, taskList, project,
                     varray, vpool,
                     capabilities.getResourceCount(),
                     recommendations, volumeLabel, capabilities,
                     volumeDescriptors, volumeURIs);
-           
+
             // Execute the volume creations requests for each recommendation.
             Iterator<Recommendation> recommendationsIter = recommendations.iterator();
             while (recommendationsIter.hasNext()) {

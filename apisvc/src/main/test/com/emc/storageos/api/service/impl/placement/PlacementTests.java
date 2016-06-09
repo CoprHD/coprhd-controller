@@ -3831,7 +3831,7 @@ public class PlacementTests extends DbsvcTestBase {
     }
 
     /*
-     * Metropoint placement - 2 local copies, one on each side
+     * MetroPoint placement - 2 local copies, one on each side
      * 
      * NOTE: Force negative MP CDP test by following instructions labeled with "NEGATIVE-TEST"
      */
@@ -4065,8 +4065,8 @@ public class PlacementTests extends DbsvcTestBase {
         //
         // Result: Placement should exhaust it's options and fail.
         //////////////////////////////////////////////////////////////////
-        storageSystems.add(ProtectionSystem.generateAssociatedStorageSystem("site3", vnxStorageSystem3.getSerialNumber()));
-        storageSystems.add(ProtectionSystem.generateAssociatedStorageSystem("site3", vmaxStorageSystem3.getSerialNumber()));
+        storageSystems.add(ProtectionSystem.generateAssociatedStorageSystem("site1", vnxStorageSystem3.getSerialNumber()));
+        storageSystems.add(ProtectionSystem.generateAssociatedStorageSystem("site1", vmaxStorageSystem3.getSerialNumber()));
 
         storageSystems.add(ProtectionSystem.generateAssociatedStorageSystem("site2", "vplex1cluster2"));
         storageSystems.add(ProtectionSystem.generateAssociatedStorageSystem("site2", vnxStorageSystem2.getSerialNumber()));
@@ -4261,7 +4261,7 @@ public class PlacementTests extends DbsvcTestBase {
         //
         // Result: Placement should exhaust it's options and fail.
         //////////////////////////////////////////////////////////////////
-        //mpActiveTgtVpool.setHighAvailability(VirtualPool.HighAvailabilityType.vplex_local.name());
+        mpActiveTgtVpool.setHighAvailability(VirtualPool.HighAvailabilityType.vplex_local.name());
         matchedPools = new StringSet();
         matchedPools.add(tgtPool7.getId().toString());
         matchedPools.add(tgtPool8.getId().toString());

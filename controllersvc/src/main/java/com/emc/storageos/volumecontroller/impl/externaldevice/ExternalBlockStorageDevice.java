@@ -526,29 +526,16 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
         	if (task.getStatus() == DriverTask.TaskStatus.READY) {
         		_log.info("doDisconnect -- Disconnected Storage System: {}", task.getMessage());
         	} else {
-        		//todo
+        		_log.error("doDisconnect failed. ", task.getMessage());
+        		throw ExternalDeviceException.exceptions.doDisconnectFailed("doDisconnect", task.getMessage());
         	}
     		_log.info("doDisconnect %1$s - Complete", storageSystem.getId());
     	} catch(Exception e){
-//    		_log.error("doDisconnect failed. ", e);
-//    		ServiceError serviceError = ExternalDeviceException.errors.doDisconnectFailed("doDisconnect", e.getMessage());
-//    		taskCompleter.error(dbClient, serviceError);
+    		_log.error("doDisconnect failed. ", e.getMessage());
+    		throw ExternalDeviceException.exceptions.doDisconnectFailed("doDisconnect", e.getMessage());
+
     	}
     }
-    
-//    public void doDisconnect(StorageSystem storage) {
-//        try {
-//            _logger.info("doConnect {} - start", storage.getId());
-//            VNXeApiClient client = getVnxeClient(storage);
-//            client.logout();
-//            String msg = String.format("doDisconnect %1$s - complete", storage.getId());
-//            _logger.info(msg);
-//
-//        } catch (VNXeException e) {
-//            _logger.error("doDisconnect failed.", e);
-//            throw DeviceControllerException.exceptions.disconnectStorageFailed(e);
-//        }
-//    }
 
     @Override
     public void doCreateGroupClone(StorageSystem storageSystem, List<URI> cloneURIs,

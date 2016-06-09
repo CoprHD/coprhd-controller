@@ -304,6 +304,15 @@ public class Orders extends OrderExecution {
         while (true) {
             OrderDetails details = new OrderDetails(orderId);
 
+            if (details.isNewer(lastUpdated)) {
+                Logger.debug("Found update for order %s newer than: %s", details.order.getOrderNumber(), lastUpdated);
+                return details;
+            }
+            if (details.isFinished()) {
+                Logger.debug("Found finished order %s", details.order.getOrderNumber());
+                return details;
+            }
+
             if (oldTasksStateMap != null && taskStateChanged(oldTasksStateMap, details.viprTasks)) {
                 Long updated = System.currentTimeMillis();
                 if ((lastUpdated == null) || (lastUpdated < updated)) {
@@ -313,15 +322,6 @@ public class Orders extends OrderExecution {
                 }
             } else {
                 oldTasksStateMap = createTaskStateMap(details.viprTasks);
-            }
-
-            if (details.isNewer(lastUpdated)) {
-                Logger.debug("Found update for order %s newer than: %s", details.order.getOrderNumber(), lastUpdated);
-                return details;
-            }
-            if (details.isFinished()) {
-                Logger.debug("Found finished order %s", details.order.getOrderNumber());
-                return details;
             }
 
             // Pause and check again, delay is based on order state

@@ -990,7 +990,7 @@ public class AutoDiscovery extends ViprResourceController {
             } catch (XMLStreamException e) {
                e.printStackTrace();
          }
-         flash.success("Saved successfully");
+         flash.success("Bootstrap initiated");
          updateCertificate();
        }
      

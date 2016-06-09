@@ -21,10 +21,12 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.ControllerLockingService;
 import com.emc.storageos.volumecontroller.FileSMBShare;
+import com.emc.storageos.volumecontroller.FileShareExport;
 import com.emc.storageos.volumecontroller.impl.FileDeviceController;
 import com.emc.storageos.volumecontroller.impl.file.CreateMirrorFileSystemsCompleter;
 import com.emc.storageos.volumecontroller.impl.file.FileCreateWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.file.FileDeleteWorkflowCompleter;
+import com.emc.storageos.volumecontroller.impl.file.FileSystemExportCreateWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.file.FileSystemShareCreateWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.file.FileWorkflowCompleter;
 import com.emc.storageos.workflow.Workflow;
@@ -46,6 +48,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     static final String CHANGE_FILESYSTEMS_VPOOL_WF_NAME = "CHANGE_FILESYSTEMS_VPOOL_WORKFLOW";
     static final String CREATE_MIRROR_FILESYSTEMS_WF_NAME = "CREATE_MIRROR_FILESYSTEMS_WF_NAME";
     static final String CREATE_FILESYSTEM_CIFS_SHARE_WF_NAME = "CREATE_FILESYSTEM_CIFS_SHARE_WORKFLOW";
+    static final String CREATE_FILESYSTEM_NFS_EXPORT_WF_NAME = "CREATE_FILESYSTEM_NFS_EXPORT_WORKFLOW";
 
     /*
      * (non-Javadoc)
@@ -311,9 +314,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         try {
             workflow = _workflowService.getNewWorkflow(this, CREATE_FILESYSTEM_CIFS_SHARE_WF_NAME, false, taskId);
             String shareStep = workflow.createStepId();
-            String waitFor = _fileDeviceController.addStepsForCreatingCIFSShares(workflow, storageSystem, fileSystem, smbShare, taskId,
-                    shareStep);
-            String successMessage = "Creating CIFS Share for FileSystem :" + fileShare.getLabel() + "finished successfully";
+            _fileDeviceController.addStepsForCreatingCIFSShares(workflow, storageSystem, fileSystem, smbShare, taskId, shareStep);
+            String successMessage = "Creating CIFS Share for FileSystem :" + fileShare.getLabel() + " finished successfully";
             workflow.executePlan(completer, successMessage);
 
         } catch (Exception ex) {
@@ -323,6 +325,26 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                     fileSystem.toString(), opName, ex);
             completer.error(s_dbClient, _locker, serviceError);
         }
+    }
 
+    @Override
+    public void createNFSExport(URI storage, URI fsURI, List<FileShareExport> exports, String opId) throws ControllerException {
+        FileShare fileShare = s_dbClient.queryObject(FileShare.class, fsURI);
+        FileSystemExportCreateWorkflowCompleter completer = new FileSystemExportCreateWorkflowCompleter(fsURI, opId);
+        Workflow workflow = null;
+        try {
+            workflow = _workflowService.getNewWorkflow(this, CREATE_FILESYSTEM_NFS_EXPORT_WF_NAME, false, opId);
+            String exportStep = workflow.createStepId();
+            _fileDeviceController.addStepsForCreatingNFSExport(workflow, storage, fsURI, exports, opId, exportStep);
+            String successMessage = "Creating NFS Export for FileSystem :" + fileShare.getLabel() + " finished successfully";
+            workflow.executePlan(completer, successMessage);
+
+        } catch (Exception ex) {
+            s_logger.error("Could not create NFS export for filesystem: " + fsURI + fileShare.getLabel(), ex);
+            String opName = ResourceOperationTypeEnum.EXPORT_FILE_SYSTEM.getName();
+            ServiceError serviceError = DeviceControllerException.errors.ExportFileShareFailed(
+                    fsURI.toString(), opName, ex);
+            completer.error(s_dbClient, _locker, serviceError);
+        }
     }
 }

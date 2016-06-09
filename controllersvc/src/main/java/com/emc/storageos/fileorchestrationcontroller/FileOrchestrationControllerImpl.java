@@ -11,6 +11,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.FileSMBShare;
+import com.emc.storageos.volumecontroller.FileShareExport;
 import com.emc.storageos.volumecontroller.impl.Dispatcher;
 
 public class FileOrchestrationControllerImpl implements FileOrchestrationController {
@@ -77,6 +78,12 @@ public class FileOrchestrationControllerImpl implements FileOrchestrationControl
     @Override
     public void createCIFSShare(URI storageSystem, URI fileSystem, FileSMBShare smbShare, String taskId) throws ControllerException {
         execOrchestration("createCIFSShare", storageSystem, fileSystem, smbShare, taskId);
+
+    }
+
+    @Override
+    public void createNFSExport(URI storage, URI fsURI, List<FileShareExport> exports, String opId) throws ControllerException {
+        execOrchestration("createNFSExport", storage, fsURI, exports, opId);
 
     }
 }

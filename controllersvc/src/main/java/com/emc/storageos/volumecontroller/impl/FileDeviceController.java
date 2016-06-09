@@ -102,6 +102,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     private static final String EVENT_SERVICE_TYPE = "file";
     private static final String EVENT_SERVICE_SOURCE = "FileController";
     private static final Logger _log = LoggerFactory.getLogger(FileDeviceController.class);
+    private static final String CREATE_FILESYSTEM_EXPORT_METHOD = "export";
+    private static final String CREATE_FILESYSTEM_SHARE_METHOD = "share";
     private Map<String, FileStorageDevice> _devices;
 
     private WorkflowService _workflowService;
@@ -282,16 +284,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             // work flow and we need to add TaskCompleter(TBD for vnxfile)
             WorkflowStepCompleter.stepExecuting(opId);
 
-            // Code to acquire lock on for VNXFILE Storage System
-            StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
-            if (storageSystem.deviceIsType(Type.vnxfile)) {
-                List<String> lockKeys = new ArrayList<String>();
-                lockKeys.add(storageSystem.getNativeGuid());
-                boolean lockAcquired = _workflowService.acquireWorkflowStepLocks(opId, lockKeys, 10000L);
-                if (!lockAcquired) {
-                    throw DeviceControllerException.exceptions.failedToAcquireLock(lockKeys.toString(), "");
-                }
-            }
+            acquireStepLock(storageObj, opId);
+
             BiosCommandResult result = getDevice(storageObj.getSystemType()).doCreateFS(storageObj, args);
             if (!result.getCommandPending()) {
                 fsObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
@@ -587,7 +581,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             } else {
                 _log.info("Exports are null");
             }
-
+            // Code to acquire lock on for VNXFILE Storage System
+            WorkflowStepCompleter.stepExecuting(opId);
+            acquireStepLock(storageObj, opId);
             BiosCommandResult result = getDevice(storageObj.getSystemType()).doExport(storageObj, args, fileExports);
 
             if (result.getCommandPending()) {
@@ -612,6 +608,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
                     // Per New Model of Export Rules Lets create the rule and save it as FileExportRule.
                     if (result.isCommandSuccess()) {
+                        WorkflowStepCompleter.stepSucceded(opId);
                         FileExportRule newRule = getFileExportRule(fsObj.getId(), fileExport, args);
                         _log.debug("ExportRule Constucted per expotkey {}, {}", fsExpKey, newRule);
                         if (existingRules != null && existingRules.isEmpty()) {
@@ -655,6 +652,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             _dbClient.persistObject(fsObj);
 
         } catch (Exception e) {
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            WorkflowStepCompleter.stepFailed(opId, serviceError);
             String[] params = { storage.toString(), uri.toString(), e.getMessage() };
             _log.error("Unable to export file system or snapshot: storage {}, FS/snapshot URI {}: {}", params);
             for (FileShareExport fsExport : exports) {
@@ -927,14 +926,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
                 // Code to acquire lock on for VNXFILE Storage System
                 WorkflowStepCompleter.stepExecuting(opId);
-                if (storageObj.deviceIsType(Type.vnxfile)) {
-                    List<String> lockKeys = new ArrayList<String>();
-                    lockKeys.add(storageObj.getNativeGuid());
-                    boolean lockAcquired = _workflowService.acquireWorkflowStepLocks(opId, lockKeys, 10000L);
-                    if (!lockAcquired) {
-                        throw DeviceControllerException.exceptions.failedToAcquireLock(lockKeys.toString(), "");
-                    }
-                }
+                acquireStepLock(storageObj, opId);
                 BiosCommandResult result = getDevice(storageObj.getSystemType()).doShare(storageObj, args, smbFileShare);
 
                 if (result.getCommandPending()) {
@@ -3926,15 +3918,40 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
     }
 
-    static final String CREATE_FILESYSTEM_SHARE_METHOD = "share";
-
     public String addStepsForCreatingCIFSShares(Workflow workflow, URI storageSystem, URI fileSystem, FileSMBShare smbShare,
             String taskId, String shareStep) {
+
         StorageSystem system = _dbClient.queryObject(StorageSystem.class, storageSystem);
         Object[] args = new Object[] { storageSystem, fileSystem, smbShare };
         Workflow.Method shareCreationMethod = new Workflow.Method(CREATE_FILESYSTEM_SHARE_METHOD, args);
-        String waitFor = workflow.createStep(null, "Creating FileSystem SMB Share",
-                null, storageSystem, system.getSystemType(), getClass(), shareCreationMethod, null, shareStep);
+
+        String waitFor = workflow.createStep(null, "Creating FileSystem SMB Share", null, storageSystem, system.getSystemType(), getClass(),
+                shareCreationMethod, null, shareStep);
+
         return waitFor;
+    }
+
+    public String addStepsForCreatingNFSExport(Workflow workflow, URI storage, URI fsURI, List<FileShareExport> exports, String opId,
+            String exportStep) {
+
+        StorageSystem system = _dbClient.queryObject(StorageSystem.class, storage);
+        Object[] args = new Object[] { storage, fsURI, exports };
+        Workflow.Method exportCreationMethod = new Workflow.Method(CREATE_FILESYSTEM_EXPORT_METHOD, args);
+
+        String waitFor = workflow.createStep(null, "Creating FileSystem NFS Export",
+                null, storage, system.getSystemType(), getClass(), exportCreationMethod, null, exportStep);
+
+        return waitFor;
+    }
+
+    public void acquireStepLock(StorageSystem storageObj, String opId) {
+        if (storageObj.deviceIsType(Type.vnxfile)) {
+            List<String> lockKeys = new ArrayList<String>();
+            lockKeys.add(storageObj.getNativeGuid());
+            boolean lockAcquired = _workflowService.acquireWorkflowStepLocks(opId, lockKeys, 10000L);
+            if (!lockAcquired) {
+                throw DeviceControllerException.exceptions.failedToAcquireLock(lockKeys.toString(), "");
+            }
+        }
     }
 }

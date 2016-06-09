@@ -33,6 +33,7 @@ import com.emc.storageos.model.file.FileSystemParam;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.FileSMBShare;
+import com.emc.storageos.volumecontroller.FileShareExport;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
@@ -225,6 +226,12 @@ public abstract class AbstractFileServiceApiImpl<T> implements FileServiceApi {
         FileOrchestrationController controller = getController(FileOrchestrationController.class,
                 FileOrchestrationController.FILE_ORCHESTRATION_DEVICE);
         controller.createCIFSShare(storageSystem, fileSystem, smbShare, taskId);
+    }
 
+    @Override
+    public void export(URI storage, URI fsURI, List<FileShareExport> exports, String opId) throws InternalException {
+        FileOrchestrationController controller = getController(FileOrchestrationController.class,
+                FileOrchestrationController.FILE_ORCHESTRATION_DEVICE);
+        controller.createNFSExport(storage, fsURI, exports, opId);
     }
 }

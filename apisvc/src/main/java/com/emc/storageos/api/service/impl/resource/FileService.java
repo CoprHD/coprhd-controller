@@ -834,8 +834,8 @@ public class FileService extends TaskResourceService {
         Operation op = _dbClient.createTaskOpStatus(FileShare.class, fs.getId(),
                 task, ResourceOperationTypeEnum.EXPORT_FILE_SYSTEM);
         op.setDescription("Filesystem export");
-        controller.export(device.getId(), fs.getId(), Arrays.asList(export), task);
-
+        FileServiceApi fileServiceApi = getFileShareServiceImpl(fs, _dbClient);
+        fileServiceApi.export(device.getId(), fs.getId(), Arrays.asList(export), task);
         auditOp(OperationTypeEnum.EXPORT_FILE_SYSTEM, true, AuditLogManager.AUDITOP_BEGIN,
                 fs.getId().toString(), device.getId().toString(), export.getClients(), param.getSecurityType(),
                 param.getPermissions(), param.getRootUserMapping(), param.getProtocol());

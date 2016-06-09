@@ -14,6 +14,7 @@ import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.file.FileSystemParam;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.FileSMBShare;
+import com.emc.storageos.volumecontroller.FileShareExport;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
@@ -113,5 +114,17 @@ public interface FileServiceApi {
      * @throws InternalException
      */
     public void share(URI storageSystem, URI fileSystem, FileSMBShare smbShare, String task)
+            throws InternalException;
+
+    /**
+     * Create NFS Export for the FileSystem
+     *
+     * @param URI storageSystem
+     * @param URI fileSystem
+     * @param List FileShareExport
+     * @param String opId
+     * @throws InternalException
+     */
+    public void export(URI storage, URI fsURI, List<FileShareExport> exports, String opId)
             throws InternalException;
 }

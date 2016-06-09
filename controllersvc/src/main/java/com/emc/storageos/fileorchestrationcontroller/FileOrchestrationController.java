@@ -10,6 +10,7 @@ import java.util.List;
 import com.emc.storageos.Controller;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.FileSMBShare;
+import com.emc.storageos.volumecontroller.FileShareExport;
 
 public interface FileOrchestrationController extends Controller {
     public final static String FILE_ORCHESTRATION_DEVICE = "file-orchestration";
@@ -70,5 +71,19 @@ public interface FileOrchestrationController extends Controller {
      */
 
     public abstract void createCIFSShare(URI storageSystem, URI fileSystem, FileSMBShare smbShare, String taskId)
+            throws ControllerException;
+
+    /**
+     * Create NFS Export for file system
+     * This method is responsible for creating a Workflow and invoking the FileOrchestrationInterface.addStepsForCreateFileSystemExport
+     * 
+     * @param URI storageSystem
+     * @param URI fileSystem
+     * @param List<FileShareExport
+     * @param String opId
+     * @throws ControllerException
+     */
+
+    public abstract void createNFSExport(URI storage, URI fsURI, List<FileShareExport> exports, String opId)
             throws ControllerException;
 }

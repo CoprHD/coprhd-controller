@@ -1,0 +1,17 @@
+#!/etc/genconfig
+#
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
+#
+# This software contains the intellectual property of EMC Corporation
+# or is licensed to EMC Corporation from third parties.  Use of this
+# software and the intellectual property contained therein is expressly
+# limited to the terms and conditions of the License Agreement under which
+# it is provided by or on behalf of EMC.
+
+_get_monorail_props() {
+    echo "network_ipaddr_service=${_GENCONFIG_network_ipaddr_service}"
+}
+
+_genconfig_exec _gen_template_cluster    /etc/monorail/config.json  $(_get_monorail_props)
+

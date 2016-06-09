@@ -50,6 +50,7 @@ ETCFILES_COMMON = \
     $(ETCDIR)/genconfig.d/syssvc \
     $(ETCDIR)/genconfig.d/ipsec \
     $(ETCDIR)/genconfig.d/test \
+    $(ETCDIR)/genconfig.d/monorail \
     $(ETCDIR)/gentmpl \
     $(ETCDIR)/datatool \
     $(ETCDIR)/diagtool \
@@ -71,6 +72,8 @@ ETCFILES_COMMON = \
     $(ETCDIR)/sysconfig/SuSEfirewall2-template \
     $(ETCDIR)/sysconfig/scripts/FWiptables-template \
     $(ETCDIR)/sysconfig/SuSEfirewall2.d/services/storageos \
+    $(ETCDIR)/monorail/config-template.json \
+    $(ETCDIR)/monorail/config.json \
     $(ETCDIR)/keepalived/keepalived-IPv4-template.conf \
     $(ETCDIR)/keepalived/keepalived-IPv6-template.conf \
     $(ETCDIR)/keepalived/keepalived-dual-template.conf \
@@ -157,8 +160,7 @@ ETCFILES_COMMON = \
     $(ETCDIR)/systemd/system/syncntp.service \
     $(ETCDIR)/systemd/system/ipchecktool.service \
     $(ETCDIR)/systemd/system/storageos-installer.service \
-    $(ETCDIR)/systemd/system/ipsec.service
-
+    $(ETCDIR)/systemd/system/ipsec.service 
 
 SYSTEMD_DIR = ${BUILD_BASE}/etc/systemd/system
 SYSTEMD_TMPL = $(SYSTEMD_DIR)/storageos-template.service
@@ -254,6 +256,13 @@ $(ETCDIR)/init.d/%: init.d/%
 	$(ATSIGN)$(CHMOD) 755 $(@)
 
 $(ETCDIR)/logrotate.d/%: logrotate.d/%
+	@echo "sed etc/$(<)"
+	@$(RM) $(@)
+	@$(MKDIR) $(@D)
+	$(ATSIGN)$(SED_SCRIPT) <$(<) >$(@)
+	$(ATSIGN)$(CHMOD) 644 $(@)
+
+$(ETCDIR)/monorail/%: monorail/%
 	@echo "sed etc/$(<)"
 	@$(RM) $(@)
 	@$(MKDIR) $(@D)

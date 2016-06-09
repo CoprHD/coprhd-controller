@@ -136,6 +136,7 @@ fi
 /etc/genconfig.d/ipsec
 /etc/genconfig.d/test
 /etc/genconfig.d/boot.manifest
+/etc/genconfig.d/monorail
 /etc/gentmpl
 /etc/systool
 /etc/diagtool
@@ -189,4 +190,7 @@ fi
 /etc/systemd/system/*
 %attr(-,storageos,storageos) /var/run/storageos
 %config /etc/sudoers.d/storageos
+%config /etc/monorail/config-template.json
+%config /etc/monorail/config.json
+
 

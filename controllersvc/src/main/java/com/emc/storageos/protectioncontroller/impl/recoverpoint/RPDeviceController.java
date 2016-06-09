@@ -5294,6 +5294,17 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             _log.info("Activating a bookmark on the RP CG(s)");
 
             completer = new BlockSnapshotActivateCompleter(snapshotList, opId);
+            
+            // acquire a workflow lock so another thread doesn't disable image access while this thread
+            // is still creating the snapshot
+            if (snapshotList != null && !snapshotList.isEmpty()) {
+                List<String> locks = new ArrayList<String>();
+                String lockName = generateRPLockCG(_dbClient, snapshotList.get(0));
+                if (null != lockName) {
+                    locks.add(lockName);
+                    acquireWorkflowLockOrThrow(_workflowService.getWorkflowFromStepId(opId), locks);
+                }
+            }
 
             ProtectionSystem system = null;
             try {

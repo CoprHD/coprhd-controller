@@ -165,7 +165,8 @@ public class Property {
         }
     }
 
-    protected void validateField(String fieldName, String value) {
+    @SuppressWarnings("static-access")
+	protected void validateField(String fieldName, String value) {
         if (isPasswordField()) {
             value = PasswordUtil.decryptedValue(value);
         }
@@ -221,7 +222,6 @@ public class Property {
                 Validation.addError(fieldName, "configProperties.error.uint16");
             }
         }
-
         else if (UINT32.equals(type)) {
             if (!VALIDATOR.validateUint32(value)) {
                 Validation.addError(fieldName, "configProperties.error.uint32");
@@ -237,6 +237,11 @@ public class Property {
                 Validation.addError(fieldName, "configProperties.error.url");
             }
         }
+        else if (IPPORTLIST.equals(type)) {
+            if (!VALIDATOR.validateIpPortList(value)) {
+                Validation.addError(fieldName, "configProperties.error.ipportlist");
+            }
+        }        
         else if (STRING.equals(type) || ENCRYPTEDSTRING.equals(type) || TEXT.equals(type) || ENCRYPTEDTEXT.equals(type)) {
             Integer minLen = metadata.getMinLen();
             Integer maxLen = metadata.getMaxLen();

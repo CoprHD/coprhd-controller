@@ -1,0 +1,29 @@
+#!/etc/genconfig
+#
+# Copyright (c) 2016 EMC Corporation
+# All Rights Reserved
+#
+# This software contains the intellectual property of EMC Corporation
+# or is licensed to EMC Corporation from third parties.  Use of this
+# software and the intellectual property contained therein is expressly
+# limited to the terms and conditions of the License Agreement under which
+# it is provided by or on behalf of EMC.
+
+_gen_syslog_config_log4j() {
+    case ${_GENCONFIG_node_id} in 'standalone')             _genconfig_done ; esac
+
+    #ssh_config=$(_ssh_config)
+    #_genconfig_write 644 root:root "${1}" "${ssh_config}"
+    _genconfig_done
+}
+
+_gen_syslog_config_rsyslog() {
+    case ${_GENCONFIG_node_id} in 'standalone') _genconfig_done ; esac
+
+    #local permit_root_ssh=${_GENCONFIG_system_permit_root_ssh}
+    #/usr/bin/sed -i "s/^#*PermitRootLogin.*/PermitRootLogin ${permit_root_ssh}/" ${1}
+    _genconfig_done
+}
+
+_genconfig_exec _gen_syslog_config_log4j         /etc/ssh/sshd_config
+_genconfig_exec _gen_syslog_config_rsyslog       /etc/ssh/ssh_host_ecdsa_key

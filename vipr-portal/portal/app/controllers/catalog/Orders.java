@@ -314,7 +314,7 @@ public class Orders extends OrderExecution {
             }
 
             if (oldTasksStateMap != null && details.viprTasks != null) {
-                if (taskStateChanged(oldTasksStateMap, details.viprTasks)) {
+                if (isTaskStateChanged(oldTasksStateMap, details.viprTasks)) {
                     Long updated = System.currentTimeMillis();
                     if ((lastUpdated == null) || (lastUpdated < updated)) {
                         lastUpdated = updated;
@@ -341,7 +341,7 @@ public class Orders extends OrderExecution {
         return taskMap;
     }
 
-    private static boolean taskStateChanged(Map<URI, String> oldTasksStateMap, List<TaskResourceRep> viprTasks) {
+    private static boolean isTaskStateChanged(Map<URI, String> oldTasksStateMap, List<TaskResourceRep> viprTasks) {
         Map<URI, String> currentTaskStateMap = createTaskStateMap(viprTasks);
         return !Maps.difference(oldTasksStateMap, currentTaskStateMap).areEqual();
     }

@@ -510,4 +510,12 @@ public class DefaultStorageDriver extends AbstractStorageDriver implements Block
         _log.warn(msg);
         throw new UnsupportedOperationException(msg);
     }
+
+    @Override
+    public boolean validateStorageProviderConnection(StorageProvider storageProvider) {
+        String driverName = this.getClass().getSimpleName();
+        String msg = String.format("%s: %s --- operation is not supported.", driverName, "validateStorageProviderConnection");
+        _log.warn(msg);
+        throw new UnsupportedOperationException(msg);
+    }
 }

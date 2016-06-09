@@ -191,14 +191,6 @@ public class StorageSystem extends StorageObject {
         this.supportedReplications = supportedReplications;
     }
 
-    public List<String> getStorageProvidersNativeIds() {
-        return storageProvidersNativeIds;
-    }
-
-    public void setStorageProvidersNativeIds(List<String> storageProvidersNativeIds) {
-        this.storageProvidersNativeIds = storageProvidersNativeIds;
-    }
-
     public List<CapabilityInstance> getCapabilities() {
         return capabilities;
     }

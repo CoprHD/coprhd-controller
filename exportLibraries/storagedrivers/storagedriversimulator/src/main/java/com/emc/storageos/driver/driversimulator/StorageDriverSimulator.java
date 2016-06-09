@@ -934,4 +934,12 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
         return task;
     }
 
+    @Override
+    public boolean validateStorageProviderConnection(StorageProvider storageProvider) {
+        String msg = String.format("Request to validate connection to storage provider with type: %s, host: %s, port: %s ",
+                storageProvider.getProviderType(), storageProvider.getProviderHost(), storageProvider.getPortNumber());
+        _log.info(msg);
+        return true;
+    }
+
 }

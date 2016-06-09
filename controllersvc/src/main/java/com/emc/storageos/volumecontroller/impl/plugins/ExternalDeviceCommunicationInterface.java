@@ -17,7 +17,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.emc.storageos.xtremio.restapi.errorhandling.XtremIOApiException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -149,8 +148,10 @@ public class ExternalDeviceCommunicationInterface extends
             String password = storageProvider.getPassword();
             String hostName = storageProvider.getIPAddress();
             Integer portNumber = storageProvider.getPortNumber();
+            String providerType = storageProvider.getInterfaceType();
             Boolean useSsl = storageProvider.getUseSSL();
-            String msg = String.format("Storage provider info: host: %s, port: %s, user: %s, useSsl: %s", hostName, portNumber, username, useSsl);
+            String msg = String.format("Storage provider info: type: %s, host: %s, port: %s, user: %s, useSsl: %s",
+                    providerType, hostName, portNumber, username, useSsl);
             _log.info(msg);
 
             StorageProvider driverProvider = new StorageProvider();

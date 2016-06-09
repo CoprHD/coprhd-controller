@@ -241,6 +241,11 @@ public class Property {
             if (!VALIDATOR.validateIpPortList(value)) {
                 Validation.addError(fieldName, "configProperties.error.ipportlist");
             }
+        }
+        else if (SVCSTRLIST.equals(type)) {
+            if (!VALIDATOR.validateSvcStrList(value)) {
+                Validation.addError(fieldName, "configProperties.error.svcstrlist");
+            }
         }        
         else if (STRING.equals(type) || ENCRYPTEDSTRING.equals(type) || TEXT.equals(type) || ENCRYPTEDTEXT.equals(type)) {
             Integer minLen = metadata.getMinLen();

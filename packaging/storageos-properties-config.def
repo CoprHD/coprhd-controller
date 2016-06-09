@@ -2805,9 +2805,8 @@
     {
         key : "network_syslog_remote_servers_ports",
         label : "Remote Syslog Servers & Ports",
-        description : "5-6 Syslog servers & their ports(IP addresses:Ports separated by commas).",
+        description : "Syslog servers & their ports(IP addresses:Ports separated by commas).",
         type : "ipportlist",
-        maxLen : 239,
         userConfigurable : true,
         userMutable : true,
 		advanced : true,
@@ -2838,9 +2837,8 @@
 	{
         key : "system_syslog_coprhd_services",
         label : "Services for Syslog transmission",
-        description : "List of acceptable services options for Remote Syslog server transmission.",
-        type : "string",
-        maxLen : 15,		
+        description : "List of acceptable services for which logs have to be transmitted.",
+        type : "svcstrlist",
         allowedValues : ( "apisvc", "authsvc", "bkutils", "controllersvc", "coordinatorsvc", "dbsvc", "geodbsvc", "geosvc", "portalsvc", "sasvc", "syssvc", "vasasvc" ),
         userConfigurable : false,
         userMutable : true,
@@ -2850,6 +2848,6 @@
         rebootRequired : false,
         notifiers : ( "syslog" ),
         controlNodeOnly : false,
-        value : "SysSvc",
+        value : "",
     },
 ]

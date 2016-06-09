@@ -220,6 +220,10 @@ public class PropertiesConfigurationValidator {
 			return validateStrictHostName(propertyValue);
 		} else if (metaData.getType().equalsIgnoreCase(IPLIST)) {
 			return validateIpList(propertyValue);
+		} else if (metaData.getType().equalsIgnoreCase(IPPORTLIST)) {
+			return validateIpPortList(propertyValue);
+		} else if (metaData.getType().equalsIgnoreCase(SVCSTRLIST)) {
+			return validateSvcStrList(propertyValue);		
 		} else if (metaData.getType().equalsIgnoreCase(ENCRYPTEDSTRING)) {
 			return true;
 		} else if (metaData.getType().equalsIgnoreCase(ENCRYPTEDTEXT)) {
@@ -645,6 +649,25 @@ public class PropertiesConfigurationValidator {
 		return true;
 	}
 
+	/**
+	 * Validate the user selected services against the existing services
+	 * 
+	 * @param svcStrList
+	 * @return
+	 */
+	public static boolean validateSvcStrList(String svcStrList) {
+
+		String[] svcList = svcStrList.split(",");
+
+		for (String svc : svcList) {
+			boolean validSvc = ORIGSVCLIST.contains(svc);
+			if (!validSvc) {
+				return false;
+			}
+		}
+		return true;
+	}
+	
 	/**
 	 * Return the map of the properties metadata.
 	 * 

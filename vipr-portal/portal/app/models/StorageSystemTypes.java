@@ -184,9 +184,9 @@ public class StorageSystemTypes {
         StorageSystemTypeList storagetypelist = StorageSystemTypeUtils.getAllStorageSystemTypes(alltypes);
         for (StorageSystemTypeRestRep storagetypeRest : storagetypelist.getStorageSystemTypes()) {
             if (storagetypeRest.getStorageTypeType().equalsIgnoreCase("block")) {
-                if (storagetypeRest.getIsSmiProvider() && (StringUtils.equals(SCALEIO, storagetypeRest.getStorageTypeName()))
+                if (storagetypeRest.getIsSmiProvider() && (StringUtils.equals(SCALEIO, storagetypeRest.getStorageTypeName())
                         || StringUtils.equals(IBMXIV, storagetypeRest.getStorageTypeName())
-                        || StringUtils.equals(XTREMIO, storagetypeRest.getStorageTypeName())) {
+                        || StringUtils.equals(XTREMIO, storagetypeRest.getStorageTypeName())) ) {
                     storageoptions.add(new StringOption(storagetypeRest.getStorageTypeName(), storagetypeRest.getStorageTypeDispName()));
                 }
                 else {

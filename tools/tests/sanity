@@ -7519,7 +7519,7 @@ vmax_fc_setup()
     # so we make sure to use only assigned pools, which are
     # those for the standard vmax array.
     run cos update block $COS_VMAXBLOCK_FC --use_matched false
-    vmax3_fc_setup_once
+    # vmax3_fc_setup_once
 }
 
 full_copy_setup()
@@ -7684,7 +7684,7 @@ full_copy_tests()
     echo "Started full-copy tests"
     full_copy_single_volume_vmax_inactive
     full_copy_single_volume_vmax
-    full_copy_single_volume_vmax3
+    #full_copy_single_volume_vmax3
     full_copy_single_volume_vnx
     echo "Finished full-copy tests"
 }

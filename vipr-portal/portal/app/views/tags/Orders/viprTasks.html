@@ -1,3 +1,12 @@
+<script type="text/javascript">
+function post(url) {
+    if(event.stopPropagation) {
+        event.stopPropagation();
+	}
+    event.cancelBubble=true;
+    $.post(url);
+}
+</script>
 <table class="viprTasks table table-hover table-condensed table-striped editableRows">
   <thead>
     <tr>
@@ -17,16 +26,16 @@
       <td>#{Tasks.progress task.progress, state:task.state/}</td>
       #{if task.state == 'suspended_no_error' }
       	<td>#{Tasks.state task.state/}
-      			<a href="@{resumeTask(_order.id, task.id)}"
+      			<a href="#" onclick="post('@{retryTask(_order.id, task.id)}');"
 	              class="btn btn-default">&{'resources.tasks.resume'}</a>
-	            <a href="@{rollbackTask(_order.id, task.id)}"
+	            <a href="#" onclick="post('@{rollbackTask(_order.id, task.id)}');"
 	              class="btn btn-default">&{'resources.tasks.rollback'}</a></td>
       #{/if}
       #{elseif task.state == 'suspended_error' }
       	<td>#{Tasks.state task.state/}
-      			<a href="@{retryTask(_order.id, task.id)}"
+      			<a href="#" onclick="post('@{retryTask(_order.id, task.id)}');"
 	              class="btn btn-default">&{'resources.tasks.retry'}</a>
-	            <a href="@{rollbackTask(_order.id, task.id)}"
+	            <a href="#" onclick="post('@{rollbackTask(_order.id, task.id)}');"
 	              class="btn btn-default">&{'resources.tasks.rollback'}</a></td>
       #{/elseif}
       #{else}

@@ -13,6 +13,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -150,6 +151,11 @@ public class StorageSystemTypesInitUtils {
      */
     private static void createDbStorageTypeMap(DbClient dbClient) {
         List<URI> ids = dbClient.queryByType(StorageSystemType.class, true);
+        if(dbStorageTypeMap != null) { // Make sure we have empty HashMap
+            dbStorageTypeMap.clear();
+            dbStorageTypeMap = null;
+        }
+
         ArrayList<URI> uriList = Lists.newArrayList(ids.iterator());
         if (!uriList.isEmpty()) {
             Iterator<StorageSystemType> iter = dbClient.queryIterativeObjects(StorageSystemType.class, ids);
@@ -163,7 +169,7 @@ public class StorageSystemTypesInitUtils {
 
     private static void insertFileArrays(DbClient dbClient) {
         for (String file : storageArrayFile) {
-            if (dbStorageTypeMap != null && dbStorageTypeMap.get(file) != null) {
+            if (dbStorageTypeMap != null && StringUtils.equals(file, dbStorageTypeMap.get(file)) ) {
                 // avoid duplicate entries
                 continue;
             }
@@ -203,7 +209,7 @@ public class StorageSystemTypesInitUtils {
 
     private static void insertFileProviders(DbClient dbClient) {
         for (String file : storageProviderFile) {
-            if (dbStorageTypeMap != null && dbStorageTypeMap.get(file) != null) {
+            if (dbStorageTypeMap != null && StringUtils.equals(file, dbStorageTypeMap.get(file)) ) {
                 // avoid duplicate entries
                 continue;
             }
@@ -240,7 +246,7 @@ public class StorageSystemTypesInitUtils {
 
     private static void insertBlockArrays(DbClient dbClient) {
         for (String block : storageArrayBlock) {
-            if (dbStorageTypeMap != null && dbStorageTypeMap.get(block) != null) {
+            if (dbStorageTypeMap != null && StringUtils.equals(block, dbStorageTypeMap.get(block)) ) {
                 // avoid duplicate entries
                 continue;
             }
@@ -278,7 +284,7 @@ public class StorageSystemTypesInitUtils {
 
     private static void insertBlockProviders(DbClient dbClient) {
         for (String block : storageProviderBlock) {
-            if (dbStorageTypeMap != null && dbStorageTypeMap.get(block) != null) {
+            if (dbStorageTypeMap != null && StringUtils.equals(block, dbStorageTypeMap.get(block)) ) {
                 // avoid duplicate entries
                 continue;
             }
@@ -316,7 +322,7 @@ public class StorageSystemTypesInitUtils {
 
     private static void insertObjectArrays(DbClient dbClient) {
         for (String object : storageArrayObject) {
-            if (dbStorageTypeMap != null && dbStorageTypeMap.get(object) != null) {
+            if (dbStorageTypeMap != null && StringUtils.equals(object, dbStorageTypeMap.get(object)) ) {
                 // avoid duplicate entries
                 continue;
             }

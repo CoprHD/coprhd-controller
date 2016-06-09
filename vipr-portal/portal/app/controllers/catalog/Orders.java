@@ -313,12 +313,14 @@ public class Orders extends OrderExecution {
                 return details;
             }
 
-            if (oldTasksStateMap != null && taskStateChanged(oldTasksStateMap, details.viprTasks)) {
-                Long updated = System.currentTimeMillis();
-                if ((lastUpdated == null) || (lastUpdated < updated)) {
-                    lastUpdated = updated;
-                    Logger.debug("Found task state change for order %s", details.order.getOrderNumber());
-                    return details;
+            if (oldTasksStateMap != null && details.viprTasks != null) {
+                if (taskStateChanged(oldTasksStateMap, details.viprTasks)) {
+                    Long updated = System.currentTimeMillis();
+                    if ((lastUpdated == null) || (lastUpdated < updated)) {
+                        lastUpdated = updated;
+                        Logger.debug("Found task state change for order %s", details.order.getOrderNumber());
+                        return details;
+                    }
                 }
             } else {
                 oldTasksStateMap = createTaskStateMap(details.viprTasks);

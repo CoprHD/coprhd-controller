@@ -202,8 +202,9 @@ public class ExternalDeviceCommunicationInterface extends
                 }
             } else {
                 // task status is not ready
-                String errorMsg = String.format("Failed to scan provider %s of type %s",
-                        accessProfile.getSystemId(), accessProfile.getSystemType());
+                String errorMsg = String.format("Failed to scan provider %s of type %s. \n" +
+                                " Driver task message: %s", accessProfile.getSystemId(), accessProfile.getSystemType(),
+                                task.getMessage());
                 throw new ExternalDeviceCollectionException(false, ServiceCode.DISCOVERY_ERROR,
                         null, errorMsg, null, null);
             }
@@ -334,7 +335,6 @@ public class ExternalDeviceCommunicationInterface extends
         driverStorageSystem.setPortNumber(accessProfile.getPortNumber());
         driverStorageSystem.setUsername(accessProfile.getUserName());
         driverStorageSystem.setPassword(accessProfile.getPassword());
-        List<StorageSystem> driverStorageSystems = Collections.singletonList(driverStorageSystem);
 
         com.emc.storageos.db.client.model.StorageSystem storageSystem =
                 _dbClient.queryObject(com.emc.storageos.db.client.model.StorageSystem.class, accessProfile.getSystemId());
@@ -345,7 +345,7 @@ public class ExternalDeviceCommunicationInterface extends
         try {
             _log.info("discoverStorageSystem information for storage system {}, name {} - start",
                     accessProfile.getSystemId(), driverStorageSystem.getSystemName());
-            DriverTask task = driver.discoverStorageSystem(driverStorageSystems);
+            DriverTask task = driver.discoverStorageSystem(driverStorageSystem);
 
             // process discovery results.
             // todo: need to implement support for async case.
@@ -387,8 +387,9 @@ public class ExternalDeviceCommunicationInterface extends
                 }
             } else {
                 storageSystem.setReachableStatus(false);
-                String errorMsg = String.format("Failed to discover storage system %s of type %s",
-                       accessProfile.getSystemId(), accessProfile.getSystemType());
+                String errorMsg = String.format("Failed to discover storage system %s of type %s. \n" +
+                                " Driver task message: %s ",
+                       accessProfile.getSystemId(), accessProfile.getSystemType(), task.getMessage());
                 throw new ExternalDeviceCollectionException(false, ServiceCode.DISCOVERY_ERROR,
                         null, errorMsg, null, null);
             }
@@ -506,8 +507,9 @@ public class ExternalDeviceCommunicationInterface extends
                 allPools.addAll(newPools);
                 allPools.addAll(existingPools);
             } else {
-                String errorMsg = String.format("Failed to discover storage pools for system %s of type %s",
-                        accessProfile.getSystemId(), accessProfile.getSystemType());
+                String errorMsg = String.format("Failed to discover storage pools for system %s of type %s . \n" +
+                                " Driver task message: %s",
+                        accessProfile.getSystemId(), accessProfile.getSystemType(), task.getMessage());
                 storageSystem.setLastDiscoveryStatusMessage(errorMsg);
                 throw new ExternalDeviceCollectionException(false, ServiceCode.DISCOVERY_ERROR,
                         null, errorMsg, null, null);
@@ -614,8 +616,9 @@ public class ExternalDeviceCommunicationInterface extends
                 // Create storage ha domains for ports
                 processStorageHADomains(storageSystem, Collections.unmodifiableMap(driverPortsToDBPorts));
             } else {
-                String errorMsg = String.format("Failed to discover storage ports for system %s of type %s",
-                        accessProfile.getSystemId(), accessProfile.getSystemType());
+                String errorMsg = String.format("Failed to discover storage ports for system %s of type %s. \n" +
+                                " Driver task message: %s",
+                        accessProfile.getSystemId(), accessProfile.getSystemType(), task.getMessage());
                 throw new ExternalDeviceCollectionException(false, ServiceCode.DISCOVERY_ERROR,
                         null, errorMsg, null, null);
             }

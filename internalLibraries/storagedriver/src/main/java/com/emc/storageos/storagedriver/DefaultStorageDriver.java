@@ -423,7 +423,7 @@ public class DefaultStorageDriver extends AbstractStorageDriver implements Block
     }
 
     @Override
-    public DriverTask discoverStorageSystem(List<StorageSystem> storageSystems) {
+    public DriverTask discoverStorageSystem(StorageSystem storageSystem) {
         String driverName = this.getClass().getSimpleName();
         String taskId = String.format("%s+%s+%s", driverName, "discoverStorageSystem", UUID.randomUUID().toString());
         DriverTask task = new DefaultDriverTask(taskId);

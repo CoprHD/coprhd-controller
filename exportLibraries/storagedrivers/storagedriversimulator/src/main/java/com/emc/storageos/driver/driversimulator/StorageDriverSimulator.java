@@ -124,8 +124,7 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
     // DiscoveryDriver implementation
 
     @Override
-    public DriverTask discoverStorageSystem(List<StorageSystem> storageSystems) {
-         StorageSystem storageSystem = storageSystems.get(0);
+    public DriverTask discoverStorageSystem(StorageSystem storageSystem) {
         _log.info("StorageDriver: discoverStorageSystem information for storage system {}, name {} - start",
                 storageSystem.getIpAddress(), storageSystem.getSystemName());
         String taskType = "discover-storage-system";

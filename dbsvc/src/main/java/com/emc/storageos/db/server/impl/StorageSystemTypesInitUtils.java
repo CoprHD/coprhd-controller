@@ -54,7 +54,7 @@ public class StorageSystemTypesInitUtils {
     private static List<String> storageProviderFile = asList(SCALEIOAPI);
 
     // Default block arrays
-    private static List<String> storageArrayBlock = asList(NONE, VMAX, VNX_BLOCK, VNXe, HITACHI, OPENSTACK, DATA_DOMAIN);
+    private static List<String> storageArrayBlock = asList(VMAX, VNX_BLOCK, VNXe, HITACHI, OPENSTACK, DATA_DOMAIN);
 
     // Default Storage provider for Block
     private static List<String> storageProviderBlock = asList(SMIS, HITACHI_PROVIDER, CINDER, DATA_DOMAIN_PROVIDER, VPLEX, SCALEIO,
@@ -388,7 +388,7 @@ public class StorageSystemTypesInitUtils {
         arrProvDisplayNameMap.put(VPLEX, "Storage Provider for EMC VPLEX");
         arrProvDisplayNameMap.put(OPENSTACK, "Storage Provider for Third-party block storage systems");
         arrProvDisplayNameMap.put(SCALEIO, "Block Storage Powered by ScaleIO");
-        arrProvDisplayNameMap.put(HITACHI, "Storage Provider for Data Domain Management Center");
+        arrProvDisplayNameMap.put(DATA_DOMAIN, "Storage Provider for Data Domain Management Center");
         arrProvDisplayNameMap.put(IBMXIV, "Storage Provider for IBM XIV");
         arrProvDisplayNameMap.put(XTREMIO, "Storage Provider for EMC XtremIO");
 

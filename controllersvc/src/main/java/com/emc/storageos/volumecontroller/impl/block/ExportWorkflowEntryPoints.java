@@ -310,6 +310,7 @@ public class ExportWorkflowEntryPoints implements Controller {
             WorkflowStepCompleter.stepExecuting(token);
             DiscoveredSystemObject storage = ExportWorkflowUtils.getStorageSystem(_dbClient, storageURI);
             MaskingOrchestrator orchestrator = getOrchestrator(storage.getSystemType());
+            // TODO DUPP CWF: This is a child workflow, needs idempotent check
             orchestrator.exportGroupChangePathParams(storageURI, exportGroupURI, volumeURI, token);
         } catch (Exception e) {
             DeviceControllerException exception = DeviceControllerException.exceptions

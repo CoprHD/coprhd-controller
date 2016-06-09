@@ -199,8 +199,10 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
      * Gets all export groups that contain references to the provided host or initiators
      * Export groups that don't contain initiators for a host may stil reference the host
      * 
-     * @param hostId the host id
-     * @param initiators list of initiators for the given host
+     * @param hostId
+     *            the host id
+     * @param initiators
+     *            list of initiators for the given host
      * @return list of export groups containing references to the host or initiators
      */
     protected List<ExportGroup> getExportGroups(URI hostId, List<Initiator> initiators) {
@@ -350,7 +352,8 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             List<URI> clusterHostIds = ComputeSystemHelper.getChildrenUris(_dbClient, clusterId, Host.class, "cluster");
             List<URI> exportGroups = Lists.newArrayList();
 
-            // 1. For hosts in this cluster, remove them from other shared exports that don't belong to this current cluster
+            // 1. For hosts in this cluster, remove them from other shared exports that don't belong to this current
+            // cluster
             for (URI hostId : clusterHostIds) {
                 List<Initiator> hostInitiators = ComputeSystemHelper.queryInitiators(_dbClient, hostId);
                 for (ExportGroup exportGroup : getExportGroups(hostId, hostInitiators)) {
@@ -542,10 +545,14 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
      * - Add all hosts in the cluster that are not in the cluster's export groups
      * - Remove all hosts in cluster's export groups that don't belong to the cluster
      * 
-     * @param workflow the workflow
-     * @param waitFor waitfor step
-     * @param clusterHostIds hosts that belong to the cluster
-     * @param clusterId cluster id
+     * @param workflow
+     *            the workflow
+     * @param waitFor
+     *            waitfor step
+     * @param clusterHostIds
+     *            hosts that belong to the cluster
+     * @param clusterId
+     *            cluster id
      * @return
      */
     public String addStepsForSynchronizeClusterExport(Workflow workflow, String waitFor, List<URI> clusterHostIds,
@@ -905,8 +912,10 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
      * Waits for the file export or unexport task to complete.
      * This is required because FileDeviceController does not use a workflow.
      * 
-     * @param fileShareId id of the FileShare being exported
-     * @param stepId id of the workflow step
+     * @param fileShareId
+     *            id of the FileShare being exported
+     * @param stepId
+     *            id of the workflow step
      */
     private void waitForAsyncFileExportTask(URI fileShareId, String stepId) {
         boolean done = false;
@@ -979,7 +988,8 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 Cluster currentClusterRef = !NullColumnValueGetter.isNullURI(currentCluster) ? _dbClient.queryObject(Cluster.class,
                         currentCluster) : null;
 
-                // For every host change (added/removed initiator, cluster change), get all exports that this host currently belongs to
+                // For every host change (added/removed initiator, cluster change), get all exports that this host
+                // currently belongs to
                 List<Initiator> hostInitiators = ComputeSystemHelper.queryInitiators(_dbClient, hostId);
                 Collection<URI> hostInitiatorIds = Collections2.transform(hostInitiators, CommonTransformerFunctions.fctnDataObjectToID());
                 List<Initiator> newInitiatorObjects = _dbClient.queryObject(Initiator.class, change.getNewInitiators());
@@ -1027,7 +1037,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                             && !NullColumnValueGetter.isNullURI(currentCluster)
                             && !oldCluster.equals(currentCluster)
                             && (ComputeSystemHelper.isClusterInExport(_dbClient, oldCluster)
-                            || ComputeSystemHelper.isClusterInExport(_dbClient, currentCluster));
+                                    || ComputeSystemHelper.isClusterInExport(_dbClient, currentCluster));
 
                     if ((isAddedToCluster && currentClusterRef.getAutoExportEnabled())
                             || (isMovedToDifferentCluster && (currentClusterRef.getAutoExportEnabled() || oldClusterRef

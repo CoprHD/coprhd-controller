@@ -29,21 +29,17 @@ import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.workflow.Workflow;
 import com.google.common.base.Joiner;
 
-public class CinderMaskingOrchestrator extends AbstractMaskingFirstOrchestrator
-{
+public class CinderMaskingOrchestrator extends AbstractMaskingFirstOrchestrator {
     private static final Logger _log = LoggerFactory.getLogger(CinderMaskingOrchestrator.class);
 
     private static final AtomicReference<BlockStorageDevice> CINDER_BLOCK_DEVICE = new AtomicReference<BlockStorageDevice>();
     public static final String CINDER_STORAGE_DEVICE = "cinderStorageDevice";
 
     @Override
-    public BlockStorageDevice getDevice()
-    {
+    public BlockStorageDevice getDevice() {
         BlockStorageDevice device = CINDER_BLOCK_DEVICE.get();
-        synchronized (CINDER_BLOCK_DEVICE)
-        {
-            if (device == null)
-            {
+        synchronized (CINDER_BLOCK_DEVICE) {
+            if (device == null) {
                 device = (BlockStorageDevice) ControllerServiceImpl.getBean(CINDER_STORAGE_DEVICE);
                 CINDER_BLOCK_DEVICE.compareAndSet(null, device);
             }
@@ -56,8 +52,7 @@ public class CinderMaskingOrchestrator extends AbstractMaskingFirstOrchestrator
             String previousStep, BlockStorageDevice device,
             StorageSystem storage, ExportGroup exportGroup,
             List<URI> initiatorURIs, Map<URI, Integer> volumeMap, boolean zoneStepNeeded, String token)
-            throws Exception
-    {
+                    throws Exception {
         Map<String, URI> portNameToInitiatorURI = new HashMap<String, URI>();
         List<URI> hostURIs = new ArrayList<URI>();
         List<String> portNames = new ArrayList<String>();
@@ -82,8 +77,7 @@ public class CinderMaskingOrchestrator extends AbstractMaskingFirstOrchestrator
          */
         Map<String, Set<URI>> matchingExportMaskURIs = device.findExportMasks(storage, portNames, false);
 
-        if (matchingExportMaskURIs == null || matchingExportMaskURIs.isEmpty())
-        {
+        if (matchingExportMaskURIs == null || matchingExportMaskURIs.isEmpty()) {
 
             _log.info(String.format(
                     "No existing mask found w/ initiators { %s }",
@@ -92,9 +86,7 @@ public class CinderMaskingOrchestrator extends AbstractMaskingFirstOrchestrator
             createNewExportMaskWorkflowForInitiators(initiatorURIs,
                     exportGroup, workflow, volumeMap, storage, token,
                     previousStep);
-        }
-        else
-        {
+        } else {
             _log.info(String.format("Mask(s) found w/ initiators {%s}. "
                     + "MatchingExportMaskURIs {%s}, portNameToInitiators {%s}",
                     Joiner.on(",").join(portNames),
@@ -114,8 +106,7 @@ public class CinderMaskingOrchestrator extends AbstractMaskingFirstOrchestrator
     public void createWorkFlowAndSubmitForExportGroupCreate(
             List<URI> initiatorURIs, Map<URI, Integer> volumeMap, String token,
             ExportOrchestrationTask taskCompleter, BlockStorageDevice device,
-            ExportGroup exportGroup, StorageSystem storage) throws Exception
-    {
+            ExportGroup exportGroup, StorageSystem storage) throws Exception {
         // Get new work flow to setup steps for export group creation
         Workflow workflow = _workflowService.getNewWorkflow(
                 MaskingWorkflowEntryPoints.getInstance(), "exportGroupCreate",
@@ -143,8 +134,7 @@ public class CinderMaskingOrchestrator extends AbstractMaskingFirstOrchestrator
                 workflow, EXPORT_GROUP_UPDATE_ZONING_MAP, exportGroup, null,
                 volumeMap);
 
-        if (createdSteps && null != zoningStep && null != zoningMapUpdateStep)
-        {
+        if (createdSteps && null != zoningStep && null != zoningMapUpdateStep) {
             // Execute the plan and allow the WorkflowExecutor to fire the
             // taskCompleter.
             workflow.executePlan(taskCompleter, String.format(
@@ -158,12 +148,10 @@ public class CinderMaskingOrchestrator extends AbstractMaskingFirstOrchestrator
     public void createWorkFlowAndSubmitForAddVolumes(URI storageURI,
             URI exportGroupURI, Map<URI, Integer> volumeMap, String token,
             ExportTaskCompleter taskCompleter, ExportGroup exportGroup,
-            StorageSystem storage) throws Exception
-    {
+            StorageSystem storage) throws Exception {
         List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient,
                 exportGroup, storageURI);
-        if (exportMasks != null && !exportMasks.isEmpty())
-        {
+        if (exportMasks != null && !exportMasks.isEmpty()) {
             // Set up work flow steps.
             Workflow workflow = _workflowService.getNewWorkflow(
                     MaskingWorkflowEntryPoints.getInstance(),
@@ -196,17 +184,13 @@ public class CinderMaskingOrchestrator extends AbstractMaskingFirstOrchestrator
                     "Volumes successfully added to export on StorageArray %s",
                     storage.getLabel());
             workflow.executePlan(taskCompleter, successMessage);
-        }
-        else
-        {
+        } else {
             if (exportGroup.getInitiators() != null
-                    && !exportGroup.getInitiators().isEmpty())
-            {
+                    && !exportGroup.getInitiators().isEmpty()) {
                 _log.info("export_volume_add: adding volume, creating a new export");
 
                 List<URI> initiatorURIs = new ArrayList<URI>();
-                for (String initiatorId : exportGroup.getInitiators())
-                {
+                for (String initiatorId : exportGroup.getInitiators()) {
                     Initiator initiator = _dbClient.queryObject(
                             Initiator.class, URI.create(initiatorId));
                     initiatorURIs.add(initiator.getId());
@@ -231,9 +215,7 @@ public class CinderMaskingOrchestrator extends AbstractMaskingFirstOrchestrator
                                 storage.getLabel());
 
                 workflow.executePlan(taskCompleter, successMessage);
-            }
-            else
-            {
+            } else {
                 _log.info("export_volume_add: adding volume, no initiators yet");
                 taskCompleter.ready(_dbClient);
             }

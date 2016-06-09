@@ -6076,6 +6076,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
                 // Execute this sub workflow.
                 DeleteMigrationSourcesCallback wfCallback = new DeleteMigrationSourcesCallback();
+                // TODO DUPP CWF: This is a child workflow, needs idempotent check
                 subWorkflow.executePlan(null, "Deleted migration sources", wfCallback,
                         new Object[] { stepId }, null, null);
             } else {
@@ -6307,6 +6308,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     volumeURIs, opId, null);
             ImportRollbackHandler importRollbackHandler = new ImportRollbackHandler();
             Object[] importRollbackHandlerArgs = new Object[] { importedVolumeURI, createdVolumeURI, vplexVolumeURI };
+            // TODO DUPP CWF: This is a child workflow, needs idempotent check (1 of three flows seems like a subflow)
             workflow.executePlan(completer, successMessage,
                     null, null, importRollbackHandler, importRollbackHandlerArgs);
         } catch (Exception ex) {

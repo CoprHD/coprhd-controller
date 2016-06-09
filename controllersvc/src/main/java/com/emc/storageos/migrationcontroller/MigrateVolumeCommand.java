@@ -2,11 +2,12 @@ package com.emc.storageos.migrationcontroller;
 
 import com.iwave.ext.linux.command.LinuxResultsCommand;
 
-public class MigrationVolumeCommand extends LinuxResultsCommand<String> {
+public class MigrateVolumeCommand extends LinuxResultsCommand<String> {
 
-    public MigrationVolumeCommand(String args) {
-        setCommand("/usr/bin/migrationVolume");
-        addArgument(args);
+    public MigrateVolumeCommand(String... args) {
+        setRunAsRoot(true);
+        setCommand("dd");
+        addArguments(args);
     }
 
     @Override

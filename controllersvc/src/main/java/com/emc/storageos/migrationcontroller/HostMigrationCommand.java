@@ -88,10 +88,10 @@ public class HostMigrationCommand {
         cli.executeCommand(command);
     }
 
-    public static String migrationCommand(Host host, String migrationName, String srcDevice, String tgtDevice) {
+    public static String migrationCommand(Host host, String srcDevice, String tgtDevice) {
         LinuxSystemCLI cli = LinuxHostDiscoveryAdapter.createLinuxCLI(host);
-        String args = String.format("migrationName = %s, srcDevice=%s tgtDevice=%s", migrationName, srcDevice, tgtDevice);
-        MigrationVolumeCommand command = new MigrationVolumeCommand(args);
+        String args = String.format("if=%s of=%s & echo $!", srcDevice, tgtDevice);
+        MigrateVolumeCommand command = new MigrateVolumeCommand(args);
         cli.executeCommand(command);
         try {
             CommandOutput output = command.getOutput();

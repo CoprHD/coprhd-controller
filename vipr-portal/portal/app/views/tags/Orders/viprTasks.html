@@ -35,9 +35,11 @@
       <td><span data-relative-time="${task?.startTime?.timeInMillis}"></span></td>
       <td><span data-elapsed-time="${task?.startTime?.timeInMillis}#{if task.endTime}:${task.endTime.timeInMillis}#{/if}"></span></td>
     </tr>
+    #{if _viprTaskStepMessages[task.id] != null } 
     <tr>
       <td colspan="6" style="border-top:0px">${_viprTaskStepMessages[task.id]}</td>
     </tr>
+    #{/if}
   #{/list}
   </tbody>
 </table>

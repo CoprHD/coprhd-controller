@@ -486,11 +486,10 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
                         port.setTransportType(TransportType.Ethernet);
                         break;
                     case 2:
-                    case 4:
                         port.setTransportType(TransportType.IP);
                         break;
                     default:
-                        _log.error("3PARDriver: discoverStoragePorts Invalid port type");
+                        _log.warn("3PARDriver: discoverStoragePorts Invalid port {}", port.getPortName());
                         break;
                 }
                 
@@ -514,32 +513,27 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
                         port.getTransportType().equals(TransportType.Ethernet.toString())) {
 
                     port.setPortNetworkId(SanUtils.formatWWN(currMember.getPortWWN()));
-                    // Filling values as its expected by SB SDK
+                    // rest of the values
                     port.setEndPointID(port.getPortNetworkId());
+                    port.setTcpPortNumber(index.longValue());
                 } else {
                     port.setIpAddress(currMember.getIPAddr());
                     port.setPortNetworkId(currMember.getiSCSINmae());
-                    // Filling values as its expected by SB SDK                    
-                    port.setEndPointID(currMember.getiSCSINmae());
+                    port.setTcpPortNumber(currMember.getiSCSIPortInfo().getiSNSPort());
+                    // rest of the values                    
+                    port.setEndPointID(port.getPortNetworkId());
                 }
                
-                // Filling values as its expected by SB SDK
-                port.setTcpPortNumber(index.longValue());
                 port.setAvgBandwidth(port.getPortSpeed());
                 port.setPortHAZone(String.format("Group-%s", currMember.getPortPos().getNode()));
                 
-                String id = String.format("port:%s:%s:%s", currMember.getPortPos().getNode(),
+                String id = String.format("%s:%s:%s", currMember.getPortPos().getNode(),
                         currMember.getPortPos().getSlot(), currMember.getPortPos().getCardPort());
                 // Storage object properties
                 port.setNativeId(id);
                 port.setDeviceLabel(port.getPortName());
                 port.setDisplayName(port.getPortName());
                 storageSystem.setAccessStatus(AccessStatus.READ_WRITE);
-
-                // To provide provisioning without proper fabric; lglap114.lss.emc.com; root/standard
-                //TEMP CODE START**********************
-                //port.setNetworkId("er-network77"+ storageSystem.getNativeId());
-                //TEMP CODE END************************
                 port.setOperationalStatus(StoragePort.OperationalStatus.OK);  
                 _log.info("3PARDriver: added storage port {}, native id {}",  port.getPortName(), port.getNativeId());
                 storagePorts.add(port);

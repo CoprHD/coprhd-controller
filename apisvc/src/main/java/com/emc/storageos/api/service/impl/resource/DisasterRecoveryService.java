@@ -7,6 +7,7 @@ package com.emc.storageos.api.service.impl.resource;
 import com.emc.storageos.coordinator.client.model.SiteNetworkState;
 import com.emc.storageos.coordinator.client.model.SiteNetworkState.NetworkHealth;
 import java.net.InetAddress;
+import java.net.NetworkInterface;
 import java.net.UnknownHostException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -122,6 +123,7 @@ public class DisasterRecoveryService {
     private static final int SITE_CONNECTION_TEST_PORT = 443;
     private static final String LOCAL_HOST = "localhost";
     private static final String SYSTEM_ENABLE_FIREWALL = "system_enable_firewall";
+    private static final long DEGRADED_SITES_MONITOR_INTERVAL_MINS = 10;
 
     private InternalApiSignatureKeyGenerator apiSignatureGenerator;
     private SiteMapper siteMapper;
@@ -161,6 +163,12 @@ public class DisasterRecoveryService {
     public void init() {
         siteMapper = new SiteMapper();
         startLeaderSelector();
+    }
+
+    private void startDegradedSiteMonitor() {
+
+
+
     }
 
     /**
@@ -2064,6 +2072,7 @@ public class DisasterRecoveryService {
 
         private static final int FAILBACK_DETECT_INTERNVAL_SECONDS = 60;
         private ScheduledExecutorService service;
+        private ScheduledExecutorService degradedMonitorService;
 
         @Override
         protected void startLeadership() throws Exception {
@@ -2071,6 +2080,9 @@ public class DisasterRecoveryService {
 
             service = Executors.newScheduledThreadPool(1);
             service.scheduleAtFixedRate(failbackDetectMonitor, 0, FAILBACK_DETECT_INTERNVAL_SECONDS, TimeUnit.SECONDS);
+
+            degradedMonitorService = Executors.newScheduledThreadPool(1);
+            degradedMonitorService.scheduleAtFixedRate(new DegradedSiteMonitor(), 0, DEGRADED_SITES_MONITOR_INTERVAL_MINS, TimeUnit.MINUTES);
         }
 
         @Override
@@ -2078,6 +2090,10 @@ public class DisasterRecoveryService {
             service.shutdown();
             try {
                 while (!service.awaitTermination(30, TimeUnit.SECONDS)) {
+                    log.info("Waiting scheduler thread pool to shutdown for another 30s");
+                }
+
+                while (!degradedMonitorService.awaitTermination(30, TimeUnit.SECONDS)) {
                     log.info("Waiting scheduler thread pool to shutdown for another 30s");
                 }
             } catch (InterruptedException e) {
@@ -2268,4 +2284,44 @@ public class DisasterRecoveryService {
         }
 
     };
+
+    /**
+     * Monitor all degraded sites, including old active, degraded standbys, resume it once coming back.
+     * Only run on leader node of active site.
+     */
+    private class DegradedSiteMonitor implements Runnable {
+
+        @Override
+        public void run() {
+
+            List<Site> degradedSites = getDegradedSites();
+
+            for (Site degradedSite : degradedSites) {
+                boolean resumeResult = true;
+
+                log.info("Found a degraded site {}, resuming it ...", degradedSite.getSiteShortId());
+
+                // For each degraded site, if resume gets error, retry resuming next cycle.
+                // If something wrong after resuming request, just alert user and give up retry.
+                // User have to manually resume the site.
+                try {
+                    resumeStandby(degradedSite.getUuid());
+                } catch (Exception e) { // Ignore the site and will retry
+                    resumeResult = false;
+                }
+
+                log.info("Resuming site {} is done with the result {}", degradedSite.getSiteShortId(), resumeResult);
+            }
+        }
+
+        /**
+         * Get all degraded sites including active and standby.
+         * @return
+         */
+        private List<Site> getDegradedSites() {
+            List<Site> sites = drUtil.listSitesInState(SiteState.STANDBY_DEGRADED);
+            sites.addAll(drUtil.listSitesInState(SiteState.ACTIVE_DEGRADED));
+            return sites;
+        }
+    }
 }

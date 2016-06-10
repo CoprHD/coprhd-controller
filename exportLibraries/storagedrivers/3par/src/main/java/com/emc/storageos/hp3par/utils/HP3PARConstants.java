@@ -46,7 +46,10 @@ public class HP3PARConstants {
     public static final String TASK_TYPE_DELETE_CONSISTENCY_GROUP = "delete-consistency-group";
     public static final String TASK_TYPE_SNAPSHOT_CONSISTENCY_GROUP = "snapshot-consistency-group";
     public static final String TASK_TYPE_CLONE_CONSISTENCY_GROUP = "clone-consistency-group";
-    public static final String TASK_TYPE_UPDATE_CONSISTENCY_GROUP = "eupdate-consistency-group";
+    public static final String TASK_TYPE_UPDATE_CONSISTENCY_GROUP = "update-consistency-group";
+    public static final String TASK_TYPE_DELETE_SNAPSHOT_CONSISTENCY_GROUP = "delete-snapshot-consistency-group";
+    public static final String TASK_TYPE_DELETE_CLONE_CONSISTENCY_GROUP = "delete-clone-consistency-group";
+
 	
     public static enum provisioningType
     {

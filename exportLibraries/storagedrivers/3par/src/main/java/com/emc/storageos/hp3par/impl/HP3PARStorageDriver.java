@@ -1127,7 +1127,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 										, snap.getNativeId(),snap.getWwn(),snap.getDeviceLabel(),snap.getDisplayName());
 								snap.setWwn(volResult.getWwn());
 								snap.setNativeId(volResult.getName());
-
+								snap.setLabel(volResult.getName());
 								snap.setDeviceLabel(volResult.getName());
 								// snap.setAccessStatus(volResult.getAccessStatus());
 								snap.setDisplayName(volResult.getName());
@@ -1175,14 +1175,36 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 
     @Override
     public DriverTask deleteConsistencyGroupSnapshot(List<VolumeSnapshot> snapshots) {
-    	for (VolumeSnapshot snap : snapshots) {
-            
-        	//native id = null , 
-            _log.info("3PARDriver: deleteConsistencyGroupSnapshot for storage system native id {}, snap display name {} - start",
-            		snap.toString(), snap.getDisplayName());
-	}
-        // TODO Auto-generated method stub
-        return null;
+
+	    DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_DELETE_SNAPSHOT_CONSISTENCY_GROUP);
+
+        // For each requested CG volume snapshot 
+        for (VolumeSnapshot snap : snapshots) {
+            try {
+                _log.info("3PARDriver: deleteConsistencyGroupSnapshot for storage system native id {}, volume name {} , native id {} - start",
+                		snap.getStorageSystemId(), snap.getDisplayName(), snap.getNativeId());     
+
+                // get Api client
+                HP3PARApi hp3parApi = getHP3PARDeviceFromNativeId(snap.getStorageSystemId());
+
+                // Delete virtual copy
+                hp3parApi.deleteVirtualCopy(snap.getNativeId());
+                
+                task.setStatus(DriverTask.TaskStatus.READY);
+                _log.info("3PARDriver: deleteConsistencyGroupSnapshot for storage system native id {}, volume name {} - end",
+                		snap.getStorageSystemId(), snap.getDisplayName());            
+            } catch (Exception e) {
+                String msg = String.format(
+                        "3PARDriver: deleteConsistencyGroupSnapshot Unable to delete cg snapshot name %s with native id %s for storage system native id %s; Error: %s.\n",
+                        snap.getDisplayName(), snap.getNativeId(), snap.getStorageSystemId(), e.getMessage());
+                _log.error(msg);
+                task.setMessage(msg);
+                task.setStatus(DriverTask.TaskStatus.PARTIALLY_FAILED);
+                e.printStackTrace();
+            }
+        } // end for each delete snapshot
+        
+        return task;
     }
 
     @Override

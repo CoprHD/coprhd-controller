@@ -957,7 +957,10 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
             List<StoragePort> recommendedPorts, List<StoragePort> availablePorts, StorageCapabilities capabilities,
             MutableBoolean usedRecommendedPorts, List<StoragePort> selectedPorts) {
 
-    	_log.info("3PARDriver: exportVolumesToInitiators Running ");
+    	// For all recommended ports
+        // export volume host, vol, HLU, recoPort
+        // if fails use available ports to fix that many number of exports
+        // add in selected port if available port is used
         _log.info("3PARDriver:exportVolumesToInitiators");
         
         return null;

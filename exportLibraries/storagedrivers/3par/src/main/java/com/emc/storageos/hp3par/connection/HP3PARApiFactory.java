@@ -187,8 +187,9 @@ public class HP3PARApiFactory {
 //        hp3parApi.getPortDetails();
 //        PortStatisticsCommandResult portStatRes = hp3parApi.getPortStatisticsDetail();
         
-        String vol = "3par_vol10";
-        hp3parApi.createVolume(vol, "One", true, (long)1024);
+        String vol = "One_Thin40";
+//        hp3parApi.createVolume(vol, "One", true, (long)1024);
+        hp3parApi.createVlun(vol, -1, "myhost", "1:1:1");
 //        hp3parApi.expandVolume(vol, (long)2048);
 //        hp3parApi.getCPGDetails("One");
 //        hp3parApi.deleteVolume(vol);

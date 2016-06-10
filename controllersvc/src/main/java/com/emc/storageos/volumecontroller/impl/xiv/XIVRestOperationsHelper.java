@@ -594,10 +594,11 @@ public class XIVRestOperationsHelper {
                     }
 
                     // update hosts
-                    Host hostIns = searchHostInDb(host);
-                    if (null != hostIns) {
+                    Initiator initiator = ExportUtils.getInitiator(Initiator.toPortNetworkId(hostPortSet.get(0)), _dbClient);
+                    if(null!=initiator && null!=initiator.getHost()){
+                    	Host hostIns = _dbClient.queryObject(Host.class, initiator.getHost());
                         String label = hostIns.getLabel();
-                        if (label.equals(hostIns)) {
+                        if (label.equals(host)) {
                             unsetTag(hostIns, storage.getSerialNumber());
                         } else {
                             setTag(hostIns, storage.getSerialNumber(), host);
@@ -624,20 +625,6 @@ public class XIVRestOperationsHelper {
             _log.info(String.format("findExportMasks took %f seconds", (double) totalTime / (double) 1000));
         }
         return matchingMasks;
-    }
-    
-    private Host searchHostInDb(String hostname) {
-        final URIQueryResultList resRepList = new URIQueryResultList();
-        _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getConstraint(Host.class, "hostName", hostname), resRepList);
-        if (resRepList.iterator() != null) {
-            for (URI res : resRepList) {
-                Host host = _dbClient.queryObject(Host.class, res);
-                if ((host != null) && !(host.getInactive())) {
-                    return host;
-                }
-            }
-        }
-        return null; // if not found
     }
 
 	public void addVolumeUsingREST(StorageSystem storage, URI exportMaskURI, VolumeURIHLU[] volumeURIHLUs, TaskCompleter taskCompleter) {

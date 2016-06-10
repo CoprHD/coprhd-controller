@@ -6,9 +6,10 @@ package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 
 import javax.cim.CIMObjectPath;
 import javax.wbem.CloseableIterator;
@@ -18,9 +19,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.StoragePool;
-import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
@@ -32,6 +34,7 @@ import com.google.common.collect.Collections2;
  */
 public class ArrayAffinityDiscoveryUtils {
     private static final Logger _log = LoggerFactory.getLogger(ArrayAffinityDiscoveryUtils.class);
+    public static final List<String> HOST_PROPERTIES = Arrays.asList("preferredPoolIds", "label");
 
     /**
      * update preferredPoolIds for a host
@@ -39,44 +42,35 @@ public class ArrayAffinityDiscoveryUtils {
      * @param Host host to be update
      * @param systemId ID of the system
      * @param dbClient DbClient
-     * @param preferredPools new preferred pools on the system
+     * @param poolToTypeMap new preferred pools on the system
      * @return true if host's preferred pools have been changed
      */
-    public static boolean updatePreferredPools(Host host, URI systemId, DbClient dbClient, Set<URI> preferredPools) {
-        StringSet existingPreferredPools = host.getPreferredPoolIds();
+    public static boolean updatePreferredPools(Host host, URI systemId, DbClient dbClient, Map<String, String> poolToTypeMap) {
+        StringMap existingPreferredPools = host.getPreferredPoolIds();
         List<String> poolsToRemove = new ArrayList<String>();
-        List<String> poolsToAdd = new ArrayList<String>();
 
         // find out pools on the system were preferred, but not anymore
         if (!existingPreferredPools.isEmpty()) {
-            Collection<URI> poolURIs = Collections2.transform(existingPreferredPools, CommonTransformerFunctions.FCTN_STRING_TO_URI);
+            Collection<URI> poolURIs = Collections2.transform(existingPreferredPools.keySet(), CommonTransformerFunctions.FCTN_STRING_TO_URI);
             List<StoragePool> pools = dbClient.queryObject(StoragePool.class, poolURIs);
             for (StoragePool pool : pools) {
                 if (systemId.equals(pool.getStorageDevice())) {
-                    if (!preferredPools.contains(pool.getId())) {
-                        poolsToRemove.add(pool.getId().toString());
+                    String poolIdStr = pool.getId().toString();
+                    if (!poolToTypeMap.containsKey(poolIdStr)) {
+                        poolsToRemove.add(poolIdStr);
                     }
                 }
             }
         }
 
-        // find out new preferred pool
-        if (!preferredPools.isEmpty()) {
-            for (URI pool : preferredPools) {
-                if (!existingPreferredPools.contains(pool.toString())) {
-                    poolsToAdd.add(pool.toString());
-                }
-            }
-        }
-
         boolean needUpdateHost = false;
-        if (!poolsToRemove.isEmpty()) {
-            existingPreferredPools.removeAll(poolsToRemove);
+        for (String pool : poolsToRemove) {
+            existingPreferredPools.remove(pool);
             needUpdateHost = true;
         }
 
-        if (!poolsToAdd.isEmpty()) {
-            existingPreferredPools.addAll(poolsToAdd);
+        if (!poolToTypeMap.isEmpty()) {
+            existingPreferredPools.putAll(poolToTypeMap);
             needUpdateHost = true;
         }
 
@@ -117,5 +111,21 @@ public class ArrayAffinityDiscoveryUtils {
         }
 
         return poolURI;
+    }
+
+    /**
+     * Add pool Id and export type to preferred pool map
+     * If a host has at least one shared volume in given pool, the pool is shared (cluster type). If a host has only exclusive volumes in the pool,
+     * the pool is not shared (Host type)
+     *
+     * @param preferredPools preferred pool to export type map
+     * @param pool String of pool Id
+     * @param type type of export
+     */
+    public static void addPoolToPreferredPoolMap(Map<String, String> preferredPoolToExportTypeMap, String pool, String type) {
+        String oldType = preferredPoolToExportTypeMap.get(pool);
+        if (oldType == null || (!oldType.equals(type) && type.equals(ExportGroupType.Cluster.name()))) {
+            preferredPoolToExportTypeMap.put(pool, type);
+        }
     }
 }

@@ -75,6 +75,7 @@ import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DataCollectionJobStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Host.ProvisioningJobStatus;
 import com.emc.storageos.db.client.model.HostInterface;
@@ -402,6 +403,10 @@ public class HostService extends TaskResourceService {
             if (systemObj == null) {
                 _log.warn(String.format("StorageSystem %s is no longer in the DB. It could have been deleted or decommissioned",
                         sysURI));
+                continue;
+            }
+
+            if (!systemObj.deviceIsType(Type.vmax)) {
                 continue;
             }
 

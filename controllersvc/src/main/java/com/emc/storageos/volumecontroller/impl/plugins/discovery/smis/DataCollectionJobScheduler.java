@@ -7,9 +7,12 @@ package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -28,6 +31,7 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.ComputeSystem;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.CompatibilityStatus;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.DiscoveredSystemObject;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.NetworkSystem;
@@ -363,6 +367,8 @@ public class DataCollectionJobScheduler {
         _logger.info("Started Loading Systems from DB for " + jobType + " jobs");
         ArrayList<DataCollectionJob> jobs = new ArrayList<DataCollectionJob>();
         List<URI> allSystemsURIs = new ArrayList<URI>();
+        Map<URI, Set<URI>> providerToSystemsMap = new HashMap<URI, Set<URI>>();
+
         if (jobType.equalsIgnoreCase(ControllerServiceImpl.NS_DISCOVERY)) {
             addToList(allSystemsURIs, _dbClient.queryByType(NetworkSystem.class, true).iterator());
         } else if (jobType.equalsIgnoreCase(ControllerServiceImpl.CS_DISCOVERY)) {
@@ -371,7 +377,24 @@ public class DataCollectionJobScheduler {
         } else if (jobType.equalsIgnoreCase(ControllerServiceImpl.COMPUTE_DISCOVERY)) {
             addToList(allSystemsURIs, _dbClient.queryByType(ComputeSystem.class, true).iterator());
         } else if (jobType.equalsIgnoreCase(ControllerServiceImpl.ARRAYAFFINITY_DISCOVERY)) {
-            addToList(allSystemsURIs, _dbClient.queryByType(StorageSystem.class, true).iterator());
+            List<URI> systemURIs = _dbClient.queryByType(StorageSystem.class, true);
+            Iterator<StorageSystem> storageSystems = _dbClient.queryIterativeObjects(StorageSystem.class, systemURIs);
+            while (storageSystems.hasNext()) {
+                StorageSystem systemObj = storageSystems.next();
+                if (systemObj.deviceIsType(Type.vmax)) {
+                    StorageProvider provider = _dbClient.queryObject(StorageProvider.class,
+                            systemObj.getActiveProviderURI());
+                    if (provider != null && !provider.getInactive()) {
+                        Set<URI> systems = providerToSystemsMap.get(provider.getId());
+                        if (systems == null) {
+                            systems = new HashSet<URI>();
+                            providerToSystemsMap.put(provider.getId(), systems);
+                        }
+                        systems.add(systemObj.getId());
+                        allSystemsURIs.add(systemObj.getId());
+                    }
+                }
+            }
         }
         else {
             addToList(allSystemsURIs, _dbClient.queryByType(StorageSystem.class, true).iterator());
@@ -384,6 +407,7 @@ public class DataCollectionJobScheduler {
                 URI systemURI = systemURIsItr.next();
                 String taskId = UUID.randomUUID().toString();
                 DataCollectionJob job = null;
+                StorageProvider provider = null;
                 if (URIUtil.isType(systemURI, StorageSystem.class)) {
                     StorageSystem systemObj = _dbClient.queryObject(StorageSystem.class, systemURI);
                     if (systemObj == null) {
@@ -399,7 +423,7 @@ public class DataCollectionJobScheduler {
                                     jobType, systemURI);
                             continue;
                         }
-                        StorageProvider provider = _dbClient.queryObject(StorageProvider.class,
+                        provider = _dbClient.queryObject(StorageProvider.class,
                                 systemObj.getActiveProviderURI());
                         if (provider == null || provider.getInactive()) {
                             _logger.info("Skipping {} Job : StorageSystem {} does not have a valid active provider",
@@ -419,7 +443,14 @@ public class DataCollectionJobScheduler {
                             continue;
                         }
                     }
-                    job = getDataCollectionJobByType(StorageSystem.class, jobType, taskId, systemURI);
+                    if (ControllerServiceImpl.ARRAYAFFINITY_DISCOVERY.equalsIgnoreCase(jobType) && provider != null &&
+                            providerToSystemsMap.get(provider.getId()) != null) {
+                        DiscoverTaskCompleter completer = new DiscoverTaskCompleter(StorageSystem.class, systemURI, taskId, jobType);
+                        job = new DataCollectionDiscoverJob(completer, DataCollectionJob.JobOrigin.SCHEDULER, Discovery_Namespaces.ARRAY_AFFINITY.name());
+                        providerToSystemsMap.remove(provider.getId());
+                    } else {
+                        job = getDataCollectionJobByType(StorageSystem.class, jobType, taskId, systemURI);
+                    }
                 } else if (URIUtil.isType(systemURI, NetworkSystem.class)) {
                     job = getDataCollectionJobByType(NetworkSystem.class, jobType, taskId, systemURI);
                 } else if (URIUtil.isType(systemURI, ComputeSystem.class)) {

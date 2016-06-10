@@ -21,17 +21,11 @@
 				<ref bean="start" />
 				<!-- All processors after this -->
 
-				<!-- get Controller Configuration Service -->
-				<ref bean="getControllerConfigurationService" />
-
 				<!-- get Existing Masking Views -->
 				<ref bean="getMaskingViews" />
 
 				<!-- get exports -->
 				<ref bean="getExports" />
-
-				<!-- This should be executed at the end of the array affinity discovery -->
-				<ref bean="updatePreferredPoolIds" />
 
 				<!-- "complete" should be the last step. All new steps above this -->
 				<ref bean="complete" />
@@ -77,51 +71,23 @@
 		<property name="value" value="dbClient" />
 	</bean>
 
-	<!-- SMI-S Call to get Controller Configuration Service -->
-	<bean id="getControllerConfigurationService" class="com.emc.storageos.plugins.common.domainmodel.Operation">
-		<property name="arguments">
-			<list>
-				<ref bean="reference-controllerconfigurationService" />
-			</list>
-		</property>
-		<property name="instance" ref="cimClient" />
-		<property name="result" value="configurationService" />
-		<property name="method" value="enumerateInstanceNames" />
-		<property name="processor" ref="controllerConfigurationProcessor" />
-		<property name="message" value="Invoking enumerateInstanceNames to get configuration service details."/>
-	</bean>
-
-	<bean id="controllerConfigurationProcessor"
-		class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.fast.ControllerConfigurationProcessor" />
-
-	<bean id="reference-controllerconfigurationService" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-		<property name="creator" ref="argscreator" />
-		<property name="method" value="getReferenceValue" />
-		<property name="value" value="configurationService" />
-	</bean>
-
 	<bean id="getMaskingViews" class="com.emc.storageos.plugins.common.domainmodel.Operation">
 		<property name="arguments">
 			<list>
-				<ref bean="reference-controllerconfigurationService" />
-				<ref bean="null" />
-				<ref bean="resultClass-lunMaskingProtocolController" />
-				<ref bean="null" />
-				<ref bean="null" />
-
+				<ref bean="reference-lunMaskingProtocolController" />
 			</list>
 		</property>
 		<property name="instance" ref="cimClient" />
 		<property name="result" value="maskingViews" />
-		<property name="method" value="associatorNames" />
+		<property name="method" value="enumerateInstanceNames" />
 		<property name="processor" ref="cimpathprocessor" />
-		<property name="message" value="Invoking associatorNames to get MaskingView details"/>
+		<property name="message" value="Invoking enumerateInstances to get MaskingViews"/>
 	</bean>
 
-	<bean id="resultClass-lunMaskingProtocolController" class="com.emc.storageos.plugins.common.domainmodel.Argument">
+	<bean id="reference-lunMaskingProtocolController" class="com.emc.storageos.plugins.common.domainmodel.Argument">
 		<property name="creator" ref="argscreator" />
-		<property name="method" value="getStringValue" />
-		<property name="value" value="EMC_LunMaskingSCSIProtocolController" />
+		<property name="method" value="createCIMPath" />
+		<property name="value" value="root/emc:EMC_LunMaskingSCSIProtocolController" />
 	</bean>
 
 	<!-- Processors -->
@@ -173,49 +139,9 @@
     </bean>
 
     <bean id="exportProcessor"
-        class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.export.ExportProcessor">
+        class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.export.ArrayAffinityExportProcessor">
         <property name="partitionManager" ref="partitionManager"/>
     </bean>
-
-    <!-- This should be executed at the end of the array affinity discovery -->
-	<bean id="updatePreferredPoolIds" class="com.emc.storageos.plugins.common.domainmodel.Operation">
-		<property name="arguments">
-			<list>
-				<ref bean="hostUnManagedExportMasks" />
-				<ref bean="unManagedExportMaskStoragePoolsMap" />
-				<ref bean="systemId" />
-				<ref bean="dbclient" />
-			</list>
-		</property>
-		<property name="instance" ref="arrayAffinityPostProcessor" />
-		<property name="method" value="updatePreferredPoolIds" />
-		<property name="message" value="Invoking updatePreferredPoolIds" />
-	</bean>
-
-	<bean id="hostUnManagedExportMasks" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-        <property name="creator" ref="argscreator" />
-        <property name="method" value="getListValue" />
-        <property name="value" value="hostUnManagedExportMasksMap" />
-    </bean>
-
-	<bean id="unManagedExportMaskStoragePoolsMap"
-		class="com.emc.storageos.plugins.common.domainmodel.Argument">
-		<property name="creator" ref="argscreator" />
-		<property name="method" value="getListValue" />
-		<property name="value" value="unManagedExportMaskStoragePoolsMap" />
-	</bean>
-
-	<bean id="systemId"
-		class="com.emc.storageos.plugins.common.domainmodel.Argument">
-		<property name="creator" ref="argscreator" />
-		<property name="method" value="getReferenceValue" />
-		<property name="value" value="systemId" />
-	</bean>
-
-	<bean id="arrayAffinityPostProcessor"
-		class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.export.ArrayAffinityPostProcessor">
-		<property name="partitionManager" ref="partitionManager" />
-	</bean>
 
 	<bean id="null" class="com.emc.storageos.plugins.common.domainmodel.Argument">
 		<property name="creator" ref="argscreator" />

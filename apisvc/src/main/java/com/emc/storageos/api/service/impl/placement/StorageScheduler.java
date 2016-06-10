@@ -41,6 +41,7 @@ import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.ExportGroup;
+import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
@@ -58,7 +59,6 @@ import com.emc.storageos.db.client.model.VirtualPool.FileReplicationType;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
-import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
@@ -77,7 +77,6 @@ import com.emc.storageos.volumecontroller.impl.utils.ProvisioningAttributeMapBui
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.volumecontroller.impl.utils.attrmatchers.CapacityMatcher;
 import com.emc.storageos.volumecontroller.impl.utils.attrmatchers.MaxResourcesMatcher;
-import com.google.common.collect.Collections2;
 
 /**
  * Basic storage scheduling functions of block and file storage. StorageScheduler is done based on desired
@@ -87,6 +86,12 @@ public class StorageScheduler implements Scheduler {
     public static final Logger _log = LoggerFactory.getLogger(StorageScheduler.class);
     private static final String SCHEDULER_NAME = "block";
     private static final String GLOBAL_CUSTOM_CONFIG_SCOPE = "global";
+    // factor to adjust weight of array depending on export type
+    // for host export, shared arrays (host has shared volumes on those arrays) will have less weight
+    // for cluster export, exclusive arrays (those have only exclusive volumes to the hosts in the cluster), will have less weight
+    // if the factor is 0, then shared arrays will not be treated as preferred arrays for host export,
+    // and exclusive arrays will not be treated as preferred arrays for cluster export
+    private static double AFFINITY_FACTOR = 0.999;
     private DbClient _dbClient;
 
     private CoordinatorClient _coordinator;
@@ -600,19 +605,19 @@ public class StorageScheduler implements Scheduler {
      */
     private List<Recommendation> performArrayAffinityPlacement(String varrayId, VirtualPoolCapabilityValuesWrapper capabilities,
             List<StoragePool> candidatePools, boolean inCG) {
-        Map<URI, Integer> arrayToHostCountMap = new HashMap<URI, Integer>();
-        Map<URI, Set<URI>> preferredPoolMap = getPreferredPoolMap(capabilities.getCompute(), arrayToHostCountMap);
+        Map<URI, Double> arrayToHostWeightMap = new HashMap<URI, Double>();
+        Map<URI, Set<URI>> preferredPoolMap = getPreferredPoolMap(capabilities.getCompute(), arrayToHostWeightMap);
         boolean canUseNonPreferred = canUseNonPreferredSystem(preferredPoolMap.keySet().size());
 
         // group pools by array
         Map<URI, List<StoragePool>> candidatePoolMap = groupPoolsByArray(candidatePools,
-                canUseNonPreferred, arrayToHostCountMap.keySet());
+                canUseNonPreferred, arrayToHostWeightMap.keySet());
 
         // get all the candidate arrays
         List<StorageSystem> candidateSystems = _dbClient.queryObject(StorageSystem.class, candidatePoolMap.keySet());
 
         // sort the arrays, first by host/cluster's preference, then by array's average port metrics
-        Collections.sort(candidateSystems, new StorageSystemMetricComparator(arrayToHostCountMap));
+        Collections.sort(candidateSystems, new StorageSystemMetricComparator(arrayToHostWeightMap));
 
         // process the sorted candidate arrays
         for (StorageSystem system : candidateSystems) {
@@ -693,20 +698,20 @@ public class StorageScheduler implements Scheduler {
      * Find out storage systems and pools of existing mapped volumes of a host/cluster
      *
      * @param compute URI string of the host or cluster
-     * @param arrayToHostCountMap map of system URI to count of hosts for which the array is a preferred array
+     * @param arrayToHostWeightMap map of system URI to weight of hosts for which the array is a preferred array
      *
      * @return a map of system URI to URIs of pools
      */
-    private Map<URI, Set<URI>> getPreferredPoolMap(String compute, Map<URI, Integer> arrayToHostCountMap) {
+    private Map<URI, Set<URI>> getPreferredPoolMap(String compute, Map<URI, Double> arrayToHostWeightMap) {
         if (compute == null) {
             return new HashMap<URI, Set<URI>>();
         }
 
         URI computeURI = URIUtil.uri(compute);
         if (URIUtil.isType(computeURI, Cluster.class)) {
-            return getPreferredPoolMapForCluster(computeURI, arrayToHostCountMap);
+            return getPreferredPoolMapForCluster(computeURI, arrayToHostWeightMap);
         } else {
-            return getPreferredPoolMapForHost(computeURI, arrayToHostCountMap);
+            return getPreferredPoolMapForHost(computeURI, arrayToHostWeightMap, ExportGroup.ExportGroupType.Host.name());
         }
     }
 
@@ -714,18 +719,18 @@ public class StorageScheduler implements Scheduler {
      * Find out storage systems and pools of existing mapped volumes of a cluster
      *
      * @param clusterURI URI of the cluster
-     * @param arrayToHostCountMap map of system URI to count of hosts for which the array is a preferred array
+     * @param arrayToHostWeightMap map of system URI to count of hosts for which the array is a preferred array
      *
      * @return a map of system URI to URIs of pools
      */
-    private Map<URI, Set<URI>> getPreferredPoolMapForCluster(URI clusterURI, Map<URI, Integer> arrayToHostCountMap) {
+    private Map<URI, Set<URI>> getPreferredPoolMapForCluster(URI clusterURI, Map<URI, Double> arrayToHostWeightMap) {
         Map<URI, Set<URI>> poolMap = new HashMap<URI, Set<URI>>();
         List<Host> hosts =
                 CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, Host.class,
                         ContainmentConstraint.Factory.getContainedObjectsConstraint(clusterURI, Host.class, "cluster"));
         for (Host host : hosts) {
-            Map<URI, Set<URI>> hostPoolMap = getPreferredPoolMapForHost(host.getId(), arrayToHostCountMap);
-            for (Map.Entry<URI, Set<URI>> entry : hostPoolMap.entrySet()) {
+            Map<URI, Set<URI>> arrayToPoolsMap = getPreferredPoolMapForHost(host.getId(), arrayToHostWeightMap, ExportGroupType.Cluster.name());
+            for (Map.Entry<URI, Set<URI>> entry : arrayToPoolsMap.entrySet()) {
                 URI systemURI = entry.getKey();
                 Set<URI> pools = poolMap.get(systemURI);
                 if (pools == null) {
@@ -744,31 +749,37 @@ public class StorageScheduler implements Scheduler {
      * Find out storage systems and pools of existing mapped volumes of a host
      *
      * @param hostURI URI of the host
-     * @param arrayToHostCountMap map of system URI to count of hosts for which the array is a preferred array
-     *
+     * @param arrayToHostWeightMap map of system URI to weight of hosts for which the array is a preferred array
+     * @param exportType Cluster or Host export
      * @return a map of system URI to URIs of pools
      */
-    private Map<URI, Set<URI>> getPreferredPoolMapForHost(URI hostURI, Map<URI, Integer> arrayToHostCountMap) {
-        Set<URI> poolURIs = new HashSet<URI>();
+    private Map<URI, Set<URI>> getPreferredPoolMapForHost(URI hostURI, Map<URI, Double> arrayToHostWeightMap, String exportType) {
+        Map<URI, String> poolToTypeMap = new HashMap<URI, String>();
 
         Host host = _dbClient.queryObject(Host.class, hostURI);
         if (host != null && !host.getInactive()) {
             // add preferred pool Ids from array affinity discovery
-            poolURIs.addAll(Collections2.transform(host.getPreferredPoolIds(),
-                    CommonTransformerFunctions.FCTN_STRING_TO_URI));
+            for (Map.Entry<String, String> entry : host.getPreferredPoolIds().entrySet()) {
+                poolToTypeMap.put(URI.create(entry.getKey()), entry.getValue());
+            }
 
             // discover preferred pools from ViPR DB
             List<ExportGroup> exportGroups = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, ExportGroup.class,
                     AlternateIdConstraint.Factory.getConstraint(ExportGroup.class, "hosts", hostURI.toString()));
             for (ExportGroup exportGroup : exportGroups) {
                 StringMap volumeStringMap = exportGroup.getVolumes();
+                String type = exportGroup.getType();
                 if (volumeStringMap != null && !volumeStringMap.isEmpty()) {
                     for (String volumeIdStr : volumeStringMap.keySet()) {
                         URI volumeURI = URI.create(volumeIdStr);
                         if (URIUtil.isType(volumeURI, Volume.class)) {
                             Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
                             if (volume != null && !volume.getInactive()) {
-                                poolURIs.add(volume.getPool());
+                                URI poolURI = volume.getPool();
+                                String oldType = poolToTypeMap.get(poolURI);
+                                if (oldType == null || (!oldType.equals(type) && type.equals(ExportGroupType.Cluster.name()))) {
+                                    poolToTypeMap.put(poolURI, type);
+                                }
                             }
                         }
                     }
@@ -777,34 +788,57 @@ public class StorageScheduler implements Scheduler {
         }
 
         // group pools by array
-        Map<URI, Set<URI>> poolMap = new HashMap<URI, Set<URI>>();
-        if (!poolURIs.isEmpty()) {
-            List<StoragePool> pools = _dbClient.queryObject(StoragePool.class, poolURIs);
+        Map<URI, Set<URI>> arrayToPoolsMap = new HashMap<URI, Set<URI>>();
+        if (!poolToTypeMap.isEmpty()) {
+            List<StoragePool> pools = _dbClient.queryObject(StoragePool.class, poolToTypeMap.keySet());
             for (StoragePool pool : pools) {
                 if (pool != null && !pool.getInactive()) {
                     URI systemURI = pool.getStorageDevice();
-                    Set<URI> groupPools = poolMap.get(systemURI);
+                    Set<URI> groupPools = arrayToPoolsMap.get(systemURI);
                     if (groupPools == null) {
                         groupPools = new HashSet<URI>();
-                        poolMap.put(systemURI, groupPools);
+                        arrayToPoolsMap.put(systemURI, groupPools);
                     }
 
                     groupPools.add(pool.getId());
                 }
             }
 
-            for (URI systemURI : poolMap.keySet()) {
-                // update count
-                Integer count = arrayToHostCountMap.get(systemURI);
-                if (count == null) {
-                    count = 0;
+            // calculate weight
+            // if any of preferred pools is shared, the array is shared
+            // if all of the preferred pools are exclusive, the array is exclusive
+            for (URI systemURI : arrayToPoolsMap.keySet()) {
+                Set<URI> groupPools = arrayToPoolsMap.get(systemURI);
+                boolean hasCluster = false;
+                for (URI poolURI : groupPools) {
+                    if (ExportGroupType.Cluster.name().equals(poolToTypeMap.get(poolURI))) {
+                        hasCluster = true;
+                        break;
+                    }
                 }
 
-                arrayToHostCountMap.put(systemURI, count++);
+                Double weight = 1.0;
+                if (ExportGroupType.Host.name().equals(exportType)) {
+                    if (hasCluster) {
+                        weight = AFFINITY_FACTOR;
+                    }
+                } else { // cluster
+                    if (!!hasCluster) {
+                        weight = AFFINITY_FACTOR;
+                    }
+                }
+
+                // update weigth
+                Double oldWeight = arrayToHostWeightMap.get(systemURI);
+                if (oldWeight == null) {
+                    oldWeight = 0.0;
+                }
+
+                arrayToHostWeightMap.put(systemURI, oldWeight + weight);
             }
         }
 
-        return poolMap;
+        return arrayToPoolsMap;
     }
 
     /*
@@ -1179,18 +1213,18 @@ public class StorageScheduler implements Scheduler {
      * and in ascending order of its average port usage metrics (second order)
      */
     private class StorageSystemMetricComparator implements Comparator<StorageSystem> {
-        private Map<URI, Integer> _arrayToHostCount;
-        public StorageSystemMetricComparator(Map<URI, Integer> arrayToHostCount) {
-            _arrayToHostCount = arrayToHostCount;
+        private Map<URI, Double> _arrayToHostWeight;
+        public StorageSystemMetricComparator(Map<URI, Double> arrayToHostWeight) {
+            _arrayToHostWeight = arrayToHostWeight;
         }
 
         @Override
         public int compare(StorageSystem sys1, StorageSystem sys2) {
             int result = 0;
-            if (_arrayToHostCount != null && !_arrayToHostCount.isEmpty()) {
-                Integer sys1HostCount = _arrayToHostCount.get(sys1.getId()) == null ? 0 : _arrayToHostCount.get(sys1.getId());
-                Integer sys2HostCount = _arrayToHostCount.get(sys2.getId()) == null ? 0 : _arrayToHostCount.get(sys2.getId());
-                result = sys1HostCount.compareTo(sys1HostCount) * -1;
+            if (_arrayToHostWeight != null && !_arrayToHostWeight.isEmpty()) {
+                Double sys1HostWeight = _arrayToHostWeight.get(sys1.getId()) == null ? 0.0 : _arrayToHostWeight.get(sys1.getId());
+                Double sys2HostWeight = _arrayToHostWeight.get(sys2.getId()) == null ? 0.0 : _arrayToHostWeight.get(sys2.getId());
+                result = Double.compare(sys2HostWeight, sys1HostWeight);
             }
 
             if (result == 0) {

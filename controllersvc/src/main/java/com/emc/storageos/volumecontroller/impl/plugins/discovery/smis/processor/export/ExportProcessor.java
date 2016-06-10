@@ -21,6 +21,7 @@ import javax.wbem.CloseableIterator;
 import javax.wbem.client.EnumerateResponse;
 import javax.wbem.client.WBEMClient;
 
+import com.emc.storageos.volumecontroller.impl.plugins.SMICommunicationInterface;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,17 +33,14 @@ import com.emc.storageos.db.client.model.HostInterface;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StoragePort.TransportType;
-import com.emc.storageos.db.client.model.StorageSystem.Discovery_Namespaces;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.ZoneInfo;
 import com.emc.storageos.db.client.model.ZoneInfoMap;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
-import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.WWNUtility;
 import com.emc.storageos.db.client.util.iSCSIUtility;
 import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
-import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.common.PartitionManager;
@@ -51,9 +49,7 @@ import com.emc.storageos.plugins.common.domainmodel.Operation;
 import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.util.VPlexUtil;
-import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
-import com.emc.storageos.volumecontroller.impl.plugins.SMICommunicationInterface;
 import com.emc.storageos.volumecontroller.impl.smis.CIMPropertyFactory;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
@@ -77,13 +73,10 @@ public class ExportProcessor extends Processor {
 
     private Set<URI> _allCurrentUnManagedExportMaskUris = null;
     private Map<String, Set<UnManagedExportMask>> _volumeToExportMasksMap = null;
-    private Map<URI, Set<String>> _hostToExportMasksMap = null;
-    private Map<String, Set<URI>> _maskToStoragePoolsMap = null;
     private List<UnManagedExportMask> _unManagedExportMasksToCreate = null;
     private List<UnManagedExportMask> _unManagedExportMasksToUpdate = null;
 
     private PartitionManager _partitionManager;
-    private boolean _isArrayAffinity = false;
 
     /**
      * Method for setting the partition manager via injection.
@@ -107,9 +100,6 @@ public class ExportProcessor extends Processor {
             Map<String, Object> keyMap) {
         _keyMap = keyMap;
         _dbClient = (DbClient) keyMap.get(Constants.dbClient);
-        AccessProfile profile = (AccessProfile) keyMap.get(Constants.ACCESSPROFILE);
-        _isArrayAffinity = Discovery_Namespaces.ARRAY_AFFINITY.name().equals(profile.getnamespace()) ||
-                ControllerServiceImpl.ARRAYAFFINITY_DISCOVERY.equals(profile.getProfileName());
 
         _vplexPortInitiators =
                 (Set<URI>) _keyMap.get(Constants.UNMANAGED_EXPORT_MASKS_VPLEX_INITS_SET);
@@ -184,14 +174,14 @@ public class ExportProcessor extends Processor {
 
             response = (EnumerateResponse<CIMInstance>) resultObj;
             processVolumesAndInitiatorsPaths(response.getResponses(), mask, matchedInitiators, matchedPorts, knownIniSet,
-                    knownNetworkIdSet, knownPortSet, knownVolumeSet, client);
+                    knownNetworkIdSet, knownPortSet, knownVolumeSet);
 
             while (!response.isEnd()) {
                 _logger.info("Processing next Chunk");
                 response = client.getInstancesWithPath(Constants.MASKING_PATH, response.getContext(),
                         new UnsignedInteger32(BATCH_SIZE));
                 processVolumesAndInitiatorsPaths(response.getResponses(), mask, matchedInitiators, matchedPorts, knownIniSet,
-                        knownNetworkIdSet, knownPortSet, knownVolumeSet, client);
+                        knownNetworkIdSet, knownPortSet, knownVolumeSet);
             }
 
             // CTRL - 8918 - always update the mask with new initiators and volumes.
@@ -372,40 +362,6 @@ public class ExportProcessor extends Processor {
     }
 
     /**
-     * Gets the Map of hosts to maskingViewPaths that is being tracked in the keyMap.
-     *
-     * @return a Map of hosts to maskingViewPaths
-     */
-    protected Map<URI, Set<String>> getHostToExportMasksMap() {
-        // find or create the Host -> maskingViewPaths tracking data structure in the key map
-        _hostToExportMasksMap =
-                (Map<URI, Set<String>>) _keyMap.get(Constants.HOST_UNMANAGED_EXPORT_MASKS_MAP);
-        if (_hostToExportMasksMap == null) {
-            _hostToExportMasksMap = new HashMap<URI, Set<String>>();
-            _keyMap.put(Constants.HOST_UNMANAGED_EXPORT_MASKS_MAP, _hostToExportMasksMap);
-        }
-
-        return _hostToExportMasksMap;
-    }
-
-    /**
-     * Gets the Map of maskingViewPaths to StoragePools that is being tracked in the keyMap.
-     *
-     * @return a Map of maskingViewPaths to StoragePools
-     */
-    protected Map<String, Set<URI>> getMaskToStoragePoolsMap() {
-        // find or create the maskingViewPath -> StoragePools tracking data structure in the key map
-        _maskToStoragePoolsMap =
-                (Map<String, Set<URI>>) _keyMap.get(Constants.UNMANAGED_EXPORT_MASK_STORAGE_POOLS_MAP);
-        if (_maskToStoragePoolsMap == null) {
-            _maskToStoragePoolsMap = new HashMap<String, Set<URI>>();
-            _keyMap.put(Constants.UNMANAGED_EXPORT_MASK_STORAGE_POOLS_MAP, _maskToStoragePoolsMap);
-        }
-
-        return _maskToStoragePoolsMap;
-    }
-
-    /**
      * Gets the Set of UnManagedExportMask URIs that are being tracked in the keyMap.
      * They represent the any UnManagedExportMasks that are being updated or created
      * in the database during the discovery run. This collection will be used
@@ -538,14 +494,14 @@ public class ExportProcessor extends Processor {
 
     private void processVolumesAndInitiatorsPaths(CloseableIterator<CIMInstance> it, UnManagedExportMask mask,
             List<Initiator> matchedInitiators, List<StoragePort> matchedPorts, Set<String> knownIniSet,
-            Set<String> knownNetworkIdSet, Set<String> knownPortSet, Set<String> knownVolumeSet, WBEMClient client) {
+            Set<String> knownNetworkIdSet, Set<String> knownPortSet, Set<String> knownVolumeSet) {
         while (it.hasNext()) {
             CIMInstance cimi = it.next();
 
             _logger.info("looking at classname: " + cimi.getClassName());
             switch (cimi.getClassName()) {
 
-                // process initiators
+            // process initiators
                 case SmisConstants.CP_SE_STORAGE_HARDWARE_ID:
 
                     String initiatorNetworkId = this.getCIMPropertyValue(cimi, SmisConstants.CP_STORAGE_ID);
@@ -575,20 +531,6 @@ public class ExportProcessor extends Processor {
                         knownNetworkIdSet.add(knownInitiator.getInitiatorPort());
                         if (HostInterface.Protocol.FC.toString().equals(knownInitiator.getProtocol())) {
                             matchedInitiators.add(knownInitiator);
-                        }
-
-                        // add to map of host to export masks
-                        if (_isArrayAffinity) {
-                            URI hostId  = knownInitiator.getHost();
-                            if (!NullColumnValueGetter.isNullURI(hostId)) {
-                                Set<String> maskingViewPaths = getHostToExportMasksMap().get(hostId);
-                                if (maskingViewPaths == null) {
-                                    maskingViewPaths = new HashSet<String>();
-                                    _logger.info("Creating mask set for host {}" + hostId);
-                                    getHostToExportMasksMap().put(hostId, maskingViewPaths);
-                                }
-                                maskingViewPaths.add(mask.getMaskingViewPath());
-                            }
                         }
                     } else {
                         _logger.info("   no hosts in ViPR found configured for initiator " + initiatorNetworkId);
@@ -663,31 +605,12 @@ public class ExportProcessor extends Processor {
                     URIQueryResultList result = new URIQueryResultList();
                     _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getVolumeNativeGuidConstraint(nativeGuid), result);
 
-                    URI poolURI = null;
                     Volume volume = null;
                     Iterator<URI> volumes = result.iterator();
                     if (volumes.hasNext()) {
                         volume = _dbClient.queryObject(Volume.class, volumes.next());
                         if (null != volume) {
                             knownVolumeSet.add(volume.getId().toString());
-                            poolURI = volume.getPool();
-                        }
-                    }
-
-                    if (_isArrayAffinity) {
-                        if (volume == null) {
-                            poolURI = ArrayAffinityDiscoveryUtils.getStoragePool(volumePath, client, _dbClient);
-                        }
-
-                        if (!NullColumnValueGetter.isNullURI(poolURI)) {
-                            String maskingViewPath = mask.getMaskingViewPath();
-                            Set<URI> pools = getMaskToStoragePoolsMap().get(maskingViewPath);
-                            if (pools == null) {
-                                pools = new HashSet<URI>();
-                                _logger.info("Creating pool set for mask {}" + maskingViewPath);
-                                getMaskToStoragePoolsMap().put(maskingViewPath, pools);
-                            }
-                            pools.add(poolURI);
                         }
                     }
 

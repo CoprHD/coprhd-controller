@@ -5,8 +5,10 @@
 package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.export;
 
 import java.net.URI;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import javax.cim.CIMInstance;
@@ -20,6 +22,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.cimadapter.connections.cim.CimObjectPathCreator;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
@@ -53,7 +56,7 @@ public class ArrayAffinityProcessor {
                 if (StringUtils.isNotEmpty(hostIdStr)) {
                     Host host = dbClient.queryObject(Host.class, URI.create(hostIdStr));
                     if (host != null && !host.getInactive()) {
-                        Set<URI> preferredPoolURIs = getPreferredPoolIds(host.getId(), profile, cimClient, dbClient);
+                        Map<String, String> preferredPoolURIs = getPreferredPoolMap(host.getId(), profile, cimClient, dbClient);
                         if (ArrayAffinityDiscoveryUtils.updatePreferredPools(host, systemId, dbClient, preferredPoolURIs)) {
                             dbClient.updateObject(host);
                         }
@@ -66,16 +69,16 @@ public class ArrayAffinityProcessor {
     }
 
     /**
-     * Get preferred pool Ids for a host
+     * Get preferred pool to export type map for a host
      *
      * @param hostId Id of Host instance
      * @param profile AccessProfile
      * @param cimClient WBEMClient
      * @param dbClient DbClient
-     * @return set of URIs of preferred pools
+     * @return preferred pool to export type map
      */
-    private Set<URI> getPreferredPoolIds(URI hostId, AccessProfile profile, WBEMClient cimClient, DbClient dbClient) {
-        Set<URI> preferredPools = new HashSet<URI>();
+    private Map<String, String> getPreferredPoolMap(URI hostId, AccessProfile profile, WBEMClient cimClient, DbClient dbClient) {
+        Map<String, String> preferredPoolMap = new HashMap<String, String>();
 
         List<Initiator> allInitiators = CustomQueryUtility
                 .queryActiveResourcesByConstraint(dbClient,
@@ -83,6 +86,7 @@ public class ArrayAffinityProcessor {
                                 .getContainedObjectsConstraint(
                                         hostId,
                                         Initiator.class, Constants.HOST));
+        Set<CIMObjectPath> hardwareIdPaths = new HashSet<CIMObjectPath>();
         for (Initiator initiator : allInitiators) {
             String normalizedPortName = Initiator.normalizePort(initiator
                     .getInitiatorPort());
@@ -94,22 +98,33 @@ public class ArrayAffinityProcessor {
                     SmisConstants.CIM_STORAGE_HARDWARE_ID, Constants.EMC_NAMESPACE, null);
             List<CIMInstance> hardwareIds = DiscoveryUtils.executeQuery(cimClient, hardwareIdPath, query, CQL);
             if (!hardwareIds.isEmpty()) {
-                List<CIMObjectPath> maskPaths = DiscoveryUtils.getAssociatorNames(cimClient, hardwareIds.get(0).getObjectPath(), null,
-                        SmisConstants.CIM_PROTOCOL_CONTROLLER, null, null);
-                for (CIMObjectPath path : maskPaths) {
-                    if (profile.getserialID().equals(path.getKeyValue(SmisConstants.CP_SYSTEM_NAME).toString())) {
-                        List<CIMObjectPath> volumePaths = DiscoveryUtils.getAssociatorNames(cimClient, path, null, SmisConstants.CIM_STORAGE_VOLUME, null, null);
-                        for (CIMObjectPath volumePath : volumePaths) {
-                            URI poolURI = ArrayAffinityDiscoveryUtils.getStoragePool(volumePath, cimClient, dbClient);
-                            if (!NullColumnValueGetter.isNullURI(poolURI)) {
-                                preferredPools.add(poolURI);
-                            }
-                        }
+                hardwareIdPaths.add(hardwareIds.get(0).getObjectPath());
+            }
+        }
+
+        Set<CIMObjectPath> maskPaths = new HashSet<CIMObjectPath>();
+        for (CIMObjectPath hardwareIdPath : hardwareIdPaths) {
+            maskPaths.addAll(DiscoveryUtils.getAssociatorNames(cimClient, hardwareIdPath, null,
+                    SmisConstants.CIM_PROTOCOL_CONTROLLER, null, null));
+        }
+
+        for (CIMObjectPath path : maskPaths) {
+            if (StringUtils.contains(path.getKeyValue(SmisConstants.CP_SYSTEM_NAME).toString(), profile.getserialID())) {
+                List<CIMObjectPath> hardwareIdsInMask = DiscoveryUtils.getAssociatorNames(cimClient, path, null, SmisConstants.CIM_STORAGE_HARDWARE_ID, null, null);
+                // check if the mask is shared or exclusive
+                String maskType = hardwareIdPaths.containsAll(hardwareIdsInMask) ? ExportGroup.ExportGroupType.Host.name() :
+                    ExportGroup.ExportGroupType.Cluster.name();
+
+                List<CIMObjectPath> volumePaths = DiscoveryUtils.getAssociatorNames(cimClient, path, null, SmisConstants.CIM_STORAGE_VOLUME, null, null);
+                for (CIMObjectPath volumePath : volumePaths) {
+                    URI poolURI = ArrayAffinityDiscoveryUtils.getStoragePool(volumePath, cimClient, dbClient);
+                    if (!NullColumnValueGetter.isNullURI(poolURI)) {
+                        ArrayAffinityDiscoveryUtils.addPoolToPreferredPoolMap(preferredPoolMap, poolURI.toString(), maskType);
                     }
                 }
             }
         }
 
-        return preferredPools;
+        return preferredPoolMap;
     }
 }

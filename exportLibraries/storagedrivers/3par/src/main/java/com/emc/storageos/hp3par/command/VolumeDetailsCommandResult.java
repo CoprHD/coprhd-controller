@@ -5,8 +5,15 @@ public class VolumeDetailsCommandResult {
     private String wwn;
     private String uuid;
     private String copyOf;
+    private String name;
     
-    
+
+    public String getName() {
+    	return name;
+    }
+    public void setName(String name) {
+    	this.name = name;
+    }
     public String getCopyOf() {
 		return copyOf;
 	}

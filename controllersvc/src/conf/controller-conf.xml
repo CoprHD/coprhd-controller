@@ -1475,6 +1475,7 @@
     <bean id="protectionOrchestrationDeviceController" class="com.emc.storageos.protectionorchestrationcontroller.ProtectionOrchestrationDeviceController">
         <property name="dbClient" ref="dbclient"/>
 	<property name="srdfDeviceController" ref="srdfDeviceController" />
+	<property name="vplexConsistencyGroupManager" ref="vplexConsistencyGroupManager" />
         <property name="vplexDeviceController" ref="vplexDeviceController" />
 	<property name="workflowService" ref="workflowService"/>
     </bean>

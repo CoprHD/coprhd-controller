@@ -28,7 +28,6 @@ import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.volumecontroller.impl.utils.labels.LabelFormat;
 import com.emc.storageos.volumecontroller.impl.utils.labels.LabelFormatFactory;
 import com.google.common.base.Predicate;
-import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -1011,9 +1010,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         }
 
         for (String replicationGroupInstance : replicationGroupInstances) {
-            List<BlockSnapshotSession> sessions = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient,
-                    BlockSnapshotSession.class,
-                    getSnapshotSessionReplicationGroupInstanceConstraint(replicationGroupInstance));
+            Collection<BlockSnapshotSession> sessions = getSessionsForReplicationGroup(replicationGroupInstance, storage);
 
             for (BlockSnapshotSession session : sessions) {
                 Workflow.Method deleteMethod = BlockDeviceController.deleteBlockSnapshotSessionMethod(storage, session.getId(), replicationGroupInstance, true);
@@ -1684,7 +1681,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
     }
 
     private List<Volume> getVolumes(Collection<Volume> volumes, final Collection<URI> withURIs) {
-        return ImmutableList.copyOf(Collections2.filter(volumes, new Predicate<Volume>() {
+        return ImmutableList.copyOf(filter(volumes, new Predicate<Volume>() {
             @Override
             public boolean apply(Volume volume) {
                 return withURIs.contains(volume.getId());
@@ -1724,5 +1721,25 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
                                 ControllerUtils.isNotInRealVNXRG(volume, _dbClient));
             }
         };
+    }
+
+    /**
+     * Get instances of BlockSnapshotSession that contain the given replication group instance and storage system.
+     *
+     * @param replicationGroupInstance  ReplicationGroup instance
+     * @param storage                   StorageSystem URI
+     * @return                          Collection of BlockSnapshotSession
+     */
+    private Collection<BlockSnapshotSession> getSessionsForReplicationGroup(String replicationGroupInstance, final URI storage) {
+        List<BlockSnapshotSession> sessions = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient,
+                BlockSnapshotSession.class,
+                getSnapshotSessionReplicationGroupInstanceConstraint(replicationGroupInstance));
+
+        return filter(sessions, new Predicate<BlockSnapshotSession>() {
+            @Override
+            public boolean apply(BlockSnapshotSession session) {
+                return session.getStorageController().equals(storage);
+            }
+        });
     }
 }

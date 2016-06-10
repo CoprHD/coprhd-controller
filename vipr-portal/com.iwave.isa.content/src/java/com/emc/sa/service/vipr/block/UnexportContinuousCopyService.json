@@ -1,0 +1,27 @@
+{
+  baseKey:"UnexportContinuousCopy.Block",
+  serviceId:"UnexportContinuousCopy",
+  fields:{
+
+    project:{
+      type:"assetType.vipr.project",
+      lockable: true
+    },
+    
+    volumes:{
+      type:"assetType.vipr.volumeWithContinuousCopies",
+      select: "one"
+    },
+    
+    copy:{
+      type:"assetType.vipr.exportedBlockContinuousCopy",
+      lockable:false
+     },
+     
+    export:{
+      type: "assetType.vipr.continuousCopyExport", 
+      lockable: false
+    }
+  }
+  
+}

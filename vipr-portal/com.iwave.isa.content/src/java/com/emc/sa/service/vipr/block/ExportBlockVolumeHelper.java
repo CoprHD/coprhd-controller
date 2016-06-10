@@ -4,6 +4,7 @@
  */
 package com.emc.sa.service.vipr.block;
 
+import static com.emc.sa.service.ServiceParams.COPIES;
 import static com.emc.sa.service.ServiceParams.HLU;
 import static com.emc.sa.service.ServiceParams.HOST;
 import static com.emc.sa.service.ServiceParams.MAX_PATHS;
@@ -54,6 +55,9 @@ public class ExportBlockVolumeHelper {
 
     @Param(value = SNAPSHOTS, required = false)
     protected List<String> snapshotIds;
+    
+    @Param(value = COPIES, required = false)
+    protected List<String> copiesIds;
 
     @Param(value = HLU, required = false)
     protected Integer hlu;
@@ -75,8 +79,8 @@ public class ExportBlockVolumeHelper {
             hlu = -1;
         }
 
-        if (volumeId == null && volumeIds == null && snapshotIds == null) {
-            ExecutionUtils.fail("failTask.ExportBlockVolumeHelper.precheck", new Object[] {}, new Object[] { VOLUME, VOLUMES, SNAPSHOTS });
+        if (volumeId == null && volumeIds == null && snapshotIds == null && copiesIds == null) {
+            ExecutionUtils.fail("failTask.ExportBlockVolumeHelper.precheck", new Object[] {}, new Object[] { VOLUME, VOLUMES, SNAPSHOTS, COPIES });
         }
 
         precheckExportPathParameters(minPaths, maxPaths, pathsPerInitiator);
@@ -105,6 +109,17 @@ public class ExportBlockVolumeHelper {
      * @return The list of export groups which have been created/updated
      */
     public List<ExportGroupRestRep> exportBlockResources(List<URI> resourceIds) {
+        return exportBlockResources(resourceIds, null);
+    }
+    
+    /**
+     * export the block resources identified by URIs in the given resource id list
+     * 
+     * @param resourceIds the list of URIs which identify the block resources that need to be exported
+     * @param parentId the parent URI for the list of resourceIds
+     * @return The list of export groups which have been created/updated
+     */
+    public List<ExportGroupRestRep> exportBlockResources(List<URI> resourceIds, URI parentId) {
         // the list of exports to return
         List<ExportGroupRestRep> exports = Lists.newArrayList();
 
@@ -115,7 +130,7 @@ public class ExportBlockVolumeHelper {
         Integer currentHlu = hlu;
 
         // get a list of all block resources using the id list provided
-        List<BlockObjectRestRep> blockResources = BlockStorageUtils.getBlockResources(resourceIds);
+        List<BlockObjectRestRep> blockResources = BlockStorageUtils.getBlockResources(resourceIds, parentId);
         URI virtualArrayId = null;
 
         for (BlockObjectRestRep blockResource : blockResources) {

@@ -47,6 +47,7 @@ import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.RemoteDirectorGroup;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StorageSystem.SupportedReplicationTypes;
@@ -77,6 +78,7 @@ import com.emc.storageos.srdfcontroller.SRDFController;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.volumecontroller.ControllerException;
@@ -191,6 +193,16 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
             Iterator<Recommendation> recommendationsIter = recommendations.iterator();
             while (recommendationsIter.hasNext()) {
                 SRDFRecommendation recommendation = (SRDFRecommendation) recommendationsIter.next();
+                // Check that we're not SWAPPED in the RDF group. If so we don't want to proceed
+                // until we (later) fix creating volumes while in SWAPPED state.
+                for (SRDFRecommendation.Target target : recommendation.getVirtualArrayTargetMap().values()) {
+                    if (target != null && 
+                            SRDFScheduler.rdfGroupHasSwappedVolumes(_dbClient, project.getId(), target.getSourceRAGroup())) {
+                        RemoteDirectorGroup rdg = _dbClient.queryObject(RemoteDirectorGroup.class, target.getSourceRAGroup());
+                        throw BadRequestException.badRequests.cannotAddVolumesToSwappedReplicationGroup(rdg.getLabel());
+                    }
+                }
+                
                 StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, recommendation.getSourceStorageSystem());
                 // Prepare the Bourne Volumes to be created and associated
                 // with the actual storage system volumes created. Also create
@@ -255,6 +267,9 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
         } catch (InternalException e) {
             _log.error("Rolling back the created CGs if any.");
             throw e;
+        } catch (BadRequestException e) {
+            _log.info("Bad request exception: " + e.getMessage());
+            throw e;
         } catch (Exception e) {
             _log.error("Rolling back the created CGs if any.");
             throw APIException.badRequests.srdfInternalError(e);
@@ -277,12 +292,11 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
     private List<VolumeDescriptor> createVolumeDescriptors(final SRDFRecommendation recommendation,
             final List<URI> volumeURIs, final VirtualPoolCapabilityValuesWrapper capabilities)
             throws ControllerException {
-
-        List<Volume> preparedVolumes = _dbClient.queryObject(Volume.class, volumeURIs);
-
         List<VolumeDescriptor> descriptors = new ArrayList<VolumeDescriptor>();
-        // Package up the Volume descriptors
-        for (Volume volume : preparedVolumes) {
+        
+        // Package up the prepared Volumes into descriptors
+        for (URI volumeURI : volumeURIs) {
+            Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
             VolumeDescriptor.Type volumeType = VolumeDescriptor.Type.SRDF_SOURCE;
 
             // CoS Change flow, mark the production volume as already existing, so it doesn't get

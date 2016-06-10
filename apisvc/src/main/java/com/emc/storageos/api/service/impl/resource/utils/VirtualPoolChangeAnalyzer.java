@@ -16,6 +16,7 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.api.service.impl.placement.VirtualPoolUtil;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -27,6 +28,7 @@ import com.emc.storageos.db.client.model.VpoolProtectionVarraySettings;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.util.VPlexSrdfUtil;
 import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.google.common.base.Joiner;
@@ -189,8 +191,12 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
                 return null;
             }
 
-            boolean isCovertToDistributed = isVPlexConvertToDistributed(currentVpool, newVpool, notSuppReasonBuff);
-            if (isCovertToDistributed) {
+            boolean isConvertToDistributed = isVPlexConvertToDistributed(currentVpool, newVpool, notSuppReasonBuff);
+            if (isConvertToDistributed && !VirtualPoolUtil.checkMatchingRemoteCopyVarraysettings(currentVpool, newVpool, dbClient)) {
+                isConvertToDistributed = false;
+                notSuppReasonBuff.append("Incompatible Remote Copy Varray Settings");
+            }
+            if (isConvertToDistributed) {
                 URI haVarrayURI = getHaVarrayURI(newVpool, dbClient);
                 URI volumeVarray = volume.getVirtualArray();
                 URI cgURI = volume.getConsistencyGroup();
@@ -449,7 +455,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
 
     /**
      * Returns true if the difference between vpool1 and vpool2 is that vpool2 is
-     * requesting highAvailability.
+     * requesting highAvailability. Note that remoteProtectionSettings are not checked.
      * 
      * @param vpool1 Reference to Vpool to compare.
      * @param vpool2 Reference to Vpool to compare.
@@ -553,7 +559,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
 
     /**
      * Returns true iff the only difference is converting from a vplex_local to
-     * vplex_distributed.
+     * vplex_distributed. Note that remoteProtectionSettings are not checked.
      * 
      * @param vpool1 A reference to a Vpool
      * @param vpool2 A reference to a Vpool
@@ -569,7 +575,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
         s_logger.info(String.format("Checking isVPlexConvertToDistributed from [%s] to [%s]...", vpool1.getLabel(), vpool2.getLabel()));
         String[] excluded = new String[] { ASSIGNED_STORAGE_POOLS, DESCRIPTION,
                 HA_VARRAY_VPOOL_MAP, LABEL, MATCHED_POOLS, INVALID_MATCHED_POOLS, NUM_PATHS,
-                STATUS, TAGS, CREATION_TIME, NON_DISRUPTIVE_EXPANSION };
+                STATUS, TAGS, CREATION_TIME, NON_DISRUPTIVE_EXPANSION, REMOTECOPY_VARRAY_SETTINGS };
         Map<String, Change> changes = analyzeChanges(vpool1, vpool2, null, excluded, null);
 
         // changes.size() needs to be greater than 1, because at least

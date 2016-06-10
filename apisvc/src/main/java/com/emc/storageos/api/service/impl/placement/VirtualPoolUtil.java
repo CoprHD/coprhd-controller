@@ -4,9 +4,11 @@
  */
 package com.emc.storageos.api.service.impl.placement;
 
+import java.net.URI;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.slf4j.Logger;
@@ -34,6 +36,7 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
@@ -658,5 +661,44 @@ public class VirtualPoolUtil {
      */
     public static boolean validateNullDriveTypeForHDSSystems(String policy, StringSet sysTypeSet, String driveType) {
         return (null != policy && sysTypeSet.contains(VirtualPool.SystemType.hds.toString()) && (driveType == null));
+    }
+    
+    /**
+     * Checks that the two virtual pools have matching RemoteCopyVarraySettings
+     * @param vpoolA - Virtual Pool A
+     * @param vpoolB - Virtual Pool B
+     * @param dbClient - database handle
+     * @return true if the VpoolRemoteCopyProtectionSettings are the same for both
+     */
+    public static boolean checkMatchingRemoteCopyVarraysettings(VirtualPool vpoolA, VirtualPool vpoolB, DbClient dbClient) {
+        Map<URI, VpoolRemoteCopyProtectionSettings> settingsA = VirtualPool.getRemoteProtectionSettings(vpoolA, dbClient);
+        Map<URI, VpoolRemoteCopyProtectionSettings> settingsB = VirtualPool.getRemoteProtectionSettings(vpoolB, dbClient);
+        if (settingsA.isEmpty() && settingsB.isEmpty()) {
+            // Both have no settings, this is the same
+            return true;
+        }
+        if (!settingsA.isEmpty() && !settingsB.isEmpty() && 
+                settingsA.keySet().containsAll(settingsB.keySet()) && settingsB.keySet().containsAll(settingsA.keySet())) {
+            // Both have settings with matching key sets, now just check the values
+            for (Map.Entry<URI, VpoolRemoteCopyProtectionSettings> entryA : settingsA.entrySet()) {
+                VpoolRemoteCopyProtectionSettings copySettingsA = entryA.getValue();
+                VpoolRemoteCopyProtectionSettings copySettingsB = settingsB.get(entryA.getKey());
+                if (copySettingsA == null || copySettingsB == null) {
+                    // For some reason, one doesn't have a copy setting
+                    return false;
+                }
+                if (copySettingsA.getCopyMode()==null || copySettingsB.getCopyMode()==null 
+                        || !copySettingsA.getCopyMode().equals(copySettingsB.getCopyMode())) {
+                    return false;
+                }
+                if (copySettingsA.getVirtualPool()==null || copySettingsB.getVirtualPool()==null 
+                        || !copySettingsA.getVirtualPool().equals(copySettingsB.getVirtualPool())) {
+                    return false;
+                }
+            }
+            // Checked all the copy settings, they are equal
+            return true;
+        }
+        return false;
     }
 }

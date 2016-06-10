@@ -921,8 +921,7 @@ public class StorageSystems extends ViprResourceController {
             storageProviderForm.useSSL = this.useSSL;
             storageProviderForm.ipAddress = this.ipAddress;
             storageProviderForm.portNumber = this.portNumber;
-            storageProviderForm.interfaceType = StorageProviderTypes
-                    .fromStorageArrayType(this.type);
+            storageProviderForm.interfaceType = StorageProviderTypes.fromStorageArrayType(this.type);
             storageProviderForm.secondaryUsername = this.secondaryUsername;
             storageProviderForm.secondaryPassword = this.secondaryPassword;
             storageProviderForm.elementManagerURL = this.elementManagerURL;

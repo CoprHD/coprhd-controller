@@ -318,8 +318,8 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
         DriverTask task = new DriverSimulatorTask(taskId);
         task.setStatus(DriverTask.TaskStatus.READY);
         
-        String msg = String.format("%s: %s --- The storage array has stopped managing.", driverName, "stopManagement");
-        _log.warn(msg);
+        String msg = String.format("Driver stopped managing storage system %s.",driverStorageSystem.getNativeId());
+        _log.info(msg);
         task.setMessage(msg);
         
         return task;

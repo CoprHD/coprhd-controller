@@ -92,12 +92,12 @@ public interface BlockStorageDriver extends StorageDriver {
     public DriverTask expandVolume(StorageVolume volume, long newCapacity);
     
     /**
-     * Stop Management for the storage system
+     * Stop Management of the storage system
      * 
      * @param Storage System to be detached.
      * @return task
      */
-    public DriverTask stopManagement(StorageSystem driverStorageSystem);
+    public DriverTask stopManagement(StorageSystem storageSystem);
 
     /**
      * Delete volumes.

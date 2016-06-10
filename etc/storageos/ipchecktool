@@ -188,32 +188,32 @@ _boot_time_ips_check(){
     local vipConflictMessage="The ipv%s virtual IP(vip) of this cluster %s is in use somewhere else!"
 
     if [ ! -z "${ipv4_addr}" ]; then
-        arping -D -I ${NIC_NAME} -c 2 ${ipv4_addr} &> /dev/null || _fatal $(printf "${ipConflictMessage}" "4" "${ipv4_addr}")
+        arping -D -I ${NIC_NAME} -c 2 ${ipv4_addr} &> /dev/null || echo $(printf "${ipConflictMessage}" "4" "${ipv4_addr}")
         if [[ "${ipv4_vip}" == "0.0.0.0" ]]; then
             : # Don't check vip if it's disabledt
         elif [ "${node_count}" = 1 ]; then
-            arping -D -I ${NIC_NAME} -c 2 ${ipv4_vip} &> /dev/null || _fatal $(printf "${vipConflictMessage}" "4" "${ipv4_vip}")
+            arping -D -I ${NIC_NAME} -c 2 ${ipv4_vip} &> /dev/null || echo $(printf "${vipConflictMessage}" "4" "${ipv4_vip}")
         else
-            _boot_time_ipv4_vip_dup_test $node_count $ipv4_vip $nodenum || _fatal $(printf "${vipConflictMessage}" "4" "${ipv4_vip}")
+            _boot_time_ipv4_vip_dup_test $node_count $ipv4_vip $nodenum || echo $(printf "${vipConflictMessage}" "4" "${ipv4_vip}")
         fi
     fi
     local ipv6_addr=$(_get_inet6_addr)            
     local ipv6_vip=$(_get_ovf_property "network_vip6")
     if [ "${ipv6_addr}" != "::0" ]; then
-        _boot_time_ipv6_dup_test ${ipv6_addr} || _fatal $(printf "${ipConflictMessage}" "6" "${ipv6_addr}")
+        _boot_time_ipv6_dup_test ${ipv6_addr} || echo $(printf "${ipConflictMessage}" "6" "${ipv6_addr}")
         if [[ "${ipv6_vip}" == "::0" ]]; then
             : # Don't check vip if it's disabled
         elif [ "${node_count}" = 1 ]; then
-            _boot_time_ipv6_dup_test ${ipv6_vip} || _fatal $(printf "${vipConflictMessage}" "6" "${ipv6_vip}")
+            _boot_time_ipv6_dup_test ${ipv6_vip} || echo $(printf "${vipConflictMessage}" "6" "${ipv6_vip}")
         else
-            _boot_time_ipv6_vip_dup_test $node_count $ipv6_vip $nodenum || _fatal $(printf "${vipConflictMessage}" "6" "${ipv6_vip}")
+            _boot_time_ipv6_vip_dup_test $node_count $ipv6_vip $nodenum || echo $(printf "${vipConflictMessage}" "6" "${ipv6_vip}")
         fi
     fi 
 
     #No IPV4 and IPV6
     if [ "$STORAGEOS_BUILD_TYPE" == "oss" ]; then
         if [ -z ${ipv4_addr} ] && [ ${ipv6_addr} = "::0" ]; then
-            _fatal "Can not detect any IP addresses. This may caused by IP conflict, no IP configuration or some other reasons."
+            echo "Can not detect any IP addresses. This may caused by IP conflict, no IP configuration or some other reasons."
         fi
     fi
 }
@@ -289,6 +289,24 @@ _boot_time_ipv6_vip_dup_test() {
     }
 }
 
+boot_time_ips_check() {
+    timeout=120
+    interval=5
+
+    # IP change sometimes would raise temporary IP conflicts.  Need to try more time to confirm it.
+    result=$(_boot_time_ips_check)
+    while [ $timeout -gt 0 ] && [ ! -z "${result}" ]; do
+        echo "Confirming if there are IP conflict in the environment ..."
+        result=$(_boot_time_ips_check)
+        sleep $interval
+        timeout=$(($timeout-$interval))
+    done
+
+    if [ ! -z "${result}" ]; then
+        _fatal ${result}
+    fi
+}
+
 _check_gateway(){
     local ipv6_gateway=$(_routing_get_gw6) 
     local ipv4_gateway=$(_routing_get_gw)
@@ -315,7 +333,7 @@ PANIC=false
 
 case ${#} in
     1)  case ${1} in
-            --panic|-p) PANIC=true; _boot_time_ips_check; _check_gateway ;;
+            --panic|-p) PANIC=true; boot_time_ips_check; _check_gateway ;;
 	     *)    _usage
 	    esac ;;
     2)  case ${1} in

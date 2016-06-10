@@ -476,6 +476,34 @@ public class KeystoneUtils {
     }
 
     /**
+     * Retrieves OpenStack Tenant with given id.
+     *
+     * @param id Tenant ID.
+     *
+     * @return OpenStack Tenant.
+     */
+    public TenantV2 getTenantWithId(String id) {
+
+        AuthnProvider keystoneProvider = getKeystoneProvider();
+
+        if (keystoneProvider == null) {
+            throw APIException.internalServerErrors.targetIsNullOrEmpty("Keystone provider");
+        }
+
+        // Get Keystone API client.
+        KeystoneApiClient keystoneApiClient = getKeystoneApi(keystoneProvider.getManagerDN(),
+                keystoneProvider.getServerUrls(), keystoneProvider.getManagerPassword());
+
+        for (TenantV2 tenant : keystoneApiClient.getKeystoneTenants().getTenants()) {
+            if (tenant.getId().equals(id)) {
+                return tenant;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Retrieves CoprHD Tenants with OpenStack ID parameter.
      *
      * @return List of CoprHD Tenants.

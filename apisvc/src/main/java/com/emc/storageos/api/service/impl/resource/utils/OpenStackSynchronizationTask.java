@@ -44,7 +44,7 @@ public class OpenStackSynchronizationTask extends ResourceService {
 
     // Constants
     // Interval delay between each execution in seconds.
-    public static final int DEFAULT_INTERVAL_DELAY = 60;
+    public static final int DEFAULT_INTERVAL_DELAY = 900;
     // Initial delay before first execution in seconds.
     private static final int INITIAL_DELAY = 60;
     // Maximum time for a timeout when awaiting for termination.
@@ -409,23 +409,21 @@ public class OpenStackSynchronizationTask extends ResourceService {
                 }
 
                 // Remove CoprHD representation of OpenStack Tenant that are removed from OpenStack.
-                if (syncOptions.contains(AuthnProvider.TenantsSynchronizationOptions.DELETION.toString())) {
-                    for (TenantOrg tenant : coprhdTenantList) {
-                        String tenantMapping = _keystoneUtilsService.getCoprhdTenantUserMapping(tenant);
+                for (TenantOrg tenant : coprhdTenantList) {
+                    String tenantMapping = _keystoneUtilsService.getCoprhdTenantUserMapping(tenant);
 
-                        if (tenantMapping == null) {
-                            throw APIException.internalServerErrors.targetIsNullOrEmpty("TenantMapping");
-                        }
-
-                        String tenantId = _keystoneUtilsService.getTenantIdFromUserMapping(tenantMapping);
-                        OSTenant osTenant = _keystoneUtilsService.findOpenstackTenantInCoprhd(tenantId);
-
-                        if (osTenant == null) {
-                            throw APIException.internalServerErrors.targetIsNullOrEmpty("OSTenant");
-                        }
-
-                        _dbClient.markForDeletion(osTenant);
+                    if (tenantMapping == null) {
+                        throw APIException.internalServerErrors.targetIsNullOrEmpty("TenantMapping");
                     }
+
+                    String tenantId = _keystoneUtilsService.getTenantIdFromUserMapping(tenantMapping);
+                    OSTenant osTenant = _keystoneUtilsService.findOpenstackTenantInCoprhd(tenantId);
+
+                    if (osTenant == null) {
+                        throw APIException.internalServerErrors.targetIsNullOrEmpty("OSTenant");
+                    }
+
+                    _dbClient.removeObject(osTenant);
                 }
 
                 // Removes CoprHD Tenants related to OpenStack that are absent in OS.

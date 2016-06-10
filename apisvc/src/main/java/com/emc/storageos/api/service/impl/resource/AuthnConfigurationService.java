@@ -793,6 +793,12 @@ public class AuthnConfigurationService extends TaggedResource {
             verifyDomainsIsNotInUse(provider.getDomains());
         } else {
             _openStackSynchronizationTask.stopSynchronizationTask();
+            // Remove all OSTenant objects from DB when Keystone Provider is deleted.
+            List<URI> osTenantURIs = _dbClient.queryByType(OSTenant.class, true);
+            List<OSTenant> tenants = _dbClient.queryObject(OSTenant.class, osTenantURIs);
+            for (OSTenant osTenant : tenants) {
+                _dbClient.removeObject(osTenant);
+            }
             // Delete Cinder endpoints.
             _keystoneUtils.deleteCinderEndpoints(provider.getManagerDN(), provider.getServerUrls(), provider.getManagerPassword());
         }

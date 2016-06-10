@@ -218,8 +218,7 @@ public class KeystoneService extends TaskResourceService {
         OSTenant osTenant;
         for (OpenStackTenantParam tenant : param.getOpenstackTenants()) {
             osTenant = _dbClient.queryObject(OSTenant.class, tenant.getId());
-            /*if ((osTenant.getExcluded() && !osTenant.getExcluded().equals(tenant.getExcluded()))
-                    || (!osTenant.getExcluded() && !osTenant.getExcluded().equals(tenant.getExcluded()))) {*/
+
             if (!osTenant.getExcluded().equals(tenant.getExcluded())) {
                 // Tenant changed from included to excluded. Mark for deletion related Tenant and Project.
                 if (!osTenant.getExcluded()) {

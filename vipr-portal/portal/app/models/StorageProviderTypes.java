@@ -9,6 +9,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang.StringUtils;
+
 import util.EnumOption;
 import util.StorageSystemTypeUtils;
 import util.StringOption;
@@ -69,8 +71,10 @@ public class StorageProviderTypes {
         StorageSystemTypeList storagetypelist = StorageSystemTypeUtils.getAllStorageSystemTypes(ALL_TYPE);
         for (StorageSystemTypeRestRep storagetypeRest : storagetypelist.getStorageSystemTypes()) {
             if (storagetypeRest.getIsSmiProvider()) {
-                allproviders.add(new StringOption(storagetypeRest.getStorageTypeName(),
-                        storagetypeRest.getStorageTypeDispName()));
+                if(!StringUtils.equals(SCALEIO, storagetypeRest.getStorageTypeName())) {
+                    allproviders.add(new StringOption(storagetypeRest.getStorageTypeName(),
+                            storagetypeRest.getStorageTypeDispName()));
+                }
             }
         }
         return allproviders;

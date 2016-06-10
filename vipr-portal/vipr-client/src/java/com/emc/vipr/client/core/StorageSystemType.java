@@ -5,7 +5,6 @@
 
 package com.emc.vipr.client.core;
 
-import com.sun.jersey.multipart.MultiPart;
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeAddParam;
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeList;
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeRestRep;

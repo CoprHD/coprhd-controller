@@ -5,6 +5,15 @@
 
 package com.emc.storageos.dbutils;
 
+import java.beans.BeanInfo;
+import java.beans.IntrospectionException;
+import java.beans.Introspector;
+import java.beans.PropertyDescriptor;
+import java.lang.annotation.Annotation;
+import java.lang.reflect.Method;
+import com.emc.storageos.db.client.upgrade.MigrateIndexHelper;
+import com.emc.storageos.db.exceptions.DatabaseException;
+
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
@@ -672,7 +681,10 @@ public abstract class CommandHandler {
     }
 
     public static class RebuildIndexHandler extends CommandHandler {
+        private static final Logger logger = LoggerFactory.getLogger(RebuildIndexHandler.class);
         private String rebuildIndexFileName;
+        private String cfName;
+        private String fieldName;
         static final String KEY_ID = "id";
         static final String KEY_CFNAME = "cfName";
         static final String KEY_COMMENT_CHAR = DbCheckerFileWriter.COMMENT_CHAR;
@@ -680,6 +692,10 @@ public abstract class CommandHandler {
         public RebuildIndexHandler(String[] args) {
             if (args.length == 2) {
                 rebuildIndexFileName = args[1];
+            } else if (args.length == 3) {
+                cfName = args[1];
+                fieldName = args[2];
+
             } else {
                 throw new IllegalArgumentException("Invalid command option. ");
             }
@@ -688,7 +704,7 @@ public abstract class CommandHandler {
         @Override
         public void process(DBClient _client) {
             if (rebuildIndexFileName == null) {
-                System.out.println("rebuild Index file is null");
+                rebuildIndexFromCFAndFieldName(_client);
                 return;
             }
             File rebuildFile = new File(rebuildIndexFileName);
@@ -733,6 +749,87 @@ public abstract class CommandHandler {
                 }
             }
             return cleanUpMap;
+        }
+        
+        private void rebuildIndexFromCFAndFieldName(DBClient dbClient) {
+            try {
+                String cfClassName = cfName;
+                if (StringUtils.split(cfName, '.').length <= 1) {
+                    cfClassName = String.format("com.emc.storageos.db.client.model.%s", cfName);
+                }
+                logger.info(String.format("column family class is %s", cfClassName));
+                Class clazz = Class.forName(cfClassName);
+                String index = getIndexName(clazz, fieldName);
+                if (index == null) {
+                    err(String.format("ERROR: could not find index for field %s in column family %s", fieldName, cfName));
+                    return;
+                }
+                out(String.format("Rebuilding index %s for column family %s and field %s", index, cfName, fieldName));
+                MigrateIndexHelper.migrateAddedIndex(dbClient.getDbClient(), clazz, fieldName, index);
+                return;
+            } catch (ClassNotFoundException e) {
+                err(String.format("ERROR: could not find column family class %s", cfName));
+                logger.error(e.getMessage(), e);
+                return;
+            }            
+        }
+        
+        private String getIndexName(Class cfClazz, String fieldName) {
+            BeanInfo bInfo;
+            try {
+                bInfo = Introspector.getBeanInfo(cfClazz);
+            } catch (IntrospectionException ex) {
+                throw DatabaseException.fatals.serializationFailedInitializingBeanInfo(cfClazz, ex);
+            }
+            PropertyDescriptor[] pds = bInfo.getPropertyDescriptors();
+
+            for (int i = 0; i < pds.length; i++) {
+                PropertyDescriptor pd = pds[i];
+                Method method = pd.getReadMethod();
+                Annotation[] annotations = method.getAnnotations();
+                boolean foundField = false;
+                // look for the field we want
+                for (Annotation a : annotations) {
+                    if (a instanceof com.emc.storageos.db.client.model.Name) {
+                        String name = ((com.emc.storageos.db.client.model.Name) a).value();
+                        logger.debug(String.format("Found field with name = %s", name));
+                        if (name.equals(fieldName)) {
+                            foundField = true;
+                            break;
+                        }
+                    }
+                }
+                if (foundField) {
+                    logger.debug("found the name we're looking for; now look for the index cf");
+                    // if this is the field we're looking for, look for the index annotation
+                    for (Annotation a : annotations) {
+                        if (a instanceof com.emc.storageos.db.client.model.RelationIndex
+                                || a instanceof com.emc.storageos.db.client.model.AlternateId
+                                || a instanceof com.emc.storageos.db.client.model.NamedRelationIndex
+                                || a instanceof com.emc.storageos.db.client.model.PrefixIndex
+                                || a instanceof com.emc.storageos.db.client.model.PermissionsIndex
+                                || a instanceof com.emc.storageos.db.client.model.ScopedLabelIndex
+                                || a instanceof com.emc.storageos.db.client.model.IndexByKey
+                                || a instanceof com.emc.storageos.db.client.model.Relation
+                                || a instanceof com.emc.storageos.db.client.model.AggregatedIndex) {
+                            String indexCfName = a.annotationType().getName();
+                            logger.debug(String.format("found index name %s", indexCfName));
+                            return indexCfName;
+                        }
+                    }
+                }
+            }
+            return null;
+        }
+        
+        private void out(String msg) {
+            System.out.println(msg);
+            logger.info(msg);
+        }
+        
+        private void err(String msg) {
+            System.err.println(msg);
+            logger.error(msg);
         }
     }
 }

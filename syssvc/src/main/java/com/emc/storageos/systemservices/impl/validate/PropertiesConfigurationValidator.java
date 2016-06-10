@@ -141,7 +141,8 @@ public class PropertiesConfigurationValidator {
 		// allowable values, it should throw a exception. Because we might not
 		// explicitly specify null as allowed value, we
 		// have to put this logic after the null test.
-		if (metaData.getAllowedValues() != null && metaData.getAllowedValues().length > 0) {
+		// We don't need to verify allowedValues for svcstrlist, validator has special rules for it
+		if (metaData.getAllowedValues() != null && metaData.getAllowedValues().length > 0 && !metaData.getType().equals(SVCSTRLIST)) {
 			if (!validateAllowedValues(propertyValue, metaData.getAllowedValues())) {
 				throw APIException.badRequests.propertyValueDoesNotMatchAllowedValues(propertyName,
 						Arrays.toString(metaData.getAllowedValues()));
@@ -635,9 +636,6 @@ public class PropertiesConfigurationValidator {
 				ip = ip.substring(1, ip.length() - 1);
 				if (!validateIpv6Addr(ip))
 					return false;
-			} else if (!validateIpv4Addr(ip)) {
-				// IPV6 address didn't have brackets
-				return false;
 			} else if (!validateHostName(ip)) {
 				// this isn't hostname or ipv4
 				return false;

@@ -7,14 +7,14 @@
     }
 
     $(document).ready(function () {
-        var urlId = "backup_external_location_url";
-        $backup_external_location_url = $("#" + urlId);
+        var remoteServersId = "network_syslog_remote_servers_ports";
+        $network_syslog_remote_servers_ports = $("#" + remoteServersId);
 
-        var maxCopiesId = "backup_max_manual_copies";
-        $backup_max_manual_copies = $("#" + maxCopiesId);
+        var syslogServices = "system_syslog_coprhd_services";
+        $system_syslog_coprhd_services = $("#" + syslogServices);
 
 
-        var urlValue = '${page.externalLocationUrl.value}';
+        var urlValue = '${page.syslogRemoteServersPorts.value}';
         var servers = urlValue.split(',');
         for (var i = 0; i < servers.length; i++) {
             var server = servers[i];
@@ -25,12 +25,11 @@
         }
 
 
-        var maxCopiesValue = '${page.maxManualCopies.value}';
-        var services = maxCopiesValue.split(',');
+        var syslogServicesValue = '${page.syslogServices.value}';
+        var services = syslogServicesValue.split(',');
         $("select-many .checkbox").each(function() {
             var input = $(this).find('input');
-            if (!jQuery.inArray( input.val(), services )){
-                //input.attr('checked', true);
+            if (jQuery.inArray( input.val(), services ) > -1){
                 input.prop('checked', true);
             }
         });
@@ -117,12 +116,12 @@
     }
 
     function updateServers(myTableArray) {
-        $backup_external_location_url.val(myTableArray);
+        $network_syslog_remote_servers_ports.val(myTableArray);
         checkForm();
     }
 
     function updateServices(myCheckBoxArray) {
-        $backup_max_manual_copies.val(myCheckBoxArray);
+        $system_syslog_coprhd_services.val(myCheckBoxArray);
         checkForm();
     }
 
@@ -153,7 +152,7 @@
 #{ConfigProperties.propertySet titleKey:'configProperties.syslog.servers'}
 
 %{
-    property = page.externalLocationUrl
+    property = page.syslogRemoteServersPorts
     id = property.name
     name = property.name
     label = property.label
@@ -168,7 +167,7 @@
     <label class="control-label col-sm-3" for="${id}">${label}:</label>
     <div class="col-sm-6" z="">
         <div class="dataTables_wrapper">
-            <input id="${id}" type="hidden" name="${name}" value="${originalValue}" data-originalvalue="${originalValue}">
+            <input id="${id}" type="hidden" name="${name}" value="${originalValue}" data-originalvalue="${originalValue}"/>
             <table class="table table-hover table-condensed dataTable " id="server-table" >
                 <thead>
                 <tr>
@@ -204,7 +203,7 @@
 #{ConfigProperties.propertySet titleKey:'configProperties.syslog.logs'}
 
 %{
-    property = page.maxManualCopies
+    property = page.syslogServices
     id = property.name
     name = property.name
     label = property.label
@@ -227,14 +226,14 @@
 */
     options = '[';
     for(value in allowedValues){
-        option = '{id:'+value+',name:'+value+'},';
+        option = '{id:"'+value+'",name:"'+value+'"},';
         options = options.concat(option);
     }
     options = options.concat(']');
 }%
 
 <div id="${id}ControlGroup" class="form-group ">
-    <input id="${id}" type="hidden" name="${name}" value="${originalValue}" data-originalvalue="${originalValue}">
+    <input id="${id}" type="hidden" name="${name}" value="${originalValue}" data-originalvalue="${originalValue}"/>
     <control-group v-field=${label} type="array" >
         <select-many id="selector_${id}" options="${options}" onClick="verifyServices()"></select-many>
     </control-group>

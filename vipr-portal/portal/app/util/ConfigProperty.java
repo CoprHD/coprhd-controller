@@ -52,4 +52,7 @@ public class ConfigProperty {
     public static final String BACKUP_SCHEDULER_INTERVAL = "backup_scheduler_interval";
     public static final String BACKUP_SCHEDULER_COPIES = "backup_scheduler_copies_to_keep";
     public static final String BACKUP_MAX_MANUAL_COPIES = "backup_max_manual_copies";
+
+    public static final String SYSLOG_REMOTE_SERVERS_PORTS = "network_syslog_remote_servers_ports";
+    public static final String SYSLOG_SERVICES = "system_syslog_coprhd_services";
 }

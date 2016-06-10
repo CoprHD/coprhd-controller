@@ -6,27 +6,26 @@ package models.properties;
 
 import java.util.Map;
 import util.ConfigProperty;
-import util.StringOption;
 
 public class SyslogPropertiesPage extends CustomPropertyPage {
-    private Property externalLocationUrl;
-    private Property maxManualCopies;
-    private StringOption logOptions;
+    private Property syslogRemoteServersPorts;
+    private Property syslogServices;
+    //private StringOption logOptions;
 
     public SyslogPropertiesPage(Map<String, Property> properties) {
-        super("Syslog");
+        super("Syslog Forwarder");
         setRenderTemplate("syslogPage.html");
-        externalLocationUrl = addCustomProperty(properties, ConfigProperty.BACKUP_EXTERNAL_URL);
-        maxManualCopies = addCustomProperty(properties, ConfigProperty.BACKUP_MAX_MANUAL_COPIES);
+        syslogRemoteServersPorts = addCustomProperty(properties, ConfigProperty.SYSLOG_REMOTE_SERVERS_PORTS);
+        syslogServices = addCustomProperty(properties, ConfigProperty.SYSLOG_SERVICES);
     }
 
-    public Property getExternalLocationUrl() {
-        return externalLocationUrl;
+    public Property getSyslogRemoteServersPorts() {
+        return syslogRemoteServersPorts;
     }
-    public Property getMaxManualCopies() {
-        return maxManualCopies;
+    public Property getSyslogServices() {
+        return syslogServices;
     }
-    public Property getLogOptions() {
-        return logOptions;
-    }
+    //public StringOption getLogOptions() {
+    //    return logOptions;
+    //}
 }

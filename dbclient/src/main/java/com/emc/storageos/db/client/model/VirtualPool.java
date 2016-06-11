@@ -432,7 +432,7 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
 
     // Supported policies for resource placement
     public static enum ResourcePlacementPolicyType {
-        metric_and_capacity, array_affinity
+        default_policy, array_affinity
     };
 
     @AlternateId("AltIdIndex")

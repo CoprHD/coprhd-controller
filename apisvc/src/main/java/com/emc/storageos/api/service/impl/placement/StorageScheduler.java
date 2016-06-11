@@ -607,7 +607,7 @@ public class StorageScheduler implements Scheduler {
             List<StoragePool> candidatePools, boolean inCG) {
         Map<URI, Double> arrayToHostWeightMap = new HashMap<URI, Double>();
         Map<URI, Set<URI>> preferredPoolMap = getPreferredPoolMap(capabilities.getCompute(), arrayToHostWeightMap);
-        boolean canUseNonPreferred = canUseNonPreferredSystem(preferredPoolMap.keySet().size());
+        boolean canUseNonPreferred = canUseNonPreferredSystem(capabilities.getHostArrayAffinity(), preferredPoolMap.keySet().size());
 
         // group pools by array
         Map<URI, List<StoragePool>> candidatePoolMap = groupPoolsByArray(candidatePools,
@@ -873,9 +873,15 @@ public class StorageScheduler implements Scheduler {
      * Check if non preferred system can be used in placement
      *
      * @param numOfPreferredSystems count of preferred systems for a host/cluster
+     * @param isArrayAffinity if array affinity policy is selected
      * @return true if allowed, false otherwise
      */
-    private boolean canUseNonPreferredSystem(int numOfPreferredSystems) {
+    private boolean canUseNonPreferredSystem(boolean isArrayAffinity, int numOfPreferredSystems) {
+        // only enforce the limit for array affinity police
+        if (!isArrayAffinity) {
+            return true;
+        }
+
         int limit = Integer.valueOf(_customConfigHandler.getComputedCustomConfigValue(
                 CustomConfigConstants.HOST_RESOURCE_MAX_NUM_OF_ARRAYS, GLOBAL_CUSTOM_CONFIG_SCOPE, null));
 
@@ -1027,7 +1033,7 @@ public class StorageScheduler implements Scheduler {
         // Handle array affinity placement
         // If inCG is true, it is similar to the array affinity case.
         // Only difference is that resources will not be placed to more than one preferred systems if inCG is true
-        if (capabilities.getResourceCount() > 1 && inCG ||capabilities.getHostArrayAffinity()) {
+        if (capabilities.getResourceCount() > 1 && inCG || capabilities.getHostArrayAffinity()) {
             List<Recommendation> recommendations = performArrayAffinityPlacement(varrayId, capabilities, candidatePools, inCG);
             if (!recommendations.isEmpty()) {
                 return recommendations;

@@ -18,6 +18,7 @@ import com.emc.storageos.hp3par.command.CPGCommandResult;
 import com.emc.storageos.hp3par.command.CPGMember;
 import com.emc.storageos.hp3par.command.ConsistencyGroupResult;
 import com.emc.storageos.hp3par.command.ConsistencyGroupsListResult;
+import com.emc.storageos.hp3par.command.HostCommandResult;
 import com.emc.storageos.hp3par.command.PortCommandResult;
 import com.emc.storageos.hp3par.command.PortStatisticsCommandResult;
 import com.emc.storageos.hp3par.command.Privileges;
@@ -76,6 +77,7 @@ public class HP3PARApi {
     
     // Export related
     private static final String URI_CREATE_VLUN = "/api/v1/vluns";
+    private static final String URI_HOSTS = "/api/v1/hosts";
 
     
     public HP3PARApi(URI endpoint, RESTClient client, String userName, String pass) {
@@ -380,6 +382,35 @@ public class HP3PARApi {
         } //end try/catch/finally
     }
 
+    public HostCommandResult getHostDetails() throws Exception {
+        _log.info("3PARDriver:getHostDetails enter");
+        ClientResponse clientResp = null;
+
+        try {
+            clientResp = get(URI_HOSTS);
+            if (clientResp == null) {
+                _log.error("3PARDriver:There is no response from 3PAR");
+                throw new HP3PARException("There is no response from 3PAR");
+            } else if (clientResp.getStatus() != 200) {
+                String errResp = getResponseDetails(clientResp);
+                throw new HP3PARException(errResp);
+            } else {
+                String responseString = clientResp.getEntity(String.class);
+                _log.info("3PARDriver:getHostDetails 3PAR response is {}", responseString);
+                HostCommandResult hostResult = new Gson().fromJson(sanitize(responseString),
+                        HostCommandResult.class);
+                return hostResult;
+            }
+        } catch (Exception e) {
+            throw e;
+        } finally {
+            if (clientResp != null) {
+                clientResp.close();
+            }
+            _log.info("3PARDriver:getHostDetails leave");
+        } //end try/catch/finally
+    }    
+
     public void createVolume(String name, String cpg, Boolean thin, Long size) throws Exception {
         _log.info("3PARDriver:createVolume enter");
         ClientResponse clientResp = null;
@@ -631,7 +662,7 @@ public class HP3PARApi {
         } //end try/catch/finally
     }
 
-    public void createVlun(String volumeName, int hlu, String hostName, String portId) throws Exception {
+    public boolean createVlun(String volumeName, int hlu, String hostName, String portId) throws Exception {
         _log.info("3PARDriver:createVlun enter");
         ClientResponse clientResp = null;
         Integer lun = (hlu == -1) ? 0 : hlu;
@@ -653,9 +684,11 @@ public class HP3PARApi {
             } else {
                 String responseString = getHeaderFieldValue(clientResp, "Location");
                 _log.info("3PARDriver:createVolume 3PAR response is Location: {}", responseString);
+                return true;
             }
         } catch (Exception e) {
-            throw e;
+            _log.error(e.getMessage());
+            return false;
         } finally {
             if (clientResp != null) {
                 clientResp.close();

@@ -24,6 +24,7 @@ import com.emc.storageos.hp3par.command.PortStatisticsCommandResult;
 import com.emc.storageos.hp3par.command.Privileges;
 import com.emc.storageos.hp3par.command.SystemCommandResult;
 import com.emc.storageos.hp3par.command.UserRoleCommandResult;
+import com.emc.storageos.hp3par.command.VlunResult;
 import com.emc.storageos.hp3par.command.VolumeDetailsCommandResult;
 import com.emc.storageos.hp3par.connection.RESTClient;
 import com.emc.storageos.hp3par.utils.CompleteError;
@@ -662,7 +663,7 @@ public class HP3PARApi {
         } //end try/catch/finally
     }
 
-    public boolean createVlun(String volumeName, int hlu, String hostName, String portId) throws Exception {
+    public VlunResult createVlun(String volumeName, int hlu, String hostName, String portId) throws Exception {
         _log.info("3PARDriver:createVlun enter");
         ClientResponse clientResp = null;
         Integer lun = (hlu == -1) ? 0 : hlu;
@@ -684,11 +685,15 @@ public class HP3PARApi {
             } else {
                 String responseString = getHeaderFieldValue(clientResp, "Location");
                 _log.info("3PARDriver:createVolume 3PAR response is Location: {}", responseString);
-                return true;
+                String[] resp = responseString.split(",");
+                VlunResult result = new VlunResult();
+                result.setAssignedLun(resp[1]);
+                result.setStatus(true);
+                return result;
             }
         } catch (Exception e) {
             _log.error(e.getMessage());
-            return false;
+            return null;
         } finally {
             if (clientResp != null) {
                 clientResp.close();

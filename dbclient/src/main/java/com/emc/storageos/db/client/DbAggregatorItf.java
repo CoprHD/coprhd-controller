@@ -5,14 +5,15 @@
 
 package com.emc.storageos.db.client;
 
+import java.util.List;
+
 import com.emc.storageos.db.client.impl.CompositeColumnName;
-import com.netflix.astyanax.model.Row;
 
 /**
  */
 public interface DbAggregatorItf {
 
-    void aggregate(Row<String, CompositeColumnName> row);
+    void aggregate(List<CompositeColumnName> columns);
 
     String[] getAggregatedFields();
 }

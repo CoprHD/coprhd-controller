@@ -38,8 +38,6 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedProtectionSet;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.exceptions.DatabaseException;
-import com.netflix.astyanax.model.Column;
-import com.netflix.astyanax.model.Row;
 
 public class CustomQueryUtility {
 
@@ -269,15 +267,15 @@ public class CustomQueryUtility {
             }
 
             @Override
-            public void aggregate(Row<String, CompositeColumnName> row) {
+            public void aggregate(List<CompositeColumnName> columns) {
 
-                if (row.getColumns().size() == 0) {
+                if (columns == null || columns.size() == 0) {
                     return;
                 }
-                Column<CompositeColumnName> column = row.getColumns().iterator().next();
-                Boolean value = (Boolean) ColumnValue.getPrimitiveColumnValue(column, _columnField.getPropertyDescriptor());
+                CompositeColumnName column = columns.iterator().next();
+                Boolean value = (Boolean) ColumnValue.getPrimitiveColumnValue(column.getValue(), _columnField.getPropertyDescriptor());
                 if (!value.booleanValue()) {
-                    _activeObjects.add(URI.create(row.getKey()));
+                    _activeObjects.add(URI.create(column.getRowKey()));
                 }
             }
         }

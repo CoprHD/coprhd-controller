@@ -45,18 +45,19 @@ public class FieldInSetAggregator implements DbAggregatorItf {
     }
 
     @Override
-    public void aggregate(Row<String, CompositeColumnName> row) {
+    public void aggregate(List<CompositeColumnName> columns) {
 
-        if (row.getColumns().size() == 0) {
+        if (columns == null || columns.size() == 0) {
             return;
         }
-        Column<CompositeColumnName> column = row.getColumns().iterator().next();
-        if (column.getName().getOne().equals(_field)) {
-            String value = ColumnValue.getPrimitiveColumnValue(column,
+        
+        CompositeColumnName column = columns.iterator().next();
+        if (column.getOne().equals(_field)) {
+            String value = ColumnValue.getPrimitiveColumnValue(column.getValue(),
                     _columnField.getPropertyDescriptor()).toString();
             if (_set.contains(value)) {
                 try {
-                    _list.add(new URI(row.getKey()));
+                    _list.add(new URI(column.getRowKey()));
                 } catch (URISyntaxException ex) {
                     log.warn("URI syntax error:{}", ex);
                 }

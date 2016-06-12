@@ -790,9 +790,9 @@ public class DbClientContext {
         return cassandraSession;
     }
     
-    public PreparedStatement getPreparedStatement(String name, String queryString, DbClientContext context) {
+    public PreparedStatement getPreparedStatement(String name, String queryString) {
         if (!prepareStatementMap.containsKey(name)) {
-            PreparedStatement statement = context.getSession().prepare(queryString);
+            PreparedStatement statement = getSession().prepare(queryString);
             prepareStatementMap.put(name, statement);
         }
         return prepareStatementMap.get(name);

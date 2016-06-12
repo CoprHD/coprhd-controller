@@ -1043,6 +1043,14 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
         for (StorageVolume vol:volumes) {
             Integer currExport = 0;
             int hlu = Integer.parseInt(volumeToHLUMap.get(vol.getNativeId()));
+            
+            // for CG precede with "set:"
+            String volNativeId = null;
+            if (vol.getConsistencyGroup() != null) {
+                volNativeId = "set:" + vol.getConsistencyGroup();
+            } else {
+                volNativeId = vol.getNativeId();
+            }
 
             try {
                 // volume could belong to different storage system; get specific api client; 
@@ -1059,13 +1067,6 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
                             + "volume {} recommended port {}",
                             port.getStorageSystemId(), vol.getNativeId(), port.getNativeId());            
 
-                    // for CG precede with "set:"
-                    String volNativeId = null;
-                    if (vol.getConsistencyGroup() != null) {
-                        volNativeId = "set:" + vol.getNativeId();
-                    } else {
-                        volNativeId = vol.getNativeId();
-                    }
                     
                     VlunResult vlunRes = hp3parApi.createVlun(volNativeId, hlu, host, port.getNativeId());
                     if (vlunRes != null && vlunRes.getStatus() == true) {
@@ -1092,14 +1093,6 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
                     _log.info("3PARDriver:exportVolumesToInitiators information for storage system {}, "
                             + "volume {} available port {}",
                             port.getStorageSystemId(), vol.getNativeId(), port.getNativeId());            
-
-                    // for CG precede with "set:"
-                    String volNativeId = null;
-                    if (vol.getConsistencyGroup() != null) {
-                        volNativeId = "set:" + vol.getNativeId();
-                    } else {
-                        volNativeId = vol.getNativeId();
-                    }
 
                     VlunResult vlunRes = hp3parApi.createVlun(volNativeId, hlu, host, port.getNativeId());
                     if (vlunRes != null && vlunRes.getStatus() == true) {

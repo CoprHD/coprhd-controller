@@ -35,6 +35,7 @@ import org.slf4j.LoggerFactory;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Session;
+import com.datastax.driver.core.exceptions.DriverException;
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.DbVersionInfo;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
@@ -98,7 +99,6 @@ import com.netflix.astyanax.model.ConsistencyLevel;
 import com.netflix.astyanax.model.Row;
 import com.netflix.astyanax.model.Rows;
 import com.netflix.astyanax.partitioner.Partitioner;
-import com.netflix.astyanax.query.ColumnCountQuery;
 import com.netflix.astyanax.query.ColumnFamilyQuery;
 import com.netflix.astyanax.query.RowQuery;
 import com.netflix.astyanax.util.TimeUUIDUtils;
@@ -1013,16 +1013,12 @@ public class DbClientImpl implements DbClient {
             throw new IllegalArgumentException();
         }
         try {
-            ColumnCountQuery countQuery = getKeyspace(clazz).prepareQuery(field.getIndexCF())
-                    .getKey(uri.toString())
-                    .withColumnRange(
-                            CompositeColumnNameSerializer.get().buildRange()
-                                    .greaterThanEquals(clazz.getSimpleName())
-                                    .lessThanEquals(clazz.getSimpleName()))
-                    .getCount();
-            return countQuery.execute().getResult();
-        } catch (ConnectionException e) {
-            throw DatabaseException.retryables.connectionFailed(e);
+            String queryString = String.format("select count(*) from \"%s\" where column1='%s' and key='%s' ALLOW FILTERING;",
+                    field.getIndexCF().getName(), clazz.getSimpleName(), uri.toString());
+            ResultSet resultSet = this.getDbClientContext(clazz).getSession().execute(queryString);
+            return (int)resultSet.one().getLong(0);
+        } catch (DriverException e) {
+            throw DatabaseException.retryables.operationFailed(e);
         }
     }
 

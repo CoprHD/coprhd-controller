@@ -5,10 +5,11 @@
 
 package com.emc.storageos.db.exceptions;
 
+import com.datastax.driver.core.exceptions.ConnectionException;
+import com.datastax.driver.core.exceptions.DriverException;
 import com.emc.storageos.svcs.errorhandling.annotations.DeclareServiceCode;
 import com.emc.storageos.svcs.errorhandling.annotations.MessageBundle;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.connectionpool.exceptions.OperationException;
 
 /**
@@ -28,11 +29,19 @@ public interface RetryableDatabaseExceptions {
 
     // Database operation failed
     @DeclareServiceCode(ServiceCode.DBSVC_CONNECTION_ERROR)
+    RetryableDatabaseException operationFailed(DriverException e);
+    
+ // TODO this will be removed after replace Astyanax
+    @DeclareServiceCode(ServiceCode.DBSVC_CONNECTION_ERROR)
     RetryableDatabaseException operationFailed(OperationException e);
 
     // Database connection failed
     @DeclareServiceCode(ServiceCode.DBSVC_CONNECTION_ERROR)
     RetryableDatabaseException connectionFailed(ConnectionException e);
+    
+    // TODO this will be removed after replace Astyanax
+    @DeclareServiceCode(ServiceCode.DBSVC_CONNECTION_ERROR)
+    RetryableDatabaseException connectionFailed(com.netflix.astyanax.connectionpool.exceptions.ConnectionException e);
 
     // Database connection failed, Overload connectionFailed(ConnectionException);
     // Netflix astynanx ConnectionException is not serializable and thus

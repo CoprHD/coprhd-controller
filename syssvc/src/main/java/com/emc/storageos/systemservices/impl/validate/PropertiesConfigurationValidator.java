@@ -655,6 +655,10 @@ public class PropertiesConfigurationValidator {
 	 */
 	public static boolean validateSvcStrList(String svcStrList) {
 
+		if(svcStrList.isEmpty()){
+			return false;
+		}
+
 		String[] svcList = svcStrList.split(",");
 
 		for (String svc : svcList) {

@@ -55,4 +55,9 @@ public class ConfigProperty {
 
     public static final String SYSLOG_REMOTE_SERVERS_PORTS = "network_syslog_remote_servers_ports";
     public static final String SYSLOG_SERVICES = "system_syslog_coprhd_services";
+    public static final String SYSLOG_ENABLE = "system_syslog_enable";
+    public static final String SYSLOG_ENABLE_TLS = "system_syslog_enabletls";
+    public static final String SYSLOG_TRANSPORT_PROTOCOL = "system_syslog_transport_protocol";
+    public static final String SYSLOG_ENABLE_TLS_CERT = "system_syslog_enabletlscert";
+    public static final String SYSLOG_LOG_LEVEL = "system_syslog_loglevel";
 }

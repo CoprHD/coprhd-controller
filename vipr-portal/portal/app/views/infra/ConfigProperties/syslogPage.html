@@ -38,6 +38,8 @@
 
     function addServer(server,port) {
 
+        var ipErrorMessage = "&{'configProperties.syslog.setToZero.ip'}";
+        var portErrorMessage = "&{'configProperties.syslog.setToZero.port'}";
         var ni = document.getElementById('server-group');
         var numi = document.getElementById('theValue');
         var num = (document.getElementById('theValue').value -1)+ 2;
@@ -48,27 +50,19 @@
         newdiv.innerHTML = '<td class="col-xs-8 ng-scope" v-field="config.value" name="serverIp_column">' +
                 '<input type="text" name="serverIp" value="'+server+'" id="serverIp" class="form-control" onchange="verifyServers()">' +
                 '<div class="text-info ng-hide" ng-show="config.focused &amp;&amp; (getSelectedConfigType().type === \'String\' || config.error)">' +
-                    '<small generate-preview="config" class="text-danger">Required parameter value was missing or empty</small> </div>' +
+                    '<small generate-preview="config" class="text-danger">'+ ipErrorMessage +'</small> </div>' +
                 '</div>' +
             '</td>' +
             '<td class="col-xs-8 ng-scope" v-field="config.value">' +
                 '<input type="text" name="serverPort" value="'+port+'" id="serverIp" class="form-control" onchange="verifyServers()">' +
                 '<div class="text-info ng-hide" ng-show="config.focused &amp;&amp; (getSelectedConfigType().type === \'String\' || config.error)">' +
-                    '<small generate-preview="config" class="text-danger">Required parameter value was missing or empty</small> </div>' +
+                    '<small generate-preview="config" class="text-danger">'+ portErrorMessage +'</small> </div>' +
                 '</div>' +
             '</td>' +
             '<td class="col-xs-1">' +
                 '<button type="button" class="close" ng-hide="config.systemDefault" onClick="removeServer(\''+divIdName+'\')">×</button>' +
             '</td>';
         ni.appendChild(newdiv);
-
-    }
-
-    function verifyServerIp(ip) {
-
-    }
-
-    function verifyServerPort(port) {
 
     }
 
@@ -149,7 +143,18 @@
 
 <input type="hidden" value="0" id="theValue" />
 <br>
+
+#{ConfigProperties.propertySet titleKey:'configProperties.syslog.settings'}
+
+#{ConfigProperties.property property:page.syslogEnable, disabled:unstable/}
+#{ConfigProperties.property property:page.syslogEnableTls, disabled:unstable/}
+#{ConfigProperties.property property:page.syslogEnableTlsCert, disabled:unstable/}
+
+#{/ConfigProperties.propertySet}
+
 #{ConfigProperties.propertySet titleKey:'configProperties.syslog.servers'}
+
+#{ConfigProperties.property property:page.syslogTransportProtocol, disabled:unstable/}
 
 %{
     property = page.syslogRemoteServersPorts
@@ -162,6 +167,7 @@
     description = property.description
     disabled:unstable;
 }%
+#{set 'error'}#{error name /}#{/set}
 
 <div id="${id}ControlGroup" class="form-group ">
     <label class="control-label col-sm-3" for="${id}">${label}:</label>
@@ -201,6 +207,8 @@
 
 
 #{ConfigProperties.propertySet titleKey:'configProperties.syslog.logs'}
+
+#{ConfigProperties.property property:page.syslogLogLevel, disabled:unstable/}
 
 %{
     property = page.syslogServices

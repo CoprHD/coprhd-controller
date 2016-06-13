@@ -25,6 +25,9 @@ public interface NetworkDeviceControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_NETWORK_SESSION_TIMEOUT)
     public NetworkControllerTimeoutException timeoutWaitingOnPrompt(String expectedPrompts);
+    
+    @DeclareServiceCode(ServiceCode.CONTROLLER_NETWORK_SESSION_TIMEOUT)
+    public NetworkControllerTimeoutException timeoutWaitingOnPendingActions();
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_NETWORK_SESSION_LOCKED)
     public NetworkControllerSessionLockedException zoneSessionLocked(int attempts);

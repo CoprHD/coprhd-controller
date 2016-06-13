@@ -2004,6 +2004,38 @@ public class ControllerUtils {
         dbClient.queryByConstraint(getBlockSnapshotSessionBySessionInstance(instance), resultList);
         return newArrayList(resultList.iterator());
     }
+    
+    /**
+     * get the list of applications for a list of full copy volumes
+     * 
+     * @param fcVolumeIds full copy volume ids
+     * @param dbClient
+     * @return
+     */
+    public static List<URI> getApplicationsForFullCopies(List<URI> fcVolumeIds, DbClient dbClient) {
+        Set<URI> volumeGroupIds = new HashSet<URI>();
+        Iterator<Volume> fcVolumes = dbClient.queryIterativeObjects(Volume.class, fcVolumeIds);
+        while (fcVolumes.hasNext()) {
+            Volume fcVolume = fcVolumes.next();
+            if (!NullColumnValueGetter.isNullURI(fcVolume.getAssociatedSourceVolume())) {
+                BlockObject sourceObj = BlockObject.fetch(dbClient, fcVolume.getAssociatedSourceVolume());
+                if (sourceObj instanceof Volume) {
+                    for (String appId : ((Volume) sourceObj).getVolumeGroupIds()) {
+                        volumeGroupIds.add(URI.create(appId));
+                    }
+                }
+            }
+        }
+        Iterator<VolumeGroup> volumeGroups = dbClient.queryIterativeObjects(VolumeGroup.class, volumeGroupIds);
+        List<URI> applicationIds = new ArrayList<URI>();
+        while (volumeGroups.hasNext()) {
+            VolumeGroup app = volumeGroups.next();
+            if (app.getRoles().contains(VolumeGroup.VolumeGroupRole.COPY.toString())) {
+                applicationIds.add(app.getId());
+            }
+        }
+        return applicationIds;
+    }
 
     /**
      * returns true if this replication group has already been created

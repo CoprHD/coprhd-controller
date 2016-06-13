@@ -24,6 +24,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.model.GlobalLock;
+import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 import com.google.common.base.Joiner;
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.MutationBatch;
@@ -733,6 +734,40 @@ public abstract class CommandHandler {
                 }
             }
             return cleanUpMap;
+        }
+    }
+    
+    public static class RunMigrationCallback extends CommandHandler {
+        private static final Logger log = LoggerFactory.getLogger(DeleteHandler.class);
+
+        private String migrationCallbackClass;
+
+        public RunMigrationCallback(String[] args) {
+            if (args.length == 2) {
+                migrationCallbackClass = args[1];
+            } else {
+                throw new IllegalArgumentException("Invalid command option. ");
+            }
+        }
+
+        @Override
+        public void process(DBClient _client) {
+            try {
+                Class clazz = Class.forName(migrationCallbackClass);
+                BaseCustomMigrationCallback callback = (BaseCustomMigrationCallback)clazz.newInstance();
+                callback.setDbClient(_client.getDbClient());
+                callback.setCoordinatorClient(_client.getDbClient().getCoordinatorClient());
+                System.out.print("Running migration callback:");
+                System.out.println(migrationCallbackClass);
+                callback.process();
+                System.out.println("Done");
+            } catch(ClassNotFoundException ex) {
+                System.out.println("Error: Migration callback class not found - " + migrationCallbackClass);
+            }
+            catch (Exception ex) {
+                System.out.println(String.format("Unknown exception. Please check dbutils.log", ex.getMessage()));
+                log.error("Unexpected exception when executing migration callback", ex);
+            }
         }
     }
 }

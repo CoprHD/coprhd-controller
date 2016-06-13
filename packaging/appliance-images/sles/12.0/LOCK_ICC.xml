@@ -39,8 +39,8 @@
 <target name="adg-security"                        depends="adg-security-11-4_1"/>
 <target name="adg-tools"                           depends="adg-tools-4-3_1"/>
 <target name="adg-vami25"                          depends="adg-vami25-1-2"/>
-<target name="adg_platform"                        depends="adg_platform_12_0_12_1"/>
-<target name="adg_minimal"                         depends="adg_minimal_12_0_12_0"/>
+<target name="adg_platform"                        depends="adg_platform_12_0_13_0"/>
+<target name="adg_minimal"                         depends="adg_minimal_12_0_13_0"/>
 <target name="adg_web-demo-conf"                   depends="adg_web-demo-conf-2-1_1"/>
 <target name="adobe-flex-dev-rt"                   depends="adobe-flex-dev-rt-3.5.0.12683-1"/>
 <target name="ant"                                 depends="ant-1.9.4-1.31_1"/>
@@ -376,8 +376,8 @@
 <target name="libgcc_s1"                           depends="libgcc_s1-5.2.1+r226025-4.1_1"/>
 <target name="libgcrypt-devel"                     depends="libgcrypt-devel-1.6.1-16.1_1"/>
 <target name="libgcrypt20"                         depends="libgcrypt20-1.6.1"/>
-<target name="libgcrypt20-1.6.1"                   depends="libgcrypt20-1.6.1-16.1_1"/>
-<target name="libgcrypt20-hmac"                    depends="libgcrypt20-hmac-1.6.1-16.1_1"/>
+<target name="libgcrypt20-1.6.1"                   depends="libgcrypt20-1.6.1-16.27.1_1"/>
+<target name="libgcrypt20-hmac"                    depends="libgcrypt20-hmac-1.6.1-16.27.1_1"/>
 <target name="libgio-2_0-0"                        depends="libgio-2_0-0-2.38.2"/>
 <target name="libgio-2_0-0-2.38.2"                 depends="libgio-2_0-0-2.38.2-5.12_2"/>
 <target name="libglib-2_0-0"                       depends="libglib-2_0-0-2.38.2"/>
@@ -425,7 +425,7 @@
 <target name="libopenssl1_0_0"                     depends="libopenssl1_0_0-1.0.1i"/>
 <target name="libopenssl1_0_0-1.0.1i"              depends="libopenssl1_0_0-1.0.1i-27.13.1_1"/>
 <target name="libopenssl1_0_0-1.0.1i-2.12"         depends="libopenssl1_0_0-1.0.1i-2.12_1"/>
-<target name="libopenssl1_0_0-hmac"                depends="libopenssl1_0_0-hmac-1.0.1i-27.13.1_1"/>
+<target name="libopenssl1_0_0-hmac"                depends="libopenssl1_0_0-hmac-1.0.1i-27.16.1_1"/>
 <target name="libpci3"                             depends="libpci3-3.2.1-2.15_1"/>
 <target name="libpcre1"                            depends="libpcre1-8.33"/>
 <target name="libpcre1-8.33"                       depends="libpcre1-8.33-3.314_1"/>

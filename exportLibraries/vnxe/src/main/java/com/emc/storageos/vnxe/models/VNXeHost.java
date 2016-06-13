@@ -19,8 +19,8 @@ public class VNXeHost extends VNXeBase {
     private String address;
     private String osType;
     private List<VNXeBase> hostIPPorts;
-    private List<VNXeHostInitiator> iscsiHostInitiators;
-    private List<VNXeHostInitiator> fcHostInitiators;
+    private List<VNXeBase> iscsiHostInitiators;
+    private List<VNXeBase> fcHostInitiators;
 
     public List<Integer> getOperationalStatus() {
         return operationalStatus;
@@ -86,19 +86,19 @@ public class VNXeHost extends VNXeBase {
         this.hostIPPorts = hostIPPorts;
     }
 
-    public List<VNXeHostInitiator> getIscsiHostInitiators() {
+    public List<VNXeBase> getIscsiHostInitiators() {
         return iscsiHostInitiators;
     }
 
-    public void setIscsiHostInitiators(List<VNXeHostInitiator> iscsiHostInitiators) {
+    public void setIscsiHostInitiators(List<VNXeBase> iscsiHostInitiators) {
         this.iscsiHostInitiators = iscsiHostInitiators;
     }
 
-    public List<VNXeHostInitiator> getFcHostInitiators() {
+    public List<VNXeBase> getFcHostInitiators() {
         return fcHostInitiators;
     }
 
-    public void setFcHostInitiators(List<VNXeHostInitiator> fcHostInitiators) {
+    public void setFcHostInitiators(List<VNXeBase> fcHostInitiators) {
         this.fcHostInitiators = fcHostInitiators;
     }
 

@@ -1584,7 +1584,8 @@ public class VolumeIngestionUtil {
         StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, mask.getStorageSystemUri());
         boolean portsValid = true;
         if (storageSystem != null) {
-            if (storageSystem.getSystemType().equalsIgnoreCase(SystemType.xtremio.toString())) {
+            if (storageSystem.getSystemType().equalsIgnoreCase(SystemType.xtremio.toString()) ||
+                    storageSystem.getSystemType().equalsIgnoreCase(SystemType.unity.toString())) {
                 portsValid = diff.size() < portsInUnManagedMask.size();
             } else {
                 portsValid = diff.isEmpty();
@@ -3863,6 +3864,10 @@ public class VolumeIngestionUtil {
             BlockConsistencyGroup cg = new BlockConsistencyGroup();
             cg.setId(URIUtil.createId(BlockConsistencyGroup.class));
             cg.setLabel(cgName);
+            if (NullColumnValueGetter.isNotNullValue(umcg.getNativeId())) {
+                cg.setNativeId(umcg.getNativeId());
+            }
+
             cg.setProject(new NamedURI(projectUri, context.getProject().getLabel()));
             cg.setTenant(context.getProject().getTenantOrg());
             cg.addConsistencyGroupTypes(Types.LOCAL.name());
@@ -4589,6 +4594,25 @@ public class VolumeIngestionUtil {
 
         _logger.warn("\tUnManagedExportMask {} is not on the right VPLEX cluster for this ingestion request",
                 unManagedExportMask.getMaskName());
+        return false;
+    }
+
+    /**
+     * Returns true if the given UnManagedVolume is a VPLEX distributed volume.
+     * 
+     * @param unManagedVolume the UnManagedVolume to check
+     * @return true if the given UnManagedVolume is a VPLEX distributed volume
+     */
+    public static boolean isVplexDistributedVolume(UnManagedVolume unManagedVolume) {
+        if (isVplexVolume(unManagedVolume)) {
+            String locality = PropertySetterUtil.extractValueFromStringSet(
+                    SupportedVolumeInformation.VPLEX_LOCALITY.toString(),
+                    unManagedVolume.getVolumeInformation());
+            if (VPlexApiConstants.DISTRIBUTED_VIRTUAL_VOLUME.equalsIgnoreCase(locality)) {
+                return true;
+            }
+        }
+
         return false;
     }
 

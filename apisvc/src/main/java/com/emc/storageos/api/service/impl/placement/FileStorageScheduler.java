@@ -45,6 +45,7 @@ import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.VirtualNAS.VirtualNasState;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
+import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.file.FileSystemParam;
@@ -62,6 +63,7 @@ public class FileStorageScheduler implements Scheduler {
 
     public final Logger _log = LoggerFactory
             .getLogger(FileStorageScheduler.class);
+    private static final String SCHEDULER_NAME = "filestorage";
 
     private static final String ENABLE_METERING = "enable-metering";
     private DbClient _dbClient;
@@ -888,7 +890,8 @@ public class FileStorageScheduler implements Scheduler {
             if (!storage.getSystemType().equals(Type.netapp.toString())
                     && !storage.getSystemType().equals(Type.netappc.toString())
                     && !storage.getSystemType().equals(Type.vnxe.toString())
-                    && !storage.getSystemType().equals(Type.vnxfile.toString())
+                    && !storage.getSystemType().equals(Type.vnxfile.toString()) 
+                    && !storage.getSystemType().equals(Type.unity.toString())
                     && !storage.getSystemType().equals(
                             Type.datadomain.toString())) {
                 result.add(rec);
@@ -960,8 +963,7 @@ public class FileStorageScheduler implements Scheduler {
             } else {
                 _log.info("No valid storage port found from the storage system : "
                         + storageUri
-                        + ", All ports belongs to invalid vNas "
-                        );
+                        + ", All ports belongs to invalid vNas ");
             }
         }
         return result;
@@ -1085,6 +1087,23 @@ public class FileStorageScheduler implements Scheduler {
             }
         }
         return null;
+    }
+
+    @Override
+    public List<Recommendation> getRecommendationsForVpool(VirtualArray vArray, Project project, VirtualPool vPool, VpoolUse vPoolUse,
+            VirtualPoolCapabilityValuesWrapper capabilities, Map<VpoolUse, List<Recommendation>> currentRecommendations) {
+        throw DeviceControllerException.exceptions.operationNotSupported();
+    }
+
+    @Override
+    public String getSchedulerName() {
+        return SCHEDULER_NAME;
+    }
+
+    @Override
+    public boolean handlesVpool(VirtualPool vPool, VpoolUse vPoolUse) {
+        // not implemented
+        return false;
     }
 
 }

@@ -50,6 +50,13 @@
         <property name="workflowService" ref="workflowService"/>
         <property name="networkDeviceController" ref="networkDeviceController"/>
      </bean>
+     
+     <bean id="vnxunityMaskingOrchestrator" class="com.emc.storageos.volumecontroller.impl.vnxunity.VNXUnityMaskingOrchestrator">
+        <property name="blockScheduler" ref="blockscheduler"/>
+        <property name="dbClient" ref="dbclient"/>
+        <property name="workflowService" ref="workflowService"/>
+        <property name="networkDeviceController" ref="networkDeviceController"/>
+     </bean>
 
     <bean id="xivMaskingOrchestrator" class="com.emc.storageos.volumecontroller.impl.block.XIVMaskingOrchestrator">
         <property name="blockScheduler" ref="blockscheduler"/>
@@ -145,6 +152,13 @@
         <property name="networkDeviceController" ref="networkDeviceController"/>
     </bean>
 
+	<bean id="cephMaskingOrchestrator" class="com.emc.storageos.volumecontroller.impl.block.CephMaskingOrchestrator">
+        <property name="blockScheduler" ref="blockscheduler"/>
+        <property name="dbClient" ref="dbclient"/>
+        <property name="workflowService" ref="workflowService"/>
+        <property name="networkDeviceController" ref="networkDeviceController"/>
+	</bean>
+
     <bean id="externalDeviceMaskingOrchestrator" class="com.emc.storageos.volumecontroller.impl.externaldevice.ExternalDeviceMaskingOrchestrator">
         <property name="blockScheduler" ref="blockscheduler"/>
         <property name="dbClient" ref="dbclient"/>
@@ -162,7 +176,9 @@
                 <entry key="openstack" value-ref="cinderStorageDevice"/>
                 <entry key="scaleio" value-ref="scaleioStorageDevice"/>
                 <entry key="vnxe" value-ref="vnxeDevice"/>
+                <entry key="unity" value-ref="vnxunityDevice"/>
                 <entry key="xtremio" value-ref="xtremioStorageDevice"/>
+                <entry key="ceph" value-ref="cephStorageDevice"/>
                 <entry key="externaldevice" value-ref="externalBlockStorageDevice"/>
             </map>
         </property>
@@ -216,6 +232,12 @@
     </bean>
     
     <bean id="vnxeSnapshotOperations" class="com.emc.storageos.volumecontroller.impl.vnxe.VNXeSnapshotOperation">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="nameGenerator" ref="defaultNameGenerator"/>
+        <property name="vnxeApiClientFactory" ref="vnxeApiClientFactory"/>
+    </bean>
+    
+    <bean id="vnxunitySnapshotOperations" class="com.emc.storageos.volumecontroller.impl.vnxunity.VNXUnitySnapshotOperations">
         <property name="dbClient" ref="dbclient"/>
         <property name="nameGenerator" ref="defaultNameGenerator"/>
         <property name="vnxeApiClientFactory" ref="vnxeApiClientFactory"/>
@@ -383,6 +405,27 @@
         <property name="dbClient" ref="dbclient"/>
         <property name="nameGenerator" ref="defaultNameGenerator"/>
         <property name="xtremioRestClientFactory" ref="xtremioRestClientFactory"/>
+    </bean>
+
+    <bean id="cephStorageDevice" class="com.emc.storageos.volumecontroller.impl.ceph.CephStorageDevice">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="cephClientFactory" ref="cephClientFactory"/>
+        <property name="snapshotOperations" ref="cephSnapshotOperations"/>
+        <property name="cloneOperations" ref="cephCloneOperations"/>
+    </bean>
+
+    <bean id="cephSnapshotOperations" class="com.emc.storageos.volumecontroller.impl.ceph.CephSnapshotOperations">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="cephClientFactory" ref="cephClientFactory"/>
+    </bean>
+
+    <bean id="cephCloneOperations" class="com.emc.storageos.volumecontroller.impl.ceph.CephCloneOperations">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="cephClientFactory" ref="cephClientFactory"/>
+    </bean>
+
+    <bean id="cephClientFactory" class="com.emc.storageos.ceph.CephClientFactory"
+        init-method="init" >
     </bean>
 
     <bean id="externalBlockStorageDevice" class="com.emc.storageos.volumecontroller.impl.externaldevice.ExternalBlockStorageDevice">
@@ -565,6 +608,11 @@
     </bean>
     
     <bean id="vnxeExportMaskOperationsHelper" class="com.emc.storageos.volumecontroller.impl.vnxe.VNXeExportOperations">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="vnxeApiClientFactory" ref="vnxeApiClientFactory"/>
+    </bean>
+    
+    <bean id="vnxunityExportMaskOperationsHelper" class="com.emc.storageos.volumecontroller.impl.vnxunity.VNXUnityExportOperations">
         <property name="dbClient" ref="dbclient"/>
         <property name="vnxeApiClientFactory" ref="vnxeApiClientFactory"/>
     </bean>
@@ -825,6 +873,7 @@
                 <entry key="netapp" value-ref="netappFileDevice"/>
                 <entry key="netappc" value-ref="netappcFileDevice"/>
                 <entry key="vnxe" value-ref="vnxeDevice"/>
+				<entry key="unity" value-ref="vnxUnityFileDevice"/>
                 <entry key="datadomain" value-ref="datadomainDevice"/>
             </map>
         </property>
@@ -884,6 +933,20 @@
             <property name="snapshotOperations" ref="vnxeSnapshotOperations"/>
     </bean>
 
+    <bean id="vnxUnityFileDevice" class="com.emc.storageos.volumecontroller.impl.vnxunity.VNXUnityFileStorageDevice">
+            <property name="dbClient" ref="dbclient"/>
+            <property name="vnxeApiClientFactory" ref="vnxeApiClientFactory"/>
+            <property name="nameGenerator" ref="defaultNameGenerator"/>
+    </bean>
+
+	<bean id="vnxunityDevice" class="com.emc.storageos.volumecontroller.impl.vnxunity.VNXUnityBlockStorageDevice">
+            <property name="dbClient" ref="dbclient"/>
+            <property name="vnxeApiClientFactory" ref="vnxeApiClientFactory"/>
+            <property name="nameGenerator" ref="defaultNameGenerator"/>
+            <property name="exportMaskOperationsHelper" ref="vnxunityExportMaskOperationsHelper"/>
+            <property name="snapshotOperations" ref="vnxunitySnapshotOperations"/>
+    </bean>
+
     <bean id="netappFileDevice" class="com.emc.storageos.volumecontroller.impl.netapp.NetAppFileStorageDevice">
         <property name="dbClient" ref="dbclient"/>
     </bean>
@@ -908,8 +971,10 @@
                 <entry key="openstack" value-ref="cinderStorageDevice"/>
                 <entry key="scaleio" value-ref="scaleioStorageDevice"/>
                 <entry key="vnxe" value-ref="vnxeDevice"/>
+                <entry key="unity" value-ref="vnxunityDevice"/>
                 <entry key="xtremio" value-ref="xtremioStorageDevice"/>
                 <entry key="ibmxiv" value-ref="xivSmisDevice"/>
+                <entry key="ceph" value-ref="cephStorageDevice"/>
                 <entry key="externaldevice" value-ref="externalBlockStorageDevice"/>
             </map>
         </property>
@@ -923,6 +988,7 @@
                 <entry key="vmax" value-ref="vmaxSmisDevice"/>
                 <entry key="vnxblock" value-ref="vnxSmisDevice"/>
                 <entry key="vnxe" value-ref="vnxeDevice"/>
+                <entry key="unity" value-ref="vnxunityDevice"/>
                 <entry key="ibmxiv" value-ref="xivSmisDevice"/>
             </map>
         </property>
@@ -936,6 +1002,7 @@
                 <entry key="vmax" value-ref="vmaxMaskingOrchestrator"/>
                 <entry key="vnxblock" value-ref="vnxMaskingOrchestrator"/>
                 <entry key="vnxe" value-ref="vnxeMaskingOrchestrator"/>
+                <entry key="unity" value-ref="vnxunityMaskingOrchestrator"/>
                 <entry key="vplex" value-ref="vplexDeviceController"/>
                 <entry key="hds" value-ref="hdsMaskingOrchestrator"/>
                 <entry key="openstack" value-ref="cinderMaskingOrchestrator"/>
@@ -943,6 +1010,7 @@
                 <entry key="rp" value-ref="rpProtection"/>
                 <entry key="scaleio" value-ref="scaleioMaskingOrchestrator"/>
                 <entry key="xtremio" value-ref="xtremioMaskingOrchestrator"/>
+                <entry key="ceph" value-ref="cephMaskingOrchestrator"/>
                 <entry key="externaldevice" value-ref="externalDeviceMaskingOrchestrator"/>
             </map>
         </property>
@@ -962,6 +1030,7 @@
                 <ref bean="blockDeviceExportController"/>
                 <ref bean="exportWorkflowEntryPoints"/>
                 <ref bean="blockOrchestrationDeviceController"/>
+                <ref bean="protectionOrchestrationDeviceController"/>
                 <ref bean="fileOrchestrationDeviceController"/>
                 <ref bean="fileReplicationDeviceController" />
                 <ref bean="srdfDeviceController" />
@@ -1467,6 +1536,27 @@
         <property name="serviceName" value="BlockOrchestrationController"/>
         <property name="service" ref="blockOrchestrationController"/>
         <property name="serviceInterface" value="com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationController"/>
+        <property name="registryPort" value="10099"/>
+        <property name="servicePort" value="40201"/>
+    </bean>
+
+    <bean id="protectionOrchestrationDeviceController" class="com.emc.storageos.protectionorchestrationcontroller.ProtectionOrchestrationDeviceController">
+        <property name="dbClient" ref="dbclient"/>
+	<property name="srdfDeviceController" ref="srdfDeviceController" />
+        <property name="vplexDeviceController" ref="vplexDeviceController" />
+	<property name="workflowService" ref="workflowService"/>
+    </bean>
+
+    <bean id="protectionOrchestrationController" class="com.emc.storageos.protectionorchestrationcontroller.ProtectionOrchestrationControllerImpl">
+        <property name="controller" ref="protectionOrchestrationDeviceController" />
+        <property name="dbClient" ref="dbclient"/>
+        <property name="dispatcher" ref="dispatcher"/>
+    </bean>
+
+    <bean class="org.springframework.remoting.rmi.RmiServiceExporter" depends-on="beacon">
+        <property name="serviceName" value="ProtectionOrchestrationController"/>
+        <property name="service" ref="protectionOrchestrationController"/>
+        <property name="serviceInterface" value="com.emc.storageos.protectionorchestrationcontroller.ProtectionOrchestrationController"/>
         <property name="registryPort" value="10099"/>
         <property name="servicePort" value="40201"/>
     </bean>

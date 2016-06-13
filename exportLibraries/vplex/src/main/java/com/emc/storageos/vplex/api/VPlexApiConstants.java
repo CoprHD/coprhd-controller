@@ -169,6 +169,7 @@ public class VPlexApiConstants {
     public static final String ARG_GEOMETRY_RAIDC = "raid-C";
     public static final String ARG_UNCLAIM = "--unclaim-storage-volumes";
     public static final String ARG_APPC = "--appc";
+    public static final String ARG_THIN_ENABLED = "--thin";
     public static final String ARG_THIN_REBUILD = "--thin-rebuild";
     public static final String ARG_TRANSFER_SIZE = "--transfer-size";
     public static final String ARG_DEVICES = "--devices";
@@ -240,8 +241,10 @@ public class VPlexApiConstants {
     // command to complete.
     public static final int MAX_RETRIES = 240;
 
-    // VPlex API null attribute value
+    // VPlex API attribute values
     public static final String NULL_ATT_VAL = "null";
+    public static final String TRUE = "true";
+    public static final String FALSE = "false";
 
     // Type for a system volume that is a logging volume
     public static final String LOGGING_VOLUME_TYPE = "logging-volume";
@@ -316,5 +319,7 @@ public class VPlexApiConstants {
 
     // delimiter for cause in VPLEX API error responses
     public static final String CAUSE_DELIM = "cause:";
-
+    
+    // The value returned by VPLEX when the volume has no expandable capacity.
+    public static final String NO_EXPANDABLE_CAPACITY = "0B";
 }

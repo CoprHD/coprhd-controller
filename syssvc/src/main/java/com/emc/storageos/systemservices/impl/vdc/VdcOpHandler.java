@@ -662,8 +662,7 @@ public abstract class VdcOpHandler {
                         }
                     }
                 }
-                // To block degraded standbys in fire wall
-                reconfigVdc(false);
+                flushVdcConfigToLocal();
             } else {
                 flushVdcConfigToLocal();
                 // restart dbsvc/geodbsvc so that the internode authenticator takes effect.

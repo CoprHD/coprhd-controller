@@ -158,6 +158,7 @@ public class VdcConfigUtil {
                     || site.getState().equals(SiteState.STANDBY_REMOVING)
                     || site.getState().equals(SiteState.ACTIVE_FAILING_OVER)
                     || site.getState().equals(SiteState.ACTIVE_DEGRADED)
+                    || site.getState().equals(SiteState.STANDBY_DEGRADING)
                     || site.getState().equals(SiteState.STANDBY_DEGRADED) )) {
 
                 continue;

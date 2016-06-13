@@ -7,11 +7,12 @@ package com.emc.sa.service.vipr;
 import java.net.URI;
 import java.util.List;
 
+import com.emc.sa.engine.ExecutionContext;
 import com.emc.sa.engine.ExecutionTask;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.storageos.model.DataObjectRestRep;
-import com.emc.vipr.client.Tasks;
 import com.emc.vipr.client.Task;
+import com.emc.vipr.client.Tasks;
 import com.emc.vipr.client.core.util.ResourceUtils;
 
 /**
@@ -38,6 +39,18 @@ public class ViPRExecutionUtils {
     }
 
     public static <T> T execute(ExecutionTask<T> task) {
+        ExecutionContext context = ExecutionUtils.currentContext();
+        String orderStatus = context.getOrder().getWorkflowStatus();
+        while ("PAUSED".equalsIgnoreCase(orderStatus)) {
+            try {
+                Thread.sleep(1000);
+                // requery order to get its updated status
+                orderStatus = context.getModelClient().orders().findById(context.getOrder().getId()).getWorkflowStatus();
+            } catch (InterruptedException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+        }
         return ExecutionUtils.execute(task);
     }
 

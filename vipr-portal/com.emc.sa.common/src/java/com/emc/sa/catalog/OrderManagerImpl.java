@@ -640,6 +640,7 @@ public class OrderManagerImpl implements OrderManager {
     public void pauseOrder(Order order) {
         log.info(String.format("Order %s is paused", order.getId()));
         order.setOrderStatus(OrderStatus.PAUSED.name());
+        order.setWorkflowStatus("PAUSED");
         updateOrder(order);
     }
 
@@ -647,6 +648,7 @@ public class OrderManagerImpl implements OrderManager {
     public void resumeOrder(Order order) {
         log.info(String.format("Order %s is resumed", order.getId()));
         order.setOrderStatus(OrderStatus.EXECUTING.name());
+        order.setWorkflowStatus("RESUMED");
         updateOrder(order);
     }
 

@@ -58,6 +58,7 @@ public class OrderMapper {
         to.setSummary(from.getSummary());
         to.setSubmittedBy(from.getSubmittedByUserId());
         to.setOrderStatus(from.getOrderStatus());
+        to.setWorkflowStatus(from.getWorkflowStatus());
         if (StringUtils.isNotBlank(from.getTenant())) {
             to.setTenant(toRelatedResource(ResourceTypeEnum.TENANT, uri(from.getTenant())));
         }

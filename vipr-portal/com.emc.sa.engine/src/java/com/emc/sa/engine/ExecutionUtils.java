@@ -78,10 +78,12 @@ public class ExecutionUtils {
         String orderStatus = context.getOrder().getOrderStatus();
         long startTime = System.currentTimeMillis();
         try {
-            if("PAUSED".equalsIgnoreCase(orderStatus)){
-                //T res = task.executeTask();
-                return null;
-            }
+            while("PAUSED".equalsIgnoreCase(orderStatus)) {
+                Thread.sleep(1000);
+                 //requery order to get its updated status
+                 orderStatus = context.getModelClient().orders().findById(context.getOrder().getId()).getOrderStatus();
+             }
+
             injectValues(task, context);
             T result = task.executeTask();
             long elapsedTime = System.currentTimeMillis() - startTime;

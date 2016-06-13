@@ -145,7 +145,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     @Autowired
     private CustomConfigHandler customConfigHandler;
     @Autowired
-    protected DataSourceFactory dataSourceFactory;
+    private DataSourceFactory dataSourceFactory;
 
     /**
      * Get Unmanaged File System Container paths

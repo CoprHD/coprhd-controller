@@ -99,7 +99,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     @Autowired
     private CustomConfigHandler customConfigHandler;
     @Autowired
-    protected DataSourceFactory dataSourceFactory;
+    private DataSourceFactory dataSourceFactory;
 
     private FileMirrorOperations mirrorOperations;
 

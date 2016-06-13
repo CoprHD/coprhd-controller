@@ -170,6 +170,14 @@ fi
 %config /etc/nginx/vasasvc-server-IPv4-template.conf
 %config /etc/nginx/vasasvc-server-IPv6-template.conf
 %config /etc/nginx/storageos-vasasvc.conf
+%config /etc/nginx/orchestration-northbound-server-common.conf
+%config /etc/nginx/orchestration-northbound-server-dual-template.conf
+%config /etc/nginx/orchestration-northbound-server-IPv4-template.conf
+%config /etc/nginx/orchestration-northbound-server-IPv6-template.conf
+%config /etc/nginx/orchestration-southbound-server-common.conf
+%config /etc/nginx/orchestration-southbound-server-dual-template.conf
+%config /etc/nginx/orchestration-southbound-server-IPv4-template.conf
+%config /etc/nginx/orchestration-southbound-server-IPv6-template.conf
 %config /etc/nginx/locations.conf
 %config /etc/nginx/upstream.conf
 %config /etc/nginx/upstream-template.conf

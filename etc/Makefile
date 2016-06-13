@@ -80,6 +80,14 @@ ETCFILES_COMMON = \
     $(ETCDIR)/nginx/nginx-dual-template.conf \
     $(ETCDIR)/nginx/nginx-IPv4-template.conf \
     $(ETCDIR)/nginx/nginx-IPv6-template.conf \
+    ${ETCDIR}/nginx/orchestration-northbound-server-common.conf \
+    ${ETCDIR}/nginx/orchestration-northbound-server-dual-template.conf \
+    ${ETCDIR}/nginx/orchestration-northbound-server-IPv4-template.conf \
+    ${ETCDIR}/nginx/orchestration-northbound-server-IPv6-template.conf \
+    ${ETCDIR}/nginx/orchestration-southbound-server-common.conf \
+    ${ETCDIR}/nginx/orchestration-southbound-server-dual-template.conf \
+    ${ETCDIR}/nginx/orchestration-southbound-server-IPv4-template.conf \
+    ${ETCDIR}/nginx/orchestration-southbound-server-IPv6-template.conf \
     $(ETCDIR)/nginx/nginx.wrapper \
     $(ETCDIR)/nginx/locations.conf \
     $(ETCDIR)/nginx/upstream-template.conf \

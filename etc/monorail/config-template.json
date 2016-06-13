@@ -5,7 +5,7 @@
     "httpEndpoints": [
         {
             "address": "${network_ipaddr_service}",
-            "port": 9090,
+            "port": 9091,
             "httpsEnabled": false,
             "proxiesEnabled": true,
             "authEnabled": false,
@@ -13,7 +13,7 @@
         },
         {
             "address": "${network_ipaddr_service}",
-            "port": 9080,
+            "port": 9081,
             "httpsEnabled": false,
             "proxiesEnabled": false,
             "authEnabled": false,

@@ -367,7 +367,9 @@ public class PortMetricsProcessor {
         Double portMetricDouble = portPercentBusy;
 
         // compute port cpu busy if applicable
-        if (type == DiscoveredDataObject.Type.vmax || type == DiscoveredDataObject.Type.vnxblock) {
+        if (type == DiscoveredDataObject.Type.vmax ||
+                type == DiscoveredDataObject.Type.vnxblock ||
+                type == DiscoveredDataObject.Type.vplex) {
             StorageHADomain haDomain = _dbClient.queryObject(StorageHADomain.class, port.getStorageHADomain());
             StringMap cpuMap = haDomain.getMetrics();
 

@@ -8058,6 +8058,14 @@ blockconsistencygroup_create_snapshot()
     run blockconsistencygroup create_snapshot $1 $2 --createInactive 
 }
 
+blockconsistencygroup_create_active_snapshot ()
+{
+    ### create blockconsistencygroup snapshot
+    echo "Creating consistency group snapshot"
+    run blockconsistencygroup create_snapshot $1 $2
+
+}
+
 blockconsistencygroup_activate_snapshot()
 {
     ### activate blockconsistencygroup snapshot
@@ -8126,6 +8134,8 @@ blockconsistencygroup_snapshot_tests()
     cg_name=$1
     cg_cos=$2
     cg_snapshot=$3
+	
+	
     
     echo "Running Consistency Group Snapshot tests"
     echo "Consistency Group: $cg_name"
@@ -8133,9 +8143,14 @@ blockconsistencygroup_snapshot_tests()
     echo "CG Snapshot: $cg_snapshot" 
     
     blockconsistencygroup_setup_snapshot $cg_name $cg_cos
-    blockconsistencygroup_create_snapshot $cg_name $cg_snapshot
-    blockconsistencygroup_activate_snapshot $cg_name $cg_snapshot
-    blockconsistencygroup_restore_snapshot $cg_name $cg_snapshot
+	if [$cg_name = vmax*]; then
+		blockconsistencygroup_create_active_snapshot $cg_name $cg_snapshot
+		blockconsistencygroup_restore_snapshot $cg_name $cg_snapshot
+	else 
+		blockconsistencygroup_create_snapshot $cg_name $cg_snapshot
+		blockconsistencygroup_activate_snapshot $cg_name $cg_snapshot
+	fi
+    
     blockconsistencygroup_show_snapshot $cg_name $cg_snapshot
     blockconsistencygroup_list_snapshot $cg_name $cg_snapshot
     blockconsistencygroup_deactivate_snapshot $cg_name $cg_snapshot   

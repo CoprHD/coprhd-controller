@@ -4705,6 +4705,20 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         }
     }
 
+    @Override
+    public void findAndUpdateFreeHLUsForClusterExport(ExportGroup exportGroup, List<String> initiatorNames, Map<URI, Integer> volumeMap) {
+        if (exportGroup.forCluster() && volumeMap.values().contains("-1")) {
+            // call device.findHLUsForInitiators() for all cluster initiators
+            // -(If HLU can be queried via host info, Device driver can group them into hosts and collects HLUs for each host)
+            // get the maximum allowed HLU for the array type
+            // Calculate the free lowest available HLUs for the requested number of volumes
+            // update VolumeURIHLU Map with new values
+
+            // TODO what about co-existence / brownfield case?
+            // TODO check if cluster has 'n' masking views before proceeding?
+        }
+    }
+
     public void setWorkflowService(WorkflowService _workflowService) {
         this._workflowService = _workflowService;
     }

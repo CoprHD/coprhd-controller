@@ -24,6 +24,7 @@ import javax.wbem.CloseableIterator;
 import javax.wbem.WBEMException;
 
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -729,6 +730,12 @@ public class XIVExportOperations implements ExportMaskOperations {
         }
 
         return matchingMasks;
+    }
+
+    @Override
+    public List<Integer> findHLUsForInitiators(StorageSystem storage, List<String> initiatorNames) {
+        // TODO Auto-generated method stub
+        return null;
     }
 
     @Override

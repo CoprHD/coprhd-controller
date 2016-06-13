@@ -83,6 +83,16 @@ public interface ExportMaskOperations {
      */
     public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask);
 
+    /**
+     * This call will be used to find the HLUs that have been assigned for volumes
+     * which are exported to the given list of initiators.
+     *
+     * @param storage the storage system
+     * @param initiatorNames the initiator names
+     * @return the HLUs used for the given initiators
+     */
+    public List<Integer> findHLUsForInitiators(StorageSystem storage, List<String> initiatorNames);
+
     public void updateStorageGroupPolicyAndLimits(StorageSystem storage, ExportMask exportMask,
             List<URI> volumeURIs, VirtualPool newVirtualPool, boolean rollback,
             TaskCompleter taskCompleter) throws Exception;

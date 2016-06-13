@@ -1068,6 +1068,11 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     }
 
     @Override
+    public List<Integer> findHLUsForInitiators(StorageSystem storage, List<String> initiatorNames) {
+        return _exportMaskOperationsHelper.findHLUsForInitiators(storage, initiatorNames);
+    }
+
+    @Override
     public ExportMask refreshExportMask(final StorageSystem storage, final ExportMask mask) {
         return _exportMaskOperationsHelper.refreshExportMask(storage, mask);
     }

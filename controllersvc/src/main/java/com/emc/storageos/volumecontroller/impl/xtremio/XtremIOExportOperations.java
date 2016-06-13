@@ -238,6 +238,12 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
     }
 
     @Override
+    public List<Integer> findHLUsForInitiators(StorageSystem storage, List<String> initiatorNames) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
     public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) {
         try {
             _log.info("Refreshing Initiator labels in ViPR.. ");

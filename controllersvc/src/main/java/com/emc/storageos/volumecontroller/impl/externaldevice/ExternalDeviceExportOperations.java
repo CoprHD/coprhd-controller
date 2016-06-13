@@ -27,6 +27,7 @@ import com.emc.storageos.storagedriver.storagecapabilities.CommonStorageCapabili
 import com.emc.storageos.storagedriver.storagecapabilities.ExportPathsServiceOption;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskAddInitiatorCompleter;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
+
 import org.apache.commons.lang.mutable.MutableBoolean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -558,6 +559,12 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
     public Map<String, Set<URI>> findExportMasks(StorageSystem storage,
                                                  List<String> initiatorNames, boolean mustHaveAllPorts) {
         // not supported. There are no common masking concepts. So, return null.
+        return null;
+    }
+
+    @Override
+    public List<Integer> findHLUsForInitiators(StorageSystem storage, List<String> initiatorNames) {
+        // TODO Auto-generated method stub
         return null;
     }
 

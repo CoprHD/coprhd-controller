@@ -649,6 +649,16 @@ public interface BlockStorageDevice {
             List<String> initiatorNames, boolean mustHaveAllPorts);
 
     /**
+     * For the given list of initiators, go to the Storage Array and get the list of HLUs that the volumes are assigned with.
+     *
+     * @param storage the storage system
+     * @param initiatorNames the initiator names
+     * @return the HLUs for the given initiators
+     */
+    // TODO List to Set
+    public List<Integer> findHLUsForInitiators(StorageSystem storage, List<String> initiatorNames);
+
+    /**
      * This call will be used to update the ExportMask with the latest data from the array.
      * 
      * @param storage

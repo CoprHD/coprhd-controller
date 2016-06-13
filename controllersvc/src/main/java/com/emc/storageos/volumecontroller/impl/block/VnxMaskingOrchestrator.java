@@ -261,6 +261,10 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 queryHostInitiatorsAndAddToList(portNames, portNameToInitiatorURI,
                         initiatorURIs, hostURIs);
                 Map<String, Set<URI>> foundMatches = device.findExportMasks(storage, portNames, false);
+
+                // TODO is it required in 'no masks' case?
+                findAndUpdateFreeHLUsForClusterExport(exportGroup, portNames, volumeMap);
+
                 Set<String> checkMasks = mergeWithExportGroupMaskURIs(exportGroup, foundMatches.values());
                 for (String maskURIStr : checkMasks) {
                     ExportMask exportMask = _dbClient.queryObject(ExportMask.class,
@@ -482,6 +486,9 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         // or there is an existing ExportMasks.
         Map<String, Set<URI>> matchingExportMaskURIs =
                 device.findExportMasks(storage, portNames, false);
+
+        findAndUpdateFreeHLUsForClusterExport(exportGroup, portNames, volumeMap);
+
         if (matchingExportMaskURIs.isEmpty()) {
             previousStep =
                     checkForSnapshotsToCopyToTarget(workflow, storage, previousStep,

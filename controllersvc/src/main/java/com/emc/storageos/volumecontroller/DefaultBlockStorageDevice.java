@@ -335,6 +335,13 @@ public abstract class DefaultBlockStorageDevice implements BlockStorageDevice, R
     }
 
     @Override
+    public List<Integer> findHLUsForInitiators(StorageSystem storage, List<String> initiatorNames) {
+        // TODO each device driver to implement this when they want consistent HLU for Cluster export
+        throw DeviceControllerException.exceptions
+                .blockDeviceOperationNotSupported();
+    }
+
+    @Override
     public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) {
         throw DeviceControllerException.exceptions
                 .blockDeviceOperationNotSupported();

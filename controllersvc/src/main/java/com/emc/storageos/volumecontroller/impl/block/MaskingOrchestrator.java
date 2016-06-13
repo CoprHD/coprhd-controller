@@ -101,6 +101,16 @@ public interface MaskingOrchestrator {
             String token) throws Exception;
 
     /**
+     * Find and update free HLUs for cluster export.
+     *
+     * @param exportGroup the export group
+     * @param initiatorNames the initiator names
+     * @param volumeMap the volume URI to HLU map
+     */
+    public void findAndUpdateFreeHLUsForClusterExport(ExportGroup exportGroup, List<String> initiatorNames, Map<URI, Integer> volumeMap)
+            throws Exception;
+
+    /**
      * Update the Path Parameters for the volume specified in any of the Export Mask(s)
      * in the Export Group specified.
      * 

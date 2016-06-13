@@ -360,6 +360,12 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
     }
 
     @Override
+    public List<Integer> findHLUsForInitiators(StorageSystem storage, List<String> initiatorNames) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
     public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) {
         // TODO Auto-generated method stub
         return null;

@@ -439,6 +439,12 @@ public class VnxExportOperations implements ExportMaskOperations {
     }
 
     @Override
+    public List<Integer> findHLUsForInitiators(StorageSystem storage, List<String> initiatorNames) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
     public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) {
         try {
             CIMInstance instance =

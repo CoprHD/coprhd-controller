@@ -1756,6 +1756,12 @@ public class VmaxExportOperations implements ExportMaskOperations {
     }
 
     @Override
+    public List<Integer> findHLUsForInitiators(StorageSystem storage, List<String> initiatorNames) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
     public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) {
         long startTime = System.currentTimeMillis();
         try {

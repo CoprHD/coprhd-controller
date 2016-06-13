@@ -698,30 +698,34 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
                         ResourceOperationTypeEnum.DELETE_BLOCK_VOLUME);
                 volume.getOpStatus().put(task, op);
 
-                _dbClient.persistObject(volume);
+                _dbClient.updateObject(volume);
 
-                // TODO DUPP CWF: This is a child workflow, needs idempotent check
-                blockOrchestrationController.deleteVolumes(volumeDescriptors, task);
+                final String workflowKey = "deleteVolumes";
+                if (!WorkflowService.getInstance().hasWorkflowBeenCreated(task, workflowKey)) {
+                    blockOrchestrationController.deleteVolumes(volumeDescriptors, task);
+                    // Mark this workflow as created/executed so we don't do it again on retry/resume
+                    WorkflowService.getInstance().markWorkflowBeenCreated(task, workflowKey);
 
-                while (true) {
-                    Thread.sleep(TASK_STATUS_POLL_FREQUENCY);
-                    volume = _dbClient.queryObject(Volume.class, host.getBootVolumeId());
+                    while (true) {
+                        Thread.sleep(TASK_STATUS_POLL_FREQUENCY);
+                        volume = _dbClient.queryObject(Volume.class, host.getBootVolumeId());
 
-                    switch (Status.toStatus(volume.getOpStatus().get(task).getStatus())) {
-                        case ready:
-                            WorkflowStepCompleter.stepSucceded(stepId);
-                            return;
-                        case error:
-                            log.warn("Unable to delete block volume associated with Host...",
-                                    ComputeSystemControllerException.exceptions
-                                            .unableToDeactivateBootVolumeAssociatedWithHost(host.getHostName(), host
-                                                    .getId().toASCIIString(), host.getBootVolumeId().toASCIIString(),
-                                                    volume.getOpStatus().get(task).getMessage()));
-                            WorkflowStepCompleter.stepSucceded(stepId);
-                            return;
-                        case pending:
-                            break;
+                        switch (Status.toStatus(volume.getOpStatus().get(task).getStatus())) {
+                            case ready:
+                                WorkflowStepCompleter.stepSucceded(stepId);
+                                return;
+                            case error:
+                                log.warn("Unable to delete block volume associated with Host...",
+                                        ComputeSystemControllerException.exceptions
+                                                .unableToDeactivateBootVolumeAssociatedWithHost(host.getHostName(), host
+                                                        .getId().toASCIIString(), host.getBootVolumeId().toASCIIString(),
+                                                        volume.getOpStatus().get(task).getMessage()));
+                                WorkflowStepCompleter.stepSucceded(stepId);
+                                return;
+                            case pending:
+                                break;
 
+                        }
                     }
                 }
 

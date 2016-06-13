@@ -24,6 +24,8 @@ import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCodeException;
 
 public class DataObjectChangeAnalyzer {
+    // Unfortunately, the UI uses NONE all over the place to mean null
+    private static final String NONE = "NONE";
 
     public static class Change {
         public String _key;                 // key (field name)
@@ -73,12 +75,14 @@ public class DataObjectChangeAnalyzer {
          */
         if (b != null &&
                 !(b.toString().contains(" ")) && (NullColumnValueGetter.isNullValue(b.toString()) ||
+                (b instanceof String && b.equals(NONE)) ||
                 (b instanceof Number && ((Number) b).equals(new Integer(0))))) {
             b = null;
         }
 
         if (a != null &&
                 !(a.toString().contains(" ")) && (NullColumnValueGetter.isNullValue(a.toString()) ||
+                (a instanceof String && a.equals(NONE)) ||
                 (a instanceof Number && ((Number) a).equals(new Integer(0))))) {
             a = null;
         }

@@ -1034,7 +1034,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
                 // get Api client
                 HP3PARApi hp3parApi = getHP3PARDeviceFromNativeId(consistencyGroup.getStorageSystemId());
 
-                // Delete virtual copy
+                // Delete virtual copies of CG
                 hp3parApi.deleteVVset(consistencyGroup.getNativeId());
                 
                 task.setStatus(DriverTask.TaskStatus.READY);
@@ -1084,6 +1084,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	                String generatedSnapshotName = snap.getDisplayName();
 	                VVsetSnapshotName = generatedSnapshotName.substring(0, generatedSnapshotName.lastIndexOf("-")) + "-" ;
 	                _log.info("3PARDriver: createConsistencyGroupSnapshot VVsetSnapshotName {} ",VVsetSnapshotName);
+	                break;
 
 		   	}
 		   	
@@ -1127,8 +1128,8 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 										, snap.getNativeId(),snap.getWwn(),snap.getDeviceLabel(),snap.getDisplayName());
 								snap.setWwn(volResult.getWwn());
 								snap.setNativeId(volResult.getName());
-								snap.setLabel(volResult.getName());
 								snap.setDeviceLabel(volResult.getName());
+								snap.setLabel(volResult.getName());
 								// snap.setAccessStatus(volResult.getAccessStatus());
 								snap.setDisplayName(volResult.getName());
 								

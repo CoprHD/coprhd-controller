@@ -7,6 +7,7 @@ package com.emc.storageos.api.service.impl.resource.utils;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -433,7 +434,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
     public static boolean vpoolChangeRequiresMigration(VirtualPool currentVpool, VirtualPool newVpool) {
         s_logger.info(String.format("Checking vpoolChangeRequiresMigration from [%s] to [%s]...", currentVpool.getLabel(),
                 newVpool.getLabel()));
-        // Verify they are different Vpool.
+        // Verify they are different vpools
         if (isSameVirtualPool(currentVpool, newVpool)) {
             return false;
         }
@@ -1529,11 +1530,235 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
     private static void fillInNotSupportedReasons(Map<String, Change> changes, StringBuffer notSuppReasonBuff) {
         Set<String> allChanges = new HashSet<String>();
         for (Change foundChange : changes.values()) {
-            // Use the plain name field from the change, it's an user
-            // friendly name.
+            // Use the plain name field from the change oject
             allChanges.add(foundChange.name);
         }
         notSuppReasonBuff.append(Joiner.on(", ").join(allChanges));
         notSuppReasonBuff.append(". ");
+    }
+    
+    /**
+     * Checks to see if the migration operation is supported for RP+VPLEX or MetroPoint.
+     * 
+     * @param volume A reference to the volume.
+     * @param currentVpool A reference to the current volume Vpool.
+     * @param newVpool The desired new Vpool.
+     * @param dbClient A reference to a DB client.
+     * @param notSuppReasonBuff Buffer for error messages
+     * @return true if remove protection is supported
+     */
+    public static boolean isSupportedRPVPlexMigrationVirtualPoolChange(Volume volume, VirtualPool currentVpool, VirtualPool newVpool,
+            DbClient dbClient, StringBuffer notSuppReasonBuff, Map<Volume.PersonalityTypes, Map<URI, URI>> validMigrations) {
+        s_logger.info(String.format("Checking isSupportedRPVPlexMigrationVirtualPoolChange from [%s] to [%s]...",
+                currentVpool.getLabel(), newVpool.getLabel()));
+        // Flag to indicate that at least one valid migration has been found
+        boolean validMigrationsFound = false;
+        
+        if (volume.checkForRp()
+                && VirtualPool.vPoolSpecifiesRPVPlex(currentVpool)
+                && VirtualPool.vPoolSpecifiesRPVPlex(newVpool)) {
+            
+            // Number of targets can not be different between the current and new vpool.
+            if (currentVpool.getProtectionVarraySettings().size() != newVpool.getProtectionVarraySettings().size()) {
+                notSuppReasonBuff.append("Target virtual arrays do not match.");
+                return false;
+            }
+            
+            // If validMigrations is passed in and is not null, initialize the structure.
+            // This will be used to store any valid migrations for SOURCE and TARGET.
+            //
+            // If the caller passes in null it indicates that it does not care what migrations
+            // were found.
+            if (validMigrations != null) {
+                validMigrations.put(Volume.PersonalityTypes.SOURCE, new HashMap<URI, URI>());
+                validMigrations.put(Volume.PersonalityTypes.TARGET, new HashMap<URI, URI>());
+            }
+            
+            // Keep track of the potential Source migrations
+            Map<VirtualPool, VirtualPool> sourceMigrations = new HashMap<VirtualPool, VirtualPool>();
+            // Keep track of the potential Target migrations
+            Map<VirtualPool, VirtualPool> targetMigrations = new HashMap<VirtualPool, VirtualPool>();
+                        
+            // Store all the potential candidates for migrations
+            Map<Volume.PersonalityTypes, Map<VirtualPool, VirtualPool>> candidatesForMigration 
+                = new HashMap<Volume.PersonalityTypes, Map<VirtualPool, VirtualPool>>();
+            candidatesForMigration.put(Volume.PersonalityTypes.SOURCE, sourceMigrations);
+            candidatesForMigration.put(Volume.PersonalityTypes.TARGET, targetMigrations);
+            
+            // The Source is always a potential candidate for migration
+            sourceMigrations.put(currentVpool, newVpool);
+            
+            // Check the Targets for potential candidates for migration
+            for (Map.Entry<String, String> entry : currentVpool.getProtectionVarraySettings().entrySet()) {
+                String targetVarrayId = entry.getKey();
+                // Make sure we find the same varray in the new vpool, otherwise fail the operation
+                if (newVpool.getProtectionVarraySettings().containsKey(targetVarrayId)) {                                       
+                    String currentProtectionVarraySettingsId = entry.getValue();
+                    String newProtectionVarraySettingsId = newVpool.getProtectionVarraySettings().get(entry.getKey());
+
+                    // Grab the current protection varray settings
+                    VpoolProtectionVarraySettings currentProtectionVarraySetting =
+                            dbClient.queryObject(VpoolProtectionVarraySettings.class,
+                                    URI.create(currentProtectionVarraySettingsId));
+
+                    // Grab the new protection varray settings
+                    VpoolProtectionVarraySettings newProtectionVarraySetting =
+                            dbClient.queryObject(VpoolProtectionVarraySettings.class,
+                                    URI.create(newProtectionVarraySettingsId));
+
+                    String currentTargetVpoolId = NullColumnValueGetter.getStringValue(currentProtectionVarraySetting
+                            .getVirtualPool());
+                    VirtualPool currentTargetVpool = dbClient.queryObject(VirtualPool.class, URI.create(currentTargetVpoolId));
+//                    String currentTargetJournalVarray = NullColumnValueGetter.getStringValue(currentProtectionVarraySetting
+//                            .getJournalVarray());
+//                    String currentTargetJournalVpool = NullColumnValueGetter.getStringValue(currentProtectionVarraySetting
+//                            .getJournalVpool());
+
+                    String newTargetVpoolId = NullColumnValueGetter.getStringValue(newProtectionVarraySetting.getVirtualPool());
+                    VirtualPool newTargetVpool = dbClient.queryObject(VirtualPool.class, URI.create(newTargetVpoolId));
+//                    String newTargetJournalVarray = NullColumnValueGetter.getStringValue(newProtectionVarraySetting
+//                            .getJournalVarray());
+//                    String newTargetJournalVpool = NullColumnValueGetter.getStringValue(newProtectionVarraySetting
+//                            .getJournalVpool());
+
+//                    // Make sure the target vpools are the same
+//                    if (!currentTargetVpool.equals(newTargetVpool)) {
+//                        notSuppReasonBuff.append("Target virtual pools do not match.");
+//                        return false;
+//                    }
+//
+//                    // Make sure the target journal varrays are the same
+//                    if (!currentTargetJournalVarray.equals(newTargetJournalVarray)) {
+//                        notSuppReasonBuff.append("Target journal virtual arrays do not match.");
+//                        return false;
+//                    }
+//
+//                    // Make sure the target journal vpools are the same
+//                    if (!currentTargetJournalVpool.equals(newTargetJournalVpool)) {
+//                        notSuppReasonBuff.append("Target journal virtual vpools do not match.");
+//                        return false;
+//                    }
+                    
+//                    if (VirtualPool.vPoolSpecifiesRPVPlex(currentTargetVpool)
+//                            && VirtualPool.vPoolSpecifiesRPVPlex(newTargetVpool)) {
+                        // Add this Target's currentVpool and the newVpool as a potential candidate for migrations
+                    
+                    
+//                    if (candidatesForMigration.get(Volume.PersonalityTypes.TARGET) == null) {
+//                        candidatesForMigration.put(Volume.PersonalityTypes.TARGET, new HashMap<VirtualPool, VirtualPool>());
+//                    }
+//                    candidatesForMigration.get(Volume.PersonalityTypes.TARGET).put(currentTargetVpool, newTargetVpool);
+                    
+                    targetMigrations.put(currentTargetVpool, newTargetVpool);
+                    
+//                    } else {
+//                        notSuppReasonBuff.append("Target virtual pools do not match.");
+//                        return false;
+//                    }
+                } else {
+                    notSuppReasonBuff.append("Target virtual arrays do not match.");
+                    return false;
+                }
+            }
+                        
+            // Targets are OK if we reach here so on to the next check for Source/HA journals...
+            //
+            // The current RP+VPLEX vpool is either protecting the Source site or HA site.
+            // This will make a difference in checking which journal side should be added when
+            // upgrading to MetroPoint.
+            // If we were protecting the Source site, then the HA journal changes are OK and we need to check the Source Journal
+            // settings for changes.
+            // If we were protecting the HA site, then the Source journal changes are OK and we need to check the HA Journal
+            // settings for changes.
+//            String currentJournalVarray = null;
+//            String currentJournalVpool = null;
+//            String newJournalVarray = null;
+//            String newJournalVpool = null;
+//
+//            if (VirtualPool.isRPVPlexProtectHASide(currentVpool)) {
+//                currentJournalVarray = NullColumnValueGetter.getStringValue(currentVpool.getStandbyJournalVarray());
+//                currentJournalVpool = NullColumnValueGetter.getStringValue(currentVpool.getStandbyJournalVpool());
+//                newJournalVarray = NullColumnValueGetter.getStringValue(newVpool.getStandbyJournalVarray());
+//                newJournalVpool = NullColumnValueGetter.getStringValue(newVpool.getStandbyJournalVpool());
+//            }
+//            else {
+//                currentJournalVarray = NullColumnValueGetter.getStringValue(currentVpool.getJournalVarray());
+//                currentJournalVpool = NullColumnValueGetter.getStringValue(currentVpool.getJournalVpool());
+//                newJournalVarray = NullColumnValueGetter.getStringValue(newVpool.getJournalVarray());
+//                newJournalVpool = NullColumnValueGetter.getStringValue(newVpool.getJournalVpool());
+//            }
+//
+//            // Source journals need to match up
+//            if (!currentJournalVarray.equals(newJournalVarray)) {
+//                notSuppReasonBuff.append("Source journal virtual arrays do not match.");
+//                return false;
+//            }
+//
+//            if (!currentJournalVpool.equals(newJournalVpool)) {
+//                notSuppReasonBuff.append("Source journal virtual pools do not match.");
+//                return false;
+//            }
+        
+    
+                        
+            for (Volume.PersonalityTypes personality : candidatesForMigration.keySet()) {
+                
+                
+                for (Map.Entry<VirtualPool, VirtualPool> entry : candidatesForMigration.get(personality).entrySet()) {
+                
+                
+                    
+                    VirtualPool candidateCurrentVpool = entry.getKey();
+                    VirtualPool candidateNewVpool = entry.getValue();
+                
+                    // Ensure these values have NOT changed between ANY of the candidate vpools. If they have,
+                    // do not allow the RP+VPLEX migration operation to occur.
+                    String[] include = new String[] { TYPE, VARRAYS,
+                            REF_VPOOL, MIRROR_VPOOL, FAST_EXPANSION, ACLS, INACTIVE, NUM_PATHS, 
+                            METROPOINT, HIGH_AVAILABILITY, RP_RPO_TYPE, RP_RPO_VALUE, RP_COPY_MODE };
+                    Map<String, Change> changes = analyzeChanges(candidateCurrentVpool, candidateNewVpool, include, null, null);
+                    if (!changes.isEmpty()) {
+                        notSuppReasonBuff.append("Changes in the following virtual pool properties are not permitted: ");
+                        fillInNotSupportedReasons(changes, notSuppReasonBuff);
+                        return false;
+                    }
+                    
+                    if (VirtualPool.vPoolSpecifiesRPVPlex(candidateCurrentVpool)
+                            && VirtualPool.vPoolSpecifiesRPVPlex(candidateNewVpool)) {
+                    
+                        // Determine if source side will be migrated.
+                        boolean migrateSourceVolume = VirtualPoolChangeAnalyzer
+                                .vpoolChangeRequiresMigration(candidateCurrentVpool, candidateNewVpool);
+            
+                        // Determine if HA side will be migrated.
+                        boolean migrateHAVolume = false;
+                        VirtualPool candidateCurrentHaVpool = VirtualPoolChangeAnalyzer
+                                .getHaVpool(candidateCurrentVpool, dbClient);
+                        if (candidateCurrentHaVpool != null) {
+                            VirtualPool candidateNewHaVpool = VirtualPoolChangeAnalyzer
+                                    .getNewHaVpool(candidateCurrentVpool, candidateNewVpool, dbClient);
+                            migrateHAVolume = VirtualPoolChangeAnalyzer
+                                    .vpoolChangeRequiresMigration(candidateCurrentHaVpool, candidateNewHaVpool);
+                        }
+                        
+                        if (migrateSourceVolume || migrateHAVolume) {                
+                            
+                            // There is at least one migration candidate, so we can proceed.
+                            validMigrationsFound = true;
+                           
+                            // If the validMigrations param is not null then keep track of the valid
+                            // migrations found.
+                            if (validMigrations != null) {                                
+                                validMigrations.get(personality).put(candidateCurrentVpool.getId(), candidateNewVpool.getId());
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        s_logger.info(String.format("RP+VPLEX migration operation is%s supported.", 
+                validMigrationsFound ? "" : " NOT"));
+        return validMigrationsFound;
     }
 }

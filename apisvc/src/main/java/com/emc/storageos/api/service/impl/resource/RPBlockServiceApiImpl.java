@@ -2158,23 +2158,33 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
     @Override
     public TaskList changeVolumeVirtualPool(List<Volume> volumes, VirtualPool vpool,
             VirtualPoolChangeParam vpoolChangeParam, String taskId) throws InternalException {
-        // We support multi-volume removal of protection, but still not
-        // multi-volume add protection. Check the first volume in the
-        // list to see if the request is to remove protection.
-        if (volumes.get(0).checkForRp()
+        
+        StringBuffer notSuppReasonBuff = new StringBuffer();
+        notSuppReasonBuff.setLength(0);
+        Volume firstVolume =  volumes.get(0);
+        
+        VirtualPool currentVpool = _dbClient.queryObject(VirtualPool.class, firstVolume.getVirtualPool());
+
+        Map<Volume.PersonalityTypes, Map<URI, URI>> validMigrations = new HashMap<Volume.PersonalityTypes, Map<URI, URI>>();
+        
+        if (firstVolume.checkForRp()
                 && !VirtualPool.vPoolSpecifiesProtection(vpool)) {
             removeProtection(volumes, vpool, taskId);
+        } else if (VirtualPoolChangeAnalyzer.isSupportedRPVPlexMigrationVirtualPoolChange(firstVolume, currentVpool, vpool,
+                _dbClient, notSuppReasonBuff, validMigrations)) {
+            rpVPlexDataMigration(volumes, vpool, taskId, validMigrations);
         } else {
             // For now we only support changing the virtual pool for a single volume at a time
             // until CTRL-1347 and CTRL-5609 are fixed.
             if (volumes.size() == 1) {
-                changeVolumeVirtualPool(volumes.get(0).getStorageController(), volumes.get(0), vpool, vpoolChangeParam, taskId);
+                changeVolumeVirtualPool(firstVolume.getStorageController(), firstVolume, vpool, vpoolChangeParam, taskId);
             } else {
                 throw APIException.methodNotAllowed.notSupportedWithReason(
                         "Multiple volume change virtual pool is currently not supported for RecoverPoint. "
                                 + "Please select one volume at a time.");
             }
         }
+
         return null;
     }
 
@@ -2991,7 +3001,12 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                     // volume varray.
                     notSuppReasonBuff.append("The VirtualPool is not available to the volume's varray");
                 } else if (VirtualPool.vPoolSpecifiesRPVPlex(currentVpool)
-                        && VirtualPool.vPoolSpecifiesRPVPlex(newVpool)) {
+                            && VirtualPool.vPoolSpecifiesRPVPlex(newVpool)) {
+                    if (VirtualPoolChangeAnalyzer.isSupportedRPVPlexMigrationVirtualPoolChange(volume, currentVpool, newVpool,
+                            _dbClient, notSuppReasonBuff, null)) {
+                        // Allow the VPLEX Data Migration operation
+                        allowedOperations.add(VirtualPoolChangeOperationEnum.VPLEX_DATA_MIGRATION);
+                    }
                     if (VirtualPoolChangeAnalyzer.isSupportedUpgradeToMetroPointVirtualPoolChange(volume, currentVpool, newVpool,
                             _dbClient, notSuppReasonBuff)) {
                         // Allow the RP change protection operation
@@ -3853,5 +3868,74 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             }
         }
         return copyName;
+    }
+    
+   
+    /**
+     * 
+     * @param volumes
+     * @param newVpool
+     * @param taskId
+     * @param validMigrations
+     * @throws InternalException
+     */
+    private void rpVPlexDataMigration(List<Volume> volumes, VirtualPool newVpool, String taskId, Map<Volume.PersonalityTypes, Map<URI, URI>> validMigrations)
+            throws InternalException {
+        List<VolumeDescriptor> migrateVolumeDescriptors = new ArrayList<VolumeDescriptor>();
+        
+        HashMap<Volume, VirtualPool> migrations = new HashMap<Volume, VirtualPool>();
+        
+        Map<URI, URI> sourceMigrations = validMigrations.get(Volume.PersonalityTypes.SOURCE);
+        Map<URI, URI> targetMigrations = validMigrations.get(Volume.PersonalityTypes.TARGET);
+        
+        Set<URI> sourceFromVpools = sourceMigrations.keySet();
+        Set<URI> targetFromVpools = sourceMigrations.keySet();
+        
+        for (Volume volume : volumes) {
+            // Check Source
+            if (sourceMigrations != null && !sourceMigrations.isEmpty()) {
+                if (sourceFromVpools.contains(volume.getVirtualPool())) {
+                    URI migrateToVpoolURI = sourceMigrations.get(volume.getVirtualPool());
+                    VirtualPool migrateToVpool = _dbClient.queryObject(VirtualPool.class, migrateToVpoolURI);
+                    migrations.put(volume, migrateToVpool);
+                    _log.info(String.format("RP+VPLEX Migration being prepared for Source volume [%s](%s) - new vpool will be [%s](%s)",
+                            volume.getLabel(), volume.getId(),
+                            migrateToVpool.getLabel(), migrateToVpool.getId()));
+                }
+            }
+            // Check Targets
+            if (targetMigrations != null && !targetMigrations.isEmpty()) {               
+                StringSet rpTargets = volume.getRpTargets();
+                for (String rpTarget : rpTargets) {
+                    Volume rpTargetVolume = _dbClient.queryObject(Volume.class, URI.create(rpTarget));
+                    if (targetFromVpools.contains(rpTargetVolume.getVirtualPool())) {
+                        URI migrateToVpoolURI = targetMigrations.get(rpTargetVolume.getVirtualPool());
+                        VirtualPool migrateToVpool = _dbClient.queryObject(VirtualPool.class, migrateToVpoolURI);
+                        migrations.put(rpTargetVolume, migrateToVpool);
+                        _log.info(String.format("RP+VPLEX Migration being prepared for Target volume [%s](%s) - new vpool will be [%s](%s)",
+                                volume.getLabel(), volume.getId(),
+                                rpTargetVolume.getLabel(), rpTargetVolume.getId()));
+                    }
+                }
+            }
+        }
+        
+        for (Map.Entry<Volume, VirtualPool> entry : migrations.entrySet()) {
+            Volume migrateVolume = entry.getKey();
+            VirtualPool migrateToVpool = entry.getValue();
+            
+            _log.info(String.format("Request to Migrate Data for RP protected VPLEX Volume [%s] (%s) and move it to Virtual Pool [%s] (%s)",
+                    migrateVolume.getLabel(), migrateVolume.getId(), migrateToVpool.getLabel(), migrateToVpool.getId()));
+            
+            StorageSystem vplexStorageSystem = _dbClient.queryObject(StorageSystem.class, migrateVolume.getStorageController());
+            migrateVolumeDescriptors.addAll(vplexBlockServiceApiImpl
+                                      .createChangeVirtualPoolDescriptors(vplexStorageSystem, migrateVolume, migrateToVpool, taskId,
+                                                                          null, null));
+        }
+
+        BlockOrchestrationController controller = getController(
+                BlockOrchestrationController.class,
+                BlockOrchestrationController.BLOCK_ORCHESTRATION_DEVICE);
+        controller.changeVirtualPool(migrateVolumeDescriptors, taskId);
     }
 }

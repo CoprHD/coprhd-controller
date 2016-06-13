@@ -663,9 +663,17 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
         // add all consistency groups to the completer
         Set<URI> cgIds = new HashSet<URI>();
         for (URI blockId : blockVolUris) {
-            BlockConsistencyGroup group = ConsistencyGroupUtils.getCloneConsistencyGroup(blockId, getDbClient());
-            if (group != null) {
-                cgIds.add(group.getId());
+            Volume fcVolume = getDbClient().queryObject(Volume.class, blockId);
+            // need to check for a null associated source volume here because the list of full copy volume descriptors includes
+            // the HA side of a vplex distributed volume. By design, this volume is not a clone and so it won't have associated
+            // source volume set. The change was added here to reduce regression testing scope but really belongs in the utility
+            // method
+            // Filed COP-23075 to move this check for null associated source volume to the utility method in x-wing
+            if (fcVolume != null && !fcVolume.getInactive() && !NullColumnValueGetter.isNullURI(fcVolume.getAssociatedSourceVolume())) {
+                BlockConsistencyGroup group = ConsistencyGroupUtils.getCloneConsistencyGroup(blockId, getDbClient());
+                if (group != null) {
+                    cgIds.add(group.getId());
+                }
             }
         }
         for (URI cgId : cgIds) {

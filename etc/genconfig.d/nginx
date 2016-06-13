@@ -142,5 +142,7 @@ _gen_keepalived_notify() {
 _genconfig_exec _gen_template_cluster   /etc/nginx/upstream.conf            $(_get_upstream_props)
 _genconfig_exec _gen_nginx_conf         /etc/nginx/nginx.conf
 [ -s /etc/nginx/storageos-vasasvc.conf ] && _genconfig_exec _gen_nginx_conf         /etc/nginx/vasasvc-server.conf
+_genconfig_exec _gen_nginx_conf         /etc/nginx/orchestration-northbound-server.conf
+_genconfig_exec _gen_nginx_conf         /etc/nginx/orchestration-southbound-server.conf
 _genconfig_exec _gen_keepalived_conf    /etc/keepalived/keepalived.conf
 _genconfig_exec _gen_keepalived_notify  /etc/keepalived/keepalived-notify.sh

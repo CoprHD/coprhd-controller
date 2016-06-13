@@ -38,7 +38,8 @@ public class StorageSystemTypes {
     public static final String XTREMIO = "xtremio";
     public static final String DATA_DOMAIN = "datadomain";
     public static final String ECS = "ecs";
-
+    private static final String SMIS = "smis";
+    
     public static final String STORAGE_PROVIDER_VMAX = "STORAGE_PROVIDER.vmax";
     public static final String STORAGE_PROVIDER_HITACHI = "STORAGE_PROVIDER.hds";
     public static final String STORAGE_PROVIDER_VPLEX = "STORAGE_PROVIDER.vplex";
@@ -162,8 +163,13 @@ public class StorageSystemTypes {
                     || StringUtils.equals(XTREMIO, storagetypeRest.getStorageTypeName())) {
 
                 if (null != arrayProviderMap.get(storagetypeRest.getStorageTypeName())) {
-                    allproviders.add(new StringOption(storagetypeRest.getStorageTypeName(), arrayProviderMap.get(storagetypeRest
+                    if(StringUtils.equals(VMAX, storagetypeRest.getStorageTypeName())) {
+                        allproviders.add(new StringOption(SMIS, arrayProviderMap.get(storagetypeRest.getStorageTypeName())));
+                    }
+                    else {
+                        allproviders.add(new StringOption(storagetypeRest.getStorageTypeName(), arrayProviderMap.get(storagetypeRest
                             .getStorageTypeName())));
+                    }
                 }
                 else {
                     if (!StringUtils.equals(VNX_BLOCK, storagetypeRest.getStorageTypeName())) { // VNX block is covered by VMAX

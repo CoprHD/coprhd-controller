@@ -8,8 +8,15 @@
            <property name="storageSystemsMap">
               <map>
                  <entry key="Simulator" value="driversystem"/>
+                 <entry key="SimulatorToo" value="providersystem"/>
                  <entry key="ScaleioDriver" value="scaleiosystem"/>
               </map>
+           </property>
+
+           <property name="storageProvidersMap">
+               <map>
+                   <entry key="Simulator" value="driverprovider"/>
+               </map>
            </property>
 
            <!-- Set of block storage systems managed by drivers -->
@@ -30,7 +37,8 @@
            <!-- Set of storage systems managed through providers (proxy management model) -->
            <property name="providerManaged">
                <set>
-         <!--          <value>scaleiosystem</value>  -->
+                         <value>providersystem</value>
+                   <!--      <value>scaleiosystem</value>  -->
 
                </set>
            </property>
@@ -38,7 +46,7 @@
            <!-- Set of storage systems managed through direct connection from client -->
            <property name="directlyManaged">
                <set>
-                   <value>driversystem</value> <!-- simulator -->
+                   <value>driversystem</value>
                    <value>scaleiosystem</value>
                </set>
            </property>

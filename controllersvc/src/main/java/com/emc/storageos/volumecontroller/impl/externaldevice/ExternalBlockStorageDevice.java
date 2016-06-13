@@ -55,6 +55,7 @@ import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.VolumeURIHLU;
+import com.emc.storageos.volumecontroller.impl.plugins.ExternalDeviceCommunicationInterface;
 import com.emc.storageos.volumecontroller.impl.smis.ExportMaskOperations;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.google.common.base.Strings;
@@ -511,6 +512,27 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
             ServiceError serviceError = ExternalDeviceException.errors.createVolumeCloneFailed("doCreateClone", e.getMessage());
             taskCompleter.error(dbClient, serviceError);
         }
+    }
+    
+    @Override
+    public void doDisconnect(StorageSystem storageSystem){
+    	try{
+    		_log.info("doDisconnect {} - start", storageSystem.getId());    	
+        	com.emc.storageos.storagedriver.model.StorageSystem driverStorageSystem = ExternalDeviceCommunicationInterface.initStorageSystem(storageSystem);
+        	BlockStorageDriver driver = getDriver(storageSystem.getSystemType());
+        	DriverTask task = driver.stopManagement(driverStorageSystem);
+        	if (task.getStatus() == DriverTask.TaskStatus.READY) {
+        		_log.info("doDisconnect -- Disconnected Storage System: {}", task.getMessage());
+        	} else {
+        		_log.error("doDisconnect failed. ", task.getMessage());
+        		throw ExternalDeviceException.exceptions.doDisconnectFailed("doDisconnect", task.getMessage());
+        	}
+    		_log.info("doDisconnect %1$s - Complete", storageSystem.getId());
+    	} catch(Exception e){
+    		_log.error("doDisconnect failed. ", e.getMessage());
+    		throw ExternalDeviceException.exceptions.doDisconnectFailed("doDisconnect", e.getMessage());
+
+    	}
     }
 
     @Override

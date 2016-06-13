@@ -12,6 +12,10 @@ public class HP3PARConstants {
     public static final String USER_NAME = "USER_NAME";
     public static final String PASSWORD = "PASSWORD";
     
+    public static final String S_NON_EXISTENT_HOST = "17";
+    public static final Integer I_NON_EXISTENT_HOST = 17;
+    public static final Integer OP_SUCCESS = 0;
+    
     public static Long KILO_BYTE = (long) 1024;
     public static Long MEGA_BYTE = (long) 1024 * 1024;
     
@@ -47,10 +51,10 @@ public class HP3PARConstants {
     public static final String TASK_TYPE_SNAPSHOT_CONSISTENCY_GROUP = "snapshot-consistency-group";
     public static final String TASK_TYPE_CLONE_CONSISTENCY_GROUP = "clone-consistency-group";
     public static final String TASK_TYPE_UPDATE_CONSISTENCY_GROUP = "update-consistency-group";
+
     public static final String TASK_TYPE_DELETE_SNAPSHOT_CONSISTENCY_GROUP = "delete-snapshot-consistency-group";
     public static final String TASK_TYPE_DELETE_CLONE_CONSISTENCY_GROUP = "delete-clone-consistency-group";
 
-	
     public static enum provisioningType
     {
         FULL("FULL" , 1),

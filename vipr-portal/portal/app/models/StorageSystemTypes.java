@@ -5,12 +5,16 @@
 package models;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+
+import org.apache.commons.lang.StringUtils;
 
 import util.EnumOption;
 import util.StorageSystemTypeUtils;
 import util.StringOption;
 
+import com.emc.storageos.db.server.impl.StorageSystemTypesInitUtils;
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeList;
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeRestRep;
 import com.google.common.collect.Lists;
@@ -146,15 +150,26 @@ public class StorageSystemTypes {
 
     public static List<StringOption> getStorageOption() {
         String alltypes = "all";
+        HashMap<String, String> arrayProviderMap = StorageSystemTypesInitUtils.arrToProviderDsiplayName();
         List<StringOption> allproviders = new ArrayList<StringOption>();
-        StorageSystemTypeList storagetypelist = StorageSystemTypeUtils
-                .getAllStorageSystemTypes(alltypes);
-        for (StorageSystemTypeRestRep storagetypeRest : storagetypelist
-                .getStorageSystemTypes()) {
-            if (!storagetypeRest.getIsSmiProvider()) {
-                allproviders.add(new StringOption(storagetypeRest
-                        .getStorageTypeName(), storagetypeRest
-                        .getStorageTypeDispName()));
+        StorageSystemTypeList storagetypelist = StorageSystemTypeUtils.getAllStorageSystemTypes(alltypes);
+
+        for (StorageSystemTypeRestRep storagetypeRest : storagetypelist.getStorageSystemTypes()) {
+            // Add all storage systems plus VPLEX, SCALEIO, IBMXIV, XTREMIO
+            if (!storagetypeRest.getIsSmiProvider() || StringUtils.equals(VPLEX, storagetypeRest.getStorageTypeName())
+                    || StringUtils.equals(SCALEIOAPI, storagetypeRest.getStorageTypeName())
+                    || StringUtils.equals(IBMXIV, storagetypeRest.getStorageTypeName())
+                    || StringUtils.equals(XTREMIO, storagetypeRest.getStorageTypeName())) {
+
+                if (null != arrayProviderMap.get(storagetypeRest.getStorageTypeName())) {
+                    allproviders.add(new StringOption(storagetypeRest.getStorageTypeName(), arrayProviderMap.get(storagetypeRest
+                            .getStorageTypeName())));
+                }
+                else {
+                    if (!StringUtils.equals(VNX_BLOCK, storagetypeRest.getStorageTypeName())) { // VNX block is covered by VMAX
+                        allproviders.add(new StringOption(storagetypeRest.getStorageTypeName(), storagetypeRest.getStorageTypeDispName()));
+                    }
+                }
             }
         }
         return allproviders;
@@ -163,14 +178,22 @@ public class StorageSystemTypes {
     public static List<StringOption> getBlockStorageOptions() {
         String alltypes = "all";
         List<StringOption> storageoptions = new ArrayList<StringOption>();
-        StorageSystemTypeList storagetypelist = StorageSystemTypeUtils
-                .getAllStorageSystemTypes(alltypes);
-        for (StorageSystemTypeRestRep storagetypeRest : storagetypelist
-                .getStorageSystemTypes()) {
+        // Add NONE option
+        storageoptions.add(new StringOption("NONE", "none"));
+
+        StorageSystemTypeList storagetypelist = StorageSystemTypeUtils.getAllStorageSystemTypes(alltypes);
+        for (StorageSystemTypeRestRep storagetypeRest : storagetypelist.getStorageSystemTypes()) {
             if (storagetypeRest.getStorageTypeType().equalsIgnoreCase("block")) {
-                storageoptions.add(new StringOption(storagetypeRest
-                        .getStorageTypeName(), storagetypeRest
-                        .getStorageTypeDispName()));
+                if (storagetypeRest.getIsSmiProvider()) {
+                    if( (StringUtils.equals(SCALEIO, storagetypeRest.getStorageTypeName())
+                        || StringUtils.equals(IBMXIV, storagetypeRest.getStorageTypeName())
+                        || StringUtils.equals(XTREMIO, storagetypeRest.getStorageTypeName())) ) {
+                        storageoptions.add(new StringOption(storagetypeRest.getStorageTypeName(), storagetypeRest.getStorageTypeDispName()));
+                    }
+                }
+                else {
+                    storageoptions.add(new StringOption(storagetypeRest.getStorageTypeName(), storagetypeRest.getStorageTypeDispName()));
+                }
             }
         }
         return storageoptions;
@@ -179,14 +202,14 @@ public class StorageSystemTypes {
     public static List<StringOption> getFileStorageOptions() {
         String alltypes = "all";
         List<StringOption> storageoptions = new ArrayList<StringOption>();
-        StorageSystemTypeList storagetypelist = StorageSystemTypeUtils
-                .getAllStorageSystemTypes(alltypes);
+        // Add NONE option
+        storageoptions.add(new StringOption("NONE", "none"));
+        StorageSystemTypeList storagetypelist = StorageSystemTypeUtils.getAllStorageSystemTypes(alltypes);
         for (StorageSystemTypeRestRep storagetypeRest : storagetypelist
                 .getStorageSystemTypes()) {
-            if (storagetypeRest.getStorageTypeType().equalsIgnoreCase("file")) {
-                storageoptions.add(new StringOption(storagetypeRest
-                        .getStorageTypeName(), storagetypeRest
-                        .getStorageTypeDispName()));
+            if (storagetypeRest.getStorageTypeType().equalsIgnoreCase("file") && !storagetypeRest.getIsSmiProvider()) {
+                storageoptions.add(new StringOption(storagetypeRest.getStorageTypeName(),
+                        storagetypeRest.getStorageTypeDispName()));
             }
         }
         return storageoptions;
@@ -195,6 +218,8 @@ public class StorageSystemTypes {
     public static List<StringOption> getObjectStorageOptions() {
         String alltypes = "all";
         List<StringOption> storageoptions = new ArrayList<StringOption>();
+        // Add NONE option
+        storageoptions.add(new StringOption("NONE", "none"));
         StorageSystemTypeList storagetypelist = StorageSystemTypeUtils
                 .getAllStorageSystemTypes(alltypes);
         for (StorageSystemTypeRestRep storagetypeRest : storagetypelist

@@ -18,13 +18,17 @@ import com.emc.storageos.hp3par.command.CPGCommandResult;
 import com.emc.storageos.hp3par.command.CPGMember;
 import com.emc.storageos.hp3par.command.ConsistencyGroupResult;
 import com.emc.storageos.hp3par.command.ConsistencyGroupsListResult;
+import com.emc.storageos.hp3par.command.HostCommandResult;
 import com.emc.storageos.hp3par.command.PortCommandResult;
 import com.emc.storageos.hp3par.command.PortStatisticsCommandResult;
 import com.emc.storageos.hp3par.command.Privileges;
 import com.emc.storageos.hp3par.command.SystemCommandResult;
 import com.emc.storageos.hp3par.command.UserRoleCommandResult;
+import com.emc.storageos.hp3par.command.VlunResult;
 import com.emc.storageos.hp3par.command.VolumeDetailsCommandResult;
 import com.emc.storageos.hp3par.connection.RESTClient;
+import com.emc.storageos.hp3par.utils.CompleteError;
+import com.emc.storageos.hp3par.utils.HP3PARConstants;
 import com.google.gson.Gson;
 import com.google.json.JsonSanitizer;
 import com.sun.jersey.api.client.ClientResponse;
@@ -44,6 +48,7 @@ public class HP3PARApi {
     private String _user; 
     private String _password;
 
+    // Discovery related
     private static final URI URI_LOGIN = URI.create("/api/v1/credentials");
     private static final String URI_SYSTEM = "/api/v1/system";
     private static final String URI_USER_ROLE = "/api/v1/users/{0}";
@@ -51,6 +56,8 @@ public class HP3PARApi {
     private static final String URI_CPG_DETAILS = "/api/v1/cpgs/{0}";
     private static final String URI_PORTS = "/api/v1/ports";
     private static final String URI_PORT_STATISTICS = "/api/v1/systemreporter/attime/portstatistics/daily";
+
+    // Base, snap and clone volume related
     private static final String URI_CREATE_VOLUME = "/api/v1/volumes";
     private static final String URI_VOLUME_DETAILS = "/api/v1/volumes/{0}";
     private static final String URI_EXPAND_VOLUME = "/api/v1/volumes/{0}";
@@ -60,6 +67,7 @@ public class HP3PARApi {
     private static final String URI_RESTORE_VOLUME_SNAPSHOT = "/api/v1/volumes/{0}";
     private static final String URI_STORAGE_VOLUMES = "/api/v1/volumes";
     
+    // CG related
     private static final String URI_CREATE_CG = "/api/v1/volumesets";
     private static final String URI_DELETE_CG = "/api/v1/volumesets/{0}";
     private static final String URI_SNAPSHOT_CG = "/api/v1/volumesets/{0}";
@@ -68,7 +76,11 @@ public class HP3PARApi {
     private static final String URI_CG_DETAILS = "/api/v1/volumesets/{0}";
     private static final String URI_CG_LIST_DETAILS = "/api/v1/volumesets";
     
+    // Export related
+    private static final String URI_CREATE_VLUN = "/api/v1/vluns";
+    private static final String URI_HOSTS = "/api/v1/hosts";
 
+    
     public HP3PARApi(URI endpoint, RESTClient client, String userName, String pass) {
         _baseUrl = endpoint;
         _client = client;
@@ -371,6 +383,35 @@ public class HP3PARApi {
         } //end try/catch/finally
     }
 
+    public HostCommandResult getHostDetails() throws Exception {
+        _log.info("3PARDriver:getHostDetails enter");
+        ClientResponse clientResp = null;
+
+        try {
+            clientResp = get(URI_HOSTS);
+            if (clientResp == null) {
+                _log.error("3PARDriver:There is no response from 3PAR");
+                throw new HP3PARException("There is no response from 3PAR");
+            } else if (clientResp.getStatus() != 200) {
+                String errResp = getResponseDetails(clientResp);
+                throw new HP3PARException(errResp);
+            } else {
+                String responseString = clientResp.getEntity(String.class);
+                _log.info("3PARDriver:getHostDetails 3PAR response is {}", responseString);
+                HostCommandResult hostResult = new Gson().fromJson(sanitize(responseString),
+                        HostCommandResult.class);
+                return hostResult;
+            }
+        } catch (Exception e) {
+            throw e;
+        } finally {
+            if (clientResp != null) {
+                clientResp.close();
+            }
+            _log.info("3PARDriver:getHostDetails leave");
+        } //end try/catch/finally
+    }    
+
     public void createVolume(String name, String cpg, Boolean thin, Long size) throws Exception {
         _log.info("3PARDriver:createVolume enter");
         ClientResponse clientResp = null;
@@ -620,6 +661,76 @@ public class HP3PARApi {
             }
             _log.info("3PARDriver: restoreVirtualCopy leave");
         } //end try/catch/finally
+    }
+
+    public VlunResult createVlun(String volumeName, int hlu, String hostName, String portId) throws Exception {
+        _log.info("3PARDriver:createVlun enter");
+        ClientResponse clientResp = null;
+        Integer lun = (hlu == -1) ? 0 : hlu;
+        boolean autoLun = (lun == 0) ? true : false;
+        String[] pos = portId.split(":");
+        String portPos = String.format("\"portPos\":{\"node\":%s, \"slot\":%s, \"cardPort\":%s}", pos[0], pos[1], pos[2]);
+
+        String body = "{\"volumeName\":\"" + volumeName + "\", \"lun\":" + lun.toString() + ", " + 
+                "\"hostname\":\"" + hostName + "\", " + portPos + ", \"autoLun\":" + autoLun + ", \"maxAutoLun\": 0}";
+
+        try {
+            clientResp = post(URI_CREATE_VLUN, body);
+            if (clientResp == null) {
+                _log.error("3PARDriver:There is no response from 3PAR");
+                throw new HP3PARException("There is no response from 3PAR");
+            } else if (clientResp.getStatus() != 201) {
+                String errResp = getResponseDetails(clientResp);
+                throw new HP3PARException(errResp);
+            } else {
+                String responseString = getHeaderFieldValue(clientResp, "Location");
+                _log.info("3PARDriver:createVolume 3PAR response is Location: {}", responseString);
+                String[] resp = responseString.split(",");
+                VlunResult result = new VlunResult();
+                result.setAssignedLun(resp[1]);
+                result.setStatus(true);
+                return result;
+            }
+        } catch (Exception e) {
+            _log.error(e.getMessage());
+            return null;
+        } finally {
+            if (clientResp != null) {
+                clientResp.close();
+            }
+            _log.info("3PARDriver:createVlun leave");
+        } //end try/catch/finally
+    }
+
+    
+    private CompleteError getCompleteResponseDetails(ClientResponse clientResp) {
+        String detailedResponse = null, ref=null;
+        CompleteError compError = null;
+        
+        try {
+            JSONObject jObj = clientResp.getEntity(JSONObject.class);
+            String errorCode = jObj.getString("code");
+            
+            detailedResponse = String.format("3PAR error code: %s, Description: %s",
+                    errorCode, jObj.getString("desc"));
+            if (jObj.has("ref")) {
+                ref = String.format(", refer:%s", jObj.getString("ref"));
+                detailedResponse = detailedResponse + ref;
+            }
+            
+            int httpCode = clientResp.getStatus();
+            _log.error(String.format("3PARDriver:HTTP error code: %d, Complete 3PAR error response: %s", httpCode,
+                    jObj.toString()));
+            
+            compError = new CompleteError();
+            compError.setHp3parCode(errorCode);
+            compError.setHttpCode(httpCode);
+            compError.setErrorResp(detailedResponse);
+        } catch (Exception e) {
+            _log.error("3PARDriver:Unable to get 3PAR error details");
+            detailedResponse = String.format("%1$s", (clientResp == null) ? "" : clientResp);
+        }
+        return compError;
     }
 	
     private String getResponseDetails(ClientResponse clientResp) {

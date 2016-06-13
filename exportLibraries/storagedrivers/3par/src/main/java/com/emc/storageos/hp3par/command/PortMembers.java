@@ -18,6 +18,7 @@ public class PortMembers {
     private String label;
     private String IPAddr;
     private String iSCSINmae;
+    private ISCSIInfo iSCSIPortInfo;
     
     public Position getPortPos() {
         return portPos;
@@ -85,4 +86,10 @@ public class PortMembers {
     public void setiSCSINmae(String iSCSINmae) {
         this.iSCSINmae = iSCSINmae;
     }
+    public ISCSIInfo getiSCSIPortInfo() {
+        return iSCSIPortInfo;
+    }
+    public void setiSCSIPortInfo(ISCSIInfo iSCSIPortInfo) {
+        this.iSCSIPortInfo = iSCSIPortInfo;
+    }    
 }

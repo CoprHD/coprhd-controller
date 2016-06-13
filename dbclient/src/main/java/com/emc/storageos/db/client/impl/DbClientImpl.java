@@ -699,7 +699,7 @@ public class DbClientImpl implements DbClient {
         
         ResultSet resultSet;
         try {
-            PreparedStatement preparedStatement = getDbClientContext(clazz).getPreparedStatement("aggregateObject"+doType.getCF(), 
+            PreparedStatement preparedStatement = getDbClientContext(clazz).getPreparedStatement(
                     String.format("select * from \"%s\" where column1>=? and column1<=? and key in ? ALLOW FILTERING",
                             doType.getCF().getName()));
             resultSet = getDbClientContext(clazz).getSession()
@@ -709,7 +709,7 @@ public class DbClientImpl implements DbClient {
             throw DatabaseException.retryables.operationFailed(e);
         }
         
-        Map<String, List<CompositeColumnName>> queryResult = convertResultSet2ColumnMap(resultSet);
+        Map<String, List<CompositeColumnName>> queryResult = toColumnMap(resultSet);
         for (String rowKey : queryResult.keySet()) {
             List<CompositeColumnName> columns = queryResult.get(rowKey);
             aggregator.aggregate(columns);
@@ -1528,13 +1528,13 @@ public class DbClientImpl implements DbClient {
     }
     
     protected Map<String, List<CompositeColumnName>> queryRowsWithAColumn(DbClientContext context, Collection<URI> ids, String tableName, ColumnField column) {
-        PreparedStatement queryAllColumnsPreparedStatement = context.getPreparedStatement(tableName+column.getMappedByField(), 
+        PreparedStatement queryAllColumnsPreparedStatement = context.getPreparedStatement( 
                 String.format("Select * from \"%s\" where column1=? and key in ? ALLOW FILTERING", tableName));
         
         ResultSet resultSet = context.getSession()
                 .execute(queryAllColumnsPreparedStatement.bind(column.getName(), uriList2StringList(ids)));
         
-        return convertResultSet2ColumnMap(resultSet);
+        return toColumnMap(resultSet);
     }
 
     /**
@@ -1956,16 +1956,15 @@ public class DbClientImpl implements DbClient {
     }
     
     protected Map<String, List<CompositeColumnName>> queryRowsWithAllColumns(DbClientContext context, Collection<URI> ids, String tableName) {
-        PreparedStatement queryAllColumnsPreparedStatement = context.getPreparedStatement(tableName, 
-                String.format("Select * from \"%s\" where key in ?", tableName));
+        PreparedStatement queryAllColumnsPreparedStatement = context.getPreparedStatement(String.format("Select * from \"%s\" where key in ?", tableName));
         
         ResultSet resultSet = context.getSession()
                 .execute(queryAllColumnsPreparedStatement.bind(uriList2StringList(ids)));
         
-        return convertResultSet2ColumnMap(resultSet);
+        return toColumnMap(resultSet);
     }
 
-    private Map<String, List<CompositeColumnName>> convertResultSet2ColumnMap(ResultSet resultSet) {
+    private Map<String, List<CompositeColumnName>> toColumnMap(ResultSet resultSet) {
         Map<String, List<CompositeColumnName>> result = new HashMap<String, List<CompositeColumnName>>();
         List<CompositeColumnName> rows = null;
         String lastKey = null;

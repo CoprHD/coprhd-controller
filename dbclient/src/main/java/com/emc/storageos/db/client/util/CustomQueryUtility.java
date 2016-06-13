@@ -269,12 +269,12 @@ public class CustomQueryUtility {
             @Override
             public void aggregate(List<CompositeColumnName> columns) {
 
-                if (columns == null || columns.size() == 0) {
+                if (columns == null || columns.isEmpty()) {
                     return;
                 }
                 CompositeColumnName column = columns.iterator().next();
-                Boolean value = (Boolean) ColumnValue.getPrimitiveColumnValue(column.getValue(), _columnField.getPropertyDescriptor());
-                if (!value.booleanValue()) {
+                boolean value = (Boolean) ColumnValue.getPrimitiveColumnValue(column.getValue(), _columnField.getPropertyDescriptor());
+                if (!value) {
                     _activeObjects.add(URI.create(column.getRowKey()));
                 }
             }

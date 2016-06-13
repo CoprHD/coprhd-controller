@@ -53,7 +53,7 @@ public class SumPrimitiveFieldAggregator implements DbAggregatorItf {
     @Override
     public void aggregate(List<CompositeColumnName> columns) {
 
-        if (columns == null || columns.size() == 0) {
+        if (columns == null || columns.isEmpty()) {
             return;
         }
 

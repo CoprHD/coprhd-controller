@@ -663,9 +663,12 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
         // add all consistency groups to the completer
         Set<URI> cgIds = new HashSet<URI>();
         for (URI blockId : blockVolUris) {
-            BlockConsistencyGroup group = ConsistencyGroupUtils.getCloneConsistencyGroup(blockId, getDbClient());
-            if (group != null) {
-                cgIds.add(group.getId());
+            Volume fcVolume = getDbClient().queryObject(Volume.class, blockId);
+            if (fcVolume != null && !fcVolume.getInactive() && !NullColumnValueGetter.isNullURI(fcVolume.getAssociatedSourceVolume())) {
+                BlockConsistencyGroup group = ConsistencyGroupUtils.getCloneConsistencyGroup(blockId, getDbClient());
+                if (group != null) {
+                    cgIds.add(group.getId());
+                }
             }
         }
         for (URI cgId : cgIds) {

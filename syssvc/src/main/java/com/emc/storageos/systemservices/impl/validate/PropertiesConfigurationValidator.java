@@ -636,6 +636,9 @@ public class PropertiesConfigurationValidator {
 				ip = ip.substring(1, ip.length() - 1);
 				if (!validateIpv6Addr(ip))
 					return false;
+			} else if (validateIpv6Addr(ip)) {
+				// this is an ipv6 address without brackets
+				return false;
 			} else if (!validateHostName(ip)) {
 				// this isn't hostname or ipv4
 				return false;

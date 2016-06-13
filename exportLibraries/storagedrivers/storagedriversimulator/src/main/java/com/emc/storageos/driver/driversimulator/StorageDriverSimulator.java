@@ -124,8 +124,7 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
     // DiscoveryDriver implementation
 
     @Override
-    public DriverTask discoverStorageSystem(List<StorageSystem> storageSystems) {
-         StorageSystem storageSystem = storageSystems.get(0);
+    public DriverTask discoverStorageSystem(StorageSystem storageSystem) {
         _log.info("StorageDriver: discoverStorageSystem information for storage system {}, name {} - start",
                 storageSystem.getIpAddress(), storageSystem.getSystemName());
         String taskType = "discover-storage-system";
@@ -133,8 +132,12 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
         DriverTask task = new DriverSimulatorTask(taskId);
 
         try {
-            storageSystem.setSerialNumber(storageSystem.getSystemName());
-            storageSystem.setNativeId(storageSystem.getSystemName());
+            if (storageSystem.getSerialNumber() == null) {
+                storageSystem.setSerialNumber(storageSystem.getSystemName());
+            }
+            if (storageSystem.getNativeId() == null) {
+                storageSystem.setNativeId(storageSystem.getSystemName());
+            }
             storageSystem.setFirmwareVersion("2.4-3.12");
             storageSystem.setIsSupportedVersion(true);
             setConnInfoToRegistry(storageSystem.getNativeId(), storageSystem.getIpAddress(), storageSystem.getPortNumber(),
@@ -896,6 +899,47 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
 
     @Override
     public DriverTask discoverStorageProvider(StorageProvider storageProvider, List<StorageSystem> storageSystems) {
-        return null;
+
+        storageProvider.setIsSupportedVersion(true);
+        StorageSystem providerSystem = new StorageSystem();
+        providerSystem.setSystemType("providersystem");
+        providerSystem.setNativeId("providerSystem-1");
+        providerSystem.setSerialNumber("1234567-1");
+        providerSystem.setFirmwareVersion("1.2.3");
+        storageSystems.add(providerSystem);
+
+        providerSystem = new StorageSystem();
+        providerSystem.setSystemType("providersystem");
+        providerSystem.setNativeId("providerSystem-2");
+        providerSystem.setSerialNumber("1234567-2");
+        providerSystem.setFirmwareVersion("1.2.3");
+        storageSystems.add(providerSystem);
+
+        providerSystem = new StorageSystem();
+        providerSystem.setSystemType("providersystem");
+        providerSystem.setNativeId("providerSystem-3");
+        providerSystem.setSerialNumber("1234567-3");
+        providerSystem.setFirmwareVersion("1.2.3");
+        storageSystems.add(providerSystem);
+
+        String taskType = "discover-storage-provider";
+        String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
+        DriverTask task = new DriverSimulatorTask(taskId);
+        task.setStatus(DriverTask.TaskStatus.READY);
+        String msg = String.format("Discovered provider: %s, discovered %s storage systems.", storageProvider.getProviderName(),
+                storageSystems.size());
+        task.setMessage(msg);
+        _log.info(msg);
+
+        return task;
     }
+
+    @Override
+    public boolean validateStorageProviderConnection(StorageProvider storageProvider) {
+        String msg = String.format("Request to validate connection to storage provider with type: %s, host: %s, port: %s ",
+                storageProvider.getProviderType(), storageProvider.getProviderHost(), storageProvider.getPortNumber());
+        _log.info(msg);
+        return true;
+    }
+
 }

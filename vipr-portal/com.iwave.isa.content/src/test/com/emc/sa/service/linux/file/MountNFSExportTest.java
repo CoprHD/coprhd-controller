@@ -1,11 +1,11 @@
 /*
- * Copyright (c) 2014 EMC Corporation
+ * Copyright (c) 2016 EMC Corporation
  * All Rights Reserved
  */
 
 package com.emc.sa.service.linux.file;
 
-import org.junit.BeforeClass;
+import org.junit.Before;
 import org.junit.Test;
 
 import com.emc.sa.service.linux.LinuxSupport;
@@ -18,8 +18,8 @@ public class MountNFSExportTest {
     private final String mountPoint = "vipr-isi6111.lss.emc.com:/ifs/vipr/vpoo1/Provider_Tenant/testproject/testfs2352016";
     private final String path = "/workspace/test";
 
-    @BeforeClass
-    public static void setup() throws Exception {
+    @Before
+    public void setup() throws Exception {
         linuxSystem = new LinuxSystemCLI();
         linuxSystem.setHost("10.247.142.210");
         linuxSystem.setUsername("root");

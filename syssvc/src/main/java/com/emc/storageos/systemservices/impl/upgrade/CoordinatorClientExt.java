@@ -1584,7 +1584,7 @@ public class CoordinatorClientExt {
 
         /**
          * Update the standby site state when the active site is lost.
-         * if SYNCED, change it to PAUSED.
+         * if SYNCED, change it to DEGRADED.
          * if SYNCING/RESUMING/ADDING, change it to ERROR since it will never finish without the active site.
          */
         private void checkAndUpdateLocalSiteState() {
@@ -1594,7 +1594,7 @@ public class CoordinatorClientExt {
             if (SiteState.STANDBY_SYNCED.equals(state) || SiteState.STANDBY_INCR_SYNCING.equals(state)) {
                 _log.info("Updating local site from {} to STANDBY_PAUSED since active is unreachable",
                         state);
-                localSite.setState(SiteState.STANDBY_PAUSED);
+                localSite.setState(SiteState.STANDBY_DEGRADED); // Just update state but not update target site info as nothing to do
                 _coordinator.persistServiceConfiguration(localSite.toConfiguration());
                 rescheduleDrSiteNetworkMonitor();
             } else if (SiteState.STANDBY_SYNCING.equals(state) ||

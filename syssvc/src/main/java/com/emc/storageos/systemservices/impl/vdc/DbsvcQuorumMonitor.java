@@ -37,7 +37,7 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 public class DbsvcQuorumMonitor implements Runnable {
     private static final Logger log = LoggerFactory.getLogger(DbsvcQuorumMonitor.class);
 
-    private static final int STANDBY_DEGRADED_THRESHOLD = 1000 * 60 * 15; // 15 minutes, in milliseconds
+    private static final int STANDBY_DEGRADED_THRESHOLD = 1000 * 60 * 1; // 15 minutes, in milliseconds
 
     private static final String FMTURL = "service:jmx:rmi://%s:7300/jndi/rmi://%s:%d/jmxrmi";
     private static final int DEFAULTPORT = 7199;
@@ -64,6 +64,9 @@ public class DbsvcQuorumMonitor implements Runnable {
         List<Site> sitesToDegrade = new ArrayList<>();
         for (Site standbySite : standbySites) {
             SiteState siteState = standbySite.getState();
+        //    if (siteState.equals(SiteState.STANDBY_DEGRADED)) {
+        //        checkAndRejoinSite(standbySite);
+        //    }
 
             if (siteState.equals(SiteState.STANDBY_INCR_SYNCING)) {
                 checkIncrementalSyncingSite(standbySite, sitesToDegrade);

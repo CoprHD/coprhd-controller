@@ -651,6 +651,7 @@ public abstract class VdcOpHandler {
                             coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
                             sendDegradeAlertMail(site.getName());
                         }
+
                     } finally {
                         try {
                             log.info("Releasing lock {}", LOCK_DEGRADE_STANDBY);
@@ -661,7 +662,8 @@ public abstract class VdcOpHandler {
                         }
                     }
                 }
-                flushVdcConfigToLocal();
+                // To block degraded standbys in fire wall
+                reconfigVdc(false);
             } else {
                 flushVdcConfigToLocal();
                 // restart dbsvc/geodbsvc so that the internode authenticator takes effect.

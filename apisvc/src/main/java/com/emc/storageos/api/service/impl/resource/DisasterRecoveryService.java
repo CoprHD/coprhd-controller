@@ -1327,7 +1327,7 @@ public class DisasterRecoveryService {
             for (Site site : allStandbySites) {
                 if (!site.getUuid().equals(uuid)) {
                     if (site.getState() == SiteState.STANDBY_SYNCED) {
-                        site.setState(SiteState.STANDBY_PAUSED);
+                        site.setState(SiteState.STANDBY_DEGRADED);
                         coordinator.persistServiceConfiguration(site.toConfiguration());
                     } else  if (site.getState() == SiteState.STANDBY_REMOVING) {
                         site.setState(SiteState.STANDBY_ERROR);

@@ -662,7 +662,7 @@ public abstract class VdcOpHandler {
                         }
                     }
                 }
-                flushVdcConfigToLocal();
+                reconfigVdc(false);
             } else {
                 flushVdcConfigToLocal();
                 // restart dbsvc/geodbsvc so that the internode authenticator takes effect.

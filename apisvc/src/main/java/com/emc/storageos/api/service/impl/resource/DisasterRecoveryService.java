@@ -123,7 +123,7 @@ public class DisasterRecoveryService {
     private static final int SITE_CONNECTION_TEST_PORT = 443;
     private static final String LOCAL_HOST = "localhost";
     private static final String SYSTEM_ENABLE_FIREWALL = "system_enable_firewall";
-    private static final long DEGRADED_SITES_MONITOR_INTERVAL_MINS = 10;
+    private static final long DEGRADED_SITES_MONITOR_INTERVAL_MINS = 1;
 
     private InternalApiSignatureKeyGenerator apiSignatureGenerator;
     private SiteMapper siteMapper;
@@ -882,7 +882,7 @@ public class DisasterRecoveryService {
         log.info("Begin to resume data sync to standby site identified by uuid: {}", uuid);
         Site standby = validateSiteConfig(uuid);
         SiteState state = standby.getState();
-        if (!state.equals(SiteState.STANDBY_PAUSED) && !state.equals(SiteState.ACTIVE_DEGRADED)) {
+        if ( !state.equals(SiteState.STANDBY_PAUSED) && !state.equals(SiteState.ACTIVE_DEGRADED) && !state.equals(SiteState.STANDBY_DEGRADED) ) {
             log.error("site {} is in state {}, should be STANDBY_PAUSED or ACTIVE_DEGRADED", uuid, standby.getState());
             throw APIException.badRequests.operationOnlyAllowedOnPausedSite(standby.getName(), standby.getState().toString());
         }
@@ -1001,7 +1001,7 @@ public class DisasterRecoveryService {
                     Objects.toString(coordinator.getControlNodesState()));
         }
 
-        if (SiteState.STANDBY_PAUSED != localSite.getState() && SiteState.ACTIVE_DEGRADED != localSite.getState()) {
+        if (SiteState.STANDBY_PAUSED != localSite.getState() && SiteState.ACTIVE_DEGRADED != localSite.getState() && SiteState.STANDBY_DEGRADED != localSite.getState()) {
             throw APIException.internalServerErrors.resumeStandbyPrecheckFailed(localSite.getName(),
                     "Standby site is not in paused state");
         }
@@ -1572,7 +1572,7 @@ public class DisasterRecoveryService {
                 continue;
             }
             // don't check node state for paused sites.
-            if (site.getState().equals(SiteState.STANDBY_PAUSED) || site.getState().equals(SiteState.ACTIVE_DEGRADED)) {
+            if (site.getState().equals(SiteState.STANDBY_PAUSED) || site.getState().equals(SiteState.ACTIVE_DEGRADED) || site.getState().equals(SiteState.STANDBY_DEGRADED)) {
                 continue;
             }
             int nodeCount = site.getNodeCount();
@@ -2307,6 +2307,7 @@ public class DisasterRecoveryService {
                 try {
                     resumeStandby(degradedSite.getUuid());
                 } catch (Exception e) { // Ignore the site and will retry
+                    log.info("Error to resume standby in DegradedSiteMonitor.", e);
                     resumeResult = false;
                 }
 

@@ -1676,10 +1676,11 @@ srdf_setup_once()
     run blockconsistencygroup create $SRDF_PROJECT ${CONSISTENCY_GROUP_SRDF}v3
     networksystem show $BROCADE_NETWORK &> /dev/null && return $?
     networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
-    smisprovider show $SRDF_VMAXA_SMIS_DEV &> /dev/null && return $?
-    smisprovider create $SRDF_VMAXA_SMIS_DEV $SRDF_VMAXA_SMIS_IP $SRDF_VMAXA_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $SRDF_VMAXA_SMIS_SSL
-    smisprovider show $SRDF_VMAXB_SMIS_DEV &> /dev/null && return $?
-    smisprovider create $SRDF_VMAXB_SMIS_DEV $SRDF_VMAXB_SMIS_IP $SRDF_VMAXB_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $SRDF_VMAXB_SMIS_SSL
+    
+	# smisprovider show $SRDF_VMAXA_SMIS_DEV &> /dev/null && return $?
+    # smisprovider create $SRDF_VMAXA_SMIS_DEV $SRDF_VMAXA_SMIS_IP $SRDF_VMAXA_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $SRDF_VMAXA_SMIS_SSL
+    # smisprovider show $SRDF_VMAXB_SMIS_DEV &> /dev/null && return $?
+    # smisprovider create $SRDF_VMAXB_SMIS_DEV $SRDF_VMAXB_SMIS_IP $SRDF_VMAXB_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $SRDF_VMAXB_SMIS_SSL
     smisprovider show $SRDF_V3_VMAXA_SMIS_DEV &> /dev/null && return $?
     smisprovider create $SRDF_V3_VMAXA_SMIS_DEV $SRDF_V3_VMAXA_SMIS_IP $SRDF_V3_VMAXA_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $SRDF_V3_VMAXA_SMIS_SSL
     smisprovider show $SRDF_V3_VMAXB_SMIS_DEV &> /dev/null && return $?
@@ -1723,7 +1724,7 @@ srdf_common_setup() {
     run neighborhood allow $NH $TENANT
 
     srdf_v3_varray_setup
-    srdf_cos_setup
+    # srdf_cos_setup
     srdf_v3_cos_setup
 }
 
@@ -1736,7 +1737,7 @@ srdf_cos_setup()
 			 --protocols FC 		          \
 			 --numpaths 1				  \
 			 --max_snapshots 10 			  \
-			 --provisionType 'Thick'	          \
+			 --provisionType 'Thin'	          \
 			 --neighborhoods $NH                      \
                          --multiVolumeConsistency                  \
                          --system_type vmax			
@@ -1751,7 +1752,7 @@ srdf_cos_setup()
 			 --protocols FC 		        \
 			 --numpaths 1				\
 			 --max_snapshots 10			\
-	                 --provisionType 'Thick'	        \
+	                 --provisionType 'Thin'	        \
                          --system_type vmax                     \
 			 --neighborhoods $NH                    \
 			 --srdf "${NH}:${COS_VMAXBLOCK_SRDF_TARGET}:SYNCHRONOUS"
@@ -1766,7 +1767,7 @@ srdf_cos_setup()
 			 --protocols FC 		        \
 			 --numpaths 1				\
 			 --max_snapshots 10			\
-	                 --provisionType 'Thick'	        \
+	                 --provisionType 'Thin'	        \
                          --system_type vmax                     \
 			 --neighborhoods $NH                    \
                          --multiVolumeConsistency               \
@@ -1828,6 +1829,45 @@ srdf_v3_cos_setup()
     run cos update block ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active --storage ${SRDF_V3_VMAXA_NATIVEGUID}
     run cos update block ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active --storage ${SRDF_V3_VMAXB_NATIVEGUID}
     run cos allow ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active block $TENANT 
+	
+	
+	## ASYNCHRONOUS
+	
+	cos show ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_async block &> /dev/null && return $?
+    run cos create block ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_async                 \
+	--description 'Source-Virtual-Pool-for-Async-SRDF-Protection' true \
+			 --protocols FC 		        \
+			 --numpaths 1				\
+			 --max_snapshots 10			\
+	                 --provisionType 'Thin'	        \
+                         --system_type vmax                     \
+                         --multiVolumeConsistency		\
+			 --neighborhoods $V3_SRDF_VARRAY                    \
+			 --srdf "${V3_SRDF_VARRAY}:${COS_VMAXBLOCK_V3_SRDF_TARGET}:ASYNCHRONOUS"
+
+    run cos update block ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_async --storage ${SRDF_V3_VMAXA_NATIVEGUID}
+    run cos update block ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_async --storage ${SRDF_V3_VMAXB_NATIVEGUID}
+    run cos allow ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_async block $TENANT 
+	
+	## SYNCHRONOUS
+	
+	cos show ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_sync block &> /dev/null && return $?
+    run cos create block ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_sync                 \
+	--description 'Source-Virtual-Pool-for-Sync-SRDF-Protection' true \
+			 --protocols FC 		        \
+			 --numpaths 1				\
+			 --max_snapshots 10			\
+	                 --provisionType 'Thin'	        \
+                         --system_type vmax                     \
+                         --multiVolumeConsistency		\
+			 --neighborhoods $V3_SRDF_VARRAY                    \
+			 --srdf "${V3_SRDF_VARRAY}:${COS_VMAXBLOCK_V3_SRDF_TARGET}:SYNCHRONOUS"
+
+    run cos update block ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_sync --storage ${SRDF_V3_VMAXA_NATIVEGUID}
+    run cos update block ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_sync --storage ${SRDF_V3_VMAXB_NATIVEGUID}
+    run cos allow ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_sync block $TENANT 
+	
+	
 }
 
 srdf_cos_matcher_test()
@@ -1837,10 +1877,10 @@ srdf_cos_matcher_test()
     run cos match block true --protocols FC 		        \
 			 --numpaths 1				\
 			 --max_snapshots 10			\
-	                 --provisionType 'Thick'	        \
+	                 --provisionType 'Thin'	        \
 			 --neighborhoods $NH                    \
                          --multiVolumeConsistency               \
-			 --srdf "${NH}:${COS_VMAXBLOCK_SRDF_TARGET}:ASYNCHRONOUS"
+			 --srdf "${NH}:${COS_VMAXBLOCK_V3_SRDF_TARGET}:ASYNCHRONOUS"
     #expectN=`grep "name" /tmp/file.txt | wc -l`
     #if [ $expectN -eq 3 ]
     #then
@@ -1854,11 +1894,11 @@ srdf_cos_change()
 {
    # Create non-protected volume, then move it to a cos that has protection
    srdfvolumecc="${SRDF_VOLUME}-coschange"
-   run volume create ${srdfvolumecc} $PROJECT $NH $COS_VMAXBLOCK_SRDF_TARGET 1GB
+   run volume create ${srdfvolumecc} $PROJECT $NH $COS_VMAXBLOCK_V3_SRDF_TARGET 1GB
    echo "Created volume, now sleeping..."
    sleep 60
    echo "Changing cos..."
-   run volume change_cos $PROJECT/${srdfvolumecc} ${COS_VMAXBLOCK_SRDF_SOURCE}_sync
+   run volume change_cos $PROJECT/${srdfvolumecc} ${COS_VMAXBLOCK_V3_SRDF_TARGET}_sync
    echo "Changed cos"
    sleep 60
    echo "Deleting volume"
@@ -1900,10 +1940,10 @@ srdf_cos_change_meta()
 srdf_basic_sync_test()
 {
    srdfvolume="${SRDF_VOLUME}_sync"
-   run volume create ${srdfvolume}1 $SRDF_PROJECT $NH ${COS_VMAXBLOCK_SRDF_SOURCE}_sync 1GB
+   run volume create ${srdfvolume}1 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_sync 1GB
    sleep 300
-   #run volume create ${srdfvolume}2 $PROJECT $NH ${COS_VMAXBLOCK_SRDF_SOURCE}_sync 1GB --consistencygroup $CONSISTENCY_GROUP_SRDF
-   #run volume create ${srdfvolume}3 $PROJECT $NH ${COS_VMAXBLOCK_SRDF_SOURCE}_sync 1GB --count 2
+   #run volume create ${srdfvolume}2 $PROJECT $NH ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_sync 1GB --consistencygroup $CONSISTENCY_GROUP_SRDF
+   #run volume create ${srdfvolume}3 $PROJECT $NH ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_sync 1GB --count 2
    #run volume delete $PROJECT/${srdfvolume}2 --wait
    run volume delete $SRDF_PROJECT/${srdfvolume}1 --wait
    #run volume delete $PROJECT/${srdfvolume}3-1 --wait
@@ -1913,12 +1953,12 @@ srdf_basic_sync_test()
 srdf_basic_async_test()
 {
    srdfvolume="${SRDF_VOLUME}_async"
-   run volume create ${srdfvolume}1 $SRDF_PROJECT $NH ${COS_VMAXBLOCK_SRDF_SOURCE}_async 1GB --consistencyGroup $CONSISTENCY_GROUP_SRDF
-   run volume create ${srdfvolume}2 $SRDF_PROJECT $NH ${COS_VMAXBLOCK_SRDF_SOURCE}_async 1GB --consistencyGroup $CONSISTENCY_GROUP_SRDF
+   run volume create ${srdfvolume}1 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_async 1GB --consistencyGroup ${CONSISTENCY_GROUP_SRDF}
+   run volume create ${srdfvolume}2 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_async 1GB --consistencyGroup ${CONSISTENCY_GROUP_SRDF}
    echo "Created 2 volumes... now going to sleep..."
    sleep 60
    echo "Deleting volumes..."
-   #run volume create ${srdfvolume}3 $PROJECT $NH ${COS_VMAXBLOCK_SRDF_SOURCE}_async 1GB --count 2
+   #run volume create ${srdfvolume}3 $PROJECT $NH ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_async 1GB --count 2
    run volume delete $SRDF_PROJECT/${srdfvolume}2 --wait
    run volume delete $SRDF_PROJECT/${srdfvolume}1 --wait
    #run volume delete $PROJECT/${srdfvolume}3-1 --wait
@@ -1963,9 +2003,9 @@ srdf_tests()
    echo 'About to run SRDF cos change test'
    sleep 60
    srdf_cos_change
-   echo 'About to run SRDF cos change test for meta volume'
-   sleep 60
-   srdf_cos_change_meta
+   # echo 'About to run SRDF cos change test for meta volume'
+   # sleep 60
+   # srdf_cos_change_meta
    echo 'Done Running SRDF tests'
 }
 

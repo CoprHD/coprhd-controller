@@ -4,7 +4,6 @@
  */
 package com.emc.storageos.storagedriver;
 
-import com.emc.storageos.driver.driversimulator.DriverSimulatorTask;
 import com.emc.storageos.storagedriver.model.Initiator;
 import com.emc.storageos.storagedriver.model.StorageHostComponent;
 import com.emc.storageos.storagedriver.model.StorageObject;

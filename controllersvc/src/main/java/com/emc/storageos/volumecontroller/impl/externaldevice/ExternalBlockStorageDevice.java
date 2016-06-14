@@ -622,15 +622,15 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                         volume.setConsistencyGroup(NullColumnValueGetter.getNullURI());
                         volume.setReplicationGroupInstance(NullColumnValueGetter.getNullStr());
                     }
-                    dbClient.updateObject(volumes);
                 }
             } else {
                 _log.error("doAddVolumesToConsistencyGroup failed. {}", task.getMessage());
                 _log.error(String.format("Remove volumes from Consistency Group operation failed %s", e.getMessage()));
                 taskCompleter.error(dbClient, DeviceControllerException.exceptions
                         .failedToRemoveMembersToConsistencyGroup(consistencyGroup.getLabel(),
-                        		consistencyGroup.getLabel(), e.getMessage()));
+                        		consistencyGroup.getLabel(), task.getMessage()));
             }
+            dbClient.updateObject(volumes);
             taskCompleter.ready(dbClient);
             _log.info("{} doRemoveVolumesFromConsistencyGroup END ...", storageSystem.getSerialNumber());
         } catch (Exception e) {

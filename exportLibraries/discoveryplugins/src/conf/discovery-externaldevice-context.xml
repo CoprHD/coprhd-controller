@@ -27,6 +27,8 @@
              <map>
                 <!-- <entry key="scaleiosystem" value-ref="scaleioDriver"/> -->
                 <entry key="hp3par" value-ref="HP3PAR"/>
+                <entry key="providersystem" value-ref="storageDriverSimulator"/>
+                <entry key="driverprovider" value-ref="storageDriverSimulator"/>
             </map>
         </property>
     </bean>

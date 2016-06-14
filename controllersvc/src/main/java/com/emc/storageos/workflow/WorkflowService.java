@@ -1787,6 +1787,20 @@ public class WorkflowService {
             throws WorkflowException {
         _instance.updateStepStatus(stepId, StepState.SUCCESS, null, "Step completed successfully");
     }
+    
+    /**
+     * If warning message is non null and length > 0, emit warning message with
+     * successful completion, otherwise emit the usual canned message.
+     * @param stepId - the stepId to be marked suceeded
+     * @param warningMessage - warning message(s) or empty string or null
+     */
+    public static void completerStepSucceeded(String stepId, String warningMessage) {
+        if (warningMessage != null && warningMessage.length() > 0) {
+        _instance.updateStepStatus(stepId, StepState.SUCCESS, null, warningMessage);
+        } else {
+            completerStepSucceded(stepId);
+        }
+    }
 
     public static void completerStepError(String stepId, ServiceCoded coded)
             throws WorkflowException {

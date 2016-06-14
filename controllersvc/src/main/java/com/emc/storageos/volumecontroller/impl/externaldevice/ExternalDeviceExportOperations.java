@@ -19,6 +19,7 @@ import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
@@ -865,6 +866,17 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
         driverInitiator.setNode(initiator.getInitiatorNode());
         driverInitiator.setProtocol(Initiator.Protocol.valueOf(initiator.getProtocol()));
         driverInitiator.setDisplayName(initiator.getLabel());
+
+        // set host OS type
+        driverInitiator.setHostOsType(Initiator.HostOsType.Other);
+        Host host = dbClient.queryObject(Host.class, initiator.getHost());
+        String hostType = host.getType();
+        for (Initiator.HostOsType driverInitiatorHostType : Initiator.HostOsType.values()) {
+            if (hostType.equals(driverInitiatorHostType.toString())) {
+                driverInitiator.setHostOsType(driverInitiatorHostType);
+            }
+        }
+        log.info("Initiator host OS type {}", driverInitiator.getHostOsType());
 
         return driverInitiator;
     }

@@ -1768,5 +1768,29 @@ public class VPlexApiClient {
     static public void setMaxMigrationAsyncPollingRetries(int maxRetries) {
         maxMigrationAsyncPollingRetries = maxRetries;
     }
+    
+    /**
+     * Updates the read-only flag in a ConsistencyGroup.
+     * @param cgName -- Consistency group name
+     * @param clusterName - Cluster name for CG
+     * @param isDistributed - True if the CG is a distributed CG in both clusters
+     * @param isReadOnly -- Set up read-only
+     */
+    public void updateConsistencyGroupReadOnly(String cgName, String clusterName, boolean isDistributed,
+            boolean isReadOnly) {
+        s_logger.info("Request to update consistency group read-only on VPlex at {}",
+                _baseURI);
+        List<VPlexClusterInfo> clusterInfoList = _discoveryMgr.getClusterInfoLite();
+        Iterator<VPlexClusterInfo> clusterInfoIter = clusterInfoList.iterator();
+        if (!isDistributed) {
+            while (clusterInfoIter.hasNext()) {
+                VPlexClusterInfo clusterInfo = clusterInfoIter.next();
+                if (!clusterInfo.getName().equals(clusterName)) {
+                    clusterInfoIter.remove();
+                }
+            }
+        }
+        _cgMgr.setConsistencyGroupReadOnly(cgName, clusterInfoList, isReadOnly);
+    }
 
 }

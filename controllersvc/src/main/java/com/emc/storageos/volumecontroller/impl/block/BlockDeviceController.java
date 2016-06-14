@@ -4290,7 +4290,11 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             if (isVNX && lockKey == null) {
                 lockKey = replicationGroupName;
             }
-            
+
+            if (lockKey == null) {
+                BlockConsistencyGroup cgObj = _dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroup);
+                lockKey = cgObj.getAlternateLabel() != null ? cgObj.getAlternateLabel() : cgObj.getLabel();
+            }
             // Lock the CG for the step duration.
             List<String> lockKeys = new ArrayList<>();
             lockKeys.add(ControllerLockingUtil.getReplicationGroupStorageKey(_dbClient, lockKey, storage));

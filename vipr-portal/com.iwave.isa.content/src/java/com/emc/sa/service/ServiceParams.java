@@ -76,6 +76,7 @@ public interface ServiceParams {
     public String MAX_PATHS = "maxPaths";
     public String PATHS_PER_INITIATOR = "pathsPerInitiator";
     public String COPIES = "copies";
+    public String COPY = "copy";
     public String INGESTION_METHOD = "ingestionMethod";
     public String READ_ONLY = "readOnly";
 

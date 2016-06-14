@@ -143,6 +143,8 @@ public interface ServiceParams {
     public String ACL_DOMAIN = "aclDomain";
     public String ACL_PERMISSION = "aclPermission";
 
+    public String MOUNTED_EXPORTS = "mountedExports";
+
     public String ADVISORY_LIMIT = "advisoryLimit";
     public String SOFT_LIMIT = "softLimit";
     public String GRACE_PERIOD = "gracePeriod";

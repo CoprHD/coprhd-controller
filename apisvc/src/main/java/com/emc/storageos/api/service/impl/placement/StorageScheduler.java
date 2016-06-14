@@ -59,6 +59,7 @@ import com.emc.storageos.db.client.model.VirtualPool.FileReplicationType;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
+import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
@@ -77,6 +78,8 @@ import com.emc.storageos.volumecontroller.impl.utils.ProvisioningAttributeMapBui
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.volumecontroller.impl.utils.attrmatchers.CapacityMatcher;
 import com.emc.storageos.volumecontroller.impl.utils.attrmatchers.MaxResourcesMatcher;
+import com.google.common.base.Joiner;
+import com.google.common.collect.Collections2;
 
 /**
  * Basic storage scheduling functions of block and file storage. StorageScheduler is done based on desired
@@ -554,8 +557,8 @@ public class StorageScheduler implements Scheduler {
         }
 
         boolean arrayAffinity = VirtualPool.ResourcePlacementPolicyType.array_affinity.name().equals(vpool.getPlacementPolicy());
-        if (arrayAffinity) {
-            capabilities.put(VirtualPoolCapabilityValuesWrapper.HOST_ARRAY_AFFINITY, true);
+        if (arrayAffinity && capabilities.getCompute() != null) {
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.ARRAY_AFFINITY, true);
         }
 
         Map<String, Object> attributeMap = provMapBuilder.buildMap();
@@ -607,7 +610,9 @@ public class StorageScheduler implements Scheduler {
             List<StoragePool> candidatePools, boolean inCG) {
         Map<URI, Double> arrayToHostWeightMap = new HashMap<URI, Double>();
         Map<URI, Set<URI>> preferredPoolMap = getPreferredPoolMap(capabilities.getCompute(), arrayToHostWeightMap);
-        boolean canUseNonPreferred = canUseNonPreferredSystem(capabilities.getHostArrayAffinity(), preferredPoolMap.keySet().size());
+        _log.info("ArrayAffinity - preferred arrays for {} - {}", capabilities.getCompute(), arrayToHostWeightMap);
+        boolean canUseNonPreferred = canUseNonPreferredSystem(capabilities.getArrayAffinity(), preferredPoolMap.keySet().size());
+        _log.info("ArrayAffinity - allow non preferred arary {}", canUseNonPreferred);
 
         // group pools by array
         Map<URI, List<StoragePool>> candidatePoolMap = groupPoolsByArray(candidatePools,
@@ -618,6 +623,8 @@ public class StorageScheduler implements Scheduler {
 
         // sort the arrays, first by host/cluster's preference, then by array's average port metrics
         Collections.sort(candidateSystems, new StorageSystemMetricComparator(arrayToHostWeightMap));
+        _log.info("ArrayAffinity - sorted candidate systems {}",
+                Joiner.on(',').join(Collections2.transform(candidateSystems, CommonTransformerFunctions.fctnDataObjectToID())));
 
         // process the sorted candidate arrays
         for (StorageSystem system : candidateSystems) {
@@ -759,6 +766,7 @@ public class StorageScheduler implements Scheduler {
         Host host = _dbClient.queryObject(Host.class, hostURI);
         if (host != null && !host.getInactive()) {
             // add preferred pool Ids from array affinity discovery
+            _log.info("ArrayAffinity - host {} - preferredPoolIds {}", hostURI.toString(), host.getPreferredPoolIds());
             for (Map.Entry<String, String> entry : host.getPreferredPoolIds().entrySet()) {
                 poolToTypeMap.put(URI.create(entry.getKey()), entry.getValue());
             }
@@ -779,6 +787,7 @@ public class StorageScheduler implements Scheduler {
                                 String oldType = poolToTypeMap.get(poolURI);
                                 if (oldType == null || (!oldType.equals(type) && type.equals(ExportGroupType.Cluster.name()))) {
                                     poolToTypeMap.put(poolURI, type);
+                                    _log.info("ArrayAffinity - host {} preferred pool in ViPR - {}, type {}", hostURI.toString(), poolURI.toString(), type);
                                 }
                             }
                         }
@@ -1033,7 +1042,7 @@ public class StorageScheduler implements Scheduler {
         // Handle array affinity placement
         // If inCG is true, it is similar to the array affinity case.
         // Only difference is that resources will not be placed to more than one preferred systems if inCG is true
-        if (capabilities.getResourceCount() > 1 && inCG || capabilities.getHostArrayAffinity()) {
+        if (capabilities.getResourceCount() > 1 && inCG || capabilities.getArrayAffinity()) {
             List<Recommendation> recommendations = performArrayAffinityPlacement(varrayId, capabilities, candidatePools, inCG);
             if (!recommendations.isEmpty()) {
                 return recommendations;

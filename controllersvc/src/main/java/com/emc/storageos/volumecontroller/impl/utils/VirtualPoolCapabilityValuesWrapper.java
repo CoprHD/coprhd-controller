@@ -62,8 +62,7 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
 
     // compute resource capabilities
     public static final String COMPUTE = "compute";
-    public static final String HOST_ARRAY_AFFINITY = "host_array_affinity";
-    public static final String AFFILATED_ARRAYS = "affilated_arrays";
+    public static final String ARRAY_AFFINITY = "array_affinity";
 
     private final Map<String, Object> _vpoolCapabilities = new HashMap<String, Object>();
 
@@ -200,12 +199,8 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
             _vpoolCapabilities.put(COMPUTE, capabilities.getCompute());
         }
 
-        if (capabilities.contains(HOST_ARRAY_AFFINITY)) {
-            _vpoolCapabilities.put(HOST_ARRAY_AFFINITY, capabilities.getHostArrayAffinity());
-        }
-
-        if (capabilities.contains(AFFILATED_ARRAYS)) {
-            _vpoolCapabilities.put(AFFILATED_ARRAYS, capabilities.getAffilatededArrays());
+        if (capabilities.contains(ARRAY_AFFINITY)) {
+            _vpoolCapabilities.put(ARRAY_AFFINITY, capabilities.getArrayAffinity());
         }
     }
 
@@ -387,13 +382,8 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
         return value != null ? (String) value : null;
     }
 
-    public boolean getHostArrayAffinity() {
-        Object value = _vpoolCapabilities.get(HOST_ARRAY_AFFINITY);
+    public boolean getArrayAffinity() {
+        Object value = _vpoolCapabilities.get(ARRAY_AFFINITY);
         return value != null ? (Boolean) value : false;
-    }
-
-    public Map<URI, Set<URI>> getAffilatededArrays() {
-        Object value = _vpoolCapabilities.get(AFFILATED_ARRAYS);
-        return value != null ? (Map<URI, Set<URI>>) value : null;
     }
 }

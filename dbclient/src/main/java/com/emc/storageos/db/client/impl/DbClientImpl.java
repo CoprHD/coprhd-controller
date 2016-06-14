@@ -775,16 +775,11 @@ public class DbClientImpl implements DbClient {
         }
         try {
             StringBuilder queryString = new StringBuilder();
-            
             List<Object> bindObjects = new ArrayList<Object>(); 
-            // Column filter, get only last .inactive column, or get any column
-            if (inactiveValue == null) {
-                
-            } else {
-                queryString.append("select key, value, writetime(value) from \"").append(doType.getCF().getName()).append("\"");
-                queryString.append(" where column1=? ");
-                bindObjects.add("inactive");
-            }
+            
+            queryString.append("select key, value, writetime(value) from \"").append(doType.getCF().getName()).append("\"");
+            queryString.append(" where column1=? ");
+            bindObjects.add("inactive");
             
             if (startId != null) {
                 queryString.append(" and token(key)>token(?)");

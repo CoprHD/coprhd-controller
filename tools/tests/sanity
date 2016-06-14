@@ -4857,21 +4857,21 @@ recoverpoint_tests()
         rp_tgt_volumes=()
         for tgt in ${rp_tgt_varrays}
         do
-          rp_tgt_volumes=("${rp_tgt_volumes[@]}" "${rpvolume}-target-${tgt}${volume_name_modifier}")
+          rp_tgt_volumes=("${rp_tgt_volumes[@]}" "${rpvolume}${volume_name_modifier}-target-${tgt}")
         done
         
         # Compile a list of target volume names that have been created for RP+VPlex
         rp_vplex_tgt_volumes=()
         for tgt in ${rpvplex_tgt_varrays}
         do
-          rp_vplex_tgt_volumes=("${rp_vplex_tgt_volumes[@]}" "${rpvplexvolume}-target-${tgt}${volume_name_modifier}")
+          rp_vplex_tgt_volumes=("${rp_vplex_tgt_volumes[@]}" "${rpvplexvolume}${volume_name_modifier}-target-${tgt}")
         done
         
         # Compile a list of target volume names that have been created for MetroPoint
         rpmp_tgt_volumes=()
         for tgt in ${rpmp_tgt_varrays}
         do
-          rpmp_tgt_volumes=("${rpmp_tgt_volumes[@]}" "${rpmpvolume}-target-${tgt}${volume_name_modifier}")
+          rpmp_tgt_volumes=("${rpmp_tgt_volumes[@]}" "${rpmpvolume}${volume_name_modifier}-target-${tgt}")
         done
 
         # RP test cases
@@ -4888,9 +4888,9 @@ recoverpoint_tests()
                 
                 # Snapshot/Bookmark Test
                 if [ "${RP_CLR}" = "1" ]; then
-                    recoverpoint_auto_snapshot_cleanup_test ${rpvolume}${volume_name_modifier} ${rpvolumetarget}${volume_name_modifier} ${rp_tgt_varray} ${rpvolume}-target-${RECOVERPOINT_VARRAY1}
+                    recoverpoint_auto_snapshot_cleanup_test ${rpvolume}${volume_name_modifier} ${rp_tgt_volumes[0]} ${rp_tgt_varrays[0]} ${rp_tgt_volumes[1]}
                 else
-                    recoverpoint_auto_snapshot_cleanup_test ${rpvolume}${volume_name_modifier} ${rpvolumetarget}${volume_name_modifier} ${rp_tgt_varray}
+                    recoverpoint_auto_snapshot_cleanup_test ${rpvolume}${volume_name_modifier} ${rp_tgt_volumes[0]} ${rp_tgt_varrays[0]}
                 fi
 
                 # Failover Test
@@ -4923,7 +4923,7 @@ recoverpoint_tests()
                 recoverpoint_add_journal_volume ${rpvplex_tgt_varray} ${rpvplex_tgt_varray} ${rpvplex_tgt_vpool} ${RP_VPLEX_CONSISTENCY_GROUP}
 
                 # Snapshot/Bookmark Test
-                recoverpoint_auto_snapshot_cleanup_test ${rpvplexvolume}${volume_name_modifier} ${rpvplexvolumetarget}${volume_name_modifier} ${rpvplex_src_varray}
+                recoverpoint_auto_snapshot_cleanup_test ${rpvplexvolume}${volume_name_modifier} ${rp_vplex_tgt_volumes[0]} ${rpvplex_tgt_varrays[0]}
 
                 # Failover Test
                 recoverpoint_failover_test ${rpvplexvolume}${volume_name_modifier} ${rpvplexvolumetarget}${volume_name_modifier}
@@ -4951,7 +4951,7 @@ recoverpoint_tests()
                 recoverpoint_add_journal_volume ${rpmp_active_tgt_varray} ${rpmp_active_tgt_varray} ${rpmp_tgt_vpool} ${RP_METROPOINT_CONSISTENCY_GROUP}
 
                 # Snapshot/Bookmark Test
-                recoverpoint_auto_snapshot_cleanup_test ${rpmpvolume}${volume_name_modifier} ${rpmpvolumetarget}${volume_name_modifier} ${rpmp_src_varray} ${rpvolume}-target-${RECOVERPOINT_VARRAY2}
+                recoverpoint_auto_snapshot_cleanup_test ${rpmpvolume}${volume_name_modifier} ${rpmp_tgt_volumes[0]} ${rpmp_tgt_varrays[0]}
 
                 # Failover Test
                 recoverpoint_failover_test ${rpmpvolume}${volume_name_modifier} ${rpmpvolumetarget}${volume_name_modifier}
@@ -10185,22 +10185,16 @@ vplexsnap_tests()
     initiator create $hostLbl FC $PWWN2 --node $WWNN2
 
     secho "Export VPLEX volume built from snapshot"
-    run export_group create $PROJECT $hname-1$host $NH --volspec "$PROJECT/$localSnapshot+1" --inits "$hostLbl/$PWWN1","$hostLbl/$PWWN2"
+    run export_group create $PROJECT $hname-1$host $NH --volspec "$PROJECT/$localSnapshot" --inits "$hostLbl/$PWWN1","$hostLbl/$PWWN2"
 
     secho "Unexport VPLEX volume built from snapshot"
     run export_group delete $PROJECT/$hname-1$host
-
-    secho "Deleting VPLEX volume built on snapshot"
-    run volume delete $PROJECT/$localSnapshot --wait
-
-    secho "Deleting snapshot"
-    run blocksnapshot delete $PROJECT/$localVolume/$localSnapshot
 
     secho "Deleting source VPLEX local volume"
     run volume delete $PROJECT/$localVolume --wait
 
     secho "Deleting Host"
-    hosts delete $hostLbl
+    run hosts delete $hostLbl
 
     secho "Completed VPLEX snapshot export tests"
 }

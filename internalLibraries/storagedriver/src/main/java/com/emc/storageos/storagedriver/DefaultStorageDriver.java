@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.storagedriver;
 
+import com.emc.storageos.driver.driversimulator.DriverSimulatorTask;
 import com.emc.storageos.storagedriver.model.Initiator;
 import com.emc.storageos.storagedriver.model.StorageHostComponent;
 import com.emc.storageos.storagedriver.model.StorageObject;
@@ -271,6 +272,40 @@ public class DefaultStorageDriver extends AbstractStorageDriver implements Block
         String msg = String.format("%s: %s --- operation is not supported.", driverName, "deleteConsistencyGroupMirror");
         _log.warn(msg);
         task.setMessage(msg);
+        return task;
+    }
+    
+    @Override
+    public DriverTask addVolumesToConsistencyGroup (List<StorageVolume> volumes, StorageCapabilities capabilities){
+    	_log.info("Adding {} Volumes to Consistency Group", volumes.toString());
+    	String driverName = this.getClass().getSimpleName();
+        String taskType = "add-volumes-to-consistency-groupd";
+        String taskId = String.format("%s+%s+%s", driverName, taskType, UUID.randomUUID().toString());
+        DriverTask task = new DefaultDriverTask(taskId);
+        task.setStatus(DriverTask.TaskStatus.FAILED);
+        
+        String msg = String.format("StorageDriver: doAddVolumesToConsistencyGroup information for storage system {}, volume nativeIds {}, Consistency Group - end",
+                volumes.get(0).getStorageSystemId(), volumes.toString());
+        _log.info(msg);
+        task.setMessage(msg);
+        
+        return task;
+    }
+    
+    @Override
+    public DriverTask removeVolumesFromConsistencyGroup(List<StorageVolume> volumes, StorageCapabilities capabilities){
+        _log.info("Remove {} Volumes from Consistency Group", volumes.toString());
+        String taskType = "remove-volumes-to-consistency-groupd";
+        String driverName = this.getClass().getSimpleName();
+        String taskId = String.format("%s+%s+%s", driverName, taskType, UUID.randomUUID().toString());
+        DriverTask task = new DefaultDriverTask(taskId);
+        task.setStatus(DriverTask.TaskStatus.FAILED);
+        
+        String msg = String.format("StorageDriver: doRemoveVolumesFromConsistencyGroup information for storage system {}, volume nativeIds {}, Consistency Group - end",
+                volumes.get(0).getStorageSystemId(), volumes.toString());
+        _log.info(msg);
+        task.setMessage(msg);
+        
         return task;
     }
 

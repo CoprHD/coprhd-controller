@@ -1184,6 +1184,9 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                 BlockSnapshot snapshot = driverSnapshotToSnapshotMap.get(driverSnapshot);
                 snapshot.setNativeId(driverSnapshot.getNativeId());
                 snapshot.setDeviceLabel(driverSnapshot.getDeviceLabel());
+                if (driverSnapshot.getLabel() != null && !driverSnapshot.getLabel().isEmpty()) {
+                	snapshot.setLabel(driverSnapshot.getNativeId());
+                }
                 snapshot.setIsSyncActive(true);
                 // we use driver snapshot consistency group id as replication group label for group snapshots
                 snapshot.setReplicationGroupInstance(driverSnapshot.getConsistencyGroup());

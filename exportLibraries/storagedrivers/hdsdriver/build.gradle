@@ -1,5 +1,6 @@
 dependencies {
-    compile project(":storagedriver"),
-            library(slf4j),
-            library(commons_lang)
+	compile project(":errorhandling"),
+			project(":storagedriver"),
+			library(smooks),
+			library(httpclient4)
 }

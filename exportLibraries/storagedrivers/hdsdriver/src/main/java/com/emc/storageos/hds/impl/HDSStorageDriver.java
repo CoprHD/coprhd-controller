@@ -5,7 +5,10 @@ import java.util.Map;
 
 import org.apache.commons.lang.mutable.MutableBoolean;
 import org.apache.commons.lang.mutable.MutableInt;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.hds.api.HDSApiFactory;
 import com.emc.storageos.storagedriver.AbstractStorageDriver;
 import com.emc.storageos.storagedriver.BlockStorageDriver;
 import com.emc.storageos.storagedriver.DriverTask;
@@ -28,6 +31,17 @@ import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
 
 public class HDSStorageDriver extends AbstractStorageDriver implements BlockStorageDriver {
 
+    private static final Logger _log = LoggerFactory.getLogger(HDSStorageDriver.class);
+    private HDSApiFactory hdsApiFactory = null;
+    
+    public HDSStorageDriver() {
+        _log.info("Constructing HDSStorageDriver");
+        if(hdsApiFactory == null) {
+            hdsApiFactory = new HDSApiFactory();
+            hdsApiFactory.init();
+        }
+    }
+    
     @Override
     public RegistrationData getRegistrationData() {
         // TODO Auto-generated method stub

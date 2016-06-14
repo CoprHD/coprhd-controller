@@ -27,6 +27,7 @@ public class BlockVirtualPoolRestRep extends VirtualPoolCommonRestRep {
     private Integer maxPaths;
     private Integer minPaths;
     private Integer pathsPerInitiator;
+    private String placementPolicy;
 
     // VMAX Host IO Limits attributes
     private Integer hostIOLimitBandwidth; // Host Front End limit bandwidth. If not specified or 0, indicated unlimited
@@ -268,5 +269,14 @@ public class BlockVirtualPoolRestRep extends VirtualPoolCommonRestRep {
 
     public void setHostIOLimitIOPs(Integer hostIOLimitIOPs) {
         this.hostIOLimitIOPs = hostIOLimitIOPs;
+    }
+
+    @XmlElement(name = "placement_policy")
+    public String getPlacementPolicy() {
+        return placementPolicy;
+    }
+
+    public void setPlacementPolicy(String placementPolicy) {
+        this.placementPolicy = placementPolicy;
     }
 }

@@ -20,6 +20,7 @@ import com.emc.storageos.api.service.impl.resource.utils.vpoolvalidators.DriveTy
 import com.emc.storageos.api.service.impl.resource.utils.vpoolvalidators.ExpansionValidator;
 import com.emc.storageos.api.service.impl.resource.utils.vpoolvalidators.HighAvailabilityValidator;
 import com.emc.storageos.api.service.impl.resource.utils.vpoolvalidators.HostIOLimitValidator;
+import com.emc.storageos.api.service.impl.resource.utils.vpoolvalidators.PlacementPolicyValidator;
 import com.emc.storageos.api.service.impl.resource.utils.vpoolvalidators.ProtectionValidator;
 import com.emc.storageos.api.service.impl.resource.utils.vpoolvalidators.ProvisioningTypeValidator;
 import com.emc.storageos.api.service.impl.resource.utils.vpoolvalidators.RaidLevelValidator;
@@ -71,6 +72,7 @@ public class VirtualPoolUtil {
     private static VirtualPoolValidator blockRemoteProtectionValidator = null;
     private static VirtualPoolValidator blockThinVolumePreAllocationValidator = null;
     private static VirtualPoolValidator blockHostLimitValidator = null;
+    private static PlacementPolicyValidator blockPlacementPolicyValidator = null;
 
     // private static VirtualPoolValidator fileNameValidator = null;
     // private static VirtualPoolValidator fileDescriptionValidator = null;
@@ -93,6 +95,7 @@ public class VirtualPoolUtil {
         blockThinVolumePreAllocationValidator = new ThinVolumePreAllocationValidator();
         blockRemoteProtectionValidator = new RemoteMirrorProtectionValidator();
         blockHostLimitValidator = new HostIOLimitValidator();
+        blockPlacementPolicyValidator = new PlacementPolicyValidator();
 
         // blockNameValidator.setNextValidator(blockDescriptionValidator);
         // blockDescriptionValidator.setNextValidator(blockSystemTypeValidator);
@@ -106,6 +109,7 @@ public class VirtualPoolUtil {
         blockProtectionValidator.setNextValidator(blockThinVolumePreAllocationValidator);
         blockThinVolumePreAllocationValidator.setNextValidator(blockRemoteProtectionValidator);
         blockRemoteProtectionValidator.setNextValidator(blockHostLimitValidator);
+        blockHostLimitValidator.setNextValidator(blockPlacementPolicyValidator);
     }
 
     /**

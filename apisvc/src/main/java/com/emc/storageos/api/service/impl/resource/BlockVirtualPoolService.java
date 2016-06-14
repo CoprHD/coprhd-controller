@@ -517,6 +517,11 @@ public class BlockVirtualPoolService extends VirtualPoolService {
             updateProtectionParamsForVirtualPool(vpool, param.getProtection(), param.getHighAvailability());
         }
 
+        // update placement policy
+        if (param.getPlacementPolicy() != null) {
+            vpool.setPlacementPolicy(param.getPlacementPolicy());
+        }
+
         // Validate Block VirtualPool update params.
         VirtualPoolUtil.validateBlockVirtualPoolUpdateParams(vpool, param, _dbClient);
 
@@ -1752,6 +1757,11 @@ public class BlockVirtualPoolService extends VirtualPoolService {
         // set limit for host i/o
         if (param.getHostIOLimitIOPs() != null) {
             vpool.setHostIOLimitIOPs(param.getHostIOLimitIOPs());
+        }
+
+        // set placement policy
+        if (param.getPlacementPolicy() != null) {
+            vpool.setPlacementPolicy(param.getPlacementPolicy());
         }
 
         return vpool;

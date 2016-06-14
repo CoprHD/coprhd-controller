@@ -11,6 +11,7 @@ public class SearchConstants {
     public static final String PROJECT_PARAM = "project";
     public static final String WWN_PARAM = "wwn";
     public static final String VDC_ID_PARAM = "vdc-id";
+    public static final String TENANT_ID_PARAM = "tenant-id";
     public static final String VALIDATE_CONNECTION_PARAM = "validate_connection";
     public static final String CLUSTER_PARAM = "cluster";
     public static final String HOST_PARAM = "host";

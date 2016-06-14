@@ -271,10 +271,6 @@ _rebase_snapshot() {
 # Parse options
 #_set_traps -E
 case ${#} in
-    1)  case ${i} in
-            --rollback)               _x _rollback ;;
-            *)                        _usage
-        esac;;
     2)  case ${1} in
             --list)                   _x _list "${2}" ;;
             --create-snapshot)        _x _create_snapshot      "${2}" ;;

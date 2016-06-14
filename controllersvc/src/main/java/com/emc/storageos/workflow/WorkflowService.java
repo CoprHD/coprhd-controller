@@ -947,7 +947,7 @@ public class WorkflowService implements WorkflowController {
 
         String suspendClass = null;
         String suspendMethod = null;
-        if (suspendOn != null && !suspendOn.isEmpty()) {
+        if (suspendOn != null && !suspendOn.trim().isEmpty()) {
             if (suspendOn.contains(".")) {
                 suspendClass = suspendOn.substring(0, suspendOn.indexOf("."));
                 suspendMethod = suspendOn.substring(suspendOn.indexOf(".") + 1);

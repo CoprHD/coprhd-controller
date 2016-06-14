@@ -28,7 +28,10 @@ import com.emc.storageos.hp3par.command.PortCommandResult;
 import com.emc.storageos.hp3par.command.PortMembers;
 import com.emc.storageos.hp3par.command.PortStatMembers;
 import com.emc.storageos.hp3par.command.PortStatisticsCommandResult;
+import com.emc.storageos.hp3par.command.Position;
 import com.emc.storageos.hp3par.command.SystemCommandResult;
+import com.emc.storageos.hp3par.command.VirtualLun;
+import com.emc.storageos.hp3par.command.VirtualLunsList;
 import com.emc.storageos.hp3par.command.VolumeDetailsCommandResult;
 import com.emc.storageos.hp3par.connection.HP3PARApiFactory;
 import com.emc.storageos.hp3par.utils.HP3PARConstants;
@@ -74,6 +77,11 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	private static final Logger _log = LoggerFactory.getLogger(HP3PARStorageDriver.class);
 	private HP3PARApiFactory hp3parApiFactory = null;
 	
+	// HashMap of list of storage ports discovered for each storage systems.
+    // KEY: storage system id would be the key. 
+	// VALUE:List of storage ports discovered for the storage system identified by the key.	
+    private static Map<String, List<StoragePort>> storagePortMap = new HashMap<String, List<StoragePort>>();
+          
 	public HP3PARStorageDriver () {
 	    _log.info("3PARDriver:HP3PARStorageDriver enter");
 	    if (hp3parApiFactory == null) {
@@ -334,7 +342,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
         DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_GET_STORAGE_VOLUMES);
 
 		List<StoragePort> ports = new ArrayList<>();
-	        discoverStoragePorts(storageSystem, ports);
+	    discoverStoragePorts(storageSystem, ports);
 	
 		try{
 			HashMap<String,ArrayList<String>> volumesToVolSetsMap = generateVolumeSetToVolumeMap(storageSystem);
@@ -538,6 +546,8 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
                 _log.info("3PARDriver: added storage port {}, native id {}",  port.getPortName(), port.getNativeId());
                 storagePorts.add(port);
             } //for each storage pool
+                       
+            storagePortMap.put(storageSystem.getNativeId() , storagePorts);
             
             task.setStatus(DriverTask.TaskStatus.READY);
             _log.info("3PARDriver: discoverStoragePorts information for storage system {}, nativeId {} - end",
@@ -924,12 +934,105 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
         return null;
     }
 
+    /*
+     * This function should return a HashMap.
+     * Key of HashMap : HostName to which the volume is exported
+     * Value of the HashMap : HostExportInfo associated with export to HostName
+     */
     @Override
     public Map<String, HostExportInfo> getVolumeExportInfoForHosts(StorageVolume volume) {
-    	_log.info("3PARDriver: getVolumeExportInfoForHosts Running ");
-        // TODO Auto-generated method stub
+    	_log.info("3PARDriver: getVolumeExportInfoForHosts Running ");       
+    	    	
+    	try{    		    		
+    		if(!volume.getDisplayName().equals("vipr-ravi-volume2")){
+    			return null; 
+    		}
+    		
+    		Map<String, HostExportInfo> resultMap = new HashMap<String, HostExportInfo>();
+    		    		
+    		//get the vlun associated with the volume at consideration.
+    		HP3PARApi hp3parApi = getHP3PARDeviceFromNativeId(volume.getStorageSystemId());
+    		//VirtualLunsList vlunsOfVolume = hp3parApi.getVLunsOfVolume(volume.getWwn());
+    		
+    		
+    		//process the vlun information by iterating through the vluns
+    		//and then for each vlun, we create the appropriate key:value pair
+    		//in the resultMap with hostname:HostExportInfo information.    		
+    		//for( int index=0; index < vlunsOfVolume.getTotal() ; index++ ){
+    		{
+    			//VirtualLun objVirtualLun = vlunsOfVolume.getMembers().get(index);
+    			VirtualLun objVirtualLun = new VirtualLun();
+    			Position pos = new Position();
+    			pos.setNode(0);
+    			pos.setNode(1);
+    			pos.setNode(1);    			
+    			objVirtualLun.setActive(true);
+    			objVirtualLun.setVolumeName("vipr-ravi-volume2");
+    			objVirtualLun.setHostName("LGLBW011");
+    			objVirtualLun.setRemoteName("10000090FA3D2D28");
+    			objVirtualLun.setPortPos(pos);
+    			objVirtualLun.setType(4);
+    			objVirtualLun.setVolumeWWN("60002AC0000000000000142E0000AE90");
+    			objVirtualLun.setMultipathing(1);
+    			    		    	
+    			
+    			if(!objVirtualLun.isActive()){
+    				//continue;
+    			}
+    			
+    			List<String> volumeIds = new ArrayList<>();
+    			List<Initiator> initiators = new ArrayList<Initiator>();
+    			List<StoragePort> storageports = new ArrayList<>();
+    			
+    			//To volumeIds we need to add the native id of volume 
+    			//and for hp3par volume name would be the native id
+    	        volumeIds.add(objVirtualLun.getVolumeName());
+    	        
+    	        Initiator hostInitiator = new Initiator();
+    	        //hp3par returns remote name in the format like 10000000C98F5C79. 
+    	        //we now convert this to the format 10:00:00:00:C9:8F:5C:79
+    	        String portId = objVirtualLun.getRemoteName().substring(0, 2) + ":" + 
+    	        				objVirtualLun.getRemoteName().substring(2, 4) + ":" +
+    	        				objVirtualLun.getRemoteName().substring(4, 6) + ":" +
+    	        				objVirtualLun.getRemoteName().substring(6, 8) + ":" +
+    	        				objVirtualLun.getRemoteName().substring(8, 10) + ":" +
+    	        				objVirtualLun.getRemoteName().substring(10, 12) + ":" +
+    	        				objVirtualLun.getRemoteName().substring(12, 14) + ":" +
+    	        				objVirtualLun.getRemoteName().substring(14, 16);
+    	        
+    	        String nativeId = String.format("%s:%s:%s", objVirtualLun.getPortPos().getNode(),
+    	        		objVirtualLun.getPortPos().getSlot(), objVirtualLun.getPortPos().getCardPort());
+    	        
+    	        //Check which of the storage ports discovered, matches the node:portpos:cardport 
+    	        //combination of the VLUN
+    	        List<StoragePort> storPortsOfStorage = storagePortMap.get(volume.getStorageSystemId());    	        
+    	        for(int portIndex = 0 ; portIndex < storPortsOfStorage.size() ; portIndex++){
+    	        	StoragePort port = storPortsOfStorage.get(portIndex);
+    	        	if(port.getNativeId().equals(nativeId)){
+    	        		storageports.add(port);
+    	        	}    	        	
+    	        }
+    	        
+    	        hostInitiator.setHostName(objVirtualLun.getHostName());    	        
+    	        hostInitiator.setPort(portId);
+    	        initiators.add(hostInitiator);
+    	        
+    			HostExportInfo exportInfo = new HostExportInfo(objVirtualLun.getHostName(), volumeIds, initiators, storageports);
+    			resultMap.put(objVirtualLun.getHostName(), exportInfo);
+    		}    		
+    		return resultMap;
+    	}
+    	catch (Exception e) {
+			String msg = String.format(
+					"3PARDriver: Unable to get export info of the volume %s in storage system native id is %s; Error: %s.\n",
+					volume.getDisplayName(), volume.getStorageSystemId(), e.getMessage());
+			_log.error(msg);			
+			e.printStackTrace();
+		}
+                    	
         return null;
     }
+    
 
     @Override
     public Map<String, HostExportInfo> getSnapshotExportInfoForHosts(VolumeSnapshot snapshot) {

@@ -1820,12 +1820,28 @@ public class CoordinatorClientExt {
         }
     }
 
+
     /**
      * Check if DR active site is stable and there is ZK leader in active site
      *
-     * @return true for stable, otherwise false
+     * @return true for active site has ZK leader and stable, otherwise false
      */
     public boolean isActiveSiteHealthy() {
+        return isActiveSiteHealthy(true);
+    }
+
+
+    /**
+     * Check if DR active site has ZK leader.  check if stable or not depends
+     * on bCheckStable parameter.
+     *
+     * @param bCheckStable
+     *          true - need to check if active site is also stable
+     *          false - skip active site state checking
+     * @return return true if specified check pass, otherwise false
+     */
+
+    public boolean isActiveSiteHealthy(Boolean bCheckStable) {
         DrUtil drUtil = new DrUtil(_coordinator);
         String activeSiteId = drUtil.getActiveSite().getUuid();
         
@@ -1843,10 +1859,17 @@ public class CoordinatorClientExt {
         } else {
             Site activeSite = drUtil.getSiteFromLocalVdc(activeSiteId);
             isActiveSiteLeaderAlive = isActiveSiteZKLeaderAlive(activeSite);
-            isActiveSiteStable =  isActiveSiteStable(activeSite);
+            if (bCheckStable) {
+                isActiveSiteStable = isActiveSiteStable(activeSite);
+            }
             _log.info("Active site ZK is alive: {}, active site stable is :{}", isActiveSiteLeaderAlive, isActiveSiteStable);
         }
-        return isActiveSiteLeaderAlive && isActiveSiteStable;
+
+        if (bCheckStable) {
+            return isActiveSiteLeaderAlive && isActiveSiteStable;
+        } else {
+            return isActiveSiteLeaderAlive;
+        }
     }
     
     public boolean isActiveSiteZKLeaderAlive(Site activeSite) {

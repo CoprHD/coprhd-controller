@@ -127,13 +127,6 @@ public class SeedProviderImpl implements SeedProvider {
             // If we are upgrading from pre-2.5 releases, dbconfig exists in zk global area
             List<Configuration> leftoverConfig = _client.queryAllConfiguration(Constants.DB_CONFIG);
             configs.addAll(leftoverConfig);
-            
-            // Add extra seeds - seeds from remote sites
-            for (String seed : extraSeeds) {
-                if (StringUtils.isNotEmpty(seed)) {
-                    seeds.add(InetAddress.getByName(seed));
-                }
-            }
 
             for (int i = 0; i < configs.size(); i++) {
                 Configuration config = configs.get(i);
@@ -155,6 +148,13 @@ public class SeedProviderImpl implements SeedProvider {
                     }
                     seeds.add(ip);
                     _logger.info("Seed {}", ip);
+                }
+            }
+
+            // Add extra seeds - seeds from remote sites
+            for (String seed : extraSeeds) {
+                if (StringUtils.isNotEmpty(seed)) {
+                    seeds.add(InetAddress.getByName(seed));
                 }
             }
 

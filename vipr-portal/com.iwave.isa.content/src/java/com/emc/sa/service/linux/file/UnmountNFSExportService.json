@@ -1,0 +1,14 @@
+{
+  baseKey:"UnmountNFSExport.File.Linux",
+  serviceId:"Linux-UnmountNFSExport",
+  fields: {
+    host:{
+      type:"assetType.vipr.linuxHost"
+    },
+
+    NFS Export: {
+      type:"assetType.vipr.mountedFileExport",   
+      select:"many" 
+    }            
+  }
+}

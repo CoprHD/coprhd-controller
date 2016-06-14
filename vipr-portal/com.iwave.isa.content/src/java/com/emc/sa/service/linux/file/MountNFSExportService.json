@@ -1,0 +1,21 @@
+{
+  baseKey:"MountNFSExport.File.Linux",
+  serviceId:"Linux-MountNFSExport",
+  destructive: true,
+  fields:{
+    host:{
+      type:"assetType.vipr.linuxHost"
+    },
+    
+    fileSystems:{
+      type:"assetType.vipr.fileExportedFilesystem"
+    },
+        
+    mountPoint:{
+      type:"text",
+      validation:{
+        regEx:"/[A-Za-z0-9/_\.\-]*"
+      }
+    }
+  }
+}

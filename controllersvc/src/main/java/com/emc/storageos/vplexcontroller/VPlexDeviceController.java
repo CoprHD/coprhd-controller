@@ -11726,7 +11726,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @return true if the firmware version of the given VPLEX supports thin virtual volume provisioning
      */
     private boolean verifyVplexSupportsThinProvisioning(StorageSystem vplex) {
-        return VersionChecker.verifyVersionDetails(vplex.getFirmwareVersion(), VPlexApiConstants.MIN_VERSION_THIN_PROVISIONING) >= 0;
+        return VersionChecker.verifyVersionDetails(VPlexApiConstants.MIN_VERSION_THIN_PROVISIONING, vplex.getFirmwareVersion()) >= 0;
     }
 
     /**

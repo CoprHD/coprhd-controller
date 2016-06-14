@@ -6,8 +6,8 @@ package com.emc.storageos.volumecontroller.impl.block;
 
 import static com.emc.storageos.db.client.constraint.AlternateIdConstraint.Factory.getSnapshotSessionReplicationGroupInstanceConstraint;
 import static com.emc.storageos.db.client.constraint.AlternateIdConstraint.Factory.getVolumesByAssociatedId;
-import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnDataObjectToID;
 import static com.emc.storageos.db.client.util.CommonTransformerFunctions.FCTN_URI_TO_STRING;
+import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnDataObjectToID;
 import static com.google.common.collect.Collections2.filter;
 import static com.google.common.collect.Collections2.transform;
 import static com.google.common.collect.Lists.newArrayList;
@@ -24,12 +24,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
-import com.emc.storageos.volumecontroller.impl.utils.labels.LabelFormat;
-import com.emc.storageos.volumecontroller.impl.utils.labels.LabelFormatFactory;
-import com.google.common.base.Predicate;
-import com.google.common.collect.Collections2;
-import com.google.common.collect.ImmutableList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,6 +47,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.SynchronizationState;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.ResourceOnlyNameGenerator;
@@ -70,11 +65,16 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshot
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.smis.srdf.SRDFUtils;
+import com.emc.storageos.volumecontroller.impl.utils.labels.LabelFormat;
+import com.emc.storageos.volumecontroller.impl.utils.labels.LabelFormatFactory;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowException;
+import com.emc.storageos.workflow.WorkflowService;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
 import com.google.common.base.Joiner;
-import com.emc.storageos.workflow.WorkflowService;
+import com.google.common.base.Predicate;
+import com.google.common.collect.Collections2;
+import com.google.common.collect.ImmutableList;
 
 /**
  * Specific controller implementation to support block orchestration for handling replicas of volumes in a consistency group.
@@ -1466,12 +1466,15 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
 
     private boolean checkIfCGHasSnapshotSessions(List<Volume> volumes) {
         for (BlockObject volume : volumes) {
-            List<BlockSnapshotSession> sessions = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient,
-                    BlockSnapshotSession.class,
-                    ContainmentConstraint.Factory.getBlockSnapshotSessionByConsistencyGroup(volume.getConsistencyGroup()));
-            if (!sessions.isEmpty()) {
-                return true;
+            if (volume.getConsistencyGroup() != null && NullColumnValueGetter.isNotNullValue(volume.getConsistencyGroup().toString())) {
+                List<BlockSnapshotSession> sessions = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient,
+                        BlockSnapshotSession.class,
+                        ContainmentConstraint.Factory.getBlockSnapshotSessionByConsistencyGroup(volume.getConsistencyGroup()));
+                if (!sessions.isEmpty()) {
+                    return true;
+                }
             }
+
         }
         return false;
     }

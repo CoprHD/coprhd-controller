@@ -105,11 +105,11 @@ public class HostMigrationCommand {
         }
     }
 
-    public static MigrationInfo findMigration(Host host, String migrationName, String migrationPid) throws Exception {
+    public static MigrationInfo pollMigration(Host host, String migrationName, String migrationPid) throws Exception {
         MigrationInfo migrationInfo = null;
         LinuxSystemCLI cli = LinuxHostDiscoveryAdapter.createLinuxCLI(host);
         String args = String.format("%s ", migrationPid);
-        FindMigrationCommand command = new FindMigrationCommand(args);
+        PollMigrationCommand command = new PollMigrationCommand(args);
 
         cli.executeCommand(command);
         migrationInfo = command.getResults();
@@ -121,7 +121,7 @@ public class HostMigrationCommand {
     }
 
 
-    public static List<MigrationInfo> findMigrations(Host host, List<Migration> migrations)
+    public static List<MigrationInfo> pollMigrations(Host host, List<Migration> migrations)
             throws Exception {
 
         List<MigrationInfo> migrationInfoList = new ArrayList<MigrationInfo>();
@@ -131,7 +131,7 @@ public class HostMigrationCommand {
                 // look in the extent migrations.
                 String migrationPid = migration.getMigrationPid();
                 String migrationName = migration.getLabel();
-                MigrationInfo migrationInfo = findMigration(host, migrationName, migrationPid);
+                MigrationInfo migrationInfo = pollMigration(host, migrationName, migrationPid);
                 migrationInfo.setIsHostMigration(true);
                 migrationInfoList.add(migrationInfo);
             } catch (Exception vae) {
@@ -198,7 +198,7 @@ public class HostMigrationCommand {
      * */
     public static String doCommitMigrationsCommand(Host host, String generalVolumeName,
             List<Migration> migrations) throws Exception {
-        List<MigrationInfo> migrationInfoList = findMigrations(host, migrations);
+        List<MigrationInfo> migrationInfoList = pollMigrations(host, migrations);
         // Verify that the migrations have completed successfully and can be
         // committed.
 

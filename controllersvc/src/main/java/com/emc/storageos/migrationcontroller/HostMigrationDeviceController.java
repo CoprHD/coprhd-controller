@@ -477,7 +477,7 @@ public class HostMigrationDeviceController implements MigrationOrchestrationInte
         migration.setMigrationPid(migrationPid);
         _dbClient.updateObject(migration);
         _log.info("Successfully started migration {}", migrationName);
-        MigrationInfo migrationInfo = HostMigrationCommand.findMigration(host, migrationName, migrationPid);
+        MigrationInfo migrationInfo = HostMigrationCommand.pollMigration(host, migrationName, migrationPid);
         return Arrays.asList(migrationInfo);
 
     }
@@ -612,7 +612,7 @@ public class HostMigrationDeviceController implements MigrationOrchestrationInte
     private void cancelMigrations(Host host, List<String> migrationNames, List<Migration> migrations,
             boolean cleanup, boolean remove) throws Exception {
         _log.info("Canceling migrations {}", migrationNames);
-        List<MigrationInfo> migrationInfoList = HostMigrationCommand.findMigrations(host, migrations);
+        List<MigrationInfo> migrationInfoList = HostMigrationCommand.pollMigrations(host, migrations);
         // Verify that the migrations are in a state in which they can be
         // canceled.
         StringBuilder migrationArgBuilder = new StringBuilder();
@@ -779,7 +779,7 @@ public class HostMigrationDeviceController implements MigrationOrchestrationInte
                     continue;
                 }
                 String migrationPid = migration.getMigrationPid();
-                MigrationInfo migrationInfo = HostMigrationCommand.findMigration(host, migration.getLabel(), migrationPid);
+                MigrationInfo migrationInfo = HostMigrationCommand.pollMigration(host, migration.getLabel(), migrationPid);
                 if (migrationInfo.getStatus().equalsIgnoreCase(MigrationInfo.MigrationStatus.COMMITTED.name())) {
                     migrationCommitted = true;
                     migration.setMigrationStatus(MigrationInfo.MigrationStatus.COMMITTED.name());

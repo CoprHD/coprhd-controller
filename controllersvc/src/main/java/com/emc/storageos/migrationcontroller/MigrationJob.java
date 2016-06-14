@@ -111,7 +111,7 @@ public class MigrationJob extends Job implements Serializable {
                     generalVolume.getStorageController());
             s_logger.debug("storage system is {}", storageSystem.getId());
 
-            MigrationInfo migrationInfo = HostMigrationCommand.findMigration(_host, migrationName, migrationPid);
+            MigrationInfo migrationInfo = HostMigrationCommand.pollMigration(_host, migrationName, migrationPid);
             s_logger.debug("Got migration info from host");
 
             // Update the migration in the database to reflect the

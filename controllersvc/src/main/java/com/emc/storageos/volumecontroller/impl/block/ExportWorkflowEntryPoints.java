@@ -308,10 +308,14 @@ public class ExportWorkflowEntryPoints implements Controller {
                     throws ControllerException {
         try {
             WorkflowStepCompleter.stepExecuting(token);
-            DiscoveredSystemObject storage = ExportWorkflowUtils.getStorageSystem(_dbClient, storageURI);
-            MaskingOrchestrator orchestrator = getOrchestrator(storage.getSystemType());
-            // TODO DUPP CWF: This is a child workflow, needs idempotent check
-            orchestrator.exportGroupChangePathParams(storageURI, exportGroupURI, volumeURI, token);
+            final String workflowKey = "exportChangeParams";
+            if (!WorkflowService.getInstance().hasWorkflowBeenCreated(token, workflowKey)) {
+                DiscoveredSystemObject storage = ExportWorkflowUtils.getStorageSystem(_dbClient, storageURI);
+                MaskingOrchestrator orchestrator = getOrchestrator(storage.getSystemType());
+                orchestrator.exportGroupChangePathParams(storageURI, exportGroupURI, volumeURI, token);
+                // Mark this workflow as created/executed so we don't do it again on retry/resume
+                WorkflowService.getInstance().markWorkflowBeenCreated(token, workflowKey);
+            }
         } catch (Exception e) {
             DeviceControllerException exception = DeviceControllerException.exceptions
                     .exportGroupChangePathParams(e);

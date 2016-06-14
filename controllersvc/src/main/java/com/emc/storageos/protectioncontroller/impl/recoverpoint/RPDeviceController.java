@@ -1122,256 +1122,265 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         exportGroupsCreated = new ArrayList<URI>();
         final String COMPUTE_RESOURCE_CLUSTER = "cluster";
         try {
-            // Generate the Workflow.
-            workflow = _workflowService.getNewWorkflow(this,
-                    EXPORT_ORCHESTRATOR_WF_NAME, true, taskId);
+            final String workflowKey = "rpExportOrchestration";
+            if (!WorkflowService.getInstance().hasWorkflowBeenCreated(taskId, workflowKey)) {
+                // Generate the Workflow.
+                workflow = _workflowService.getNewWorkflow(this,
+                        EXPORT_ORCHESTRATOR_WF_NAME, true, taskId);
 
-            String waitFor = null; // the wait for key returned by previous call
+                String waitFor = null; // the wait for key returned by previous call
 
-            ProtectionSystem rpSystem = _dbClient.queryObject(ProtectionSystem.class, rpSystemId);
+                ProtectionSystem rpSystem = _dbClient.queryObject(ProtectionSystem.class, rpSystemId);
 
-            // Get the CG Params based on the volume descriptors
-            CGRequestParams params = this.getCGRequestParams(volumeDescriptors, rpSystem);
-            updateCGParams(params);
+                // Get the CG Params based on the volume descriptors
+                CGRequestParams params = this.getCGRequestParams(volumeDescriptors, rpSystem);
+                updateCGParams(params);
 
-            _log.info("Start adding RP Export Volumes steps....");
+                _log.info("Start adding RP Export Volumes steps....");
 
-            // Get the RP Exports from the CGRequestParams object
-            Collection<RPExport> rpExports = generateStorageSystemExportMaps(params, volumeDescriptors);
+                // Get the RP Exports from the CGRequestParams object
+                Collection<RPExport> rpExports = generateStorageSystemExportMaps(params, volumeDescriptors);
 
-            Map<String, Set<URI>> rpSiteInitiatorsMap = getRPSiteInitiators(rpSystem, rpExports);
+                Map<String, Set<URI>> rpSiteInitiatorsMap = getRPSiteInitiators(rpSystem, rpExports);
 
-            // Acquire all the RP lock keys needed for export before we start assembling the export groups.
-            acquireRPLockKeysForExport(taskId, rpExports, rpSiteInitiatorsMap);
+                // Acquire all the RP lock keys needed for export before we start assembling the export groups.
+                acquireRPLockKeysForExport(taskId, rpExports, rpSiteInitiatorsMap);
 
-            // For each RP Export, create a workflow to either add the volumes to an existing export group
-            // or create a new one.
-            for (RPExport rpExport : rpExports) {
-                URI storageSystemURI = rpExport.getStorageSystem();
-                String internalSiteName = rpExport.getRpSite();
-                URI varrayURI = rpExport.getVarray();
-                List<URI> volumes = rpExport.getVolumes();
+                // For each RP Export, create a workflow to either add the volumes to an existing export group
+                // or create a new one.
+                for (RPExport rpExport : rpExports) {
+                    URI storageSystemURI = rpExport.getStorageSystem();
+                    String internalSiteName = rpExport.getRpSite();
+                    URI varrayURI = rpExport.getVarray();
+                    List<URI> volumes = rpExport.getVolumes();
 
-                List<URI> initiatorSet = new ArrayList<URI>();
+                    List<URI> initiatorSet = new ArrayList<URI>();
 
-                String rpSiteName = (rpSystem.getRpSiteNames() != null) ? rpSystem.getRpSiteNames().get(internalSiteName)
-                        : internalSiteName;
+                    String rpSiteName = (rpSystem.getRpSiteNames() != null) ? rpSystem.getRpSiteNames().get(internalSiteName)
+                            : internalSiteName;
 
-                StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storageSystemURI);
+                    StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storageSystemURI);
 
-                VirtualArray varray = _dbClient.queryObject(VirtualArray.class, varrayURI);
+                    VirtualArray varray = _dbClient.queryObject(VirtualArray.class, varrayURI);
 
-                _log.info("--------------------");
-                _log.info(String.format("RP Export: StorageSystem = [%s] RPSite = [%s] VirtualArray = [%s]", storageSystem.getLabel(),
-                        rpSiteName, varray.getLabel()));
+                    _log.info("--------------------");
+                    _log.info(String.format("RP Export: StorageSystem = [%s] RPSite = [%s] VirtualArray = [%s]", storageSystem.getLabel(),
+                            rpSiteName, varray.getLabel()));
 
-                String exportGroupGeneratedName = RPHelper.generateExportGroupName(rpSystem, storageSystem, internalSiteName, varray);
-                boolean isJournalExport = rpExport.getIsJournalExport();
-                // Setup the export group - we may or may not need to create it, but we need to have everything ready in
-                // case we do
-                ExportGroup exportGroup = RPHelper.createRPExportGroup(exportGroupGeneratedName, varray,
-                        _dbClient.queryObject(Project.class,
-                                params.getProject()),
-                        0, isJournalExport);
+                    String exportGroupGeneratedName = RPHelper.generateExportGroupName(rpSystem, storageSystem, internalSiteName, varray);
+                    boolean isJournalExport = rpExport.getIsJournalExport();
+                    // Setup the export group - we may or may not need to create it, but we need to have everything
+                    // ready in
+                    // case we do
+                    ExportGroup exportGroup = RPHelper.createRPExportGroup(exportGroupGeneratedName, varray,
+                            _dbClient.queryObject(Project.class,
+                                    params.getProject()),
+                            0, isJournalExport);
 
-                // Get the initiators of the RP Cluster (all of the RPAs on one side of a configuration)
-                Map<String, Map<String, String>> rpaWWNs = RPHelper.getRecoverPointClient(rpSystem).getInitiatorWWNs(internalSiteName);
+                    // Get the initiators of the RP Cluster (all of the RPAs on one side of a configuration)
+                    Map<String, Map<String, String>> rpaWWNs = RPHelper.getRecoverPointClient(rpSystem).getInitiatorWWNs(internalSiteName);
 
-                if (rpaWWNs == null || rpaWWNs.isEmpty()) {
-                    throw DeviceControllerExceptions.recoverpoint.noInitiatorsFoundOnRPAs();
-                }
-
-                // Convert to initiator object
-                List<Initiator> initiators = new ArrayList<Initiator>();
-                for (String rpaId : rpaWWNs.keySet()) {
-                    for (Map.Entry<String, String> rpaWWN : rpaWWNs.get(rpaId).entrySet()) {
-                        Initiator initiator = ExportUtils.getInitiator(rpaWWN.getKey(), _dbClient);
-                        initiators.add(initiator);
+                    if (rpaWWNs == null || rpaWWNs.isEmpty()) {
+                        throw DeviceControllerExceptions.recoverpoint.noInitiatorsFoundOnRPAs();
                     }
-                }
 
-                // We need to find and distill only those RP initiators that correspond to the network of the storage
-                // system and
-                // that network has front end port from the storage system.
-                // In certain lab environments, its quite possible that there are 2 networks one for the storage system
-                // FE ports and one for
-                // the BE ports.
-                // In such configs, RP initiators will be spread across those 2 networks. RP controller does not care
-                // about storage system
-                // back-end ports, so
-                // we will ignore those initiators that are connected to a network that has only storage system back end
-                // port connectivity.
-                Map<URI, Set<Initiator>> rpNetworkToInitiatorsMap = new HashMap<URI, Set<Initiator>>();
-                Set<URI> rpSiteInitiatorUris = rpSiteInitiatorsMap.get(internalSiteName);
-                if (rpSiteInitiatorUris != null) {
-                    for (URI rpSiteInitiatorUri : rpSiteInitiatorUris) {
-                        Initiator rpSiteInitiator = _dbClient.queryObject(Initiator.class, rpSiteInitiatorUri);
-                        URI rpInitiatorNetworkURI = getInitiatorNetwork(exportGroup, rpSiteInitiator);
-                        if (rpInitiatorNetworkURI != null) {
-                            if (rpNetworkToInitiatorsMap.get(rpInitiatorNetworkURI) == null) {
-                                rpNetworkToInitiatorsMap.put(rpInitiatorNetworkURI, new HashSet<Initiator>());
+                    // Convert to initiator object
+                    List<Initiator> initiators = new ArrayList<Initiator>();
+                    for (String rpaId : rpaWWNs.keySet()) {
+                        for (Map.Entry<String, String> rpaWWN : rpaWWNs.get(rpaId).entrySet()) {
+                            Initiator initiator = ExportUtils.getInitiator(rpaWWN.getKey(), _dbClient);
+                            initiators.add(initiator);
+                        }
+                    }
+
+                    // We need to find and distill only those RP initiators that correspond to the network of the
+                    // storage
+                    // system and
+                    // that network has front end port from the storage system.
+                    // In certain lab environments, its quite possible that there are 2 networks one for the storage
+                    // system
+                    // FE ports and one for
+                    // the BE ports.
+                    // In such configs, RP initiators will be spread across those 2 networks. RP controller does not
+                    // care
+                    // about storage system
+                    // back-end ports, so
+                    // we will ignore those initiators that are connected to a network that has only storage system back
+                    // end
+                    // port connectivity.
+                    Map<URI, Set<Initiator>> rpNetworkToInitiatorsMap = new HashMap<URI, Set<Initiator>>();
+                    Set<URI> rpSiteInitiatorUris = rpSiteInitiatorsMap.get(internalSiteName);
+                    if (rpSiteInitiatorUris != null) {
+                        for (URI rpSiteInitiatorUri : rpSiteInitiatorUris) {
+                            Initiator rpSiteInitiator = _dbClient.queryObject(Initiator.class, rpSiteInitiatorUri);
+                            URI rpInitiatorNetworkURI = getInitiatorNetwork(exportGroup, rpSiteInitiator);
+                            if (rpInitiatorNetworkURI != null) {
+                                if (rpNetworkToInitiatorsMap.get(rpInitiatorNetworkURI) == null) {
+                                    rpNetworkToInitiatorsMap.put(rpInitiatorNetworkURI, new HashSet<Initiator>());
+                                }
+                                rpNetworkToInitiatorsMap.get(rpInitiatorNetworkURI).add(rpSiteInitiator);
+                                _log.info(String.format("RP Initiator [%s] found on network: [%s]",
+                                        rpSiteInitiator.getInitiatorPort(), rpInitiatorNetworkURI.toASCIIString()));
+                            } else {
+                                _log.info(String.format("RP Initiator [%s] was not found on any network. Excluding from automated exports",
+                                        rpSiteInitiator.getInitiatorPort()));
                             }
-                            rpNetworkToInitiatorsMap.get(rpInitiatorNetworkURI).add(rpSiteInitiator);
-                            _log.info(String.format("RP Initiator [%s] found on network: [%s]",
-                                    rpSiteInitiator.getInitiatorPort(), rpInitiatorNetworkURI.toASCIIString()));
-                        } else {
-                            _log.info(String.format("RP Initiator [%s] was not found on any network. Excluding from automated exports",
-                                    rpSiteInitiator.getInitiatorPort()));
-                        }
-                    }
-                }
-
-                // Compute numPaths. This is how its done:
-                // We know the RP site and the Network/TransportZone it is on.
-                // Determine all the storage ports for the storage array for all the networks they are on.
-                // Next, if we find the network for the RP site in the above list, return all the storage ports
-                // corresponding to that.
-                // For RP we will try and use as many Storage ports as possible.
-                Map<URI, List<StoragePort>> initiatorPortMap = getInitiatorPortsForArray(
-                        rpNetworkToInitiatorsMap, storageSystemURI, varrayURI);
-
-                for (URI networkURI : initiatorPortMap.keySet()) {
-                    for (StoragePort storagePort : initiatorPortMap.get(networkURI)) {
-                        _log.info(String.format("Network : [%s] - Port : [%s]", networkURI.toString(), storagePort.getLabel()));
-                    }
-                }
-
-                int numPaths = computeNumPaths(initiatorPortMap, varrayURI, storageSystem);
-                _log.info("Total paths = " + numPaths);
-
-                // Stems from above comment where we distill the RP network and the initiators in that network.
-                List<Initiator> initiatorList = new ArrayList<Initiator>();
-                for (URI rpNetworkURI : rpNetworkToInitiatorsMap.keySet()) {
-                    if (initiatorPortMap.containsKey(rpNetworkURI)) {
-                        initiatorList.addAll(rpNetworkToInitiatorsMap.get(rpNetworkURI));
-                    }
-                }
-
-                for (Initiator initiator : initiatorList) {
-                    initiatorSet.add(initiator.getId());
-                }
-
-                // See if the export group already exists
-                ExportGroup exportGroupInDB = exportGroupExistsInDB(exportGroup);
-                boolean addExportGroupToDB = false;
-                if (exportGroupInDB != null) {
-                    exportGroup = exportGroupInDB;
-                    // If the export already exists, check to see if any of the volumes have already been exported. No
-                    // need to
-                    // re-export volumes.
-                    List<URI> volumesToRemove = new ArrayList<URI>();
-                    for (URI volumeURI : volumes) {
-                        if (exportGroup.getVolumes() != null
-                                && !exportGroup.getVolumes().isEmpty()
-                                && exportGroup.getVolumes().containsKey(volumeURI.toString())) {
-                            _log.info(String.format("Volume [%s] already exported to export group [%s], " +
-                                    "it will be not be re-exported", volumeURI.toString(), exportGroup.getGeneratedName()));
-                            volumesToRemove.add(volumeURI);
                         }
                     }
 
-                    // Remove volumes if they have already been exported
-                    if (!volumesToRemove.isEmpty()) {
-                        volumes.removeAll(volumesToRemove);
+                    // Compute numPaths. This is how its done:
+                    // We know the RP site and the Network/TransportZone it is on.
+                    // Determine all the storage ports for the storage array for all the networks they are on.
+                    // Next, if we find the network for the RP site in the above list, return all the storage ports
+                    // corresponding to that.
+                    // For RP we will try and use as many Storage ports as possible.
+                    Map<URI, List<StoragePort>> initiatorPortMap = getInitiatorPortsForArray(
+                            rpNetworkToInitiatorsMap, storageSystemURI, varrayURI);
+
+                    for (URI networkURI : initiatorPortMap.keySet()) {
+                        for (StoragePort storagePort : initiatorPortMap.get(networkURI)) {
+                            _log.info(String.format("Network : [%s] - Port : [%s]", networkURI.toString(), storagePort.getLabel()));
+                        }
                     }
 
-                    // If there are no more volumes to export, skip this one and continue,
-                    // nothing else needs to be done here.
-                    if (volumes.isEmpty()) {
-                        _log.info(String.format("No volumes needed to be exported to export group [%s], continue",
-                                exportGroup.getGeneratedName()));
-                        continue;
+                    int numPaths = computeNumPaths(initiatorPortMap, varrayURI, storageSystem);
+                    _log.info("Total paths = " + numPaths);
+
+                    // Stems from above comment where we distill the RP network and the initiators in that network.
+                    List<Initiator> initiatorList = new ArrayList<Initiator>();
+                    for (URI rpNetworkURI : rpNetworkToInitiatorsMap.keySet()) {
+                        if (initiatorPortMap.containsKey(rpNetworkURI)) {
+                            initiatorList.addAll(rpNetworkToInitiatorsMap.get(rpNetworkURI));
+                        }
                     }
-                } else {
-                    addExportGroupToDB = true;
-                }
 
-                // Add volumes to the export group
-                Map<URI, Integer> volumesToAdd = new HashMap<URI, Integer>();
-                for (URI volumeID : volumes) {
-                    exportGroup.addVolume(volumeID, ExportGroup.LUN_UNASSIGNED);
-                    volumesToAdd.put(volumeID, ExportGroup.LUN_UNASSIGNED);
-                }
+                    for (Initiator initiator : initiatorList) {
+                        initiatorSet.add(initiator.getId());
+                    }
 
-                // Keep track of volumes added to export group
-                if (!volumesToAdd.isEmpty()) {
-                    exportGroupVolumesAdded.put(exportGroup.getId(), volumesToAdd.keySet());
-                }
+                    // See if the export group already exists
+                    ExportGroup exportGroupInDB = exportGroupExistsInDB(exportGroup);
+                    boolean addExportGroupToDB = false;
+                    if (exportGroupInDB != null) {
+                        exportGroup = exportGroupInDB;
+                        // If the export already exists, check to see if any of the volumes have already been exported.
+                        // No
+                        // need to
+                        // re-export volumes.
+                        List<URI> volumesToRemove = new ArrayList<URI>();
+                        for (URI volumeURI : volumes) {
+                            if (exportGroup.getVolumes() != null
+                                    && !exportGroup.getVolumes().isEmpty()
+                                    && exportGroup.getVolumes().containsKey(volumeURI.toString())) {
+                                _log.info(String.format("Volume [%s] already exported to export group [%s], " +
+                                        "it will be not be re-exported", volumeURI.toString(), exportGroup.getGeneratedName()));
+                                volumesToRemove.add(volumeURI);
+                            }
+                        }
 
-                // Update Host/Cluster export information if the source volume is exported information on the Source
-                // volume
-                if (rpExport.getComputeResource() != null) {
-                    URI computeResource = rpExport.getComputeResource();
-                    _log.info(String.format("RP Export: ComputeResource : %s", computeResource.toString()));
+                        // Remove volumes if they have already been exported
+                        if (!volumesToRemove.isEmpty()) {
+                            volumes.removeAll(volumesToRemove);
+                        }
 
-                    if (computeResource.toString().toLowerCase().contains(COMPUTE_RESOURCE_CLUSTER)) {
-                        Cluster cluster = _dbClient.queryObject(Cluster.class, computeResource);
-                        exportGroup.addCluster(cluster);
+                        // If there are no more volumes to export, skip this one and continue,
+                        // nothing else needs to be done here.
+                        if (volumes.isEmpty()) {
+                            _log.info(String.format("No volumes needed to be exported to export group [%s], continue",
+                                    exportGroup.getGeneratedName()));
+                            continue;
+                        }
                     } else {
-                        Host host = _dbClient.queryObject(Host.class, rpExport.getComputeResource());
-                        exportGroup.addHost(host);
+                        addExportGroupToDB = true;
+                    }
+
+                    // Add volumes to the export group
+                    Map<URI, Integer> volumesToAdd = new HashMap<URI, Integer>();
+                    for (URI volumeID : volumes) {
+                        exportGroup.addVolume(volumeID, ExportGroup.LUN_UNASSIGNED);
+                        volumesToAdd.put(volumeID, ExportGroup.LUN_UNASSIGNED);
+                    }
+
+                    // Keep track of volumes added to export group
+                    if (!volumesToAdd.isEmpty()) {
+                        exportGroupVolumesAdded.put(exportGroup.getId(), volumesToAdd.keySet());
+                    }
+
+                    // Update Host/Cluster export information if the source volume is exported information on the Source
+                    // volume
+                    if (rpExport.getComputeResource() != null) {
+                        URI computeResource = rpExport.getComputeResource();
+                        _log.info(String.format("RP Export: ComputeResource : %s", computeResource.toString()));
+
+                        if (computeResource.toString().toLowerCase().contains(COMPUTE_RESOURCE_CLUSTER)) {
+                            Cluster cluster = _dbClient.queryObject(Cluster.class, computeResource);
+                            exportGroup.addCluster(cluster);
+                        } else {
+                            Host host = _dbClient.queryObject(Host.class, rpExport.getComputeResource());
+                            exportGroup.addHost(host);
+                        }
+                    }
+
+                    // Persist the export group
+                    if (addExportGroupToDB) {
+                        exportGroup.addInitiators(initiatorSet);
+                        exportGroup.setNumPaths(numPaths);
+                        _dbClient.createObject(exportGroup);
+                        // Keep track of newly created EGs in case of rollback
+                        exportGroupsCreated.add(exportGroup.getId());
+                    } else {
+                        _dbClient.updateObject(exportGroup);
+                    }
+
+                    // If the export group already exists, add the volumes to it, otherwise create a brand new
+                    // export group.
+                    StringBuilder buffer = new StringBuilder();
+                    buffer.append(String.format(DASHED_NEWLINE));
+                    if (!addExportGroupToDB) {
+
+                        buffer.append(String.format(
+                                "Adding volumes to existing Export Group for Storage System [%s], RP Site [%s], Virtual Array [%s]%n",
+                                storageSystem.getLabel(), rpSiteName, varray.getLabel()));
+                        buffer.append(String.format("Export Group name is : [%s]%n", exportGroup.getGeneratedName()));
+                        buffer.append(String.format("Export Group will have these volumes added: [%s]%n", Joiner.on(',').join(volumes)));
+                        buffer.append(String.format(DASHED_NEWLINE));
+                        _log.info(buffer.toString());
+
+                        waitFor = _exportWfUtils.generateExportGroupAddVolumes(workflow, STEP_EXPORT_GROUP,
+                                waitFor, storageSystemURI,
+                                exportGroup.getId(), volumesToAdd);
+
+                        _log.info("Added Export Group add volumes step in workflow");
+                    } else {
+                        buffer.append(String.format("Creating new Export Group for Storage System [%s], RP Site [%s], Virtual Array [%s]%n",
+                                storageSystem.getLabel(), rpSiteName, varray.getLabel()));
+                        buffer.append(String.format("Export Group name is: [%s]%n", exportGroup.getGeneratedName()));
+                        buffer.append(String.format("Export Group will have these initiators: [%s]%n", Joiner.on(',').join(initiatorSet)));
+                        buffer.append(String.format("Export Group will have these volumes added: [%s]%n", Joiner.on(',').join(volumes)));
+                        buffer.append(String.format(DASHED_NEWLINE));
+                        _log.info(buffer.toString());
+
+                        String exportStep = workflow.createStepId();
+                        initTaskStatus(exportGroup, exportStep, Operation.Status.pending, "create export");
+
+                        waitFor = _exportWfUtils.generateExportGroupCreateWorkflow(workflow,
+                                STEP_EXPORT_GROUP, waitFor,
+                                storageSystemURI, exportGroup.getId(),
+                                volumesToAdd, initiatorSet);
+
+                        _log.info("Added Export Group create step in workflow. New Export Group Id: " + exportGroup.getId());
                     }
                 }
 
-                // Persist the export group
-                if (addExportGroupToDB) {
-                    exportGroup.addInitiators(initiatorSet);
-                    exportGroup.setNumPaths(numPaths);
-                    _dbClient.createObject(exportGroup);
-                    // Keep track of newly created EGs in case of rollback
-                    exportGroupsCreated.add(exportGroup.getId());
-                } else {
-                    _dbClient.updateObject(exportGroup);
-                }
+                String successMessage = "Export orchestration completed successfully";
 
-                // If the export group already exists, add the volumes to it, otherwise create a brand new
-                // export group.
-                StringBuilder buffer = new StringBuilder();
-                buffer.append(String.format(DASHED_NEWLINE));
-                if (!addExportGroupToDB) {
-
-                    buffer.append(String.format(
-                            "Adding volumes to existing Export Group for Storage System [%s], RP Site [%s], Virtual Array [%s]%n",
-                            storageSystem.getLabel(), rpSiteName, varray.getLabel()));
-                    buffer.append(String.format("Export Group name is : [%s]%n", exportGroup.getGeneratedName()));
-                    buffer.append(String.format("Export Group will have these volumes added: [%s]%n", Joiner.on(',').join(volumes)));
-                    buffer.append(String.format(DASHED_NEWLINE));
-                    _log.info(buffer.toString());
-
-                    waitFor = _exportWfUtils.generateExportGroupAddVolumes(workflow, STEP_EXPORT_GROUP,
-                            waitFor, storageSystemURI,
-                            exportGroup.getId(), volumesToAdd);
-
-                    _log.info("Added Export Group add volumes step in workflow");
-                } else {
-                    buffer.append(String.format("Creating new Export Group for Storage System [%s], RP Site [%s], Virtual Array [%s]%n",
-                            storageSystem.getLabel(), rpSiteName, varray.getLabel()));
-                    buffer.append(String.format("Export Group name is: [%s]%n", exportGroup.getGeneratedName()));
-                    buffer.append(String.format("Export Group will have these initiators: [%s]%n", Joiner.on(',').join(initiatorSet)));
-                    buffer.append(String.format("Export Group will have these volumes added: [%s]%n", Joiner.on(',').join(volumes)));
-                    buffer.append(String.format(DASHED_NEWLINE));
-                    _log.info(buffer.toString());
-
-                    String exportStep = workflow.createStepId();
-                    initTaskStatus(exportGroup, exportStep, Operation.Status.pending, "create export");
-
-                    waitFor = _exportWfUtils.generateExportGroupCreateWorkflow(workflow,
-                            STEP_EXPORT_GROUP, waitFor,
-                            storageSystemURI, exportGroup.getId(),
-                            volumesToAdd, initiatorSet);
-
-                    _log.info("Added Export Group create step in workflow. New Export Group Id: " + exportGroup.getId());
-                }
+                // Finish up and execute the plan.
+                // The Workflow will handle the TaskCompleter
+                Object[] callbackArgs = new Object[] { volUris };
+                workflow.executePlan(completer, successMessage, new WorkflowCallback(), callbackArgs, null, null);
+                // Mark this workflow as created/executed so we don't do it again on retry/resume
+                WorkflowService.getInstance().markWorkflowBeenCreated(taskId, workflowKey);
             }
-
-            String successMessage = "Export orchestration completed successfully";
-
-            // Finish up and execute the plan.
-            // The Workflow will handle the TaskCompleter
-            Object[] callbackArgs = new Object[] { volUris };
-            // TODO DUPP CWF: This is a child workflow, needs idempotent check
-            workflow.executePlan(completer, successMessage, new WorkflowCallback(), callbackArgs, null, null);
-
         } catch (Exception ex) {
             _log.error("Could not create volumes: " + volUris, ex);
 

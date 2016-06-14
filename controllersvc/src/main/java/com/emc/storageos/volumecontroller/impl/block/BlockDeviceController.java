@@ -1468,24 +1468,28 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         SimpleTaskCompleter completer = new SimpleTaskCompleter(Volume.class, volume, opId);
 
         try {
-            // Get a new workflow to execute volume expand
-            Workflow workflow = _workflowService.getNewWorkflow(this,
-                    EXPAND_VOLUME_WF_NAME, false, opId);
-            _log.info("Created new expansion workflow with operation id {}", opId);
+            final String workflowKey = "expandBlockVolume";
+            if (!WorkflowService.getInstance().hasWorkflowBeenCreated(opId, workflowKey)) {
+                // Get a new workflow to execute volume expand
+                Workflow workflow = _workflowService.getNewWorkflow(this,
+                        EXPAND_VOLUME_WF_NAME, false, opId);
+                _log.info("Created new expansion workflow with operation id {}", opId);
 
-            String stepId = workflow.createStepId();
-            workflow.createStep(BLOCK_VOLUME_EXPAND_GROUP, String.format(
-                    "Expand volume %s", volume), null,
-                    storage, getDeviceType(storage),
-                    BlockDeviceController.class,
-                    expandVolumesMethod(storage, pool, volume, size),
-                    rollbackExpandVolumeMethod(storage, volume, stepId),
-                    stepId);
-            _log.info("Executing workflow plan {}", BLOCK_VOLUME_EXPAND_GROUP);
+                String stepId = workflow.createStepId();
+                workflow.createStep(BLOCK_VOLUME_EXPAND_GROUP, String.format(
+                        "Expand volume %s", volume), null,
+                        storage, getDeviceType(storage),
+                        BlockDeviceController.class,
+                        expandVolumesMethod(storage, pool, volume, size),
+                        rollbackExpandVolumeMethod(storage, volume, stepId),
+                        stepId);
+                _log.info("Executing workflow plan {}", BLOCK_VOLUME_EXPAND_GROUP);
 
-            // TODO DUPP CWF: This is a child workflow, needs idempotent check
-            workflow.executePlan(completer, String.format(
-                    "Expansion of volume %s completed successfully", volume));
+                workflow.executePlan(completer, String.format(
+                        "Expansion of volume %s completed successfully", volume));
+                // Mark this workflow as created/executed so we don't do it again on retry/resume
+                WorkflowService.getInstance().markWorkflowBeenCreated(opId, workflowKey);
+            }
         } catch (Exception ex) {
             _log.error("Could not expand volume: " + volume, ex);
             String opName = ResourceOperationTypeEnum.EXPAND_BLOCK_VOLUME.getName();

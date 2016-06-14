@@ -568,8 +568,8 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                     if (volume != null) {
                         volume.setConsistencyGroup(NullColumnValueGetter.getNullURI());
                         volume.setReplicationGroupInstance(NullColumnValueGetter.getNullStr());
-                        dbClient.updateObject(volume);
                     }
+                    dbClient.updateObject(volumes);
                 }
             } else {
                 _log.error("doAddVolumesToConsistencyGroup failed. {}", task.getMessage());

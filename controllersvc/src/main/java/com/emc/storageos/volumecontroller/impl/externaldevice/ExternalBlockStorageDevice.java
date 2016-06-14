@@ -572,7 +572,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                 }
             } else {
                 _log.error("doAddVolumesToConsistencyGroup failed. {}", task.getMessage());
-                _log.error(String.format("Remove volumes from Consistency Group operation failed %s", e.getMessage()));
+                _log.error(String.format("Remove volumes from Consistency Group operation failed %s", task.getMessage()));
                 taskCompleter.error(dbClient, DeviceControllerException.exceptions
                         .failedToAddMembersToConsistencyGroup(consistencyGroup.getLabel(),
                         		consistencyGroup.getLabel(), task.getMessage()));
@@ -625,7 +625,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                 }
             } else {
                 _log.error("doAddVolumesToConsistencyGroup failed. {}", task.getMessage());
-                _log.error(String.format("Remove volumes from Consistency Group operation failed %s", e.getMessage()));
+                _log.error(String.format("Remove volumes from Consistency Group operation failed %s", task.getMessage()));
                 taskCompleter.error(dbClient, DeviceControllerException.exceptions
                         .failedToRemoveMembersToConsistencyGroup(consistencyGroup.getLabel(),
                         		consistencyGroup.getLabel(), task.getMessage()));

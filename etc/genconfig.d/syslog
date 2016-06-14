@@ -10,10 +10,96 @@
 # it is provided by or on behalf of EMC.
 
 _gen_syslog_config_log4j() {
-    case ${_GENCONFIG_node_id} in 'standalone')             _genconfig_done ; esac
+	local svcLogPath='/opt/storageos/conf/'
 
-    #ssh_config=$(_ssh_config)
-    #_genconfig_write 644 root:root "${1}" "${ssh_config}"
+	local syslog_appender_desc='# The SYSLOG appender to be configured for the syslog configuration to affect'
+	local syslog_appender_val='log4j.appender.SYSLOG=org.apache.log4j.net.SyslogAppender'
+	local syslog_hostname_val='log4j.appender.SYSLOG.SyslogHost=localhost'
+	local syslog_threshold_val='log4j.appender.SYSLOG.Threshold='
+	local syslog_facility_val='log4j.appender.SYSLOG.Facility='
+	local syslog_facilityprint_val='log4j.appender.SYSLOG.FacilityPrinting=true'
+	local syslog_patternlayout_val='log4j.appender.SYSLOG.layout=org.apache.log4j.PatternLayout'
+	local syslog_pattern_val='log4j.appender.SYSLOG.layout.ConversionPattern=%d{yyyy-MM-dd HH:mm:ss} %-5p %c{1}:%L - %m%n'
+
+	local syslog_loglevel=${_GENCONFIG_system_syslog_loglevel}
+	echo $syslog_loglevel
+	local syslog_facility=${_GENCONFIG_system_syslog_facility}
+	echo $syslog_facility
+	local syslog_application_services=${_GENCONFIG_system_syslog_application_services}
+	echo $syslog_application_services
+	
+	for i in "${syslog_application_services[@]}"
+		do
+			svcName=$i
+			#echo "Processing Log4j for the Service :" ${svcName}
+			
+			svcLogFile=$(printf "%s%s-log4j.properties" "$svcLogPath""$svcName")
+			#echo "$svcLogFile"
+
+			rootLogger=$(grep "log4j.rootLogger" "$svcLogFile")
+			#echo $rootLogger
+
+			# Get the Root Logger Value
+			rootLoggerInfo=$(sed -e 's#.*=\(\)#\1#' <<< "$rootLogger")
+			#echo $rootLoggerInfo
+
+			if [ -z "$syslog_loglevel" ]; then
+				syslog_loglevel="ERROR"
+			fi
+			syslog_loglevel_val=$(printf "%s%s" "$syslog_threshold_val""$syslog_loglevel")
+			#echo $syslog_threshold_val
+
+			if [ -z "$syslog_facility" ]; then
+				syslog_facility="local0"
+			fi
+			syslog_facility_val=$(printf "%s%s" "$syslog_facility_val""$syslog_facility")
+			#echo $syslog_facility_val
+
+			origRootLogger=${rootLoggerInfo%",SYSLOG"}
+			#echo $origRootLogger
+
+			# Replace all occurences of First string with Second string in the file
+			sed -i "/rootLogger/s/"INFO,R.*$"/"$origRootLogger"/" "$svcLogFile"
+			# Delete the lines containing the pattern 'SYSLOG' in the file
+			sed -i '/SYSLOG/d' "$svcLogFile"
+
+			# Delete all the blank from end of the file
+			NumOfLines=$(cat "$filePath" | wc -l)
+			#echo "Before :" $NumOfLines
+			NumOfLines=$((NumOfLines+1))
+			#echo "After :" $NumOfLines
+			#sed -i '21,$ d' "$filePath"
+			#sed -i "$NumOfLines,\$ d" "$filePath"
+			#sed -i '/^ *$/d' "$filePath"
+			# Delete all CONSECUTIVE blank lines from file except the first.
+			# This method also deletes all blank lines from top and end of file.
+			sed -i '/./,/^$/!d' $filePath # this allows 0 blanks at top, 1 at EOF
+			sed -i '/^$/N;/\n$/D' $filePath # this allows 1 blank at top, 0 at EOF
+			
+			# Write the Log4j Syslog details
+			echo $replaceRootLogger 
+
+			sed -i "/rootLogger/s/"INFO,R.*$"/"$replaceRootLogger"/" "$svcLogFile"
+			( echo -e "\n$syslog_appender_desc"
+			  echo -e "$syslog_appender_val"
+			  echo -e "$syslog_hostname_val"
+			  echo -e "$syslog_threshold_val"
+			  echo -e "$syslog_facility_val"
+			  echo -e "$syslog_facilityprint_val"
+			  echo -e "$syslog_patternlayout_val"
+			  echo -e "$syslog_pattern_val"
+			) >> "$svcLogFile"			
+			
+			# Read the file to verify the updated details
+			while IFS= read -r line
+			do
+				# display $line or do somthing with $line
+				printf '%s\n' "$line"
+				#echo "$line"
+			done <"$svcLogFile"
+			
+		done
+
     _genconfig_done
 }
 
@@ -25,5 +111,5 @@ _gen_syslog_config_rsyslog() {
     _genconfig_done
 }
 
-_genconfig_exec _gen_syslog_config_log4j         /etc/ssh/sshd_config
-_genconfig_exec _gen_syslog_config_rsyslog       /etc/ssh/ssh_host_ecdsa_key
+_genconfig_exec _gen_syslog_config_log4j         root
+_genconfig_exec _gen_syslog_config_rsyslog       root

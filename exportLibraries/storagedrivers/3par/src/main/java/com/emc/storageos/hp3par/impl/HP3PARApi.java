@@ -77,14 +77,11 @@ public class HP3PARApi {
     private static final String URI_CG_DETAILS = "/api/v1/volumesets/{0}";
     private static final String URI_CG_LIST_DETAILS = "/api/v1/volumesets";
     
-<<<<<<< HEAD
     private static final String URI_VLUNS_OF_VOLUME = "/api/v1/vluns?query=”volumeWWN EQ {}";
     
-=======
     // Export related
     private static final String URI_CREATE_VLUN = "/api/v1/vluns";
     private static final String URI_HOSTS = "/api/v1/hosts";
->>>>>>> 4e1a6de80dfbc3c319dc56cad3db3e19b8a5bf69
 
     
     public HP3PARApi(URI endpoint, RESTClient client, String userName, String pass) {

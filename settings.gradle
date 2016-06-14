@@ -27,6 +27,7 @@ addProjects(
 	"exportLibraries/ecs",
 	"exportLibraries/ceph",
 	"exportLibraries/storagedrivers/storagedriversimulator",    
+	"exportLibraries/storagedrivers/hdsdriver",    
         "geodbsvc",
         "geosvc",
         "internalLibraries/security",

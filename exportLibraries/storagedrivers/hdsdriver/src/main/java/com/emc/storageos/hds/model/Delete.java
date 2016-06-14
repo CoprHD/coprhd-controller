@@ -5,26 +5,27 @@
 package com.emc.storageos.hds.model;
 
 import com.emc.storageos.hds.HDSConstants;
-import com.emc.storageos.hds.xmlgen.XMLConstants;
 
-public class Modify {
+public class Delete {
 
     private String target;
 
-    private boolean isWaitOption;
+    private boolean force;
 
     private String option;
 
-    public Modify() {
-    }
-
-    public Modify(String target) {
+    public Delete(String target) {
         this.target = target;
     }
 
-    public Modify(String target, boolean isWaitOption) {
+    public Delete(String target, boolean force) {
         this.target = target;
-        this.isWaitOption = isWaitOption;
+        this.force = force;
+    }
+
+    public Delete(String target, String option) {
+        this.target = target;
+        this.option = option;
     }
 
     /**
@@ -41,6 +42,20 @@ public class Modify {
         this.target = target;
     }
 
+    /**
+     * @return the force
+     */
+    public boolean isForce() {
+        return force;
+    }
+
+    /**
+     * @param force the force to set
+     */
+    public void setForce(boolean force) {
+        this.force = force;
+    }
+
     public String getOption() {
         return option;
     }
@@ -55,13 +70,13 @@ public class Modify {
             xmlString.append(HDSConstants.SPACE_STR).append("target=\"")
                     .append(this.target).append("\" ");
         }
-        if (this.isWaitOption) {
-            xmlString.append("option=\"wait\"");
+        if (this.force) {
+            xmlString.append(HDSConstants.SPACE_STR).append("option=\"").append("force")
+                    .append("\" ");
         }
         if (null != this.option) {
-            xmlString.append(HDSConstants.SPACE_STR).append(XMLConstants.SPACE)
-                    .append("option=").append(HDSConstants.QUOTATION_STR)
-                    .append(this.option).append(HDSConstants.QUOTATION_STR);
+            xmlString.append(HDSConstants.SPACE_STR).append("option=\"").append(this.option)
+                    .append("\" ");
         }
         return xmlString.toString();
     }

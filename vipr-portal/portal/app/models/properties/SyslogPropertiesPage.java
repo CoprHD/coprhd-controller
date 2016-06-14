@@ -10,13 +10,12 @@ import util.ConfigProperty;
 public class SyslogPropertiesPage extends CustomPropertyPage {
     private Property syslogRemoteServersPorts;
     private Property syslogServices;
-
     private Property syslogEnable;
     private Property syslogEnableTls;
     private Property syslogTransportProtocol;
     private Property syslogEnableTlsCert;
     private Property syslogLogLevel;
-    //private StringOption logOptions;
+    private Property syslogFacility;
 
     public SyslogPropertiesPage(Map<String, Property> properties) {
         super("Syslog Forwarder");
@@ -28,6 +27,7 @@ public class SyslogPropertiesPage extends CustomPropertyPage {
         syslogTransportProtocol = addCustomProperty(properties, ConfigProperty.SYSLOG_TRANSPORT_PROTOCOL);
         syslogEnableTlsCert = addCustomProperty(properties, ConfigProperty.SYSLOG_ENABLE_TLS_CERT);
         syslogLogLevel = addCustomProperty(properties, ConfigProperty.SYSLOG_LOG_LEVEL);
+        syslogFacility = addCustomProperty(properties, ConfigProperty.SYSLOG_FACILITY);
     }
 
     public Property getSyslogRemoteServersPorts() {
@@ -56,5 +56,9 @@ public class SyslogPropertiesPage extends CustomPropertyPage {
 
     public Property getSyslogLogLevel() {
         return syslogLogLevel;
+    }
+
+    public Property getSyslogFacility() {
+        return syslogFacility;
     }
 }

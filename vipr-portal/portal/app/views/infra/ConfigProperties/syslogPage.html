@@ -10,8 +10,8 @@
         var remoteServersId = "network_syslog_remote_servers_ports";
         $network_syslog_remote_servers_ports = $("#" + remoteServersId);
 
-        var syslogServices = "system_syslog_coprhd_services";
-        $system_syslog_coprhd_services = $("#" + syslogServices);
+        var syslogServices = "system_syslog_application_services";
+        $system_syslog_application_services = $("#" + syslogServices);
 
 
         var urlValue = '${page.syslogRemoteServersPorts.value}';
@@ -115,7 +115,7 @@
     }
 
     function updateServices(myCheckBoxArray) {
-        $system_syslog_coprhd_services.val(myCheckBoxArray);
+        $system_syslog_application_services.val(myCheckBoxArray);
         checkForm();
     }
 
@@ -209,6 +209,8 @@
 #{ConfigProperties.propertySet titleKey:'configProperties.syslog.logs'}
 
 #{ConfigProperties.property property:page.syslogLogLevel, disabled:unstable/}
+
+#{ConfigProperties.property property:page.syslogFacility, disabled:unstable/}
 
 %{
     property = page.syslogServices

@@ -2804,8 +2804,8 @@
     },
     {
         key : "network_syslog_remote_servers_ports",
-        label : "Remote Syslog Servers &amp Ports",
-        description : "Syslog servers &amp their ports(IP addresses:Ports separated by commas).",
+        label : "Remote Syslog Servers &amp; Ports",
+        description : "Syslog servers &amp; their ports(IP addresses:Ports separated by commas).",
         type : "ipportlist",
         userConfigurable : true,
         userMutable : true,

@@ -26,6 +26,7 @@ public class SiteInfo implements CoordinatorSerializable {
     public static final String DR_OP_REMOVE_STANDBY = "dr_remove_standby";
     public static final String DR_OP_PAUSE_STANDBY = "dr_pause_standby";
     public static final String DR_OP_RESUME_STANDBY = "dr_resume_standby";
+    public static final String DR_OP_ROLLBACK_STANDBY = "dr_rollback_standby";
     public static final String DR_OP_DEGRADE_STANDBY = "dr_degrade_standby";
     public static final String DR_OP_REJOIN_STANDBY = "dr_rejoin_standby";
     public static final String DR_OP_SWITCHOVER = "dr_switchover";

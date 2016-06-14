@@ -24,6 +24,7 @@ _usage() {
     echo "Usage: $0 --list"             >&2
     echo "   or: $0 --create-version datadir version"      >&2
     echo "   or: $0 --set-version datadir version"             >&2
+    echo "   or: $0 --set-version-snapshot datadir version snapshot_number" >&2
     echo "   or: $0 --create-snapshot datadir" >&2
     echo "   or: $0 --revert-sanpshot datadir"   >&2
     echo "   or: $0 --rebase-sanpshot datadir"   >&2
@@ -112,7 +113,7 @@ _get_base_snapshot_number() {
     for i in $(ls ${basedir}); do
         local dir=${basedir}/${i}
         [ -L ${dir} ] && continue;
-	[ -f ${dir} ] && continue;
+        [ -f ${dir} ] && continue;
         local ver=$(echo ${i} | cut -d. -f1)
         [ "${ver}" != "${curver}" ] && continue;
         local sn=$(echo ${i} | cut -d. -f2)
@@ -134,7 +135,7 @@ _list() {
     for i in $(ls ${basedir}); do
         local dir=${basedir}/${i}
         [ -L ${dir} ] && continue;
-	[ -f ${dir} ] && continue;
+        [ -f ${dir} ] && continue;
         local ver=$(echo ${i} | cut -d. -f1)
         [ -z "${ver}" ] && continue;
         local sn=$(echo ${i} | cut -d. -f2)
@@ -146,25 +147,28 @@ _list() {
     done
 }
 
+# if snapshot number is not provided, use 0 as default
 _create_version() {
     local basedir=$(dirname $1)
+    local sn=0
+    [ "${3}" != "" ] && sn="${3}"
 
     # check if version matched
     if [ -L $1 ] ; then
-        local ver=$(_get_version $1)
-        if [ "$2" == "${ver}" ] ; then
+        local curver=$(_get_version $1)
+        local cursn=$(_get_snapshot_number $1)
+        if [[ "$2" == "${curver}" ]] && [[ "${sn}" == "${cursn}" ]] ; then
             # nothing to do if the pointer is linked to expected revision
             return
         fi
-	unlink $1
+        unlink $1
     else
         # convert dir to softlink
         mv $1 ${basedir}/0.0
     fi
 
     # create target revision dir if it does not exist
-    # sn always starts from zero
-    local datadir="${basedir}/${2}.0"
+    local datadir="${basedir}/${2}.${sn}"
     if [ ! -d "${datadir}" ] ; then
         mkdir ${datadir}
         chown storageos:storageos ${datadir}
@@ -186,12 +190,12 @@ _purge_unused_versions() {
     for i in $(ls ${basedir}); do
         local dir=${basedir}/${i}
         [ -L ${dir} ] && continue;
-	[ -f ${dir} ] && continue;
+        [ -f ${dir} ] && continue;
         local ver=$(echo ${i} | cut -d. -f1)
         [ -z "${ver}" ] && continue;
         if [ "${ver}" != "${curver}" ] ; then
             _info "Purging unused data dir ${i}"
-	    rm -fR ${dir}
+            rm -fR ${dir}
         fi
     done
 }
@@ -252,14 +256,14 @@ _rebase_snapshot() {
     for i in $(ls ${basedir}); do
         local dir=${basedir}/${i}
         [ -L ${dir} ] && continue;
-	[ -f ${dir} ] && continue;
+        [ -f ${dir} ] && continue;
         local ver=$(echo ${i} | cut -d. -f1)
         local sn=$(echo ${i} | cut -d. -f2)
-	# skip other versions
+        # skip other versions
         [ "${ver}" != "${curver}" ] && continue; 
         if [ "${sn}" -lt "${cursn}" ] ; then
             _info "Purging unused data dir ${i}"
-	    rm -fR ${dir}
+            rm -fR ${dir}
         fi
     done
 }
@@ -267,6 +271,10 @@ _rebase_snapshot() {
 # Parse options
 #_set_traps -E
 case ${#} in
+    1)  case ${i} in
+            --rollback)               _x _rollback ;;
+            *)                        _usage
+        esac;;
     2)  case ${1} in
             --list)                   _x _list "${2}" ;;
             --create-snapshot)        _x _create_snapshot      "${2}" ;;
@@ -279,6 +287,10 @@ case ${#} in
             --create-version)          _x _create_version  "${2}" "${3}" ;;
             --set-version)             _x _create_version  "${2}" "${3}" ;;
             *)                        _usage
+        esac;;
+    4)  case ${1} in
+            --set-version-snapshot)    _x _create_version  "${2}" "${3}" "${4}" ;;
+            *)                         _usage
         esac;;
     *)  _usage
 esac

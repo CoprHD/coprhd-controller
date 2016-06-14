@@ -75,6 +75,8 @@ public class LocalRepository {
     private static final String _SYSTOOL_GET_SSL_PROPS = "--getsslprops";
     private static final String _SYSTOOL_SET_SSL_PROPS = "--setsslprops";
     private static final String _SYSTOOL_SET_DATA_REVISION = "--set-data-revision";
+    private static final String _SYSTOOL_SET_ROLLBACK_PROPS = "--set-rollback-props";
+    private static final String _SYSTOOL_SET_ROLLBACK_FLAG = "--set-rollback-flag";
     private static final String _SYSTOOL_GET_DATA_REVISION = "--get-data-revision";
     private static final String _SYSTOOL_PURGE_DATA_REVISION = "--purge-data-revision";
     private static final String _SYSTOOL_REBASE_ZK_SNAPSHOT = "--rebase-zk-snapshot";
@@ -532,6 +534,45 @@ public class LocalRepository {
         } finally {
             cleanupTmpFile(tmpFilePath);
         }
+    }
+
+    /**
+     * save data revision property to /.volumes/bootfs/etc/rollback.properties
+     * 
+     * @param dataRevision
+     */
+    public void setRollbackProps(long dataRevision) {
+        final String prefix = String.format("setRollbackProps(): to=%s", dataRevision);
+        _log.debug(prefix);
+
+        final Path tmpFilePath = FileSystems.getDefault().getPath(TMP_ROLLBACK_PROPS_PATH);
+
+        StringBuilder builder = new StringBuilder();
+        builder.append(KEY_ROLLBACK_REVISION);
+        builder.append(PropertyInfoExt.ENCODING_EQUAL);
+        builder.append(String.valueOf(dataRevision));
+
+        createTmpFile(tmpFilePath, builder.toString(), prefix);
+
+        try {
+            final String[] cmd = { _SYSTOOL_CMD, _SYSTOOL_SET_ROLLBACK_PROPS, TMP_ROLLBACK_PROPS_PATH };
+            exec(prefix, cmd);
+            _log.info(prefix + " Success");
+        } finally {
+            cleanupTmpFile(tmpFilePath);
+        }
+    }
+
+    /**
+     * Create a flag file: /.volumes/bootfs/etc/rollback to trigger rollback after reboot
+     */
+    public void setRollbackFlag() {
+        final String prefix = "setRollbackFlag()";
+        _log.debug(prefix);
+
+        final String[] cmd = { _SYSTOOL_CMD, _SYSTOOL_SET_ROLLBACK_FLAG };
+        exec(prefix, cmd);
+        _log.info(prefix + " Success");
     }
 
     /***

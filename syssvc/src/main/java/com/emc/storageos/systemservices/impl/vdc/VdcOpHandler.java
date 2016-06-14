@@ -118,7 +118,25 @@ public abstract class VdcOpHandler {
             }
         }
     }
-    
+
+    /**
+     * Set data revision to previous incase data resyncing failed
+     *
+     */
+    public static class DrRollbackHandler extends VdcOpHandler {
+
+        @Override
+        public boolean isConcurrentRebootNeeded() {
+            return true;
+        }
+
+        @Override
+        public void execute() throws Exception {
+            localRepository.setRollbackFlag();
+            log.info("Rollback flag has been set to local disk");
+        }
+    }
+
     /**
      * Rotate IPSec key
      */
@@ -284,6 +302,9 @@ public abstract class VdcOpHandler {
                 long localRevision = Long.parseLong(localRepository.getDataRevision());
                 log.info("local data revision is {}", localRevision);
                 if (targetDataRevision > 0 && targetDataRevision > localRevision) {
+                    // save current data revision for possible rollback in case that data-sync failed
+                    localRepository.setRollbackProps(localRevision);
+                    log.info("Rollback properties (rollback_data_revision={})has been saved to local disk", localRevision);
                     updateDataRevision();
                 }
             } catch (Exception e) {

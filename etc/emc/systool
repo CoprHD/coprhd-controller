@@ -360,6 +360,20 @@ _set_data_revision() {
     _write_props_file "${1}" "${bootfs_datarevision_props}"
 }
 
+_set_rollback_props() {
+    _write_props_file "${1}" "$bootfs_rollback_props"
+}
+
+_set_rollback_flag() {
+    _bootfs_mount_rw
+    touch "${bootfs_rollback_flag}"
+}
+
+_clear_rollback_flag() {
+    _bootfs_mount_rw
+    rm -fR "${bootfs_rollback_flag}"
+}
+
 _get_ovf_props() {
     _read_file "${ovf_props_file}"
 }
@@ -811,6 +825,43 @@ _is_appliance_wrapper() {
     _is_appliance && echo "true" || echo "false"
 }
 
+_rollback() {
+    if [ ! -f "${bootfs_rollback_flag}" ] ; then
+        echo "No rollback flag file found, do nothing"
+        return
+    fi
+
+    if [ ! -f "${bootfs_rollback_props}" ] ; then
+        echo "No rollback properties file found, do nothing"
+        return
+    fi
+
+    local rollback_revision=$(cat "${bootfs_rollback_props}" | grep "rollback_data_revision" | cut -d= -f2)
+
+    if [ "${rollback_revision}" == "" ] ; then
+        echo "Can't find rollback_data_revision property in rollback properties file, do nothing"
+        return
+    fi
+
+    if [ ! -d "/data/db/${rollback_revision}.0" ] ; then
+        echo "/data/db/${rollback_revision}.0 is not found, do nothing"
+        return
+    fi
+    if [ ! -d "/data/geodb/${rollback_revision}.0" ] ; then
+        echo "/data/geodb/${rollback_revision}.0 is not found, do nothing"
+        return
+    fi
+    # here the snapshot number use 1 for now, consider how to do it more gracefully
+    if [ ! -d "/data/zk/${rollback_revision}.1" ] ; then
+        echo "/data/zk/${rollback_revision}.1 is not found, do nothing"
+        return
+    fi
+    /etc/datatool --set-version /data/db/1 "${rollback_revision}"
+    /etc/datatool --set-version /data/geodb/1 "${rollback_revision}"
+    /etc/datatool --set-version-snapshot /data/zk/version-2 "${rollback_revision}" 1
+    _clear_rollback_flag
+}
+
 # Defaults
 BOOTFS_UUID="3c426f75-726e-6520-2f62-6f6f7466733e"
 bootfs_dev=$(/sbin/findfs UUID=${BOOTFS_UUID} 2>/dev/null) || bootfs_dev='/dev/sda1'
@@ -818,6 +869,8 @@ bootfs_mntp=${bootfs_mntp:-'/.volumes/bootfs'}
 bootfs_vdc_props=${bootfs_vdc_props:-${bootfs_mntp}/etc/vdcconfig.properties}
 bootfs_ssl_props=${bootfs_ssl_props:-${bootfs_mntp}/etc/ssl.properties}
 bootfs_datarevision_props=${bootfs_datarevision_props:-${bootfs_mntp}/etc/datarevision.properties}
+bootfs_rollback_props=${bootfs_rollback_props:-${bootfs_mntp}/etc/rollback.properties}
+bootfs_rollback_flag=${bootfs_rollback_flag:-${bootfs_mntp}/etc/rollback}
 override_props='config-override.properties'
 bootfs_override_props=${bootfs_mntp}/etc/${override_props}
 override_link='/etc/'${override_props}
@@ -887,6 +940,9 @@ case ${#} in
             --remount-ro)             _x true ;;
             --is-appliance)           _s _is_appliance_wrapper ;;
             --dhparam)                _gen_dhparam ;;
+            --set-rollback-flag)      _x _set_rollback_flag ;;
+            --clear-rollback-flag)    _x _clear_rollback_flag ;;
+            --rollback)               _x _rollback ;;
             *)                        _usage
         esac;;
     2)  case ${1} in
@@ -900,6 +956,7 @@ case ${#} in
             --setvdcprops)            _x _set_vdc_props        "${2}" ;;
             --setsslprops)            _x _set_ssl_props        "${2}" ;;
             --set-data-revision)      _x _set_data_revision    "${2}" ;;
+            --set-rollback-props)     _x _set_rollback_props   "${2}" ;;
             --restart)                _x _restart              "${2}" ;;
             --stop)                   _x _stop                 "${2}" ;;
             --reconfig-props)         _x _reconfig_props       "${2}" ;;

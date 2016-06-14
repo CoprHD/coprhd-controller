@@ -426,6 +426,9 @@ _genconfig_system_init() {
 	if [ "${_GENCONFIG_site_is_standby}" == "true" ]; then
 		/etc/datatool --revert-snapshot /data/zk/version-2
 	fi
+
+    # rollback if rollback flag file is found
+    [ -f /.volumes/bootfs/etc/rollback ] && /etc/systool --rollback
 }
 
 _genconfig_exec_scripts() {

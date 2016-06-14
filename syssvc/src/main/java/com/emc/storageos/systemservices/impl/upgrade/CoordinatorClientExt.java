@@ -1606,6 +1606,16 @@ public class CoordinatorClientExt {
                 localSite.setLastState(state);
                 localSite.setState(SiteState.STANDBY_ERROR);
                 _coordinator.persistServiceConfiguration(localSite.toConfiguration());
+                // If data syncing is disrupted, automatically trigger rollback
+                if (SiteState.STANDBY_SYNCING.equals(state)) {
+                    try {
+                        drUtil.updateVdcTargetVersion(drUtil.getLocalSite().getUuid(), SiteInfo.DR_OP_ROLLBACK_STANDBY,
+                                DrUtil.newVdcConfigVersion());
+                        _log.info("Rollback has been triggered for local site since data syncing is disrupted");
+                    } catch (Exception e) {
+                        _log.error("Failed to trigger rollback for local site", e);
+                    }
+                }
             }
         }
 

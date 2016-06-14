@@ -33,7 +33,7 @@
 
 Usage()
 {
-    echo 'Usage: dutests.sh <sanity conf file path> {vmax | vnx | vplex | xtremio} [setup|delete [test1 test2 ...] ]'
+    echo 'Usage: dutests.sh <sanity conf file path> [setup|delete] [vmax | vnx | vplex | xtremio]  [test1 test2 ...]'
     echo ' [setup]: Run on a new ViPR database, creates SMIS, host, initiators, vpools, varray, volumes'
     echo ' [delete]: Will exports and volumes'
     exit 2
@@ -41,6 +41,20 @@ Usage()
 
 SANITY_CONFIG_FILE=""
 : ${USE_CLUSTERED_HOSTS=1}
+
+SS=${3}
+case $SS in
+    vmax|vnx|vplex|xio)
+
+    ;;
+    *)
+    Usage
+    ;;
+esac
+XTREMIO_TESTS=0
+if [ "${SS}" = "xio" ]; then
+    XTREMIO_TESTS=1
+fi
 
 # ============================================================
 # Check if there is a sanity configuration file specified
@@ -54,17 +68,6 @@ if [ "$1"x != "x" ]; then
       source $SANITY_CONFIG_FILE
    fi
 fi
-SS=${2}
-if [ ${SS} = "xtremio" ]; then
-    XTREMIO_TESTS=1
-fi
-case $SS in
-
-vmax|vnx|vplex|xtremio)
-
-    ;;
-    Usage
-esac
 
 VERIFY_EXPORT_COUNT=0
 VERIFY_EXPORT_FAIL_COUNT=0
@@ -90,13 +93,17 @@ verify_export() {
             cluster_name_if_any="${CLUSTER}"
         fi
     fi
+
     masking_view_name="${cluster_name_if_any}${host_name}${VMAX_ID_3DIGITS}"
     if [ "$host_name" = "-exact-" ]; then
         masking_view_name=$export_name
     fi
+    if [ "$XTREMIO_TESTS" -eq "1" ]; then
+        masking_view_name=$host_name
+    fi
 
     sleep 10
-    runcmd symhelper.sh $VMAX_SN $masking_view_name $*
+    arrayhelper verify_export ${SERIAL_NUMBER} $masking_view_name $*
     if [ $? -ne "0" ]; then
 	if [ -f ${CMD_OUTPUT} ]; then
 	    cat ${CMD_OUTPUT}
@@ -119,19 +126,26 @@ verify_export() {
 arrayhelper() {
     operation=$1
     serial_number=$2
-    device_id=$3
     
     case $operation in
     add_volume_to_mask)
+	device_id=$3
         pattern=$4
 	arrayhelper_volume_mask_operation $operation $serial_number $device_id $pattern
 	;;
     remove_volume_from_mask)
+	device_id=$3
         pattern=$4
 	arrayhelper_volume_mask_operation $operation $serial_number $device_id $pattern
 	;;
     delete_volume)
+	device_id=$3
 	arrayhelper_delete_volume $operation $serial_number $device_id
+	;;
+    verify_export)
+	masking_view_name=$3
+	shift 3
+	arrayhelper_verify_export $serial_number $masking_view_name $*
 	;;
     default)
         echo "ERROR: Invalid operation $operation specified to arrayhelper."
@@ -197,6 +211,34 @@ arrayhelper_delete_volume() {
     esac
 }
 
+# Call the appropriate storage array helper script to verify export
+#
+arrayhelper_verify_export() {
+    serial_number=$1
+    masking_view_name=$2
+    shift 2
+
+    case $storage_type in
+    vmax)
+         runcmd symhelper.sh $serial_number $masking_view_name $*
+	 ;;
+    vnx)
+         runcmd navihelper.sh $serial_number $masking_view_name $*
+	 ;;
+    xio)
+         runcmd xiohelper.sh $serial_number $masking_view_name $*
+	 ;;
+    vplex)
+         runcmd vplexhelper.sh $serial_number $masking_view_name $*
+	 ;;
+    default)
+         echo "ERROR: Invalid platform specified in storage_type: $storage_type"
+	 exit
+	 ;;
+    esac
+}
+
+
 finish() {
     if [ $VERIFY_EXPORT_FAIL_COUNT -ne 0 ]; then
         exit $VERIFY_EXPORT_FAIL_COUNT
@@ -245,7 +287,7 @@ VPOOL_BASE=vpool
 VPOOL_FAST=${VPOOL_BASE}-fast
 
 BASENUM=${BASENUM:=$RANDOM}
-VOLNAME=vmaxexp${BASENUM}
+VOLNAME=dutestexp${BASENUM}
 EXPORT_GROUP_NAME=export${BASENUM}
 HOST1=host1export${BASENUM}
 HOST2=host2export${BASENUM}
@@ -258,36 +300,39 @@ if [ -f "./myhardware.conf" ]; then
     source ./myhardware.conf
 fi
 
-which symhelper.sh
-if [ $? -ne 0 ]; then
-    echo Could not find symhelper.sh path. Please add the directory where the script exists to the path
-    locate symhelper.sh
-    exit 1
-fi
+if [ "$XTREMIO_TESTS" -ne "1" ]; then
+    echo "non xio test"
+    which symhelper.sh
+    if [ $? -ne 0 ]; then
+        echo Could not find symhelper.sh path. Please add the directory where the script exists to the path
+        locate symhelper.sh
+        exit 1
+    fi
 
-if [ ! -f /usr/emc/API/symapi/config/netcnfg ]; then
-    echo SYMAPI does not seem to be installed on the system. Please install before running test suite.
-    exit 1
-fi
+    if [ ! -f /usr/emc/API/symapi/config/netcnfg ]; then
+        echo SYMAPI does not seem to be installed on the system. Please install before running test suite.
+        exit 1
+    fi
 
-export SYMCLI_CONNECT=SYMAPI_SERVER
-symapi_entry=`grep SYMAPI_SERVER /usr/emc/API/symapi/config/netcnfg | wc -l`
-if [ $symapi_entry -ne 0 ]; then
-    sed -e "/SYMAPI_SERVER/d" -i /usr/emc/API/symapi/config/netcnfg
-fi
-echo "SYMAPI_SERVER - TCPIP  $VMAX_SMIS_IP - 2707 ANY" >> /usr/emc/API/symapi/config/netcnfg
-echo "Added entry into /usr/emc/API/symapi/config/netcnfg"
+    export SYMCLI_CONNECT=SYMAPI_SERVER
+    symapi_entry=`grep SYMAPI_SERVER /usr/emc/API/symapi/config/netcnfg | wc -l`
+    if [ $symapi_entry -ne 0 ]; then
+        sed -e "/SYMAPI_SERVER/d" -i /usr/emc/API/symapi/config/netcnfg
+    fi    
+    echo "SYMAPI_SERVER - TCPIP  $VMAX_SMIS_IP - 2707 ANY" >> /usr/emc/API/symapi/config/netcnfg
+    echo "Added entry into /usr/emc/API/symapi/config/netcnfg"
 
-echo "Verifying SYMAPI connection to $VMAX_SMIS_IP ..."
-symapi_verify="/opt/emc/SYMCLI/bin/symcfg list"
-echo $symapi_verify
-result=`$symapi_verify`
-if [ $? -ne 0 ]; then
-    echo "SYMAPI verification failed: $result"
-    echo "Check the setup on $VMAX_SMIS_IP. See if the SYAMPI service is running"
-    exit 1
+    echo "Verifying SYMAPI connection to $VMAX_SMIS_IP ..."
+    symapi_verify="/opt/emc/SYMCLI/bin/symcfg list"
+    echo $symapi_verify
+    result=`$symapi_verify`
+    if [ $? -ne 0 ]; then
+        echo "SYMAPI verification failed: $result"
+        echo "Check the setup on $VMAX_SMIS_IP. See if the SYAMPI service is running"
+        exit 1
+    fi
+    echo $result
 fi
-echo $result
 
 drawstars() {
     repeatchar=`expr $1 + 2`
@@ -357,6 +402,16 @@ nwwn()
 }
 
 login() {
+    dir=`pwd`
+    tools_file="${dir}/tools/tests/export-tests/tools.yml"
+    if [ -f "$tools_file" ]
+    then
+	echo "stale $tools_file found. Deleting it."
+	rm $tools_file
+    fi
+    #create the yml file to be used for array tooling
+    touch $tools_file
+
     echo "Tenant is ${TENANT}";
     security login $SYSADMIN $SYSADMIN_PASSWORD
 
@@ -365,7 +420,7 @@ login() {
     if [ "${BASENUM}" != "" ]
     then
        echo "Volumes were found!  Base number is: ${BASENUM}"
-       VOLNAME=vmaxexp${BASENUM}
+       VOLNAME=dutest${BASENUM}
        EXPORT_GROUP_NAME=export${BASENUM}
        HOST1=host1export${BASENUM}
        HOST2=host2export${BASENUM}
@@ -381,37 +436,56 @@ login() {
     fi
 }
 
-setup() {
-    storage_type=$1;
-
-    # TODO: Different scripts depending on storage_type, but they should all map to the same vpool/project, if possible.
-
-    syssvc $SANITY_CONFIG_FILE localhost setup
-    security add_authn_provider ldap ldap://${LOCAL_LDAP_SERVER_IP} cn=manager,dc=viprsanity,dc=com secret ou=ViPR,dc=viprsanity,dc=com uid=%U CN Local_Ldap_Provider VIPRSANITY.COM ldapViPR* SUBTREE --group_object_classes groupOfNames,groupOfUniqueNames,posixGroup,organizationalRole --group_member_attributes member,uniqueMember,memberUid,roleOccupant
-    tenant create $TENANT VIPRSANITY.COM OU VIPRSANITY.COM
-    echo "Tenant $TENANT created."
-    sleep 120
-
-    # Increase allocation percentage
-    syssvc $SANITY_CONFIG_FILE localhost set_prop controller_max_thin_pool_subscription_percentage 600
-
+vmax_setup() {
     SMISPASS=0
     # do this only once
     echo "Setting up SMIS"
+
     runcmd smisprovider create VMAX-PROVIDER $VMAX_SMIS_IP $VMAX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX_SMIS_SSL
     runcmd storagedevice discover_all --ignore_error
 
     runcmd storagepool update $VMAX_NATIVEGUID --type block --volume_type THIN_ONLY
     runcmd storagepool update $VMAX_NATIVEGUID --type block --volume_type THICK_ONLY
 
-    runcmd neighborhood create $NH
-    runcmd transportzone create $FC_ZONE_A $NH --type FC
+    setup_varray
 
     runcmd storagepool update $VMAX_NATIVEGUID --nhadd $NH --type block
     runcmd storageport update $VMAX_NATIVEGUID FC --tzone $NH/$FC_ZONE_A
 
+    common_setup
+
     seed=`date "+%H%M%S%N"`
     runcmd storageport update ${VMAX_NATIVEGUID} FC --tzone $NH/$FC_ZONE_A
+    
+    runcmd cos update block $VPOOL_BASE --storage ${VMAX_NATIVEGUID}
+}
+
+xio_setup() {
+    # do this only once
+    echo "Setting up XtremIO"
+    XTREMIO_NATIVEGUID=$XIO_4X_SIM_NATIVEGUID
+
+    runcmd storageprovider create XIO-PROVIDER $XIO_SIMULATOR_IP $XIO_4X_SIMULATOR_PORT $XTREMIO_3X_USER "$XTREMIO_3X_PASSWD" xtremio
+    runcmd storagedevice discover_all --ignore_error
+
+    runcmd storagepool update $XTREMIO_NATIVEGUID --type block --volume_type THIN_ONLY
+
+    setup_varray
+
+    runcmd storagepool update $XTREMIO_NATIVEGUID --nhadd $NH --type block
+    runcmd storageport update $XTREMIO_NATIVEGUID FC --tzone $NH/$FC_ZONE_A
+
+    common_setup
+
+    seed=`date "+%H%M%S%N"`
+    runcmd storageport update ${XTREMIO_NATIVEGUID} FC --tzone $NH/$FC_ZONE_A
+    
+    runcmd cos update block $VPOOL_BASE --storage ${XTREMIO_NATIVEGUID}
+    ##update tools.yml file with the array details
+    printf 'array:\n  xio:\n  - ip: %s:%s\n    id: APM99990000241\n    username: %s\n    password: %s' "$XIO_SIMULATOR_IP" "$XIO_4X_SIMULATOR_PORT" "$XTREMIO_3X_USER" "$XTREMIO_3X_PASSWD">>${tools_file}
+}
+
+common_setup() {
     runcmd project create $PROJECT --tenant $TENANT 
     echo "Project $PROJECT created."
     echo "Setup ACLs on neighborhood for $TENANT"
@@ -460,8 +534,40 @@ setup() {
 	--provisionType 'Thin'			\
 	--max_snapshots 10                     \
 	--neighborhoods $NH                    
+}
 
-   runcmd cos update block $VPOOL_BASE --storage ${VMAX_NATIVEGUID}
+setup_varray() {
+    runcmd neighborhood create $NH
+    runcmd transportzone create $FC_ZONE_A $NH --type FC
+}
+
+setup() {
+    storage_type=$1;
+
+    syssvc $SANITY_CONFIG_FILE localhost setup
+    security add_authn_provider ldap ldap://${LOCAL_LDAP_SERVER_IP} cn=manager,dc=viprsanity,dc=com secret ou=ViPR,dc=viprsanity,dc=com uid=%U CN Local_Ldap_Provider VIPRSANITY.COM ldapViPR* SUBTREE --group_object_classes groupOfNames,groupOfUniqueNames,posixGroup,organizationalRole --group_member_attributes member,uniqueMember,memberUid,roleOccupant
+    tenant create $TENANT VIPRSANITY.COM OU VIPRSANITY.COM
+    echo "Tenant $TENANT created."
+    sleep 120
+    # Increase allocation percentage
+    syssvc $SANITY_CONFIG_FILE localhost set_prop controller_max_thin_pool_subscription_percentage 600
+    case $storage_type in
+    vmax)
+         vmax_setup
+	 ;;
+    vnx)
+         vnx_setup
+	 ;;
+    xio)
+         xio_setup
+	 ;;
+    vplex)
+         vplex_setup
+	 ;;
+    esac
+ 
+    SERIAL_NUMBER=`storagedevice list | grep COMPLETE | awk '{print $2}' | awk -F+ '{print $2}'`
+    echo "Serial number is: $SERIAL_NUMBER"     
    runcmd cos allow $VPOOL_BASE block $TENANT
    sleep 60
 
@@ -882,7 +988,7 @@ H3NI2=`nwwn 05`
 if [ "$1" = "regression" ]
 then
     test_0;
-    shift;
+    shift 2;
 fi
 
 if [ "$1" = "delete" ]
@@ -894,7 +1000,7 @@ fi
 if [ "$1" = "setup" ]
 then
     setup $2;
-    shift;
+    shift 2;
 fi;
 
 # If there's a 2nd parameter, take that

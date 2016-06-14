@@ -27,7 +27,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
 import org.apache.commons.lang.StringUtils;
-import org.eclipse.jetty.util.log.Log;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.slf4j.Logger;
@@ -37,9 +36,7 @@ import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Session;
-import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.exceptions.DriverException;
-import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.DbVersionInfo;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
@@ -55,7 +52,6 @@ import com.emc.storageos.db.client.constraint.QueryResultList;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.constraint.impl.ConstraintImpl;
 import com.emc.storageos.db.client.model.AllowedGeoVersion;
-import com.emc.storageos.db.client.model.AuditLog;
 import com.emc.storageos.db.client.model.CustomConfig;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.EncryptionProvider;
@@ -79,7 +75,6 @@ import com.emc.storageos.db.client.model.TimeSeriesSerializer;
 import com.emc.storageos.db.client.model.Token;
 import com.emc.storageos.db.client.model.VdcVersion;
 import com.emc.storageos.db.client.model.VirtualDataCenter;
-import com.emc.storageos.db.client.model.AuditLogTimeSeries.AuditLogSerializer;
 import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.KeyspaceUtil;
 import com.emc.storageos.db.common.DbServiceStatusChecker;
@@ -1449,8 +1444,6 @@ public class DbClientImpl implements DbClient {
                         bindStatement.setTimestamp(1, timeRangeValues[0].toDate());
                         bindStatement.setTimestamp(2, timeRangeValues[1].toDate());
                     }
-                    
-                    _log.info("queryTimeSeries:"+rowKey);
                     
                     ResultSet results = context.getSession().execute(bindStatement);
                     for (com.datastax.driver.core.Row row : results) {

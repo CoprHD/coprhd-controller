@@ -419,8 +419,8 @@ public class VNXUnityUnManagedObjectDiscoverer {
             log.info("Discovered fS export {}", exp.toString());
 
             VNXeFileSystem fs = null;
-            if (exp.getParentFilesystem() != null) {
-                fs = apiClient.getFileSystemByFSId(exp.getParentFilesystem().getId());
+            if (exp.getFilesystem() != null) {
+                fs = apiClient.getFileSystemByFSId(exp.getFilesystem().getId());
                 String fsNativeGuid = NativeGUIDGenerator.generateNativeGuid(
                         storageSystem.getSystemType(), storageSystem.getSerialNumber(), fs.getId());
 

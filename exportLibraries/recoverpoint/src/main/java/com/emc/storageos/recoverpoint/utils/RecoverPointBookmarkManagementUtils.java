@@ -243,13 +243,6 @@ public class RecoverPointBookmarkManagementUtils {
             }
         }
 
-        // Make sure the CG is in a good state before we make bookmarks
-        // RecoverPointImageManagementUtils imageManager = new RecoverPointImageManagementUtils();
-        // for (ConsistencyGroupUID cgID : uniqueCGUIDlist) {
-        // Make sure the CG is ready for enable
-        // imageManager.waitForCGLinkState(impl, cgID, RecoverPointImageManagementUtils.getPipeActiveState(impl, cgID));
-        // }
-
         try {
             impl.createBookmark(uniqueCGUIDlist, request.getBookmark(),
                     BookmarkConsolidationPolicy.NEVER_CONSOLIDATE, SnapshotConsistencyType.APPLICATION_CONSISTENT);

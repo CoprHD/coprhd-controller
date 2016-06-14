@@ -7,6 +7,7 @@ package com.emc.storageos.storagedriver;
 import java.util.List;
 import java.util.Map;
 
+import com.emc.storageos.storagedriver.model.StorageProvider;
 import org.apache.commons.lang.mutable.MutableBoolean;
 import org.apache.commons.lang.mutable.MutableInt;
 
@@ -366,5 +367,12 @@ public interface BlockStorageDriver extends StorageDriver {
     public DriverTask createConsistencyGroupClone(VolumeConsistencyGroup consistencyGroup, List<VolumeClone> clones,
                                                      List<CapabilityInstance> capabilities);
 
+    /**
+     * Validate connection to storage provider.
+     *
+     * @param storageProvider provider to validate connection to.
+     * @return true/false
+     */
+    public boolean validateStorageProviderConnection(StorageProvider storageProvider);
 
 }

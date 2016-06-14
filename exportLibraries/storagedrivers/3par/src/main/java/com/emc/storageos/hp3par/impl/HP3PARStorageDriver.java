@@ -24,14 +24,22 @@ import com.emc.storageos.hp3par.command.CPGCommandResult;
 import com.emc.storageos.hp3par.command.CPGMember;
 import com.emc.storageos.hp3par.command.ConsistencyGroupResult;
 import com.emc.storageos.hp3par.command.ConsistencyGroupsListResult;
+import com.emc.storageos.hp3par.command.FcPath;
+import com.emc.storageos.hp3par.command.HostCommandResult;
+import com.emc.storageos.hp3par.command.HostMember;
+import com.emc.storageos.hp3par.command.ISCSIPath;
 import com.emc.storageos.hp3par.command.PortCommandResult;
 import com.emc.storageos.hp3par.command.PortMembers;
 import com.emc.storageos.hp3par.command.PortStatMembers;
 import com.emc.storageos.hp3par.command.PortStatisticsCommandResult;
 import com.emc.storageos.hp3par.command.Position;
 import com.emc.storageos.hp3par.command.SystemCommandResult;
+
 import com.emc.storageos.hp3par.command.VirtualLun;
 import com.emc.storageos.hp3par.command.VirtualLunsList;
+
+import com.emc.storageos.hp3par.command.VlunResult;
+
 import com.emc.storageos.hp3par.command.VolumeDetailsCommandResult;
 import com.emc.storageos.hp3par.connection.HP3PARApiFactory;
 import com.emc.storageos.hp3par.utils.HP3PARConstants;
@@ -145,23 +153,24 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	 * Get storage system information
 	 */
 	@Override
-	public DriverTask discoverStorageSystem(List<StorageSystem> storageSystems) {
+	public DriverTask discoverStorageSystem(StorageSystem storageSystem) {
 	    DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_DISCOVER_STORAGE_SYSTEM);
 
-	    // For each 3par system
-	    for (StorageSystem storageSystem : storageSystems) {
 	        try {
 	            _log.info("3PARDriver:discoverStorageSystem information for storage system {}, name {} - start",
 	                    storageSystem.getIpAddress(), storageSystem.getSystemName());            
 
 	            URI deviceURI = new URI("https", null, 
                         storageSystem.getIpAddress(), storageSystem.getPortNumber(), "/", null, null);
+	            
+	            // remove '/' as lock fails with this name
                 String uniqueId = deviceURI.toString();
+                uniqueId = uniqueId.replace("/", "");
 
 	            HP3PARApi hp3parApi = getHP3PARDevice(storageSystem);
 	            String authToken = hp3parApi.getAuthToken(storageSystem.getUsername(),storageSystem.getPassword());
 	            if (authToken == null) {
-	                break;
+	                throw new HP3PARException("Could not get authentication token");
 	            }
 	            
 	            // Verify user role
@@ -213,13 +222,13 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
                         storageSystem.getSystemName(), storageSystem.getIpAddress(), e.getMessage());
 	            _log.error(msg);
 	            task.setMessage(msg);
-	            task.setStatus(DriverTask.TaskStatus.PARTIALLY_FAILED);
+	            task.setStatus(DriverTask.TaskStatus.FAILED);
 	            e.printStackTrace();
 	        }
-	    } // end for each StorageSystem
 	    
 	    return task;
 	}
+
 
 	/**
 	 * Get storage pool information 
@@ -1055,17 +1064,165 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
         return null;
     }
 
+    String get3parHostname(List<Initiator> initiators, String storageId) throws Exception{
+        String hp3parHost = null;
+
+        try {
+            HP3PARApi hp3parApi = getHP3PARDeviceFromNativeId(storageId);
+            HostCommandResult hostRes = hp3parApi.getHostDetails();
+
+            Complete:
+                // for each host in 3par
+                for (int i = 0; i < hostRes.getTotal(); i++) {
+                    HostMember hostMemb = hostRes.getMembers().get(i);
+                    // for each host initiator sent
+                    for (Initiator init:initiators) {
+
+                        // Is initiator FC or iSCSI
+                        if (init.getProtocol().toString().compareToIgnoreCase(Protocols.FC.toString()) == 0 || 
+                                init.getProtocol().toString().compareToIgnoreCase(Protocols.FCoE.toString()) == 0) {
+                            // verify in all FC ports with host 
+                            for (int k = 0; k < hostMemb.getFCPaths().size(); k++) {
+                                FcPath fcPath = hostMemb.getFCPaths().get(k);
+                                if (SanUtils.formatWWN(fcPath.getWwn()).compareToIgnoreCase(init.getPort()) == 0) {
+                                    hp3parHost = hostMemb.getName();
+                                    break Complete;
+                                }
+                            }
+                        } else {
+                            // verify in all iSCSI ports with host 
+                            for (int k = 0; k < hostMemb.getiSCSIPaths().size(); k++) {
+                                ISCSIPath scsiPath = hostMemb.getiSCSIPaths().get(k);
+                                if (scsiPath.getName().compareToIgnoreCase(init.getPort()) == 0) {   
+                                    hp3parHost = hostMemb.getName();
+                                    break Complete;
+                                }
+                            }
+
+                        } // if FC or iSCSI
+                    }//each initiator
+                } // each host
+            return hp3parHost;
+        } catch (Exception e) {
+            _log.error("3PARDriver:get3parHostname could not get 3par registered host name");
+            return null;
+        }
+    }
+
+    /*
+     * All volumes in the list will be exported to initato all recommended ports. If a volume can not be exported to 'n' initiators
+     * the same will be tried with  
+     */
     @Override
     public DriverTask exportVolumesToInitiators(List<Initiator> initiators, List<StorageVolume> volumes, Map<String, String> volumeToHLUMap,
             List<StoragePort> recommendedPorts, List<StoragePort> availablePorts, StorageCapabilities capabilities,
             MutableBoolean usedRecommendedPorts, List<StoragePort> selectedPorts) {
+        DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_EXPORT_STORAGE_VOLUMES);
+        _log.info("3PARDriver:exportVolumesToInitiators enter");
 
-    	_log.info("3PARDriver: exportVolumesToInitiators Running ");
-        _log.info("3PARDriver:exportVolumesToInitiators");
-        
-        return null;
+        // get stand-alone host or cluster. 
+        String host = null;
+        try {
+            if (initiators.get(0).getHostName() != null) {
+                // From initiator port wwn/iqn get the hostname registered with 3PAR
+                host = get3parHostname(initiators, volumes.get(0).getStorageSystemId());
+                if (host == null) {
+                    _log.error("3PARDriver:exportVolumesToInitiators error in processing host name");
+                    throw new HP3PARException("3PARDriver:exportVolumesToInitiators error in processing host name");
+                }
+            } else { 
+                host = "set:" + initiators.get(0).getClusterName();
+            }
+        } catch (Exception e) {
+            String msg = String.format("3PARDriver: Unable to export, error: %s", e.getMessage());
+            _log.error(msg);
+            task.setMessage(msg);
+            task.setStatus(DriverTask.TaskStatus.FAILED);
+            e.printStackTrace();
+            return task;
+        }
+
+        /* It could be possible that few volumes in a bunch export might get exported and some may not
+         * hence volume is kept in outer loop
+         */
+        Integer totalExport = recommendedPorts.size();
+        for (StorageVolume vol:volumes) {
+            Integer currExport = 0;
+            int hlu = Integer.parseInt(volumeToHLUMap.get(vol.getNativeId()));
+
+            try {
+                // volume could belong to different storage system; get specific api client; 
+                HP3PARApi hp3parApi = getHP3PARDeviceFromNativeId(vol.getStorageSystemId());
+
+                // try with recommended ports
+                for (StoragePort port : recommendedPorts) {
+                    // verify volume and port belong to same storage
+                    if (vol.getStorageSystemId().equalsIgnoreCase(port.getStorageSystemId()) == false) {
+                        continue;
+                    }
+
+                    _log.info("3PARDriver:exportVolumesToInitiators information for storage system {}, "
+                            + "volume {} recommended port {} host {}",
+                            port.getStorageSystemId(), vol.getNativeId(), port.getNativeId(), host);            
+                    
+                    VlunResult vlunRes = hp3parApi.createVlun(vol.getNativeId(), hlu, host, port.getNativeId());
+                    if (vlunRes != null && vlunRes.getStatus() == true) {
+                        currExport++;
+                        usedRecommendedPorts.setValue(true);
+                        // update hlu obtained as lun from 3apr & add the port if required
+                        volumeToHLUMap.put(vol.getNativeId(), vlunRes.getAssignedLun());
+                        if (selectedPorts.contains(port) == false) {
+                            selectedPorts.add(port);
+                        }
+                    }
+                } // for recommended ports
+
+                // use available ports for rest of the exports
+                for (StoragePort port : availablePorts) {
+                    if (currExport == totalExport) {
+                        break;
+                    }
+
+                    // verify volume and port belongs to same storage
+                    if (vol.getStorageSystemId().equalsIgnoreCase(port.getStorageSystemId()) == false) {
+                        continue;
+                    }
+
+                    _log.info("3PARDriver:exportVolumesToInitiators information for storage system {}, "
+                            + "volume {} available port {} host {}",
+                            port.getStorageSystemId(), vol.getNativeId(), port.getNativeId(), host);            
+
+                    VlunResult vlunRes = hp3parApi.createVlun(vol.getNativeId(), hlu, host, port.getNativeId());
+                    if (vlunRes != null && vlunRes.getStatus() == true) {
+                        currExport++;
+                        usedRecommendedPorts.setValue(false);
+                        // update hlu obtained as lun from 3apr & add the port if required
+                        volumeToHLUMap.put(vol.getNativeId(), vlunRes.getAssignedLun());
+                        if (selectedPorts.contains(port) == false) {
+                            selectedPorts.add(port);
+                        }
+                    }
+                } // for available ports
+                
+                task.setStatus(DriverTask.TaskStatus.READY);
+            } catch (Exception e) {
+                String msg = String.format("3PARDriver: Unable to export few volumes, error: %s", e.getMessage());
+                _log.error(msg);
+                task.setMessage(msg);
+                task.setStatus(DriverTask.TaskStatus.PARTIALLY_FAILED);
+                e.printStackTrace();
+            }
+        } // for each volume
+
+        _log.info("3PARDriver:exportVolumesToInitiators leave");
+        return task;
     }
 
+    /*
+     * Single initiator might have multiple volumes and single volume could be exported to multiple initiators
+     * All volumes will be tried for unexport from all initiators
+     *  
+     */
     @Override
     public DriverTask unexportVolumesFromInitiators(List<Initiator> initiators, List<StorageVolume> volumes) {
     	_log.info("3PARDriver: unexportVolumesFromInitiators Running ");
@@ -1131,7 +1288,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
                 // get Api client
                 HP3PARApi hp3parApi = getHP3PARDeviceFromNativeId(consistencyGroup.getStorageSystemId());
 
-                // Delete virtual copy
+                // Delete virtual copies of CG
                 hp3parApi.deleteVVset(consistencyGroup.getNativeId());
                 
                 task.setStatus(DriverTask.TaskStatus.READY);
@@ -1181,6 +1338,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	                String generatedSnapshotName = snap.getDisplayName();
 	                VVsetSnapshotName = generatedSnapshotName.substring(0, generatedSnapshotName.lastIndexOf("-")) + "-" ;
 	                _log.info("3PARDriver: createConsistencyGroupSnapshot VVsetSnapshotName {} ",VVsetSnapshotName);
+	                break;
 
 		   	}
 		   	
@@ -1224,8 +1382,8 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 										, snap.getNativeId(),snap.getWwn(),snap.getDeviceLabel(),snap.getDisplayName());
 								snap.setWwn(volResult.getWwn());
 								snap.setNativeId(volResult.getName());
-
 								snap.setDeviceLabel(volResult.getName());
+								snap.setLabel(volResult.getName());
 								// snap.setAccessStatus(volResult.getAccessStatus());
 								snap.setDisplayName(volResult.getName());
 								
@@ -1272,14 +1430,36 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 
     @Override
     public DriverTask deleteConsistencyGroupSnapshot(List<VolumeSnapshot> snapshots) {
-    	for (VolumeSnapshot snap : snapshots) {
-            
-        	//native id = null , 
-            _log.info("3PARDriver: deleteConsistencyGroupSnapshot for storage system native id {}, snap display name {} - start",
-            		snap.toString(), snap.getDisplayName());
-	}
-        // TODO Auto-generated method stub
-        return null;
+
+	    DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_DELETE_SNAPSHOT_CONSISTENCY_GROUP);
+
+        // For each requested CG volume snapshot 
+        for (VolumeSnapshot snap : snapshots) {
+            try {
+                _log.info("3PARDriver: deleteConsistencyGroupSnapshot for storage system native id {}, volume name {} , native id {} - start",
+                		snap.getStorageSystemId(), snap.getDisplayName(), snap.getNativeId());     
+
+                // get Api client
+                HP3PARApi hp3parApi = getHP3PARDeviceFromNativeId(snap.getStorageSystemId());
+
+                // Delete virtual copy
+                hp3parApi.deleteVirtualCopy(snap.getNativeId());
+                
+                task.setStatus(DriverTask.TaskStatus.READY);
+                _log.info("3PARDriver: deleteConsistencyGroupSnapshot for storage system native id {}, volume name {} - end",
+                		snap.getStorageSystemId(), snap.getDisplayName());            
+            } catch (Exception e) {
+                String msg = String.format(
+                        "3PARDriver: deleteConsistencyGroupSnapshot Unable to delete cg snapshot name %s with native id %s for storage system native id %s; Error: %s.\n",
+                        snap.getDisplayName(), snap.getNativeId(), snap.getStorageSystemId(), e.getMessage());
+                _log.error(msg);
+                task.setMessage(msg);
+                task.setStatus(DriverTask.TaskStatus.PARTIALLY_FAILED);
+                e.printStackTrace();
+            }
+        } // end for each delete snapshot
+        
+        return task;
     }
 
     @Override
@@ -1378,5 +1558,11 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
     public DriverTask discoverStorageProvider(StorageProvider storageProvider, List<StorageSystem> storageSystems) {
         // TODO Auto-generated method stub
         return null;
+    }
+
+    @Override
+    public boolean validateStorageProviderConnection(StorageProvider storageProvider) {
+        // TODO Auto-generated method stub
+        return false;
     }
 }

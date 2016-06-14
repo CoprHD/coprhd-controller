@@ -6,6 +6,7 @@ package com.emc.storageos.management.backup.util;
 
 import com.emc.storageos.management.backup.BackupConstants;
 import jcifs.smb.*;
+import org.apache.http.auth.AuthenticationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -13,6 +14,7 @@ import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.ConnectException;
 import java.net.MalformedURLException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
@@ -100,6 +102,19 @@ public class CifsClient implements BackupClient{
 
     public String getUri() {
         return uri;
+    }
+
+    public void test() throws AuthenticationException,ConnectException{
+        try {
+            this.listAllFiles();
+        }catch (SmbAuthException e){
+            log.info("SmbAuthException when test external server :{}",e);
+            throw new AuthenticationException(e.getMessage());
+        }catch (Exception e ) {
+            log.info("Exception when test external server :{}",e);
+            throw new ConnectException(e.getMessage());
+        }
+
     }
 
     private NtlmPasswordAuthentication getNtlmPasswordAuthentication() {

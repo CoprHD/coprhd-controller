@@ -2735,6 +2735,7 @@
         controlNodeOnly : true,
         value : "480",
     },
+    {
         key : "controller_vnxfile_provisioning_lock_timeout",
         label : "Timeout in seconds",
         description : "Timeout for VNX file Provisioning Locking",

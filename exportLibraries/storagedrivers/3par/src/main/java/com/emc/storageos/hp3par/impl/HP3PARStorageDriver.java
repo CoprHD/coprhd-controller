@@ -142,11 +142,9 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	 * Get storage system information
 	 */
 	@Override
-	public DriverTask discoverStorageSystem(List<StorageSystem> storageSystems) {
+	public DriverTask discoverStorageSystem(StorageSystem storageSystem) {
 	    DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_DISCOVER_STORAGE_SYSTEM);
 
-	    // For each 3par system
-	    for (StorageSystem storageSystem : storageSystems) {
 	        try {
 	            _log.info("3PARDriver:discoverStorageSystem information for storage system {}, name {} - start",
 	                    storageSystem.getIpAddress(), storageSystem.getSystemName());            
@@ -161,7 +159,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	            HP3PARApi hp3parApi = getHP3PARDevice(storageSystem);
 	            String authToken = hp3parApi.getAuthToken(storageSystem.getUsername(),storageSystem.getPassword());
 	            if (authToken == null) {
-	                break;
+	                throw new HP3PARException("Could not get authentication token");
 	            }
 	            
 	            // Verify user role
@@ -213,10 +211,9 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
                         storageSystem.getSystemName(), storageSystem.getIpAddress(), e.getMessage());
 	            _log.error(msg);
 	            task.setMessage(msg);
-	            task.setStatus(DriverTask.TaskStatus.PARTIALLY_FAILED);
+	            task.setStatus(DriverTask.TaskStatus.FAILED);
 	            e.printStackTrace();
 	        }
-	    } // end for each StorageSystem
 	    
 	    return task;
 	}
@@ -1455,5 +1452,11 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
     public DriverTask discoverStorageProvider(StorageProvider storageProvider, List<StorageSystem> storageSystems) {
         // TODO Auto-generated method stub
         return null;
+    }
+
+    @Override
+    public boolean validateStorageProviderConnection(StorageProvider storageProvider) {
+        // TODO Auto-generated method stub
+        return false;
     }
 }

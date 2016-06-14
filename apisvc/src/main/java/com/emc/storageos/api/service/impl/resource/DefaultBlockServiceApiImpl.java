@@ -681,7 +681,7 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
         // Create a descriptor for each volume.
         for (Volume volume : volumes) {
             VolumeDescriptor descriptor = new VolumeDescriptor(
-                    VolumeDescriptor.Type.BLOCK_DATA, volume.getStorageController(),
+                    VolumeDescriptor.Type.GENERAL_VOLUME, volume.getStorageController(),
                     volume.getId(), null, null);
             Map<String, Object> descrParams = new HashMap<String, Object>();
             descrParams.put(VolumeDescriptor.PARAM_VARRAY_CHANGE_NEW_VAARAY_ID, tgtVarray.getId());

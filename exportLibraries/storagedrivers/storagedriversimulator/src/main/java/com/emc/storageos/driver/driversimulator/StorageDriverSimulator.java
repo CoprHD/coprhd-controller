@@ -398,7 +398,22 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
         
         return task;
     }
-
+    
+    @Override
+    public DriverTask removeVolumesFromConsistencyGroup(List<StorageVolume> volumes, StorageCapabilities capabilities){
+        _log.info("Remove {} Volumes from Consistency Group", volumes.toString());
+        String taskType = "remove-volumes-to-consistency-groupd";
+        String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
+        DriverTask task = new DriverSimulatorTask(taskId);
+        task.setStatus(DriverTask.TaskStatus.READY);
+        
+        String msg = String.format("StorageDriver: doRemoveVolumesFromConsistencyGroup information for storage system {}, volume nativeIds {}, Consistency Group - end",
+                volumes.get(0).getStorageSystemId(), volumes.toString());
+        _log.info(msg);
+        task.setMessage(msg);
+        
+        return task;
+    }
 
     @Override
     public DriverTask createVolumeSnapshot(List<VolumeSnapshot> snapshots, StorageCapabilities capabilities) {

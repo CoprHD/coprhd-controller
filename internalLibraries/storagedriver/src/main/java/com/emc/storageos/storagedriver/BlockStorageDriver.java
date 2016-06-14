@@ -221,6 +221,13 @@ public interface BlockStorageDriver extends StorageDriver {
      * @return task
      */
     public DriverTask deleteConsistencyGroupMirror(List<VolumeMirror> mirrors);
+    
+    /*
+     * Add multiple volumes to a consistency group.
+     * @param Volumes to be added to a consistency group
+     * @param capabilities required for consitency groups.
+     */
+    public DriverTask addVolumesToConsistencyGroup( List<StorageVolume> volumes, StorageCapabilities capabilities);
 
     /**
      * Split mirrors

@@ -1333,8 +1333,6 @@ public class FileService extends TaskResourceService {
         ArgValidator.checkFieldNotEmpty(param.getShareName(), "name");
         FileShare fs = queryResource(id);
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
-        FileController controller = getController(FileController.class,
-                device.getSystemType());
 
         String task = UUID.randomUUID().toString();
 

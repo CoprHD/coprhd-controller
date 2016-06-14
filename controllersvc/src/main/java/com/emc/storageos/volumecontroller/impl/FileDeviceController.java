@@ -56,6 +56,8 @@ import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.fileorchestrationcontroller.FileDescriptor;
 import com.emc.storageos.fileorchestrationcontroller.FileOrchestrationInterface;
+import com.emc.storageos.locking.LockTimeoutValue;
+import com.emc.storageos.locking.LockType;
 import com.emc.storageos.model.file.CifsShareACLUpdateParams;
 import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.ExportRules;
@@ -3948,9 +3950,11 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         if (storageObj.deviceIsType(Type.vnxfile)) {
             List<String> lockKeys = new ArrayList<String>();
             lockKeys.add(storageObj.getNativeGuid());
-            boolean lockAcquired = _workflowService.acquireWorkflowStepLocks(opId, lockKeys, 10000L);
+            _log.info("Time out value is: " + LockTimeoutValue.get(LockType.VNX_FILE_PROVISIONING));
+            boolean lockAcquired = _workflowService.acquireWorkflowStepLocks(opId, lockKeys,
+                    LockTimeoutValue.get(LockType.VNX_FILE_PROVISIONING));
             if (!lockAcquired) {
-                throw DeviceControllerException.exceptions.failedToAcquireLock(lockKeys.toString(), "");
+                throw DeviceControllerException.exceptions.failedToAcquireWorkflowLock(lockKeys.toString(), opId);
             }
         }
     }

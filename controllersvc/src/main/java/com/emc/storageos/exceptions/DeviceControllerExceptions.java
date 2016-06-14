@@ -266,7 +266,7 @@ public interface DeviceControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)
     public DeviceControllerException unableToRestoreFileSystemFromSnapshot(final Throwable cause);
-    
+
     @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)
     public DeviceControllerException createFileSystemOnPhysicalNASDisabled();
 
@@ -281,9 +281,12 @@ public interface DeviceControllerExceptions {
     public DeviceControllerException unableToConnectToStorageDeviceForMonitoringNoDevice(final String storage,
             final String devType);
 
+    @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)
+    public DeviceControllerException failedToAcquireWorkflowLock(String lockName, String operation);
+
     @DeclareServiceCode(ServiceCode.FILE_CONNECTION_ERROR)
-    DeviceControllerException unableToDisconnectStorageDeviceMonitoringDbException(
-            final String storage, final Throwable cause);
+            DeviceControllerException unableToDisconnectStorageDeviceMonitoringDbException(
+                    final String storage, final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.FILE_CONNECTION_ERROR)
     public DeviceControllerException unableToDisconnectStorageDeviceMonitoringDbNullRef(final String storage);
@@ -364,9 +367,8 @@ public interface DeviceControllerExceptions {
     @DeclareServiceCode(ServiceCode.CONTROLLER_ENTITY_NOT_FOUND)
     public DeviceControllerException virtualArrayNotFound();
 
-    @DeclareServiceCode(ServiceCode
-            .CONTROLLER_VMAX_MULTIPLE_MATCHING_COMPUTE_RESOURCE_MASKS)
-            public DeviceControllerException
+    @DeclareServiceCode(ServiceCode.CONTROLLER_VMAX_MULTIPLE_MATCHING_COMPUTE_RESOURCE_MASKS)
+    public DeviceControllerException
             vmaxMultipleMatchingComputeResourceMasks(String maskNames);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_ERROR_ASSIGNING_STORAGE_PORTS)
@@ -445,7 +447,7 @@ public interface DeviceControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_ERROR_ASSIGNING_STORAGE_PORTS)
     public DeviceControllerException unexpectedCondition(String message);
-    
+
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
     public DeviceControllerException failedToUpdateVolumesFromAppication(String application, String error);
 
@@ -475,7 +477,7 @@ public interface DeviceControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
     public DeviceControllerException couldNotFindSyncObjectToUnlinkTarget(final String deviceId);
-    
+
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
     public DeviceControllerException couldNotDeleteReplicationGroup(final String reason);
 

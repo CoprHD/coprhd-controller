@@ -16,7 +16,8 @@ public enum LockType {
     EXPORT_GROUP_OPS("export_group_ops"),
     RP_EXPORT("rp_export"),
     VPLEX_API_LIB("vplex_api_lib"),
-    SRDF_PROVISIONING("srdf_provisioning");
+    SRDF_PROVISIONING("srdf_provisioning"),
+    VNX_FILE_PROVISIONING("vnxfile_provisioning");
 
     private String PREFIX = "controller_";
     private String SUFFIX = "_lock_timeout";

@@ -1151,10 +1151,9 @@ public class VmaxExportOperations implements ExportMaskOperations {
 
                         // Inspect each block object (if it is a volume in the first place) to see if any of them are RecoverPoint related.
                         for (URI boUri : volumesInSG) {
-                        	BlockObject bo = BlockObject.fetch(_dbClient, boUri);
-                        	if (bo instanceof Volume) {
+                            if (URIUtil.isType(boUri, Volume.class)) {
 	                            Volume volume = _dbClient.queryObject(Volume.class, boUri);
-	                            if (volume.checkForRp() || RPHelper.isAssociatedToAnyRpVplexTypes(volume, _dbClient)) {
+                                if (volume != null && (volume.checkForRp() || RPHelper.isAssociatedToAnyRpVplexTypes(volume, _dbClient))) {
 	                                // Determined that the volume is RP related
 	                                containsRPVolume = true;
 	                                break;

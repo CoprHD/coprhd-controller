@@ -368,6 +368,10 @@ public interface VPlexApiExceptions {
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException setRPEnabledFailureStatus(final String cgName,
             final String status, final String cause);
+    
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException setConsistencyGroupReadOnlyFailureStatus(final String cgName,
+            final String status, final String cause);
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException setCGAutoResumeFailureStatus(final String cgName,
@@ -797,4 +801,7 @@ public interface VPlexApiExceptions {
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException vplexVolumeExpansionBlockCountNotUpdated(final String volumeName);
+    
+    @DeclareServiceCode(ServiceCode.VPLEX_API_FIRMWARE_UPDATE_NEEDED)
+    public VPlexApiException vplexFirmwareUpdateNeeded(final String why);
 }

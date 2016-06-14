@@ -220,30 +220,31 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
             Map<String, Set<String>> directorToInitiatorIds, Map<String, Initiator> idToInitiatorMap,
             Map<String, String> portWwnToClusterMap, StorageSystem vplex,
             StorageSystem array, String clusterId, String stepId) {
-        
+
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
             // Export Mask is updated, read it from DB
             ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
-            
+
             // First step would be to update the zoning map based on the connectivity
-            updateZoningMap(initiatorPortMap, directorToInitiatorIds,exportMask);
-            
-            boolean passed = VPlexBackEndOrchestratorUtil.validateExportMask(varrayURI, initiatorPortMap, exportMask, null, directorToInitiatorIds,
+            updateZoningMap(initiatorPortMap, directorToInitiatorIds, exportMask);
+
+            boolean passed = VPlexBackEndOrchestratorUtil.validateExportMask(varrayURI, initiatorPortMap, exportMask, null,
+                    directorToInitiatorIds,
                     idToInitiatorMap, _dbClient, portWwnToClusterMap);
-            
-            if(!passed) {
+
+            if (!passed) {
                 // Mark this mask as inactive, so that we dont pick it in the next iteration
                 exportMask.setInactive(Boolean.TRUE);
                 _dbClient.persistObject(exportMask);
-                
+
                 _log.error("Export Mask is not suitable for VPLEX to backend storage system");
                 WorkflowStepCompleter.stepFailed(stepId, VPlexApiException.exceptions.couldNotFindValidArrayExportMask(
-                        vplex.getNativeGuid(), array.getNativeGuid(), clusterId));                
+                        vplex.getNativeGuid(), array.getNativeGuid(), clusterId));
                 throw VPlexApiException.exceptions.couldNotFindValidArrayExportMask(
                         vplex.getNativeGuid(), array.getNativeGuid(), clusterId);
             }
-            
+
             WorkflowStepCompleter.stepSucceded(stepId);
 
         } catch (Exception ex) {
@@ -260,7 +261,7 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
      * 1. Clean existing zoning map entries
      * 2. From the target storage ports in the mask, generate a map of networkURI string vs list of target storage ports
      * 3. From the initiator ports in the mask, generate a map of its URI vs InitiatorWWN
-     * 4. From the initiatorPortMap, generate map of its WWN vs networkURI string 
+     * 4. From the initiatorPortMap, generate map of its WWN vs networkURI string
      * 5. Based on the networkURI matching, generate zoning map entries adhering to vplex best practices
      * 6. Persist the updated mask.
      * 
@@ -269,68 +270,68 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
      */
     private void updateZoningMap(Map<URI, List<StoragePort>> initiatorPortMap,
             Map<String, Set<String>> directorToInitiatorIds, ExportMask exportMask) {
-        
-        //STEP 1 - Clean the existing zoning map
+
+        // STEP 1 - Clean the existing zoning map
         for (String initiatorURIStr : exportMask.getZoningMap().keySet()) {
             exportMask.removeZoningMapEntry(initiatorURIStr);
         }
         exportMask.setZoningMap(null);
-        
+
         // STEP 2- From Back-end storage system ports, which are used as target storage ports for VPLEX
         // generate a map of networkURI string vs list of target storage ports.
         Map<String, List<StoragePort>> nwUriVsTargetPortsFromMask = new HashMap<>();
         StringSet targetPorts = exportMask.getStoragePorts();
-        for(String targetPortUri : targetPorts) {
+        for (String targetPortUri : targetPorts) {
             StoragePort targetPort = _dbClient.queryObject(StoragePort.class, URI.create(targetPortUri));
             String networkUri = targetPort.getNetwork().toString();
-            if(nwUriVsTargetPortsFromMask.containsKey(networkUri)) {
+            if (nwUriVsTargetPortsFromMask.containsKey(networkUri)) {
                 nwUriVsTargetPortsFromMask.get(networkUri).add(targetPort);
             } else {
                 nwUriVsTargetPortsFromMask.put(networkUri, new ArrayList<StoragePort>());
                 nwUriVsTargetPortsFromMask.get(networkUri).add(targetPort);
-            }           
+            }
         }
-        
-        // STEP 3 - From the initiator ports in the mask, generate a map of its URI vs InitiatorWWN 
-        //Map<String, URI> initiatorWWNvsUriFromMask = new HashMap<>();
+
+        // STEP 3 - From the initiator ports in the mask, generate a map of its URI vs InitiatorWWN
+        // Map<String, URI> initiatorWWNvsUriFromMask = new HashMap<>();
         Map<String, String> initiatorUrivsWWNFromMask = new HashMap<>();
         StringSet initiatorPorts = exportMask.getInitiators();
-        for(String initiatorUri : initiatorPorts) {
+        for (String initiatorUri : initiatorPorts) {
             Initiator initiator = _dbClient.queryObject(Initiator.class, URI.create(initiatorUri));
             String initiatorWWN = initiator.getInitiatorPort();
             initiatorUrivsWWNFromMask.put(initiator.getId().toString(), initiatorWWN);
         }
-        
+
         // STEP 4 - Convert networkURIvsStoragePort to Initiator Port WWN vs NetworkURI
         Map<String, String> initiatorWWNvsNetworkURI = new HashMap<>();
         Set<URI> networkURIs = initiatorPortMap.keySet();
-        for(URI networkURI : networkURIs) {
+        for (URI networkURI : networkURIs) {
             List<StoragePort> initiatorPortList = initiatorPortMap.get(networkURI);
             List<String> initiatorWWNList = new ArrayList<>(initiatorPortList.size());
-            for(StoragePort initPort : initiatorPortList) {
+            for (StoragePort initPort : initiatorPortList) {
                 initiatorWWNList.add(initPort.getPortNetworkId());
                 initiatorWWNvsNetworkURI.put(initPort.getPortNetworkId(), networkURI.toString());
             }
-            
-        }        
-        
+
+        }
+
         // STEP 5 - Consider directors to restrict paths not more than 4 for each director
         // And add the zoning map entries to adhere to the VPLEX best practices.
         Map<StoragePort, Integer> portUsage = new HashMap<>();
         Set<String> directorKeySet = directorToInitiatorIds.keySet();
-        for(String director : directorKeySet) {
+        for (String director : directorKeySet) {
             Set<String> initiatorIds = directorToInitiatorIds.get(director);
             int directorPaths = 0;
-            for(String initiatorId : initiatorIds) {
-                if(4 == directorPaths) {
+            for (String initiatorId : initiatorIds) {
+                if (4 == directorPaths) {
                     break;
                 }
-                
+
                 String initWWN = initiatorUrivsWWNFromMask.get(initiatorId);
                 String initiatorNetworkURI = initiatorWWNvsNetworkURI.get(initWWN);
                 List<StoragePort> matchingTargetPorts = nwUriVsTargetPortsFromMask.get(initiatorNetworkURI);
-                
-                if(null!=matchingTargetPorts && !matchingTargetPorts.isEmpty()) {
+
+                if (null != matchingTargetPorts && !matchingTargetPorts.isEmpty()) {
                     StoragePort assignedPort = assignPortBasedOnUsage(matchingTargetPorts, portUsage);
                     StringSet targetPortURIs = new StringSet();
                     targetPortURIs.add(assignedPort.getId().toString());
@@ -339,14 +340,14 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
                     exportMask.addZoningMapEntry(initiatorId, targetPortURIs);
                     directorPaths++;
                 }
-                
+
             }
-            
+
         }
-                
+
         // STEP 6 - persist the mask
         _dbClient.updateAndReindexObject(exportMask);
-        
+
     }
 
     /**
@@ -359,14 +360,14 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
      */
     private StoragePort assignPortBasedOnUsage(List<StoragePort> matchingTargetPorts,
             Map<StoragePort, Integer> portUsage) {
-        
-        StoragePort foundPort= null;
-        for(StoragePort matchedPort : matchingTargetPorts) {
-            
+
+        StoragePort foundPort = null;
+        for (StoragePort matchedPort : matchingTargetPorts) {
+
             if (portUsage.get(matchedPort) == null) {
                 portUsage.put(matchedPort, 0);
             }
-            
+
             if (foundPort == null) {
                 foundPort = matchedPort;
             } else {
@@ -374,13 +375,13 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
                     foundPort = matchedPort;
                 }
             }
-            
+
         }
-        
+
         if (foundPort != null) {
             portUsage.put(foundPort, portUsage.get(foundPort) + 1);
         }
-        
+
         return foundPort;
     }
 
@@ -468,8 +469,7 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
                         array.getId().toString()));
                 device.doExportCreate(array, exportMask, volumeMap,
                         initiators, targets, completer);
-            }
-            else {
+            } else {
                 _log.debug(String.format("Calling doExportAddVolumes on the device %s",
                         array.getId().toString()));
                 device.doExportAddVolumes(array, exportMask, null, volumeMap, completer);
@@ -503,6 +503,7 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
                 exportGroupURI,
                 exportMaskURI,
                 volumes,
+                initiatorURIs,
                 completer);
     }
 
@@ -556,12 +557,11 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
             // If it is last volume, delete the ExportMask.
             if (remainingVolumes.isEmpty()
                     && (exportMask.getExistingVolumes() == null
-                    || exportMask.getExistingVolumes().isEmpty())) {
+                            || exportMask.getExistingVolumes().isEmpty())) {
                 _log.debug(String.format("Calling doExportDelete on the device %s",
                         array.getId().toString()));
                 device.doExportDelete(array, exportMask, null, null, completer);
-            }
-            else {
+            } else {
                 _log.debug(String.format("Calling doExportRemoveVolumes on the device %s",
                         array.getId().toString()));
                 List<Initiator> initiators = _dbClient.queryObject(Initiator.class, initiatorURIs);

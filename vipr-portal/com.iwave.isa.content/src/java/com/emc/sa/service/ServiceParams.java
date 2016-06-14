@@ -78,6 +78,7 @@ public interface ServiceParams {
     public String COPIES = "copies";
     public String INGESTION_METHOD = "ingestionMethod";
     public String READ_ONLY = "readOnly";
+    public String MIGRATION_SUSPEND = "migrationSuspend";
 
     public String MOBILITY_GROUP_METHOD = "mobilityGroupMethod";
 

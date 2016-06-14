@@ -219,10 +219,14 @@ public class VPlexHDSMaskingOrchestrator extends HDSMaskingOrchestrator
     /**
      * Allocates StoragePorts (in either the simulated or production modes).
      * 
-     * @param candidatePorts -- List of ports from which to choose
-     * @param portsRequested -- Integer number of ports requested
-     * @param net -- NetworkLite network
-     * @param varrayURI -- URI of VirtualArray
+     * @param candidatePorts
+     *            -- List of ports from which to choose
+     * @param portsRequested
+     *            -- Integer number of ports requested
+     * @param net
+     *            -- NetworkLite network
+     * @param varrayURI
+     *            -- URI of VirtualArray
      * @return List of StoragePorts allocated.
      */
     private List<StoragePort> allocatePorts(StoragePortsAllocator allocator,
@@ -235,8 +239,7 @@ public class VPlexHDSMaskingOrchestrator extends HDSMaskingOrchestrator
             for (StoragePort port : candidatePorts) {
                 context.addPort(port, null, null, null, null);
             }
-            List<StoragePort> portsAllocated =
-                    allocator.allocatePortsForNetwork(portsRequested, context, false, null, false);
+            List<StoragePort> portsAllocated = allocator.allocatePortsForNetwork(portsRequested, context, false, null, false);
             allocator.setContext(context);
             return portsAllocated;
         } else {
@@ -331,7 +334,7 @@ public class VPlexHDSMaskingOrchestrator extends HDSMaskingOrchestrator
             URI exportGroupURI, URI exportMaskURI,
             List<URI> volumes, List<URI> initiatorURIs, TaskCompleter completer) {
         return new Workflow.Method("deleteOrRemoveVolumesFromExportMask", arrayURI,
-                exportGroupURI, exportMaskURI, volumes, completer);
+                exportGroupURI, exportMaskURI, volumes, initiatorURIs, completer);
     }
 
     @Override

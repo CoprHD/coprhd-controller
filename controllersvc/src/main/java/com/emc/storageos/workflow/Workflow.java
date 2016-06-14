@@ -33,13 +33,13 @@ import com.emc.storageos.volumecontroller.TaskCompleter;
 public class Workflow implements Serializable {
     // State variables in the Workflow, should not be used by clients.
     private static final long serialVersionUID = -7097852372832495267L;
-    WorkflowService _service;       // WorkflowService manages this Workflow
+    WorkflowService _service; // WorkflowService manages this Workflow
 
-    String _orchControllerName;     // simple name of the Orchestration Controller
-    String _orchMethod;             // Orchestration Method Name we are working
-    String _orchTaskId;             // Orchestration taskId
-    String _successMessage;         // Message that will be emitted if successful completion
-    Boolean _rollbackContOnError;   // Rollback continues even if a rollback step fails
+    String _orchControllerName; // simple name of the Orchestration Controller
+    String _orchMethod; // Orchestration Method Name we are working
+    String _orchTaskId; // Orchestration taskId
+    String _successMessage; // Message that will be emitted if successful completion
+    Boolean _rollbackContOnError; // Rollback continues even if a rollback step fails
     Boolean _rollbackState = false; // this workflow is in a rollback state
     // The current steps in the Workflow
     Map<String, Step> _stepMap = new HashMap<String, Step>();
@@ -47,16 +47,16 @@ public class Workflow implements Serializable {
     Map<String, Set<String>> _stepGroupMap = new HashMap<String, Set<String>>();
     Map<String, StepStatus> _stepStatusMap = new LinkedHashMap<String, StepStatus>();
     WorkflowCallbackHandler _callbackHandler;// a callback handler
-    Object[] _callbackHandlerArgs;  // arguments for the callback handlers (serializable)
+    Object[] _callbackHandlerArgs; // arguments for the callback handlers (serializable)
     WorkflowRollbackHandler _rollbackHandler; // rollback handlers
-    Object[] _rollbackHandlerArgs;  // arguments for the rollback handlers (serializable)
-    TaskCompleter _taskCompleter;   // task completer to be called at end of workflow
-    Boolean _nested = false;   // this workflow is nested, run from within another workflow
-    URI _workflowURI;            // URI for Cassandra logging record
-    Set<URI> _childWorkflows = new HashSet<URI>();	// workflowURI of child workflows
-    Boolean _suspendOnError = true;  // suspend on error (rather than rollback)
+    Object[] _rollbackHandlerArgs; // arguments for the rollback handlers (serializable)
+    TaskCompleter _taskCompleter; // task completer to be called at end of workflow
+    Boolean _nested = false; // this workflow is nested, run from within another workflow
+    URI _workflowURI; // URI for Cassandra logging record
+    Set<URI> _childWorkflows = new HashSet<URI>(); // workflowURI of child workflows
+    Boolean _suspendOnError = true; // suspend on error (rather than rollback)
     private WorkflowState _workflowState;
-    Set<URI> _suspendSteps = new HashSet<URI>();  // Steps that initiate workflow suspend
+    Set<URI> _suspendSteps = new HashSet<URI>(); // Steps that initiate workflow suspend
 
     // Define the serializable, persistent fields save in ZK
     private static final ObjectStreamField[] serialPersistentFields = {
@@ -77,8 +77,8 @@ public class Workflow implements Serializable {
             new ObjectStreamField("_nested", Boolean.class),
             new ObjectStreamField("_stepMap", Map.class),
             new ObjectStreamField("_stepStatusMap", Map.class),
-            new ObjectStreamField("_suspendOnError", Boolean.class), 
-            new ObjectStreamField("_workflowState", WorkflowState.class), 
+            new ObjectStreamField("_suspendOnError", Boolean.class),
+            new ObjectStreamField("_workflowState", WorkflowState.class),
             new ObjectStreamField("_suspendSteps", Set.class)
     };
 
@@ -115,11 +115,13 @@ public class Workflow implements Serializable {
         /** The current status of the step. */
         public StepStatus status;
         /** URI of Cassandra logging record. */
-        URI workflowStepURI;
+        public URI workflowStepURI;
         /** Is this a rollback step? */
         public boolean isRollbackStep = false;
         /** Rollback steps only: Step ID of the step that created this step */
-        public String foundingStepId; 
+        public String foundingStepId;
+        /** Mark this step for suspend **/
+        public boolean suspendStep = false;
 
         /**
          * Created COP-37 to track hashCode() implementation in this class.
@@ -179,12 +181,12 @@ public class Workflow implements Serializable {
         /** step was successfully completed (terminal state) */
         SUCCESS,
         /** step completed in error (terminal state) */
-        ERROR, 
+        ERROR,
         /** step suspended, no error (user requested or system requested */
         SUSPENDED_NO_ERROR,
         /** step suspended due to an error */
         SUSPENDED_ERROR;
-        
+
         /** Returns the equivalent Operation.Status value */
         public Operation.Status getOperationStatus() {
             if (this == SUCCESS) {
@@ -256,8 +258,10 @@ public class Workflow implements Serializable {
          * Note that if there are any threads waiting on this step, they will be
          * awakened so that they will recheck the Step's status.
          * 
-         * @param newState The new state reported.
-         * @param message Message from the controller.
+         * @param newState
+         *            The new state reported.
+         * @param message
+         *            Message from the controller.
          */
         synchronized void updateState(StepState newState, ServiceCode code, String message) {
             this.state = newState;
@@ -334,12 +338,18 @@ public class Workflow implements Serializable {
     /**
      * Constructor to be called by WorkflowService. NOT TO BE CALLED BY CLIENTS.
      * 
-     * @param service - Handle to the WorkflowService
-     * @param orchControllerName - The simple name of the Controller on behalf this Workflow is executing.
-     * @param methodName - Method within the controller on
-     * @param rollbackContOnError -- Run all rollback steps, even if a rollback ERRORs?
-     * @param stepId - String taskId (UUID) representing this specific orcestration instance.
-     * @param workflowURI - URI desired for workflow, or can be passed as null and will be generated
+     * @param service
+     *            - Handle to the WorkflowService
+     * @param orchControllerName
+     *            - The simple name of the Controller on behalf this Workflow is executing.
+     * @param methodName
+     *            - Method within the controller on
+     * @param rollbackContOnError
+     *            -- Run all rollback steps, even if a rollback ERRORs?
+     * @param stepId
+     *            - String taskId (UUID) representing this specific orcestration instance.
+     * @param workflowURI
+     *            - URI desired for workflow, or can be passed as null and will be generated
      */
     Workflow(WorkflowService service, String orchControllerName, String methodName, String taskId, URI workflowURI) {
         _service = service;
@@ -354,10 +364,14 @@ public class Workflow implements Serializable {
      * Constructor to be called by WorkflowService. NOT TO BE CALLED BY CLIENTS.
      * Used to locate Workflows by their URI.
      * 
-     * @param service - Handle to the WorkflowService
-     * @param orchControllerName - The simple name of the Controller on behalf this Workflow is executing.
-     * @param methodName - Method within the controller on
-     * @param workflowURI - URI of existing Workflow
+     * @param service
+     *            - Handle to the WorkflowService
+     * @param orchControllerName
+     *            - The simple name of the Controller on behalf this Workflow is executing.
+     * @param methodName
+     *            - Method within the controller on
+     * @param workflowURI
+     *            - URI of existing Workflow
      */
     Workflow(WorkflowService service, String orchControllerName, String methodName, URI workflowURI) {
         _service = service;
@@ -435,11 +449,15 @@ public class Workflow implements Serializable {
      *            --The type of Device, used to find the controller. Typically
      *            given by device.getDeviceType(). This is a required
      *            parameter to the Dispatcher.
-     * @param controllerClass -- The controller class (like
+     * @param controllerClass
+     *            -- The controller class (like
      *            NetworkDeviceController.class, BlockDeviceController.class)
-     * @param executeMethod - Method name and parameters for the execution method.
-     * @param rollbackMethod - Method name name parameters for the rollback method.
-     * @param stepId - If non null, specifies the stepId to be used, otherwise if null a stepId is
+     * @param executeMethod
+     *            - Method name and parameters for the execution method.
+     * @param rollbackMethod
+     *            - Method name name parameters for the rollback method.
+     * @param stepId
+     *            - If non null, specifies the stepId to be used, otherwise if null a stepId is
      *            automatically generated.
      * 
      * @return String representing UUID of generated step
@@ -448,9 +466,65 @@ public class Workflow implements Serializable {
             String waitFor, URI deviceURI, String deviceType,
             Class controllerClass, Method executeMethod, Method rollbackMethod,
             String stepId)
-            throws WorkflowException {
+                    throws WorkflowException {
         return createStep(stepGroup, description, waitFor, deviceURI, deviceType, true, controllerClass,
-                executeMethod, rollbackMethod, stepId);
+                executeMethod, rollbackMethod, false, stepId);
+    }
+
+    /**
+     * Creates a step for execution on an internal Queue within the Workflow and
+     * returns after internally generating a step UUID for the step. The step
+     * is not executable until one or methods have been set
+     * (setExecutableMethod or setRollbackMethod) and the Workflow.execute()
+     * call has been initiated.
+     * 
+     * <p>
+     * 
+     * @param stepGroup
+     *            -- Step group name this step is a member of. Other steps can
+     *            wait until all the steps in the specified stepGroup have
+     *            completed. Do not use UUID values for stepGroup names.
+     *            You can pass null if this step should not belong to any
+     *            step groups.
+     * @param description
+     *            -- Short textual description of the step for logging/status
+     *            displays.
+     * @param waitFor
+     *            -- If non-null, the step will not be queued for execution in
+     *            the Dispatcher until the Step or StepGroup indicated by the
+     *            waitFor has completed. The waitFor may either be a string
+     *            representation of a Step UUID, or the name of a StepGroup.
+     * @param deviceURI
+     *            -- The URI of the affected device, e.g. StorageSystem or
+     *            NetworkSystem. This is a required parameter to the Dispatcher,
+     *            who maintains a semaphore count on the number of outstanding
+     *            operations to each device instance.
+     * @param deviceType
+     *            --The type of Device, used to find the controller. Typically
+     *            given by device.getDeviceType(). This is a required
+     *            parameter to the Dispatcher.
+     * @param controllerClass
+     *            -- The controller class (like
+     *            NetworkDeviceController.class, BlockDeviceController.class)
+     * @param executeMethod
+     *            - Method name and parameters for the execution method.
+     * @param rollbackMethod
+     *            - Method name name parameters for the rollback method.
+     * @param suspendStep
+     *            - suspend this step
+     * @param stepId
+     *            - If non null, specifies the stepId to be used, otherwise if null a stepId is
+     *            automatically generated.
+     * 
+     * @return String representing UUID of generated step
+     */
+    public String createStep(String stepGroup, String description,
+            String waitFor, URI deviceURI, String deviceType,
+            Class controllerClass, Method executeMethod, Method rollbackMethod,
+            boolean suspendStep, String stepId)
+                    throws WorkflowException {
+        return createStep(stepGroup, description, waitFor, deviceURI, deviceType, true, controllerClass,
+                executeMethod, rollbackMethod, suspendStep, stepId);
     }
 
     /**
@@ -488,20 +562,25 @@ public class Workflow implements Serializable {
      * @param lockDevice
      *            tells the dispatcher whether to acquire a semaphore on the device
      *            before executing the step
-     * @param controllerClass -- The controller class (like
+     * @param controllerClass
+     *            -- The controller class (like
      *            NetworkDeviceController.class, BlockDeviceController.class)
-     * @param executeMethod - Method name and parameters for the execution method.
-     * @param rollbackMethod - Method name name parameters for the rollback method.
-     * @param stepId - If non null, specifies the stepId to be used, otherwise if null a stepId is
+     * @param executeMethod
+     *            - Method name and parameters for the execution method.
+     * @param rollbackMethod
+     *            - Method name name parameters for the rollback method.
+     * @param suspend
+     *            - suspend this step at the beginning
+     * @param stepId
+     *            - If non null, specifies the stepId to be used, otherwise if null a stepId is
      *            automatically generated.
-     * 
      * @return String representing UUID of generated step
      */
     public String createStep(String stepGroup, String description,
             String waitFor, URI deviceURI, String deviceType, boolean lockDevice,
             Class controllerClass, Method executeMethod, Method rollbackMethod,
-            String stepId)
-            throws WorkflowException {
+            boolean suspend, String stepId)
+                    throws WorkflowException {
         try {
             // Initialize the new step.
             Step step = new Step();
@@ -515,6 +594,7 @@ public class Workflow implements Serializable {
             step.deviceURI = deviceURI;
             step.deviceType = deviceType;
             step.lockDevice = lockDevice;
+            step.suspendStep = suspend;
             step.controllerName = controllerClass.getName();
             // Make a StepStatus entry for it with CREATED status
             step.status = new StepStatus(stepId, StepState.CREATED, description);
@@ -557,7 +637,7 @@ public class Workflow implements Serializable {
     public void executePlan(TaskCompleter completer, String successMessage,
             WorkflowCallbackHandler callbackHandler, Object[] callbackHandlerArgs,
             WorkflowRollbackHandler rollbackHandler, Object[] rollbackHandlerArgs)
-            throws WorkflowException {
+                    throws WorkflowException {
         this._callbackHandler = callbackHandler;
         if (callbackHandlerArgs != null) {
             this._callbackHandlerArgs = callbackHandlerArgs.clone();
@@ -647,9 +727,12 @@ public class Workflow implements Serializable {
      * Search through the step map and find out if one of the Step has 'methodName'
      * as its Workflow.Method
      * 
-     * @param controllerClass [IN] - Controller class for the step we're searching for
-     * @param deviceURI [IN] - Device URI for which the step applies
-     * @param methodName [IN] - Workflow.Method.methodName to search for
+     * @param controllerClass
+     *            [IN] - Controller class for the step we're searching for
+     * @param deviceURI
+     *            [IN] - Device URI for which the step applies
+     * @param methodName
+     *            [IN] - Workflow.Method.methodName to search for
      *
      * @return true, if there is a Step with Workflow.Method.methodName == 'methodName'
      */
@@ -667,40 +750,48 @@ public class Workflow implements Serializable {
 
     /**
      * Gets the overall Workflow State based on the underlying step states.
+     * 
      * @return WorkflowState
      */
     public WorkflowState getWorkflowStateFromSteps() {
-    	String[] errorMessage = new String[1];
-    	StepState stepState = getOverallState(getStepStatusMap(), errorMessage);
-    	switch(stepState) {
-    	case SUCCESS: return WorkflowState.SUCCESS;
-    	case ERROR: return WorkflowState.ERROR;
-    	case SUSPENDED_ERROR: return WorkflowState.SUSPENDED_ERROR;
-    	case SUSPENDED_NO_ERROR: return WorkflowState.SUSPENDED_NO_ERROR;
-    	case CANCELLED: return WorkflowState.SUSPENDED_NO_ERROR;
-    	default:
-    		return getWorkflowState();
-    	}
+        String[] errorMessage = new String[1];
+        StepState stepState = getOverallState(getStepStatusMap(), errorMessage);
+        switch (stepState) {
+            case SUCCESS:
+                return WorkflowState.SUCCESS;
+            case ERROR:
+                return WorkflowState.ERROR;
+            case SUSPENDED_ERROR:
+                return WorkflowState.SUSPENDED_ERROR;
+            case SUSPENDED_NO_ERROR:
+                return WorkflowState.SUSPENDED_NO_ERROR;
+            case CANCELLED:
+                return WorkflowState.SUSPENDED_NO_ERROR;
+            default:
+                return getWorkflowState();
+        }
     }
 
     /**
      * Given a group of steps, determines an overall state. The precedence is:
      * 1. If any step is reporting ERROR, ERROR is returned along with that step's message.
      * 2. Otherwise if any step is reporting CANCELLED, CANCELLED is returned along with that step's message.
-     * 3. Otherwise if any step is not returning a state of SUCCESS, CANCELLED, or ERROR, its state and message are returned.
+     * 3. Otherwise if any step is not returning a state of SUCCESS, CANCELLED, or ERROR, its state and message are
+     * returned.
      * 4. Otherwise if all steps are returning SUCCESS, SUCCESS is returned with the original contents of errorMessage
      * (unless they were null).
      * 
      * @param statusMap
-     * @param errorMessage -- Output parameter - selected error message
+     * @param errorMessage
+     *            -- Output parameter - selected error message
      * @return SUCCESS if all successful; ERROR for first error; other StepState if there is a non SUCCESS/ERROR
      */
     public static StepState getOverallState(Map<String, StepStatus> statusMap,
             String[] errorMessage)
-            throws WorkflowException {
+                    throws WorkflowException {
         StepState state = StepState.SUCCESS;
-        StringBuilder buf = new StringBuilder();    // Buffer for error messages
-        StringBuilder rbuf = new StringBuilder();    // Buffer for rollback error messages
+        StringBuilder buf = new StringBuilder(); // Buffer for error messages
+        StringBuilder rbuf = new StringBuilder(); // Buffer for rollback error messages
         if (errorMessage[0] == null) {
             errorMessage[0] = "Operation successful";
         }
@@ -727,18 +818,19 @@ public class Workflow implements Serializable {
                 case SUSPENDED_NO_ERROR:
                 case SUSPENDED_ERROR:
                     if (state != StepState.ERROR) {
-                    	state = status.state;
+                        state = status.state;
                         errorMessage[0] = status.message;
                         break;
-                    }                	
+                    }
                 case CANCELLED: // ERROR and SUSPENDS have higher precedence than CANCELLED
                     if (state != StepState.ERROR && state != StepState.SUSPENDED_NO_ERROR && state != StepState.SUSPENDED_ERROR) {
-                    	state = status.state;
+                        state = status.state;
                         errorMessage[0] = status.message;
                         break;
                     }
                 default: // ERROR and CANCELLED and SUSPENDS have higher precedence than any default state
-                    if (state != StepState.ERROR && state != StepState.CANCELLED && state != StepState.SUSPENDED_NO_ERROR && state != StepState.SUSPENDED_ERROR) {
+                    if (state != StepState.ERROR && state != StepState.CANCELLED && state != StepState.SUSPENDED_NO_ERROR
+                            && state != StepState.SUSPENDED_ERROR) {
                         state = status.state;
                         errorMessage[0] = status.message;
                         break;
@@ -768,12 +860,12 @@ public class Workflow implements Serializable {
                     break;
                 case SUSPENDED_NO_ERROR:
                 case SUSPENDED_ERROR:
-                   if (state != StepState.ERROR) {
-                	   state = status.state;
-                	   error = ServiceError.buildServiceError(status.serviceCode, status.message);
-                   }
-                   break;
-                
+                    if (state != StepState.ERROR) {
+                        state = status.state;
+                        error = ServiceError.buildServiceError(status.serviceCode, status.message);
+                    }
+                    break;
+
                 case CANCELLED: // ERROR and SUSPENDS have higher precedence than CANCELLED
                     if (state != StepState.ERROR && state != StepState.SUSPENDED_NO_ERROR && state != StepState.SUSPENDED_ERROR) {
                         state = status.state;
@@ -788,7 +880,7 @@ public class Workflow implements Serializable {
         return error;
     }
 
-    Map<String, Step> getStepMap() {
+    public Map<String, Step> getStepMap() {
         return _stepMap;
     }
 
@@ -852,25 +944,25 @@ public class Workflow implements Serializable {
         this._service = _service;
     }
 
-	public boolean isSuspendOnError() {
-		return _suspendOnError;
-}
+    public boolean isSuspendOnError() {
+        return _suspendOnError;
+    }
 
-	public void setSuspendOnError(boolean suspendOnError) {
-		this._suspendOnError = suspendOnError;
-	}
+    public void setSuspendOnError(boolean suspendOnError) {
+        this._suspendOnError = suspendOnError;
+    }
 
-	public WorkflowState getWorkflowState() {
-		return _workflowState;
-	}
+    public WorkflowState getWorkflowState() {
+        return _workflowState;
+    }
 
-	public void setWorkflowState(WorkflowState workflowState) {
-		this._workflowState = workflowState;
-	}
+    public void setWorkflowState(WorkflowState workflowState) {
+        this._workflowState = workflowState;
+    }
 
     public Set<URI> getSuspendSteps() {
         return _suspendSteps;
-}
+    }
 
     public void setSuspendSteps(Set<URI> suspendSteps) {
         this._suspendSteps = suspendSteps;

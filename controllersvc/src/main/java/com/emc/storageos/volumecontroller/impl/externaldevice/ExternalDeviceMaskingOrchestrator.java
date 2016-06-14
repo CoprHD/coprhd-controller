@@ -4,7 +4,6 @@
  */
 package com.emc.storageos.volumecontroller.impl.externaldevice;
 
-
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -12,15 +11,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.emc.storageos.db.client.model.BlockObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.services.util.StorageDriverManager;
 import com.emc.storageos.volumecontroller.BlockStorageDevice;
@@ -114,17 +112,18 @@ public class ExternalDeviceMaskingOrchestrator extends AbstractMaskingFirstOrche
      * @param storage
      * @param exportGroup
      * @param initiatorURIs
-     * @param volumeMap volume URI to HLU map
+     * @param volumeMap
+     *            volume URI to HLU map
      * @param zoneStepNeeded
      * @param token
      * @return list of step Ids
      * @throws Exception
      */
     private List<String> generateExportGroupCreateSteps(Workflow workflow,
-                                                 String previousStep, BlockStorageDevice device,
-                                                 StorageSystem storage, ExportGroup exportGroup,
-                                                 List<URI> initiatorURIs, Map<URI, Integer> volumeMap, boolean zoneStepNeeded, String token)
-            throws Exception {
+            String previousStep, BlockStorageDevice device,
+            StorageSystem storage, ExportGroup exportGroup,
+            List<URI> initiatorURIs, Map<URI, Integer> volumeMap, boolean zoneStepNeeded, String token)
+                    throws Exception {
         Map<String, URI> portNameToInitiatorURI = new HashMap<>();
         List<URI> hostURIs = new ArrayList<>();
         List<String> portNames = new ArrayList<>(); // host initiator names
@@ -163,7 +162,7 @@ public class ExternalDeviceMaskingOrchestrator extends AbstractMaskingFirstOrche
                     previousStep);
         } else {
             _log.info(String.format("Mask(s) found w/ initiators {%s}. "
-                            + "MatchingExportMaskURIs {%s}, portNameToInitiators {%s}",
+                    + "MatchingExportMaskURIs {%s}, portNameToInitiators {%s}",
                     Joiner.on(",").join(portNames),
                     Joiner.on(",").join(matchingExportMaskURIs.keySet()),
                     Joiner.on(",").join(portNameToInitiatorURI.entrySet())));
@@ -194,7 +193,8 @@ public class ExternalDeviceMaskingOrchestrator extends AbstractMaskingFirstOrche
                     true, token);
 
             // For each export mask in export group, invoke add Volumes if export Mask belongs to the storage array
-            // of added volumes. Export group may have export masks for the same array but for different compute resources
+            // of added volumes. Export group may have export masks for the same array but for different compute
+            // resources
             // (hosts or clusters).
             for (ExportMask exportMask : exportMasks) {
                 if (exportMask.getStorageDevice().equals(storageURI)) {
@@ -226,8 +226,10 @@ public class ExternalDeviceMaskingOrchestrator extends AbstractMaskingFirstOrche
             workflow.executePlan(taskCompleter, successMessage);
         } else {
             // This is the case when export group does not have export mask for storage array where the volumes belongs.
-            // In this case we will create new export masks for the storage array and each compute resource in the export group.
-            // Essentially for every existing mask we will add a new mask for the array and initiators in the existing mask.
+            // In this case we will create new export masks for the storage array and each compute resource in the
+            // export group.
+            // Essentially for every existing mask we will add a new mask for the array and initiators in the existing
+            // mask.
             if (exportGroup.getInitiators() != null
                     && !exportGroup.getInitiators().isEmpty()) {
                 _log.info("export_volume_add: adding volume, creating a new export mask");

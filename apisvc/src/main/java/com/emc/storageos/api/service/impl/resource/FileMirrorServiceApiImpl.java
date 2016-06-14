@@ -15,7 +15,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.service.impl.placement.FileMirrorRecommendation;
 import com.emc.storageos.api.service.impl.placement.FileMirrorRecommendation.Target;
-import com.emc.storageos.api.service.impl.placement.FileMirrorSchedular;
+import com.emc.storageos.api.service.impl.placement.FileMirrorScheduler;
 import com.emc.storageos.api.service.impl.placement.VirtualPoolUtil;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentPrefixConstraint;
@@ -52,7 +52,7 @@ import com.google.common.base.Strings;
 /**
  * Block Service subtask (parts of larger operations) Replication implementation.
  */
-public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMirrorSchedular> {
+public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMirrorScheduler> {
 
     private static final Logger _log = LoggerFactory.getLogger(FileMirrorServiceApiImpl.class);
 
@@ -306,7 +306,7 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
 
                 Map<URI, VpoolRemoteCopyProtectionSettings> settingMap = VirtualPool.getFileRemoteProtectionSettings(vpool, _dbClient);
                 VpoolRemoteCopyProtectionSettings protectionSettings = null;
-                List<VirtualArray> virtualArrayTargets = FileMirrorSchedular.getTargetVirtualArraysForVirtualPool(project, vpool,
+                List<VirtualArray> virtualArrayTargets = FileMirrorScheduler.getTargetVirtualArraysForVirtualPool(project, vpool,
                         _dbClient, getPermissionsHelper());
 
                 // Source file system!!

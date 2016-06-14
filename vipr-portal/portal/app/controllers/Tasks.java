@@ -445,7 +445,7 @@ public class Tasks extends Controller {
         }
     }
 
-    private static class WorkflowStep {
+    public static class WorkflowStep {
         public String name;
         public String state;
         public String message;

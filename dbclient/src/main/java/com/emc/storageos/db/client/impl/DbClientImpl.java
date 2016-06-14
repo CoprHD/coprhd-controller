@@ -27,15 +27,19 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
 import org.apache.commons.lang.StringUtils;
+import org.eclipse.jetty.util.log.Log;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Session;
+import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.exceptions.DriverException;
+import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.DbVersionInfo;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
@@ -51,6 +55,7 @@ import com.emc.storageos.db.client.constraint.QueryResultList;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.constraint.impl.ConstraintImpl;
 import com.emc.storageos.db.client.model.AllowedGeoVersion;
+import com.emc.storageos.db.client.model.AuditLog;
 import com.emc.storageos.db.client.model.CustomConfig;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.EncryptionProvider;
@@ -74,6 +79,7 @@ import com.emc.storageos.db.client.model.TimeSeriesSerializer;
 import com.emc.storageos.db.client.model.Token;
 import com.emc.storageos.db.client.model.VdcVersion;
 import com.emc.storageos.db.client.model.VirtualDataCenter;
+import com.emc.storageos.db.client.model.AuditLogTimeSeries.AuditLogSerializer;
 import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.KeyspaceUtil;
 import com.emc.storageos.db.common.DbServiceStatusChecker;
@@ -94,13 +100,11 @@ import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.ByteBufferRange;
 import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnFamily;
-import com.netflix.astyanax.model.ColumnList;
 import com.netflix.astyanax.model.ConsistencyLevel;
 import com.netflix.astyanax.model.Row;
 import com.netflix.astyanax.model.Rows;
 import com.netflix.astyanax.partitioner.Partitioner;
 import com.netflix.astyanax.query.ColumnFamilyQuery;
-import com.netflix.astyanax.query.RowQuery;
 import com.netflix.astyanax.util.TimeUUIDUtils;
 
 /**
@@ -1424,21 +1428,36 @@ public class DbClientImpl implements DbClient {
             queries.add(workerThreads.submit(new Callable<Object>() {
                 @Override
                 public Object call() throws Exception {
-                    ColumnList<UUID> columns;
                     // time series are always in the local keyspace
-                    RowQuery<String, UUID> query = getLocalKeyspace()
-                            .prepareQuery(type.getCf())
-                            .setConsistencyLevel(ConsistencyLevel.CL_ONE)
-                            .getKey(rowKey)
-                            .autoPaginate(true)
-                            .withColumnRange(type.getColumnRange(timeBucket, granularity, DEFAULT_TS_PAGE_SIZE));
-                    do {
-                        columns = query.execute().getResult();
-                        for (Column<UUID> c : columns) {
-                            result.data(type.getSerializer().deserialize(c.getByteArrayValue()),
-                                    TimeUUIDUtils.getTimeFromUUID(c.getName()));
-                        }
-                    } while (!columns.isEmpty());
+                    DbClientContext context = getLocalContext();
+                    
+                    StringBuilder queryString = new StringBuilder();
+                    queryString.append("select key, unixTimestampOf(column1), value from \"").append(type.getCf().getName()).append("\" where key=?");
+                    
+                    DateTime[] timeRangeValues = type.getColumnRange(timeBucket, granularity);
+                    if (timeRangeValues.length > 0) {
+                        queryString.append(" and column1>=minTimeuuid(?) and column1<=maxTimeuuid(?)");
+                    }
+                    
+                    PreparedStatement queryStatement = context.getPreparedStatement(queryString.toString());
+                    queryStatement.setConsistencyLevel(com.datastax.driver.core.ConsistencyLevel.LOCAL_ONE);
+                    
+                    BoundStatement bindStatement = queryStatement.bind(rowKey);
+                    bindStatement.setFetchSize(DEFAULT_TS_PAGE_SIZE);
+                    
+                    if (timeRangeValues.length > 0) {
+                        bindStatement.setTimestamp(1, timeRangeValues[0].toDate());
+                        bindStatement.setTimestamp(2, timeRangeValues[1].toDate());
+                    }
+                    
+                    _log.info("queryTimeSeries:"+rowKey);
+                    
+                    ResultSet results = context.getSession().execute(bindStatement);
+                    for (com.datastax.driver.core.Row row : results) {
+                        result.data(type.getSerializer().deserialize(row.getBytes(2).array()),
+                                row.getLong(1));
+                    }
+                    
                     return null;
                 }
             }));

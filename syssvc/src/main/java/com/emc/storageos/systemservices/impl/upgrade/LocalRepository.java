@@ -499,23 +499,35 @@ public class LocalRepository {
         return Boolean.valueOf(ret[0]);
     }
 
-    /***
+    public void setDataRevision(String targetRevision, boolean committed, long vdcConfigVersion) throws LocalRepositoryException {
+        setDataRevision(null, targetRevision, committed, vdcConfigVersion);
+    }
+
+    /**
      * Update data revision property
-     *
-     * @param revisionTag
-     * @param committed 
+     * 
+     * @param rollbackRevision
+     * @param targetRevision
+     * @param committed
      * @param vdcConfigVersion
      * @throws LocalRepositoryException
      */
-    public void setDataRevision(String revisionTag, boolean committed, long vdcConfigVersion) throws LocalRepositoryException {
-        final String prefix = String.format("setDataRevisionTag(): to=%s committed=%s" , revisionTag, committed);
+    public void setDataRevision(String rollbackRevision, String targetRevision, boolean committed, long vdcConfigVersion) throws LocalRepositoryException {
+        final String prefix = String.format("setDataRevisionTag(): to=%s committed=%s" , targetRevision, committed);
         _log.debug(prefix);
 
         final Path tmpFilePath = FileSystems.getDefault().getPath(DATA_REVISION_TMP);
         StringBuilder s = new StringBuilder();
+        if (rollbackRevision != null) {
+            s.append(KEY_ROLLBACK_REVISION);
+            s.append(PropertyInfoExt.ENCODING_EQUAL);
+            s.append(String.valueOf(rollbackRevision));
+            s.append(PropertyInfoExt.ENCODING_NEWLINE);
+        }
+
         s.append(KEY_DATA_REVISION);
         s.append(PropertyInfoExt.ENCODING_EQUAL);
-        s.append(revisionTag == null ? "" : revisionTag);
+        s.append(targetRevision == null ? "" : targetRevision);
         s.append(PropertyInfoExt.ENCODING_NEWLINE);
         s.append(KEY_DATA_REVISION_COMMITTED);
         s.append(PropertyInfoExt.ENCODING_EQUAL);
@@ -529,33 +541,6 @@ public class LocalRepository {
 
         try {
             final String[] cmd = { _SYSTOOL_CMD, _SYSTOOL_SET_DATA_REVISION, DATA_REVISION_TMP };
-            exec(prefix, cmd);
-            _log.info(prefix + " Success");
-        } finally {
-            cleanupTmpFile(tmpFilePath);
-        }
-    }
-
-    /**
-     * save data revision property to /.volumes/bootfs/etc/rollback.properties
-     * 
-     * @param dataRevision
-     */
-    public void setRollbackProps(long dataRevision) {
-        final String prefix = String.format("setRollbackProps(): to=%s", dataRevision);
-        _log.debug(prefix);
-
-        final Path tmpFilePath = FileSystems.getDefault().getPath(TMP_ROLLBACK_PROPS_PATH);
-
-        StringBuilder builder = new StringBuilder();
-        builder.append(KEY_ROLLBACK_REVISION);
-        builder.append(PropertyInfoExt.ENCODING_EQUAL);
-        builder.append(String.valueOf(dataRevision));
-
-        createTmpFile(tmpFilePath, builder.toString(), prefix);
-
-        try {
-            final String[] cmd = { _SYSTOOL_CMD, _SYSTOOL_SET_ROLLBACK_PROPS, TMP_ROLLBACK_PROPS_PATH };
             exec(prefix, cmd);
             _log.info(prefix + " Success");
         } finally {

@@ -134,6 +134,7 @@ public abstract class VdcOpHandler {
         public void execute() throws Exception {
             localRepository.setRollbackFlag();
             log.info("Rollback flag has been set to local disk");
+            flushVdcConfigToLocal();
         }
     }
 
@@ -302,8 +303,6 @@ public abstract class VdcOpHandler {
                 long localRevision = Long.parseLong(localRepository.getDataRevision());
                 log.info("local data revision is {}", localRevision);
                 if (targetDataRevision > 0 && targetDataRevision > localRevision) {
-                    // save current data revision for possible rollback in case that data-sync failed
-                    localRepository.setRollbackProps(localRevision);
                     log.info("Rollback properties (rollback_data_revision={})has been saved to local disk", localRevision);
                     updateDataRevision();
                 }
@@ -333,12 +332,12 @@ public abstract class VdcOpHandler {
                 if (phase1Agreed) {
                     // reach phase 1 agreement, we can start write to local property file
                     log.info("Reach phase 1 agreement for data revision change");
-                    localRepository.setDataRevision(targetDataRevision, false, vdcConfigVersion);
+                    localRepository.setDataRevision(localRevision, targetDataRevision, false, vdcConfigVersion);
                     boolean phase2Agreed = barrier.leave(VDC_OP_BARRIER_TIMEOUT, TimeUnit.SECONDS);
                     if (phase2Agreed) {
                         // phase 2 agreement is received, we can make sure data revision change is written to local property file
                         log.info("Reach phase 2 agreement for data revision change");
-                        localRepository.setDataRevision(targetDataRevision, true, vdcConfigVersion);
+                        localRepository.setDataRevision(localRevision, targetDataRevision, true, vdcConfigVersion);
                         setConcurrentRebootNeeded(true);
                     } else {
                         log.info("Failed to reach phase 2 agreement. Rollback revision change");

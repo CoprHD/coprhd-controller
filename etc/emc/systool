@@ -360,10 +360,6 @@ _set_data_revision() {
     _write_props_file "${1}" "${bootfs_datarevision_props}"
 }
 
-_set_rollback_props() {
-    _write_props_file "${1}" "$bootfs_rollback_props"
-}
-
 _set_rollback_flag() {
     _bootfs_mount_rw
     touch "${bootfs_rollback_flag}"
@@ -831,12 +827,12 @@ _rollback() {
         return
     fi
 
-    if [ ! -f "${bootfs_rollback_props}" ] ; then
-        echo "No rollback properties file found, do nothing"
+    if [ ! -f "${bootfs_datarevision_props}" ] ; then
+        echo "No Data revision properties file found, do nothing"
         return
     fi
 
-    local rollback_revision=$(cat "${bootfs_rollback_props}" | grep "rollback_data_revision" | cut -d= -f2)
+    local rollback_revision=$(cat "${bootfs_datarevision_props}" | grep "rollback_data_revision" | cut -d= -f2)
 
     if [ "${rollback_revision}" == "" ] ; then
         echo "Can't find rollback_data_revision property in rollback properties file, do nothing"
@@ -858,6 +854,7 @@ _rollback() {
     fi
     /etc/datatool --set-version /data/db/1 "${rollback_revision}"
     /etc/datatool --set-version /data/geodb/1 "${rollback_revision}"
+    # need to think how to determine the snapshot number instead of using 1 as default in future before merge in master
     /etc/datatool --set-version-snapshot /data/zk/version-2 "${rollback_revision}" 1
     _clear_rollback_flag
 }
@@ -869,7 +866,6 @@ bootfs_mntp=${bootfs_mntp:-'/.volumes/bootfs'}
 bootfs_vdc_props=${bootfs_vdc_props:-${bootfs_mntp}/etc/vdcconfig.properties}
 bootfs_ssl_props=${bootfs_ssl_props:-${bootfs_mntp}/etc/ssl.properties}
 bootfs_datarevision_props=${bootfs_datarevision_props:-${bootfs_mntp}/etc/datarevision.properties}
-bootfs_rollback_props=${bootfs_rollback_props:-${bootfs_mntp}/etc/rollback.properties}
 bootfs_rollback_flag=${bootfs_rollback_flag:-${bootfs_mntp}/etc/rollback}
 override_props='config-override.properties'
 bootfs_override_props=${bootfs_mntp}/etc/${override_props}
@@ -956,7 +952,6 @@ case ${#} in
             --setvdcprops)            _x _set_vdc_props        "${2}" ;;
             --setsslprops)            _x _set_ssl_props        "${2}" ;;
             --set-data-revision)      _x _set_data_revision    "${2}" ;;
-            --set-rollback-props)     _x _set_rollback_props   "${2}" ;;
             --restart)                _x _restart              "${2}" ;;
             --stop)                   _x _stop                 "${2}" ;;
             --reconfig-props)         _x _reconfig_props       "${2}" ;;

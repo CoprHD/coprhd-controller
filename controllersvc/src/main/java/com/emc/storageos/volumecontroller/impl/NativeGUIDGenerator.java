@@ -87,8 +87,6 @@ public class NativeGUIDGenerator {
     
     public static final String UN_MANAGED_QUOTADIRECTORY = "UNMANAGEDQUOTADIRECTORY";
 
-    public static final String UN_MANAGED_QUOTADIRECTORY = "UNMANAGEDQUOTADIRECTORY";
-
     public static final String UN_MANAGED_FILE_EXPORT_RULE = "UNMANAGEDFILEEXPORTRULE";
 
     private static final String NAME = "NAME";
@@ -520,18 +518,6 @@ public class NativeGUIDGenerator {
                 serialNumber, fsName, quotaDirName);
     }
 
-    public static String generateNativeGuidForQuotaDir(String deviceType, String serialNumber, String quotaDirName, String fsName)
-            throws IOException {
-        return String.format("%s+%s+%s+" + QUOTADIRECTORY + "+%s", _deviceTypeMap.get(deviceType),
-                serialNumber, fsName, quotaDirName);
-    }
-
-    public static String generateNativeGuidForUnManagedQuotaDir(String deviceType, String serialNumber, String quotaDirName, String fsName)
-            throws IOException {
-        return String.format("%s+%s+%s+" + UN_MANAGED_QUOTADIRECTORY + "+%s", _deviceTypeMap.get(deviceType),
-                serialNumber, fsName, quotaDirName);
-    }
-
     /**
      * Generates the format StorageSystem+SerialNumber+FILESYSTEM+NativeId native guid for FileShare Objects
      * 
@@ -700,11 +686,6 @@ public class NativeGUIDGenerator {
 
     }
     
-    public static String generateNativeGuidForPreExistingQuotaDirectory(String deviceType, String serialNumber, String quotaDirectoryNativeId) {
-        return String.format("%s+%s+" + UN_MANAGED_QUOTADIRECTORY + "+%s", _deviceTypeMap.get(deviceType), serialNumber, quotaDirectoryNativeId);
-
-    }
-
     public static String generateNativeGuidForPreExistingQuotaDirectory(String deviceType, String serialNumber,
             String quotaDirectoryNativeId) {
         return String.format("%s+%s+" + UN_MANAGED_QUOTADIRECTORY + "+%s", _deviceTypeMap.get(deviceType), serialNumber,

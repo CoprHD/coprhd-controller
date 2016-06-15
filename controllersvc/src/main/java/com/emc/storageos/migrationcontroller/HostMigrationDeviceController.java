@@ -412,6 +412,11 @@ public class HostMigrationDeviceController implements MigrationOrchestrationInte
             _dbClient.updateObject(migration);
             _log.info("Migration name is {}", migrationName);
 
+            // Set up the migration scripts on the migration host
+            String[][] migrationScripts = {{"migrationScripts/migrateVolume.sh", "/tmp/coprhdMigration/migrateVolume.sh"},
+                                           {"migrationScripts/pollMigration.sh", "/tmp/coprhdMigration/pollMigration.sh"}};
+            HostMigrationCommand.copyMigrationScriptsToHost(host, migrationScripts);
+
             List<MigrationInfo> migrationInfoList = hostMigrateGeneralVolume(migration,
                     migrationName, generalVolume, migrationTarget);
             _log.info("Started host migration");

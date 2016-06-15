@@ -1,5 +1,6 @@
 package com.emc.storageos.migrationcontroller;
 
+import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -12,6 +13,7 @@ import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.Volume;
 import com.iwave.ext.command.CommandOutput;
 import com.iwave.ext.linux.LinuxSystemCLI;
+import com.iwave.ext.linux.command.CopyFileCommand;
 import com.iwave.ext.linux.command.ListMultiPathEntriesCommand;
 import com.iwave.ext.linux.command.MultipathCommand;
 import com.iwave.ext.linux.command.MultipathException;
@@ -86,6 +88,20 @@ public class HostMigrationCommand {
         LinuxSystemCLI cli = LinuxHostDiscoveryAdapter.createLinuxCLI(host);
         MultipathCommand command = new MultipathCommand();
         cli.executeCommand(command);
+    }
+
+    public static void copyMigrationScriptsToHost(Host host, String[][] scripts) {
+        LinuxSystemCLI cli = LinuxHostDiscoveryAdapter.createLinuxCLI(host);
+        try {
+            for (String[] script : scripts) {
+                CopyFileCommand command = new CopyFileCommand(script[0], script[1]);
+                cli.executeCommand(command);
+            }
+        } catch (FileNotFoundException e) {
+            // This should never happen unless the migration scripts were manually
+            // deleted from the source code.
+            _log.error("Migration scripts not found");
+        }
     }
 
     public static String migrationCommand(Host host, String srcDevice, String tgtDevice) {

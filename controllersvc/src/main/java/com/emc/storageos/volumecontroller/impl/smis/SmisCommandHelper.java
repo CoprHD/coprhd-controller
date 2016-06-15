@@ -4039,17 +4039,17 @@ public class SmisCommandHelper implements SmisConstants {
         // replace "+" in the group name with "-" to make sure that we do not hit limitation on vmax3 for group names with
         // "+" and do not return false positive here for such a mask. For example, mask with "+"s does not exist on array, but
         // when we replace "+"s bu "_"s we hit the existing mask on device.
-        String storageGroupNameTemp = storageGroupName.replaceAll(Constants.SMIS_PLUS_REGEX, Constants.HYPHEN);
-        _log.info("Converted storage group name from {} to {} .", storageGroupName, storageGroupNameTemp);
-        String result = storageGroupNameTemp;
+        storageGroupName = storageGroupName.replaceAll(Constants.SMIS_PLUS_REGEX, Constants.HYPHEN);
+        String result = storageGroupName;
+
         // Is 'storageGroupName' already in the list of existing names?
-        if (existingGroupNames.contains(storageGroupNameTemp)) {
+        if (existingGroupNames.contains(storageGroupName)) {
             // Yes -- name is already in the existing group name list. We're going to have to generate a unique name by using an appended
             // numeric index. The format will be storageGroupName_<[N]>, where N is a number between 1 and the size of existingGroupNames.
             int size = existingGroupNames.size();
             for (int index = 1; index <= size; index++) {
                 // Generate an indexed name ...
-                result = String.format("%s_%d", storageGroupNameTemp, index);
+                result = String.format("%s_%d", storageGroupName, index);
                 // If the indexed name does not exist, then exit the loop and return 'result'
                 if (!existingGroupNames.contains(result)) {
                     break;
@@ -4057,7 +4057,7 @@ public class SmisCommandHelper implements SmisConstants {
             }
         }
         _log.info(String.format("generateGroupName(existingGroupNames.size = %d, %s), returning %s", existingGroupNames.size(),
-                storageGroupNameTemp, result));
+                storageGroupName, result));
         return result;
     }
 

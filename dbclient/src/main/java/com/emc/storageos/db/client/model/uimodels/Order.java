@@ -115,7 +115,7 @@ public class Order extends ModelObject implements TenantDataObject {
         this.orderStatus = status;
         setChanged(ORDER_STATUS);
     }
-    
+
     @AlternateId("UserToOrders")
     @Name(SUBMITTED_BY_USER_ID)
     public String getSubmittedByUserId() {

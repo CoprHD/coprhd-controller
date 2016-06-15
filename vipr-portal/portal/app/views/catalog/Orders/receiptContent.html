@@ -84,7 +84,6 @@
     	var lastUpdated = $('#orderDetails #lastUpdated').html();
     	var orderId = '${orderId}';
     	var url = #{jsAction @catalog.Orders.pauseOrder(':orderId', ':lastUpdated') /};
-    	//@{catalog.Orders.resubmitOrder(details.order?.id)}
     	 $.post(url({orderId: orderId, lastUpdated: lastUpdated}), function(data) {
     		 $("#opPause").prop('disabled', true);
              Receipt.update(data);
@@ -167,8 +166,7 @@
         *{ <span id="loading" #{if !isLoading}style="display:none"}#{/if}>&nbsp;<img src="@{'/public/img/loading.gif'}"></span> }*
         <span id="currentStep">${details.runningTaskLogs?.collect{ it.message }.join(", ")}</span>
       </dd>
-      <!--  my code goes here-->
-      
+
       <dt>&nbsp;</dt>
       <dd>&nbsp;</dd>
       <dt>&nbsp;</dt>

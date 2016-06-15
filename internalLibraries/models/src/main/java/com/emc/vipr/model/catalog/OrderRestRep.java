@@ -61,7 +61,7 @@ public class OrderRestRep extends DataObjectRestRep {
      * Order Status. One of: PENDING, EXECUTING, SUCCESS, ERROR, SCHEDULED, CANCELLED, APPROVAL, APPROVED, REJECTED
      */
     private String orderStatus;
-    
+
     /**
      * Parameters to an order
      */

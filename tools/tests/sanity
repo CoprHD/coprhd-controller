@@ -1946,6 +1946,9 @@ srdf_basic_sync_test()
    #run volume create ${srdfvolume}3 $PROJECT $NH ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_sync 1GB --count 2
    #run volume delete $PROJECT/${srdfvolume}2 --wait
    run volume delete $SRDF_PROJECT/${srdfvolume}1 --wait
+   
+   run volume create ${srdfvolume}1 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_sync 1GB --consistencyGroup ${CONSISTENCY_GROUP_SRDF}
+   run volume delete $SRDF_PROJECT/${srdfvolume}1 --wait
    #run volume delete $PROJECT/${srdfvolume}3-1 --wait
    #run volume delete $PROJECT/${srdfvolume}3-2 --wait
 }
@@ -2136,7 +2139,7 @@ mirrorblock_cos_setup()
                             --max_snapshots 10         \
                             --max_mirrors 3            \
                             --provisionType 'Thin'     \
-	                    --system_type vmax \
+	                    --system_type vnxblock \
                             --expandable false \
 			    --neighborhoods $NH
 
@@ -8183,14 +8186,8 @@ blockconsistencygroup_snapshot_tests()
     echo "CG Snapshot: $cg_snapshot" 
     
     blockconsistencygroup_setup_snapshot $cg_name $cg_cos
-	if [$cg_name = vmax*]; then
-		blockconsistencygroup_create_active_snapshot $cg_name $cg_snapshot
-		blockconsistencygroup_restore_snapshot $cg_name $cg_snapshot
-	else 
-		blockconsistencygroup_create_snapshot $cg_name $cg_snapshot
-		blockconsistencygroup_activate_snapshot $cg_name $cg_snapshot
-	fi
-    
+	blockconsistencygroup_create_active_snapshot $cg_name $cg_snapshot
+	blockconsistencygroup_restore_snapshot $cg_name $cg_snapshot
     blockconsistencygroup_show_snapshot $cg_name $cg_snapshot
     blockconsistencygroup_list_snapshot $cg_name $cg_snapshot
     blockconsistencygroup_deactivate_snapshot $cg_name $cg_snapshot   

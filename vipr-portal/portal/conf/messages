@@ -4362,7 +4362,7 @@ renderFunctions.filesystems.status.notset=N/A
 
 templates.knob.label=%s of %s
 
-datatable.length.menu=_MENU_ records per page
+datatable.length.menu=Display _MENU_ records per page
 datatable.processing=Loading...
 datatable.empty=No results
 datatable.parse.error=JSON data from server could not be parsed

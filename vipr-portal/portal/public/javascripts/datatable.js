@@ -21,6 +21,7 @@
  * @param columns
  *        [optional] the columns for this datatable. May be configured later using <tt>setColumns</tt>.
  */
+
 function DataTable(selector, columns) {
     var my = {};
     var beforeCreateHandlers = [];
@@ -58,9 +59,10 @@ function DataTable(selector, columns) {
                   "sSortDescending":    Messages.get("datatable.sortDescending")
               }
             },
+            "aLengthMenu" : [10,25,50,100,200],
             "bProcessing": true,
             "bAutoWidth": false,
-            "bLengthChange": false,
+            "bLengthChange": true,
             "fnHeaderCallback": function(row) {
                 $('th', row).each(function() {
                     if ($('.th-wrapper', this).size() == 0) {

@@ -2061,7 +2061,6 @@ abstract public class AbstractDefaultMaskingOrchestrator {
         return isMatched;
     }
 
-
     /**
      * Check that export mask has at least one valid port from virtual array
      *
@@ -2109,52 +2108,6 @@ abstract public class AbstractDefaultMaskingOrchestrator {
         return isMatched;
     }
 
-    /**
-     * Check that export mask has at least one valid port from virtual array
-     *
-     * @param virtualArray
-     * @param mask
-     * @return
-     */
-    protected boolean maskHasStoragePortsInExportVarray(VirtualArray virtualArray, ExportMask mask) {
-        boolean isMatched = false;
-        for (String uriString : mask.getStoragePorts()) {
-            URI uri = URI.create(uriString);
-            StoragePort port = _dbClient.queryObject(StoragePort.class, uri);
-            // Basic validation of the StoragePort
-            if (port == null || port.getInactive()) {
-                _log.info(String.format("maskHasStoragePortsInExportVarray - Could not find port or it is inactive %s", uri.toString()));
-                continue;
-            }
-            // StoragePort needs to be in the REGISTERED and VISIBLE status
-            if (!port.getRegistrationStatus().equals(StoragePort.RegistrationStatus.REGISTERED.name()) ||
-                    port.getDiscoveryStatus().equals(DiscoveryStatus.NOTVISIBLE.name())) {
-                _log.info(String.format("maskHasStoragePortsInExportVarray - Port %s (%s) is not registered or not visible",
-                        port.getPortName(), uri.toString()));
-                continue;
-            }
-            // Look up the StoragePort's network
-            NetworkLite storagePortNetwork = BlockStorageScheduler.lookupNetworkLite(_dbClient,
-                    StorageProtocol.Transport.valueOf(port.getTransportType()), port.getPortNetworkId());
-            if (storagePortNetwork == null) {
-                _log.info(String.format("maskHasStoragePortsInExportVarray - Port %s (%s) is not associated with any network",
-                        port.getPortName(), uri.toString()));
-                continue;
-            }
-            // Port must belong to the VArray
-            if (!port.taggedToVirtualArray(virtualArray.getId())) {
-                _log.info(String.format("maskHasStoragePortsInExportVarray - Port %s (%s) is not tagged to VArray %s (%s)",
-                        port.getPortName(), uri.toString(), virtualArray.getLabel(), virtualArray.getId()));
-                // CTRL-8959 - All mask Ports should be part of the VArray, to be able to consider this Export mask for reuse.
-                // reverted the fix, as the probability of Consistent lun violation will be more.
-                continue;
-            }
-            // at least one port is in virtualArray
-            isMatched = true;
-            break;
-        }
-        return isMatched;
-    }
     /**
      * Looks at the maskToTotalMatchingPorts map and generates exception if any of them do not meet
      * the exportPathParams.minPaths value

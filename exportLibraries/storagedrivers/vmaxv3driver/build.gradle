@@ -1,0 +1,16 @@
+apply plugin: 'java'
+
+group = 'com.emc.storageos.driver.vmaxv3driver'
+version = '1.0-SNAPSHOT'
+description = 'VMAX V3 Southbound SDK driver implementation'
+
+dependencies {
+    compile project(":storagedriver")
+    compile group: 'org.slf4j', name: 'slf4j-api', version:'1.7.7'
+    compile group: 'ch.qos.logback', name: 'logback-classic', version:'1.1.2'
+    compile group: 'ch.qos.logback', name: 'logback-core', version:'1.1.2'
+    compile group: 'org.codehaus.groovy', name: 'groovy-all', version:'2.4.5'
+    compile group: 'org.apache.commons', name: 'commons-lang3', version:'3.4'
+    compile group: 'org.apache.httpcomponents', name: 'httpclient', version:'4.5.1'
+    testCompile group: 'org.testng', name: 'testng', version:'6.8.7'
+}

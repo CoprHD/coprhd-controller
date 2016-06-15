@@ -149,6 +149,7 @@ _list() {
 
 # if snapshot number is not provided, use 0 as default
 _create_version() {
+    local basedir=$(dirname $1)
 
     # check if version matched
     if [ -L $1 ] ; then

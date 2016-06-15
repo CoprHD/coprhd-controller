@@ -97,6 +97,11 @@
                 </td>
               </tr>
             #{/list}
+              <tr>
+              <td colspan="5">
+                <a href="#" class="btn btn-sm btn-success" onclick="showAddHostsDialog(); return false;">&{'resources.exportgroup.add.hosts'}</a>
+              </td>
+              </tr>
             </tbody>
             </table>
           </fieldset>        
@@ -128,6 +133,11 @@
                 </td>
               </tr>
             #{/list}
+              <tr>
+              <td colspan="5">
+                <a href="#" class="btn btn-sm btn-success" onclick="showAddInitiatorsDialog(); return false;">&{'resources.exportgroup.add.initiators'}</a>
+              </td>
+              </tr>
             </tbody>
             </table>            
           </fieldset>
@@ -171,6 +181,44 @@
     
 </div>
 
+%{ formFields = ['exportId': exportGroup.id] }%
+#{DataTable.formAction @addHosts(), id:'addHostsForm', table:'addHosts', fields:formFields /}
+#{DataTable.formAction @addInitiators(), id:'addInitiatorsForm', table:'addInitiators', fields:formFields /}
+
+#{Modal.dialog id:'addHostsDialog', cssClass:'wide'} 
+  #{Modal.body} 
+    #{DataTable.header titleKey:'resources.exportgroup.add.hosts.title'/}
+    #{DataTable.table id:'addHosts',
+                      dataTable:hostsDataTable,
+                      source:@availableHostsJson(exportGroup.id),
+                      selectable:true,
+                      delayCreate: true /}
+  #{/Modal.body}
+  #{Modal.footer}
+    #{Form.button 'button.add', class:'primary', icon:'plus', submit:'addHostsForm',
+                  data:['enabled':'selected', 'table':'addHosts']/}
+    #{Form.button 'button.cancel', icon:'trash', data:['dismiss':'modal']/}
+  #{/Modal.footer}
+#{/Modal.dialog}
+
+#{Modal.dialog id:'addInitiatorsDialog', cssClass:'wide'} 
+  #{Modal.body} 
+    #{DataTable.header titleKey:'resources.exportgroup.add.initiators.title'/}
+    #{DataTable.table id: 'addInitiators',
+                      prefix: 'endpoints',
+                      dataTable: initiatorsDataTable,
+                      source: @availableInitiatorsJson(exportGroup.id),
+                      selectable: true,
+                      delayCreate: true,
+                      options: ['iDisplayLength': '8'] /}
+  #{/Modal.body}
+  #{Modal.footer}
+    #{Form.button 'button.add', class:'primary', icon:'plus', submit:'addInitiatorsForm',
+                  data:['enabled':'selected', 'table':'hostEndpoints']/}
+    #{Form.button 'button.cancel', icon:'trash', data:['dismiss':'modal']/}
+  #{/Modal.footer}
+#{/Modal.dialog}
+
 <script type="text/javascript">
 
   function renderLink(o, val) {
@@ -192,6 +240,20 @@
       var url = #{jsAction @resources.BlockSnapshots.snapshotDetails(':snapshotId') /};
       return "<a href='" + url({snapshotId: o.aData.id}) + "'><img src='/public/img/assets/Snapshot.png' style='width: 32px;'/> " + val + "</a>";
 
+  }
+  
+  function showAddHostsDialog() {
+      table.addHosts.dataTable.create();
+      table.addHosts.dataTable.updateSelectedFooter();
+      table.addHosts.dataTable.reset();
+      $('#addHostsDialog').modal();
+  }
+  
+  function showAddInitiatorsDialog() {
+      table.addInitiators.dataTable.create();
+      table.addInitiators.dataTable.updateSelectedFooter();
+      table.addInitiators.dataTable.reset();
+      $('#addInitiatorsDialog').modal(); 
   }
   
 </script>

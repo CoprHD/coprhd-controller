@@ -264,6 +264,9 @@ public class BlockStorageUtils {
                 case BLOCK_CONTINUOUS_COPY:
                     blockContinuousCopies.add(resourceId);
                     break;
+                case VPLEX_CONTINUOUS_COPY:
+                    blockContinuousCopies.add(resourceId);
+                    break;
                 default:
                     break;
             }

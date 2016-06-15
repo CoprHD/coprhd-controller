@@ -10335,9 +10335,9 @@ application_createvols()
     VG_CG1VOL2="${VG_VOLUME1}-2"
     VG_CG1VOL3="${VG_VOLUME1}-3"
     VG_CG1VOL_GRP="${PROJECT}/${VG_CG1VOL1},${PROJECT}/${VG_CG1VOL2},${PROJECT}/${VG_CG1VOL3}"
-    VG_CG1VOLID1=`volume list ${PROJECT} | grep ${VG_CG1VOL1} | awk '{print $7}'`
-    VG_CG1VOLID2=`volume list ${PROJECT} | grep ${VG_CG1VOL2} | awk '{print $7}'`
-    VG_CG1VOLID3=`volume list ${PROJECT} | grep ${VG_CG1VOL3} | awk '{print $7}'`
+    VG_CG1VOLID1=`volume list ${PROJECT} | grep ${VG_CG1VOL1} | grep -v TARGET | awk '{print $7}'`
+    VG_CG1VOLID2=`volume list ${PROJECT} | grep ${VG_CG1VOL2} | grep -v TARGET | awk '{print $7}'`
+    VG_CG1VOLID3=`volume list ${PROJECT} | grep ${VG_CG1VOL3} | grep -v TARGET | awk '{print $7}'`
     secho cg1volid1 is ${VG_CG1VOLID1}
     secho cg1volid2 is ${VG_CG1VOLID2}
     secho cg1volid3 is ${VG_CG1VOLID3}
@@ -10355,9 +10355,9 @@ application_createvols()
     VG_CG2VOL2="${VG_VOLUME2}-2"
     VG_CG2VOL3="${VG_VOLUME2}-3"
     VG_CG2VOL_GRP="${PROJECT}/${VG_CG2VOL1},${PROJECT}/${VG_CG2VOL2},${PROJECT}/${VG_CG2VOL3}"
-    VG_CG2VOLID1=`volume list ${PROJECT} | grep ${VG_CG2VOL1} | awk '{print $7}'`
-    VG_CG2VOLID2=`volume list ${PROJECT} | grep ${VG_CG2VOL2} | awk '{print $7}'`
-    VG_CG2VOLID3=`volume list ${PROJECT} | grep ${VG_CG2VOL3} | awk '{print $7}'`
+    VG_CG2VOLID1=`volume list ${PROJECT} | grep ${VG_CG2VOL1} | grep -v TARGET | awk '{print $7}'`
+    VG_CG2VOLID2=`volume list ${PROJECT} | grep ${VG_CG2VOL2} | grep -v TARGET | awk '{print $7}'`
+    VG_CG2VOLID3=`volume list ${PROJECT} | grep ${VG_CG2VOL3} | grep -v TARGET | awk '{print $7}'`
     secho cg2volid1 is ${VG_CG2VOLID1}
     secho cg2volid2 is ${VG_CG2VOLID2}
     secho cg2volid3 is ${VG_CG2VOLID3}

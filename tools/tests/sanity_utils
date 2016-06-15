@@ -212,13 +212,6 @@ set_undo()
                 remove_from_undo_stack $first $second $third
             fi
             ;;
-        protectionsystem)
-            if [ "$second" = create ]; then
-                put_on_undo_stack $first delete $third
-            elif [ "$second" = delete ]; then
-                remove_from_undo_stack $first $second $third
-            fi
-            ;;
         esac
     fi
 }

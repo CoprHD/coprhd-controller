@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.NewCookie;
@@ -1768,5 +1769,66 @@ public class VPlexApiClient {
     static public void setMaxMigrationAsyncPollingRetries(int maxRetries) {
         maxMigrationAsyncPollingRetries = maxRetries;
     }
-
+    
+    public void validateBackendVolumeWWNs(String virtualVolumeName, Map<String, List<String>> storageVolumeWWNMap) throws VPlexApiException {
+        // Find the VPLEX volume.
+        VPlexVirtualVolumeInfo vvInfo = _discoveryMgr.findVirtualVolume(virtualVolumeName, true);
+        if (vvInfo == null) {
+            // throw exception
+        }
+        
+        // Get the name of the supporting device.
+        String supportingDeviceName = vvInfo.getSupportingDevice();
+        if ((supportingDeviceName == null) || (supportingDeviceName.isEmpty())) {
+            // throw Exception
+        }
+        
+        // Get the locality of the volume
+        String locality = vvInfo.getLocality();
+        
+        // Validate the passed WWN Map.
+        Set<String> clusterNames = storageVolumeWWNMap.keySet();
+        if ((VPlexVirtualVolumeInfo.Locality.distributed.name().equals(locality)) && (clusterNames.size() != 2)) {
+            // throw exception
+        } else if ((VPlexVirtualVolumeInfo.Locality.local.name().equals(locality)) && (clusterNames.size() != 1)) {
+            // throw exception
+        }
+        
+        // Validate the WWNs of the storage volumes on each cluster.
+        Iterator<String> clusterNameIter = storageVolumeWWNMap.keySet().iterator();
+        while (clusterNameIter.hasNext()) {
+            String clusterName = clusterNameIter.next();
+            
+            // If we are to validate 2 WWNs on a cluster it must
+            // have a mirror.
+            List<String> wwns = storageVolumeWWNMap.get(clusterName);
+            boolean hasMirror = (wwns.size() == 2);
+            
+            // Get the storage volumes for the supporting device.
+            List<VPlexStorageVolumeInfo> svInfoList = _discoveryMgr.getStorageVolumesForDevice(
+                    supportingDeviceName, locality, clusterName, hasMirror);
+            
+            // There should be the same number of storage volumes as there are WWNs to verify.
+            if (svInfoList.size() != wwns.size()) {
+                // throw exception
+            }
+            
+            // Now make sure the WWNs match.
+            // TBD wwn format.
+            Iterator<String> wwnsIter = wwns.iterator();
+            while (wwnsIter.hasNext()) {
+                boolean foundWWN = false;
+                String wwn = wwnsIter.next();
+                for (VPlexStorageVolumeInfo svInfo : svInfoList) {
+                    if (svInfo.getWwn().equalsIgnoreCase(wwn)) {
+                        foundWWN = true;
+                        break;
+                    }
+                }
+                if (!foundWWN) {
+                    // throw exception
+                }
+            }                
+        }            
+    }
 }

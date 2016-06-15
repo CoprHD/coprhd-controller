@@ -26,6 +26,8 @@ _usage() {
     exit 0
 }
 
+# any error happens, the script should exit with error code
+set -e
 
 #
 # get local properties from systool

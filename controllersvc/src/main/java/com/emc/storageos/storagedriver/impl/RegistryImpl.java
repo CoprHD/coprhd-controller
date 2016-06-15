@@ -25,7 +25,7 @@ import java.util.Map;
 
 
 /**
- * Implementation of persistant registry for device drivers
+ * Implementation of persistent registry for device drivers
  */
 public class RegistryImpl implements Registry {
 

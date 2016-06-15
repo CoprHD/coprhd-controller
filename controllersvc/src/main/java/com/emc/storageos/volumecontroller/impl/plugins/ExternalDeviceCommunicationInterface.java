@@ -10,7 +10,6 @@ import static com.emc.storageos.db.client.util.CustomQueryUtility.queryActiveRes
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -18,7 +17,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.emc.storageos.db.client.model.StorageHADomain;
+import com.emc.storageos.storagedriver.BlockStorageDriver;
+import com.emc.storageos.storagedriver.StorageDriver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,6 +26,7 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Network;
+import com.emc.storageos.db.client.model.StorageHADomain;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
@@ -45,6 +46,7 @@ import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.StoragePortAssociationHelper;
 import com.emc.storageos.volumecontroller.impl.externaldevice.ExternalDeviceCollectionException;
+import com.emc.storageos.volumecontroller.impl.externaldevice.ExternalDeviceUnManagedVolumeDiscoverer;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.MetricsKeys;
 import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
 
@@ -60,8 +62,15 @@ public class ExternalDeviceCommunicationInterface extends
     private Logger _log = LoggerFactory.getLogger(ExternalDeviceCommunicationInterface.class);
     private Map<String, AbstractStorageDriver> drivers;
 
+    private ExternalDeviceUnManagedVolumeDiscoverer unManagedVolumeDiscoverer;
+    private ExternalDeviceUnManagedVolumeDiscoverer unManagedFileSystemDiscoverer;
+
     // Initialized drivers map
-    private Map<String, DiscoveryDriver> discoveryDrivers = new HashMap<>();
+    private Map<String, AbstractStorageDriver> discoveryDrivers = new HashMap<>();
+
+    public void setUnManagedVolumeDiscoverer(ExternalDeviceUnManagedVolumeDiscoverer unManagedVolumeDiscoverer) {
+        this.unManagedVolumeDiscoverer = unManagedVolumeDiscoverer;
+    }
 
     public void setDrivers(Map<String, AbstractStorageDriver> drivers) {
         this.drivers = drivers;
@@ -72,9 +81,9 @@ public class ExternalDeviceCommunicationInterface extends
      * @param driverType
      * @return driver
      */
-    private synchronized DiscoveryDriver getDriver(String driverType) {
+    private synchronized AbstractStorageDriver getDriver(String driverType) {
         // look up driver
-        DiscoveryDriver discoveryDriver = discoveryDrivers.get(driverType);
+        AbstractStorageDriver discoveryDriver = discoveryDrivers.get(driverType);
         if (discoveryDriver != null) {
             return discoveryDriver;
         } else {
@@ -100,13 +109,15 @@ public class ExternalDeviceCommunicationInterface extends
         driver.setDriverRegistry(driverRegistry);
         LockManager lockManager = LockManagerImpl.getInstance(_locker);
         driver.setLockManager(lockManager);
+        driver.setSdkVersionNumber(StorageDriver.SDK_VERSION_NUMBER);
     }
 
     @Override
     public void collectStatisticsInformation(AccessProfile accessProfile) throws BaseCollectionException {
-       // todo: driver interface is tbd.
-        _log.debug("Entering {}", Thread.currentThread().getStackTrace()[1].getMethodName());
-        _log.debug("Exiting {}", Thread.currentThread().getStackTrace()[1].getMethodName());
+        // todo
+        _log.info("Entering {}", Thread.currentThread().getStackTrace()[1].getMethodName());
+        _log.info("Collect statistic information for external device of type {} is not supported", accessProfile.getSystemType());
+        _log.info("Exiting {}", Thread.currentThread().getStackTrace()[1].getMethodName());
     }
 
     @Override
@@ -119,7 +130,7 @@ public class ExternalDeviceCommunicationInterface extends
 
         // Get discovery driver class based on storage device type
         String deviceType = accessProfile.getSystemType();
-        DiscoveryDriver driver = getDriver(deviceType);
+        AbstractStorageDriver driver = getDriver(deviceType);
         if (driver == null) {
             String errorMsg = String.format("No driver entry defined for device type: %s . ", deviceType);
             _log.info(errorMsg);
@@ -128,53 +139,95 @@ public class ExternalDeviceCommunicationInterface extends
         }
 
         try {
-            // discover storage system
-            discoverStorageSystem(driver, accessProfile);
-            _completer.statusPending(_dbClient, "Completed storage system discovery");
+            if (null != accessProfile.getnamespace()
+                    && (accessProfile.getnamespace().equals(com.emc.storageos.db.client.model.StorageSystem.Discovery_Namespaces.UNMANAGED_VOLUMES.toString()))) {
+                discoverUnManagedBlockObjects(driver, accessProfile);
+                _completer.statusReady(_dbClient, "Completed unmanaged block object discovery");
+            } else if (null != accessProfile.getnamespace()
+                    && (accessProfile.getnamespace().equals(com.emc.storageos.db.client.model.StorageSystem.Discovery_Namespaces.UNMANAGED_FILESYSTEMS.toString()))){
+               _log.warn("Discovery of unmanaged file systems is not supported for external storage system of type {}", accessProfile.getSystemType());
+            } else {
+                // discover storage system
+                discoverStorageSystem(driver, accessProfile);
+                _completer.statusPending(_dbClient, "Completed storage system discovery");
 
-            // discover storage pools
-            List<com.emc.storageos.db.client.model.StoragePool> storagePools = discoverStoragePools(driver, accessProfile);
-            List<com.emc.storageos.db.client.model.StoragePool> storagePoolsToMatchWithVpools = new ArrayList();
-            storagePoolsToMatchWithVpools.addAll(storagePools);
-            List<com.emc.storageos.db.client.model.StoragePool> notVisiblePools = DiscoveryUtils.checkStoragePoolsNotVisible(storagePools,
-                    _dbClient, accessProfile.getSystemId());
-            storagePoolsToMatchWithVpools.addAll(notVisiblePools);
-            _completer.statusPending(_dbClient, "Completed storage pools discovery");
+                // discover storage pools
+                List<com.emc.storageos.db.client.model.StoragePool> storagePools = discoverStoragePools(driver, accessProfile);
+                List<com.emc.storageos.db.client.model.StoragePool> storagePoolsToMatchWithVpools = new ArrayList<>();
+                storagePoolsToMatchWithVpools.addAll(storagePools);
+                List<com.emc.storageos.db.client.model.StoragePool> notVisiblePools = DiscoveryUtils.checkStoragePoolsNotVisible(storagePools,
+                        _dbClient, accessProfile.getSystemId());
+                storagePoolsToMatchWithVpools.addAll(notVisiblePools);
+                _completer.statusPending(_dbClient, "Completed storage pools discovery");
 
-            // discover ports
-            List<com.emc.storageos.db.client.model.StoragePort> allPorts = new ArrayList<>();
-            Set<Network> networksToUpdate = new HashSet<>();
-            Map<String, List<com.emc.storageos.db.client.model.StoragePort>> ports = discoverStoragePorts(driver, networksToUpdate, accessProfile);
-            _log.info("No of newly discovered ports {}", ports.get(NEW).size());
-            _log.info("No of existing discovered ports {}", ports.get(EXISTING).size());
-            if (null != ports && !ports.get(NEW).isEmpty()) {
-                allPorts.addAll(ports.get(NEW));
-                _dbClient.createObject(ports.get(NEW));
+                // discover ports
+                List<com.emc.storageos.db.client.model.StoragePort> allPorts = new ArrayList<>();
+                Set<Network> networksToUpdate = new HashSet<>();
+                Map<String, List<com.emc.storageos.db.client.model.StoragePort>> ports = discoverStoragePorts(driver, networksToUpdate, accessProfile);
+                _log.info("No of newly discovered ports {}", ports.get(NEW).size());
+                _log.info("No of existing discovered ports {}", ports.get(EXISTING).size());
+                if (null != ports && !ports.get(NEW).isEmpty()) {
+                    allPorts.addAll(ports.get(NEW));
+                    _dbClient.createObject(ports.get(NEW));
+                }
+
+                if (null != ports && !ports.get(EXISTING).isEmpty()) {
+                    allPorts.addAll(ports.get(EXISTING));
+                    _dbClient.updateObject(ports.get(EXISTING));
+                }
+
+                if (!networksToUpdate.isEmpty()) {
+                    _dbClient.updateObject(networksToUpdate);
+                }
+
+                List<com.emc.storageos.db.client.model.StoragePort> notVisiblePorts = DiscoveryUtils.checkStoragePortsNotVisible(allPorts,
+                        _dbClient, accessProfile.getSystemId());
+                List<com.emc.storageos.db.client.model.StoragePort> allExistPorts = new ArrayList<>(ports.get(EXISTING));
+                allExistPorts.addAll(notVisiblePorts);
+                _completer.statusPending(_dbClient, "Completed port discovery");
+
+                StoragePortAssociationHelper.runUpdatePortAssociationsProcess(ports.get(NEW),
+                        allExistPorts, _dbClient, _coordinator, storagePoolsToMatchWithVpools);
+
+                _completer.statusReady(_dbClient, "Completed storage discovery");
             }
-
-            if (null != ports && !ports.get(EXISTING).isEmpty()) {
-                allPorts.addAll(ports.get(EXISTING));
-                _dbClient.updateObject(ports.get(EXISTING));
-            }
-
-            if (!networksToUpdate.isEmpty()) {
-                _dbClient.updateObject(networksToUpdate);
-            }
-
-            List<com.emc.storageos.db.client.model.StoragePort> notVisiblePorts = DiscoveryUtils.checkStoragePortsNotVisible(allPorts,
-                    _dbClient, accessProfile.getSystemId());
-            List<com.emc.storageos.db.client.model.StoragePort> allExistPorts = new ArrayList<>(ports.get(EXISTING));
-            allExistPorts.addAll(notVisiblePorts);
-            _completer.statusPending(_dbClient, "Completed port discovery");
-
-            StoragePortAssociationHelper.runUpdatePortAssociationsProcess(ports.get(NEW),
-                    allExistPorts, _dbClient, _coordinator, storagePoolsToMatchWithVpools);
-
-            _completer.statusReady(_dbClient, "Completed storage discovery");
         } catch (BaseCollectionException bEx) {
             _completer.error(_dbClient, bEx);
         } catch (Exception ex) {
             _completer.error(_dbClient, null);
+        }
+    }
+
+    public void discoverUnManagedBlockObjects(AbstractStorageDriver driver, AccessProfile accessProfile) {
+        String detailedStatusMessage;
+        com.emc.storageos.db.client.model.StorageSystem storageSystem =
+                _dbClient.queryObject(com.emc.storageos.db.client.model.StorageSystem.class, accessProfile.getSystemId());
+        if (null == storageSystem) {
+            return;
+        }
+        try {
+            _log.info("discoverUnManagedBlockObjects information for storage system {}, native id {} - start",
+                    accessProfile.getSystemId(), storageSystem.getNativeGuid());
+            storageSystem.setDiscoveryStatus(DiscoveredDataObject.DataCollectionJobStatus.IN_PROGRESS.toString());
+            _dbClient.updateObject(storageSystem);
+            if (accessProfile.getnamespace().equals(com.emc.storageos.db.client.model.StorageSystem.Discovery_Namespaces.UNMANAGED_VOLUMES.toString())) {
+                unManagedVolumeDiscoverer.discoverUnManagedBlockObjects((BlockStorageDriver)driver, storageSystem, _dbClient, _partitionManager);
+            }
+
+            // discovery succeeds
+            detailedStatusMessage = String.format("discoverUnManagedBlockObjects completed successfully for %s: %s",
+                    storageSystem.getNativeId(), storageSystem.getId().toString());
+            _log.info(detailedStatusMessage);
+
+        } catch (Exception e) {
+            String message = String.format("discoverUnManagedBlockObjects failed for system %s with native id %s : %s .",
+                    storageSystem.getId(), storageSystem.getNativeGuid(), e.getMessage());
+            _log.error(message, e);
+            storageSystem.setLastDiscoveryStatusMessage(message);
+            throw e;
+        } finally {
+            _dbClient.updateObject(storageSystem);
+            _log.info("discoverUnManagedBlockObjects for system {} of type {} - end", accessProfile.getSystemId(), accessProfile.getSystemType());
         }
     }
 
@@ -246,12 +299,14 @@ public class ExternalDeviceCommunicationInterface extends
             }
             String message = String.format("Storage array %s with native id %s was discovered successfully.",
                     storageSystem.getId(), storageSystem.getNativeGuid());
+            _log.info(message);
             storageSystem.setLastDiscoveryStatusMessage(message);
         } catch (Exception e) {
             if (storageSystem != null) {
                 String message = String.format("Failed to discover storage array %s with native id %s : %s .",
                         storageSystem.getId(), storageSystem.getNativeGuid(), e.getMessage());
                 storageSystem.setLastDiscoveryStatusMessage(message);
+                _log.error(message, e);
             }
             throw e;
         } finally {
@@ -358,6 +413,7 @@ public class ExternalDeviceCommunicationInterface extends
             } else {
                 String errorMsg = String.format("Failed to discover storage pools for system %s of type %s",
                         accessProfile.getSystemId(), accessProfile.getSystemType());
+                storageSystem.setLastDiscoveryStatusMessage(errorMsg);
                 throw new ExternalDeviceCollectionException(false, ServiceCode.DISCOVERY_ERROR,
                         null, errorMsg, null, null);
             }
@@ -368,9 +424,11 @@ public class ExternalDeviceCommunicationInterface extends
         } catch (Exception e) {
                 String message = String.format("Failed to discover storage pools of storage array %s with native id %s : %s .",
                         storageSystem.getId(), storageSystem.getNativeGuid(), e.getMessage());
-            _log.info(message);
+            _log.error(message, e);
+            storageSystem.setLastDiscoveryStatusMessage(message);
             throw e;
         } finally {
+            _dbClient.updateObject(storageSystem);
             _log.info("Discovery of storage pools of storage system {} of type {} - end", accessProfile.getSystemId(), accessProfile.getSystemType());
         }
 
@@ -473,9 +531,11 @@ public class ExternalDeviceCommunicationInterface extends
         } catch (Exception e) {
             String message = String.format("Failed to discover storage ports of storage array %s with native id %s : %s .",
                     storageSystem.getId(), storageSystem.getNativeGuid(), e.getMessage());
-            _log.info(message);
+            _log.error(message, e);
+            storageSystem.setLastDiscoveryStatusMessage(message);
             throw e;
         } finally {
+            _dbClient.updateObject(storageSystem);
             _log.info("Discovery of storage ports of storage system {} of type {} - end", accessProfile.getSystemId(), accessProfile.getSystemType());
         }
     }
@@ -497,7 +557,7 @@ public class ExternalDeviceCommunicationInterface extends
         _log.info("discoverPort: portNetworkId: {} ", storagePort.getPortNetworkId());
     }
 
-    private StorageSystem initStorageSystem(com.emc.storageos.db.client.model.StorageSystem storageSystem) {
+    public static StorageSystem initStorageSystem(com.emc.storageos.db.client.model.StorageSystem storageSystem) {
         StorageSystem driverStorageSystem = new StorageSystem();
         driverStorageSystem.setNativeId(storageSystem.getNativeId());
         driverStorageSystem.setIpAddress(storageSystem.getIpAddress());

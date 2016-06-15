@@ -7,24 +7,27 @@ package com.emc.storageos.db.client.model.UnManagedDiscoveredObjects;
 import com.emc.storageos.db.client.model.AlternateId;
 import com.emc.storageos.db.client.model.Cf;
 import com.emc.storageos.db.client.model.Name;
+import com.emc.storageos.db.client.model.QuotaDirectory.SecurityStyles;
 
 @Cf("UnManagedFileQuotaDirectory")
 public class UnManagedFileQuotaDirectory extends UnManagedFileObject {
 
     // GUID of parent FS
-    protected String _parentFSNativeGuid;
+    private String _parentFSNativeGuid;
 
-    protected Boolean _opLock;
+    private Boolean _opLock;
 
-    protected Long _size;
+    private Long _size;
 
-    protected Integer _softLimit;
+    private Integer _softLimit;
 
-    protected Integer _notificationLimit;
+    private Integer _notificationLimit;
 
-    protected Integer _softGrace;
+    private Integer _softGrace;
 
-    protected String _nativeId;
+    private String _nativeId;
+
+    private String _securityStyle = SecurityStyles.parent.name();
 
     /**
      * Get parent fs native guid
@@ -105,5 +108,15 @@ public class UnManagedFileQuotaDirectory extends UnManagedFileObject {
     public void setNativeId(String _nativeId) {
         this._nativeId = _nativeId;
         setChanged("nativeId");
+    }
+
+    @Name("securityStyle")
+    public String getSecurityStyle() {
+        return _securityStyle;
+    }
+
+    public void setSecurityStyle(String _securityStyle) {
+        this._securityStyle = _securityStyle;
+        setChanged("securityStyle");
     }
 }

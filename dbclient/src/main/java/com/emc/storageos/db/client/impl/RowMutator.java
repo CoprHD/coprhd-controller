@@ -28,6 +28,10 @@ import com.netflix.astyanax.util.TimeUUIDUtils;
 /**
  * Encapsulates batch queries for record and index updates
  */
+
+/**
+ * @deprecated
+ */
 public class RowMutator {
     private static final Logger log = LoggerFactory.getLogger(RowMutator.class);
     

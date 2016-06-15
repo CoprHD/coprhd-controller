@@ -782,7 +782,7 @@ test_3() {
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
 
     # Turn on suspend of export after orchestration
-    set_suspend_on_class_method MaskingWorkflowEntryPoints.doExportGroupDelete
+    set_suspend_on_class_method MaskingWorkflowEntryPoints.exportGroupDelete
 
     # Run the export group command TODO: Do this more elegantly
     echo === export_group delete $PROJECT/${expname}1
@@ -804,6 +804,12 @@ test_3() {
     # Create another volume that we will inventory-only delete
     runcmd volume create du-hijack-volume ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 1
     device_id=`volume show ${PROJECT}/du-hijack-volume | grep native_id | awk '{print $2}' | cut -c2-6`
+
+    if [ "$XTREMIO_TESTS" -eq "1" ]; then
+        device_id=`volume show ${PROJECT}/du-hijack-volume | grep deviceLabel | awk '{print $2}'
+    fi
+
+
     runcmd volume delete ${PROJECT}/du-hijack-volume --vipronly
 
     # Add the volume to the mask (done differently per array type)

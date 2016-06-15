@@ -149,15 +149,11 @@ _list() {
 
 # if snapshot number is not provided, use 0 as default
 _create_version() {
-    local basedir=$(dirname $1)
-    local sn=0
-    [ "${3}" != "" ] && sn="${3}"
 
     # check if version matched
     if [ -L $1 ] ; then
-        local curver=$(_get_version $1)
-        local cursn=$(_get_snapshot_number $1)
-        if [[ "$2" == "${curver}" ]] && [[ "${sn}" == "${cursn}" ]] ; then
+        local ver=$(_get_version $1)
+        if [ "$2" == "${ver}" ] ; then
             # nothing to do if the pointer is linked to expected revision
             return
         fi
@@ -168,6 +164,8 @@ _create_version() {
     fi
 
     # create target revision dir if it does not exist
+    local sn=0
+    [ "${3}" != "" ] && sn="${3}"
     local datadir="${basedir}/${2}.${sn}"
     if [ ! -d "${datadir}" ] ; then
         mkdir ${datadir}

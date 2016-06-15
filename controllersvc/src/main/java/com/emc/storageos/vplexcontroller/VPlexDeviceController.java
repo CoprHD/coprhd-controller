@@ -6027,57 +6027,62 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             }
 
             if (!migrationSources.isEmpty()) {
-                // Now create and execute the sub workflow to delete the
-                // migration source volumes if we have any. If the volume
-                // migrated was ingested VPLEX volume we will not have
-                // the sources.
-                Workflow subWorkflow = _workflowService.getNewWorkflow(this,
-                        DELETE_MIGRATION_SOURCES_WF_NAME, true, UUID.randomUUID().toString());
+                final String workflowKey = "deleteOriginalSources";
+                if (!WorkflowService.getInstance().hasWorkflowBeenCreated(stepId, workflowKey)) {
+                    // Now create and execute the sub workflow to delete the
+                    // migration source volumes if we have any. If the volume
+                    // migrated was ingested VPLEX volume we will not have
+                    // the sources.
+                    Workflow subWorkflow = _workflowService.getNewWorkflow(this,
+                            DELETE_MIGRATION_SOURCES_WF_NAME, true, UUID.randomUUID().toString());
 
-                // Creates steps to remove the migration source volumes from all
-                // export groups containing them and delete them.
-                boolean unexportStepsAdded = vplexAddUnexportVolumeWfSteps(subWorkflow,
-                        null, migrationSources, null);
+                    // Creates steps to remove the migration source volumes from all
+                    // export groups containing them and delete them.
+                    boolean unexportStepsAdded = vplexAddUnexportVolumeWfSteps(subWorkflow,
+                            null, migrationSources, null);
 
-                // Only need to wait for unexport if there was a step for it added
-                // to the workflow.
-                String waitFor = null;
-                if (unexportStepsAdded) {
-                    waitFor = UNEXPORT_STEP;
+                    // Only need to wait for unexport if there was a step for it added
+                    // to the workflow.
+                    String waitFor = null;
+                    if (unexportStepsAdded) {
+                        waitFor = UNEXPORT_STEP;
 
-                    // If the migration sources are unexported, Add a step to
-                    // forget these backend volumes.
-                    addStepToForgetVolumes(subWorkflow, vplexURI, migrationSources, waitFor);
+                        // If the migration sources are unexported, Add a step to
+                        // forget these backend volumes.
+                        addStepToForgetVolumes(subWorkflow, vplexURI, migrationSources, waitFor);
+                    }
+
+                    // Add steps to delete the volumes.
+                    Iterator<URI> migrationSourcesIter = migrationSources.iterator();
+                    while (migrationSourcesIter.hasNext()) {
+                        URI migrationSourceURI = migrationSourcesIter.next();
+                        _log.info("Migration source URI is {}", migrationSourceURI);
+                        Volume migrationSource = _dbClient.queryObject(Volume.class,
+                                migrationSourceURI);
+                        URI sourceSystemURI = migrationSource.getStorageController();
+                        _log.info("Source storage system URI is {}", sourceSystemURI);
+                        StorageSystem sourceSystem = _dbClient.queryObject(StorageSystem.class,
+                                sourceSystemURI);
+
+                        String subWFStepId = subWorkflow.createStepId();
+                        Workflow.Method deleteVolumesMethod = new Workflow.Method(
+                                DELETE_VOLUMES_METHOD_NAME, sourceSystemURI,
+                                Arrays.asList(migrationSourceURI));
+                        _log.info("Creating workflow step to delete source");
+                        subWorkflow.createStep(MIGRATION_VOLUME_DELETE_STEP, String.format(
+                                "Delete volume from storage system: %s", sourceSystemURI),
+                                waitFor, sourceSystemURI, sourceSystem.getSystemType(),
+                                BlockDeviceController.class, deleteVolumesMethod, null, subWFStepId);
+                        _log.info("Created workflow step to delete source");
+                    }
+
+                    // Execute this sub workflow.
+                    DeleteMigrationSourcesCallback wfCallback = new DeleteMigrationSourcesCallback();
+                    subWorkflow.executePlan(null, "Deleted migration sources", wfCallback,
+                            new Object[] { stepId }, null, null);
+                    // Mark this workflow as created/executed so we don't do it again on retry/resume
+                    WorkflowService.getInstance().markWorkflowBeenCreated(stepId, workflowKey);
                 }
-
-                // Add steps to delete the volumes.
-                Iterator<URI> migrationSourcesIter = migrationSources.iterator();
-                while (migrationSourcesIter.hasNext()) {
-                    URI migrationSourceURI = migrationSourcesIter.next();
-                    _log.info("Migration source URI is {}", migrationSourceURI);
-                    Volume migrationSource = _dbClient.queryObject(Volume.class,
-                            migrationSourceURI);
-                    URI sourceSystemURI = migrationSource.getStorageController();
-                    _log.info("Source storage system URI is {}", sourceSystemURI);
-                    StorageSystem sourceSystem = _dbClient.queryObject(StorageSystem.class,
-                            sourceSystemURI);
-
-                    String subWFStepId = subWorkflow.createStepId();
-                    Workflow.Method deleteVolumesMethod = new Workflow.Method(
-                            DELETE_VOLUMES_METHOD_NAME, sourceSystemURI,
-                            Arrays.asList(migrationSourceURI));
-                    _log.info("Creating workflow step to delete source");
-                    subWorkflow.createStep(MIGRATION_VOLUME_DELETE_STEP, String.format(
-                            "Delete volume from storage system: %s", sourceSystemURI),
-                            waitFor, sourceSystemURI, sourceSystem.getSystemType(),
-                            BlockDeviceController.class, deleteVolumesMethod, null, subWFStepId);
-                    _log.info("Created workflow step to delete source");
-                }
-
-                // Execute this sub workflow.
-                DeleteMigrationSourcesCallback wfCallback = new DeleteMigrationSourcesCallback();
-                subWorkflow.executePlan(null, "Deleted migration sources", wfCallback,
-                        new Object[] { stepId }, null, null);
             } else {
                 // No sources to delete. Must have migrated an ingested volume.
                 WorkflowStepCompleter.stepSucceded(stepId);
@@ -6307,6 +6312,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     volumeURIs, opId, null);
             ImportRollbackHandler importRollbackHandler = new ImportRollbackHandler();
             Object[] importRollbackHandlerArgs = new Object[] { importedVolumeURI, createdVolumeURI, vplexVolumeURI };
+            // TODO DUPP CWF: This is a child workflow, needs idempotent check (1 of three flows seems like a subflow)
             workflow.executePlan(completer, successMessage,
                     null, null, importRollbackHandler, importRollbackHandlerArgs);
         } catch (Exception ex) {

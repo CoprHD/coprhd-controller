@@ -673,19 +673,21 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getExportedBlockContinuousCopyByVolume(AssetOptionsContext ctx, URI project, URI volume) {
         debug("getting exported blockContinuousCopy (project=%s) (parent=%s)", project, volume);
         final ViPRCoreClient client = api(ctx);
-        List<URI> copyIds = Lists.newArrayList();
+        Set<URI> exportedMirrors = new HashSet<URI>();
         for (ExportGroupRestRep export : client.blockExports().findByProject(project)) {
             for (ExportBlockParam resource : export.getVolumes()) {
                 if (ResourceType.isType(ResourceType.BLOCK_CONTINUOUS_COPY, resource.getId())) {
-                    copyIds.add(resource.getId());
+                    exportedMirrors.add(resource.getId());
                 }
             }
         }
-        List<BlockMirrorRestRep> copies = Lists.newArrayList();
-        for (URI id: copyIds) {
-            copies.add(client.blockVolumes().getContinuousCopy(volume, id));
-        }
-        return createVolumeOptions(client, copies);
+
+        ExportedBlockResourceFilter<BlockMirrorRestRep> exportedMirrorFilter =
+                new ExportedBlockResourceFilter<BlockMirrorRestRep>(exportedMirrors);
+
+        List<BlockMirrorRestRep> mirrors = client.blockVolumes().getContinuousCopies(volume, exportedMirrorFilter);
+
+        return createVolumeOptions(client, mirrors);
     }
 
     @Asset("vplexVolumeWithSnapshots")
@@ -750,6 +752,22 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             return !exportedBlockResources.contains(resourceId);
         }
 
+    }
+
+    public static class ExportedBlockResourceFilter<T extends BlockObjectRestRep> extends DefaultResourceFilter<T> {
+
+        /** The list of block resources ids that have been exported */
+        private final Set<URI> exportedBlockResources;
+
+        public ExportedBlockResourceFilter(Set<URI> exportedBlockResources) {
+            this.exportedBlockResources = exportedBlockResources;
+        }
+
+        @Override
+        public boolean acceptId(URI resourceId) {
+            // accept this volume if it has been exported
+            return exportedBlockResources.contains(resourceId);
+        }
     }
 
     @Asset("blockVirtualPool")

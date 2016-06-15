@@ -440,6 +440,10 @@ _set_ip_props() {
     # 3.2 sort new site IDs
     currVdcSiteIdsKey=${currVdcPropPrefix}"_site_ids";
     new_sites_ids=${newVdcPropMap["${currVdcSiteIdsKey}"]}
+    if [ -z ${new_sites_ids} ]; then
+        new_sites_ids=${newVdcPropMap["site_ids"]}
+        echo "${currVdcSiteIdsKey}=${new_sites_ids}" >> "${1}"
+    fi
     tmpNewSiteIdsArray=()
     IFS=',' read -ra tmpNewSiteIdsArray <<< ${new_sites_ids}
     newSiteIdsArray=($(sort<<< "${tmpNewSiteIdsArray[*]}"))

@@ -847,15 +847,16 @@ _rollback() {
         echo "/data/geodb/${rollback_revision}.0 is not found, do nothing"
         return
     fi
-    # here the snapshot number use 1 for now, consider how to do it more gracefully
-    if [ ! -d "/data/zk/${rollback_revision}.1" ] ; then
-        echo "/data/zk/${rollback_revision}.1 is not found, do nothing"
-        return
-    fi
+
     /etc/datatool --set-version /data/db/1 "${rollback_revision}"
     /etc/datatool --set-version /data/geodb/1 "${rollback_revision}"
-    # need to think how to determine the snapshot number instead of using 1 as default in future before merge in master
-    /etc/datatool --set-version-snapshot /data/zk/version-2 "${rollback_revision}" 1
+    # use base snapshot of rollback revision
+    local sn=$(/etc/datatool --get-base-snapshot-number  /data/zk/version-2 "${rollback_revision}")
+    if [ "${sn}" == "" ] ; then
+        echo "No viable snapshot for /data/zk/${rollback_revision}"
+        return
+    fi
+    /etc/datatool --set-version-snapshot /data/zk/version-2 "${rollback_revision}" "${sn}"
     _clear_rollback_flag
 }
 

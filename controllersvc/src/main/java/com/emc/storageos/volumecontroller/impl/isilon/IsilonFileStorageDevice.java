@@ -2608,7 +2608,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         dataSource.addProperty(CustomConfigConstants.ISILON_CLUSTER_NAME, clusterName);
         String configPath = customConfigHandler.getComputedCustomConfigValue(CustomConfigConstants.ISILON_PATH_CUSTOMIZATION, "isilon",
                 dataSource);
-        _log.info("The isilon user defined custom path is  {}", configPath);
+        _log.debug("The isilon user defined custom path is  {}", configPath);
         if (configPath != null && !configPath.isEmpty()) {
             path = args.getPathWithoutSpecialCharacters(configPath);
         }

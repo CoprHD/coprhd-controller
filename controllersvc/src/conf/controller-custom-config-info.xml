@@ -895,7 +895,7 @@
                 <entry key="isilon" value="vipr"/>                    
             </map>
         </property>
-                <property name="constraints">
+        <property name="constraints">
             <list>
                 <ref bean="illegalCharsConstraint"/>
             </list>
@@ -923,7 +923,7 @@
                 <entry key="isilon" value="{system_access_zone},{user_access_zone},/ifs/sos/"/>                    
             </map>
         </property>
-                <property name="constraints">
+        <property name="constraints">
             <list>
                 <ref bean="isilonDirLocationsIllegalCharsConstraint"/>
             </list>

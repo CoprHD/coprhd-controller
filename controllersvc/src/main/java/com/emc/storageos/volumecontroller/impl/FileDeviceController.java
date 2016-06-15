@@ -3950,9 +3950,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         if (storageObj.deviceIsType(Type.vnxfile)) {
             List<String> lockKeys = new ArrayList<String>();
             lockKeys.add(storageObj.getNativeGuid());
-            _log.info("Time out value is: " + LockTimeoutValue.get(LockType.SRDF_PROVISIONING));
+            _log.info("Time out value is: " + LockTimeoutValue.get(LockType.VNX_FILE_PROVISIONING));
             boolean lockAcquired = _workflowService.acquireWorkflowStepLocks(opId, lockKeys,
-                    LockTimeoutValue.get(LockType.SRDF_PROVISIONING));
+                    LockTimeoutValue.get(LockType.VNX_FILE_PROVISIONING));
             if (!lockAcquired) {
                 throw DeviceControllerException.exceptions.failedToAcquireWorkflowLock(lockKeys.toString(), opId);
             }

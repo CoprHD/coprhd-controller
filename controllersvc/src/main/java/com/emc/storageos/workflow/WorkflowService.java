@@ -1438,7 +1438,7 @@ public class WorkflowService {
             if (workflow == null) {
                 throw new WorkflowException("Could not load workflow for step: " + stepId);
             }
-            Long stepStartTimeSeconds = System.currentTimeMillis() / MILLISECONDS_IN_SECOND;
+            Long stepStartTimeSeconds = System.currentTimeMillis();
             StepStatus stepStatus = workflow.getStepStatusMap().get(stepId);
             if (stepStatus != null && stepStatus.startTime != null) {
                 stepStartTimeSeconds = stepStatus.startTime.getTime() / MILLISECONDS_IN_SECOND;

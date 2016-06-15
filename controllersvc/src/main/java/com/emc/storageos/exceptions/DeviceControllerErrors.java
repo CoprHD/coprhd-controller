@@ -164,8 +164,9 @@ public interface DeviceControllerErrors {
     @DeclareServiceCode(ServiceCode.CONTROLLER_MIXING_CLUSTERED_AND_NON_CLUSTERED_INITIATORS)
     public ServiceError mixingClusteredAndNonClusteredInitiators();
 
-    @DeclareServiceCode(ServiceCode.CONTROLLER_NON_CLUSTER_EXPORT_WITH_INITIATORS_IN_DIFFERENT_IGS)
-    public ServiceError nonClusterExportWithInitiatorsInDifferentExistingIGs();
+    @DeclareServiceCode(ServiceCode
+            .CONTROLLER_NON_CLUSTER_EXPORT_WITH_INITIATORS_IN_DIFFERENT_IGS)
+            public ServiceError nonClusterExportWithInitiatorsInDifferentExistingIGs();
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_EXISTING_IG_HAS_DIFFERENT_PORTS)
     public ServiceError existingInitiatorGroupHasDifferentPorts(String name);
@@ -194,7 +195,7 @@ public interface DeviceControllerErrors {
     @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
     public ServiceError changeVirtualArrayFailed(final String volUris,
             final String operationName, final Throwable cause);
-
+    
     @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
     public ServiceError createFileSharesFailed(final String fsUris, final String operationName, final Throwable cause);
 

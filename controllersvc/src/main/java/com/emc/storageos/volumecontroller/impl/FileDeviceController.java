@@ -294,6 +294,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             } else { // we need to add task completer
                 fsObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
             }
+
             if (result.isCommandSuccess()) {
                 fsObj.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(_dbClient, fsObj));
                 fsObj.setInactive(false);
@@ -3954,7 +3955,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             boolean lockAcquired = _workflowService.acquireWorkflowStepLocks(opId, lockKeys,
                     LockTimeoutValue.get(LockType.VNX_FILE_PROVISIONING));
             if (!lockAcquired) {
-                throw DeviceControllerException.exceptions.failedToAcquireWorkflowLock(lockKeys.toString(), opId);
+                throw DeviceControllerException.exceptions.failedToAcquireWorkflowLock(lockKeys.toString(), "Timeout in Acquiring Lock");
             }
         }
     }

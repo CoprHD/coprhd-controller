@@ -1068,8 +1068,13 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     }
 
     @Override
-    public List<Integer> findHLUsForInitiators(StorageSystem storage, List<String> initiatorNames) {
+    public Set<Integer> findHLUsForInitiators(StorageSystem storage, List<String> initiatorNames) {
         return _exportMaskOperationsHelper.findHLUsForInitiators(storage, initiatorNames);
+    }
+
+    @Override
+    public Integer getMaximumAllowedHLU(StorageSystem storage) {
+        return _exportMaskOperationsHelper.getMaximumAllowedHLU(storage);
     }
 
     @Override

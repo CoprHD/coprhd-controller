@@ -91,7 +91,10 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
             // TODO what about co-existence / brownfield case?
             // TODO check if cluster has 'n' masking views before proceeding?
 
-            List<Integer> usedHlus = getDevice().findHLUsForInitiators(null, initiatorNames);
+            Set<Integer> usedHlus = getDevice().findHLUsForInitiators(null, initiatorNames);
+
+            Integer maxHLU = getDevice().getMaximumAllowedHLU(null);
+
         }
     }
 

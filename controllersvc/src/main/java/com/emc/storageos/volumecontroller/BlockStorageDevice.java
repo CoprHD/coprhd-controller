@@ -655,8 +655,16 @@ public interface BlockStorageDevice {
      * @param initiatorNames the initiator names
      * @return the HLUs for the given initiators
      */
-    // TODO List to Set
-    public List<Integer> findHLUsForInitiators(StorageSystem storage, List<String> initiatorNames);
+    // TODO mustHaveAllPorts required? I don't think as we need HLUs for every Initiator
+    public Set<Integer> findHLUsForInitiators(StorageSystem storage, List<String> initiatorNames);
+
+    /**
+     * Gets the maximum allowed HLU number for the storage array.
+     *
+     * @param storage the storage system
+     * @return the maximum allowed HLU number for the storage array
+     */
+    public Integer getMaximumAllowedHLU(StorageSystem storage);
 
     /**
      * This call will be used to update the ExportMask with the latest data from the array.

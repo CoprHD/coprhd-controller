@@ -1673,7 +1673,13 @@ public class HDSExportOperations implements ExportMaskOperations {
     }
 
     @Override
-    public List<Integer> findHLUsForInitiators(StorageSystem storage, List<String> initiatorNames) {
+    public Set<Integer> findHLUsForInitiators(StorageSystem storage, List<String> initiatorNames) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public Integer getMaximumAllowedHLU(StorageSystem storage) {
         // TODO Auto-generated method stub
         return null;
     }

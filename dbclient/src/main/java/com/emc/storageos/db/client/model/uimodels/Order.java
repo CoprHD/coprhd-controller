@@ -25,7 +25,6 @@ public class Order extends ModelObject implements TenantDataObject {
     public static final String EXECUTION_WINDOW_ID = "executionWindowId";
     public static final String TENANT = TenantDataObject.TENANT_COLUMN_NAME;
     public static final String ORDER_NUMBER = "orderNumber";
-    public static final String WORKFLOW_STATUS = "workflowStatus";
 
     /** User friendly Order number */
     private String orderNumber;
@@ -47,8 +46,6 @@ public class Order extends ModelObject implements TenantDataObject {
     private Date dateCompleted;
 
     private String orderStatus;
-    
-    private String workflowStatus;
 
     private String tenant;
 
@@ -119,16 +116,6 @@ public class Order extends ModelObject implements TenantDataObject {
         setChanged(ORDER_STATUS);
     }
     
-    @Name(WORKFLOW_STATUS)
-    public String getWorkflowStatus() {
-        return workflowStatus;
-    }
-
-    public void setWorkflowStatus(String workflowStatus) {
-        this.workflowStatus = workflowStatus;
-        setChanged(WORKFLOW_STATUS);
-    }
-
     @AlternateId("UserToOrders")
     @Name(SUBMITTED_BY_USER_ID)
     public String getSubmittedByUserId() {

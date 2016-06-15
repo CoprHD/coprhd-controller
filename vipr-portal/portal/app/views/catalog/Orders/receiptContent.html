@@ -14,7 +14,6 @@
         case '${com.emc.storageos.db.client.model.uimodels.OrderStatus.EXECUTING}':
         case '${com.emc.storageos.db.client.model.uimodels.OrderStatus.SCHEDULED}':
         case '${com.emc.storageos.db.client.model.uimodels.OrderStatus.APPROVAL}':
-        //case '${com.emc.storageos.db.client.model.uimodels.OrderStatus.PAUSED}':
             return true;
         }
         return false;
@@ -84,7 +83,7 @@
     function pauseOrder(){
     	var lastUpdated = $('#orderDetails #lastUpdated').html();
     	var orderId = '${orderId}';
-    	var url = #{jsAction @catalog.Orders.pauseOrder(':orderId', ':lastUpdated') /};//routes.Orders_pauseOrder({orderId: orderId, lastUpdated: lastUpdated});
+    	var url = #{jsAction @catalog.Orders.pauseOrder(':orderId', ':lastUpdated') /};
     	//@{catalog.Orders.resubmitOrder(details.order?.id)}
     	 $.post(url({orderId: orderId, lastUpdated: lastUpdated}), function(data) {
     		 $("#opPause").prop('disabled', true);
@@ -99,7 +98,7 @@
     function resumeOrder(){
     	var lastUpdated = $('#orderDetails #lastUpdated').html();
     	var orderId = '${orderId}';
-    	var url = #{jsAction @catalog.Orders.resumeOrder(':orderId', ':lastUpdated') /};//routes.Orders_resumeOrder({orderId: orderId, lastUpdated: lastUpdated});
+    	var url = #{jsAction @catalog.Orders.resumeOrder(':orderId', ':lastUpdated') /};
     	 $.post(url({orderId: orderId, lastUpdated: lastUpdated}), function(data) {
     		 $("#opResume").prop('disabled', true);
              Receipt.update(data);
@@ -177,12 +176,12 @@
       <span id="flowControl">
       %{ isExecuting = details.order.isExecuting() || details.order.isPending() }%
       #{if isExecuting}
-      <a href="#" onclick="pauseOrder(); return false;"><span id='opPause' class='btn btn-danger btn-xs'><span class='glyphicon glyphicon-pause'></span></span> </a>
+      <a href="#" onclick="pauseOrder(); return false;"><span id='opPause' class='btn btn-info btn-xs'><span class='glyphicon glyphicon-pause'></span></span> </a>
       
       #{/if}
        %{ isExecuting = details.order.isPaused() }%
       #{if isExecuting}
-      <a href="#" onclick="resumeOrder(); return false;"><span id='opResume' class='btn btn-danger btn-xs'><span class='glyphicon glyphicon-play'></span></span> </a>
+      <a href="#" onclick="resumeOrder(); return false;"><span id='opResume' class='btn btn-info btn-xs'><span class='glyphicon glyphicon-play'></span></span> </a>
       
       #{/if}
       </span>

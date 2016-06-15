@@ -62,8 +62,6 @@ public class OrderRestRep extends DataObjectRestRep {
      */
     private String orderStatus;
     
-    private String workflowStatus;
-
     /**
      * Parameters to an order
      */
@@ -135,15 +133,6 @@ public class OrderRestRep extends DataObjectRestRep {
 
     public void setOrderStatus(String status) {
         this.orderStatus = status;
-    }
-    
-    @XmlElement(name = "workflow_status")
-    public String getWorkflowStatus() {
-        return workflowStatus;
-    }
-
-    public void setWorkflowStatus(String status) {
-        this.workflowStatus = status;
     }
 
     @XmlElement(name = "submitted_by")

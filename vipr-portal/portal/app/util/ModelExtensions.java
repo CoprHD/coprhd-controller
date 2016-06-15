@@ -82,7 +82,7 @@ public class ModelExtensions extends JavaExtensions {
     }
     
     public static boolean isPaused(OrderRestRep order) {
-        return "PAUSED".equals(order.getWorkflowStatus());//isStatus(order, OrderStatus.PAUSED);
+        return isStatus(order, OrderStatus.PAUSED);
     }
 
     public static boolean isStatus(OrderRestRep order, OrderStatus status) {

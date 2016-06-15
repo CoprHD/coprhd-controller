@@ -4,13 +4,20 @@
  */
 package com.emc.sa.service.vipr;
 
+import static com.emc.storageos.db.client.URIUtil.uri;
+
 import java.net.URI;
 import java.util.List;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.emc.sa.engine.ExecutionContext;
 import com.emc.sa.engine.ExecutionTask;
 import com.emc.sa.engine.ExecutionUtils;
+import com.emc.storageos.db.client.model.uimodels.Order;
 import com.emc.storageos.model.DataObjectRestRep;
+import com.emc.storageos.workflow.Workflow;
 import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
 import com.emc.vipr.client.core.util.ResourceUtils;
@@ -21,6 +28,8 @@ import com.emc.vipr.client.core.util.ResourceUtils;
  * @author jonnymiller
  */
 public class ViPRExecutionUtils {
+    
+    private static final Logger _log = LoggerFactory.getLogger(ViPRExecutionUtils.class);
     public static URI uri(String id) {
         return ResourceUtils.uri(id);
     }
@@ -39,18 +48,6 @@ public class ViPRExecutionUtils {
     }
 
     public static <T> T execute(ExecutionTask<T> task) {
-        ExecutionContext context = ExecutionUtils.currentContext();
-        String orderStatus = context.getOrder().getWorkflowStatus();
-        while ("PAUSED".equalsIgnoreCase(orderStatus)) {
-            try {
-                Thread.sleep(1000);
-                // requery order to get its updated status
-                orderStatus = context.getModelClient().orders().findById(context.getOrder().getId()).getWorkflowStatus();
-            } catch (InterruptedException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            }
-        }
         return ExecutionUtils.execute(task);
     }
 

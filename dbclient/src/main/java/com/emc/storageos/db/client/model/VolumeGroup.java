@@ -7,6 +7,9 @@ package com.emc.storageos.db.client.model;
 import java.net.URI;
 import java.util.Set;
 
+import javax.xml.bind.annotation.XmlElement;
+
+
 @Cf("VolumeGroup")
 public class VolumeGroup extends DataObject {
 
@@ -25,26 +28,56 @@ public class VolumeGroup extends DataObject {
 
     private String migrationGroupBy;
 
+    private String migrationStatus;
+
+
     public static enum MigrationGroupBy {
         VOLUMES,
         HOSTS,
-        CLUSTERS
+        CLUSTERS,
+        STORAGEGROUP
     }
 
     public static enum VolumeGroupRole {
         COPY,
         DR,
-        MOBILITY
+        MOBILITY,
+        APPLICATION
     }
 
     public static enum MigrationType {
-        VPLEX
+        VPLEX,
+        VMAX
     }
 
-    @Name("migrationGroupBy")
-    public String getMigrationGroupBy() {
-        return migrationGroupBy;
+    public static enum MigrationStatus {
+        NONE,
+        CREATED,
+        MIGRATEINPROGESS,
+        MIGRATIONFAILED,
+        MIGRATED,
+        COMMITINPROGRESS,
+        COMMITFAILED,
+        COMMITCOMPLETED,
+        OTHER
     }
+
+    public static class MigrationOptions {
+
+        // private List<String> unamagedVolumeWWNs;
+        private URI targetStorageSystem;
+
+        @XmlElement(name = "target_storage_system")
+        public URI getTargetStorageSystem() {
+            return targetStorageSystem;
+        }
+
+        public void setTargetStorageSystem(URI targetStorageSystem) {
+            this.targetStorageSystem = targetStorageSystem;
+        }
+    }
+
+    private MigrationOptions migrationOptions;
 
     public void setMigrationGroupBy(String migrationGroupBy) {
         this.migrationGroupBy = migrationGroupBy;
@@ -59,6 +92,35 @@ public class VolumeGroup extends DataObject {
     public void setMigrationType(String migrationType) {
         this.migrationType = migrationType;
         setChanged("migrationType");
+    }
+
+    @Name("migrationStatus")
+    public String getMigrationStatus() {
+        return migrationStatus;
+    }
+
+    public void setMigrationStatus(String migrationStatus) {
+        this.migrationStatus = migrationStatus;
+        setChanged("migrationStatus");
+    }
+
+    /**
+     * Migration Attributes of the volume group
+     * 
+     */
+    @XmlElement(name = "migration_attributes")
+    public MigrationOptions getMigrationOptions() {
+        return migrationOptions;
+    }
+
+    public void setMigrationOptions(MigrationOptions migrationOptions) {
+        this.migrationOptions = migrationOptions;
+    }
+
+    @Name("migrationGroupBy")
+
+    public String getMigrationGroupBy() {
+        return migrationGroupBy;
     }
 
     @Name("description")

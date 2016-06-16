@@ -341,8 +341,14 @@ public enum ResourceOperationTypeEnum {
     DELETE_CONSISTENCY_GROUP_SNAPSHOT_SESSION("DELETE CONSISTENCY GROUP SNAPSHOT SESSION", "delete consistency group snapshot session"),
     CHANGE_FILE_SYSTEM_VPOOL("CHANGE FILE SYSTEM VPOOL", "change file system vpool operation"),
     CREATE_FILE_SYSTEM_MIRROR_COPIES("CREATE FILE SYSTEM MIRROR COPIES", "create file system mirror copies operation"),
-    DELETE_MIRROR_FILE_SYSTEMS("DELETE MIRROR FILE SYSTEMS", "delete mirror file systems operation");
-
+    DELETE_MIRROR_FILE_SYSTEMS("DELETE MIRROR FILE SYSTEMS", "delete mirror file systems operation"),
+    INITIATE_MIGRATION("INITIATE MIGRATION", "initiate application migration"),
+    START_MIGRATION("START_MIGRATION", "start application migration"),
+    COMMIT_APPLICATION("COMMIT APPLICATION", "commit application migration"),
+    DELETE_APPLICATION("DELETE APPLICATION", "delete application migration"),
+    CANCEL_APPLICATION("CANCEL APPLICATION", "cancel application migration"),
+    REFRESH_APPLICATION("REFRESH APPLICATION", "refresh application group"),
+    MIGRATE_APPLICATION("MIGRATE APPLICATION", "migrate application from start to finish");
     private final String name;
     private final String description;
 

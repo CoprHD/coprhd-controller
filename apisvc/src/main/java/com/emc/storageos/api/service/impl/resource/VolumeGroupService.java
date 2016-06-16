@@ -80,6 +80,8 @@ import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.SnapshotList;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.model.application.ApplicationDiscoveryParam;
+import com.emc.storageos.model.application.ApplicationMigrationParam;
 import com.emc.storageos.model.application.VolumeGroupCopySetList;
 import com.emc.storageos.model.application.VolumeGroupCopySetParam;
 import com.emc.storageos.model.application.VolumeGroupCreateParam;
@@ -3852,5 +3854,222 @@ public class VolumeGroupService extends TaskResourceService {
             }
         }
     }
+
+    /**
+     * Discover Application Groups that are suitable for migration
+     * 
+     * @param param is set of parameters for discovering Application groups
+     */
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/discover")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+    public TaskResourceRep discoverApplications(ApplicationDiscoveryParam param) {
+        TaskResourceRep task = null;
+        return task;
+    }
+
+    /**
+     * Initiate the Migration of an Application Group
+     * This will create an Application Group on the Target System and
+     * export the volumes to the same set Set of Hosts/Clusters that
+     * the Source Application group is associated with.
+     * 
+     * @prereq Application group is discovered.
+     * @param id the URN of a ViPR Application Group.
+     * @param param is set parameter values for migrating the Application
+     * @return A TaskResourceRep
+     */
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/initiate-migration")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+    public TaskResourceRep initiateApplicationMigration(@PathParam("id") URI id, ApplicationMigrationParam param) {
+        VolumeGroup application = _dbClient.queryObject(VolumeGroup.class, id);
+        // Create a unique task id.
+        String taskId = UUID.randomUUID().toString();
+        // Create a task for the volume and set the
+        // initial task state to pending.
+        Operation op = _dbClient.createTaskOpStatus(VolumeGroup.class, application.getId(), taskId,
+                ResourceOperationTypeEnum.INITIATE_MIGRATION);
+        TaskResourceRep task = toTask(application, taskId, op);
+        return task;
+    }
+
+    /**
+     * Start the Migration of an Application Group
+     * This will make Application Group on the Source System write-disabled and will
+     * start the migration of the data from the Source System to the target System
+     * 
+     * @prereq Application group on the Target System is created .
+     * @param id the URN of a ViPR Application Group.
+     * @return A TaskResourceRep
+     */
+    @POST
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/migrate")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+    public TaskResourceRep startMigration(@PathParam("id") URI id) {
+        VolumeGroup application = _dbClient.queryObject(VolumeGroup.class, id);
+        // Create a unique task id.
+        String taskId = UUID.randomUUID().toString();
+        // Create a task for the volume and set the
+        // initial task state to pending.
+        Operation op = _dbClient.createTaskOpStatus(VolumeGroup.class, application.getId(), taskId,
+                ResourceOperationTypeEnum.START_MIGRATION);
+        TaskResourceRep task = toTask(application, taskId, op);
+        return task;
+    }
+
+    /**
+     * Commit the Migration of an Application Group
+     * This will make Application Group on the Source System inaccessible and will
+     * severe the application group relationship the Source System to the target System
+     * 
+     * @prereq Application group on the Target System has all the data migrated from the Source System .
+     * @param id the URN of a ViPR Application Group.
+     * @return A TaskResourceRep
+     */
+    @POST
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/commit-migration")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+    public TaskResourceRep commitApplicationMigrationn(@PathParam("id") URI id) {
+        VolumeGroup application = _dbClient.queryObject(VolumeGroup.class, id);
+        // Create a unique task id.
+        String taskId = UUID.randomUUID().toString();
+        // Create a task for the volume and set the
+        // initial task state to pending.
+        Operation op = _dbClient.createTaskOpStatus(VolumeGroup.class, application.getId(), taskId,
+                ResourceOperationTypeEnum.COMMIT_APPLICATION);
+        TaskResourceRep task = toTask(application, taskId, op);
+        return task;
+    }
+
+    // /**
+    // * Delete the Application Group
+    // * This will delete the Application Group (Inventory only)
+    // * post migration completion.
+    // *
+    // * @prereq Application group migration is complete.
+    // * @param id the URN of a ViPR Application Group.
+    // */
+    // @POST
+    // @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    // @Path("/{id}/delete")
+    // @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+    // public TaskResourceRep deleteApplication(@PathParam("id") URI id) {
+    // VolumeGroup application = _dbClient.queryObject(VolumeGroup.class, id);
+    // // Create a unique task id.
+    // String taskId = UUID.randomUUID().toString();
+    // // Create a task for the volume and set the
+    // // initial task state to pending.
+    // Operation op = _dbClient.createTaskOpStatus(VolumeGroup.class, application.getId(), taskId,
+    // ResourceOperationTypeEnum.DELETE_APPLICATION);
+    // TaskResourceRep task = toTask(application, taskId, op);
+    // return task;
+    // }
     
+
+    /**
+     * Cancel the Migration of an Application Group
+     * This will restore the Application Group on the Source System
+     * to its pre-migration state and will free all the resources
+     * created on the target System during migration
+     * 
+     * @prereq Application group on the Target System is created.
+     * @param id the URN of a ViPR Application Group.
+     * @return A TaskResourceRep
+     */
+    @POST
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/cancel-migration")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+    public TaskResourceRep cancelApplicationMigration(@PathParam("id") URI id) {
+        VolumeGroup application = _dbClient.queryObject(VolumeGroup.class, id);
+        // Create a unique task id.
+        String taskId = UUID.randomUUID().toString();
+        // Create a task for the volume and set the
+        // initial task state to pending.
+        Operation op = _dbClient.createTaskOpStatus(VolumeGroup.class, application.getId(), taskId,
+                ResourceOperationTypeEnum.CANCEL_APPLICATION);
+        TaskResourceRep task = toTask(application, taskId, op);
+        return task;
+    }
+
+    /**
+     * Refresh the Application Group
+     * This will refresh the Application Group and update its migrations status,
+     * and other attributes that may have been modified along the way
+     * 
+     * @prereq Application group on the Source System is discovered.
+     * @param id the URN of a ViPR Application Group.
+     */
+    @POST
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/refresh")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+    public TaskResourceRep refreshApplication(@PathParam("id") URI id) {
+        VolumeGroup application = _dbClient.queryObject(VolumeGroup.class, id);
+        // Create a unique task id.
+        String taskId = UUID.randomUUID().toString();
+        // Create a task for the volume and set the
+        // initial task state to pending.
+        Operation op = _dbClient.createTaskOpStatus(VolumeGroup.class, application.getId(), taskId,
+                ResourceOperationTypeEnum.REFRESH_APPLICATION);
+        TaskResourceRep task = toTask(application, taskId, op);
+        return task;
+    }
+
+    /**
+     * Do the Complete Migration of an Application Group
+     * This will migrate the Application Group to the Target System
+     * Initiate/Migrate/Commit all steps will be part of the workflow.
+     * 
+     * @prereq Application group is discovered.
+     * @param id the URN of a ViPR Application Group.
+     * @param param is set parameter values for migrating the Application
+     * @return A TaskResourceRep
+     */
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/migrate-application")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+    public TaskResourceRep migrateApplication(@PathParam("id") URI id, ApplicationMigrationParam param) {
+        VolumeGroup application = _dbClient.queryObject(VolumeGroup.class, id);
+        // Create a unique task id.
+        String taskId = UUID.randomUUID().toString();
+        // Create a task for the volume and set the
+        // initial task state to pending.
+        Operation op = _dbClient.createTaskOpStatus(VolumeGroup.class, application.getId(), taskId,
+                ResourceOperationTypeEnum.MIGRATE_APPLICATION);
+        TaskResourceRep task = toTask(application, taskId, op);
+        return task;
+    }
+
+    // /**
+    // * Refresh the list of Application Group
+    // * This will refresh the list of supplied Application Group and update its migrations status,
+    // * and other attributes that may have been modified along the way
+    // *
+    // * @param ids is the list URN of ViPR Application Groups.
+    // */
+    // @POST
+    // @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    // @Path("/refresh")
+    // @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+    // public TaskResourceRep refreshApplication(List <URI> ids) {
+    // VolumeGroup application = _dbClient.queryObject(VolumeGroup.class, ids.get(0));
+    // // Create a unique task id.
+    // String taskId = UUID.randomUUID().toString();
+    // // Create a task for the volume and set the
+    // // initial task state to pending.
+    // Operation op = _dbClient.createTaskOpStatus(VolumeGroup.class, application.getId(), taskId,
+    // ResourceOperationTypeEnum.REFRESH_APPLICATION);
+    // TaskResourceRep task = toTask(application, taskId, op);
+    // return task;
+    // }
 }

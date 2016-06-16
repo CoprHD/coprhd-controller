@@ -186,8 +186,11 @@ public class ExportService extends VolumeService {
             bAttach = true;
         if (input.contains(ExportOperations.OS_INITIALIZE_CONNECTION.getOperation()))
             bInitCon = true;
+
         if (input.contains(ExportOperations.OS_EXTEND.getOperation())){ // for expand volume
                 //expand size has to be numeric and  null size can't be accepted
+		        // for expand volume verify passed extendsize is in numeric format
+			    // otherwise it will result in Bad Request for improper input
         		String[] extendStrings =input.split(":");
         		String sizeString = extendStrings[2].replaceAll("}","");
         		_log.debug("extend string size value  = {}", sizeString);
@@ -195,7 +198,6 @@ public class ExportService extends VolumeService {
         			_log.info("Improper extend size ={}",sizeString.trim());
         			return CinderApiUtils.createErrorResponse(400, "Bad request : improper volume extend size ");   
         		}
-
             bExtend = true;
         }
         if (input.contains(ExportOperations.OS_SET_BOOTABLE.getOperation()))
@@ -312,7 +314,6 @@ public class ExportService extends VolumeService {
         }
         else if (bReserve) {
             _log.info("IN THE IF CONDITION OF RESERVE");
-            
             if (getVolExtensions(vol).containsKey("status")
                     && getVolExtensions(vol).get("status").equals(ComponentStatus.ATTACHING.getStatus().toLowerCase())){
             	_log.debug("Reserved Volume cannot be  reserved again");
@@ -665,6 +666,9 @@ public class ExportService extends VolumeService {
         // Don't operate on ingested volumes
         VolumeIngestionUtil.checkOperationSupportedOnIngestedVolume(vol,
                 ResourceOperationTypeEnum.EXPAND_BLOCK_VOLUME, _dbClient);
+
+
+        // Get the new size.
 
         // verify quota in cinder side
         Project project = getCinderHelper().getProject(openstackTenantId, getUserFromContext());
@@ -1053,7 +1057,7 @@ public class ExportService extends VolumeService {
         }
         return true;
     }
-    
+
     private Host searchHostInDb(String hostname) {
         SearchedResRepList resRepList = new SearchedResRepList(ResourceTypeEnum.HOST);
         _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getConstraint(Host.class, "hostName", hostname),

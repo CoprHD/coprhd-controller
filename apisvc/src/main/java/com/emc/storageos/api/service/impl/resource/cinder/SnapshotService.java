@@ -170,13 +170,11 @@ public class SnapshotService extends TaskResourceService {
             snapshotName = param.snapshot.name;
             snapshotDescription = param.snapshot.description;
         }
-
         //if snapshot name is empty create random name
         if (snapshotName == null)
         {
         	snapshotName = "snapshot-random-" + RandomStringUtils.random(10);
         }
-        
         if (snapshotName == null || (snapshotName.length() <= 2))
         {
             throw APIException.badRequests

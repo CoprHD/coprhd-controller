@@ -130,7 +130,9 @@ public class VolumeService extends TaskResourceService {
     private static final String PROJECT_TENANTID_NULL = "Both Project and Tenant Id are null";
     private static final String TRUE = "true";
     private static final int STATUS_ACCEPT = 202;
+
     private static final int STATUS_OK = 200;
+
 
     private PlacementManager _placementManager;
     private CinderHelpers helper;// = new CinderHelpers(_dbClient , _permissionsHelper);
@@ -519,7 +521,6 @@ public class VolumeService extends TaskResourceService {
                     tagSet.add(tagLabel);
 
                     _dbClient.updateAndReindexObject(vol);
-
                     return CinderApiUtils.getCinderResponse(getVolumeDetail(vol, isV1Call, openstackTenantId), header, true,STATUS_ACCEPT);
                 }
                 else {

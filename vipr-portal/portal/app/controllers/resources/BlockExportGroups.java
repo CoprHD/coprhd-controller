@@ -16,6 +16,7 @@ import org.apache.commons.lang.StringUtils;
 
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.block.export.ClustersUpdateParam;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
 import com.emc.storageos.model.block.export.ExportUpdateParam;
@@ -130,7 +131,8 @@ public class BlockExportGroups extends ResourceController {
             @Override
             public boolean accept(InitiatorRestRep item) {
                 return !initiatorsInExport.contains(item.getId())
-                        && (validHosts.isEmpty() || validHosts.contains(item.getHost().getId()));
+                        && (validHosts.isEmpty() || (item.getHost() != null && !NullColumnValueGetter.isNullURI(item.getHost().getId())
+                                && validHosts.contains(item.getHost().getId())));
             }
         });
     }
@@ -150,7 +152,9 @@ public class BlockExportGroups extends ResourceController {
 
             List<URI> validHosts = Lists.newArrayList();
             for (InitiatorRestRep initiator : exportGroup.getInitiators()) {
-                validHosts.add(initiator.getHost().getId());
+                if (initiator.getHost() != null && !NullColumnValueGetter.isNullURI(initiator.getHost().getId())) {
+                    validHosts.add(initiator.getHost().getId());
+                }
             }
             return validHosts;
         }

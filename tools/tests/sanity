@@ -1991,18 +1991,21 @@ srdf_tests()
    echo 'Run SRDF tests'
    echo 'About to run cos matcher test'
    srdf_cos_matcher_test
-   echo 'About to run basic SRDF async test'
-   sleep 60
-   srdf_basic_async_test
-   echo 'About to run basic SRDF sync test'
-   sleep 60
-   srdf_basic_sync_test
+   
    echo 'About to run basic SRDF active test'
    sleep 60
    srdf_basic_active_test
    echo 'About to run V3 SRDF cos change test'
    sleep 60
    srdf_v3_cos_change
+   
+   echo 'About to run basic SRDF async test'
+   sleep 60
+   srdf_basic_async_test
+   echo 'About to run basic SRDF sync test'
+   sleep 60
+   srdf_basic_sync_test
+   
    echo 'About to run SRDF cos change test'
    sleep 60
    srdf_cos_change

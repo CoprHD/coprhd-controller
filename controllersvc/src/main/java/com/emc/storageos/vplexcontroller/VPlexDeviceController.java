@@ -155,7 +155,6 @@ import com.emc.storageos.vplex.api.VPlexDeviceInfo;
 import com.emc.storageos.vplex.api.VPlexDistributedDeviceInfo;
 import com.emc.storageos.vplex.api.VPlexInitiatorInfo.Initiator_Type;
 import com.emc.storageos.vplex.api.VPlexMigrationInfo;
-import com.emc.storageos.vplex.api.VPlexPortInfo;
 import com.emc.storageos.vplex.api.VPlexStorageViewInfo;
 import com.emc.storageos.vplex.api.VPlexVirtualVolumeInfo;
 import com.emc.storageos.vplex.api.VPlexVirtualVolumeInfo.WaitOnRebuildResult;
@@ -841,6 +840,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 String clusterId = ConnectivityUtil.getVplexClusterForVarray(
                         vplexVolumeVarrayURI, vplexVolume.getStorageController(), _dbClient);
                 List<VolumeInfo> vinfos = new ArrayList<VolumeInfo>();
+                boolean thinEnabled = false;
                 for (Volume storageVolume : volumeMap.get(vplexVolume)) {
                     StorageSystem storage = storageMap.get(storageVolume.getStorageController());
                     List<String> itls = VPlexControllerUtils.getVolumeITLs(storageVolume);
@@ -856,6 +856,12 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         vinfos.add(0, info);
                     } else {
                         vinfos.add(info);
+                    }
+
+                    if (info.getIsThinProvisioned()) {
+                        // if either or both legs of distributed is thin, try for thin-enabled
+                        // (or if local and the single backend volume is thin, try as well)
+                        thinEnabled = true;
                     }
                 }
                 // Update rollback information.
@@ -873,12 +879,14 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // physical volumes.
                 boolean isDistributed = (vinfos.size() >= 2);
                 VPlexVirtualVolumeInfo vvInfo = client.createVirtualVolume(vinfos, isDistributed, false, false, clusterId, clusterInfoList,
-                        false);
+                        false, thinEnabled);
 
                 if (vvInfo == null) {
                     VPlexApiException ex = VPlexApiException.exceptions.cantFindRequestedVolume(vplexVolume.getLabel());
                     throw ex;
                 }
+
+                checkThinEnabledResult(vvInfo, thinEnabled, _workflowService.getWorkflowFromStepId(stepId).getOrchTaskId());
 
                 vplexVolumeNameMap.put(vvInfo.getName(), vplexVolume);
                 virtualVolumeInfos.add(vvInfo);
@@ -5764,6 +5772,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             // First update the virtual volume CoS, if necessary.
             Volume volume = _dbClient.queryObject(Volume.class, virtualVolumeURI);
+
             if (newVpoolURI != null) {
                 // Typically the source side backend volume has the same vpool as the
                 // VPLEX volume. If the source side is not being migrated when the VPLEX
@@ -5786,6 +5795,59 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 _dbClient.updateObject(volume);
             }
 
+            // If volumes are exported, and this is change varray operation, we need to remove the volume from the current exportGroup, then
+            // add it to another export group, which has the same new virtual array, and the same host, 
+            // or create a new exportGroup 
+            if (newVarrayURI != null && volume.isVolumeExported(_dbClient)) {
+                URIQueryResultList exportGroupURIs = new URIQueryResultList();
+                _dbClient.queryByConstraint(ContainmentConstraint.Factory.getBlockObjectExportGroupConstraint(virtualVolumeURI), 
+                        exportGroupURIs);
+                Iterator<URI> iterator = exportGroupURIs.iterator();
+                while (iterator.hasNext()) {
+                    URI egUri = iterator.next();
+                    ExportGroup eg = _dbClient.queryObject(ExportGroup.class, egUri);
+                    if (eg != null) {
+                        StringMap volumesMap = eg.getVolumes();
+                        String lun = volumesMap.get(virtualVolumeURI.toString());
+                        if (lun == null || lun.isEmpty()) {
+                            lun = ExportGroup.LUN_UNASSIGNED_DECIMAL_STR;
+                        }
+                        List<URI> initiators = StringSetUtil.stringSetToUriList(eg.getInitiators());
+                        ExportGroup newEg = null;
+                        if(initiators != null && !initiators.isEmpty()) {
+                            URI initiatorUri = initiators.get(0);
+                            AlternateIdConstraint constraint = AlternateIdConstraint.Factory.getExportGroupInitiatorConstraint(initiatorUri.toString());
+                            URIQueryResultList egUris = new URIQueryResultList();
+                            _dbClient.queryByConstraint(constraint, egUris);
+                            Iterator<URI> egIt = egUris.iterator();
+                            while (egIt.hasNext()) {
+                                ExportGroup theEg = _dbClient.queryObject(ExportGroup.class, egIt.next());
+                                if (theEg.getVirtualArray().equals(newVarrayURI)) {
+                                    List<URI>theEgInits = StringSetUtil.stringSetToUriList(theEg.getInitiators());
+                                    if (theEgInits.containsAll(initiators) && theEgInits.size() == initiators.size()) {
+                                        _log.info(String.format("Found existing exportGroup %s", theEg.getId().toString()));
+                                        newEg = theEg;
+                                        break;
+                                    }
+                                }
+                            }
+
+                        }
+                        if (newEg != null) {
+                            // add the volume to the export group
+                            newEg.addVolume(virtualVolumeURI, Integer.valueOf(lun));
+                            _dbClient.updateObject(newEg);
+                        } else {
+                            // create a new export group
+                            _log.info("Creating new ExportGroup");
+                            createExportGroup(eg, volume, Integer.valueOf(lun));
+                        }
+                        eg.removeVolume(virtualVolumeURI);
+                        _dbClient.updateObject(eg);
+                    }
+                }
+            }
+            
             if (!migrationSources.isEmpty()) {
                 // Now create and execute the sub workflow to delete the
                 // migration source volumes if we have any. If the volume
@@ -6258,11 +6320,12 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 StorageSystem array = getDataObject(StorageSystem.class, existingVolume.getStorageController(), _dbClient);
                 List<String> itls = VPlexControllerUtils.getVolumeITLs(existingVolume);
                 List<VolumeInfo> vinfos = new ArrayList<VolumeInfo>();
+                boolean thinEnabled = existingVolume.getThinlyProvisioned().booleanValue();
                 vinfo = new VolumeInfo(array.getNativeGuid(), array.getSystemType(),
                         existingVolume.getWWN().toUpperCase().replaceAll(":", ""),
-                        existingVolume.getNativeId(), existingVolume.getThinlyProvisioned().booleanValue(), itls);
+                        existingVolume.getNativeId(), thinEnabled, itls);
                 vinfos.add(vinfo);
-                virtvinfo = client.createVirtualVolume(vinfos, false, true, true, null, null, true);
+                virtvinfo = client.createVirtualVolume(vinfos, false, true, true, null, null, true, thinEnabled);
                 if (virtvinfo == null) {
                     String opName = ResourceOperationTypeEnum.CREATE_VVOLUME_FROM_IMPORT.getName();
                     ServiceError serviceError = VPlexApiException.errors.createVirtualVolumeFromImportStepFailed(opName);
@@ -6271,6 +6334,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 }
                 _log.info(String.format("Created virtual volume: %s path: %s",
                         virtvinfo.getName(), virtvinfo.getPath()));
+
+                checkThinEnabledResult(virtvinfo, thinEnabled, _workflowService.getWorkflowFromStepId(stepId).getOrchTaskId());
 
                 // If the imported volume will be distributed, we must
                 // update the virtual volume device label and native Id.
@@ -10588,7 +10653,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     }
                 }
             }
-
+            
             // Return the last step
             return lastStep;
         } catch (Exception ex) {
@@ -11631,5 +11696,53 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         int maxMigrationAsyncPollingRetries = Integer.valueOf(ControllerUtils.getPropertyValueFromCoordinator(coordinator,
                 "controller_vplex_migration_max_async_polls"));
         VPlexApiClient.setMaxMigrationAsyncPollingRetries(maxMigrationAsyncPollingRetries);
+    }
+
+    /**
+     * Checks the result of a thin provisioning request after a virtual volume
+     * creation request and logs a warning if necessary.
+     * 
+     * @param info the VPlexVirtualVolumeInfo object to check
+     * @param thinEnabled true if the request was to enable thin provisioning
+     * @param taskId the current Workflow task id
+     */
+    private void checkThinEnabledResult(VPlexVirtualVolumeInfo info, boolean thinEnabled, String taskId) {
+        if (thinEnabled && null != info && !info.isThinEnabled()) {
+            // this is not considered an error situation, but we need to log it for the user's knowledge.
+            // stepId is included so that it will appear in the Task's Logs section in the ViPR UI.
+            _log.warn(String.format("Virtual Volume %s was created from a thin virtual pool, but it could not be created "
+                    + "as a thin virtual volume due to inadequate thin-capability of a child component. See controllersvc "
+                    + "and VPLEX API logs for further details. Task ID: %s", info.getName(), taskId));
+        }
+    }
+
+    /**
+     * Create a new ExportGroup based on the old ExportGroup, then add the volume to the new exportGroup
+     * @param oldExportGroup  The old exportGroup that will be based on for the new exportGroup.
+     * @param volume The volume that will be added to the new exportGroup
+     * @param lun The lun number for the volume.
+     */
+    private void createExportGroup(ExportGroup oldExportGroup, Volume volume, Integer lun) {
+        ExportGroup exportGroup = new ExportGroup();
+        exportGroup.setLabel(oldExportGroup.getLabel());
+        exportGroup.setType(oldExportGroup.getType());
+        exportGroup.setId(URIUtil.createId(ExportGroup.class));
+        exportGroup.setProject(oldExportGroup.getProject());
+        exportGroup.setVirtualArray(volume.getVirtualArray());
+        exportGroup.setTenant(oldExportGroup.getTenant());
+        exportGroup.setGeneratedName(oldExportGroup.getGeneratedName());
+        exportGroup.addVolume(volume.getId(), lun);
+        exportGroup.addInitiators(StringSetUtil.stringSetToUriList(oldExportGroup.getInitiators()));
+        exportGroup.addHosts(StringSetUtil.stringSetToUriList(oldExportGroup.getHosts()));
+        exportGroup.setClusters(oldExportGroup.getClusters());
+        StringSet exportMasks = oldExportGroup.getExportMasks();
+        if (exportMasks != null) {
+            for (String exportMask : exportMasks) {
+                exportGroup.addExportMask(exportMask);
+            }
+        }
+        exportGroup.setNumPaths(oldExportGroup.getNumPaths());
+        exportGroup.setZoneAllInitiators(oldExportGroup.getZoneAllInitiators());
+        _dbClient.createObject(exportGroup);
     }
 }

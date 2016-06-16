@@ -23,6 +23,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.storagedriver.AbstractStorageDriver;
 import com.emc.storageos.storagedriver.BlockStorageDriver;
+import com.emc.storageos.storagedriver.DefaultDriverTask;
 import com.emc.storageos.storagedriver.DriverTask;
 import com.emc.storageos.storagedriver.HostExportInfo;
 import com.emc.storageos.storagedriver.RegistrationData;
@@ -307,6 +308,21 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
                 storageSystem.getIpAddress(), storageSystem.getNativeId());
         return task;
 
+    }
+    
+    @Override
+    public DriverTask stopManagement(StorageSystem driverStorageSystem){
+    	_log.info("Stopping management for StorageSystem {}", driverStorageSystem.getNativeId());
+    	String driverName = this.getClass().getSimpleName();
+        String taskId = String.format("%s+%s+%s", driverName, "stopManagement", UUID.randomUUID().toString());
+        DriverTask task = new DriverSimulatorTask(taskId);
+        task.setStatus(DriverTask.TaskStatus.READY);
+        
+        String msg = String.format("Driver stopped managing storage system %s.",driverStorageSystem.getNativeId());
+        _log.info(msg);
+        task.setMessage(msg);
+        
+        return task;
     }
 
     @Override

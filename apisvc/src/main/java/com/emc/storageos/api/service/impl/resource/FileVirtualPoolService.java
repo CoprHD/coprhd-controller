@@ -144,9 +144,11 @@ public class FileVirtualPoolService extends VirtualPoolService {
      */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public VirtualPoolList listFileVirtualPool(@DefaultValue("") @QueryParam(VDC_ID_QUERY_PARAM) String shortVdcId) {
+    public VirtualPoolList listFileVirtualPool(
+            @DefaultValue("") @QueryParam(TENANT_ID_QUERY_PARAM) String tenantId,
+            @DefaultValue("") @QueryParam(VDC_ID_QUERY_PARAM) String shortVdcId) {
         _geoHelper.verifyVdcId(shortVdcId);
-        return getVirtualPoolList(VirtualPool.Type.file, shortVdcId);
+        return getVirtualPoolList(VirtualPool.Type.file, shortVdcId, tenantId);
     }
 
     /**

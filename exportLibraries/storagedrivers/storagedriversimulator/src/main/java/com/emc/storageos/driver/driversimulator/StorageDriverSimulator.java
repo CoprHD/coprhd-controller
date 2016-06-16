@@ -385,13 +385,13 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
     
     @Override
     public DriverTask addVolumesToConsistencyGroup (List<StorageVolume> volumes, StorageCapabilities capabilities){
-    	_log.info("Adding {} Volumes to Consistency Group", volumes.toString());
+    	_log.info("Adding {} Volumes to Consistency Group {}", volumes.toString(), volumes.get(0).getConsistencyGroup());
         String taskType = "add-volumes-to-consistency-groupd";
         String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
         DriverTask task = new DriverSimulatorTask(taskId);
         task.setStatus(DriverTask.TaskStatus.READY);
         
-        String msg = String.format("StorageDriver: doAddVolumesToConsistencyGroup information for storage system {}, volume nativeIds {}, Consistency Group - end",
+        String msg = String.format("StorageDriver: doAddVolumesToConsistencyGroup information for storage system %s, volume nativeIds %s, Consistency Group - end",
                 volumes.get(0).getStorageSystemId(), volumes.toString());
         _log.info(msg);
         task.setMessage(msg);
@@ -407,7 +407,7 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
         DriverTask task = new DriverSimulatorTask(taskId);
         task.setStatus(DriverTask.TaskStatus.READY);
         
-        String msg = String.format("StorageDriver: doRemoveVolumesFromConsistencyGroup information for storage system {}, volume nativeIds {}, Consistency Group - end",
+        String msg = String.format("StorageDriver: doRemoveVolumesFromConsistencyGroup information for storage system %s, volume nativeIds %s, Consistency Group - end",
                 volumes.get(0).getStorageSystemId(), volumes.toString());
         _log.info(msg);
         task.setMessage(msg);

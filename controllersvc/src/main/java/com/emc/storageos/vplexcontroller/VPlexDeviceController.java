@@ -87,6 +87,7 @@ import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.db.client.util.WWNUtility;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.exceptions.DeviceControllerException;
+import com.emc.storageos.exceptions.DeviceControllerExceptions;
 import com.emc.storageos.locking.LockTimeoutValue;
 import com.emc.storageos.locking.LockType;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
@@ -261,6 +262,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private static final String CREATE_REPLICATION_GROUP_STEP = "createReplicationGroupStep";
     private static final String REMOVE_REPLICATION_GROUP_STEP = "removeReplicationGropuStep";
     private static final String RESTORE_FROM_FULLCOPY_STEP = "restoreFromFullCopy";
+    private static final String VALIDATE_VPLEX_VOLUME_STEP = "validateVPlexVolumeStep";
 
     // Workflow controller method names.
     private static final String DELETE_VOLUMES_METHOD_NAME = "deleteVolumes";
@@ -316,6 +318,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private static final String ADD_TO_CONSISTENCY_GROUP_METHOD_NAME = "addToConsistencyGroup";
     private static final String RESTORE_FROM_FULLCOPY_METHOD_NAME = "restoreFromFullCopy";
     private static final String CREATE_FULL_COPY_METHOD_NAME = "createFullCopy";
+    private static final String VALIDATE_VPLEX_VOLUME_METHOD = "validateVPlexVolume";
 
     // Constants used for creating a migration name.
     private static final String MIGRATION_NAME_PREFIX = "M_";
@@ -1051,9 +1054,15 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // For each VPLEX, delete the virtual volumes.
             for (URI vplexURI : vplexMap.keySet()) {
                 StorageSystem vplexSystem = getDataObject(StorageSystem.class, vplexURI, _dbClient);
+                // First validate that the backend volumes for these VPLEX volumes are
+                // the actual volumes used by the VPLEX volume on the VPLEX system. We
+                // add this verification in case changes were made outside ViPR, such 
+                // as a migration, that caused the backend volumes to change. We don't
+                // want to delete a backend volume that may in fact be used some other
+                // VPLEX volume.
                 List<URI> vplexVolumeURIs = VolumeDescriptor.getVolumeURIs(vplexMap.get(vplexURI));
                 for (URI vplexVolumeURI : vplexVolumeURIs) {
-                    createWorkflowSteptoValidateVPlexVolume(workflow, vplexSystem, vplexVolumeURI, waitFor);
+                    createWorkflowStepToValidateVPlexVolume(workflow, vplexSystem, vplexVolumeURI, waitFor);
                 }
                 workflow.createStep(VPLEX_STEP,
                         String.format("Delete VPlex Virtual Volumes:%n%s",
@@ -4959,7 +4968,13 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             // Create a step to validate the volume and prevent migration if the 
             // the ViPR DB does not properly reflect the actual backend volumes.
-            String waitFor = createWorkflowSteptoValidateVPlexVolume(workflow, vplexSystem, virtualVolumeURI, null);
+            // A successful migration will delete the backend source volumes. If
+            // the ViPR DB does not correctly reflect the actual backend volume,
+            // we could delete a backend volume used by some other VPLEX volume.
+            //
+            // TBD - Prevent migration altogether or simply prevent deletion of the source after a successful migration.
+            //
+            String waitFor = createWorkflowStepToValidateVPlexVolume(workflow, vplexSystem, virtualVolumeURI, null);
 
             // We first need to create steps in the workflow to create the new
             // backend volume(s) to which the data for the virtual volume will
@@ -5097,90 +5112,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         }
     }
     
-    private static final String VALIDATE_VPLEX_VOLUME_STEP = "validateVPlexVolumeStep";
-    private static final String VALIDATE_VPLEX_VOLUME_METHOD = "validateVPlexVolume";
-    
-    private String createWorkflowSteptoValidateVPlexVolume(Workflow workflow, StorageSystem vplexSystem, URI vplexVolumeURI, String waitFor) {
-        URI vplexSystemURI = vplexSystem.getId();
-        Workflow.Method validateVPlexVolumeMethod = createValidateVPlexVolumeMethod(vplexSystemURI,
-                vplexVolumeURI);
-        waitFor = workflow.createStep(VALIDATE_VPLEX_VOLUME_STEP, String.format(
-                "Validating VPLEX volume %s on VPLEX %s", vplexSystem.getId().toString(), vplexVolumeURI),
-                waitFor, vplexSystemURI, vplexSystem.getSystemType(), this.getClass(),
-                validateVPlexVolumeMethod, rollbackMethodNullMethod(), null);
-
-        return waitFor;
-    }
-    
-    private Workflow.Method createValidateVPlexVolumeMethod(URI vplexSystemURI, URI vplexVolumeURI) {
-        return new Workflow.Method(VALIDATE_VPLEX_VOLUME_METHOD, vplexSystemURI, vplexVolumeURI);
-    }
-
-    public void validateVPlexVolume(URI vplexSystemURI, URI vplexVolumeURI, String stepId) {
-        try {
-            // Update step state to executing.
-            WorkflowStepCompleter.stepExecuting(stepId);
-
-            // Get the VPLEX API client for the VPLEX system.
-            VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplexSystemURI, _dbClient);
-            
-            // Get the VPLEX volume
-            Volume vplexVolume = getDataObject(Volume.class, vplexVolumeURI, _dbClient);
-            
-            // Get the WWNs of the backend volumes and any mirrors, mapped by VPLEX cluster name.
-            Set<String> volumeIds = new HashSet<>();
-            Map<String, List<String>> volumeWWNMap = new HashMap<>();
-            StringSet associatedVolumeIds = vplexVolume.getAssociatedVolumes();
-            if ((associatedVolumeIds == null) || (associatedVolumeIds.isEmpty())) {
-                // Ingested volume w/o backend volume ingestion. We can't verify the backend volumes.
-                WorkflowStepCompleter.stepSucceded(stepId);
-                return;
-            } else {
-                volumeIds.addAll(associatedVolumeIds);
-            }
-            
-            // Now mirrors.
-            StringSet mirrorIds = vplexVolume.getMirrors();
-            if ((mirrorIds != null) && (mirrorIds.isEmpty() == false)) {
-                for (String mirrorId : mirrorIds) {
-                    VplexMirror mirror = getDataObject(VplexMirror.class, URI.create(mirrorId), _dbClient);
-                    StringSet associatedVolumeIdsForMirror = mirror.getAssociatedVolumes();
-                    if ((associatedVolumeIdsForMirror == null) || (associatedVolumeIdsForMirror.isEmpty())) {
-                        // throw exception. This should not be.
-                    } else {
-                        volumeIds.addAll(associatedVolumeIdsForMirror);
-                    }
-                }
-            }
-            
-            // Get the WWNs for these volumes mapped by VPLEX cluster name.
-            for (String volumesId : volumeIds) {
-                URI volumeURI = URI.create(volumesId);
-                Volume volume = getDataObject(Volume.class, volumeURI, _dbClient);
-                String clusterName = VPlexUtil.getVplexClusterName(volume.getVirtualArray(), vplexSystemURI, client, _dbClient);
-                if (volumeWWNMap.containsKey(clusterName)) {
-                    List<String> clusterWWNs = volumeWWNMap.get(clusterName);
-                    clusterWWNs.add(volume.getWWN());
-                } else {
-                    List<String> clusterWWNs = new ArrayList<>();
-                    clusterWWNs.add(volume.getWWN());
-                    volumeWWNMap.put(clusterName, clusterWWNs);
-                }
-            }
-            
-            // Validate the ViPR backend volume WWNs match those on the VPLEX.
-            client.validateBackendVolumeWWNs(vplexVolume.getDeviceLabel(), volumeWWNMap);
-            WorkflowStepCompleter.stepSucceded(stepId);
-        } catch (InternalException ie) {
-            // log error
-            WorkflowStepCompleter.stepFailed(stepId, ie);
-        } catch (Exception e) {
-            // log error, better service error.
-            ServiceError serviceError = VPlexApiException.errors.migrateVirtualVolume(stepId, e);
-            WorkflowStepCompleter.stepFailed(stepId, serviceError);
-        }
-    }
-    
     /**
      * Adds steps in the passed workflow to migrate a volume.
      *
@@ -5211,7 +5142,13 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             // Create a step to validate the volume and prevent migration if the 
             // the ViPR DB does not properly reflect the actual backend volumes.
-            waitFor = createWorkflowSteptoValidateVPlexVolume(workflow, vplexSystem, virtualVolumeURI, waitFor);
+            // A successful migration will delete the backend source volumes. If
+            // the ViPR DB does not correctly reflect the actual backend volume,
+            // we could delete a backend volume used by some other VPLEX volume.
+            //
+            // TBD - Prevent migration altogether or simply prevent deletion of the source after a successful migration.
+            //
+            waitFor = createWorkflowStepToValidateVPlexVolume(workflow, vplexSystem, virtualVolumeURI, waitFor);
 
             Map<URI, Volume> volumeMap = new HashMap<URI, Volume>();
             Map<URI, StorageSystem> storageSystemMap = new HashMap<URI, StorageSystem>();
@@ -5319,6 +5256,129 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         }
     }
 
+    /**
+     * Creates a workflow step to validate that the backend volumes of the passed
+     * VPLEX volumes are the actual backend volumes used by the VPLEX volume on the
+     * VPLEX system. This check is created as a result of a customer issue whereby
+     * migrations were done outside of ViPR and as a result, the backend volume used
+     * by the VPLEX volume was different than that reflected in the ViPR database.
+     * Later, when this VPLEX volume was successfully migrated in ViPR and the
+     * migration source was deleted, this resulted in a data loss because that volume
+     * was now being used by some other VPLEX volume.
+     * 
+     * @param workflow A reference to the workflow.
+     * @param vplexSystem A reference to the VPLEX storage system.
+     * @param vplexVolumeURI The step or step group in the workflow to wait for execution.
+     * 
+     * @return The workflow step id.
+     */
+    private String createWorkflowStepToValidateVPlexVolume(Workflow workflow, StorageSystem vplexSystem, URI vplexVolumeURI, String waitFor) {
+        URI vplexSystemURI = vplexSystem.getId();
+        Workflow.Method validateVPlexVolumeMethod = createValidateVPlexVolumeMethod(vplexSystemURI,
+                vplexVolumeURI);
+        waitFor = workflow.createStep(VALIDATE_VPLEX_VOLUME_STEP, String.format(
+                "Validating VPLEX volume %s on VPLEX %s", vplexSystem.getId().toString(), vplexVolumeURI),
+                waitFor, vplexSystemURI, vplexSystem.getSystemType(), this.getClass(),
+                validateVPlexVolumeMethod, rollbackMethodNullMethod(), null);
+
+        return waitFor;
+    }
+    
+    /**
+     * Creates a workflow method that can be called by the workflow service
+     * to validate that the backend volumes of a VPLEX volume in the ViPR 
+     * database are the actual backend volumes used by the VPLEX volume on
+     * the VPLEX storage system.
+     * 
+     * @param vplexSystemURI The URI of the VPLEX storage system.
+     * @param vplexVolumeURI The URI of the VPLEX volume to validate.
+     * 
+     * @return A reference to the workflow method.
+     */
+    private Workflow.Method createValidateVPlexVolumeMethod(URI vplexSystemURI, URI vplexVolumeURI) {
+        return new Workflow.Method(VALIDATE_VPLEX_VOLUME_METHOD, vplexSystemURI, vplexVolumeURI);
+    }
+
+    /**
+     * Validates that the backend volumes of the passed VPLEX volumes in the
+     * ViPR database are the actual backend volumes used by the VPLEX volume
+     * on the VPLEX system.
+     *  
+     * @param vplexSystemURI The URI of the VPLEX storage system.
+     * @param vplexVolumeURI The URI of the VPLEX volume to validate.
+     * @param stepId The workflow step id.
+     */
+    public void validateVPlexVolume(URI vplexSystemURI, URI vplexVolumeURI, String stepId) {
+        Volume vplexVolume = null;
+        try {
+            // Update step state to executing.
+            WorkflowStepCompleter.stepExecuting(stepId);
+
+            // Get the VPLEX API client for the VPLEX system.
+            VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplexSystemURI, _dbClient);
+            
+            // Get the VPLEX volume
+            vplexVolume = getDataObject(Volume.class, vplexVolumeURI, _dbClient);
+            
+            // Get the WWNs of the backend volumes and any mirrors, mapped by VPLEX cluster name.
+            Set<String> volumeIds = new HashSet<>();
+            Map<String, List<String>> volumeWWNMap = new HashMap<>();
+            StringSet associatedVolumeIds = vplexVolume.getAssociatedVolumes();
+            if ((associatedVolumeIds == null) || (associatedVolumeIds.isEmpty())) {
+                // Ingested volume w/o backend volume ingestion. We can't verify the backend volumes.
+                _log.info("VPLEX volume {}:{} has no backend volumes to validate", vplexVolumeURI, vplexVolume.getLabel());
+                WorkflowStepCompleter.stepSucceded(stepId);
+                return;
+            } else {
+                volumeIds.addAll(associatedVolumeIds);
+            }
+            
+            // Now mirrors.
+            StringSet mirrorIds = vplexVolume.getMirrors();
+            if ((mirrorIds != null) && (mirrorIds.isEmpty() == false)) {
+                for (String mirrorId : mirrorIds) {
+                    VplexMirror mirror = getDataObject(VplexMirror.class, URI.create(mirrorId), _dbClient);
+                    StringSet associatedVolumeIdsForMirror = mirror.getAssociatedVolumes();
+                    if ((associatedVolumeIdsForMirror == null) || (associatedVolumeIdsForMirror.isEmpty())) {
+                        _log.info("VPLEX mirror {}:{} has no associated volumes", mirrorId, mirror.getLabel());
+                        DeviceControllerExceptions.vplex.vplexMirrorDoesNotHaveAssociatedVolumes(
+                                vplexVolume.getLabel(), mirror.getLabel());
+                    } else {
+                        volumeIds.addAll(associatedVolumeIdsForMirror);
+                    }
+                }
+            }
+            
+            // Get the WWNs for these volumes mapped by VPLEX cluster name.
+            for (String volumesId : volumeIds) {
+                URI volumeURI = URI.create(volumesId);
+                Volume volume = getDataObject(Volume.class, volumeURI, _dbClient);
+                String clusterName = VPlexUtil.getVplexClusterName(volume.getVirtualArray(), vplexSystemURI, client, _dbClient);
+                _log.info(String.format("Validating backend volume %s:%s on cluster %s", volumeURI, volume.getWWN(), clusterName));
+                if (volumeWWNMap.containsKey(clusterName)) {
+                    List<String> clusterWWNs = volumeWWNMap.get(clusterName);
+                    clusterWWNs.add(volume.getWWN());
+                } else {
+                    List<String> clusterWWNs = new ArrayList<>();
+                    clusterWWNs.add(volume.getWWN());
+                    volumeWWNMap.put(clusterName, clusterWWNs);
+                }
+            }
+            
+            // Validate the ViPR backend volume WWNs match those on the VPLEX.
+            client.validateBackendVolumeWWNs(vplexVolume.getDeviceLabel(), volumeWWNMap);
+            WorkflowStepCompleter.stepSucceded(stepId);
+        } catch (InternalException ie) {
+            _log.info("Exception attempting to validate the backend volumes for VPLEX volume {}", vplexVolumeURI);
+            WorkflowStepCompleter.stepFailed(stepId, ie);
+        } catch (Exception e) {
+            _log.info("Exception attempting to validate the backend volumes for VPLEX volume {}", vplexVolumeURI);
+            ServiceCoded sc = DeviceControllerExceptions.vplex.failureValidatingVplexVolume(
+                    vplexVolume != null ? vplexVolume.getLabel() : vplexVolumeURI.toString());
+            WorkflowStepCompleter.stepFailed(stepId, sc);
+        }
+    }
+    
     /**
      * Creates and starts a VPlex data migration for the passed virtual volume
      * on the passed VPlex storage system. The passed target is a newly created

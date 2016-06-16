@@ -1770,17 +1770,30 @@ public class VPlexApiClient {
         maxMigrationAsyncPollingRetries = maxRetries;
     }
     
+    /**
+     * Validates that the backend volumes represented by the passed WWNs from the ViPR
+     * database are the actual backend volumes used by the passed VPLEX volume.
+     * 
+     * @param virtualVolumeName The name of the VPLEX volume.
+     * @param storageVolumeWWNMap A map of the backend volume WWNs keyed by cluster name.
+     * 
+     * @throws VPlexApiException When an exception occurs validating the backend volumes.
+     */
     public void validateBackendVolumeWWNs(String virtualVolumeName, Map<String, List<String>> storageVolumeWWNMap) throws VPlexApiException {
+        s_logger.info("Validating backend volumes for VPLEX volume {}", virtualVolumeName);
+        
         // Find the VPLEX volume.
         VPlexVirtualVolumeInfo vvInfo = _discoveryMgr.findVirtualVolume(virtualVolumeName, true);
         if (vvInfo == null) {
-            // throw exception
+            s_logger.error("Could not find VPLEX volume {} to validate its backend volumes", virtualVolumeName);
+            throw VPlexApiException.exceptions.couldNotFindVolumeForValidation(virtualVolumeName);
         }
         
         // Get the name of the supporting device.
         String supportingDeviceName = vvInfo.getSupportingDevice();
         if ((supportingDeviceName == null) || (supportingDeviceName.isEmpty())) {
-            // throw Exception
+            s_logger.error("VPLEX volume {} does not specify a supporting device", virtualVolumeName);
+            throw VPlexApiException.exceptions.noSupportingDeviceForValidation(virtualVolumeName);
         }
         
         // Get the locality of the volume
@@ -1788,10 +1801,9 @@ public class VPlexApiClient {
         
         // Validate the passed WWN Map.
         Set<String> clusterNames = storageVolumeWWNMap.keySet();
-        if ((VPlexVirtualVolumeInfo.Locality.distributed.name().equals(locality)) && (clusterNames.size() != 2)) {
-            // throw exception
-        } else if ((VPlexVirtualVolumeInfo.Locality.local.name().equals(locality)) && (clusterNames.size() != 1)) {
-            // throw exception
+        if (((VPlexVirtualVolumeInfo.Locality.distributed.name().equals(locality)) && (clusterNames.size() != 2)) ||
+                ((VPlexVirtualVolumeInfo.Locality.local.name().equals(locality)) && (clusterNames.size() != 1))) {
+            throw VPlexApiException.exceptions.invalidWWNMapForValidation(virtualVolumeName, storageVolumeWWNMap);
         }
         
         // Validate the WWNs of the storage volumes on each cluster.
@@ -1802,6 +1814,7 @@ public class VPlexApiClient {
             // If we are to validate 2 WWNs on a cluster it must
             // have a mirror.
             List<String> wwns = storageVolumeWWNMap.get(clusterName);
+            s_logger.info("Validating backend volumes {} on cluster {}", wwns, clusterName);
             boolean hasMirror = (wwns.size() == 2);
             
             // Get the storage volumes for the supporting device.
@@ -1810,23 +1823,27 @@ public class VPlexApiClient {
             
             // There should be the same number of storage volumes as there are WWNs to verify.
             if (svInfoList.size() != wwns.size()) {
-                // throw exception
+                s_logger.error("Found {} storage volumes, but expected {}", svInfoList.size(), wwns.size());
+                throw VPlexApiException.exceptions.invalidStorageVolumeCountForValidation(virtualVolumeName, svInfoList.size(), wwns.size());
             }
             
             // Now make sure the WWNs match.
-            // TBD wwn format.
+            // TBD wwn format. platform specifics.
             Iterator<String> wwnsIter = wwns.iterator();
             while (wwnsIter.hasNext()) {
                 boolean foundWWN = false;
                 String wwn = wwnsIter.next();
                 for (VPlexStorageVolumeInfo svInfo : svInfoList) {
+                    s_logger.info("Storage volume {} wwn {}", svInfo.getPath(), svInfo.getWwn());
                     if (svInfo.getWwn().equalsIgnoreCase(wwn)) {
+                        s_logger.info("Validated backend volume with WWN {}", wwn);
                         foundWWN = true;
                         break;
                     }
                 }
                 if (!foundWWN) {
-                    // throw exception
+                    s_logger.error("Did not find storage volume with WWN {}", wwn);
+                    throw VPlexApiException.exceptions.storageVolumeWithWWNFailedValidation(virtualVolumeName, wwn);
                 }
             }                
         }            

@@ -42,20 +42,6 @@ Usage()
 SANITY_CONFIG_FILE=""
 : ${USE_CLUSTERED_HOSTS=1}
 
-SS=${3}
-case $SS in
-    vmax|vnx|vplex|xio)
-
-    ;;
-    *)
-    Usage
-    ;;
-esac
-XTREMIO_TESTS=0
-if [ "${SS}" = "xio" ]; then
-    XTREMIO_TESTS=1
-fi
-
 # ============================================================
 # Check if there is a sanity configuration file specified
 # on the command line. In, which case, we should use that
@@ -98,7 +84,7 @@ verify_export() {
     if [ "$host_name" = "-exact-" ]; then
         masking_view_name=$export_name
     fi
-    if [ "$XTREMIO_TESTS" -eq "1" ]; then
+    if [ "$SS" = "xio" ]; then
         masking_view_name=$host_name
     fi
 
@@ -300,7 +286,7 @@ if [ -f "./myhardware.conf" ]; then
     source ./myhardware.conf
 fi
 
-if [ "$XTREMIO_TESTS" -ne "1" ]; then
+if [ "$SS" = "xio" ]; then
     echo "non xio test"
     which symhelper.sh
     if [ $? -ne 0 ]; then
@@ -402,15 +388,16 @@ nwwn()
 }
 
 login() {
-    dir=`pwd`
-    tools_file="${dir}/tools/tests/export-tests/tools.yml"
-    if [ -f "$tools_file" ]
-    then
-	echo "stale $tools_file found. Deleting it."
-	rm $tools_file
+    if [ "$SS" = "xio" -o "$SS" = "vplex" ]; then
+	dir=`pwd`
+	tools_file="${dir}/tools/tests/export-tests/tools.yml"
+	if [ -f "$tools_file" ]; then
+	    echo "stale $tools_file found. Deleting it."
+	    rm $tools_file
+	fi
+        # create the yml file to be used for array tooling
+        touch $tools_file
     fi
-    #create the yml file to be used for array tooling
-    touch $tools_file
 
     echo "Tenant is ${TENANT}";
     security login $SYSADMIN $SYSADMIN_PASSWORD
@@ -420,7 +407,7 @@ login() {
     if [ "${BASENUM}" != "" ]
     then
        echo "Volumes were found!  Base number is: ${BASENUM}"
-       VOLNAME=dutest${BASENUM}
+       VOLNAME=dutestexp${BASENUM}
        EXPORT_GROUP_NAME=export${BASENUM}
        HOST1=host1export${BASENUM}
        HOST2=host2export${BASENUM}
@@ -551,27 +538,14 @@ setup() {
     sleep 120
     # Increase allocation percentage
     syssvc $SANITY_CONFIG_FILE localhost set_prop controller_max_thin_pool_subscription_percentage 600
-    case $storage_type in
-    vmax)
-         vmax_setup
-	 ;;
-    vnx)
-         vnx_setup
-	 ;;
-    xio)
-         xio_setup
-	 ;;
-    vplex)
-         vplex_setup
-	 ;;
-    esac
+
+    ${SS}_setup
  
     SERIAL_NUMBER=`storagedevice list | grep COMPLETE | awk '{print $2}' | awk -F+ '{print $2}'`
     echo "Serial number is: $SERIAL_NUMBER"     
-   runcmd cos allow $VPOOL_BASE block $TENANT
-   sleep 60
-
-   runcmd volume create ${VOLNAME} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 2
+    runcmd cos allow $VPOOL_BASE block $TENANT
+    sleep 30
+    runcmd volume create ${VOLNAME} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 2
 }
 
 # Verify no masks
@@ -805,7 +779,7 @@ test_3() {
     runcmd volume create du-hijack-volume ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 1
     device_id=`volume show ${PROJECT}/du-hijack-volume | grep native_id | awk '{print $2}' | cut -c2-6`
 
-    if [ "$XTREMIO_TESTS" -eq "1" ]; then
+    if [ "$SS" = "xio" ]; then
         device_id=`volume show ${PROJECT}/du-hijack-volume | grep device_label | awk '{print $2}' | cut -d '"' -f2`
     fi
 
@@ -893,7 +867,7 @@ test_4() {
     runcmd volume create du-hijack-volume ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 1
     device_id=`volume show ${PROJECT}/du-hijack-volume | grep native_id | awk '{print $2}' | cut -c2-6`
 
-    if [ "$XTREMIO_TESTS" -eq "1" ]; then
+    if [ "$SS" = "xio" ]; then
         device_id=`volume show ${PROJECT}/du-hijack-volume | grep device_label | awk '{print $2}' | cut -d '"' -f2`
     fi
 
@@ -996,25 +970,41 @@ H3NI1=`nwwn 04`
 H3PI2=`pwwn 05`
 H3NI2=`nwwn 05`
 
-if [ "$1" = "regression" ]
-then
-    test_0;
-    shift 2;
-fi
-
+# Delete and setup are optional
 if [ "$1" = "delete" ]
 then
     cleanup
     finish
 fi
 
+setup=0;
 if [ "$1" = "setup" ]
 then
-    setup $2;
-    shift 2;
+    setup=1;
+    shift 1;
 fi;
 
-# If there's a 2nd parameter, take that
+SS=${1}
+shift
+case $SS in
+    vmax|vnx|vplex|xio)
+    ;;
+    *)
+    Usage
+    ;;
+esac
+
+if [ "$1" = "regression" ]
+then
+    test_0;
+    shift 2;
+fi
+
+if [ ${setup} -eq 1 ]; then
+    setup
+fi
+
+# If there's a last parameter, take that
 # as the name of the test to run
 if [ "$1" != "" ]
 then

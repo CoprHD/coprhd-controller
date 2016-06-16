@@ -29,6 +29,7 @@ import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import org.apache.commons.lang.RandomStringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -125,6 +126,7 @@ public class VolumeService extends TaskResourceService {
     private static final int SNAP_COUNT = 1;
     private static final String PROJECT_TENANTID_NULL = "Both Project and Tenant Id are null";
     private static final String TRUE = "true";
+    private static final int STATUS_ACCEPT = 202;
 
     private PlacementManager _placementManager;
     private CinderHelpers helper;// = new CinderHelpers(_dbClient , _permissionsHelper);
@@ -234,10 +236,17 @@ public class VolumeService extends TaskResourceService {
             @PathParam("volume_id") String volumeId, @HeaderParam("X-Cinder-V1-Call") String isV1Call, @Context HttpHeaders header) {
 
         VolumeDetail response = new VolumeDetail();
+        if (volumeId == null){
+        	_log.info("Volume id is empty ");
+        	return CinderApiUtils.createErrorResponse(404, "Not Found : volume id is empty");  	
+        }
         Volume vol = findVolume(volumeId, openstackTenantId);
 
         if (vol != null) {
             response = getVolumeDetail(vol, isV1Call, openstackTenantId);
+        } else {
+        	_log.info("Invalid volume id ={} ",volumeId);
+        	return CinderApiUtils.createErrorResponse(404, "Not Found : Invalid volume id");
         }
         return CinderApiUtils.getCinderResponse(response, header, true);
     }
@@ -290,6 +299,11 @@ public class VolumeService extends TaskResourceService {
 
         _log.debug("Create volume: project = {}, tenant = {}", project.getLabel(), tenant.getLabel());
 
+        if (param.volume.size <= 0)
+        {
+        	_log.error("volume size should not be zero or negative ={} ",param.volume.size);
+        	return CinderApiUtils.createErrorResponse(400, "Bad Request : Invalid Volume size");
+        }
         long requestedSize = param.volume.size * GB;
         // convert volume type from name to vpool
         VirtualPool vpool = getVpool(param.volume.volume_type);
@@ -300,12 +314,14 @@ public class VolumeService extends TaskResourceService {
         	if(sourceVolId != null){
         		sourceVolume = findVolume(sourceVolId, openstackTenantId);
         		if(sourceVolume == null){
-        			throw APIException.badRequests.parameterIsNotValid(param.volume.source_volid);
+            		_log.error("Invalid Source Volume ID ={} ",sourceVolId);
+            		return CinderApiUtils.createErrorResponse(404, "Not Found : Invalid Source Volume ID " + sourceVolId);
         		}
         		vpool = _dbClient.queryObject(VirtualPool.class, sourceVolume.getVirtualPool());        		
         	}
         	else{
-        		throw APIException.badRequests.parameterIsNotValid(param.volume.volume_type);
+        		_log.error("Invalid Volume Type ={} ",volume_type);
+        		return CinderApiUtils.createErrorResponse(404, "Not Found : Invalid Volume Type " + volume_type);
         	}
         }
         
@@ -363,7 +379,8 @@ public class VolumeService extends TaskResourceService {
         if (snapshotId != null) {
             snapshot = (BlockSnapshot) getCinderHelper().queryByTag(URI.create(snapshotId), getUserFromContext(),BlockSnapshot.class);
             if (snapshot == null) {
-                throw APIException.badRequests.parameterIsNotValid(snapshotId);
+            	_log.error("Invalid snapshot id ={} ",snapshotId);
+            	return CinderApiUtils.createErrorResponse(404, "Not Found : Invalid snapshot id" + snapshotId);
             } else {
                 snapUri = snapshot.getId();
                 URI varrayUri = snapshot.getVirtualArray();
@@ -390,6 +407,10 @@ public class VolumeService extends TaskResourceService {
             description = param.volume.description;
         }
 
+        if (name == null)
+        {
+        	name = "volume-random-" + RandomStringUtils.random(10);
+        }
         _log.info("param.volume.name = {}, param.volume.display_name = {}", param.volume.name,param.volume.display_name);
         _log.info("param.volume.description = {}, param.volume.display_description = {}", param.volume.description, param.volume.display_description);
 
@@ -438,10 +459,15 @@ public class VolumeService extends TaskResourceService {
         {
             _log.debug("Creating New Volume from Volume : Source volume ID ={}", sourceVolId);
             if (sourceVolume != null) {
+                Volume vol = findVolume(sourceVolId, openstackTenantId);
+                if (vol == null) {
+                	_log.debug("Creating Clone Volume failed : Invalid source volume id ");
+                    return CinderApiUtils.createErrorResponse(404, "Not Found : Invalid source volume id" + sourceVolId);
+                }
                 tasklist = volumeClone(name, project, sourceVolId, varray, volumeCount, sourceVolume, blkFullCpManager);
             } else {
                 _log.debug("Creating Clone Volume failed : Null Source volume ");
-                throw APIException.badRequests.parameterIsNotValid(sourceVolId);
+                return CinderApiUtils.createErrorResponse(404, "Not Found : Null source volume " );
             }
 
         } else if (snapshotId != null)
@@ -489,14 +515,15 @@ public class VolumeService extends TaskResourceService {
                     tagSet.add(tagLabel);
 
                     _dbClient.updateAndReindexObject(vol);
-                    return CinderApiUtils.getCinderResponse(getVolumeDetail(vol, isV1Call, openstackTenantId), header, true);
+
+                    return CinderApiUtils.getCinderResponse(getVolumeDetail(vol, isV1Call, openstackTenantId), header, true,STATUS_ACCEPT);
                 }
                 else {
                     throw APIException.badRequests.parameterIsNullOrEmpty("Volume");
                 }
             }
         }
-        return CinderApiUtils.getCinderResponse(new VolumeDetail(), header, true);
+        return CinderApiUtils.getCinderResponse(new VolumeDetail(), header, true, STATUS_ACCEPT);
     }
 
     /**
@@ -518,9 +545,15 @@ public class VolumeService extends TaskResourceService {
     public Response updateVolume(@PathParam("tenant_id") String openstackTenantId,
             @PathParam("volume_id") String volumeId, @HeaderParam("X-Cinder-V1-Call") String isV1Call,
             VolumeUpdateRequestGen param, @Context HttpHeaders header) {
+        if (volumeId == null){
+        	_log.debug("Update volume is failed : Volume id is empty ");
+        	return CinderApiUtils.createErrorResponse(404, "Not Found : volume id is empty");
+        }  
         Volume vol = findVolume(volumeId, openstackTenantId);
-        if (vol == null)
-            throw APIException.badRequests.parameterIsNotValid(volumeId);
+        if (vol == null){
+        	_log.debug("Update volume is failed : Invalid source volume id ");
+        	return CinderApiUtils.createErrorResponse(404, "Not Found : Invalid source volume id");
+        }
         _log.debug("Update volume {}: ", vol.getLabel());
         String label = null;
         String description = null;
@@ -576,6 +609,10 @@ public class VolumeService extends TaskResourceService {
     public Response deleteVolume(@PathParam("tenant_id") String openstackTenantId,
             @PathParam("volume_id") String volumeId) {
         _log.info("Delete volume: id = {} tenant: id ={}", volumeId, openstackTenantId);
+        if (volumeId == null){
+        	_log.debug("Delete volume is failed : Volume id is empty ");
+        	return CinderApiUtils.createErrorResponse(404, "Not Found : volume id is empty");
+        }        
         Volume vol = findVolume(volumeId, openstackTenantId);
         if (vol == null) {
             return CinderApiUtils.createErrorResponse(404, "Not Found : Invalid volume id");

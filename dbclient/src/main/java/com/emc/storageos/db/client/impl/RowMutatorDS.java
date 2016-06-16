@@ -1,8 +1,9 @@
 package com.emc.storageos.db.client.impl;
 
 import com.datastax.driver.core.BatchStatement;
-import com.datastax.driver.core.CodecRegistry;
-import com.datastax.driver.core.Session;
+import com.datastax.driver.core.BoundStatement;
+import com.datastax.driver.core.ConsistencyLevel;
+import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.utils.UUIDs;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.ScopedLabel;
@@ -14,6 +15,7 @@ import org.apache.cassandra.serializers.Int32Serializer;
 import org.apache.cassandra.serializers.LongSerializer;
 import org.apache.cassandra.serializers.UTF8Serializer;
 import org.apache.cassandra.utils.ByteBufferUtil;
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,7 +26,7 @@ import java.util.Date;
 import java.util.UUID;
 
 /**
- * Will rename after the Astyanax is removed.
+ * Will rename to RowMutator same as previous after the Astyanax is removed.
  */
 public class RowMutatorDS {
     private static final Logger log = LoggerFactory.getLogger(RowMutatorDS.class);
@@ -32,7 +34,11 @@ public class RowMutatorDS {
     private DbClientContext context;
     private BatchStatement recordAndIndexBatch;
 
+    private ConsistencyLevel writeCL = ConsistencyLevel.LOCAL_QUORUM; // default
     private UUID timeUUID;
+
+    private static final String insertRecordFormat = "INSERT INTO \"%s\" (key, column1, column2, column3, column4, value) VALUES (?, ?, ?, ?, ?)";
+    private static final String insertIndexFormat = "INSERT INTO \"%s\" (key, column1, column2, column3, column4, column5, value) VALUES (?, ?, ?, ?, ?, ?)";
 
     public RowMutatorDS(DbClientContext context) {
         this.context = context;
@@ -45,6 +51,40 @@ public class RowMutatorDS {
          * add more customized codec
          * codecRegistry.register();
          */
+    }
+
+    public void insertRecordColumn(String tableName, String recordKey, CompositeColumnName column, Object val) {
+        // todo consider 'ttl'
+        PreparedStatement insertPrepared = context.getPreparedStatement(String.format(insertRecordFormat, tableName));
+        BoundStatement insert = insertPrepared.bind();
+        insert.setString("key", recordKey);
+        // For PRIMARY KEY (key, column1, column2, column3, column4), the primary key cannot be null
+        insert.setString("column1", column.getOne() == null ? StringUtils.EMPTY : column.getOne());
+        insert.setString("column2", column.getTwo() == null ? StringUtils.EMPTY : column.getTwo());
+        insert.setString("column3", column.getThree() == null ? StringUtils.EMPTY : column.getThree());
+        // todo when column4 is null, "Invalid null value for clustering key part column4" exception will be thrown, so we set column4 with timeBased() not empty. But previously Astyanax allows column4 is null
+        insert.setUUID("column4", column.getTimeUUID() == null ? UUIDs.timeBased() : column.getTimeUUID());
+        ByteBuffer blobVal = getByteBufferFromPrimitiveValue(val);
+        insert.setBytes("value", blobVal);
+        recordAndIndexBatch.add(insert);
+    }
+    
+    public void insertIndexColumn(String tableName, String indexRowKey, IndexColumnName column, Object val) {
+        PreparedStatement insertPrepared = context.getPreparedStatement(String.format(insertIndexFormat, tableName));
+        BoundStatement insert = insertPrepared.bind();
+        // For PRIMARY KEY (key, column1, column2, column3, column4, column5), the primary key cannot be null
+        insert.setString("column1", column.getOne() == null ? StringUtils.EMPTY : column.getOne());
+        insert.setString("column2", column.getTwo() == null ? StringUtils.EMPTY : column.getTwo());
+        insert.setString("column3", column.getThree() == null ? StringUtils.EMPTY : column.getThree());
+        insert.setString("column4", column.getFour() == null ? StringUtils.EMPTY : column.getFour());
+        insert.setUUID("column5", column.getTimeUUID() == null ? UUIDs.timeBased() : column.getTimeUUID());
+        ByteBuffer blobVal = getByteBufferFromPrimitiveValue(val);
+        insert.setBytes("value", blobVal);
+        recordAndIndexBatch.add(insert);
+    }
+
+    public void execute() {
+        context.getSession().execute(recordAndIndexBatch.setConsistencyLevel(writeCL));
     }
 
     public static ByteBuffer getByteBufferFromPrimitiveValue(Object val) {
@@ -88,6 +128,10 @@ public class RowMutatorDS {
         }
 
         return blobVal;
+    }
+
+    public void setWriteCL(ConsistencyLevel writeCL) {
+        this.writeCL = writeCL;
     }
 
 }

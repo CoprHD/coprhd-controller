@@ -57,7 +57,8 @@ import com.sun.jersey.api.client.ClientResponse;
 public class QuotaClassService extends TaskResourceService {
 
     private static final Logger _log = LoggerFactory.getLogger(QuotaClassService.class);
-    private static final String EVENT_SERVICE_TYPE = "block";   
+    private static final String EVENT_SERVICE_TYPE = "block"; 
+    private static final int STATUS_OK = 200;
    
     private CinderHelpers getCinderHelper() {
         return CinderHelpers.getInstance(_dbClient, _permissionsHelper);
@@ -220,7 +221,7 @@ public class QuotaClassService extends TaskResourceService {
         	try {
             return CinderApiUtils.getCinderResponse(CinderApiUtils
                     .convertMapToXML(respCinderClassQuota.quota_class_set, "quota_set",String.class),
-                    header, false);
+                    header, false, STATUS_OK);
         	}catch (DOMException e) {
 				_log.info("DOM exception occured during converting Map to XML");
 				return Response.status(500).build();
@@ -232,7 +233,7 @@ public class QuotaClassService extends TaskResourceService {
 				return Response.status(500).build();
 			}
         } else if (CinderApiUtils.getMediaType(header).equals("json")) {
-            return CinderApiUtils.getCinderResponse(respCinderClassQuota, header, false);
+            return CinderApiUtils.getCinderResponse(respCinderClassQuota, header, false, STATUS_OK);
         } else {
             return Response.status(ClientResponse.Status.UNSUPPORTED_MEDIA_TYPE.getStatusCode()).entity(ClientResponse.Status.UNSUPPORTED_MEDIA_TYPE.getReasonPhrase())
                     .build();

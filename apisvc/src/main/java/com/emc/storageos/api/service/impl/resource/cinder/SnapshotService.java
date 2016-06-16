@@ -108,6 +108,7 @@ public class SnapshotService extends TaskResourceService {
     private static final long GB = 1024 * 1024 * 1024;
     private static final String ZERO_PERCENT_COMPLETION = "0%";
     private static final String HUNDRED_PERCENT_COMPLETION = "100%";
+    private static final int STATUS_OK = 200;
 
     protected PlacementManager _placementManager;
     protected TenantsService _tenantsService;
@@ -415,7 +416,7 @@ public class SnapshotService extends TaskResourceService {
         }
         _dbClient.updateObject(snap);
         return CinderApiUtils.getCinderResponse(
-                getSnapshotDetail(snap, isV1Call, openstack_tenant_id), header, true);
+                getSnapshotDetail(snap, isV1Call, openstack_tenant_id), header, true,STATUS_OK);
     }
 
     /**
@@ -533,7 +534,7 @@ public class SnapshotService extends TaskResourceService {
                 }
             }
         }
-        return CinderApiUtils.getCinderResponse(snapshots, header, false);
+        return CinderApiUtils.getCinderResponse(snapshots, header, false,STATUS_OK);
     }
 
     /**
@@ -677,7 +678,7 @@ public class SnapshotService extends TaskResourceService {
 
         response = getSnapshotDetail(snapshot, isV1Call, openstack_tenant_id);            
 
-        return CinderApiUtils.getCinderResponse(response, header, true);
+        return CinderApiUtils.getCinderResponse(response, header, true,STATUS_OK);
     }
 
     /**
@@ -710,7 +711,7 @@ public class SnapshotService extends TaskResourceService {
         }
         
         return CinderApiUtils.getCinderResponse(
-               getSnapshotDetail(snapshot, isV1Call, openstack_tenant_id), header, true);
+               getSnapshotDetail(snapshot, isV1Call, openstack_tenant_id), header, true,STATUS_OK);
         
     }
 

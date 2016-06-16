@@ -84,7 +84,8 @@ import com.emc.storageos.services.OperationTypeEnum;
 public class ConsistencyGroupSnapshotService extends AbstractConsistencyGroupService {
 
     private static final Logger _log = LoggerFactory.getLogger(ConsistencyGroupSnapshotService.class);
-
+    private static final int STATUS_OK = 200;
+    
     // Block service implementations
     private Map<String, BlockServiceApi> _blockServiceApis;
 
@@ -246,7 +247,7 @@ public class ConsistencyGroupSnapshotService extends AbstractConsistencyGroupSer
             cgSnapshotCreateRes.name = param.cgsnapshot.name;
         }
 
-        return CinderApiUtils.getCinderResponse(cgSnapshotCreateRes, header, true);
+        return CinderApiUtils.getCinderResponse(cgSnapshotCreateRes, header, true,STATUS_OK);
 
     }
 
@@ -349,7 +350,7 @@ public class ConsistencyGroupSnapshotService extends AbstractConsistencyGroupSer
             }
         }
         cgSnapshotDetail.description = (description == null) ? "" : description;
-        return CinderApiUtils.getCinderResponse(cgSnapshotDetail, header, true);
+        return CinderApiUtils.getCinderResponse(cgSnapshotDetail, header, true,STATUS_OK);
 
     }
 
@@ -389,7 +390,7 @@ public class ConsistencyGroupSnapshotService extends AbstractConsistencyGroupSer
                 }
             }
         }
-        return CinderApiUtils.getCinderResponse(cgSnapshotDetailListResponse, header, false);
+        return CinderApiUtils.getCinderResponse(cgSnapshotDetailListResponse, header, false,STATUS_OK);
 
     }
 

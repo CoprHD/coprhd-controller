@@ -1,8 +1,8 @@
 package com.emc.storageos.migrationcontroller;
 
-import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -90,17 +90,12 @@ public class HostMigrationCommand {
         cli.executeCommand(command);
     }
 
-    public static void copyMigrationScriptsToHost(Host host, String[][] scripts) {
+    public static void copyMigrationScriptsToHost(Host host, Map<String, String> scriptMap) {
         LinuxSystemCLI cli = LinuxHostDiscoveryAdapter.createLinuxCLI(host);
-        try {
-            for (String[] script : scripts) {
-                CopyFileCommand command = new CopyFileCommand(script[0], script[1]);
-                cli.executeCommand(command);
-            }
-        } catch (FileNotFoundException e) {
-            // This should never happen unless the migration scripts were manually
-            // deleted from the source code.
-            _log.error("Migration scripts not found");
+        for (String script : scriptMap.keySet()) {
+            String tgtFile = scriptMap.get(script);
+            CopyFileCommand command = new CopyFileCommand(script, tgtFile);
+            cli.executeCommand(command);
         }
     }
 

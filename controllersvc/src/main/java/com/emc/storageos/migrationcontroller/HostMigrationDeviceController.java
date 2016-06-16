@@ -2,6 +2,8 @@ package com.emc.storageos.migrationcontroller;
 
 import static com.emc.storageos.migrationcontroller.MigrationControllerUtils.getDataObject;
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.Serializable;
 import java.net.URI;
 import java.text.DateFormat;
@@ -13,6 +15,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Scanner;
 import java.util.UUID;
 
 import org.slf4j.Logger;
@@ -413,10 +416,24 @@ public class HostMigrationDeviceController implements MigrationOrchestrationInte
             _log.info("Migration name is {}", migrationName);
 
             // Set up the migration scripts on the migration host
-            String[][] migrationScripts = {{"migrationScripts/migrateVolume.sh", "/tmp/coprhdMigration/migrateVolume.sh"},
-                                           {"migrationScripts/pollMigration.sh", "/tmp/coprhdMigration/pollMigration.sh"}};
-            HostMigrationCommand.copyMigrationScriptsToHost(host, migrationScripts);
+            Map<String, String> migrationScriptMap = new HashMap<String, String>();
 
+            try {
+                String migrateVolumeScript = new Scanner(
+                        new File("migrationScripts/migrateVolume.sh")).useDelimiter("\\Z").next();
+                String pollMigrationScript = new Scanner(
+                        new File("migrationScripts/pollMigration.sh")).useDelimiter("\\Z").next();
+                migrationScriptMap.put(migrateVolumeScript, "/tmp/coprhdMigration/migrateVolume.sh");
+                migrationScriptMap.put(pollMigrationScript, "/tmp/coprhdMigration/pollMigration.sh");
+            } catch (FileNotFoundException e) {
+                // This should never occur unless the migration scripts were manually
+                // deleted from the source code.
+                _log.error("Migration scripts not found");
+            }
+
+            HostMigrationCommand.copyMigrationScriptsToHost(host, migrationScriptMap);
+
+            // Start the migration
             List<MigrationInfo> migrationInfoList = hostMigrateGeneralVolume(migration,
                     migrationName, generalVolume, migrationTarget);
             _log.info("Started host migration");

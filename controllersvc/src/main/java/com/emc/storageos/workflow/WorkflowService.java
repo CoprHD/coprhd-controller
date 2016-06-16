@@ -1452,7 +1452,7 @@ public class WorkflowService implements WorkflowController {
             if (created) {
                 _dbClient.createObject(logWorkflow);
             } else {
-                _dbClient.persistObject(logWorkflow);
+                _dbClient.updateObject(logWorkflow);
             }
 
             if (workflow.getOrchTaskId() != null) {
@@ -1462,7 +1462,7 @@ public class WorkflowService implements WorkflowController {
                     for (Task task : tasks) {
                         task.setWorkflow(workflow.getWorkflowURI());
                     }
-                    _dbClient.persistObject(tasks);
+                    _dbClient.updateObject(tasks);
                 }
             }
         } catch (DatabaseException ex) {
@@ -1858,6 +1858,13 @@ public class WorkflowService implements WorkflowController {
             if (workflow == null) {
                 throw WorkflowException.exceptions.workflowNotFound(uri.toString());
             }
+
+            if (workflow.getWorkflowURI() == null) {
+                workflow.setWorkflowURI(uri);
+                logWorkflow(workflow, false);
+                persistWorkflow(workflow);
+            }
+
             completer.statusPending(_dbClient, "Rollback requested on workflow: " + uri.toString());
             removeRollbackSteps(workflow);
 
@@ -1887,13 +1894,13 @@ public class WorkflowService implements WorkflowController {
 
             // Now try to start rollback of top level Workflow
             _dbClient.pending(com.emc.storageos.db.client.model.Workflow.class,
-                    workflow.getWorkflowURI(), workflow.getOrchTaskId(), "rolling back top-level-workflow");
+                    uri, workflow.getOrchTaskId(), "rolling back top-level-workflow");
             InterProcessLock workflowLock = null;
             try {
                 workflowLock = lockWorkflow(workflow);
                 boolean rollBackStarted = initiateRollback(workflow);
                 if (rollBackStarted) {
-                    _log.info(String.format("Rollback initiated workflow %s", workflow.getWorkflowURI()));
+                    _log.info(String.format("Rollback initiated workflow %s", uri));
                 } else {
                     // We were unable to initiate rollback for some reason, this is an error.
                     WorkflowState state = workflow.getWorkflowStateFromSteps();

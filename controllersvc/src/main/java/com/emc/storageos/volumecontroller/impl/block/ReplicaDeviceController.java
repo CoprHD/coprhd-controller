@@ -1450,7 +1450,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         URI storage = volumes.get(0).getStorageController();
         StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
 
-        if (checkIfCGHasSnapshotSessions(volumes)) {
+        if (checkIfAnyVolumesHaveSnapshotSessions(volumes)) {
             log.info("Adding snapshot session steps for adding volumes");
             // Consolidate multiple snapshot sessions into one CG-based snapshot
             // session
@@ -1459,6 +1459,18 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
 
         return waitFor;
 
+    }
+
+    private boolean checkIfAnyVolumesHaveSnapshotSessions(List<Volume> volumes) {
+        for (BlockObject volume : volumes) {
+            List<BlockSnapshotSession> sessions = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient,
+                    BlockSnapshotSession.class,
+                    ContainmentConstraint.Factory.getParentSnapshotSessionConstraint(volume.getId()));
+            if (!sessions.isEmpty()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private boolean checkIfCGHasSnapshotSessions(List<Volume> volumes) {

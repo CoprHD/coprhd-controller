@@ -97,13 +97,14 @@
   #{/else}
 
 </div>
-                  
+<div ng-controller="FileRessourceCtrl" id="rule"> 
+<input type="hidden" ng-model="rultTitle">                 
 #{Modal.dialog id:'exportRule'}
   #{Modal.header}
-    <h4 class="modal-title">&{'resources.filesystem.export.modify'}</h4>
+    <h4 class="modal-title">{{rultTitle}}</h4>
   #{/Modal.header}
   #{Modal.body}
-    <div ng-controller="FileRessourceCtrl" id="rule">
+   
        <div class="container-fluid">
            <div class="row">
                 <control-group v-field='rule.security' labelWidth="1">
@@ -152,9 +153,10 @@
              </div>
            #{/form}
        </div>
-    </div>
   #{/Modal.body}
 #{/Modal.dialog}
+</div>
+
 
 #{Modal.dialog id:'subDirectory'}
   #{Modal.header}

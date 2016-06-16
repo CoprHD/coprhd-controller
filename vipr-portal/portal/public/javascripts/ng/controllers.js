@@ -273,12 +273,14 @@ angular.module("portalApp").controller({
     			$scope.rule.security = sec;
         		$scope.rule.anon = anon;
         		var data = {params: { id: id, path: path, sec: sec} };
+        		$scope.rultTitle="Modify Export Rule";
         		if (window.location.pathname.indexOf("resources.filesnapshots") > -1) {
         			$http.get(routes.FileSnapshots_fileSnapshotExportsJson(), data).success(setData);
         		} else {
         			$http.get(routes.FileSystems_fileSystemExportsJson(), data).success(setData);
         		}
     		} else {
+    		    $scope.rultTitle="Add Export Rule";
     			$scope.rule.security = "sys";
         		$scope.rule.anon = "root";
         		$scope.rule.endpoints = [];
@@ -962,10 +964,6 @@ angular.module("portalApp").controller("storageProviderCtrl", function($scope) {
     
     $scope.isMDMOnlyType = function() {
     	return containsOption($scope.smisProvider.interfaceType, $scope.mdmonlyProviderList);
-    }
-
-    $scope.isSecretKeyProviderList = function() {
-    	return containsOption($scope.smisProvider.interfaceType, $scope.secretKeyProviderList);
     }
 
     $scope.isElementManagerType = function() {

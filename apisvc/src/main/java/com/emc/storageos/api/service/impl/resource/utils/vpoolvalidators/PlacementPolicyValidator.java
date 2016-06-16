@@ -57,14 +57,14 @@ public class PlacementPolicyValidator extends VirtualPoolValidator<BlockVirtualP
 
         // validate system type is vmax if aray_affinity is used. Array affinity is only supported for VMAX arrays
         if (policyType.equals(ResourcePlacementPolicyType.array_affinity)) {
-            if (system != null) {
+            if (system != null && !VirtualPool.SystemType.NONE.name().equals(system)) {
                 SystemType systemType = SystemType.lookup(system);
                 if (systemType != null && !systemType.equals(SystemType.vmax)) {
                     throw APIException.badRequests.unsupportedPlacementPolicy(policyName);
                 }
             }
 
-            if (systems != null && !systems.isEmpty()) {
+            if (systems != null && !systems.isEmpty() && !systems.contains(VirtualPool.SystemType.NONE.name())) {
                 if (!systems.contains(SystemType.vmax.name())) {
                     throw APIException.badRequests.unsupportedPlacementPolicy(policyName);
                 }

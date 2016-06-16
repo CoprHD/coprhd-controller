@@ -41,6 +41,7 @@ addProjects(
         "tools/dbutils",
         "tools/zkutils",
         "tools/dbcli",
+        "tools/vplexdbckr",
         "tools/geniso",
         "tools/ipreconfig",
         "vipr-portal/vipr-client",

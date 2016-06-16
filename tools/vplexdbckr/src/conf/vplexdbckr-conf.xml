@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+    <import resource="classpath:coordinatorclient-var.xml"/>
+    <import resource="classpath:dbversion-info.xml"/>
+    <import resource="classpath:dbclient-conf.xml"/>
+
+    <bean id="dbclient" class="com.emc.storageos.db.client.impl.DbClientImpl">
+        <property name="coordinatorClient" ref="coordinator"/>
+        <property name="dbVersionInfo" ref="dbVersionInfo"/>
+        <property name="encryptionProvider" ref="encryptionProvider"/>
+        <property name="geoEncryptionProvider" ref="geoEncryptionProvider"/>
+        <property name="localContext" ref="dbclientcontext"/>
+        <property name="geoContext" ref="geodbclientcontext"/>
+        <property name="drUtil" ref="drUtil"/>
+    </bean>
+
+    <bean id="vplexdbckr" class="com.emc.storageos.vplexdbckr.VplexDBCkr">
+        <property name="dbClient" ref="dbclient" />
+    </bean>
+
+    <bean id="vplexapifactory" class="com.emc.storageos.vplex.api.VPlexApiFactory"
+          factory-method="getInstance">
+        <property name="connectionTimeoutMs" value="30000"/>
+        <property name="connManagerTimeout" value="60000"/>
+        <property name="socketConnectionTimeoutMs" value="7200000" />
+    </bean>
+
+</beans>

@@ -24,6 +24,7 @@ import com.emc.storageos.hp3par.command.PortStatisticsCommandResult;
 import com.emc.storageos.hp3par.command.Privileges;
 import com.emc.storageos.hp3par.command.SystemCommandResult;
 import com.emc.storageos.hp3par.command.UserRoleCommandResult;
+import com.emc.storageos.hp3par.command.VirtualLunsList;
 import com.emc.storageos.hp3par.command.VlunResult;
 import com.emc.storageos.hp3par.command.VolumeDetailsCommandResult;
 import com.emc.storageos.hp3par.connection.RESTClient;
@@ -75,6 +76,8 @@ public class HP3PARApi {
     private static final String URI_UPDATE_CG = "/api/v1/volumesets/{0}";
     private static final String URI_CG_DETAILS = "/api/v1/volumesets/{0}";
     private static final String URI_CG_LIST_DETAILS = "/api/v1/volumesets";
+    
+    private static final String URI_VLUNS_OF_VOLUME = "/api/v1/vluns?query=”volumeWWN EQ {}";
     
     // Export related
     private static final String URI_CREATE_VLUN = "/api/v1/vluns";
@@ -1020,6 +1023,47 @@ public class HP3PARApi {
                 clientResp.close();
             }
             _log.info("3PARDriver: getVVsetsList leave");
+        } //end try/catch/finally
+    
+	}
+	
+	
+	/**
+	 * Get all vluns, which are associated with a volume, snapshot or a clone. 
+	 * 
+	 * @param displayName
+	 * @return
+	 * @throws Exception
+	 */
+	public VirtualLunsList getVLunsOfVolume(String volumeWWN) throws Exception {
+
+        _log.info("3PARDriver: getVLunsOfVolume enter");
+        ClientResponse clientResp = null;
+        final String path = MessageFormat.format(URI_VLUNS_OF_VOLUME, volumeWWN);
+        
+        try {
+            clientResp = get(path);
+            if (clientResp == null) {
+                _log.error("3PARDriver: getVLunsOfVolume There is no response from 3PAR");
+                throw new HP3PARException("There is no response from 3PAR");
+            } else if (clientResp.getStatus() != 200) {
+                String errResp = getResponseDetails(clientResp);
+                _log.error("3PARDriver: getVLunsOfVolume There is error response from 3PAR = {}" , errResp);
+                throw new HP3PARException(errResp);
+            } else {
+                String responseString = clientResp.getEntity(String.class);
+                _log.info("3PARDriver: getVLunsOfVolume 3PAR response is {}", responseString);
+                VirtualLunsList vlunsListResult = new Gson().fromJson(sanitize(responseString),
+                		VirtualLunsList.class);
+                return vlunsListResult;
+            }
+        } catch (Exception e) {
+            throw e;
+        } finally {
+            if (clientResp != null) {
+                clientResp.close();
+            }
+            _log.info("3PARDriver: getVLunsOfVolume leave");
         } //end try/catch/finally
     
 	}

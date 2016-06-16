@@ -1817,9 +1817,21 @@ public class VPlexApiClient {
             s_logger.info("Validating backend volumes {} on cluster {}", wwns, clusterName);
             boolean hasMirror = (wwns.size() == 2);
             
-            // Get the storage volumes for the supporting device.
+            // Get the storage volumes for the supporting device on the cluster.
             List<VPlexStorageVolumeInfo> svInfoList = _discoveryMgr.getStorageVolumesForDevice(
                     supportingDeviceName, locality, clusterName, hasMirror);
+            
+            // The storage volumes so returned do not specify the cluster, so we need to determine
+            // that for each volume.
+            Iterator<VPlexStorageVolumeInfo> svInfoIter = svInfoList.iterator();
+            while (svInfoIter.hasNext()) {
+                VPlexStorageVolumeInfo svInfo = svInfoIter.next();
+                VPlexStorageVolumeInfo svInfoWithCluster = _discoveryMgr.findStorageVolume(svInfo.getName());
+                s_logger.info("Cluster for {} is {}", svInfo.getWwn(), svInfoWithCluster.getClusterId());
+                if (!svInfoWithCluster.getClusterId().equals(clusterName)) {
+                    svInfoIter.remove();
+                }
+            }           
             
             // There should be the same number of storage volumes as there are WWNs to verify.
             if (svInfoList.size() != wwns.size()) {

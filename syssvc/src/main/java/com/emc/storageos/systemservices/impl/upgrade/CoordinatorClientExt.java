@@ -1613,6 +1613,7 @@ public class CoordinatorClientExt {
                         long rollbackTargetRevision = Long.parseLong(localRepository.getPreviousDataRevision());
                         drUtil.updateVdcTargetVersion(drUtil.getLocalSite().getUuid(), SiteInfo.DR_OP_CHANGE_DATA_REVISION,
                                 DrUtil.newVdcConfigVersion(), rollbackTargetRevision);
+                        _log.info("Automatic rollback to {} has been triggered", rollbackTargetRevision);
                     } catch (Exception e) {
                         _log.error("Failed to trigger rollback for local site", e);
                     }

@@ -8,16 +8,11 @@ import java.net.URI;
 
 import javax.ws.rs.core.MediaType;
 
-<<<<<<< HEAD
-=======
-import org.codehaus.jettison.json.JSONObject;
->>>>>>> a5559b7... Adding RackHD files created for RackHD-ViPR integration to private branch
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.rackhd.RackHdException;
 import com.emc.storageos.services.restutil.StandardRestClient;
-import com.google.gson.Gson;
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.WebResource;

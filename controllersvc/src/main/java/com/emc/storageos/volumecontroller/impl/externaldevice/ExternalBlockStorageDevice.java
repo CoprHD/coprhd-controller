@@ -550,35 +550,28 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                 for (Volume volume : volumes) {
                     StorageVolume driverVolume = new StorageVolume();
                     driverVolume.setStorageSystemId(storageSystem.getNativeId());
-                    driverVolume.setStoragePoolId(storageSystem.getNativeId());
+                    driverVolume.setNativeId(volume.getNativeId());
                     driverVolume.setRequestedCapacity(volume.getCapacity());
                     driverVolume.setThinlyProvisioned(volume.getThinlyProvisioned());
+                    driverVolume.setConsistencyGroup(consistencyGroupId.toString()); 
                     driverVolume.setDisplayName(volume.getLabel());
-                    if (!NullColumnValueGetter.isNullURI(volume.getConsistencyGroup())) {
-                        //If the consistency group for a given volume is null, nothing to do.
-                    	continue;
-                    }
+                    //add them to StorageVolumes list	
                     driverVolumes.add(driverVolume);  
                 }
                 DriverTask task = driver.addVolumesToConsistencyGroup(driverVolumes, null); 
-                _log.info("doAddToConsistencyGroup -- adding volumes to consistency Group: {}", task.getMessage());
-            
+                _log.info("doAddToConsistencyGroup -- added volumes to consistency Group: {}", consistencyGroupId);     
             if(task.getStatus() == DriverTask.TaskStatus.READY){
                 for (Volume volume : volumes) {
-                    if (volume != null) {
-                        volume.setConsistencyGroup(consistencyGroup.getId());
-                        volume.setReplicationGroupInstance(consistencyGroup.getLabel());
-                    }     
+                     volume.setConsistencyGroup(consistencyGroupId);   
                 }
+                dbClient.updateObject(volumes);
+                taskCompleter.ready(dbClient);
             } else {
-                _log.error("doAddVolumesToConsistencyGroup failed. {}", task.getMessage());
-                _log.error(String.format("Remove volumes from Consistency Group operation failed %s", task.getMessage()));
+                _log.error(String.format("Add volumes to Consistency Group operation failed %s", task.getMessage()));
                 taskCompleter.error(dbClient, DeviceControllerException.exceptions
                         .failedToAddMembersToConsistencyGroup(consistencyGroup.getLabel(),
                         		consistencyGroup.getLabel(), task.getMessage()));
-            }
-            dbClient.updateObject(volumes);
-            taskCompleter.ready(dbClient);
+            }   
             _log.info("{} doAddVolumesToConsistencyGroup END ...", storageSystem.getSerialNumber());
         } catch (Exception e) {
             _log.error(String.format("Add volumes from Consistency Group operation failed %s", e.getMessage()));
@@ -603,35 +596,28 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                 for (Volume volume : volumes) {
                     StorageVolume driverVolume = new StorageVolume();
                     driverVolume.setStorageSystemId(storageSystem.getNativeId());
-                    driverVolume.setStoragePoolId(storageSystem.getNativeId());
+                    driverVolume.setNativeId(volume.getNativeId());
                     driverVolume.setRequestedCapacity(volume.getCapacity());
                     driverVolume.setThinlyProvisioned(volume.getThinlyProvisioned());
+                    driverVolume.setConsistencyGroup(consistencyGroupId.toString()); 
                     driverVolume.setDisplayName(volume.getLabel());
-                    if (!NullColumnValueGetter.isNullURI(volume.getConsistencyGroup())) {
-                        //If the consistency group for a given volume is null, nothing to do.
-                    	continue;
-                    }
+                    //add them to StorageVolumes list	
                     driverVolumes.add(driverVolume);  
                 }
                 DriverTask task = driver.removeVolumesFromConsistencyGroup(driverVolumes, null); 
-                _log.info("doRemoveVolumesFromConsistencyGroup -- removing volumes from consistency Group: {}", task.getMessage());
-            
+                _log.info("doRemoveVolumesFromConsistencyGroup -- removing volumes from consistency Group: {}", consistencyGroupId);
             if(task.getStatus() == DriverTask.TaskStatus.READY){
-                for (Volume volume : volumes) {
-                    if (volume != null) {
+                for (Volume volume : volumes) { 
                         volume.setConsistencyGroup(NullColumnValueGetter.getNullURI());
-                        volume.setReplicationGroupInstance(NullColumnValueGetter.getNullStr());
-                    }
                 }
+                dbClient.updateObject(volumes);
+                taskCompleter.ready(dbClient);
             } else {
-                _log.error("doRemoveVolumesToConsistencyGroup failed. {}", task.getMessage());
                 _log.error(String.format("Remove volumes from Consistency Group operation failed %s", task.getMessage()));
                 taskCompleter.error(dbClient, DeviceControllerException.exceptions
                         .failedToRemoveMembersToConsistencyGroup(consistencyGroup.getLabel(),
                         		consistencyGroup.getLabel(), task.getMessage()));
             }
-            dbClient.updateObject(volumes);
-            taskCompleter.ready(dbClient);
             _log.info("{} doRemoveVolumesFromConsistencyGroup END ...", storageSystem.getSerialNumber());
         } catch (Exception e) {
             _log.error(String.format("Remove volumes from Consistency Group operation failed %s", e.getMessage()));

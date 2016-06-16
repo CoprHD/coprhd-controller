@@ -1438,7 +1438,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
      */
     public String addStepsForAddingSessionsToCG(Workflow workflow, String waitFor, URI cgURI, List<URI> volumeListToAdd,
             String replicationGroup, String taskId) throws InternalException {
-        log.info("addStepsForAddingVolumesToCG {}", cgURI);
+        log.info("addStepsForAddingSessionsToCG {}", cgURI);
         List<Volume> volumes = ControllerUtils.queryVolumesByIterativeQuery(_dbClient, volumeListToAdd);
 
         if (volumes.isEmpty()
@@ -1463,11 +1463,13 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
 
     private boolean checkIfCGHasSnapshotSessions(List<Volume> volumes) {
         for (BlockObject volume : volumes) {
-            List<BlockSnapshotSession> sessions = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient,
-                    BlockSnapshotSession.class,
-                    ContainmentConstraint.Factory.getBlockSnapshotSessionByConsistencyGroup(volume.getConsistencyGroup()));
-            if (!sessions.isEmpty()) {
-                return true;
+            if (!NullColumnValueGetter.isNullURI(volume.getConsistencyGroup())) {
+                List<BlockSnapshotSession> sessions = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient,
+                        BlockSnapshotSession.class,
+                        ContainmentConstraint.Factory.getBlockSnapshotSessionByConsistencyGroup(volume.getConsistencyGroup()));
+                if (!sessions.isEmpty()) {
+                    return true;
+                }
             }
         }
         return false;

@@ -30,6 +30,4 @@ public interface RackHdExceptions {
     @DeclareServiceCode(ServiceCode.RACKHD_API_FAILURE)
     public RackHdException internalError(String uri, String error);
 
-    @DeclareServiceCode(ServiceCode.RACKHD_API_FAILURE)
-    public RackHdException noActiveStorageProvider(String systemName);
 }

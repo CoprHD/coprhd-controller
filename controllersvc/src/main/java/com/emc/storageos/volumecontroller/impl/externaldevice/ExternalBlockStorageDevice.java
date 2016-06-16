@@ -624,7 +624,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                     }
                 }
             } else {
-                _log.error("doAddVolumesToConsistencyGroup failed. {}", task.getMessage());
+                _log.error("doRemoveVolumesToConsistencyGroup failed. {}", task.getMessage());
                 _log.error(String.format("Remove volumes from Consistency Group operation failed %s", task.getMessage()));
                 taskCompleter.error(dbClient, DeviceControllerException.exceptions
                         .failedToRemoveMembersToConsistencyGroup(consistencyGroup.getLabel(),

@@ -1681,6 +1681,9 @@ public class CoordinatorClientExt {
                 if (allEntered) {
                     try {
                         localRepository.reconfigCoordinator("observer");
+                        // In rollback case, we need to clear the key "rollback_from" in datarevision.properties file
+                        // so that data sync is not blocked any more since active is back now
+                        localRepository.clearRollbackSourceRevision();
                     } finally {
                         leaveZKDoubleBarrier(switchToZkObserverBarrier, DR_SWITCH_TO_ZK_OBSERVER_BARRIER);
                     }

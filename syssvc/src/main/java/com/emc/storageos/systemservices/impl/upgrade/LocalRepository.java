@@ -557,10 +557,27 @@ public class LocalRepository {
         return Long.parseLong(localRevision) > Long.parseLong(targetRevision);
     }
 
+    public void clearRollbackSourceRevision() throws LocalRepositoryException {
+        final String prefix = "clearRollbackSourceRevision(): ";
+        _log.debug(prefix);
+
+        final String[] cmd1 = { _SYSTOOL_CMD, _SYSTOOL_GET_DATA_REVISION };
+        String[] props = exec(prefix, cmd1);
+
+        _log.debug(prefix + "properties={}", Strings.repr(props));
+        Map<String, String> map = PropertyInfoUtil.splitKeyValue(props);
+        String revision = map.get(KEY_ROLLBACK_FROM);
+        if (revision == null) {
+            return;
+        }
+        setDataRevision(map.get(KEY_DATA_REVISION),
+                Boolean.parseBoolean(map.get(KEY_DATA_REVISION_COMMITTED)),
+                Long.parseLong(map.get(KEY_VDC_CONFIG_VERSION)));
+        _log.info(prefix + " Success");
+    }
+
     /***
-     * Get previous data revision from disk
-     *
-     * @return DataRevisonTag
+     * Get rollback source data revision from disk, return null if no rollback happened
      */
     public String getRollbackSourceRevision() throws LocalRepositoryException {
         final String prefix = "getRollbackSourceRevision(): ";
@@ -579,11 +596,6 @@ public class LocalRepository {
         return null;
     }
 
-    /***
-     * Get previous data revision from disk
-     * 
-     * @return DataRevisonTag
-     */
     public String getPreviousDataRevision() throws LocalRepositoryException {
         final String prefix = "getPreviousDataRevision(): ";
         _log.debug(prefix);

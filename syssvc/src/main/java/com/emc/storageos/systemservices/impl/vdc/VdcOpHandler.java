@@ -285,15 +285,9 @@ public abstract class VdcOpHandler {
                 long localRevision = Long.parseLong(localRepository.getDataRevision());
                 log.info("local data revision is {}", localRevision);
 
-                // This is to prevent from endless rollback
                 String rollbackSource = localRepository.getRollbackSourceRevision();
                 if (rollbackSource != null && Long.parseLong(rollbackSource) == targetDataRevision) {
                     log.info("Current revision is rollbacked from {}, no need to change to that data revision again", rollbackSource);
-                    try {
-                        coordinator.removeTargetInfo(targetSiteInfo, false);
-                    } catch (CoordinatorClientException e) {
-                        log.warn("Failed to remove target info", e);
-                    }
                     return;
                 }
                 // In rollback case, target data revision is smaller than local data revision

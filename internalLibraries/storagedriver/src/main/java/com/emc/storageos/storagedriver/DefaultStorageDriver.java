@@ -275,8 +275,8 @@ public class DefaultStorageDriver extends AbstractStorageDriver implements Block
     }
     
     @Override
-    public DriverTask addVolumesToConsistencyGroup (List<StorageVolume> volumes, StorageCapabilities capabilities){
-    	_log.info("Adding {} Volumes to Consistency Group {}", volumes.toString(), volumes.get(0).getConsistencyGroup());
+    public DriverTask addVolumesToConsistencyGroup (List<StorageVolume> volumes, String cgName, StorageCapabilities capabilities){
+    	_log.info("Adding {} Volumes to Consistency Group {}", volumes.toString(), cgName);
     	String driverName = this.getClass().getSimpleName();
         String taskType = "add-volumes-to-consistency-groupd";
         String taskId = String.format("%s+%s+%s", driverName, taskType, UUID.randomUUID().toString());
@@ -292,8 +292,8 @@ public class DefaultStorageDriver extends AbstractStorageDriver implements Block
     }
     
     @Override
-    public DriverTask removeVolumesFromConsistencyGroup(List<StorageVolume> volumes, StorageCapabilities capabilities){
-        _log.info("Remove {} Volumes from Consistency Group {}", volumes.toString(), volumes.get(0).getConsistencyGroup());
+    public DriverTask removeVolumesFromConsistencyGroup(List<StorageVolume> volumes, String cgName, StorageCapabilities capabilities){
+        _log.info("Remove {} Volumes from Consistency Group {}", volumes.toString(), cgName);
         String taskType = "remove-volumes-to-consistency-groupd";
         String driverName = this.getClass().getSimpleName();
         String taskId = String.format("%s+%s+%s", driverName, taskType, UUID.randomUUID().toString());

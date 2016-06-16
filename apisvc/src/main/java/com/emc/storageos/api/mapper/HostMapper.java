@@ -21,6 +21,7 @@ import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.HostInterface;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.IpInterface;
+import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.Vcenter;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
 import com.emc.storageos.model.RelatedResourceRep;
@@ -32,6 +33,7 @@ import com.emc.storageos.model.host.HostInterfaceRestRep;
 import com.emc.storageos.model.host.HostRestRep;
 import com.emc.storageos.model.host.InitiatorRestRep;
 import com.emc.storageos.model.host.IpInterfaceRestRep;
+import com.emc.storageos.model.host.PreferredPoolParam;
 import com.emc.storageos.model.host.cluster.ClusterRestRep;
 import com.emc.storageos.model.host.vcenter.VcenterDataCenterRestRep;
 import com.emc.storageos.model.host.vcenter.VcenterRestRep;
@@ -154,6 +156,16 @@ public class HostMapper {
             }
             to.setVolumeGroups(volumeGroups);
         }
+
+        StringMap pools = from.getPreferredPoolIds();
+        if (pools != null && !pools.isEmpty()) {
+            for (Map.Entry<String, String> entry : pools.entrySet()) {
+                RelatedResourceRep poolRep = toRelatedResource(ResourceTypeEnum.STORAGE_POOL, URI.create(entry.getKey()));
+                PreferredPoolParam pool = new PreferredPoolParam(poolRep, entry.getValue());
+                to.getPreferredPoolIds().add(pool);
+            }
+        }
+
         to.setTenant(toRelatedResource(ResourceTypeEnum.TENANT, from.getTenant()));
         to.setDiscoverable(from.getDiscoverable());
         to.setBootVolume(toRelatedResource(ResourceTypeEnum.VOLUME, from.getBootVolumeId()));

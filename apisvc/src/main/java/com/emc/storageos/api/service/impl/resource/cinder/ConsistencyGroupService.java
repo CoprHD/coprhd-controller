@@ -73,6 +73,7 @@ public class ConsistencyGroupService extends AbstractConsistencyGroupService {
 
     // Consistency group name max character
     private static final int CG_MAX_LIMIT = 64;
+    private static final int STATUS_OK = 200;
 
     /**
      * This function handles Get request for a consistency group detail
@@ -107,7 +108,7 @@ public class ConsistencyGroupService extends AbstractConsistencyGroupService {
                     "Bad Request : There is no consistency group exist, please retry with correct consistency group id");
         } else {
             ConsistencyGroupDetail response = getConsistencyGroupDetail(blockConsistencyGroup);
-            return CinderApiUtils.getCinderResponse(response, header, true);
+            return CinderApiUtils.getCinderResponse(response, header, true,STATUS_OK);
         }
 
     }
@@ -139,7 +140,7 @@ public class ConsistencyGroupService extends AbstractConsistencyGroupService {
                 }
             }
         }
-        return CinderApiUtils.getCinderResponse(cgsResponse, header, false);
+        return CinderApiUtils.getCinderResponse(cgsResponse, header, false,STATUS_OK);
     }
 
     /**
@@ -204,7 +205,7 @@ public class ConsistencyGroupService extends AbstractConsistencyGroupService {
 
             cgResponse.id = CinderApiUtils.splitString(consistencyGroup.getId().toString(), ":", 3);
             cgResponse.name = consistencyGroup.getLabel();
-            return CinderApiUtils.getCinderResponse(cgResponse, header, true);
+            return CinderApiUtils.getCinderResponse(cgResponse, header, true,STATUS_OK);
         } else {
             return CinderApiUtils.createErrorResponse(400, "Bad Request : can't create consistency group due to invalid argument");
         }

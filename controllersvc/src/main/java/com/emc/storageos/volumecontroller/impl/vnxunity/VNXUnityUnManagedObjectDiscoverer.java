@@ -667,6 +667,7 @@ public class VNXUnityUnManagedObjectDiscoverer {
             UnManagedSMBFileShare unManagedSMBFileShare = new UnManagedSMBFileShare();
 
             unManagedSMBFileShare.setName(shareName);
+            unManagedSMBFileShare.setNativeId(exp.getId());
             unManagedSMBFileShare.setMountPoint(mountPoint);
             unManagedSMBFileShare.setMaxUsers(Integer.parseInt(CIFS_MAX_USERS));
             unManagedSMBFileShare.setPortGroup(storagePort.getPortGroup());

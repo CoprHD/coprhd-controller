@@ -515,13 +515,20 @@ public class LocalRepository {
 
         final Path tmpFilePath = FileSystems.getDefault().getPath(DATA_REVISION_TMP);
         StringBuilder s = new StringBuilder();
-        // In a rollback case, target data revision is smaller than local data revision,
-        // we don't record previous data revision
-        if (localRevision != null && Long.parseLong(localRevision) < Long.parseLong(targetRevision)) {
-            s.append(KEY_PREV_DATA_REVISION);
-            s.append(PropertyInfoExt.ENCODING_EQUAL);
-            s.append(String.valueOf(localRevision));
-            s.append(PropertyInfoExt.ENCODING_NEWLINE);
+        // If it's a regular data resync case, we record previous data revision
+        // If is's a rollback case, we record the rollback source data revision
+        if (localRevision != null) {
+            if (isRollbackCase(localRevision, targetRevision)) {
+                s.append(KEY_ROLLBACK_FROM);
+                s.append(PropertyInfoExt.ENCODING_EQUAL);
+                s.append(String.valueOf(localRevision));
+                s.append(PropertyInfoExt.ENCODING_NEWLINE);
+            } else {
+                s.append(KEY_PREV_DATA_REVISION);
+                s.append(PropertyInfoExt.ENCODING_EQUAL);
+                s.append(String.valueOf(localRevision));
+                s.append(PropertyInfoExt.ENCODING_NEWLINE);
+            }
         }
         s.append(KEY_DATA_REVISION);
         s.append(PropertyInfoExt.ENCODING_EQUAL);
@@ -544,6 +551,32 @@ public class LocalRepository {
         } finally {
             cleanupTmpFile(tmpFilePath);
         }
+    }
+
+    private boolean isRollbackCase(String localRevision, String targetRevision) {
+        return Long.parseLong(localRevision) > Long.parseLong(targetRevision);
+    }
+
+    /***
+     * Get previous data revision from disk
+     *
+     * @return DataRevisonTag
+     */
+    public String getRollbackSourceRevision() throws LocalRepositoryException {
+        final String prefix = "getRollbackSourceRevision(): ";
+        _log.debug(prefix);
+
+        final String[] cmd1 = { _SYSTOOL_CMD, _SYSTOOL_GET_DATA_REVISION };
+        String[] props = exec(prefix, cmd1);
+
+        _log.debug(prefix + "properties={}", Strings.repr(props));
+        Map<String, String> map = PropertyInfoUtil.splitKeyValue(props);
+        String revision = map.get(KEY_ROLLBACK_FROM);
+        String committed = map.get(KEY_DATA_REVISION_COMMITTED);
+        if (committed != null && Boolean.valueOf(committed)) {
+            return revision;
+        }
+        return null;
     }
 
     /***

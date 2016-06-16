@@ -82,7 +82,7 @@ public class DrSiteNetworkMonitor implements Runnable {
         
         Site localSite = drUtil.getLocalSite();
         SiteState state = localSite.getState();
-        if (state == SiteState.STANDBY_PAUSED || state == SiteState.ACTIVE_DEGRADED) {
+        if (state == SiteState.STANDBY_PAUSED || state == SiteState.ACTIVE_DEGRADED || state == SiteState.STANDBY_DEGRADED) {
             return true;
         }
         _log.debug("This site is not active site or standby paused, no need to do network monitor");

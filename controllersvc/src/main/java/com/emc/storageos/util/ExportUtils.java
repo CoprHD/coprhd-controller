@@ -52,6 +52,8 @@ import com.emc.storageos.db.client.util.DataObjectUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.StringMapUtil;
 import com.emc.storageos.db.client.util.StringSetUtil;
+import com.emc.storageos.exceptions.DeviceControllerException;
+import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
@@ -646,6 +648,50 @@ public class ExportUtils {
             }
         }
         return map;
+    }
+
+    /**
+     * Validate that an ExportGroup's mapping of Volume URIs to LUNs contains only one
+     * entry for each LUN. Otherwise, throw an Exception containing detailed information.
+     * 
+     * @param exportGroupName the name of the ExportGroup containing this volume to URI mapping
+     * @param volumeMap a Map of Volume URI to LUN Integer for an ExportGroup
+     * @throws ControllerException if there are LUN inconsistencies
+     */
+    static public void validateExportGroupVolumeMap(String exportGroupName, Map<URI, Integer> volumeMap) throws ControllerException {
+
+        // reverse the volume map to consist of LUN Integers to Volume URIs
+        Map<Integer, List<URI>> reversedVolumeMap = new HashMap<Integer, List<URI>>();
+        for (Entry<URI, Integer> entry : volumeMap.entrySet()) {
+            List<URI> uriList = reversedVolumeMap.get(entry.getValue());
+            if (null == uriList) {
+                uriList = new ArrayList<URI>();
+                reversedVolumeMap.put(entry.getValue(), uriList);
+            }
+            uriList.add(entry.getKey());
+        }
+
+        // filter out any LUN keys with just one entry (which are valid entries)
+        // also, -1 (LUN_UNASSIGNED) can be valid for more than one Volume, so skip that, too
+        List<String> validationErrors = new ArrayList<String>();
+        reversedVolumeMap.remove(ExportGroup.LUN_UNASSIGNED);
+        for (Entry<Integer, List<URI>> entry : reversedVolumeMap.entrySet()) {
+            // if there is more than one entry for the LUN, we have a problem
+            if (entry.getValue().size() > 1) {
+                String vols = Joiner.on(", ").join(entry.getValue());
+                String error = "LUN " + entry.getKey() + " is mapped to more than one volume (" + vols + ")";
+                _log.error("ExportGroup {} has LUN inconsistency: {}", exportGroupName, error);
+                validationErrors.add(error);
+            }
+        }
+
+        // throw an Exception if we encountered any LUN inconsistencies
+        if (!validationErrors.isEmpty()) {
+            String details = Joiner.on(". ").join(validationErrors);
+            throw DeviceControllerException.exceptions.exportGroupInconsistentLunViolation(exportGroupName, details);
+        }
+
+        _log.info("volume map for Export Group {} has valid LUN information: {}", exportGroupName, volumeMap);
     }
 
     /**

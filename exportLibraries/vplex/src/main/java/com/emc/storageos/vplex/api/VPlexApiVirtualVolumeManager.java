@@ -70,6 +70,7 @@ public class VPlexApiVirtualVolumeManager {
      * @param clusterInfoList A list of VPlexClusterInfo specifying the info for the VPlex
      *            clusters.
      * @param findVirtualVolume If true findVirtualVolume method is called after virtual volume is created.
+     * @param thinEnabled If true, the virtual volume should be created as a thin-enabled virtual volume.
      *
      * @return The information for the created virtual volume.
      *
@@ -78,7 +79,8 @@ public class VPlexApiVirtualVolumeManager {
      */
     VPlexVirtualVolumeInfo createVirtualVolume(List<VolumeInfo> nativeVolumeInfoList,
             boolean isDistributed, boolean discoveryRequired, boolean preserveData,
-            String winningClusterId, List<VPlexClusterInfo> clusterInfoList, boolean findVirtualVolume)
+            String winningClusterId, List<VPlexClusterInfo> clusterInfoList, 
+            boolean findVirtualVolume, boolean thinEnabled)
             throws VPlexApiException {
 
         s_logger.info("Request to create {} virtual volume.",
@@ -160,7 +162,7 @@ public class VPlexApiVirtualVolumeManager {
             }
 
             // Create virtual volume
-            createVirtualVolume(devicePath);
+            createVirtualVolume(devicePath, thinEnabled);
             s_logger.info("Created virtual volume on device {}", devicePath);
 
             VPlexVirtualVolumeInfo virtualVolumeInfo = new VPlexVirtualVolumeInfo();
@@ -175,6 +177,7 @@ public class VPlexApiVirtualVolumeManager {
                 virtualVolumeInfo.setName(volumeNameBuilder.toString());
                 virtualVolumeInfo.addCluster(clusterId);
             }
+
             return virtualVolumeInfo;
         } catch (Exception e) {
             // An error occurred. Clean up any VPLEX artifacts created for
@@ -628,39 +631,73 @@ public class VPlexApiVirtualVolumeManager {
             long expansionStatusSleepTime) throws VPlexApiException {
 
         int retryCount = 0;
+        String expansionStatus = null;
+        String expandableCapacity = null;
+        boolean expansionCompleted = false;
         VPlexApiDiscoveryManager discoveryMgr = _vplexApiClient.getDiscoveryManager();
-
         while (++retryCount <= expansionStatusRetryCount) {
             try {
                 // Pause before obtaining the volume info.
                 VPlexApiUtils.pauseThread(expansionStatusSleepTime);
                 discoveryMgr.updateVirtualVolumeInfo(clusterName, virtualVolumeInfo);
-                s_logger.info("Expansion status is {}", virtualVolumeInfo.getExpansionStatus());
-                if (VPlexVirtualVolumeInfo.ExpansionStatus.INPROGRESS.getStatus().equals(
-                        virtualVolumeInfo.getExpansionStatus())) {
-                    s_logger.info("Expansion still in progress");
+                
+                // Get the expansion status and the expandable capacity. We need
+                // to check both. We want the updated virtual volume info to specify
+                // the new block count after the expansion has completed. In this 
+                // way we properly reflect the new provisioned capacity in ViPR.
+                // However due to VPLEX issue (zeph-q40729), at the time the expansion
+                // status becomes "null" indicating the expansion has completed, it
+                // may be the case that the block count and expandable capacity
+                // do not reflect the updated values resulting form the expansion.
+                // Therefore, we check both that the expansion has completed and 
+                // also that the expandable capacity is 0. At this point the block
+                // count should also be updated, and the proper capacity can be
+                // set in ViPR.
+                expansionStatus = virtualVolumeInfo.getExpansionStatus();
+                s_logger.info("Expansion status is {}", expansionStatus);
+                expandableCapacity = virtualVolumeInfo.getExpandableCapacity();
+                s_logger.info("Expandable capacity is {}", expandableCapacity);
+                
+                // Now check if the expansion has completed by checking the expansion
+                // status and expandable capacity.
+                if (((expansionStatus == null) || (VPlexApiConstants.NULL_ATT_VAL.equals(expansionStatus))) &&
+                        (VPlexApiConstants.NO_EXPANDABLE_CAPACITY.equals(expandableCapacity))) {
+                    // The expansion has completed.
+                    expansionCompleted = true;
+                    break;
+                } else if (!VPlexVirtualVolumeInfo.ExpansionStatus.FAILED.equals(expansionStatus)) {
+                    // The expansion status is null indicating the expansion has completed but
+                    // the expandable capacity has yet to be updated, or the expansion status
+                    // is in-progress or unknown. In this case we just continue and retry.
                     continue;
                 } else {
+                    // The expansion status indicates the expansion has failed.
                     break;
-                }
-            } catch (VPlexApiException vae) {
-                s_logger.error("An error occurred updating the virtual volume info: {}",
-                        vae.getMessage());
+                }               
+            } catch (Exception e) {
+                s_logger.error("An error occurred updating the virtual volume info: {}", e.getMessage());
                 if (retryCount < expansionStatusRetryCount) {
                     s_logger.info("Trying again to get virtual volume info");
-                    VPlexApiUtils.pauseThread(expansionStatusSleepTime);
                 } else {
-                    throw vae;
+                    throw VPlexApiException.exceptions.exceptionGettingVolumeExpansionStatus(virtualVolumeInfo.getName(), e);
                 }
             }
         }
-        if (VPlexVirtualVolumeInfo.ExpansionStatus.INPROGRESS.getStatus().equals(
-                virtualVolumeInfo.getExpansionStatus())) {
+        
+        // If the VPLEX volume expansion is not completed, throw an error indicating why.
+        if (!expansionCompleted) {
             s_logger.info(String.format("After %s retries with wait of %s ms between each retry volume %s "
-                    + "expansion status is still in progress.", String.valueOf(expansionStatusRetryCount),
+                    + "expansion status has not completed", String.valueOf(expansionStatusRetryCount),
                     String.valueOf(expansionStatusSleepTime), virtualVolumeInfo.getName()));
-            throw VPlexApiException.exceptions.failedExpandVolumeStatusAfterRetries(virtualVolumeInfo.getName(),
-                    String.valueOf(expansionStatusRetryCount), String.valueOf(expansionStatusSleepTime));
+            if (VPlexVirtualVolumeInfo.ExpansionStatus.FAILED.equals(expansionStatus)) {
+                throw VPlexApiException.exceptions.vplexVolumeExpansionFailed(virtualVolumeInfo.getName());
+            } else if (VPlexVirtualVolumeInfo.ExpansionStatus.INPROGRESS.equals(expansionStatus)) {
+                throw VPlexApiException.exceptions.vplexVolumeExpansionIsStillInProgress(virtualVolumeInfo.getName());
+            } else if (VPlexVirtualVolumeInfo.ExpansionStatus.UNKNOWN.equals(expansionStatus)) {
+                throw VPlexApiException.exceptions.vplexVolumeExpansionIsInUnknownState(virtualVolumeInfo.getName());
+            } else {
+                throw VPlexApiException.exceptions.vplexVolumeExpansionBlockCountNotUpdated(virtualVolumeInfo.getName());
+            }
         }
     }
 
@@ -1022,10 +1059,11 @@ public class VPlexApiVirtualVolumeManager {
      * Creates a virtual volume for the device with the passed context path.
      *
      * @param devicePath The context path of a local or distributed device.
+     * @param thinEnabled If true, request VPLEX to create the volume as thin-enabled.
      *
      * @throws VPlexApiException When an error occurs creating the virtual volume.
      */
-    private void createVirtualVolume(String devicePath)
+    private void createVirtualVolume(String devicePath, Boolean thinEnabled)
             throws VPlexApiException {
         ClientResponse response = null;
         try {
@@ -1035,6 +1073,9 @@ public class VPlexApiVirtualVolumeManager {
             s_logger.info("Create virtual volume URI is {}", requestURI.toString());
             Map<String, String> argsMap = new HashMap<String, String>();
             argsMap.put(VPlexApiConstants.ARG_DASH_R, devicePath);
+            if (thinEnabled) {
+                argsMap.put(VPlexApiConstants.ARG_THIN_ENABLED, "");
+            }
             JSONObject postDataObject = VPlexApiUtils.createPostData(argsMap, false);
             s_logger.info("Create virtual volume POST data is {}", postDataObject.toString());
             response = _vplexApiClient.post(requestURI, postDataObject.toString());

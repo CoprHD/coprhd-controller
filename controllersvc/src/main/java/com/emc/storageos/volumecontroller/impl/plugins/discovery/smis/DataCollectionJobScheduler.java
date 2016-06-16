@@ -44,6 +44,7 @@ import com.emc.storageos.hds.api.HDSApiFactory;
 import com.emc.storageos.model.property.PropertyConstants;
 import com.emc.storageos.services.util.PlatformUtils;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
+import com.emc.storageos.volumecontroller.impl.ceph.CephUtils;
 import com.emc.storageos.volumecontroller.impl.cinder.CinderUtils;
 import com.emc.storageos.volumecontroller.impl.datadomain.DataDomainUtils;
 import com.emc.storageos.volumecontroller.impl.hds.prov.utils.HDSUtils;
@@ -184,25 +185,21 @@ public class DataCollectionJobScheduler {
         boolean enableAutoMetering = Boolean.parseBoolean(_configInfo.get(ENABLE_METERING));
 
         // Override auto discovery, scan, and metering if this is one node deployment, such as devkit,
-        // standalone, or 1+0.
-        if (enableAutoScan || enableAutoDiscovery || enableAutoMetering) {
-            Map<String, String> ovfEnvProperties = PlatformUtils.getOvfenvProperties();
-            if (ovfEnvProperties != null) {
-                String numOfNodesString = ovfEnvProperties.get(PropertyConstants.NODE_COUNT_KEY);
-                if (numOfNodesString != null && numOfNodesString.equals("1")) {
+        // standalone, or 1+0.  CoprHD are single-node deployments typically, so ignore this variable in CoprHD.
+        if (!PlatformUtils.isOssBuild() && (enableAutoScan || enableAutoDiscovery || enableAutoMetering)) {
+            String numOfNodesString = _coordinator.getPropertyInfo().getProperty(PropertyConstants.NODE_COUNT_KEY);
+            if (numOfNodesString != null && numOfNodesString.equals("1")) {
 
-                    boolean enableAutoOpsSingleNodeString = false;
-                    String enableAutoOpsSingleNode = _configInfo.get(ENABLE_AUTO_OPS_SINGLENODE);
-                    if (enableAutoOpsSingleNode != null) {
-                        enableAutoOpsSingleNodeString = Boolean.parseBoolean(enableAutoOpsSingleNode);
-                    }
-                    
-                    if (!enableAutoOpsSingleNodeString) {
-                       enableAutoScan = enableAutoDiscovery = enableAutoMetering = false;
-                    }
+                boolean enableAutoOpsSingleNodeString = false;
+                String enableAutoOpsSingleNode = _configInfo.get(ENABLE_AUTO_OPS_SINGLENODE);
+                if (enableAutoOpsSingleNode != null) {
+                    enableAutoOpsSingleNodeString = Boolean.parseBoolean(enableAutoOpsSingleNode);
+                }
+
+                if (!enableAutoOpsSingleNodeString) {
+                    enableAutoScan = enableAutoDiscovery = enableAutoMetering = false;
                 }
             }
-            
         }
         
         LeaderSelectorListenerForPeriodicTask schedulingProcessor = new LeaderSelectorListenerForPeriodicTask(
@@ -856,6 +853,11 @@ public class DataCollectionJobScheduler {
                 _dbClient, xioClientFactory));
 
         activeProviderURIs.addAll(ScaleIOStorageDevice.getInstance().refreshConnectionStatusForAllSIOProviders());
+
+        activeProviderURIs.addAll(CephUtils.refreshCephConnections(
+                CustomQueryUtility.getActiveStorageProvidersByInterfaceType(
+                        _dbClient, StorageProvider.InterfaceType.ceph.name()),
+                _dbClient));
 
         return activeProviderURIs;
     }

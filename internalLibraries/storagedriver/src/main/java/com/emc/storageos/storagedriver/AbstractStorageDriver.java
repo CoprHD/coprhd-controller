@@ -16,15 +16,24 @@ public abstract class AbstractStorageDriver implements DiscoveryDriver {
     private static final Logger _log = LoggerFactory.getLogger(AbstractStorageDriver.class);
     protected Registry driverRegistry;
     protected LockManager lockManager;
+    protected String sdkVersionNumber;
 
     public AbstractStorageDriver() {
     }
 
-    public void setDriverRegistry(Registry driverRegistry) {
-        this.driverRegistry = driverRegistry;
+    public synchronized void setDriverRegistry(Registry driverRegistry) {
+        if (this.driverRegistry == null) {
+            this.driverRegistry = driverRegistry;
+        }
     }
 
-    public void setLockManager(LockManager lockManager) {
-        this.lockManager = lockManager;
+    public synchronized void setLockManager(LockManager lockManager) {
+        if (this.lockManager == null) {
+            this.lockManager = lockManager;
+        }
+    }
+
+    public void setSdkVersionNumber(String sdkVersionNumber) {
+        this.sdkVersionNumber = sdkVersionNumber;
     }
 }

@@ -57,6 +57,8 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.model.VpoolProtectionVarraySettings;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedProtectionSet;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.SizeUtil;
@@ -307,6 +309,22 @@ public class RPHelper {
                         vol.getId().toString());
                 for (UnManagedProtectionSet umpset : umpsets) {
                     umpset.getManagedVolumeIds().remove(vol.getId().toString());
+                    // Clean up the volume's reference, if any, in the unmanaged volumes associated with the unmanaged protection set
+                    for (String umv : umpset.getUnManagedVolumeIds()) {
+                        UnManagedVolume umVolume = _dbClient.queryObject(UnManagedVolume.class, URI.create(umv));
+                        StringSet rpManagedSourceVolumeInfo = umVolume.getVolumeInformation()
+                                .get(SupportedVolumeInformation.RP_MANAGED_SOURCE_VOLUME.toString());
+                        StringSet rpManagedTargetVolumeInfo = umVolume.getVolumeInformation()
+                                .get(SupportedVolumeInformation.RP_MANAGED_TARGET_VOLUMES.toString());
+                        if (rpManagedSourceVolumeInfo != null && !rpManagedSourceVolumeInfo.isEmpty()) {
+                            rpManagedSourceVolumeInfo.remove(vol.getId().toString());
+                        }
+
+                        if (rpManagedTargetVolumeInfo != null && !rpManagedTargetVolumeInfo.isEmpty()) {
+                            rpManagedTargetVolumeInfo.remove(vol.getId().toString());
+                        }
+                        _dbClient.updateObject(umVolume);
+                    }
                     _dbClient.updateObject(umpset);
                 }
             }
@@ -459,7 +477,7 @@ public class RPHelper {
                         operationType = LOG_MSG_OPERATION_TYPE_REMOVE_PROTECTION;
                         Map<String, Object> volumeParams = new HashMap<String, Object>();
                         volumeParams.put(VolumeDescriptor.PARAM_DO_NOT_DELETE_VOLUME, Boolean.TRUE);
-                        volumeParams.put(VolumeDescriptor.PARAM_VPOOL_CHANGE_VPOOL_ID, newVpool.getId());
+                        volumeParams.put(VolumeDescriptor.PARAM_VPOOL_CHANGE_NEW_VPOOL_ID, newVpool.getId());
                         descriptor.setParameters(volumeParams);
                     }
 
@@ -520,7 +538,7 @@ public class RPHelper {
                         operationType = LOG_MSG_OPERATION_TYPE_REMOVE_PROTECTION;
                         Map<String, Object> volumeParams = new HashMap<String, Object>();
                         volumeParams.put(VolumeDescriptor.PARAM_DO_NOT_DELETE_VOLUME, Boolean.TRUE);
-                        volumeParams.put(VolumeDescriptor.PARAM_VPOOL_CHANGE_VPOOL_ID, newVpool.getId());
+                        volumeParams.put(VolumeDescriptor.PARAM_VPOOL_CHANGE_NEW_VPOOL_ID, newVpool.getId());
                         descriptor.setParameters(volumeParams);
                     }
                     _log.info(String.format("Adding BLOCK_DATA descriptor to %s volume [%s] (%s)",
@@ -635,6 +653,29 @@ public class RPHelper {
         }
 
         return null;
+    }
+
+    /**
+     * Get all the target volumes in the consistency group for specified target virtual array.
+     *
+     * @param dbClient the database client
+     * @param consistencyGroup the consistency group id
+     * @param virtualArray target virtual array
+     * @return Volume of the target
+     */
+    public static List<Volume> getTargetVolumesForVarray(DbClient dbClient, URI consistencyGroup, URI virtualArray) {
+        List<Volume> targetVarrayVolumes = new ArrayList<Volume>();
+        List<Volume> cgTargetVolumes = getCgVolumes(dbClient, consistencyGroup, PersonalityTypes.TARGET.name());
+
+        if (cgTargetVolumes != null) {
+            for (Volume target : cgTargetVolumes) {
+                if (target.getVirtualArray().equals(virtualArray)) {
+                    targetVarrayVolumes.add(target);
+                }
+            }
+        }
+
+        return targetVarrayVolumes;
     }
 
     /**
@@ -1206,11 +1247,11 @@ public class RPHelper {
     /*
      * Since there are several ways to express journal size policy, this helper method will take
      * the source size and apply the policy string to come up with a resulting size.
-     *
+     * 
      * @param sourceSizeStr size of the source volume
-     *
+     * 
      * @param journalSizePolicy the policy of the journal size. ("10gb", "min", or "3.5x" formats)
-     *
+     * 
      * @return journal volume size result
      */
     public static long getJournalSizeGivenPolicy(String sourceSizeStr, String journalSizePolicy, int resourceCount) {
@@ -1995,8 +2036,9 @@ public class RPHelper {
             if (cgVolume.getPersonality() == null) {
                 continue;
             }
-            
-            if (RPHelper.isMetroPointVolume(dbClient, cgVolume) && cgVolume.getPersonality().equalsIgnoreCase(PersonalityTypes.SOURCE.toString()) && productionCopy) {
+
+            if (RPHelper.isMetroPointVolume(dbClient, cgVolume)
+                    && cgVolume.getPersonality().equalsIgnoreCase(PersonalityTypes.SOURCE.toString()) && productionCopy) {
                 // If the volume is MetroPoint, check for varrayId in the associated volumes since their RP Copy names will be different.
                 if (cgVolume.getAssociatedVolumes() != null) {
                     for (String assocVolumeIdStr : cgVolume.getAssociatedVolumes()) {
@@ -2006,7 +2048,7 @@ public class RPHelper {
                         }
                     }
                 }
-            }           
+            }
 
             if (!URIUtil.identical(cgVolume.getVirtualArray(), varrayId)) {
                 continue;

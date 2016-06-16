@@ -40,6 +40,7 @@ import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
 import com.emc.storageos.model.block.VirtualPoolChangeParam;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.Recommendation;
+import com.emc.storageos.volumecontroller.SRDFCopyRecommendation;
 import com.emc.storageos.volumecontroller.SRDFRecommendation;
 import com.emc.storageos.volumecontroller.SRDFRecommendation.Target;
 import com.emc.storageos.volumecontroller.impl.smis.MetaVolumeRecommendation;
@@ -48,12 +49,14 @@ import com.emc.storageos.volumecontroller.impl.utils.MetaVolumeUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ObjectLocalCache;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.volumecontroller.impl.utils.attrmatchers.SRDFMetroMatcher;
+import com.emc.storageos.workflow.WorkflowException;
 
 /**
  * Advanced SRDF based scheduling function for block storage. StorageScheduler is done based on
  * desired class-of-service parameters for the provisioned storage.
  */
 public class SRDFScheduler implements Scheduler {
+    private static final String SCHEDULER_NAME = "srdf";
 
     /**
      * A valid combination of
@@ -437,6 +440,8 @@ public class SRDFScheduler implements Scheduler {
         			Map<VirtualArray, Set<StorageSystem>> varrayTargetDeviceMap = new HashMap<VirtualArray, Set<StorageSystem>>();
         			for (VirtualArray targetVarray1 : targetVarrayPoolMap.keySet()) {
         				if (rec.getSourceStoragePool() == null) {
+        				    rec.setVirtualArray(varray.getId());
+        				    rec.setVirtualPool(vpool);
         					rec.setSourceStoragePool(recommendedPool.getId());
         					rec.setResourceCount(currentCount);
         					rec.setSourceStorageSystem(recommendedPool.getStorageDevice());
@@ -1237,4 +1242,103 @@ public class SRDFScheduler implements Scheduler {
         return varrayStoragePoolMap;
     }
 
+    @Override
+    public List<Recommendation> getRecommendationsForVpool(VirtualArray vArray, Project project, 
+            VirtualPool vPool, VpoolUse vPoolUse,
+            VirtualPoolCapabilityValuesWrapper capabilities, Map<VpoolUse, List<Recommendation>> currentRecommendations) {
+       List<Recommendation> recommendations;
+       if (vPoolUse == VpoolUse.SRDF_COPY) {
+           recommendations = getRecommendationsForCopy(vArray, project, vPool, capabilities, currentRecommendations.get(VpoolUse.ROOT));
+       } else {
+           recommendations = getRecommendationsForResources(vArray, project, vPool, capabilities);
+       } 
+       return recommendations;
+    }
+    
+    /**
+     * This routine retrieves recommendations for the SRDF_COPY from previously generated SRDF Source
+     * recommendations. The SRDF scheduler generates them together, but upper layers of code need
+     * them separately so they can be encapsulated in higher level recommendations such as Vplex.
+     * @param vArray - Virtual Array object
+     * @param project - Project object
+     * @param vPool - Virtual Pool object
+     * @param capabilities - VirtualPoolCapabilitiesWrapper contains parameters
+     * @param currentRecommendations - Contains the current recommendations that would include SRDFRecommendations.
+     * The SrdfCopyRecommendations are generated from them
+     * @return - List of Recommendations, specifically, SRDFCopyRecommendations
+     */
+    private List<Recommendation> getRecommendationsForCopy(VirtualArray vArray, Project project, 
+            VirtualPool vPool, VirtualPoolCapabilityValuesWrapper capabilities, 
+            List<Recommendation> currentRecommendations) {
+        List<Recommendation> recommendations = new ArrayList<Recommendation>();
+        if (currentRecommendations == null) {
+            throw WorkflowException.exceptions.workflowConstructionError("Required parameter currentRecommendations is null");
+        }
+        // Look through the existing SRDF Recommendations for a SRDFRecommendation
+        // that has has matching varray and vpool.
+        for (Recommendation recommendation : currentRecommendations) {
+            Recommendation rec = recommendation;
+            while (rec != null) {
+                if (rec instanceof SRDFRecommendation) {
+                    SRDFRecommendation srdfrec = (SRDFRecommendation) rec;
+                    if (srdfrec.getVirtualArrayTargetMap().containsKey(vArray.getId())) {
+                        SRDFRecommendation.Target target = srdfrec.getVirtualArrayTargetMap().get(vArray.getId());
+                        _log.info(String.format("Found SRDF target recommendation for va %s vpool %s", 
+                                vArray.getLabel(), vPool.getLabel()));
+                        SRDFCopyRecommendation targetRecommendation = new SRDFCopyRecommendation();
+                        targetRecommendation.setVirtualArray(vArray.getId());
+                        targetRecommendation.setVirtualPool(vPool);
+                        targetRecommendation.setSourceStorageSystem(target.getTargetStorageDevice());
+                        targetRecommendation.setSourceStoragePool(target.getTargetStoragePool());
+                        targetRecommendation.setResourceCount(srdfrec.getResourceCount());
+                        targetRecommendation.setRecommendation(srdfrec);
+                        recommendations.add(targetRecommendation);
+                    }
+                }
+                // Check child recommendations, if any
+                rec = rec.getRecommendation();
+            }
+        }
+        return recommendations;
+    }
+
+    @Override
+    public String getSchedulerName() {
+        return SCHEDULER_NAME;
+    }
+
+    @Override
+    public boolean handlesVpool(VirtualPool vPool, VpoolUse vPoolUse) {
+        return (VirtualPool.vPoolSpecifiesSRDF(vPool) || vPoolUse == VpoolUse.SRDF_COPY);
+    }
+    
+    /**
+     * Check all the volumes in a project that match the given RDF Group. 
+     * Return true if any report SWAPPED LinkStatus.
+     * @param dbClient -- database client
+     * @param projectURI -- Project URI -- used to constrain volumes
+     * @param rdfGroupURI -- RDF Group -- used to match for LinkStatus
+     * @return true if a volume matching the specified RDF group has a LinkStatus of SWAPPED
+     */
+    public static boolean rdfGroupHasSwappedVolumes(DbClient dbClient, URI projectURI, URI rdfGroupURI) {
+        if (rdfGroupURI == null) {
+            return false;
+        }
+        // Find all volumes in the project.
+        URIQueryResultList volumeIds = new URIQueryResultList();
+        dbClient.queryByConstraint(ContainmentConstraint.Factory.getProjectVolumeConstraint(projectURI), volumeIds);
+        Iterator<Volume> volumeItr = dbClient.queryIterativeObjects(Volume.class, volumeIds);
+        while (volumeItr.hasNext()) {
+            Volume volume = volumeItr.next();
+            if (rdfGroupURI.equals(volume.getSrdfGroup())) {
+                if (Volume.LinkStatus.SWAPPED.name().equals(volume.getLinkStatus())) {
+                    return true;
+                }
+            }
+        }
+        // No volumes report swapped that match RDF Group
+        return false;
+    }
+    
+    
 }

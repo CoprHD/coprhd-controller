@@ -165,6 +165,12 @@ public class DbManagerOps implements AutoCloseable {
         mbean.removeDataCenter(dcName);
     }
     
+
+    public boolean isDataCenterSynced(String dcName) {
+        log.info("Check if data synced with Cassandra nodes for {}", dcName);
+        return mbean.isDataCenterSynced(dcName);
+    }
+    
     public void startNodeRepairAndWaitFinish(boolean canResume, boolean crossVdc) throws Exception {
         if (canResume && getLastSucceededRepairStatus(true) != null) {
             log.info("Resume last successful repair");

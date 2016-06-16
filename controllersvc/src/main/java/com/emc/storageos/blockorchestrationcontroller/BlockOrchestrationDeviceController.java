@@ -147,14 +147,18 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
                     DELETE_VOLUMES_WF_NAME, true, taskId);
             String waitFor = null;    // the wait for key returned by previous call
 
-            // Call the ReplicaDeviceController to add its methods if volumes are removed from, and the CG associated with replication
-            // group(s)
-            waitFor = _replicaDeviceController.addStepsForDeleteVolumes(
-                    workflow, waitFor, volumes, taskId);
-
             // Call the RPDeviceController to add its methods if there are RP protections.
             waitFor = _rpDeviceController.addStepsForDeleteVolumes(
                     workflow, waitFor, volumes, taskId);
+            
+            // Call the RPDeviceController to add its post-delete methods.
+            waitFor = _rpDeviceController.addStepsForPostDeleteVolumes(
+                    workflow, waitFor, volumes, taskId, completer, _blockDeviceController);
+            
+            // Call the ReplicaDeviceController to add its methods if volumes are removed from, 
+            // and the CG associated with replication group(s)
+            waitFor = _replicaDeviceController.addStepsForDeleteVolumes(
+                    workflow, waitFor, volumes, taskId);            
 
             // Call the VPlexDeviceController to add its methods if there are VPLEX volumes.
             waitFor = _vplexDeviceController.addStepsForDeleteVolumes(
@@ -174,11 +178,7 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
 
             // Call the VPlexDeviceController to add its post-delete methods.
             waitFor = _vplexDeviceController.addStepsForPostDeleteVolumes(
-                    workflow, waitFor, volumes, taskId, completer);
-
-            // Last, call the RPDeviceController to add its post-delete methods.
-            waitFor = _rpDeviceController.addStepsForPostDeleteVolumes(
-                    workflow, waitFor, volumes, taskId, completer, _blockDeviceController);
+                    workflow, waitFor, volumes, taskId, completer);            
 
             // Finish up and execute the plan.
             // The Workflow will handle the TaskCompleter
@@ -216,6 +216,10 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
 
             // Call the BlockDeviceController to add its methods if there are block or VPLEX backend volumes.
             waitFor = _blockDeviceController.addStepsForExpandVolume(
+                    workflow, waitFor, volumes, taskId);
+            
+            // Call the SRDFDeviceController to add its methods for SRDF Source / SRDF Target volumes.
+            waitFor = _srdfDeviceController.addStepsForExpandVolume(
                     workflow, waitFor, volumes, taskId);
 
             // Call the VPlexDeviceController to add its methods if there are VPLEX volumes.

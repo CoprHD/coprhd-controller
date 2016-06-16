@@ -105,6 +105,14 @@ public class MigrationHandlerImpl implements MigrationHandler {
         this.coordinator = coordinator;
     }
 
+    public CoordinatorClient getCoordinator() {
+		return coordinator;
+	}
+
+    public DbClient getDbClient() {
+        return dbClient;
+    }
+	
     /**
      * Set db client
      * 
@@ -129,6 +137,10 @@ public class MigrationHandlerImpl implements MigrationHandler {
         this.service = service;
     }
 
+    public Map<String, List<BaseCustomMigrationCallback>> getCustomMigrationCallbacks() {
+		return customMigrationCallbacks;
+	}
+    
     /**
      * set versioned custom migration callbacks
      * 

@@ -39,6 +39,7 @@ import com.emc.storageos.management.jmx.recovery.DbManagerOps;
 import com.emc.storageos.services.util.Waiter;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
+import com.emc.storageos.systemservices.exceptions.CoordinatorClientException;
 import com.emc.storageos.systemservices.impl.client.SysClientFactory;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
 import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
@@ -288,6 +289,11 @@ public abstract class VdcOpHandler {
                 String rollbackSource = localRepository.getRollbackSourceRevision();
                 if (rollbackSource != null && Long.parseLong(rollbackSource) == targetDataRevision) {
                     log.info("Current revision is rollbacked from {}, no need to change to that data revision again", rollbackSource);
+                    try {
+                        coordinator.removeTargetInfo(targetSiteInfo, false);
+                    } catch (CoordinatorClientException e) {
+                        log.warn("Failed to remove target info", e);
+                    }
                     return;
                 }
                 // In rollback case, target data revision is smaller than local data revision

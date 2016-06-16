@@ -35,6 +35,7 @@ import static com.emc.storageos.coordinator.client.model.Constants.*;
 
 import com.emc.storageos.coordinator.exceptions.InvalidRepositoryInfoException;
 import com.emc.storageos.coordinator.exceptions.InvalidSoftwareVersionException;
+import com.emc.storageos.db.client.util.VdcConfigUtil;
 import com.emc.storageos.systemservices.exceptions.SyssvcException;
 import com.emc.storageos.systemservices.exceptions.LocalRepositoryException;
 import com.emc.storageos.services.util.Exec;
@@ -231,6 +232,12 @@ public class LocalRepository {
         } finally {
             cleanupTmpFile(tmpFilePath);
         }
+    }
+
+    public void resetVdcConfigVersion() throws LocalRepositoryException {
+        PropertyInfoExt props = getVdcPropertyInfo();
+        props.removeProperty(VdcConfigUtil.VDC_CONFIG_VERSION);
+        setVdcPropertyInfo(props);
     }
 
     /***

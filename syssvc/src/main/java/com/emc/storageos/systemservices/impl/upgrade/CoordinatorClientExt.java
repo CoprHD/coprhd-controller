@@ -1504,6 +1504,20 @@ public class CoordinatorClientExt {
     }
     
     /**
+     * reconfigure ZooKeeper to participant mode within the local site
+     */
+    public void reconfigZKToWritable() {
+        _log.info("Standby is running in read-only mode due to connection loss with active site. Reconfig coordinatorsvc to writable");
+        try {
+            LocalRepository localRepository = LocalRepository.getInstance();
+            localRepository.reconfigCoordinator("participant");
+            localRepository.restartCoordinator("participant");
+        } catch (Exception ex) {
+            _log.warn("Unexpected errors during switching back to zk observer. Try again later. {}", ex.toString());
+        }
+    }
+    
+    /**
       * Get current ZK connection state
       * @return state
       * @throws Exception

@@ -197,20 +197,6 @@ public class DrZkHealthMonitor extends DrHealthMonitor {
 
     /**
      * reconfigure ZooKeeper to participant mode within the local site
-     */
-    public void reconfigZKToWritable() {
-        log.info("Standby is running in read-only mode due to connection loss with active site. Reconfig coordinatorsvc to writable");
-        try {
-            LocalRepository localRepository = LocalRepository.getInstance();
-            localRepository.reconfigCoordinator("participant");
-            localRepository.restartCoordinator("participant");
-        } catch (Exception ex) {
-            log.warn("Unexpected errors during switching back to zk observer. Try again later. {}", ex.toString());
-        }
-    }
-
-    /**
-     * reconfigure ZooKeeper to participant mode within the local site
      *
      * @param observerNodes to be reconfigured
      * @param readOnlyNodes to be reconfigured
@@ -247,7 +233,7 @@ public class DrZkHealthMonitor extends DrHealthMonitor {
 
             //reconfigure local node last
             if (reconfigLocal){
-                reconfigZKToWritable();
+                coordinatorExt.reconfigZKToWritable();
             }
 
         }catch(Exception ex){

@@ -1103,7 +1103,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         for (String repGroupName : repGroupNames) {
             mirrorList = getMirrorsToBeRemoved(volumeURIs, repGroupName);
 
-            log.info("ReplicationGroup {} has {}", repGroupName, Joiner.on(", ").join(mirrorList));
+            log.info("ReplicationGroup {} has mirrors {}", repGroupName, Joiner.on(", ").join(mirrorList));
 
             if (!isRemoveAll) {
                 URI cgURI = volumes.get(0).getConsistencyGroup();

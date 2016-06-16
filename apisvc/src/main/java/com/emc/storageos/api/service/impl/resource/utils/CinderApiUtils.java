@@ -73,44 +73,8 @@ public class CinderApiUtils {
     /**
      * method for getting http response based on Pojo and http header
      * 
-     * @param obj Pojo object
-     * @param header http request header
-     * @return Response Object
-     */
-    public static Response getCinderResponse(Object obj, HttpHeaders header, boolean isJsonRootElementRequired) {
-        String mediaType = getMediaType(header);
-        if (StringUtils.isNotEmpty(mediaType)) {
-            if (mediaType.equals(XML)) {
-                _log.debug("Requested Media type : XML");
-                return Response.ok().entity(obj).build();
-            } else if (mediaType.equals(JSON)) {
-                _log.debug("Requested Media type : JSON");
-                ObjectMapper objectMapper = new ObjectMapper();
-                if (isJsonRootElementRequired) {
-                    objectMapper.enable(SerializationConfig.Feature.WRAP_ROOT_VALUE);
-                }
-                try {
-                    String jsonResponse = objectMapper.writeValueAsString(obj);
-                    return Response.ok().entity(jsonResponse).build();
-                } catch (JsonGenerationException e) {
-                    throw APIException.badRequests.parameterIsNotValid(obj.getClass().getName());
-                } catch (JsonMappingException e) {
-                    throw APIException.badRequests.parameterIsNotValid(obj.getClass().getName());
-                } catch (IOException e) {
-                    throw APIException.internalServerErrors.ioWriteError(obj.getClass().getName());
-                }
-            }
-        }
-        return Response.status(415).entity("Unsupported Media Type")
-                .build();
-
-    }
-
-    /**
-     * method for getting http response based on Pojo and http header
-     * 
-     * @param obj Pojo object
-     * @param header http request header expectedcode
+     * @param obj Pojo object 
+     * @param obj header http request header expectedcode
      * @return Response Object
      */
     public static Response getCinderResponse(Object obj, HttpHeaders header, boolean isJsonRootElementRequired, int expectedCode) {

@@ -497,23 +497,35 @@ public class LocalRepository {
         return Boolean.valueOf(ret[0]);
     }
 
+    public void setDataRevision(String targetRevision, boolean committed, long vdcConfigVersion) throws LocalRepositoryException {
+        setDataRevision(null, targetRevision, committed, vdcConfigVersion);
+    }
+
     /***
      * Update data revision property
      *
-     * @param revisionTag
+     * @param targetRevision
      * @param committed 
      * @param vdcConfigVersion
      * @throws LocalRepositoryException
      */
-    public void setDataRevision(String revisionTag, boolean committed, long vdcConfigVersion) throws LocalRepositoryException {
-        final String prefix = String.format("setDataRevisionTag(): to=%s committed=%s" , revisionTag, committed);
+    public void setDataRevision(String localRevision, String targetRevision, boolean committed, long vdcConfigVersion) throws LocalRepositoryException {
+        final String prefix = String.format("setDataRevisionTag(): to=%s committed=%s" , targetRevision, committed);
         _log.debug(prefix);
 
         final Path tmpFilePath = FileSystems.getDefault().getPath(DATA_REVISION_TMP);
         StringBuilder s = new StringBuilder();
+        // In a rollback case, target data revision is smaller than local data revision,
+        // we don't record previous data revision
+        if (localRevision != null && Long.parseLong(localRevision) < Long.parseLong(targetRevision)) {
+            s.append(KEY_PREV_DATA_REVISION);
+            s.append(PropertyInfoExt.ENCODING_EQUAL);
+            s.append(String.valueOf(localRevision));
+            s.append(PropertyInfoExt.ENCODING_NEWLINE);
+        }
         s.append(KEY_DATA_REVISION);
         s.append(PropertyInfoExt.ENCODING_EQUAL);
-        s.append(revisionTag == null ? "" : revisionTag);
+        s.append(targetRevision == null ? "" : targetRevision);
         s.append(PropertyInfoExt.ENCODING_NEWLINE);
         s.append(KEY_DATA_REVISION_COMMITTED);
         s.append(PropertyInfoExt.ENCODING_EQUAL);
@@ -532,6 +544,28 @@ public class LocalRepository {
         } finally {
             cleanupTmpFile(tmpFilePath);
         }
+    }
+
+    /***
+     * Get previous data revision from disk
+     * 
+     * @return DataRevisonTag
+     */
+    public String getPreviousDataRevision() throws LocalRepositoryException {
+        final String prefix = "getPreviousDataRevision(): ";
+        _log.debug(prefix);
+
+        final String[] cmd1 = { _SYSTOOL_CMD, _SYSTOOL_GET_DATA_REVISION };
+        String[] props = exec(prefix, cmd1);
+
+        _log.debug(prefix + "properties={}", Strings.repr(props));
+        Map<String, String> map = PropertyInfoUtil.splitKeyValue(props);
+        String revision = map.get(KEY_PREV_DATA_REVISION);
+        String committed = map.get(KEY_DATA_REVISION_COMMITTED);
+        if (committed != null && Boolean.valueOf(committed)) {
+            return revision;
+        }
+        return SiteInfo.DEFAULT_TARGET_VERSION;
     }
 
     /***

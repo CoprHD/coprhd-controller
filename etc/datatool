@@ -28,6 +28,8 @@ _usage() {
     echo "   or: $0 --revert-sanpshot datadir"   >&2
     echo "   or: $0 --rebase-sanpshot datadir"   >&2
     echo "   or: $0 --purge-unused-versions datadir"     >&2
+    echo "   or: $0 --get-base-snapshot-number datadir version"     >&2
+    echo "   or: $0 --set-version-snapshot datadir version snapshot-number"     >&2
     exit 2
 }
 
@@ -106,9 +108,12 @@ _get_base_snapshot_number() {
         return
     fi
 
-    local curver=$(_get_version $1)
-    local cursn=$(_get_snapshot_number $1)
-    local basesn=${cursn}
+    if [ "$2" == "" ] ; then
+        local curver=$(_get_version $1)
+    else
+        local curver="$2"
+    fi
+    local basesn=""
     for i in $(ls ${basedir}); do
         local dir=${basedir}/${i}
         [ -L ${dir} ] && continue;
@@ -116,6 +121,9 @@ _get_base_snapshot_number() {
         local ver=$(echo ${i} | cut -d. -f1)
         [ "${ver}" != "${curver}" ] && continue;
         local sn=$(echo ${i} | cut -d. -f2)
+        if [ "${basesn}" == "" ] ; then
+            basesn=${sn}
+        fi
         if [ "${sn}" -lt "${basesn}" ] ; then
             basesn=${sn}
         fi
@@ -163,8 +171,9 @@ _create_version() {
     fi
 
     # create target revision dir if it does not exist
-    # sn always starts from zero
-    local datadir="${basedir}/${2}.0"
+    local sn=0
+    [ "${3}" != "" ] && sn="${3}"
+    local datadir="${basedir}/${2}.${sn}"
     if [ ! -d "${datadir}" ] ; then
         mkdir ${datadir}
         chown storageos:storageos ${datadir}
@@ -277,8 +286,13 @@ case ${#} in
         esac;;
     3)  case ${1} in 
             --create-version)          _x _create_version  "${2}" "${3}" ;;
+            --get-base-snapshot-number) _x _get_base_snapshot_number "${2}" "${3}" ;;
             --set-version)             _x _create_version  "${2}" "${3}" ;;
             *)                        _usage
+        esac;;
+    4)  case ${1} in
+            --set-version-snapshot)    _x _create_version  "${2}" "${3}" "${4}" ;;
+            *)                         _usage
         esac;;
     *)  _usage
 esac

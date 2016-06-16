@@ -460,7 +460,10 @@ _genconfig_data_versioning() {
        else
            /etc/datatool --create-version /data/db/1 ${tgt_dataver}
            /etc/datatool --create-version /data/geodb/1 ${tgt_dataver}
-           /etc/datatool --create-version /data/zk/version-2 ${tgt_dataver}
+           # in rollback case the ZK snapshot number may not be 0, we should use base snapshot of target revision
+           local sn=$(/etc/datatool --get-base-snapshot-number  /data/zk/version-2 ${tgt_dataver})
+           [ "${sn}" == "" ] && sn=0
+           /etc/datatool --set-version-snapshot /data/zk/version-2 ${tgt_dataver} ${sn}
            rm -f /data/zk/myid
        fi
    fi

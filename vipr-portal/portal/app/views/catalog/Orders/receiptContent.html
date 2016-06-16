@@ -177,12 +177,11 @@
       %{ isExecuting = details.order.isExecuting() || details.order.isPending() }%
       #{if isExecuting}
       <a href="#" id="pauseLink" onclick="pauseOrder(); return false;"><span id='opPause' class='btn btn-primary btn-sm'><span class='glyphicon glyphicon-pause'><span id="pauseText"></span></span></span> </a>
-     <!--  <button id="opPause" class="btn btn-primary" onclick="pauseOrder(); return false;"><span v-icon=glyphicon-pause></span> PAUSE </button>-->
       #{/if}
        %{ isExecuting = details.order.isPaused() }%
       #{if isExecuting}
-      <a href="#" id="resumeLink" onclick="resumeOrder(); return false;"><span id='opResume' class='btn btn-primary btn-sm'><span class='glyphicon glyphicon-play'><span id="resumeText"></span></span></span> </a> 
-      <!--   <button id="opResume" class="btn btn-primary" onclick="resumeOrder(); return false;"><span v-icon=glyphicon-play></span> RESUME </button>-->
+      <a href="#" id="resumeLink" onclick="resumeOrder(); return false;"><span id='opResume' class='btn btn-primary btn-sm'><span class='glyphicon glyphicon-play'><span id="resumeText"></span></span></span>  </a> 
+      
       #{/if}
       </span>
       </dd>

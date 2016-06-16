@@ -521,7 +521,6 @@ public class WorkflowService implements WorkflowController {
                     workflow._orchTaskId);
         }
         String[] errorMessage = new String[] { workflow._successMessage };
-        // StepState state = Workflow.getOverallState(statusMap, errorMessage);
         _log.info(String.format("Workflow %s overall state: %s (%s)",
                 workflow.getOrchTaskId(), state, errorMessage[0]));
         ServiceError error = Workflow.getOverallServiceError(statusMap);
@@ -948,6 +947,7 @@ public class WorkflowService implements WorkflowController {
         String suspendClass = null;
         String suspendMethod = null;
         if (suspendOn != null && !suspendOn.trim().isEmpty()) {
+            _log.info("suspend on class/method is SET to: " + suspendOn);
             if (suspendOn.contains(".")) {
                 suspendClass = suspendOn.substring(0, suspendOn.indexOf("."));
                 suspendMethod = suspendOn.substring(suspendOn.indexOf(".") + 1);

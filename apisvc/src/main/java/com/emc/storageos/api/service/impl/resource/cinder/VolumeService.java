@@ -130,6 +130,7 @@ public class VolumeService extends TaskResourceService {
     private static final String PROJECT_TENANTID_NULL = "Both Project and Tenant Id are null";
     private static final String TRUE = "true";
     private static final int STATUS_ACCEPT = 202;
+    private static final int STATUS_OK = 200;
 
     private PlacementManager _placementManager;
     private CinderHelpers helper;// = new CinderHelpers(_dbClient , _permissionsHelper);
@@ -183,7 +184,7 @@ public class VolumeService extends TaskResourceService {
                 }
             }
         }
-        return CinderApiUtils.getCinderResponse(volumes, header, false);
+        return CinderApiUtils.getCinderResponse(volumes, header, false,STATUS_OK);
     }
 
     /**
@@ -216,7 +217,7 @@ public class VolumeService extends TaskResourceService {
                 }
             }
         }
-        return CinderApiUtils.getCinderResponse(volumeDetails, header, false);
+        return CinderApiUtils.getCinderResponse(volumeDetails, header, false,STATUS_OK);
     }
 
     /**
@@ -251,7 +252,7 @@ public class VolumeService extends TaskResourceService {
         	_log.info("Invalid volume id ={} ",volumeId);
         	return CinderApiUtils.createErrorResponse(404, "Not Found : Invalid volume id");
         }
-        return CinderApiUtils.getCinderResponse(response, header, true);
+        return CinderApiUtils.getCinderResponse(response, header, true,STATUS_OK);
     }
 
     /**
@@ -589,7 +590,7 @@ public class VolumeService extends TaskResourceService {
             vol.setExtensions(extensions);
         }
         _dbClient.updateObject(vol);
-        return CinderApiUtils.getCinderResponse(getVolumeDetail(vol, isV1Call, openstackTenantId), header, true);
+        return CinderApiUtils.getCinderResponse(getVolumeDetail(vol, isV1Call, openstackTenantId), header, true,STATUS_OK);
     }
 
     /**

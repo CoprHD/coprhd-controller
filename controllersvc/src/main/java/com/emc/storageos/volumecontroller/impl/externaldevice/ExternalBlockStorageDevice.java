@@ -553,7 +553,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                     driverVolume.setNativeId(volume.getNativeId());
                     driverVolume.setRequestedCapacity(volume.getCapacity());
                     driverVolume.setThinlyProvisioned(volume.getThinlyProvisioned());
-                    driverVolume.setConsistencyGroup(consistencyGroupId.toString()); 
+                    driverVolume.setConsistencyGroup(consistencyGroup.getNativeId()); 
                     driverVolume.setDisplayName(volume.getLabel());
                     //add them to StorageVolumes list	
                     driverVolumes.add(driverVolume);  
@@ -599,7 +599,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                     driverVolume.setNativeId(volume.getNativeId());
                     driverVolume.setRequestedCapacity(volume.getCapacity());
                     driverVolume.setThinlyProvisioned(volume.getThinlyProvisioned());
-                    driverVolume.setConsistencyGroup(consistencyGroupId.toString()); 
+                    driverVolume.setConsistencyGroup(consistencyGroup.getNativeId()); 
                     driverVolume.setDisplayName(volume.getLabel());
                     //add them to StorageVolumes list	
                     driverVolumes.add(driverVolume);  

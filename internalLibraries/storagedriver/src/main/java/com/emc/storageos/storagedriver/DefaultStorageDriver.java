@@ -283,7 +283,7 @@ public class DefaultStorageDriver extends AbstractStorageDriver implements Block
         DriverTask task = new DefaultDriverTask(taskId);
         task.setStatus(DriverTask.TaskStatus.FAILED);
         
-        String msg = String.format("StorageDriver: doAddVolumesToConsistencyGroup information for storage system {}, volume nativeIds {}, Consistency Group - end",
+        String msg = String.format("StorageDriver: doAddVolumesToConsistencyGroup information for storage system %s, volume nativeIds %s, Consistency Group - end",
                 volumes.get(0).getStorageSystemId(), volumes.toString());
         _log.info(msg);
         task.setMessage(msg);
@@ -300,7 +300,7 @@ public class DefaultStorageDriver extends AbstractStorageDriver implements Block
         DriverTask task = new DefaultDriverTask(taskId);
         task.setStatus(DriverTask.TaskStatus.FAILED);
         
-        String msg = String.format("StorageDriver: doRemoveVolumesFromConsistencyGroup information for storage system {}, volume nativeIds {}, Consistency Group - end",
+        String msg = String.format("StorageDriver: doRemoveVolumesFromConsistencyGroup information for storage %s system %s, volume nativeIds %s, Consistency Group - end",
                 volumes.get(0).getStorageSystemId(), volumes.toString());
         _log.info(msg);
         task.setMessage(msg);

@@ -668,11 +668,18 @@ public class HP3PARApi {
         ClientResponse clientResp = null;
         Integer lun = (hlu == -1) ? 0 : hlu;
         boolean autoLun = (lun == 0) ? true : false;
-        String[] pos = portId.split(":");
-        String portPos = String.format("\"portPos\":{\"node\":%s, \"slot\":%s, \"cardPort\":%s}", pos[0], pos[1], pos[2]);
 
         String body = "{\"volumeName\":\"" + volumeName + "\", \"lun\":" + lun.toString() + ", " + 
-                "\"hostname\":\"" + hostName + "\", " + portPos + ", \"autoLun\":" + autoLun + ", \"maxAutoLun\": 0}";
+                "\"hostname\":\"" + hostName + "\"" + ", \"autoLun\":" + autoLun + ", \"maxAutoLun\": 0";
+
+        // port is specified for matched set; not for host set
+        if (portId != null) {
+            String[] pos = portId.split(":");
+            String portPos = String.format(", \"portPos\":{\"node\":%s, \"slot\":%s, \"cardPort\":%s}", pos[0], pos[1], pos[2]);
+            body = body.concat(portPos);
+        }
+        
+        body = body.concat("}");
 
         try {
             clientResp = post(URI_CREATE_VLUN, body);

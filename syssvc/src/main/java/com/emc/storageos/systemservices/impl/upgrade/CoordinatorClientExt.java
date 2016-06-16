@@ -1683,10 +1683,11 @@ public class CoordinatorClientExt {
                         localRepository.reconfigCoordinator("observer");
                         // In rollback case, we need to clear the key "rollback_from" in datarevision.properties file
                         // so that data sync is not blocked any more since active is back now
-                        localRepository.clearRollbackSourceRevision();
-                        // This is to make sure local version is different from target version after connecting to active
-                        // so that data-resync would definitely be triggered
-                        localRepository.resetVdcConfigVersion();
+                        if (localRepository.clearRollbackSourceRevision()) {
+                            // This is to make sure local version is different from target version after connecting to active
+                            // so that data-resync would definitely be triggered
+                            localRepository.resetVdcConfigVersion();
+                        };
                     } finally {
                         leaveZKDoubleBarrier(switchToZkObserverBarrier, DR_SWITCH_TO_ZK_OBSERVER_BARRIER);
                     }

@@ -564,7 +564,11 @@ public class LocalRepository {
         return Long.parseLong(localRevision) > Long.parseLong(targetRevision);
     }
 
-    public void clearRollbackSourceRevision() throws LocalRepositoryException {
+    /**
+     * 
+     * @return true if KEY_DATA_REVISION existed
+     */
+    public boolean clearRollbackSourceRevision() throws LocalRepositoryException {
         final String prefix = "clearRollbackSourceRevision(): ";
         _log.debug(prefix);
 
@@ -575,12 +579,13 @@ public class LocalRepository {
         Map<String, String> map = PropertyInfoUtil.splitKeyValue(props);
         String revision = map.get(KEY_ROLLBACK_FROM);
         if (revision == null) {
-            return;
+            return false;
         }
         setDataRevision(map.get(KEY_DATA_REVISION),
                 Boolean.parseBoolean(map.get(KEY_DATA_REVISION_COMMITTED)),
                 Long.parseLong(map.get(KEY_VDC_CONFIG_VERSION)));
         _log.info(prefix + " Success");
+        return true;
     }
 
     /***

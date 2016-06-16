@@ -637,7 +637,7 @@
     
     <bean id="drZkHealthMonitor" class="com.emc.storageos.systemservices.impl.util.DrZkHealthMonitor">
     	<property name="drUtil" ref="drUtil" />
-    	<property name="coordinatorExt" ref="coordinatorclientext" />
+    	<property name="coordinator" ref="coordinatorclientext" />
     	<property name="name" value="DrZkMonitor"/>
     	<property name="initDelayInSecs" value="180"/>
     	<property name="frequencyInSecs" value="60"/>
@@ -652,7 +652,9 @@
     </bean>
     
     <bean id="mailHandler" class="com.emc.storageos.systemservices.impl.util.MailHandler"/>
-    <bean id="drSiteNetworkMonitor" class="com.emc.storageos.systemservices.impl.util.DrSiteNetworkMonitor"/>
+    <bean id="drSiteNetworkMonitor" class="com.emc.storageos.systemservices.impl.util.DrSiteNetworkMonitor">
+    	<property name="name" value="DrNetworkMonitor"/>
+    </bean>
     
 </beans>
     

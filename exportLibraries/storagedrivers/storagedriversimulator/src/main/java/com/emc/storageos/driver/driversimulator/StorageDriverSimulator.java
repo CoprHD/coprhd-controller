@@ -401,7 +401,7 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
     
     @Override
     public DriverTask removeVolumesFromConsistencyGroup(List<StorageVolume> volumes, StorageCapabilities capabilities){
-        _log.info("Remove {} Volumes from Consistency Group", volumes.toString());
+        _log.info("Remove {} Volumes from Consistency Group {}", volumes.toString(), volumes.get(0).getConsistencyGroup());
         String taskType = "remove-volumes-to-consistency-groupd";
         String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
         DriverTask task = new DriverSimulatorTask(taskId);

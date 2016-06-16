@@ -663,8 +663,13 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getBlockContinuousCopy(AssetOptionsContext ctx, URI hostOrClusterId, URI projectId, URI volume) {
         // get a list of all continuous copies that are in this project that are not exported to the given host/cluster
         Set<URI> exportedBlockResources = getExportedVolumes(api(ctx), projectId, hostOrClusterId, null);
-        UnexportedBlockResourceFilter<BlockMirrorRestRep> unexportedCopyFilter =
-                new UnexportedBlockResourceFilter<BlockMirrorRestRep>(exportedBlockResources);
+        FilterChain<BlockMirrorRestRep> unexportedCopyFilter = new UnexportedBlockResourceFilter<BlockMirrorRestRep>(exportedBlockResources)
+                .and(new DefaultResourceFilter<BlockMirrorRestRep>() {
+                    @Override
+                    public boolean acceptId(URI id) {
+                        return ResourceType.isType(ResourceType.BLOCK_CONTINUOUS_COPY, id);
+                    }
+                });
         return getContinuousCopyOptionsForProject(ctx, projectId, volume, unexportedCopyFilter);
     }
     

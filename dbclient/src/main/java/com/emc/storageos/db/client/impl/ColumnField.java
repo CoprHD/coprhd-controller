@@ -371,7 +371,7 @@ public class ColumnField {
         return _index.removeColumn(recordKey, column, _parentType.getDataObjectClass().getSimpleName(), mutator, fieldColumnMap);
     }
 
-    //todo to check what this origin method aim to do?
+    //todo to check what this origin method aim to do? the 'null' means delete or just add a new column?
     private void addDeletionMark(String tableName, String recordKey, CompositeColumnName colName, RowMutatorDS mutator) {
         addColumn(tableName, recordKey, colName, null, mutator);
     }
@@ -473,7 +473,7 @@ public class ColumnField {
                             if (_index == null) {
                                 changed |= removeColumn(id, new ColumnWrapper(getColumnName(targetVal, mutator), targetVal), mutator);
                             } else {
-                                addDeletionMark(id, getColumnName(targetVal, mutator), mutator);
+                                addDeletionMark(tableName, id, getColumnName(targetVal, mutator), mutator);
                                 changed = true;
                             }
                         }
@@ -548,7 +548,7 @@ public class ColumnField {
                                         changed |= removeColumn(id,
                                                 new ColumnWrapper(getColumnName(key, targetVal, mutator), targetVal), mutator);
                                     } else {
-                                        addDeletionMark(id, getColumnName(key, targetVal, mutator), mutator);
+                                        addDeletionMark(tableName, id, getColumnName(key, targetVal, mutator), mutator);
                                         changed = true;
                                     }
                                 }

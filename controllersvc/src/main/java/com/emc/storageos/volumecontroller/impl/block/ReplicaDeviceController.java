@@ -1457,7 +1457,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
      */
     public String addStepsForAddingSessionsToCG(Workflow workflow, String waitFor, URI cgURI, List<URI> volumeListToAdd,
             String replicationGroup, String taskId) throws InternalException {
-        log.info("addStepsForAddingVolumesToCG {}", cgURI);
+        log.info("addStepsForAddingSessionsToCG {}", cgURI);
         List<Volume> volumes = ControllerUtils.queryVolumesByIterativeQuery(_dbClient, volumeListToAdd);
 
         if (volumes.isEmpty()
@@ -1469,7 +1469,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         URI storage = volumes.get(0).getStorageController();
         StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
 
-        if (checkIfCGHasSnapshotSessions(volumes)) {
+        if (checkIfAnyVolumesHaveSnapshotSessions(volumes)) {
             log.info("Adding snapshot session steps for adding volumes");
             // Consolidate multiple snapshot sessions into one CG-based snapshot
             // session
@@ -1480,13 +1480,41 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
 
     }
 
-    private boolean checkIfCGHasSnapshotSessions(List<Volume> volumes) {
+    /**
+     * Check if any {@link Volume} in the given list have a {@link BlockSnapshotSession} referencing it as
+     * a parent.
+     *
+     * @param volumes   List of {@link Volume}
+     * @return          True if any {@link BlockSnapshotSession} instances are found, false otherwise.
+     */
+    private boolean checkIfAnyVolumesHaveSnapshotSessions(List<Volume> volumes) {
         for (BlockObject volume : volumes) {
             List<BlockSnapshotSession> sessions = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient,
                     BlockSnapshotSession.class,
-                    ContainmentConstraint.Factory.getBlockSnapshotSessionByConsistencyGroup(volume.getConsistencyGroup()));
+                    ContainmentConstraint.Factory.getParentSnapshotSessionConstraint(volume.getId()));
             if (!sessions.isEmpty()) {
                 return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * For any {@link Volume} in the given list, check if any {@link BlockSnapshotSession} instances reference
+     * their {@link BlockConsistencyGroup}.
+     *
+     * @param volumes   List of {@link Volume}
+     * @return          True if any {@link BlockSnapshotSession} instances are found, false otherwise.
+     */
+    private boolean checkIfCGHasSnapshotSessions(List<Volume> volumes) {
+        for (BlockObject volume : volumes) {
+            if (!NullColumnValueGetter.isNullURI(volume.getConsistencyGroup())) {
+                List<BlockSnapshotSession> sessions = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient,
+                        BlockSnapshotSession.class,
+                        ContainmentConstraint.Factory.getBlockSnapshotSessionByConsistencyGroup(volume.getConsistencyGroup()));
+                if (!sessions.isEmpty()) {
+                    return true;
+                }
             }
         }
         return false;

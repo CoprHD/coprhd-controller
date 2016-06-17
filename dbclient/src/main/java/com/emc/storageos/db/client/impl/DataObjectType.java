@@ -314,6 +314,7 @@ public class DataObjectType {
     /**
      * Serializes data object into database updates
      * 
+     * @deprecated  
      * @param mutator row mutator to hold insertion queries
      * @param val object to persist
      * @param lazyLoader lazy loader helper class; can be null
@@ -341,6 +342,29 @@ public class DataObjectType {
         } catch (final IllegalAccessException e) {
             throw DatabaseException.fatals.serializationFailedId(val.getId(), e);
         } catch (final InvocationTargetException e) {
+            throw DatabaseException.fatals.serializationFailedId(val.getId(), e);
+        }
+    }
+    
+    public boolean serialize(RowMutatorDS mutator, DataObject val, LazyLoader lazyLoader) {
+        if (!_clazz.isInstance(val)) {
+            throw new IllegalArgumentException();
+        }
+        try {
+            boolean indexFieldsModified = false;
+            URI id = (URI) _idField.getPropertyDescriptor().getReadMethod().invoke(val);
+            if (id == null) {
+                throw new IllegalArgumentException();
+            }
+            for (ColumnField field : this._columnFieldMap.values()) {
+                setMappedByField(val, field);
+                indexFieldsModified |= field.serialize(getCF().getName(), val, mutator);
+            }
+
+            setLazyLoaders(val, lazyLoader);
+
+            return indexFieldsModified;
+        } catch (final IllegalAccessException | InvocationTargetException e) {
             throw DatabaseException.fatals.serializationFailedId(val.getId(), e);
         }
     }

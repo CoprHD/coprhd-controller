@@ -43,7 +43,7 @@ public abstract class DbIndex {
     }
 
     abstract boolean addColumn(String recordKey, CompositeColumnName column, Object value, String className,
-            RowMutator mutator, Integer ttl, DataObject obj);
+            RowMutatorDS mutator, Integer ttl, DataObject obj);
 
     abstract boolean removeColumn(String recordKey, Column<CompositeColumnName> column, String className,
             RowMutator mutator, Map<String, List<Column<CompositeColumnName>>> fieldColumnMap);

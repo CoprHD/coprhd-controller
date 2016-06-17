@@ -25,17 +25,13 @@ public class NamedRelationDbIndex extends DbIndex {
 
     @Override
     boolean addColumn(String recordKey, CompositeColumnName column, Object value,
-            String className, RowMutator mutator, Integer ttl, DataObject obj) {
+            String className, RowMutatorDS mutator, Integer ttl, DataObject obj) {
         String name = ((NamedURI) value).getName();
 
-        ColumnListMutation<IndexColumnName> indexColList =
-                mutator.getIndexColumnList(indexCF, getRowKey(column, value));
+        String indexRowKey = getRowKey(column, value);
+        IndexColumnName indexEntry = new IndexColumnName(className, name.toLowerCase(), name, recordKey, mutator.getTimeUUID());
 
-        IndexColumnName indexEntry =
-                new IndexColumnName(className, name.toLowerCase(), name, recordKey, mutator.getTimeUUID());
-
-        ColumnValue.setColumn(indexColList, indexEntry, null, ttl);
-
+        mutator.insertIndexColumn(indexCF.getName(), indexRowKey, indexEntry, null);
         return true;
     }
 

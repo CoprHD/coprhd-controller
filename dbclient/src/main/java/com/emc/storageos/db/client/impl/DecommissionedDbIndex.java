@@ -25,15 +25,12 @@ public class DecommissionedDbIndex extends DbIndex {
 
     @Override
     boolean addColumn(String recordKey, CompositeColumnName column, Object value,
-            String className, RowMutator mutator, Integer ttl, DataObject obj) {
+            String className, RowMutatorDS mutator, Integer ttl, DataObject obj) {
 
-        ColumnListMutation<IndexColumnName> indexColList =
-                mutator.getIndexColumnList(indexCF, className);
-
+        String indexRowKey = className;
         IndexColumnName indexEntry = new IndexColumnName(value.toString(), recordKey, mutator.getTimeUUID());
 
-        ColumnValue.setColumn(indexColList, indexEntry, null, ttl);
-
+        mutator.insertIndexColumn(indexCF.getName(), indexRowKey, indexEntry, null);
         return true;
     }
 

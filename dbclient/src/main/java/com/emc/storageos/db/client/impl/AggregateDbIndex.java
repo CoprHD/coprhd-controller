@@ -52,14 +52,13 @@ public class AggregateDbIndex extends DbIndex {
 
     @Override
     boolean addColumn(String recordKey, CompositeColumnName column, Object value,
-            String className, RowMutator mutator, Integer ttl, DataObject obj) {
+            String className, RowMutatorDS mutator, Integer ttl, DataObject obj) {
 
         IndexColumnName indexEntry = new IndexColumnName(fieldName, recordKey, (UUID) null);
 
         if (groupGlobal) {
-            ColumnListMutation<IndexColumnName> indexColList =
-                    mutator.getIndexColumnList(indexCF, className);
-            ColumnValue.setColumn(indexColList, indexEntry, value, ttl);
+            String indexRowKey = className;
+            mutator.insertIndexColumn(indexCF.getName(), indexRowKey, indexEntry, value);
         }
 
         for (String field : groupBy) {
@@ -67,9 +66,8 @@ public class AggregateDbIndex extends DbIndex {
             if (colField != null && obj.isInitialized(field)) {
                 Object groupValue = ColumnField.getFieldValue(colField, obj);
                 if (groupValue != null) {
-                    ColumnListMutation<IndexColumnName> indexColList =
-                            mutator.getIndexColumnList(indexCF, getRowKey(className, groupValue));
-                    ColumnValue.setColumn(indexColList, indexEntry, value, ttl);
+                    String indexRowKey = className;
+                    mutator.insertIndexColumn(indexCF.getName(), indexRowKey, indexEntry, value);
                 }
             }
         }

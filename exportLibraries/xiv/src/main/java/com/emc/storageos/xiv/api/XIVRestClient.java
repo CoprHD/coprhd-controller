@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2014 EMC Corporation
+ * Copyright (c) 2008-2016 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.xiv.api;
@@ -30,7 +30,7 @@ import com.sun.jersey.api.client.filter.LoggingFilter;
 /**
  * Performs all the operations on XIV - Hyperscale Manager using its REST APIs
  */
-public class XIVRestClient extends StandardRestClient{
+public class XIVRestClient extends StandardRestClient {
 
     private static Logger _log = LoggerFactory.getLogger(XIVRestClient.class);
     private static final String ERROR_CODE = "httpStatusCode";
@@ -177,11 +177,11 @@ public class XIVRestClient extends StandardRestClient{
      * @param endpoint Base URI of Hyperscale Manager
      * @param client REST Client instance
      */
-    
+
     /**
      * 
      * @param baseURI Base URI of Hyperscale Manager
-     * @param username user name of XIV 
+     * @param username user name of XIV
      * @param password password of XIV
      * @param client REST Client instance
      */
@@ -192,9 +192,10 @@ public class XIVRestClient extends StandardRestClient{
         _password = password;
         _client.addFilter(new HTTPBasicAuthFilter(username, password));
     }
-    
+
     /**
      * Sets User Name
+     * 
      * @param username User Name of XIV
      */
     public void setUsername(String username) {
@@ -203,14 +204,16 @@ public class XIVRestClient extends StandardRestClient{
 
     /**
      * Sets password
+     * 
      * @param password Password of XIV
      */
     public void setPassword(String password) {
         _password = password;
     }
-    
+
     /*
      * (non-Javadoc)
+     * 
      * @see com.emc.storageos.services.restutil.StandardRestClient#setResourceHeaders(com.sun.jersey.api.client.WebResource)
      */
     @Override
@@ -220,6 +223,7 @@ public class XIVRestClient extends StandardRestClient{
 
     /*
      * (non-Javadoc)
+     * 
      * @see com.emc.storageos.services.restutil.StandardRestClient#authenticate()
      */
     @Override
@@ -232,6 +236,7 @@ public class XIVRestClient extends StandardRestClient{
 
     /*
      * (non-Javadoc)
+     * 
      * @see com.emc.storageos.services.restutil.StandardRestClient#checkResponse(java.net.URI, com.sun.jersey.api.client.ClientResponse)
      */
     @Override
@@ -500,7 +505,7 @@ public class XIVRestClient extends StandardRestClient{
      */
     public boolean exportVolume(final String xivSystem, final String exportType, final String exportName, final String volumeName,
             final String lunID)
-            throws Exception {
+                    throws Exception {
         boolean isAvailable = findAvailability(
                 MessageFormat.format(EXPORT_VOLUME_INSTANCE_URL, xivSystem, exportType, exportName, volumeName));
         if (isAvailable) {
@@ -642,7 +647,7 @@ public class XIVRestClient extends StandardRestClient{
 
         return discVolWWNMappedToHost;
     }
-    
+
     public JSONArray getPortDetails(final String xivSystem, final String portName) throws Exception {
         JSONArray result = new JSONArray();
         String hostPortSearchURL = MessageFormat.format(HOST_PORT_URL + SEARCH_URL, xivSystem, PORT, portName);

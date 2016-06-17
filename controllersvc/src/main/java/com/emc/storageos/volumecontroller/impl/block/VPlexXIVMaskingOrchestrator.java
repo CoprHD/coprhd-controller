@@ -59,7 +59,7 @@ public class VPlexXIVMaskingOrchestrator extends XIVMaskingOrchestrator
     private static final Logger _log = LoggerFactory.getLogger(VPlexXIVMaskingOrchestrator.class);
     private static final int XIV_NUM_PORT_GROUP = 1;
     private BlockDeviceController _blockController = null;
-    private WorkflowService _workflowService = null;
+    private WorkflowService workflowService = null;
     private boolean simulation = false;
 
     public VPlexXIVMaskingOrchestrator() {
@@ -76,7 +76,7 @@ public class VPlexXIVMaskingOrchestrator extends XIVMaskingOrchestrator
     }
 
     public WorkflowService getWorkflowService() {
-        return _workflowService;
+        return workflowService;
     }
 
     public void setSimulation(boolean simulation) {
@@ -84,8 +84,8 @@ public class VPlexXIVMaskingOrchestrator extends XIVMaskingOrchestrator
     }
 
     @Override
-    public void setWorkflowService(WorkflowService _workflowService) {
-        this._workflowService = _workflowService;
+    public void setWorkflowService(WorkflowService workflowService) {
+        this.workflowService = workflowService;
     }
 
     @Override
@@ -254,10 +254,10 @@ public class VPlexXIVMaskingOrchestrator extends XIVMaskingOrchestrator
                 }
 
                 // The default completer passed in is for add volume, create correct one
-                completer = new ExportMaskCreateCompleter(exportGroupURI, exportMaskURI,
+                TaskCompleter createCompleter = new ExportMaskCreateCompleter(exportGroupURI, exportMaskURI,
                         initiatorURIs, volumeMap, stepId);
                 device.doExportGroupCreate(array, exportMask, volumeMap,
-                        initiators, targets, completer);
+                        initiators, targets, createCompleter);
             } else {
                 device.doExportAddVolumes(array, exportMask, volumeMap, completer);
             }

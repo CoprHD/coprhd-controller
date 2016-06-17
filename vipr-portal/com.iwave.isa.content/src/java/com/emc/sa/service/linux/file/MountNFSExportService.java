@@ -10,37 +10,36 @@ import java.net.URI;
 
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
-import com.emc.sa.service.linux.LinuxService;
 import com.emc.sa.service.vipr.file.FileStorageUtils;
-import com.emc.storageos.model.file.FileSystemExportParam;
+import com.emc.storageos.model.file.FileShareRestRep;
 
 @Service("Linux-MountNFSExport")
-public class MountNFSExportService extends LinuxService {
+public class MountNFSExportService extends LinuxFileService {
 
     @Param(FILESYSTEM)
     protected URI fsId;
 
-    private FileSystemExportParam export;
+    private FileShareRestRep fs;
 
     protected MountNFSExportHelper mountNFSExportHelper;
 
     @Override
     public void init() throws Exception {
         super.init();
-        mountNFSExportHelper = MountNFSExportHelper.createHelper(linuxSystem, hostPorts);
+        mountNFSExportHelper = MountNFSExportHelper.createHelper(linuxSystem);
     }
 
     @Override
     public void precheck() throws Exception {
         super.precheck();
-        export = FileStorageUtils.getNfsExports(fsId).get(0);
+        fs = FileStorageUtils.getFileSystem(fsId);
         acquireHostsLock();
         mountNFSExportHelper.precheck();
     }
 
     @Override
     public void execute() throws Exception {
-        export = FileStorageUtils.getNfsExports(fsId).get(0);
-        mountNFSExportHelper.mountExport(export);
+        mountNFSExportHelper.mountExport(fs);
+        FileStorageUtils.setFSTag(fsId.toString(), mountNFSExportHelper.generateMountTag(fsId, hostId));
     }
 }

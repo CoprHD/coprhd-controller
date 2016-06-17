@@ -143,8 +143,6 @@ public interface ServiceParams {
     public String ACL_DOMAIN = "aclDomain";
     public String ACL_PERMISSION = "aclPermission";
 
-    public String MOUNTED_EXPORTS = "mountedExports";
-
     public String ADVISORY_LIMIT = "advisoryLimit";
     public String SOFT_LIMIT = "softLimit";
     public String GRACE_PERIOD = "gracePeriod";
@@ -156,4 +154,7 @@ public interface ServiceParams {
     public String LINKED_SNAPSHOT_COUNT = "linkedSnapshotCount";
     public String LINKED_SNAPSHOT_COPYMODE = "linkedSnapshotCopyMode";
 
+    public String DESTINATION_PATH = "destinationPath";
+    public String SECURITY_TYPE = "securityType";
+    public String MOUNTED_NFS_EXPORTS = "mountedNFSExports";
 }

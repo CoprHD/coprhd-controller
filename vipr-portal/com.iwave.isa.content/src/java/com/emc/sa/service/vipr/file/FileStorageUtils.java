@@ -52,6 +52,7 @@ import com.emc.sa.service.vipr.file.tasks.FindNfsExport;
 import com.emc.sa.service.vipr.file.tasks.GetActiveSnapshotsForFileSystem;
 import com.emc.sa.service.vipr.file.tasks.GetCifsSharesForFileSystem;
 import com.emc.sa.service.vipr.file.tasks.GetFileSystem;
+import com.emc.sa.service.vipr.file.tasks.GetFileSystemTags;
 import com.emc.sa.service.vipr.file.tasks.GetNfsExportsForFileSnapshot;
 import com.emc.sa.service.vipr.file.tasks.GetNfsExportsForFileSystem;
 import com.emc.sa.service.vipr.file.tasks.GetQuotaDirectory;
@@ -60,8 +61,10 @@ import com.emc.sa.service.vipr.file.tasks.PauseFileContinuousCopy;
 import com.emc.sa.service.vipr.file.tasks.RestoreFileSnapshot;
 import com.emc.sa.service.vipr.file.tasks.SetFileSnapshotShareACL;
 import com.emc.sa.service.vipr.file.tasks.SetFileSystemShareACL;
+import com.emc.sa.service.vipr.file.tasks.SetFileSystemTag;
 import com.emc.sa.service.vipr.file.tasks.UpdateFileSnapshotExport;
 import com.emc.sa.service.vipr.file.tasks.UpdateFileSystemExport;
+import com.emc.sa.service.vipr.file.tasks.removeFileSystemTag;
 import com.emc.sa.util.DiskSizeConversionUtils;
 import com.emc.storageos.api.service.impl.resource.FileService.FileTechnologyType;
 import com.emc.storageos.db.client.model.FileShare.MirrorStatus;
@@ -452,11 +455,9 @@ public class FileStorageUtils {
                 Map<String, Set<String>> rule = Maps.newHashMap();
                 rule.put(fileExportRule.permission, Sets.newHashSet(fileExportRule.exportHosts));
                 rules.put(fileExportRule.security, rule);
-            }
-            else if (!rules.get(fileExportRule.security).containsKey(fileExportRule.permission)) {
+            } else if (!rules.get(fileExportRule.security).containsKey(fileExportRule.permission)) {
                 rules.get(fileExportRule.security).put(fileExportRule.permission, Sets.newHashSet(fileExportRule.exportHosts));
-            }
-            else {
+            } else {
                 rules.get(fileExportRule.security).get(fileExportRule.permission).addAll(fileExportRule.exportHosts);
             }
         }
@@ -473,8 +474,7 @@ public class FileStorageUtils {
             exportRule.setAnon(DEFAULT_ROOT_USER);
             if (existingRuleSet.contains(exportRule.getSecFlavor())) {
                 exportRuleListToModify.add(exportRule);
-            }
-            else {
+            } else {
                 exportRuleListToAdd.add(exportRule);
             }
         }
@@ -510,11 +510,9 @@ public class FileStorageUtils {
                 Map<String, Set<String>> rule = Maps.newHashMap();
                 rule.put(fileExportRule.permission, Sets.newHashSet(fileExportRule.exportHosts));
                 rules.put(fileExportRule.security, rule);
-            }
-            else if (!rules.get(fileExportRule.security).containsKey(fileExportRule.permission)) {
+            } else if (!rules.get(fileExportRule.security).containsKey(fileExportRule.permission)) {
                 rules.get(fileExportRule.security).put(fileExportRule.permission, Sets.newHashSet(fileExportRule.exportHosts));
-            }
-            else {
+            } else {
                 rules.get(fileExportRule.security).get(fileExportRule.permission).addAll(fileExportRule.exportHosts);
             }
         }
@@ -531,8 +529,7 @@ public class FileStorageUtils {
             exportRule.setAnon(DEFAULT_ROOT_USER);
             if (existingRuleSet.contains(exportRule.getSecFlavor())) {
                 exportRuleListToModify.add(exportRule);
-            }
-            else {
+            } else {
                 exportRuleListToAdd.add(exportRule);
             }
         }
@@ -592,10 +589,22 @@ public class FileStorageUtils {
         }
 
         for (FileStorageUtils.FileSystemACLs element : toRemove) {
-            fileACLs = (FileStorageUtils.FileSystemACLs[]) ArrayUtils.removeElement(fileACLs, element);
+            fileACLs = ArrayUtils.removeElement(fileACLs, element);
         }
 
         return fileACLs;
+    }
+
+    public static void setFSTag(String fileSystemId, String tag) {
+        execute(new SetFileSystemTag(fileSystemId, tag));
+    }
+
+    public static Set<String> getFSTags(String fileSystemId) {
+        return execute(new GetFileSystemTags(fileSystemId));
+    }
+
+    public static void removeFSTag(URI fileSystemId, String removeTag) {
+        execute(new removeFileSystemTag(fileSystemId, removeTag));
     }
 
     public static class FileSystemACLs {

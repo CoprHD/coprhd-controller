@@ -4,58 +4,46 @@
  */
 package com.emc.sa.service.linux.file;
 
-import java.net.URI;
 import java.util.List;
-import java.util.Set;
 
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.BindingUtils;
-import com.emc.sa.service.linux.LinuxSupport;
-import com.emc.storageos.db.client.model.Initiator;
-import com.emc.storageos.model.file.FileSystemExportParam;
+import com.emc.sa.service.vipr.file.FileStorageUtils;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import com.iwave.ext.linux.LinuxSystemCLI;
 
 public class UnmountNFSExportHelper {
-    private final LinuxSupport linux;
-    private List<FileSystemExportParam> mountedExports;
+    private final LinuxFileSupport linux;
 
-    public static UnmountNFSExportHelper createHelper(LinuxSystemCLI linuxSystem, List<Initiator> hostPorts) {
-        LinuxSupport linuxSupport = new LinuxSupport(linuxSystem, hostPorts);
+    private List<MountInfo> mountList;
+
+    public static UnmountNFSExportHelper createHelper(LinuxSystemCLI linuxSystem) {
+        LinuxFileSupport linuxSupport = new LinuxFileSupport(linuxSystem);
         UnmountNFSExportHelper unmountNFSExportHelper = new UnmountNFSExportHelper(linuxSupport);
         BindingUtils.bind(unmountNFSExportHelper, ExecutionUtils.currentContext().getParameters());
         return unmountNFSExportHelper;
     }
 
-    private UnmountNFSExportHelper(LinuxSupport linuxSupport) {
+    private UnmountNFSExportHelper(LinuxFileSupport linuxSupport) {
         this.linux = linuxSupport;
     }
 
-    public void setExports(List<FileSystemExportParam> exports) {
-        this.mountedExports = Lists.newArrayList();
-        mountedExports.addAll(exports);
+    public void setMounts(List<MountInfo> mountList) {
+        this.mountList = Lists.newArrayList();
+        this.mountList.addAll(mountList);
     }
 
-    public void precheck() {
-        linux.findMountPoints(mountedExports);
-        linux.ensureVolumesAreMounted(mountedExports);
-    }
-
-    public void unmountVolumes() {
-        Set<URI> untaggedVolumeIds = Sets.newHashSet();
-        for (FileSystemExportParam export : mountedExports) {
-
-            // unmount the volume
-            linux.unmountPath(export.getMountPoint());
-
+    public void unmountExports() {
+        for (MountInfo mount : mountList) {
+            // unmount the Export
+            linux.unmountPath(mount.getMountPoint());
             // remove from fstab
-            linux.removeFromFSTab(export.getMountPoint());
-
+            linux.removeFromFSTab(mount.getMountPoint());
             // delete the directory entry if it's empty
-            if (linux.isDirectoryEmpty(export.getMountPoint())) {
-                linux.deleteDirectory(export.getMountPoint());
+            if (linux.isDirectoryEmpty(mount.getMountPoint())) {
+                linux.deleteDirectory(mount.getMountPoint());
             }
+            FileStorageUtils.removeFSTag(mount.getFsId(), mount.getTag());
         }
     }
 }

@@ -7,6 +7,7 @@ package com.emc.sa.asset.providers;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -23,13 +24,12 @@ import com.emc.sa.asset.annotation.Asset;
 import com.emc.sa.asset.annotation.AssetDependencies;
 import com.emc.sa.asset.annotation.AssetNamespace;
 import com.emc.sa.machinetags.MachineTagUtils;
+import com.emc.sa.service.linux.file.MountInfo;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.QuotaDirectory;
 import com.emc.storageos.db.client.model.VirtualPool.FileReplicationType;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.VirtualArrayRelatedResourceRep;
-import com.emc.storageos.model.block.BlockObjectRestRep;
-import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.model.file.CifsShareACLUpdateParams;
 import com.emc.storageos.model.file.FilePolicyList;
 import com.emc.storageos.model.file.FilePolicyRestRep;
@@ -43,10 +43,8 @@ import com.emc.storageos.volumecontroller.FileControllerConstants;
 import com.emc.storageos.volumecontroller.FileSMBShare;
 import com.emc.storageos.volumecontroller.FileShareExport;
 import com.emc.vipr.client.ViPRCoreClient;
-import com.emc.vipr.client.core.filters.ResourceFilter;
 import com.emc.vipr.client.core.filters.SourceTargetFileSystemsFilter;
 import com.emc.vipr.client.core.filters.VirtualPoolProtocolFilter;
-import com.emc.vipr.client.core.util.ResourceUtils;
 import com.emc.vipr.model.catalog.AssetOption;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -752,54 +750,93 @@ public class FileProvider extends BaseAssetOptionsProvider {
         return options;
     }
 
+    // For mount operation
     @Asset("fileExportedFilesystem")
-    public List<AssetOption> getExportedFilesystems(AssetOptionsContext ctx) {
-        List<URI> filesystems = api(ctx).fileSystems().listBulkIds();
+    @AssetDependencies("project")
+    public List<AssetOption> getExportedFilesystems(AssetOptionsContext ctx, URI project) {
+        List<FileShareRestRep> filesystems = api(ctx).fileSystems().findByProject(project);
         List<FileShareRestRep> exportedFS = new ArrayList<FileShareRestRep>();
-        for (URI fs : filesystems) {
-            if (!api(ctx).fileSystems().getExports(fs).isEmpty()) {
-                exportedFS.add(api(ctx).fileSystems().get(fs));
+        for (FileShareRestRep fs : filesystems) {
+            if (!api(ctx).fileSystems().getExports(fs.getId()).isEmpty()) {
+                exportedFS.add(fs);
             }
         }
         return createFilesystemOptions(exportedFS, null);
     }
 
-    @Asset("mountedFileExport")
-    @AssetDependencies({ "linuxHost" })
-    public List<AssetOption> getMountedNFSExports(AssetOptionsContext context, URI host) {
-        return getNFSExportForHost(api(context), context.getTenant(), host, true);
-    }
-
-    private List<AssetOption> getNFSExportForHost(ViPRCoreClient client, URI tenant, URI host, boolean mounted) {
-        return getNFSExportForHost(client, tenant, host, mounted, null);
-    }
-
-    @SuppressWarnings("unchecked")
-    private List<AssetOption> getNFSExportForHost(ViPRCoreClient client, URI tenant, URI host, boolean mounted,
-            ResourceFilter<BlockObjectRestRep> filter) {
-        List<? extends BlockObjectRestRep> resources = FileProvider.getBlockResources(client, tenant, host, mounted);
-        ResourceUtils.applyFilter((List<BlockObjectRestRep>) resources, filter);
-        return createExportOptions(client, null, host, resources);
-    }
-
-    protected static List<AssetOption> createExportOptions(ViPRCoreClient client, URI project, URI hostId,
-            Collection<? extends BlockObjectRestRep> blockObjects) {
-        Map<URI, VolumeRestRep> volumeNames = getProjectVolumeNames(client, project);
+    @Asset("subDirectory")
+    @AssetDependencies("fileExportedFilesystem")
+    public List<AssetOption> getExportedSubdirectory(AssetOptionsContext ctx, URI fileExportedFilesystem) {
         List<AssetOption> options = Lists.newArrayList();
-        for (BlockObjectRestRep blockObject : blockObjects) {
-            options.add(createVolumeOption(client, hostId, blockObject, volumeNames));
+        List<FileSystemExportParam> exports = api(ctx).fileSystems().getExports(fileExportedFilesystem);
+        for (FileSystemExportParam export : exports) {
+            options.add(new AssetOption(export.getSubDirectory(), export.getSubDirectory()));
         }
         AssetOptionsUtils.sortOptionsByLabel(options);
         return options;
     }
 
-    protected static AssetOption createVolumeOption(ViPRCoreClient client, URI hostId, BlockObjectRestRep blockObject,
-            Map<URI, VolumeRestRep> volumeNames) {
-        String label = getBlockObjectLabel(client, blockObject, volumeNames);
-        String name = getBlockObjectName(hostId, blockObject);
-        if (StringUtils.isNotBlank(name)) {
-            label = String.format("%s: %s", name, label);
+    @Asset("securityType")
+    @AssetDependencies("fileExportedFilesystem, subDirectory")
+    public List<AssetOption> getExportedSubdirectory(AssetOptionsContext ctx, URI fileExportedFilesystem, String subDirectory) {
+        List<AssetOption> options = Lists.newArrayList();
+        List<FileSystemExportParam> exports = api(ctx).fileSystems().getExports(fileExportedFilesystem);
+        for (FileSystemExportParam export : exports) {
+            if (export.getSubDirectory().equalsIgnoreCase(subDirectory)) {
+                options.add(new AssetOption(export.getSecurityType(), export.getSecurityType()));
+            }
         }
-        return new AssetOption(blockObject.getId(), label);
+        AssetOptionsUtils.sortOptionsByLabel(options);
+        return options;
+    }
+
+    // for unmount operation
+
+    @Asset("mountedNFSExport")
+    @AssetDependencies("linuxHost")
+    public List<AssetOption> getMountedNFSExports(AssetOptionsContext ctx, URI host) {
+        List<AssetOption> options = Lists.newArrayList();
+        Map<String, MountInfo> mountTagMap = getMountInfoFromTags(api(ctx));
+        for (Map.Entry<String, MountInfo> entry : mountTagMap.entrySet()) {
+            if (entry.getValue().getHostId().equals(host)) {
+                options.add(new AssetOption(entry.getKey(),
+                        api(ctx).fileSystems().get(entry.getValue().getFsId()).getName() + "/" + entry.getValue().getSubDirectory()));
+            }
+        }
+        AssetOptionsUtils.sortOptionsByLabel(options);
+        return options;
+    }
+
+    public Map<String, MountInfo> getMountInfoFromTags(ViPRCoreClient client) {
+        List<URI> fsIds = client.fileSystems().listBulkIds();
+        Map<String, MountInfo> results = new HashMap<String, MountInfo>();
+        List<String> mountTags = new ArrayList<String>();
+        for (URI fsId : fsIds) {
+            mountTags.addAll(client.fileSystems().getTags(fsId));
+        }
+        for (String tag : mountTags) {
+            if (tag.startsWith("mountNfs")) {
+                String[] pieces = StringUtils.trim(tag).split("-|\\s+");
+                MountInfo mountInfo = new MountInfo();
+                if (pieces.length > 1) {
+                    mountInfo.setHostId(uri(pieces[1]));
+                }
+                if (pieces.length > 2) {
+                    mountInfo.setFsId(uri(pieces[2]));
+                }
+                if (pieces.length > 3) {
+                    mountInfo.setMountPoint(pieces[3]);
+                }
+                if (pieces.length > 4) {
+                    mountInfo.setSubDirectory(pieces[4]);
+                }
+                if (pieces.length > 5) {
+                    mountInfo.setSecurityType(pieces[5]);
+                }
+                mountInfo.setTag(tag);
+                results.put(tag, mountInfo);
+            }
+        }
+        return results;
     }
 }

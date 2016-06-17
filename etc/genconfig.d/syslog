@@ -13,6 +13,7 @@ _gen_syslog_config_log4j() {
 
 	declare -a appServices=('apisvc' 'authsvc' 'bkutils' 'controllersvc' 'coordinatorsvc' 'dbsvc' 'geodbsvc' 'geosvc' 'portalsvc' 'sasvc' 'syssvc' 'vasasvc');
 	
+	# Setting the service log4j properties file path
 	local svcLogPath='/opt/storageos/conf/'
 
 	local syslog_appender_desc='# The SYSLOG appender to be configured for the syslog configuration to affect'
@@ -34,7 +35,8 @@ _gen_syslog_config_log4j() {
 	local syslog_application_services=${_GENCONFIG_system_syslog_application_services}
 	echo $syslog_application_services
 	
-	# Setting All log4j properties files to default values without syslog feature
+	# Setting all log4j properties files to default values without syslog forwarder feature
+	# Traverse all the application services log4j properties files
 	for i in "${appServices[@]}"
 		do
 			currentSvc=$i
@@ -76,11 +78,16 @@ _gen_syslog_config_log4j() {
 			
 		done
 	
-	# Setting selected services log4j properties files with syslog feature
+	# Setting selected application services log4j properties files with syslog forwarder feature
 	if [ "$syslog_enable" == "True" ]
 	then
 		echo "Syslog Enabled"
 
+		# Print the whole array
+		#echo ${syslog_application_services[@]}
+		# Number of elements in the array
+		#echo ${#syslog_application_services[@]}
+		# Traverse all the selected application services log4j properties files
 		for i in "${syslog_application_services[@]}"
 			do
 				svcName=$i
@@ -145,14 +152,238 @@ _gen_syslog_config_log4j() {
 
 _gen_syslog_config_rsyslog() {
 
+	# Setting the rsyslog configuration file(/etc/rsyslog.conf) path
+	local rsyslogconfFile='/etc/rsyslog.conf'
+	local rsyslog_confdesc="# Forward the messages to the remote syslog servers through UDP or TCP"
+
 	# Retrieve the user input for syslog configuration
 	local syslog_enable=${_GENCONFIG_system_syslog_enable}
 	echo $syslog_enable
+	local syslog_transport_protocol=${_GENCONFIG_system_syslog_transport_protocol}
+	echo $syslog_transport_protocol
+	local syslog_enable_encryption=${_GENCONFIG_system_syslog_enabletls}
+	echo $syslog_enable_encryption	
+	local syslog_remote_servers_ports=${_GENCONFIG_network_syslog_remote_servers_ports}
+	echo $syslog_remote_servers_ports
+	
+	# Setting all rsyslog configuration file(rsyslog.conf) to default values without syslog forwarder feature
+	# Retrieve all the previous remote syslog servers settings
+	local declare -a prevRemoteIPList
+	local i=0
+	while read line; do
+		if [[ $line =~ "*.*		@" ]]
+		then 
+			#echo $line; 
+			prevRemoteIPList[i]=$line
+			i=`expr $i + 1`
+		fi
+	done < "$rsyslogconfFile"
 
-    #local permit_root_ssh=${_GENCONFIG_system_permit_root_ssh}
-    #/usr/bin/sed -i "s/^#*PermitRootLogin.*/PermitRootLogin ${permit_root_ssh}/" ${1}
+	# Print the whole array
+	#echo ${prevRemoteIPList[@]}
+	# Number of elements in the array
+	#echo ${#prevRemoteIPList[@]}
+
+	# Remove the comment description for remote syslog servers settings
+	sed -i "/$rsyslog_confdesc/d" "$rsyslogconfFile"
+
+	# Remove all the previous remote syslog servers settings
+	for i in "${prevRemoteIPList[@]}"
+		do
+			currentValue=$i
+
+			echo "Removing previous remote syslog server : " ${currentValue}
+			sed -i "/$currentValue/d" "$rsyslogconfFile"
+
+		done
+
+	# Setting rsyslog configuration file(/etc/rsyslog.conf) with remote syslog server details
+	msg_eof="## END of file"
+	#echo $msg_eof
+
+	if [ "$syslog_enable" == "True" ] && [ "$syslog_enable_encryption" == "no" ]
+	then
+		sed -i "/$msg_eof/i $rsyslog_confdesc" "$rsyslogconfFile"
+
+		# Print the whole array
+		#echo ${syslog_remote_servers_ports[@]}
+		# Number of elements in the array
+		#echo ${#syslog_remote_servers_ports[@]}
+		
+		# Traverse all the entered remote syslog server details to update the rsyslog configuration file(/etc/rsyslog.conf)
+		for i in "${syslog_remote_servers_ports[@]}"
+			do
+				ipport=$i
+				#echo "Processing Sever:Port Info : ${ipport}"
+
+				if [[ $ipport = *[* ]]
+				then
+					#echo "Process IPV6 Address"
+					port="${ipport##*:}"
+					tmp1="${ipport%:*}"
+					tmp2="${tmp1/[/}" 
+					server="${tmp2/]/}"
+					#echo "IPV6 Address : ${server}"
+					#echo "Port : ${port}"
+				else
+					#echo "Process IPV4 Address"
+					port="${ipport##*:}"
+					tmp1="${ipport%:*}"
+					tmp2="${tmp1/[/}" 
+					server="${tmp2/]/}" 
+					#echo "IPV4 Address : ${server} "
+					#echo "Port : ${port}"
+				fi
+				
+				if [ "$syslog_transport_protocol" == "UDP" ]
+				then			
+					server_port=$(printf "*.*		@%s%s" "$server"":""$port")
+				else
+					server_port=$(printf "*.*		@@%s%s" "$server"":""$port")
+				fi
+				echo "Updating new remote syslog server : $server_port"
+
+				sed -i "/$msg_eof/i $server_port" "$rsyslogconfFile"
+				
+			done
+
+		#sed -i "/$msg_eof/i\ " "$rsyslogconfFile"
+	fi
+	
+    _genconfig_done
+}
+
+_gen_syslog_config_encrypt() {
+
+	# Setting the rsyslog configuration file(/etc/rsyslog.d/remote.conf) path
+	local remoteconfFile='/etc/rsyslog.d/remote.conf'
+
+	# Default settings of the remote.conf w.r.t TLS Syslog Client
+	defaultRemote_NetstreamDriverCAFile="#\$DefaultNetstreamDriverCAFile /etc/rsyslog.d/ca.pem"
+	defaultRemote_Blank="#"
+	defaultRemote_Description="## set up the action"
+	defaultRemote_NetstreamDriver="#\$DefaultNetstreamDriver gtls # use gtls netstream driver"
+	defaultRemote_SendStreamDriverMode="#\$ActionSendStreamDriverMode 1 # require TLS for the connection"
+	defaultRemote_SendStreamDriverAuthMode="#\$ActionSendStreamDriverAuthMode anon # server is NOT authenticated"
+	defaultRemote_SampleServer="#*.* @@(o)server.example.net:10514 # send (all) messages"
+
+	# New settings of the remote.conf w.r.t TLS Syslog Client
+	remote_NetstreamDriverCAFile="\$DefaultNetstreamDriverCAFile "
+	remote_Blank="#"
+	remote_Description="## set up the action"
+	remote_NetstreamDriver="\$DefaultNetstreamDriver gtls # use gtls netstream driver"
+	remote_SendStreamDriverMode="\$ActionSendStreamDriverMode 1 # require TLS for the connection"
+	remote_SendStreamDriverAuthMode="\$ActionSendStreamDriverAuthMode x509/certvalid # server is authenticated"
+
+	# Retrieve the user input for syslog configuration
+	local syslog_enable=${_GENCONFIG_system_syslog_enable}
+	echo $syslog_enable
+	local syslog_enable_encryption=${_GENCONFIG_system_syslog_enabletls}
+	echo $syslog_enable_encryption
+	local syslog_remote_servers_ports=${_GENCONFIG_network_syslog_remote_servers_ports}
+	echo $syslog_remote_servers_ports
+	
+	# Setting all rsyslog configuration file(/etc/rsyslog.d/remote.conf) to default values without syslog forwarder feature
+	# Retrieve all the previous encrypted remote syslog servers TCP settings
+	local declare -a prevEncryptRemoteIPList
+	local i=0
+	while read line; do
+		if [[ $line =~ "*.* @@(o)" ]]
+		then 
+			#echo $line; 
+			prevEncryptRemoteIPList[i]=$line
+			i=`expr $i + 1`
+		fi
+	done < "$remoteconfFile"
+
+	# Print the whole array
+	#echo ${prevEncryptRemoteIPList[@]}
+	# Number of elements in the array
+	#echo ${#prevEncryptRemoteIPList[@]}
+
+	# Remove all the previous encrypted remote syslog servers TCP settings
+	for i in "${prevEncryptRemoteIPList[@]}"
+		do
+			currentValue=$i
+
+			echo "Removing previous encrypted remote ryslog server : " ${currentValue}
+			sed -i "/$currentValue/d" "$remoteconfFile"
+
+		done
+	
+	# Deleting the TLS Syslog Client configuration details from the file and rebuilding it with default values
+	sed -i '71,$ d' "$remoteconfFile"
+	( echo -e "$defaultRemote_NetstreamDriverCAFile"
+	  echo -e "$defaultRemote_Blank"
+	  echo -e "$defaultRemote_Description"
+	  echo -e "$defaultRemote_NetstreamDriver"
+	  echo -e "$defaultRemote_SendStreamDriverMode"
+	  echo -e "$defaultRemote_SendStreamDriverAuthMode"
+	  echo -e "$defaultRemote_SampleServer"
+	) >> "$remoteconfFile"
+	
+	# User has to provide the location of the remote syslog server's certificate path
+	# How the user will provide it from the UI
+	# For now Hard-coding it for Unit Testing
+	serverCertPath="/root/storageos-server.crt"
+
+	# Setting rsyslog configuration file(/etc/rsyslog.d/remote.conf) with remote syslog server details
+	if [ "$syslog_enable" == "True" ] && [ "$syslog_enable_encryption" == "yes" ]
+	then
+
+		# Deleting previous TLS Syslog Client configuration details from the file and rebuilding it with new values
+		remote_NetstreamDriverCAFile=$(printf "%s%s" "$remote_NetstreamDriverCAFile""   ""$serverCertPath")
+		sed -i '71,$ d' "$remoteconfFile"
+		( echo -e "$remote_NetstreamDriverCAFile"
+		  echo -e "$remote_Blank"
+		  echo -e "$remote_Description"
+		  echo -e "$remote_NetstreamDriver"
+		  echo -e "$remote_SendStreamDriverMode"
+		  echo -e "$remote_SendStreamDriverAuthMode"
+		  echo -e "$remote_SampleServer"
+		) >> "$remoteconfFile"
+
+		# Print the whole array
+		#echo ${syslog_remote_servers_ports[@]}
+		# Number of elements in the array
+		#echo ${#syslog_remote_servers_ports[@]}
+		
+		# Traverse all the entered remote syslog server details to update the rsyslog configuration file(/etc/rsyslog.d/remote.conf)
+		for i in "${syslog_remote_servers_ports[@]}"
+			do
+				ipport=$i
+				#echo "Processing Sever:Port Info : ${ipport}"
+
+				if [[ $ipport = *[* ]]
+				then
+					#echo "Process IPV6 Address"
+					port="${ipport##*:}"
+					tmp1="${ipport%:*}"
+					tmp2="${tmp1/[/}" 
+					server="${tmp2/]/}"
+					echo "IPV6 Address : ${server}"
+					echo "Port : ${port}"
+				else
+					#echo "Process IPV4 Address"
+					port="${ipport##*:}"
+					tmp1="${ipport%:*}"
+					tmp2="${tmp1/[/}" 
+					server="${tmp2/]/}" 
+					echo "IPV4 Address : ${server} "
+					echo "Port : ${port}"
+				fi
+				
+				server_port=$(printf "*.* @@(o)%s%s" "$server"":""$port"" # send (all) messages")
+				echo "Updating new encrypted remote syslog server : $server_port"
+				echo "$server_port" >> "$remoteconfFile"
+				
+			done
+
+	fi
+	
     _genconfig_done
 }
 
 _genconfig_exec _gen_syslog_config_log4j         root
 _genconfig_exec _gen_syslog_config_rsyslog       root
+_genconfig_exec _gen_syslog_config_encrypt       root

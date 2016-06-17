@@ -827,7 +827,7 @@ public class SRDFOperations implements SmisConstants {
                     }
                 }
             }
-            callEMCRefresh(helper, system);
+            callEMCRefresh(helper, system, true);
         } catch (Exception ex) {
             log.error("SMI-S error while refreshing target system {}", storageSystemURI, ex);
         }

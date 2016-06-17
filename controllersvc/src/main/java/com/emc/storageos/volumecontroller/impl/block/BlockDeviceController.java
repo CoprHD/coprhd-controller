@@ -29,6 +29,8 @@ import java.util.UUID;
 
 import javax.xml.bind.DataBindingException;
 
+import com.emc.storageos.volumecontroller.impl.block.rollback.ReplicaCleanupContext;
+import com.emc.storageos.volumecontroller.impl.block.rollback.ReplicaCleanupFactory;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -232,6 +234,9 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     private static final String DELETE_SNAPSHOT_SESSION_STEP_GROUP = "DeleteSnapshotSession";
     private static final String DELETE_SNAPSHOT_SESSION_METHOD = "deleteBlockSnapshotSession";
     private static final String RESTORE_FROM_FULLCOPY_METHOD_NAME = "restoreFromFullCopy";
+    private static final String ROLLBACK_CLEANUP_REPLICAS_STEP_GROUP = "RollbackReplicaCleanUp";
+    private static final String ROLLBACK_CLEANUP_REPLICAS_METHOD_NAME = "rollbackCleanupReplicas";
+    private static final String ROLLBACK_CLEANUP_REPLICAS_STEP_DESC = "Null provisioning step; clean up replicas on rollback";
 
     public static final String BLOCK_VOLUME_EXPAND_GROUP = "BlockDeviceExpandVolume";
 
@@ -437,6 +442,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         // Add a Step to create the consistency group if needed
         waitFor = addStepsForCreateConsistencyGroup(workflow, waitFor, volumeDescriptors, CREATE_CONSISTENCY_GROUP_STEP_GROUP);
 
+        waitFor = addStepsForReplicaRollbackCleanup(workflow, waitFor, volumeDescriptors);
+
         // Add a Step for each Pool in each Device.
         // For meta volumes add Step for each meta volume, except vmax thin meta volumes.
         for (URI poolURI : poolMap.keySet()) {
@@ -508,6 +515,36 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         waitFor = CREATE_VOLUMES_STEP_GROUP;
 
         return waitFor;
+    }
+
+    private String addStepsForReplicaRollbackCleanup(Workflow workflow, String waitFor, List<VolumeDescriptor> volumeDescriptors) {
+        List<URI> volumeURIs = VolumeDescriptor.getVolumeURIs(volumeDescriptors);
+        VolumeDescriptor volumeDescriptor = volumeDescriptors.get(0);
+        URI deviceURI = volumeDescriptor.getDeviceURI();
+
+        Workflow.Method cleanupReplicasMethod = new Workflow.Method(ROLLBACK_CLEANUP_REPLICAS_METHOD_NAME, deviceURI, volumeURIs);
+
+        waitFor = workflow.createStep(ROLLBACK_CLEANUP_REPLICAS_STEP_GROUP, ROLLBACK_CLEANUP_REPLICAS_STEP_DESC,
+                waitFor, deviceURI, getDeviceType(deviceURI), this.getClass(),
+                rollbackMethodNullMethod(), cleanupReplicasMethod, null);
+
+        return waitFor;
+    }
+
+    public boolean rollbackCleanupReplicas(URI systemURI, List<URI> volumeURIs, String opId) {
+        WorkflowStepCompleter.stepExecuting(opId);
+        try {
+            _log.info("Cleaning up replicas for {} volumes", volumeURIs.size());
+            Set<URI> uniqueVolumes = new HashSet<>(volumeURIs);
+
+            ReplicaCleanupContext replicaCleanupContext = ReplicaCleanupFactory.getContext(_dbClient);
+            replicaCleanupContext.execute(uniqueVolumes);
+        } catch (Exception e) {
+            _log.warn("Caught exception whilst rolling back replica cleanup.", e);
+        } finally {
+            WorkflowStepCompleter.stepSucceded(opId);
+        }
+        return true;
     }
 
     /**

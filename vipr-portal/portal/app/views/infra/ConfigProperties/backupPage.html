@@ -59,6 +59,7 @@
 
         $('#validateButtonExternal').on('click', function(e) {
         e.preventDefault();
+        this.disabled = 'true';
         validateExternalServerSettings();
         });
 
@@ -99,8 +100,6 @@
 
        $('#alerts_success').hide();
        $('#alerts_error').hide();
-       $('#validateButtonExternal').addClass('disabled');
-       $('#validateButtonExternal').prop('disabled', true);
        var data = {
             authenticityToken: '${session.authenticityToken}',
             serverType: serverType,
@@ -113,8 +112,7 @@
        $.post(url, data, function(result) {
                showValidationResult(result);
                });
-       $('#validateButtonExternal').removeClass('disabled');
-       $('#validateButtonExternal').prop('disabled', false);
+
     }
     function showValidationResult(result) {
         var success = false;
@@ -138,6 +136,7 @@
             $('#alerts_error .message').html(message);
             $('#alerts_error').slideDown('fast');
         }
+        $('#validateButtonExternal').prop('disabled',false);
     }
 
 </script>

@@ -120,7 +120,7 @@ elif [ ${SS} = "dr" ]; then
 elif [ ${SS} = "backuprestore" ]; then
     if [[ $# -lt 7 ]]; then
 	echo "Invalid backuprestore parameters."
-	echo "usage: backuprestore backup-server-uri username password"
+	echo "usage: backuprestore backup-server-type backup-server-uri username password domain"
 	exit 1
     fi
 
@@ -9463,8 +9463,8 @@ backuprestore_setup()
 
 backuprestore_tests()
 {
-    backupname='sanity'
-    backupname2='abc'
+    backupname='sanity-${seed}'
+    backupname2='abc-${seed}'
     filepath='/tmp/sanity.zip'
     remote_backup_file=""
 

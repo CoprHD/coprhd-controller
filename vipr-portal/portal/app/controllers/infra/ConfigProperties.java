@@ -277,6 +277,7 @@ public class ConfigProperties extends Controller {
     public static void validateExternalSettings(String serverType, String serverUrl, String serverDomain, String user,
                                                 String password) {
         BackupClient client;
+        password = PasswordUtil.decryptedValue(password);
         if (serverType.equalsIgnoreCase("CIFS")) {
             if (!serverUrl.startsWith("smb://")) {
                 Validation.addError(null,Messages.get("configProperties.backup.serverType.invalid"));

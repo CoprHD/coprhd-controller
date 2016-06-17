@@ -32,7 +32,7 @@ public class CifsClient implements BackupClient{
     private NtlmPasswordAuthentication auth;
 
     public CifsClient(String uri, String domain, String username, String password) {
-        this.uri = uri;
+        this.uri = uri + "/";
         this.domain = domain;
         this.username = username;
         this.password = password;
@@ -41,7 +41,6 @@ public class CifsClient implements BackupClient{
         }else {
             auth = new NtlmPasswordAuthentication(username + ":" + password);
         }
-
     }
 
     public OutputStream upload(String fileName, long offset) throws Exception {

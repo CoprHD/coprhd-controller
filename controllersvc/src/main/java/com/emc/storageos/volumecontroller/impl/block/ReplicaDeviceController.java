@@ -1461,6 +1461,13 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
 
     }
 
+    /**
+     * Check if any {@link Volume} in the given list have a {@link BlockSnapshotSession} referencing it as
+     * a parent.
+     *
+     * @param volumes   List of {@link Volume}
+     * @return          True if any {@link BlockSnapshotSession} instances are found, false otherwise.
+     */
     private boolean checkIfAnyVolumesHaveSnapshotSessions(List<Volume> volumes) {
         for (BlockObject volume : volumes) {
             List<BlockSnapshotSession> sessions = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient,
@@ -1473,6 +1480,13 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         return false;
     }
 
+    /**
+     * For any {@link Volume} in the given list, check if any {@link BlockSnapshotSession} instances reference
+     * their {@link BlockConsistencyGroup}.
+     *
+     * @param volumes   List of {@link Volume}
+     * @return          True if any {@link BlockSnapshotSession} instances are found, false otherwise.
+     */
     private boolean checkIfCGHasSnapshotSessions(List<Volume> volumes) {
         for (BlockObject volume : volumes) {
             if (!NullColumnValueGetter.isNullURI(volume.getConsistencyGroup())) {

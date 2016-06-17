@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 EMC Corporation
+ * Copyright (c) 2016 EMC Corporation
  * All Rights Reserved
  */
 
@@ -23,35 +23,34 @@ public abstract class DrHealthMonitor implements Runnable {
     private String name;
     private int frequencyInSecs = MONITORING_INTERVAL;
     private int initDelayInSecs;
-
     private boolean stopped;
-    private final Waiter waiter = new Waiter();
+    private Waiter waiter;
     
     public DrHealthMonitor() {
+        waiter = new Waiter();
     }
     
     @Override
     public void run() {
-        log.info("Starting health monitor {}", this.name);
+        log.info("Starting DR health monitor {}", this.name);
         waiter.sleep(TimeUnit.MILLISECONDS.convert(initDelayInSecs, TimeUnit.SECONDS));
         
         while (!stopped) {
             try {
                 tick();
             } catch (Exception e) {
-                //try catch exception to make sure next scheduled run can be launched.
-                log.error("Error occurs when monitor standby network", e);
+                log.error("Error occurs in DR health monitor", e);
             }
             waiter.sleep(TimeUnit.MILLISECONDS.convert(frequencyInSecs, TimeUnit.SECONDS));
         }
-        log.info("Stopped health monitor {}", this.name);
+        log.info("Stopped DR health monitor {}", this.name);
     }
     
     /**
      * Start the health monitor
      */
     public void start() {
-        log.info("Start health monitor {} with frequency {}", this.name, this.frequencyInSecs);
+        log.info("Start DR health monitor {} with frequency {}", this.name, this.frequencyInSecs);
         stopped = false;
         Thread drNetworkMonitorThread = new Thread(this);
         drNetworkMonitorThread.setName(this.name);
@@ -62,7 +61,7 @@ public abstract class DrHealthMonitor implements Runnable {
      * Stop the health monitor
      */
     public void stop() {
-        log.info("Stopping health monitor {}", this.name);
+        log.info("Stopping DR health monitor {}", this.name);
         stopped = true;
         wakeup();
     }
@@ -75,7 +74,8 @@ public abstract class DrHealthMonitor implements Runnable {
     }
     
     /**
-     * Subclass should override this method 
+     * Concrete health monitor should override this method and supply business logic
+     * for health check. It is supposed to be called every frequencyInSecs
      */
     public abstract void tick();
 
@@ -96,18 +96,38 @@ public abstract class DrHealthMonitor implements Runnable {
         this.name = name;
     }
 
+    /**
+     * Get Schedule frequency for this monitor.
+     * 
+     * @return frequency in seconds
+     */
     public int getFrequencyInSecs() {
         return frequencyInSecs;
     }
 
+    /**
+     * Set schedule frequency 
+     * 
+     * @param frequencyInSecs
+     */
     public void setFrequencyInSecs(int frequencyInSecs) {
         this.frequencyInSecs = frequencyInSecs;
     }
 
+    /**
+     * Get initial delay before starting the first run
+     * 
+     * @return initial delay in seconds
+     */
     public int getInitDelayInSecs() {
         return initDelayInSecs;
     }
 
+    /**
+     * Set initial delay for the first run
+     * 
+     * @param delayInSecs
+     */
     public void setInitDelayInSecs(int delayInSecs) {
         this.initDelayInSecs = delayInSecs;
     }

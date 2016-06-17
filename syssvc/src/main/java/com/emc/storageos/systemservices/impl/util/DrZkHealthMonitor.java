@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2016 EMC Corporation
+ * All Rights Reserved
+ */
+
 package com.emc.storageos.systemservices.impl.util;
 
 import java.util.ArrayList;
@@ -16,6 +21,18 @@ import com.emc.storageos.coordinator.common.impl.ZkPath;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
 import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
 
+/**
+ * A DR monitor working in Standby site to monitor zookeeper status in DR environment. Zookeeper in Standby site
+ * works in 'observer' mode (see https://zookeeper.apache.org/doc/r3.3.3/zookeeperObservers.html). Normally it becomes
+ * read-only after losing connection to Active site. But we still would make it work so that other services 
+ * like dbsvc, UI etc could be up and running on Standby site. So we invent this monitor to address the following
+ * situations - 
+ * 
+ * 1) If Standby site loses connection to Active site, the leader monitor(the node who is holding VIP) reconfigures 
+ * zookeeper cluster to 'paritipant' mode(read-writable).
+ * 2) If Active site comes back, all nodes reconfigures themselves and reconnect back to Active site as 'observer' 
+ * 
+ */
 public class DrZkHealthMonitor extends DrHealthMonitor {
     private static final Logger log = LoggerFactory.getLogger(DrZkHealthMonitor.class);
     
@@ -30,6 +47,7 @@ public class DrZkHealthMonitor extends DrHealthMonitor {
     public DrZkHealthMonitor() {
     }
 
+    @Override
     public void start() {
         CoordinatorClient coordinator = getCoordinator().getCoordinatorClient();
         String barrierPath = String.format("%s/%s%s", ZkPath.SITES, coordinator.getSiteId(), DR_SWITCH_TO_ZK_OBSERVER_BARRIER);
@@ -146,11 +164,11 @@ public class DrZkHealthMonitor extends DrHealthMonitor {
         if(0 < numParticipants && numParticipants < numOnline) {
             log.info("Nodes must have consistent zk mode. Reconfiguring all nodes to participant: {}",
                     observerNodes.addAll(readOnlyNodes));
-            reconfigZKToWritable(observerNodes,readOnlyNodes);
+            reconfigZKToWritable(observerNodes, readOnlyNodes);
         }
         else if (readOnlyNodes.size() == numOnline && numOnline >= quorum){
             log.info("A quorum of nodes are read-only, Reconfiguring nodes to participant: {}",readOnlyNodes);
-            reconfigZKToWritable(observerNodes,readOnlyNodes);
+            reconfigZKToWritable(observerNodes, readOnlyNodes);
         }
     }
 
@@ -227,8 +245,8 @@ public class DrZkHealthMonitor extends DrHealthMonitor {
                     continue;
                 }
                 LocalRepository localRepository=LocalRepository.getInstance();
-                localRepository.remoteReconfigCoordinator(node,"participant");
-                localRepository.remoteRestartCoordinator(node,"participant");
+                localRepository.remoteReconfigCoordinator(node, "participant");
+                localRepository.remoteRestartCoordinator(node, "participant");
             }
 
             //reconfigure local node last

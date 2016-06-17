@@ -27,15 +27,11 @@ public class RelationDbIndex extends DbIndex {
 
     @Override
     boolean addColumn(String recordKey, CompositeColumnName column, Object value,
-            String className, RowMutator mutator, Integer ttl, DataObject obj) {
-        String rowKey = getRowKey(column, value);
-
-        ColumnListMutation<IndexColumnName> indexColList = mutator.getIndexColumnList(indexCF, rowKey);
-
+            String className, RowMutatorDS mutator, Integer ttl, DataObject obj) {
+        String indexRowKey = getRowKey(column, value);
         IndexColumnName indexEntry = new IndexColumnName(className, recordKey, mutator.getTimeUUID());
 
-        ColumnValue.setColumn(indexColList, indexEntry, null, ttl);
-
+        mutator.insertIndexColumn(indexCF.getName(), indexRowKey, indexEntry, null);
         return true;
     }
 

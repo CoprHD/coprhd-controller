@@ -35,6 +35,7 @@ public class RowMutatorDS {
     private BatchStatement recordAndIndexBatch;
 
     private ConsistencyLevel writeCL = ConsistencyLevel.LOCAL_QUORUM; // default
+
     private UUID timeUUID;
 
     private static final String insertRecordFormat = "INSERT INTO \"%s\" (key, column1, column2, column3, column4, value) VALUES (?, ?, ?, ?, ?)";
@@ -68,7 +69,7 @@ public class RowMutatorDS {
         insert.setBytes("value", blobVal);
         recordAndIndexBatch.add(insert);
     }
-    
+
     public void insertIndexColumn(String tableName, String indexRowKey, IndexColumnName column, Object val) {
         PreparedStatement insertPrepared = context.getPreparedStatement(String.format(insertIndexFormat, tableName));
         BoundStatement insert = insertPrepared.bind();
@@ -132,6 +133,10 @@ public class RowMutatorDS {
 
     public void setWriteCL(ConsistencyLevel writeCL) {
         this.writeCL = writeCL;
+    }
+
+    public UUID getTimeUUID() {
+        return timeUUID;
     }
 
 }

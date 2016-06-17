@@ -30,7 +30,7 @@ public class ScopedLabelDbIndex extends DbIndex {
 
     @Override
     boolean addColumn(String recordKey, CompositeColumnName column, Object value,
-            String className, RowMutator mutator, Integer ttl, DataObject obj) {
+            String className, RowMutatorDS mutator, Integer ttl, DataObject obj) {
         ScopedLabel scopedLabel = (ScopedLabel) value;
         String label = scopedLabel.getLabel();
 
@@ -41,22 +41,17 @@ public class ScopedLabelDbIndex extends DbIndex {
 
         // scoped row key
         String scopedRowKey = getRowKey(column, scopedLabel);
-
-        ColumnListMutation<IndexColumnName> indexColList =
-                mutator.getIndexColumnList(indexCF, scopedRowKey);
-
         IndexColumnName indexEntry = new IndexColumnName(className, label.toLowerCase(),
                 label, recordKey, mutator.getTimeUUID());
 
-        ColumnValue.setColumn(indexColList, indexEntry, null, ttl);
+        mutator.insertIndexColumn(indexCF.getName(), scopedRowKey, indexEntry, null);
 
         // unscoped row key for global search
         String rowKey = getRowKey(label);
-        indexColList = mutator.getIndexColumnList(indexCF, rowKey);
         indexEntry = new IndexColumnName(className,
                 label.toLowerCase(), label, recordKey, mutator.getTimeUUID());
 
-        ColumnValue.setColumn(indexColList, indexEntry, null, ttl);
+        mutator.insertIndexColumn(indexCF.getName(), rowKey, indexEntry, null);
 
         return true;
     }

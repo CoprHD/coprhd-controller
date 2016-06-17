@@ -29,22 +29,17 @@ public class PrefixDbIndex extends DbIndex {
 
     @Override
     boolean addColumn(String recordKey, CompositeColumnName column, Object value,
-            String className, RowMutator mutator, Integer ttl, DataObject obj) {
+            String className, RowMutatorDS mutator, Integer ttl, DataObject obj) {
         String text = (String) value;
         if (text.isEmpty() || text.length() < minPrefixChars) {
             _log.warn("String too short in prefix index field: {}", fieldName);
             return false;
         }
 
-        String rowKey = getRowKey(column, text);
+        String indexRowKey = getRowKey(column, text);
+        IndexColumnName indexEntry = new IndexColumnName(className, text.toLowerCase(), text, recordKey, mutator.getTimeUUID());
 
-        ColumnListMutation<IndexColumnName> indexColList = mutator.getIndexColumnList(indexCF, rowKey);
-
-        IndexColumnName indexEntry =
-                new IndexColumnName(className, text.toLowerCase(), text, recordKey, mutator.getTimeUUID());
-
-        ColumnValue.setColumn(indexColList, indexEntry, null, ttl);
-
+        mutator.insertIndexColumn(indexCF.getName(), indexRowKey, indexEntry, null);
         return true;
     }
 

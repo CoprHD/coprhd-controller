@@ -332,7 +332,8 @@ public class DbClientImpl implements DbClient {
     /**
      * returns either local or geo keyspace depending on class annotation or id of dataObj,
      * for query requests only
-     * 
+     *
+     * @deprecated
      * @param dataObj
      * @return
      */
@@ -344,7 +345,8 @@ public class DbClientImpl implements DbClient {
     /**
      * returns either local or geo keyspace depending on class annotation of clazz,
      * for query requests only
-     * 
+     *
+     * @deprecated
      * @param clazz
      * @return
      */
@@ -1141,6 +1143,35 @@ public class DbClientImpl implements DbClient {
             }
         }
         mutator.executeRecordFirst();
+
+        return objectsToCleanup;
+    }
+
+    protected <T extends DataObject> List<URI> insertNewColumns(DbClientContext context, Collection<T> dataobjects) {
+        List<URI> objectsToCleanup = new ArrayList<>();
+        // todo retryFailedWriteWithLocalQuorum
+        RowMutatorDS mutator = new RowMutatorDS(context);
+        for (T object : dataobjects) {
+            checkGeoVersionForMutation(object);
+            DataObjectType doType = TypeMap.getDoType(object.getClass());
+
+            if (object.getId() == null || doType == null) {
+                throw new IllegalArgumentException();
+            }
+            if (doType.needPreprocessing()) {
+                // todo replace below method
+                // preprocessTypeIndexes(ks, doType, object);
+            }
+            if (doType.serialize(mutator, object, new LazyLoader(this))) {
+                objectsToCleanup.add(object.getId());
+            }
+
+            if (!(object instanceof Task)) {
+                // todo serializeTasks
+                // serializeTasks(object, mutator, objectsToCleanup);
+            }
+        }
+        mutator.execute();
 
         return objectsToCleanup;
     }

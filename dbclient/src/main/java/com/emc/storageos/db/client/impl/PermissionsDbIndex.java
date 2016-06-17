@@ -33,17 +33,11 @@ public class PermissionsDbIndex extends DbIndex {
 
     @Override
     boolean addColumn(String recordKey, CompositeColumnName column, Object value,
-            String className, RowMutator mutator, Integer ttl, DataObject obj) {
-        String rowKey = getRowKey(column, value);
+            String className, RowMutatorDS mutator, Integer ttl, DataObject obj) {
+        String indexRowKey = getRowKey(column, value);
+        IndexColumnName indexEntry = new IndexColumnName(className, recordKey, value.toString(), mutator.getTimeUUID());
 
-        ColumnListMutation<IndexColumnName> indexColList =
-                mutator.getIndexColumnList(indexCF, rowKey);
-
-        IndexColumnName indexEntry =
-                new IndexColumnName(className, recordKey, value.toString(), mutator.getTimeUUID());
-
-        ColumnValue.setColumn(indexColList, indexEntry, value.toString(), ttl);
-
+        mutator.insertIndexColumn(indexCF.getName(), indexRowKey, indexEntry, value.toString());
         return true;
     }
 

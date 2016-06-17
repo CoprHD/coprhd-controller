@@ -398,45 +398,34 @@ public class ColumnField {
         return _index.removeColumn(recordKey, column, _parentType.getDataObjectClass().getSimpleName(), mutator, fieldColumnMap);
     }
 
-    /**
-     * Generate queries for inserting a given column. Caller is expected to
-     * execute generated queries
-     * 
-     * @param recordKey record key
-     * @param column column name
-     * @param val column value
-     * @param mutator mutator that holds insertion queries
-     * @param obj for which the column is added
-     * @throws DatabaseException
-     */
-    private boolean addColumn(String recordKey, CompositeColumnName column, Object val,
-            RowMutator mutator, DataObject obj) {
+    private boolean addColumn(String tableName, String recordKey, CompositeColumnName column, Object val,
+            RowMutatorDS mutator, DataObject obj) {
         if (_encrypt && _parentType.getEncryptionProvider() != null) {
             val = _parentType.getEncryptionProvider().encrypt((String) val);
         }
 
         // insert record
-        ColumnListMutation<CompositeColumnName> recordColList =
-                mutator.getRecordColumnList(_parentType.getCF(), recordKey);
-        ColumnValue.setColumn(recordColList, column, val, _ttl);
+        mutator.insertRecordColumn(tableName, recordKey, column, val);
 
         if (_index == null || val == null) {
             return false;
         }
 
         // insert index
+        // todo consider _ttl is useful?
         return _index.addColumn(recordKey, column, val, _parentType.getDataObjectClass().getSimpleName(),
                 mutator, _ttl, obj);
     }
 
-    private boolean addColumn(String recordKey, CompositeColumnName column, Object val,
-            RowMutator mutator) {
-        return addColumn(recordKey, column, val, mutator, null);
+    private boolean addColumn(String tableName, String recordKey, CompositeColumnName column, Object val,
+            RowMutatorDS mutator) {
+        return addColumn(tableName, recordKey, column, val, mutator, null);
     }
 
     /**
      * Serializes object field into database updates
-     * 
+     *
+     * @deprecated
      * @param obj data object to serialize
      * @param mutator row mutator to hold insertion queries
      * @return boolean
@@ -583,6 +572,146 @@ public class ColumnField {
         }
     }
 
+    public boolean serialize(String tableName, DataObject obj, RowMutatorDS mutator) {
+        try {
+            String id = obj.getId().toString();
+
+            if (isLazyLoaded() || _property.getReadMethod() == null) {
+                return false;
+            }
+
+            Object val = _property.getReadMethod().invoke(obj);
+            if (val == null) {
+                return false;
+            }
+            boolean changed = false;
+            switch (_colType) {
+                case NamedURI:
+                case Primitive: {
+                    if (!obj.isChanged(_name)) {
+                        return false;
+                    }
+                    changed = addColumn(id, getColumnName(null, mutator), val, mutator, obj);
+                    break;
+                }
+                case TrackingSet: {
+                    AbstractChangeTrackingSet valueSet = (AbstractChangeTrackingSet) val;
+                    Set<?> addedSet = valueSet.getAddedSet();
+                    if (addedSet != null) {
+                        Iterator<?> it = valueSet.getAddedSet().iterator();
+                        while (it.hasNext()) {
+                            Object itVal = it.next();
+                            String targetVal = valueSet.valToString(itVal);
+                            changed |= addColumn(id, getColumnName(targetVal, mutator), itVal, mutator);
+                        }
+                    }
+                    Set<?> removedVal = valueSet.getRemovedSet();
+                    if (removedVal != null) {
+                        Iterator<?> removedIt = removedVal.iterator();
+                        while (removedIt.hasNext()) {
+                            String targetVal = valueSet.valToString(removedIt.next());
+                            if (_index == null) {
+                                changed |= removeColumn(id, new ColumnWrapper(getColumnName(targetVal, mutator), targetVal), mutator);
+                            } else {
+                                addDeletionMark(id, getColumnName(targetVal, mutator), mutator);
+                                changed = true;
+                            }
+                        }
+                    }
+                    break;
+                }
+                case TrackingMap: {
+                    AbstractChangeTrackingMap valueMap = (AbstractChangeTrackingMap) val;
+                    Set<String> changedSet = valueMap.getChangedKeySet();
+                    if (changedSet != null) {
+                        Iterator<String> it = valueMap.getChangedKeySet().iterator();
+                        while (it.hasNext()) {
+                            String key = it.next();
+                            Object entryVal = valueMap.get(key);
+                            CompositeColumnName colName = getColumnName(key, mutator);
+                            if (clockIndValue != null) {
+                                int ordinal = ((ClockIndependentValue) entryVal).ordinal();
+                                colName = getColumnName(key, String.format("%08d", ordinal), mutator);
+                            }
+                            changed |= addColumn(id, colName, valueMap.valToByte(entryVal),
+                                    mutator);
+                        }
+                    }
+                    Set<String> removedKey = valueMap.getRemovedKeySet();
+                    if (removedKey != null) {
+                        Iterator<String> removedIt = removedKey.iterator();
+                        while (removedIt.hasNext()) {
+                            String key = removedIt.next();
+                            CompositeColumnName colName = getColumnName(key, mutator);
+                            if (clockIndValue != null) {
+                                Object removedVal = valueMap.getRemovedValue(key);
+                                if (removedVal != null) {
+                                    colName = getColumnName(key, String.format("%08d",
+                                            ((ClockIndependentValue) removedVal).ordinal()), mutator);
+                                }
+                            }
+
+                            if (_index == null) {
+                                changed |= removeColumn(id, new ColumnWrapper(colName, null), mutator);
+                            } else {
+                                addDeletionMark(id, colName, mutator);
+                                changed = true;
+                            }
+                        }
+                    }
+                    break;
+                }
+                case TrackingSetMap: {
+                    AbstractChangeTrackingSetMap valueMap = (AbstractChangeTrackingSetMap) val;
+
+                    Set<String> keys = valueMap.keySet();
+                    if (keys != null) {
+                        Iterator<String> it = keys.iterator();
+
+                        while (it.hasNext()) {
+                            String key = it.next();
+                            AbstractChangeTrackingSet valueSet = valueMap.get(key);
+                            Set<?> addedSet = valueSet.getAddedSet();
+                            if (addedSet != null) {
+                                Iterator<?> itSet = valueSet.getAddedSet().iterator();
+                                while (itSet.hasNext()) {
+                                    String value = valueSet.valToString(itSet.next());
+                                    changed |= addColumn(id, getColumnName(key, value, mutator), value, mutator);
+                                }
+                            }
+                            Set<?> removedVal = valueSet.getRemovedSet();
+                            if (removedVal != null) {
+                                Iterator<?> removedIt = removedVal.iterator();
+                                while (removedIt.hasNext()) {
+                                    String targetVal = valueSet.valToString(removedIt.next());
+                                    if (_index == null) {
+                                        changed |= removeColumn(id,
+                                                new ColumnWrapper(getColumnName(key, targetVal, mutator), targetVal), mutator);
+                                    } else {
+                                        addDeletionMark(id, getColumnName(key, targetVal, mutator), mutator);
+                                        changed = true;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    break;
+                }
+                case NestedObject: {
+                    if (!obj.isChanged(_name)) {
+                        break;
+                    }
+                    AbstractSerializableNestedObject nestedObject = (AbstractSerializableNestedObject) val;
+                    changed |= addColumn(id, getColumnName(null, mutator), nestedObject.toBytes(), mutator);
+                }
+            }
+            return changed;
+        } catch (final InvocationTargetException | IllegalAccessException e) {
+            throw DatabaseException.fatals.serializationFailedId(obj.getId(), e);
+        }
+
+    }
+
     /**
      * Get column name for this field
      * 
@@ -591,7 +720,7 @@ public class ColumnField {
      * @param mutator row mutator with timestamp
      * @return
      */
-    private CompositeColumnName getColumnName(String two, String three, RowMutator mutator) {
+    private CompositeColumnName getColumnName(String two, String three, RowMutatorDS mutator) {
         switch (_colType) {
             case Id: {
                 return compositeName;
@@ -651,7 +780,7 @@ public class ColumnField {
      * @param mutator
      * @return
      */
-    private CompositeColumnName getColumnName(String two, RowMutator mutator) {
+    private CompositeColumnName getColumnName(String two, RowMutatorDS mutator) {
         return getColumnName(two, null, mutator);
     }
 

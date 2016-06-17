@@ -315,12 +315,8 @@ public class Orders extends OrderExecution {
 
             if (oldTasksStateMap != null && details.viprTasks != null) {
                 if (isTaskStateChanged(oldTasksStateMap, details.viprTasks)) {
-                    Long updated = System.currentTimeMillis();
-                    if ((lastUpdated == null) || (lastUpdated < updated)) {
-                        lastUpdated = updated;
-                        Logger.debug("Found task state change for order %s", details.order.getOrderNumber());
-                        return details;
-                    }
+                    Logger.debug("Found task state change for order %s", details.order.getOrderNumber());
+                    return details;
                 }
             } else {
                 oldTasksStateMap = createTaskStateMap(details.viprTasks);

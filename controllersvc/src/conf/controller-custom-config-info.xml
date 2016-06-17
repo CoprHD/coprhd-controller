@@ -1230,26 +1230,32 @@
         <property name="displayName" value="isilon_cluster_name"/>
         <property name="sample" value="clusterABC"/>
     </bean> 
-        <bean id="systemAccessZone" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
+    
+    <bean id="systemAccessZone" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
         <property name="displayName" value="system_access_zone"/>
         <property name="sample" value="/ifs/vipr"/>
-    </bean> 
-        <bean id="userAccessZone" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
+    </bean>
+    
+    <bean id="userAccessZone" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
         <property name="displayName" value="user_access_zone"/>
         <property name="sample" value="/ifs/zoneA,/ifs/zoneB"/>
     </bean> 
-        <bean id="noAccessZone" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
+    
+    <!-- noAccessZone bean is added as workaround,it do not include any predefine path.-->
+    <!-- no_access_zone variable should be used when no other variable is used in path.-->
+    <bean id="noAccessZone" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
         <property name="displayName" value="no_access_zone"/>
         <property name="sample" value=","/>
     </bean>
     
-        <bean id="tenantName" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
+    <bean id="tenantName" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
         <property name="sourceClass" value="com.emc.storageos.db.client.model.TenantOrg"/>
         <property name="displayName" value="tenant_name"/>
         <property name="propertyName" value="label"/>
         <property name="sample" value="tenantABC"/>
-    </bean> 
-        <bean id="vpoolName" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
+    </bean>
+    
+    <bean id="vpoolName" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
         <property name="sourceClass" value="com.emc.storageos.db.client.model.VirtualPool"/>
         <property name="displayName" value="vpool_name"/>
         <property name="propertyName" value="label"/>

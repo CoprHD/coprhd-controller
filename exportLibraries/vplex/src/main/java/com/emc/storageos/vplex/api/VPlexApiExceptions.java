@@ -5,7 +5,6 @@
 package com.emc.storageos.vplex.api;
 
 import java.util.List;
-import java.util.Map;
 
 import com.emc.storageos.svcs.errorhandling.annotations.DeclareServiceCode;
 import com.emc.storageos.svcs.errorhandling.annotations.MessageBundle;
@@ -812,11 +811,11 @@ public interface VPlexApiExceptions {
     public VPlexApiException noSupportingDeviceForValidation(final String volumeId);
     
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
-    public VPlexApiException invalidWWNMapForValidation(final String volumeId, final Map<String, List<String>> wwnMap);
+    public VPlexApiException invalidVolumeInfoForValidation(final String volumeId);
     
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException invalidStorageVolumeCountForValidation(final String volumeId, final int numFound, final int numExpected);
     
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
-    public VPlexApiException storageVolumeWithWWNFailedValidation(final String volumeId, final String wwn);
+    public VPlexApiException storageVolumeFailedValidation(final String storageVolumeId, final String vplexVolumeId);
 }

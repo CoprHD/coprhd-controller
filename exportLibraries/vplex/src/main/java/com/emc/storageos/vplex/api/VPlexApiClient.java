@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import javax.ws.rs.core.MultivaluedMap;
@@ -1779,7 +1780,7 @@ public class VPlexApiClient {
      * 
      * @throws VPlexApiException When an exception occurs validating the backend volumes.
      */
-    public void validateBackendVolumeWWNs(String virtualVolumeName, Map<String, List<String>> storageVolumeWWNMap) throws VPlexApiException {
+/*    public void validateBackendVolumeWWNs(String virtualVolumeName, Map<String, List<String>> storageVolumeWWNMap) throws VPlexApiException {
         s_logger.info("Validating backend volumes for VPLEX volume {}", virtualVolumeName);
         
         // Find the VPLEX volume.
@@ -1859,5 +1860,174 @@ public class VPlexApiClient {
                 }
             }                
         }            
+    }*/
+    
+    /**
+     * Validates that the backend volumes represented by the passed native volume info
+     * from the ViPR database are the actual backend volumes used by the passed VPLEX volume.
+     * 
+     * @param virtualVolumeName The name of the VPLEX volume.
+     * @param nativeVolumeInfoMap The native volume info for expected backend volumes keyed by cluster name.
+     * 
+     * @throws VPlexApiException When an exception occurs validating the backend volumes.
+     */
+    public void validateBackendVolumeWWNs(String virtualVolumeName, Map<String, List<VolumeInfo>> nativeVolumeInfoMap)
+            throws VPlexApiException {
+        s_logger.info("Validating backend volumes for VPLEX volume {}", virtualVolumeName);
+        
+        // Find the VPLEX volume.
+        VPlexVirtualVolumeInfo vvInfo = _discoveryMgr.findVirtualVolume(virtualVolumeName, true);
+        if (vvInfo == null) {
+            s_logger.error("Could not find VPLEX volume {} to validate its backend volumes", virtualVolumeName);
+            throw VPlexApiException.exceptions.couldNotFindVolumeForValidation(virtualVolumeName);
+        }
+        
+        // Get and validate the name of the supporting device.
+        String supportingDeviceName = vvInfo.getSupportingDevice();
+        if ((supportingDeviceName == null) || (supportingDeviceName.isEmpty())) {
+            s_logger.error("VPLEX volume {} does not specify a supporting device", virtualVolumeName);
+            throw VPlexApiException.exceptions.noSupportingDeviceForValidation(virtualVolumeName);
+        }
+        
+        // Validate the passed storage volume info map.
+        String locality = vvInfo.getLocality();
+        Set<String> clusterNames = nativeVolumeInfoMap.keySet();
+        if (((VPlexVirtualVolumeInfo.Locality.distributed.name().equals(locality)) && (clusterNames.size() != 2)) ||
+                ((VPlexVirtualVolumeInfo.Locality.local.name().equals(locality)) && (clusterNames.size() != 1))) {
+            s_logger.error("Invalid native volume information passed for validation of VPLEX volume {}", virtualVolumeName);
+            throw VPlexApiException.exceptions.invalidVolumeInfoForValidation(virtualVolumeName);
+        }
+        
+        // Get the cluster information, which will get the storage volume 
+        // information on both clusters.
+        List<VPlexClusterInfo> clusterInfoList = _discoveryMgr.getClusterInfo(
+                false, discoverStoargeVolumeItls(nativeVolumeInfoMap));
+        
+        // Validate the expected backend storage volumes on each cluster.
+        Iterator<String> clusterNameIter = clusterNames.iterator();
+        while (clusterNameIter.hasNext()) {
+            String clusterName = clusterNameIter.next();
+            s_logger.info("Validating backend volumes on cluster {}", clusterName);
+            
+            // If we are to validate 2 volumes on a cluster it must
+            // have a mirror.
+            List<VolumeInfo> nativeVolumeInfoList = nativeVolumeInfoMap.get(clusterName);
+            boolean hasMirror = (nativeVolumeInfoList.size() == 2);
+            
+            // Get the actual backend storage volumes used by the supporting device of
+            // the virtual volume on the cluster.
+            List<VPlexStorageVolumeInfo> actualStorageVolumeInfoList = _discoveryMgr.getBackendVolumesForDeviceOnCluster(
+                    supportingDeviceName, locality, clusterName, hasMirror);
+            
+            // Now find the backend storage volumes on the cluster using the passed
+            // volume info for that cluster. These will be the backend volumes that
+            // ViPR believes are the backend volumes used by the passed virtual volume.
+            List<VPlexStorageVolumeInfo> expectedStorageVolumeInfoList = findVolumesOnCluster(
+                    clusterName, clusterInfoList, nativeVolumeInfoList);
+            
+            // The actual and expected storage volumes should have the same names.
+            for (VPlexStorageVolumeInfo expectedStorageVolumeInfo : expectedStorageVolumeInfoList) {
+                boolean volumeMatch = false;
+                String expectedStorageVolumeName = expectedStorageVolumeInfo.getName();
+                for (VPlexStorageVolumeInfo actualStorageVolumeInfo : actualStorageVolumeInfoList) {
+                    String actualStorageVolumeName = actualStorageVolumeInfo.getName();
+                    if (expectedStorageVolumeName.equalsIgnoreCase(actualStorageVolumeName)) {
+                        s_logger.info("Validated backend volume {}", expectedStorageVolumeName);
+                        volumeMatch = true;
+                        break;
+                    }
+                }
+                if (!volumeMatch) {
+                    s_logger.error("Did not find storage volume {}", expectedStorageVolumeName);
+                    throw VPlexApiException.exceptions.storageVolumeFailedValidation(expectedStorageVolumeName,
+                            virtualVolumeName);
+                }
+            }                
+        }
+    }
+    
+    /**
+     * Determines if we need to discover ITL info for backend storage volumes.
+     * 
+     * @param nativeVolumeInfoMap The native volume info for storage volumes to be found.
+     * 
+     * @return true if the passed native volume info contains ITLs.
+     */
+    private boolean discoverStoargeVolumeItls(Map<String, List<VolumeInfo>> nativeVolumeInfoMap) {
+        boolean discoverItls = false;
+        for (Entry<String, List<VolumeInfo>> entry : nativeVolumeInfoMap.entrySet()) {
+            for (VolumeInfo volumeInfo: entry.getValue()) {
+                discoverItls = VPlexApiUtils.isITLBasedSearch(volumeInfo);
+                if (discoverItls) {
+                    break;
+                }
+            }
+            if (discoverItls) {
+                break;
+            }
+        }
+        return discoverItls;
+    }
+    
+    /**
+     * Find the storage volumes on the passed cluster given the passed native volume info.
+     * 
+     * @param clusterName The name of the cluster.
+     * @param clusterInfoList The cluster info.
+     * @param nativeVolumeInfoList The native storage volume info.
+     * 
+     * @return A List of VPlexStorageVolumeInfo representing the storage volumes.
+     */
+    private List<VPlexStorageVolumeInfo> findVolumesOnCluster(String clusterName, List<VPlexClusterInfo> clusterInfoList,
+            List<VolumeInfo> nativeVolumeInfoList) {
+        List<VPlexStorageVolumeInfo> storageVolumeInfoList = new ArrayList<>();
+        for (VPlexClusterInfo clusterInfo : clusterInfoList) {
+            if (!clusterInfo.getName().equals(clusterName)) {
+                continue;
+            }
+            
+            for (VolumeInfo nativeVolumeInfo : nativeVolumeInfoList) {
+                boolean volumeFound = false;
+                String storageSystemNativeGuid = nativeVolumeInfo.getStorageSystemNativeGuid();
+                String volumeWWN = nativeVolumeInfo.getVolumeWWN();
+                List<String> volumeItlsList = nativeVolumeInfo.getITLs();
+                s_logger.info(String.format("Find storage volume with native info [%s : %s : %s]",
+                        storageSystemNativeGuid, volumeWWN, volumeItlsList));
+                for (VPlexStorageVolumeInfo clusterStorageVolumeInfo : clusterInfo.getStorageVolumeInfo()) {
+                    String clusterVolumeWWN = clusterStorageVolumeInfo.getWwn();
+                    List<String> clusterVolumeItls = clusterStorageVolumeInfo.getItls();
+                    s_logger.info(String.format("Cluster volume info [%s : %s]",
+                            clusterVolumeWWN, clusterVolumeItls));
+                    if ((null != volumeItlsList) && (!volumeItlsList.isEmpty())) { 
+                        if ((null != clusterVolumeItls) && (!clusterVolumeItls.isEmpty())) {
+                            for (String itlPair : volumeItlsList) {
+                                // If any one of the pair matches that is the volume.
+                                if (clusterVolumeItls.contains(itlPair.trim().toLowerCase())) {
+                                    storageVolumeInfoList.add(clusterStorageVolumeInfo);
+                                    volumeFound = true;
+                                    break;
+                                }
+                            }
+                        }
+                    } else if (storageSystemNativeGuid.contains(VPlexApiConstants.HDS_SYSTEM)) {
+                        if (clusterVolumeWWN.endsWith(volumeWWN.toLowerCase())) {
+                            storageVolumeInfoList.add(clusterStorageVolumeInfo);
+                            volumeFound = true;
+                            break;
+                        }
+                    } else if (clusterVolumeWWN.equals(volumeWWN.toLowerCase())) {
+                        storageVolumeInfoList.add(clusterStorageVolumeInfo);
+                        volumeFound = true;
+                        break;
+                    }
+
+                    if (volumeFound) {
+                        break;
+                    }
+                }
+            }
+        }
+        
+        return storageVolumeInfoList;
     }
 }

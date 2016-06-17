@@ -3948,4 +3948,39 @@ public class VPlexApiDiscoveryManager {
         return customData;
     }
 
+    /**
+     * Gets the backed storage volumes used by the passed device on the passed cluster.
+     * 
+     * @param deviceName The device name.
+     * @param locality Whether the device is local or distributed.
+     * @param clusterName The cluster name.
+     * @param hasMirror Whether or not the device has a mirror.
+     * 
+     * @return The list of VPlexStorageVolumeInfo representing the backend storage volumes.
+     */
+    public List<VPlexStorageVolumeInfo> getBackendVolumesForDeviceOnCluster(String supportingDeviceName,
+            String locality, String clusterName, boolean hasMirror) {
+        // Get the storage volumes for the supporting device. Note that even 
+        // though we pass a cluster name, for a distributed device, this will
+        // get the volumes on both clusters.
+        List<VPlexStorageVolumeInfo> svInfoList = getStorageVolumesForDevice(
+                supportingDeviceName, locality, clusterName, hasMirror);
+        
+        // The storage volumes so returned do not specify the cluster, so we
+        // need to determine that for each volume and then eliminate those
+        // that are not on the passed cluster.
+        Iterator<VPlexStorageVolumeInfo> svInfoIter = svInfoList.iterator();
+        while (svInfoIter.hasNext()) {
+            VPlexStorageVolumeInfo svInfo = svInfoIter.next();
+            VPlexStorageVolumeInfo svInfoWithCluster = findStorageVolume(svInfo.getName());
+            s_logger.info("Cluster for {} is {}", svInfo.getWwn(), svInfoWithCluster.getClusterId());
+            if (!svInfoWithCluster.getClusterId().equals(clusterName)) {
+                svInfoIter.remove();
+            } else {
+                svInfo.setClusterId(clusterName);
+            }
+        }
+        
+        return svInfoList;
+    }
 }

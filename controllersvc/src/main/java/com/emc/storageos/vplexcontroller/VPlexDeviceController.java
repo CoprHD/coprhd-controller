@@ -5320,9 +5320,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // Get the VPLEX volume
             vplexVolume = getDataObject(Volume.class, vplexVolumeURI, _dbClient);
             
-            // Get the WWNs of the backend volumes and any mirrors, mapped by VPLEX cluster name.
+            // Get a VolumeInfo for each backend volume and any mirrors, mapped by VPLEX cluster name.
             Set<String> volumeIds = new HashSet<>();
-            Map<String, List<String>> volumeWWNMap = new HashMap<>();
+            Map<String, List<VolumeInfo>> volumeInfoMap = new HashMap<>();
             StringSet associatedVolumeIds = vplexVolume.getAssociatedVolumes();
             if ((associatedVolumeIds == null) || (associatedVolumeIds.isEmpty())) {
                 // Ingested volume w/o backend volume ingestion. We can't verify the backend volumes.
@@ -5354,19 +5354,25 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 URI volumeURI = URI.create(volumesId);
                 Volume volume = getDataObject(Volume.class, volumeURI, _dbClient);
                 String clusterName = VPlexUtil.getVplexClusterName(volume.getVirtualArray(), vplexSystemURI, client, _dbClient);
-                _log.info(String.format("Validating backend volume %s:%s on cluster %s", volumeURI, volume.getWWN(), clusterName));
-                if (volumeWWNMap.containsKey(clusterName)) {
-                    List<String> clusterWWNs = volumeWWNMap.get(clusterName);
-                    clusterWWNs.add(volume.getWWN());
+                StorageSystem storageSystem = getDataObject(StorageSystem.class, volume.getStorageController(), _dbClient);
+                List<String> itls = VPlexControllerUtils.getVolumeITLs(volume);
+                VolumeInfo volumeInfo = new VolumeInfo(storageSystem.getNativeGuid(), storageSystem.getSystemType(),
+                        volume.getWWN().toUpperCase().replaceAll(":", ""), volume.getNativeId(), 
+                        volume.getThinlyProvisioned().booleanValue(), itls);
+                _log.info(String.format("Validating backend volume %s on cluster %s", volumeURI, clusterName));
+                if (volumeInfoMap.containsKey(clusterName)) {
+                    List<VolumeInfo> clusterVolumeInfos = volumeInfoMap.get(clusterName);
+                    clusterVolumeInfos.add(volumeInfo);
                 } else {
-                    List<String> clusterWWNs = new ArrayList<>();
-                    clusterWWNs.add(volume.getWWN());
-                    volumeWWNMap.put(clusterName, clusterWWNs);
+                    List<VolumeInfo> clusterVolumeInfos = new ArrayList<>();
+                    clusterVolumeInfos.add(volumeInfo);
+                    volumeInfoMap.put(clusterName, clusterVolumeInfos);
                 }
             }
             
             // Validate the ViPR backend volume WWNs match those on the VPLEX.
-            client.validateBackendVolumeWWNs(vplexVolume.getDeviceLabel(), volumeWWNMap);
+            //client.validateBackendVolumeWWNs(vplexVolume.getDeviceLabel(), volumeWWNMap);
+            client.validateBackendVolumeWWNs(vplexVolume.getDeviceLabel(), volumeInfoMap);
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (InternalException ie) {
             _log.info("Exception attempting to validate the backend volumes for VPLEX volume {}", vplexVolumeURI);

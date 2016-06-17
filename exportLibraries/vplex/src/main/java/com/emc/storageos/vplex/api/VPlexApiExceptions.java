@@ -814,8 +814,8 @@ public interface VPlexApiExceptions {
     public VPlexApiException invalidVolumeInfoForValidation(final String volumeId);
     
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
-    public VPlexApiException invalidStorageVolumeCountForValidation(final String volumeId, final int numFound, final int numExpected);
-    
+    public VPlexApiException failFindingExpectedBackendVolumesForValidation(final String storageVolumeId);
+
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException storageVolumeFailedValidation(final String storageVolumeId, final String vplexVolumeId);
 }

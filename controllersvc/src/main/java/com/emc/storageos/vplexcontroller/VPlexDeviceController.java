@@ -151,7 +151,6 @@ import com.emc.storageos.vplex.api.VPlexApiClient;
 import com.emc.storageos.vplex.api.VPlexApiConstants;
 import com.emc.storageos.vplex.api.VPlexApiException;
 import com.emc.storageos.vplex.api.VPlexApiFactory;
-import com.emc.storageos.vplex.api.VPlexApiUtils;
 import com.emc.storageos.vplex.api.VPlexClusterInfo;
 import com.emc.storageos.vplex.api.VPlexDeviceInfo;
 import com.emc.storageos.vplex.api.VPlexDistributedDeviceInfo;
@@ -854,9 +853,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
                 // Make a call to get cluster info
                 if (null == clusterInfoList) {
-
-                    boolean isItlFetch = VPlexApiUtils.isITLBasedSearch(vinfos.get(0));
-                    clusterInfoList = client.getClusterInfo(false, isItlFetch);
+                    clusterInfoList = client.getClusterInfo(false, true);
                 }
 
                 // Make the call to create a virtual volume. It is distributed if there are two (or more?)
@@ -5372,7 +5369,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             
             // Validate the ViPR backend volume WWNs match those on the VPLEX.
             //client.validateBackendVolumeWWNs(vplexVolume.getDeviceLabel(), volumeWWNMap);
-            client.validateBackendVolumeWWNs(vplexVolume.getDeviceLabel(), volumeInfoMap);
+            client.validateBackendVolumesForVPlexVolume(vplexVolume.getDeviceLabel(), volumeInfoMap);
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (InternalException ie) {
             _log.info("Exception attempting to validate the backend volumes for VPLEX volume {}", vplexVolumeURI);

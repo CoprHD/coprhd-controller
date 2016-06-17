@@ -1109,8 +1109,9 @@ public class DbClientImpl implements DbClient {
 
         List<URI> objectsToCleanup = insertNewColumns(context, dataobjects);
         if (updateIndex && !objectsToCleanup.isEmpty()) {
+            /*todo cleanup list
             Rows<String, CompositeColumnName> rows = fetchNewest(clazz, ks, objectsToCleanup);
-            cleanupOldColumns(clazz, ks, rows);
+            cleanupOldColumns(clazz, ks, rows);*/
         }
     }
 
@@ -1782,7 +1783,7 @@ public class DbClientImpl implements DbClient {
         return VdcUtil.VdcVersionComparator.compare(_geoVersion, expectVersion) >= 0;
     }
 
-    private void serializeTasks(DataObject dataObject, RowMutator mutator, List<URI> objectsToCleanup) {
+    private void serializeTasks(DataObject dataObject, RowMutatorDS mutator, List<URI> objectsToCleanup) {
         OpStatusMap statusMap = dataObject.getOpStatus();
         if (statusMap == null || statusMap.getChangedKeySet() == null || statusMap.getChangedKeySet().isEmpty()) {
             return;

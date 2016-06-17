@@ -1,6 +1,19 @@
 /*
- * Copyright (c) 2008-2013 EMC Corporation
- * All Rights Reserved
+ * Copyright 2008-2013 EMC Corporation
+ * Copyright 2016 Intel Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
  */
 package com.emc.storageos.security.authentication;
 
@@ -30,16 +43,20 @@ import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
 
+import com.emc.storageos.cinder.CinderConstants;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.model.*;
+import com.emc.storageos.keystone.restapi.model.response.TenantV2;
+import com.emc.storageos.keystone.restapi.utils.KeystoneUtils;
+import com.emc.storageos.model.project.ProjectElement;
+import com.emc.storageos.model.project.ProjectParam;
+import com.emc.storageos.model.tenant.TenantOrgRestRep;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.model.AuthnProvider;
-import com.emc.storageos.db.client.model.StorageOSUserDAO;
-import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.model.StringSetMap;
-import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.keystone.KeystoneConstants;
 import com.emc.storageos.keystone.restapi.KeystoneApiClient;
 import com.emc.storageos.keystone.restapi.KeystoneRestClientFactory;
@@ -55,6 +72,10 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 public abstract class AbstractRequestWrapperFilter implements Filter {
     private static final Logger _log = LoggerFactory.getLogger(AbstractRequestWrapperFilter.class);
 
+    private static final String OS_QUOTA_SETS = "os-quota-sets";
+    private static final String DEFAULTS = "defaults";
+    private static final String METHOD_PUT = "PUT";
+
     @Autowired
     private TokenValidator _tokenValidator;
     @Autowired
@@ -65,6 +86,12 @@ public abstract class AbstractRequestWrapperFilter implements Filter {
     @Autowired
     private KeystoneRestClientFactory _keystoneFactory;
 
+    @Autowired
+    private KeystoneUtils _keystoneUtils;
+
+    @Autowired
+    private InternalTenantSvcClient _internalTenantSvcClient;
+
     @Context
     protected HttpHeaders headers;
 
@@ -72,7 +99,7 @@ public abstract class AbstractRequestWrapperFilter implements Filter {
     public void destroy() {
         // nothing to do
     }
-    
+
     public KeystoneRestClientFactory getKeystoneFactory() {
         return _keystoneFactory;
     }
@@ -183,8 +210,37 @@ public abstract class AbstractRequestWrapperFilter implements Filter {
             _log.error("No token found for proxy token lookup.  Returning null.");
             return null;
         }
+
         if (null != keystoneUserAuthToken) {
             _log.info("The request is for keystone - with token - " + keystoneUserAuthToken);
+
+            String requestUrl = req.getRequestURI();
+
+            // We are looking only for PUT API call that updates quota that follows /v2/{tenant_id}/os-quota-sets/{target_tenant_id} pattern.
+            if (req.getMethod().equals(METHOD_PUT) && requestUrl.contains(OS_QUOTA_SETS) && !requestUrl.contains(DEFAULTS)) {
+
+                // Returns target OpenStack Tenant ID from quota request, otherwise null.
+                String targetTenantId = getOpenstackTenantIdFromQuotaRequest(requestUrl);
+                // Try to create project and tenant in CoprHD when tenant ID is present.
+                if (targetTenantId != null) {
+
+                    // Check whether Tenant already exists in CoprHD for given ID. If not, then create one.
+                    TenantOrg coprhdTenant = _keystoneUtils.getCoprhdTenantWithOpenstackId(targetTenantId);
+
+                    if (coprhdTenant == null) {
+
+                        // Check whether Tenant with ID from request exists in OpenStack.
+                        TenantV2 tenant = _keystoneUtils.getTenantWithId(targetTenantId);
+
+                        if (tenant == null) {
+                            throw APIException.notFound.openstackTenantNotFound(targetTenantId);
+                        }
+
+                        createTenantNProject(tenant);
+                    }
+                }
+            }
+
             return createStorageOSUserUsingKeystone(keystoneUserAuthToken);
         }
 
@@ -204,6 +260,35 @@ public abstract class AbstractRequestWrapperFilter implements Filter {
             }
         }
         return null;
+    }
+
+    private String getOpenstackTenantIdFromQuotaRequest(String requestUrl){
+
+        if (requestUrl != null) {
+            return requestUrl.split("/")[4];
+        }
+
+        return null;
+    }
+
+    private void createTenantNProject(TenantV2 tenant) {
+
+        _internalTenantSvcClient.setServer(_keystoneUtils.getVIP());
+
+        // Create Tenant via internal API call.
+        TenantOrgRestRep tenantResp = _internalTenantSvcClient.createTenant(_keystoneUtils.prepareTenantParam(tenant));
+
+        // Create Project via internal API call.
+        ProjectParam projectParam = new ProjectParam(tenant.getName() + CinderConstants.PROJECT_NAME_SUFFIX);
+        ProjectElement projectResp = _internalTenantSvcClient.createProject(tenantResp.getId(), projectParam);
+
+        _keystoneUtils.tagProjectWithOpenstackId(projectResp.getId(), tenant.getId(), tenantResp.getId().toString());
+
+        // Creates OSTenant representation of Openstack Tenant
+        OSTenant osTenant = _keystoneUtils.mapToOsTenant(tenant);
+        osTenant.setId(URIUtil.createId(OSTenant.class));
+        _dbClient.createObject(osTenant);
+
     }
 
     private StorageOSUser createStorageOSUserUsingKeystone(String keystoneUserAuthToken)
@@ -282,7 +367,7 @@ public abstract class AbstractRequestWrapperFilter implements Filter {
 
     /**
      * Convert openstack tenant id to ViPR tenant id
-     * 
+     *
      * @param openstackTenantId
      * @return
      */

@@ -140,10 +140,10 @@ public class DistributedPersistentLockImpl implements DistributedPersistentLock 
                     _log.info("createZNodes(): owner is trying to create {} again.", _persistentLockName);
                 }
             } catch (Exception e) {
-                _log.debug("createZNodes(): Problem while getting ZNodes: {}", _persistentLockName, e);
+                _log.warn("createZNodes(): Problem while getting ZNodes: {}", _persistentLockName, e);
             }
         } catch (Exception e) {
-            _log.debug("createZNodes(): Problem while creating ZNodes: {}", _persistentLockName, e);
+            _log.warn("createZNodes(): Problem while creating ZNodes: {}", _persistentLockName, e);
         }
         _log.debug("createZNodes(): Result: {}", bZNodesCreated);
         return bZNodesCreated;

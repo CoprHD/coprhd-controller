@@ -778,7 +778,6 @@ public abstract class VdcOpHandler {
                 
                 flushVdcConfigToLocal();
                 refreshCoordinator();
-                proccessSingleNodeSiteCase();
                 
                 updateSwitchoverSiteState(site, SiteState.ACTIVE, setStateToActiveBarrier);
             } else {
@@ -786,8 +785,7 @@ public abstract class VdcOpHandler {
                 // The third site just goes ahead to reboot.
                 // we need reconfig/restart zookeeper in order to make it treat new active site as Zk leader nodes. 
                 // Each time we restart coordinatorsvc, we must restart all ZK client. Otherwise ZK error "Xid out of order. Got Xid 21 with err -119 expected Xid 20"
-                // may happen due to inconsistent Zk Xid on different ZK observer node. Note ZK cross-site replication is 'async' replication, so
-                // it is possible(very small possibility) that ZK client switches to a  
+                // may happen due to inconsistent Zk Xid on different ZK observer node due to async zk replication
             }
         }
 

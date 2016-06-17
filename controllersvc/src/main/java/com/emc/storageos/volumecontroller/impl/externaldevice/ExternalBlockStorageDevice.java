@@ -534,6 +534,98 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
 
     	}
     }
+    
+    @Override
+    public void doAddToConsistencyGroup(StorageSystem storageSystem, URI consistencyGroupId, String replicationGroupName,
+            List<URI> blockObjects, TaskCompleter taskCompleter) throws DeviceControllerException {
+        	
+    	BlockConsistencyGroup consistencyGroup =null;
+        try {
+        	_log.info("{} doAddToConsistencyGroup START ...", storageSystem.getSerialNumber());
+        	BlockStorageDriver driver = getDriver(storageSystem.getSystemType());
+            List<Volume> volumes = dbClient.queryObject(Volume.class, blockObjects);           
+            List<StorageVolume> driverVolumes = new ArrayList<>();
+            consistencyGroup = dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroupId);
+
+                for (Volume volume : volumes) {
+                    StorageVolume driverVolume = new StorageVolume();
+                    driverVolume.setStorageSystemId(storageSystem.getNativeId());
+                    driverVolume.setNativeId(volume.getNativeId());
+                    driverVolume.setRequestedCapacity(volume.getCapacity());
+                    driverVolume.setThinlyProvisioned(volume.getThinlyProvisioned());
+                    driverVolume.setConsistencyGroup(consistencyGroup.getNativeId()); 
+                    driverVolume.setDisplayName(volume.getLabel());
+                    //add them to StorageVolumes list	
+                    driverVolumes.add(driverVolume);  
+                }
+                DriverTask task = driver.addVolumesToConsistencyGroup(driverVolumes, null); 
+                _log.info("doAddToConsistencyGroup -- added volumes {} to consistency Group: {}", volumes.toString(), consistencyGroupId);     
+            if(task.getStatus() == DriverTask.TaskStatus.READY){
+                for (Volume volume : volumes) {
+                     volume.setConsistencyGroup(consistencyGroupId);   
+                }
+                dbClient.updateObject(volumes);
+                taskCompleter.ready(dbClient);
+            } else {
+                _log.error(String.format("Add volumes to Consistency Group operation failed %s", task.getMessage()));
+                taskCompleter.error(dbClient, DeviceControllerException.exceptions
+                        .failedToAddMembersToConsistencyGroup(consistencyGroup.getLabel(),
+                        		consistencyGroup.getLabel(), task.getMessage()));
+            }   
+            _log.info("{} doAddVolumesToConsistencyGroup END ...", storageSystem.getSerialNumber());
+        } catch (Exception e) {
+            _log.error(String.format("Add volumes from Consistency Group operation failed %s", e.getMessage()));
+            taskCompleter.error(dbClient, DeviceControllerException.exceptions
+                    .failedToAddMembersToConsistencyGroup(consistencyGroup.getLabel(),
+                    		consistencyGroup.getLabel(), e.getMessage()));
+        }
+    }
+    
+    @Override
+    public void doRemoveFromConsistencyGroup(StorageSystem storageSystem, URI consistencyGroupId,
+            List<URI> blockObjects, TaskCompleter taskCompleter) throws DeviceControllerException {
+        	
+    	BlockConsistencyGroup consistencyGroup =null;
+        try {
+        	_log.info("{} doRemoveVolumesFromConsistencyGroup START ...", storageSystem.getSerialNumber());
+        	BlockStorageDriver driver = getDriver(storageSystem.getSystemType());
+            List<Volume> volumes = dbClient.queryObject(Volume.class, blockObjects);           
+            List<StorageVolume> driverVolumes = new ArrayList<>();
+            consistencyGroup = dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroupId);
+
+                for (Volume volume : volumes) {
+                    StorageVolume driverVolume = new StorageVolume();
+                    driverVolume.setStorageSystemId(storageSystem.getNativeId());
+                    driverVolume.setNativeId(volume.getNativeId());
+                    driverVolume.setRequestedCapacity(volume.getCapacity());
+                    driverVolume.setThinlyProvisioned(volume.getThinlyProvisioned());
+                    driverVolume.setConsistencyGroup(consistencyGroup.getNativeId()); 
+                    driverVolume.setDisplayName(volume.getLabel());
+                    //add them to StorageVolumes list	
+                    driverVolumes.add(driverVolume);  
+                }
+                DriverTask task = driver.removeVolumesFromConsistencyGroup(driverVolumes, null); 
+                _log.info("doRemoveVolumesFromConsistencyGroup -- removing volumes {} from consistency Group: {}", volumes.toString(), consistencyGroupId);
+            if(task.getStatus() == DriverTask.TaskStatus.READY){
+                for (Volume volume : volumes) { 
+                        volume.setConsistencyGroup(NullColumnValueGetter.getNullURI());
+                }
+                dbClient.updateObject(volumes);
+                taskCompleter.ready(dbClient);
+            } else {
+                _log.error(String.format("Remove volumes from Consistency Group operation failed %s", task.getMessage()));
+                taskCompleter.error(dbClient, DeviceControllerException.exceptions
+                        .failedToRemoveMembersToConsistencyGroup(consistencyGroup.getLabel(),
+                        		consistencyGroup.getLabel(), task.getMessage()));
+            }
+            _log.info("{} doRemoveVolumesFromConsistencyGroup END ...", storageSystem.getSerialNumber());
+        } catch (Exception e) {
+            _log.error(String.format("Remove volumes from Consistency Group operation failed %s", e.getMessage()));
+            taskCompleter.error(dbClient, DeviceControllerException.exceptions
+                    .failedToRemoveMembersToConsistencyGroup(consistencyGroup.getLabel(),
+                    		consistencyGroup.getLabel(), e.getMessage()));
+        }
+    }
 
     @Override
     public void doCreateGroupClone(StorageSystem storageSystem, List<URI> cloneURIs,

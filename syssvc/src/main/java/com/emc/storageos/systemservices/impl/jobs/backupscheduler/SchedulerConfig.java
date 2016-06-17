@@ -72,8 +72,8 @@ public class SchedulerConfig {
     public int intervalMultiple;
     public Integer startOffsetMinutes;
     public int copiesToKeep;
-    public String uploadServerType;
-    public String uploadDomain;
+    private String uploadServerType;
+    private String uploadDomain;
     public String uploadUrl;
     public String uploadUserName;
     private byte[] uploadPassword;
@@ -117,6 +117,13 @@ public class SchedulerConfig {
             return "";
         }
         return this.encryptionProvider.decrypt(Base64.decodeBase64(password));
+    }
+    public String getUploadServerType() {
+        return this.uploadServerType;
+    }
+
+    public String getUploadDomain() {
+        return this.uploadDomain;
     }
 
     public Calendar now() {

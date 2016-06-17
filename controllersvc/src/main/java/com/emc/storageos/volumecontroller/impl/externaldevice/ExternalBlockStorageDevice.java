@@ -558,8 +558,8 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                     //add them to StorageVolumes list	
                     driverVolumes.add(driverVolume);  
                 }
-                DriverTask task = driver.addVolumesToConsistencyGroup(driverVolumes, consistencyGroup.getLabel(), null); 
-                _log.info("doAddToConsistencyGroup -- added volumes to consistency Group: {}", consistencyGroupId);     
+                DriverTask task = driver.addVolumesToConsistencyGroup(driverVolumes, null); 
+                _log.info("doAddToConsistencyGroup -- added volumes {} to consistency Group: {}", volumes.toString(), consistencyGroupId);     
             if(task.getStatus() == DriverTask.TaskStatus.READY){
                 for (Volume volume : volumes) {
                      volume.setConsistencyGroup(consistencyGroupId);   
@@ -604,8 +604,8 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                     //add them to StorageVolumes list	
                     driverVolumes.add(driverVolume);  
                 }
-                DriverTask task = driver.removeVolumesFromConsistencyGroup(driverVolumes, consistencyGroup.getLabel(), null); 
-                _log.info("doRemoveVolumesFromConsistencyGroup -- removing volumes from consistency Group: {}", consistencyGroupId);
+                DriverTask task = driver.removeVolumesFromConsistencyGroup(driverVolumes, null); 
+                _log.info("doRemoveVolumesFromConsistencyGroup -- removing volumes {} from consistency Group: {}", volumes.toString(), consistencyGroupId);
             if(task.getStatus() == DriverTask.TaskStatus.READY){
                 for (Volume volume : volumes) { 
                         volume.setConsistencyGroup(NullColumnValueGetter.getNullURI());

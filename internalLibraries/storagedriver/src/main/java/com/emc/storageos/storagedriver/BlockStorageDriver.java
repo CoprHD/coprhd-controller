@@ -228,7 +228,7 @@ public interface BlockStorageDriver extends StorageDriver {
      * @param capabilities required for consitency groups.
      * @return task
      */
-    public DriverTask addVolumesToConsistencyGroup( List<StorageVolume> volumes, String cgName, StorageCapabilities capabilities);
+    public DriverTask addVolumesToConsistencyGroup( List<StorageVolume> volumes, StorageCapabilities capabilities);
     
     /**
      * Removes multiple volumes from a consistency group.
@@ -236,7 +236,7 @@ public interface BlockStorageDriver extends StorageDriver {
      * @param capabilities for consistency group.
      * @return task
      */
-    public DriverTask removeVolumesFromConsistencyGroup( List<StorageVolume> volumes, String cgName, StorageCapabilities capabilities);
+    public DriverTask removeVolumesFromConsistencyGroup( List<StorageVolume> volumes, StorageCapabilities capabilities);
 
     /**
      * Split mirrors

@@ -23,6 +23,7 @@ import com.emc.storageos.db.client.model.uimodels.ExecutionState;
 import com.emc.storageos.db.client.model.uimodels.ExecutionTaskLog;
 import com.emc.storageos.db.client.model.uimodels.Order;
 import com.emc.storageos.db.client.model.uimodels.OrderParameter;
+import com.emc.storageos.db.client.model.uimodels.OrderStatus;
 import com.emc.vipr.client.ClientConfig;
 import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
@@ -79,7 +80,7 @@ public class ExecutionUtils {
         String orderStatus = context.getModelClient().orders().findById(context.getOrder().getId()).getOrderStatus();
         long startTime = System.currentTimeMillis();
         try {
-            while ("PAUSED".equalsIgnoreCase(orderStatus)) {
+            while (OrderStatus.PAUSED.name().equalsIgnoreCase(orderStatus)) {
                 Thread.sleep(1000);
                 // requery order to get its updated status
                 orderStatus = context.getModelClient().orders().findById(context.getOrder().getId()).getOrderStatus();

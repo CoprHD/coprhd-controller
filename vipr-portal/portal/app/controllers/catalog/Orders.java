@@ -256,8 +256,8 @@ public class Orders extends OrderExecution {
         try {
             getCatalogClient().orders().pauseOrder(uri(orderId));
         } catch (Exception e) {
-            Logger.error(e, MessagesUtils.get("order.submitFailed"));
-            flash.error(MessagesUtils.get("order.submitFailed"));
+            Logger.error(e, MessagesUtils.get("order.pausedFailed"));
+            flash.error(MessagesUtils.get("order.pausedFailed"));
             Common.handleError();
         }
         receiptContent(orderId,lastUpdated);       
@@ -268,8 +268,8 @@ public class Orders extends OrderExecution {
         try {
             getCatalogClient().orders().resumeOrder(uri(orderId));
         } catch (Exception e) {
-            Logger.error(e, MessagesUtils.get("order.submitFailed"));
-            flash.error(MessagesUtils.get("order.submitFailed"));
+            Logger.error(e, MessagesUtils.get("order.resumeFailed"));
+            flash.error(MessagesUtils.get("order.resumeFailed"));
             Common.handleError();
         }
         receiptContent(orderId,lastUpdated);       

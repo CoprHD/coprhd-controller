@@ -10,8 +10,8 @@ import java.util.List;
 import com.emc.sa.engine.ExecutionTask;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.storageos.model.DataObjectRestRep;
-import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
+import com.emc.vipr.client.Task;
 import com.emc.vipr.client.core.util.ResourceUtils;
 
 /**
@@ -20,8 +20,6 @@ import com.emc.vipr.client.core.util.ResourceUtils;
  * @author jonnymiller
  */
 public class ViPRExecutionUtils {
-    
-
     public static URI uri(String id) {
         return ResourceUtils.uri(id);
     }

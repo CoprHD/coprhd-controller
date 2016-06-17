@@ -4,7 +4,7 @@ import com.iwave.ext.linux.command.LinuxResultsCommand;
 
 public class CancelMigrationCommand extends LinuxResultsCommand<String> {
     public CancelMigrationCommand(String args) {
-        setCommand("/usr/bin/canclemigration");
+        setCommand("/usr/bin/cancelmigration");
         addArgument(args);
     }
 

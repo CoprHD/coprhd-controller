@@ -6,17 +6,14 @@ public class MigrateVolumeCommand extends LinuxResultsCommand<String> {
 
     public MigrateVolumeCommand(String... args) {
         setRunAsRoot(true);
-        setCommand("dd");
+        setCommand("/tmp/coprhdMigration/migrateVolume.sh");
         addArguments(args);
     }
 
     @Override
     public void parseOutput() {
-        // TODO Auto-generated method stub
         if (getOutput() != null && getOutput().getStdout() != null) {
             String stdout = getOutput().getStdout();
-            // todo parse output   
-            
             results = stdout;
         }
       

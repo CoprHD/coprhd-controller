@@ -3,6 +3,7 @@ package com.emc.storageos.migrationcontroller;
 import static com.emc.storageos.migrationcontroller.MigrationControllerUtils.getDataObject;
 
 import java.net.URI;
+import java.sql.Timestamp;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -260,14 +261,6 @@ public class NativeMigrationDeviceController implements MigrationOrchestrationIn
             _dbClient.updateObject(migration);
             _log.info("Migration name is {}", migrationName);
 
-            // Make a call to the VPlex API client to migrate the virtual
-            // volume. Note that we need to do a remote migration when a
-            // local virtual volume is being migrated to the other VPlex
-            // cluster. If the passed new varray is not null, then
-            // this is the case.
-            // Boolean isRemoteMigration = newVarrayURI != null;
-
-            List<MigrationInfo> migrationInfoList = new ArrayList<MigrationInfo>();
             /*
              * _blockDeviceController.getDevice(
              * srcStorageSystem.getSystemType()).doMigrateVolumes(srcStorageSystem,
@@ -284,11 +277,9 @@ public class NativeMigrationDeviceController implements MigrationOrchestrationIn
             _workflowService.storeStepData(stepId, Boolean.TRUE);
 
             // Initialize the migration info in the database.
-            MigrationInfo migrationInfo = migrationInfoList.get(0);
-            migration.setMigrationStatus(MigrationInfo.MigrationStatus.READY
-                    .getStatusValue());
+            migration.setMigrationStatus(Migration.MigrationStatus.READY.getValue());
             migration.setPercentDone("0");
-            migration.setStartTime(migrationInfo.getStartTime());
+            migration.setStartTime(new Date().toString());
             _dbClient.updateObject(migration);
             _log.info("Update migration info");
 

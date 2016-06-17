@@ -111,33 +111,33 @@ public class MigrationJob extends Job implements Serializable {
                     generalVolume.getStorageController());
             s_logger.debug("storage system is {}", storageSystem.getId());
 
-            MigrationInfo migrationInfo = HostMigrationCommand.pollMigration(_host, migrationName, migrationPid);
+            String srcDevice = migration.getSrcDev();
+
+            String percentDone = HostMigrationCommand.pollMigration(_host, migrationName, migrationPid, srcDevice);
             s_logger.debug("Got migration info from host");
 
             // Update the migration in the database to reflect the
             // current status and percent done.
-            String migrationStatus = migrationInfo.getStatus();
+            String migrationStatus = migration.getMigrationStatus();
             s_logger.debug("Migration status is {}", migrationStatus);
             migration.setMigrationStatus(migrationStatus);
-            int percentDone = getMigrationPercentDone(migrationInfo.getPercentageDone());
             s_logger.debug("Migration percent done is {}", percentDone);
-            migration.setPercentDone(String.valueOf(percentDone));
+            migration.setPercentDone(percentDone);
             dbClient.updateObject(migration);
 
             // Update the job info.
             _pollResult.setJobName(migrationName);
             _pollResult.setJobId(generalVolume.getId().toString());
-            _pollResult.setJobPercentComplete(percentDone);
+            _pollResult.setJobPercentComplete(Integer.parseInt(percentDone));
             s_logger.debug("Updated poll result");
 
             // Examine the status.
-            if (MigrationInfo.MigrationStatus.COMPLETE.getStatusValue().equals(
+            if (Migration.MigrationStatus.COMPLETE.getValue().equals(
                     migrationStatus)) {
                 // Completed successfully
                 s_logger.info("Migration: {} completed sucessfully", migration.getId());
                 _status = JobStatus.SUCCESS;
-            } else if (MigrationInfo.MigrationStatus.COMMITTED.getStatusValue()
-                    .equals(migrationStatus)) {
+            } else if (Migration.MigrationStatus.COMMITTED.getValue().equals(migrationStatus)) {
                 // The migration job completed and somehow it was committed
                 // outside the scope of the workflow that created the
                 // migration job. We return success here to ensure that there
@@ -146,16 +146,14 @@ public class MigrationJob extends Job implements Serializable {
                 s_logger.info("Migration: {} completed and was committed",
                         migration.getId());
                 _status = JobStatus.SUCCESS;
-            } else if (MigrationInfo.MigrationStatus.CANCELLED.getStatusValue()
-                    .equals(migrationStatus)) {
+            } else if (Migration.MigrationStatus.CANCELLED.getValue().equals(migrationStatus)) {
                 // The migration job was cancelled outside the scope of the
                 // workflow that created the migration job.
                 _errorDescription = "The migration was cancelled";
                 s_logger.info("Migration: {} was cancelled prior to completion",
                         migration.getId());
                 _status = JobStatus.FAILED;
-            } else if (MigrationInfo.MigrationStatus.ERROR.getStatusValue().equals(
-                    migrationStatus)) {
+            } else if (Migration.MigrationStatus.ERROR.getValue().equals(migrationStatus)) {
                 // The migration failed.
                 _errorDescription = "The migration failed";
                 s_logger.error("Migration {} failed prior to completion",
@@ -185,25 +183,6 @@ public class MigrationJob extends Job implements Serializable {
         _pollResult.setJobStatus(_status);
         _pollResult.setErrorDescription(_errorDescription);
         return _pollResult;
-    }
-
-
-    /**
-     * Return the passed percent done as an integer. Returns 0 when the passed
-     * value cannot be parsed to an integer.
-     * 
-     * @param percentDoneStr Percent done value as a string.
-     * 
-     * @return The percent done as an integer.
-     */
-    private int getMigrationPercentDone(String percentDoneStr) {
-        int percentDone = 0;
-        try {
-            percentDone = Integer.parseInt(percentDoneStr);
-        } catch (NumberFormatException nfe) {
-            s_logger.warn("Migration percentage {} is not a number.", percentDoneStr);
-        }
-        return percentDone;
     }
 
     /**

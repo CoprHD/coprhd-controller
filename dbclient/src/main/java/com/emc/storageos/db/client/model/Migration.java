@@ -42,6 +42,29 @@ public class Migration extends DataObject {
     // Process ID of migration dd command for host based migrations
     private String _migrationPid;
 
+    public static enum MigrationStatus {
+        IN_PROGRESS("inProgress"),
+        COMPLETE("complete"),
+        PAUSED("paused"),
+        CANCELLED("cancelled"),
+        COMMITTED("committed"),
+        READY("ready"),
+        ERROR("error"),
+        PARTIALLY_COMMITTED("partiallyCommitted"),
+        PARTIALLY_CANCELLED("partiallyCancelled"),
+        QUEUED("queued");
+
+        private final String _status;
+
+        MigrationStatus(String status) {
+            _status = status;
+        }
+
+        public String getValue() {
+            return _status;
+        }
+    }
+
     /**
      * Getter for the URI of the volume being migrated.
      * 

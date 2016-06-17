@@ -99,9 +99,10 @@ public class HostMigrationCommand {
         }
     }
 
-    public static String migrationCommand(Host host, String srcDevice, String tgtDevice) {
+    public static String migrationCommand(Host host, String srcDevice, String tgtDevice,
+            String migrationName) {
         LinuxSystemCLI cli = LinuxHostDiscoveryAdapter.createLinuxCLI(host);
-        String args = String.format("if=%s of=%s & echo $!", srcDevice, tgtDevice);
+        String args = String.format("if=%s of=%s name=%s", srcDevice, tgtDevice, migrationName);
         MigrateVolumeCommand command = new MigrateVolumeCommand(args);
         cli.executeCommand(command);
         try {
@@ -116,41 +117,40 @@ public class HostMigrationCommand {
         }
     }
 
-    public static MigrationInfo pollMigration(Host host, String migrationName, String migrationPid) throws Exception {
-        MigrationInfo migrationInfo = null;
+    public static String pollMigration(Host host, String migrationName, String migrationPid,
+            String srcDevice) throws Exception {
         LinuxSystemCLI cli = LinuxHostDiscoveryAdapter.createLinuxCLI(host);
-        String args = String.format("%s ", migrationPid);
+        String args = String.format("pid=%s name=%s if=%s", migrationPid, migrationName, srcDevice);
         PollMigrationCommand command = new PollMigrationCommand(args);
 
         cli.executeCommand(command);
-        migrationInfo = command.getResults();
-        if (migrationInfo == null) {
-            String message = String.format("can't find migraiton for migration name = %s", migrationName);
+        String percentDone = command.getResults();
+        if (percentDone == null) {
+            String message = String.format("can't find migration for migration name = %s", migrationName);
             throw new Exception(message);
         }
-        return migrationInfo;
+        return percentDone;
     }
 
 
-    public static List<MigrationInfo> pollMigrations(Host host, List<Migration> migrations)
+    public static List<Migration> pollMigrations(Host host, List<Migration> migrations)
             throws Exception {
 
-        List<MigrationInfo> migrationInfoList = new ArrayList<MigrationInfo>();
         for (Migration migration : migrations) {
             try {
                 // First look in the device migrations and if not found, then
                 // look in the extent migrations.
                 String migrationPid = migration.getMigrationPid();
                 String migrationName = migration.getLabel();
-                MigrationInfo migrationInfo = pollMigration(host, migrationName, migrationPid);
-                migrationInfo.setIsHostMigration(true);
-                migrationInfoList.add(migrationInfo);
+                String migrationSource = migration.getSrcDev();
+                String percentDone = pollMigration(host, migrationName, migrationPid, migrationSource);
+                migration.setPercentDone(percentDone);
             } catch (Exception vae) {
                 _log.info("Migration {} not found with host migrations");
                 vae.printStackTrace();
             }
         }
-        return migrationInfoList;
+        return migrations;
     }
 
     public static String cancelMigrationsCommand(Host host, String args) {
@@ -209,19 +209,18 @@ public class HostMigrationCommand {
      * */
     public static String doCommitMigrationsCommand(Host host, String generalVolumeName,
             List<Migration> migrations) throws Exception {
-        List<MigrationInfo> migrationInfoList = pollMigrations(host, migrations);
         // Verify that the migrations have completed successfully and can be
         // committed.
-
-        for (MigrationInfo migrationInfo : migrationInfoList) {
-            if (migrationInfo.getStatus() != "complete") {
-                throw MigrationControllerException.exceptions
-                        .cantCommitedMigrationNotCompletedSuccessfully(migrationInfo.getName());
-            }
-        }
         for (Migration migration : migrations) {
             String srcDevice = migration.getSrcDev();
             String tgtDevice = migration.getTgtDev();
+            String migrationName = migration.getLabel();
+            String migrationPid = migration.getMigrationPid();
+            String percentDone = pollMigration(host, migrationName, migrationPid, srcDevice);
+            if (migration.getMigrationStatus() != Migration.MigrationStatus.COMPLETE.getValue()) {
+                throw MigrationControllerException.exceptions
+                        .cantCommitedMigrationNotCompletedSuccessfully(migration.getLabel());
+            }
             String args = String.format("srcDevice=%s tgtDevice=%s", srcDevice, tgtDevice);
             LinuxSystemCLI cli = LinuxHostDiscoveryAdapter.createLinuxCLI(host);
             commitMigrationsCommand command = new commitMigrationsCommand(args);

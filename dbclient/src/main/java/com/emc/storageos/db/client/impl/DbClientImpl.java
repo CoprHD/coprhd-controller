@@ -1105,46 +1105,13 @@ public class DbClientImpl implements DbClient {
             return;
         }
 
-        Keyspace ks = getKeyspace(clazz);
+        DbClientContext context = getDbClientContext(clazz);
 
-        List<URI> objectsToCleanup = insertNewColumns(ks, dataobjects);
+        List<URI> objectsToCleanup = insertNewColumns(context, dataobjects);
         if (updateIndex && !objectsToCleanup.isEmpty()) {
             Rows<String, CompositeColumnName> rows = fetchNewest(clazz, ks, objectsToCleanup);
             cleanupOldColumns(clazz, ks, rows);
         }
-    }
-
-    protected <T extends DataObject> List<URI> insertNewColumns(Keyspace ks, Collection<T> dataobjects) {
-        List<URI> objectsToCleanup = new ArrayList<URI>();
-        boolean retryFailedWriteWithLocalQuorum = true;
-        Iterator<T> dataObjectIterator = dataobjects.iterator();
-        if (dataObjectIterator.hasNext()) {
-            T dataObject = dataObjectIterator.next();
-            retryFailedWriteWithLocalQuorum = shouldRetryFailedWriteWithLocalQuorum(dataObject.getClass());
-        }
-        
-        RowMutator mutator = new RowMutator(ks, retryFailedWriteWithLocalQuorum);
-        for (T object : dataobjects) {
-            checkGeoVersionForMutation(object);
-            DataObjectType doType = TypeMap.getDoType(object.getClass());
-
-            if (object.getId() == null || doType == null) {
-                throw new IllegalArgumentException();
-            }
-            if (doType.needPreprocessing()) {
-                preprocessTypeIndexes(ks, doType, object);
-            }
-            if (doType.serialize(mutator, object, new LazyLoader(this))) {
-                objectsToCleanup.add(object.getId());
-            }
-
-            if (!(object instanceof Task)) {
-                serializeTasks(object, mutator, objectsToCleanup);
-            }
-        }
-        mutator.executeRecordFirst();
-
-        return objectsToCleanup;
     }
 
     protected <T extends DataObject> List<URI> insertNewColumns(DbClientContext context, Collection<T> dataobjects) {

@@ -9,6 +9,7 @@ import java.net.URI;
 import java.util.Iterator;
 import java.util.UUID;
 
+import com.emc.storageos.db.client.impl.DbClientContext;
 import com.emc.storageos.db.client.model.DataObject;
 import com.netflix.astyanax.Keyspace;
 
@@ -64,6 +65,8 @@ public interface Constraint {
      * @param keyspace
      */
     void setKeyspace(Keyspace keyspace);
+    
+    void setDbClientContext(DbClientContext dbClientContext);
 
     /**
      * Execute this query

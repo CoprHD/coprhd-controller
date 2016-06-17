@@ -8,9 +8,12 @@ package com.emc.storageos.db.client.constraint.impl;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.Statement;
+import com.datastax.driver.core.exceptions.ConnectionException;
+import com.emc.storageos.db.client.impl.DbClientContext;
 import com.emc.storageos.db.client.impl.IndexColumnName;
 import com.emc.storageos.db.exceptions.DatabaseException;
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnList;
 import com.netflix.astyanax.query.RowQuery;
@@ -20,10 +23,17 @@ import com.netflix.astyanax.query.RowQuery;
  */
 public abstract class QueryHitIterator<T> implements Iterator<T> {
     protected RowQuery<String, IndexColumnName> _query;
-    protected Iterator<Column<IndexColumnName>> _currentIt;
+    protected Statement queryStatement;
+    protected ResultSet resultSet;
+    protected DbClientContext dbClientContext;
 
     public QueryHitIterator(RowQuery<String, IndexColumnName> query) {
         _query = query;
+    }
+    
+    public QueryHitIterator(DbClientContext dbClientContext, Statement queryStatement) {
+        this.queryStatement = queryStatement;
+        this.dbClientContext = dbClientContext;
     }
 
     public void prime() {
@@ -31,33 +41,21 @@ public abstract class QueryHitIterator<T> implements Iterator<T> {
     }
 
     protected void runQuery() {
-        _currentIt = null;
-        ColumnList<IndexColumnName> result;
         try {
-            result = _query.execute().getResult();
-        } catch (final ConnectionException e) {
+            resultSet = dbClientContext.getSession().execute(queryStatement);
+        } catch (ConnectionException e) {
             throw DatabaseException.retryables.connectionFailed(e);
-        }
-        if (!result.isEmpty()) {
-            _currentIt = result.iterator();
         }
     }
 
     @Override
     public boolean hasNext() {
-        if (_currentIt == null) {
-            return false;
-        }
-        if (_currentIt.hasNext()) {
-            return true;
-        }
-        runQuery();
-        return _currentIt != null;
+        return !resultSet.isExhausted();
     }
 
     @Override
     public T next() {
-        if (_currentIt == null) {
+        if (resultSet.isExhausted()) {
             throw new NoSuchElementException();
         }
         return createQueryHit(_currentIt.next());
@@ -69,4 +67,8 @@ public abstract class QueryHitIterator<T> implements Iterator<T> {
     }
 
     protected abstract T createQueryHit(Column<IndexColumnName> column);
+    
+    protected T createQueryHit(IndexColumnName column) {
+        return null;
+    }
 }

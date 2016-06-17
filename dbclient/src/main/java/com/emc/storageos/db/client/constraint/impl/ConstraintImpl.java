@@ -6,23 +6,25 @@
 package com.emc.storageos.db.client.constraint.impl;
 
 import java.net.URI;
-import java.util.List;
 import java.util.ArrayList;
+import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.datastax.driver.core.Statement;
+import com.emc.storageos.db.client.constraint.Constraint;
+import com.emc.storageos.db.client.constraint.ConstraintDescriptor;
+import com.emc.storageos.db.client.impl.ColumnField;
+import com.emc.storageos.db.client.impl.DbClientContext;
+import com.emc.storageos.db.client.impl.IndexColumnName;
+import com.emc.storageos.db.client.impl.IndexColumnNameSerializer;
+import com.emc.storageos.db.exceptions.DatabaseException;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnList;
 import com.netflix.astyanax.query.RowQuery;
 import com.netflix.astyanax.serializers.CompositeRangeBuilder;
-
-import com.emc.storageos.db.client.constraint.ConstraintDescriptor;
-import com.emc.storageos.db.exceptions.DatabaseException;
-
-import com.emc.storageos.db.client.constraint.Constraint;
-import com.emc.storageos.db.client.impl.*;
 
 /**
  * Abstract base for all containment queries
@@ -36,6 +38,7 @@ public abstract class ConstraintImpl implements Constraint {
     protected String startId;
     protected int pageCount = DEFAULT_PAGE_SIZE;
     protected boolean returnOnePage;
+    protected DbClientContext dbClientContext;
 
     public ConstraintImpl(Object... arguments) {
         ColumnField field = null;
@@ -126,10 +129,32 @@ public abstract class ConstraintImpl implements Constraint {
         it.prime();
         result.setResult(it);
     }
+    
+    protected <T> void queryWithAutoPaginate(DbClientContext dbClientContext, Statement queryStatement, final QueryResult<T> result,
+            final ConstraintImpl constraint) {
+        QueryHitIterator<T> it = new QueryHitIterator<T>(dbClientContext, queryStatement) {
+            @Override
+            protected T createQueryHit(IndexColumnName column) {
+                return constraint.createQueryHit(result, column);
+            }
+
+            @Override
+            protected T createQueryHit(Column<IndexColumnName> column) {
+                // TODO Auto-generated method stub
+                return null;
+            }
+        };
+        it.prime();
+        result.setResult(it);
+    }
 
     protected abstract URI getURI(Column<IndexColumnName> col);
 
     protected abstract <T> T createQueryHit(final QueryResult<T> result, Column<IndexColumnName> col);
+    
+    protected <T> T createQueryHit(final QueryResult<T> result, IndexColumnName col) {
+        return null;
+    }
 
     protected <T> void queryOnePageWithoutAutoPaginate(RowQuery<String, IndexColumnName> query, String prefix, final QueryResult<T> result)
             throws ConnectionException {
@@ -230,5 +255,10 @@ public abstract class ConstraintImpl implements Constraint {
             }
         }
         result.setResult(ids.iterator());
+    }
+
+    @Override
+    public void setDbClientContext(DbClientContext dbClientContext) {
+        this.dbClientContext = dbClientContext;
     }
 }

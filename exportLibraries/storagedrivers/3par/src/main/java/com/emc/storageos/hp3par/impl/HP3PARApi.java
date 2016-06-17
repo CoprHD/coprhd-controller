@@ -19,6 +19,8 @@ import com.emc.storageos.hp3par.command.CPGMember;
 import com.emc.storageos.hp3par.command.ConsistencyGroupResult;
 import com.emc.storageos.hp3par.command.ConsistencyGroupsListResult;
 import com.emc.storageos.hp3par.command.HostCommandResult;
+import com.emc.storageos.hp3par.command.HostMember;
+import com.emc.storageos.hp3par.command.HostSetDetailsCommandResult;
 import com.emc.storageos.hp3par.command.PortCommandResult;
 import com.emc.storageos.hp3par.command.PortStatisticsCommandResult;
 import com.emc.storageos.hp3par.command.Privileges;
@@ -77,11 +79,14 @@ public class HP3PARApi {
     private static final String URI_CG_DETAILS = "/api/v1/volumesets/{0}";
     private static final String URI_CG_LIST_DETAILS = "/api/v1/volumesets";
     
+    // For ingestion
     private static final String URI_VLUNS_OF_VOLUME = "/api/v1/vluns?query=”volumeWWN EQ {}";
     
-    // Export related
+    // For export
     private static final String URI_CREATE_VLUN = "/api/v1/vluns";
     private static final String URI_HOSTS = "/api/v1/hosts";
+    private static final String URI_HOSTSET_DETAILS = "/api/v1/hostsets/{0}";
+    private static final String URI_HOST_DETAILS = "/api/v1/hosts/{0}";
 
     
     public HP3PARApi(URI endpoint, RESTClient client, String userName, String pass) {
@@ -712,6 +717,65 @@ public class HP3PARApi {
         } //end try/catch/finally
     }
 
+    public HostSetDetailsCommandResult getHostSetDetails(String name) throws Exception {
+        _log.info("3PARDriver:getHostSetDetails enter");
+        ClientResponse clientResp = null;
+        final String path = MessageFormat.format(URI_HOSTSET_DETAILS, name);
+        
+        try {
+            clientResp = get(path);
+            if (clientResp == null) {
+                _log.error("3PARDriver:There is no response from 3PAR");
+                throw new HP3PARException("There is no response from 3PAR");
+            } else if (clientResp.getStatus() != 200) {
+                String errResp = getResponseDetails(clientResp);
+                throw new HP3PARException(errResp);
+            } else {
+                String responseString = clientResp.getEntity(String.class);
+                _log.info("3PARDriver:getVolumeDetails 3PAR response is {}", responseString);
+                HostSetDetailsCommandResult hostsetResult = new Gson().fromJson(sanitize(responseString),
+                        HostSetDetailsCommandResult.class);
+                return hostsetResult;
+            }
+        } catch (Exception e) {
+            throw e;
+        } finally {
+            if (clientResp != null) {
+                clientResp.close();
+            }
+            _log.info("3PARDriver:getHostSetDetails leave");
+        } //end try/catch/finally
+    }
+    
+    public HostMember getHostDetails(String name) throws Exception {
+        _log.info("3PARDriver:getHostDetails enter");
+        ClientResponse clientResp = null;
+        final String path = MessageFormat.format(URI_HOST_DETAILS, name);
+        
+        try {
+            clientResp = get(path);
+            if (clientResp == null) {
+                _log.error("3PARDriver:There is no response from 3PAR");
+                throw new HP3PARException("There is no response from 3PAR");
+            } else if (clientResp.getStatus() != 200) {
+                String errResp = getResponseDetails(clientResp);
+                throw new HP3PARException(errResp);
+            } else {
+                String responseString = clientResp.getEntity(String.class);
+                _log.info("3PARDriver:getVolumeDetails 3PAR response is {}", responseString);
+                HostMember hostResult = new Gson().fromJson(sanitize(responseString),
+                        HostMember.class);
+                return hostResult;
+            }
+        } catch (Exception e) {
+            throw e;
+        } finally {
+            if (clientResp != null) {
+                clientResp.close();
+            }
+            _log.info("3PARDriver:getHostDetails leave");
+        } //end try/catch/finally
+    }
     
     private CompleteError getCompleteResponseDetails(ClientResponse clientResp) {
         String detailedResponse = null, ref=null;

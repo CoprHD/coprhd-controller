@@ -27,6 +27,7 @@ import com.emc.storageos.hp3par.command.ConsistencyGroupsListResult;
 import com.emc.storageos.hp3par.command.FcPath;
 import com.emc.storageos.hp3par.command.HostCommandResult;
 import com.emc.storageos.hp3par.command.HostMember;
+import com.emc.storageos.hp3par.command.HostSetDetailsCommandResult;
 import com.emc.storageos.hp3par.command.ISCSIPath;
 import com.emc.storageos.hp3par.command.PortCommandResult;
 import com.emc.storageos.hp3par.command.PortMembers;
@@ -1124,12 +1125,14 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
         String host = null;
         try {
             if (initiators.get(0).getClusterName() != null) {
-                /// TODO Can there be single host export in the cluster??????
-                //initiator list if there is only one host its Single host export
-                //if Single host
-                host = initiators.get(0).getHostName();
-                //else real cluster export
-                host = "set:" + initiators.get(0).getClusterName();
+                // There could be single host export in the cluster
+                // In the initiator list if there is only one host its Single host export
+                if (initiators.size() == 0) {
+                    host = initiators.get(0).getHostName();
+                } else {
+                    //real cluster export
+                    host = "set:" + initiators.get(0).getClusterName();
+                }
             } else {
                 // From initiator port wwn/iqn get the hostname registered with 3PAR
                 // host name registered with 3PAR is same across all arrays
@@ -1177,17 +1180,33 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
                         VlunResult vlunRes = hp3parApi.createVlun(vol.getNativeId(), hlu, host, null);
                         if (vlunRes != null && vlunRes.getStatus() == true) {
                             currExport++;
-                            usedRecommendedPorts.setValue(true);
+
                             // update hlu obtained as lun from 3apr & add the selected port if required
                             volumeToHLUMap.put(vol.getNativeId(), vlunRes.getAssignedLun());
                             
-                            //TODO: get all the hosts of this cluster
-                            // get the ports of these indiviual hosts
-                            // assign all these ports as selected ports
-                            if (selectedPorts.contains(port) == false) {
-                                selectedPorts.add(port);
+                            //get all the hosts of this cluster
+                            String hp3parHostSet = host.substring(host.indexOf(":") + 1);
+                            HostSetDetailsCommandResult hostsetRes = hp3parApi.getHostSetDetails(hp3parHostSet);
+                            
+                            //get individual host details
+                            ArrayList<String> setMembers = hostsetRes.getSetmembers();
+                            
+                            for (int index = 0; index < setMembers.size(); index ++) {
+                                String hst = setMembers.get(index);
+                                
+                                HostMember hostRes = hp3parApi.getHostDetails(hst);                                
+                                //get storage ports for these host ports
+                                List<StoragePort> clusterPorts = new ArrayList<>();
+                                getCluseterStoragePorts(hostRes, recommendedPorts, availablePorts, clusterPorts);
+                                
+                                for (StoragePort sp:clusterPorts) {
+                                    // assign all these ports as selected ports
+                                    if (selectedPorts.contains(sp) == false) {
+                                        selectedPorts.add(sp);
+                                    }
+                                }
                             }
-                        }
+                        } //end createVlun
                     } else {
                         // specify port and use matched set method to export
                         message.concat("port " + port.getNativeId());
@@ -1207,39 +1226,58 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 
                 } // for recommended ports
 
-                // use available ports for rest of the exports
+                // now try with available ports
                 for (StoragePort port : availablePorts) {
                     if (currExport == totalExport) {
                         break;
                     }
-
-                    // verify volume and port belongs to same storage
+                    // verify volume and port belong to same storage
                     if (vol.getStorageSystemId().equalsIgnoreCase(port.getStorageSystemId()) == false) {
                         continue;
                     }
 
                     String message = String.format("3PARDriver:exportVolumesToInitiators information for storage system %s, "
                             + "volume %s host %s hlu %s", port.getStorageSystemId(), vol.getNativeId(), host, hlu.toString());
-                            
+
                     if (host.startsWith("set:")) {
-                        // for cluster use host set method to export
                         _log.info(message);
-                        
+
+                        // export volume; for cluster use host set method to export
                         VlunResult vlunRes = hp3parApi.createVlun(vol.getNativeId(), hlu, host, null);
                         if (vlunRes != null && vlunRes.getStatus() == true) {
                             currExport++;
-                            usedRecommendedPorts.setValue(false);
+
                             // update hlu obtained as lun from 3apr & add the selected port if required
                             volumeToHLUMap.put(vol.getNativeId(), vlunRes.getAssignedLun());
-                            if (selectedPorts.contains(port) == false) {
-                                selectedPorts.add(port);
+
+                            //get all the hosts of this cluster
+                            String hp3parHostSet = host.substring(host.indexOf(":") + 1);
+                            HostSetDetailsCommandResult hostsetRes = hp3parApi.getHostSetDetails(hp3parHostSet);
+
+                            //get individual host details
+                            ArrayList<String> setMembers = hostsetRes.getSetmembers();
+
+                            for (int index = 0; index < setMembers.size(); index ++) {
+                                String hst = setMembers.get(index);
+
+                                HostMember hostRes = hp3parApi.getHostDetails(hst);                                
+                                //get storage ports for these host ports
+                                List<StoragePort> clusterPorts = new ArrayList<>();
+                                getCluseterStoragePorts(hostRes, availablePorts, availablePorts, clusterPorts);
+
+                                for (StoragePort sp:clusterPorts) {
+                                    // assign all these ports as selected ports
+                                    if (selectedPorts.contains(sp) == false) {
+                                        selectedPorts.add(sp);
+                                    }
+                                }
                             }
-                        }
+                        } //end createVlun
                     } else {
                         // specify port and use matched set method to export
                         message.concat("port " + port.getNativeId());
                         _log.info(message);
-                        
+
                         VlunResult vlunRes = hp3parApi.createVlun(vol.getNativeId(), hlu, host, port.getNativeId());
                         if (vlunRes != null && vlunRes.getStatus() == true) {
                             currExport++;
@@ -1253,6 +1291,22 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
                     } //end "set"
 
                 } // for available ports
+                
+                //For cluster go thru all slectedports. if anyone is not part of the availableports
+                // set usedRecommendedPorts to false
+                if (host.startsWith("set:")) {
+                    if (selectedPorts.isEmpty() == false) {
+                        // there is a successful export
+                        usedRecommendedPorts.setValue(true);
+                    }
+                    
+                    for (StoragePort sp:selectedPorts) {
+                        if (recommendedPorts.contains(sp) == false) {
+                            usedRecommendedPorts.setValue(false);
+                            break;
+                        }
+                    }
+                }
                 
                 task.setStatus(DriverTask.TaskStatus.READY);
             } catch (Exception e) {
@@ -1268,6 +1322,28 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
         return task;
     }
 
+    
+    private void getCluseterStoragePorts(HostMember hostRes, List<StoragePort> recommendedPorts, 
+            List<StoragePort> availablePorts, List <StoragePort> clusterPorts) {
+
+        for(StoragePort sp:recommendedPorts) {
+            String[] pos = sp.getPortNetworkId().split(":");
+            ArrayList<FcPath> fcPath = hostRes.getFCPaths();
+            
+            for (int index = 0; index < fcPath.size(); index++) {
+                FcPath fc = fcPath.get(index);
+
+                if ((fc.getPostPos().getNode().toString().compareToIgnoreCase(pos[0]) == 0) &&
+                        (fc.getPostPos().getSlot().toString().compareToIgnoreCase(pos[1]) == 0) &&
+                        (fc.getPostPos().getCardPort().toString().compareToIgnoreCase(pos[2]) == 0) ) {
+                    
+                    // host connected array port
+                    clusterPorts.add(sp);
+                }
+            }
+        }
+    }
+    
     /*
      * Single initiator might have multiple volumes and single volume could be exported to multiple initiators
      * All volumes will be tried for unexport from all initiators

@@ -22,6 +22,8 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.hp3par.command.CPGCommandResult;
 import com.emc.storageos.hp3par.command.HostCommandResult;
+import com.emc.storageos.hp3par.command.HostMember;
+import com.emc.storageos.hp3par.command.HostSetDetailsCommandResult;
 import com.emc.storageos.hp3par.command.PortStatisticsCommandResult;
 import com.emc.storageos.hp3par.command.SystemCommandResult;
 import com.emc.storageos.hp3par.command.VolumeDetailsCommandResult;
@@ -188,14 +190,16 @@ public class HP3PARApiFactory {
 //        hp3parApi.getPortDetails();
 //        PortStatisticsCommandResult portStatRes = hp3parApi.getPortStatisticsDetail();
         
-        String vol = "One_Thin40";
+//        String vol = "One_Thin40";
 //        hp3parApi.createVolume(vol, "One", true, (long)1024);
 //        hp3parApi.createVlun(vol, -1, "myhost", "1:1:1");
 //        hp3parApi.expandVolume(vol, (long)2048);
 //        hp3parApi.getCPGDetails("One");
 //        hp3parApi.deleteVolume(vol);
         
-        HostCommandResult hostRes = hp3parApi.getHostDetails();
+//        HostCommandResult hostRes = hp3parApi.getHostDetails();
+//        HostSetDetailsCommandResult hostsetRes = hp3parApi.getHostSetDetails("LGLBW015_016");
+        HostMember hostRes = hp3parApi.getHostDetails("LGLBW015");
         
         int a=0;
         } catch (Exception e) {

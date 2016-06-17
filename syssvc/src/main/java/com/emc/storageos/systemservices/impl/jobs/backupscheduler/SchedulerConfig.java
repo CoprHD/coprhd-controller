@@ -122,8 +122,16 @@ public class SchedulerConfig {
         return this.uploadServerType;
     }
 
+    public void setUploadServerType(String uploadServerType) {
+        this.uploadServerType = uploadServerType;
+    }
+
     public String getUploadDomain() {
         return this.uploadDomain;
+    }
+
+    public void setUploadDomain(String uploadDomain){
+        this.uploadDomain = uploadDomain;
     }
 
     public Calendar now() {

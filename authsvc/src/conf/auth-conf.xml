@@ -93,6 +93,12 @@
 
     <bean id="tokenProcessingFilter" class="com.emc.storageos.auth.impl.CustomTokenBasedAthenticationFilter"/>
     <bean id="authSvcEndpointLocator" class="com.emc.storageos.security.authentication.AuthSvcEndPointLocator"/>
+
+    <bean id="keystoneUtils" class="com.emc.storageos.keystone.restapi.utils.KeystoneUtils">
+        <property name="keystoneFactory" ref="keystoneFactory"/>
+        <property name="ovfProperties" ref="ovfProperties"/>
+        <property name="dbClient" ref="dbclient"/>
+    </bean>
     
     <bean name="interNodeHmacFilter" class="com.emc.storageos.security.authentication.InterNodeHMACAuthFilter">
         <property name="keyGenerator" ref="keyGenerator" />

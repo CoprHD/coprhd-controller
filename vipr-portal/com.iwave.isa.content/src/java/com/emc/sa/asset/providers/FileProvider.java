@@ -777,7 +777,7 @@ public class FileProvider extends BaseAssetOptionsProvider {
     }
 
     @Asset("securityType")
-    @AssetDependencies("fileExportedFilesystem, subDirectory")
+    @AssetDependencies({ "fileExportedFilesystem", "subDirectory" })
     public List<AssetOption> getExportedSubdirectory(AssetOptionsContext ctx, URI fileExportedFilesystem, String subDirectory) {
         List<AssetOption> options = Lists.newArrayList();
         List<FileSystemExportParam> exports = api(ctx).fileSystems().getExports(fileExportedFilesystem);

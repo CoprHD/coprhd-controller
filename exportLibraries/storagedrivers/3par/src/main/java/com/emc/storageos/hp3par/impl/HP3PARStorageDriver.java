@@ -1074,8 +1074,8 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 
             Complete:
                 // for each host in 3par
-                for (int i = 0; i < hostRes.getTotal(); i++) {
-                    HostMember hostMemb = hostRes.getMembers().get(i);
+                for (int iHst = 0; iHst < hostRes.getTotal(); iHst++) {
+                    HostMember hostMemb = hostRes.getMembers().get(iHst);
                     // for each host initiator sent
                     for (Initiator init:initiators) {
 
@@ -1083,8 +1083,8 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
                         if (init.getProtocol().toString().compareToIgnoreCase(Protocols.FC.toString()) == 0 || 
                                 init.getProtocol().toString().compareToIgnoreCase(Protocols.FCoE.toString()) == 0) {
                             // verify in all FC ports with host 
-                            for (int k = 0; k < hostMemb.getFCPaths().size(); k++) {
-                                FcPath fcPath = hostMemb.getFCPaths().get(k);
+                            for (int kFc = 0; kFc < hostMemb.getFCPaths().size(); kFc++) {
+                                FcPath fcPath = hostMemb.getFCPaths().get(kFc);
                                 if (SanUtils.formatWWN(fcPath.getWwn()).compareToIgnoreCase(init.getPort()) == 0) {
                                     hp3parHost = hostMemb.getName();
                                     break Complete;
@@ -1092,8 +1092,8 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
                             }
                         } else {
                             // verify in all iSCSI ports with host 
-                            for (int k = 0; k < hostMemb.getiSCSIPaths().size(); k++) {
-                                ISCSIPath scsiPath = hostMemb.getiSCSIPaths().get(k);
+                            for (int kSc = 0; kSc < hostMemb.getiSCSIPaths().size(); kSc++) {
+                                ISCSIPath scsiPath = hostMemb.getiSCSIPaths().get(kSc);
                                 if (scsiPath.getName().compareToIgnoreCase(init.getPort()) == 0) {   
                                     hp3parHost = hostMemb.getName();
                                     break Complete;
@@ -1130,7 +1130,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
                 if (initiators.size() == 0) {
                     host = initiators.get(0).getHostName();
                 } else {
-                    //real cluster export
+                    //real cluster export; cluster name with ViPR is same as the 3PAR registered name
                     host = "set:" + initiators.get(0).getClusterName();
                 }
             } else {

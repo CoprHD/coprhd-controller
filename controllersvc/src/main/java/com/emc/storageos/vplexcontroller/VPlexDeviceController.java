@@ -1059,12 +1059,42 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // VPLEX volume.
                 List<URI> vplexVolumeURIs = VolumeDescriptor.getVolumeURIs(vplexMap.get(vplexURI));
                 for (URI vplexVolumeURI : vplexVolumeURIs) {
+                    Volume vplexVolume = _dbClient.queryObject(Volume.class, vplexVolumeURI);
+                    if (vplexVolume == null || vplexVolume.getInactive() == true) {
+                        continue;
+                    }
+                    
+                    // Skip validation if the volume was never successfully created.
+                    if (vplexVolume.getDeviceLabel() == null) {
+                        _log.info("Volume {} with Id {} was never created on the VPLEX as device label is null "
+                                + "hence skip validation on delete", vplexVolume.getLabel(), vplexVolume.getId());
+                        continue;
+                    }
+                    
+                    // Skip validation if the volume can't be found. This protects against
+                    // deletions where the VPLEX volume deletion was successful, but the
+                    // backend volume deletion failed.
+                    try {
+                        VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplexSystem, _dbClient);
+                        client.findVirtualVolume(vplexVolume.getDeviceLabel());
+                    } catch (VPlexApiException ex) {
+                        if (ex.getServiceCode() == ServiceCode.VPLEX_CANT_FIND_REQUESTED_VOLUME) {
+                            _log.info("VPlex virtual volume: " + vplexVolume.getNativeId()
+                                    + " has already been deleted; will skip validation");
+                            continue;
+                        } else {
+                            _log.error("Exception finding Virtual Volume", ex);
+                            throw ex;
+                        }
+                    }
+                    
                     createWorkflowStepToValidateVPlexVolume(workflow, vplexSystem, vplexVolumeURI, waitFor);
+                    waitFor = VALIDATE_VPLEX_VOLUME_STEP;
                 }
                 workflow.createStep(VPLEX_STEP,
                         String.format("Delete VPlex Virtual Volumes:%n%s",
                                 BlockDeviceController.getVolumesMsg(_dbClient, vplexVolumeURIs)),
-                        VALIDATE_VPLEX_VOLUME_STEP, vplexURI,
+                        waitFor, vplexURI,
                         DiscoveredDataObject.Type.vplex.name(), this.getClass(),
                         deleteVirtualVolumesMethod(vplexURI, vplexVolumeURIs, doNotFullyDeleteVolumeList),
                         rollbackMethodNullMethod(), null);

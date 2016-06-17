@@ -3,7 +3,7 @@
   serviceId:"LinuxUnmountNFSExport",
   fields: {
     host:{
-      type:"assetType.vipr.linuxHost"
+      type:"assetType.vipr.linuxFileHost"
     },
 
     mountedNFSExports: {

@@ -781,9 +781,17 @@ public class FileProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getExportedSubdirectory(AssetOptionsContext ctx, URI fileExportedFilesystem, String subDirectory) {
         List<AssetOption> options = Lists.newArrayList();
         List<FileSystemExportParam> exports = api(ctx).fileSystems().getExports(fileExportedFilesystem);
-        for (FileSystemExportParam export : exports) {
-            if (export.getSubDirectory().equalsIgnoreCase(subDirectory)) {
-                options.add(new AssetOption(export.getSecurityType(), export.getSecurityType()));
+        if (subDirectory == null) {
+            for (FileSystemExportParam export : exports) {
+                if (export.getSubDirectory().isEmpty()) {
+                    options.add(new AssetOption(export.getSecurityType(), export.getSecurityType()));
+                }
+            }
+        } else {
+            for (FileSystemExportParam export : exports) {
+                if (export.getSubDirectory().equalsIgnoreCase(subDirectory)) {
+                    options.add(new AssetOption(export.getSecurityType(), export.getSecurityType()));
+                }
             }
         }
         AssetOptionsUtils.sortOptionsByLabel(options);

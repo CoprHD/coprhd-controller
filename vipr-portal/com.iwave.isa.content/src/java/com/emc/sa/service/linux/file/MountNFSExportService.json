@@ -4,7 +4,7 @@
   destructive: true,
   fields:{
     host:{
-      type:"assetType.vipr.linuxHost"
+      type:"assetType.vipr.linuxFileHost"
     },
     
     project:{
@@ -18,6 +18,7 @@
     
     subDirectory:{
       type:"assetType.vipr.subDirectory"
+      required: "false",
     },
     
     securityType:{

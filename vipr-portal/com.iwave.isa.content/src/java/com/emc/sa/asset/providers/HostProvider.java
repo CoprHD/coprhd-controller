@@ -31,8 +31,7 @@ public class HostProvider extends BaseHostProvider {
     public static List<URI> getHostIds(ViPRCoreClient client, URI hostOrClusterId) {
         if (BlockStorageUtils.isHost(hostOrClusterId)) {
             return Lists.newArrayList(hostOrClusterId);
-        }
-        else {
+        } else {
             return ResourceUtils.refIds(client.hosts().listByCluster(hostOrClusterId));
         }
     }
@@ -49,6 +48,11 @@ public class HostProvider extends BaseHostProvider {
     protected List<HostRestRep> getLinuxHosts(AssetOptionsContext context) {
         debug("getting linuxHosts");
         return api(context).hosts().getByTenant(context.getTenant(), HostTypeFilter.LINUX.and(REGISTERED).and(INCOMPATIBLE.not()));
+    }
+
+    protected List<HostRestRep> getLinuxFileHosts(AssetOptionsContext context) {
+        debug("getting linuxHosts");
+        return api(context).hosts().getByTenant(context.getTenant(), HostTypeFilter.LINUX.and(REGISTERED));
     }
 
     protected List<HostRestRep> getWindowsHosts(AssetOptionsContext context) {
@@ -76,6 +80,12 @@ public class HostProvider extends BaseHostProvider {
     public List<AssetOption> getLinuxHostOptions(AssetOptionsContext context) {
         debug("getting linuxHosts");
         return createHostOptions(context, getLinuxHosts(context));
+    }
+
+    @Asset("linuxFileHost")
+    public List<AssetOption> getLinuxFileHostOptions(AssetOptionsContext context) {
+        debug("getting linuxFileHosts");
+        return createHostOptions(context, getLinuxFileHosts(context));
     }
 
     @Asset("windowsHost")

@@ -165,12 +165,6 @@ public class DisasterRecoveryService {
         startLeaderSelector();
     }
 
-    private void startDegradedSiteMonitor() {
-
-
-
-    }
-
     /**
      * Attach one fresh install site to this active site as standby
      * Or attach a active site for the local standby site when it's first being added.

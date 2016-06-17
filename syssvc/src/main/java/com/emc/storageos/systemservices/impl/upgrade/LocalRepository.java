@@ -236,7 +236,7 @@ public class LocalRepository {
 
     public void resetVdcConfigVersion() throws LocalRepositoryException {
         PropertyInfoExt props = getVdcPropertyInfo();
-        props.removeProperty(VdcConfigUtil.VDC_CONFIG_VERSION);
+        props.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION, String.valueOf(0));
         setVdcPropertyInfo(props);
     }
 

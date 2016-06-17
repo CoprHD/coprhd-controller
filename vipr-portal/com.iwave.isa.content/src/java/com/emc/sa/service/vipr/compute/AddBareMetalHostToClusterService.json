@@ -11,7 +11,7 @@
       lockable: true
     },
     virtualArray:{
-      type:"assetType.vipr.virtualArray",
+      type:"assetType.vipr.blockVirtualArray",
       lockable: true
     },
     computeVirtualPool: {

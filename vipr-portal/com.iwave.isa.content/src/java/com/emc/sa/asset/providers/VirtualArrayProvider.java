@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.emc.storageos.model.vpool.BlockVirtualPoolRestRep;
 import org.springframework.stereotype.Component;
 
 import com.emc.sa.asset.AssetOptionsContext;
@@ -80,6 +81,12 @@ public class VirtualArrayProvider extends BaseAssetOptionsProvider {
     }
 
     @Asset("virtualArray")
+    @AssetDependencies({ "aixHost" })
+    public List<AssetOption> getVirtualArrayForAix(AssetOptionsContext context, URI aixHostOrCluster) {
+        return getVirtualArray(context, aixHostOrCluster);
+    }
+
+    @Asset("virtualArray")
     @AssetDependencies({ "windowsHost" })
     public List<AssetOption> getVirtualArrayForWindows(AssetOptionsContext context, URI windowsHostOrCluster) {
         return getVirtualArray(context, windowsHostOrCluster);
@@ -146,6 +153,18 @@ public class VirtualArrayProvider extends BaseAssetOptionsProvider {
         // Get the set of virtual arrays that are associated with file vpools
         Set<URI> varrayIds = new HashSet<>();
         for (FileVirtualPoolRestRep vpool : client.fileVpools().getByTenant(context.getTenant())) {
+            varrayIds.addAll(ResourceUtils.refIds(vpool.getVirtualArrays()));
+        }
+        filterByContextTenant(varrayIds, client.varrays().getByTenant(context.getTenant()));
+        return createBaseResourceOptions(client.varrays().getByIds(varrayIds));
+    }
+
+    @Asset("blockVirtualArray")
+    public List<AssetOption> getBlockVirtualArrays(AssetOptionsContext context) {
+        ViPRCoreClient client = api(context);
+        // Get the set of virtual arrays that are associated with block vpools
+        Set<URI> varrayIds = new HashSet<>();
+        for (BlockVirtualPoolRestRep vpool : client.blockVpools().getByTenant(context.getTenant())) {
             varrayIds.addAll(ResourceUtils.refIds(vpool.getVirtualArrays()));
         }
         filterByContextTenant(varrayIds, client.varrays().getByTenant(context.getTenant()));

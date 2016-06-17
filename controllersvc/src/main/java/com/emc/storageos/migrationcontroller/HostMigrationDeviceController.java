@@ -115,10 +115,6 @@ public class HostMigrationDeviceController implements MigrationOrchestrationInte
                 }
             }
 
-            // currently not consider RP.
-
-            // todo: get _hostURI from descriptors;
-
             URI cgURI = null;
             String lastStep = waitFor;
             List<URI> localSystemsToRemoveCG = new ArrayList<URI>();
@@ -464,7 +460,7 @@ public class HostMigrationDeviceController implements MigrationOrchestrationInte
         }
     }
 
-    private Migration hostMigrateGeneralVolume(Migration migration, String migrationName, Volume srcVolume,
+    private void hostMigrateGeneralVolume(Migration migration, String migrationName, Volume srcVolume,
             Volume tgtVolume) throws Exception {
         // List<Initiator> hostInitiators = ComputeSystemHelper.queryInitiators(_dbClient, _hostURI);
         // todo: precheck mountpoint, multipath, filesystem, refresh storage
@@ -484,17 +480,14 @@ public class HostMigrationDeviceController implements MigrationOrchestrationInte
         migration.setSrcDev(srcDevice);
         migration.setTgtDev(tgtDevice);
         _dbClient.updateObject(migration);
-        String migrationPid = HostMigrationCommand.migrationCommand(host, srcDevice, tgtDevice, migrationName);
-        migration.setMigrationPid(migrationPid);
-        _dbClient.updateObject(migration);
+        HostMigrationCommand.migrationCommand(host, migration.getId());
         _log.info("Successfully started migration {}", migrationName);
-        String percentDone = HostMigrationCommand.pollMigration(host, migrationName, migrationPid, srcDevice);
-        migration.setPercentDone(percentDone);
-        migration.setMigrationStatus(Migration.MigrationStatus.IN_PROGRESS.getValue());
+        HostMigrationCommand.pollMigration(host, migration.getId());
+        if (migration.getMigrationStatus() == Migration.MigrationStatus.ERROR.getValue()) {
+            throw MigrationControllerException.exceptions.migrateVolumeFailure(migration.getLabel());
+        }
         migration.setStartTime(new Date().toString());
         _dbClient.updateObject(migration);
-        return migration;
-
     }
 
     private void refreshHostStorage(Host host, boolean usePowerPath) {

@@ -113,17 +113,13 @@ public class MigrationJob extends Job implements Serializable {
 
             String srcDevice = migration.getSrcDev();
 
-            String percentDone = HostMigrationCommand.pollMigration(_host, migrationName, migrationPid, srcDevice);
-            s_logger.debug("Got migration info from host");
-
+            HostMigrationCommand.pollMigration(_host, migration.getId());
             // Update the migration in the database to reflect the
             // current status and percent done.
             String migrationStatus = migration.getMigrationStatus();
+            String percentDone = migration.getPercentDone();
             s_logger.debug("Migration status is {}", migrationStatus);
-            migration.setMigrationStatus(migrationStatus);
             s_logger.debug("Migration percent done is {}", percentDone);
-            migration.setPercentDone(percentDone);
-            dbClient.updateObject(migration);
 
             // Update the job info.
             _pollResult.setJobName(migrationName);

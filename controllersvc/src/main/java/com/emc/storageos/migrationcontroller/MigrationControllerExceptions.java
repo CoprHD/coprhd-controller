@@ -26,6 +26,9 @@ public interface MigrationControllerExceptions {
     public MigrationControllerException getInitiatorPortsForArrayFailed(final String device, final String array);
 
     @DeclareServiceCode(ServiceCode.MIGRATION_ERROR)
+    public MigrationControllerException migrateVolumeFailure(final String migrationName);
+
+    @DeclareServiceCode(ServiceCode.MIGRATION_ERROR)
     public MigrationControllerException migrationRollbackFailure(final String volumeId, final String volumeLabel, final String migration);
 
     @DeclareServiceCode(ServiceCode.MIGRATION_ERROR)

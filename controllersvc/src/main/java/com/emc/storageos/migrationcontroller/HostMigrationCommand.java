@@ -1,5 +1,8 @@
 package com.emc.storageos.migrationcontroller;
 
+import static com.emc.storageos.migrationcontroller.MigrationControllerUtils.getDataObject;
+
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -8,6 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.computesystemcontroller.impl.adapter.LinuxHostDiscoveryAdapter;
+import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.Volume;
@@ -41,6 +45,8 @@ public class HostMigrationCommand {
     public static final String LINUX_WWN_PREFIX = "3";
 
     public static final int FIND_MIGRATION_MAX_TRIES = 60;
+
+    private static DbClient _dbClient;
 
     private HostMigrationCommand() {
 
@@ -99,58 +105,62 @@ public class HostMigrationCommand {
         }
     }
 
-    public static String migrationCommand(Host host, String srcDevice, String tgtDevice,
-            String migrationName) {
+    public static void migrationCommand(Host host, URI migrationURI) {
         LinuxSystemCLI cli = LinuxHostDiscoveryAdapter.createLinuxCLI(host);
-        String args = String.format("if=%s of=%s name=%s", srcDevice, tgtDevice, migrationName);
+        Migration migration = getDataObject(Migration.class, migrationURI, _dbClient); 
+        String srcDevice = migration.getSrcDev();
+        String tgtDevice = migration.getTgtDev();
+        // Set up the command arguments and execute the command
+        String args = String.format("if=%s of=%s", srcDevice, tgtDevice);
         MigrateVolumeCommand command = new MigrateVolumeCommand(args);
         cli.executeCommand(command);
-        try {
-            CommandOutput output = command.getOutput();
-            if (output.getStderr() != null) {
-                String string = "migration failed";
-                return string;
-            }
-            return output.getStdout();
-        } catch (Exception e) {
-            return e.getMessage();
+        CommandOutput output = command.getOutput();
+        if (output.getStderr() != null) {
+            // If there is an error output from the command, set the migration status
+            // to error
+            migration.setMigrationStatus(Migration.MigrationStatus.ERROR.getValue());
         }
+
+        String migrationPid = output.getStdout();
+        migration.setMigrationPid(migrationPid);
+        migration.setMigrationStatus(Migration.MigrationStatus.IN_PROGRESS.getValue());
+        _dbClient.updateObject(migration);
     }
 
-    public static String pollMigration(Host host, String migrationName, String migrationPid,
-            String srcDevice) throws Exception {
+    public static void pollMigration(Host host, URI migrationURI) {
         LinuxSystemCLI cli = LinuxHostDiscoveryAdapter.createLinuxCLI(host);
-        String args = String.format("pid=%s name=%s if=%s", migrationPid, migrationName, srcDevice);
+        Migration migration = getDataObject(Migration.class, migrationURI, _dbClient);
+        String migrationPid = migration.getMigrationPid();
+        String srcDevice = migration.getSrcDev();
+        String tgtDevice = migration.getTgtDev();
+        // Set up the command arguments and execute the command.
+        String args = String.format("pid=%s if=%s of=%s", migrationPid, srcDevice, tgtDevice);
         PollMigrationCommand command = new PollMigrationCommand(args);
-
         cli.executeCommand(command);
         String percentDone = command.getResults();
-        if (percentDone == null) {
-            String message = String.format("can't find migration for migration name = %s", migrationName);
-            throw new Exception(message);
+        int percentDoneInt = Integer.parseInt(percentDone);
+        if (percentDoneInt < 0) {
+            // If the percent returned is less than 0, we know the migration resulted
+            // in an error.
+            migration.setMigrationStatus(Migration.MigrationStatus.ERROR.getValue());
+        } else if (percentDoneInt < 100) {
+            // If the percent returned is 0 or greater, but not yet 100, the migration is
+            // still in progress.
+            migration.setMigrationStatus(Migration.MigrationStatus.IN_PROGRESS.getValue());
+        } else {
+            // If the percent returned is 100, the migration is complete.
+            migration.setMigrationStatus(Migration.MigrationStatus.COMPLETE.getValue());
         }
-        return percentDone;
+
+        migration.setPercentDone(percentDone);
+        _dbClient.updateObject(migration);
     }
 
 
-    public static List<Migration> pollMigrations(Host host, List<Migration> migrations)
-            throws Exception {
-
+    public static void pollMigrations(Host host, List<Migration> migrations) {
         for (Migration migration : migrations) {
-            try {
-                // First look in the device migrations and if not found, then
-                // look in the extent migrations.
-                String migrationPid = migration.getMigrationPid();
-                String migrationName = migration.getLabel();
-                String migrationSource = migration.getSrcDev();
-                String percentDone = pollMigration(host, migrationName, migrationPid, migrationSource);
-                migration.setPercentDone(percentDone);
-            } catch (Exception vae) {
-                _log.info("Migration {} not found with host migrations");
-                vae.printStackTrace();
-            }
+            pollMigration(host, migration.getId());
         }
-        return migrations;
     }
 
     public static String cancelMigrationsCommand(Host host, String args) {
@@ -214,9 +224,7 @@ public class HostMigrationCommand {
         for (Migration migration : migrations) {
             String srcDevice = migration.getSrcDev();
             String tgtDevice = migration.getTgtDev();
-            String migrationName = migration.getLabel();
-            String migrationPid = migration.getMigrationPid();
-            String percentDone = pollMigration(host, migrationName, migrationPid, srcDevice);
+            pollMigration(host, migration.getId());
             if (migration.getMigrationStatus() != Migration.MigrationStatus.COMPLETE.getValue()) {
                 throw MigrationControllerException.exceptions
                         .cantCommitedMigrationNotCompletedSuccessfully(migration.getLabel());

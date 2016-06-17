@@ -51,7 +51,7 @@ public class HostProvider extends BaseHostProvider {
     }
 
     protected List<HostRestRep> getLinuxFileHosts(AssetOptionsContext context) {
-        debug("getting linuxHosts");
+        debug("getting linuxFileHosts");
         return api(context).hosts().getByTenant(context.getTenant(), HostTypeFilter.LINUX.and(REGISTERED));
     }
 

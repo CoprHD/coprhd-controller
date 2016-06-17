@@ -3257,9 +3257,12 @@ resources.exportgroup.snapshot.remove.confirm=Are you sure you want to remove th
 resources.exportgroup.deleteLink=Delete Export Group
 resources.exportgroup.deleteConfirm=Are you sure you want to delete this export group?
 resources.exportgroup.add.hosts=Add Hosts
+resources.exportgroup.add.clusters=Add Clusters
 resources.exportgroup.add.initiators=Add Initiators
+resources.exportgroup.add.clusters.title=Add Clusters to Export Group
 resources.exportgroup.add.hosts.title=Add Hosts to Export Group
 resources.exportgroup.add.initiators.title=Add Initiators to Export Group
+resources.exportgroup.clusters.added=Created task to add cluster(s) to export group.
 resources.exportgroup.hosts.added=Created task to add host(s) to export group.
 resources.exportgroup.initiators.added=Created task to add initiator(s) to export group.
 

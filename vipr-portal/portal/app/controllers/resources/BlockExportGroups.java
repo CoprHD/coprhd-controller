@@ -40,6 +40,7 @@ import controllers.util.FlashException;
 import models.datatable.BlockExportGroupSnapshotsDataTable;
 import models.datatable.BlockExportGroupVolumesDataTable;
 import models.datatable.BlockExportGroupsDataTable;
+import models.datatable.HostClusterDataTable;
 import models.datatable.NetworkEndpointDataTable;
 import models.datatable.NetworkEndpointDataTable.EndpointInfo;
 import models.datatable.SimpleHostDataTable;
@@ -78,6 +79,23 @@ public class BlockExportGroups extends ResourceController {
 
         Task<ExportGroupRestRep> task = getViprClient().blockExports().update(uri(exportId), exportUpdateParam);
         flash.put("info", MessagesUtils.get("resources.exportgroup.hosts.added", task.getOpId()));
+
+        exportGroup(exportId);
+    }
+
+    @FlashException(referrer = { "exportGroup" })
+    public static void addClusters(String exportId, @As(",") String[] ids) {
+        ExportUpdateParam exportUpdateParam = new ExportUpdateParam();
+        exportUpdateParam.setClusters(new ClustersUpdateParam());
+
+        if (ids != null && ids.length > 0) {
+            for (String clusterId : ids) {
+                exportUpdateParam.getClusters().getAdd().add(uri(clusterId));
+            }
+        }
+
+        Task<ExportGroupRestRep> task = getViprClient().blockExports().update(uri(exportId), exportUpdateParam);
+        flash.put("info", MessagesUtils.get("resources.exportgroup.clusters.added", task.getOpId()));
 
         exportGroup(exportId);
     }
@@ -162,6 +180,24 @@ public class BlockExportGroups extends ResourceController {
         return Lists.newArrayList();
     }
 
+    public static void availableClustersJson(String exportGroupId) {
+        List<ClusterRestRep> availableClusters = Lists.newArrayList();
+
+        ExportGroupRestRep exportGroup = getViprClient().blockExports().get(uri(exportGroupId));
+
+        List<URI> allClusterIds = getViprClient().clusters().listBulkIds();
+        final List<URI> exportGroupClusters = ResourceUtils.ids(exportGroup.getClusters());
+
+        availableClusters = getViprClient().clusters().getByIds(allClusterIds, new DefaultResourceFilter<ClusterRestRep>() {
+            @Override
+            public boolean accept(ClusterRestRep item) {
+                return !exportGroupClusters.contains(item.getId());
+            }
+        });
+
+        renderJSON(DataTablesSupport.createJSON(availableClusters, params));
+    }
+
     public static void availableInitiatorsJson(String id) {
         CachedResources<HostRestRep> hosts = HostUtils.createCache();
 
@@ -241,7 +277,8 @@ public class BlockExportGroups extends ResourceController {
         initiatorsDataTable.alterColumn("storageSystem").hidden().setSearchable(false);
         initiatorsDataTable.alterColumn("discovered").hidden().setSearchable(false);
 
-        render(hostsDataTable, initiatorsDataTable, exportGroup, virtualArray);
+        HostClusterDataTable clustersDataTable = new HostClusterDataTable();
+        render(hostsDataTable, initiatorsDataTable, clustersDataTable, exportGroup, virtualArray);
     }
 
     public static void exportGroupVolumesJson(String exportGroupId) {

@@ -66,6 +66,11 @@
                 </td>
               </tr>
             #{/list}
+              <tr>
+              <td colspan="5">
+                <a href="#" class="btn btn-sm btn-success" onclick="showAddClustersDialog(); return false;">&{'resources.exportgroup.add.clusters'}</a>
+              </td>
+              </tr>
             </tbody>
             </table>
           </fieldset>
@@ -184,6 +189,24 @@
 %{ formFields = ['exportId': exportGroup.id] }%
 #{DataTable.formAction @addHosts(), id:'addHostsForm', table:'addHosts', fields:formFields /}
 #{DataTable.formAction @addInitiators(), id:'addInitiatorsForm', table:'addInitiators', fields:formFields /}
+#{DataTable.formAction @addClusters(), id:'addClustersForm', table:'addClusters', fields:formFields /}
+
+#{Modal.dialog id:'addClustersDialog', cssClass:'wide'} 
+  #{Modal.body} 
+    #{DataTable.header titleKey:'resources.exportgroup.add.clusters.title'/}
+    #{DataTable.table id:'addClusters',
+                      dataTable:clustersDataTable,
+                      prefix:'cluster',
+                      source:@availableClustersJson(exportGroup.id),
+                      selectable:true,
+                      delayCreate: true /}
+  #{/Modal.body}
+  #{Modal.footer}
+    #{Form.button 'button.add', class:'primary', icon:'plus', submit:'addClustersForm',
+                  data:['enabled':'selected', 'table':'addClusters']/}
+    #{Form.button 'button.cancel', icon:'trash', data:['dismiss':'modal']/}
+  #{/Modal.footer}
+#{/Modal.dialog}
 
 #{Modal.dialog id:'addHostsDialog', cssClass:'wide'} 
   #{Modal.body} 
@@ -254,6 +277,14 @@
       table.addInitiators.dataTable.updateSelectedFooter();
       table.addInitiators.dataTable.reset();
       $('#addInitiatorsDialog').modal(); 
+  }
+  
+
+  function showAddClustersDialog() {
+      table.addClusters.dataTable.create();
+      table.addClusters.dataTable.updateSelectedFooter();
+      table.addClusters.dataTable.reset();
+      $('#addClustersDialog').modal(); 
   }
   
 </script>

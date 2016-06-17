@@ -216,7 +216,8 @@ public abstract class AbstractRequestWrapperFilter implements Filter {
 
             String requestUrl = req.getRequestURI();
 
-            // We are looking only for PUT API call that updates quota that follows /v2/{tenant_id}/os-quota-sets/{target_tenant_id} pattern.
+            // We are looking only for PUT API call that updates quota that follows /v2/{tenant_id}/os-quota-sets/{target_tenant_id}
+            // pattern.
             if (req.getMethod().equals(METHOD_PUT) && requestUrl.contains(OS_QUOTA_SETS) && !requestUrl.contains(DEFAULTS)) {
 
                 // Returns target OpenStack Tenant ID from quota request, otherwise null.
@@ -262,7 +263,7 @@ public abstract class AbstractRequestWrapperFilter implements Filter {
         return null;
     }
 
-    private String getOpenstackTenantIdFromQuotaRequest(String requestUrl){
+    private String getOpenstackTenantIdFromQuotaRequest(String requestUrl) {
 
         if (requestUrl != null) {
             return requestUrl.split("/")[4];
@@ -291,8 +292,7 @@ public abstract class AbstractRequestWrapperFilter implements Filter {
 
     }
 
-    private StorageOSUser createStorageOSUserUsingKeystone(String keystoneUserAuthToken)
-    {
+    private StorageOSUser createStorageOSUserUsingKeystone(String keystoneUserAuthToken) {
         _log.debug("START - createStorageOSUserUsingKeystone ");
         StorageOSUser osUser = null;
         // Get the required AuthenticationProvider
@@ -395,8 +395,7 @@ public abstract class AbstractRequestWrapperFilter implements Filter {
 
             }
 
-            if (found)
-            {
+            if (found) {
                 break;// exit outer for loop
             }
 

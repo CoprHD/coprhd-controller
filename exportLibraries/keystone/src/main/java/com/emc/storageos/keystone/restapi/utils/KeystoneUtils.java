@@ -218,7 +218,7 @@ public class KeystoneUtils {
      * @param managerDN of a Authentication Provider.
      * @return StringMap containing username and tenantname keys with values.
      */
-    private StringMap getUsernameAndTenant(String managerDN){
+    private StringMap getUsernameAndTenant(String managerDN) {
 
         String username = managerDN.split(",")[0].split("=")[1];
         String tenantName = managerDN.split(",")[1].split("=")[1];
@@ -257,7 +257,7 @@ public class KeystoneUtils {
      * @param serverUrls of an Authentication Provider
      * @param managerPassword of an Authentication Provider
      */
-    public void registerCoprhdInKeystone(String managerDN, StringSet serverUrls,  String managerPassword) {
+    public void registerCoprhdInKeystone(String managerDN, StringSet serverUrls, String managerPassword) {
         _log.debug("START - register CoprHD in Keystone");
 
         // Create a new KeystoneAPI.
@@ -413,7 +413,7 @@ public class KeystoneUtils {
      * @param serverUrls of an Authentication Provider
      * @param managerPassword of an Authentication Provider
      */
-    public void deleteCinderEndpoints(String managerDN, StringSet serverUrls, String managerPassword){
+    public void deleteCinderEndpoints(String managerDN, StringSet serverUrls, String managerPassword) {
 
         // Create a new KeystoneAPI.
         KeystoneApiClient keystoneApi = getKeystoneApi(managerDN, serverUrls, managerPassword);
@@ -651,7 +651,8 @@ public class KeystoneUtils {
      */
     public TenantCreateParam prepareTenantParam(TenantV2 tenant) {
 
-        TenantCreateParam param = new TenantCreateParam(CinderConstants.TENANT_NAME_PREFIX + " " + tenant.getName(), prepareUserMappings(tenant.getId()));
+        TenantCreateParam param = new TenantCreateParam(CinderConstants.TENANT_NAME_PREFIX + " " + tenant.getName(),
+                prepareUserMappings(tenant.getId()));
         if (tenant.getDescription() != null) {
             param.setDescription(tenant.getDescription());
         } else {

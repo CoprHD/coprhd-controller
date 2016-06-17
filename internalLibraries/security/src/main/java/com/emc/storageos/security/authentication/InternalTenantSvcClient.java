@@ -27,7 +27,7 @@ import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 
-public class InternalTenantSvcClient extends BaseServiceClient{
+public class InternalTenantSvcClient extends BaseServiceClient {
 
     private static final String INTERNAL_TENANT_ROOT = "/internal/tenants";
     private static final String INTERNAL_CREATE_TENANT = INTERNAL_TENANT_ROOT;
@@ -46,7 +46,6 @@ public class InternalTenantSvcClient extends BaseServiceClient{
     public void setServer(String server) {
         setServiceURI(URI.create("https://" + server + ":8443"));
     }
-
 
     public TenantOrgRestRep createTenant(TenantCreateParam param) {
 

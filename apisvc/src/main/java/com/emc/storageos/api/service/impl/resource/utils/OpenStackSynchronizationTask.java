@@ -383,9 +383,9 @@ public class OpenStackSynchronizationTask extends ResourceService {
                     OSTenant osTenant = osTenantIter.next();
 
                     // Maps openstack Tenants to a map with IDs only and then filters for specific ID.
-                    int matches = (int) openstackTenants.stream().map(TenantV2::getId).
-                            filter( id -> id.equals(osTenant.getOsId()) ).count();
+                    int matches = (int) openstackTenants.stream().map(TenantV2::getId).filter(id -> id.equals(osTenant.getOsId())).count();
 
+                    // Remove OSTenant when Tenant with the same ID in OpenStack is deleted.
                     if (matches < 1) {
                         _dbClient.removeObject(osTenant);
                     }

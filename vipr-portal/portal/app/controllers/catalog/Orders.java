@@ -20,12 +20,12 @@ import java.util.Map;
 import org.apache.commons.lang.StringUtils;
 
 import com.emc.sa.util.TextUtils;
-import com.emc.storageos.db.client.model.Task.Status;
 import com.emc.storageos.db.client.model.uimodels.OrderStatus;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.search.SearchResultResourceRep;
 import com.emc.storageos.model.search.Tags;
 import com.emc.vipr.client.ViPRCoreClient;
+import com.emc.vipr.client.core.impl.TaskUtil;
 import com.emc.vipr.model.catalog.ApprovalRestRep;
 import com.emc.vipr.model.catalog.CatalogServiceRestRep;
 import com.emc.vipr.model.catalog.ExecutionLogRestRep;
@@ -456,13 +456,11 @@ public class Orders extends OrderExecution {
         private void setTaskStepMessages() {
             viprTaskStepMessages = Maps.newHashMap();
             for (TaskResourceRep task : viprTasks) {
-                if (task.getWorkflow() != null && (task.getState().equalsIgnoreCase(Status.suspended_error.name())
-                        || task.getState().equalsIgnoreCase(Status.suspended_no_error.name()))) {
+                if (task.getWorkflow() != null && TaskUtil.isSuspended(task)) {
                     List<WorkflowStep> steps = Tasks.getWorkflowSteps(task.getWorkflow().getId());
                     String message = "";
                     for (WorkflowStep step : steps) {
-                        if (step.state.equalsIgnoreCase(Status.suspended_error.name())
-                                || step.state.equalsIgnoreCase(Status.suspended_no_error.name())) {
+                        if (TaskUtil.isSuspended(task)) {
                             message += step.message;
                         }
                     }

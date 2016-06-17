@@ -3214,6 +3214,11 @@ resource.task.unknown=Unknown Task with ID '%s'
 resources.tasks.resumeMessage=Resuming task '%s'.
 resources.tasks.retryMessage=Retrying task '%s'.
 resources.tasks.rollbackMessage=Rolling back task '%s'.
+resources.tasks.deleteTask=Delete Task
+resources.tasks.resumeTask=Resume Task
+resources.tasks.retryTask=Retry Task
+resources.tasks.rollbackTask=Rollback Task
+
 
 
 resources.common.tags=Tags

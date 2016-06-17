@@ -17,9 +17,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.emc.storageos.storagedriver.StorageDriver;
-import com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils;
-import com.google.common.base.Joiner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,7 +29,9 @@ import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.exceptions.DeviceControllerException;
@@ -41,6 +40,7 @@ import com.emc.storageos.storagedriver.BlockStorageDriver;
 import com.emc.storageos.storagedriver.DriverTask;
 import com.emc.storageos.storagedriver.LockManager;
 import com.emc.storageos.storagedriver.Registry;
+import com.emc.storageos.storagedriver.StorageDriver;
 import com.emc.storageos.storagedriver.impl.LockManagerImpl;
 import com.emc.storageos.storagedriver.impl.RegistryImpl;
 import com.emc.storageos.storagedriver.model.StorageObject;
@@ -57,7 +57,9 @@ import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.VolumeURIHLU;
 import com.emc.storageos.volumecontroller.impl.plugins.ExternalDeviceCommunicationInterface;
 import com.emc.storageos.volumecontroller.impl.smis.ExportMaskOperations;
+import com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
+import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 
 /**
@@ -937,6 +939,11 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
             // todo: need to implement support for async case.
             if (task.getStatus() == DriverTask.TaskStatus.READY) {
                 cg.setNativeId(driverCG.getNativeId());
+                cg.addSystemConsistencyGroup(storageSystem.getId().toString(), cg.getLabel());
+                cg.addConsistencyGroupTypes(BlockConsistencyGroup.Types.LOCAL.name());
+                if (NullColumnValueGetter.isNullURI(cg.getStorageController())) {
+                    cg.setStorageController(storageSystem.getId());
+                }
                 dbClient.updateObject(cg);
                 String msg = String.format("doCreateConsistencyGroup -- Created consistency group: %s .", task.getMessage());
                 _log.info(msg);
@@ -1018,9 +1025,37 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
             // todo: need to implement support for async case.
             if (task.getStatus() == DriverTask.TaskStatus.READY) {
                 if (consistencyGroup != null) {
+                    // I followed xtremio pattern to implement this logic.
                     consistencyGroup.removeSystemConsistencyGroup(URIUtil.asString(storageSystem.getId()), groupDisplayName);
-                    if (markInactive) {
-                        consistencyGroup.setInactive(true);
+                    dbClient.updateObject(consistencyGroup);
+
+                    // have to read again to get updated systemConsistencyGroup map
+                    consistencyGroup = dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroupId);
+
+                    /*
+                     * Verify if the BlockConsistencyGroup references any LOCAL arrays.
+                     * If we no longer have any references we can remove the 'LOCAL' type from the BlockConsistencyGroup.
+                     */
+                    List<URI> referencedArrays = BlockConsistencyGroupUtils.getLocalSystems(consistencyGroup, dbClient);
+
+
+                    boolean cgReferenced = referencedArrays != null && !referencedArrays.isEmpty();
+                    if (!cgReferenced) {
+                        // Remove the LOCAL type
+                        StringSet cgTypes = consistencyGroup.getTypes();
+                        cgTypes.remove(BlockConsistencyGroup.Types.LOCAL.name());
+                        consistencyGroup.setTypes(cgTypes);
+
+                        // Remove the referenced storage system as well, but only if there are no other types
+                        // of storage systems associated with the CG.
+                        if (!BlockConsistencyGroupUtils.referencesNonLocalCgs(consistencyGroup, dbClient)) {
+                            consistencyGroup.setStorageController(NullColumnValueGetter.getNullURI());
+
+                            // Update the consistency group model
+                            consistencyGroup.setInactive(markInactive);
+                        }
+                    } else {
+                        _log.info("*** Referenced arrays {}", referencedArrays.toString());
                     }
                     dbClient.updateObject(consistencyGroup);
                 }

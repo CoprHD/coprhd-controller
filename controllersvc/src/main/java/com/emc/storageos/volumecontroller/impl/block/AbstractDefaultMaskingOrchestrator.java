@@ -84,8 +84,7 @@ import com.google.common.collect.TreeMultimap;
  * <li>Provide a place for common code to be used across the MaskingOrchestrators</li>
  */
 abstract public class AbstractDefaultMaskingOrchestrator {
-    protected static final Logger _log =
-            LoggerFactory.getLogger(AbstractDefaultMaskingOrchestrator.class);
+    protected static final Logger _log = LoggerFactory.getLogger(AbstractDefaultMaskingOrchestrator.class);
     public static final String EXPORT_GROUP_MASKING_TASK = "export-masking-task";
     public static final String EXPORT_GROUP_CLEANUP_TASK = "export-group-cleanup-task";
     public static final String EXPORT_MASK_CLEANUP_TASK = "export-mask-cleanup-task";
@@ -231,7 +230,7 @@ abstract public class AbstractDefaultMaskingOrchestrator {
      */
     protected Map<URI, Integer> selectExportMaskVolumes(ExportGroup exportGroup,
             URI storageURI)
-            throws IOException {
+                    throws IOException {
         Map<URI, Integer> volumeMap = new HashMap<URI, Integer>();
         _log.info("Export Group Volumes {} ", Joiner.on(",").join(exportGroup.getVolumes().entrySet()));
         for (String uri : exportGroup.getVolumes().keySet()) {
@@ -294,8 +293,7 @@ abstract public class AbstractDefaultMaskingOrchestrator {
 
         // Create and initialize the Export Mask. This involves assigning and
         // allocating the Storage Ports (targets).
-        List<Initiator> initiators =
-                _dbClient.queryObject(Initiator.class, initiatorURIs);
+        List<Initiator> initiators = _dbClient.queryObject(Initiator.class, initiatorURIs);
         ExportPathParams pathParams = _blockScheduler.calculateExportPathParamForVolumes(
                 volumeMap.keySet(), exportGroup.getNumPaths(), storage.getId(), exportGroup.getId());
         if (exportGroup.getType() != null) {
@@ -310,10 +308,11 @@ abstract public class AbstractDefaultMaskingOrchestrator {
         List<URI> targets = BlockStorageScheduler.getTargetURIsFromAssignments(assignments);
 
         String maskName = useComputedMaskName() ? getComputedExportMaskName(storage, exportGroup, initiators) : null;
-        
-        //TODO: Bharath - This might NOT be the best way to do this. look into getComputerExportMaskName to see if this can be done differently
+
+        // TODO: Bharath - This might NOT be the best way to do this. look into getComputerExportMaskName to see if this
+        // can be done differently
         if (exportGroup.checkInternalFlags(Flag.RECOVERPOINT_JOURNAL)) {
-        	maskName += "_journal";
+            maskName += "_journal";
         }
 
         ExportMask exportMask = ExportMaskUtils.initializeExportMask(storage, exportGroup,
@@ -357,14 +356,22 @@ abstract public class AbstractDefaultMaskingOrchestrator {
      * TODO DUPP:
      * 1. Change all callers to send in expected volumes and initiators (not just ones from the ExportMask!)
      * 
-     * @param workflow workflow to add steps to
-     * @param previousStep previous step before these steps
-     * @param storage storage system
-     * @param exportGroup export group impacted
-     * @param exportMask export mask to delete
-     * @param volumes volumes we expect to be impacted
-     * @param initiators initiators we expect to be impacted
-     * @param taskCompleter completer
+     * @param workflow
+     *            workflow to add steps to
+     * @param previousStep
+     *            previous step before these steps
+     * @param storage
+     *            storage system
+     * @param exportGroup
+     *            export group impacted
+     * @param exportMask
+     *            export mask to delete
+     * @param volumes
+     *            volumes we expect to be impacted
+     * @param initiators
+     *            initiators we expect to be impacted
+     * @param taskCompleter
+     *            completer
      * @return step ID
      * @throws Exception
      */
@@ -373,10 +380,10 @@ abstract public class AbstractDefaultMaskingOrchestrator {
             StorageSystem storage,
             ExportGroup exportGroup,
             ExportMask exportMask,
-            List<URI> volumes, 
-            List<URI> initiators, 
+            List<URI> volumes,
+            List<URI> initiators,
             ExportTaskCompleter taskCompleter)
-            throws Exception {
+                    throws Exception {
         URI exportGroupURI = exportGroup.getId();
         URI exportMaskURI = exportMask.getId();
         URI storageURI = storage.getId();
@@ -410,13 +417,20 @@ abstract public class AbstractDefaultMaskingOrchestrator {
      * TODO DUPP:
      * 1. Change all callers to send down initiators it expects to be impacted by this operation.
      * 
-     * @param workflow workflow
-     * @param previousStep previous step ID
-     * @param storage storage system
-     * @param exportGroup export group
-     * @param exportMask export mask
-     * @param volumesToAdd volumes to add to the mask
-     * @param initiators initiators that should be impacted by this operation (and for rollback)
+     * @param workflow
+     *            workflow
+     * @param previousStep
+     *            previous step ID
+     * @param storage
+     *            storage system
+     * @param exportGroup
+     *            export group
+     * @param exportMask
+     *            export mask
+     * @param volumesToAdd
+     *            volumes to add to the mask
+     * @param initiators
+     *            initiators that should be impacted by this operation (and for rollback)
      * @return step ID
      * @throws Exception
      */
@@ -425,9 +439,9 @@ abstract public class AbstractDefaultMaskingOrchestrator {
             StorageSystem storage,
             ExportGroup exportGroup,
             ExportMask exportMask,
-            Map<URI, Integer> volumesToAdd, 
+            Map<URI, Integer> volumesToAdd,
             List<Initiator> initiators)
-            throws Exception {
+                    throws Exception {
         URI exportGroupURI = exportGroup.getId();
         URI exportMaskURI = exportMask.getId();
         URI storageURI = storage.getId();
@@ -459,14 +473,22 @@ abstract public class AbstractDefaultMaskingOrchestrator {
      * TODO DUPP:
      * 1. Change all callers to send down initiators it expects to be impacted by this operation.
      * 
-     * @param workflow workflow
-     * @param previousStep previous step ID
-     * @param storage storage system
-     * @param exportGroup export group 
-     * @param exportMask export mask
-     * @param volumesToRemove volumes to remove
-     * @param initiators initiators that should be impacted
-     * @param completer completer
+     * @param workflow
+     *            workflow
+     * @param previousStep
+     *            previous step ID
+     * @param storage
+     *            storage system
+     * @param exportGroup
+     *            export group
+     * @param exportMask
+     *            export mask
+     * @param volumesToRemove
+     *            volumes to remove
+     * @param initiators
+     *            initiators that should be impacted
+     * @param completer
+     *            completer
      * @return step ID
      * @throws Exception
      */
@@ -477,9 +499,8 @@ abstract public class AbstractDefaultMaskingOrchestrator {
             ExportMask exportMask,
             List<URI> volumesToRemove,
             List<URI> initiators,
-            ExportTaskCompleter
-            completer)
-            throws Exception {
+            ExportTaskCompleter completer)
+                    throws Exception {
         URI exportGroupURI = exportGroup.getId();
         URI exportMaskURI = exportMask.getId();
         URI storageURI = storage.getId();
@@ -490,9 +511,8 @@ abstract public class AbstractDefaultMaskingOrchestrator {
             exportTaskCompleter = completer;
             exportTaskCompleter.setOpId(maskingStep);
         } else {
-            exportTaskCompleter =
-                    new ExportMaskRemoveVolumeCompleter(exportGroupURI, exportMask.getId(),
-                            volumesToRemove, maskingStep);
+            exportTaskCompleter = new ExportMaskRemoveVolumeCompleter(exportGroupURI, exportMask.getId(),
+                    volumesToRemove, maskingStep);
         }
 
         Workflow.Method maskingExecuteMethod = new Workflow.Method(
@@ -514,12 +534,18 @@ abstract public class AbstractDefaultMaskingOrchestrator {
      * TODO DUPP:
      * 1. Change all callers to send down initiators that should be impacted by this volume removal.
      * 
-     * @param workflow workflow
-     * @param previousStep previous step ID
-     * @param storage storage device 
-     * @param exportGroup export group
-     * @param volumeURIs volume list
-     * @param initiatorURIs initiators impacted by this operation
+     * @param workflow
+     *            workflow
+     * @param previousStep
+     *            previous step ID
+     * @param storage
+     *            storage device
+     * @param exportGroup
+     *            export group
+     * @param volumeURIs
+     *            volume list
+     * @param initiatorURIs
+     *            initiators impacted by this operation
      * @return step ID
      */
     public String generateExportGroupRemoveVolumesCleanup(Workflow workflow,
@@ -532,8 +558,7 @@ abstract public class AbstractDefaultMaskingOrchestrator {
         URI storageURI = storage.getId();
 
         String cleanupStep = workflow.createStepId();
-        ExportTaskCompleter exportTaskCompleter =
-                new ExportGroupRemoveVolumesCleanupCompleter(exportGroupURI, cleanupStep);
+        ExportTaskCompleter exportTaskCompleter = new ExportGroupRemoveVolumesCleanupCompleter(exportGroupURI, cleanupStep);
 
         Workflow.Method cleanupExecuteMethod = new Workflow.Method(
                 "doExportGroupRemoveVolumesCleanup", storageURI, exportGroupURI,
@@ -552,16 +577,25 @@ abstract public class AbstractDefaultMaskingOrchestrator {
     /**
      * Generate workflow steps to add initiators to an export mask
      * TODO: DUPP:
-     * 1. This method already has a list of volumes, but it looks like it's a "new volume" list.  We perhaps need a new volume list for impacted volumes?
-     *  
-     * @param workflow workflow
-     * @param previousStep previous step ID
-     * @param storage storage device
-     * @param exportGroup export group
-     * @param exportMask export mask
-     * @param initiatorURIs initiator list
-     * @param newVolumeURIs new volume IDs
-     * @param token step ID
+     * 1. This method already has a list of volumes, but it looks like it's a "new volume" list. We perhaps need a new
+     * volume list for impacted volumes?
+     * 
+     * @param workflow
+     *            workflow
+     * @param previousStep
+     *            previous step ID
+     * @param storage
+     *            storage device
+     * @param exportGroup
+     *            export group
+     * @param exportMask
+     *            export mask
+     * @param initiatorURIs
+     *            initiator list
+     * @param newVolumeURIs
+     *            new volume IDs
+     * @param token
+     *            step ID
      * @return step ID
      * @throws Exception
      */
@@ -573,20 +607,19 @@ abstract public class AbstractDefaultMaskingOrchestrator {
             List<URI> initiatorURIs,
             Set<URI> newVolumeURIs,
             String token)
-            throws Exception {
+                    throws Exception {
         URI exportGroupURI = exportGroup.getId();
         URI exportMaskURI = exportMask.getId();
         URI storageURI = storage.getId();
         List<URI> newTargetURIs = new ArrayList<>();
 
         // Only update the ports of a mask that we created.
-        List<Initiator> initiators =
-                _dbClient.queryObject(Initiator.class, initiatorURIs);
+        List<Initiator> initiators = _dbClient.queryObject(Initiator.class, initiatorURIs);
 
         // Allocate any new ports that are required for the initiators
         // and update the zoning map in the exportMask.
-        Collection<URI> volumeURIs = (exportMask.getVolumes() == null) ? newVolumeURIs :
-                (Collection<URI>) (Collections2.transform(exportMask.getVolumes().keySet(),
+        Collection<URI> volumeURIs = (exportMask.getVolumes() == null) ? newVolumeURIs
+                : (Collection<URI>) (Collections2.transform(exportMask.getVolumes().keySet(),
                         CommonTransformerFunctions.FCTN_STRING_TO_URI));
         ExportPathParams pathParams = _blockScheduler.calculateExportPathParamForVolumes(
                 volumeURIs, exportGroup.getNumPaths(), storageURI, exportGroupURI);
@@ -606,11 +639,11 @@ abstract public class AbstractDefaultMaskingOrchestrator {
 
         Workflow.Method maskingExecuteMethod = new Workflow.Method(
                 "doExportGroupAddInitiators", storageURI, exportGroupURI,
-                exportMaskURI, volumeURIs, initiatorURIs, newTargetURIs, exportTaskCompleter);
+                exportMaskURI, new ArrayList<URI>(volumeURIs), initiatorURIs, newTargetURIs, exportTaskCompleter);
 
         Workflow.Method rollbackMethod = new Workflow.Method(
                 "rollbackExportGroupAddInitiators", storageURI, exportGroupURI,
-                exportMaskURI, volumeURIs, initiatorURIs, maskingStep);
+                exportMaskURI, new ArrayList<URI>(volumeURIs), initiatorURIs, maskingStep);
 
         maskingStep = workflow.createStep(EXPORT_GROUP_MASKING_TASK,
                 String.format("Adding initiators to mask %s (%s)",
@@ -634,15 +667,24 @@ abstract public class AbstractDefaultMaskingOrchestrator {
      * TODO DUPP:
      * 1. Add impacted volume list to each caller of this method.
      * 
-     * @param workflow workflow
-     * @param previousStep previous step ID
-     * @param storage storage device
-     * @param exportGroup export group
-     * @param exportMask export mask
-     * @param volumeURIs volumes impacted by this operation
-     * @param initiatorURIs initiators
-     * @param removeTargets ports to remove
-     * @param completer completer
+     * @param workflow
+     *            workflow
+     * @param previousStep
+     *            previous step ID
+     * @param storage
+     *            storage device
+     * @param exportGroup
+     *            export group
+     * @param exportMask
+     *            export mask
+     * @param volumeURIs
+     *            volumes impacted by this operation
+     * @param initiatorURIs
+     *            initiators
+     * @param removeTargets
+     *            ports to remove
+     * @param completer
+     *            completer
      * @return step ID
      * @throws Exception
      */
@@ -654,7 +696,7 @@ abstract public class AbstractDefaultMaskingOrchestrator {
             List<URI> volumeURIs,
             List<URI> initiatorURIs,
             boolean removeTargets, ExportTaskCompleter completer)
-            throws Exception {
+                    throws Exception {
         URI exportGroupURI = exportGroup.getId();
         URI exportMaskURI = exportMask.getId();
         URI storageURI = storage.getId();
@@ -709,7 +751,7 @@ abstract public class AbstractDefaultMaskingOrchestrator {
             ExportGroup exportGroup,
             List<URI> exportMaskURIs,
             Map<URI, Integer> volumeMap, String zoningStep)
-            throws WorkflowException {
+                    throws WorkflowException {
         URI exportGroupURI = exportGroup.getId();
         // Create two steps, one for Zoning, one for the ExportGroup actions.
         // This step is for zoning. It is not specific to a single NetworkSystem,
@@ -735,7 +777,7 @@ abstract public class AbstractDefaultMaskingOrchestrator {
             String previousStep,
             ExportGroup exportGroup,
             List<ExportMask> exportMasks)
-            throws WorkflowException {
+                    throws WorkflowException {
         URI exportGroupURI = exportGroup.getId();
         List<URI> exportMaskURIs = new ArrayList<URI>();
         List<URI> volumeURIs = new ArrayList<URI>();
@@ -763,7 +805,7 @@ abstract public class AbstractDefaultMaskingOrchestrator {
             String previousStep,
             ExportGroup exportGroup,
             Map<URI, List<URI>> exportMasksToInitiators)
-            throws WorkflowException {
+                    throws WorkflowException {
         URI exportGroupURI = exportGroup.getId();
         String zoningStep = workflow.createStepId();
 
@@ -787,7 +829,7 @@ abstract public class AbstractDefaultMaskingOrchestrator {
             String previousStep,
             ExportGroup exportGroup,
             Map<URI, List<URI>> exportMasksToInitiators)
-            throws WorkflowException {
+                    throws WorkflowException {
         URI exportGroupURI = exportGroup.getId();
         String zoningStep = workflow.createStepId();
 
@@ -809,7 +851,7 @@ abstract public class AbstractDefaultMaskingOrchestrator {
             ExportGroup exportGroup,
             List<ExportMask> exportMasks,
             List<URI> volumeURIs)
-            throws WorkflowException {
+                    throws WorkflowException {
         URI exportGroupURI = exportGroup.getId();
         List<URI> exportMaskURIs = new ArrayList<URI>();
         for (ExportMask mask : exportMasks) {
@@ -836,7 +878,7 @@ abstract public class AbstractDefaultMaskingOrchestrator {
             ExportGroup exportGroup,
             List<ExportMask> exportMasks,
             Collection<URI> volumeURIs)
-            throws WorkflowException {
+                    throws WorkflowException {
         URI exportGroupURI = exportGroup.getId();
         List<URI> exportMaskURIs = new ArrayList<URI>();
         for (ExportMask mask : exportMasks) {
@@ -845,9 +887,8 @@ abstract public class AbstractDefaultMaskingOrchestrator {
 
         String zoningStep = workflow.createStepId();
 
-        Workflow.Method zoningExecuteMethod =
-                _networkDeviceController.zoneExportRemoveVolumesMethod(exportGroupURI,
-                        exportMaskURIs, volumeURIs);
+        Workflow.Method zoningExecuteMethod = _networkDeviceController.zoneExportRemoveVolumesMethod(exportGroupURI,
+                exportMaskURIs, volumeURIs);
 
         zoningStep = workflow.createStep(
                 (previousStep == null ? EXPORT_GROUP_ZONING_TASK : null),
@@ -923,14 +964,13 @@ abstract public class AbstractDefaultMaskingOrchestrator {
      * @return
      * @throws Exception
      */
-    public GenExportMaskCreateWorkflowResult
-            generateDeviceSpecificExportMaskCreateWorkFlow(Workflow workflow,
-                    String previousStepId,
-                    StorageSystem storage,
-                    ExportGroup exportGroup,
-                    List<URI> hostInitiators,
-                    Map<URI, Integer> volumeMap,
-                    String token) throws Exception {
+    public GenExportMaskCreateWorkflowResult generateDeviceSpecificExportMaskCreateWorkFlow(Workflow workflow,
+            String previousStepId,
+            StorageSystem storage,
+            ExportGroup exportGroup,
+            List<URI> hostInitiators,
+            Map<URI, Integer> volumeMap,
+            String token) throws Exception {
         return generateExportMaskCreateWorkflow(workflow, previousStepId, storage, exportGroup,
                 hostInitiators, volumeMap, token);
     }
@@ -1012,7 +1052,8 @@ abstract public class AbstractDefaultMaskingOrchestrator {
      * @param storage
      * @param maskToInitiatorsMap
      * @param initiatorsToRemove
-     * @param removeTargets whether or not to remove storage ports from mask
+     * @param removeTargets
+     *            whether or not to remove storage ports from mask
      * @return
      * @throws Exception
      */
@@ -1037,7 +1078,8 @@ abstract public class AbstractDefaultMaskingOrchestrator {
      * @param mask
      * @param storage
      * @param volumesToRemove
-     * @param initiatorURIs TODO
+     * @param initiatorURIs
+     *            TODO
      * @param completer
      * @throws Exception
      */
@@ -1077,7 +1119,8 @@ abstract public class AbstractDefaultMaskingOrchestrator {
      * @param exportMask
      * @param storage
      * @param volumesToRemove
-     * @param initiatorURIs TODO
+     * @param initiatorURIs
+     *            TODO
      * @param completer
      * @return last step in workflow
      * @throws Exception
@@ -1128,7 +1171,8 @@ abstract public class AbstractDefaultMaskingOrchestrator {
      * @param storage
      * @param exportGroup
      * @param volumeURIs
-     * @param initiatorURIs initiators impacted by this change
+     * @param initiatorURIs
+     *            initiators impacted by this change
      */
     public String generateDeviceSpecificExportGroupRemoveVolumesCleanup(Workflow workflow,
             String previousStep, StorageSystem storage, ExportGroup exportGroup,
@@ -1143,15 +1187,19 @@ abstract public class AbstractDefaultMaskingOrchestrator {
      * not in the list of initiators to export, its portname will be added to the
      * portName list
      *
-     * @param portNames [out] - List or initiator.initiatorPortNames. The list
+     * @param portNames
+     *            [out] - List or initiator.initiatorPortNames. The list
      *            will include new members if there are any host initiators
      *            that are not already part of the export request.
-     * @param portNamesToInitiatorURI [out] - Map of portName to initiator URI. This
+     * @param portNamesToInitiatorURI
+     *            [out] - Map of portName to initiator URI. This
      *            map should contain all the port names in
      *            'portNames'.
-     * @param initiatorsToExport [in] - List of Initiator URIs that are passed in the
+     * @param initiatorsToExport
+     *            [in] - List of Initiator URIs that are passed in the
      *            export request call.
-     * @param hostURIs [in] - List of Host URIs applicable to the
+     * @param hostURIs
+     *            [in] - List of Host URIs applicable to the
      *            initiatorsToExport list
      */
     protected void queryHostInitiatorsAndAddToList(List<String> portNames,
@@ -1189,15 +1237,19 @@ abstract public class AbstractDefaultMaskingOrchestrator {
      * not in the list of initiators to export, its portname will be added to the
      * portName list
      *
-     * @param portNames [out] - List or initiator.initiatorPortNames. The list
+     * @param portNames
+     *            [out] - List or initiator.initiatorPortNames. The list
      *            will include new members if there are any host initiators
      *            that are not already part of the export request.
-     * @param portNamesToInitiatorURI [out] - Map of portName to initiator URI. This
+     * @param portNamesToInitiatorURI
+     *            [out] - Map of portName to initiator URI. This
      *            map should contain all the port names in
      *            'portNames'.
-     * @param initiatorsToExport [in] - List of Initiator URIs that are passed in the
+     * @param initiatorsToExport
+     *            [in] - List of Initiator URIs that are passed in the
      *            export request call.
-     * @param hostURIs [in] - List of Host URIs applicable to the
+     * @param hostURIs
+     *            [in] - List of Host URIs applicable to the
      *            initiatorsToExport list
      */
     protected void queryHostInitiatorsAndAddToList(List<String> portNames,
@@ -1233,7 +1285,7 @@ abstract public class AbstractDefaultMaskingOrchestrator {
             // already taken by a pre-existing volume.
             Integer requestedHLU = volumeMap.get(bo.getId());
             StringMap existingVolumesInMask = exportMask.getExistingVolumes();
-            if (existingVolumesInMask != null &&  requestedHLU.intValue() != ExportGroup.LUN_UNASSIGNED
+            if (existingVolumesInMask != null && requestedHLU.intValue() != ExportGroup.LUN_UNASSIGNED
                     && !ExportGroup.LUN_UNASSIGNED_DECIMAL_STR.equals(requestedHLU.toString())
                     && existingVolumesInMask.containsValue(requestedHLU.toString())) {
                 ExportOrchestrationTask completer = new ExportOrchestrationTask(
@@ -1255,8 +1307,10 @@ abstract public class AbstractDefaultMaskingOrchestrator {
      * This is the default implementation and it will group the
      * initiator's host reference
      *
-     * @param exportGroup [in] - ExportGroup object to examine
-     * @param initiatorURIs [in] - Initiator URIs
+     * @param exportGroup
+     *            [in] - ExportGroup object to examine
+     * @param initiatorURIs
+     *            [in] - Initiator URIs
      * @return Map of String:computeResourceName to List of Initiator URIs
      */
     protected Map<String, List<URI>> mapInitiatorsToComputeResource(
@@ -1322,7 +1376,7 @@ abstract public class AbstractDefaultMaskingOrchestrator {
                 newSteps.add(previousStep);
             }
         }
-        if (newSteps.isEmpty() && previousStep != null ) {
+        if (newSteps.isEmpty() && previousStep != null) {
             newSteps.add(previousStep);
         }
         return newSteps;
@@ -1335,11 +1389,15 @@ abstract public class AbstractDefaultMaskingOrchestrator {
      * will be evaluated, mapped, and returned. This routine can be used to defray the cost of
      * calling device.getExportMaskPolicy, which can be expensive if it contains many volumes.
      *
-     * @param policyCache [in/out] - This is the local cache
-     * @param device [in] - BlockStorageDevice interface to be used if we need to evaluate the
+     * @param policyCache
+     *            [in/out] - This is the local cache
+     * @param device
+     *            [in] - BlockStorageDevice interface to be used if we need to evaluate the
      *            ExportMaskPolicy for the ExportMask
-     * @param storage [in] - StorageSystem representing the array
-     * @param mask [in] - ExportMask object representing the mask on the array
+     * @param storage
+     *            [in] - StorageSystem representing the array
+     * @param mask
+     *            [in] - ExportMask object representing the mask on the array
      * @return ExportMaskPolicy associated with the ExportMask
      */
     protected ExportMaskPolicy getExportMaskPolicy(Map<URI, ExportMaskPolicy> policyCache,
@@ -1356,8 +1414,10 @@ abstract public class AbstractDefaultMaskingOrchestrator {
      * Method does a validation given the passed in values. It list of volumeURIs
      * represents all of the volumes in the exportMask.
      *
-     * @param exportMask [in] - ExportMask object in which to evaluate the condition
-     * @param volumeURIs [in] - Set of Volume/BlockObject URIs to check. Assume that
+     * @param exportMask
+     *            [in] - ExportMask object in which to evaluate the condition
+     * @param volumeURIs
+     *            [in] - Set of Volume/BlockObject URIs to check. Assume that
      *            these will be removed from the exportMask. If removing them
      *            from exportMask results in an empty volume list,
      *            then this method will return true.
@@ -1386,11 +1446,8 @@ abstract public class AbstractDefaultMaskingOrchestrator {
         }
         // If there are still user added volumes in the existing EM, then we shouldn't delete the EM.
         if (null != exportMask.getUserAddedVolumes() && !exportMask.getUserAddedVolumes().isEmpty()) {
-            Collection<String> volumeURIStrings =
-                    Collections2.transform(boURIs, CommonTransformerFunctions
-                            .FCTN_URI_TO_STRING);
-            Collection<String> exportMaskVolumeURIStrings =
-                    new ArrayList<String>(exportMask.getUserAddedVolumes().values());
+            Collection<String> volumeURIStrings = Collections2.transform(boURIs, CommonTransformerFunctions.FCTN_URI_TO_STRING);
+            Collection<String> exportMaskVolumeURIStrings = new ArrayList<String>(exportMask.getUserAddedVolumes().values());
             exportMaskVolumeURIStrings.removeAll(volumeURIStrings);
             result = (exportMaskVolumeURIStrings.isEmpty());
         }
@@ -1401,8 +1458,10 @@ abstract public class AbstractDefaultMaskingOrchestrator {
     /**
      * Utility for merging a bunch of maskURIs into a single Set of URIs.
      *
-     * @param exportGroup [in] - ExportGroup object
-     * @param maskURIs [in] - Collection of Set of URIs
+     * @param exportGroup
+     *            [in] - ExportGroup object
+     * @param maskURIs
+     *            [in] - Collection of Set of URIs
      * @return Set of String -- the union of ExportGroup.exportMasks and maskURIs.
      *         There shouldn't be any duplicates.
      */
@@ -1451,13 +1510,19 @@ abstract public class AbstractDefaultMaskingOrchestrator {
      * the list of initiators. There's an optional parameter to return a Multimap of
      * compute resource to a list of array port WWNs.
      *
-     * @param exportGroup [in] - ExportGroup object
-     * @param initiators [in] - Initiator objects to process
-     * @param portNames [out] - Port names/WWNs of the initiators
-     * @param portNameToInitiatorURI [out] - Map of port name/WWN to initiator URI
-     * @param hostURIs [out] - Optional. List of URIs of the hosts that list of
+     * @param exportGroup
+     *            [in] - ExportGroup object
+     * @param initiators
+     *            [in] - Initiator objects to process
+     * @param portNames
+     *            [out] - Port names/WWNs of the initiators
+     * @param portNameToInitiatorURI
+     *            [out] - Map of port name/WWN to initiator URI
+     * @param hostURIs
+     *            [out] - Optional. List of URIs of the hosts that list of
      *            initiators point to.
-     * @param computeResourceToPortNames [out] - Optional. Multimap of compute String
+     * @param computeResourceToPortNames
+     *            [out] - Optional. Multimap of compute String
      *            name to List of portNames.
      */
     protected void processInitiators(ExportGroup exportGroup,
@@ -1501,11 +1566,16 @@ abstract public class AbstractDefaultMaskingOrchestrator {
      * in terms of a WWN, to an initiator reference in ViPR, which is in terms of
      * URI.
      *
-     * @param exportGroup [in] - ExportGroup object
-     * @param initiators [in] - Initiator objects
-     * @param portNames [out] - Port names/WWNs of the initiators
-     * @param portNameToInitiatorURI [out] - Map of port name/WWN to initiator URI
-     * @param computeResourceToPortNames [out] - Multimap of compute String
+     * @param exportGroup
+     *            [in] - ExportGroup object
+     * @param initiators
+     *            [in] - Initiator objects
+     * @param portNames
+     *            [out] - Port names/WWNs of the initiators
+     * @param portNameToInitiatorURI
+     *            [out] - Map of port name/WWN to initiator URI
+     * @param computeResourceToPortNames
+     *            [out] - Multimap of compute String
      *            name to List of portNames.
      */
     protected void processInitiators(ExportGroup exportGroup,
@@ -1523,11 +1593,16 @@ abstract public class AbstractDefaultMaskingOrchestrator {
      * in terms of a WWN, to an initiator reference in ViPR, which is in terms of
      * URI.
      *
-     * @param exportGroup [in] - ExportGroup object
-     * @param initiatorURIs [in] - Initiator URIs
-     * @param portNames [out] - Port names/WWNs of the initiators
-     * @param portNameToInitiatorURI [out] - Map of port name/WWN to initiator URI
-     * @param hostURIs [out] - List of URIs of the hosts that list of
+     * @param exportGroup
+     *            [in] - ExportGroup object
+     * @param initiatorURIs
+     *            [in] - Initiator URIs
+     * @param portNames
+     *            [out] - Port names/WWNs of the initiators
+     * @param portNameToInitiatorURI
+     *            [out] - Map of port name/WWN to initiator URI
+     * @param hostURIs
+     *            [out] - List of URIs of the hosts that list of
      *            initiators point to.
      */
     protected void processInitiators(ExportGroup exportGroup,
@@ -1535,12 +1610,10 @@ abstract public class AbstractDefaultMaskingOrchestrator {
             Collection<String> portNames,
             Map<String, URI> portNameToInitiatorURI,
             Collection<URI> hostURIs) {
-        Collection<String> initiatorURIStrs =
-                Collections2.transform(initiatorURIs,
-                        CommonTransformerFunctions.FCTN_URI_TO_STRING);
-        Collection<Initiator> initiators =
-                Collections2.transform(initiatorURIStrs,
-                        CommonTransformerFunctions.fctnStringToInitiator(_dbClient));
+        Collection<String> initiatorURIStrs = Collections2.transform(initiatorURIs,
+                CommonTransformerFunctions.FCTN_URI_TO_STRING);
+        Collection<Initiator> initiators = Collections2.transform(initiatorURIStrs,
+                CommonTransformerFunctions.fctnStringToInitiator(_dbClient));
         processInitiators(exportGroup, initiators, portNames,
                 portNameToInitiatorURI, hostURIs, null);
     }
@@ -1551,21 +1624,23 @@ abstract public class AbstractDefaultMaskingOrchestrator {
      * in terms of a WWN, to an initiator reference in ViPR, which is in terms of
      * URI.
      *
-     * @param exportGroup [in] - ExportGroup object
-     * @param initiatorURIs [in] - Initiator URIs
-     * @param portNames [out] - Port names/WWNs of the initiators
-     * @param portNameToInitiatorURI [out] - Map of port name/WWN to initiator URI
+     * @param exportGroup
+     *            [in] - ExportGroup object
+     * @param initiatorURIs
+     *            [in] - Initiator URIs
+     * @param portNames
+     *            [out] - Port names/WWNs of the initiators
+     * @param portNameToInitiatorURI
+     *            [out] - Map of port name/WWN to initiator URI
      */
     protected void processInitiators(ExportGroup exportGroup,
             Collection<URI> initiatorURIs,
             Collection<String> portNames,
             Map<String, URI> portNameToInitiatorURI) {
-        Collection<String> initiatorURIStrs =
-                Collections2.transform(initiatorURIs,
-                        CommonTransformerFunctions.FCTN_URI_TO_STRING);
-        Collection<Initiator> initiators =
-                Collections2.transform(initiatorURIStrs,
-                        CommonTransformerFunctions.fctnStringToInitiator(_dbClient));
+        Collection<String> initiatorURIStrs = Collections2.transform(initiatorURIs,
+                CommonTransformerFunctions.FCTN_URI_TO_STRING);
+        Collection<Initiator> initiators = Collections2.transform(initiatorURIStrs,
+                CommonTransformerFunctions.fctnStringToInitiator(_dbClient));
         processInitiators(exportGroup, initiators, portNames,
                 portNameToInitiatorURI, null, null);
     }
@@ -1574,7 +1649,8 @@ abstract public class AbstractDefaultMaskingOrchestrator {
      * Routine will examine the ExportGroup object's ExportMask and produce a mapping of the ExportMasks'
      * initiator port name to a list of ExportMask URIs.
      *
-     * @param exportGroup [in] - ExportGroup object to examine
+     * @param exportGroup
+     *            [in] - ExportGroup object to examine
      * @return Map of String to set of URIs. The key will be Initiator.normalizePort(initiator.portName).
      *         Value will be set of ExportMask URIs.
      */
@@ -1605,11 +1681,16 @@ abstract public class AbstractDefaultMaskingOrchestrator {
      * initiator port name to a list of ExportMask URIs.
      *
      *
-     * @param exportGroup [in] - ExportGroup object to examine
+     * @param exportGroup
+     *            [in] - ExportGroup object to examine
      * @param storage
-     * @param computeResourceToInitiators [in] - Mapping of compute resource string key to
-     *            list of Initiator URIs. @return Map of String to set of URIs. The key will be Initiator.normalizePort(initiator.portName).
-     * @param partialMasks [out] - list of masks that were found to be "partial" masks, where there are multiple masks that make up one
+     * @param computeResourceToInitiators
+     *            [in] - Mapping of compute resource string key to
+     *            list of Initiator URIs. @return Map of String to set of URIs. The key will be
+     *            Initiator.normalizePort(initiator.portName).
+     * @param partialMasks
+     *            [out] - list of masks that were found to be "partial" masks, where there are multiple masks that make
+     *            up one
      *            compute resource
      *            Value will be set of ExportMask URIs.
      */
@@ -1619,8 +1700,8 @@ abstract public class AbstractDefaultMaskingOrchestrator {
             Map<String, URI> portNameToInitiatorURI,
             Set<URI> partialMasks) {
         Map<String, Set<URI>> initiatorToExportMaskURIMap = new HashMap<String, Set<URI>>();
-        Map<String, Set<URI>> computeResourceToExportMaskMap =
-                ExportMaskUtils.mapComputeResourceToExportMask(_dbClient, exportGroup, storage);
+        Map<String, Set<URI>> computeResourceToExportMaskMap = ExportMaskUtils.mapComputeResourceToExportMask(_dbClient, exportGroup,
+                storage);
         Set<URI> allExportMaskURIs = new HashSet<>();
         // Put together initial mapping based on what ExportMasks are currently
         // associated with the ExportGroup
@@ -1675,8 +1756,7 @@ abstract public class AbstractDefaultMaskingOrchestrator {
             URI initiatorURI = portNameToInitiatorURI.get(portName);
             if (initiatorURI == null) {
                 URIQueryResultList uris = new URIQueryResultList();
-                _dbClient.queryByConstraint(AlternateIdConstraint.Factory.
-                        getInitiatorPortInitiatorConstraint(portName), uris);
+                _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getInitiatorPortInitiatorConstraint(portName), uris);
                 if (!uris.iterator().hasNext()) {
                     // There is no such initiator
                     _log.info(String.format("determineInitiatorToExportMaskPlacements - Could not find initiator port %s in DB",
@@ -1704,8 +1784,7 @@ abstract public class AbstractDefaultMaskingOrchestrator {
             // be considered a match, the initiators have to match, but the
             // StoragePorts have to be in the same Network as the ExportGroup's
             // VArray Network.
-            Map<URI, Map<String, String>> masksWithUnmatchedStoragePorts =
-                    new HashMap<URI, Map<String, String>>();
+            Map<URI, Map<String, String>> masksWithUnmatchedStoragePorts = new HashMap<URI, Map<String, String>>();
 
             // Take a look at the ExportMask's initiators to see what compute resource that they support.
             String computeResource = ExportUtils.computeResourceForInitiator(exportGroup, initiator);
@@ -1739,7 +1818,8 @@ abstract public class AbstractDefaultMaskingOrchestrator {
                             candidateExportMaskURIs.add(exportMaskURI);
                             totalPorts += storagePortToNetworkName.keySet().size();
                             maskToTotalMatchingPorts.put(exportMaskURI, totalPorts);
-                            // Ingest Fix : In ingest case, more than 1 export mask with createdBySystem flag set to true is possible
+                            // Ingest Fix : In ingest case, more than 1 export mask with createdBySystem flag set to
+                            // true is possible
                             // remove the break statement
                             // break; First ViPR-created ExportMask associated with the resource, we will use
                         } else {
@@ -1790,7 +1870,8 @@ abstract public class AbstractDefaultMaskingOrchestrator {
             } else {
                 if (masksWithUnmatchedStoragePorts.isEmpty()) {
                     _log.info(String.format(
-                            "determineInitiatorToExportMaskPlacements - Could not find ExportMask to which %s can be associated", portName));
+                            "determineInitiatorToExportMaskPlacements - Could not find ExportMask to which %s can be associated",
+                            portName));
                 } else {
                     // We found matching exports on the array, but they were not viable due to
                     // the StoragePorts used (they were pointing to a different VArray), so we should
@@ -1806,11 +1887,10 @@ abstract public class AbstractDefaultMaskingOrchestrator {
                                 Joiner.on(',').join(storagePortToNetworks.entrySet())));
                     }
 
-                    VirtualArray virtualArray =
-                            _dbClient.queryObject(VirtualArray.class, exportGroup.getVirtualArray());
-                    Exception e = DeviceControllerException.exceptions.
-                            existingExportFoundButWithSPsInDifferentNetwork(virtualArray.getLabel(),
-                                    exportMaskInfo.toString());
+                    VirtualArray virtualArray = _dbClient.queryObject(VirtualArray.class, exportGroup.getVirtualArray());
+                    Exception e = DeviceControllerException.exceptions.existingExportFoundButWithSPsInDifferentNetwork(
+                            virtualArray.getLabel(),
+                            exportMaskInfo.toString());
                     _log.warn(e.getMessage());
                 }
             }
@@ -1862,9 +1942,12 @@ abstract public class AbstractDefaultMaskingOrchestrator {
      * Searches the storage device for any ExportMask (e.g. MaskingView) that contains
      * any of the initiators.
      *
-     * @param storage -- Storage system to be searched.
-     * @param device -- Storage device to be searched for Export Masks
-     * @param initiators - List of Initiator objects to be searched for.
+     * @param storage
+     *            -- Storage system to be searched.
+     * @param device
+     *            -- Storage device to be searched for Export Masks
+     * @param initiators
+     *            - List of Initiator objects to be searched for.
      * @return a map of URIs to Export Masks that contain any of the initiators
      */
     protected Map<URI, ExportMask> readExistingExportMasks(
@@ -1877,16 +1960,14 @@ abstract public class AbstractDefaultMaskingOrchestrator {
 
         Map<String, URI> portNameToInitiatorURI = new HashMap<String, URI>();
         List<String> portNames = new ArrayList<String>();
-        ListMultimap<String, String> computeResourceToPortNames =
-                ArrayListMultimap.create();
+        ListMultimap<String, String> computeResourceToPortNames = ArrayListMultimap.create();
         // Populate data structures to track initiators
         processInitiators(exportGroup, initiators, portNames, portNameToInitiatorURI,
                 computeResourceToPortNames);
         // Find the export masks that are associated with any or all the ports in
         // portNames. We will have to do processing differently based on whether
         // or not there is an existing ExportMasks.
-        Map<String, Set<URI>> exportMaskURIs =
-                device.findExportMasks(storage, portNames, false);
+        Map<String, Set<URI>> exportMaskURIs = device.findExportMasks(storage, portNames, false);
 
         // Refresh the export masks so they are up-to-date.
         // Map of export mask URI to Export Mask.
@@ -1927,8 +2008,10 @@ abstract public class AbstractDefaultMaskingOrchestrator {
      * Then the resultant mapping will be:
      * {{H1I1 -> False}, {H2I1 -> False}}
      *
-     * @param exportGroup [in] - ExportGroup object
-     * @param initiatorURIs [in] - List of Initiator URIs that are passed in the
+     * @param exportGroup
+     *            [in] - ExportGroup object
+     * @param initiatorURIs
+     *            [in] - List of Initiator URIs that are passed in the
      *            removeInitiators request
      * @return Map of Initiator URI to Boolean. There will be an entry for every
      *         initiator in the initiatorURIs list. If the mapping for the initiatorURI
@@ -1943,15 +2026,12 @@ abstract public class AbstractDefaultMaskingOrchestrator {
         if (exportGroup.forCluster() || exportGroup.forHost()) {
             // Get a mapping of compute resource to its list of Initiator URIs
             // for the initiatorURIs list
-            Map<String, List<URI>> computeResourceMapForRequest =
-                    mapInitiatorsToComputeResource(exportGroup, initiatorURIs);
+            Map<String, List<URI>> computeResourceMapForRequest = mapInitiatorsToComputeResource(exportGroup, initiatorURIs);
             // Get a mapping of compute resource to its list of Initiator URIs
             // for the ExportGroup's initiator list
-            Collection<URI> egInitiators =
-                    Collections2.transform(exportGroup.getInitiators(),
-                            CommonTransformerFunctions.FCTN_STRING_TO_URI);
-            Map<String, List<URI>> computeResourcesMapForExport =
-                    mapInitiatorsToComputeResource(exportGroup, egInitiators);
+            Collection<URI> egInitiators = Collections2.transform(exportGroup.getInitiators(),
+                    CommonTransformerFunctions.FCTN_STRING_TO_URI);
+            Map<String, List<URI>> computeResourcesMapForExport = mapInitiatorsToComputeResource(exportGroup, egInitiators);
             // For each compute resource, get the list of initiators and compare
             // that with the passed in initiators, grouped by compute resource.
             // If all the initiators for a compute resource are found, then the
@@ -1987,10 +2067,14 @@ abstract public class AbstractDefaultMaskingOrchestrator {
      * then we just need to verify that the initiator is in it for it be considered a match.
      *
      *
-     * @param exportGroup [in] - ExportGroup object to examine
-     * @param mask [in] - ExportMask object
-     * @param initiator [in] - Initiator object to validate
-     * @param portsForComputeResource [in] - List of port names for the compute resource being exported to
+     * @param exportGroup
+     *            [in] - ExportGroup object to examine
+     * @param mask
+     *            [in] - ExportMask object
+     * @param initiator
+     *            [in] - Initiator object to validate
+     * @param portsForComputeResource
+     *            [in] - List of port names for the compute resource being exported to
      * @return true If the export is for a host or cluster and all of the compute resource's initiators in the mask
      *         ELSE
      *         IF the export has the initiator
@@ -2012,11 +2096,16 @@ abstract public class AbstractDefaultMaskingOrchestrator {
      * then we just need to verify that the initiator is in it for it be considered a match.
      *
      *
-     * @param exportGroup [in] - ExportGroup object to examine
-     * @param mask [in] - ExportMask object
-     * @param initiator [in] - Initiator object to validate
-     * @param portsForComputeResource [in] - List of port names for the compute resource being exported to
-     * @param partialMasks [out] - Set of export masks that, when put together, make up a cluster mask
+     * @param exportGroup
+     *            [in] - ExportGroup object to examine
+     * @param mask
+     *            [in] - ExportMask object
+     * @param initiator
+     *            [in] - Initiator object to validate
+     * @param portsForComputeResource
+     *            [in] - List of port names for the compute resource being exported to
+     * @param partialMasks
+     *            [out] - Set of export masks that, when put together, make up a cluster mask
      * @return true If the export is for a host or cluster and all of the compute resource's initiators in the mask
      *         ELSE
      *         IF the export has the initiator
@@ -2032,10 +2121,13 @@ abstract public class AbstractDefaultMaskingOrchestrator {
 
             // Make sure the mask in question contains only ports in the compute resource in order to qualify
             if (mask.hasAnyInitiators() && mask.hasExactlySubsetOfTheseInitiators(portsForComputeResource)) {
-                // Specifically for cluster: Either we have a mask that already works for multiple hosts (the case of cluster),
-                // but maybe not all of the hosts in the cluster, or this mask is a non-cascaded IG mask that only works for one host.
+                // Specifically for cluster: Either we have a mask that already works for multiple hosts (the case of
+                // cluster),
+                // but maybe not all of the hosts in the cluster, or this mask is a non-cascaded IG mask that only works
+                // for one host.
                 //
-                // If the mask serves a subset of hosts in the cluster already, we can use that mask. The export engine will only
+                // If the mask serves a subset of hosts in the cluster already, we can use that mask. The export engine
+                // will only
                 // create the IG that's needed and add it to the cascaded IG.
                 if (exportGroup.forCluster() && maskAppliesToMultipleHosts(mask)) {
                     return true;
@@ -2043,7 +2135,8 @@ abstract public class AbstractDefaultMaskingOrchestrator {
                     return !maskAppliesToMultipleHosts(mask); // Only allow this mask if it applies to one host.
                 }
 
-                // If the mask only serves one host, we need to see other masks that fill up a cluster in order to use those masks.
+                // If the mask only serves one host, we need to see other masks that fill up a cluster in order to use
+                // those masks.
                 // Otherwise, we'll create a whole new masking view, etc.
                 // We need to use all the initiators , existingInitiators will be null at times
                 foundPorts.addAll(ExportUtils.getExportMaskAllInitiatorPorts(mask, _dbClient));
@@ -2055,10 +2148,12 @@ abstract public class AbstractDefaultMaskingOrchestrator {
             List<ExportMask> otherMasks = _dbClient.queryObject(ExportMask.class, otherMaskURIs);
             // Now look for even more ports that might make up the whole compute resource
             for (ExportMask otherMask : otherMasks) {
-                // Exclude cluster masking views from this port check; cluster masking views can not be combined with host-based MVs
+                // Exclude cluster masking views from this port check; cluster masking views can not be combined with
+                // host-based MVs
                 // to create a "virtual" cluster masking view from the perspective of ViPR.
                 //
-                // Also, without excluding cluster-based masking views here, we would qualify masks that are for single hosts
+                // Also, without excluding cluster-based masking views here, we would qualify masks that are for single
+                // hosts
                 // when a cluster export is requested and a cluster masking view is available.
                 if (!exportGroup.forCluster() || !maskAppliesToMultipleHosts(otherMask)) {
                     if (otherMask.hasAnyInitiators() && otherMask.hasExactlySubsetOfTheseInitiators(portsForComputeResource)) {
@@ -2084,10 +2179,14 @@ abstract public class AbstractDefaultMaskingOrchestrator {
      * matches those of the initiator.
      *
      *
-     * @param exportGroup [in] - ExportGroup object
-     * @param mask [in] - ExportMask object
-     * @param initiator [in] - Initiator object to validate
-     * @param storagePortToNetwork [out] - will populate the map with StoragePort.name to Network.Name
+     * @param exportGroup
+     *            [in] - ExportGroup object
+     * @param mask
+     *            [in] - ExportMask object
+     * @param initiator
+     *            [in] - Initiator object to validate
+     * @param storagePortToNetwork
+     *            [out] - will populate the map with StoragePort.name to Network.Name
      * @return true --> iff the ExportMask has viable StoragePorts that are associated to the ExportGroup's
      *         VArray and it matches the export path parameters of the ExportGroup
      */
@@ -2111,7 +2210,8 @@ abstract public class AbstractDefaultMaskingOrchestrator {
                 StoragePort port = _dbClient.queryObject(StoragePort.class, uri);
                 // Basic validation of the StoragePort
                 if (port == null || port.getInactive()) {
-                    _log.info(String.format("maskHasStoragePortsInExportVarray - Could not find port or it is inactive %s", uri.toString()));
+                    _log.info(
+                            String.format("maskHasStoragePortsInExportVarray - Could not find port or it is inactive %s", uri.toString()));
                     continue;
                 }
                 // StoragePort needs to be in the REGISTERED and VISIBLE status
@@ -2136,7 +2236,8 @@ abstract public class AbstractDefaultMaskingOrchestrator {
                 if (!port.taggedToVirtualArray(exportGroup.getVirtualArray())) {
                     _log.info(String.format("maskHasStoragePortsInExportVarray - Port %s (%s) is not tagged to VArray %s (%s)",
                             port.getPortName(), uri.toString(), virtualArray.getLabel(), exportGroup.getVirtualArray().toString()));
-                    // CTRL-8959 - All mask Ports should be part of the VArray, to be able to consider this Export mask for reuse.
+                    // CTRL-8959 - All mask Ports should be part of the VArray, to be able to consider this Export mask
+                    // for reuse.
                     // reverted the fix, as the probability of Consistent lun violation will be more.
                     continue;
                 }
@@ -2166,8 +2267,10 @@ abstract public class AbstractDefaultMaskingOrchestrator {
      * Looks at the maskToTotalMatchingPorts map and generates exception if any of them do not meet
      * the exportPathParams.minPaths value
      *
-     * @param exportPathParams [in] - ExportPathParams for the ExportGroup
-     * @param maskToTotalMatchingPorts [in] - Map of the ExportMask URI to an Integer value
+     * @param exportPathParams
+     *            [in] - ExportPathParams for the ExportGroup
+     * @param maskToTotalMatchingPorts
+     *            [in] - Map of the ExportMask URI to an Integer value
      *            representing the number of StoragePorts that match network constraints
      *            of the initiator.
      * @return true if valid, false otherwise
@@ -2181,9 +2284,9 @@ abstract public class AbstractDefaultMaskingOrchestrator {
                 List<ExportMask> masks = _dbClient.queryObjectField(ExportMask.class, "maskName",
                         Arrays.asList(exportMaskURI));
                 String exportMaskName = masks.get(0).getMaskName();
-                Exception e = DeviceControllerException.exceptions.
-                        existingExportFoundButNotEnoughPortsToSatisfyMinPaths(exportMaskName, totalPorts.toString(),
-                                exportPathParams.toString());
+                Exception e = DeviceControllerException.exceptions.existingExportFoundButNotEnoughPortsToSatisfyMinPaths(exportMaskName,
+                        totalPorts.toString(),
+                        exportPathParams.toString());
                 _log.warn(e.getMessage());
                 return false;
             }
@@ -2195,8 +2298,10 @@ abstract public class AbstractDefaultMaskingOrchestrator {
      * Simple conversion routine. Takes in a map initiator portname String to Set of ExportMask URIs and
      * creates a map of ExportMask URI to List of Initiator URIs
      *
-     * @param initiatorToExportMasks Map of Initiator URI String to Set of ExportMask URIs
-     * @param portNameToInitiatorURI Map of Initiator portname String to Initiator URI
+     * @param initiatorToExportMasks
+     *            Map of Initiator URI String to Set of ExportMask URIs
+     * @param portNameToInitiatorURI
+     *            Map of Initiator portname String to Initiator URI
      * @return Map of ExportMask URI to list of Initiator URIs
      */
     protected Map<URI, List<URI>> toExportMaskToInitiatorURIs(Map<String, Set<URI>> initiatorToExportMasks,
@@ -2225,7 +2330,8 @@ abstract public class AbstractDefaultMaskingOrchestrator {
      * Check to see if this mask applies to multiple hosts already.
      * Helps us to determine if this is a qualifying mask for brownfield
      *
-     * @param mask export mask
+     * @param mask
+     *            export mask
      * @return true if the mask has initiators from multiple hosts
      */
     protected boolean maskAppliesToMultipleHosts(ExportMask mask) {
@@ -2254,9 +2360,12 @@ abstract public class AbstractDefaultMaskingOrchestrator {
      * <p>
      * Note, persistence should be done by the caling function.
      *
-     * @param exportGroup the masking view export group
-     * @param exportMask the export mask being updated.
-     * @param doPersist a boolean that indicate if the changes should be persisted
+     * @param exportGroup
+     *            the masking view export group
+     * @param exportMask
+     *            the export mask being updated.
+     * @param doPersist
+     *            a boolean that indicate if the changes should be persisted
      */
     protected void updateZoningMap(ExportGroup exportGroup, ExportMask exportMask, boolean doPersist) {
         _networkDeviceController.updateZoningMap(exportGroup, exportMask, doPersist);
@@ -2275,8 +2384,10 @@ abstract public class AbstractDefaultMaskingOrchestrator {
     /**
      * Method to display the ExportGroup collections and its related ExportMasks per StorageSystem
      *
-     * @param exportGroup [in] - ExportGroup to display
-     * @param storage [in] - Used to filter the associated ExportMasks to display
+     * @param exportGroup
+     *            [in] - ExportGroup to display
+     * @param storage
+     *            [in] - Used to filter the associated ExportMasks to display
      */
     protected void logExportGroup(ExportGroup exportGroup, URI storage) {
         if (exportGroup != null) {
@@ -2295,9 +2406,12 @@ abstract public class AbstractDefaultMaskingOrchestrator {
     /**
      * Creates a map of compute resource to export masks associated with that resource.
      *
-     * @param portNameToInitiatorURI port name -> initiator URI simple map
-     * @param resourceToInitiators compute resource -> initiator ports
-     * @param initiatorToExportMaskPlacementMap initiator port -> masks
+     * @param portNameToInitiatorURI
+     *            port name -> initiator URI simple map
+     * @param resourceToInitiators
+     *            compute resource -> initiator ports
+     * @param initiatorToExportMaskPlacementMap
+     *            initiator port -> masks
      * @return map of compute resource -> export masks that qualify for analysis
      */
     public static Map<String, Set<URI>> createResourceMaskMap(Map<String, URI> portNameToInitiatorURI,

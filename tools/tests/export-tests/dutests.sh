@@ -124,6 +124,16 @@ arrayhelper() {
         pattern=$4
 	arrayhelper_volume_mask_operation $operation $serial_number $device_id $pattern
 	;;
+    add_initiator_to_mask)
+	pwwn=$3
+        pattern=$4
+	arrayhelper_initiator_mask_operation $operation $serial_number $pwwn $pattern
+	;;
+    remove_initiator_from_mask)
+	pwwn=$3
+        pattern=$4
+	arrayhelper_initiator_mask_operation $operation $serial_number $pwwn $pattern
+	;;
     delete_volume)
 	device_id=$3
 	arrayhelper_delete_volume $operation $serial_number $device_id
@@ -161,6 +171,35 @@ arrayhelper_volume_mask_operation() {
 	 ;;
     vplex)
          runcmd vplexhelper.sh $operation $serial_number $device_id $pattern
+	 ;;
+    default)
+         echo "ERROR: Invalid platform specified in storage_type: $storage_type"
+	 exit
+	 ;;
+    esac
+}
+
+# Call the appropriate storage array helper script to perform masking operations
+# outside of the controller.
+#
+arrayhelper_initiator_mask_operation() {
+    operation=$1
+    serial_number=$2
+    pwwn=$3
+    pattern=$4
+
+    case $storage_type in
+    vmax)
+         runcmd symhelper.sh $operation $serial_number $pwwn $pattern
+	 ;;
+    vnx)
+         runcmd navihelper.sh $operation $serial_number $pwwn $pattern
+	 ;;
+    xio)
+         runcmd xiohelper.sh $operation $serial_number $pwwn $pattern
+	 ;;
+    vplex)
+         runcmd vplexhelper.sh $operation $serial_number $pwwn $pattern
 	 ;;
     default)
          echo "ERROR: Invalid platform specified in storage_type: $storage_type"
@@ -564,7 +603,7 @@ verify_nomasks() {
 
 # Export Test 0
 #
-# Test existing functionality of export
+# Test existing functionality of export and verifies there's good volumes, exports are clean, and tests are ready to run.
 #
 test_0() {
     echot "Test 0 Begins"
@@ -732,6 +771,8 @@ test_2() {
 
 # DU Prevention Validation Test 3
 #
+# Summary: Tests a volume sneaking into a masking view outside of ViPR.
+#
 # Basic Use Case for single host, single volume
 # 1. ViPR creates 1 volume, 1 host export.
 # 2. ViPR asked to delete the export group, but is paused after orchestration
@@ -820,6 +861,8 @@ test_3() {
 
 # Export Test 4
 #
+# Summary: Tests an initiator (host) sneaking into a masking view outside of ViPR.
+#
 # Basic Use Case for single host, single volume
 # 1. ViPR creates 1 volume, 1 host export.
 # 2. ViPR asked to remove the volume from the export group, but is paused after orchestration
@@ -830,7 +873,7 @@ test_3() {
 # 7. Attempt operation again, succeeds.
 #
 test_4() {
-    echot "Test 4: Export Group Remove Volume last volume doesn't delete Export Mask when extra volumes are in it"
+    echot "Test 4: Export Group Delete doesn't delete Export Mask when extra initiators are in it"
     expname=${EXPORT_GROUP_NAME}t3
 
     # Make sure we start clean; no masking view on the array
@@ -843,12 +886,14 @@ test_4() {
     # Create the mask with the 1 volume
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
 
+    verify_export ${expname}1 ${HOST1} 2 1
+
     # Turn on suspend of export after orchestration
     set_suspend_on_class_method ExportWorkflowEntryPoints.exportGroupDelete
 
     # Run the export group command TODO: Do this more elegantly
-    echo === export_group update $PROJECT/${expname}1 --remVols ${PROJECT}/${VOLNAME}-1
-    resultcmd=`export_group update $PROJECT/${expname}1 --remVols ${PROJECT}/${VOLNAME}-1`
+    echo === export_group delete $PROJECT/${expname}1
+    resultcmd=`export_group delete $PROJECT/${expname}1`
 
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
@@ -873,24 +918,23 @@ test_4() {
 
     runcmd volume delete ${PROJECT}/du-hijack-volume --vipronly
 
-    # Add the volume to the mask (done differently per array type)
-    arrayhelper add_volume_to_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
+    PWWN=1122334411223344
+
+    # Add another initiator to the mask (done differently per array type)
+    arrayhelper add_initiator_to_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
     
-    # Verify the mask has the new volume in it
-    verify_export ${expname}1 ${HOST1} 2 2
+    # Verify the mask has the new initiator in it
+    verify_export ${expname}1 ${HOST1} 3 1
 
     # Resume the workflow
     runcmd workflow resume $workflow
 
     # Follow the task.  It should fail because of Poka Yoke validation
-    echo "*** Following the export_group delete task to verify it FAILS because of the additional volume"
+    echo "*** Following the export_group delete task to verify it FAILS because of the additional initiator"
     fail task follow $task
 
     # Now remove the volume from the storage group (masking view)
-    array_helper remove_volume_from_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
-
-    # Delete the volume we created.
-    array_helper delete_volume ${SERIAL_NUMBER} ${device_id}
+    array_helper remove_initiator_from_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
 
     # Verify the mask is back to normal
     verify_export ${expname}1 ${HOST1} 2 1
@@ -898,14 +942,11 @@ test_4() {
     # Turn off suspend of export after orchestration
     set_suspend_on_class_method "none"
 
-    # Try the export operation again
-    runcmd export_group update $PROJECT/${expname}1 --remVols ${PROJECT}/${VOLNAME}-1
+    # Delete the export group
+    runcmd export_group delete $PROJECT/${expname}1
 
     # Make sure it really did kill off the mask
     verify_export ${expname}1 ${HOST1} gone
-
-    # Delete the export group
-    runcmd export_group delete $PROJECT/${expname}1
 }
 
 cleanup() {

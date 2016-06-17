@@ -13,7 +13,7 @@ import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.file.FileStorageUtils;
 import com.emc.storageos.model.file.FileShareRestRep;
 
-@Service("Linux-MountNFSExport")
+@Service("LinuxMountNFSExport")
 public class MountNFSExportService extends LinuxFileService {
 
     @Param(FILESYSTEM)

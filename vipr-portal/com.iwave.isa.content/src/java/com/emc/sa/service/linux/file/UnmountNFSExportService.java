@@ -15,7 +15,7 @@ import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 
-@Service("Linux-UnmountBlockVolume")
+@Service("LinuxUnmountNFSExport")
 public class UnmountNFSExportService extends LinuxFileService {
 
     @Param(MOUNTED_NFS_EXPORTS)

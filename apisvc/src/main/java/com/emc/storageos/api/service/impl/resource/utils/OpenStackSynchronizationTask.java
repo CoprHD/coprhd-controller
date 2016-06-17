@@ -22,11 +22,10 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.*;
 import com.emc.storageos.keystone.restapi.model.response.TenantV2;
 import com.emc.storageos.keystone.restapi.utils.KeystoneUtils;
-import com.emc.storageos.model.tenant.TenantCreateParam;
-import com.emc.storageos.security.authorization.ACL;
-import com.emc.storageos.security.authorization.BasePermissionsHelper;
-import com.emc.storageos.security.authorization.PermissionsKey;
-import com.emc.storageos.security.authorization.Role;
+import com.emc.storageos.model.project.ProjectElement;
+import com.emc.storageos.model.project.ProjectParam;
+import com.emc.storageos.model.tenant.TenantOrgRestRep;
+import com.emc.storageos.security.authentication.InternalTenantSvcClient;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,24 +50,24 @@ public class OpenStackSynchronizationTask extends ResourceService {
     private static final int MAX_TERMINATION_TIME = 120;
     // Minimum interval in seconds.
     public static final int MIN_INTERVAL_DELAY = 10;
-    // Default excluded option for OSTenant.
 
     private static final String OPENSTACK = "OpenStack";
-    private static final String ROOT = "root";
 
     // Services
     private KeystoneUtils _keystoneUtilsService;
+
+    private InternalTenantSvcClient _internalTenantSvcClient;
+
     private ScheduledExecutorService _dataCollectionExecutorService;
-    private AuthnConfigurationService _authnConfigurationService;
 
     private ScheduledFuture synchronizationTask;
 
-    public ScheduledFuture getSynchronizationTask() {
-        return synchronizationTask;
+    public void setInternalTenantSvcClient(InternalTenantSvcClient _internalTenantSvcClient) {
+        this._internalTenantSvcClient = _internalTenantSvcClient;
     }
 
-    public void setAuthnConfigurationService(AuthnConfigurationService authnConfigurationService) {
-        this._authnConfigurationService = authnConfigurationService;
+    public ScheduledFuture getSynchronizationTask() {
+        return synchronizationTask;
     }
 
     public void setKeystoneUtilsService(KeystoneUtils _keystoneUtilsService) {
@@ -174,7 +173,7 @@ public class OpenStackSynchronizationTask extends ResourceService {
 
             TenantV2 osTenant = osIter.next();
             // Update information about this Tenant in CoprHD database.
-            updateOrCreateOpenstackTenantInCoprhd(osTenant);
+            createOrUpdateOpenstackTenantInCoprhd(osTenant);
             while (coprhdIter.hasNext()) {
 
                 TenantOrg coprhdTenant = coprhdIter.next();
@@ -212,7 +211,7 @@ public class OpenStackSynchronizationTask extends ResourceService {
      * @param tenant OpenStack Tenant.
      * @return Updated or Created Tenant.
      */
-    private OSTenant updateOrCreateOpenstackTenantInCoprhd(TenantV2 tenant) {
+    private OSTenant createOrUpdateOpenstackTenantInCoprhd(TenantV2 tenant) {
 
         OSTenant osTenant = _keystoneUtilsService.findOpenstackTenantInCoprhd(tenant.getId());
 
@@ -274,50 +273,30 @@ public class OpenStackSynchronizationTask extends ResourceService {
      * Creates a CoprHD Tenant for given OpenStack Tenant.
      *
      * @param tenant OpenStack Tenant.
+     *
+     * @return URI ow newly created Tenant.
      */
-    public TenantOrg createTenant(OSTenant tenant) {
+    public URI createTenant(TenantV2 tenant) {
 
-        TenantCreateParam param = _authnConfigurationService.prepareTenantMappingForOpenstack(tenant);
+        TenantOrgRestRep tenantResp = _internalTenantSvcClient.createTenant(_keystoneUtilsService.prepareTenantParam(tenant));
 
-        TenantOrg subtenant = new TenantOrg();
-        subtenant.setId(URIUtil.createId(TenantOrg.class));
-        subtenant.setParentTenant(new NamedURI(_permissionsHelper.getRootTenant().getId(), param.getLabel()));
-        subtenant.setLabel(param.getLabel());
-        subtenant.setDescription(param.getDescription());
-        List<BasePermissionsHelper.UserMapping> userMappings = BasePermissionsHelper.UserMapping.fromParamList(param.getUserMappings());
-        for (BasePermissionsHelper.UserMapping userMapping : userMappings) {
-            userMapping.setDomain(userMapping.getDomain().trim());
-            subtenant.addUserMapping(userMapping.getDomain(), userMapping.toString());
-        }
-        subtenant.addRole(new PermissionsKey(PermissionsKey.Type.SID,
-                ROOT).toString(), Role.TENANT_ADMIN.toString());
-
-        _dbClient.createObject(subtenant);
-
-        return subtenant;
+        return tenantResp.getId();
     }
 
     /**
      * Creates a CoprHD Project for given Tenant.
      *
-     * @param owner CoprHD Tenant that will own this project.
-     * @param param OpenStack Tenant.
+     * @param tenantOrgId ID of the Project owner.
+     * @param tenant OpenStack Tenant.
+     *
+     * @return URI ow newly created Project.
      */
-    public Project createProject(TenantOrg owner, OSTenant param) {
+    public URI createProject(URI tenantOrgId, TenantV2 tenant) {
 
-        Project project = new Project();
-        project.setId(URIUtil.createId(Project.class));
-        project.setLabel(param.getName() + CinderConstants.PROJECT_NAME_SUFFIX);
-        project.setTenantOrg(new NamedURI(owner.getId(), project.getLabel()));
-        project.setOwner(ROOT);
+        ProjectParam projectParam = new ProjectParam(tenant.getName() + CinderConstants.PROJECT_NAME_SUFFIX);
+        ProjectElement projectResp = _internalTenantSvcClient.createProject(tenantOrgId, projectParam);
 
-        project.addAcl(
-                new PermissionsKey(PermissionsKey.Type.SID, ROOT, owner.getId().toString()).toString(),
-                ACL.OWN.toString());
-
-        _dbClient.createObject(project);
-
-        return project;
+        return projectResp.getId();
     }
 
     /**
@@ -377,6 +356,8 @@ public class OpenStackSynchronizationTask extends ResourceService {
                     }
                 }
 
+                _internalTenantSvcClient.setServer(_keystoneUtilsService.getVIP());
+
                 StringSet syncOptions = keystoneProvider.getTenantsSynchronizationOptions();
 
                 // Check whether Automatic Addition is enabled.
@@ -386,10 +367,10 @@ public class OpenStackSynchronizationTask extends ResourceService {
 
                         OSTenant osTenant = _keystoneUtilsService.findOpenstackTenantInCoprhd(tenant.getId());
                         if (osTenant != null && !osTenant.getExcluded()) {
-                            TenantOrg tenantOrg = createTenant(_keystoneUtilsService.mapToOsTenant(tenant));
-                            Project project = createProject(tenantOrg, _keystoneUtilsService.mapToOsTenant(tenant));
-                            _keystoneUtilsService.tagProjectWithOpenstackId(project.getId(), tenant.getId(),
-                                    tenantOrg.getId().toString());
+                            URI tenantOrgId = createTenant(tenant);
+                            URI projectId = createProject(tenantOrgId, tenant);
+                            _keystoneUtilsService.tagProjectWithOpenstackId(projectId, tenant.getId(),
+                                    tenantOrgId.toString());
                         }
                     }
                 }
@@ -434,7 +415,7 @@ public class OpenStackSynchronizationTask extends ResourceService {
                 }
 
             } catch (Exception e) {
-                _log.error(String.format("Exception caught when trying to run OpenStack Synchronization job"), e);
+                _log.error("Exception caught when trying to run OpenStack Synchronization job: {}", e);
             }
         }
     }

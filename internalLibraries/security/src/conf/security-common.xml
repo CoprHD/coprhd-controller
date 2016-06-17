@@ -25,6 +25,16 @@
     <bean id="authSvcEndpointLocator" class="com.emc.storageos.security.authentication.AuthSvcEndPointLocator"/>
         
     <bean id="sysSvcEndpointLocator" class="com.emc.storageos.security.authentication.SysSvcEndPointLocator"/>
+
+    <bean id="keystoneUtils" class="com.emc.storageos.keystone.restapi.utils.KeystoneUtils">
+        <property name="keystoneFactory" ref="keystoneFactory"/>
+        <property name="ovfProperties" ref="ovfProperties"/>
+        <property name="dbClient" ref="dbclient"/>
+    </bean>
+
+    <bean id="internalTenantSvcClient" class="com.emc.storageos.security.authentication.InternalTenantSvcClient" >
+        <property name="coordinatorClient" ref="coordinator" />
+    </bean>
     
     <bean id="certificateVersionHelper" class="com.emc.storageos.security.keystore.impl.CertificateVersionHelper">
         <property name="sysSvcEndPointLocator" ref="sysSvcEndpointLocator"/>

@@ -18,7 +18,7 @@
     
     subDirectory:{
       type:"assetType.vipr.subDirectory"
-      required: "false",
+      required: "false"
     },
     
     securityType:{

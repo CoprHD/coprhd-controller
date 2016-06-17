@@ -3481,6 +3481,7 @@ resources.filesystem.export.anon=Anon
 resources.filesystem.export.protocol=Protocol
 resources.filesystem.export.subdirectory=Sub Directory
 resources.filesystem.export.modify=Modify Endpoints
+resources.filesystem.export.addExportRule=Add Export Rule
 resources.filesystem.export.endpoints=Endpoints
 resources.filesystem.export.permission=Permission
 resources.filesystem.export.permission.ro=Read Only

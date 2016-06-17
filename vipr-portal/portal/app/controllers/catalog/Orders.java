@@ -80,6 +80,7 @@ public class Orders extends OrderExecution {
     private static final int NORMAL_DELAY = 3000;
     private static final int LONG_DELAY = 15000;
     private static final int DEFAULT_DELAY = 60000;
+    private static final int RECEIPT_UPDATE_ATTEMPTS = 5;
 
     public static final String RECENT_ACTIVITIES = "VIPRUI_RECENT_ACTIVITIES";
     public static final int MAX_RECENT_SERVICES = 4;
@@ -299,6 +300,7 @@ public class Orders extends OrderExecution {
         }
 
         Map<URI, String> oldTasksStateMap = null;
+        int updateAttempts = 0;
 
         // Wait for an update to the order
         while (true) {
@@ -320,6 +322,12 @@ public class Orders extends OrderExecution {
                 }
             } else {
                 oldTasksStateMap = createTaskStateMap(details.viprTasks);
+            }
+
+            if (++updateAttempts >= RECEIPT_UPDATE_ATTEMPTS) {
+                Logger.debug("Updating order %s after %d attempts to find order change", details.order.getOrderNumber(),
+                        RECEIPT_UPDATE_ATTEMPTS);
+                return details;
             }
 
             // Pause and check again, delay is based on order state

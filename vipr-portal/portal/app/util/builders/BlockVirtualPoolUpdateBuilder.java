@@ -88,6 +88,11 @@ public class BlockVirtualPoolUpdateBuilder extends VirtualPoolUpdateBuilder {
         return this;
     }
 
+    public BlockVirtualPoolUpdateBuilder setPlacementPolicy(String placementPolicy) {
+        virtualPool.setPlacementPolicy(placementPolicy);
+        return this;
+    }
+
     public BlockVirtualPoolUpdateBuilder setAutoTieringPolicyName(String autoTieringPolicyName) {
         String policyName = StringUtils.defaultIfBlank(autoTieringPolicyName, NO_AUTO_TIER_POLICY);
         String oldPolicyName = StringUtils.defaultIfBlank(oldVirtualPool.getAutoTieringPolicyName(),

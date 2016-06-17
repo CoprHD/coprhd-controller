@@ -350,6 +350,9 @@ ProvisionType.NONE=None
 ProvisionType.Thin=Thin
 ProvisionType.Thick=Thick
 
+VirtualPoolPlacementPolicy.default_policy=Default
+VirtualPoolPlacementPolicy.array_affinity=Host/Array Affinity
+
 ProtectionSystemType.rp=EMC RecoverPoint
 ProtectionSystemType.srdf=VMAX SRDF
 
@@ -2157,6 +2160,7 @@ virtualPools.numResources=Resources
 
 # Virtual Pool groups
 vpool.group.hardware=Hardware
+vpool.group.placementPolicy=Resource Placement Policy
 vpool.group.sanPaths=SAN Multi Path
 vpool.group.highAvailability=High Availability
 vpool.group.protection=Data Protection
@@ -2190,6 +2194,10 @@ vpool.maxRetention=Maximum Retention (Days)
 vpool.minDataCenters=Minimum Data Center(s)
 vpool.objectProtocols=Protocols
 storagePools.numOfDataCenters=Data Center(s)
+
+# Block Specific
+vpool.placementPolicy=Resource Placement Policy
+vpool.placementPolicy.help=Policy to be used for resource placement of the VirtualPool
 
 # Block Specific
 vpool.minPaths=Minimum Paths

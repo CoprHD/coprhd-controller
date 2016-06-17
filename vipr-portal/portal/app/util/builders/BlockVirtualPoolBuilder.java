@@ -57,6 +57,11 @@ public class BlockVirtualPoolBuilder extends VirtualPoolBuilder {
         return this;
     }
 
+    public BlockVirtualPoolBuilder setPlacementPolicy(String placementPolicy) {
+        virtualPool.setPlacementPolicy(placementPolicy);
+        return this;
+    }
+
     public BlockVirtualPoolBuilder setMinPaths(int paths) {
         virtualPool.setMinPaths(paths);
         return this;

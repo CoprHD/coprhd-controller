@@ -32,6 +32,7 @@ import models.RpoType;
 import models.SRDFCopyMode;
 import models.SizeUnit;
 import models.StorageSystemTypes;
+import models.VirtualPoolPlacementPolicy;
 import models.datatable.StoragePoolDataTable;
 import models.datatable.StoragePoolDataTable.StoragePoolInfo;
 import models.datatable.VirtualPoolDataTable;
@@ -125,6 +126,7 @@ public class BlockVirtualPools extends ViprResourceController {
         BlockVirtualPoolForm vpool = new BlockVirtualPoolForm();
         vpool.provisioningType = ProvisioningTypes.THIN;
         vpool.protocols = Sets.newHashSet(BlockProtocols.FC);
+        vpool.placementPolicy = VirtualPoolPlacementPolicy.DEFAULT;
         vpool.minPaths = 1;
         vpool.maxPaths = 2;
         vpool.initiatorPaths = 1;
@@ -463,6 +465,10 @@ public class BlockVirtualPools extends ViprResourceController {
                 BlockProtocols.FC,
                 BlockProtocols.iSCSI,
                 BlockProtocols.ScaleIO
+                ));
+        renderArgs.put("placementPolicyOptions", VirtualPoolPlacementPolicy.options(
+                VirtualPoolPlacementPolicy.DEFAULT,
+                VirtualPoolPlacementPolicy.ARRAY_AFFINITY
                 ));
         renderArgs.put("systemTypeOptions", StorageSystemTypes.getBlockStorageOptions());
 

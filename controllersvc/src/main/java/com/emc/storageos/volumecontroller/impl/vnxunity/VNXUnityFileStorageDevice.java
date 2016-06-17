@@ -1607,43 +1607,43 @@ public class VNXUnityFileStorageDevice extends VNXUnityOperations
     @Override
     public BiosCommandResult updateShareACLs(StorageSystem storage, FileDeviceInputOutput args) {
         return BiosCommandResult.createErrorResult(
-                DeviceControllerErrors.vnxe.operationNotSupported());
+                DeviceControllerErrors.vnxe.operationNotSupported("Add or Update CIFS Share ACLs", "Unity"));
     }
 
     @Override
     public BiosCommandResult deleteShareACLs(StorageSystem storage, FileDeviceInputOutput args) {
         return BiosCommandResult.createErrorResult(
-                DeviceControllerErrors.vnxe.operationNotSupported());
+                DeviceControllerErrors.vnxe.operationNotSupported("Delete CIFS Share ACLs", "Unity"));
     }
 
     @Override
     public BiosCommandResult assignFilePolicy(StorageSystem storageObj, FileDeviceInputOutput args) {
         return BiosCommandResult.createErrorResult(
-                DeviceControllerErrors.vnxe.operationNotSupported());
+                DeviceControllerErrors.vnxe.operationNotSupported("Assign File Policy", "Unity"));
     }
 
     @Override
     public BiosCommandResult unassignFilePolicy(StorageSystem storageObj, FileDeviceInputOutput args) {
         return BiosCommandResult.createErrorResult(
-                DeviceControllerErrors.vnxe.operationNotSupported());
+                DeviceControllerErrors.vnxe.operationNotSupported("Unassign File Policy", "Unity"));
     }
 
     @Override
     public BiosCommandResult listSanpshotByPolicy(StorageSystem storageObj, FileDeviceInputOutput args) {
         return BiosCommandResult.createErrorResult(
-                DeviceControllerErrors.vnxe.operationNotSupported());
+                DeviceControllerErrors.vnxe.operationNotSupported("List Snapshot By Policy" , "Unity"));
     }
 
     @Override
     public BiosCommandResult updateNfsACLs(StorageSystem storage, FileDeviceInputOutput args) {
         return BiosCommandResult.createErrorResult(
-                DeviceControllerErrors.vnxe.operationNotSupported());
+                DeviceControllerErrors.vnxe.operationNotSupported(" Add or Update NFS Share ACLs", "Unity"));
     }
 
     @Override
     public BiosCommandResult deleteNfsACLs(StorageSystem storageObj, FileDeviceInputOutput args) {
         return BiosCommandResult.createErrorResult(
-                DeviceControllerErrors.vnxe.operationNotSupported());
+                DeviceControllerErrors.vnxe.operationNotSupported("Delete NFS Share ACLs", "Unity"));
     }
 
 }

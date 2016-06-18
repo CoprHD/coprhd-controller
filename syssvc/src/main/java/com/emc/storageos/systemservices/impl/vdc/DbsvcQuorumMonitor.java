@@ -64,9 +64,6 @@ public class DbsvcQuorumMonitor implements Runnable {
         List<Site> sitesToDegrade = new ArrayList<>();
         for (Site standbySite : standbySites) {
             SiteState siteState = standbySite.getState();
-        //    if (siteState.equals(SiteState.STANDBY_DEGRADED)) {
-        //        checkAndRejoinSite(standbySite);
-        //    }
 
             if (siteState.equals(SiteState.STANDBY_INCR_SYNCING)) {
                 checkIncrementalSyncingSite(standbySite, sitesToDegrade);

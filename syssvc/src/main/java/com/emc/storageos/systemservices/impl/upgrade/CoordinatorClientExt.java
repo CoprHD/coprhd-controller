@@ -1584,7 +1584,7 @@ public class CoordinatorClientExt {
 
         /**
          * Update the standby site state when the active site is lost.
-         * if SYNCED, change it to DEGRADED.
+         * if SYNCED, change it to STANDBY_DEGRADED.
          * if SYNCING/RESUMING/ADDING, change it to ERROR since it will never finish without the active site.
          */
         private void checkAndUpdateLocalSiteState() {

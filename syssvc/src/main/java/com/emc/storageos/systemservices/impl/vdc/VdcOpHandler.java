@@ -651,7 +651,6 @@ public abstract class VdcOpHandler {
                             coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
                             sendDegradeAlertMail(site.getName());
                         }
-
                     } finally {
                         try {
                             log.info("Releasing lock {}", LOCK_DEGRADE_STANDBY);

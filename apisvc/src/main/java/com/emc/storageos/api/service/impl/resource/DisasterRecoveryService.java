@@ -7,7 +7,6 @@ package com.emc.storageos.api.service.impl.resource;
 import com.emc.storageos.coordinator.client.model.SiteNetworkState;
 import com.emc.storageos.coordinator.client.model.SiteNetworkState.NetworkHealth;
 import java.net.InetAddress;
-import java.net.NetworkInterface;
 import java.net.UnknownHostException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -1043,7 +1042,7 @@ public class DisasterRecoveryService {
             log.error("Active site last operation was {}, retry is only supported if no other operations have been performed", drOperation);
             throw APIException.internalServerErrors.retryStandbyPrecheckFailed(standby.getName(), standby.getLastState().toString(),
                     String.format("Another DR operation %s has been run on Active site. Only the latest operation can be retried. " +
-                            "This is an unrecoverable Error, please remove site and deploy a new one.",drOperation));
+                            "This is an unrecoverable Error, please remove site and deploy a new one.", drOperation));
         }
         
         InterProcessLock lock = drUtil.getDROperationLock();
@@ -1272,7 +1271,7 @@ public class DisasterRecoveryService {
             coordinator.persistServiceConfiguration(newActiveSite.toConfiguration());
             
             drUtil.updateVdcTargetVersion(drUtil.getLocalSite().getUuid(), SiteInfo.DR_OP_SWITCHOVER, Long.parseLong(vdcTargetVersion), oldActiveSite.getUuid(),
-                        newActiveSite.getUuid());
+                    newActiveSite.getUuid());
             return Response.status(Response.Status.ACCEPTED).build();
         } catch (Exception e) {
             log.error(String.format("Error happened when switchover to site %s", newActiveSiteUUID), e);
@@ -1291,7 +1290,8 @@ public class DisasterRecoveryService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{uuid}/failover")
     @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN }, blockProxies = true)
-    public Response doFailover(@PathParam("uuid") String uuid) {
+    public Response doFailover(@PathParam("uuid") String uuid,
+                               @QueryParam("noautoresume") boolean noAutoResume) {
         log.info("Begin to failover for standby UUID {}", uuid);
 
         Site currentSite = drUtil.getSiteFromLocalVdc(uuid);
@@ -1335,6 +1335,10 @@ public class DisasterRecoveryService {
 
             drUtil.updateVdcTargetVersion(uuid, SiteInfo.DR_OP_FAILOVER, vdcTargetVersion, oldActiveSite.getUuid(), currentSite.getUuid());
             coordinator.commitTransaction();
+
+            // Disable auto resume for testing purpose. This is for internal use.
+            disableAutoResumeIfNeeded(noAutoResume);
+
             auditDisasterRecoveryOps(OperationTypeEnum.FAILOVER, AuditLogManager.AUDITLOG_SUCCESS, AuditLogManager.AUDITOP_BEGIN,
                     oldActiveSite.toBriefString(), currentSite.toBriefString());
             return Response.status(Response.Status.ACCEPTED).build();
@@ -1345,6 +1349,10 @@ public class DisasterRecoveryService {
                     currentSite.getName(), currentSite.getVipEndPoint());
             throw APIException.internalServerErrors.failoverFailed(currentSite.getName(), e.getMessage());
         }
+    }
+
+    private void disableAutoResumeIfNeeded(boolean noAutoResume) {
+        drUtil.setInternalProperty(DrUtil.CONFIG_KEY_AUTO_RESUME, "false");
     }
 
     /**
@@ -2292,6 +2300,11 @@ public class DisasterRecoveryService {
                 return;
             }
 
+            if (isAutoResumeDisabled()) {
+                log.info("The auto resume is disabled. Skip running this cycle");
+                return;
+            }
+
             List<Site> degradedSites = getDegradedSites();
 
             for (Site degradedSite : degradedSites) {
@@ -2311,6 +2324,14 @@ public class DisasterRecoveryService {
 
                 log.info("Resuming site {} is done with the result {}", degradedSite.getSiteShortId(), resumeResult);
             }
+        }
+
+        private boolean isAutoResumeDisabled() {
+            String autoResume = drUtil.getInternalProperty(DrUtil.CONFIG_KEY_AUTO_RESUME);
+            if (autoResume == null) {
+                return false;
+            }
+            return Boolean.parseBoolean(autoResume);
         }
 
         /**

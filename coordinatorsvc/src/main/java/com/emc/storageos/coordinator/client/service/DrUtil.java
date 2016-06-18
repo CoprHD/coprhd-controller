@@ -80,6 +80,10 @@ public class DrUtil {
     public static final String KEY_DB_GC_GRACE_PERIOD = "db_gc_grace_period_millis";
     public static final String KEY_MAX_NUMBER_OF_DR_SITES = "max_number_of_dr_sites";
 
+    private static final String DR_INTERNAL_PROP_ID = "v1"; // just stake holder
+    private static final String DR_INTERNAL_PROP_KIND = "InternalProps";
+    public static final String CONFIG_KEY_AUTO_RESUME = "autoresume";
+
     private CoordinatorClient coordinator;
 
     public DrUtil() {
@@ -792,5 +796,17 @@ public class DrUtil {
     
         //the ping suceeded, convert from ns to ms
         return timeToRespond/1000000.0;
+    }
+
+    public void setInternalProperty(String key, String value) {
+        ConfigurationImpl config = new ConfigurationImpl();
+        config.setKind(DR_INTERNAL_PROP_KIND);
+        config.setId(DR_INTERNAL_PROP_ID);
+        config.setConfig(key, value);
+    }
+
+    public String getInternalProperty(String key) {
+        Configuration drInternalProps = coordinator.queryConfiguration(getLocalSite().getUuid(), DR_INTERNAL_PROP_KIND, DR_INTERNAL_PROP_ID);
+        return drInternalProps.getConfig(key);
     }
 }

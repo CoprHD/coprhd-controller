@@ -80,7 +80,7 @@ public class HP3PARApi {
     private static final String URI_CG_LIST_DETAILS = "/api/v1/volumesets";
     
     // For ingestion
-    private static final String URI_VLUNS_OF_VOLUME = "/api/v1/vluns?query=”volumeWWN EQ {}";
+    private static final String URI_VLUNS_OF_VOLUME = "/api/v1/vluns?query=\"volumeWWN EQ {}";
     
     // For export
     private static final String URI_CREATE_VLUN = "/api/v1/vluns";
@@ -681,6 +681,7 @@ public class HP3PARApi {
                 "\"hostname\":\"" + hostName + "\"" + ", \"autoLun\":" + autoLun + ", \"maxAutoLun\": 0";
 
         // port is specified for matched set; not for host set
+        // only matched-set export is supported
         if (portId != null) {
             String[] pos = portId.split(":");
             String portPos = String.format(", \"portPos\":{\"node\":%s, \"slot\":%s, \"cardPort\":%s}", pos[0], pos[1], pos[2]);

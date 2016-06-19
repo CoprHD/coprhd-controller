@@ -1070,7 +1070,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 
         try {
             HP3PARApi hp3parApi = getHP3PARDeviceFromNativeId(storageId);
-            HostCommandResult hostRes = hp3parApi.getHostDetails();
+            HostCommandResult hostRes = hp3parApi.getAllHostDetails();
 
             Complete:
                 // for each host in 3par
@@ -1233,40 +1233,127 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 
         _log.info("3PARDriver:exportVolumesToInitiators leave");
         return task;
-    }
-
+    }  
     
-    private void getCluseterStoragePorts(HostMember hostRes, List<StoragePort> recommendedPorts, 
-            List<StoragePort> availablePorts, List <StoragePort> clusterPorts) {
-
-        for(StoragePort sp:recommendedPorts) {
-            String[] pos = sp.getPortNetworkId().split(":");
-            ArrayList<FcPath> fcPath = hostRes.getFCPaths();
+    private void getInitiatorPaths(List<Initiator> initiators, List<Position> initiatorPaths, String storageId, String host) 
+            throws Exception {
+        HP3PARApi hp3parApi = getHP3PARDeviceFromNativeId(storageId);
+        
+        for (Initiator init:initiators) {
+            HostMember hostMemb = hp3parApi.getHostDetails(host);
             
-            for (int index = 0; index < fcPath.size(); index++) {
-                FcPath fc = fcPath.get(index);
-
-                if ((fc.getPostPos().getNode().toString().compareToIgnoreCase(pos[0]) == 0) &&
-                        (fc.getPostPos().getSlot().toString().compareToIgnoreCase(pos[1]) == 0) &&
-                        (fc.getPostPos().getCardPort().toString().compareToIgnoreCase(pos[2]) == 0) ) {
-                    
-                    // host connected array port
-                    clusterPorts.add(sp);
+            if (init.getProtocol().toString().compareToIgnoreCase(Protocols.FC.toString()) == 0 || 
+                    init.getProtocol().toString().compareToIgnoreCase(Protocols.FCoE.toString()) == 0) {
+                // verify in all FC ports with host 
+                for (int kFc = 0; kFc < hostMemb.getFCPaths().size(); kFc++) {
+                    FcPath fcPath = hostMemb.getFCPaths().get(kFc);
+                    if (SanUtils.formatWWN(fcPath.getWwn()).compareToIgnoreCase(init.getPort()) == 0) {
+                        Position pos = fcPath.getPortPos();
+                        if (initiatorPaths.contains(pos) == false) {
+                            initiatorPaths.add(pos);
+                        }
+                    }
                 }
-            }
-        }
+            } else {
+                // if iSCSI ports
+                // verify in all FC ports with host 
+                for (int kSc = 0; kSc < hostMemb.getFCPaths().size(); kSc++) {
+                    ISCSIPath scsiPath = hostMemb.getiSCSIPaths().get(kSc);
+                    if (scsiPath.getName().compareToIgnoreCase(init.getPort()) == 0) {
+                        Position pos = scsiPath.getPortPos();
+                        if (initiatorPaths.contains(pos) == false) {
+                            initiatorPaths.add(pos);
+                        }
+                    }
+                }
+            } //end if FC/iSCSI
+        }//end for
     }
     
     /*
      * Single initiator might have multiple volumes and single volume could be exported to multiple initiators
      * All volumes will be tried for unexport from all initiators
-     *  
      */
     @Override
     public DriverTask unexportVolumesFromInitiators(List<Initiator> initiators, List<StorageVolume> volumes) {
-    	_log.info("3PARDriver: unexportVolumesFromInitiators Running ");
-        // TODO Auto-generated method stub
-        return null;
+        DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_UNEXPORT_STORAGE_VOLUMES);
+        _log.info("3PARDriver:unexportVolumesFromInitiators enter");
+
+        // Unexport happens only for one host at a time
+        ArrayList<Position> initiatorPaths = new ArrayList<>();
+        String host = null;
+        int totalUnexport = 0;
+
+        try {
+            host = get3parHostname(initiators, volumes.get(0).getStorageSystemId());
+            if (host == null) {
+                _log.error("3PARDriver:unexportVolumesFromInitiators error in processing host name");
+                throw new HP3PARException("3PARDriver:unexportVolumesFromInitiators error in processing host name");
+            }
+
+            // get list of portPaths with host initiator list
+            getInitiatorPaths(initiators, initiatorPaths, volumes.get(0).getStorageSystemId(), host);
+        } catch (Exception e) {
+            String msg = String.format("3PARDriver:unexportVolumesFromInitiators error : %s", 
+                    e.getMessage());
+            _log.error(msg);
+            task.setMessage(msg);
+            task.setStatus(DriverTask.TaskStatus.FAILED);
+            e.printStackTrace();
+            return task;
+        }
+
+        // unexport each volume
+        for (StorageVolume volume:volumes) {
+            try {
+                // get Api client for volume specific array
+                HP3PARApi hp3parApi = getHP3PARDeviceFromNativeId(volume.getStorageSystemId());
+
+                // get vlun and port details on this export
+                // Will be made more efficient
+                Integer lun = -1;
+                Position pos = null;
+                VirtualLunsList vlunRes = hp3parApi.getAllVlunDetails();
+
+                for (int index = 0; index < vlunRes.getTotal(); index++) {
+                    VirtualLun vLun = vlunRes.getMembers().get(index);
+                    if (volume.getNativeId().compareTo(vLun.getVolumeName()) != 0 || vLun.isActive() == false
+                            || host.compareTo(vLun.getHostName()) != 0) {
+                        continue;
+                    }
+
+                    lun = vLun.getLun();
+                    pos = vLun.getPortPos();
+
+                    String message = String.format("3PARDriver:unexportVolumesFromInitiators for "
+                            + "storage system %s, volume %s host %s hlu %s port %s", 
+                            volume.getStorageSystemId(), volume.getNativeId(), host, lun.toString(), pos.toString());
+                    _log.info(message);
+
+                    // Multiple host initiators can map to same or different array target ports
+                    // hence port can not be determined
+                    // Currently unexport will happen from all array ports as we need to get this info from SDK
+                    if (initiatorPaths.contains(pos) == true) {
+                        String posStr = String.format("%s:%s:%s", pos.getNode(), pos.getSlot(), pos.getCardPort());
+                        hp3parApi.deleteVlun(volume.getNativeId(), lun.toString(), host, posStr);
+                        totalUnexport++;
+                    }
+                }
+            } catch (Exception e) {
+                String msg = String.format("3PARDriver: Unable to unexport few volumes, error: %s", e.getMessage());
+                _log.error(msg);
+                task.setMessage(msg);
+                task.setStatus(DriverTask.TaskStatus.PARTIALLY_FAILED);
+                e.printStackTrace();
+            }
+        } //for each volume
+
+        if (totalUnexport == volumes.size()) {
+            task.setStatus(DriverTask.TaskStatus.READY);
+        }
+        
+        _log.info("3PARDriver:unexportVolumesFromInitiatorss leave");
+        return task;
     }
 
     @Override

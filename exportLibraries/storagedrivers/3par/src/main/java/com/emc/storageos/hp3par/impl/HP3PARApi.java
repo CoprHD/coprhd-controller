@@ -87,6 +87,8 @@ public class HP3PARApi {
     private static final String URI_HOSTS = "/api/v1/hosts";
     private static final String URI_HOSTSET_DETAILS = "/api/v1/hostsets/{0}";
     private static final String URI_HOST_DETAILS = "/api/v1/hosts/{0}";
+    private static final String URI_VLUNS = "/api/v1/vluns";
+    private static final String URI_DELETE_VLUN = "/api/v1/vluns/{0},{1},{2},{3}";
 
     
     public HP3PARApi(URI endpoint, RESTClient client, String userName, String pass) {
@@ -391,8 +393,8 @@ public class HP3PARApi {
         } //end try/catch/finally
     }
 
-    public HostCommandResult getHostDetails() throws Exception {
-        _log.info("3PARDriver:getHostDetails enter");
+    public HostCommandResult getAllHostDetails() throws Exception {
+        _log.info("3PARDriver:getAllHostDetails enter");
         ClientResponse clientResp = null;
 
         try {
@@ -405,7 +407,7 @@ public class HP3PARApi {
                 throw new HP3PARException(errResp);
             } else {
                 String responseString = clientResp.getEntity(String.class);
-                _log.info("3PARDriver:getHostDetails 3PAR response is {}", responseString);
+                _log.info("3PARDriver:getAllHostDetails 3PAR response is {}", responseString);
                 HostCommandResult hostResult = new Gson().fromJson(sanitize(responseString),
                         HostCommandResult.class);
                 return hostResult;
@@ -416,7 +418,7 @@ public class HP3PARApi {
             if (clientResp != null) {
                 clientResp.close();
             }
-            _log.info("3PARDriver:getHostDetails leave");
+            _log.info("3PARDriver:getAllHostDetails leave");
         } //end try/catch/finally
     }    
 
@@ -590,7 +592,7 @@ public class HP3PARApi {
                 String errResp = getResponseDetails(clientResp);
                 throw new HP3PARException(errResp);
             } else {
-                _log.info("3PARDriver:deleteVolume success");
+                _log.info("3PARDriver:deleteVolume success ", name);
             }
         } catch (Exception e) {
             throw e;
@@ -777,7 +779,62 @@ public class HP3PARApi {
             _log.info("3PARDriver:getHostDetails leave");
         } //end try/catch/finally
     }
-    
+
+    public VirtualLunsList getAllVlunDetails() throws Exception {
+        _log.info("3PARDriver:getAllVlunDetails enter");
+        ClientResponse clientResp = null;
+
+        try {
+            clientResp = get(URI_VLUNS);
+            if (clientResp == null) {
+                _log.error("3PARDriver:There is no response from 3PAR");
+                throw new HP3PARException("There is no response from 3PAR");
+            } else if (clientResp.getStatus() != 200) {
+                String errResp = getResponseDetails(clientResp);
+                throw new HP3PARException(errResp);
+            } else {
+                String responseString = clientResp.getEntity(String.class);
+                _log.info("3PARDriver:getAllVlunDetails 3PAR response is {}", responseString);
+                VirtualLunsList vlunResult = new Gson().fromJson(sanitize(responseString),
+                        VirtualLunsList.class);
+                return vlunResult;
+            }
+        } catch (Exception e) {
+            throw e;
+        } finally {
+            if (clientResp != null) {
+                clientResp.close();
+            }
+            _log.info("3PARDriver:getAllVlunDetails leave");
+        } //end try/catch/finally
+    }    
+
+    public void deleteVlun(String volName, String lun, String hostName, String pos) throws Exception {
+        _log.info("3PARDriver:deleteVlun enter");
+        ClientResponse clientResp = null;
+        final String path = MessageFormat.format(URI_DELETE_VLUN, volName, lun, hostName, pos);
+
+        try {
+            clientResp = delete(path);
+            if (clientResp == null) {
+                _log.error("3PARDriver:There is no response from 3PAR");
+                throw new HP3PARException("There is no response from 3PAR");
+            } else if (clientResp.getStatus() != 200) {
+                String errResp = getResponseDetails(clientResp);
+                throw new HP3PARException(errResp);
+            } else {
+                _log.info("3PARDriver:deleteVlun success " + volName);
+            }
+        } catch (Exception e) {
+            throw e;
+        } finally {
+            if (clientResp != null) {
+                clientResp.close();
+            }
+            _log.info("3PARDriver:deleteVlun leave");
+        } //end try/catch/finally
+    }    
+
     private CompleteError getCompleteResponseDetails(ClientResponse clientResp) {
         String detailedResponse = null, ref=null;
         CompleteError compError = null;

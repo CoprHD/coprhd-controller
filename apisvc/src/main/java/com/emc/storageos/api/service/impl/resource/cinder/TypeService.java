@@ -32,6 +32,7 @@ import com.emc.storageos.cinder.model.VolumeType;
 import com.emc.storageos.cinder.model.VolumeTypeEncryption;
 import com.emc.storageos.cinder.model.VolumeTypeEncryptionResponse;
 import com.emc.storageos.cinder.model.VolumeTypesRestResp;
+import com.emc.storageos.cinder.CinderConstants;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.model.RelatedResourceRep;
@@ -48,7 +49,6 @@ import com.emc.storageos.security.authorization.Role;
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class TypeService extends TaskResourceService {
     private static final Logger _log = LoggerFactory.getLogger(TypeService.class);
-    private static final int STATUS_OK = 200;
 
     @Override
     public Class<VirtualPool> getResourceClass() {
@@ -90,7 +90,7 @@ public class TypeService extends TaskResourceService {
             }
         }
         _log.info("END get list of volume types");
-        return CinderApiUtils.getCinderResponse(types, header, false,STATUS_OK);
+        return CinderApiUtils.getCinderResponse(types, header, false,CinderConstants.STATUS_OK);
     }
 
     /**
@@ -129,7 +129,7 @@ public class TypeService extends TaskResourceService {
             }
         }
         _log.debug("END get volume types {}", volume_type_id);
-        return CinderApiUtils.getCinderResponse(volType, header, true,STATUS_OK);
+        return CinderApiUtils.getCinderResponse(volType, header, true,CinderConstants.STATUS_OK);
     }
 
     /**
@@ -158,7 +158,7 @@ public class TypeService extends TaskResourceService {
         encryptionRes.setEncryption(volType);
 
         _log.debug("END get volume type encryption {}", volume_type_id);
-        return CinderApiUtils.getCinderResponse(encryptionRes, header, true,STATUS_OK);
+        return CinderApiUtils.getCinderResponse(encryptionRes, header, true,CinderConstants.STATUS_OK);
     }
 
     /**

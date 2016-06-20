@@ -259,6 +259,8 @@ _gen_syslog_config_encrypt() {
 	local remoteconfFile='/etc/rsyslog.d/remote.conf'
 
 	# Default settings of the remote.conf w.r.t TLS Syslog Client
+	defaultRemote_Comment1="# -- TLS Syslog Client:"
+	defaultRemote_Comment2="## certificate files - just CA for a client"	
 	defaultRemote_NetstreamDriverCAFile="#\$DefaultNetstreamDriverCAFile /etc/rsyslog.d/ca.pem"
 	defaultRemote_Blank="#"
 	defaultRemote_Description="## set up the action"
@@ -312,8 +314,12 @@ _gen_syslog_config_encrypt() {
 		done
 	
 	# Deleting the TLS Syslog Client configuration details from the file and rebuilding it with default values
-	sed -i '71,$ d' "$remoteconfFile"
-	( echo -e "$defaultRemote_NetstreamDriverCAFile"
+	#sed -i '71,$ d' "$remoteconfFile"
+	#sed -i "/\$remotePattern/,+8d" "$remoteconfFile"
+	sed -i '/TLS Syslog Client/,$ d' "$remoteconfFile"
+	( echo -e "$defaultRemote_Comment1"
+	  echo -e "$defaultRemote_Comment2"
+	  echo -e "$defaultRemote_NetstreamDriverCAFile"
 	  echo -e "$defaultRemote_Blank"
 	  echo -e "$defaultRemote_Description"
 	  echo -e "$defaultRemote_NetstreamDriver"
@@ -333,8 +339,12 @@ _gen_syslog_config_encrypt() {
 
 		# Deleting previous TLS Syslog Client configuration details from the file and rebuilding it with new values
 		remote_NetstreamDriverCAFile=$(printf "%s%s" "$remote_NetstreamDriverCAFile""   ""$serverCertPath")
-		sed -i '71,$ d' "$remoteconfFile"
-		( echo -e "$remote_NetstreamDriverCAFile"
+		#sed -i '71,$ d' "$remoteconfFile"
+		#sed -i "/\$remotePattern/,+8d" "$remoteconfFile"
+		sed -i '/TLS Syslog Client/,$ d' "$remoteconfFile"
+		( echo -e "$defaultRemote_Comment1"
+		  echo -e "$defaultRemote_Comment2"
+		  echo -e "$remote_NetstreamDriverCAFile"
 		  echo -e "$remote_Blank"
 		  echo -e "$remote_Description"
 		  echo -e "$remote_NetstreamDriver"

@@ -6,26 +6,21 @@ package com.emc.storageos.db.client.constraint.impl;
 
 import java.net.URI;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.Statement;
 import com.emc.storageos.db.client.constraint.ContainmentPrefixConstraint;
 import com.emc.storageos.db.client.impl.ColumnField;
 import com.emc.storageos.db.client.impl.IndexColumnName;
 import com.emc.storageos.db.client.model.DataObject;
-import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
-import com.netflix.astyanax.query.RowQuery;
 
 /**
  * default implementation for full name matcher
  */
 public class ContainmentLabelConstraintImpl extends ConstraintImpl implements ContainmentPrefixConstraint {
-    private static final Logger log = LoggerFactory.getLogger(ContainmentLabelConstraintImpl.class);
 
     private URI _indexKey;
     private String _prefix;
-    private Keyspace _keyspace;
     private ColumnField _field;
 
     public ContainmentLabelConstraintImpl(URI indexKey, String prefix, ColumnField field) {
@@ -36,13 +31,8 @@ public class ContainmentLabelConstraintImpl extends ConstraintImpl implements Co
         _field = field;
     }
 
-    @Override
-    public void setKeyspace(Keyspace keyspace) {
-        _keyspace = keyspace;
-    }
-
     protected <T> void queryOnePage(final QueryResult<T> result) throws ConnectionException {
-        queryOnePageWithAutoPaginate(genQuery(), result);
+        queryOnePageWithAutoPaginate(genQueryStatement(), result);
     }
 
     @Override
@@ -54,14 +44,22 @@ public class ContainmentLabelConstraintImpl extends ConstraintImpl implements Co
     protected <T> T createQueryHit(final QueryResult<T> result, IndexColumnName column) {
         return result.createQueryHit(getURI(column), column.getThree(), column.getTimeUUID());
     }
-
+    
     @Override
-    protected RowQuery<String, IndexColumnName> genQuery() {
-        RowQuery<String, IndexColumnName> query = _keyspace.prepareQuery(_field.getIndexCF())
-                .getKey(_indexKey.toString())
-                .withColumnRange(_field.buildMatchRange(_prefix, pageCount));
-
-        return query;
+    protected Statement genQueryStatement() {
+        StringBuilder queryString = new StringBuilder();
+        queryString.append("select").append(" * from \"").append(_field.getIndexCF().getName()).append("\"");
+        queryString.append(" where key=?");
+        queryString.append(" and column1=?");
+        queryString.append(" and column2=?");
+        
+        PreparedStatement preparedStatement = this.dbClientContext.getPreparedStatement(queryString.toString());
+        Statement statement =  preparedStatement.bind(_indexKey.toString(),
+                _field.getDataObjectType().getSimpleName(),
+                _prefix.toLowerCase());
+        statement.setFetchSize(pageCount);
+        
+        return statement;
     }
 
     @Override

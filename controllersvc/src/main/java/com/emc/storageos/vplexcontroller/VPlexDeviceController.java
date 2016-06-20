@@ -5406,7 +5406,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         } catch (Exception e) {
             _log.info("Exception attempting to validate the backend volumes for VPLEX volume {}", vplexVolumeURI);
             ServiceCoded sc = DeviceControllerExceptions.vplex.failureValidatingVplexVolume(
-                    vplexVolume != null ? vplexVolume.getLabel() : vplexVolumeURI.toString());
+                    vplexVolumeURI.toString(), (vplexVolume != null ? vplexVolume.getLabel() : ""), e.getMessage());
             WorkflowStepCompleter.stepFailed(stepId, sc);
         }
     }

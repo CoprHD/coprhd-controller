@@ -799,23 +799,23 @@ public interface VPlexApiExceptions {
     public VPlexApiException vplexVolumeExpansionBlockCountNotUpdated(final String volumeName);
     
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
-    public VPlexApiException vplexMirrorDoesNotHaveAssociatedVolumes(final String volumeId, final String mirrorId);
+    public VPlexApiException vplexMirrorDoesNotHaveAssociatedVolumes(final String vplexVolumeId, final String mirrorId);
     
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
-    public VPlexApiException failureValidatingVplexVolume(final String volumeId);
+    public VPlexApiException failureValidatingVplexVolume(final String vplexVolumeId, final String vplexVolumeName, final String message);
     
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
-    public VPlexApiException couldNotFindVolumeForValidation(final String volumeId);
+    public VPlexApiException couldNotFindVolumeForValidation(final String vplexVolumeId);
     
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
-    public VPlexApiException noSupportingDeviceForValidation(final String volumeId);
+    public VPlexApiException noSupportingDeviceForValidation(final String vplexVolumeId);
     
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
-    public VPlexApiException invalidVolumeInfoForValidation(final String volumeId);
+    public VPlexApiException invalidVolumeInfoForValidation(final String vplexVolumeId, final String locality);
     
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
-    public VPlexApiException failFindingExpectedBackendVolumesForValidation(final String storageVolumeId);
+    public VPlexApiException failFindingExpectedBackendVolumesForValidation(final String vplexVolumeId, final int expectedCount, final int foundCount);
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
-    public VPlexApiException storageVolumeFailedValidation(final String storageVolumeId, final String vplexVolumeId);
+    public VPlexApiException storageVolumeFailedValidation(final String vplexVolumeId, final String storageVolumeId);
 }

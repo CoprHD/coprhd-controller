@@ -1803,7 +1803,7 @@ public class VPlexApiClient {
         if (((VPlexVirtualVolumeInfo.Locality.distributed.name().equals(locality)) && (clusterNames.size() != 2)) ||
                 ((VPlexVirtualVolumeInfo.Locality.local.name().equals(locality)) && (clusterNames.size() != 1))) {
             s_logger.error("Invalid native volume information passed for validation of VPLEX volume {}", virtualVolumeName);
-            throw VPlexApiException.exceptions.invalidVolumeInfoForValidation(virtualVolumeName);
+            throw VPlexApiException.exceptions.invalidVolumeInfoForValidation(virtualVolumeName, locality);
         }
         
         // Get the cluster information, which will get the storage volume 
@@ -1836,7 +1836,8 @@ public class VPlexApiClient {
             // Validate we found these volumes.
             if (expectedStorageVolumeInfoList.size() != nativeVolumeInfoList.size()) {
                 s_logger.error("Did not find all expected backend volumes for VPLEX volume {}", virtualVolumeName);
-                throw VPlexApiException.exceptions.failFindingExpectedBackendVolumesForValidation(virtualVolumeName);                
+                throw VPlexApiException.exceptions.failFindingExpectedBackendVolumesForValidation(virtualVolumeName,
+                        nativeVolumeInfoList.size(), expectedStorageVolumeInfoList.size());                
             }
             
             // Get the actual backend storage volumes used by the supporting device of
@@ -1860,8 +1861,8 @@ public class VPlexApiClient {
                 }
                 if (!volumeMatch) {
                     s_logger.error("Failed to validate storage volume {}", expectedStorageVolumeName);
-                    throw VPlexApiException.exceptions.storageVolumeFailedValidation(expectedStorageVolumeName,
-                            virtualVolumeName);
+                    throw VPlexApiException.exceptions.storageVolumeFailedValidation(virtualVolumeName,
+                            expectedStorageVolumeName);
                 }
             }                
         }

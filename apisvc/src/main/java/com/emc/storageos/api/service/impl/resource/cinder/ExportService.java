@@ -89,6 +89,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.networkcontroller.impl.NetworkAssociationHelper;
+import com.emc.storageos.api.service.impl.resource.utils.CinderApiUtils;
 
 @Path("/v2/{tenant_id}/volumes")
 @DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN },
@@ -102,6 +103,7 @@ public class ExportService extends VolumeService {
     private static final int RETRY_COUNT = 15;
     private NameGenerator _nameGenerator;
     private static final String STATUS = "status";
+    private static final String NEW_SIZE = "new_size";
 
     public NameGenerator getNameGenerator() {
         return _nameGenerator;
@@ -184,8 +186,20 @@ public class ExportService extends VolumeService {
             bAttach = true;
         if (input.contains(ExportOperations.OS_INITIALIZE_CONNECTION.getOperation()))
             bInitCon = true;
-        if (input.contains(ExportOperations.OS_EXTEND.getOperation())) // for expand volume
+
+        if (input.contains(ExportOperations.OS_EXTEND.getOperation())){ // for expand volume
+                //expand size has to be numeric and  null size can't be accepted
+		        // for expand volume verify passed extendsize is in numeric format
+			    // otherwise it will result in Bad Request for improper input
+        		String[] extendStrings =input.split(":");
+        		String sizeString = extendStrings[2].replaceAll("}","");
+        		_log.debug("extend string size value  = {}", sizeString);
+        		if ((sizeString == null) || !isNumeric(sizeString.trim())){
+        			_log.info("Improper extend size ={}",sizeString.trim());
+        			return CinderApiUtils.createErrorResponse(400, "Bad request : improper volume extend size ");   
+        		}
             bExtend = true;
+        }
         if (input.contains(ExportOperations.OS_SET_BOOTABLE.getOperation()))
             bBootable = true;
         if (input.contains(ExportOperations.OS_UPDATE_READONLY.getOperation()))
@@ -208,8 +222,10 @@ public class ExportService extends VolumeService {
         Gson gson = new Gson();
         VolumeActionRequest action = gson.fromJson(input, VolumeActionRequest.class);
         Volume vol = findVolume(volumeId, openstackTenantId);
-        if (vol == null)
-            throw APIException.badRequests.parameterIsNotValid(volumeId);
+        if (vol == null){
+        	_log.info("Invalid volume id ={} ",volumeId);
+        	return CinderApiUtils.createErrorResponse(404, "Not Found :  Invaild volume id");
+        }
 
         // Step 2: Check if the user has rights for volume modification
         verifyUserCanModifyVolume(vol);
@@ -298,6 +314,11 @@ public class ExportService extends VolumeService {
         }
         else if (bReserve) {
             _log.info("IN THE IF CONDITION OF RESERVE");
+            if (getVolExtensions(vol).containsKey("status")
+                    && getVolExtensions(vol).get("status").equals(ComponentStatus.ATTACHING.getStatus().toLowerCase())){
+            	_log.debug("Reserved Volume cannot be  reserved again");
+            	return CinderApiUtils.createErrorResponse(400, "Bad request :  volume is already reserved");          	
+            }
             processReserveRequest(vol, openstackTenantId);
             return Response.status(202).build();
         }
@@ -330,7 +351,20 @@ public class ExportService extends VolumeService {
             _log.info("Extend existing volume size");
 
             if (action.extendVol != null) {
-                extendExistingVolume(vol, action.extendVol, openstackTenantId, volumeId);
+                if (volumeId == null){
+                	_log.info("Source volume id is empty ");
+                	return CinderApiUtils.createErrorResponse(404, "Not Found :  source volume id is empty");
+                }
+                long extend_size = action.extendVol.new_size * GB;
+                if (extend_size <= vol.getCapacity()) {
+                    _log.info(String.format(
+                            "expandVolume: VolumeId id: %s, Current size: %d, New size: %d ", volumeId, vol.getCapacity(), extend_size));
+                    return CinderApiUtils.createErrorResponse(400, "Bad request :  New size should be larger than old");
+                }
+                
+                
+                //action.extendVol.new_size 
+                extendExistingVolume(vol, extend_size, openstackTenantId, volumeId);
                 return Response.status(202).build();
             }
             else {
@@ -609,8 +643,9 @@ public class ExportService extends VolumeService {
         // and delete the exportGroup
     }
 
-    private TaskResourceRep extendExistingVolume(Volume vol, VolumeActionRequest.ExtendVolume extendExistVol,
+    private TaskResourceRep extendExistingVolume(Volume vol, Long newSize,
             String openstackTenantId, String volumeId) {
+    	
 
         // Check if the volume is on VMAX V3 which doesn't support expansion yet
         StorageSystem storage = _dbClient.queryObject(StorageSystem.class, vol.getStorageController());
@@ -632,8 +667,8 @@ public class ExportService extends VolumeService {
         VolumeIngestionUtil.checkOperationSupportedOnIngestedVolume(vol,
                 ResourceOperationTypeEnum.EXPAND_BLOCK_VOLUME, _dbClient);
 
+
         // Get the new size.
-        Long newSize = extendExistVol.new_size * GB;
 
         // verify quota in cinder side
         Project project = getCinderHelper().getProject(openstackTenantId, getUserFromContext());
@@ -654,10 +689,6 @@ public class ExportService extends VolumeService {
                                     +
                                     "VolumeId id: %s, Current size: %d, New size: %d, Dangling volumes: %s ", volumeId,
                             vol.getCapacity(), newSize, vol.getMetaVolumeMembers()));
-        } else if (newSize <= vol.getCapacity()) {
-            _log.info(String.format(
-                    "expandVolume: VolumeId id: %s, Current size: %d, New size: %d ", volumeId, vol.getCapacity(), newSize));
-            throw APIException.badRequests.newSizeShouldBeLargerThanOldSize("volume");
         }
 
         _log.info(String.format(
@@ -1013,6 +1044,18 @@ public class ExportService extends VolumeService {
         else
             return true;
 
+    }
+
+    private static boolean isNumeric(String str)
+    {
+        for (char c : str.toCharArray())
+        {
+            if (!Character.isDigit(c)){
+            	_log.info("{} Is Not Numeric",Character.isDigit(c));
+            	return false;
+            }
+        }
+        return true;
     }
 
     private Host searchHostInDb(String hostname) {

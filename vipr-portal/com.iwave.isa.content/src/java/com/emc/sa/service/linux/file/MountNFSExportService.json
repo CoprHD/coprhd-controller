@@ -17,7 +17,7 @@
     },
     
     subDirectory:{
-      type:"assetType.vipr.subDirectory"
+      type:"assetType.vipr.subDirectory",
       required: "false"
     },
     

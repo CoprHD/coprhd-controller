@@ -15,7 +15,7 @@ add_volume_to_mask() {
     serial_number=$1
     device_id=$2
     pattern=$3
-    java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays xio -method remove_volume_from_mask -params ${device_id},${pattern} > ${TMPFILE1} 2> ${TMPFILE2}
+    java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays xio -method add_volume_to_mask -params "${device_id},${pattern}" > ${TMPFILE1} 2> ${TMPFILE2}
 
     echo "Added volume ${device_id} to initiator group ${pattern}"
 }
@@ -24,7 +24,7 @@ remove_volume_from_mask() {
     serial_number=$1
     device_id=$2
     pattern=$3
-    java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays xio -method add_volume_to_mask -params ${device_id},${pattern} > ${TMPFILE1} 2> ${TMPFILE2}
+    java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays xio -method remove_volume_from_mask -params "${device_id},${pattern}" > ${TMPFILE1} 2> ${TMPFILE2}
     echo "Removed volume ${device_id} from initiator group ${pattern}"
 }
 

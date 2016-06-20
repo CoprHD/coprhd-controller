@@ -482,7 +482,7 @@ xio_setup() {
     
     runcmd cos update block $VPOOL_BASE --storage ${XTREMIO_NATIVEGUID}
     ##update tools.yml file with the array details
-    printf 'array:\n  xio:\n  - ip: %s:%s\n    id: APM99990000241\n    username: %s\n    password: %s' "$XIO_SIMULATOR_IP" "$XIO_4X_SIMULATOR_PORT" "$XTREMIO_3X_USER" "$XTREMIO_3X_PASSWD">>${tools_file}
+    printf 'array:\n  xio:\n  - ip: %s:%s\n    id: APM99990000241\n    username: %s\n    password: %s\n    version: 4.0.0-64' "$XIO_SIMULATOR_IP" "$XIO_4X_SIMULATOR_PORT" "$XTREMIO_3X_USER" "$XTREMIO_3X_PASSWD">>${tools_file}
 }
 
 common_setup() {
@@ -607,11 +607,12 @@ test_0() {
 }
 
 set_suspend_on_error() {
-    runcmd syssvc $SANITY_CONFIG_FILE $BOURNE_IPADDR set_prop workflow_suspend_on_error $1
+    runcmd syssvc $SANITY_CONFIG_FILE localhost set_prop workflow_suspend_on_error $1
 }
 
 set_suspend_on_class_method() {
-    runcmd syssvc $SANITY_CONFIG_FILE $BOURNE_IPADDR set_prop workflow_suspend_on_class_method "$1"
+    echo "BOURNE_IPADDR is ${BOURNE_IPADDR}"
+    runcmd syssvc $SANITY_CONFIG_FILE localhost set_prop workflow_suspend_on_class_method "$1"
 }
 
 # Suspend/Resume base test 1
@@ -804,11 +805,11 @@ test_3() {
     # Create another volume that we will inventory-only delete
     runcmd volume create du-hijack-volume ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 1
     device_id=`volume show ${PROJECT}/du-hijack-volume | grep native_id | awk '{print $2}' | cut -c2-6`
-
     if [ "$XTREMIO_TESTS" -eq "1" ]; then
         device_id=`volume show ${PROJECT}/du-hijack-volume | grep device_label | awk '{print $2}' | cut -d '"' -f2`
     fi
 
+    echo "device id is ${device_id}"
 
     runcmd volume delete ${PROJECT}/du-hijack-volume --vipronly
 

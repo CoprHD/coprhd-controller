@@ -59,7 +59,7 @@ function DataTable(selector, columns) {
                   "sSortDescending":    Messages.get("datatable.sortDescending")
               }
             },
-            "aLengthMenu" : [10,25,50,100,200],
+            "aLengthMenu" : [[10,50,100,200,500,-1],[10,50,100,200,500,"All"]],
             "bProcessing": true,
             "bAutoWidth": false,
             "bLengthChange": true,

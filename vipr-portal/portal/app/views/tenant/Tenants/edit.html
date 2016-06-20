@@ -36,7 +36,6 @@ titleKey = 'tenants.' + (tenant?.id ? 'edit' : 'create') + '.title';
 
     #{field 'tenant.description'}
     %{
-        field.required = true
         field.fieldKey = 'tenants.description'
         }%
         #{Form.inputTextControlGroup field:field /}

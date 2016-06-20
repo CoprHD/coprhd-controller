@@ -103,6 +103,7 @@ import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.VirtualPool.RPCopyMode;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
+import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.VplexMirror;
 import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
@@ -152,6 +153,7 @@ import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
 import com.emc.storageos.protectioncontroller.ProtectionController;
 import com.emc.storageos.protectioncontroller.RPController;
 import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
+import com.emc.storageos.protectionorchestrationcontroller.ProtectionOrchestrationController;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.ACL;
@@ -161,13 +163,16 @@ import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.srdfcontroller.SRDFController;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCodeException;
+import com.emc.storageos.util.VPlexSrdfUtil;
 import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.ControllerException;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.volumecontroller.placement.ExportPathUpdater;
 import com.emc.storageos.vplexcontroller.VPlexDeviceController;
@@ -406,6 +411,8 @@ public class BlockService extends TaskResourceService {
                     return taskList;
                 }
             } else if (copy.getType().equalsIgnoreCase(TechnologyType.SRDF.toString())) {
+                id = VPlexSrdfUtil.getSrdfIdFromVolumeId(_dbClient, id);
+                copy.setCopyID(VPlexSrdfUtil.getSrdfIdFromVolumeId(_dbClient, copy.getCopyID()));
                 taskResp = performSRDFProtectionAction(id, copy, ProtectionOp.START.getRestOp());
                 taskList.getTaskList().add(taskResp);
             } else if (copy.getType().equalsIgnoreCase(TechnologyType.NATIVE.toString())) {
@@ -493,6 +500,8 @@ public class BlockService extends TaskResourceService {
             } else if (vplexVolume && copy.getType().equalsIgnoreCase(TechnologyType.NATIVE.toString())) {
                 taskList = stopVplexMirrors(id, copyID);
             } else if (copy.getType().equalsIgnoreCase(TechnologyType.SRDF.toString())) {
+                id = VPlexSrdfUtil.getSrdfIdFromVolumeId(_dbClient, id);
+                copy.setCopyID(VPlexSrdfUtil.getSrdfIdFromVolumeId(_dbClient, copy.getCopyID()));
                 taskResp = performSRDFProtectionAction(id, copy, ProtectionOp.STOP.getRestOp());
                 taskList.getTaskList().add(taskResp);
             } else {
@@ -827,6 +836,17 @@ public class BlockService extends TaskResourceService {
 
             if (!VirtualPool.vPoolSpecifiesSRDF(vpool) && consistencyGroup.checkForType(Types.SRDF)) {
                 throw APIException.badRequests.nonSRDFVolumeCannotbeAddedToSRDFCG();
+            }
+            
+            if (VirtualPool.vPoolSpecifiesSRDF(vpool)) {
+                List<Volume> nativeVolumesInCG = 
+                        BlockConsistencyGroupUtils.getActiveNativeVolumesInCG(consistencyGroup, _dbClient);
+                for (Volume nativeVolume : nativeVolumesInCG) {
+                    // Cannot add volumes if in swapped state. This is a limitation that will eventually be removed.
+                    if (Volume.LinkStatus.SWAPPED.name().equals(nativeVolume.getLinkStatus())) {
+                        throw BadRequestException.badRequests.cannotAddVolumesToSwappedCG(consistencyGroup.getLabel());
+                    }
+                }
             }
 
             // check if CG's storage system is associated to the requested virtual array
@@ -1268,6 +1288,11 @@ public class BlockService extends TaskResourceService {
                 (!getFullCopyManager().volumeCanBeExpanded(volume))) {
             throw APIException.badRequests.fullCopyExpansionNotAllowed(volume.getLabel());
         }
+        
+        // Check for an SRDF volume with snapshots which cannot be expanded.
+        if (VirtualPool.vPoolSpecifiesSRDF(virtualPool)) {
+            validateExpandingSrdfVolume(volume);
+        }
 
         // Make sure that we don't have some pending
         // operation against the volume
@@ -1401,6 +1426,8 @@ public class BlockService extends TaskResourceService {
             taskResp = performProtectionAction(id, copy, ProtectionOp.FAILOVER_TEST.getRestOp());
             taskList.getTaskList().add(taskResp);
         } else if (copy.getType().equalsIgnoreCase(TechnologyType.SRDF.toString())) {
+            id = VPlexSrdfUtil.getSrdfIdFromVolumeId(_dbClient, id);
+            copy.setCopyID(VPlexSrdfUtil.getSrdfIdFromVolumeId(_dbClient, copy.getCopyID()));
             taskResp = performSRDFProtectionAction(id, copy, ProtectionOp.FAILOVER_TEST.getRestOp());
             taskList.getTaskList().add(taskResp);
         } else {
@@ -1447,6 +1474,8 @@ public class BlockService extends TaskResourceService {
             taskResp = performProtectionAction(id, copy, ProtectionOp.SWAP.getRestOp());
             taskList.getTaskList().add(taskResp);
         } else if (copy.getType().equalsIgnoreCase(TechnologyType.SRDF.toString())) {
+            id = VPlexSrdfUtil.getSrdfIdFromVolumeId(_dbClient, id);
+            copy.setCopyID(VPlexSrdfUtil.getSrdfIdFromVolumeId(_dbClient, copy.getCopyID()));
             taskResp = performSRDFProtectionAction(id, copy, ProtectionOp.SWAP.getRestOp());
             taskList.getTaskList().add(taskResp);
         } else {
@@ -1492,6 +1521,8 @@ public class BlockService extends TaskResourceService {
             taskResp = performProtectionAction(id, copy, ProtectionOp.FAILOVER_CANCEL.getRestOp());
             taskList.getTaskList().add(taskResp);
         } else if (copy.getType().equalsIgnoreCase(TechnologyType.SRDF.toString())) {
+            id = VPlexSrdfUtil.getSrdfIdFromVolumeId(_dbClient, id);
+            copy.setCopyID(VPlexSrdfUtil.getSrdfIdFromVolumeId(_dbClient, copy.getCopyID()));
             taskResp = performSRDFProtectionAction(id, copy, ProtectionOp.FAILOVER_CANCEL.getRestOp());
             taskList.getTaskList().add(taskResp);
         } else {
@@ -1551,6 +1582,8 @@ public class BlockService extends TaskResourceService {
             taskResp = performProtectionAction(id, copy, ProtectionOp.FAILOVER_TEST_CANCEL.getRestOp());
             taskList.getTaskList().add(taskResp);
         } else if (copy.getType().equalsIgnoreCase(TechnologyType.SRDF.toString())) {
+            id = VPlexSrdfUtil.getSrdfIdFromVolumeId(_dbClient, id);
+            copy.setCopyID(VPlexSrdfUtil.getSrdfIdFromVolumeId(_dbClient, copy.getCopyID()));
             taskResp = performSRDFProtectionAction(id, copy, ProtectionOp.FAILOVER_TEST_CANCEL.getRestOp());
             taskList.getTaskList().add(taskResp);
         } else {
@@ -1611,6 +1644,8 @@ public class BlockService extends TaskResourceService {
             taskResp = performProtectionAction(id, copy, ProtectionOp.FAILOVER.getRestOp());
             taskList.getTaskList().add(taskResp);
         } else if (copy.getType().equalsIgnoreCase(TechnologyType.SRDF.toString())) {
+            id = VPlexSrdfUtil.getSrdfIdFromVolumeId(_dbClient, id);
+            copy.setCopyID(VPlexSrdfUtil.getSrdfIdFromVolumeId(_dbClient, copy.getCopyID()));
             taskResp = performSRDFProtectionAction(id, copy, ProtectionOp.FAILOVER.getRestOp());
             taskList.getTaskList().add(taskResp);
         } else {
@@ -1676,6 +1711,8 @@ public class BlockService extends TaskResourceService {
                     return taskList;
                 }
             } else if (copy.getType().equalsIgnoreCase(TechnologyType.SRDF.toString())) {
+                id = VPlexSrdfUtil.getSrdfIdFromVolumeId(_dbClient, id);
+                copy.setCopyID(VPlexSrdfUtil.getSrdfIdFromVolumeId(_dbClient, copy.getCopyID()));
                 taskResp = performSRDFProtectionAction(id, copy, ProtectionOp.SYNC.getRestOp());
                 taskList.getTaskList().add(taskResp);
             } else {
@@ -1720,6 +1757,8 @@ public class BlockService extends TaskResourceService {
 
             if (volume.hasConsistencyGroup()) {
                 if (TechnologyType.SRDF.name().equalsIgnoreCase(copy.getType())) {
+                    id = VPlexSrdfUtil.getSrdfIdFromVolumeId(_dbClient, id);
+                    copy.setCopyID(VPlexSrdfUtil.getSrdfIdFromVolumeId(_dbClient, copy.getCopyID()));
 
                     if (RemoteDirectorGroup.SupportedCopyModes.ASYNCHRONOUS.name().equalsIgnoreCase(copyMode)
                             || RemoteDirectorGroup.SupportedCopyModes.SYNCHRONOUS.name().equalsIgnoreCase(copyMode)
@@ -2569,6 +2608,8 @@ public class BlockService extends TaskResourceService {
                 TaskList pauseTaskList = pauseMirrors(id, copy.getSync(), copyID);
                 taskList.getTaskList().addAll(pauseTaskList.getTaskList());
             } else if (copy.getType().equalsIgnoreCase(TechnologyType.SRDF.toString())) {
+                id = VPlexSrdfUtil.getSrdfIdFromVolumeId(_dbClient, id);
+                copy.setCopyID(VPlexSrdfUtil.getSrdfIdFromVolumeId(_dbClient, copy.getCopyID()));
                 taskResp = performSRDFProtectionAction(id, copy, ProtectionOp.PAUSE.getRestOp());
                 taskList.getTaskList().add(taskResp);
             } else if (vplexVolume && copy.getType().equalsIgnoreCase(TechnologyType.NATIVE.toString())) {
@@ -2643,6 +2684,8 @@ public class BlockService extends TaskResourceService {
                 TaskList resumeTaskList = resumeMirrors(id, copyID);
                 taskList.getTaskList().addAll(resumeTaskList.getTaskList());
             } else if (copy.getType().equalsIgnoreCase(TechnologyType.SRDF.toString())) {
+                id = VPlexSrdfUtil.getSrdfIdFromVolumeId(_dbClient, id);
+                copy.setCopyID(VPlexSrdfUtil.getSrdfIdFromVolumeId(_dbClient, copy.getCopyID()));
                 taskResp = performSRDFProtectionAction(id, copy, ProtectionOp.RESUME.getRestOp());
                 taskList.getTaskList().add(taskResp);
             } else if (vplexVolume && copy.getType().equalsIgnoreCase(TechnologyType.NATIVE.toString())) {
@@ -2849,12 +2892,12 @@ public class BlockService extends TaskResourceService {
             } else if (isSuspendCopyRequest(op, copy)) {
                 op = ProtectionOp.SUSPEND.getRestOp();
             }
-
+            ProtectionOrchestrationController protectionController = 
+                    getController(ProtectionOrchestrationController.class, 
+                            ProtectionOrchestrationController.PROTECTION_ORCHESTRATION_DEVICE);
             StorageSystem system = _dbClient.queryObject(StorageSystem.class,
                     copyVolume.getStorageController());
-            SRDFController controller = getController(SRDFController.class,
-                    system.getSystemType());
-            controller.performProtectionOperation(system.getId(), copy, op, task);
+            protectionController.performSRDFProtectionOperation(system.getId(), copy, op, task);
         } else {
             throw new ServiceCodeException(ServiceCode.IO_ERROR,
                     "Volume {0} is not SRDF protected",
@@ -3378,8 +3421,11 @@ public class BlockService extends TaskResourceService {
                     volumes.get(0), vPool);
             _log.info("Got block service implementation for VirtualPool change request");
             VirtualPoolChangeParam oldParam = convertNewVirtualPoolChangeParamToOldParam(param);
-            blockServiceAPI.changeVolumeVirtualPool(volumes, vPool,
+            TaskList taskList2 = blockServiceAPI.changeVolumeVirtualPool(volumes, vPool,
                     oldParam, taskId);
+            if (taskList2 != null && !taskList2.getTaskList().isEmpty()) {
+                taskList.getTaskList().addAll(taskList2.getTaskList());
+            }
             _log.info("Executed VirtualPool change for given volumes.");
         } catch (Exception e) {
             String errorMsg = String.format(
@@ -4200,8 +4246,6 @@ public class BlockService extends TaskResourceService {
                 }
                 if (volume.isVolumeExported(_dbClient)) {
                     throw APIException.badRequests.cannotImportExportedVolumeToVplex(volume.getId());
-                } else if (!isNullURI(volume.getConsistencyGroup())) {
-                    throw APIException.badRequests.cannotImportConsistencyGroupVolumeToVplex(volume.getId());
                 } else if (BlockFullCopyUtils.volumeHasFullCopySession(volume, _dbClient)) {
                     // The backend would have a full copy, but the VPLEX volume would not.
                     throw APIException.badRequests.volumeForVpoolChangeHasFullCopies(volume.getLabel());
@@ -5391,5 +5435,39 @@ public class BlockService extends TaskResourceService {
 
     private boolean isAddingSRDFProtection(Volume v, VirtualPool targetVPool) {
         return v.getSrdfTargets() == null && VirtualPool.vPoolSpecifiesSRDF(targetVPool);
+    }
+    
+    /**
+     * Validate volume being expanded is not an SRDF volume with snapshots attached,
+     * which isn't handled.
+     * @param volume -- Volume being expanded
+     * @throws Exception if cannot be expanded
+     */
+    private void validateExpandingSrdfVolume(Volume volume) {
+        if (ControllerUtils.checkIfVolumeHasSnapshot(volume, _dbClient)
+                || BlockSnapshotSessionUtils.volumeHasSnapshotSession(volume, _dbClient)) {
+            throw BadRequestException.badRequests.cannotExpandSRDFVolumeWithSnapshots(volume.getLabel());
+        }
+        Volume srdfVolume = volume;
+        if (volume.isVPlexVolume(_dbClient)) {
+            // Find associated SRDF volume
+            srdfVolume = VPlexSrdfUtil.getSrdfVolumeFromVplexVolume(_dbClient, volume);
+            if (srdfVolume != null) {
+                if (ControllerUtils.checkIfVolumeHasSnapshot(srdfVolume, _dbClient) 
+                        || BlockSnapshotSessionUtils.volumeHasSnapshotSession(srdfVolume, _dbClient)) {
+                    throw BadRequestException.badRequests.cannotExpandSRDFVolumeWithSnapshots(srdfVolume.getLabel());
+                }
+            }
+        }   
+        // Check target volumes    
+        if (srdfVolume.getSrdfTargets() != null) {
+            for (String target : srdfVolume.getSrdfTargets()) {
+                Volume targetVolume = _dbClient.queryObject(Volume.class, URI.create(target));
+                if (BlockSnapshotSessionUtils.volumeHasSnapshotSession(targetVolume, _dbClient)
+                        || BlockSnapshotSessionUtils.volumeHasSnapshotSession(targetVolume, _dbClient)) {
+                    throw BadRequestException.badRequests.cannotExpandSRDFVolumeWithSnapshots(targetVolume.getLabel());
+                }
+            }
+        }
     }
 }

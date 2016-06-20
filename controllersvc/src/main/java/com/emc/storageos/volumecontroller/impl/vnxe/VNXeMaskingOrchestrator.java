@@ -8,7 +8,6 @@ package com.emc.storageos.volumecontroller.impl.vnxe;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -188,14 +187,125 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
             ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class,
                     exportGroupURI);
+            StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageURI);
+
+            List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient,
+                    exportGroup, storageURI);
+
+            Map<String, List<URI>> computeResourceToInitiators = mapInitiatorsToComputeResource(
+                    exportGroup, initiatorURIs);
+
+            _log.info("initiators  : {}", Joiner.on(",").join(computeResourceToInitiators.entrySet()));
+
             taskCompleter = new ExportOrchestrationTask(exportGroupURI, token);
 
-            _log.info("export_initiator_add:  creating a new export");
+            Map<URI, Integer> volumes = selectExportMaskVolumes(exportGroup, storageURI);
+            _log.info("Volumes  : {}", Joiner.on(",").join(volumes.keySet()));
+            if (exportMasks != null && !exportMasks.isEmpty()) {
+                // find the export mask which has the same Host name as the initiator
+                // Add the initiator to that export mask
+                // Set up workflow steps.
+                _log.info("Creating AddInitiators workFlow");
+                Workflow workflow = _workflowService.getNewWorkflow(
+                        MaskingWorkflowEntryPoints.getInstance(),
+                        "exportGroupAddInitiators", true, token);
 
-            Map<URI, Integer> volumes = selectExportMaskVolumes(exportGroup,
-                    storageURI);
+                // irrespective of cluster name, host will be always present
+                Map<String, URI> hostToEMaskGroup = ExportMaskUtils.mapHostToExportMask(
+                        _dbClient, exportGroup, storage.getId());
+                _log.info("hostsToExportMask  : {}", Joiner.on(",").join(hostToEMaskGroup.entrySet()));
+                // if export masks are found for the Host, then add initiators to the export mask
+                Map<URI, List<URI>> masksToInitiators = new HashMap<URI, List<URI>>();
+                String addIniStep = null;
+                for (String computeKey : computeResourceToInitiators.keySet()) {
+                    URI exportMaskUri = hostToEMaskGroup.get(computeKey);
+                    if (null != exportMaskUri) {
+                        _log.info("Processing export mask {}", exportMaskUri);
+                        ExportMask exportMask = _dbClient.queryObject(ExportMask.class,
+                                exportMaskUri);
+                        if (exportMask.getStorageDevice().equals(storageURI)) {
+                            _log.info("Processing export mask {} with expected storage {}", exportMaskUri, storageURI);
+                            // AddInitiatorWorkFlow
+                            masksToInitiators.put(exportMaskUri,
+                                    computeResourceToInitiators.get(computeKey));
+                            // all masks will be always created by system = true, hence port allocation will happen
+                            addIniStep = generateExportMaskAddInitiatorsWorkflow(workflow, null,
+                                    storage, exportGroup, exportMask, initiatorURIs, null,
+                                    token);
+                            computeResourceToInitiators.remove(computeKey);
+                        }
+                        if (!masksToInitiators.isEmpty()) {
+                            generateZoningAddInitiatorsWorkflow(
+                                    workflow, addIniStep, exportGroup, masksToInitiators);
+                        }
+                    }
+                }
 
-            exportGroupCreate(storageURI, exportGroupURI, initiatorURIs, volumes, token);
+                _log.info("Left out initiators  : {}", Joiner.on(",").join(computeResourceToInitiators.entrySet()));
+                // left out initiator's Host which doesn't have any export mask.
+                Map<URI, Map<URI, Integer>> zoneNewMasksToVolumeMap = new HashMap<URI, Map<URI, Integer>>();
+                if (!computeResourceToInitiators.isEmpty()) {
+                    for (Map.Entry<String, List<URI>> resourceEntry : computeResourceToInitiators
+                            .entrySet()) {
+                        String computeKey = resourceEntry.getKey();
+                        List<URI> computeInitiatorURIs = resourceEntry.getValue();
+                        _log.info(String.format("New export masks for %s", computeKey));
+                        GenExportMaskCreateWorkflowResult result = generateExportMaskCreateWorkflow(
+                                workflow, EXPORT_GROUP_ZONING_TASK, storage, exportGroup,
+                                computeInitiatorURIs, volumes, token);
+                        zoneNewMasksToVolumeMap.put(result.getMaskURI(), volumes);
+
+                    }
+
+                    if (!zoneNewMasksToVolumeMap.isEmpty()) {
+                        List<URI> exportMaskList = new ArrayList<URI>();
+                        exportMaskList.addAll(zoneNewMasksToVolumeMap.keySet());
+                        Map<URI, Integer> overallVolumeMap = new HashMap<URI, Integer>();
+                        for (Map<URI, Integer> oneVolumeMap : zoneNewMasksToVolumeMap
+                                .values()) {
+                            overallVolumeMap.putAll(oneVolumeMap);
+                        }
+                        generateZoningCreateWorkflow(workflow, null, exportGroup,
+                                exportMaskList, overallVolumeMap);
+                    }
+                }
+
+                String successMessage = String.format(
+                        "Initiators successfully added to export StorageArray %s",
+                        storage.getLabel());
+                workflow.executePlan(taskCompleter, successMessage);
+            } else {
+                _log.info("export_initiator_add: first initiator, creating a new export");
+             // No existing export masks available inexport Group
+                Workflow workflow = _workflowService.getNewWorkflow(
+                        MaskingWorkflowEntryPoints.getInstance(), "exportGroupCreate",
+                        true, token);
+
+                List<URI> exportMasksToZoneCreate = new ArrayList<URI>();
+                Map<URI, Integer> volumesToZoneCreate = new HashMap<URI, Integer>();
+
+                for (Map.Entry<String, List<URI>> resourceEntry : computeResourceToInitiators
+                        .entrySet()) {
+                    String computeKey = resourceEntry.getKey();
+                    List<URI> computeInitiatorURIs = resourceEntry.getValue();
+                    _log.info(String.format("New export masks for %s", computeKey));
+                    GenExportMaskCreateWorkflowResult result = generateExportMaskCreateWorkflow(
+                            workflow, EXPORT_GROUP_ZONING_TASK, storage, exportGroup,
+                            computeInitiatorURIs, volumes, token);
+                    exportMasksToZoneCreate.add(result.getMaskURI());
+                    volumesToZoneCreate.putAll(volumes);
+                }
+
+                if (!exportMasksToZoneCreate.isEmpty()) {
+                    generateZoningCreateWorkflow(workflow, null, exportGroup,
+                            exportMasksToZoneCreate, volumesToZoneCreate);
+                }
+
+                String successMessage = String.format(
+                        "Initiators successfully added to export StorageArray %s",
+                        storage.getLabel());
+                workflow.executePlan(taskCompleter, successMessage);
+            }
 
             _log.info(String.format("exportAddInitiator end - Array: %s ExportMask: %s " +
                     "Initiator: %s",
@@ -440,7 +550,7 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             } else {
                 _log.info("export_volume_remove: no export (initiator should be empty)");
                 exportGroup.removeVolumes(volumes);
-                _dbClient.persistObject(exportGroup);
+                _dbClient.updateObject(exportGroup);
                 taskCompleter.ready(_dbClient);
             }
 
@@ -562,11 +672,5 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         }
 
         return exportMasksMap;
-    }
-
-    @Override
-    protected Map<String, List<URI>> mapInitiatorsToComputeResource(
-            ExportGroup exportGroup, Collection<URI> initiatorURIs) {
-        return Collections.EMPTY_MAP; // Better to return something instead of null
     }
 }

@@ -1075,6 +1075,10 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             }
         }
 
+        // set thin provisioning state from virtual-volume thin-enabled property
+        String thinlyProvisioned = info.isThinEnabled() ? TRUE : FALSE; 
+        unManagedVolumeCharacteristics.put(SupportedVolumeCharacterstics.IS_THINLY_PROVISIONED.toString(), thinlyProvisioned);
+
         // add this info to the unmanaged volume object
         volume.setVolumeCharacterstics(unManagedVolumeCharacteristics);
         volume.addVolumeInformation(unManagedVolumeInformation);
@@ -1169,18 +1173,6 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                         set.add(syncActive);
                         volume.putVolumeInfo(
                                 SupportedVolumeInformation.IS_SYNC_ACTIVE.name(), set);
-                    }
-
-                    // set thin provisioning state on parent if found in backend volume
-                    String thinlyProvisioned = VplexBackendIngestionContext
-                            .extractValueFromStringSet(
-                                    SupportedVolumeInformation.IS_THINLY_PROVISIONED.name(),
-                                    bvol.getVolumeInformation());
-                    if (thinlyProvisioned != null && !thinlyProvisioned.isEmpty()) {
-                        StringSet set = new StringSet();
-                        set.add(thinlyProvisioned);
-                        volume.putVolumeInfo(
-                                SupportedVolumeInformation.IS_THINLY_PROVISIONED.name(), set);
                     }
                 }
 
@@ -1993,16 +1985,10 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
     @Override
     public void collectStatisticsInformation(AccessProfile accessProfile)
             throws BaseCollectionException {
-        // https://coprhd.atlassian.net/browse/COP-18616. This code is commented out on purpose for the
-        // time being. The ancillary code to support metrics collection is there, but we just don't want
-        // this to be enabled until there is adequate time to test VPlex frontent port allocations based
-        // on port metrics. Once there's a time available to testing, this comment should be removed and
-        // the commented code below should be uncommented.
-
-        // initializeContext(accessProfile);
-        // _statsCollector.collect(accessProfile, _keyMap);
-        // dumpStatRecords();
-        // injectStats();
+        initializeContext(accessProfile);
+        _statsCollector.collect(accessProfile, _keyMap);
+        dumpStatRecords();
+        injectStats();
     }
 
     /**
@@ -2336,6 +2322,11 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
         }
     }
 
+    /**
+     * Initializes the performance statistics collection context with required key mappings.
+     * 
+     * @param accessProfile Profile providing context for this discovery session.
+     */
     private void initializeContext(AccessProfile accessProfile) {
         _keyMap.put(Constants._serialID, accessProfile.getserialID());
         _keyMap.put(Constants.dbClient, _dbClient);
@@ -2346,7 +2337,6 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
         _keyMap.put(Constants._Stats, new LinkedList<Stat>());
         _keyMap.put(Constants.ACCESSPROFILE, accessProfile);
         _keyMap.put(Constants.PROPS, accessProfile.getProps());
-        _keyMap.put(Constants._Stats, new LinkedList<Stat>());
         _keyMap.put(Constants._TimeCollected, accessProfile.getCurrentSampleTime());
     }
 }

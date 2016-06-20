@@ -17,7 +17,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,7 +29,9 @@ import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.exceptions.DeviceControllerException;
@@ -39,6 +40,7 @@ import com.emc.storageos.storagedriver.BlockStorageDriver;
 import com.emc.storageos.storagedriver.DriverTask;
 import com.emc.storageos.storagedriver.LockManager;
 import com.emc.storageos.storagedriver.Registry;
+import com.emc.storageos.storagedriver.StorageDriver;
 import com.emc.storageos.storagedriver.impl.LockManagerImpl;
 import com.emc.storageos.storagedriver.impl.RegistryImpl;
 import com.emc.storageos.storagedriver.model.StorageObject;
@@ -53,8 +55,11 @@ import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.VolumeURIHLU;
+import com.emc.storageos.volumecontroller.impl.plugins.ExternalDeviceCommunicationInterface;
 import com.emc.storageos.volumecontroller.impl.smis.ExportMaskOperations;
+import com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
+import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 
 /**
@@ -114,6 +119,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
         driver.setDriverRegistry(driverRegistry);
         LockManager lockManager = LockManagerImpl.getInstance(locker);
         driver.setLockManager(lockManager);
+        driver.setSdkVersionNumber(StorageDriver.SDK_VERSION_NUMBER);
     }
 
 
@@ -246,7 +252,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                 if (!NullColumnValueGetter.isNullURI(volume.getAssociatedSourceVolume())) {
                     // this is clone
                     _log.info("Deleting volume clone on storage system {}, clone: {} .",
-                            storageSystem.getNativeId(), volume.toString());
+                            storageSystem.getNativeId(), volume.getNativeId());
                     BlockObject sourceVolume = BlockObject.fetch(dbClient, volume.getAssociatedSourceVolume());
                     VolumeClone driverClone = new VolumeClone();
                     driverClone.setStorageSystemId(storageSystem.getNativeId());
@@ -257,7 +263,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                 } else {
                     // this is regular volume
                     _log.info("Deleting volume on storage system {}, volume: {} .",
-                            storageSystem.getNativeId(), volume.toString());
+                            storageSystem.getNativeId(), volume.getNativeId());
                     StorageVolume driverVolume = new StorageVolume();
                     driverVolume.setStorageSystemId(storageSystem.getNativeId());
                     driverVolume.setNativeId(volume.getNativeId());
@@ -353,52 +359,62 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                                       URI snapshot, TaskCompleter taskCompleter)
             throws DeviceControllerException {
 
+        String storageSystemNativeId = storageSystem.getNativeId();
         _log.info("Snapshot Restore..... Started");
+        BlockConsistencyGroup parentVolumeConsistencyGroup = null;
         try {
-            BlockConsistencyGroup consistencyGroup = null;
-            String storageSystemNativeId = storageSystem.getNativeId();
-            List<BlockSnapshot> snapshots = dbClient.queryObject(BlockSnapshot.class, Arrays.asList(snapshot));
-            Volume sourceVolume = getSnapshotParentVolume(snapshots.get(0));
-            BlockSnapshot snapshotObject = snapshots.get(0);
-
-            if (ControllerUtils.checkSnapshotsInConsistencyGroup(snapshots, dbClient, taskCompleter)) {
-                URI cgUri = snapshotObject.getConsistencyGroup();
-                consistencyGroup = dbClient.queryObject(BlockConsistencyGroup.class, cgUri);
-                _log.info("Restore group snapshot: group {}, snapshot set: {}", consistencyGroup.getNativeId(), snapshotObject.getNativeGuid());
+            List<BlockSnapshot> snapshotsToRestore = new ArrayList<>();
+            BlockSnapshot blockSnapshot = dbClient.queryObject(BlockSnapshot.class, snapshot);
+            List<BlockSnapshot> groupSnapshots = ControllerUtils.getSnapshotsPartOfReplicationGroup(blockSnapshot, dbClient);
+            if (groupSnapshots.size() > 1 &&
+                    ControllerUtils.checkSnapshotsInConsistencyGroup(Arrays.asList(blockSnapshot), dbClient, taskCompleter)) {
+                // make sure we restore only snapshots from the same consistency group
+                for (BlockSnapshot snap : groupSnapshots) {
+                    if (snap.getConsistencyGroup().equals(blockSnapshot.getConsistencyGroup())) {
+                        snapshotsToRestore.add(snap);
+                    }
+                }
+                URI cgUri = blockSnapshot.getConsistencyGroup();
+                parentVolumeConsistencyGroup = dbClient.queryObject(BlockConsistencyGroup.class, cgUri);
+                _log.info("Restore group snapshot: group {}, snapshot set: {}, snapshots to restore: "
+                                + Joiner.on("\t").join(snapshotsToRestore), parentVolumeConsistencyGroup.getNativeId(),
+                        blockSnapshot.getReplicationGroupInstance());
             } else {
-                _log.info("Restore single volume snapshot: volume {}, snapshot set: {}", sourceVolume.getNativeId(), snapshotObject.getNativeGuid());
+                Volume sourceVolume = getSnapshotParentVolume(blockSnapshot);
+                snapshotsToRestore.add(blockSnapshot);
+                _log.info("Restore single volume snapshot: volume {}, snapshot: {}", sourceVolume.getNativeId(), blockSnapshot.getNativeId());
             }
-            // Prepare driver snapshot and driver volume
-            VolumeSnapshot driverSnapshot = new VolumeSnapshot();
-            StorageVolume driverVolume = new StorageVolume();
-            driverSnapshot.setParentId(sourceVolume.getNativeId());
-            driverSnapshot.setNativeId(snapshotObject.getNativeId());
-            driverSnapshot.setStorageSystemId(storageSystemNativeId);
-            driverSnapshot.setDisplayName(snapshotObject.getLabel());
-            driverSnapshot.setTimestamp(snapshotObject.getSnapsetLabel());
-            if (consistencyGroup != null) {
-                driverSnapshot.setConsistencyGroup(consistencyGroup.getNativeId());
-                driverVolume.setConsistencyGroup(consistencyGroup.getNativeId());
+            // Prepare driver snapshots
+            List<VolumeSnapshot> driverSnapshots = new ArrayList<>();
+            for (BlockSnapshot snap : snapshotsToRestore) {
+                VolumeSnapshot driverSnapshot = new VolumeSnapshot();
+                Volume sourceVolume = getSnapshotParentVolume(blockSnapshot);
+                driverSnapshot.setParentId(sourceVolume.getNativeId());
+                driverSnapshot.setNativeId(snap.getNativeId());
+                driverSnapshot.setStorageSystemId(storageSystemNativeId);
+                driverSnapshot.setDisplayName(snap.getLabel());
+                if (parentVolumeConsistencyGroup != null) {
+                    driverSnapshot.setConsistencyGroup(snap.getReplicationGroupInstance());
+                }
+                driverSnapshots.add(driverSnapshot);
             }
-            driverVolume.setStorageSystemId(storageSystem.getNativeId());
-            driverVolume.setNativeId(sourceVolume.getNativeId());
 
             // Call driver to execute this request
             BlockStorageDriver driver = getDriver(storageSystem.getSystemType());
-            DriverTask task = driver.restoreSnapshot(driverVolume, driverSnapshot);
+            DriverTask task = driver.restoreSnapshot(driverSnapshots);
             // todo: need to implement support for async case.
             if (task.getStatus() == DriverTask.TaskStatus.READY) {
-                String msg = String.format("doRestoreFromSnapshot -- Restored snapshot: %s .", task.getMessage());
+                String msg = String.format("doRestoreFromSnapshot -- Restored snapshots: %s .", task.getMessage());
                 _log.info(msg);
                 taskCompleter.ready(dbClient);
             } else {
-                String errorMsg = String.format("doRestoreFromSnapshot -- Failed to restore from snapshot: %s .", task.getMessage());
+                String errorMsg = String.format("doRestoreFromSnapshot -- Failed to restore from snapshots: %s .", task.getMessage());
                 _log.error(errorMsg);
                 ServiceError serviceError = ExternalDeviceException.errors.restoreFromSnapshotFailed("doRestoreFromSnapshot", errorMsg);
                 taskCompleter.error(dbClient, serviceError);
             }
         } catch (DatabaseException e) {
-            String message = String.format("IO exception when trying to restore from snapshot on array %s",
+            String message = String.format("IO exception when trying to restore from snapshots on array %s",
                     storageSystem.getSerialNumber());
             _log.error(message, e);
             ServiceError error = ExternalDeviceException.errors.restoreFromSnapshotFailed("doRestoreFromSnapshot", e.getMessage());
@@ -413,10 +429,10 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                                  TaskCompleter taskCompleter) throws DeviceControllerException {
         try {
             BlockSnapshot blockSnapshot = dbClient.queryObject(BlockSnapshot.class, snapshot);
-            List<BlockSnapshot> groupSnapshots = ControllerUtils.getBlockSnapshotsBySnapsetLabelForProject(blockSnapshot, dbClient);
+            List<BlockSnapshot> groupSnapshots = ControllerUtils.getSnapshotsPartOfReplicationGroup(blockSnapshot, dbClient);
 
-            if (ControllerUtils.checkSnapshotsInConsistencyGroup(Arrays.asList(blockSnapshot), dbClient, taskCompleter) &&
-                    groupSnapshots.size() > 1) {
+            if (groupSnapshots.size() > 1 &&
+                    ControllerUtils.checkSnapshotsInConsistencyGroup(Arrays.asList(blockSnapshot), dbClient, taskCompleter)) {
                 // make sure we delete only snapshots from the same consistency group
                 List<BlockSnapshot> snapshotsToDelete = new ArrayList<>();
                 for (BlockSnapshot snap : groupSnapshots ) {
@@ -449,7 +465,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
         Volume cloneObject = null;
         try {
             cloneObject = dbClient.queryObject(Volume.class, clone);
-            BlockObject sourceVolume = BlockObject.fetch(dbClient, volume);
+            Volume sourceVolume = dbClient.queryObject(Volume.class, volume);
 
             List<VolumeClone> driverClones = new ArrayList<>();
             // Prepare driver clone
@@ -457,6 +473,8 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
             driverClone.setParentId(sourceVolume.getNativeId());
             driverClone.setStorageSystemId(storageSystem.getNativeId());
             driverClone.setDisplayName(cloneObject.getLabel());
+            driverClone.setRequestedCapacity(cloneObject.getCapacity());
+            driverClone.setThinlyProvisioned(cloneObject.getThinlyProvisioned());
             driverClones.add(driverClone);
 
             // Call driver
@@ -471,6 +489,8 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                 cloneObject.setDeviceLabel(driverCloneResult.getDeviceLabel());
                 cloneObject.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(dbClient, cloneObject));
                 cloneObject.setReplicaState(driverCloneResult.getReplicationState().name());
+                cloneObject.setProvisionedCapacity(driverCloneResult.getProvisionedCapacity());
+                cloneObject.setAllocatedCapacity(driverCloneResult.getAllocatedCapacity());
                 cloneObject.setInactive(false);
                 dbClient.updateObject(cloneObject);
 
@@ -493,6 +513,119 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
             _log.error("Failed to create volume clone. ", e);
             ServiceError serviceError = ExternalDeviceException.errors.createVolumeCloneFailed("doCreateClone", e.getMessage());
             taskCompleter.error(dbClient, serviceError);
+        }
+    }
+    
+    @Override
+    public void doDisconnect(StorageSystem storageSystem){
+    	try{
+    		_log.info("doDisconnect {} - start", storageSystem.getId());    	
+        	com.emc.storageos.storagedriver.model.StorageSystem driverStorageSystem = ExternalDeviceCommunicationInterface.initStorageSystem(storageSystem);
+        	BlockStorageDriver driver = getDriver(storageSystem.getSystemType());
+        	DriverTask task = driver.stopManagement(driverStorageSystem);
+        	if (task.getStatus() == DriverTask.TaskStatus.READY) {
+        		_log.info("doDisconnect -- Disconnected Storage System: {}", task.getMessage());
+        	} else {
+        		_log.error("doDisconnect failed. ", task.getMessage());
+        		throw ExternalDeviceException.exceptions.doDisconnectFailed("doDisconnect", task.getMessage());
+        	}
+    		_log.info("doDisconnect %1$s - Complete", storageSystem.getId());
+    	} catch(Exception e){
+    		_log.error("doDisconnect failed. ", e.getMessage());
+    		throw ExternalDeviceException.exceptions.doDisconnectFailed("doDisconnect", e.getMessage());
+
+    	}
+    }
+    
+    @Override
+    public void doAddToConsistencyGroup(StorageSystem storageSystem, URI consistencyGroupId, String replicationGroupName,
+            List<URI> blockObjects, TaskCompleter taskCompleter) throws DeviceControllerException {
+        	
+    	BlockConsistencyGroup consistencyGroup =null;
+        try {
+        	_log.info("{} doAddToConsistencyGroup START ...", storageSystem.getSerialNumber());
+        	BlockStorageDriver driver = getDriver(storageSystem.getSystemType());
+            List<Volume> volumes = dbClient.queryObject(Volume.class, blockObjects);           
+            List<StorageVolume> driverVolumes = new ArrayList<>();
+            consistencyGroup = dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroupId);
+
+                for (Volume volume : volumes) {
+                    StorageVolume driverVolume = new StorageVolume();
+                    driverVolume.setStorageSystemId(storageSystem.getNativeId());
+                    driverVolume.setNativeId(volume.getNativeId());
+                    driverVolume.setRequestedCapacity(volume.getCapacity());
+                    driverVolume.setThinlyProvisioned(volume.getThinlyProvisioned());
+                    driverVolume.setConsistencyGroup(consistencyGroup.getNativeId()); 
+                    driverVolume.setDisplayName(volume.getLabel());
+                    //add them to StorageVolumes list	
+                    driverVolumes.add(driverVolume);  
+                }
+                DriverTask task = driver.addVolumesToConsistencyGroup(driverVolumes, null); 
+                _log.info("doAddToConsistencyGroup -- added volumes {} to consistency Group: {}", volumes.toString(), consistencyGroupId);     
+            if(task.getStatus() == DriverTask.TaskStatus.READY){
+                for (Volume volume : volumes) {
+                     volume.setConsistencyGroup(consistencyGroupId);   
+                }
+                dbClient.updateObject(volumes);
+                taskCompleter.ready(dbClient);
+            } else {
+                _log.error(String.format("Add volumes to Consistency Group operation failed %s", task.getMessage()));
+                taskCompleter.error(dbClient, DeviceControllerException.exceptions
+                        .failedToAddMembersToConsistencyGroup(consistencyGroup.getLabel(),
+                        		consistencyGroup.getLabel(), task.getMessage()));
+            }   
+            _log.info("{} doAddVolumesToConsistencyGroup END ...", storageSystem.getSerialNumber());
+        } catch (Exception e) {
+            _log.error(String.format("Add volumes from Consistency Group operation failed %s", e.getMessage()));
+            taskCompleter.error(dbClient, DeviceControllerException.exceptions
+                    .failedToAddMembersToConsistencyGroup(consistencyGroup.getLabel(),
+                    		consistencyGroup.getLabel(), e.getMessage()));
+        }
+    }
+    
+    @Override
+    public void doRemoveFromConsistencyGroup(StorageSystem storageSystem, URI consistencyGroupId,
+            List<URI> blockObjects, TaskCompleter taskCompleter) throws DeviceControllerException {
+        	
+    	BlockConsistencyGroup consistencyGroup =null;
+        try {
+        	_log.info("{} doRemoveVolumesFromConsistencyGroup START ...", storageSystem.getSerialNumber());
+        	BlockStorageDriver driver = getDriver(storageSystem.getSystemType());
+            List<Volume> volumes = dbClient.queryObject(Volume.class, blockObjects);           
+            List<StorageVolume> driverVolumes = new ArrayList<>();
+            consistencyGroup = dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroupId);
+
+                for (Volume volume : volumes) {
+                    StorageVolume driverVolume = new StorageVolume();
+                    driverVolume.setStorageSystemId(storageSystem.getNativeId());
+                    driverVolume.setNativeId(volume.getNativeId());
+                    driverVolume.setRequestedCapacity(volume.getCapacity());
+                    driverVolume.setThinlyProvisioned(volume.getThinlyProvisioned());
+                    driverVolume.setConsistencyGroup(consistencyGroup.getNativeId()); 
+                    driverVolume.setDisplayName(volume.getLabel());
+                    //add them to StorageVolumes list	
+                    driverVolumes.add(driverVolume);  
+                }
+                DriverTask task = driver.removeVolumesFromConsistencyGroup(driverVolumes, null); 
+                _log.info("doRemoveVolumesFromConsistencyGroup -- removing volumes {} from consistency Group: {}", volumes.toString(), consistencyGroupId);
+            if(task.getStatus() == DriverTask.TaskStatus.READY){
+                for (Volume volume : volumes) { 
+                        volume.setConsistencyGroup(NullColumnValueGetter.getNullURI());
+                }
+                dbClient.updateObject(volumes);
+                taskCompleter.ready(dbClient);
+            } else {
+                _log.error(String.format("Remove volumes from Consistency Group operation failed %s", task.getMessage()));
+                taskCompleter.error(dbClient, DeviceControllerException.exceptions
+                        .failedToRemoveMembersToConsistencyGroup(consistencyGroup.getLabel(),
+                        		consistencyGroup.getLabel(), task.getMessage()));
+            }
+            _log.info("{} doRemoveVolumesFromConsistencyGroup END ...", storageSystem.getSerialNumber());
+        } catch (Exception e) {
+            _log.error(String.format("Remove volumes from Consistency Group operation failed %s", e.getMessage()));
+            taskCompleter.error(dbClient, DeviceControllerException.exceptions
+                    .failedToRemoveMembersToConsistencyGroup(consistencyGroup.getLabel(),
+                    		consistencyGroup.getLabel(), e.getMessage()));
         }
     }
 
@@ -522,7 +655,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                 taskCompleter.error(dbClient, serviceError);
                 return;
             }
-            // Prepare driver consistency group
+            // Prepare driver consistency group of parent volume
             VolumeConsistencyGroup driverCG = new VolumeConsistencyGroup();
             driverCG.setDisplayName(cg.getLabel());
             driverCG.setNativeId(cg.getNativeId());
@@ -536,6 +669,8 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                 driverClone.setParentId(sourceVolume.getNativeId());
                 driverClone.setStorageSystemId(storageSystem.getNativeId());
                 driverClone.setDisplayName(clone.getLabel());
+                driverClone.setRequestedCapacity(clone.getCapacity());
+                driverClone.setThinlyProvisioned(clone.getThinlyProvisioned());
                 driverClones.add(driverClone);
                 driverCloneToCloneMap.put(driverClone, clone);
             }
@@ -553,7 +688,10 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                     cloneObject.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(dbClient, cloneObject));
                     cloneObject.setReplicaState(driverCloneResult.getReplicationState().name());
                     cloneObject.setReplicationGroupInstance(driverCloneResult.getConsistencyGroup());
+                    cloneObject.setProvisionedCapacity(driverCloneResult.getProvisionedCapacity());
+                    cloneObject.setAllocatedCapacity(driverCloneResult.getAllocatedCapacity());
                     cloneObject.setInactive(false);
+                    cloneObject.setConsistencyGroup(parentVolume.getConsistencyGroup());
                     cloneObjects.add(cloneObject);
                 }
                 dbClient.updateObject(cloneObjects);
@@ -604,7 +742,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
             driverClone.setConsistencyGroup(clone.getReplicationGroupInstance());
 
             // Call driver
-            task = driver.deleteVolumeClone(Collections.unmodifiableList(Collections.singletonList(driverClone)));
+            task = driver.detachVolumeClone(Collections.unmodifiableList(Collections.singletonList(driverClone)));
             // todo: need to implement support for async case.
             if (task.getStatus() == DriverTask.TaskStatus.READY) {
                 ReplicationUtils.removeDetachedFullCopyFromSourceFullCopiesList(clone, dbClient);
@@ -801,6 +939,11 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
             // todo: need to implement support for async case.
             if (task.getStatus() == DriverTask.TaskStatus.READY) {
                 cg.setNativeId(driverCG.getNativeId());
+                cg.addSystemConsistencyGroup(storageSystem.getId().toString(), cg.getLabel());
+                cg.addConsistencyGroupTypes(BlockConsistencyGroup.Types.LOCAL.name());
+                if (NullColumnValueGetter.isNullURI(cg.getStorageController())) {
+                    cg.setStorageController(storageSystem.getId());
+                }
                 dbClient.updateObject(cg);
                 String msg = String.format("doCreateConsistencyGroup -- Created consistency group: %s .", task.getMessage());
                 _log.info(msg);
@@ -864,6 +1007,9 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                 _log.info("Deleting consistency group: storage system {}, group {}", storageSystem.getNativeId(), groupDisplayName );
             } else {
                 _log.info("Deleting system replication group: storage system {}, group {}", storageSystem.getNativeId(), groupDisplayName );
+                _log.info("Replication groups are not supported for external devices. Do not call driver." );
+                taskCompleter.ready(dbClient);
+                return;
             }
 
             // prepare driver consistency group
@@ -879,9 +1025,37 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
             // todo: need to implement support for async case.
             if (task.getStatus() == DriverTask.TaskStatus.READY) {
                 if (consistencyGroup != null) {
+                    // I followed xtremio pattern to implement this logic.
                     consistencyGroup.removeSystemConsistencyGroup(URIUtil.asString(storageSystem.getId()), groupDisplayName);
-                    if (markInactive) {
-                        consistencyGroup.setInactive(true);
+                    dbClient.updateObject(consistencyGroup);
+
+                    // have to read again to get updated systemConsistencyGroup map
+                    consistencyGroup = dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroupId);
+
+                    /*
+                     * Verify if the BlockConsistencyGroup references any LOCAL arrays.
+                     * If we no longer have any references we can remove the 'LOCAL' type from the BlockConsistencyGroup.
+                     */
+                    List<URI> referencedArrays = BlockConsistencyGroupUtils.getLocalSystems(consistencyGroup, dbClient);
+
+
+                    boolean cgReferenced = referencedArrays != null && !referencedArrays.isEmpty();
+                    if (!cgReferenced) {
+                        // Remove the LOCAL type
+                        StringSet cgTypes = consistencyGroup.getTypes();
+                        cgTypes.remove(BlockConsistencyGroup.Types.LOCAL.name());
+                        consistencyGroup.setTypes(cgTypes);
+
+                        // Remove the referenced storage system as well, but only if there are no other types
+                        // of storage systems associated with the CG.
+                        if (!BlockConsistencyGroupUtils.referencesNonLocalCgs(consistencyGroup, dbClient)) {
+                            consistencyGroup.setStorageController(NullColumnValueGetter.getNullURI());
+
+                            // Update the consistency group model
+                            consistencyGroup.setInactive(markInactive);
+                        }
+                    } else {
+                        _log.info("*** Referenced arrays {}", referencedArrays.toString());
                     }
                     dbClient.updateObject(consistencyGroup);
                 }
@@ -1081,7 +1255,13 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                 snapshot.setNativeId(driverSnapshot.getNativeId());
                 snapshot.setDeviceLabel(driverSnapshot.getDeviceLabel());
                 snapshot.setIsSyncActive(true);
-                snapshot.setSnapsetLabel(driverSnapshot.getTimestamp());
+                snapshot.setReplicationGroupInstance(driverSnapshot.getConsistencyGroup());
+                if (driverSnapshot.getProvisionedCapacity() > 0) {
+                    snapshot.setProvisionedCapacity(driverSnapshot.getProvisionedCapacity());
+                }
+                if (driverSnapshot.getAllocatedCapacity() > 0) {
+                    snapshot.setAllocatedCapacity(driverSnapshot.getAllocatedCapacity());
+                }
             }
             dbClient.updateObject(driverSnapshotToSnapshotMap.values());
             String msg = String.format("createVolumeSnapshots -- Created snapshots: %s .", task.getMessage());
@@ -1112,7 +1292,6 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
             Volume parent = dbClient.queryObject(Volume.class, snapshot.getParent().getURI());
             VolumeSnapshot driverSnapshot = new VolumeSnapshot();
             driverSnapshot.setParentId(parent.getNativeId());
-            driverSnapshot.setConsistencyGroup(consistencyGroup.getNativeId());
             driverSnapshot.setStorageSystemId(storageSystemNativeId);
             driverSnapshot.setDisplayName(snapshot.getLabel());
             if (readOnly) {
@@ -1124,7 +1303,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
             driverSnapshots.add(driverSnapshot);
         }
 
-        // Prepare driver consistency group
+        // Prepare driver consistency group of the parent volume
         VolumeConsistencyGroup driverCG = new VolumeConsistencyGroup();
         driverCG.setNativeId(consistencyGroup.getNativeId());
         driverCG.setDisplayName(consistencyGroup.getLabel());
@@ -1140,8 +1319,14 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                 snapshot.setNativeId(driverSnapshot.getNativeId());
                 snapshot.setDeviceLabel(driverSnapshot.getDeviceLabel());
                 snapshot.setIsSyncActive(true);
-                // we use snapshot timestamp as snapset label for group snapshots
-                snapshot.setSnapsetLabel(driverSnapshot.getTimestamp());
+                // we use driver snapshot consistency group id as replication group label for group snapshots
+                snapshot.setReplicationGroupInstance(driverSnapshot.getConsistencyGroup());
+                if (driverSnapshot.getProvisionedCapacity() > 0) {
+                    snapshot.setProvisionedCapacity(driverSnapshot.getProvisionedCapacity());
+                }
+                if (driverSnapshot.getAllocatedCapacity() > 0) {
+                    snapshot.setAllocatedCapacity(driverSnapshot.getAllocatedCapacity());
+                }
             }
             dbClient.updateObject(driverSnapshotToSnapshotMap.values());
             String msg = String.format("createGroupSnapshots -- Created snapshots: %s .", task.getMessage());
@@ -1168,13 +1353,13 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                 // this case to be marked as success, so that the inactive
                 // state against the BlockSnapshot object can be set.
                 !Strings.isNullOrEmpty(blockSnapshot.getNativeId())) {
-
+            _log.info("Deleting snapshot of a volume. Snapshot: {}", snapshot);
             Volume parent = dbClient.queryObject(Volume.class, blockSnapshot.getParent().getURI());
             VolumeSnapshot driverSnapshot = new VolumeSnapshot();
             driverSnapshot.setStorageSystemId(storageSystem.getNativeId());
             driverSnapshot.setNativeId(blockSnapshot.getNativeId());
             driverSnapshot.setParentId(parent.getNativeId());
-            driverSnapshot.setTimestamp(blockSnapshot.getSnapsetLabel());
+            driverSnapshot.setConsistencyGroup(blockSnapshot.getReplicationGroupInstance());
             List<VolumeSnapshot> driverSnapshots = new ArrayList<>();
             driverSnapshots.add(driverSnapshot);
             // call driver
@@ -1206,7 +1391,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
 
     private void deleteGroupSnapshots(StorageSystem storageSystem, List<BlockSnapshot> groupSnapshots,
                                       TaskCompleter taskCompleter) {
-        _log.info("Deleting snapshot of consistency group .....");
+        _log.info("Deleting snapshot of consistency group. Snapshots: "+Joiner.on("\t").join(groupSnapshots));
         URI cgUri = groupSnapshots.get(0).getConsistencyGroup();
         BlockConsistencyGroup consistencyGroup = dbClient.queryObject(BlockConsistencyGroup.class, cgUri);
         List<VolumeSnapshot> driverSnapshots = new ArrayList<>();
@@ -1214,8 +1399,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
             VolumeSnapshot driverSnapshot = new VolumeSnapshot();
             driverSnapshot.setStorageSystemId(storageSystem.getNativeId());
             driverSnapshot.setNativeId(blockSnapshot.getNativeId());
-            driverSnapshot.setConsistencyGroup(consistencyGroup.getNativeId());
-            driverSnapshot.setTimestamp(blockSnapshot.getSnapsetLabel());
+            driverSnapshot.setConsistencyGroup(blockSnapshot.getReplicationGroupInstance());
             Volume parent = dbClient.queryObject(Volume.class, blockSnapshot.getParent().getURI());
             driverSnapshot.setParentId(parent.getNativeId());
             driverSnapshots.add(driverSnapshot);

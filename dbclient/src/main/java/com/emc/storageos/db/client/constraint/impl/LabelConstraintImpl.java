@@ -13,9 +13,7 @@ import com.emc.storageos.db.client.impl.ColumnField;
 import com.emc.storageos.db.client.impl.IndexColumnName;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.ScopedLabel;
-import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
-import com.netflix.astyanax.query.RowQuery;
 
 /**
  * find resources matching label
@@ -45,7 +43,7 @@ public class LabelConstraintImpl extends ConstraintImpl implements PrefixConstra
 
     @Override
     protected <T> void queryOnePage(final QueryResult<T> result) throws ConnectionException {
-        queryOnePageWithAutoPaginate(genQuery(), result);
+        queryOnePageWithAutoPaginate(genQueryStatement(), result);
     }
 
     @Override

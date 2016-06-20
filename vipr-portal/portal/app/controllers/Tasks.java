@@ -51,6 +51,7 @@ import util.datatable.DataTablesSupport;
 @With(Common.class)
 public class Tasks extends Controller {
     private static final String UNKNOWN = "resource.task.unknown";
+    private static final String DELETED = "resource.task.deleted";
 
     private static final int NORMAL_DELAY = 3000;
     private static final int MAX_TASKS = 1000;
@@ -356,8 +357,9 @@ public class Tasks extends Controller {
     public static void deleteTask(String taskId) {
         if (StringUtils.isNotBlank(taskId)) {
             getViprClient().tasks().delete(uri(taskId));
+            flash.success(MessagesUtils.get(DELETED, taskId));
         }
-        details(taskId);
+        listAll(false);
     }
 
     public static void rollbackTask(String taskId) {

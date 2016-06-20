@@ -1197,8 +1197,8 @@ public class VPlexApiMigrationManager {
                 virtualVolumeInfo = _vplexApiClient.renameResource(virtualVolumeInfo, volumeNameBuilder.toString());
                 s_logger.info(String.format("Renamed virtual volume after migration from name: %s path: %s to %s",
                         volumeNameAfterMigration, volumePathAfterMigration, volumeNameBuilder.toString()));
-                migrationInfo.setVirtualVolumeInfo(virtualVolumeInfo);
-            }
+            } 
+            migrationInfo.setVirtualVolumeInfo(virtualVolumeInfo);
         } else if (!originalVolumeName.equals(virtualVolumeInfo.getName())) {
             // We are not to rename the volume, but it could be that VPLEX renamed it 
             // automatically. So we will rename it back to its original name if necessary

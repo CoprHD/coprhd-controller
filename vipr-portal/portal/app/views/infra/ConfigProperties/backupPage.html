@@ -15,6 +15,20 @@
         $externalServerType.on('change', function () {
             checkIsCIFS(this.value);
         });
+        var validateButton = $('#validateButtonExternal');
+        $externalServerUrl = $("#${util.ConfigProperty.BACKUP_EXTERNAL_URL}");
+        var validationButtonHandler = function () {
+        if (isNotBlank($externalServerUrl.val())) {
+            validateButton.prop('disabled', false);
+            validateButton.removeClass('disabled');
+        } else {
+            validateButton.prop('disabled', true);
+            validateButton.addClass('disabled');
+        }
+    };
+        validationButtonHandler();
+        $externalServerUrl.on('change keyup',validationButtonHandler);
+
         var intervalId = "backup_scheduler_interval";
         $backup_interval = $("#" + intervalId);
         $selector_interval = $("#" + intervalId + "_selector");
@@ -42,14 +56,19 @@
             $('#alerts_error .message').html("&{'configProperties.backup.interval.invalid'}");
             $('#alerts_error').slideDown('fast');
         }
-    });
 
+        $('#validateButtonExternal').on('click', function(e) {
+        e.preventDefault();
+        this.disabled = 'true';
+        validateExternalServerSettings();
+        });
+
+    });
     function setBackupSchedulerInterval() {
         var value = $intervals[$selector_interval.val()];
         $backup_interval.val(value);
         checkForm();
     }
-
     function checkIsZero(value, type) {
         if (value === '0') {
             if (type === 'manual') {
@@ -72,6 +91,54 @@
            control.prop('disabled', true);
        }
     }
+    function validateExternalServerSettings() {
+       var serverType = $("#${util.ConfigProperty.BACKUP_EXTERNAL_TYPE}").val();
+       var serverUrl =  $("#${util.ConfigProperty.BACKUP_EXTERNAL_URL}").val();
+       var serverDomain =  $("#${util.ConfigProperty.BACKUP_EXTERNAL_DOMAIN}").val();
+       var serverUser =  $("#${util.ConfigProperty.BACKUP_EXTERNAL_USERNAME}").val();
+       var serverPwd =  $("#${util.ConfigProperty.BACKUP_EXTERNAL_PWD}").val();
+
+       $('#alerts_success').hide();
+       $('#alerts_error').hide();
+       var data = {
+            authenticityToken: '${session.authenticityToken}',
+            serverType: serverType,
+            serverUrl: serverUrl,
+            serverDomain: serverDomain,
+            user: serverUser,
+            password: serverPwd
+                }
+       var url = #{jsAction @infra.ConfigProperties.validateExternalSettings()/}();
+       $.post(url, data, function(result) {
+               showValidationResult(result);
+               });
+
+    }
+    function showValidationResult(result) {
+        var success = false;
+        var message = "";
+        if ($.isArray(result)) {
+            for (var i = 0; i < result.length; i++) {
+                if (i > 0) {
+                    message += "<br>";
+                }
+            message += result[i].message;
+            success = success || result[i].success;
+            }
+        }else {
+            message = result.message;
+            success = result.success;
+        }
+        if (success) {
+            $('#alerts_success .message').html(message);
+            $('#alerts_success').slideDown('fast');
+        }else {
+            $('#alerts_error .message').html(message);
+            $('#alerts_error').slideDown('fast');
+        }
+        $('#validateButtonExternal').prop('disabled',false);
+    }
+
 </script>
 #{/set}
 <br/>
@@ -173,6 +240,16 @@ type = typeProperty.value
 #{ConfigProperties.property property:page.externalLocationPassword, disabled:unstable/}
 #{/ConfigProperties.propertySet}
 
+<div id="ValidationControlGroup" class="form-group">
+    <div class="col-sm-3">
+        &nbsp;
+     </div>
+    <div class="col-sm-6">
+        <button id="validateButtonExternal" type="button" class="btn btn-info">
+            #{icon 'envelope'/} &{'configProperties.backup.validate'}
+        </button>
+    </div>
+</div>
 <style type="text/css">
     #backup-time .timepicker input[readonly]{
         background-color: #fff;

@@ -120,7 +120,7 @@ elif [ ${SS} = "dr" ]; then
 elif [ ${SS} = "backuprestore" ]; then
     if [[ $# -lt 7 ]]; then
 	echo "Invalid backuprestore parameters."
-	echo "usage: backuprestore backup-server-uri username password"
+	echo "usage: backuprestore backup-server-type backup-server-uri username password domain"
 	exit 1
     fi
 
@@ -4819,21 +4819,21 @@ recoverpoint_tests()
         rp_tgt_volumes=()
         for tgt in ${rp_tgt_varrays}
         do
-          rp_tgt_volumes=("${rp_tgt_volumes[@]}" "${rpvolume}-target-${tgt}${volume_name_modifier}")
+          rp_tgt_volumes=("${rp_tgt_volumes[@]}" "${rpvolume}${volume_name_modifier}-target-${tgt}")
         done
         
         # Compile a list of target volume names that have been created for RP+VPlex
         rp_vplex_tgt_volumes=()
         for tgt in ${rpvplex_tgt_varrays}
         do
-          rp_vplex_tgt_volumes=("${rp_vplex_tgt_volumes[@]}" "${rpvplexvolume}-target-${tgt}${volume_name_modifier}")
+          rp_vplex_tgt_volumes=("${rp_vplex_tgt_volumes[@]}" "${rpvplexvolume}${volume_name_modifier}-target-${tgt}")
         done
         
         # Compile a list of target volume names that have been created for MetroPoint
         rpmp_tgt_volumes=()
         for tgt in ${rpmp_tgt_varrays}
         do
-          rpmp_tgt_volumes=("${rpmp_tgt_volumes[@]}" "${rpmpvolume}-target-${tgt}${volume_name_modifier}")
+          rpmp_tgt_volumes=("${rpmp_tgt_volumes[@]}" "${rpmpvolume}${volume_name_modifier}-target-${tgt}")
         done
 
         # RP test cases
@@ -4850,9 +4850,9 @@ recoverpoint_tests()
                 
                 # Snapshot/Bookmark Test
                 if [ "${RP_CLR}" = "1" ]; then
-                    recoverpoint_auto_snapshot_cleanup_test ${rpvolume}${volume_name_modifier} ${rpvolumetarget}${volume_name_modifier} ${rp_tgt_varray} ${rpvolume}-target-${RECOVERPOINT_VARRAY1}
+                    recoverpoint_auto_snapshot_cleanup_test ${rpvolume}${volume_name_modifier} ${rp_tgt_volumes[0]} ${rp_tgt_varrays[0]} ${rp_tgt_volumes[1]}
                 else
-                    recoverpoint_auto_snapshot_cleanup_test ${rpvolume}${volume_name_modifier} ${rpvolumetarget}${volume_name_modifier} ${rp_tgt_varray}
+                    recoverpoint_auto_snapshot_cleanup_test ${rpvolume}${volume_name_modifier} ${rp_tgt_volumes[0]} ${rp_tgt_varrays[0]}
                 fi
 
                 # Failover Test
@@ -4885,7 +4885,7 @@ recoverpoint_tests()
                 recoverpoint_add_journal_volume ${rpvplex_tgt_varray} ${rpvplex_tgt_varray} ${rpvplex_tgt_vpool} ${RP_VPLEX_CONSISTENCY_GROUP}
 
                 # Snapshot/Bookmark Test
-                recoverpoint_auto_snapshot_cleanup_test ${rpvplexvolume}${volume_name_modifier} ${rpvplexvolumetarget}${volume_name_modifier} ${rpvplex_src_varray}
+                recoverpoint_auto_snapshot_cleanup_test ${rpvplexvolume}${volume_name_modifier} ${rp_vplex_tgt_volumes[0]} ${rpvplex_tgt_varrays[0]}
 
                 # Failover Test
                 recoverpoint_failover_test ${rpvplexvolume}${volume_name_modifier} ${rpvplexvolumetarget}${volume_name_modifier}
@@ -4913,7 +4913,7 @@ recoverpoint_tests()
                 recoverpoint_add_journal_volume ${rpmp_active_tgt_varray} ${rpmp_active_tgt_varray} ${rpmp_tgt_vpool} ${RP_METROPOINT_CONSISTENCY_GROUP}
 
                 # Snapshot/Bookmark Test
-                recoverpoint_auto_snapshot_cleanup_test ${rpmpvolume}${volume_name_modifier} ${rpmpvolumetarget}${volume_name_modifier} ${rpmp_src_varray} ${rpvolume}-target-${RECOVERPOINT_VARRAY2}
+                recoverpoint_auto_snapshot_cleanup_test ${rpmpvolume}${volume_name_modifier} ${rpmp_tgt_volumes[0]} ${rpmp_tgt_varrays[0]}
 
                 # Failover Test
                 recoverpoint_failover_test ${rpmpvolume}${volume_name_modifier} ${rpmpvolumetarget}${volume_name_modifier}
@@ -9021,6 +9021,60 @@ dr_multisite_tests()
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD 10 600
     project show $test_projectid
 
+    # Below codes are used to test failover to ACTIVE_DEGRADED site
+    # power off site A, then failover to site C, then power on site A and wait it to be ACTIVE_DEGRADED, then failover to it, and wait it to be ACTIVE
+    # step1: poweroff site A, wait site C to be stable and paused
+    echo "step1: poweroff site $DR_SITE_A_NAME ..."
+    stop_vdc_services "$DR_SITE_A_IP"
+    echo "Sleep 1m to wait standby ZK switch to participant"
+    sleep 60
+    echo "Wait for stable"
+    BOURNE_IPADDR=$DR_SITE_C_IP
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD 10 600
+    dr waitforstable --ip "${DR_SITE_C_IP}" 10 600
+
+    echo "wait for site to become STANDBY_PAUSED before failover"
+    dr waitforstate $standby_site_c STANDBY_PAUSED 30 1200
+
+    echo "Sleep 1m before failover"
+    sleep 60
+
+    #step2: failover to site C, wait it to be stable and ACTIVE
+    echo "step2: failover to site $DR_SITE_C_NAME ..."
+    dr failover --ip "${DR_SITE_C_IP}" $standby_site_c || { echo "failover to site $DR_SITE_C_NAME failed."; exit 1; }
+    echo "Sleep 1m to wait failover"
+    sleep 60
+    echo "Wait for stable"
+    dr waitforstable --ip "${DR_SITE_C_IP}" 10 600
+    echo "Wait site state to be PRIAMRY after failover"
+    dr waitforstate $standby_site_c ACTIVE 30 600 --ip "${DR_SITE_C_IP}"
+
+    # step3: power on site A, wait it to become ACTIVE_DEGRADED
+    echo "step3: power on old active site $DR_SITE_A_NAME ..."
+    start_vdc_services "$DR_SITE_A_IP"
+    echo "Sleep 300 seconds to wait old site to become ACTIVE_DEGRADED ..."
+    sleep 300
+    BOURNE_IPADDR=$DR_SITE_A_IP
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD 10 600
+    dr waitforstable --ip "${DR_SITE_A_IP}" 10 600
+    dr waitforstate $active_site ACTIVE_DEGRADED 30 600 --ip "${DR_SITE_A_IP}"
+
+    # step4: power off site C
+    echo "step4: poweroff site $DR_SITE_C_NAME to prepare failover ..."
+    stop_vdc_services "$DR_SITE_C_IP"
+    echo "sleep 180 seconds to wait standby site recognize the broken network ..."
+    sleep 180
+    # step5: failover to ACTIVE_DEGRADED site and wait it to be stable and ACTIVE
+    echo "step5: failover to $DR_SITE_A_NAME ..."
+    dr failover --ip "${DR_SITE_A_IP}" $active_site || { echo "failover to site $DR_SITE_A_NAME failed."; exit 1; }
+    echo "Sleep 1m to wait failover"
+    sleep 60
+
+    echo "Wait for stable"
+    dr waitforstable --ip "${DR_SITE_A_IP}" 10 600
+
+    echo "Wait site state to be PRIAMRY after failover"
+    dr waitforstate $active_site ACTIVE 30 600 --ip "${DR_SITE_A_IP}"
     #disabling pipefail option to pipe exit codes
     set +o pipefail
 }
@@ -9463,8 +9517,8 @@ backuprestore_setup()
 
 backuprestore_tests()
 {
-    backupname='sanity'
-    backupname2='abc'
+    backupname='sanity-${seed}'
+    backupname2='abc-${seed}'
     filepath='/tmp/sanity.zip'
     remote_backup_file=""
 
@@ -10078,22 +10132,16 @@ vplexsnap_tests()
     initiator create $hostLbl FC $PWWN2 --node $WWNN2
 
     secho "Export VPLEX volume built from snapshot"
-    run export_group create $PROJECT $hname-1$host $NH --volspec "$PROJECT/$localSnapshot+1" --inits "$hostLbl/$PWWN1","$hostLbl/$PWWN2"
+    run export_group create $PROJECT $hname-1$host $NH --volspec "$PROJECT/$localSnapshot" --inits "$hostLbl/$PWWN1","$hostLbl/$PWWN2"
 
     secho "Unexport VPLEX volume built from snapshot"
     run export_group delete $PROJECT/$hname-1$host
-
-    secho "Deleting VPLEX volume built on snapshot"
-    run volume delete $PROJECT/$localSnapshot --wait
-
-    secho "Deleting snapshot"
-    run blocksnapshot delete $PROJECT/$localVolume/$localSnapshot
 
     secho "Deleting source VPLEX local volume"
     run volume delete $PROJECT/$localVolume --wait
 
     secho "Deleting Host"
-    hosts delete $hostLbl
+    run hosts delete $hostLbl
 
     secho "Completed VPLEX snapshot export tests"
 }

@@ -416,7 +416,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getTargetVplexVolumeVirtualArrays(AssetOptionsContext ctx, URI projectId) {
         ViPRCoreClient client = api(ctx);
         List<AssetOption> targets = Lists.newArrayList();
-        for (VirtualArrayRestRep varray : client.varrays().getAll()) {
+        for (VirtualArrayRestRep varray : client.varrays().getByTenant(ctx.getTenant())) {
             targets.add(createBaseResourceOption(varray));
         }
         return targets;
@@ -431,7 +431,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     @Asset("mobilityMigrationTargetVirtualPool")
     public List<AssetOption> getMobilityMigrationTargetVirtualPools(AssetOptionsContext ctx) {
-        return this.createBaseResourceOptions(api(ctx).blockVpools().getAll());
+        return this.createBaseResourceOptions(api(ctx).blockVpools().getByTenant(ctx.getTenant()));
     }
 
     @Asset("journalCopyName")
@@ -751,7 +751,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @Asset("blockVirtualPool")
     public List<AssetOption> getBlockVirtualPools(AssetOptionsContext ctx) {
         debug("getting blockVirtualPools");
-        return createBaseResourceOptions(api(ctx).blockVpools().getAll());
+        return createBaseResourceOptions(api(ctx).blockVpools().getByTenant(ctx.getTenant()));
     }
 
     @Asset("blockVirtualPoolFilter")
@@ -772,7 +772,8 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @AssetDependencies({ "virtualArray" })
     public List<AssetOption> getVirtualPoolsForVirtualArray(AssetOptionsContext ctx, URI virtualArray) {
         debug("getting virtualPoolsForVirtualArray(virtualArray=%s)", virtualArray);
-        List<BlockVirtualPoolRestRep> virtualPools = api(ctx).blockVpools().getByVirtualArray(virtualArray);
+        List<BlockVirtualPoolRestRep> virtualPools =
+                api(ctx).blockVpools().getByVirtualArrayAndTenant(virtualArray,ctx.getTenant());
         return createVirtualPoolResourceOptions(virtualPools);
     }
 

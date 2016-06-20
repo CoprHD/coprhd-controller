@@ -385,7 +385,6 @@ public class XtremIOProvUtils {
      * @return A reference to the xtremio client.
      */
     public static XtremIOClient getXtremIOClient(DbClient dbClient, StorageSystem system, XtremIOClientFactory xtremioRestClientFactory) {
-        xtremioRestClientFactory.setModel(getXtremIOVersion(dbClient, system));
         if (null == system.getSmisProviderIP() || null == system.getSmisPortNumber()) {
             _log.error("There is no active XtremIO Provider managing the system {}.", system.getSerialNumber());
             throw XtremIOApiException.exceptions.noMgmtConnectionFound(system.getSerialNumber());
@@ -394,7 +393,7 @@ public class XtremIOProvUtils {
                 .getRESTClient(
                         URI.create(XtremIOConstants.getXIOBaseURI(system.getSmisProviderIP(),
                                 system.getSmisPortNumber())),
-                        system.getSmisUserName(), system.getSmisPassword(), true);
+                        system.getSmisUserName(), system.getSmisPassword(), getXtremIOVersion(dbClient, system), true);
         return client;
     }
 
@@ -414,7 +413,7 @@ public class XtremIOProvUtils {
         }
         return version;
     }
-    
+
     /**
      * Refresh the XIO Providers & its client connections.
      *
@@ -428,11 +427,9 @@ public class XtremIOProvUtils {
         for (StorageProvider provider : xioProviderList) {
             try {
                 // For providers without version/model, let it try connecting V1 client to update connection status
-                xtremioRestClientFactory.setModel(provider.getVersionString());
                 XtremIOClient xioClient = (XtremIOClient) xtremioRestClientFactory.getRESTClient(
-                        URI.create(XtremIOConstants.getXIOBaseURI(provider.getIPAddress(),
-                                provider.getPortNumber())),
-                        provider.getUserName(), provider.getPassword(), true);
+                        URI.create(XtremIOConstants.getXIOBaseURI(provider.getIPAddress(), provider.getPortNumber())),
+                        provider.getUserName(), provider.getPassword(), provider.getVersionString(), true);
                 if (null != xioClient.getXtremIOXMSVersion()) {
                     // Now update provider status based on connection live check.
                     provider.setConnectionStatus(StorageProvider.ConnectionStatus.CONNECTED

@@ -401,6 +401,7 @@ public class VPlexApiClient {
      * @param clusterInfoList A list of VPlexClusterInfo specifying the info for the VPlex
      *            clusters.
      * @param findVirtualVolume If true findVirtualVolume method is called after virtual volume is created.
+     * @param thinEnabled If true, the virtual volume should be created as a thin-enabled virtual volume.
      * 
      * @return The information for the created virtual volume.
      * 
@@ -410,11 +411,11 @@ public class VPlexApiClient {
     public VPlexVirtualVolumeInfo createVirtualVolume(
             List<VolumeInfo> nativeVolumeInfoList, boolean isDistributed,
             boolean discoveryRequired, boolean preserveData, String winningClusterId, List<VPlexClusterInfo> clusterInfoList,
-            boolean findVirtualVolume)
+            boolean findVirtualVolume, boolean thinEnabled)
                     throws VPlexApiException {
         s_logger.info("Request for virtual volume creation on VPlex at {}", _baseURI);
         return _virtualVolumeMgr.createVirtualVolume(nativeVolumeInfoList, isDistributed,
-                discoveryRequired, preserveData, winningClusterId, clusterInfoList, findVirtualVolume);
+                discoveryRequired, preserveData, winningClusterId, clusterInfoList, findVirtualVolume, thinEnabled);
     }
 
     /**

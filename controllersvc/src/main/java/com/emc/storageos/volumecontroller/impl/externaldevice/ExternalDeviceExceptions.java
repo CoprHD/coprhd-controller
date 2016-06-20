@@ -28,4 +28,7 @@ public interface ExternalDeviceExceptions {
 
     @DeclareServiceCode(ServiceCode.EXTERNALDEVICE_NO_NATIVEID_DEFINED_FOR_STORAGE_PORT_ERROR)
     public ExternalDeviceException noNativeIdDefinedForPort(String storageSystem, String storagePort);
+    
+    @DeclareServiceCode(ServiceCode.EXTERNALDEVICE_DISCONNECT_STORAGE_SYSTEM_ERROR)
+    public ExternalDeviceException doDisconnectFailed(String method, String errorMsg);
 }

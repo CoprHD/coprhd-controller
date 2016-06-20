@@ -5,9 +5,12 @@
 package com.emc.storageos.management.backup.util;
 
 import com.emc.storageos.management.backup.ExternalServerType;
+import org.apache.http.auth.AuthenticationException;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.ConnectException;
 import java.util.List;
 
 /**
@@ -62,5 +65,10 @@ public interface BackupClient {
      * @return external server URI
      */
     public String getUri();
+
+    /**
+     * test of external server parameter validation used for GUI
+     */
+    public void test() throws AuthenticationException,ConnectException;
 
 }

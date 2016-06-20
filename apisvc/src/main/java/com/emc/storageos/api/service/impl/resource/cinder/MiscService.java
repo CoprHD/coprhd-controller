@@ -73,7 +73,6 @@ import java.text.SimpleDateFormat;
 public class MiscService extends TaskResourceService {
     private static final Logger _log = LoggerFactory.getLogger(MiscService.class);
     private CinderHelpers helper = null;
-    private static final int STATUS_OK = 200;
     
     @Autowired
     private CoordinatorClient _coordinator;
@@ -157,7 +156,7 @@ public class MiscService extends TaskResourceService {
         absoluteDetailsMap.put("maxTotalVolumes", maxTotalVolumes);
         limitsResp.absolute = absoluteDetailsMap;
         _log.info("END get limits");
-        return CinderApiUtils.getCinderResponse(limitsResp, header, true, STATUS_OK);
+        return CinderApiUtils.getCinderResponse(limitsResp, header, true, CinderConstants.STATUS_OK);
     }
 
     /**
@@ -187,7 +186,7 @@ public class MiscService extends TaskResourceService {
         objExt.name = "AvailabilityZones";
         extResp.getExtensions().add(objExt);
         _log.info("END get extensions");
-        return CinderApiUtils.getCinderResponse(extResp, header, false, STATUS_OK);
+        return CinderApiUtils.getCinderResponse(extResp, header, false, CinderConstants.STATUS_OK);
     }
 
     /**
@@ -206,7 +205,7 @@ public class MiscService extends TaskResourceService {
     public Response getVolumeTransfers(@PathParam("tenant_id") String openstack_tenant_id, @Context HttpHeaders header) {
         _log.info("START getVolumeTransfers");
         CinderOsVolumeTransferRestResp volTransferResp = new CinderOsVolumeTransferRestResp();
-        return CinderApiUtils.getCinderResponse(volTransferResp, header, false,STATUS_OK);
+        return CinderApiUtils.getCinderResponse(volTransferResp, header, false,CinderConstants.STATUS_OK);
     }
 
     /**
@@ -273,7 +272,7 @@ public class MiscService extends TaskResourceService {
             schedulerService.setUpdatedAt(format.format(curDate));
             osServicesResp.getServices().add(schedulerService);
         	
-            return CinderApiUtils.getCinderResponse(osServicesResp, header, false,STATUS_OK);     	
+            return CinderApiUtils.getCinderResponse(osServicesResp, header, false,CinderConstants.STATUS_OK);     	
         }
         
         String localNodeId = _coordinator.getInetAddessLookupMap().getNodeId();       
@@ -306,7 +305,7 @@ public class MiscService extends TaskResourceService {
         schedulerService.setUpdatedAt(format.format(curDate));
         osServicesResp.getServices().add(schedulerService);
                
-        return CinderApiUtils.getCinderResponse(osServicesResp, header, false,STATUS_OK);
+        return CinderApiUtils.getCinderResponse(osServicesResp, header, false,CinderConstants.STATUS_OK);
     }
 
     /**

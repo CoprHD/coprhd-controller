@@ -44,7 +44,7 @@ import com.emc.storageos.api.service.impl.resource.utils.CinderApiUtils;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.api.service.impl.response.ProjOwnedResRepFilter;
 import com.emc.storageos.api.service.impl.response.ResRepFilter;
-import com.emc.storageos.cinder.CinderConstants.ComponentStatus;
+import com.emc.storageos.cinder.CinderConstants;
 import com.emc.storageos.cinder.model.CinderSnapshot;
 import com.emc.storageos.cinder.model.CinderSnapshotListRestResp;
 import com.emc.storageos.cinder.model.CinderSnapshotMetadata;
@@ -108,7 +108,6 @@ public class SnapshotService extends TaskResourceService {
     private static final long GB = 1024 * 1024 * 1024;
     private static final String ZERO_PERCENT_COMPLETION = "0%";
     private static final String HUNDRED_PERCENT_COMPLETION = "100%";
-    private static final int STATUS_OK = 200;
 
     protected PlacementManager _placementManager;
     protected TenantsService _tenantsService;
@@ -173,7 +172,7 @@ public class SnapshotService extends TaskResourceService {
         //if snapshot name is empty create random name
         if (snapshotName == null)
         {
-        	snapshotName = "snapshot-random-" + RandomStringUtils.random(10);
+        	snapshotName = "snapshot-" + RandomStringUtils.random(10);
         }
         if (snapshotName == null || (snapshotName.length() <= 2))
         {
@@ -303,7 +302,7 @@ public class SnapshotService extends TaskResourceService {
                         .toString();
                 snapCreateResp.snapshot.created_at = date(snap
                         .getCreationTime().getTimeInMillis());
-                snapCreateResp.snapshot.status = ComponentStatus.CREATING.getStatus().toLowerCase();
+                snapCreateResp.snapshot.status = CinderConstants.ComponentStatus.CREATING.getStatus().toLowerCase();
                 // "creating";
                 
                 return snapCreateResp;
@@ -414,7 +413,7 @@ public class SnapshotService extends TaskResourceService {
         }
         _dbClient.updateObject(snap);
         return CinderApiUtils.getCinderResponse(
-                getSnapshotDetail(snap, isV1Call, openstack_tenant_id), header, true,STATUS_OK);
+                getSnapshotDetail(snap, isV1Call, openstack_tenant_id), header, true,CinderConstants.STATUS_OK);
     }
 
     /**
@@ -532,7 +531,7 @@ public class SnapshotService extends TaskResourceService {
                 }
             }
         }
-        return CinderApiUtils.getCinderResponse(snapshots, header, false,STATUS_OK);
+        return CinderApiUtils.getCinderResponse(snapshots, header, false,CinderConstants.STATUS_OK);
     }
 
     /**
@@ -676,7 +675,7 @@ public class SnapshotService extends TaskResourceService {
 
         response = getSnapshotDetail(snapshot, isV1Call, openstack_tenant_id);            
 
-        return CinderApiUtils.getCinderResponse(response, header, true,STATUS_OK);
+        return CinderApiUtils.getCinderResponse(response, header, true,CinderConstants.STATUS_OK);
     }
 
     /**
@@ -709,7 +708,7 @@ public class SnapshotService extends TaskResourceService {
         }
         
         return CinderApiUtils.getCinderResponse(
-               getSnapshotDetail(snapshot, isV1Call, openstack_tenant_id), header, true,STATUS_OK);
+               getSnapshotDetail(snapshot, isV1Call, openstack_tenant_id), header, true,CinderConstants.STATUS_OK);
         
     }
 
@@ -743,24 +742,24 @@ public class SnapshotService extends TaskResourceService {
                     if (tsk.getId().toString().equals(taskInProgressId)) {
                         if (tsk.getStatus().equals("ready"))
                         {
-                            detail.status = ComponentStatus.AVAILABLE.getStatus().toLowerCase();
-                            snapshot.getExtensions().put("status", ComponentStatus.AVAILABLE.getStatus().toLowerCase());
+                            detail.status = CinderConstants.ComponentStatus.AVAILABLE.getStatus().toLowerCase();
+                            snapshot.getExtensions().put("status", CinderConstants.ComponentStatus.AVAILABLE.getStatus().toLowerCase());
                             snapshot.getExtensions().remove("taskid");
                             _dbClient.updateObject(snapshot);
                         }
                         else if (tsk.getStatus().equals("pending")) {
                             if (tsk.getDescription().equals(ResourceOperationTypeEnum.CREATE_VOLUME_SNAPSHOT.getDescription()))
                             {
-                                detail.status = ComponentStatus.CREATING.getStatus().toLowerCase();
+                                detail.status = CinderConstants.ComponentStatus.CREATING.getStatus().toLowerCase();
                             } else if (tsk.getDescription().equals(ResourceOperationTypeEnum.DELETE_VOLUME_SNAPSHOT.getDescription()))
                             {
-                                detail.status = ComponentStatus.DELETING.getStatus().toLowerCase();
+                                detail.status = CinderConstants.ComponentStatus.DELETING.getStatus().toLowerCase();
                             }
                         }
                         else if (tsk.getStatus().equals("error"))
                         {
-                            detail.status = ComponentStatus.ERROR.getStatus().toLowerCase();
-                            snapshot.getExtensions().put("status", ComponentStatus.ERROR.getStatus().toLowerCase());
+                            detail.status = CinderConstants.ComponentStatus.ERROR.getStatus().toLowerCase();
+                            snapshot.getExtensions().put("status", CinderConstants.ComponentStatus.ERROR.getStatus().toLowerCase());
                             snapshot.getExtensions().remove("taskid");
                             _dbClient.updateObject(snapshot);
                         }
@@ -774,7 +773,7 @@ public class SnapshotService extends TaskResourceService {
             }
             else
             {
-                detail.status = ComponentStatus.AVAILABLE.getStatus().toLowerCase(); // "available";
+                detail.status = CinderConstants.ComponentStatus.AVAILABLE.getStatus().toLowerCase(); // "available";
             }
 
             for (String mapEntry : extensions.keySet()) {
@@ -797,14 +796,14 @@ public class SnapshotService extends TaskResourceService {
         }
 
         detail.progress = ZERO_PERCENT_COMPLETION;// default
-        if ((detail.status == ComponentStatus.CREATING.getStatus().toLowerCase())
-                || (detail.status == ComponentStatus.DELETING.getStatus().toLowerCase()) ||
-                (detail.status == ComponentStatus.ERROR.getStatus().toLowerCase())
-                || (detail.status == ComponentStatus.ERROR_DELETING.getStatus().toLowerCase()))
+        if ((detail.status == CinderConstants.ComponentStatus.CREATING.getStatus().toLowerCase())
+                || (detail.status == CinderConstants.ComponentStatus.DELETING.getStatus().toLowerCase()) ||
+                (detail.status == CinderConstants.ComponentStatus.ERROR.getStatus().toLowerCase())
+                || (detail.status == CinderConstants.ComponentStatus.ERROR_DELETING.getStatus().toLowerCase()))
         {
             detail.progress = ZERO_PERCENT_COMPLETION;
         }
-        else if (detail.status == ComponentStatus.AVAILABLE.getStatus().toLowerCase())
+        else if (detail.status == CinderConstants.ComponentStatus.AVAILABLE.getStatus().toLowerCase())
         {
             detail.progress = HUNDRED_PERCENT_COMPLETION;
         }

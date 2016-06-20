@@ -801,7 +801,7 @@ public class FileProvider extends BaseAssetOptionsProvider {
     // for unmount operation
 
     @Asset("mountedNFSExport")
-    @AssetDependencies("linuxHost")
+    @AssetDependencies("linuxFileHost")
     public List<AssetOption> getMountedNFSExports(AssetOptionsContext ctx, URI host) {
         List<AssetOption> options = Lists.newArrayList();
         Map<String, MountInfo> mountTagMap = getMountInfoFromTags(api(ctx));

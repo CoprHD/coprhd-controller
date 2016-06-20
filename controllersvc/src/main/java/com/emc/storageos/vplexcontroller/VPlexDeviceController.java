@@ -5368,7 +5368,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     StringSet associatedVolumeIdsForMirror = mirror.getAssociatedVolumes();
                     if ((associatedVolumeIdsForMirror == null) || (associatedVolumeIdsForMirror.isEmpty())) {
                         _log.info("VPLEX mirror {}:{} has no associated volumes", mirrorId, mirror.getLabel());
-                        DeviceControllerExceptions.vplex.vplexMirrorDoesNotHaveAssociatedVolumes(
+                        throw DeviceControllerExceptions.vplex.vplexMirrorDoesNotHaveAssociatedVolumes(
                                 vplexVolume.getLabel(), mirror.getLabel());
                     } else {
                         volumeIds.addAll(associatedVolumeIdsForMirror);
@@ -5398,7 +5398,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             }
             
             // Validate the ViPR backend volume WWNs match those on the VPLEX.
-            //client.validateBackendVolumeWWNs(vplexVolume.getDeviceLabel(), volumeWWNMap);
             client.validateBackendVolumesForVPlexVolume(vplexVolume.getDeviceLabel(), volumeInfoMap);
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (InternalException ie) {

@@ -29,7 +29,6 @@ import com.emc.storageos.util.NetworkLite;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAllocator;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAssigner;
-import com.emc.storageos.vplex.api.VPlexApiException;
 
 public class VPlexBackEndOrchestratorUtil {
     private static final Logger _log = LoggerFactory.getLogger(VPlexBackEndOrchestratorUtil.class);
@@ -127,7 +126,7 @@ public class VPlexBackEndOrchestratorUtil {
                     portsInDirector++;
                 }
             }
-            if (portsInDirector < 2) {
+/*           if (portsInDirector < 2) {
                 if (mask.getCreatedBySystem()) {    // ViPR created
                     _log.info(String.format(
                             "ExportMask %s disqualified because it only has %d back-end ports from %s (requires two)",
@@ -142,7 +141,7 @@ public class VPlexBackEndOrchestratorUtil {
                             "Warning: ExportMask %s only has %d back-end ports from %s (should have at least two)",
                             mask.getMaskName(), portsInDirector, director));
                 }
-            }
+            }*/
         }
 
         // Rule 2. The Export Mask should have at least two ports. Four are recommended.

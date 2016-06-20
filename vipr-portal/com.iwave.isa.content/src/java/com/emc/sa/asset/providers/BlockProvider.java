@@ -2181,6 +2181,19 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         });
         return createBaseResourceOptions(volumeGroups);
     }
+    
+    @Asset("sourceMigrationVirtualPool")
+    @AssetDependencies("application")
+    public List<AssetOption> getSourceMigrationVirtualPool(AssetOptionsContext ctx, URI applicationId) {
+        List<String> virtualPoolNames = new ArrayList<String>();
+        virtualPoolNames.add("default");
+        return createOptions(virtualPoolNames.toArray());
+    }
+    
+    @Asset("discoverApplicationResource")
+    public List<AssetOption> getDiscoverApplicationResources(AssetOptionsContext ctx) {
+        return getAddMobilityGroupResources(ctx, null);
+    }
 
     @Asset("addMobilityGroupResource")
     @AssetDependencies("mobilityGroup")

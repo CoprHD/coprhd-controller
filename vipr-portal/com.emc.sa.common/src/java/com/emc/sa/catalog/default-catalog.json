@@ -23,6 +23,14 @@
         {
           "image": "icon_application_remove_volumes.png",
           "baseService": "RemoveVolumesFromApplication"
+        },
+        {
+          "image": "icon_VPLEX_data_migration.png",
+          "baseService": "MigrateApplication"
+        },
+        {
+          "image": "icon_VPLEX_data_migration.png",
+          "baseService": "DiscoverApplication"
         }
        ],
       "categories": [

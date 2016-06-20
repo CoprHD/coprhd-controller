@@ -1,0 +1,51 @@
+{
+  baseKey:"MigrateApplication.Application",
+  serviceId:"MigrateApplication",
+  fields:{
+ 
+    application:{
+      type:"assetType.vipr.application"
+    },
+    
+        virtualPoolPairs:{
+          type:"table",
+          items:{
+            sourceVirtualPool:{
+              type:"text",
+              validation:{
+                min:2,
+                max:128
+              },
+              required:"false"
+            },
+            targetVirtualPool:{
+              type:"assetType.vipr.sourceMigrationVirtualPool",
+              required:"false"
+            }
+          }
+        },
+        
+    advanced:{
+      type:"group",
+      collapsed:true,
+      items:{
+        targetStoragePool:{
+          type:"text",
+           required:"false"
+        },
+        
+        targetStoragePort:{
+          type:"text",
+           required:"false"
+        },
+        
+        compression:{
+          type:"boolean",
+          initialValue:"true",
+          required:"false"
+        }
+      }
+    }
+
+  }
+}

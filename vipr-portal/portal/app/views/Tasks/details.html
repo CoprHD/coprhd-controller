@@ -42,7 +42,7 @@ margin-bottom: 5px;
           #{elseif task.state == 'suspended_error' }
        			<a href="@{retryTask(task.id)}"
 	              class="btn btn-default">&{'resources.tasks.retryTask'}</a><br/>
-	            <a href="{@{rollbackTask(task.id)}"
+	            <a href="@{rollbackTask(task.id)}"
 	              class="btn btn-default">&{'resources.tasks.rollbackTask'}</a>
           #{/elseif}
     </div>

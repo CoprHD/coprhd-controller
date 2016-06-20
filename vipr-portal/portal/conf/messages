@@ -3211,6 +3211,7 @@ resources.tasks.time.running=Started <strong>%s</strong> running for <strong>%s<
 resources.tasks.time.done=Started <strong>%s</strong> and ran for <strong>%s</strong>.
 resources.tasks.percent=&nbsp;%s%%
 resource.task.unknown=Unknown Task with ID '%s'
+resource.task.deleted=Task '%s' was successfully deleted
 resources.tasks.resumeMessage=Resuming task '%s'.
 resources.tasks.retryMessage=Retrying task '%s'.
 resources.tasks.rollbackMessage=Rolling back task '%s'.

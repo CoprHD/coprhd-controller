@@ -139,6 +139,11 @@ angular.module("config", []).constant({
             }
         },
         task: {
+            '${task.queued}':{
+                icon: 'lock',
+                class: '',
+                key: 'resources.tasks.queued'
+            },
             '${task.pending}':{
                 icon: 'refresh',
                 iconClass: 'rotate',

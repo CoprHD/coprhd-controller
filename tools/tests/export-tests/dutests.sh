@@ -684,7 +684,7 @@ test_1() {
 #
 test_2() {
     echot "Test 2 DU Check Begins"
-    expname=${EXPORT_GROUP_NAME}t1
+    expname=${EXPORT_GROUP_NAME}t2
 
     verify_export ${expname}1 ${HOST1} gone
 
@@ -759,7 +759,7 @@ test_2() {
 
 # DU Prevention Validation Test 3
 #
-# Summary: Tests a volume sneaking into a masking view outside of ViPR.
+# Summary: Delete Export Group: Tests a volume sneaking into a masking view outside of ViPR.
 #
 # Basic Use Case for single host, single volume
 # 1. ViPR creates 1 volume, 1 host export.
@@ -772,7 +772,7 @@ test_2() {
 #
 test_3() {
     echot "Test 3: Export Group Delete doesn't delete Export Mask when extra volumes are in it"
-    expname=${EXPORT_GROUP_NAME}t2
+    expname=${EXPORT_GROUP_NAME}t3
 
     # Make sure we start clean; no masking view on the array
     verify_export ${expname}1 ${HOST1} gone
@@ -793,6 +793,7 @@ test_3() {
 
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
+	exit;
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -811,8 +812,6 @@ test_3() {
     if [ "$SS" = "xio" ]; then
         device_id=`volume show ${PROJECT}/du-hijack-volume | grep device_label | awk '{print $2}' | cut -d '"' -f2`
     fi
-
-    echo "device id is ${device_id}"
 
     runcmd volume delete ${PROJECT}/du-hijack-volume --vipronly
 
@@ -850,20 +849,20 @@ test_3() {
 
 # Export Test 4
 #
-# Summary: Tests an initiator (host) sneaking into a masking view outside of ViPR.
+# Summary: Delete Export Group: Tests an initiator (host) sneaking into a masking view outside of ViPR.
 #
 # Basic Use Case for single host, single volume
 # 1. ViPR creates 1 volume, 1 host export.
-# 2. ViPR asked to remove the volume from the export group, but is paused after orchestration
-# 3. Customer creates a volume outside of ViPR and adds the volume to the mask.
-# 4. Removal of volume workflow is resumed
+# 2. ViPR asked to delete the export group, but is paused after orchestration
+# 3. Customer adds initiators to the mask outside of ViPR
+# 4. Delete export group workflow is resumed
 # 5. Verify the operation fails.
 # 6. Remove the volume from the mask outside of ViPR.
 # 7. Attempt operation again, succeeds.
 #
 test_4() {
     echot "Test 4: Export Group Delete doesn't delete Export Mask when extra initiators are in it"
-    expname=${EXPORT_GROUP_NAME}t3
+    expname=${EXPORT_GROUP_NAME}t4
 
     # Make sure we start clean; no masking view on the array
     verify_export ${expname}1 ${HOST1} gone
@@ -886,6 +885,176 @@ test_4() {
 
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"
+	exit;
+    fi
+
+    # Show the result of the export group command for now (show the task and WF IDs)
+    echo $resultcmd
+
+    # Parse results (add checks here!  encapsulate!)
+    taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
+    answersarray=($taskworkflow)
+    task=${answersarray[0]}
+    workflow=${answersarray[1]}
+
+    PWWN=1122334411223344
+
+    # Add another initiator to the mask (done differently per array type)
+    arrayhelper add_initiator_to_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
+    
+    # Verify the mask has the new initiator in it
+    verify_export ${expname}1 ${HOST1} 3 1
+
+    # Resume the workflow
+    runcmd workflow resume $workflow
+
+    # Follow the task.  It should fail because of Poka Yoke validation
+    echo "*** Following the export_group delete task to verify it FAILS because of the additional initiator"
+    fail task follow $task
+
+    # Now remove the initiator from the export mask
+    array_helper remove_initiator_from_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
+
+    # Verify the mask is back to normal
+    verify_export ${expname}1 ${HOST1} 2 1
+
+    # Turn off suspend of export after orchestration
+    set_suspend_on_class_method "none"
+
+    # Delete the export group
+    runcmd export_group delete $PROJECT/${expname}1
+
+    # Make sure it really did kill off the mask
+    verify_export ${expname}1 ${HOST1} gone
+}
+
+# Export Test 5
+#
+# Summary: Remove Volume: Tests an initiator (host) sneaking into a masking view outside of ViPR.
+#
+# Basic Use Case for single host, single volume
+# 1. ViPR creates 2 volumes, 1 host export.
+# 2. ViPR asked to remove the volume from the export group, but is paused after orchestration
+# 3. Customer adds initiators to the export mask outside of ViPR
+# 4. Removal of volume workflow is resumed
+# 5. Verify the operation fails.
+# 6. Remove the volume from the mask outside of ViPR.
+# 7. Attempt operation again, succeeds.
+#
+test_5() {
+    echot "Test 5: Remove Volume doesn't remove the volume when extra initiators are in the mask"
+    expname=${EXPORT_GROUP_NAME}t5
+
+    # Make sure we start clean; no masking view on the array
+    verify_export ${expname}1 ${HOST1} gone
+
+    # Turn on suspend of export after orchestration
+    set_suspend_on_class_method "none"
+    set_suspend_on_error false
+
+    # Create the mask with the 1 volume
+    runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2" --hosts "${HOST1}"
+
+    verify_export ${expname}1 ${HOST1} 2 2
+
+    # Turn on suspend of export after orchestration
+    set_suspend_on_class_method ExportWorkflowEntryPoints.exportRemoveVolumes
+
+    # Run the export group command TODO: Do this more elegantly
+    echo === export_group update $PROJECT/${expname}1 --remVols ${PROJECT}/${VOLNAME}-2
+    resultcmd=`export_group update $PROJECT/${expname}1 --remVols ${PROJECT}/${VOLNAME}-2`
+
+    if [ $? -ne 0 ]; then
+	echo "export group command failed outright"
+	exit;
+    fi
+
+    # Show the result of the export group command for now (show the task and WF IDs)
+    echo $resultcmd
+
+    # Parse results (add checks here!  encapsulate!)
+    taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
+    answersarray=($taskworkflow)
+    task=${answersarray[0]}
+    workflow=${answersarray[1]}
+
+    PWWN=1122334411223344
+
+    # Add another initiator to the mask (done differently per array type)
+    arrayhelper add_initiator_to_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
+    
+    # Verify the mask has the new initiator in it
+    verify_export ${expname}1 ${HOST1} 3 2
+
+    # Resume the workflow
+    runcmd workflow resume $workflow
+
+    # Follow the task.  It should fail because of Poka Yoke validation
+    echo "*** Following the export_group delete task to verify it FAILS because of the additional initiator"
+    fail task follow $task
+
+    # Now remove the initiator from the export mask
+    array_helper remove_initiator_from_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
+
+    # Verify the mask is back to normal
+    verify_export ${expname}1 ${HOST1} 2 2
+
+    # Turn off suspend of export after orchestration
+    set_suspend_on_class_method "none"
+
+    # Rerun the command
+    runcmd export_group update $PROJECT/${expname}1 --remVols ${PROJECT}/${VOLNAME}-2
+
+    # Make sure it worked this time
+    verify_export ${expname}1 ${HOST1} 2 1
+
+    # Delete the export group
+    runcmd export_group delete $PROJECT/${expname}1
+
+    # Make sure the mask is gone
+    verify_export ${expname}1 ${HOST1} gone
+}
+
+# DU Prevention Validation Test 6
+#
+# Summary: Remove Initiator: Tests a volume sneaking into a masking view outside of ViPR.
+#
+# Basic Use Case for single host, single volume
+# 1. ViPR creates 1 volume, 1 host export.
+# 2. ViPR asked to remove an initiator from the export group, but is paused after orchestration
+# 3. Customer creates a volume outside of ViPR and adds the volume to the mask.
+# 4. Remove initiator workflow is resumed
+# 5. Verify the operation fails.
+# 6. Remove the volume from the mask outside of ViPR.
+# 7. Attempt operation again, succeeds.
+#
+test_6() {
+    echot "Test 6: Remove Initiator doesn't remove initiator when extra volumes are seen by it"
+    expname=${EXPORT_GROUP_NAME}t6
+
+    # Make sure we start clean; no masking view on the array
+    verify_export ${expname}1 ${HOST1} gone
+
+    # Turn on suspend of export after orchestration
+    set_suspend_on_class_method "none"
+    set_suspend_on_error false
+
+    # Create the mask with the 1 volume
+    runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
+
+    # Verify the mask has been created
+    verify_export ${expname}1 ${HOST1} 2 1
+
+    # Turn on suspend of export after orchestration
+    set_suspend_on_class_method ExportWorkflowEntryPoints.exportRemoveInitiators
+
+    # Run the export group command TODO: Do this more elegantly
+    echo === export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}
+    resultcmd=`export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}`
+
+    if [ $? -ne 0 ]; then
+	echo "export group command failed outright"
+	exit;
     fi
 
     # Show the result of the export group command for now (show the task and WF IDs)
@@ -907,29 +1076,242 @@ test_4() {
 
     runcmd volume delete ${PROJECT}/du-hijack-volume --vipronly
 
-    PWWN=1122334411223344
-
-    # Add another initiator to the mask (done differently per array type)
-    arrayhelper add_initiator_to_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
+    # Add the volume to the mask (done differently per array type)
+    arrayhelper add_volume_to_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
     
-    # Verify the mask has the new initiator in it
-    verify_export ${expname}1 ${HOST1} 3 1
+    # Verify the mask has the new volume in it
+    verify_export ${expname}1 ${HOST1} 2 2
 
     # Resume the workflow
     runcmd workflow resume $workflow
 
     # Follow the task.  It should fail because of Poka Yoke validation
-    echo "*** Following the export_group delete task to verify it FAILS because of the additional initiator"
+    echo "*** Following the export_group delete task to verify it FAILS because of the additional volume"
     fail task follow $task
 
     # Now remove the volume from the storage group (masking view)
-    array_helper remove_initiator_from_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
+    array_helper remove_volume_from_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
+
+    # Delete the volume we created.
+    array_helper delete_volume ${SERIAL_NUMBER} ${device_id}
 
     # Verify the mask is back to normal
     verify_export ${expname}1 ${HOST1} 2 1
 
     # Turn off suspend of export after orchestration
     set_suspend_on_class_method "none"
+
+    # Try the operation again
+    runcmd export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}
+
+    # Verify the mask is back to normal
+    verify_export ${expname}1 ${HOST1} 1 1
+
+    # Try the export operation again
+    runcmd export_group update $PROJECT/${expname}1 --addInits ${HOST1}/${H1PI1}
+
+    # Verify the mask is back to normal
+    verify_export ${expname}1 ${HOST1} 2 1
+
+    # Delete the export group
+    runcmd export_group delete $PROJECT/${expname}1
+
+    # Make sure it really did kill off the mask
+    verify_export ${expname}1 ${HOST1} gone
+}
+
+# Validation Test 7
+#
+# Summary: Add Volume: Volume added outside of ViPR, then inside ViPR
+#
+# Basic Use Case for single host, single volume
+# 1. ViPR creates 1 volume, 1 host export.
+# 2. ViPR creates a new volume, doesn't not export it.
+# 3. Customer adds volume manually to export mask.
+# 4. ViPR asked to add volume to host export.
+# 5. Verify volume added
+# 6. Delete export group
+# 7. Verify we were able to delete the mask
+#
+test_7() {
+    echot "Test 7: Add volume: don't remove volume when added outside of ViPR during rollback"
+    expname=${EXPORT_GROUP_NAME}t7
+
+    # Make sure we start clean; no masking view on the array
+    verify_export ${expname}1 ${HOST1} gone
+
+    # Turn on suspend of export after orchestration
+    set_suspend_on_class_method "none"
+    set_suspend_on_error false
+
+    # Create the mask with the 1 volume
+    runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
+
+    # Verify the mask has been created
+    verify_export ${expname}1 ${HOST1} 2 1
+
+    # Create another volume, but don't export it through ViPR (yet)
+    volname="hijack-t7"
+    runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 1
+    device_id=`volume show ${PROJECT}/${volname} | grep native_id | awk '{print $2}' | cut -c2-6`
+
+    if [ "$SS" = "xio" ]; then
+        device_id=`volume show ${PROJECT}/${volname} | grep device_label | awk '{print $2}' | cut -d '"' -f2`
+    fi
+
+    # Add the volume to the mask
+    arrayhelper add_volume_to_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
+    
+    # Verify the mask has the new volume in it
+    verify_export ${expname}1 ${HOST1} 2 2
+
+    # Now add that volume using ViPR
+    runcmd export_group update $PROJECT/${expname}1 --addVols ${PROJECT}/${volname}
+
+    # Verify the mask is "normal" after that command
+    verify_export ${expname}1 ${HOST1} 2 2
+
+    # Delete the export group
+    runcmd export_group delete $PROJECT/${expname}1
+
+    # Make sure it really did kill off the mask
+    verify_export ${expname}1 ${HOST1} gone
+
+    # Delete the volume we created
+    runcmd volume delete ${PROJECT}/${volname} --wait
+}
+
+# Validation Test 8
+#
+# Summary: Add Initiator: Initiator added outside of ViPR, then inside ViPR
+#
+# Note: Mostly tests orchestration's good decision making.
+#
+# Basic Use Case for single host, single volume
+# 1. ViPR creates 1 volume, 1 host export.
+# 2. ViPR creates a new initiator, doesn't not export it.
+# 3. Customer adds initiator manually to export mask.
+# 4. ViPR asked to add initiator to host export.
+# 5. Verify initiator added
+# 6. Delete export group
+# 7. Verify we were able to delete the mask
+#
+test_8() {
+    echot "Test 8: Add initiator: allow adding initiator that was added outside ViPR"
+    expname=${EXPORT_GROUP_NAME}t8
+
+    # Make sure we start clean; no masking view on the array
+    verify_export ${expname}1 ${HOST1} gone
+
+    # Turn on suspend of export after orchestration
+    set_suspend_on_class_method "none"
+    set_suspend_on_error false
+
+    # Create the mask with the 1 volume
+    runcmd export_group create $PROJECT ${expname}1 $NH --type Exclusive --volspec ${PROJECT}/${VOLNAME}-1 --inits "${HOST1}/${H1PI1}"
+
+    # Verify the mask has been created
+    verify_export ${expname}1 ${HOST1} 1 1
+
+    # Strip out colons for array helper command
+    h1pi2=`echo ${H1PI2} | sed 's/://g'`
+
+    # Add another initiator to the mask (done differently per array type)
+    arrayhelper add_initiator_to_mask ${SERIAL_NUMBER} ${h1pi2} ${HOST1}
+    
+    # Verify the mask has the new initiator in it
+    verify_export ${expname}1 ${HOST1} 2 1
+
+    # Now add that volume using ViPR
+    runcmd export_group update $PROJECT/${expname}1 --addInits ${PROJECT}/${H1PI2}
+
+    # Verify the mask is "normal" after that command
+    verify_export ${expname}1 ${HOST1} 2 1
+
+    # Delete the export group
+    runcmd export_group delete $PROJECT/${expname}1
+
+    # Make sure it really did kill off the mask
+    verify_export ${expname}1 ${HOST1} gone
+
+    # Delete the volume we created
+    runcmd volume delete ${PROJECT}/${volname} --wait
+}
+
+# DU Prevention Validation Test 9
+#
+# Summary: Add Volume: add volume outside ViPR, suspending in lowest level step.
+#
+# Basic Use Case for single host, single volume
+# 1. ViPR creates 1 volume, 1 host export.
+# 2. ViPR creates a new volume, doesn't not export it.
+# 3. ViPR update export group to add volume, but suspends when adding volume to mask
+# 3. Customer adds volume manually to export mask.
+# 4. ViPR resumes export group add volume
+# 5. Operation should passively pass (realize it was already done and return success)
+# 6. Verify rollback does not remove the volume from the host export.
+#
+test_9() {
+    echot "Test 9: Add volume: add volume outside ViPR, lowest-level step resume"
+    expname=${EXPORT_GROUP_NAME}t9
+
+    # Make sure we start clean; no masking view on the array
+    verify_export ${expname}1 ${HOST1} gone
+
+    # Turn on suspend of export after orchestration
+    set_suspend_on_class_method "none"
+    set_suspend_on_error false
+
+    # Create the mask with the 1 volume
+    runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
+
+    # Verify the mask has been created
+    verify_export ${expname}1 ${HOST1} 2 1
+
+    # Turn on suspend of export after orchestration
+    set_suspend_on_class_method MaskingWorkflowEntryPoints.doExportGroupAddVolumes
+
+    # Run the export group command TODO: Do this more elegantly
+    echo === export_group update $PROJECT/${expname}1 --addVols ${PROJECT}/${VOLNAME}-2
+    resultcmd=`export_group update $PROJECT/${expname}1 --addVols ${PROJECT}/${VOLNAME}-2`
+
+    if [ $? -ne 0 ]; then
+	echo "export group command failed outright"
+	exit;
+    fi
+
+    # Show the result of the export group command for now (show the task and WF IDs)
+    echo $resultcmd
+
+    # Parse results (add checks here!  encapsulate!)
+    taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
+    answersarray=($taskworkflow)
+    task=${answersarray[0]}
+    workflow=${answersarray[1]}
+
+    # Create another volume, but don't export it through ViPR (yet)
+    volname="${VOLNAME}-2"
+    device_id=`volume show ${PROJECT}/${volname} | grep native_id | awk '{print $2}' | cut -c2-6`
+
+    if [ "$SS" = "xio" ]; then
+        device_id=`volume show ${PROJECT}/${volname} | grep device_label | awk '{print $2}' | cut -d '"' -f2`
+    fi
+
+    # Add the volume to the mask
+    arrayhelper add_volume_to_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
+    
+    # Verify the mask has the new volume in it
+    verify_export ${expname}1 ${HOST1} 2 2
+
+    # Resume the workflow
+    runcmd workflow resume $workflow
+
+    # Follow the task.
+    echo "*** Following the export_group update task to verify it PASSES passively because the volume is already there"
+    task follow $task
+
+    # Verify the mask is "normal" after that command
+    verify_export ${expname}1 ${HOST1} 2 2
 
     # Delete the export group
     runcmd export_group delete $PROJECT/${expname}1

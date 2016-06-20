@@ -87,7 +87,6 @@ verify_export() {
     if [ "$SS" = "xio" ]; then
         masking_view_name=$host_name
     fi
-
     sleep 10
     arrayhelper verify_export ${SERIAL_NUMBER} $masking_view_name $*
     if [ $? -ne "0" ]; then
@@ -159,7 +158,7 @@ arrayhelper_volume_mask_operation() {
     device_id=$3
     pattern=$4
 
-    case $storage_type in
+    case $SS in
     vmax)
          runcmd symhelper.sh $operation $serial_number $device_id $pattern
 	 ;;
@@ -188,7 +187,7 @@ arrayhelper_initiator_mask_operation() {
     pwwn=$3
     pattern=$4
 
-    case $storage_type in
+    case $SS in
     vmax)
          runcmd symhelper.sh $operation $serial_number $pwwn $pattern
 	 ;;
@@ -216,7 +215,7 @@ arrayhelper_delete_volume() {
     serial_number=$2
     device_id=$3
 
-    case $storage_type in
+    case $SS in
     vmax)
          runcmd symhelper.sh $operation $serial_number $device_id
 	 ;;
@@ -243,7 +242,7 @@ arrayhelper_verify_export() {
     masking_view_name=$2
     shift 2
 
-    case $storage_type in
+    case $SS in
     vmax)
          runcmd symhelper.sh $serial_number $masking_view_name $*
 	 ;;
@@ -325,40 +324,6 @@ if [ -f "./myhardware.conf" ]; then
     source ./myhardware.conf
 fi
 
-if [ "$SS" = "xio" ]; then
-    echo "non xio test"
-    which symhelper.sh
-    if [ $? -ne 0 ]; then
-        echo Could not find symhelper.sh path. Please add the directory where the script exists to the path
-        locate symhelper.sh
-        exit 1
-    fi
-
-    if [ ! -f /usr/emc/API/symapi/config/netcnfg ]; then
-        echo SYMAPI does not seem to be installed on the system. Please install before running test suite.
-        exit 1
-    fi
-
-    export SYMCLI_CONNECT=SYMAPI_SERVER
-    symapi_entry=`grep SYMAPI_SERVER /usr/emc/API/symapi/config/netcnfg | wc -l`
-    if [ $symapi_entry -ne 0 ]; then
-        sed -e "/SYMAPI_SERVER/d" -i /usr/emc/API/symapi/config/netcnfg
-    fi    
-    echo "SYMAPI_SERVER - TCPIP  $VMAX_SMIS_IP - 2707 ANY" >> /usr/emc/API/symapi/config/netcnfg
-    echo "Added entry into /usr/emc/API/symapi/config/netcnfg"
-
-    echo "Verifying SYMAPI connection to $VMAX_SMIS_IP ..."
-    symapi_verify="/opt/emc/SYMCLI/bin/symcfg list"
-    echo $symapi_verify
-    result=`$symapi_verify`
-    if [ $? -ne 0 ]; then
-        echo "SYMAPI verification failed: $result"
-        echo "Check the setup on $VMAX_SMIS_IP. See if the SYAMPI service is running"
-        exit 1
-    fi
-    echo $result
-fi
-
 drawstars() {
     repeatchar=`expr $1 + 2`
     while [ ${repeatchar} -gt 0 ]
@@ -427,17 +392,6 @@ nwwn()
 }
 
 login() {
-    if [ "$SS" = "xio" -o "$SS" = "vplex" ]; then
-	dir=`pwd`
-	tools_file="${dir}/tools/tests/export-tests/tools.yml"
-	if [ -f "$tools_file" ]; then
-	    echo "stale $tools_file found. Deleting it."
-	    rm $tools_file
-	fi
-        # create the yml file to be used for array tooling
-        touch $tools_file
-    fi
-
     echo "Tenant is ${TENANT}";
     security login $SYSADMIN $SYSADMIN_PASSWORD
 
@@ -508,7 +462,7 @@ xio_setup() {
     
     runcmd cos update block $VPOOL_BASE --storage ${XTREMIO_NATIVEGUID}
     ##update tools.yml file with the array details
-    printf 'array:\n  xio:\n  - ip: %s:%s\n    id: APM99990000241\n    username: %s\n    password: %s\n    version: 4.0.0-64' "$XIO_SIMULATOR_IP" "$XIO_4X_SIMULATOR_PORT" "$XTREMIO_3X_USER" "$XTREMIO_3X_PASSWD">>${tools_file}
+    printf 'array:\n  xio:\n  - ip: %s:%s\n    id: APM99990000241\n    username: %s\n    password: %s\n    version: 4.0.0-64' "$XIO_SIMULATOR_IP" "$XIO_4X_SIMULATOR_PORT" "$XTREMIO_3X_USER" "$XTREMIO_3X_PASSWD" >>$tools_file
 }
 
 common_setup() {
@@ -578,10 +532,43 @@ setup() {
     # Increase allocation percentage
     syssvc $SANITY_CONFIG_FILE localhost set_prop controller_max_thin_pool_subscription_percentage 600
 
+    if [ "${SS}" != "xio" ]; then
+        which symhelper.sh
+        if [ $? -ne 0 ]; then
+            echo Could not find symhelper.sh path. Please add the directory where the script exists to the path
+            locate symhelper.sh
+            exit 1
+        fi
+
+        if [ ! -f /usr/emc/API/symapi/config/netcnfg ]; then
+            echo SYMAPI does not seem to be installed on the system. Please install before running test suite.
+            exit 1
+        fi
+
+        export SYMCLI_CONNECT=SYMAPI_SERVER
+        symapi_entry=`grep SYMAPI_SERVER /usr/emc/API/symapi/config/netcnfg | wc -l`
+        if [ $symapi_entry -ne 0 ]; then
+            sed -e "/SYMAPI_SERVER/d" -i /usr/emc/API/symapi/config/netcnfg
+        fi    
+        echo "SYMAPI_SERVER - TCPIP  $VMAX_SMIS_IP - 2707 ANY" >> /usr/emc/API/symapi/config/netcnfg
+        echo "Added entry into /usr/emc/API/symapi/config/netcnfg"
+
+        echo "Verifying SYMAPI connection to $VMAX_SMIS_IP ..."
+        symapi_verify="/opt/emc/SYMCLI/bin/symcfg list"
+        echo $symapi_verify
+        result=`$symapi_verify`
+        if [ $? -ne 0 ]; then
+            echo "SYMAPI verification failed: $result"
+            echo "Check the setup on $VMAX_SMIS_IP. See if the SYAMPI service is running"
+            exit 1
+        fi
+        echo $result
+    fi
+
+
     ${SS}_setup
  
     SERIAL_NUMBER=`storagedevice list | grep COMPLETE | awk '{print $2}' | awk -F+ '{print $2}'`
-    echo "Serial number is: $SERIAL_NUMBER"     
     runcmd cos allow $VPOOL_BASE block $TENANT
     sleep 30
     runcmd volume create ${VOLNAME} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 2
@@ -1029,6 +1016,7 @@ fi;
 
 SS=${1}
 shift
+
 case $SS in
     vmax|vnx|vplex|xio)
     ;;
@@ -1036,6 +1024,16 @@ case $SS in
     Usage
     ;;
 esac
+if [ "$SS" = "xio" -o "$SS" = "vplex" ]; then
+    dir=`pwd`
+    tools_file="${dir}/tools/tests/export-tests/tools.yml"
+    if [ -f "$tools_file" ]; then
+	echo "stale $tools_file found. Deleting it."
+	rm $tools_file
+    fi
+    # create the yml file to be used for array tooling
+    touch $tools_file
+fi
 
 if [ "$1" = "regression" ]
 then
@@ -1043,7 +1041,8 @@ then
     shift 2;
 fi
 
-if [ ${setup} -eq 1 ]; then
+if [ ${setup} -eq 1 ]
+then
     setup
 fi
 

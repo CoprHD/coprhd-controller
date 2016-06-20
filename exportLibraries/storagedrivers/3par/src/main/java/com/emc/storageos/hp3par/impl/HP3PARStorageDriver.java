@@ -1331,19 +1331,13 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
                                 volume.getStorageSystemId(), volume.getNativeId(), host, lun.toString(), pos.toString());
                         _log.info(message);
 
-                        // get list of portPaths with host initiator list
-                        ArrayList<Initiator> initiatorCurr = new ArrayList<>();
-                        initiatorCurr.add(init);
-                        getInitiatorPaths(initiatorCurr, initiatorPaths, volumes.get(0).getStorageSystemId(), host);
-
-                        // Multiple host initiators can map to same or different array target ports
-                        // hence port can not be determined
-                        // Currently unexport will happen from all array ports as we need to get this info from SDK
-                        if (initiatorPaths.contains(pos) == true) {
-                            String posStr = String.format("%s:%s:%s", pos.getNode(), pos.getSlot(), pos.getCardPort());
-                            hp3parApi.deleteVlun(volume.getNativeId(), lun.toString(), host, posStr);
-                            totalUnexport++;
-                        }
+                        /* Multiple host initiators can map to same or different array target ports
+                           hence port can not be determined
+                           Currently unexport will happen from all array ports as we need to get this info from SDK
+                         */
+                        String posStr = String.format("%s:%s:%s", pos.getNode(), pos.getSlot(), pos.getCardPort());
+                        hp3parApi.deleteVlun(volume.getNativeId(), lun.toString(), host, posStr);
+                        totalUnexport++;
                     }// end for init
                 }
             } catch (Exception e) {

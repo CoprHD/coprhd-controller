@@ -26,12 +26,14 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
+import org.apache.cassandra.serializers.BooleanSerializer;
 import org.apache.commons.lang.StringUtils;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Session;
@@ -86,21 +88,15 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Objects;
 import com.netflix.astyanax.ColumnListMutation;
 import com.netflix.astyanax.ColumnMutation;
-import com.netflix.astyanax.Execution;
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.connectionpool.OperationResult;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
-import com.netflix.astyanax.model.ByteBufferRange;
 import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnFamily;
-import com.netflix.astyanax.model.ColumnList;
 import com.netflix.astyanax.model.ConsistencyLevel;
 import com.netflix.astyanax.model.Row;
 import com.netflix.astyanax.model.Rows;
-import com.netflix.astyanax.partitioner.Partitioner;
-import com.netflix.astyanax.query.ColumnFamilyQuery;
-import com.netflix.astyanax.query.RowQuery;
 import com.netflix.astyanax.util.TimeUUIDUtils;
 
 /**
@@ -723,24 +719,24 @@ public class DbClientImpl implements DbClient {
      */
     private static class FilteredCfScanIterator implements Iterator<URI> {
 
-        private final Iterator<Row<String, CompositeColumnName>> it;
+        private final ResultSet queryResult;
         private URI cached;
 
-        public FilteredCfScanIterator(Iterator<Row<String, CompositeColumnName>> it) {
-            this.it = it;
+        public FilteredCfScanIterator(ResultSet queryResult) {
+            this.queryResult = queryResult;
         }
 
-        protected boolean shouldFilter(Row<String, CompositeColumnName> row) {
-            return row.getColumns().isEmpty();
+        protected boolean shouldFilter(com.datastax.driver.core.Row row) {
+            return row.getColumnDefinitions().size() == 0;
         }
 
         private boolean tryAdvance() {
-            while (it.hasNext()) {
-                Row<String, CompositeColumnName> row = it.next();
+            for (com.datastax.driver.core.Row row : queryResult) {
+                String rowKey = row.getString(0);
                 if (shouldFilter(row)) {
                     continue;
                 }
-                this.cached = URI.create(row.getKey());
+                this.cached = URI.create(rowKey);
                 return true;
             }
             return false;
@@ -771,38 +767,37 @@ public class DbClientImpl implements DbClient {
         }
     }
 
-    private <T extends DataObject> Iterable<Row<String, CompositeColumnName>> scanRowsByType(Class<T> clazz, Boolean inactiveValue,
-            URI startId, int count) {
+    private <T extends DataObject> ResultSet scanRowsByType(Class<T> clazz, URI startId, int count) {
         DataObjectType doType = TypeMap.getDoType(clazz);
         if (doType == null) {
             throw new IllegalArgumentException();
         }
         try {
-            ColumnFamily<String, CompositeColumnName> cf = doType.getCF();
-            Keyspace ks = getKeyspace(clazz);
-
-            ColumnFamilyQuery<String, CompositeColumnName> query = ks.prepareQuery(cf);
-
-            // Column filter, get only last .inactive column, or get any column
-            ByteBufferRange columnRange = inactiveValue == null ? CompositeColumnNameSerializer.get().buildRange().limit(1).build()
-                    : CompositeColumnNameSerializer.get().buildRange()
-                            .greaterThanEquals(DataObject.INACTIVE_FIELD_NAME)
-                            .lessThanEquals(DataObject.INACTIVE_FIELD_NAME).reverse().limit(1).build();
-
-            Execution<Rows<String, CompositeColumnName>> exec;
-            if (count == Integer.MAX_VALUE) {
-                exec = query.getAllRows().withColumnRange(columnRange);
-            } else {
-                Partitioner partitioner = ks.getPartitioner();
-                String strKey = startId != null ? startId.toString() : null;
-                String startToken = strKey != null ? partitioner.getTokenForKey(cf.getKeySerializer().toByteBuffer(strKey)) : partitioner
-                        .getMinToken();
-                exec = query.getRowRange(strKey, null, startToken, partitioner.getMaxToken(), count).withColumnRange(columnRange);
+            StringBuilder queryString = new StringBuilder();
+            List<Object> bindObjects = new ArrayList<Object>(); 
+            
+            queryString.append("select key, value, writetime(value) from \"").append(doType.getCF().getName()).append("\"");
+            queryString.append(" where column1=? ");
+            bindObjects.add("inactive");
+            
+            if (startId != null) {
+                queryString.append(" and token(key)>token(?)");
+                bindObjects.add(startId);
             }
-
-            return exec.execute().getResult();
-        } catch (ConnectionException e) {
-            throw DatabaseException.retryables.connectionFailed(e);
+            
+            if (count != Integer.MAX_VALUE) {
+                queryString.append(" limit ").append(count);
+            }
+            
+            queryString.append(" ALLOW FILTERING");
+            _log.info("Query String: {}", queryString);
+            
+            PreparedStatement preparedStatement = getDbClientContext(clazz).getPreparedStatement(queryString.toString());
+            BoundStatement boundStatement = preparedStatement.bind(bindObjects.toArray());
+            
+            return getDbClientContext(clazz).getSession().execute(boundStatement);
+        } catch (DriverException e) {
+            throw DatabaseException.retryables.operationFailed(e);
         }
     }
 
@@ -818,18 +813,18 @@ public class DbClientImpl implements DbClient {
      * @throws DatabaseException
      */
     private <T extends DataObject> URIQueryResultList scanByType(Class<T> clazz, final Boolean inactiveValue, URI startId, int count) {
-        final Iterator<Row<String, CompositeColumnName>> it = scanRowsByType(clazz, inactiveValue, startId, count).iterator();
+        final ResultSet resultSet = scanRowsByType(clazz, startId, count);
 
         URIQueryResultList result = new URIQueryResultList();
 
-        result.setResult(new FilteredCfScanIterator(it) {
+        result.setResult(new FilteredCfScanIterator(resultSet) {
             @Override
-            protected boolean shouldFilter(Row<String, CompositeColumnName> row) {
+            protected boolean shouldFilter(com.datastax.driver.core.Row row) {
                 if (super.shouldFilter(row)) {
                     return true;
                 }
 
-                if (inactiveValue != null && row.getColumns().getColumnByIndex(0).getBooleanValue() != inactiveValue.booleanValue()) {
+                if (inactiveValue != null && BooleanSerializer.instance.deserialize(row.getBytes(1)) != inactiveValue.booleanValue()) {
                     return true;
                 }
 
@@ -843,21 +838,20 @@ public class DbClientImpl implements DbClient {
     @Override
     public <T extends DataObject> void queryInactiveObjects(Class<T> clazz, final long timeBefore, QueryResultList<URI> result) {
         if (clazz.getAnnotation(NoInactiveIndex.class) != null) {
-            final Iterator<Row<String, CompositeColumnName>> it = scanRowsByType(clazz, true, null, Integer.MAX_VALUE).iterator();
+            final ResultSet queryResult = scanRowsByType(clazz, null, Integer.MAX_VALUE);
 
-            result.setResult(new FilteredCfScanIterator(it) {
+            result.setResult(new FilteredCfScanIterator(queryResult) {
                 @Override
-                protected boolean shouldFilter(Row<String, CompositeColumnName> row) {
+                protected boolean shouldFilter(com.datastax.driver.core.Row row) {
                     if (super.shouldFilter(row)) {
                         return true;
                     }
-
-                    Column<CompositeColumnName> col = row.getColumns().getColumnByIndex(0);
-                    if (!col.getBooleanValue()) {
+                    
+                    if (!BooleanSerializer.instance.deserialize(row.getBytes(1))) {
                         return true;
                     }
 
-                    if (timeBefore <= col.getTimestamp()) {
+                    if (timeBefore <= row.getTime(2)) {
                         return true;
                     }
 
@@ -1424,21 +1418,36 @@ public class DbClientImpl implements DbClient {
             queries.add(workerThreads.submit(new Callable<Object>() {
                 @Override
                 public Object call() throws Exception {
-                    ColumnList<UUID> columns;
                     // time series are always in the local keyspace
-                    RowQuery<String, UUID> query = getLocalKeyspace()
-                            .prepareQuery(type.getCf())
-                            .setConsistencyLevel(ConsistencyLevel.CL_ONE)
-                            .getKey(rowKey)
-                            .autoPaginate(true)
-                            .withColumnRange(type.getColumnRange(timeBucket, granularity, DEFAULT_TS_PAGE_SIZE));
-                    do {
-                        columns = query.execute().getResult();
-                        for (Column<UUID> c : columns) {
-                            result.data(type.getSerializer().deserialize(c.getByteArrayValue()),
-                                    TimeUUIDUtils.getTimeFromUUID(c.getName()));
-                        }
-                    } while (!columns.isEmpty());
+                    DbClientContext context = getLocalContext();
+                    
+                    StringBuilder queryString = new StringBuilder();
+                    queryString.append("select key, unixTimestampOf(column1), value from \"").append(type.getCf().getName()).append("\" where key=?");
+                    
+                    DateTime[] timeRangeValues = type.getColumnRange(timeBucket, granularity);
+                    if (timeRangeValues.length > 0) {
+                        queryString.append(" and column1>=minTimeuuid(?) and column1<=maxTimeuuid(?)");
+                    }
+                    
+                    _log.info("Query String: {}", queryString);
+                    
+                    PreparedStatement queryStatement = context.getPreparedStatement(queryString.toString());
+                    queryStatement.setConsistencyLevel(com.datastax.driver.core.ConsistencyLevel.LOCAL_ONE);
+                    
+                    BoundStatement bindStatement = queryStatement.bind(rowKey);
+                    bindStatement.setFetchSize(DEFAULT_TS_PAGE_SIZE);
+                    
+                    if (timeRangeValues.length > 0) {
+                        bindStatement.setTimestamp(1, timeRangeValues[0].toDate());
+                        bindStatement.setTimestamp(2, timeRangeValues[1].toDate());
+                    }
+                    
+                    ResultSet results = context.getSession().execute(bindStatement);
+                    for (com.datastax.driver.core.Row row : results) {
+                        result.data(type.getSerializer().deserialize(row.getBytes(2).array()),
+                                row.getLong(1));
+                    }
+                    
                     return null;
                 }
             }));

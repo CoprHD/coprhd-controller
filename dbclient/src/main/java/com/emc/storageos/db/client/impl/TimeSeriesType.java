@@ -146,15 +146,14 @@ public class TimeSeriesType<T extends TimeSeriesSerializer.DataPoint> implements
      * @param pageSize page size
      * @return
      */
-    public ByteBufferRange getColumnRange(DateTime time, TimeBucket granularity, int pageSize) {
+    public DateTime[] getColumnRange(DateTime time, TimeBucket granularity) {
         if (time.getZone() != DateTimeZone.UTC) {
             throw new IllegalArgumentException("Invalid timezone");
         }
         if (granularity.ordinal() > _bucketGranularity.ordinal()) {
             throw new IllegalArgumentException("Invalid granularity");
         }
-        RangeBuilder builder = new RangeBuilder();
-        builder.setLimit(pageSize);
+        
         if (granularity.ordinal() < _bucketGranularity.ordinal()) {
             // finer than specified granularity
             DateTime start = DateTime.now();
@@ -184,10 +183,10 @@ public class TimeSeriesType<T extends TimeSeriesSerializer.DataPoint> implements
                     end = start.plusSeconds(1);
                     break;
             }
-            builder.setStart(TimeUUIDUtils.getTimeUUID(start.getMillis()));
-            builder.setEnd(createMaxTimeUUID(end.minusMillis(1).getMillis()));
+            
+            return new DateTime[]{start, end};
         }
-        return builder.build();
+        return new DateTime[0];
     }
 
     /**

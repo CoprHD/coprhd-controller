@@ -103,9 +103,11 @@ public class ProtocolsAttrMatcher extends AttributeMatcher {
                 }
             }
             if (!arrayProtocolsMap.isEmpty()) {
+            	_logger.info("Alik arrayProtocolsMap not empty");
                 availableAttrValues = getNetworkSupportedProtocols(arrayProtocolsMap, varrayId);
             }
             if (!availableAttrValues.isEmpty()) {
+            	_logger.info("Alik availableAttrValues not empty");
                 availableAttrMap.put(Attributes.protocols.toString(), availableAttrValues);
                 return availableAttrMap;
             }
@@ -327,7 +329,7 @@ public class ProtocolsAttrMatcher extends AttributeMatcher {
         if (storagePort == null ||
                 storagePort.getInactive() ||
                 storagePort.getTaggedVirtualArrays() == null ||
-                NullColumnValueGetter.isNullURI(storagePort.getNetwork()) ||
+//                NullColumnValueGetter.isNullURI(storagePort.getNetwork()) ||
                 !RegistrationStatus.REGISTERED.toString()
                         .equalsIgnoreCase(storagePort.getRegistrationStatus()) ||
                 (StoragePort.OperationalStatus.valueOf(storagePort.getOperationalStatus()))

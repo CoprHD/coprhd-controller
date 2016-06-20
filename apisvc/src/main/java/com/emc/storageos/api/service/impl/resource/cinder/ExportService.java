@@ -1051,7 +1051,7 @@ public class ExportService extends VolumeService {
         for (char c : str.toCharArray())
         {
             if (!Character.isDigit(c)){
-            	_log.info("Is Not Numeric = {}",Character.isDigit(c));
+            	_log.info("{} Is Not Numeric",Character.isDigit(c));
             	return false;
             }
         }

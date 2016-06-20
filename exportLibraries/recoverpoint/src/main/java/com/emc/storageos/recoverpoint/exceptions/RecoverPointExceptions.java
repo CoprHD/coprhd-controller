@@ -216,6 +216,10 @@ public interface RecoverPointExceptions {
             final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
+    public RecoverPointException failedStandbyProdCopyLookup(final String volumeWWN,
+            final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
     public RecoverPointException failedToDeleteReplicationSet(final String volumeWWN,
             final Throwable cause);
 
@@ -329,4 +333,7 @@ public interface RecoverPointExceptions {
 
     @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
     public RecoverPointException failedToAddVolumeToApplication(final String volumeLabel, final String reason);
+
+    @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
+    public RecoverPointException failedToSwapCopy(final String copyName, final Throwable cause);
 }

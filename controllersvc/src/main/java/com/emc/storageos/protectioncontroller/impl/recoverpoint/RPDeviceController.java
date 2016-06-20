@@ -4205,109 +4205,115 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 copyParams.setCopyVolumeInfo(volumeProtectionInfo);
                 rp.swapCopy(copyParams);
                 protectionVolume = updatePostSwapPersonalities(protectionVolume);
+                rp.setCopyAsProduction(copyParams);
 
                 // if metropoint:
                 // 1. delete the standby CDP copy
                 // 2. add back the standby production copy
                 // 3. add back the standby CDP copy
                 if (RPHelper.isMetroPointVolume(_dbClient, protectionVolume)) {
-
-                    _log.info(String.format(
-                            "Adding back standby production copy after swap back to original VPlex Metro for Metropoint volume %s (%s)",
-                            protectionVolume.getLabel(), protectionVolume.getId().toString()));
-
-                    List<Volume> standbyLocalCopyVols = _rpHelper.getMetropointStandbyCopies(protectionVolume);
-                    CreateCopyParams standbyLocalCopyParams = null;
-                    List<CreateRSetParams> rSets = new ArrayList<CreateRSetParams>();
-                    Set<URI> journalVolumes = new HashSet<URI>();
-                    if (!standbyLocalCopyVols.isEmpty()) {
-                        for (Volume standbyCopyVol : standbyLocalCopyVols) {
-
-                            // 1. delete the standby CDP copy if it exists
-                            if (rp.doesProtectionVolumeExist(RPHelper.getRPWWn(standbyCopyVol.getId(), _dbClient))) {
-                                RecoverPointVolumeProtectionInfo standbyCdpCopy = rp.getProtectionInfoForVolume(RPHelper.getRPWWn(
-                                        standbyCopyVol.getId(), _dbClient));
-                                rp.deleteCopy(standbyCdpCopy);
-                            }
-
-                            // set up volume info for the standby copy volume
-                            CreateVolumeParams vol = new CreateVolumeParams();
-                            vol.setWwn(RPHelper.getRPWWn(standbyCopyVol.getId(), _dbClient));
-                            vol.setInternalSiteName(standbyCopyVol.getInternalSiteName());
-                            vol.setProduction(false);
-                            List<CreateVolumeParams> volumes = new ArrayList<CreateVolumeParams>();
-                            volumes.add(vol);
-                            CreateRSetParams rSet = new CreateRSetParams();
-                            rSet.setName(standbyCopyVol.getRSetName());
-                            rSet.setVolumes(volumes);
-                            rSets.add(rSet);
-
-                            List<Volume> standbyJournals = RPHelper.findExistingJournalsForCopy(_dbClient,
-                                    standbyCopyVol.getConsistencyGroup(), standbyCopyVol.getRpCopyName());
-
-                            // compile a unique set of journal volumes
-                            for (Volume standbyJournal : standbyJournals) {
-                                journalVolumes.add(standbyJournal.getId());
-                            }
-                        }
-
-                        // prepare journal volumes info
-                        String rpCopyName = null;
-                        List<CreateVolumeParams> journalVols = new ArrayList<CreateVolumeParams>();
-                        for (URI journalVolId : journalVolumes) {
-                            Volume standbyLocalJournal = _dbClient.queryObject(Volume.class, journalVolId);
-                            if (standbyLocalJournal != null) {
-                                _log.info(String.format("Found standby local journal volume %s (%s) for metropoint volume %s (%s)",
-                                        standbyLocalJournal.getLabel(), standbyLocalJournal.getId().toString(),
+                    // If the standby production copy does not exist, it means we are in a swapped state and need
+                    // to reconstruct the standby production copy during swap-back. If the standby production
+                    // copy exists, we can skip all the CG reconstruction steps.
+                    if (!rp.doesStandbyProdCopyExist(volumeProtectionInfo)) {
+                        _log.info(String
+                                .format(
+                                        "Adding back standby production copy after swap back to original VPlex Metro for Metropoint volume %s (%s)",
                                         protectionVolume.getLabel(), protectionVolume.getId().toString()));
-                                rpCopyName = standbyLocalJournal.getRpCopyName();
-                                CreateVolumeParams journalVolParams = new CreateVolumeParams();
-                                journalVolParams.setWwn(RPHelper.getRPWWn(standbyLocalJournal.getId(), _dbClient));
-                                journalVolParams.setInternalSiteName(standbyLocalJournal.getInternalSiteName());
-                                journalVols.add(journalVolParams);
+
+                        List<Volume> standbyLocalCopyVols = _rpHelper.getMetropointStandbyCopies(protectionVolume);
+                        CreateCopyParams standbyLocalCopyParams = null;
+                        List<CreateRSetParams> rSets = new ArrayList<CreateRSetParams>();
+                        Set<URI> journalVolumes = new HashSet<URI>();
+                        if (!standbyLocalCopyVols.isEmpty()) {
+                            for (Volume standbyCopyVol : standbyLocalCopyVols) {
+
+                                // 1. delete the standby CDP copy if it exists
+                                if (rp.doesProtectionVolumeExist(RPHelper.getRPWWn(standbyCopyVol.getId(), _dbClient))) {
+                                    RecoverPointVolumeProtectionInfo standbyCdpCopy = rp.getProtectionInfoForVolume(RPHelper.getRPWWn(
+                                            standbyCopyVol.getId(), _dbClient));
+                                    rp.deleteCopy(standbyCdpCopy);
+                                }
+
+                                // set up volume info for the standby copy volume
+                                CreateVolumeParams vol = new CreateVolumeParams();
+                                vol.setWwn(RPHelper.getRPWWn(standbyCopyVol.getId(), _dbClient));
+                                vol.setInternalSiteName(standbyCopyVol.getInternalSiteName());
+                                vol.setProduction(false);
+                                List<CreateVolumeParams> volumes = new ArrayList<CreateVolumeParams>();
+                                volumes.add(vol);
+                                CreateRSetParams rSet = new CreateRSetParams();
+                                rSet.setName(standbyCopyVol.getRSetName());
+                                rSet.setVolumes(volumes);
+                                rSets.add(rSet);
+
+                                List<Volume> standbyJournals = RPHelper.findExistingJournalsForCopy(_dbClient,
+                                        standbyCopyVol.getConsistencyGroup(), standbyCopyVol.getRpCopyName());
+
+                                // compile a unique set of journal volumes
+                                for (Volume standbyJournal : standbyJournals) {
+                                    journalVolumes.add(standbyJournal.getId());
+                                }
+                            }
+
+                            // prepare journal volumes info
+                            String rpCopyName = null;
+                            List<CreateVolumeParams> journalVols = new ArrayList<CreateVolumeParams>();
+                            for (URI journalVolId : journalVolumes) {
+                                Volume standbyLocalJournal = _dbClient.queryObject(Volume.class, journalVolId);
+                                if (standbyLocalJournal != null) {
+                                    _log.info(String.format("Found standby local journal volume %s (%s) for metropoint volume %s (%s)",
+                                            standbyLocalJournal.getLabel(), standbyLocalJournal.getId().toString(),
+                                            protectionVolume.getLabel(), protectionVolume.getId().toString()));
+                                    rpCopyName = standbyLocalJournal.getRpCopyName();
+                                    CreateVolumeParams journalVolParams = new CreateVolumeParams();
+                                    journalVolParams.setWwn(RPHelper.getRPWWn(standbyLocalJournal.getId(), _dbClient));
+                                    journalVolParams.setInternalSiteName(standbyLocalJournal.getInternalSiteName());
+                                    journalVols.add(journalVolParams);
+                                }
+                            }
+
+                            // if we found any journal volumes, add them to the local copies list
+                            if (!journalVols.isEmpty()) {
+                                standbyLocalCopyParams = new CreateCopyParams();
+                                standbyLocalCopyParams.setName(rpCopyName);
+                                standbyLocalCopyParams.setJournals(journalVols);
+                            } else {
+                                _log.error("no journal volumes found for standby production copy for source volume "
+                                        + protectionVolume.getLabel());
                             }
                         }
 
-                        // if we found any journal volumes, add them to the local copies list
-                        if (!journalVols.isEmpty()) {
-                            standbyLocalCopyParams = new CreateCopyParams();
-                            standbyLocalCopyParams.setName(rpCopyName);
-                            standbyLocalCopyParams.setJournals(journalVols);
-                        } else {
-                            _log.error("no journal volumes found for standby production copy for source volume "
-                                    + protectionVolume.getLabel());
-                        }
-                    }
+                        String standbyProductionCopyName = RPHelper.getStandbyProductionCopyName(_dbClient, protectionVolume);
+                        // Build standby production journal
+                        if (standbyProductionCopyName != null) {
+                            List<Volume> existingStandbyJournals = RPHelper.findExistingJournalsForCopy(_dbClient,
+                                    protectionVolume.getConsistencyGroup(), standbyProductionCopyName);
 
-                    String standbyProductionCopyName = RPHelper.getStandbyProductionCopyName(_dbClient, protectionVolume);
-                    // Build standby production journal
-                    if (standbyProductionCopyName != null) {
-                        List<Volume> existingStandbyJournals = RPHelper.findExistingJournalsForCopy(_dbClient,
-                                protectionVolume.getConsistencyGroup(), standbyProductionCopyName);
+                            // Get the first standby production journal
+                            Volume standbyProdJournal = existingStandbyJournals.get(0);
 
-                        // Get the first standby production journal
-                        Volume standbyProdJournal = existingStandbyJournals.get(0);
+                            if (standbyProdJournal != null) {
+                                _log.info(String.format("Found standby production journal volume %s (%s) for metropoint volume %s (%s)",
+                                        standbyProdJournal.getLabel(), standbyProdJournal.getId().toString(),
+                                        protectionVolume.getLabel(), protectionVolume.getId().toString()));
+                                List<CreateVolumeParams> journalVols = new ArrayList<CreateVolumeParams>();
+                                CreateVolumeParams journalVolParams = new CreateVolumeParams();
+                                journalVolParams.setWwn(RPHelper.getRPWWn(standbyProdJournal.getId(), _dbClient));
+                                journalVolParams.setInternalSiteName(standbyProdJournal.getInternalSiteName());
+                                journalVols.add(journalVolParams);
 
-                        if (standbyProdJournal != null) {
-                            _log.info(String.format("Found standby production journal volume %s (%s) for metropoint volume %s (%s)",
-                                    standbyProdJournal.getLabel(), standbyProdJournal.getId().toString(),
-                                    protectionVolume.getLabel(), protectionVolume.getId().toString()));
-                            List<CreateVolumeParams> journalVols = new ArrayList<CreateVolumeParams>();
-                            CreateVolumeParams journalVolParams = new CreateVolumeParams();
-                            journalVolParams.setWwn(RPHelper.getRPWWn(standbyProdJournal.getId(), _dbClient));
-                            journalVolParams.setInternalSiteName(standbyProdJournal.getInternalSiteName());
-                            journalVols.add(journalVolParams);
+                                CreateCopyParams standbyProdCopyParams = new CreateCopyParams();
+                                standbyProdCopyParams.setName(standbyProdJournal.getRpCopyName());
+                                standbyProdCopyParams.setJournals(journalVols);
 
-                            CreateCopyParams standbyProdCopyParams = new CreateCopyParams();
-                            standbyProdCopyParams.setName(standbyProdJournal.getRpCopyName());
-                            standbyProdCopyParams.setJournals(journalVols);
-
-                            // 2. and 3. add back the standby production copy; add back the standby CDP copy
-                            rp.addStandbyProductionCopy(standbyProdCopyParams, standbyLocalCopyParams, rSets, copyParams);
-                        } else {
-                            _log.error(String
-                                    .format("Cannot add standby production copy because the standby production journal could not be found for copy %s.",
-                                            standbyProductionCopyName));
+                                // 2. and 3. add back the standby production copy; add back the standby CDP copy
+                                rp.addStandbyProductionCopy(standbyProdCopyParams, standbyLocalCopyParams, rSets, copyParams);
+                            } else {
+                                _log.error(String
+                                        .format("Cannot add standby production copy because the standby production journal could not be found for copy %s.",
+                                                standbyProductionCopyName));
+                            }
                         }
                     }
                 }

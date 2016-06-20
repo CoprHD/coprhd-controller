@@ -2134,6 +2134,7 @@ rp_cdp()
         --provisionType 'Thin' \
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
+        --expandable true \
         --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':min' \
         --max_snapshots 10 \
         --rp_copy_mode ASYNCHRONOUS \
@@ -2194,6 +2195,7 @@ rp_crr()
         --provisionType 'Thin' \
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
+        --expandable true \
         --protectionCoS $RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
         --rp_copy_mode ASYNCHRONOUS \
         --max_snapshots 10 \
@@ -2224,6 +2226,7 @@ rp_clr()
         --provisionType 'Thin' \
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
+        --expandable true \
         --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':min',$RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
         --max_snapshots 10 \
         --rp_copy_mode ASYNCHRONOUS \
@@ -2254,6 +2257,7 @@ rpvplex_cdp()
         --provisionType 'Thin' \
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
+        --expandable true \
         --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':min' \
         --max_snapshots 10 \
         --rp_copy_mode ASYNCHRONOUS \
@@ -2290,6 +2294,7 @@ rpvplex_crr()
         --provisionType 'Thin' \
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
+        --expandable true \
         --protectionCoS $RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
         --rp_copy_mode ASYNCHRONOUS \
         --max_snapshots 10 \
@@ -2326,6 +2331,7 @@ rpvplex_clr()
         --provisionType 'Thin' \
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
+        --expandable true \
         --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':min',$RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
         --max_snapshots 10 \
         --rp_copy_mode ASYNCHRONOUS \
@@ -2366,6 +2372,7 @@ rpmp_cdp()
         --provisionType 'Thin' \
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
+        --expandable true \
         --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':min',$RECOVERPOINT_VARRAY2':rp_targets'$1':min' \
         --max_snapshots 10 \
         --rp_copy_mode ASYNCHRONOUS \
@@ -2406,6 +2413,7 @@ rpmp_crr()
         --provisionType 'Thin' \
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
+        --expandable true \
         --protectionCoS $RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
         --max_snapshots 10 \
         --rp_copy_mode ASYNCHRONOUS \
@@ -2446,6 +2454,7 @@ rpmp_clr()
         --provisionType 'Thin' \
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
+        --expandable true \
         --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':min',$RECOVERPOINT_VARRAY2':rp_targets'$1':min',$RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
         --max_snapshots 10 \
         --rp_copy_mode ASYNCHRONOUS \
@@ -2883,7 +2892,7 @@ recoverpoint_export_bookmark_tests()
 	    done
         done
 
-        recoverpoint_export_bookmark_host_setup ${vpool} ${rptype}
+        recoverpoint_export_host_setup ${vpool} ${rptype}
 
         sleep 20
 	
@@ -2947,7 +2956,7 @@ recoverpoint_export_bookmark_tests()
     fi
 }
 
-recoverpoint_export_bookmark_host_setup()
+recoverpoint_export_host_setup()
 {
     vpool=${1}
     rptype=${2}
@@ -3912,6 +3921,151 @@ recoverpoint_cg_failover_test()
     fi
 }
 
+recoverpoint_direct_access_test()
+{
+    if [ "$RP_DIRECT_ACCESS_TESTS" = "1" ]; then
+        secho 'Running RecoverPoint Direct Access Tests'
+
+        # The source source volume - an arbitrary source volume from the CG
+        src_volume=${1}
+        # The target virtual arrays
+        rp_tgt_varrays=${2}
+        # The source virtual array
+        rp_src_varray=${3}
+        # The source virtual pool
+        rp_src_vpool=${4}
+        # The RP consistency group
+        consistency_group=${5}
+        # RecoverPoint type
+        rp_type=${6}
+
+        rp_bookmark=direct_access_bookmark-${RP_MODIFIED_HOSTNAME}-${RANDOM}
+        array_snapshot=direct_access_array_snap-${RP_MODIFIED_HOSTNAME}-${RANDOM}
+        direct_access_mode_varray=${rp_tgt_varrays[0]}
+        tgt_volume=${src_volume}-target-${direct_access_mode_varray}
+        new_volume=${src_volume}-newvol
+
+        secho 'Setting direct access mode on target copy pre-failover - expected failure'
+        fail volume change_link ${PROJECT}/${src_volume} accessmode ${PROJECT}/${tgt_volume} rp --am DIRECT_ACCESS
+        
+        secho 'Setting access mode to some unknown value on target copy - expected failure'
+        fail volume change_link ${PROJECT}/${src_volume} accessmode ${PROJECT}/${tgt_volume} rp --am UNKNOWN
+
+        secho 'Setting access mode with no access mode value - expected failure'
+        fail volume change_link ${PROJECT}/${src_volume} accessmode ${PROJECT}/${tgt_volume} rp
+
+        secho 'Creating RP bookmark prior to direct access mode being set'
+        run blocksnapshot create ${PROJECT}/${src_volume} ${rp_bookmark} --type rp
+		
+        secho 'Failover'
+        run volume change_link ${PROJECT}/${src_volume} failover ${PROJECT}/${tgt_volume} rp		
+
+        secho 'Verify the current state of the source and target vols'
+        run volume verify ${PROJECT}/${src_volume} personality SOURCE
+        run volume verify ${PROJECT}/${src_volume} access_state READWRITE
+        run volume verify ${PROJECT}/${src_volume} link_status IN_SYNC
+        run volume verify ${PROJECT}/${tgt_volume} personality TARGET
+        run volume verify ${PROJECT}/${tgt_volume} access_state NOT_READY
+        run volume verify ${PROJECT}/${tgt_volume} link_status IN_SYNC
+
+        secho 'Setting access mode to direct access'
+        run volume change_link ${PROJECT}/${src_volume} accessmode ${PROJECT}/${tgt_volume} rp --am DIRECT_ACCESS
+
+        sleep 20
+
+        # TODO: Would be nice to verify the copy is in DIRECT_ACCESS mode but there is currently no way to do
+        # that querying volume attributes.
+
+        for tgt_varray in ${rp_tgt_varrays[@]}
+        do
+            if [ "$tgt_varray" = "$direct_access_mode_varray" ]; then
+                secho 'Verifying that the bookmark associated with the target copy in direct access mode has been removed'
+                fail blocksnapshot show ${PROJECT}/${src_volume}/${rp_bookmark}-${direct_access_mode_varray}
+            else
+                secho 'Verifying that the bookmark associated with target copy NOT in direct access mode still exists'
+                run blocksnapshot show ${PROJECT}/${src_volume}/${rp_bookmark}-${tgt_varray}
+                secho 'Removing bookmark after it has been verified'
+                #run blocksnapshot delete ${PROJECT}/${src_volume}/${rp_bookmark}-${tgt_varray}
+            fi
+        done	 
+
+        # Test creating snapshots after target copy is in direct access mode
+
+        if [ "${#rp_tgt_varrays[@]}" = "1" ]; then
+            echo 'Attempt to create a RP bookmark on CG with single copy in direct access mode - expected failure'
+            fail blocksnapshot create ${PROJECT}/${src_volume} ${rp_bookmark} --type rp
+        else 
+            echo 'Creating RP bookmark when 1 CG copy is in direct access mode'
+            run blocksnapshot create ${PROJECT}/${src_volume} ${rp_bookmark}-2 --type rp
+
+            for tgt_varray in ${rp_tgt_varrays[@]}
+            do
+                #if [ "$tgt_varray" = "$direct_access_mode_varray" ]; then
+                    # TODO: Uncomment this test and the if/else once COP-22617 has been resolved
+                    #secho 'Verifying that the bookmark associated with the target copy has not been created'
+                    #fail blocksnapshot show ${PROJECT}/${src_volume}/${rp_bookmark}-2-${direct_access_mode_varray}
+                #else
+                    secho 'Verifying that the bookmark associated with target copy NOT in direct access mode exists'
+                    run blocksnapshot show ${PROJECT}/${src_volume}/${rp_bookmark}-2-${tgt_varray}
+                    secho 'Removing array snapshot after it has been verified'
+                    #run blocksnapshot delete ${PROJECT}/${src_volume}/${rp_bookmark}-2-${tgt_varray}					 
+                #fi
+            done
+        fi
+
+        secho 'Creating local array snapshot of source volume when one target copy is in direct access mode'
+        run blocksnapshot create ${PROJECT}/${src_volume} ${array_snapshot} --type native
+        secho 'Verifying the local array snapshot of the source volume was created'
+        run blocksnapshot show ${PROJECT}/${src_volume}/${array_snapshot}-1
+        #secho 'Removing local array snapshot after verification'
+        #run blocksnapshot delete ${PROJECT}/${src_volume}/${array_snapshot}-1
+
+        for tgt_varray in ${rp_tgt_varrays[@]}
+        do
+            if [ "$tgt_varray" = "$direct_access_mode_varray" ]; then
+                secho 'Attempt to create an array snapshot of target volume whose copy is in direct access mode - expected failure'
+                fail blocksnapshot create ${PROJECT}/${src_volume}-target-${tgt_varray} ${array_snapshot} --type native
+            else
+                secho 'Attempt to create an array snapshot of target volume whose copy is not in direct access mode'
+                run blocksnapshot create ${PROJECT}/${src_volume}-target-${tgt_varray} ${array_snapshot} --type native 
+                secho 'Verifying that the array snapshot associated with target copy NOT in direct access mode exists'
+                run blocksnapshot show ${PROJECT}/${src_volume}/${array_snapshot}
+                secho 'Removing array snapshot after it has been verified'
+                #run blocksnapshot delete ${PROJECT}/${src_volume}/${array_snapshot}
+            fi 
+        done 
+
+        if [ "${#rp_tgt_varrays[@]}" -gt "1" ]; then
+            secho 'Add replication set to consistency group while a copy is in direct access mode'
+            run volume create ${new_volume} $PROJECT ${rp_src_varray} ${rp_src_vpool} $RP_VOLUME_SIZE --consistencyGroup ${consistency_group} --count=1
+            secho 'Remove replication set from consistency group while a copy is in direct access mode'		
+            fail volume delete $PROJECT/${new_volume} --wait
+        fi
+
+        secho 'Expand source volume when one of the RP target copies is in direct access mode'
+        run volume expand ${PROJECT}/${src_volume} ${RP_SIZE_EXPAND} 
+
+        secho 'Export/unexport target volume whose copy is in DIRECT_ACCESS mode'
+        recoverpoint_export_host_setup ${rp_src_vpool} ${rp_type}
+        sleep 20
+        run export_group create ${PROJECT} ${RP_EXPORT_GROUP} ${rp_tgt_varrays[0]} --type Host --volspec ${PROJECT}/${tgt_volume} --hosts "${RP_HOSTNAME}"
+        run export_group delete ${PROJECT}/${RP_EXPORT_GROUP}
+
+        secho 'Removing export host'
+        run hosts delete ${RP_HOSTNAME}
+
+        secho 'Failover Cancel - returning copy image acess to no_access'
+        run volume change_link ${PROJECT}/${src_volume} failover-cancel ${PROJECT}/${tgt_volume} rp
+
+        if [ "${#rp_tgt_varrays[@]}" -gt "1" ]; then
+            secho 'Cleanup volume'
+            run volume delete $PROJECT/${new_volume} --wait
+        fi
+    else
+        secho 'Skipping RecoverPoint Direct Access Tests'
+   fi
+}
+
 recoverpoint_vpool_change_test()
 {
     # Run change vpool tests on the volume if the flag is set.
@@ -4384,6 +4538,9 @@ recoverpoint_tests()
 
                 # Failover Test
                 recoverpoint_failover_test ${rpvolume}${volume_name_modifier} ${rpvolumetarget}${volume_name_modifier}
+                 
+                # Direct Access Failover Test
+                recoverpoint_direct_access_test ${rpvolume}${volume_name_modifier} ${rp_tgt_varrays} ${rp_src_varray} ${rp_src_vpool} ${RP_CONSISTENCY_GROUP} "" 
 
                 # CG Failover/Swap Test
                 recoverpoint_cg_failover_test ${RP_CONSISTENCY_GROUP} ${rpvolume}${volume_name_modifier} ${rp_src_varray} ${rp_tgt_volumes} ${rp_tgt_varrays}

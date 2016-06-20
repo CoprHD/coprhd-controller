@@ -521,7 +521,7 @@ public class RecoverPointClient {
                     copyUIDToNameMap.put(copyID, copySettings.getName());
 
                     for (ConsistencyGroupCopyState copyState : state.getGroupCopiesStates()) {
-                        if (!RecoverPointUtils.cgCopyEqual(copySettings.getCopyUID(), copyState.getCopyUID())) {
+                        if (!RecoverPointUtils.copiesEqual(copySettings.getCopyUID(), copyState.getCopyUID())) {
                             continue;
                         }
 
@@ -1876,7 +1876,7 @@ public class RecoverPointClient {
                     List<ConsistencyGroupCopyUID> productionCopiesUIDs = functionalAPI.getGroupSettings(
                             copy.getCGGroupCopyUID().getGroupUID()).getProductionCopiesUIDs();
                     for (ConsistencyGroupCopyUID productionCopyUID : productionCopiesUIDs) {
-                        if (RecoverPointUtils.cgCopyEqual(productionCopyUID, copy.getCGGroupCopyUID())) {
+                        if (RecoverPointUtils.copiesEqual(productionCopyUID, copy.getCGGroupCopyUID())) {
                             throw RecoverPointException.exceptions
                                     .cannotRestoreVolumesInConsistencyGroup(wwnSet);
                         }
@@ -2474,27 +2474,64 @@ public class RecoverPointClient {
     /**
      * Perform a swap to the consistency group copy specified by the input request params.
      *
-     * @param RPCopyRequestParams copyToFailoverTo - Volume info for the CG to perform a swap to.
+     * @param copyParams the volume info for the CG to perform a swap to.
      *
      * @return void
      *
      * @throws RecoverPointException
+     * @throws FunctionalAPIInternalError_Exception
+     * @throws FunctionalAPIActionFailedException_Exception
      **/
     public void swapCopy(RPCopyRequestParams copyParams) throws RecoverPointException {
-        logger.info("Swap copy to current or most recent image");
+        try {
+            logger.info("Swap copy to current or most recent image");
+            // Make sure the copy is already enabled or RP will fail the operation. If it isn't enabled, enable it.
+            RecoverPointImageManagementUtils imageManager = new RecoverPointImageManagementUtils();
+            ConsistencyGroupCopyUID cgCopyUID = RecoverPointUtils.mapRPVolumeProtectionInfoToCGCopyUID(copyParams.getCopyVolumeInfo());
+            ConsistencyGroupCopyState copyState = imageManager.getCopyState(functionalAPI, cgCopyUID);
+
+            if (copyState != null && copyState.getAccessedImage() == null &&
+                    !StorageAccessState.DIRECT_ACCESS.equals(copyState.getStorageAccessState())) {
+                // Enable image access to the latest snapshot if copy image access isn't already enabled.
+                failoverCopy(copyParams);
+            }
+
+            ConsistencyGroupCopySettings cgCopySettings = RecoverPointUtils.getCopySettings(functionalAPI, cgCopyUID);
+            List<ConsistencyGroupCopyUID> productionCopiesUIDs = functionalAPI.getGroupSettings(cgCopyUID.getGroupUID())
+                    .getProductionCopiesUIDs();
+
+            // Need to determine if we need to resume production or perform a failover. This is based of the swap
+            // copy information. If the swap copy is a production copy and has the REPLICA role, we know it's a
+            // production copy acting as 'Target at Production'. In this case, we must resume production to reverse
+            // data replication. Otherwise, we need to perform a failover.
+            if (RecoverPointUtils.isProductionCopy(cgCopyUID, productionCopiesUIDs)
+                    && cgCopySettings.getRoleInfo() != null && ConsistencyGroupCopyRole.REPLICA == cgCopySettings
+                            .getRoleInfo().getRole()) {
+                logger.info("Swap copy is a production copy with role 'Target at Production'.  Resuming production to complete the swap.");
+                functionalAPI.resumeProduction(cgCopyUID.getGroupUID(), true);
+            } else {
+                // Perform the failover
+                imageManager.failoverCGCopy(functionalAPI, cgCopyUID);
+            }
+        } catch (FunctionalAPIActionFailedException_Exception | FunctionalAPIInternalError_Exception e) {
+            String copyName = copyParams.getCopyVolumeInfo() != null ? copyParams.getCopyVolumeInfo().getRpCopyName() : "N/A";
+            throw RecoverPointException.exceptions.failedToSwapCopy(copyName, e);
+        }
+    }
+
+    /**
+     * Prepares the copy link settings and sets copy as production. This would typically be
+     * called following a call to swapCopy.
+     *
+     * @param copyParams the volume info for preparing the CG links and setting copy as production.
+     * @throws RecoverPointException
+     */
+    public void setCopyAsProduction(RPCopyRequestParams copyParams) throws RecoverPointException {
+        logger.info(String.format("Setting copy %s as production copy.", (copyParams.getCopyVolumeInfo() != null) ? copyParams
+                .getCopyVolumeInfo().getRpCopyName() : "N/A"));
         // Make sure the copy is already enabled or RP will fail the operation. If it isn't enabled, enable it.
         RecoverPointImageManagementUtils imageManager = new RecoverPointImageManagementUtils();
         ConsistencyGroupCopyUID cgCopyUID = RecoverPointUtils.mapRPVolumeProtectionInfoToCGCopyUID(copyParams.getCopyVolumeInfo());
-        ConsistencyGroupCopyState copyState = imageManager.getCopyState(functionalAPI, cgCopyUID);
-
-        if (copyState != null && copyState.getAccessedImage() == null &&
-                !StorageAccessState.DIRECT_ACCESS.equals(copyState.getStorageAccessState())) {
-            // Enable image access to the latest snapshot if copy image access isn't already enabled.
-            failoverCopy(copyParams);
-        }
-
-        // Perform the failover
-        imageManager.failoverCGCopy(functionalAPI, cgCopyUID);
 
         // Prepare the link settings for new links
         prepareLinkSettings(cgCopyUID);
@@ -2579,10 +2616,10 @@ public class RecoverPointClient {
             // Compare both ends of the link to the provided prod and target copies passed in.
             // A link is a match if the prod and target copy are both found, regardless of which
             // end of the link they belong.
-            if ((RecoverPointUtils.cgCopyEqual(firstCopy, prodCopyUID)
-                    && RecoverPointUtils.cgCopyEqual(secondCopy, targetCopyUID))
-                    || (RecoverPointUtils.cgCopyEqual(firstCopy, targetCopyUID)
-                    && RecoverPointUtils.cgCopyEqual(secondCopy, prodCopyUID))) {
+            if ((RecoverPointUtils.copiesEqual(firstCopy, prodCopyUID)
+                    && RecoverPointUtils.copiesEqual(secondCopy, targetCopyUID))
+                    || (RecoverPointUtils.copiesEqual(firstCopy, targetCopyUID)
+                    && RecoverPointUtils.copiesEqual(secondCopy, prodCopyUID))) {
                 return true;
             }
         }
@@ -2618,8 +2655,8 @@ public class RecoverPointClient {
                 for (ConsistencyGroupCopySettings copySetting : copySettings) {
                     // We need to set the link settings for all orphaned copies. Orphaned copies
                     // are identified by not being the existing production copy or the current production copy.
-                    if (!RecoverPointUtils.cgCopyEqual(copySetting.getCopyUID(), existingProductionCopyUID) &&
-                            !RecoverPointUtils.cgCopyEqual(copySetting.getCopyUID(), newProductionCopyUID)) {
+                    if (!RecoverPointUtils.copiesEqual(copySetting.getCopyUID(), existingProductionCopyUID) &&
+                            !RecoverPointUtils.copiesEqual(copySetting.getCopyUID(), newProductionCopyUID)) {
                         String copyName = functionalAPI.getGroupCopyName(copySetting.getCopyUID());
 
                         // Check to see if a link setting already exists for the link between the 2 copies
@@ -2696,7 +2733,7 @@ public class RecoverPointClient {
             List<ConsistencyGroupCopyUID> productionCopiesUIDs = functionalAPI.getGroupSettings(cgCopyUID.getGroupUID())
                     .getProductionCopiesUIDs();
             for (ConsistencyGroupCopyUID productionCopyUID : productionCopiesUIDs) {
-                if (RecoverPointUtils.cgCopyEqual(productionCopyUID, cgCopyUID)) {
+                if (RecoverPointUtils.copiesEqual(productionCopyUID, cgCopyUID)) {
                     // Can't call delete copy using the production CG copy
                     throw RecoverPointException.exceptions.cantCallDeleteCopyUsingProductionVolume(copyName, cgName);
                 }
@@ -2728,7 +2765,7 @@ public class RecoverPointClient {
             List<ConsistencyGroupCopyUID> productionCopiesUIDs = groupSettings.getProductionCopiesUIDs();
 
             for (ConsistencyGroupCopyUID productionCopyUID : productionCopiesUIDs) {
-                if (!cgToDelete.isMetroPoint() && !RecoverPointUtils.cgCopyEqual(productionCopyUID, cgCopyUID)) {
+                if (!cgToDelete.isMetroPoint() && !RecoverPointUtils.copiesEqual(productionCopyUID, cgCopyUID)) {
                     // Can't call delete CG using anything but the production CG copy
                     throw RecoverPointException.exceptions
                             .cantCallDeleteCGUsingProductionCGCopy(cgName);
@@ -3040,6 +3077,39 @@ public class RecoverPointClient {
     }
 
     /**
+     * Determines if the consistency group associated with the volume protection info contains
+     * a standby production copy.
+     *
+     * @param volume the volume protection information
+     * @return true if the standby production copy exists, false otherwise
+     */
+    public boolean doesStandbyProdCopyExist(RecoverPointVolumeProtectionInfo volume) {
+        try {
+            ConsistencyGroupUID cgID = new ConsistencyGroupUID();
+            cgID.setId(volume.getRpVolumeGroupID());
+            ConsistencyGroupState state = functionalAPI.getGroupState(cgID);
+            ConsistencyGroupSettings cgSettings = functionalAPI.getGroupSettings(cgID);
+            ConsistencyGroupCopyUID standbyProdCopy = RecoverPointUtils.getStandbyProductionCopy(cgSettings, state);
+
+            if (standbyProdCopy != null) {
+                String stanbyProdCopyName = functionalAPI.getGroupCopyName(standbyProdCopy);
+                logger.info(String.format("Determined that standby production copy %s exists in CG %s.", stanbyProdCopyName,
+                        volume.getRpProtectionName()));
+                return true;
+            }
+
+            logger.info(String.format("Determined that no standby production copy exists in CG %s.", volume.getRpProtectionName()));
+            return false;
+        } catch (FunctionalAPIActionFailedException_Exception e) {
+            throw RecoverPointException.exceptions.failedStandbyProdCopyLookup(
+                    volume.getRpProtectionName(), e);
+        } catch (FunctionalAPIInternalError_Exception e) {
+            throw RecoverPointException.exceptions.failedStandbyProdCopyLookup(
+                    volume.getRpProtectionName(), e);
+        }
+    }
+
+    /**
      * Get the replication set information associated with this volume. This is important when assembling a workflow to
      * recreate the replication set for the purpose of expanding volumes.
      *
@@ -3086,7 +3156,7 @@ public class RecoverPointClient {
 
             for (UserVolumeSettings volumeSettings : rsetSettings.getVolumes()) {
                 if (standbyProdCopy != null
-                        && RecoverPointUtils.cgCopyEqual(volumeSettings.getGroupCopyUID(), standbyProdCopy)) {
+                        && RecoverPointUtils.copiesEqual(volumeSettings.getGroupCopyUID(), standbyProdCopy)) {
                     // This is the standby production copy so ignore it.
                     String standyCopyName = functionalAPI.getGroupCopyName(volumeSettings.getGroupCopyUID());
                     logger.info(String

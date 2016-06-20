@@ -384,7 +384,7 @@ public class RecoverPointBookmarkManagementUtils {
                     if (snapItem.getDescription().equals(bookmarkName)) {
                         for (RPBookmark rpBookmark : bookmarkSet) {
                             ConsistencyGroupCopyUID rpBookmarkCopyCG = rpBookmark.getCGGroupCopyUID();
-                            if (RecoverPointUtils.cgCopyEqual(copyUID, rpBookmarkCopyCG)) {
+                            if (RecoverPointUtils.copiesEqual(copyUID, rpBookmarkCopyCG)) {
                                 // Update record with bookmark time, and add back
                                 rpBookmark.setBookmarkTime(snapItem.getClosingTimeStamp());
                                 Timestamp protectionTimeStr = new Timestamp(snapItem.getClosingTimeStamp().getTimeInMicroSeconds()

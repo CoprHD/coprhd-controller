@@ -345,33 +345,60 @@ public class RecoverPointUtils {
     }
 
     /**
-     * Validates if the two CG's copies passed in are the same, but w/o the CG itself specified.
+     * Convenience method that determines if 2 CG copies are equal. The cluster and copy UIDs
+     * for each copy must be equal in order for the copies to be equal.
      *
-     * @param globalCopyUID
-     * @param globalCopyUID2
-     * @return - boolean
+     * @param firstCopy the first copy in the comparison
+     * @param secondCopy the second copy in the comparison.
+     * @return
      */
-    public static boolean cgCopyEqual(GlobalCopyUID globalCopyUID, GlobalCopyUID globalCopyUID2) {
-        if ((globalCopyUID.getCopyUID() == globalCopyUID2.getCopyUID()) &&
-                (globalCopyUID.getClusterUID().getId() == globalCopyUID2.getClusterUID().getId())) {
-            return true;
+    public static boolean copiesEqual(ConsistencyGroupCopyUID firstCopy, ConsistencyGroupCopyUID secondCopy) {
+        if (firstCopy != null && secondCopy != null) {
+            GlobalCopyUID firstCopyGlobalCopyUID = firstCopy.getGlobalCopyUID();
+            GlobalCopyUID secondCopyGlobalCopyUID = secondCopy.getGlobalCopyUID();
+            return copiesEqual(firstCopyGlobalCopyUID, secondCopyGlobalCopyUID);
         }
+
         return false;
     }
 
     /**
-     * Validates if the two CG's passed in are the same.
+     * Convenience method that determines if 2 CG copies are equal. The cluster and copy UIDs
+     * for each copy must be equal in order for the copies to be equal.
      *
-     * @param globalCopyUID
-     * @param globalCopyUID2
-     * @return - boolean
+     * @param firstCopy the first copy in the comparison
+     * @param secondCopy the second copy in the comparison.
+     * @return true if the copy UIDs are the same
      */
-    public static boolean cgCopyEqual(ConsistencyGroupCopyUID copyUID, ConsistencyGroupCopyUID copyUID2) {
-        if ((copyUID.getGroupUID().getId() == copyUID2.getGroupUID().getId()) &&
-                (copyUID.getGlobalCopyUID().getCopyUID() == copyUID2.getGlobalCopyUID().getCopyUID()) &&
-                (copyUID.getGlobalCopyUID().getClusterUID().getId() == copyUID2.getGlobalCopyUID().getClusterUID().getId())) {
-            return true;
+    public static boolean copiesEqual(GlobalCopyUID firstCopy, GlobalCopyUID secondCopy) {
+        if (firstCopy != null && secondCopy != null) {
+            ClusterUID firstCopyClusterUID = firstCopy.getClusterUID();
+            ClusterUID secondCopyClusterUID = secondCopy.getClusterUID();
+
+            if (firstCopyClusterUID != null && secondCopyClusterUID != null
+                    && firstCopyClusterUID.getId() == secondCopyClusterUID.getId()
+                    && firstCopy.getCopyUID() == secondCopy.getCopyUID()) {
+                return true;
+            }
         }
+
+        return false;
+    }
+
+    /**
+     * Determines if a list of CG copy UIDs contains the specified copy UID.
+     *
+     * @param cgCopyUIDs the list of CG copy UIDs
+     * @param cgCopyUID the search CG copy UID
+     * @return true if the copy UID is found in the list, false otherwise.
+     */
+    public static boolean containsCopy(List<ConsistencyGroupCopyUID> cgCopyUIDs, ConsistencyGroupCopyUID cgCopyUID) {
+        for (ConsistencyGroupCopyUID currentCopyUID : cgCopyUIDs) {
+            if (copiesEqual(cgCopyUID, currentCopyUID)) {
+                return true;
+            }
+        }
+
         return false;
     }
 
@@ -409,7 +436,7 @@ public class RecoverPointUtils {
         if (RecoverPointUtils.isProductionCopy(copyUID, productionCopiesUIDs)) {
             for (ConsistencyGroupCopyState copyState : state.getGroupCopiesStates()) {
                 // If the state of this production copy is not active, it is the standby production copy
-                if (RecoverPointUtils.cgCopyEqual(copyUID, copyState.getCopyUID())
+                if (copiesEqual(copyUID, copyState.getCopyUID())
                         && !copyState.isActive()) {
                     return true;
                 }
@@ -437,7 +464,7 @@ public class RecoverPointUtils {
                     if (RecoverPointUtils.isProductionCopy(copySetting.getCopyUID(), cgSettings.getProductionCopiesUIDs())
                             && ConsistencyGroupCopyRole.ACTIVE.equals(copySetting.getRoleInfo().getRole())) {
                         for (ConsistencyGroupCopyState copyState : state.getGroupCopiesStates()) {
-                            if (RecoverPointUtils.cgCopyEqual(copySetting.getCopyUID(), copyState.getCopyUID())
+                            if (copiesEqual(copySetting.getCopyUID(), copyState.getCopyUID())
                                     && !copyState.isActive()) {
                                 return copySetting.getCopyUID();
                             }
@@ -646,6 +673,26 @@ public class RecoverPointUtils {
         logger.info("Selected RPA " + preferredRPA.getRpaNumber() + " of cluster " + preferredRPA.getClusterUID().getId()
                 + " for the new consistency group");
         return preferredRPA;
+    }
+
+    /**
+     * Gets the consistency group copy settings for a specific copy.
+     *
+     * @param impl the established connection to an appliance
+     * @param cgCopyUID the consistency group copy id
+     * @return
+     * @throws FunctionalAPIActionFailedException_Exception
+     * @throws FunctionalAPIInternalError_Exception
+     */
+    public static ConsistencyGroupCopySettings getCopySettings(FunctionalAPIImpl impl, ConsistencyGroupCopyUID cgCopyUID)
+            throws FunctionalAPIActionFailedException_Exception, FunctionalAPIInternalError_Exception {
+        ConsistencyGroupSettings groupSettings = impl.getGroupSettings(cgCopyUID.getGroupUID());
+        for (ConsistencyGroupCopySettings copySettings : groupSettings.getGroupCopiesSettings()) {
+            if (copiesEqual(copySettings.getCopyUID(), cgCopyUID)) {
+                return copySettings;
+            }
+        }
+        return null;
     }
 
     /**

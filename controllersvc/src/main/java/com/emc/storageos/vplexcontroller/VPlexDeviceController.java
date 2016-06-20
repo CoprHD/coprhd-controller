@@ -4998,9 +4998,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // A successful migration will delete the backend source volumes. If
             // the ViPR DB does not correctly reflect the actual backend volume,
             // we could delete a backend volume used by some other VPLEX volume.
-            //
-            // TBD - Prevent migration altogether or simply prevent deletion of the source after a successful migration.
-            //
             String waitFor = createWorkflowStepToValidateVPlexVolume(workflow, vplexSystem, virtualVolumeURI, null);
 
             // We first need to create steps in the workflow to create the new
@@ -5172,9 +5169,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // A successful migration will delete the backend source volumes. If
             // the ViPR DB does not correctly reflect the actual backend volume,
             // we could delete a backend volume used by some other VPLEX volume.
-            //
-            // TBD - Prevent migration altogether or simply prevent deletion of the source after a successful migration.
-            //
             waitFor = createWorkflowStepToValidateVPlexVolume(workflow, vplexSystem, virtualVolumeURI, waitFor);
 
             Map<URI, Volume> volumeMap = new HashMap<URI, Volume>();

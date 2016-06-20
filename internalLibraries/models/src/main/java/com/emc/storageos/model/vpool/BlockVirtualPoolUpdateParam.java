@@ -289,6 +289,12 @@ public class BlockVirtualPoolUpdateParam extends VirtualPoolUpdateParam {
         return hostIOLimitIOPs != null && hostIOLimitIOPs > 0;
     }
 
+    /**
+     * Resource placement policy used by the virtual pool.
+     * Valid values:
+     *  default_policy (storage system/pool selection based on metrics and capacity)
+     *  array_affinity (storage system/pool selection based on host/cluster's array affinity first, then metrics and capacity)
+     */
     @XmlElement(name = "placement_policy")
     public String getPlacementPolicy() {
         return placementPolicy;

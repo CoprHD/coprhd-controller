@@ -93,7 +93,6 @@ public class CinderApiUtils {
                     String jsonResponse = objectMapper.writeValueAsString(obj);
                     _log.debug("Expected return code ={}",expectedCode);
                     return Response.status(expectedCode).entity(jsonResponse).build();
-                    //return Response.ok().entity(jsonResponse).build();
                 } catch (JsonGenerationException e) {
                     throw APIException.badRequests.parameterIsNotValid(obj.getClass().getName());
                 } catch (JsonMappingException e) {

@@ -36,6 +36,7 @@ import util.builders.BlockVirtualPoolBuilder;
 import util.builders.BlockVirtualPoolUpdateBuilder;
 
 import com.emc.storageos.model.NamedRelatedResourceRep;
+import com.emc.storageos.model.vpool.BlockVirtualPoolParam;
 import com.emc.storageos.model.vpool.BlockVirtualPoolProtectionParam;
 import com.emc.storageos.model.vpool.BlockVirtualPoolRestRep;
 import com.emc.storageos.model.vpool.ProtectionSourcePolicy;
@@ -524,7 +525,9 @@ public class BlockVirtualPoolForm extends VirtualPoolCommonForm<BlockVirtualPool
         BlockVirtualPoolBuilder builder = new BlockVirtualPoolBuilder();
         apply(builder);
         builder.setUseMatchedPools(true);
-        return new MatchingBlockStoragePoolsCall(builder.getVirtualPool());
+        BlockVirtualPoolParam myvpool = builder.getVirtualPool();
+        return new MatchingBlockStoragePoolsCall(myvpool);
+        //return new MatchingBlockStoragePoolsCall(builder.getVirtualPool());
     }
 
     public ConnectedBlockVirtualPoolsCall connectedVirtualPools() {

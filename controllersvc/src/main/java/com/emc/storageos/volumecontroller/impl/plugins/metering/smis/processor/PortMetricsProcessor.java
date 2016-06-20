@@ -833,8 +833,8 @@ public class PortMetricsProcessor {
                 if (storagePort.getPortType().equals(StoragePort.PortType.frontend.name())) {
                     // must be registered
                     if (storagePort.getRegistrationStatus().equals(RegistrationStatus.REGISTERED.name())) {
-                        // Must be associated with a Network
-                        if (URIUtil.isValid(storagePort.getNetwork())) {
+                        // Must be associated with a Network ALIK
+                        //if (URIUtil.isValid(storagePort.getNetwork())) {
                             // must not be OperationalStatus.NOT_OK
                             if (!storagePort.getOperationalStatus().equals(
                                     StoragePort.OperationalStatus.NOT_OK.name())) {
@@ -844,11 +844,11 @@ public class PortMetricsProcessor {
                                     _log.info("StoragePort OperationalStatus NOT_OK: " + storagePort.getNativeGuid());
                                 }
                             }
-                        } else {
-                            if (doLogging) {
-                                _log.info("StoragePort has no Network association: " + storagePort.getNativeGuid());
-                            }
-                        }
+//                        } else {
+//                            if (doLogging) {
+//                                _log.info("StoragePort has no Network association: " + storagePort.getNativeGuid());
+//                            }
+//                        }
                     } else {
                         if (doLogging) {
                             _log.info("StoragePort not REGISTERED: " + storagePort.getNativeGuid());

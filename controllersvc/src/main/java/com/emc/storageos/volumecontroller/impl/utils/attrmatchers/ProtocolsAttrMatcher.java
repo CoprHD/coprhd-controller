@@ -329,7 +329,7 @@ public class ProtocolsAttrMatcher extends AttributeMatcher {
         if (storagePort == null ||
                 storagePort.getInactive() ||
                 storagePort.getTaggedVirtualArrays() == null ||
-//                NullColumnValueGetter.isNullURI(storagePort.getNetwork()) ||
+//              NullColumnValueGetter.isNullURI(storagePort.getNetwork()) || // ALIK
                 !RegistrationStatus.REGISTERED.toString()
                         .equalsIgnoreCase(storagePort.getRegistrationStatus()) ||
                 (StoragePort.OperationalStatus.valueOf(storagePort.getOperationalStatus()))

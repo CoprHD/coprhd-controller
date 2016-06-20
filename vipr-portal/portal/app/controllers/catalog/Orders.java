@@ -20,12 +20,12 @@ import java.util.Map;
 import org.apache.commons.lang.StringUtils;
 
 import com.emc.sa.util.TextUtils;
-import com.emc.storageos.db.client.model.Task.Status;
 import com.emc.storageos.db.client.model.uimodels.OrderStatus;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.search.SearchResultResourceRep;
 import com.emc.storageos.model.search.Tags;
 import com.emc.vipr.client.ViPRCoreClient;
+import com.emc.vipr.client.core.impl.TaskUtil;
 import com.emc.vipr.model.catalog.ApprovalRestRep;
 import com.emc.vipr.model.catalog.CatalogServiceRestRep;
 import com.emc.vipr.model.catalog.ExecutionLogRestRep;
@@ -80,6 +80,7 @@ public class Orders extends OrderExecution {
     private static final int NORMAL_DELAY = 3000;
     private static final int LONG_DELAY = 15000;
     private static final int DEFAULT_DELAY = 60000;
+    private static final int RECEIPT_UPDATE_ATTEMPTS = 5;
 
     public static final String RECENT_ACTIVITIES = "VIPRUI_RECENT_ACTIVITIES";
     public static final int MAX_RECENT_SERVICES = 4;
@@ -299,6 +300,7 @@ public class Orders extends OrderExecution {
         }
 
         Map<URI, String> oldTasksStateMap = null;
+        int updateAttempts = 0;
 
         // Wait for an update to the order
         while (true) {
@@ -315,15 +317,17 @@ public class Orders extends OrderExecution {
 
             if (oldTasksStateMap != null && details.viprTasks != null) {
                 if (isTaskStateChanged(oldTasksStateMap, details.viprTasks)) {
-                    Long updated = System.currentTimeMillis();
-                    if ((lastUpdated == null) || (lastUpdated < updated)) {
-                        lastUpdated = updated;
-                        Logger.debug("Found task state change for order %s", details.order.getOrderNumber());
-                        return details;
-                    }
+                    Logger.debug("Found task state change for order %s", details.order.getOrderNumber());
+                    return details;
                 }
             } else {
                 oldTasksStateMap = createTaskStateMap(details.viprTasks);
+            }
+
+            if (++updateAttempts >= RECEIPT_UPDATE_ATTEMPTS) {
+                Logger.debug("Updating order %s after %d attempts to find order change", details.order.getOrderNumber(),
+                        RECEIPT_UPDATE_ATTEMPTS);
+                return details;
             }
 
             // Pause and check again, delay is based on order state
@@ -460,13 +464,11 @@ public class Orders extends OrderExecution {
         private void setTaskStepMessages() {
             viprTaskStepMessages = Maps.newHashMap();
             for (TaskResourceRep task : viprTasks) {
-                if (task.getWorkflow() != null && (task.getState().equalsIgnoreCase(Status.suspended_error.name())
-                        || task.getState().equalsIgnoreCase(Status.suspended_no_error.name()))) {
+                if (task.getWorkflow() != null && TaskUtil.isSuspended(task)) {
                     List<WorkflowStep> steps = Tasks.getWorkflowSteps(task.getWorkflow().getId());
                     String message = "";
                     for (WorkflowStep step : steps) {
-                        if (step.state.equalsIgnoreCase(Status.suspended_error.name())
-                                || step.state.equalsIgnoreCase(Status.suspended_no_error.name())) {
+                        if (TaskUtil.isSuspended(task)) {
                             message += step.message;
                         }
                     }

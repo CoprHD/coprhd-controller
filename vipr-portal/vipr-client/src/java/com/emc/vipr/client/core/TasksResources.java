@@ -154,14 +154,27 @@ public class TasksResources extends AbstractBulkResources<TaskResourceRep> {
     }
 
     /**
-     * Resume the task
+     * Delete a task
+     * 
+     * @param taskId task to delete
+     */
+    public void delete(URI taskId) {
+        client.postURI(String.class, client.uriBuilder(getIdUrl() + "/delete").build(taskId));
+    }
+
+    /**
+     * Resume a task
+     * 
+     * @param taskId task to resume
      */
     public void resume(URI taskId) {
         client.postURI(String.class, client.uriBuilder(getIdUrl() + "/resume").build(taskId));
     }
 
     /**
-     * Rollback the task
+     * Rollback a task
+     * 
+     * @param taskId task to rollback
      */
     public void rollback(URI taskId) {
         client.postURI(String.class, client.uriBuilder(getIdUrl() + "/rollback").build(taskId));

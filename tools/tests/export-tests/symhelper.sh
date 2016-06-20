@@ -49,6 +49,38 @@ remove_volume_from_mask() {
     /opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} -type storage -name $sg_long_id remove dev ${device_id}
 }
 
+add_initiator_to_mask() {
+    serial_number=$1
+    sid=${serial_number: -3}
+    pwwn=$2
+    pattern=$3
+
+    # Find the initiator group that contains the pattern sent in
+    /opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} list -type initiator | grep ${pattern}_${sid}_IG
+    if [ $? -ne 0 ]; then
+	echo "Initiator group ${pattern}_${sid}_IG was not found.  Not able to add to it."
+    else
+	# dd the initiator to the IG, which in turn adds it to the visibility of the mask
+	/opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} -type initiator -name ${pattern}_${sid}_IG add -wwn ${pwwn}
+    fi
+}
+
+remove_initiator_from_mask() {
+    serial_number=$1
+    sid=${serial_number: -3}
+    pwwn=$2
+    pattern=$3
+
+    # Find the initiator group that contains the pattern sent in
+    /opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} list -type initiator | grep ${pattern}_${sid}_IG
+    if [ $? -ne 0 ]; then
+	echo "Initiator group ${pattern}_${sid}_IG was not found.  Not able to add to it."
+    else
+	# dd the initiator to the IG, which in turn adds it to the visibility of the mask
+	/opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} -type initiator -name ${pattern}_${sid}_IG remove -wwn ${pwwn}
+    fi
+}
+
 delete_volume() {
     echo "Delete volume for VMAX not yet supported";
 }
@@ -128,6 +160,12 @@ if [ "$1" = "add_volume_to_mask" ]; then
 elif [ "$1" = "remove_volume_from_mask" ]; then
     shift
     remove_volume_from_mask $1 $2 $3
+elif [ "$1" = "add_initiator_to_mask" ]; then
+    shift
+    add_initiator_to_mask $1 $2 $3
+elif [ "$1" = "remove_initiator_from_mask" ]; then
+    shift
+    remove_initiator_from_mask $1 $2 $3
 elif [ "$1" = "delete_volume" ]; then
     shift
     delete_volume $1 $2

@@ -169,7 +169,9 @@ import com.emc.storageos.vplexcontroller.job.VPlexMigrationJob;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowException;
 import com.emc.storageos.workflow.WorkflowService;
+import com.emc.storageos.workflow.WorkflowState;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
+import com.emc.storageos.workflow.WorkflowTaskCompleter;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
 
@@ -6033,8 +6035,11 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     // migration source volumes if we have any. If the volume
                     // migrated was ingested VPLEX volume we will not have
                     // the sources.
+                    String subTaskId = stepId;
                     Workflow subWorkflow = _workflowService.getNewWorkflow(this,
-                            DELETE_MIGRATION_SOURCES_WF_NAME, true, UUID.randomUUID().toString());
+                            DELETE_MIGRATION_SOURCES_WF_NAME, true, subTaskId);
+
+                    WorkflowTaskCompleter completer = new WorkflowTaskCompleter(subWorkflow.getWorkflowURI(), subTaskId);
 
                     // Creates steps to remove the migration source volumes from all
                     // export groups containing them and delete them.
@@ -6078,7 +6083,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
                     // Execute this sub workflow.
                     DeleteMigrationSourcesCallback wfCallback = new DeleteMigrationSourcesCallback();
-                    subWorkflow.executePlan(null, "Deleted migration sources", wfCallback,
+                    subWorkflow.executePlan(completer, "Deleted migration sources", wfCallback,
                             new Object[] { stepId }, null, null);
                     // Mark this workflow as created/executed so we don't do it again on retry/resume
                     WorkflowService.getInstance().markWorkflowBeenCreated(stepId, workflowKey);
@@ -6117,12 +6122,25 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         public void workflowComplete(Workflow workflow, Object[] args) throws WorkflowException {
             _log.info("Delete migration workflow completed.");
 
-            // Simply update the workflow step in the main workflow that caused
-            // the sub workflow to execute. The delete migration sources sub
-            // workflow is a cleanup step after a successfully committed
-            // migration. We don't want rollback, so we return success
-            // regardless of the result after the sub workflow has completed.
-            WorkflowStepCompleter.stepSucceded(args[0].toString());
+            // Get the WorkflowState
+            WorkflowState state = workflow.getWorkflowStateFromSteps();
+
+            // Support SUSPEND_NO_ERROR (which is resumable) in this sub-workflow
+            if (state == WorkflowState.SUSPENDED_NO_ERROR) {
+                WorkflowStepCompleter.stepSuspendedNoError(args[0].toString());
+            } else if (state == WorkflowState.SUSPENDED_ERROR) {
+                // TODO DUPP: Address the fact that an error may occur in here.
+                _log.error(
+                        "Migration delete original sources sub-workflow suspended with error, but top-level workflow will not be set to suspended.");
+                WorkflowStepCompleter.stepSuspendedError(args[0].toString(), null);
+            } else {
+                // Simply update the workflow step in the main workflow that caused
+                // the sub workflow to execute. The delete migration sources sub
+                // workflow is a cleanup step after a successfully committed
+                // migration. We don't want rollback, so we return success
+                // regardless of the result after the sub workflow has completed.
+                WorkflowStepCompleter.stepSucceded(args[0].toString());
+            }
         }
     }
 
@@ -6130,7 +6148,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * Updated importVolume code to create underlying volumes using other controllers.
      *
      * @param volumeDescriptors
-     *            -- Contains the VPLEX_VIRTUAL vololume, and optionally,
+     *            -- Contains the VPLEX_VIRTUAL volume, and optionally,
      *            a protection BLOCK_DATA volume to be created.
      * @param vplexSystemProject
      * @param vplexSystemTenant

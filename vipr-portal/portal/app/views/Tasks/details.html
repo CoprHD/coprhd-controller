@@ -9,6 +9,11 @@
   #{breadcrumb.item active:true}#{get 'title'/}#{/breadcrumb.item}
 #{/breadcrumb.container}
 
+<style>
+.btn {
+margin-bottom: 5px;
+}
+</style>
 <script>
     var taskDetails = ${taskSummaryJson.raw()}
 </script>
@@ -24,6 +29,23 @@
       </div>
       <div style="clear:both"></div>
     </div>  
+    
+    <div class="pull-right">
+
+          <a class="btn btn-danger" href="@{deleteTask(task.id)}"><span class="glyphicon glyphicon-trash"></span> &{'resources.tasks.deleteTask'}</a><br/>
+          #{if task.state == 'suspended_no_error' }
+      			<a href="@{resumeTask(task.id)}"
+	              class="btn btn-default">&{'resources.tasks.resumeTask'}</a><br/>
+	            <a href="@{rollbackTask(task.id)}"
+	              class="btn btn-default">&{'resources.tasks.rollbackTask'}</a>
+          #{/if}
+          #{elseif task.state == 'suspended_error' }
+       			<a href="@{retryTask(task.id)}"
+	              class="btn btn-default">&{'resources.tasks.retryTask'}</a><br/>
+	            <a href="{@{rollbackTask(task.id)}"
+	              class="btn btn-default">&{'resources.tasks.rollbackTask'}</a>
+          #{/elseif}
+    </div>
     
     <dl class="dl-horizontal smallColumn">
     

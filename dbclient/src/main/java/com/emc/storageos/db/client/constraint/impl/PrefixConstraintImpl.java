@@ -7,9 +7,6 @@ package com.emc.storageos.db.client.constraint.impl;
 
 import java.net.URI;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.Statement;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
@@ -17,19 +14,15 @@ import com.emc.storageos.db.client.impl.ColumnField;
 import com.emc.storageos.db.client.impl.IndexColumnName;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.ScopedLabel;
-import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
-import com.netflix.astyanax.query.RowQuery;
 
 /**
  * Default prefix constraint implementation
  */
 public class PrefixConstraintImpl extends ConstraintImpl implements PrefixConstraint {
-    private static final Logger log = LoggerFactory.getLogger(PrefixConstraintImpl.class);
-
+    
     private ScopedLabel _label;
     private ColumnField _field;
-    private Keyspace _keyspace;
 
     public PrefixConstraintImpl(String label, ColumnField field) {
         super(label, field);
@@ -50,22 +43,8 @@ public class PrefixConstraintImpl extends ConstraintImpl implements PrefixConstr
     }
 
     @Override
-    public void setKeyspace(Keyspace keyspace) {
-        _keyspace = keyspace;
-    }
-
-    @Override
     protected <T> void queryOnePage(final QueryResult<T> result) throws ConnectionException {
-        queryOnePageWithAutoPaginate(genQuery(), result);
-    }
-
-    @Override
-    protected RowQuery<String, IndexColumnName> genQuery() {
-        RowQuery<String, IndexColumnName> query = _keyspace.prepareQuery(_field.getIndexCF())
-                .getKey(_field.getPrefixIndexRowKey(_label))
-                .withColumnRange(_field.buildPrefixRange(_label.getLabel(), pageCount));
-
-        return query;
+        queryOnePageWithAutoPaginate(genQueryStatement(), result);
     }
 
     @Override

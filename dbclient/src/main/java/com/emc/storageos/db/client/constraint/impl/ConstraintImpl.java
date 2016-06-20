@@ -12,7 +12,8 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Statement;
 import com.emc.storageos.db.client.constraint.Constraint;
 import com.emc.storageos.db.client.constraint.ConstraintDescriptor;
@@ -21,6 +22,7 @@ import com.emc.storageos.db.client.impl.DbClientContext;
 import com.emc.storageos.db.client.impl.IndexColumnName;
 import com.emc.storageos.db.client.impl.IndexColumnNameSerializer;
 import com.emc.storageos.db.exceptions.DatabaseException;
+import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnList;
@@ -40,6 +42,7 @@ public abstract class ConstraintImpl implements Constraint {
     protected int pageCount = DEFAULT_PAGE_SIZE;
     protected boolean returnOnePage;
     protected DbClientContext dbClientContext;
+    protected Keyspace _keyspace;
 
     public ConstraintImpl(Object... arguments) {
         ColumnField field = null;
@@ -116,7 +119,9 @@ public abstract class ConstraintImpl implements Constraint {
 
     protected abstract <T> void queryOnePage(final QueryResult<T> result) throws ConnectionException;
 
-    protected abstract RowQuery<String, IndexColumnName> genQuery();
+    protected RowQuery<String, IndexColumnName> genQuery() {
+        return null;
+    }
     
     protected Statement genQueryStatement() {
         return null;
@@ -241,9 +246,51 @@ public abstract class ConstraintImpl implements Constraint {
         }
         result.setResult(ids.iterator());
     }
+    
+    protected <T> void queryOnePageWithAutoPaginate(Statement queryStatement, final QueryResult<T> result) {
+        boolean start = false;
+        List<T> ids = new ArrayList<T>();
+        int count = 0;
+
+        ResultSet resultSet = dbClientContext.getSession().execute(queryStatement);
+
+        for (Row row : resultSet) {
+            IndexColumnName indexColumnName = new IndexColumnName(row.getString(1), 
+                    row.getString(2), 
+                    row.getString(3),
+                    row.getString(4),
+                    row.getUUID(5),
+                    row.getBytes(6));
+            
+            if (startId == null) {
+                start = true;
+            } else if (startId.equals(getURI(indexColumnName).toString())) {
+                start = true;
+                continue;
+            }
+
+            if (start) {
+                T obj = createQueryHit(result, indexColumnName);
+                if (!ids.contains(obj)) {
+                    ids.add(obj);
+                }
+                count++;
+                
+                if (count >= pageCount) {
+                    break;
+                }
+            }
+        }
+        result.setResult(ids.iterator());
+    }
 
     @Override
     public void setDbClientContext(DbClientContext dbClientContext) {
         this.dbClientContext = dbClientContext;
+    }
+    
+    @Override
+    public void setKeyspace(Keyspace keyspace) {
+        _keyspace = keyspace;
     }
 }

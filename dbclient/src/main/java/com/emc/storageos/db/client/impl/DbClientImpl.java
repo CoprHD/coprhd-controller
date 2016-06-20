@@ -983,6 +983,7 @@ public class DbClientImpl implements DbClient {
         constraintImpl.setPageCount(maxCount);
 
         constraint.setKeyspace(getKeyspace(constraint.getDataObjectType()));
+        constraint.setDbClientContext(this.getDbClientContext(constraint.getDataObjectType()));
         constraint.execute(result);
     }
 

@@ -1048,4 +1048,14 @@ public interface BlockStorageDevice {
             String replicationGroupName, Boolean keepRGName, Boolean markInactive, 
             String sourceReplicationGroup, TaskCompleter taskCompleter) throws DeviceControllerException;
     
+        
+    /**
+     * Finds the HLUs for a Host or Hosts within Cluster.
+     * 
+     * @param system StorageSystem on which HLU needs to be determined
+     * @param hostURIs List of Host URIs. Cluster export will have more than one hosts
+     * @param completer A reference to the task completer.
+     * @throws DeviceControllerException
+     */
+    public Map<URI, List<String>> doFindHostHLUs(StorageSystem storage, List<URI> hostURIs, TaskCompleter completer) throws DeviceControllerException;
 }

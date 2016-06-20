@@ -18,6 +18,7 @@ import javax.cim.CIMInstance;
 import javax.cim.CIMObjectPath;
 import javax.wbem.CloseableIterator;
 import javax.wbem.WBEMException;
+import javax.wbem.client.EnumerateResponse;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,6 +30,7 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.ExportMask;
+import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -1214,4 +1216,44 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
         return null;
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Map<URI, List<String>> doFindHostHLUs(StorageSystem storage, List<URI> hostURIs, TaskCompleter completer) throws DeviceControllerException {
+    	Map<URI, List<String>> hostToHLUMap = new HashMap<URI, List<String>>();
+
+        for (URI hostURI : hostURIs) {
+        	List<String> hostHLUs = new ArrayList<String>();
+        	hostToHLUMap.put(hostURI, hostHLUs);
+            Host host = _dbClient.queryObject(Host.class, hostURI);
+            String label = host.getLabel();
+
+            String query = String.format("Select * From %s Where ElementName=\"%s\"", "IBMTSDS_SCSIProtocolController", label);
+            CIMObjectPath pcHostPath = CimObjectPathCreator.createInstance("IBMTSDS_SCSIProtocolController", Constants.IBM_NAMESPACE, null);
+            List<CIMInstance> pcInstancesForHost = _helper.executeQuery(storage, pcHostPath, query, "WQL");
+
+            if (!pcInstancesForHost.isEmpty()) {
+                CIMObjectPath specificCollectionPath = pcInstancesForHost.get(0).getObjectPath();
+
+                CloseableIterator<CIMInstance> seForPCItr = null;
+                try {
+                	seForPCItr = _helper.getReferenceInstances(storage, specificCollectionPath, "IBMTSDS_ProtocolControllerForSEUnit", null, new String[] { "DeviceNumber" });
+
+                    while (seForPCItr.hasNext()) {
+                        CIMInstance instance = seForPCItr.next();
+                        hostHLUs.add(CIMPropertyFactory.getPropertyValue(instance, "DeviceNumber"));
+                    }
+                    _log.info("HLU list for Host {} : {}", label, hostHLUs);
+                } catch (WBEMException e) {
+                	_log.error("Error occured during retrieval of HLUs for a Host",e);
+                } finally {
+                	if (seForPCItr != null) {
+                		seForPCItr.close();
+                    }
+                }
+            }
+        }
+        return hostToHLUMap;
+    }
 }

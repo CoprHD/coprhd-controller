@@ -276,6 +276,13 @@ public class ColumnField {
                 .limit(pageSize)
                 .build();
     }
+    
+    public void buildPrefixRange(StringBuilder queryString, String prefix, int pageSize) {
+        String target = prefix.toLowerCase();
+        queryString.append(" and column1=?");
+        queryString.append(" and column2>=? and column2<=?");
+        queryString.append(" limit "+pageSize);
+    }
 
     /**
      * Build column slice range for given string

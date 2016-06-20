@@ -4,6 +4,8 @@
  */
 package com.emc.storageos.db.client.constraint.impl;
 
+import java.net.URI;
+
 import com.emc.storageos.db.client.impl.ColumnField;
 import com.emc.storageos.db.client.impl.CompositeColumnNameSerializer;
 import com.emc.storageos.db.client.impl.IndexColumnName;
@@ -11,11 +13,8 @@ import com.emc.storageos.db.client.impl.RelationDbIndex;
 import com.emc.storageos.db.client.model.DataObject;
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
-import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.query.RowQuery;
 import com.netflix.astyanax.util.TimeUUIDUtils;
-
-import java.net.URI;
 
 /**
  * A containment constraint that returns only those elements from the index that were added between startTime and endTime
@@ -80,13 +79,13 @@ public class TimedContainmentConstraintImpl extends ConstraintImpl {
 
         return new FilteredQueryHitIterator<T>(query) {
             @Override
-            protected T createQueryHit(Column<IndexColumnName> column) {
-                return result.createQueryHit(getURI(column), column.getName().getThree(), column.getName().getTimeUUID());
+            protected T createQueryHit(IndexColumnName column) {
+                return result.createQueryHit(getURI(column), column.getThree(), column.getTimeUUID());
             }
 
             @Override
-            public boolean filter(Column<IndexColumnName> column) {
-                long columnTime = TimeUUIDUtils.getMicrosTimeFromUUID(column.getName().getTimeUUID());
+            public boolean filter(IndexColumnName column) {
+                long columnTime = TimeUUIDUtils.getMicrosTimeFromUUID(column.getTimeUUID());
                 // Filtering on startTime, startTime = -1 for no filtering
                 if (startTimeMicros > 0 && columnTime < startTimeMicros) {
                     return false;
@@ -101,17 +100,17 @@ public class TimedContainmentConstraintImpl extends ConstraintImpl {
     }
 
     @Override
-    protected <T> T createQueryHit(QueryResult<T> result, Column<IndexColumnName> column) {
-        return result.createQueryHit(getURI(column), column.getName().getThree(), column.getName().getTimeUUID());
+    protected <T> T createQueryHit(QueryResult<T> result, IndexColumnName column) {
+        return result.createQueryHit(getURI(column), column.getThree(), column.getTimeUUID());
     }
 
     @Override
-    protected URI getURI(Column<IndexColumnName> col) {
+    protected URI getURI(IndexColumnName col) {
         URI ret;
         if (field.getIndex() instanceof RelationDbIndex) {
-            ret = URI.create(col.getName().getTwo());
+            ret = URI.create(col.getTwo());
         } else {
-            ret = URI.create(col.getName().getFour());
+            ret = URI.create(col.getFour());
         }
 
         return ret;

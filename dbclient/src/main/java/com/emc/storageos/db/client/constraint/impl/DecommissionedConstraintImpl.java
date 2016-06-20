@@ -5,19 +5,22 @@
 package com.emc.storageos.db.client.constraint.impl;
 
 import java.net.URI;
-import com.emc.storageos.db.client.model.NoInactiveIndex;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.emc.storageos.db.client.constraint.DecommissionedConstraint;
+import com.emc.storageos.db.client.impl.ColumnField;
+import com.emc.storageos.db.client.impl.CompositeColumnNameSerializer;
+import com.emc.storageos.db.client.impl.IndexColumnName;
+import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.NoInactiveIndex;
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
-import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.query.RowQuery;
 import com.netflix.astyanax.util.RangeBuilder;
 import com.netflix.astyanax.util.TimeUUIDUtils;
-import com.emc.storageos.db.client.constraint.DecommissionedConstraint;
-import com.emc.storageos.db.client.impl.*;
-import com.emc.storageos.db.client.model.DataObject;
 
 /**
  * Constrained query to get list of decommissioned object URIs of a given type
@@ -87,7 +90,7 @@ public class DecommissionedConstraintImpl extends ConstraintImpl implements Deco
         }
     }
 
-    @Override
+    
     protected <T> void queryWithAutoPaginate(RowQuery<String, IndexColumnName> query, final QueryResult<T> result,
             final ConstraintImpl constraint) {
         query.autoPaginate(true);
@@ -96,14 +99,13 @@ public class DecommissionedConstraintImpl extends ConstraintImpl implements Deco
             // time slice - get only older than _timeToStartFrom
             it = new FilteredQueryHitIterator<T>(query) {
                 @Override
-                protected T createQueryHit(Column<IndexColumnName> column) {
-                    return result.createQueryHit(URI.create(column.getName().getTwo()));
+                protected T createQueryHit(IndexColumnName column) {
+                    return result.createQueryHit(URI.create(column.getTwo()));
                 }
 
                 @Override
-                public boolean filter(Column<IndexColumnName> column) {
-                    long timeMarked = TimeUUIDUtils.getMicrosTimeFromUUID(column.getName()
-                            .getTimeUUID());
+                public boolean filter(IndexColumnName column) {
+                    long timeMarked = TimeUUIDUtils.getMicrosTimeFromUUID(column.getTimeUUID());
                     if (_timeToStartFrom >= timeMarked) {
                         return true;
                     }
@@ -114,12 +116,12 @@ public class DecommissionedConstraintImpl extends ConstraintImpl implements Deco
             // no time slicing - get all
             it = new FilteredQueryHitIterator<T>(query) {
                 @Override
-                protected T createQueryHit(Column<IndexColumnName> column) {
-                    return result.createQueryHit(URI.create(column.getName().getTwo()));
+                protected T createQueryHit(IndexColumnName column) {
+                    return result.createQueryHit(URI.create(column.getTwo()));
                 }
 
                 @Override
-                public boolean filter(Column<IndexColumnName> column) {
+                public boolean filter(IndexColumnName column) {
                     return true;
                 }
             };
@@ -129,13 +131,13 @@ public class DecommissionedConstraintImpl extends ConstraintImpl implements Deco
     }
 
     @Override
-    protected URI getURI(Column<IndexColumnName> col) {
-        return URI.create(col.getName().getTwo());
+    protected URI getURI(IndexColumnName col) {
+        return URI.create(col.getTwo());
     }
 
     @Override
-    protected <T> T createQueryHit(final QueryResult<T> result, Column<IndexColumnName> column) {
-        return result.createQueryHit(URI.create(column.getName().getTwo()));
+    protected <T> T createQueryHit(final QueryResult<T> result, IndexColumnName column) {
+        return result.createQueryHit(URI.create(column.getTwo()));
     }
 
     @Override

@@ -12,6 +12,7 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.Statement;
 import com.emc.storageos.db.client.constraint.Constraint;
 import com.emc.storageos.db.client.constraint.ConstraintDescriptor;
@@ -110,47 +111,31 @@ public abstract class ConstraintImpl implements Constraint {
             throw DatabaseException.retryables.connectionFailed(e);
         }
 
-        queryWithAutoPaginate(genQuery(), result, this);
+        queryWithAutoPaginate(genQueryStatement(), result, this);
     }
 
     protected abstract <T> void queryOnePage(final QueryResult<T> result) throws ConnectionException;
 
     protected abstract RowQuery<String, IndexColumnName> genQuery();
-
-    protected <T> void queryWithAutoPaginate(RowQuery<String, IndexColumnName> query, final QueryResult<T> result,
-            final ConstraintImpl constraint) {
-        query.autoPaginate(true);
-        QueryHitIterator<T> it = new QueryHitIterator<T>(query) {
-            @Override
-            protected T createQueryHit(Column<IndexColumnName> column) {
-                return constraint.createQueryHit(result, column);
-            }
-        };
-        it.prime();
-        result.setResult(it);
-    }
     
-    protected <T> void queryWithAutoPaginate(DbClientContext dbClientContext, Statement queryStatement, final QueryResult<T> result,
+    protected Statement genQueryStatement() {
+        return null;
+    }
+
+    protected <T> void queryWithAutoPaginate(Statement statement, final QueryResult<T> result,
             final ConstraintImpl constraint) {
-        QueryHitIterator<T> it = new QueryHitIterator<T>(dbClientContext, queryStatement) {
+        
+        QueryHitIterator<T> it = new QueryHitIterator<T>(dbClientContext , statement) {
             @Override
             protected T createQueryHit(IndexColumnName column) {
                 return constraint.createQueryHit(result, column);
             }
-
-            @Override
-            protected T createQueryHit(Column<IndexColumnName> column) {
-                // TODO Auto-generated method stub
-                return null;
-            }
         };
         it.prime();
         result.setResult(it);
     }
 
-    protected abstract URI getURI(Column<IndexColumnName> col);
-
-    protected abstract <T> T createQueryHit(final QueryResult<T> result, Column<IndexColumnName> col);
+    protected abstract URI getURI(IndexColumnName col);
     
     protected <T> T createQueryHit(final QueryResult<T> result, IndexColumnName col) {
         return null;
@@ -199,9 +184,9 @@ public abstract class ConstraintImpl implements Constraint {
         columns = query.execute().getResult();
 
         for (Column<IndexColumnName> col : columns) {
-            T obj = createQueryHit(result, col);
+            T obj = createQueryHit(result, col.getName());
             if (!ids.contains(obj)) {
-                ids.add(createQueryHit(result, col));
+                ids.add(createQueryHit(result, col.getName()));
             }
         }
 
@@ -240,13 +225,13 @@ public abstract class ConstraintImpl implements Constraint {
             for (Column<IndexColumnName> col : columns) {
                 if (startId == null) {
                     start = true;
-                } else if (startId.equals(getURI(col).toString())) {
+                } else if (startId.equals(getURI(col.getName()).toString())) {
                     start = true;
                     continue;
                 }
 
                 if (start) {
-                    T obj = createQueryHit(result, col);
+                    T obj = createQueryHit(result, col.getName());
                     if (!ids.contains(obj)) {
                         ids.add(obj);
                     }

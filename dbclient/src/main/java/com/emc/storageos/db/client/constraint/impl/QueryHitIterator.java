@@ -9,13 +9,12 @@ import java.util.Iterator;
 import java.util.NoSuchElementException;
 
 import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.exceptions.ConnectionException;
 import com.emc.storageos.db.client.impl.DbClientContext;
 import com.emc.storageos.db.client.impl.IndexColumnName;
 import com.emc.storageos.db.exceptions.DatabaseException;
-import com.netflix.astyanax.model.Column;
-import com.netflix.astyanax.model.ColumnList;
 import com.netflix.astyanax.query.RowQuery;
 
 /**
@@ -26,6 +25,7 @@ public abstract class QueryHitIterator<T> implements Iterator<T> {
     protected Statement queryStatement;
     protected ResultSet resultSet;
     protected DbClientContext dbClientContext;
+    protected Iterator<Row> resultIterator;
 
     public QueryHitIterator(RowQuery<String, IndexColumnName> query) {
         _query = query;
@@ -43,6 +43,7 @@ public abstract class QueryHitIterator<T> implements Iterator<T> {
     protected void runQuery() {
         try {
             resultSet = dbClientContext.getSession().execute(queryStatement);
+            resultIterator = resultSet.iterator();
         } catch (ConnectionException e) {
             throw DatabaseException.retryables.connectionFailed(e);
         }
@@ -50,25 +51,30 @@ public abstract class QueryHitIterator<T> implements Iterator<T> {
 
     @Override
     public boolean hasNext() {
-        return !resultSet.isExhausted();
+        return resultIterator.hasNext();
     }
 
     @Override
     public T next() {
-        if (resultSet.isExhausted()) {
+        if (!resultIterator.hasNext()) {
             throw new NoSuchElementException();
         }
-        return createQueryHit(_currentIt.next());
+        return createQueryHit(toIndexColumnName(resultIterator.next()));
     }
 
     @Override
     public void remove() {
         throw new UnsupportedOperationException();
     }
-
-    protected abstract T createQueryHit(Column<IndexColumnName> column);
     
-    protected T createQueryHit(IndexColumnName column) {
-        return null;
+    protected abstract T createQueryHit(IndexColumnName column);
+    
+    protected IndexColumnName toIndexColumnName(Row row) {
+        return new IndexColumnName(row.getString(1), 
+                row.getString(2), 
+                row.getString(3),
+                row.getString(4),
+                row.getUUID(5),
+                row.getBytes(6));
     }
 }

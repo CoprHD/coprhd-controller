@@ -10,17 +10,15 @@ import java.net.URI;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.netflix.astyanax.Keyspace;
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
-import com.netflix.astyanax.model.Column;
-import com.netflix.astyanax.model.ColumnFamily;
-import com.netflix.astyanax.query.RowQuery;
-
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.impl.ColumnField;
 import com.emc.storageos.db.client.impl.CompositeColumnNameSerializer;
 import com.emc.storageos.db.client.impl.IndexColumnName;
 import com.emc.storageos.db.client.model.DataObject;
+import com.netflix.astyanax.Keyspace;
+import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
+import com.netflix.astyanax.model.ColumnFamily;
+import com.netflix.astyanax.query.RowQuery;
 
 /**
  * Alternate ID constraint implementation
@@ -62,12 +60,12 @@ public class AlternateIdConstraintImpl extends ConstraintImpl implements Alterna
     }
 
     @Override
-    protected URI getURI(Column<IndexColumnName> col) {
-        return URI.create(col.getName().getTwo());
+    protected URI getURI(IndexColumnName col) {
+        return URI.create(col.getTwo());
     }
 
     @Override
-    protected <T> T createQueryHit(final QueryResult<T> result, Column<IndexColumnName> column) {
+    protected <T> T createQueryHit(final QueryResult<T> result, IndexColumnName column) {
         return result.createQueryHit(getURI(column));
     }
 

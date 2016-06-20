@@ -6,15 +6,20 @@
 package com.emc.storageos.db.client.constraint.impl;
 
 import java.net.URI;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.impl.AltIdDbIndex;
+import com.emc.storageos.db.client.impl.ColumnField;
+import com.emc.storageos.db.client.impl.CompositeColumnNameSerializer;
+import com.emc.storageos.db.client.impl.IndexColumnName;
+import com.emc.storageos.db.client.impl.RelationDbIndex;
+import com.emc.storageos.db.client.model.DataObject;
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
-import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.query.RowQuery;
-import com.emc.storageos.db.client.constraint.ContainmentConstraint;
-import com.emc.storageos.db.client.impl.*;
-import com.emc.storageos.db.client.model.DataObject;
 
 /**
  * Abstract base for all containment queries
@@ -66,25 +71,25 @@ public class ContainmentConstraintImpl extends ConstraintImpl implements Contain
     }
 
     @Override
-    protected URI getURI(Column<IndexColumnName> col) {
+    protected URI getURI(IndexColumnName col) {
         URI ret;
         if (_field.getIndex() instanceof RelationDbIndex) {
-            ret = URI.create(col.getName().getTwo());
+            ret = URI.create(col.getTwo());
         } else if (_field.getIndex() instanceof AltIdDbIndex) {
-            ret = URI.create(col.getName().getTwo());
+            ret = URI.create(col.getTwo());
         } else {
-            ret = URI.create(col.getName().getFour());
+            ret = URI.create(col.getFour());
         }
 
         return ret;
     }
 
     @Override
-    protected <T> T createQueryHit(final QueryResult<T> result, Column<IndexColumnName> column) {
+    protected <T> T createQueryHit(final QueryResult<T> result, IndexColumnName column) {
         if (_field.getIndex() instanceof RelationDbIndex) {
             return result.createQueryHit(getURI(column));
         } else {
-            return result.createQueryHit(getURI(column), column.getName().getThree(), column.getName().getTimeUUID());
+            return result.createQueryHit(getURI(column), column.getThree(), column.getTimeUUID());
         }
     }
 

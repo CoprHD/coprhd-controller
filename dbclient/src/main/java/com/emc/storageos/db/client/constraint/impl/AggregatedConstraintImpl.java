@@ -4,6 +4,8 @@
  */
 package com.emc.storageos.db.client.constraint.impl;
 
+import java.net.URI;
+
 import com.emc.storageos.db.client.constraint.AggregatedConstraint;
 import com.emc.storageos.db.client.impl.ColumnField;
 import com.emc.storageos.db.client.impl.ColumnValue;
@@ -12,11 +14,8 @@ import com.emc.storageos.db.client.impl.IndexColumnName;
 import com.emc.storageos.db.client.model.DataObject;
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
-import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.query.RowQuery;
-
-import java.net.URI;
 
 /**
  * Constrained query to get list of decommissioned object URIs of a given type
@@ -69,14 +68,14 @@ public class AggregatedConstraintImpl extends ConstraintImpl implements Aggregat
     }
 
     @Override
-    protected URI getURI(Column<IndexColumnName> col) {
-        return URI.create(col.getName().getTwo());
+    protected URI getURI(IndexColumnName col) {
+        return URI.create(col.getTwo());
     }
 
     @Override
-    protected <T> T createQueryHit(final QueryResult<T> result, Column<IndexColumnName> column) {
-        return result.createQueryHit(URI.create(column.getName().getTwo()),
-                ColumnValue.getPrimitiveColumnValue(column, field.getPropertyDescriptor()));
+    protected <T> T createQueryHit(final QueryResult<T> result, IndexColumnName column) {
+        return result.createQueryHit(URI.create(column.getTwo()),
+                ColumnValue.getPrimitiveColumnValue(column.getValue(), field.getPropertyDescriptor()));
     }
 
     @Override

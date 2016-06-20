@@ -94,13 +94,13 @@ public class TimeConstraintImpl extends ConstraintImpl implements Decommissioned
 
         FilteredQueryHitIterator<T> it = new FilteredQueryHitIterator<T>(query) {
             @Override
-            protected T createQueryHit(Column<IndexColumnName> column) {
-                return result.createQueryHit(URI.create(column.getName().getTwo()));
+            protected T createQueryHit(IndexColumnName column) {
+                return result.createQueryHit(URI.create(column.getTwo()));
             }
 
             @Override
-            public boolean filter(Column<IndexColumnName> column) {
-                long timeMarked = TimeUUIDUtils.getMicrosTimeFromUUID(column.getName().getTimeUUID());
+            public boolean filter(IndexColumnName column) {
+                long timeMarked = TimeUUIDUtils.getMicrosTimeFromUUID(column.getTimeUUID());
                 // Filtering on startTime, startTime = -1 for no filtering
                 if (startTimeMicros > 0 && timeMarked < startTimeMicros) {
                     return false;
@@ -123,13 +123,13 @@ public class TimeConstraintImpl extends ConstraintImpl implements Decommissioned
     }
 
     @Override
-    protected URI getURI(Column<IndexColumnName> col) {
-        return URI.create(col.getName().getTwo());
+    protected URI getURI(IndexColumnName col) {
+        return URI.create(col.getTwo());
     }
 
     @Override
-    protected <T> T createQueryHit(final QueryResult<T> result, Column<IndexColumnName> column) {
-        return result.createQueryHit(URI.create(column.getName().getTwo()));
+    protected <T> T createQueryHit(final QueryResult<T> result, IndexColumnName column) {
+        return result.createQueryHit(URI.create(column.getTwo()));
     }
 
     @Override

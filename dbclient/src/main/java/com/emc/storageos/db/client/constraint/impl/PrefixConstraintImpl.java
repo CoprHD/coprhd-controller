@@ -6,19 +6,20 @@
 package com.emc.storageos.db.client.constraint.impl;
 
 import java.net.URI;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.netflix.astyanax.Keyspace;
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
-import com.netflix.astyanax.model.Column;
-import com.netflix.astyanax.query.RowQuery;
-
+import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.Statement;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.impl.ColumnField;
 import com.emc.storageos.db.client.impl.IndexColumnName;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.ScopedLabel;
+import com.netflix.astyanax.Keyspace;
+import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
+import com.netflix.astyanax.query.RowQuery;
 
 /**
  * Default prefix constraint implementation
@@ -68,13 +69,31 @@ public class PrefixConstraintImpl extends ConstraintImpl implements PrefixConstr
     }
 
     @Override
-    protected URI getURI(Column<IndexColumnName> col) {
-        return URI.create(col.getName().getFour());
+    protected Statement genQueryStatement() {
+        StringBuilder queryString = new StringBuilder();
+        queryString.append("select").append(" * from \"").append(_field.getIndexCF().getName()).append("\"");
+        queryString.append(" where key=?");
+        String target = _label.getLabel().toLowerCase();
+        queryString.append(" and column1=?");
+        queryString.append(" and column2>=? and column2<=?");
+        
+        PreparedStatement preparedStatement = this.dbClientContext.getPreparedStatement(queryString.toString());
+        Statement statement =  preparedStatement.bind(_field.getPrefixIndexRowKey(_label),
+                _field.getDataObjectType().getSimpleName(),
+                target, target + Character.MAX_VALUE);
+        statement.setFetchSize(pageCount);
+        
+        return statement;
     }
 
     @Override
-    protected <T> T createQueryHit(final QueryResult<T> result, Column<IndexColumnName> column) {
-        return result.createQueryHit(getURI(column), column.getName().getThree(), column.getName().getTimeUUID());
+    protected URI getURI(IndexColumnName col) {
+        return URI.create(col.getFour());
+    }
+
+    @Override
+    protected <T> T createQueryHit(final QueryResult<T> result, IndexColumnName column) {
+        return result.createQueryHit(getURI(column), column.getThree(), column.getTimeUUID());
     }
 
     @Override

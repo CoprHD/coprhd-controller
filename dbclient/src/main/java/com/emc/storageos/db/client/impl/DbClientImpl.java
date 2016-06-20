@@ -969,6 +969,7 @@ public class DbClientImpl implements DbClient {
     		throw new IllegalArgumentException("invalid constraint: the key can't be null or empty"); 
     	}
         constraint.setKeyspace(getKeyspace(constraint.getDataObjectType()));
+        constraint.setDbClientContext(this.getDbClientContext(constraint.getDataObjectType()));
         constraint.execute(result);
     }
 

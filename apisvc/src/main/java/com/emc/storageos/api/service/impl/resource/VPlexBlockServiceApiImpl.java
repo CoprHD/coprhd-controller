@@ -2126,7 +2126,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             
             URIQueryResultList connectedResults = new URIQueryResultList();
             _dbClient.queryByConstraint(AlternateIdConstraint.Factory
-                    .getImplicitVirtualArrayStoragePoolsConstraint(newVarrayId), connectedResults);
+                    .getImplicitVirtualArrayStoragePortsConstraint(newVarrayId), connectedResults);
             Iterator<URI> iter = connectedResults.iterator();
             while (iter.hasNext()) {
                 newVarrayStoragePorts.add(iter.next());

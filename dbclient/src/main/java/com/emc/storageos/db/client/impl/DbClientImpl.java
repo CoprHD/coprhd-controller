@@ -767,8 +767,7 @@ public class DbClientImpl implements DbClient {
         }
     }
 
-    private <T extends DataObject> ResultSet scanRowsByType(Class<T> clazz, Boolean inactiveValue,
-            URI startId, int count) {
+    private <T extends DataObject> ResultSet scanRowsByType(Class<T> clazz, URI startId, int count) {
         DataObjectType doType = TypeMap.getDoType(clazz);
         if (doType == null) {
             throw new IllegalArgumentException();
@@ -791,6 +790,8 @@ public class DbClientImpl implements DbClient {
             }
             
             queryString.append(" ALLOW FILTERING");
+            _log.info("Query String: {}", queryString);
+            
             PreparedStatement preparedStatement = getDbClientContext(clazz).getPreparedStatement(queryString.toString());
             BoundStatement boundStatement = preparedStatement.bind(bindObjects.toArray());
             
@@ -812,7 +813,7 @@ public class DbClientImpl implements DbClient {
      * @throws DatabaseException
      */
     private <T extends DataObject> URIQueryResultList scanByType(Class<T> clazz, final Boolean inactiveValue, URI startId, int count) {
-        final ResultSet resultSet = scanRowsByType(clazz, inactiveValue, startId, count);
+        final ResultSet resultSet = scanRowsByType(clazz, startId, count);
 
         URIQueryResultList result = new URIQueryResultList();
 
@@ -837,7 +838,7 @@ public class DbClientImpl implements DbClient {
     @Override
     public <T extends DataObject> void queryInactiveObjects(Class<T> clazz, final long timeBefore, QueryResultList<URI> result) {
         if (clazz.getAnnotation(NoInactiveIndex.class) != null) {
-            final ResultSet queryResult = scanRowsByType(clazz, true, null, Integer.MAX_VALUE);
+            final ResultSet queryResult = scanRowsByType(clazz, null, Integer.MAX_VALUE);
 
             result.setResult(new FilteredCfScanIterator(queryResult) {
                 @Override
@@ -1427,6 +1428,8 @@ public class DbClientImpl implements DbClient {
                     if (timeRangeValues.length > 0) {
                         queryString.append(" and column1>=minTimeuuid(?) and column1<=maxTimeuuid(?)");
                     }
+                    
+                    _log.info("Query String: {}", queryString);
                     
                     PreparedStatement queryStatement = context.getPreparedStatement(queryString.toString());
                     queryStatement.setConsistencyLevel(com.datastax.driver.core.ConsistencyLevel.LOCAL_ONE);

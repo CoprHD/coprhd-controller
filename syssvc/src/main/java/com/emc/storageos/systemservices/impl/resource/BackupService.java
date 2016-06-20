@@ -511,7 +511,7 @@ public class BackupService {
         }else {
             initDownload(backupName);
 
-            downloadTask = new DownloadExecutor(backupScheduler.getCfg(), backupName, backupOps);
+            downloadTask = new DownloadExecutor(getExternalServerClient(backupScheduler.getCfg()), backupName, backupOps);
 
             Thread downloadThread = new Thread(downloadTask);
             downloadThread.setDaemon(true);
@@ -962,7 +962,7 @@ public class BackupService {
         };
     }
     private BackupClient getExternalServerClient(SchedulerConfig cfg ) {
-        if (ExternalServerType.CIFS.name().equalsIgnoreCase(cfg.getExternalServerType())) {
+        if (ExternalServerType.CIFS.equals(cfg.getExternalServerType())) {
                 return new CifsClient(cfg.getExternalServerUrl(), cfg.getExternalDomain(), cfg.getExternalServerUserName(), cfg.getExternalServerPassword());
         }else {
             return new FtpClient(cfg.getExternalServerUrl(), cfg.getExternalServerUserName(), cfg.getExternalServerPassword());

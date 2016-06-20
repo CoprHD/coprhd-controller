@@ -277,19 +277,19 @@ public class ConfigProperties extends Controller {
     public static void validateExternalSettings(String serverType, String serverUrl, String serverDomain, String user,
                                                 String password) {
         BackupClient client;
-        password = PasswordUtil.decryptedValue(password);
+        String passwd = PasswordUtil.decryptedValue(password);
         if (serverType.equalsIgnoreCase("CIFS")) {
             if (!serverUrl.startsWith("smb://")) {
                 Validation.addError(null,Messages.get("configProperties.backup.serverType.invalid"));
                 renderJSON(ValidationResponse.collectErrors());
             }
-            client = new CifsClient(serverUrl, serverDomain, user, password);
+            client = new CifsClient(serverUrl, serverDomain, user, passwd);
         } else {
             if (!(serverUrl.startsWith("ftp://")|| serverUrl.startsWith("ftps://"))) {
                 Validation.addError(null,Messages.get("configProperties.backup.serverType.invalid"));
                 renderJSON(ValidationResponse.collectErrors());
             }
-            client = new FtpClient(serverUrl, user, password);
+            client = new FtpClient(serverUrl, user, passwd);
         }
         try {
             client.test();

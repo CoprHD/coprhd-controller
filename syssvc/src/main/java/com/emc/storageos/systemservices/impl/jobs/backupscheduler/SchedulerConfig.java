@@ -19,6 +19,7 @@ import com.emc.storageos.db.client.model.EncryptionProvider;
 import com.emc.storageos.db.client.model.UserPreferences;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.management.backup.BackupConstants;
+import com.emc.storageos.management.backup.ExternalServerType;
 import com.emc.storageos.model.property.PropertyInfo;
 import com.emc.storageos.security.mail.MailHelper;
 import com.emc.storageos.coordinator.client.service.InterProcessLockHolder;
@@ -72,7 +73,7 @@ public class SchedulerConfig {
     public int intervalMultiple;
     public Integer startOffsetMinutes;
     public int copiesToKeep;
-    private String uploadServerType;
+    private ExternalServerType uploadServerType;
     private String uploadDomain;
     public String uploadUrl;
     public String uploadUserName;
@@ -95,7 +96,7 @@ public class SchedulerConfig {
         return getExternalServerUrl(propInfo);
     }
 
-    public String getExternalServerType() {
+    public ExternalServerType getExternalServerType() {
         PropertyInfo propInfo = coordinator.getCoordinatorClient().getPropertyInfo();
         return getExternalServerType(propInfo);
     }
@@ -118,11 +119,11 @@ public class SchedulerConfig {
         }
         return this.encryptionProvider.decrypt(Base64.decodeBase64(password));
     }
-    public String getUploadServerType() {
+    public ExternalServerType getUploadServerType() {
         return this.uploadServerType;
     }
 
-    public void setUploadServerType(String uploadServerType) {
+    public void setUploadServerType(ExternalServerType uploadServerType) {
         this.uploadServerType = uploadServerType;
     }
 
@@ -223,8 +224,12 @@ public class SchedulerConfig {
         return url;
     }
 
-    private String getExternalServerType(PropertyInfo propInfo) {
-        return propInfo.getProperty(BackupConstants.UPLOAD_SERVER_TYPE);
+    private ExternalServerType getExternalServerType(PropertyInfo propInfo) {
+        String serverType = propInfo.getProperty(BackupConstants.UPLOAD_SERVER_TYPE);
+        if (serverType.equalsIgnoreCase(ExternalServerType.CIFS.toString())) {
+            return ExternalServerType.CIFS;
+        }
+        return ExternalServerType.FTP;
     }
 
     private String getExternalDomain(PropertyInfo propInfo) {

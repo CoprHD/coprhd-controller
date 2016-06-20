@@ -33,7 +33,6 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.management.backup.BackupConstants;
 import com.emc.storageos.management.backup.util.FtpClient;
 import com.emc.storageos.management.backup.BackupOps;
-import com.emc.storageos.systemservices.impl.jobs.backupscheduler.SchedulerConfig;
 import com.emc.storageos.systemservices.impl.client.SysClientFactory;
 
 public final class DownloadExecutor implements  Runnable {
@@ -48,12 +47,9 @@ public final class DownloadExecutor implements  Runnable {
     private boolean isGeo = false; // true if the backupset is from GEO env
     private volatile  boolean isCanceled = false;
 
-    public DownloadExecutor(SchedulerConfig cfg, String backupZipFileName, BackupOps backupOps) {
-        if (ExternalServerType.CIFS.name().equalsIgnoreCase(cfg.getExternalServerType())) {
-            client = new CifsClient(cfg.getExternalServerUrl(), cfg.getExternalDomain(), cfg.getExternalServerUserName(), cfg.getExternalServerPassword());
-        }else {
-            client = new FtpClient(cfg.getExternalServerUrl(), cfg.getExternalServerUserName(), cfg.getExternalServerPassword());
-        }
+    public DownloadExecutor(BackupClient client, String backupZipFileName, BackupOps backupOps) {
+
+        this.client = client;
         remoteBackupFileName = backupZipFileName;
         this.backupOps = backupOps;
         fromRemoteServer = true;

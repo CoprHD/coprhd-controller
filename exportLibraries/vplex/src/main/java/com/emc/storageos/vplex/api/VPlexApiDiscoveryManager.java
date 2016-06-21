@@ -3949,7 +3949,7 @@ public class VPlexApiDiscoveryManager {
     }
 
     /**
-     * Gets the backed storage volumes used by the passed device on the passed cluster.
+     * Gets the backend storage volumes used by the passed device on the passed cluster.
      * 
      * @param deviceName The device name.
      * @param locality Whether the device is local or distributed.

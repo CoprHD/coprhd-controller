@@ -23,8 +23,6 @@ import com.emc.storageos.vplex.api.VPlexVirtualVolumeInfo.WaitOnRebuildResult;
 import com.emc.storageos.vplex.api.clientdata.VolumeInfo;
 import com.sun.jersey.api.client.ClientResponse;
 
-import javafx.beans.binding.When;
-
 /**
  * VPlexApiVirtualVolumeManager provides methods creating and destroying virtual
  * volumes.

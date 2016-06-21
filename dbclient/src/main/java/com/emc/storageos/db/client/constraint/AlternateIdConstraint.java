@@ -561,6 +561,11 @@ public interface AlternateIdConstraint extends Constraint {
             return new AlternateIdConstraintImpl(doType.getColumnField("maskName"),
                     maskName);
         }
+        
+		public static AlternateIdConstraint getExportMaskByLabelConstraint(String label) {
+			DataObjectType doType = TypeMap.getDoType(ExportMask.class);
+			return new AlternateIdConstraintImpl(doType.getColumnField("label"), label);
+		}
 
         public static AlternateIdConstraint getBlockConsistencyGroupByAlternateNameConstraint(String alternateName) {
             DataObjectType doType = TypeMap.getDoType(BlockConsistencyGroup.class);

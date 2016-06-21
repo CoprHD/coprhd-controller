@@ -20,6 +20,7 @@ import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.TenantOrg;
+import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.DataObjectUtils;
 import com.google.common.base.Strings;
@@ -329,6 +330,36 @@ public class DataSourceFactory {
         DataObject[] dataObjects = new DataObject[dataObjectsList.size()];
         return createDataSource(configName, dataObjectsList.toArray(dataObjects), computedValueMap);
     }    
+
+    /**
+     * Create a data source object for resolving Isilon file system path
+     * 
+     * @param project the project that the file system will be created under.
+     * @param vPool the virtual pool on file system will be created on.
+     * @param tenant the tenant by which file system is created by.
+     * @param storageSystem the storageSystem that the file system will be created on.
+     * @return a data source populated with the properties
+     */
+    public DataSource createIsilonFileSystemPathDataSource(Project project, VirtualPool vPool, TenantOrg tenant,
+            StorageSystem storageSystem) {
+
+        return createDataSource(CustomConfigConstants.ISILON_PATH_CUSTOMIZATION,
+                new DataObject[] { project, vPool, tenant, storageSystem });
+
+    }
+
+    /**
+     * Create a data source object for resolving Isilon unmanaged file system locations
+     * 
+     * @param storageSystem the storageSystem that the file system will be created on.
+     * @return a data source populated with the properties
+     */
+    public DataSource createIsilonUnmanagedFileSystemLocationsDataSource(StorageSystem storageSystem) {
+
+        return createDataSource(CustomConfigConstants.ISILON_UNMANAGED_FILE_SYSTEM_LOCATIONS,
+                new DataObject[] { storageSystem });
+
+    }
 
     /**
      * Creates a data source objects for a customizable configuration

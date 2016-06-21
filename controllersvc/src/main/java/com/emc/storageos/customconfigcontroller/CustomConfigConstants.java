@@ -17,7 +17,7 @@ public interface CustomConfigConstants {
     /** The config_name for zone name */
     public String ZONE_MASK_NAME = "SanZoneName";
     /** The config_name for skipping zoning */
-    public String ZONE_ADD_VOLUME= "SanZoneAddVolumeCheckZoning";
+    public String ZONE_ADD_VOLUME = "SanZoneAddVolumeCheckZoning";
 
     public String HDS_STORAGE_PORT_NUMBER = "hdsPortNumber";
     public String AUTO_TIERING_POLICY_NAME = "auto_tiering_policy_name";
@@ -65,6 +65,11 @@ public interface CustomConfigConstants {
     public String HDS_HOST_STORAGE_DOMAIN_NICKNAME_MASK_NAME = "HDSHostStorageDomainNickName";
     public String HDS_HOST_STORAGE_HOST_MODE_OPTION = "HDSHostModeOption";
 
+    public String ISILON_CLUSTER_NAME = "isilon_cluster_name";
+    public String ISILON_SYSTEM_ACCESS_ZONE = "system_access_zone";
+    public String ISILON_USER_ACCESS_ZONE = "user_access_zone";
+    public String ISILON_NO_ACCESS_ZONE = "no_access_zone";
+
     public String PORT_ALLOCATION_INITIATOR_CEILLING = "PortAllocationInitiatorCeiling";
     public String PORT_ALLOCATION_VOLUME_CEILLING = "PortAllocationVolumeCeiling";
     public String PORT_ALLOCATION_PORT_UTILIZATION_CEILLING = "PortAllocationPortUtilizationCeiling";
@@ -80,6 +85,9 @@ public interface CustomConfigConstants {
     public String NAS_DYNAMIC_PERFORMANCE_PLACEMENT_ENABLED = "NasDynamicPerformancePlacementEnabled";
     public String USE_PHYSICAL_NAS_FOR_PROVISIONING = "NasUsePhysicalNASForProvisioning";
     public String SHARE_VNAS_WITH_MULTIPLE_PROJECTS = "NasShareVNASWithMultipleProjects";
-    
-    
+
+    public String ISILON_PATH_CUSTOMIZATION = "IsilonPathCustomization";
+    public String ISILON_SYSTEM_ACCESS_ZONE_NAMESPACE = "IsilonSystemAccessZoneNameSpace";
+    public String ISILON_UNMANAGED_FILE_SYSTEM_LOCATIONS = "IsilonUnmanagedFileSystemLocations";
+
 }

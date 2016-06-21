@@ -242,6 +242,14 @@
           "baseService": "UnexportSnapshot"
         },
         {
+          "image": "icon_host_add_copy.png",
+          "baseService": "ExportContinuousCopy"
+        },
+        {
+          "image": "icon_host_remove_copy.png",
+          "baseService": "UnexportContinuousCopy"
+        },
+        {
           "image": "Service_Add_Journal_Capacity.png",
           "baseService": "AddJournalCapacity"
         },

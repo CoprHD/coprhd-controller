@@ -139,10 +139,16 @@ public class NativeGUIDGenerator {
         _deviceTypeMap.put(StorageSystem.Type.xtremio.name(), "XTREMIO");
         _deviceTypeMap.put(StorageSystem.Type.ecs.name(), "ECS");
 
-        // add systems managed by driver
+        // add system types managed by driver
         Collection<String> storageSystems = storageDriverManager.getStorageSystemsMap().values();
         for (String storageSystem : storageSystems) {
             _deviceTypeMap.put(storageSystem, storageSystem);
+        }
+
+        // add provider types managed by driver
+        Collection<String> storageProviders = storageDriverManager.getStorageProvidersMap().values();
+        for (String storageProvider : storageProviders) {
+            _deviceTypeMap.put(storageProvider, storageProvider);
         }
     }
 

@@ -45,6 +45,7 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFil
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem.SupportedFileSystemInformation;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedSMBFileShare;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedSMBShareMap;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedSnapshot;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeCharacterstics;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
@@ -65,6 +66,7 @@ import com.emc.storageos.vnxe.models.VNXeBase;
 import com.emc.storageos.vnxe.models.VNXeCifsShare;
 import com.emc.storageos.vnxe.models.VNXeFileInterface;
 import com.emc.storageos.vnxe.models.VNXeFileSystem;
+import com.emc.storageos.vnxe.models.VNXeFileSystemSnap;
 import com.emc.storageos.vnxe.models.VNXeHost;
 import com.emc.storageos.vnxe.models.VNXeHostInitiator;
 import com.emc.storageos.vnxe.models.VNXeLun;
@@ -301,6 +303,8 @@ public class VNXUnityUnManagedObjectDiscoverer {
                         pool, storagePort, fs, dbClient);
 
                 unManagedFilesystemsReturnedFromProvider.add(unManagedFs.getId());
+                
+                
             }
 
             if (!unManagedFilesystemsInsert.isEmpty()) {
@@ -323,6 +327,43 @@ public class VNXUnityUnManagedObjectDiscoverer {
             log.info("There are no file systems found on the system: {}", storageSystem.getId());
         }
 
+    }
+    
+    public void discoverUmSnapshotsForFileSystems(String fileSystemId, AccessProfile accessProfile, UnManagedFileSystem umfs) {
+        
+        VNXeApiClient apiClient = getVnxUnityClient(accessProfile);
+        
+        List<VNXeFileSystemSnap> snapShots = apiClient.getFileSystemSnaps(fileSystemId);
+        
+        
+                
+        if(umfs.getHasShares()){
+            
+         
+            
+        }
+        if(umfs.getHasExports()){
+            
+            
+        }
+        
+   
+       
+       for(VNXeFileSystemSnap snapShot : snapShots){
+         UnManagedSnapshot umfsSnapshot = new UnManagedSnapshot();
+         
+            umfsSnapshot.setName(snapShot.getName());
+            umfsSnapshot.setParent(umfs.get);
+            umfsSnapshot.setProject(umfs.getProject());
+            umfsSnapshot.setStoragePoolUri(umfs.getStoragePoolUri());
+            umfsSnapshot.setSupportedVpoolUris(umfs.getSupportedVpoolUris());
+            umfsSnapshot.setHasExports(snapShot.getIsShared());
+            
+           
+           
+       }
+       
+        
     }
 
     /**

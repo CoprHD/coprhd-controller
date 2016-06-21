@@ -82,6 +82,7 @@ public class KeystoneService extends TaskResourceService {
     @GET
     @Path("/tenants")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SECURITY_ADMIN })
     public TenantListRestResp listOpenstackTenants() {
 
         _log.debug("Keystone Service - listOpenstackTenants");
@@ -122,6 +123,7 @@ public class KeystoneService extends TaskResourceService {
     @GET
     @Path("/tenants/{id}")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SECURITY_ADMIN })
     public OpenStackTenantParam getOpenstackTenant(@PathParam("id") URI id) {
 
         if (id == null) {

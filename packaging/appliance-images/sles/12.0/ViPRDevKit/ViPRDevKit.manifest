@@ -1,2 +1,3 @@
 http://lglaf020.lss.emc.com/ovf/ViPR/release/appliance/3.0.0.0.815/storageos-3.0.0.0.815-1.x86_64.rpm
 http://asdrepo.isus.emc.com:8081/artifactory/vipr-build/com/emc/asd/nile/nile-hwmgr-headers/1.0.0.0-201.be2733c.x86_64/nile-hwmgr-headers-1.0.0.0-201.be2733c.x86_64.rpm
+http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12/x86_64/ntp/4.2.6p5-44.1/ntp-4.2.6p5-44.1.x86_64.rpm

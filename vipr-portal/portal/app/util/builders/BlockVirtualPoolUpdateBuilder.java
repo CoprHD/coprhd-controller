@@ -91,7 +91,11 @@ public class BlockVirtualPoolUpdateBuilder extends VirtualPoolUpdateBuilder {
 
     public BlockVirtualPoolUpdateBuilder setPlacementPolicy(String placementPolicy) {
         String policyName = StringUtils.defaultIfBlank(placementPolicy, VirtualPoolPlacementPolicy.DEFAULT);
-        virtualPool.setPlacementPolicy(policyName);
+        String oldPolicyName = StringUtils.defaultIfBlank(oldVirtualPool.getPlacementPolicy(),
+                VirtualPoolPlacementPolicy.DEFAULT);
+        if (!StringUtils.equals(policyName, oldPolicyName)) {
+            virtualPool.setPlacementPolicy(policyName);
+        }
         return this;
     }
 

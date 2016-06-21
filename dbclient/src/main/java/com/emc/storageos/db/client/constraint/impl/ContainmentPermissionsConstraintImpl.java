@@ -5,17 +5,20 @@
 package com.emc.storageos.db.client.constraint.impl;
 
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.Statement;
 import com.emc.storageos.db.client.constraint.ContainmentPermissionsConstraint;
 import com.emc.storageos.db.client.impl.ColumnField;
 import com.emc.storageos.db.client.impl.IndexColumnName;
 import com.emc.storageos.db.client.model.DataObject;
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
-import com.netflix.astyanax.query.RowQuery;
 
 /**
  * ContainmentPermissions constraint. For example:
@@ -27,7 +30,6 @@ public class ContainmentPermissionsConstraintImpl extends ConstraintImpl impleme
 
     private String _indexKey;
     private String _prefix;
-    private Keyspace _keyspace;
     private ColumnField _field;
 
     public ContainmentPermissionsConstraintImpl(String indexKey, ColumnField field,
@@ -46,7 +48,12 @@ public class ContainmentPermissionsConstraintImpl extends ConstraintImpl impleme
 
     @Override
     protected <T> void queryOnePage(final QueryResult<T> result) throws ConnectionException {
-        queryOnePageWithoutAutoPaginate(genQuery(), _prefix, result);
+        StringBuilder queryString = generateQueryString();
+        
+        List<Object> queryParameters = new ArrayList<Object>();
+        queryParameters.add(_indexKey.toString());
+        
+        queryOnePageWithoutAutoPaginate(queryString, _prefix, result, queryParameters);
     }
 
     @Override
@@ -58,13 +65,16 @@ public class ContainmentPermissionsConstraintImpl extends ConstraintImpl impleme
     protected <T> T createQueryHit(final QueryResult<T> result, IndexColumnName column) {
         return result.createQueryHit(getURI(column), column.getThree(), column.getTimeUUID());
     }
-
+    
     @Override
-    protected RowQuery<String, IndexColumnName> genQuery() {
-        RowQuery<String, IndexColumnName> query =
-                _keyspace.prepareQuery(_field.getIndexCF()).getKey(_indexKey);
-
-        return query;
+    protected Statement genQueryStatement() {
+        StringBuilder queryString = generateQueryString();
+        
+        PreparedStatement preparedStatement = this.dbClientContext.getPreparedStatement(queryString.toString());
+        Statement statement =  preparedStatement.bind(_indexKey.toString());
+        statement.setFetchSize(pageCount);
+        
+        return statement;
     }
 
     @Override
@@ -76,5 +86,11 @@ public class ContainmentPermissionsConstraintImpl extends ConstraintImpl impleme
 	public boolean isValid() {
         return this._indexKey!=null && !this._indexKey.isEmpty();
 	}
-
+	
+	private StringBuilder generateQueryString() {
+        StringBuilder queryString = new StringBuilder();
+        queryString.append("select").append(" * from \"").append(_field.getIndexCF().getName()).append("\"");
+        queryString.append(" where key=?");
+        return queryString;
+    }
 }

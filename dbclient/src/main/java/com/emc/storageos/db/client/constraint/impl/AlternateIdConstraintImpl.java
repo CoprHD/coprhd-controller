@@ -6,19 +6,20 @@
 package com.emc.storageos.db.client.constraint.impl;
 
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.Statement;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.impl.ColumnField;
-import com.emc.storageos.db.client.impl.CompositeColumnNameSerializer;
 import com.emc.storageos.db.client.impl.IndexColumnName;
 import com.emc.storageos.db.client.model.DataObject;
-import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.ColumnFamily;
-import com.netflix.astyanax.query.RowQuery;
 
 /**
  * Alternate ID constraint implementation
@@ -29,7 +30,6 @@ public class AlternateIdConstraintImpl extends ConstraintImpl implements Alterna
     private final ColumnFamily<String, IndexColumnName> _altIdCf;
     private final String _altId;
     private final Class<? extends DataObject> _entryType;
-    private Keyspace _keyspace;
 
     public AlternateIdConstraintImpl(ColumnField field, String altId) {
         super(field, altId);
@@ -40,23 +40,29 @@ public class AlternateIdConstraintImpl extends ConstraintImpl implements Alterna
     }
 
     @Override
-    public void setKeyspace(Keyspace keyspace) {
-        _keyspace = keyspace;
-    }
-
-    @Override
     protected <T> void queryOnePage(final QueryResult<T> result) throws ConnectionException {
-        queryOnePageWithoutAutoPaginate(genQuery(), _entryType.getSimpleName(), result);
+        StringBuilder queryString = new StringBuilder();
+        queryString.append("select").append(" * from \"").append(_altIdCf.getName()).append("\"");
+        queryString.append(" where key=?");
+        List<Object> queryParameters = new ArrayList<Object>();
+        queryParameters.add(_altId);
+        
+        queryOnePageWithoutAutoPaginate(queryString, _entryType.getSimpleName(), result, queryParameters);
     }
 
     @Override
-    protected RowQuery<String, IndexColumnName> genQuery() {
-        RowQuery<String, IndexColumnName> query = _keyspace.prepareQuery(_altIdCf).getKey(_altId)
-                .withColumnRange(CompositeColumnNameSerializer.get().buildRange()
-                        .greaterThanEquals(_entryType.getSimpleName())
-                        .lessThanEquals(_entryType.getSimpleName())
-                        .limit(pageCount));
-        return query;
+    protected Statement genQueryStatement() {
+        StringBuilder queryString = new StringBuilder();
+        queryString.append("select").append(" * from \"").append(_altIdCf.getName()).append("\"");
+        queryString.append(" where key=?");
+        queryString.append(" and column1=?");
+        
+        PreparedStatement preparedStatement = this.dbClientContext.getPreparedStatement(queryString.toString());
+        Statement statement =  preparedStatement.bind(_altId,
+                _entryType.getSimpleName());
+        statement.setFetchSize(pageCount);
+        
+        return statement;
     }
 
     @Override

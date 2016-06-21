@@ -35,6 +35,6 @@ public class VirtualPoolPlacementPolicy {
     }
 
     public static String getDisplayValue(String policy) {
-        return StringOption.getDisplayValue(policy, "PlacementPolicy");
+        return StringOption.getDisplayValue(policy, "VirtualPoolPlacementPolicy");
     }
 }

@@ -190,9 +190,9 @@
 
 	  <collapse title-key='vpool.group.placementPolicy' icon='align-justify'>
 		<control-group v-field='vpool.placementPolicy' required>
-			<select-one options="placementPolicyOptions" auto-default v-disabled='locked'></select-one>
+			<select-one options="placementPolicyOptions" auto-default ng-disabled="vpool.systemType != '${models.StorageSystemTypes.VMAX}' && vpool.systemType != '${models.StorageSystemTypes.NONE}'"></select-one>
 		</control-group>
-      </collapse>
+	  </collapse>
 
       <div ng-if="vpool.systemType != '${models.StorageSystemTypes.SCALEIO}'">
         <collapse title-key='vpool.group.sanPaths' icon='random'>

@@ -12,6 +12,7 @@ import java.util.Set;
 
 import models.DriveTypes;
 import models.HighAvailability;
+import models.VirtualPoolPlacementPolicy;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.ObjectUtils;
@@ -89,7 +90,8 @@ public class BlockVirtualPoolUpdateBuilder extends VirtualPoolUpdateBuilder {
     }
 
     public BlockVirtualPoolUpdateBuilder setPlacementPolicy(String placementPolicy) {
-        virtualPool.setPlacementPolicy(placementPolicy);
+        String policyName = StringUtils.defaultIfBlank(placementPolicy, VirtualPoolPlacementPolicy.DEFAULT);
+        virtualPool.setPlacementPolicy(policyName);
         return this;
     }
 

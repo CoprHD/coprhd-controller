@@ -445,6 +445,7 @@ public class BlockVirtualPoolForm extends VirtualPoolCommonForm<BlockVirtualPool
         applyCommon(builder);
         builder.setSnapshots(defaultInt(maxSnapshots));
         builder.setContinuousCopies(maxContinuousCopies, uri(continuousCopyVirtualPool));
+        builder.setPlacementPolicy(placementPolicy);
 
         // Only allow updating these fields if not locked
         if (!isLocked()) {
@@ -461,7 +462,6 @@ public class BlockVirtualPoolForm extends VirtualPoolCommonForm<BlockVirtualPool
             builder.setRaidLevels(defaultSet(raidLevels));
             builder.setHostIOLimitBandwidth(defaultInt(hostIOLimitBandwidth, 0));
             builder.setHostIOLimitIOPs(defaultInt(hostIOLimitIOPs, 0));
-            builder.setPlacementPolicy(placementPolicy);
 
             if (ProtectionSystemTypes.isRecoverPoint(remoteProtection)) {
                 builder.setRecoverPointJournalSize(RPCopyForm.formatJournalSize(rpJournalSize, rpJournalSizeUnit));

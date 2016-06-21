@@ -13,7 +13,7 @@
       lockable: true
     },
     
-    failoverTargetFile:{
+    failbackTargetFile:{
       type:"assetType.vipr.failbackFileTarget"
     }
   }

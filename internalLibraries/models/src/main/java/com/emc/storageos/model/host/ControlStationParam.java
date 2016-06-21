@@ -1,26 +1,19 @@
-/*
- * Copyright (c) 2015 EMC Corporation
- * All Rights Reserved
- */
 package com.emc.storageos.model.host;
 
-import com.emc.storageos.model.valid.Endpoint;
-import com.emc.storageos.model.valid.Length;
-import com.emc.storageos.model.valid.Range;
+import java.net.URI;
 
 import javax.xml.bind.annotation.XmlElement;
 
 import org.codehaus.jackson.annotate.JsonProperty;
 
-import java.net.URI;
+import com.emc.storageos.model.valid.Endpoint;
+import com.emc.storageos.model.valid.Length;
+import com.emc.storageos.model.valid.Range;
 
-/**
- * Captures POST/PUT data for a host.
- */
-public abstract class HostParam {
+public class ControlStationParam {
 
     private String type;
-    private String hostName;
+    private String controlStationName;
     private String osVersion;
 
     private String name;
@@ -28,27 +21,19 @@ public abstract class HostParam {
     private String userName;
     private String password;
     private Boolean useSsl;
-    private URI cluster;
-    private URI vcenterDataCenter;
     private URI project;
     private URI tenant;
     private Boolean discoverable;
-    private Boolean hasControlStation;
-    private ControlStationParam controlSation;
     private URI bootVolume;
 
-    public HostParam() {
+    public ControlStationParam() {
     }
 
     /**
-     * The host type.
+     * The Control Station type.
      * Valid values:
-     *   Windows
-     *   HPUX
-     *   Linux
-     *   Esx
-     *   SUNVCS
-     *   Other
+     * HMC
+     * Other
      * 
      */
     // @EnumType(Host.HostType.class)
@@ -65,15 +50,15 @@ public abstract class HostParam {
      * The short or fully qualified host name or IP address of the host management interface.
      * 
      */
-    @XmlElement(name = "host_name", required = false)
+    @XmlElement(name = "control_station_name", required = false)
     @Endpoint(type = Endpoint.EndpointType.HOST)
-    @JsonProperty("host_name")
-    public String getHostName() {
-        return hostName;
+    @JsonProperty("control_station_name")
+    public String getControlStationName() {
+        return controlStationName;
     }
 
-    public void setHostName(String hostName) {
-        this.hostName = hostName;
+    public void setControlStationName(String controlStationName) {
+        this.controlStationName = controlStationName;
     }
 
     /**
@@ -157,32 +142,6 @@ public abstract class HostParam {
     }
 
     /**
-     * The URI of the cluster if the host is in a cluster.
-     * 
-     */
-    @XmlElement()
-    public URI getCluster() {
-        return cluster;
-    }
-
-    public void setCluster(URI cluster) {
-        this.cluster = cluster;
-    }
-
-    /**
-     * The URI of a vCenter data center if the host is an ESX host in a data center.
-     * 
-     */
-    @XmlElement(name = "vcenter_data_center")
-    public URI getVcenterDataCenter() {
-        return vcenterDataCenter;
-    }
-
-    public void setVcenterDataCenter(URI vcenterDataCenter) {
-        this.vcenterDataCenter = vcenterDataCenter;
-    }
-
-    /**
      * This field is currently not used. Any values passed into it will be ignored.
      * 
      */
@@ -200,7 +159,7 @@ public abstract class HostParam {
      * performed against this host. Defaults to true.
      * 
      * @return true if automatic discovery is enabled, false if automatic discovery is disabled.
-     * default value is true
+     *         default value is true
      */
     @XmlElement(name = "discoverable")
     public Boolean getDiscoverable() {
@@ -211,22 +170,6 @@ public abstract class HostParam {
         this.discoverable = discoverable;
     }
 
-    /**
-     * Gets the hasControlStation flag. hasControlStation indicates Control Station a used in discover Host information. 
-     * 
-     * @return true if automatic discovery is enabled, false if automatic discovery is disabled.
-     * default value is true
-     */
-    @XmlElement(name = "has_control_station", required = false)
-    public Boolean getHasControlStation() {
-        return hasControlStation;
-    }
-
-    public void setHasControlStation(Boolean hasControlStation) {
-        this.hasControlStation = hasControlStation;
-    }
-    
-    
     /**
      * The URI of the tenant owning the host.
      * 

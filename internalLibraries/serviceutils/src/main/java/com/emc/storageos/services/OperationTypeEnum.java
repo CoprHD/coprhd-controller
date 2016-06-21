@@ -162,7 +162,8 @@ public enum OperationTypeEnum {
 
     CREATE_FILE_SNAPSHOT_SHARE("FileSystemSnapshotShared", "FileSystemSnapshotShareFailed", "FileSystem snapshot shared"),
     ASSIGN_FILE_SNAPSHOT_TAG("TAG A FILESYSTEM SNAPSHOT", "", "tag a fileshare snapshot"),
-    DELETE_FILE_SNAPSHOT_SHARE("FileSystemSnapshotShareDeleted", "FileSystemSnapshotShareDeleteFailed", "FileSystem snapshot share deleted"),
+    DELETE_FILE_SNAPSHOT_SHARE("FileSystemSnapshotShareDeleted", "FileSystemSnapshotShareDeleteFailed",
+            "FileSystem snapshot share deleted"),
     RESTORE_FILE_SNAPSHOT("FileSystemRestored", "FileSystemRestoreFailed", "FileSystem restored"),
 
     CREATE_FILE_MIRROR("FileSystemMirrorCreated", "FileSystemMirrorCreateFailed", "FileSystemMirror Create"),
@@ -178,7 +179,8 @@ public enum OperationTypeEnum {
     START_FILE_MIRROR("FileSystemMirrorStart", "FileSystemMirrorStartFailed", "FileSystemMirror Start"),
     REFRESH_FILE_MIRROR("FileSystemMirrorRefresh", "FileSystemMirrorRefreshFailed", "FileSystemMirror Refresh"),
     RESYNC_FILE_MIRROR("FileSystemMirrorResync", "FileSystemMirrorResyncFailed", "FileSystemMirror Resync"),
-    MODIFY_FILE_MIRROR_RPO("UPDATE FILE SHARE REPLICATION RPO", "FileSystemMirrorModifyRPOFailed", "operation to update filesystem replication RPO"),
+    MODIFY_FILE_MIRROR_RPO("UPDATE FILE SHARE REPLICATION RPO", "FileSystemMirrorModifyRPOFailed",
+            "operation to update filesystem replication RPO"),
 
     CREATE_BUCKET("BucketCreated", "BucketCreateFailed", "Bucket created"),
     DELETE_BUCKET("BucketDeleted", "BucketDeleteFailed", "Bucket deleted"),
@@ -328,6 +330,8 @@ public enum OperationTypeEnum {
     DELETE_VCENTER("DELETE VCENTER", "", "operation to delete a vcenter."),
     DETACH_VCENTER_STORAGE("DELETE VCENTER", "", "operation to detach storage from a vcenter."),
 
+    CREATE_CONTROL_STATION("CREATE HOST", "", "operation to create a control Station."),
+
     CREATE_VCENTER_DATACENTER("CREATE VCENTER DATACENTER", "", "operation to create a vcenter data center."),
     UPDATE_VCENTER_DATACENTER("UPDATE VCENTER DATACENTER", "", "operation to update a vcenter data center."),
     DELETE_VCENTER_DATACENTER("DELETE VCENTER DATACENTER", "", "operation to delete a vcenter data center."),
@@ -358,7 +362,8 @@ public enum OperationTypeEnum {
     INSTALL_COMPUTE_IMAGE("INSTALL COMPUTE IMAGE", "", "operation to install a compute image."),
 
     POWERUP_COMPUTE_ELEMENT("POWERUP COMPUTE ELEMENT", "POWERUP COMPUTE ELEMENT_FAILED", "operation to power-up a compute element."),
-    POWERDOWN_COMPUTE_ELEMENT("POWERDOWN COMPUTE ELEMENT", "POWERDOWN COMPUTE ELEMENT_FAILED", "operation to power-down a compute element."),
+    POWERDOWN_COMPUTE_ELEMENT("POWERDOWN COMPUTE ELEMENT", "POWERDOWN COMPUTE ELEMENT_FAILED",
+            "operation to power-down a compute element."),
 
     CREATE_COMPUTE_VPOOL("CREATE COMPUTE VPOOL", "", "operation to create a virtual compute pool"),
     UPDATE_COMPUTE_VPOOL("UPDATE COMPUTE VPOOL", "", "operation to update a virtual compute pool"),
@@ -457,10 +462,12 @@ public enum OperationTypeEnum {
             "VolumeGroupFullCopy Resynchronize"),
 
     CREATE_VOLUME_GROUP_SNAPSHOT("VolumeGroupSnapshotCreated", "VolumeGroupSnapshotCreateFailed", "VolumeGroupSnapshot Create"),
-    ACTIVATE_VOLUME_GROUP_SNAPSHOT("VolumeGroupSnapshotActivated", "VolumeGroupSnapshotActivateFailed", "VolumeGroupSnapshot Activate"),   
-    DEACTIVATE_VOLUME_GROUP_SNAPSHOT("VolumeGroupSnapshotDeactivated", "VolumeGroupSnapshotDeactivateFailed", "VolumeGroupSnapshot Deactivate"),
+    ACTIVATE_VOLUME_GROUP_SNAPSHOT("VolumeGroupSnapshotActivated", "VolumeGroupSnapshotActivateFailed", "VolumeGroupSnapshot Activate"),
+    DEACTIVATE_VOLUME_GROUP_SNAPSHOT("VolumeGroupSnapshotDeactivated", "VolumeGroupSnapshotDeactivateFailed",
+            "VolumeGroupSnapshot Deactivate"),
     RESTORE_VOLUME_GROUP_SNAPSHOT("VolumeGroupSnapshotRestored", "VolumeGroupSnapshotRestoreFailed", "VolumeGroupSnapshot Restored"),
-    RESYNCHRONIZE_VOLUME_GROUP_SNAPSHOT("VolumeGroupSnapshotResynchronized", "VolumeGroupSnapshotResynchronizeFailed", "VolumeGroupSnapshot Resynchronize"),
+    RESYNCHRONIZE_VOLUME_GROUP_SNAPSHOT("VolumeGroupSnapshotResynchronized", "VolumeGroupSnapshotResynchronizeFailed",
+            "VolumeGroupSnapshot Resynchronize"),
 
     CREATE_VOLUME_GROUP_SNAPSHOT_SESSION("VolumeGroupSnapshotSessionCreated", "VolumeGroupSnapshotSessionCreateFailed",
             "VolumeGroupSnapshotSession Create"),
@@ -501,7 +508,8 @@ public enum OperationTypeEnum {
     FAILOVER("FAILOVER TO A STANDBY", "", "operation to initiate failing over to a standby site"),
     STANDBY_FAILOVER("STANDBY BECOME ACTIVE AFTER FAILOVER", "", "operation that marks failover on new active site complete"),
     STANDBY_DEGRADE("DEGRADE STANDBY", "", "operation that marks standby as degraded"),
-    STANDBY_REJOIN("STANDBY REJOIN VDC FROM STANDBY_DEGRADED STATE", "", "operation that marks standby has rejoined vdc rom degraded state"),
+    STANDBY_REJOIN("STANDBY REJOIN VDC FROM STANDBY_DEGRADED STATE", "",
+            "operation that marks standby has rejoined vdc rom degraded state"),
     UPDATE_SITE("UPDATE SITE", "", "operation to update site information"),
     CREATE_SCHEDULE_POLICY("SchedulePolicyCreated", "", "create schedule policy.");
 

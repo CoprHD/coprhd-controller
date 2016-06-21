@@ -2241,7 +2241,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      */
     @Override
     public void changeVolumeVirtualPool(URI systemURI, Volume volume, VirtualPool newVpool,
-            VirtualPoolChangeParam vpoolChangeParam, Map<URI, String> taskMap) throws InternalException {
+            VirtualPoolChangeParam vpoolChangeParam, String taskId) throws InternalException {
         _log.info(String.format("RP change virtual pool operation for volume [%s](%s) moving to new vpool [%s](%s).",
                 volume.getLabel(), volume.getId(), newVpool.getLabel(), newVpool.getId()));
 
@@ -2249,7 +2249,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         volumes.add(volume);
 
         // Check for common Vpool updates handled by generic code. It returns true if handled.
-        if (checkCommonVpoolUpdates(volumes, newVpool, taskMap)) {
+        if (checkCommonVpoolUpdates(volumes, newVpool, taskId)) {
             return;
         }
 
@@ -2272,33 +2272,33 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                     && VirtualPool.vPoolSpecifiesRPVPlex(currentVpool)
                     && VirtualPool.vPoolSpecifiesMetroPoint(newVpool)) {
                 _log.info("Upgrade To MetroPoint");
-                upgradeToMetroPointVolume(volume, newVpool, vpoolChangeParam, taskMap.get(volume.getId()));
+                upgradeToMetroPointVolume(volume, newVpool, vpoolChangeParam, taskId);
             } else if (volume.checkForRp()
                     && !currentVpoolCopyMode.equals(newVpoolCopyMode)) {
                 _log.info("Change Replication Mode");
-                updateReplicationMode(volumes, newVpool, taskMap.get(volume.getId()));
+                updateReplicationMode(volumes, newVpool, taskId);
             } else {
                 _log.info("Add RecoverPoint Protection");
-                upgradeToProtectedVolume(volume, newVpool, vpoolChangeParam, taskMap.get(volume.getId()));
+                upgradeToProtectedVolume(volume, newVpool, vpoolChangeParam, taskId);
             }
         }
     }
 
     @Override
     public void changeVolumeVirtualPool(List<Volume> volumes, VirtualPool vpool,
-            VirtualPoolChangeParam vpoolChangeParam, Map<URI, String> taskMap) throws InternalException {
+            VirtualPoolChangeParam vpoolChangeParam, String taskId) throws InternalException {
         // We support multi-volume removal of protection, but still not
         // multi-volume add protection. Check the first volume in the
         // list to see if the request is to remove protection.
         if (volumes.get(0).checkForRp()
                 && !VirtualPool.vPoolSpecifiesProtection(vpool)) {
-            removeProtection(volumes, vpool, taskMap.get(volumes.get(0).getId()));
+            removeProtection(volumes, vpool, taskId);
         } else {
             // For now we only support changing the virtual pool for a single volume at a time
             // until CTRL-1347 and CTRL-5609 are fixed.
             if (volumes.size() == 1) {
                 changeVolumeVirtualPool(volumes.get(0).getStorageController(), volumes.get(0), vpool, vpoolChangeParam,
-                        taskMap);
+                        taskId);
             } else {
                 throw APIException.methodNotAllowed.notSupportedWithReason(
                         "Multiple volume change virtual pool is currently not supported for RecoverPoint. "

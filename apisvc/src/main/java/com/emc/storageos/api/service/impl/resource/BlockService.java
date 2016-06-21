@@ -3190,7 +3190,7 @@ public class BlockService extends TaskResourceService {
             _log.info("Got block service implementation for VirtualPool change request");
             Map<URI, String> taskMap = new HashMap<>();
             taskMap.put(volume.getId(), taskId);
-            blockServiceAPI.changeVolumeVirtualPool(Arrays.asList(volume), vpool, param, taskMap);
+            blockServiceAPI.changeVolumeVirtualPool(Arrays.asList(volume), vpool, param, taskId);
             _log.info("Executed VirtualPool change for volume.");
         } catch (InternalException | APIException e) {
             String errorMsg = String.format("Volume VirtualPool change error: %s", e.getMessage());
@@ -3269,7 +3269,6 @@ public class BlockService extends TaskResourceService {
 
         List<Volume> volumes = new ArrayList<Volume>();
         TaskList taskList = new TaskList();
-        Map<URI, String> taskMap = new HashMap<>();
 
         for (URI id : ids) {
             // Get the volume.
@@ -3347,6 +3346,9 @@ public class BlockService extends TaskResourceService {
                     vPool.getLabel(), "volume");
         }
 
+        // Create a unique task id.
+        String taskId = UUID.randomUUID().toString();
+
         // Create a task for each volume and set the initial task state to pending.
         for (Volume volume : volumes) {
             // Associated resources are any resources that are indirectly affected by this
@@ -3359,9 +3361,6 @@ public class BlockService extends TaskResourceService {
                     associatedResourcesURIs.add(obj.getId());
                 }
             }
-
-            // Create a unique task id.
-            String taskId = UUID.randomUUID().toString();
 
             // New operation
             Operation op = new Operation();
@@ -3381,7 +3380,6 @@ public class BlockService extends TaskResourceService {
             }
 
             taskList.getTaskList().add(volumeTask);
-            taskMap.put(volume.getId(), taskId);
         }
 
         // if this vpool request change has a consistency group, set its requested types
@@ -3409,7 +3407,7 @@ public class BlockService extends TaskResourceService {
             _log.info("Got block service implementation for VirtualPool change request");
             VirtualPoolChangeParam oldParam = convertNewVirtualPoolChangeParamToOldParam(param);
             blockServiceAPI.changeVolumeVirtualPool(volumes, vPool,
-                    oldParam, taskMap);
+                    oldParam, taskId);
             _log.info("Executed VirtualPool change for given volumes.");
         } catch (Exception e) {
             String errorMsg = String.format(
@@ -3419,7 +3417,7 @@ public class BlockService extends TaskResourceService {
                 volumeTask.setState(Operation.Status.error.name());
                 volumeTask.setMessage(errorMsg);
                 _dbClient.updateTaskOpStatus(Volume.class, volumeTask
-                        .getResource().getId(), taskMap.get(volumeTask.getResource().getId()),
+                        .getResource().getId(), taskId,
                         new Operation(Operation.Status.error.name(), errorMsg));
             }
             throw e;

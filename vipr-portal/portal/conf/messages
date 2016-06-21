@@ -3886,7 +3886,7 @@ security.access.catalogCategory=Your account does not have access to requested C
 security.noCookies=Session timed out or cookies are not enabled (your browser did not send session cookies)
 security.noVDCs=User does not have access to any Virtual Data Centers
 
-dataTable.recordsPerPage=Display _MENU_ records per page
+dataTable.recordsPerPage=Display _MENU_ rows per page
 dataTable.loading=Loading ...
 dataTable.noResults=No results
 dataTable.actions=Edit
@@ -4362,7 +4362,7 @@ renderFunctions.filesystems.status.notset=N/A
 
 templates.knob.label=%s of %s
 
-datatable.length.menu=Display _MENU_ records per page
+datatable.length.menu=Display _MENU_ rows per page
 datatable.processing=Loading...
 datatable.empty=No results
 datatable.parse.error=JSON data from server could not be parsed

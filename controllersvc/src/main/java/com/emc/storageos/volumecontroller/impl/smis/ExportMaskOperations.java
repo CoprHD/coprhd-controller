@@ -96,4 +96,19 @@ public interface ExportMaskOperations {
      * @return The BlockObject URI to HLU mapping for the ExportMask
      */
     public Map<URI, Integer> getExportMaskHLUs(StorageSystem storage, ExportMask exportMask);
+    
+    /**
+     * Remap initiators to target ports.
+     * 
+     * @param storage   The storage system
+     * @param exportMaskURI The exportMask URI
+     * @param initiatorTargets The map of initiator to storage ports
+     * @param taskCompleter The task completer
+     * @throws DeviceControllerException
+     */
+    public void remapInitiatorTargetPorts(StorageSystem storage,
+            URI exportMaskURI,
+            Map<URI, List<URI>> initiatorTargets,
+            TaskCompleter taskCompleter) throws DeviceControllerException;
+    
 }

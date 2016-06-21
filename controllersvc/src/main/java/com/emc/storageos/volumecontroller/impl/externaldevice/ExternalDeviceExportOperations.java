@@ -879,5 +879,12 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
 
         return driverPort;
     }
+    
+    @Override
+    public void remapInitiatorTargetPorts(StorageSystem storage,
+            URI exportMaskURI,
+            Map<URI, List<URI>> initiatorTargets,
+            TaskCompleter taskCompleter) throws DeviceControllerException {
+    }
 
 }

@@ -905,4 +905,12 @@ public class CinderExportOperations implements ExportMaskOperations {
     public Map<URI, Integer> getExportMaskHLUs(StorageSystem storage, ExportMask exportMask) {
         return Collections.emptyMap();
     }
+    
+    @Override
+    public void remapInitiatorTargetPorts(StorageSystem storage,
+            URI exportMaskURI,
+            Map<URI, List<URI>> initiatorTargets,
+            TaskCompleter taskCompleter) throws DeviceControllerException {
+    }
+    
 }

@@ -56,6 +56,7 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
@@ -1350,37 +1351,16 @@ public class VmaxExportOperations implements ExportMaskOperations {
             ExportOperationContext context = new VmaxExportOperationContext();
             // Prime the context object
             taskCompleter.updateWorkflowStepContext(context);
-            ExportMask mask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
-            String cascadedIGCustomTemplateName = CustomConfigConstants.VMAX_HOST_CASCADED_IG_MASK_NAME;
-            String initiatorGroupCustomTemplateName = CustomConfigConstants.VMAX_HOST_INITIATOR_GROUP_MASK_NAME;
-
-            String exportType = ExportMaskUtils.getExportType(_dbClient, mask);
-            if (ExportGroupType.Cluster.name().equals(exportType)) {
-                cascadedIGCustomTemplateName = CustomConfigConstants.VMAX_CLUSTER_CASCADED_IG_MASK_NAME;
-                initiatorGroupCustomTemplateName = CustomConfigConstants.VMAX_CLUSTER_INITIATOR_GROUP_MASK_NAME;
-            }
-
-            // Get the export mask complete initiator list. This is required to compute the storage group name
-            Set<Initiator> initiators = ExportMaskUtils.getInitiatorsForExportMask(_dbClient, mask, null);
-
-            DataSource cascadedIGDataSource = ExportMaskUtils.getExportDatasource(storage, new ArrayList<Initiator>(initiators),
-                    dataSourceFactory, cascadedIGCustomTemplateName);
-            String cigName = customConfigHandler.getComputedCustomConfigValue(cascadedIGCustomTemplateName, storage.getSystemType(),
-                    cascadedIGDataSource);
-
-            createOrUpdateInitiatorGroups(storage, exportMaskURI, cigName, initiatorGroupCustomTemplateName,
-                    initiatorList, taskCompleter);
-
-            ExportMask exportMask =
-                    _dbClient.queryObject(ExportMask.class, exportMaskURI);
+            ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
+            addInitiatorsToExportMask(storage, exportMask, initiatorList, taskCompleter);
 
             if (targetURIList != null && !targetURIList.isEmpty() &&
                     !exportMask.hasTargets(targetURIList)) {
                 _log.info("Adding targets...");
                 // always get the port group from the masking view
-                CIMInstance portGroupInstance = _helper.getPortGroupInstance(storage, mask.getMaskName());
+                CIMInstance portGroupInstance = _helper.getPortGroupInstance(storage, exportMask.getMaskName());
                 if (null == portGroupInstance) {
-                    String errMsg = String.format("addInitiator failed - maskName %s : Port group not found ", mask.getMaskName());
+                    String errMsg = String.format("addInitiator failed - maskName %s : Port group not found ", exportMask.getMaskName());
                     ServiceError serviceError = DeviceControllerException.errors.jobFailedMsg(errMsg, null);
                     taskCompleter.error(_dbClient, serviceError);
                     return;
@@ -1400,7 +1380,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
 
                 if (!diffPorts.isEmpty()) {
                     CIMArgument[] inArgs = _helper.getAddTargetsToMaskingGroupInputArguments(storage, portGroupInstance.getObjectPath(),
-                            mask.getMaskName(), Lists.newArrayList(diffPorts));
+                            exportMask.getMaskName(), Lists.newArrayList(diffPorts));
                     CIMArgument[] outArgs = new CIMArgument[5];
                     _helper.invokeMethodSynchronously(storage, _cimPath.getControllerConfigSvcPath(storage),
                             "AddMembers", inArgs, outArgs, null);
@@ -1444,94 +1424,13 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 // Get the context from the task completer, in case this is a rollback.
                 ExportOperationContext context = (ExportOperationContext) WorkflowService.getInstance().loadStepData(
                         taskCompleter.getOpId());
+                ExportMask mask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
                 if (context != null) {
                     exportMaskRollback(storage, context, taskCompleter);
-                } else {
-                    CIMArgument[] inArgs;
-                    CIMArgument[] outArgs;
-                    _log.info("Removing initiators ...");
-                    // Create a mapping of the InitiatorPort String to Initiator.
-                    Map<String, Initiator> nameToInitiator = new HashMap<String, Initiator>();
-                    for (Initiator initiator : initiatorList) {
-                        String normalizedName = Initiator.normalizePort(initiator.getInitiatorPort());
-                        nameToInitiator.put(normalizedName, initiator);
-                    }
-                    // We're going to get a mapping of which InitiatorGroups the initiators belong.
-                    // With this mapping we can remove initiators from their associated IGs sequentially
-                    ListMultimap<CIMObjectPath, String> igToInitiators = ArrayListMultimap.create();
-                    mapInitiatorsToInitiatorGroups(igToInitiators, storage, initiatorList);
-                    for (CIMObjectPath igPath : igToInitiators.keySet()) {
-                        List<String> initiatorPorts = igToInitiators.get(igPath);
-                        List<Initiator> initiatorsForIG = new ArrayList<Initiator>();
-                        // Using the mapping, create a list of Initiator objects
-                        for (String port : initiatorPorts) {
-                            Initiator initiator = nameToInitiator.get(port);
-                            if (initiator != null) {
-                                initiatorsForIG.add(initiator);
-                            }
-                        }
-                        boolean removingAllPortsInIG = initiatorPorts.size() == initiatorsForIG.size();
-                        if (removingAllPortsInIG) {
-                            // We are apparently trying to remove all the initiators in an Initiator Group.
-                            // This is a special condition. It is not a case of removing the initiators
-                            // from an individual group, we will instead treat this as a removal of the
-                            // IG from the cascade-IG (thereby preventing access to the host pointed to
-                            // by this IG).
-                            _log.info(String.format(
-                                    "Request to remove all the initiators from IG %s, so we will remove the IG from the cascaded-IG",
-                                    igPath.toString()));
-                            ExportMask mask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
-                            CIMObjectPath cigInMVPath = null;
-                            CIMInstance mvInstance = _helper.getSymmLunMaskingView(storage, mask);
-                            cigInstances = _helper.getAssociatorInstances(storage, mvInstance.getObjectPath(), null,
-                                    SmisConstants.SE_INITIATOR_MASKING_GROUP, null, null, SmisConstants.PS_ELEMENT_NAME);
-                            if (cigInstances.hasNext()) {
-                                cigInMVPath = cigInstances.next().getObjectPath();
-                            }
-                            // Find the cascaded initiator group that this belongs to and remove the IG from it.
-                            // Note: we should not be in here if the IG was associated directly to the MV. If the
-                            // IG were related to the MV, then the masking orchestrator should have generated
-                            // a workflow to delete the MV.
-                            cigInstances = _helper.getAssociatorInstances(storage, igPath, null,
-                                    SmisConstants.SE_INITIATOR_MASKING_GROUP, null, null, SmisConstants.PS_ELEMENT_NAME);
-                            while (cigInstances.hasNext()) {
-                                CIMObjectPath cigPath = cigInstances.next().getObjectPath();
-                                if (!cigPath.equals(cigInMVPath)) {
-                                    // Skip CIGs that are not part of the MaskingView that we are attempting
-                                    // to remove the initiators from.
-                                    continue;
-                                }
-                                _log.info(String.format("Removing IG %s from CIG %s", igPath.toString(), cigPath.toString()));
-                                inArgs = _helper.getRemoveIGFromCIG(igPath, cigPath);
-                                outArgs = new CIMArgument[5];
-                                _helper.invokeMethodSynchronously(storage, _cimPath.getControllerConfigSvcPath(storage),
-                                        "RemoveMembers", inArgs, outArgs, null);
-                                // Determine if the IG contains all initiators that were added by user/ViPR, and if
-                                // the IG is no longer referenced by masking views or parent IGs. If so, it can be removed.
-                                boolean removeIG = true;
-                                for (Initiator initiator : initiatorsForIG) {
-                                    if (!mask.hasUserInitiator(initiator.getId())) {
-                                        removeIG = false;
-                                    }
-                                }
-
-                                if (removeIG) {
-                                    List<CIMObjectPath> igList = new ArrayList<>();
-                                    igList.add(igPath);
-                                    this.checkIGsAndDeleteIfUnassociated(storage, igList);
-                                }
-                            }
-                        } else {
-                            inArgs = _helper.getRemoveInitiatorsFromMaskingGroupInputArguments(storage, igPath, initiatorsForIG);
-                            outArgs = new CIMArgument[5];
-                            _helper.invokeMethodSynchronously(storage, _cimPath.getControllerConfigSvcPath(storage),
-                                    "RemoveMembers", inArgs, outArgs, null);
-                        }
-                    }
+                } else { 
+                    removeInitiatorsFromExportMask(storage, initiatorList, mask);
                     if (targetURIList != null && !targetURIList.isEmpty()) {
                         _log.info("Removing targets...");
-
-                        ExportMask mask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
 
                         CIMInstance portGroupInstance = _helper.getPortGroupInstance(storage, mask.getMaskName());
                         if (null == portGroupInstance) {
@@ -1555,9 +1454,9 @@ public class VmaxExportOperations implements ExportMaskOperations {
                         boolean removingLast = portsToRemove.size() == storagePortURIs.size();
 
                         if (!portsToRemove.isEmpty() && !removingLast) {
-                            inArgs = _helper.getRemoveTargetPortsFromMaskingGroupInputArguments(storage, pgGroupName,
+                            CIMArgument[] inArgs = _helper.getRemoveTargetPortsFromMaskingGroupInputArguments(storage, pgGroupName,
                                     Lists.newArrayList(portsToRemove));
-                            outArgs = new CIMArgument[5];
+                            CIMArgument[] outArgs = new CIMArgument[5];
                             _helper.invokeMethodSynchronously(storage, _cimPath.getControllerConfigSvcPath(storage),
                                     "RemoveMembers", inArgs, outArgs, null);
                         } else if (!removingLast) {
@@ -4639,10 +4538,227 @@ public class VmaxExportOperations implements ExportMaskOperations {
 
             _log.info(String.format("MaskingView will be named '%s'", maskingViewName));
             exportMask.setMaskName(maskingViewName);
-            _dbClient.persistObject(exportMask);
+            _dbClient.updateObject(exportMask);
         }
 
         return maskingViewName;
     }
+    
+    @Override
+    public void remapInitiatorTargetPorts(StorageSystem storage,
+            URI exportMaskURI,
+            Map<URI, List<URI>> initiatorTargets,
+            TaskCompleter taskCompleter) throws DeviceControllerException {
+        _log.info("Remapping initiators and targets...");
+        ExportOperationContext context = new VmaxExportOperationContext();
+        Set<URI> initiators = new HashSet<URI>();
+        Set<URI> targets = new HashSet<URI>();
+        for (Map.Entry<URI, List<URI>> entry : initiatorTargets.entrySet()) {
+            initiators.add(entry.getKey());
+            targets.addAll(entry.getValue());
+        }
+        ExportMask mask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
+        try {
+            //Set<Initiator> maskInitiators = ExportMaskUtils.getInitiatorsForExportMask(_dbClient, mask, null);
+            List<URI> maskInitiators = StringSetUtil.stringSetToUriList(mask.getInitiators());
+            Set<URI> maskInitiatorSet = new HashSet<URI>(maskInitiators);
+            List<URI> newInitiators = new ArrayList<URI>(Sets.difference(initiators, maskInitiatorSet));
+            if (newInitiators != null && !newInitiators.isEmpty()) {
+                // add new initiators
+                List<Initiator> newInits = _dbClient.queryObject(Initiator.class, newInitiators);
+                addInitiatorsToExportMask(storage, mask, newInits, taskCompleter);
+            }
+            List<URI> removeInitiators = new ArrayList<URI>(Sets.difference(maskInitiatorSet, initiators));
+            if (removeInitiators != null && !removeInitiators.isEmpty()) {
+                // remove initiators
+                List<Initiator> removeInits = _dbClient.queryObject(Initiator.class, removeInitiators);
+                removeInitiatorsFromExportMask(storage, removeInits, mask);
+            }
+            
+            // handle target ports changes
+            modifyTargetsToExportMask(storage, mask, targets, taskCompleter);
+        } catch (Exception e) {
+            _log.error(String.format("remapInitiatorTargetports failed - maskName: %s", exportMaskURI.toString()), e);
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            taskCompleter.error(_dbClient, serviceError);
+        }
+        
+    }
+    
+    /**
+     * Add initiators to the export mask
+     * 
+     * @param storage The storage system
+     * @param mask The exportMask instance
+     * @param initiatorList The initiators that would be added into the exportMask
+     * @param taskCompleter The task completer
+     * @throws Exception
+     */
+    private void addInitiatorsToExportMask(StorageSystem storage, ExportMask mask, List<Initiator> initiatorList, 
+            TaskCompleter taskCompleter) throws Exception {
 
+        String cascadedIGCustomTemplateName = CustomConfigConstants.VMAX_HOST_CASCADED_IG_MASK_NAME;
+        String initiatorGroupCustomTemplateName = CustomConfigConstants.VMAX_HOST_INITIATOR_GROUP_MASK_NAME;
+
+        String exportType = ExportMaskUtils.getExportType(_dbClient, mask);
+        if (ExportGroupType.Cluster.name().equals(exportType)) {
+            cascadedIGCustomTemplateName = CustomConfigConstants.VMAX_CLUSTER_CASCADED_IG_MASK_NAME;
+            initiatorGroupCustomTemplateName = CustomConfigConstants.VMAX_CLUSTER_INITIATOR_GROUP_MASK_NAME;
+        }
+
+        // Get the export mask complete initiator list. This is required to compute the storage group name
+        Set<Initiator> initiators = ExportMaskUtils.getInitiatorsForExportMask(_dbClient, mask, null);
+
+        DataSource cascadedIGDataSource = ExportMaskUtils.getExportDatasource(storage, new ArrayList<Initiator>(initiators),
+                dataSourceFactory, cascadedIGCustomTemplateName);
+        String cigName = customConfigHandler.getComputedCustomConfigValue(cascadedIGCustomTemplateName, storage.getSystemType(),
+                cascadedIGDataSource);
+
+        createOrUpdateInitiatorGroups(storage, mask.getId(), cigName, initiatorGroupCustomTemplateName,
+                initiatorList, taskCompleter);
+    }
+
+    
+    /**
+     * Remove initiators from export mask
+     * 
+     * @param storage The storage system
+     * @param initiatorList The initiator URIs that will be removed from the exportMask
+     * @param mask The export mask instance
+     * @throws Exception
+     */
+    private void removeInitiatorsFromExportMask(StorageSystem storage, List<Initiator> initiatorList, ExportMask mask) 
+            throws Exception {
+        CIMArgument[] inArgs;
+        CIMArgument[] outArgs;
+        _log.info("Removing initiators ...");
+        // Create a mapping of the InitiatorPort String to Initiator.
+        Map<String, Initiator> nameToInitiator = new HashMap<String, Initiator>();
+        for (Initiator initiator : initiatorList) {
+            String normalizedName = Initiator.normalizePort(initiator.getInitiatorPort());
+            nameToInitiator.put(normalizedName, initiator);
+        }
+        // We're going to get a mapping of which InitiatorGroups the initiators belong.
+        // With this mapping we can remove initiators from their associated IGs sequentially
+        ListMultimap<CIMObjectPath, String> igToInitiators = ArrayListMultimap.create();
+        mapInitiatorsToInitiatorGroups(igToInitiators, storage, initiatorList);
+        for (CIMObjectPath igPath : igToInitiators.keySet()) {
+            List<String> initiatorPorts = igToInitiators.get(igPath);
+            List<Initiator> initiatorsForIG = new ArrayList<Initiator>();
+            // Using the mapping, create a list of Initiator objects
+            for (String port : initiatorPorts) {
+                Initiator initiator = nameToInitiator.get(port);
+                if (initiator != null) {
+                    initiatorsForIG.add(initiator);
+                }
+            }
+            boolean removingAllPortsInIG = initiatorPorts.size() == initiatorsForIG.size();
+            if (removingAllPortsInIG) {
+                // We are apparently trying to remove all the initiators in an Initiator Group.
+                // This is a special condition. It is not a case of removing the initiators
+                // from an individual group, we will instead treat this as a removal of the
+                // IG from the cascade-IG (thereby preventing access to the host pointed to
+                // by this IG).
+                _log.info(String.format(
+                        "Request to remove all the initiators from IG %s, so we will remove the IG from the cascaded-IG",
+                        igPath.toString()));
+                CIMObjectPath cigInMVPath = null;
+                CIMInstance mvInstance = _helper.getSymmLunMaskingView(storage, mask);
+                CloseableIterator<CIMInstance> cigInstances = _helper.getAssociatorInstances(storage, mvInstance.getObjectPath(), null,
+                        SmisConstants.SE_INITIATOR_MASKING_GROUP, null, null, SmisConstants.PS_ELEMENT_NAME);
+                if (cigInstances.hasNext()) {
+                    cigInMVPath = cigInstances.next().getObjectPath();
+                }
+                // Find the cascaded initiator group that this belongs to and remove the IG from it.
+                // Note: we should not be in here if the IG was associated directly to the MV. If the
+                // IG were related to the MV, then the masking orchestrator should have generated
+                // a workflow to delete the MV.
+                cigInstances = _helper.getAssociatorInstances(storage, igPath, null,
+                        SmisConstants.SE_INITIATOR_MASKING_GROUP, null, null, SmisConstants.PS_ELEMENT_NAME);
+                while (cigInstances.hasNext()) {
+                    CIMObjectPath cigPath = cigInstances.next().getObjectPath();
+                    if (!cigPath.equals(cigInMVPath)) {
+                        // Skip CIGs that are not part of the MaskingView that we are attempting
+                        // to remove the initiators from.
+                        continue;
+                    }
+                    _log.info(String.format("Removing IG %s from CIG %s", igPath.toString(), cigPath.toString()));
+                    inArgs = _helper.getRemoveIGFromCIG(igPath, cigPath);
+                    outArgs = new CIMArgument[5];
+                    _helper.invokeMethodSynchronously(storage, _cimPath.getControllerConfigSvcPath(storage),
+                            "RemoveMembers", inArgs, outArgs, null);
+                    // Determine if the IG contains all initiators that were added by user/ViPR, and if
+                    // the IG is no longer referenced by masking views or parent IGs. If so, it can be removed.
+                    boolean removeIG = true;
+                    for (Initiator initiator : initiatorsForIG) {
+                        if (!mask.hasUserInitiator(initiator.getId())) {
+                            removeIG = false;
+                        }
+                    }
+
+                    if (removeIG) {
+                        List<CIMObjectPath> igList = new ArrayList<>();
+                        igList.add(igPath);
+                        this.checkIGsAndDeleteIfUnassociated(storage, igList);
+                    }
+                }
+            } else {
+                inArgs = _helper.getRemoveInitiatorsFromMaskingGroupInputArguments(storage, igPath, initiatorsForIG);
+                outArgs = new CIMArgument[5];
+                _helper.invokeMethodSynchronously(storage, _cimPath.getControllerConfigSvcPath(storage),
+                        "RemoveMembers", inArgs, outArgs, null);
+            }
+        }
+    }
+    
+    /**
+     * Add and remove storage ports to/from the export mask
+     *  
+     * @param storage The storage system
+     * @param mask The export mask instance
+     * @param targetURIList The storage ports that would be in the export mask
+     * @param taskCompleter
+     * @throws Exception
+     */
+    private void modifyTargetsToExportMask(StorageSystem storage, ExportMask mask, Set<URI> targetURIList, TaskCompleter taskCompleter )
+            throws Exception {
+        _log.info("Modifying targets in the export mask.");
+        // always get the port group from the masking view
+        CIMInstance portGroupInstance = _helper.getPortGroupInstance(storage, mask.getMaskName());
+        if (null == portGroupInstance) {
+            String errMsg = String.format("addInitiator failed - maskName %s : Port group not found ", mask.getMaskName());
+            ServiceError serviceError = DeviceControllerException.errors.jobFailedMsg(errMsg, null);
+            taskCompleter.error(_dbClient, serviceError);
+            return;
+        }
+        String pgGroupName = (String) portGroupInstance.getPropertyValue(SmisConstants.CP_ELEMENT_NAME);
+
+        // Get the current ports off of the storage group; only add the ones that aren't there already.
+        WBEMClient client = _helper.getConnection(storage).getCimClient();
+        List<String> storagePorts =
+                _helper.getStoragePortsFromLunMaskingInstance(client,
+                        portGroupInstance);
+        Set<URI> storagePortURIs = new HashSet<>();
+        storagePortURIs.addAll(Collections2.transform(ExportUtils.storagePortNamesToURIs(_dbClient, storagePorts),
+                CommonTransformerFunctions.FCTN_STRING_TO_URI));
+        // Google Sets.difference returns a non-serializable set, so drop it into a standard HashSet upon return.
+        List<URI> addPorts = new ArrayList<URI>(Sets.difference(targetURIList, storagePortURIs));
+
+        if (!addPorts.isEmpty()) {
+            CIMArgument[] inArgs = _helper.getAddTargetsToMaskingGroupInputArguments(storage, portGroupInstance.getObjectPath(),
+                    mask.getMaskName(), Lists.newArrayList(addPorts));
+            CIMArgument[] outArgs = new CIMArgument[5];
+            _helper.invokeMethodSynchronously(storage, _cimPath.getControllerConfigSvcPath(storage),
+                    "AddMembers", inArgs, outArgs, null);
+        } 
+        Set<URI> portsToRemove = Sets.difference(storagePortURIs, targetURIList);
+
+        if (!portsToRemove.isEmpty()) {
+            CIMArgument[] inArgs = _helper.getRemoveTargetPortsFromMaskingGroupInputArguments(storage, pgGroupName,
+                    Lists.newArrayList(portsToRemove));
+            CIMArgument[] outArgs = new CIMArgument[5];
+            _helper.invokeMethodSynchronously(storage, _cimPath.getControllerConfigSvcPath(storage),
+                    "RemoveMembers", inArgs, outArgs, null);
+        }
+    }
 }

@@ -401,4 +401,10 @@ public class VNXeExportOperations extends VNXeOperations implements ExportMaskOp
         _dbClient.updateObject(blockObj);
     }
 
+    @Override
+    public void remapInitiatorTargetPorts(StorageSystem storage,
+            URI exportMaskURI,
+            Map<URI, List<URI>> initiatorTargets,
+            TaskCompleter taskCompleter) throws DeviceControllerException {
+    }
 }

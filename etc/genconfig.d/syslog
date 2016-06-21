@@ -19,7 +19,7 @@ _gen_syslog_config_log4j() {
 	local syslog_appender_desc='# The SYSLOG appender to be configured for the syslog configuration to affect'
 	local syslog_appender_val='log4j.appender.SYSLOG=org.apache.log4j.net.SyslogAppender'
 	local syslog_hostname_val='log4j.appender.SYSLOG.SyslogHost=localhost'
-	local syslog_threshold_val='log4j.appender.SYSLOG.Threshold='
+	local syslog_loglevel_val='log4j.appender.SYSLOG.Threshold='
 	local syslog_facility_val='log4j.appender.SYSLOG.Facility='
 	local syslog_facilityprint_val='log4j.appender.SYSLOG.FacilityPrinting=true'
 	local syslog_patternlayout_val='log4j.appender.SYSLOG.layout=org.apache.log4j.PatternLayout'
@@ -87,8 +87,12 @@ _gen_syslog_config_log4j() {
 		#echo ${syslog_application_services[@]}
 		# Number of elements in the array
 		#echo ${#syslog_application_services[@]}
+
+		# Converts the comma seperated UI input string into an array
+		appln_services_arr=(${syslog_application_services//,/ })
+
 		# Traverse all the selected application services log4j properties files
-		for i in "${syslog_application_services[@]}"
+		for i in "${appln_services_arr[@]}"
 			do
 				svcName=$i
 				#echo "Processing Log4j for the Service :" ${svcName}
@@ -109,8 +113,8 @@ _gen_syslog_config_log4j() {
 				if [ -z "$syslog_loglevel" ]; then
 					syslog_loglevel="ERROR"
 				fi
-				syslog_loglevel_val=$(printf "%s%s" "$syslog_threshold_val""$syslog_loglevel")
-				#echo $syslog_threshold_val
+				syslog_loglevel_val=$(printf "%s%s" "$syslog_loglevel_val""$syslog_loglevel")
+				#echo $syslog_loglevel_val
 
 				# Check if the facility is null then set it to local0
 				if [ -z "$syslog_facility" ]; then
@@ -128,7 +132,7 @@ _gen_syslog_config_log4j() {
 				( echo -e "\n$syslog_appender_desc"
 				  echo -e "$syslog_appender_val"
 				  echo -e "$syslog_hostname_val"
-				  echo -e "$syslog_threshold_val"
+				  echo -e "$syslog_loglevel_val"
 				  echo -e "$syslog_facility_val"
 				  echo -e "$syslog_facilityprint_val"
 				  echo -e "$syslog_patternlayout_val"
@@ -184,25 +188,19 @@ _gen_syslog_config_rsyslog() {
 	# Number of elements in the array
 	#echo ${#prevRemoteIPList[@]}
 
-	# Remove the comment description for remote syslog servers settings
-	sed -i "/$rsyslog_confdesc/d" "$rsyslogconfFile"
-
-	# Remove all the previous remote syslog servers settings
-	for i in "${prevRemoteIPList[@]}"
-		do
-			currentValue=$i
-
-			echo "Removing previous remote syslog server : " ${currentValue}
-			sed -i "/$currentValue/d" "$rsyslogconfFile"
-
-		done
-
-	# Setting rsyslog configuration file(/etc/rsyslog.conf) with remote syslog server details
 	msg_eof="## END of file"
 	#echo $msg_eof
 
+	# Remove all the previous remote syslog servers settings
+	# Remove all the lines between Pattern1 and Pattern2
+	sed -i "/$rsyslog_confdesc/,/$msg_eof/{//!d}" "$rsyslogconfFile"
+
+	# Remove the rsyslog description comment
+	sed -i "/$rsyslog_confdesc/d" "$rsyslogconfFile"
+
 	if [ "$syslog_enable" == "True" ] && [ "$syslog_enable_encryption" == "no" ]
 	then
+		# Insert the rsyslog description comment before the End Of file comment
 		sed -i "/$msg_eof/i $rsyslog_confdesc" "$rsyslogconfFile"
 
 		# Print the whole array
@@ -210,8 +208,11 @@ _gen_syslog_config_rsyslog() {
 		# Number of elements in the array
 		#echo ${#syslog_remote_servers_ports[@]}
 		
+		# Converts the comma seperated UI input string into an array
+		remote_serverport_arr=(${syslog_remote_servers_ports//,/ })
+		
 		# Traverse all the entered remote syslog server details to update the rsyslog configuration file(/etc/rsyslog.conf)
-		for i in "${syslog_remote_servers_ports[@]}"
+		for i in "${remote_serverport_arr[@]}"
 			do
 				ipport=$i
 				#echo "Processing Sever:Port Info : ${ipport}"
@@ -220,17 +221,21 @@ _gen_syslog_config_rsyslog() {
 				then
 					#echo "Process IPV6 Address"
 					port="${ipport##*:}"
-					tmp1="${ipport%:*}"
-					tmp2="${tmp1/[/}" 
-					server="${tmp2/]/}"
+					server="${ipport%:*}"
+					# Commented the below steps which removes the square brackets
+					#tmp1="${ipport%:*}"
+					#tmp2="${tmp1/[/}" 
+					#server="${tmp2/]/}"
 					#echo "IPV6 Address : ${server}"
 					#echo "Port : ${port}"
 				else
 					#echo "Process IPV4 Address"
 					port="${ipport##*:}"
-					tmp1="${ipport%:*}"
-					tmp2="${tmp1/[/}" 
-					server="${tmp2/]/}" 
+					server="${ipport%:*}"
+					# Commented the below steps which removes the square brackets
+					#tmp1="${ipport%:*}"
+					#tmp2="${tmp1/[/}" 
+					#server="${tmp2/]/}"
 					#echo "IPV4 Address : ${server} "
 					#echo "Port : ${port}"
 				fi
@@ -304,14 +309,7 @@ _gen_syslog_config_encrypt() {
 	#echo ${#prevEncryptRemoteIPList[@]}
 
 	# Remove all the previous encrypted remote syslog servers TCP settings
-	for i in "${prevEncryptRemoteIPList[@]}"
-		do
-			currentValue=$i
-
-			echo "Removing previous encrypted remote ryslog server : " ${currentValue}
-			sed -i "/$currentValue/d" "$remoteconfFile"
-
-		done
+	sed -i '/ActionSendStreamDriverAuthMode/,$d' "$remoteconfFile"
 	
 	# Deleting the TLS Syslog Client configuration details from the file and rebuilding it with default values
 	#sed -i '71,$ d' "$remoteconfFile"
@@ -358,8 +356,11 @@ _gen_syslog_config_encrypt() {
 		# Number of elements in the array
 		#echo ${#syslog_remote_servers_ports[@]}
 		
+		# Converts the comma seperated UI input string into an array
+		remote_serverport_arr=(${syslog_remote_servers_ports//,/ })
+		
 		# Traverse all the entered remote syslog server details to update the rsyslog configuration file(/etc/rsyslog.d/remote.conf)
-		for i in "${syslog_remote_servers_ports[@]}"
+		for i in "${remote_serverport_arr[@]}"
 			do
 				ipport=$i
 				#echo "Processing Sever:Port Info : ${ipport}"
@@ -368,17 +369,21 @@ _gen_syslog_config_encrypt() {
 				then
 					#echo "Process IPV6 Address"
 					port="${ipport##*:}"
-					tmp1="${ipport%:*}"
-					tmp2="${tmp1/[/}" 
-					server="${tmp2/]/}"
+					server="${ipport%:*}"
+					# Commented the below steps which removes the square brackets
+					#tmp1="${ipport%:*}"
+					#tmp2="${tmp1/[/}" 
+					#server="${tmp2/]/}"
 					echo "IPV6 Address : ${server}"
 					echo "Port : ${port}"
 				else
 					#echo "Process IPV4 Address"
 					port="${ipport##*:}"
-					tmp1="${ipport%:*}"
-					tmp2="${tmp1/[/}" 
-					server="${tmp2/]/}" 
+					server="${ipport%:*}"
+					# Commented the below steps which removes the square brackets
+					#tmp1="${ipport%:*}"
+					#tmp2="${tmp1/[/}" 
+					#server="${tmp2/]/}"
 					echo "IPV4 Address : ${server} "
 					echo "Port : ${port}"
 				fi

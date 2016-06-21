@@ -86,6 +86,8 @@ class Volume(object):
         "/block/volumes/{0}/protection/continuous-copies/failover-test-cancel"
     URI_VOLUME_PROTECTION_MIRROR_FAILOVER_SWAP = \
         "/block/volumes/{0}/protection/continuous-copies/swap"
+    URI_VOLUME_PROTECTION_MIRROR_FAILOVER_ACCESS_MODE = \
+        "/block/volumes/{0}/protection/continuous-copies/accessmode"
     URI_VOLUME_PROTECTION_MIRROR_INSTANCE_DEACTIVATE = \
         "/block/volumes/{0}/protection/continuous-copies/deactivate"
     URI_VOLUME_PROTECTION_MIRROR_INSTANCE_SYNC = \
@@ -308,7 +310,7 @@ class Volume(object):
         return o
 
     def mirror_protection_copyparam(
-            self, volume, mirrorvol, pit, copytype="native", sync='false'):
+            self, volume, mirrorvol, pit, accessmode, copytype="native", sync='false'):
         copies_param = dict()
         copy = dict()
         copy_entries = []
@@ -317,6 +319,8 @@ class Volume(object):
 
         if(pit != ""):
             copy['pointInTime'] = pit
+        if(accessmode != ""):
+            copy['accessMode'] = accessmode
 
         #true=split
         if(sync == 'true'):
@@ -516,7 +520,7 @@ class Volume(object):
 
         return common.json_decode(s)
 
-    def mirror_protection_failover_ops(self, volume, mirrorvol, pit,
+    def mirror_protection_failover_ops(self, volume, mirrorvol, pit, accessmode
                                 type="native", op="failover"):
         '''
         Failover the volume protection
@@ -524,13 +528,14 @@ class Volume(object):
             volume    : Source volume path
             mirrorvol : Name of the continous_copy
             pit       : any UTC point-in-time formatted as "yyyy-MM-dd_HH:mm:ss" or datetime in milliseconds
+            accessmode: access mode
             type      : type of protection
         Returns:
             result of the action.
         '''
         vol_uri = self.volume_query(volume)
    
-        body = self.mirror_protection_copyparam(volume, mirrorvol, pit, type)
+        body = self.mirror_protection_copyparam(volume, mirrorvol, pit, accessmode, type)
 
         uri = Volume.URI_VOLUME_PROTECTION_MIRROR_FAILOVER.format(vol_uri)
         if op == 'failover-test':
@@ -541,6 +546,9 @@ class Volume(object):
                   vol_uri)
         elif op == 'swap':
             uri = Volume.URI_VOLUME_PROTECTION_MIRROR_FAILOVER_SWAP.format(
+                  vol_uri)
+        elif op == 'accessmode':
+            uri = Volume.URI_VOLUME_PROTECTION_MIRROR_FAILOVER_ACCESS_MODE.format(
                   vol_uri)
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port,
@@ -3395,6 +3403,18 @@ def mirror_protect_parser(subcommand_parsers, common_parser):
     add_protection_common_parser(mpswap_parser)
     mpswap_parser.set_defaults(op='swap')
     mpswap_parser.set_defaults(func=volume_mirror_protect_failover_ops)
+
+    # update access mode
+    mpaccessmode_parser = subcommand_parsers.add_parser(
+        'accessmode',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        description='ViPR continuous_copies update access mode CLI usage.',
+        help='Update access mode for volume continuous_copies')
+    # Add parameter from common protection parser.
+    add_protection_common_parser(mpaccessmode_parser)
+    mpaccessmode_parser.set_defaults(op='accessmode')
+    mpaccessmode_parser.set_defaults(func=volume_mirror_protect_failover_ops)
 
     # mirror protection list
     mptlist_parser = subcommand_parsers.add_parser(

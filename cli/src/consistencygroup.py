@@ -60,6 +60,8 @@ class ConsistencyGroup(object):
         URI_BLOCK_CONSISTENCY_GROUP_PROTECTION_BASE + "/failover"
     URI_BLOCK_CONSISTENCY_GROUP_FAILOVER_CANCEL = \
         URI_BLOCK_CONSISTENCY_GROUP_PROTECTION_BASE + "/failover-cancel"
+    URI_BLOCK_CONSISTENCY_GROUP_ACCESS_MODE = \
+        URI_BLOCK_CONSISTENCY_GROUP_PROTECTION_BASE + "/accessmode"
 
     def __init__(self, ipAddr, port):
         '''
@@ -436,7 +438,7 @@ class ConsistencyGroup(object):
         return o       
         
     def consitencygroup_protection_failover_ops(self, name, project, tenant, copyvarray,
-                                    pit, type="native", op="failover"):
+                                    pit, accessmode, type="native", op="failover"):
         '''
         Failover the consistency group protection
         Parameters:
@@ -444,12 +446,13 @@ class ConsistencyGroup(object):
             project     : name of the project
             copyvarray  : name of the copy target virtual array
             pit         : any UTC point-in-time formatted as "yyyy-MM-dd_HH:mm:ss" or datetime in milliseconds
+            accessmode  : access mode
             type        : type of protection
         Returns:
             result of the action.
         '''
         group_uri = self.consistencygroup_query(name, project, tenant)
-        body = self.protection_copyparam(copyvarray, pit, type)
+        body = self.protection_copyparam(copyvarray, pit, accessmode, type)
 
         uri = self.URI_BLOCK_CONSISTENCY_GROUP_FAILOVER.format(group_uri)
         if op == 'failover_cancel':
@@ -457,6 +460,9 @@ class ConsistencyGroup(object):
                      group_uri)
         elif op == 'swap':
             uri = self.URI_BLOCK_CONSISTENCY_GROUP_SWAP.format(
+                     group_uri)
+        elif op == 'accessmode':
+            uri = self.URI_BLOCK_CONSISTENCY_GROUP_ACCESS_MODE.format(
                      group_uri)
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port,
@@ -466,7 +472,7 @@ class ConsistencyGroup(object):
         return common.json_decode(s)   
         
     def protection_copyparam(
-            self, copyvarray, pit, type="native", sync='false'):
+            self, copyvarray, pit, accessmode, type="native", sync='false'):
         copies_param = dict()
         copy = dict()
         copy_entries = []
@@ -475,6 +481,8 @@ class ConsistencyGroup(object):
         
         if(pit != ""):
             copy['pointInTime'] = pit
+        if(accessmode != ""):
+            copy['accessMode'] = accessmode
         #true=split
         if(sync == 'true'):
             copy['sync'] = "true"
@@ -1085,6 +1093,46 @@ def swap_parser(subcommand_parsers, common_parser):
                                help='type of protection - native, rp, srdf')     
                                   
     swap_parser.set_defaults(func=swap)
+
+def accessmode_parser(subcommand_parsers, common_parser):
+    # change access mode on a consistency group copy
+    accessmode_parser = subcommand_parsers.add_parser(
+        'accessmode',
+        description='ViPR consistency roup update access mode CLI usage.',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='update access mode')
+    mandatory_args = swap_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-name', '-n',
+                                metavar='<consistencygroupname>',
+                                dest='name',
+                                help='name of Consistency Group ',
+                                required=True)
+    mandatory_args.add_argument('-project', '-pr',
+                                metavar='<projectname>',
+                                dest='project',
+                                help='name of Project',
+                                required=True)
+    swap_parser.add_argument('-tenant', '-tn',
+                               metavar='<tenantname>',
+                               dest='tenant',
+                               help='container tenant name')
+    mandatory_args.add_argument('-copyvarray', '-cv',
+                               metavar='<copyvarray>',
+                               dest='copyvarray',
+                               help='copy virtual array name',
+                               required=True)
+    mandatory_args.add_argument('-accessmode', '-am',
+                               metavar='<accessmode>',
+                               dest='accessmode',
+                               help='access mode',
+                               required=True)
+    swap_parser.add_argument('-type', '-t',
+                               metavar='<type>',
+                               dest='type',
+                               help='type of protection - native, rp, srdf')
+
+    swap_parser.set_defaults(func=swap)
     
 def failover(args):
     obj = ConsistencyGroup(args.ip, args.port)
@@ -1115,6 +1163,16 @@ def swap(args):
                                    args.copyvarray, "", args.type, "swap")
     except SOSError as e:
         raise e                    
+
+def accessmode(args):
+    obj = ConsistencyGroup(args.ip, args.port)
+    try:
+        if(not args.tenant):
+            args.tenant = ""
+        res = obj.consitencygroup_protection_failover_ops(args.name, args.project, args.tenant,
+                                   args.copyvarray, "", args.accessmode, args.type, "accessmode")
+    except SOSError as e:
+        raise e
 
 #
 # consistency Group Main parser routine
@@ -1155,6 +1213,9 @@ def consistencygroup_parser(parent_subparser, common_parser):
     
     # swap parser    
     swap_parser(subcommand_parsers, common_parser)
+
+    # access mode parser
+    accessmode_parser(subcommand_parsers, common_parser)
 
     # snapshot command parser
     #snapshot_parser(subcommand_parsers, common_parser)

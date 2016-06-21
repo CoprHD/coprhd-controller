@@ -1311,7 +1311,17 @@ public class VPlexApiMigrationManager {
     }
     
     /**
-     * Determines if the volume has default naming conventions
+     * Determines if the volume has default naming conventions. A volume with default naming
+     * convention has a format like below:
+     * 
+     * local volume: device_<claimed_storage_volume_name>_vol.
+     * distribute volume: dd_<claimed_storage_volume_name1>_<claimed_storage_volume_name2>_vol.
+     * 
+     * We should be able to parse the passed volume name to get the claimed storage
+     * volume names and then call the utility method to verify the name. If there is
+     * any kind of parsing error, then we know the volume does not have the default 
+     * naming convention. This could be a volume which was created with custom naming enabled
+     * or it could be a volume that was ingested.
      * 
      * @param volumeName The volume name.
      * @param isDistributed true if the volume is distributed, false for local.
@@ -1343,7 +1353,23 @@ public class VPlexApiMigrationManager {
     }
     
     /**
-     * Determines if the supporting device has default naming conventions
+     * Determines if the passed device has default naming conventions. A device with 
+     * default naming convention has a format like below:
+     * 
+     * local device: device_<claimed_storage_volume_name>.
+     * distribute device: dd_<claimed_storage_volume_name1>_<claimed_storage_volume_name2>.
+     * 
+     * We should be able to parse the passed device name to get the claimed storage
+     * volume names and then call the utility method to verify the name. If there is
+     * any kind of parsing error, then we know the device does not have the default 
+     * naming convention.
+     * 
+     * We need to check the device in cases of custom naming. For custom naming the
+     * the virtual volume may not have the default naming convention, but since we
+     * we always build the underlying artifacts using the default conventions, the
+     * supporting device for a volume may have the default convention. If the supporting
+     * device does have the default convention, we want to update it after successful
+     * commit of a migration.
      * 
      * @param deviceName The deviceName
      * @param isDistributed true if the device is distributed, false for local.
@@ -1403,7 +1429,8 @@ public class VPlexApiMigrationManager {
     
     /**
      * Renames the supporting devices of a virtual volume after an extent migration to
-     * maintain the default ViPR naming conventions.
+     * maintain the default ViPR naming conventions. This would rename the distributed
+     * device and the underlying local devices.
      * 
      * @param vvInfo The virtual volume info.
      * @param migrationInfo The migration information.

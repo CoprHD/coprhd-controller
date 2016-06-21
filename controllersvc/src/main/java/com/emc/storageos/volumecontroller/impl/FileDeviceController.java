@@ -554,6 +554,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 StoragePool pool = _dbClient.queryObject(StoragePool.class, fs.getPool());
                 args.addStoragePool(pool);
                 setVirtualNASinArgs(fs.getVirtualNAS(), args);
+                acquireStepLock(storageObj, opId);
             } else {
                 snapshotObj = _dbClient.queryObject(Snapshot.class, uri);
                 fsObj = snapshotObj;
@@ -586,7 +587,6 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             }
             // Code to acquire lock on for VNXFILE Storage System
             WorkflowStepCompleter.stepExecuting(opId);
-            acquireStepLock(storageObj, opId);
             BiosCommandResult result = getDevice(storageObj.getSystemType()).doExport(storageObj, args, fileExports);
 
             if (result.getCommandPending()) {

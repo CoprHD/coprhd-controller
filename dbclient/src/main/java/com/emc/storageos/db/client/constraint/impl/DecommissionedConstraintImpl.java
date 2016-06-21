@@ -28,7 +28,6 @@ import com.netflix.astyanax.util.TimeUUIDUtils;
 public class DecommissionedConstraintImpl extends ConstraintImpl implements DecommissionedConstraint {
     private static final Logger log = LoggerFactory.getLogger(DecommissionedConstraintImpl.class);
 
-    private Keyspace _keyspace;
     private final ColumnFamily<String, IndexColumnName> _cf;
     private final String _rowKey;
     private final long _timeToStartFrom;
@@ -73,11 +72,6 @@ public class DecommissionedConstraintImpl extends ConstraintImpl implements Deco
             throw new IllegalArgumentException(String.format("Class %s is marked with @NoInactiveIndex", field.getDataObjectType()
                     .getName()));
         }
-    }
-
-    @Override
-    public void setKeyspace(Keyspace keyspace) {
-        _keyspace = keyspace;
     }
 
     @Override

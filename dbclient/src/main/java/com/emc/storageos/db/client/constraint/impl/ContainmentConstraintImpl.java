@@ -6,20 +6,21 @@
 package com.emc.storageos.db.client.constraint.impl;
 
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.Statement;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.impl.AltIdDbIndex;
 import com.emc.storageos.db.client.impl.ColumnField;
-import com.emc.storageos.db.client.impl.CompositeColumnNameSerializer;
 import com.emc.storageos.db.client.impl.IndexColumnName;
 import com.emc.storageos.db.client.impl.RelationDbIndex;
 import com.emc.storageos.db.client.model.DataObject;
-import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
-import com.netflix.astyanax.query.RowQuery;
 
 /**
  * Abstract base for all containment queries
@@ -30,7 +31,6 @@ public class ContainmentConstraintImpl extends ConstraintImpl implements Contain
     private URI _indexKey;
     private Class<? extends DataObject> _entryType;
     private final ColumnField _field;
-    private Keyspace _keyspace;
 
     public ContainmentConstraintImpl(URI indexKey, Class<? extends DataObject> entryType, ColumnField field) {
         super(indexKey, entryType, field);
@@ -39,35 +39,40 @@ public class ContainmentConstraintImpl extends ConstraintImpl implements Contain
         _entryType = entryType;
         _field = field;
     }
-
+    
     @Override
-    public void setKeyspace(Keyspace keyspace) {
-        _keyspace = keyspace;
-    }
-
-    @Override
-    protected RowQuery<String, IndexColumnName> genQuery() {
-        RowQuery<String, IndexColumnName> query = _keyspace
-                .prepareQuery(_field.getIndexCF())
-                .getKey(_indexKey.toString())
-                .withColumnRange(
-                        CompositeColumnNameSerializer.get().buildRange()
-                                .greaterThanEquals(_entryType.getSimpleName())
-                                .lessThanEquals(_entryType.getSimpleName())
-                                .limit(pageCount));
-        return query;
+    protected Statement genQueryStatement() {
+        StringBuilder queryString = new StringBuilder();
+        queryString.append("select").append(" * from \"").append(_field.getIndexCF().getName()).append("\"");
+        queryString.append(" where key=?");
+        queryString.append(" and column1=?");
+        
+        PreparedStatement preparedStatement = this.dbClientContext.getPreparedStatement(queryString.toString());
+        Statement statement =  preparedStatement.bind(_indexKey.toString(),
+                _entryType.getSimpleName());
+        statement.setFetchSize(pageCount);
+        
+        return statement;
     }
 
     @Override
     protected <T> void queryOnePage(final QueryResult<T> result) throws ConnectionException {
-        RowQuery<String, IndexColumnName> query = _keyspace.prepareQuery(_field.getIndexCF()).getKey(_indexKey.toString());
-
+        StringBuilder queryString = new StringBuilder();
+        queryString.append("select").append(" * from \"").append(_field.getIndexCF().getName()).append("\"");
+        queryString.append(" where key=?");
+        
         if (startId != null && _field.getIndex() instanceof RelationDbIndex) {
-            queryOnePageWithoutAutoPaginate(query, _entryType.getSimpleName(), result);
+            List<Object> queryParameters = new ArrayList<Object>();
+            queryParameters.add(_indexKey.toString());
+            
+            queryOnePageWithoutAutoPaginate(queryString, _entryType.getSimpleName(), result, queryParameters);
             return;
         }
 
-        queryOnePageWithAutoPaginate(query, _entryType.getSimpleName(), result);
+        PreparedStatement preparedStatement = this.dbClientContext.getPreparedStatement(queryString.toString());
+        Statement statement =  preparedStatement.bind(_indexKey.toString());
+        statement.setFetchSize(pageCount);
+        queryOnePageWithAutoPaginate(statement, result);
     }
 
     @Override

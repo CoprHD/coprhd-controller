@@ -6,23 +6,21 @@ package com.emc.storageos.db.client.constraint.impl;
 
 import java.net.URI;
 
+import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.Statement;
 import com.emc.storageos.db.client.constraint.AggregatedConstraint;
 import com.emc.storageos.db.client.impl.ColumnField;
 import com.emc.storageos.db.client.impl.ColumnValue;
-import com.emc.storageos.db.client.impl.CompositeColumnNameSerializer;
 import com.emc.storageos.db.client.impl.IndexColumnName;
 import com.emc.storageos.db.client.model.DataObject;
-import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.ColumnFamily;
-import com.netflix.astyanax.query.RowQuery;
 
 /**
  * Constrained query to get list of decommissioned object URIs of a given type
  */
 public class AggregatedConstraintImpl extends ConstraintImpl implements AggregatedConstraint {
 
-    private Keyspace keyspace;
     private final ColumnFamily<String, IndexColumnName> cf;
     private final ColumnField field;
     private final String fieldName;
@@ -58,13 +56,8 @@ public class AggregatedConstraintImpl extends ConstraintImpl implements Aggregat
     }
 
     @Override
-    public void setKeyspace(Keyspace keyspace) {
-        this.keyspace = keyspace;
-    }
-
-    @Override
     protected <T> void queryOnePage(final QueryResult<T> result) throws ConnectionException {
-        queryOnePageWithAutoPaginate(genQuery(), fieldName, result);
+        queryOnePageWithAutoPaginate(genQueryStatement(), result);
     }
 
     @Override
@@ -77,17 +70,20 @@ public class AggregatedConstraintImpl extends ConstraintImpl implements Aggregat
         return result.createQueryHit(URI.create(column.getTwo()),
                 ColumnValue.getPrimitiveColumnValue(column.getValue(), field.getPropertyDescriptor()));
     }
-
+    
     @Override
-    protected RowQuery<String, IndexColumnName> genQuery() {
-        return keyspace.prepareQuery(cf).getKey(rowKey)
-                .withColumnRange(
-                        CompositeColumnNameSerializer.get().buildRange()
-                                .greaterThanEquals(fieldName)
-                                .lessThanEquals(fieldName)
-                                .limit(pageCount)
-                );
-
+    protected Statement genQueryStatement() {
+        StringBuilder queryString = new StringBuilder();
+        queryString.append("select").append(" * from \"").append(cf.getName()).append("\"");
+        queryString.append(" where key=?");
+        queryString.append(" and column1=?");
+        
+        PreparedStatement preparedStatement = this.dbClientContext.getPreparedStatement(queryString.toString());
+        Statement statement =  preparedStatement.bind(rowKey,
+                fieldName);
+        statement.setFetchSize(pageCount);
+        
+        return statement;
     }
 
     @Override

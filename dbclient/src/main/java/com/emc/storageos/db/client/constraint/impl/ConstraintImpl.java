@@ -12,6 +12,7 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Statement;
@@ -197,8 +198,42 @@ public abstract class ConstraintImpl implements Constraint {
 
         result.setResult(ids.iterator());
     }
+    
+    protected <T> void queryOnePageWithoutAutoPaginate(StringBuilder queryString, String prefix, final QueryResult<T> result, List<Object> queryParameters)
+            throws ConnectionException {
 
-    protected <T> void queryOnePageWithAutoPaginate(RowQuery<String, IndexColumnName> query, String prefix, final QueryResult<T> result)
+        queryString.append(" and column1=?");
+        queryParameters.add(prefix);
+
+        if (startId != null) {
+            queryString.append(" and column2>?");
+            queryParameters.add(startId);
+        }
+
+        queryString.append(" limit " + pageCount);
+        PreparedStatement preparedStatement = this.dbClientContext.getPreparedStatement(queryString.toString());
+        Statement statement =  preparedStatement.bind(queryParameters.toArray(new Object[]{0}));
+
+        ResultSet resultSet = dbClientContext.getSession().execute(statement);
+        List<T> ids = new ArrayList<T>();
+        
+        for (Row row : resultSet) {
+            IndexColumnName indexColumnName = new IndexColumnName(row.getString(1), 
+                    row.getString(2), 
+                    row.getString(3),
+                    row.getString(4),
+                    row.getUUID(5),
+                    row.getBytes(6));
+            T obj = createQueryHit(result, indexColumnName);
+            if (!ids.contains(obj)) {
+                ids.add(createQueryHit(result, indexColumnName));
+            }
+        }
+
+        result.setResult(ids.iterator());
+    }
+
+/*    protected <T> void queryOnePageWithAutoPaginate(RowQuery<String, IndexColumnName> query, String prefix, final QueryResult<T> result)
             throws ConnectionException {
         CompositeRangeBuilder range = IndexColumnNameSerializer.get().buildRange()
                 .greaterThanEquals(prefix)
@@ -207,7 +242,7 @@ public abstract class ConstraintImpl implements Constraint {
         query.withColumnRange(range);
 
         queryOnePageWithAutoPaginate(query, result);
-    }
+    }*/
 
     protected <T> void queryOnePageWithAutoPaginate(RowQuery<String, IndexColumnName> query, final QueryResult<T> result)
             throws ConnectionException {

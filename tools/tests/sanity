@@ -5689,10 +5689,11 @@ vmaxblock_setup_once()
     run storagepool update $VMAX_NATIVEGUID --type block --volume_type THIN_ONLY
     run storagepool update $VMAX_NATIVEGUID --type block --volume_type THICK_ONLY
     run storagepool update $VMAX_NATIVEGUID --nhadd $NH --type block
+    
     if [ $QUICK -eq 0 ]; then
-      
         secho "VMAX Block storageports update"
         if [ $DISCOVER_SAN -eq 0 ]; then
+      
            for porta in ${VMAX_PORTS_A}
            do
 	      run storageport update $VMAX_NATIVEGUID FC --tzone $FCTZ_A --group ${porta}
@@ -5851,6 +5852,13 @@ common_setup()
     tenant_setup
 
     if [ "${RP_INGESTTESTS}" = "0" -o "${RP_INGESTTESTS}" = "" ]; then
+
+        # If we're running physical, DISCOVER_SAN needs to be on for physical configurations.
+	if [ $QUICK -eq 0 ]; then
+	    secho "Turning on DISCOVER_SAN because we are testing physical"
+	    DISCOVER_SAN=1
+	fi
+
 	zone_setup
 	run transportzone add $NH/$IP_ZONE $BLK_CLIENT_iSCSI
     fi
@@ -6758,8 +6766,6 @@ vmaxblock_tests()
     block_tests $VMAXEXPORT_GROUP $VMAXEXPORT_GROUP_HOST $VMAX_VOLUME $COS_VMAXBLOCK $VMAX_VOLUME $COS_VMAXBLOCK
     # meta_volume_block_tests $VMAXEXPORT_GROUP $VMAXEXPORT_GROUP_HOST $VMAX_META_VOLUME $COS_VMAXBLOCK $VMAX_META_VOLUME $COS_VMAXBLOCK
     volume_expand_test $VMAX_VOLUME $COS_VMAXBLOCK_THIN   # work only for concatenate, stripe tbd
-    # Tests for thick meta can not be ran on VMAX10K provider.
-    #    volume_expand_test $VMAX_VOLUME $COS_VMAXBLOCK_THICK   # works for concatenate and stripe
 
     if [ "${AUTH}" != "local" -a "${AUTH}" != "ipv6" ]
     then
@@ -6777,7 +6783,6 @@ vmaxblock_tests()
         bulkapi storage-pools $LOCAL_LDAP_SUPERUSER_USERNAME $LOCAL_LDAP_SUPERUSER_PASSWORD $LOCAL_LDAP_USER_PASSWORD_1
         bulkapi transport-zones $LOCAL_LDAP_SUPERUSER_USERNAME $LOCAL_LDAP_SUPERUSER_PASSWORD $LOCAL_LDAP_USER_PASSWORD_1
         bulkapi blockcos $LOCAL_LDAP_SUPERUSER_USERNAME $LOCAL_LDAP_SUPERUSER_PASSWORD $LOCAL_LDAP_USER_PASSWORD_1
-#        bulkapi volumes $LOCAL_LDAP_SUPERUSER_USERNAME $LOCAL_LDAP_SUPERUSER_PASSWORD $LOCAL_LDAP_USER_PASSWORD_1 $NH $COS_VMAXBLOCK $BLK_SIZE
     fi
 
     # ---------------------------------------------------------
@@ -7069,7 +7074,7 @@ export_initiator()
     run export_group show $exp
     run export_group update $exp --addVolspec "$vol2+3" --remVols $vol1
     run export_group show $exp
-    run export_group update $exp --addInits "$hostname/$pwwn2"
+    run export_group update $exp --addInits "$hostname/$pwwn3"
     run export_group show $exp
     run export_group update $exp --remInits "$hostname/$pwwn1"
     run export_group show $exp

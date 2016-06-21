@@ -44,8 +44,6 @@ public class OpenStackSynchronizationTask extends ResourceService {
     // Constants
     // Interval delay between each execution in seconds.
     public static final int DEFAULT_INTERVAL_DELAY = 900;
-    // Initial delay before first execution in seconds.
-    private static final int INITIAL_DELAY = 60;
     // Maximum time for a timeout when awaiting for termination.
     private static final int MAX_TERMINATION_TIME = 120;
     // Minimum interval in seconds.
@@ -82,7 +80,7 @@ public class OpenStackSynchronizationTask extends ResourceService {
         // Schedule task at fixed interval.
         synchronizationTask = _dataCollectionExecutorService.scheduleAtFixedRate(
                 new SynchronizationScheduler(),
-                INITIAL_DELAY, interval, TimeUnit.SECONDS);
+                interval, interval, TimeUnit.SECONDS);
     }
 
     public void stop() {
@@ -106,7 +104,7 @@ public class OpenStackSynchronizationTask extends ResourceService {
         if (newInterval >= MIN_INTERVAL_DELAY && synchronizationTask != null) {
             synchronizationTask.cancel(false);
             synchronizationTask = _dataCollectionExecutorService
-                    .scheduleAtFixedRate(new SynchronizationScheduler(), INITIAL_DELAY, newInterval, TimeUnit.SECONDS);
+                    .scheduleAtFixedRate(new SynchronizationScheduler(), newInterval, newInterval, TimeUnit.SECONDS);
             _log.debug("Synchronization task has been rescheduled with {}s interval.", newInterval);
         } else {
             throw APIException.internalServerErrors.rescheduleSynchronizationTaskError();

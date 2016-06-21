@@ -10,6 +10,7 @@ dependencies {
     compile library(log4j)
     compile library(commons_logging)
     compile library(httpclient4)
-    compile library(json_simple)
+    compile library(google_gson)
+    compile library(json_sanitizer)
     testCompile group: 'org.testng', name: 'testng', version:'6.8.7'
 }

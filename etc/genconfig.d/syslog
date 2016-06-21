@@ -193,6 +193,7 @@ _gen_syslog_config_rsyslog() {
 
 	# Remove all the previous remote syslog servers settings
 	# Remove all the lines between Pattern1 and Pattern2
+	echo "Removing previous remote syslog server settings."
 	sed -i "/$rsyslog_confdesc/,/$msg_eof/{//!d}" "$rsyslogconfFile"
 
 	# Remove the rsyslog description comment
@@ -309,6 +310,7 @@ _gen_syslog_config_encrypt() {
 	#echo ${#prevEncryptRemoteIPList[@]}
 
 	# Remove all the previous encrypted remote syslog servers TCP settings
+	echo "Removing previous remote syslog server settings."
 	sed -i '/ActionSendStreamDriverAuthMode/,$d' "$remoteconfFile"
 	
 	# Deleting the TLS Syslog Client configuration details from the file and rebuilding it with default values

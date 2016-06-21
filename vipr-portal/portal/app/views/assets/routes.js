@@ -75,11 +75,14 @@ var routes = {
   FileSystems_save: #{jsAction @resources.FileSystems.save() /},
   FileSystems_fileSystemQuotaJson: #{jsAction @resources.FileSystems.fileSystemQuotaJson() /},
   FileSystems_getScheculePolicies: #{jsAction @resources.FileSystems.getScheculePolicies() /},
-  
+
   FileSnapshots_fileSnapshotExportsJson: #{jsAction @resources.FileSnapshots.fileSnapshotExportsJson() /},
   FileSnapshots_save: #{jsAction @resources.FileSnapshots.save() /},
 
   ComputeSystem_edit: #{jsAction @compute.ComputeSystems.edit(':id  ') /},
   
-  Common_clusterInfoJson: #{jsAction @Common.clusterInfoWithRoleCheckJson() /}
+  Common_clusterInfoJson: #{jsAction @Common.clusterInfoWithRoleCheckJson() /},
+
+  Setup_license: #{jsAction @Setup.isLicensed() /},
+  Setup_initialSetup: #{jsAction @Setup.isInitialSetupComplete() /}
 };

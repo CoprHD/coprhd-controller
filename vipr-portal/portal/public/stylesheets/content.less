@@ -947,3 +947,282 @@ div.dataTables_footer > div.dataTables_selectedItems {
     margin-right: -300px;
   }
 }
+
+
+
+
+
+
+
+
+
+ul.guide-steps {
+    padding: 0;
+}
+ul.guide-steps ul {
+    padding: 0 50px;
+}
+ul.guide-steps,
+ul.guide-steps ul {
+    list-style-type: none;
+}
+ul.guide-steps span.step-text {
+    padding-left: 10px;
+    margin-bottom: 10px;
+    vertical-align: 6px;
+    color: #9a9b9b;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+ul.guide-steps > li div.step-circle {
+    width: 17px;
+    height: 17px;
+    /* w and h should be same for cicle  17.14*/
+
+    text-align: center;
+    line-height: 29px;
+    /* centers glyph */
+
+    border-radius: 29px;
+    background: #222;
+    margin: 14px 0;
+    display: inline-block;
+    color: black;
+    position: relative;
+    /* border: 2px solid #9a9b9b; */
+    border: 2px solid #ccc;
+}
+/*
+.step-text {
+    color: #fff;
+    opacity: 0.6;
+}
+*/
+ul.guide-steps > li div.step-circle i {
+  font-size: 10px;
+  vertical-align: 8px;
+}
+ul.guide-steps > li.step-success > div.step-circle{ /* ul.guide-steps > li.step-success.step-active > div.step-circle { */
+    border: 2px solid #fff;
+    background: #0cbd62;
+    color: #fff;
+}
+ul.guide-steps > li.step-success > .step-text {
+    color: #0cbd62;
+}
+ul.guide-steps > li.step-active > div.step-circle, ul.guide-steps > li > ul > li.step-active  > div.step-circle {
+    background: #fff;
+    border: 2px solid #fff;
+    color: #fff;
+}
+ul.guide-steps li.step-active > .step-text {
+    color: #fff;
+    font-weight: bold;
+}
+ul.guide-steps li.step-active > .step-text > i {
+    color: #428bca;
+    padding-left: 10px;
+}
+
+ul.guide-steps > li > div.step-circle::after {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    top: 13px;
+    left: 50%;
+    height: 30px;
+    /* controls line below circle */
+
+    border-left: 1px solid #9a9b9b;
+    z-index: -1;
+}
+/* prevent last item from having line below */
+
+ul.guide-steps > li:last-child > div.step-circle::after {
+    display: none;
+}
+ul.guide-steps > li > ul > li > div.step-circle::before {
+    content: '';
+    position: absolute;
+    top: 6px;
+    /* left bar thickness */
+
+    left: -42px;
+    /* left bar position */
+
+    width: 42px;
+    /* left bar width */
+
+    height: 1px;
+    /* left bar thickness */
+
+    background: #9a9b9b;
+    z-index: -1;
+
+}
+ul.guide-steps > li.subitem + li > div.step-circle::before {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    bottom: 1px;
+    left: 50%;
+    height: 61px;
+    border-right: 1px solid #9a9b9b;
+}
+
+
+#css-table {
+  display: table;
+  margin-left: 40px;
+  margin-right: 20%;
+}
+#css-table .col-1 {
+  display: table-cell;
+  width: 295px;
+  min-width: 295px;
+  padding: 0 10px 0;
+  vertical-align: top;
+  text-align: left;
+ /* background:red; */
+}
+#css-table .col-2 {
+  display: table-cell;
+  padding: 0 10px;
+  vertical-align: top;
+  border-left: 1px solid #9a9b9b;
+  /* background:green; */
+}
+
+
+
+
+
+.wizard-dialog {
+    z-index: 997;
+    position: absolute;
+}
+
+.wizard-dialog .title-side {
+    font-size: 12px;
+    color: #e6e6e6;
+    text-transform: uppercase;
+    opacity: 0.5;
+}
+
+.wizard-dialog .step-side {
+    margin-top: 0px;
+    margin-bottom: 0px;
+}
+
+.wizard-side {
+    top: 50px;
+    right: 0;
+    background-color: rgba(0, 0, 0, 0.75);
+    color: white;
+    display: inline-block;
+    padding: 12px;
+    width: 306px;
+    border-top-left-radius: 5px;
+    border-bottom-left-radius: 5px;
+}
+
+.wizard-full {
+    background-color: #081b2b;
+    left: 80px;
+    right: 0;
+    top: 40px;
+    bottom: 0px;
+    min-height: 900px;
+
+    -webkit-transition: all .3s ease;
+    -moz-transition: all .3s ease;
+    -ms-transition: all .3s ease;
+    -o-transition: all .3s ease;
+    transition: all .3s ease;
+}
+
+.guide-menuopen{
+    padding-left: 215px;
+}
+
+.guide-fullpage{
+    left: 0px;
+}
+
+.ng-hide
+{
+    opacity:0.3;
+}
+
+.wizard-dialog .btn-group {
+   //line-height: .33;
+   //top: -8px;
+   padding-top: 5px;
+   font-size: x-large;
+}
+
+.wizard-dialog .action-btn {
+    padding-top: 50px;
+    text-align: center;
+}
+
+.wizard-dialog .guide-textpanel {
+    text-align: left;
+}
+
+.wizard-dialog .guide-textpanel h4 {
+    margin-top: 0;
+    text-transform: uppercase;
+    font-size: 18px;
+    color: white;
+}
+
+.wizard-dialog p {
+    color: #fff;
+    /* opacity: 0.6; */
+    font-size: 13px;
+}
+
+.wizard-dialog .center-content{
+    text-align: center;
+    height: 50px;
+    padding: 15px 15px;
+    font-size: 18px;
+    line-height: 20px;
+    font-family: Arial;
+    color: #ffffff;
+}
+
+.wizard-dialog .panel-heading{
+    border-bottom: 1px solid #9a9b9b;
+    padding: 0;
+    padding-bottom: 5px;
+    margin: 30px 20px;
+    text-transform: uppercase;
+    text-align: left;
+}
+
+.wizard-dialog .dismiss-me{
+    margin-top: 25px;
+    font-size: 14px;
+    cursor: pointer;
+    color: #666;
+}
+
+.wizard-dialog .landing-text{
+    margin-top: 25px;
+    margin-bottom: 25px;
+}
+
+.wizard-dialog .landing-image img{
+    border: 1px solid #9a9b9b;
+}
+
+.wizard-dialog .landing-title{
+    margin-top: 70px;
+    margin-bottom: 50px;
+    font-size: 26px;
+    text-transform: uppercase;
+    color: #428bca;
+}

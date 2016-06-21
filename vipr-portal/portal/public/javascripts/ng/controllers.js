@@ -1388,3 +1388,244 @@ angular.module("portalApp").controller("ConfigBackupCtrl", function($scope) {
         return 0;
     }
 });
+
+angular.module("portalApp").factory('GuideCookies', function($rootScope, $http, $state, $translate, DateTimeUtil) {
+    //angular ngCookie, and cookieStore pre 1.4 do not allow setting expiration or retrieving persistent cookies.
+    //This is mozilla cookie getter/setter https://developer.mozilla.org/en-US/docs/Web/API/Document/cookie
+    return  {
+        getItem: function (sKey) {
+            if (!sKey) { return null; }
+            return decodeURIComponent(document.cookie.replace(new RegExp("(?:(?:^|.*;)\\s*" + encodeURIComponent(sKey).replace(/[\-\.\+\*]/g, "\\$&") + "\\s*\\=\\s*([^;]*).*$)|^.*$"), "$1")) || null;
+        },
+        setItem: function (sKey, sValue, vEnd, sPath, sDomain, bSecure) {
+            if (!sKey || /^(?:expires|max\-age|path|domain|secure)$/i.test(sKey)) { return false; }
+            var sExpires = "";
+            if (vEnd) {
+                switch (vEnd.constructor) {
+                    case Number:
+                        sExpires = vEnd === Infinity ? "; expires=Fri, 31 Dec 9999 23:59:59 GMT" : "; max-age=" + vEnd;
+                        break;
+                    case String:
+                        sExpires = "; expires=" + vEnd;
+                        break;
+                    case Date:
+                        sExpires = "; expires=" + vEnd.toUTCString();
+                        break;
+                }
+            }
+            document.cookie = encodeURIComponent(sKey) + "=" + encodeURIComponent(sValue) + sExpires + (sDomain ? "; domain=" + sDomain : "") + (sPath ? "; path=" + sPath : "") + (bSecure ? "; secure" : "");
+            return true;
+        },
+        removeItem: function (sKey, sPath, sDomain) {
+            if (!this.hasItem(sKey)) { return false; }
+            document.cookie = encodeURIComponent(sKey) + "=; expires=Thu, 01 Jan 1970 00:00:00 GMT" + (sDomain ? "; domain=" + sDomain : "") + (sPath ? "; path=" + sPath : "");
+            return true;
+        },
+        hasItem: function (sKey) {
+            if (!sKey) { return false; }
+            return (new RegExp("(?:^|;\\s*)" + encodeURIComponent(sKey).replace(/[\-\.\+\*()]/g, "\\$&") + "\\s*\\=")).test(document.cookie);
+        },
+        keys: function () {
+            var aKeys = document.cookie.replace(/((?:^|\s*;)[^\=]+)(?=;|$)|^\s*|\s*(?:\=[^;]*)?(?:\1|$)/g, "").split(/\s*(?:\=[^;]*)?;\s*/);
+            for (var nLen = aKeys.length, nIdx = 0; nIdx < nLen; nIdx++) { aKeys[nIdx] = decodeURIComponent(aKeys[nIdx]); }
+            return aKeys;
+        }
+    };
+});
+
+angular.module("portalApp").controller('wizardController', function($rootScope, $scope, $timeout, $document, $http, $window) {
+
+
+    cookieObject = {};
+    cookieKey = "VIPR_START_GUIDE";
+    requiredSteps = 2;
+    maxSteps = 3;
+    currentStep = 0;
+    completedSteps = 0;
+    guideVisible = false;
+    guideDataAvailable = false;
+    $scope.$parent.currentMode = 'side';
+
+    $scope.toggleGuide = function() {
+
+        cookieObject = angular.fromJson(readCookie(cookieKey));
+        if (cookieObject) {
+            $scope.$parent.currentStep = cookieObject.currentStep;
+            $scope.$parent.completedSteps = cookieObject.completedSteps;
+            $scope.$parent.maxSteps = maxSteps;
+            $scope.$parent.guideDataAvailable = true;
+        }
+
+        console.log($scope.$parent.currentStep,$scope.$parent.completedSteps,$window.location.pathname);
+        if ($scope.$parent.guideVisible) {
+		    $scope.closeGuide();
+                console.log('close toggle');
+        }
+        else {
+		    $scope.$parent.guideVisible = true;
+		    //$scope.$parent.currentMode='full';
+            if ($scope.$parent.completedSteps <= requiredSteps){
+                if ($window.location.pathname == '/setup/license') {
+                    if ($scope.$parent.currentStep == 1) {return;};
+                }
+                else if ($window.location.pathname == '/setup/index') {
+                    if ($scope.$parent.currentStep == 2) {return;};
+                }
+            }
+		    $scope.initializeSteps();
+        }
+    }
+
+    $scope.closeGuide = function() {
+        $scope.$parent.guideVisible = false;
+        $scope.$parent.guideDataAvailable = false;
+                console.log('close');
+        //stopHttpRequests
+    }
+
+    $scope.initializeSteps = function() {
+
+        $scope.$parent.currentStep = 1;
+        $scope.$parent.completedSteps = 0;
+        $scope.$parent.maxSteps = maxSteps;
+        $scope.$parent.guideDataAvailable = false;
+        //createCookie(cookieKey,angular.toJson(cookieObject),'session');
+        //eraseCookie("nickCookie");
+        //var newObject = readCookie(cookieKey);
+        //console.table(angular.fromJson(newObject));
+
+        setTimeout(function(){
+            $http.get(routes.Setup_license()).then(function (data) {
+                isLicensed = data.data;
+                if (isLicensed == 'true') {
+                    console.log('Licensed');
+                    $scope.$parent.completedSteps = 1;
+                    $scope.$parent.currentStep = 2;
+                }
+            return $http.get(routes.Setup_initialSetup())
+            }).then(function (data2) {
+                isSetup = data2.data;
+                if (isSetup == 'true') {
+                    console.log('Setup Complete');
+                    $scope.$parent.completedSteps = 2;
+                    $scope.$parent.currentStep = 3;
+                }
+            }, function(error) {
+                console.log('error');
+                //dataObj.error = error;
+            }).then(function () {
+                //dataObj.completedStepLevel = completedStepLevel;
+                //$scope.completedStepLevel = completedStepLevel;
+                $scope.$parent.guideDataAvailable = true;
+
+                cookieObject = {};
+                cookieObject.currentStep=$scope.$parent.currentStep;
+                cookieObject.completedSteps=$scope.$parent.completedSteps;
+                createCookie(cookieKey,angular.toJson(cookieObject),'session');
+            });
+        }, 1000);
+    }
+
+    $scope.goToNextStep = function() {
+        $scope.$parent.completedSteps = $scope.$parent.currentStep;
+    }
+
+    $scope.getCurrent = function() {
+        return currentStep;
+    }
+
+    $scope.getCompleted = function() {
+        return completedSteps;
+    }
+
+    $scope.runStep = function(step) {
+        //console.log($scope.$parent.currentStep);
+
+        //docCookies.setItem("GsGuideStep", level, Infinity);
+        //docCookies.getItem('GsGuideStep');
+        //docCookies.removeItem("GsGuideStep");
+
+        if (!step) {
+            step = $scope.$parent.currentStep;
+        }
+
+        switch (step) {
+            case 1:
+                $scope.$parent.currentStep = 1;
+                console.log($scope.$parent.currentStep);
+                saveGuideCookies();
+                $scope.$parent.currentMode = 'side';
+                if ($window.location.pathname != '/setup/license') {
+                    $window.location.href = '/setup/license';
+                }
+                break;
+            case 2:
+                $scope.$parent.currentStep = 2;
+                console.log($scope.$parent.currentStep);
+                saveGuideCookies();
+                $scope.$parent.currentMode = 'side';
+                if ($window.location.pathname != '/setup/index') {
+                    $window.location.href = '/setup/index';
+                }
+                break;
+            case 3:
+                $scope.completedStepLevel = 5;
+                $scope.pollingStep = 4;
+                break;
+            default:
+                $scope.completedStepLevel = 2; //set to landing page step by default
+                $scope.pollingStep = 1;
+                $scope.completedOptionalStepLevel = 0;
+            }
+    }
+
+    $scope.skipStep = function(step) {
+        //console.log($scope.$parent.currentStep);
+
+        //docCookies.setItem("GsGuideStep", level, Infinity);
+        //docCookies.getItem('GsGuideStep');
+        //docCookies.removeItem("GsGuideStep");
+
+        if (!step) {
+            step = $scope.$parent.currentStep;
+        }
+
+        switch (step) {
+            case 1:
+                $scope.$parent.currentStep = 2;
+                console.log($scope.$parent.currentStep);
+                saveGuideCookies();
+                break;
+            case 2:
+                $scope.$parent.currentStep = 3;
+                console.log($scope.$parent.currentStep);
+                saveGuideCookies();
+                break;
+            case 3:
+                $scope.completedStepLevel = 5;
+                $scope.pollingStep = 4;
+                break;
+            default:
+                $scope.completedStepLevel = 2; //set to landing page step by default
+                $scope.pollingStep = 1;
+                $scope.completedOptionalStepLevel = 0;
+            }
+    }
+
+    $scope.toggleMode = function(mode) {
+        $scope.$parent.currentMode = mode;
+    }
+
+    $scope.restartList = function(step) {
+        $scope.$parent.currentStep = 1;
+        //$scope.$parent.completedSteps = 0;
+    }
+
+    saveGuideCookies = function() {
+        cookieObject = {};
+        cookieObject.currentStep=$scope.$parent.currentStep;
+        cookieObject.completedSteps=$scope.$parent.completedSteps;
+        createCookie(cookieKey,angular.toJson(cookieObject),'session');
+    }
+
+});

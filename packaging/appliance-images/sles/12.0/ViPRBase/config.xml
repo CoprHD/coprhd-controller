@@ -58,7 +58,6 @@
     <package name="kernel-default"/>
     <package name="lvm2"/>
     <package name="net-tools"/>
-    <package name="ntp"/>
     <package name="openssh"/>
     <package name="parted"/>
     <package name="rsyslog"/>

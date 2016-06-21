@@ -3,8 +3,12 @@
   serviceId:"MigrateApplication",
   fields:{
  
-    application:{
+    mobilityGroup:{
       type:"assetType.vipr.application"
+    },
+  
+    targetStorageSystem:{
+      type:"assetType.vipr.unmanagedBlockStorageSystem"
     },
     
         virtualPoolPairs:{

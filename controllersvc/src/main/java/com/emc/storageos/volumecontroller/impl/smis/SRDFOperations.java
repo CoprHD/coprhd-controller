@@ -37,6 +37,7 @@ import javax.cim.UnsignedInteger16;
 import javax.wbem.CloseableIterator;
 import javax.wbem.WBEMException;
 
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.NullTaskCompleter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -64,6 +65,7 @@ import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
+import com.emc.storageos.util.VPlexSrdfUtil;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
@@ -74,6 +76,7 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFLinkStopC
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFMirrorCreateCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.providerfinders.FindProviderFactory;
+import com.emc.storageos.volumecontroller.impl.smis.job.SmisCreateMultiVolumeJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisSRDFCreateMirrorJob;
 import com.emc.storageos.volumecontroller.impl.smis.srdf.AbstractSRDFOperationContextFactory;
 import com.emc.storageos.volumecontroller.impl.smis.srdf.AbstractSRDFOperationContextFactory.SRDFOperation;
@@ -85,6 +88,7 @@ import com.emc.storageos.volumecontroller.impl.smis.srdf.collectors.BrokenSynchr
 import com.emc.storageos.volumecontroller.impl.smis.srdf.collectors.ErrorOnEmptyFilter;
 import com.emc.storageos.volumecontroller.impl.smis.srdf.exceptions.NoSynchronizationsFoundException;
 import com.emc.storageos.volumecontroller.impl.smis.srdf.exceptions.RemoteGroupAssociationNotFoundException;
+import com.emc.storageos.volumecontroller.impl.utils.ConsistencyGroupUtils;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -99,6 +103,7 @@ public class SRDFOperations implements SmisConstants {
     private static final String STORAGE_SYNCHRONIZATION_NOT_FOUND = "Storage Synchronization instance not found";
     private static final String REPLICATION_NOT_IN_RIGHT_STATE = "Storage replication not in expected state for failover-cancel";
     private static final String REPLICATION_GROUP_NOT_FOUND_ON_BOTH_PROVIDERS = "Replication group not found on both R1 and R2 providers";
+    private static final String COPY_SESSION_SOURCE_ERROR = "Cannot use the device for this function because it is a Copy Session source";
 
     private static final int RESUME_AFTER_SWAP_MAX_ATTEMPTS = 15;
     private static final int RESUME_AFTER_SWAP_SLEEP = 30000; // 30 seconds
@@ -191,8 +196,9 @@ public class SRDFOperations implements SmisConstants {
             } else {
                 CIMObjectPath repCollectionPath = cimPath.getRemoteReplicationCollection(systemWithCg,
                         group);
-                inArgs = helper.getCreateGroupReplicaForSRDFInputArguments(srcCGPath,
-                        tgtCGPath, repCollectionPath, modeValue, replicationSettingDataInstance);
+                String groupName = ConsistencyGroupUtils.getSourceConsistencyGroupName(firstSource, dbClient);
+                inArgs = helper.getCreateGroupReplicaForSRDFInputArguments(sourceSystem,
+                        groupName, srcCGPath, tgtCGPath, repCollectionPath, modeValue, replicationSettingDataInstance);
                 helper.invokeMethodSynchronously(systemWithCg, srcRepSvcPath,
                         SmisConstants.CREATE_GROUP_REPLICA, inArgs, outArgs,
                         new SmisSRDFCreateMirrorJob(null, systemWithCg.getId(), completer));
@@ -269,8 +275,9 @@ public class SRDFOperations implements SmisConstants {
                     group);
             // look for existing volumes, if found then use AddSyncPair
             CIMInstance replicationSettingDataInstance = getReplicationSettingDataInstance(sourceSystem, modeValue);
-            CIMArgument[] inArgs = helper.getCreateGroupReplicaForSRDFInputArguments(srcCGPath,
-                    tgtCGPath, repCollectionPath, modeValue, replicationSettingDataInstance);
+            String groupName = ConsistencyGroupUtils.getSourceConsistencyGroupName(sourceblockObj, dbClient);
+            CIMArgument[] inArgs = helper.getCreateGroupReplicaForSRDFInputArguments(sourceSystem,
+                    groupName, srcCGPath, tgtCGPath, repCollectionPath, modeValue, replicationSettingDataInstance);
             CIMArgument[] outArgs = new CIMArgument[5];
             helper.invokeMethodSynchronously(sourceSystem, srcRepSvcPath,
                     SmisConstants.CREATE_GROUP_REPLICA, inArgs, outArgs,
@@ -397,14 +404,7 @@ public class SRDFOperations implements SmisConstants {
             Volume target, boolean isGrouprollback) {
         log.info("START Rolling back SRDF mirror");
         try {
-            performDetach(system, target, isGrouprollback, new TaskCompleter() {
-                @Override
-                protected void complete(DbClient dbClient,
-                        Operation.Status status, ServiceCoded coded)
-                        throws DeviceControllerException {
-                    // ignore
-                }
-            });
+            performDetach(system, target, isGrouprollback, new NullTaskCompleter());
 
             if (target.hasConsistencyGroup()) {
                 log.info("Removing Volume from device Group on roll back");
@@ -465,7 +465,7 @@ public class SRDFOperations implements SmisConstants {
                     // Clear the CG types and add the LOCAL types
 
                     if (null != sourceCG.getTypes()) {
-                        sourceCG.getTypes().clear();
+                        sourceCG.getTypes().remove(Types.SRDF.name());
                     }
                     sourceCG.addConsistencyGroupTypes(Types.LOCAL.name());
 
@@ -638,6 +638,8 @@ public class SRDFOperations implements SmisConstants {
         try {
             Volume source = dbClient.queryObject(Volume.class, sourceURI);
             Volume target = dbClient.queryObject(Volume.class, targetURI);
+            log.info("START removeSyncPair: {} -> {}", source.getNativeId(), target.getNativeId());
+
             StorageSystem sourceSystem = dbClient.queryObject(StorageSystem.class,
                     source.getStorageController());
             RemoteDirectorGroup group = dbClient.queryObject(RemoteDirectorGroup.class,
@@ -664,8 +666,7 @@ public class SRDFOperations implements SmisConstants {
                     group.getVolumes().remove(source.getNativeGuid());
                     group.getVolumes().remove(target.getNativeGuid());
                 }
-                dbClient.persistObject(group);
-
+                dbClient.updateObject(group);
             } else {
                 log.warn("Expected Group Synchronized not found for volume {}, probably removed already.", sourceURI);
                 // proceed with next step even if it fails.
@@ -826,7 +827,7 @@ public class SRDFOperations implements SmisConstants {
                     }
                 }
             }
-            callEMCRefresh(helper, system);
+            callEMCRefresh(helper, system, true);
         } catch (Exception ex) {
             log.error("SMI-S error while refreshing target system {}", storageSystemURI, ex);
         }
@@ -1099,11 +1100,9 @@ public class SRDFOperations implements SmisConstants {
         cgObj.addSystemConsistencyGroup(system.getId().toString(), cgName);
 
         // Update CG requested types
-        cgObj.getRequestedTypes().clear();
         cgObj.getRequestedTypes().add(Types.SRDF.toString());
 
         // Update CG types
-        cgObj.getTypes().clear();
         cgObj.getTypes().add(Types.SRDF.toString());
 
         // volumes from same array will reside in one CG
@@ -1322,7 +1321,7 @@ public class SRDFOperations implements SmisConstants {
             log.warn("No remote group association found for {}. It may have already been removed.", target.getId());
         } catch (Exception e) {
             log.error("Failed to swap srdf link {}", target.getSrdfParent().getURI(), e);
-            error = SmisException.errors.jobFailed(e.getMessage());
+            error = getServiceError(e);
         } finally {
             if (error == null) {
                 completer.ready(dbClient);
@@ -1874,9 +1873,9 @@ public class SRDFOperations implements SmisConstants {
                     raGroup);
             // look for existing volumes, if found then use AddSyncPair
             CIMInstance replicationSettingDataInstance = getReplicationSettingDataInstance(sourceSystem, modeValue);
-
-            CIMArgument[] inArgs = helper.getCreateGroupReplicaForSRDFInputArguments(srcCGPath,
-                    tgtCGPath, repCollectionPath, modeValue, replicationSettingDataInstance);
+            String groupName = ConsistencyGroupUtils.getSourceConsistencyGroupName(firstSource, dbClient);
+            CIMArgument[] inArgs = helper.getCreateGroupReplicaForSRDFInputArguments(sourceSystem,
+                    groupName, srcCGPath, tgtCGPath, repCollectionPath, modeValue, replicationSettingDataInstance);
             CIMArgument[] outArgs = new CIMArgument[5];
             completer.setCGName(sourceGroupName, targetGroupName,
                     firstSource.getConsistencyGroup());
@@ -1996,8 +1995,58 @@ public class SRDFOperations implements SmisConstants {
                 invalidTgt.setSrdfParent(new NamedURI(trustedSrc.getId(), trustedSrc.getLabel()));
                 trustedSrc.getSrdfTargets().add(invalidTgt.getId().toString());
                 invalidSrc.getSrdfTargets().remove(invalidTgt.getId().toString());
-
+                
+                // Update the volume labels (and labels on associated Vplex volume if any)
+                updateVolumeLabels(trustedSrc, invalidTgt);
+                // Rename the volume on the vmax array itself and update the deviceLabel
+                helper.renameVolume(dbClient, targetSystem, invalidTgt, invalidTgt.getLabel());
                 dbClient.updateAndReindexObject(asList(invalidTgt, trustedSrc, invalidSrc));
+            }
+        }
+    }
+    
+    /**
+     * Updates the label field of the invalidTgt, and if the volume is fronted by
+     * a Vplex Volume, also updates the target vplex volume label.
+     * @param trustedSrc -- source volume with correct label (vmax)
+     * @param invalidTgt -- target volume with incorrect label (vmax)
+     */
+    private void updateVolumeLabels(Volume trustedSrc, Volume invalidTgt) {
+     // Update the label of the invalid target to match it's new source.
+        VirtualArray invalidTgtVA = dbClient.queryObject(VirtualArray.class, invalidTgt.getVirtualArray());
+        StringBuilder newLabel = new StringBuilder();
+        newLabel.append(trustedSrc.getLabel());
+        newLabel.append("-target-");
+        newLabel.append(invalidTgtVA.getLabel());
+        log.info("Revised name for target: " + newLabel.toString());
+        invalidTgt.setLabel(newLabel.toString());
+        NamedURI projectURI = invalidTgt.getProject();
+        projectURI.setName(newLabel.toString());
+        invalidTgt.setProject(projectURI);
+        NamedURI tenantURI = invalidTgt.getTenant();
+        tenantURI.setName(newLabel.toString());
+        invalidTgt.setTenant(tenantURI);
+        
+        
+        // See if there is a corresponding Vplex volume. If so update its label as well.
+        Volume tgtVplexVolume = VPlexSrdfUtil.getVplexVolumeFromSrdfVolume(dbClient, invalidTgt);
+        if (tgtVplexVolume != null) {
+            // If the target volume is fronted by Vplex, the source volume should also be Vplex fronted
+            Volume srcVplexVolume = VPlexSrdfUtil.getVplexVolumeFromSrdfVolume(dbClient, trustedSrc);
+            if (srcVplexVolume != null) {
+                newLabel.setLength(0);
+                newLabel.append(srcVplexVolume.getLabel());
+                newLabel.append("-target-");
+                newLabel.append(invalidTgtVA.getLabel());
+                log.info("Revised name for VPlex target: " + newLabel.toString());
+                tgtVplexVolume.setLabel(newLabel.toString());
+                projectURI = tgtVplexVolume.getProject();
+                projectURI.setName(newLabel.toString());
+                tgtVplexVolume.setProject(projectURI);
+                tenantURI = tgtVplexVolume.getTenant();
+                tenantURI.setName(newLabel.toString());
+                tgtVplexVolume.setTenant(tenantURI);
+                dbClient.updateAndReindexObject(tgtVplexVolume);
             }
         }
     }
@@ -2289,6 +2338,14 @@ public class SRDFOperations implements SmisConstants {
             }
         }
 
+    }
+
+    private ServiceError getServiceError(Exception e) {
+        String message = e.getMessage();
+        if (message != null && message.contains(COPY_SESSION_SOURCE_ERROR)) {
+            return SmisException.errors.swapOperationNotAllowedDueToActiveCopySessions();
+        }
+        return SmisException.errors.jobFailed(message);
     }
 
 }

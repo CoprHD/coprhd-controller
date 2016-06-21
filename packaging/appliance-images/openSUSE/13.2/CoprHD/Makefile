@@ -9,7 +9,7 @@
 export DO_NOT_START := yes
 WORKSPACE := $(shell dirname $(MAKEFILE_LIST))
 NAME := CoprHD
-VERSION := 3.0.0.0
+VERSION := 3.5.0.0
 JOB := 999
 VENDOR := EMC
 ISO_FILE := openSUSE-13.2-DVD-x86_64.iso
@@ -17,7 +17,7 @@ ISO_URL := http://download.opensuse.org/distribution/13.2/iso/$(ISO_FILE)
 RAM := 8192
 MAC := $(shell printf "00%02X%02X%02X%02X%02X" $$[RANDOM%256] $$[RANDOM%256] $$[RANDOM%256] $$[RANDOM%256] $$[RANDOM%256])
 SOURCE_RPM := jenkins
-STORAGEOS_VERSION := 3.0.0.0
+STORAGEOS_VERSION := 3.5.0.0
 STORAGEOS_STABLE := $(shell wget --no-check-certificate --quiet -O - https://build.coprhd.org/jenkins/job/CH-coprhd-controller-master/lastStableBuild/buildNumber)
 ifeq ($(SOURCE_RPM),jenkins)
     JOB := $(STORAGEOS_STABLE)
@@ -29,6 +29,7 @@ endif
 IMAGE_DIR := $(WORKSPACE)/image/$(JOB)
 OUTPUT_DIR := $(WORKSPACE)/output/$(JOB)
 BUILD_DIR := $(WORKSPACE)/build/$(NAME)-$(VERSION).$(JOB)
+OPENSTACK_DIR := $(WORKSPACE)/openstack/$(JOB)
 VMDK := $(OUTPUT_DIR)/$(NAME).x86_64-$(VERSION).$(JOB).vmdk
 OVF := $(BUILD_DIR)/$(NAME).x86_64-$(VERSION).$(JOB).ovf
 VMX := $(BUILD_DIR)/$(NAME).x86_64-$(VERSION).$(JOB).vmx
@@ -37,7 +38,7 @@ BOX := $(BUILD_DIR)/$(NAME).x86_64-$(VERSION).$(JOB).box
 VHD := $(BUILD_DIR)/$(NAME).x86_64-$(VERSION).$(JOB).vhd
 VBOX := $(BUILD_DIR)/$(NAME)-$(VERSION).$(JOB).vbox
 QCOW2 := $(BUILD_DIR)/$(NAME).x86_64-$(VERSION).$(JOB).qcow2
-ZYPPER_PARAMS := --reposd-dir $(WORKSPACE)/zypper/reposd --cache-dir $(WORKSPACE)/zypper/cache --solv-cache-dir $(WORKSPACE)/zypper/solv --pkg-cache-dir $(WORKSPACE)/zypper/pkg
+ZYPPER_PARAMS := --reposd-dir $(WORKSPACE)/zypper/reposd --cache-dir $(WORKSPACE)/zypper/cache --solv-cache-dir $(WORKSPACE)/zypper/solv --pkg-cache-dir $(WORKSPACE)/zypper/pkg --non-interactive
 
 .DEFAULT: all
 .PHONY: downloadISO downloadRPM downloadTGZ createREPO ovf vmx tgz box vhd vbox qcow2 appliance clean destroy
@@ -71,17 +72,21 @@ downloadRPM:
 	zypper $(ZYPPER_PARAMS) addrepo --name suse-13.2-seife --no-gpgcheck http://download.opensuse.org/repositories/home:/seife:/testing/openSUSE_13.2 suse-13.2-seife
 	zypper $(ZYPPER_PARAMS) addrepo --name suse-13.2-python --no-gpgcheck http://download.opensuse.org/repositories/devel:/languages:/python/openSUSE_13.2 suse-13.2-python
 	zypper $(ZYPPER_PARAMS) addrepo --name suse-13.2-network --no-gpgcheck http://download.opensuse.org/repositories/network:/utilities/openSUSE_13.2 suse-13.2-network
+	zypper $(ZYPPER_PARAMS) addrepo --name suse-13.2-filesystems-ceph --no-gpgcheck http://download.opensuse.org/repositories/filesystems:/ceph:/Unstable/openSUSE_13.2 suse-13.2-filesystems-ceph
+	zypper $(ZYPPER_PARAMS) addrepo --name suse-13.2-electronics --no-gpgcheck http://download.opensuse.org/repositories/electronics/openSUSE_13.2 suse-13.2-electronics
 	zypper $(ZYPPER_PARAMS) modifyrepo --priority  3 suse-13.2-oss
 	zypper $(ZYPPER_PARAMS) modifyrepo --priority  2 suse-13.2-monitoring
 	zypper $(ZYPPER_PARAMS) modifyrepo --priority  2 suse-13.2-seife
 	zypper $(ZYPPER_PARAMS) modifyrepo --priority  4 suse-13.2-python
 	zypper $(ZYPPER_PARAMS) modifyrepo --priority  4 suse-13.2-network
+	zypper $(ZYPPER_PARAMS) modifyrepo --priority  4 suse-13.2-filesystems-ceph
+	zypper $(ZYPPER_PARAMS) modifyrepo --priority  4 suse-13.2-electronics
 	zypper $(ZYPPER_PARAMS) refresh
-	zypper $(ZYPPER_PARAMS) --non-interactive download atop ca-certificates-cacert fbiterm fribidi GeoIP GeoIP-data java-1_8_0-openjdk-devel keepalived libGeoIP1 libserf-devel ndisc6 openssh-fips perl-Tk python-cjson python-gpgme python-iniparse python-py python-requests python-setools setools-libs sipcalc sshpass strongswan strongswan-ipsec strongswan-libs0 sysstat yum
+	zypper $(ZYPPER_PARAMS) download atop ca-certificates-cacert fbiterm fribidi GeoIP GeoIP-data java-1_8_0-openjdk-devel keepalived libGeoIP1 libserf-devel ndisc6 openssh-fips perl-Tk python-cjson python-gpgme python-iniparse python-py python-requests python-setools setools-libs sipcalc sshpass strongswan strongswan-ipsec strongswan-libs0 sysstat yum boost-license1_58_0 libboost_system1_58_0 libboost_thread1_58_0 librados2 librbd1
 	zypper $(ZYPPER_PARAMS) addrepo --name suse-13.2-oss-update --no-gpgcheck http://download.opensuse.org/repositories/openSUSE:/13.2:/Update/standard suse-13.2-oss-update
 	zypper $(ZYPPER_PARAMS) modifyrepo --priority  1 suse-13.2-oss-update
 	zypper $(ZYPPER_PARAMS) refresh
-	zypper $(ZYPPER_PARAMS) --non-interactive download libudev1 lvm2 udev
+	zypper $(ZYPPER_PARAMS) download libudev1 lvm2 udev grub2 grub2-x86_64-efi grub2-i386-pc kernel-default kernel-default-devel kernel-devel kernel-source kernel-macros virtualbox virtualbox-guest-tools virtualbox-guest-kmp-default virtualbox-host-kmp-default
 	$(call targetLog,-)
 
 downloadTGZ:
@@ -126,7 +131,7 @@ destroy:
 	@rm -fr $(WORKSPACE)/output
 	@rm -fr $(WORKSPACE)/zypper
 
-appliance: | ovf vmx box tgz
+appliance: | ovf vmx box qcow2 tgz
 
 ovf: | $(OVF)
 	$(call targetLog,+)
@@ -270,7 +275,26 @@ $(VBOX): | $(VMDK)
 	rm $(VBOX)-prev
 	$(call targetLog,-)
 
-$(QCOW2): | $(VMDK)
+$(QCOW2): | downloadISO createREPO
 	$(call targetLog,+)
-	qemu-img convert -O qcow2 $(OUTPUT_DIR)/$(NAME).x86_64-$(VERSION).$(JOB).raw $(QCOW2)
+	bash $(WORKSPACE)/patch.sh
+	mkdir -p $(WORKSPACE)/templates/root/opt/ADG/conf
+	cp -f $(WORKSPACE)/templates/config.orig.xml $(WORKSPACE)/templates/config.xml
+	cp -f $(WORKSPACE)/configure.sh $(WORKSPACE)/templates/root/opt/ADG/conf/
+	sed -i "s|__NAME__|$(NAME)|g" $(WORKSPACE)/templates/config.xml
+	sed -i "s|__ISO__|$(WORKSPACE)/iso/mount|g" $(WORKSPACE)/templates/config.xml
+	sed -i "s|__REPO__|$(WORKSPACE)/zypper/repo|g" $(WORKSPACE)/templates/config.xml
+	sed -i "s|__VERSION__|$(VERSION).$(JOB)|g" $(WORKSPACE)/templates/config.xml
+	sed -i "s|__UUID__|$$RANDOM|g" $(WORKSPACE)/templates/config.xml
+	sed -i "s|__RAM__|$(RAM)|g" $(WORKSPACE)/templates/config.xml
+	-! mountpoint -q $(OPENSTACK_DIR)/image/var/cache/kiwi || umount $(OPENSTACK_DIR)/image/var/cache/kiwi
+	-mountpoint -q $(WORKSPACE)/iso/mount || mount $(WORKSPACE)/iso/$(ISO_FILE) $(WORKSPACE)/iso/mount
+	mkdir -p $(WORKSPACE)/build/$(NAME)-$(VERSION).$(JOB)
+	mkdir -p $(OPENSTACK_DIR)/image
+	mkdir -p $(OPENSTACK_DIR)/output
+	kiwi --verbose 3 --yes --prepare $(WORKSPACE)/templates --add-profile openstack --force-new-root --root $(OPENSTACK_DIR)/image
+	kiwi --verbose 3 --yes --create $(OPENSTACK_DIR)/image --add-profile openstack --type vmx --destdir $(OPENSTACK_DIR)/output
+	-umount $(WORKSPACE)/iso/mount
+	qemu-img convert -O qcow2 $(OPENSTACK_DIR)/output/$(NAME).x86_64-$(VERSION).$(JOB).raw $(QCOW2)
+	rm -fr $(OPENSTACK_DIR)
 	$(call targetLog,-)

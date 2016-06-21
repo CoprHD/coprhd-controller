@@ -7,10 +7,13 @@ package com.emc.sa.service.vipr.block;
 import static com.emc.sa.service.ServiceParams.CONSISTENCY_GROUP;
 import static com.emc.sa.service.ServiceParams.HLU;
 import static com.emc.sa.service.ServiceParams.HOST;
+import static com.emc.sa.service.ServiceParams.MAX_PATHS;
+import static com.emc.sa.service.ServiceParams.MIN_PATHS;
 import static com.emc.sa.service.ServiceParams.NAME;
 import static com.emc.sa.service.ServiceParams.NUMBER_OF_VOLUMES;
 import static com.emc.sa.service.ServiceParams.PROJECT;
 import static com.emc.sa.service.ServiceParams.SIZE_IN_GB;
+import static com.emc.sa.service.ServiceParams.PATHS_PER_INITIATOR;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_ARRAY;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_POOL;
 import static com.emc.sa.service.vipr.ViPRExecutionUtils.addAffectedResource;
@@ -26,10 +29,12 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
@@ -125,6 +130,7 @@ import com.emc.storageos.model.varray.VirtualArrayRestRep;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
+import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.filters.ExportClusterFilter;
 import com.emc.vipr.client.core.filters.ExportHostFilter;
 import com.emc.vipr.client.core.util.ResourceUtils;
@@ -546,13 +552,13 @@ public class BlockStorageUtils {
 
     private static void removeContinuousCopy(URI volumeId, URI continuousCopyId, VolumeDeleteTypeEnum type) {
         if (VolumeDeleteTypeEnum.VIPR_ONLY != type) {
-        	BlockObjectRestRep obj = getVolume(volumeId);
-        	if (obj instanceof VolumeRestRep) {
+            BlockObjectRestRep obj = getVolume(volumeId);
+            if (obj instanceof VolumeRestRep) {
                 VolumeRestRep volume = (VolumeRestRep) obj;
                 if (!StringUtils.equalsIgnoreCase(volume.getSystemType(), DiscoveredDataObject.Type.vplex.name())) {
-                	execute(new PauseContinuousCopy(volumeId, continuousCopyId, COPY_NATIVE));
+                    execute(new PauseContinuousCopy(volumeId, continuousCopyId, COPY_NATIVE));
                 }
-        	}
+            }
         }
         Tasks<VolumeRestRep> tasks = execute(new DeactivateContinuousCopy(volumeId, continuousCopyId, COPY_NATIVE, type));
         addAffectedResources(tasks);
@@ -654,24 +660,18 @@ public class BlockStorageUtils {
                 Collection<URI> continuousCopyIds = getActiveContinuousCopies(volumeId);
                 removeBlockResourcesFromExports(continuousCopyIds);
             }
-        }
 
-        List<URI> fullCopyIds = getActiveFullCopies(volumeId);
-        blockResourceIds.removeAll(fullCopyIds);
-        for (URI fullCopyId : fullCopyIds) {
-            removeBlockResources(Collections.singletonList(fullCopyId), type);
+            List<URI> fullCopyIds = getActiveFullCopies(volumeId);
+            removeBlockResourcesFromExports(fullCopyIds);
         }
     }
 
     public static boolean canRemoveReplicas(URI blockResourceId) {
-        BlockObjectRestRep volume = getVolume(blockResourceId);
-        if (volume.getConsistencyGroup() != null) {
-            StorageSystemRestRep storageSystem = getStorageSystem(volume.getStorageController());
-            if (storageSystem != null
-                    && storageSystem.getSystemType() != null
-                    && storageSystem.getSystemType().equals(DiscoveredDataObject.Type.vmax.name())) {
-                return false;
-            }
+        ResourceType volumeType = ResourceType.fromResourceId(blockResourceId.toString());
+        if (volumeType == ResourceType.VOLUME) {
+            VolumeRestRep volume = (VolumeRestRep) getVolume(blockResourceId);
+            return !(isVmaxConsistencyVolume(volume) ||
+                    (isVplexVolume(volume, volume.getSystemType()) && isSrdfConsistencyVolume(volume)));
         }
         return true;
     }
@@ -870,7 +870,7 @@ public class BlockStorageUtils {
 
     /**
      * Finds the exports (itl) for the given initiators.
-     * 
+     *
      * @param exports
      *            the list of all exports (itl)
      * @param initiators
@@ -1012,12 +1012,22 @@ public class BlockStorageUtils {
         public URI hostId;
         @Param(value = HLU, required = false)
         public Integer hlu;
+        
+        @Param(value = MIN_PATHS, required = false)
+        protected Integer minPaths;
+
+        @Param(value = MAX_PATHS, required = false)
+        protected Integer maxPaths;
+
+        @Param(value = PATHS_PER_INITIATOR, required = false)
+        protected Integer pathsPerInitiator;
 
         @Override
-        public String toString() {
-            String parent = super.toString();
-            return parent + ", Host Id=" + hostId + ", HLU=" + hlu;
-        }
+		public String toString() {
+			String parent = super.toString();
+			return parent + ", Host Id=" + hostId + ", HLU=" + hlu + ", MIN_PATHS=" + minPaths + ", MAX_PATHS="
+					+ maxPaths + ", PATHS_PER_INITIATOR=" + pathsPerInitiator;
+		}
 
         @Override
         public Map<String, Object> getParams() {
@@ -1025,6 +1035,9 @@ public class BlockStorageUtils {
             map.putAll(super.getParams());
             map.put(HOST, hostId);
             map.put(HLU, hlu);
+            map.put(MIN_PATHS, minPaths);
+            map.put(MAX_PATHS, maxPaths);
+            map.put(PATHS_PER_INITIATOR, pathsPerInitiator);
             return map;
         }
     }
@@ -1056,7 +1069,7 @@ public class BlockStorageUtils {
 
     /**
      * Helper method for creating a list of all the params for the createBlockVolumesHelper.
-     * 
+     *
      * @param table volume table
      * @param params for volume creation
      * @return map of all params
@@ -1070,7 +1083,7 @@ public class BlockStorageUtils {
 
     /**
      * Get source volume for vplexVolume by checking HA volumes with matching varrays
-     * 
+     *
      * @param vplexVolume vplex volume to use
      * @return source volume
      */
@@ -1098,7 +1111,7 @@ public class BlockStorageUtils {
                 vplexVolume = volume;
                 volume = getSourceVolume(volume);
             }
-            String rgName = volume.getReplicationGroupInstance();
+            String rgName = BlockStorageUtils.stripRPTargetFromReplicationGroup(volume.getReplicationGroupInstance());
             URI storage = volume.getStorageController();
             if (!storageRgToVolumes.contains(storage, rgName)) {
                 if (isVPlex) {
@@ -1156,7 +1169,7 @@ public class BlockStorageUtils {
         Table<URI, String, BlockSnapshotRestRep> results = getReplicationGroupSnapshots(execute(
                 new GetBlockSnapshotSet(applicationId, copySet)).getSnapList());
         for (Cell<URI, String, BlockSnapshotRestRep> cell : results.cellSet()) {
-            if (subGroups.contains(cell.getColumnKey())) {
+            if (subGroups.contains(BlockStorageUtils.stripRPTargetFromReplicationGroup(cell.getColumnKey()))) {
                 snapshotIds.add(cell.getValue().getId());
             }
         }
@@ -1168,7 +1181,8 @@ public class BlockStorageUtils {
         Table<URI, String, BlockSnapshotSessionRestRep> results = getReplicationGroupSnapshotSessions(execute(
                 new GetBlockSnapshotSessionList(applicationId, copySet)).getSnapSessionRelatedResourceList());
         for (Cell<URI, String, BlockSnapshotSessionRestRep> cell : results.cellSet()) {
-            if (subGroups.contains(cell.getColumnKey())) {
+            String stripped = BlockStorageUtils.stripRPTargetFromReplicationGroup(cell.getColumnKey());
+            if (subGroups.contains(stripped)) {
                 snapshotSessionIds.add(cell.getValue().getId());
             }
         }
@@ -1191,7 +1205,7 @@ public class BlockStorageUtils {
             List<VolumeRestRep> parentVolumes = execute(new GetBlockVolumes(parentVolIds));
             if (parentVolumes != null && !parentVolumes.isEmpty()) {
                 for (VolumeRestRep parentVolume : parentVolumes) {
-                    String rgName = parentVolume.getReplicationGroupInstance();
+                    String rgName = stripRPTargetFromReplicationGroup(parentVolume.getReplicationGroupInstance());
                     URI storage = parentVolume.getStorageController();
                     if (!storageRgToVolumes.contains(storage, rgName)) {
                         storageRgToVolumes.put(storage, rgName, volume);
@@ -1215,8 +1229,133 @@ public class BlockStorageUtils {
         return fullCopyIds;
     }
 
+    public static List<URI> getAllFullCopyVolumes(URI applicationId, String copySet, List<String> subGroups) {
+        List<URI> fullCopyIds = Lists.newArrayList();
+
+        List<NamedRelatedResourceRep> fullCopies = execute(new GetFullCopyList(applicationId, copySet)).getVolumes();
+        for (NamedRelatedResourceRep fullCopy : fullCopies) {
+            fullCopyIds.add(fullCopy.getId());
+        }
+
+        return fullCopyIds;
+    }
+
     public static boolean isVplexVolume(VolumeRestRep volume, String storageSystemType) {
         return (volume.getHaVolumes() != null && !volume.getHaVolumes().isEmpty())
                 || (storageSystemType != null && storageSystemType.equals(StorageProvider.InterfaceType.vplex.name()));
     }
+
+    public static boolean isVplexOrRPVolume(String volumeId) {
+        if (volumeId == null) {
+            return false;
+        }
+        VolumeRestRep volume = execute(new GetBlockVolume(volumeId));
+        if (volume == null) {
+            return false;
+        }
+        if (volume.getProtection() != null && volume.getProtection().getRpRep() != null) {
+            return true;
+        }
+
+        return isVplexVolume(volume, volume.getSystemType());
+    }
+
+    public static String stripRPTargetFromReplicationGroup(String group) {
+        String[] parts = StringUtils.split(group, '-');
+        if (parts.length > 1 && parts[parts.length - 1].equals("RPTARGET")) {
+            return StringUtils.join(parts, '-', 0, parts.length - 1);
+        } else {
+            return group;
+        }
+    }
+
+    public static Set<String> stripRPTargetFromReplicationGroup(Collection<String> groups) {
+        Set<String> stripped = new HashSet<String>();
+
+        for (String group : groups) {
+            stripped.add(stripRPTargetFromReplicationGroup(group));
+        }
+
+        return stripped;
+    }
+    
+    public static boolean isRPVolume(VolumeRestRep volume) {
+        return (volume.getProtection() != null && volume.getProtection().getRpRep() != null);
+    }
+    
+    public static boolean isRPSourceVolume(VolumeRestRep volume) {
+        if (isRPVolume(volume)
+                && volume.getProtection().getRpRep().getPersonality() != null
+                && volume.getProtection().getRpRep().getPersonality().equalsIgnoreCase("SOURCE")) {
+            return true;
+        }
+        return false;
+    }
+    
+    /**
+     * gets the vplex primary/source backing volume for a vplex virtual volume
+     * 
+     * @param client
+     * @param vplexVolume
+     * @return
+     */
+    public static VolumeRestRep getVPlexSourceVolume(ViPRCoreClient client, VolumeRestRep vplexVolume) {
+        if (vplexVolume.getHaVolumes() != null && !vplexVolume.getHaVolumes().isEmpty()) {
+            URI vplexVolumeVarray = vplexVolume.getVirtualArray().getId();
+            for (RelatedResourceRep haVolume : vplexVolume.getHaVolumes()) {
+                VolumeRestRep volume = client.blockVolumes().get(haVolume.getId());
+                if (volume != null && volume.getVirtualArray().getId().equals(vplexVolumeVarray)) {
+                    return volume;
+                }
+            }
+        }
+        return null;
+    }
+    
+    public static NamedVolumesList getVolumesBySite(ViPRCoreClient client, String virtualArrayId, URI applicationId) {
+        boolean isTarget = false;
+        URI virtualArray = null;
+        if (virtualArrayId != null && StringUtils.split(virtualArrayId, ':')[0].equals("tgt")) {
+            virtualArray = URI.create(StringUtils.substringAfter(virtualArrayId, ":"));
+            isTarget = true;
+        } else {
+            isTarget = false;
+        }
+
+        NamedVolumesList applicationVolumes = client.application().getVolumeByApplication(applicationId);
+        NamedVolumesList volumesToUse = new NamedVolumesList();
+        for (NamedRelatedResourceRep volumeId : applicationVolumes.getVolumes()) {
+            VolumeRestRep volume = client.blockVolumes().get(volumeId);
+            VolumeRestRep parentVolume = volume;
+            if (volume.getHaVolumes() != null && !volume.getHaVolumes().isEmpty()) {
+                volume = BlockStorageUtils.getVPlexSourceVolume(client, volume);
+            }
+            if (isTarget) {
+                if (volume.getVirtualArray().getId().equals(virtualArray)) {
+                    volumesToUse.getVolumes().add(volumeId);
+                }
+            } else {
+                if (!BlockStorageUtils.isRPVolume(parentVolume) || BlockStorageUtils.isRPSourceVolume(parentVolume)) {
+                    volumesToUse.getVolumes().add(volumeId);
+                }
+            }
+        }
+        return volumesToUse;
+    }
+
+    public static boolean isVmaxConsistencyVolume(VolumeRestRep volume ) {
+        return volume.getConsistencyGroup() != null &&
+                (volume.getSystemType().equalsIgnoreCase(DiscoveredDataObject.Type.vmax.name()) ||
+                        volume.getSystemType().equalsIgnoreCase(DiscoveredDataObject.Type.vmax3.name()));
+    }
+
+    public static boolean isSrdfConsistencyVolume(VolumeRestRep volume) {
+        if (volume.getConsistencyGroup() == null) {
+            return false;
+        }
+
+        BlockConsistencyGroupRestRep group = getBlockConsistencyGroup(volume.getConsistencyGroup().getId());
+        return group != null && group.getTypes().contains(BlockConsistencyGroup.Types.SRDF.name());
+    }
+
 }

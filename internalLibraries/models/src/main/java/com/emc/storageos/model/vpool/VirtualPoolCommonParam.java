@@ -59,12 +59,12 @@ public class VirtualPoolCommonParam {
     /**
      * The set of supported protocols for the virtual pool. 
      * Valid values:
-     *  FC
-     *  ISCSI
-     *  FCoE
-     *  NFS
-     *  NFSV4
-     *  CIFS
+     *  FC = Fibre Channel (block)
+     *  ISCSI = Internet Small Computer System Interface (block)
+     *  FCoE = Fibre Channel over Ethernet (block)
+     *  NFS = Network File System( file)
+     *  NFSV4 = Network File System Version 4(file)
+     *  CIFS = Common Internet File Systemm (file)
      * 
      */
     @XmlElement(name = "protocol", required = true)
@@ -129,12 +129,12 @@ public class VirtualPoolCommonParam {
      * The supported system type for the virtual pool.
      * Valid values:
      *  NONE
-     *  vnxblock
-     *  vmax
-     *  openstack
-     *  vnxfile
-     *  isilon
-     *  netapp
+     *  vnxblock (block)
+     *  vmax (block)
+     *  openstack (block)
+     *  vnxfile (file)
+     *  isilon (file)
+     *  netapp (file)
      */
     @XmlElement(name = "system_type")
     public String getSystemType() {

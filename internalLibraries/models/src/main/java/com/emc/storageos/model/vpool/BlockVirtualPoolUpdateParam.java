@@ -65,6 +65,7 @@ public class BlockVirtualPoolUpdateParam extends VirtualPoolUpdateParam {
 
     /**
      * @deprecated use getMaxPaths instead of getNumPaths
+     * @see BlockVirtualPoolRestRep#getMaxPaths()
      *      TODO: Remove deprecated API calls in next major release
      */
     @Deprecated
@@ -75,6 +76,7 @@ public class BlockVirtualPoolUpdateParam extends VirtualPoolUpdateParam {
 
     /**
      * @deprecated use setMaxPaths instead of setNumPaths
+     * @see BlockVirtualPoolRestRep#setMaxPaths(Integer)
      *      TODO: Remove deprecated API calls in next major release
      */
     @Deprecated
@@ -138,11 +140,11 @@ public class BlockVirtualPoolUpdateParam extends VirtualPoolUpdateParam {
     /**
      * The new drive type supported by the virtual pool. 
      * Valid values:
-     *  NONE
-     *  SSD
-     *  FC
-     *  SAS
-     *  SATA
+     *  NONE = No specific drive type
+     *  SSD = Solid State Drive
+     *  FC = Fibre Channel
+     *  SAS = Serial Attached SCSI
+     *  SATA = Serial Advanced Technology Attachment
      */
     @XmlElement(name = "drive_type")
     public String getDriveType() {

@@ -10,10 +10,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.coordinator.client.model.Site;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.model.dr.FailoverPrecheckResponse;
 import com.emc.storageos.model.dr.SiteConfigParam;
 import com.emc.storageos.model.dr.SiteErrorResponse;
 import com.emc.storageos.model.dr.SiteList;
+import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator;
 import com.emc.storageos.security.helpers.BaseServiceClient;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.sun.jersey.api.client.ClientResponse;
@@ -54,6 +56,12 @@ public class InternalSiteServiceClient extends BaseServiceClient {
         setServer(site.getVipEndPoint());
     }
 
+    public InternalSiteServiceClient(Site site, CoordinatorClient coordinatorClient, InternalApiSignatureKeyGenerator apiSignatureGenerator) {
+        this(site);
+        setCoordinatorClient(coordinatorClient);
+        setKeyGenerator(apiSignatureGenerator);
+    }
+
     /**
      * Client with specific host
      *
@@ -92,7 +100,7 @@ public class InternalSiteServiceClient extends BaseServiceClient {
         return resp;
     }
     
-    public FailoverPrecheckResponse failoverPrecheck() {
+    public void failoverPrecheck() {
         WebResource rRoot = createRequest(SITE_INTERNAL_FAILOVERPRECHECK);
         ClientResponse resp = null;
         try {
@@ -100,7 +108,7 @@ public class InternalSiteServiceClient extends BaseServiceClient {
         } catch (Exception e) {
             log.error("Fail to send request to precheck failover", e);
             //throw APIException.internalServerErrors.failoverPrecheckFailed(site.getName(), String.format("Can't connect to standby to do precheck for failover, %s", e.getMessage()));
-            return null;
+            return;
         }
         
         FailoverPrecheckResponse response = resp.getEntity(FailoverPrecheckResponse.class);
@@ -108,8 +116,6 @@ public class InternalSiteServiceClient extends BaseServiceClient {
         if (response != null && response.isErrorResponse()) {
             throw APIException.internalServerErrors.failoverPrecheckFailed(site.getName(), response.getErrorMessage());
         }
-        
-        return response;
     }
     
     public void failover(String newActiveSiteUUID, String oldActiveSiteUUID, long vdcVersion) {

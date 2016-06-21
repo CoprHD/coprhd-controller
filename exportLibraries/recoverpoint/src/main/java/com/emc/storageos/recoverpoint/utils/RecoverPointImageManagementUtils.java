@@ -91,8 +91,8 @@ public class RecoverPointImageManagementUtils {
                 waitForCGLinkState(impl, cgCopy.getGroupUID(),
                         RecoverPointImageManagementUtils.getPipeActiveState(impl, cgCopy.getGroupUID()));
             } else {
-				logger.info("Not waiting on any link states, proceeding with the operation");
-			}
+                logger.info("Not waiting on any link states, proceeding with the operation");
+            }
 
             if (bookmarkName == null) {
                 // Time based enable
@@ -425,14 +425,15 @@ public class RecoverPointImageManagementUtils {
             cgCopyName = impl.getGroupCopyName(cgCopyUID);
             cgName = impl.getGroupName(cgCopyUID.getGroupUID());
 
+            // Wait for the RP failover to complete before obtaining the list of production copies
+            waitForCGCopyState(impl, cgCopyUID, null, false);
+
             ConsistencyGroupSettings groupSettings = impl.getGroupSettings(cgCopyUID.getGroupUID());
             List<ConsistencyGroupCopyUID> prodCopiesUIDs = groupSettings.getProductionCopiesUIDs();
 
             for (ConsistencyGroupCopyUID prodCopyUID : prodCopiesUIDs) {
                 if (!copiesEqual(cgCopyUID, prodCopyUID)) {
                     logger.info("Setting copy {} as the new production copy.", cgCopyName);
-
-                    waitForCGCopyState(impl, cgCopyUID, null, false);
                     impl.setProductionCopy(cgCopyUID, true);
                     break;
                 }
@@ -560,7 +561,7 @@ public class RecoverPointImageManagementUtils {
         final int transactionTimeout = 3 * MAX_RETRIES;
         VerifyConsistencyGroupStateParam stateParam = new VerifyConsistencyGroupStateParam();
         // Create a state param object to verify the group state
-        // Specify the group copy that we want to verify it's state, add it to the copies list of the param object.
+        // Specify the group copy that we want to verify its state, add it to the copies list of the param object.
         stateParam.getCopies().add(groupCopy);
         // Create a state param object to verify the group copy state
         VerifyConsistencyGroupCopyStateParam copyStateParam = new VerifyConsistencyGroupCopyStateParam();
@@ -1202,28 +1203,28 @@ public class RecoverPointImageManagementUtils {
                 for (ConsistencyGroupLinkState linkstate : cgState.getLinksStates()) {
 
                     // The copy we're interested in may be in the FirstCopy or SecondCopy, so we need to find the link
-                    // state where our copy is the first or second copy and the other copy is a production.  There may be
-                    // multiple production copies, so account for that, too.  (you can assume there aren't multiple productions
-                    // going to the same target.  We used to assume that the targets are "second copy", but that is not true.
+                    // state where our copy is the first or second copy and the other copy is a production. There may be
+                    // multiple production copies, so account for that, too. (you can assume there aren't multiple productions
+                    // going to the same target. We used to assume that the targets are "second copy", but that is not true.
                     boolean found = false;
-                    
+
                     // Loop through production copies
                     if (!cgState.getSourceCopiesUIDs().isEmpty()) {
                         for (ConsistencyGroupCopyUID groupCopyUID : cgState.getSourceCopiesUIDs()) {
 
                             if (copiesEqual(linkstate.getGroupLinkUID().getFirstCopy(), groupCopyUID.getGlobalCopyUID()) &&
                                     copiesEqual(linkstate.getGroupLinkUID().getSecondCopy(), copyUID.getGlobalCopyUID())) {
-                                found = true;                            
+                                found = true;
                             }
 
                             if (copiesEqual(linkstate.getGroupLinkUID().getSecondCopy(), groupCopyUID.getGlobalCopyUID()) &&
                                     copiesEqual(linkstate.getGroupLinkUID().getFirstCopy(), copyUID.getGlobalCopyUID())) {
-                                found = true;                            
+                                found = true;
                             }
                         }
                     } else {
-                        // Back-up plan.  The cg state didn't tell us who the source is, so we need to make a guess on
-                        // the link source and copy.  Just find our copy in the link and go with it.
+                        // Back-up plan. The cg state didn't tell us who the source is, so we need to make a guess on
+                        // the link source and copy. Just find our copy in the link and go with it.
                         if (copiesEqual(linkstate.getGroupLinkUID().getFirstCopy(), copyUID.getGlobalCopyUID()) ||
                                 copiesEqual(linkstate.getGroupLinkUID().getSecondCopy(), copyUID.getGlobalCopyUID())) {
                             found = true;
@@ -1240,7 +1241,7 @@ public class RecoverPointImageManagementUtils {
                             linkstate.setPipeState(PipeState.ACTIVE);
                         }
                     }
-                    
+
                     PipeState pipeState = linkstate.getPipeState();
                     logger.info("Copy link state is " + pipeState.toString() + "; desired state is: " + desiredPipeState.toString());
 
@@ -1483,12 +1484,12 @@ public class RecoverPointImageManagementUtils {
             ConsistencyGroupSettings groupSettings = impl.getGroupSettings(cgUID);
             List<ConsistencyGroupCopySettings> copySettings = groupSettings.getGroupCopiesSettings();
             for (ConsistencyGroupCopySettings copySetting : copySettings) {
-                if (copySetting.getRoleInfo().getRole().equals(ConsistencyGroupCopyRole.ACTIVE)  &&
-                		copySetting.getPolicy().getSnapshotsPolicy().getNumOfDesiredSnapshots() != null &&
+                if (copySetting.getRoleInfo().getRole().equals(ConsistencyGroupCopyRole.ACTIVE) &&
+                        copySetting.getPolicy().getSnapshotsPolicy().getNumOfDesiredSnapshots() != null &&
                         copySetting.getPolicy().getSnapshotsPolicy().getNumOfDesiredSnapshots() > 0) {
                     logger.info("Setting link state for snapshot technology.");
                     return true;
-                } 
+                }
             }
         } catch (FunctionalAPIActionFailedException_Exception e) {
             throw RecoverPointException.exceptions.cantCheckLinkState(cgName, e);

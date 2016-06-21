@@ -10,15 +10,24 @@
 
 #{set isActiveSite:controllers.infra.DisasterRecovery.isActiveSite() /}
 #{set localSiteName:controllers.infra.DisasterRecovery.getLocalSiteName() /}
+#{set isMultiDrSite:controllers.infra.DisasterRecovery.isMultiDrSite() /}
 
 <body>
 <header>
   <nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
     <div class="navbar-header">
       <a class="navbar-brand" href="@{Dashboard.index()}">#{Branding.applicationName/}</a>
-      #{if !isActiveSite }
-      	<span class="navbar-brand" style="background-color:#d8d9d8">Standby Site: ${localSiteName}</span>
+      #{if isActiveSite }
+        #{if isMultiDrSite}
+          <span class="navbar-brand" style="background-color:#d8d9d8">Active Site: ${localSiteName}</span>
+        #{/if}
+        #{elseif localSiteName != 'Default Site'}
+          <span class="navbar-brand" style="background-color:#d8d9d8">Site: ${localSiteName}</span>
+        #{/elseif}
       #{/if}
+      #{else}
+        <span class="navbar-brand" style="background-color:#d8d9d8">Standby Site: ${localSiteName}</span>
+      #{/else}
       <button class="navbar-toggle" type="button" data-toggle="collapse" data-target="#navbar-collapse-1">
         <span class="sr-only">&{'navigation.toggle'}</span><span class="icon-bar"></span>
         <span class="icon-bar"></span>
@@ -82,7 +91,7 @@
   #{/deadbolt.restrict}
   
   *{ PHSYICAL ASSETS }*
-  #{deadbolt.restrict roles:[['SYSTEM_ADMIN'],['RESTRICTED_SYSTEM_ADMIN'], ['TENANT_ADMIN'], ['SECURITY_ADMIN']]}
+  #{deadbolt.restrict roles:[['SYSTEM_ADMIN'],['RESTRICTED_SYSTEM_ADMIN'], ['TENANT_ADMIN']]}
   	#{if isActiveSite}
       #{nav.menu 'assets', icon:'vipricon-physicalassets'}
         #{nav.menuSection 'nav.assets'}  
@@ -108,7 +117,7 @@
               #{nav.item 'hosts', href: @compute.Hosts.list()/}
               #{nav.item 'hostClusters', href: @compute.HostClusters.list()/}
             #{/deadbolt.restrict}
-            #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['TENANT_ADMIN'], ['SECURITY_ADMIN']]}
+            #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['TENANT_ADMIN']]}
               #{nav.item 'vcenters', href: @compute.VCenters.list()/}
             #{/deadbolt.restrict}
           #{/license.ifController}

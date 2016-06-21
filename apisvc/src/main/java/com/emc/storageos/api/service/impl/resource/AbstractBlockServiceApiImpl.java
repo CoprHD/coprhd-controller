@@ -26,6 +26,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import com.emc.storageos.Controller;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.placement.StorageScheduler;
+import com.emc.storageos.api.service.impl.placement.VolumeRecommendation;
+import com.emc.storageos.api.service.impl.placement.VpoolUse;
 import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyManager;
 import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
 import com.emc.storageos.api.service.impl.resource.utils.VirtualPoolChangeAnalyzer;
@@ -51,6 +53,7 @@ import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.RemoteDirectorGroup;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -88,9 +91,12 @@ import com.emc.storageos.volumecontroller.BlockController;
 import com.emc.storageos.volumecontroller.BlockExportController;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.Recommendation;
+import com.emc.storageos.volumecontroller.SRDFCopyRecommendation;
+import com.emc.storageos.volumecontroller.SRDFRecommendation;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
+import com.emc.storageos.workflow.WorkflowException;
 import com.google.common.base.Joiner;
 
 public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi {
@@ -365,7 +371,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      */
     @Override
     public TaskList createVolumes(VolumeCreate param, Project project, VirtualArray varray,
-            VirtualPool vpool, List<Recommendation> recommendations, TaskList taskList,
+            VirtualPool vpool, Map<VpoolUse, List<Recommendation>> recommendationMap, TaskList taskList,
             String task, VirtualPoolCapabilityValuesWrapper vpoolCapabilities) throws ControllerException,
             InternalException {
 
@@ -426,7 +432,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      * 
      * @return The list of volume descriptors.
      */
-    abstract protected List<VolumeDescriptor> getDescriptorsForVolumesToBeDeleted(
+    abstract public List<VolumeDescriptor> getDescriptorsForVolumesToBeDeleted(
             URI systemURI, List<URI> volumeURIs, String deletionType);
 
     /**
@@ -482,22 +488,24 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         Collection<VirtualPool> allVpools = getVPoolsForVolumeBasedOnSystemConnectivity(volume);
 
         Iterator<VirtualPool> vpoolIter = allVpools.iterator();
+        StringBuffer logMsg = new StringBuffer();
+        logMsg.append("Analyzing vpools for change vpool operations:\n");
         while (vpoolIter.hasNext()) {
             StringBuffer notAllowedReason = new StringBuffer();
             VirtualPool targetVpool = vpoolIter.next();
             List<VirtualPoolChangeOperationEnum> allowedOperations = getVirtualPoolChangeAllowedOperationsForVolume(
                     volume, currentVpool, targetVpool, notAllowedReason);
-
-            StringBuffer logMsg = new StringBuffer();
-            logMsg.append("Vpool [" + targetVpool.getLabel() + "]");
+            
+            logMsg.append("\tVpool [" + targetVpool.getLabel() + "]");
             logMsg.append((notAllowedReason.length() > 0) ? " not allowed: " + notAllowedReason.toString() : " allowed but only for: ");
             logMsg.append((allowedOperations != null && !allowedOperations.isEmpty()) ? Joiner.on("\t").join(allowedOperations) : "");
-            s_logger.info(logMsg.toString());
+            logMsg.append("\n");
 
             vpoolChangeList.getVirtualPools().add(
                     toVirtualPoolChangeRep(targetVpool, allowedOperations,
                             notAllowedReason.toString()));
-        }
+        }        
+        s_logger.info(logMsg.toString());
 
         return vpoolChangeList;
     }
@@ -672,12 +680,12 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      * @throws InternalException
      */
     @Override
-    public void changeVolumeVirtualPool(URI systemURI, Volume volume, VirtualPool vpool,
+    public TaskList changeVolumeVirtualPool(URI systemURI, Volume volume, VirtualPool vpool,
             VirtualPoolChangeParam vpoolChangeParam, String taskId) throws InternalException {
         List<Volume> volumes = new ArrayList<Volume>();
         volumes.add(volume);
         if (checkCommonVpoolUpdates(volumes, vpool, taskId)) {
-            return;
+            return null;
         }
         throw APIException.methodNotAllowed.notSupported();
     }
@@ -688,14 +696,14 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      * @throws InternalException
      */
     @Override
-    public void changeVolumeVirtualPool(List<Volume> volumes, VirtualPool vpool,
+    public TaskList changeVolumeVirtualPool(List<Volume> volumes, VirtualPool vpool,
             VirtualPoolChangeParam vpoolChangeParam, String taskId) throws InternalException {
         /**
          * 'Auto-tiering policy change' operation supports multiple volume processing.
          * At present, other operations only support single volume processing.
          */
         if (checkCommonVpoolUpdates(volumes, vpool, taskId)) {
-            return;
+            return null;
         }
         throw APIException.methodNotAllowed.notSupported();
     }
@@ -1046,11 +1054,6 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
             throw APIException.badRequests.noVolumesToSnap();
         }
 
-        // Validate VNX. Cannot create snapshot if volume is not in a real replication group
-        if (ControllerUtils.isNotInRealVNXRG(reqVolume, _dbClient)) {
-            throw APIException.badRequests.snapshotsNotSupportedForNonRealVNXRG();
-        }
-
         // Verify the vpools of the volumes to be snapped support
         // snapshots and the maximum snapshots has not been reached.
         // Also, check for a duplicate name.
@@ -1179,6 +1182,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         for (Volume volume : volumes) {
             // Attempt to create distinct labels here when creating >1 volumes (ScaleIO requirement)
             String rgName = volume.getReplicationGroupInstance();
+            VolumeGroup application = volume.getApplication(_dbClient);
             if (volume.isVPlexVolume(_dbClient)) {
                 Volume backendVol = VPlexUtil.getVPLEXBackendVolume(volumes.get(0), true, _dbClient);
                 if (backendVol != null && !backendVol.getInactive()) {
@@ -1187,7 +1191,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
             }
 
             String label = snapshotName;
-            if (NullColumnValueGetter.isNotNullValue(rgName)) {
+            if (NullColumnValueGetter.isNotNullValue(rgName) && application != null) {
                 // There can be multiple RGs in a CG, in such cases generate unique name
                 if (volumes.size() > 1) {
                     label = String.format("%s-%s-%s", snapshotName, rgName, count++);
@@ -1363,6 +1367,11 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         List<URI> activeMirrorsForParent = getActiveMirrorsForVolume(parent);
         if (!activeMirrorsForParent.isEmpty()) {
             throw APIException.badRequests.snapshotParentHasActiveMirrors(parent.getLabel(), activeMirrorsForParent.size());
+        }
+        // Snap restore to V3 SRDF(Async) Target volume is not supported
+        if (parent.isVmax3Volume(_dbClient) && Volume.isSRDFProtectedVolume(parent) && !parent.isSRDFSource()
+                && RemoteDirectorGroup.SupportedCopyModes.ASYNCHRONOUS.name().equalsIgnoreCase(parent.getSrdfCopyMode())) {
+            throw APIException.badRequests.snapshotRestoreNotSupported();
         }
     }
 
@@ -1812,6 +1821,30 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
             s_logger.info(String.format("Volume and Task Pre-creation Objects [Exec]--  Source Volume: %s, Op: %s",
                     desc.getVolumeURI(), task));
         }
+    }
+
+    @Override
+    public List<VolumeDescriptor> createVolumesAndDescriptors(List<VolumeDescriptor> descriptors, String name, Long size, Project project,
+            VirtualArray varray, VirtualPool vpool, List<Recommendation> recommendations, TaskList taskList, String task,
+            VirtualPoolCapabilityValuesWrapper vpoolCapabilities) {
+        BlockServiceApi api = null;
+        List<VolumeDescriptor> volumeDescriptors = new ArrayList<VolumeDescriptor>();
+        for (Recommendation recommendation : recommendations) {
+            if (recommendation instanceof SRDFRecommendation 
+                    || recommendation instanceof SRDFCopyRecommendation) {
+                api = BlockService.getBlockServiceImpl(DiscoveredDataObject.Type.srdf.name());
+            } else if (recommendation instanceof VolumeRecommendation) {
+                api = BlockService.getBlockServiceImpl(BlockServiceApi.DEFAULT);
+            } else {
+                String message = String.format("No BlockServiceApiImpl to handle recommendation of class: ", 
+                        recommendation.getClass().getName());
+                s_logger.error(message);
+                throw WorkflowException.exceptions.workflowConstructionError(message);
+            }
+            volumeDescriptors.addAll(api.createVolumesAndDescriptors(descriptors, name, size, project, 
+                    varray, vpool, recommendations, taskList, task, vpoolCapabilities));
+        }
+        return volumeDescriptors;
     }
     
     /**

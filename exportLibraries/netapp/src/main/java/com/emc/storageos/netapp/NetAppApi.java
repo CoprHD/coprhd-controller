@@ -1069,11 +1069,32 @@ public class NetAppApi {
             }
 
             protocols = netAppFacade.getAllowedProtocols(vFilerName);
+            _logger.info("vFiler {} supported protocols  {} ", vFilerName, protocols);
+
         } catch (Exception e) {
             _logger.error("Error Occured {} ", e.getMessage(), e);
             throw NetAppException.exceptions.getvFilerInfoFailed(e.getMessage());
         }
         return protocols;
+    }
+
+    public String getvFilerStatus(String vFilerName) throws NetAppException {
+        String vFilerStatus = null;
+        try {
+            if (netAppFacade == null) {
+                _logger.warn("Invalid Facade found {} creating now...", netAppFacade);
+                netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName, _password, _https);
+                _logger.warn("Facade created : {} ", netAppFacade);
+            }
+
+            vFilerStatus = netAppFacade.getvFilerStatus(vFilerName);
+            _logger.info("Status of vFiler {} is  {} ", vFilerName, vFilerStatus);
+
+        } catch (Exception e) {
+            _logger.error("Error Occured {} ", e.getMessage(), e);
+            throw NetAppException.exceptions.getvFilerInfoFailed(e.getMessage());
+        }
+        return vFilerStatus;
     }
 
 }

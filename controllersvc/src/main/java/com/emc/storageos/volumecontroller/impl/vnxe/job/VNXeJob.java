@@ -16,12 +16,14 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.Logger;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.vnxe.VNXeApiClient;
 import com.emc.storageos.vnxe.VNXeUtils;
+import com.emc.storageos.vnxe.models.MessageOut;
 import com.emc.storageos.vnxe.models.VNXeCommandJob;
 import com.emc.storageos.vnxe.models.VNXePool;
 import com.emc.storageos.volumecontroller.Job;
@@ -80,6 +82,7 @@ public class VNXeJob extends Job implements Serializable {
                 for (String jobId : _jobIds) {
                     currentJob = jobId;
                     VNXeCommandJob jobResult = vnxeApiClient.getJob(jobId);
+                    MessageOut msgOut = jobResult.getMessageOut();
                     int progressPct = jobResult.getProgressPct();
                     int state = jobResult.getState();
                     if (state == VNXeCommandJob.JobStatusEnum.FAILED.getValue()) {
@@ -87,6 +90,9 @@ public class VNXeJob extends Job implements Serializable {
                         isSuccess = false;
                         msg.append("Async task failed for jobID ");
                         msg.append(jobId);
+                        if (msgOut != null) {
+                            msg.append(" " + msgOut.getMessage());
+                        }
                         continue;
                     }
                     if (progressPct == 100 && state != VNXeCommandJob.JobStatusEnum.RUNNING.getValue()) {
@@ -94,6 +100,9 @@ public class VNXeJob extends Job implements Serializable {
                         if (state != VNXeCommandJob.JobStatusEnum.COMPLETED.getValue()) {
                             msg.append("Async task failed for jobID ");
                             msg.append(jobId);
+                            if (msgOut != null) {
+                                msg.append(" " + msgOut.getMessage());
+                            }
                         }
                     }
                 }
@@ -216,10 +225,18 @@ public class VNXeJob extends Job implements Serializable {
      * @return
      */
     public VNXeApiClient getVNXeClient(JobContext jobContext) {
+
+        VNXeApiClient vnxeApiClient = null;
         StorageSystem storageSystem = jobContext.getDbClient().queryObject(StorageSystem.class, _storageSystemUri);
-        VNXeApiClient vnxeApiClient = jobContext.getVNXeApiClientFactory().getClient(
-                storageSystem.getIpAddress(), storageSystem.getPortNumber(),
-                storageSystem.getUsername(), storageSystem.getPassword());
+        if (Type.unity.name().equalsIgnoreCase(storageSystem.getSystemType())) {
+            vnxeApiClient = jobContext.getVNXeApiClientFactory().getUnityClient(
+                    storageSystem.getIpAddress(), storageSystem.getPortNumber(),
+                    storageSystem.getUsername(), storageSystem.getPassword());
+        } else {
+            vnxeApiClient = jobContext.getVNXeApiClientFactory().getClient(
+                    storageSystem.getIpAddress(), storageSystem.getPortNumber(),
+                    storageSystem.getUsername(), storageSystem.getPassword());
+        }
         return vnxeApiClient;
     }
 
@@ -236,7 +253,7 @@ public class VNXeJob extends Job implements Serializable {
         VNXePool pool = vnxeApiClient.getPool(poolNativeId);
         storagePool.setFreeCapacity(VNXeUtils.convertDoubleSizeToViPRLong(pool.getSizeFree()));
         storagePool.setSubscribedCapacity(VNXeUtils.convertDoubleSizeToViPRLong(pool.getSizeSubscribed()));
-        dbClient.persistObject(storagePool);
+        dbClient.updateObject(storagePool);
     }
 
 }

@@ -32,7 +32,7 @@ public class BlockRPCGIngestDecorator extends BlockCGIngestDecorator {
 
     @Override
     public void decorateCG(BlockConsistencyGroup cg, Collection<BlockObject> associatedObjects,
-            IngestionRequestContext requestContext)
+            IngestionRequestContext requestContext, UnManagedVolume unManagedVolume)
             throws Exception {
         // This information is already set in the RP ingestion orchestrator, however in case anyone ever writes a decorator
         // above us, this will ensure we put the right information in their CG to represent our RP CG.

@@ -7,6 +7,7 @@
     </description>
     <profiles>
         <profile name="appliance" description="VMX with default kernel" import="true"/>
+        <profile name="openstack" description="VMX with default kernel" import="false"/>
     </profiles>
     <preferences>
         <version>__VERSION__</version>
@@ -20,7 +21,7 @@
         <bootloader-theme>openSUSE</bootloader-theme>
     </preferences>
     <preferences profiles="appliance">
-        <type image="vmx" filesystem="ext3" boot="vmxboot/suse-13.2" format="vmdk" bootloader="grub2" kernelcmdline="splash">
+        <type image="vmx" filesystem="ext3" boot="vmxboot/suse-13.2" format="vmdk" bootloader="grub2" kernelcmdline="splash net.ifnames=0 biosdevname=0">
             <machine memory="__RAM__" guestOS="suse">
                 <vmdisk controller="lsilogic" id="0"/>
                 <vmnic interface="e1000" mode="bridged"/>
@@ -28,6 +29,18 @@
             <size unit="G">60</size>
             <systemdisk name="system__UUID__">
                 <volume name="Swap" size="4G"/>
+            </systemdisk>
+        </type>
+    </preferences>
+    <preferences profiles="openstack">
+        <type image="vmx" filesystem="ext3" boot="vmxboot/suse-13.2" format="vmdk" bootloader="grub2" kernelcmdline="splash net.ifnames=0 biosdevname=0">
+            <machine memory="__RAM__" guestOS="suse">
+                <vmdisk controller="lsilogic" id="0"/>
+                <vmnic interface="e1000" mode="bridged"/>
+            </machine>
+            <size unit="G">10</size>
+            <systemdisk name="system__UUID__">
+                <volume name="Swap" size="1G"/>
             </systemdisk>
         </type>
     </preferences>
@@ -41,25 +54,132 @@
         <source path="__REPO__"/>
     </repository>
     <packages type="image">
-        <package name="ifplugd"/>
-        <package name="iputils"/>
-        <package name="vim"/>
-        <package name="grub2"/>
-        <package name="syslinux"/>
-        <package name="lvm2"/>
-        <package name="plymouth"/>
+        <archive name="nginx-1.6.2.tar.gz"/>
+        <archive name="v0.25.tar.gz"/>
+        <archive name="v0.3.0.tar.gz"/>
+        <package name="ant"/>
+        <package name="apache2-mod_perl"/>
+        <package name="atop"/>
+        <package name="bind-libs"/>
+        <package name="bind-utils"/>
+        <package name="ca-certificates-cacert"/>
+        <package name="ca-certificates-mozilla"/>
+        <package name="configure-network"/>
+        <package name="createrepo"/>
+        <package name="curl"/>
+        <package name="dhcpcd"/>
+        <package name="expect"/>
         <package name="fontconfig"/>
         <package name="fonts-config"/>
-        <package name="tar"/>
-        <package name="parted"/>
+        <package name="gcc-c++"/>
+        <package name="GeoIP"/>
+        <package name="GeoIP-data"/>
+        <package name="git"/>
+        <package name="git-core"/>
+        <package name="glib2-devel"/>
+        <package name="gpgme"/>
+        <package name="grub2"/>
+        <package name="ifplugd"/>
+        <package name="inst-source-utils"/>
+        <package name="iproute2"/>
+        <package name="iputils"/>
+        <package name="java-1_8_0-openjdk"/>
+        <package name="java-1_8_0-openjdk-devel"/>
+        <package name="keepalived"/>
+        <package name="kernel-default"/>
+        <package name="kernel-default-devel"/>
+        <package name="kernel-source"/>
         <package name="kiwi"/>
-        <package name="kiwi-templates"/>
-        <package name="kiwi-desc-oemboot"/>
         <package name="kiwi-desc-isoboot"/>
+        <package name="kiwi-desc-oemboot"/>
         <package name="kiwi-desc-vmxboot"/>
-        <package name="kiwi-desc-netboot"/>
+        <package name="kiwi-templates"/>
+        <package name="libaudiofile1"/>
+        <package name="libesd0"/>
+        <package name="libgcrypt-devel"/>
+        <package name="libGeoIP1"/>
+        <package name="libgpg-error-devel"/>
+        <package name="libmng2"/>
+        <package name="libopenssl-devel"/>
+        <package name="libpcrecpp0"/>
+        <package name="libpcreposix0"/>
+        <package name="libqt4"/>
+        <package name="libqt4-sql"/>
+        <package name="libqt4-x11"/>
+        <package name="libSDL-1_2-0"/>
+        <package name="libserf-devel"/>
+        <package name="libtool"/>
+        <package name="libuuid-devel"/>
+        <package name="libvpx1"/>
+        <package name="libxml2-devel"/>
+        <package name="libXmu6"/>
+        <package name="lvm2"/>
+        <package name="make"/>
+        <package name="mozilla-nss-certs"/>
+        <package name="netcfg"/>
+        <package name="net-tools"/>
+        <package name="ndisc6"/>
+        <package name="nfs-client"/>
         <package name="openssh"/>
-        <package name="configure-network"/>
+        <package name="openssh-fips"/>
+        <package name="p7zip"/>
+        <package name="pam-devel"/>
+        <package name="parted"/>
+        <package name="pcre-devel"/>
+        <package name="perl-Config-General"/>
+        <package name="perl-Error"/>
+        <package name="perl-Tk"/>
+        <package name="plymouth"/>
+        <package name="python-cjson"/>
+        <package name="python-devel"/>
+        <package name="python-gpgme"/>
+        <package name="python-iniparse"/>
+        <package name="python-libxml2"/>
+        <package name="python-py"/>
+        <package name="python-requests"/>
+        <package name="python-setools"/>
+        <package name="qemu"/>
+        <package name="readline-devel"/>
+        <package name="regexp"/>
+        <package name="rpm-build"/>
+        <package name="setools-libs"/>
+        <package name="sipcalc"/>
+        <package name="sshpass"/>
+        <package name="strongswan"/>
+        <package name="strongswan-ipsec"/>
+        <package name="strongswan-libs0"/>
+        <package name="subversion"/>
+        <package name="sudo"/>
+        <package name="SuSEfirewall2"/>
+        <package name="sysconfig"/>
+        <package name="sysconfig-netconfig"/>
+        <package name="syslinux"/>
+        <package name="sysstat"/>
+        <package name="systemd-logger"/>
+        <package name="tar"/>
+        <package name="telnet"/>
+        <package name="unixODBC"/>
+        <package name="vim"/>
+        <package name="virtualbox"/>
+        <package name="virtualbox-guest-tools"/>
+        <package name="virtualbox-guest-kmp-default"/>
+        <package name="virtualbox-host-kmp-default"/>
+        <package name="wget"/>
+        <package name="xbitmaps"/>
+        <package name="xfsprogs"/>
+        <package name="xml-commons-jaxp-1.3-apis"/>
+        <package name="xmlstarlet"/>
+        <package name="xorg-x11-essentials"/>
+        <package name="xorg-x11-fonts"/>
+        <package name="xorg-x11-server"/>
+        <package name="xz-devel"/>
+        <package name="yum"/>
+        <package name="zlib-devel"/>
+        <package name="boost-license1_58_0"/>
+        <package name="libboost_system1_58_0"/>
+        <package name="libboost_thread1_58_0"/>
+        <package name="librados2"/>
+        <package name="librbd1"/>
     </packages>
     <packages type="bootstrap">
         <package name="udev"/>

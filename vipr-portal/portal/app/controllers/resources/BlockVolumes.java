@@ -32,6 +32,7 @@ import util.BlockConsistencyGroupUtils;
 import util.BourneUtil;
 import util.MessagesUtils;
 import util.StorageSystemUtils;
+import util.StringOption;
 import util.VirtualArrayUtils;
 import util.VirtualPoolUtils;
 import util.datatable.DataTablesSupport;
@@ -69,27 +70,25 @@ public class BlockVolumes extends ResourceController {
     public static final String COPY_NATIVE = "native";
     public static final String COPY_RP = "rp";
     public static final String COPY_SRDF = "srdf";
+    public static final String APPLICATION = "Application";
+    public static final String PROJECT = "Project";
 
     private static final String UNKNOWN = "resources.volumes.unknown";
     private static final String NOTARGET = "resources.snapshot.session.targets.none";
 
     private static BlockVolumesDataTable blockVolumesDataTable = new BlockVolumesDataTable();
     private static Set<String> roles = new HashSet(Arrays.asList("COPY"));
+    public static final StringOption[] FILTER_OPTIONS = StringOption.options(new String[]{APPLICATION, PROJECT});
 
     public static void volumes(String projectId) {
         setActiveProjectId(projectId);
         renderArgs.put("dataTable", blockVolumesDataTable);
-        renderArgs.put("application", getApplications());
+        renderArgs.put("filterOptions", FILTER_OPTIONS);
         addReferenceData();
         render();
     }
 
     public static void volumesJson(String projectId, String applicationId) {
-        if (StringUtils.isNotBlank(projectId)) {
-            setActiveProjectId(projectId);
-        } else {
-            projectId = getActiveProjectId();
-        }
         List<BlockVolumesDataTable.Volume> volumes = BlockVolumesDataTable.fetch(uri(projectId), uri(applicationId));
         renderJSON(DataTablesSupport.createJSON(volumes, params));
     }
@@ -217,13 +216,28 @@ public class BlockVolumes extends ResourceController {
 
     public static void volumeSnapshotSessions(String volumeId) {
 
-        ViPRCoreClient client = BourneUtil.getViprClient();
+		ViPRCoreClient client = BourneUtil.getViprClient();
 
-        List<NamedRelatedResourceRep> refs = client.blockSnapshotSessions().listByVolume(uri(volumeId));
+        VolumeRestRep volume = client.blockVolumes().get(uri(volumeId));
 
-        List<BlockSnapshotSessionRestRep> snapshotSessions = client.blockSnapshotSessions().getByRefs(refs);
+        List<BlockSnapshotSessionRestRep> snapshotSessions = Lists.newArrayList();
 
-        render(snapshotSessions, volumeId);
+        if (volume.getConsistencyGroup() != null) {
+            
+            URI consistencygroup = volume.getConsistencyGroup().getId();
+
+            List<NamedRelatedResourceRep> cgSessions = client.blockConsistencyGroups().getSnapshotSessions(consistencygroup);
+
+            snapshotSessions = client.blockSnapshotSessions().getByRefs(cgSessions);
+
+        } else {
+
+            List<NamedRelatedResourceRep> refs = client.blockSnapshotSessions().listByVolume(uri(volumeId));
+
+            snapshotSessions = client.blockSnapshotSessions().getByRefs(refs);
+        }
+
+		render(snapshotSessions, volumeId);
     }
 
     public static void unlinkTargetSnapshot(String sessionId, String volumeId, Boolean deleteOption) {
@@ -232,8 +246,6 @@ public class BlockVolumes extends ResourceController {
 
         SnapshotSessionUnlinkTargetsParam sessionTargets = new SnapshotSessionUnlinkTargetsParam();
 
-        SnapshotSessionUnlinkTargetParam targetList = new SnapshotSessionUnlinkTargetParam();
-
         List<SnapshotSessionUnlinkTargetParam> targetLists = Lists.newArrayList();
 
         List<RelatedResourceRep> targets = client.blockSnapshotSessions().get(uri(sessionId)).getLinkedTarget();
@@ -241,6 +253,8 @@ public class BlockVolumes extends ResourceController {
         List<BlockSnapshotRestRep> snapshots = client.blockSnapshots().getByRefs(targets);
 
         for (BlockSnapshotRestRep snap : snapshots) {
+
+			SnapshotSessionUnlinkTargetParam targetList = new SnapshotSessionUnlinkTargetParam();
 
             targetList.setId(snap.getId());
 
@@ -425,27 +439,4 @@ public class BlockVolumes extends ResourceController {
         return ResourceType.isType(BLOCK_CONTINUOUS_COPY, id);
     }
 
-    @Util
-    private static List<NamedRelatedResourceRep> getApplications() {
-        List<NamedRelatedResourceRep> applications = AppSupportUtil.getApplications();
-        List<NamedRelatedResourceRep> results = Lists.newArrayList();
-		for (NamedRelatedResourceRep application : applications) {
-			VolumeGroupRestRep volumeGroup = AppSupportUtil
-					.getApplication(application.getId().toString());
-			if ((roles).equals(volumeGroup.getRoles())) {
-				results.add(application);
-			}
-		}
-        if (!results.isEmpty()) {
-            Collections.sort(results, new Comparator<NamedRelatedResourceRep>() {
-                @Override
-                public int compare(NamedRelatedResourceRep app1, NamedRelatedResourceRep app2)
-                {
-                    return app1.getName().compareTo(app2.getName());
-                }
-            });
-
-        }
-        return results;
-    }
 }

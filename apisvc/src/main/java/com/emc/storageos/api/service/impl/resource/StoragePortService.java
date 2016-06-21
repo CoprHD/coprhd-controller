@@ -88,8 +88,8 @@ import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
  * StoragePort resource implementation
  */
 @Path("/vdc/storage-ports")
-@DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR },
-        writeRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+@DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR }, writeRoles = { Role.SYSTEM_ADMIN,
+        Role.RESTRICTED_SYSTEM_ADMIN })
 public class StoragePortService extends TaggedResource {
 
     private static Logger _log = LoggerFactory.getLogger(StoragePortService.class);
@@ -459,7 +459,7 @@ public class StoragePortService extends TaggedResource {
         Network newNetwork = null;
 
         // If the passed new network id is null, then just return. The user has not
-        // specified a network change. Note that removal from it's current network
+        // specified a network change. Note that removal from its current network
         // w/o reassigning to a new network is done by passing a new network id
         // of "" or "null".
         if (newNetworkId == null) {
@@ -706,14 +706,18 @@ public class StoragePortService extends TaggedResource {
                     for (String sp : vNas.getStoragePorts()) {
                         if (!sp.equalsIgnoreCase(storagePort.getId().toString())) {
                             StoragePort vNasSp = _dbClient.queryObject(StoragePort.class, URI.create(sp));
-                            vNasVarrys.addAll(vNasSp.getConnectedVirtualArrays());
+                            if (vNasSp.getConnectedVirtualArrays() != null && !vNasSp.getConnectedVirtualArrays().isEmpty()) {
+                                vNasVarrys.addAll(vNasSp.getConnectedVirtualArrays());
+                            }
                         }
                     }
                     // Remove storage varray from vnas virtual arrays,
                     // if other ports on vnas not belongs to same varray.
                     if (!vNasVarrys.contains(vArrays)) {
-                        vNas.getAssignedVirtualArrays().removeAll(vArrays);
-                        varraysForvNasUpdated = true;
+                        if (vNas.getAssignedVirtualArrays() != null && !vNas.getAssignedVirtualArrays().isEmpty()) {
+                            vNas.getAssignedVirtualArrays().removeAll(vArrays);
+                            varraysForvNasUpdated = true;
+                        }
                     }
                 }
             }

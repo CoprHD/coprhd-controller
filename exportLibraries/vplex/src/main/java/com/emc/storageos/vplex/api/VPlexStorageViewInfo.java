@@ -138,12 +138,19 @@ public class VPlexStorageViewInfo extends VPlexResourceInfo {
         for (String volumeInfoStr : virtualVolumes) {
             StringTokenizer tokenizer = new StringTokenizer(volumeInfoStr, ",");
             String hluStr = tokenizer.nextToken();
-            hluStr = hluStr.substring(1); // skips an opening "("
-            Integer volumeHLU = Integer.valueOf(hluStr);
+            Integer volumeHLU = VPlexApiConstants.LUN_UNASSIGNED;
+            hluStr = hluStr.substring(1); // skips the opening "("
+            if (null != hluStr && !VPlexApiConstants.NULL_ATT_VAL.equals(hluStr)) {
+                try {
+                    volumeHLU = Integer.valueOf(hluStr);
+                } catch (NumberFormatException ex) {
+                    s_logger.error("could not parse HLU from '{}', will be set to -1", hluStr);
+                }
+            }
             String volumeName = tokenizer.nextToken();
             String vpdId = tokenizer.nextToken();
             int indexColon = vpdId.indexOf(':');
-            String volumeWWN = vpdId.substring(indexColon + 1);
+            String volumeWWN = vpdId.substring(indexColon + 1).toUpperCase();
             virtualVolumeWWNMap.put(volumeName, volumeWWN);
             virtualVolumeHLUMap.put(volumeName, volumeHLU);
         }
@@ -168,7 +175,9 @@ public class VPlexStorageViewInfo extends VPlexResourceInfo {
      * @return The HLU of the volume.
      */
     public Integer getHLUForStorageViewVolume(String volumeName) {
-        return virtualVolumeHLUMap.get(volumeName);
+        // if the LUN value is not set for this volume name, return LUN_UNASSIGNED
+        Integer hlu = virtualVolumeHLUMap.get(volumeName);
+        return hlu != null ? hlu : VPlexApiConstants.LUN_UNASSIGNED;
     }
 
     /**
@@ -179,7 +188,9 @@ public class VPlexStorageViewInfo extends VPlexResourceInfo {
 
         for (Entry<String, String> entry : virtualVolumeWWNMap.entrySet()) {
             String volumeName = entry.getKey();
-            map.put(volumeName.toUpperCase(), virtualVolumeHLUMap.get(volumeName));
+            Integer volumeHlu = virtualVolumeHLUMap.get(volumeName);
+            String volumeWwn = entry.getValue();
+            map.put(volumeWwn, volumeHlu);
         }
 
         return map;
@@ -270,6 +281,7 @@ public class VPlexStorageViewInfo extends VPlexResourceInfo {
         str.append(", initiators: ").append(initiators.toString());
         str.append(", initiator PWWNs: ").append(initiatorPwwns.toString());
         str.append(", target ports: ").append(ports.toString());
+        str.append(", wwn to hlu map: ").append(getWwnToHluMap().toString());
         str.append(" )");
         return str.toString();
     }

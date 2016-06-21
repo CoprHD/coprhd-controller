@@ -97,7 +97,7 @@ public class StorageVolumeBoundPoolProcessor extends StorageProcessor {
                 try {
                     client.closeEnumeration(storagePoolPath, allocatedFromStoragePoolInstanceChunks.getContext());
                 } catch (Exception e) {
-                    _logger.warn("Exception occurred while closing enumeration", e);
+                    _logger.debug("Exception occurred while closing enumeration", e);
                 }
             }
 

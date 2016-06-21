@@ -384,7 +384,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
                         if (fsCheck) {
                             String errMsg = new String(
-                                    "delete file system from DB failed due to either snapshots or QDs exist on FS " + fsObj.getLabel());
+                                    "delete file system from DB failed due to either snapshots or quota directories exist for file system " + fsObj.getLabel());
                             _log.error(errMsg);
 
                             final ServiceCoded serviceCoded = DeviceControllerException.errors.jobFailedOpMsg(
@@ -394,15 +394,13 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                             recordFileDeviceOperation(_dbClient, OperationTypeEnum.DELETE_FILE_SYSTEM, result.isCommandSuccess(), "", "",
                                     fsObj, storageObj);
                             _dbClient.persistObject(fsObj);
+                            WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
                             return;
-
-                        } else if (!fsCheck) {
-                            doDeleteSnapshotsFromDB(fsObj, true, null, args);  // Delete Snapshot and its references from DB
-                            args.addQuotaDirectory(null);
-                            doFSDeleteQuotaDirsFromDB(args);
                         }
                     }
-
+                    doDeleteSnapshotsFromDB(fsObj, true, null, args);  // Delete Snapshot and its references from DB
+                    args.addQuotaDirectory(null);
+                    doFSDeleteQuotaDirsFromDB(args);
                     deleteShareACLsFromDB(args);
                     doDeleteExportRulesFromDB(true, null, args);
                     doDeletePolicyReferenceFromDB(fsObj); // Remove FileShare Reference from Schedule Policy
@@ -3428,7 +3426,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         if (vNASURI != null) {
             VirtualNAS vNAS = _dbClient.queryObject(VirtualNAS.class, vNASURI);
             args.setvNAS(vNAS);
-        }
+	 }
     }
 
     /**

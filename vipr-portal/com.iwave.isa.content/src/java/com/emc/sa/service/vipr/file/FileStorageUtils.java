@@ -56,10 +56,10 @@ import com.emc.sa.service.vipr.file.tasks.GetNfsExportsForFileSnapshot;
 import com.emc.sa.service.vipr.file.tasks.GetNfsExportsForFileSystem;
 import com.emc.sa.service.vipr.file.tasks.GetQuotaDirectory;
 import com.emc.sa.service.vipr.file.tasks.GetSharesForFileSnapshot;
+import com.emc.sa.service.vipr.file.tasks.PauseFileContinuousCopy;
 import com.emc.sa.service.vipr.file.tasks.RestoreFileSnapshot;
 import com.emc.sa.service.vipr.file.tasks.SetFileSnapshotShareACL;
 import com.emc.sa.service.vipr.file.tasks.SetFileSystemShareACL;
-import com.emc.sa.service.vipr.file.tasks.StopFileContinuousCopy;
 import com.emc.sa.service.vipr.file.tasks.UpdateFileSnapshotExport;
 import com.emc.sa.service.vipr.file.tasks.UpdateFileSystemExport;
 import com.emc.sa.util.DiskSizeConversionUtils;
@@ -364,7 +364,7 @@ public class FileStorageUtils {
 
     private static void removeFileContinuousCopy(URI fileId, URI continuousCopyId) {
         if (isFileSystemWithActiveReplication(fileId)) {
-            execute(new StopFileContinuousCopy(fileId, continuousCopyId, FileTechnologyType.LOCAL_MIRROR.name()));
+            execute(new PauseFileContinuousCopy(fileId, continuousCopyId, FileTechnologyType.LOCAL_MIRROR.name()));
         }
         Task<FileShareRestRep> task = execute(new DeactivateFileContinuousCopy(fileId, continuousCopyId,
                 FileControllerConstants.DeleteTypeEnum.FULL.toString()));
@@ -592,7 +592,7 @@ public class FileStorageUtils {
         }
 
         for (FileStorageUtils.FileSystemACLs element : toRemove) {
-            fileACLs = (FileStorageUtils.FileSystemACLs[])ArrayUtils.removeElement(fileACLs, element);
+            fileACLs = (FileStorageUtils.FileSystemACLs[]) ArrayUtils.removeElement(fileACLs, element);
         }
 
         return fileACLs;

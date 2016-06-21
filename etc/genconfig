@@ -302,6 +302,21 @@ _gen_prop2() {
         fi
     done
 
+    # populate 'vdc_vdc*_site_ids' if they are empty
+    #
+    # for my vdc, equals to site_ids
+    # for other vdcs, just set it to "site1"
+    for vdc in ${_GENCONFIG_vdc_ids}; do
+        var="_GENCONFIG_vdc_${vdc}_site_ids"
+        if [ -z "${!var}" ]; then
+            if [ "${vdc}" == "${_GENCONFIG_vdc_myid}" ] ; then
+                eval export ${var}="${_GENCONFIG_site_ids}"
+            else
+                eval export ${val}="site1"
+            fi
+        fi
+    done
+
     #'vdc_'*'_network_'*'_ipaddr6')
     for vdc in ${_GENCONFIG_vdc_ids}; do
         for site in ${_GENCONFIG_site_ids}; do
@@ -379,6 +394,8 @@ _genconfig_system_init() {
     if [ ! -d "/data/backup" ]; then
        _genconfig_mkdir 755 storageos:storageos /data/backup
     fi
+    # correct permission of bkutils.log for log service use
+    _genconfig_create 644 root:root '/var/log/bkutils.log'
 
     # create audit dir so auditd can run
     if [ ! -d "/var/log/audit" ]; then
@@ -404,6 +421,11 @@ _genconfig_system_init() {
     for svc in controller sa vasa ; do
         _genconfig_dr_flag ${svc}
     done
+	
+	# revert ZK snapshot in case last ZK mode is participant
+	if [ "${_GENCONFIG_site_is_standby}" == "true" ]; then
+		/etc/datatool --revert-snapshot /data/zk/version-2
+	fi
 }
 
 _genconfig_exec_scripts() {

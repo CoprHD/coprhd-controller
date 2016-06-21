@@ -13,16 +13,28 @@
 #{/breadcrumb.container}
 
 <div class="container" >
-  <form-header title-key="${titleKey}"
-               description-key="disasterRecovery.add.title"
-               image-val="/public/img/assets/AddStandbySite.png">
-  </form-header>
+	%{ editing = disasterRecovery?.id }%
 
+	#{if !editing }	
+  	   <form-header title-key="${titleKey}"
+           description-key="disasterRecovery.add.title"
+           image-val="/public/img/assets/AddStandbySite.png">
+       </form-header>
+	#{/if}
+	#{else}
+	   <form-header title-key="${titleKey}"
+           description-key="disasterRecovery.edit.title.description"
+           image-val="/public/img/assets/AddStandbySite.png">
+  	   </form-header>
+	#{/else}
+	
   #{alerts/}
-  
-  %{ editing = disasterRecovery?.id }%
-  
-  #{form @save(), class:'form form-horizontal', autocomplete:"off"}
+  #{if !editing }
+        %{
+            onConfirm = messages.get('disasterRecovery.confirm.add')
+        }%
+  #{/if}
+  #{form @save(), id:'addForm', class:'form form-horizontal', autocomplete:"off", confirm:onConfirm }
     #{if disasterRecovery?.id}
       #{field 'disasterRecovery.id'}
          <input type="hidden" name="${field.name}" value="${field.value}">

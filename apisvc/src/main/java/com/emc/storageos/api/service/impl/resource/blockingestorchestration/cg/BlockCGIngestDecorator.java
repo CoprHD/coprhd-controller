@@ -52,13 +52,14 @@ public abstract class BlockCGIngestDecorator {
     /**
      * Decorates the CG with its associated BlockObjects.
      * 
-     * @param cg
-     * @param associatedObjects
-     * @param requestContext
+     * @param cg consistency group
+     * @param associatedObjects associated objects
+     * @param requestContext request context
+     * @param unManagedVolume unmanaged volume
      * @throws Exception
      */
     public abstract void decorateCG(BlockConsistencyGroup cg, Collection<BlockObject> associatedObjects,
-            IngestionRequestContext requestContext)
+            IngestionRequestContext requestContext, UnManagedVolume unManagedVolume)
             throws Exception;
 
     /**
@@ -81,7 +82,7 @@ public abstract class BlockCGIngestDecorator {
                 return;
             }
             if (null != cg && !associatedObjects.isEmpty()) {
-                decorateCG(cg, associatedObjects, requestContext);
+                decorateCG(cg, associatedObjects, requestContext, umv);
             } else {
                 logger.debug("Skipping Decorator as no associatedObjects found.");
             }

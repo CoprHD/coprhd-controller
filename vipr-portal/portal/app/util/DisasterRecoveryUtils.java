@@ -5,36 +5,32 @@
 
 package util;
 
-import static util.BourneUtil.getViprClient;
-
-import java.util.Iterator;
-import java.util.List;
-
-import plugin.StorageOsPlugin;
-
 import com.emc.storageos.coordinator.client.model.SiteState;
-import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.model.dr.SiteActive;
 import com.emc.storageos.model.dr.SiteAddParam;
 import com.emc.storageos.model.dr.SiteDetailRestRep;
 import com.emc.storageos.model.dr.SiteErrorResponse;
 import com.emc.storageos.model.dr.SiteIdListParam;
-import com.emc.storageos.model.dr.SiteList;
 import com.emc.storageos.model.dr.SiteRestRep;
 import com.emc.storageos.model.dr.SiteUpdateParam;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.vipr.client.exceptions.ServiceErrorException;
 import com.google.common.collect.Lists;
 import com.sun.jersey.api.client.ClientResponse;
+import java.util.Iterator;
+import java.util.List;
+import static util.BourneUtil.getViprClient;
 
 public class DisasterRecoveryUtils {
 
-    public static List<SiteRestRep> getSiteDetails() {
+    public static List<SiteRestRep> getSites() {
         List<SiteRestRep> sites = Lists.newArrayList();
-        sites.addAll(getAllSites().getSites());
+        sites.addAll(getViprClient().site().listAllSites().getSites());
         return sites;
     }
 
-    public static SiteList getAllSites() {
-        return getViprClient().site().listAllSites();
+    public static boolean isLocalSiteRemoved() {
+        return getViprClient().site().isLocalSiteRemoved();
     }
 
     public static int getSiteCount() {
@@ -54,7 +50,17 @@ public class DisasterRecoveryUtils {
     }
 
     public static ClientResponse pauseStandby(SiteIdListParam ids) {
-        return getViprClient().site().pauseSite(ids);
+        ClientResponse restresponse = null;
+        try {
+            restresponse = getViprClient().site().pauseSite(ids);
+        } catch (ServiceErrorException ex) {
+            throw APIException.internalServerErrors.pauseStandbyPrecheckFailed(ex.getServiceError().getCodeDescription(),
+                    ex.getServiceError().getDetailedMessage());
+        } catch (Exception ex) {
+            throw APIException.internalServerErrors.pauseStandbyPrecheckFailed(ex.getCause().toString(), ex.getMessage());
+        }
+
+        return restresponse;
     }
 
     public static SiteRestRep resumeStandby(String uuid) {
@@ -95,14 +101,24 @@ public class DisasterRecoveryUtils {
     }
 
     public static boolean hasAnyStandbySite() {
-        List<SiteRestRep> sites = DisasterRecoveryUtils.getSiteDetails();
+        List<SiteRestRep> sites = DisasterRecoveryUtils.getSites();
         return sites.size() > 1;
     }
 
     public static boolean hasPausedSite() {
-        List<SiteRestRep> sites = DisasterRecoveryUtils.getSiteDetails();
+        List<SiteRestRep> sites = DisasterRecoveryUtils.getSites();
         for (SiteRestRep site : sites) {
             if (SiteState.STANDBY_PAUSED.toString().equals(site.getState())) {
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    public static boolean hasActiveDegradedSite() {
+        List<SiteRestRep> sites = DisasterRecoveryUtils.getSites();
+        for (SiteRestRep site : sites) {
+            if (SiteState.ACTIVE_DEGRADED.toString().equals(site.getState())) {
                 return true;
             }
         }
@@ -171,10 +187,7 @@ public class DisasterRecoveryUtils {
     }
     
     public static boolean isMultiDrSite() {
-        int sitecount = getSiteCount();
-        if(sitecount > 1) {
-            return true;
-        }
-        return false;
+        SiteActive siteCheck = checkActiveSite();
+        return siteCheck.getIsMultiSite();
     }
 }

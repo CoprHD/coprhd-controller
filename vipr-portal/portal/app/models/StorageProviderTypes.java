@@ -23,6 +23,7 @@ public class StorageProviderTypes {
     public static final String DATA_DOMAIN = "ddmc";
     public static final String IBMXIV = "ibmxiv";
     public static final String XTREMIO = "xtremio";
+    public static final String CEPH = "ceph";
 
     public static final StringOption[] OPTIONS = {
             option(SMIS),
@@ -32,7 +33,8 @@ public class StorageProviderTypes {
             option(SCALEIOAPI),
             option(DATA_DOMAIN),
             option(IBMXIV),
-            option(XTREMIO)
+            option(XTREMIO),
+            option(CEPH)
     };
     
     public static final StringOption[] optionSIO = {
@@ -56,13 +58,18 @@ public class StorageProviderTypes {
             put(StorageSystemTypes.DATA_DOMAIN, DATA_DOMAIN);
             put(StorageSystemTypes.IBMXIV, IBMXIV);
             put(StorageSystemTypes.XTREMIO, XTREMIO);
+            put(StorageSystemTypes.CEPH, CEPH);
         }
     };
 
     public static boolean isScaleIOApi(String type) {
     	return SCALEIOAPI.equals(type);
     }
-    
+
+    public static boolean isCeph(String type) {
+    	return CEPH.equals(type);
+    }
+
     public static String fromStorageArrayType(String storageArrayType) {
         return fromStorageArrayTypeMap.get(storageArrayType);
     }

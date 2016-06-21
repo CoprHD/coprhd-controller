@@ -129,16 +129,17 @@ public class XtremIOUnManagedVolumeDiscoverer {
                 log.warn("Skipping snapshot as it is null for volume {}", parentGUID);
                 continue;
             }
-            
+
             // If this name is a trigger/match for RP automated snapshots, ignore it as well
-            String snapName = (String)snapNameToProcess;
-            if ((snapName.contains(RP_SNAPSHOT_CRITERIA1) || snapName.contains(RP_SNAPSHOT_CRITERIA2)) && snapName.contains(RP_SNAPSHOT_CRITERIA3)) {
+            String snapName = (String) snapNameToProcess;
+            if ((snapName.contains(RP_SNAPSHOT_CRITERIA1) || snapName.contains(RP_SNAPSHOT_CRITERIA2))
+                    && snapName.contains(RP_SNAPSHOT_CRITERIA3)) {
                 log.warn("Skipping snapshot {} because it is internal to RP for volume {}", snapName, parentGUID);
                 continue;
             }
-            
+
             XtremIOVolume snap = xtremIOClient.getSnapShotDetails(snapNameToProcess.toString(), xioClusterName);
-            
+
             UnManagedVolume unManagedVolume = null;
             boolean isExported = !snap.getLunMaps().isEmpty();
             String managedSnapNativeGuid = NativeGUIDGenerator.generateNativeGuidForVolumeOrBlockSnapShot(
@@ -207,7 +208,7 @@ public class XtremIOUnManagedVolumeDiscoverer {
         log.info("Started discovery of UnManagedVolumes for system {}", accessProfile.getSystemId());
         StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class,
                 accessProfile.getSystemId());
-        XtremIOClient xtremIOClient = XtremIOProvUtils.getXtremIOClient(storageSystem, xtremioRestClientFactory);
+        XtremIOClient xtremIOClient = XtremIOProvUtils.getXtremIOClient(dbClient, storageSystem, xtremioRestClientFactory);
 
         unManagedVolumesToCreate = new ArrayList<UnManagedVolume>();
         unManagedVolumesToUpdate = new ArrayList<UnManagedVolume>();
@@ -320,11 +321,13 @@ public class XtremIOUnManagedVolumeDiscoverer {
                                 "");
                     }
 
+                    boolean hasReplicas = false;
                     if (hasSnaps) {
                         StringSet parentMatchedVPools = unManagedVolume.getSupportedVpoolUris();
                         StringSet discoveredSnaps = discoverVolumeSnaps(storageSystem, volume.getSnaps(), unManagedVolumeNatvieGuid,
                                 parentMatchedVPools, xtremIOClient, xioClusterName, dbClient, igUnmanagedVolumesMap, igKnownVolumesMap);
                         if (!discoveredSnaps.isEmpty()) {
+                            hasReplicas = true;
                             // set the HAS_REPLICAS property
                             unManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.HAS_REPLICAS.toString(),
                                     TRUE);
@@ -346,15 +349,16 @@ public class XtremIOUnManagedVolumeDiscoverer {
                                 unManagedVolumeInformation.put(
                                         SupportedVolumeInformation.SNAPSHOTS.toString(), discoveredSnaps);
                             }
-                        } else {
-                            unManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.HAS_REPLICAS.toString(),
-                                    FALSE);
                         }
-                    } else {
-                        unManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.HAS_REPLICAS.toString(),
-                                FALSE);
                     }
 
+                    if (!hasReplicas) {
+                        unManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.HAS_REPLICAS.toString(), FALSE);
+                        StringSet snapshots = unManagedVolume.getVolumeInformation().get(SupportedVolumeInformation.SNAPSHOTS.toString());
+                        if (snapshots != null && !snapshots.isEmpty()) {
+                            unManagedVolume.getVolumeInformation().get(SupportedVolumeInformation.SNAPSHOTS.toString()).clear();
+                        }
+                    }
                     allCurrentUnManagedVolumeUris.add(unManagedVolume.getId());
 
                 } catch (Exception ex) {
@@ -579,8 +583,8 @@ public class XtremIOUnManagedVolumeDiscoverer {
                 List<UnManagedVolume> hostUnManagedVols = igUnmanagedVolumesMap.get(igName);
                 if (hostUnManagedVols != null) {
                     for (UnManagedVolume hostUnManagedVol : hostUnManagedVols) {
-                        hostUnManagedVol.setInitiatorNetworkIds(knownNetworkIdSet);
-                        hostUnManagedVol.setInitiatorUris(knownIniSet);
+                        hostUnManagedVol.getInitiatorNetworkIds().addAll(knownNetworkIdSet);
+                        hostUnManagedVol.getInitiatorUris().addAll(knownIniSet);
                         hostUnManagedVol.getUnmanagedExportMasks().add(mask.getId().toString());
 
                         if (isVplexBackendMask) {

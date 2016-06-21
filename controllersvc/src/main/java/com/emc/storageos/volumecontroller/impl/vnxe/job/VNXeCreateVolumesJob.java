@@ -94,7 +94,7 @@ public class VNXeCreateVolumesJob extends VNXeJob {
                 for (URI volId : volIds) {
                     Volume volume = dbClient.queryObject(Volume.class, volId);
                     volume.setInactive(true);
-                    dbClient.persistObject(volume);
+                    dbClient.updateObject(volume);
                     if (logMsgBuilder.length() != 0) {
                         logMsgBuilder.append("\n");
                     }
@@ -141,10 +141,17 @@ public class VNXeCreateVolumesJob extends VNXeJob {
             if (group == null) {
                 group = dbClient.queryObject(BlockConsistencyGroup.class, volume.getConsistencyGroup());
             }
-            String deviceName = group.getCgNameOnStorageSystem(volume.getStorageController());
-            VNXeLun vnxeLun = apiClient.getLunByLunGroup(deviceName, volume.getNativeGuid());
+            String cgId = null;
+            if (apiClient.isUnityClient()) {
+                String cgName = volume.getReplicationGroupInstance();
+                cgId = apiClient.getConsistencyGroupIdByName(cgName);
+            } else {
+                cgId = group.getCgNameOnStorageSystem(volume.getStorageController());
+            }
+            VNXeLun vnxeLun = apiClient.getLunByLunGroup(cgId, volume.getNativeGuid());
             if (vnxeLun != null) {
                 updateVolume(volume, vnxeLun, dbClient);
+                dbClient.updateObject(volume);
 
                 if (logMsgBuilder.length() != 0) {
                     logMsgBuilder.append("\n");
@@ -165,6 +172,6 @@ public class VNXeCreateVolumesJob extends VNXeJob {
         volume.setNativeId(vnxeLun.getId());
         volume.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(dbClient, volume));
         volume.setDeviceLabel(vnxeLun.getName());
-        dbClient.persistObject(volume);
+        dbClient.updateObject(volume);
     }
 }

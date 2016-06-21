@@ -31,10 +31,10 @@ public class RestoreFromFullCopyService extends ViPRService {
     @Override
     public void execute() throws Exception {
         if (ConsistencyUtils.isVolumeStorageType(storageType)) {
-            logInfo("Executing Block Volume restore [%s]", consistencyGroupId);
+            logInfo("full.copy.block.volume.restore.executing", copyId);
             BlockStorageUtils.restoreFromFullCopy(uri(copyId));
         } else {
-            logInfo("Executing Consistency Group restore [%s]", consistencyGroupId);
+            logInfo("full.copy.block.cg.restore.executing", consistencyGroupId);
             Tasks<? extends DataObjectRestRep> tasks = ConsistencyUtils.restoreFullCopy(consistencyGroupId, uri(copyId));
             addAffectedResources(tasks);
         }

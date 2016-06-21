@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 EMC Corporation
+ * Copyright (c) 2016 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.volumecontroller.impl.externaldevice;
@@ -270,28 +270,5 @@ public class ExternalDeviceMaskingOrchestrator extends AbstractMaskingFirstOrche
                 taskCompleter.ready(_dbClient);
             }
         }
-    }
-
-    @Override
-    public void exportGroupAddInitiators(URI storageURI, URI exportGroupURI, List<URI> initiatorURIs, String token)
-            throws Exception {
-        /* Map new initiators to existing export masks in the export group based on common compute resource (each mask belongs to
-         * specific compute resource and there can be only one mask for storage array and compute resource).
-         * Add initiators to the corresponding export masks found in the mapping.
-         * For initiators which do not have corresponding export mask we will create new export mask for compute resource and
-         * each storage array in the group.
-         *
-         */
-        // Todo: tbd.
-        throw DeviceControllerException.exceptions
-                .blockDeviceOperationNotSupported();
-    }
-
-    @Override
-    public void exportGroupRemoveInitiators(URI storageURI, URI exportGroupURI,
-                                            List<URI> initiatorURIs, String token) throws Exception {
-        // Todo: tbd.
-        throw DeviceControllerException.exceptions
-                .blockDeviceOperationNotSupported();
     }
 }

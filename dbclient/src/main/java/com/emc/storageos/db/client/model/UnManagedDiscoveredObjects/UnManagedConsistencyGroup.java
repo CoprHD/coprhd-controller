@@ -18,6 +18,10 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObject;
 
 @Cf("UnManagedConsistencyGroup")
 public class UnManagedConsistencyGroup extends UnManagedDiscoveredObject{
+
+	// device native ID for this consistency group
+	private String _nativeId;
+
 	//The number of volumes associated with this Consistency Group
 	private String _numberOfVols;
 			
@@ -43,6 +47,16 @@ public class UnManagedConsistencyGroup extends UnManagedDiscoveredObject{
             _infoKey = infoKey;
             _alternateKey = alterateKey;
         }
+	}
+
+	@Name("nativeId")
+	public String getNativeId() {
+		return _nativeId;
+	}
+
+	public void setNativeId(String nativeId) {
+		_nativeId = nativeId;
+		setChanged("nativeId");
 	}
 
 	@Name("NumberOfVols")

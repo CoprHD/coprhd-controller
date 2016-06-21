@@ -31,6 +31,7 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
 import org.apache.commons.lang.StringUtils;
+import org.jsoup.helper.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -272,7 +273,7 @@ public class StorageSystemService extends TaskResourceService {
             ArgValidator.checkFieldValueFromSystemType(param.getSystemType(), "system_type",
                     Arrays.asList(StorageSystem.Type.vnxfile, StorageSystem.Type.isilon, StorageSystem.Type.rp,
                             StorageSystem.Type.netapp, StorageSystem.Type.netappc, StorageSystem.Type.vnxe,
-                            StorageSystem.Type.xtremio, StorageSystem.Type.ecs));
+                            StorageSystem.Type.xtremio, StorageSystem.Type.ecs, StorageSystem.Type.unity));
         }
         StorageSystem.Type systemType = StorageSystem.Type.valueOf(param.getSystemType());
         if (systemType.equals(StorageSystem.Type.vnxfile)) {
@@ -419,7 +420,7 @@ public class StorageSystemService extends TaskResourceService {
         Operation op = _dbClient.createTaskOpStatus(StorageSystem.class, system.getId(),
                 taskId, ResourceOperationTypeEnum.DELETE_STORAGE_SYSTEM);
 
-        if (StringUtils.isNotBlank(system.getNativeGuid()) && system.storageSystemHasProvider()) {
+        if (StringUtils.isNotBlank(system.getNativeGuid()) && system.isStorageSystemManagedByProvider()) {
             DecommissionedResource oldStorage = null;
             List<URI> oldResources = _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getDecommissionedResourceIDConstraint(id
                     .toString()));
@@ -512,11 +513,12 @@ public class StorageSystemService extends TaskResourceService {
             system.setIsResourceLimitSet(true);
         }
 
-        // if system type is vmax, vnxblock, hds, openstack, scaleio or xtremio, update the name or max_resources field alone.
+        // if system type is vmax, vnxblock, hds, openstack, scaleio, xtremio or ceph, update the name or max_resources field alone.
         // create Task with ready state and return it. Discovery not needed.
         if (systemType.equals(StorageSystem.Type.vmax) || systemType.equals(StorageSystem.Type.vnxblock)
                 || systemType.equals(StorageSystem.Type.hds) || systemType.equals(StorageSystem.Type.openstack)
-                || systemType.equals(StorageSystem.Type.scaleio) || systemType.equals(StorageSystem.Type.xtremio)) {
+                || systemType.equals(StorageSystem.Type.scaleio) || systemType.equals(StorageSystem.Type.xtremio)
+                || systemType.equals(StorageSystem.Type.ceph)) {
             // this check is to inform the user that he/she can not update fields other than name and max_resources.
             if (param.getIpAddress() != null || param.getPortNumber() != null || param.getUserName() != null ||
                     param.getPassword() != null || param.getSmisProviderIP() != null || param.getSmisPortNumber() != null ||
@@ -997,7 +999,8 @@ public class StorageSystemService extends TaskResourceService {
                 || systemType.equals(StorageSystem.Type.vnxfile.toString())
                 || systemType.equals(StorageSystem.Type.netapp.toString())
                 || systemType.equals(StorageSystem.Type.netappc.toString())
-                || systemType.equals(StorageSystem.Type.vnxe.toString())) {
+                || systemType.equals(StorageSystem.Type.vnxe.toString())
+                || systemType.equals(StorageSystem.Type.unity.toString())) {
             return FileController.class;
         } else if (systemType.equals(StorageSystem.Type.rp.toString())) {
             return RPController.class;
@@ -1310,32 +1313,6 @@ public class StorageSystemService extends TaskResourceService {
     }
     
     /**
-     * Get the existing secret keys(s) for the user specified
-     * 
-     * @param id storage system URN
-     * @param userId user for whom key is required
-     * @return secret key
-     */
-    @GET
-    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/{id}/object-user/{userId}/secret-keys")
-    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
-    public ObjectUserSecretKeysRestRep getUserSecretKeys(@PathParam("id") URI id,
-            @PathParam("userId") String userId) throws InternalException {
-        // Make sure storage system is registered and object storage
-        ArgValidator.checkFieldUriType(id, StorageSystem.class, "id");
-        StorageSystem system = queryResource(id);
-        ArgValidator.checkEntity(system, id, isIdEmbeddedInURL(id));
-        if (!StorageSystem.Type.ecs.toString().equals(system.getSystemType())) {
-            throw APIException.badRequests.invalidParameterURIInvalid("id", id);
-        }
-
-        ObjectController controller = getController(ObjectController.class, system.getSystemType());
-        ObjectUserSecretKey secretKeys = controller.getUserSecretKeys(id, userId);
-        return map(secretKeys);
-    }
-
-    /**
      * Create a secret key for an object storage array
      * 
      * @param param secret key
@@ -1358,7 +1335,11 @@ public class StorageSystemService extends TaskResourceService {
         }
         
         ObjectController controller = getController(ObjectController.class, system.getSystemType());
-        ObjectUserSecretKey secretKeyRes = controller.addUserSecretKey(id, userId, param.getSecretkey());
+        String secretKey = null;
+        if (param != null && !StringUtil.isBlank( param.getSecretkey() )){
+            secretKey = param.getSecretkey();
+        }
+        ObjectUserSecretKey secretKeyRes = controller.addUserSecretKey(id, userId, secretKey);
         //Return key details as this is synchronous call
         return map(secretKeyRes, true);
     }
@@ -1941,8 +1922,9 @@ public class StorageSystemService extends TaskResourceService {
             return false;
         }
 
-        // VNXe storage system supports both block and file type unmanaged objects discovery
-        if (Type.vnxe.toString().equalsIgnoreCase(storageSystem.getSystemType())) {
+        // VNXe and Unity storage system supports both block and file type unmanaged objects discovery
+        if (Type.vnxe.toString().equalsIgnoreCase(storageSystem.getSystemType()) ||
+                Type.unity.toString().equalsIgnoreCase(storageSystem.getSystemType())) {
             if (nameSpace.equalsIgnoreCase(Discovery_Namespaces.UNMANAGED_FILESYSTEMS.toString()) ||
                     nameSpace.equalsIgnoreCase(Discovery_Namespaces.UNMANAGED_VOLUMES.toString()) ||
                     nameSpace.equalsIgnoreCase(Discovery_Namespaces.ALL.toString())) {

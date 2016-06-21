@@ -17,10 +17,10 @@ public class StorageVolume extends StorageBlockObject {
     private Long requestedCapacity;
 
     // Logical size of a storage volume on array in bytes. Type: Output.
-    private Long provisionedCapacity;
+    private Long provisionedCapacity = 0L;
 
     // Total amount of storage space allocated within the StoragePool in bytes. Type: Output.
-    private Long allocatedCapacity;
+    private Long allocatedCapacity = 0L;
 
     // thinVolumePreAllocate size in bytes. Type: Input.
     private Long thinVolumePreAllocationSize;
@@ -85,39 +85,8 @@ public class StorageVolume extends StorageBlockObject {
     }
 
     @Override
-    public boolean equals(Object volume) {
-        if (volume != null && (volume instanceof StorageVolume) && storageSystemId.equals(((StorageVolume) volume).getStorageSystemId())) {
-            if (getNativeId() != null && ((StorageVolume) volume).getNativeId() != null ) {
-                // nativeId is not set before volume is created by driver. Need to account for this.
-                if (getNativeId().equals(((StorageVolume) volume).getNativeId())) {
-                    return true;
-                } else {
-                    return false;
-                }
-            } else {
-                // if nativeId is not set we will compare displayName for these objects
-                if (getDisplayName() != null && ((StorageVolume) volume).getDisplayName() != null &&
-                        getDisplayName().equals(((StorageVolume) volume).getDisplayName())) {
-                    return true;
-                } else {
-                    return false;
-                }
-            }
-        } else {
-            return false;
-        }
-    }
-
-    @Override
-    public int hashCode() {
-        // We put volumes with the same display name in the same bucket. Different volumes with the same display name will fell
-        // in the same hash code bucket.
-        return ("StorageVolume-"+storageSystemId+"-"+getDisplayName()).hashCode();
-    }
-
-    @Override
     public String toString() {
-        return "StorageVolume-"+storageSystemId+"-" + getDisplayName()+"-"+getNativeId();
+        return getNativeId();
     }
 
 }

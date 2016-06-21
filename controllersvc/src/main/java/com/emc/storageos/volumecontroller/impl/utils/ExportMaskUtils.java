@@ -10,6 +10,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -1138,6 +1139,21 @@ public class ExportMaskUtils {
      * @return HashMap of ExportMask URI to ExportMask object (Using HashMap, since URI is Comparable)
      */
     public static HashMap<URI, ExportMask> getExportMasksWithInitiators(DbClient dbClient, List<Initiator> initiators) {
+        List<String> initiatorPorts = new ArrayList<>();
+        for (Initiator initiator : initiators) {
+            initiatorPorts.add(initiator.getInitiatorPort());
+        }
+        return getExportMasksWithInitiatorPorts(dbClient, initiatorPorts);
+    }
+
+    /**
+     * Find a set of ExportMasks to which the given Initiators belong.
+     *
+     * @param dbClient [IN] - For accessing DB
+     * @param initiatorPorts [IN] - List of initiator ports to search for among the ExportMasks found in the DB.
+     * @return HashMap of ExportMask URI to ExportMask object (Using HashMap, since URI is Comparable)
+     */
+    public static HashMap<URI, ExportMask> getExportMasksWithInitiatorPorts(DbClient dbClient, List<String> initiatorPorts) {
         final String initiatorAliasStr = "initiator";
         final String portNameAliasStr = "iniport";
         final String exportMaskAliasStr = "em";
@@ -1145,9 +1161,9 @@ public class ExportMaskUtils {
 
         // Find all the ExportMasks that contain the 'initiators'
         HashMap<URI, ExportMask> exportMasksWithInitiator = new HashMap<>();
-        for (Initiator initiator : initiators) {
+        for (String initiatorPort : initiatorPorts) {
             Joiner joiner = new Joiner(dbClient);
-            Joiner query = joiner.join(Initiator.class, initiatorAliasStr).match(portNameAliasStr, initiator.getInitiatorPort())
+            Joiner query = joiner.join(Initiator.class, initiatorAliasStr).match(portNameAliasStr, initiatorPort)
                     .join(initiatorAliasStr, ExportMask.class, exportMaskAliasStr, initiatorStr).go();
             Set<ExportMask> matchedMasks = query.set(exportMaskAliasStr);
             for (ExportMask exportMask : matchedMasks) {
@@ -1214,5 +1230,48 @@ public class ExportMaskUtils {
             }
         }
         return exportMask;
+    }
+
+    /**
+     * Given a list of Initiators, find if any are in an ExportMask's userAddedInitiators list- other than the 'exportMask' passed into
+     * the routine. If such an ExportMask is found, then the initiator will be removed from 'newInitiators' and added to the result list.
+     *
+     * @param dbClient [IN] - DbClient to access DB
+     * @param exportMask [IN] - ExportMask that should be excluded from matches. This is the ExportMask that we're checking against.
+     * @param newInitiators [OUT] - List of Initiators that need to be added to 'exportMask'. We need to determine if they need to go into
+     *            the existingInitiators list or the userAddedInitiators list.
+     * @return List of Initiators that should added to exportMask's userAddedInitiator list. ExportMasks should be on the same array as
+     *         'exportMask'.
+     */
+    public static List<Initiator> findIfInitiatorsAreUserAddedInAnotherMask(ExportMask exportMask, List<Initiator> newInitiators, DbClient dbClient) {
+        List<Initiator> userAddedInitiators = new ArrayList<>();
+
+        // Iterate through the set of ExportMasks that contain 'newInitiators' and find if it has the initiator in its userAddedInitiator
+        // list. If it does, we add the initiator to the result list and remove it from 'newInitiator'.
+        for (ExportMask matchedMask : ExportMaskUtils.getExportMasksWithInitiators(dbClient, newInitiators).values()) {
+            // Exclude 'exportMask' and ExportMasks on different arrays from the search
+            if (matchedMask.getId().equals(exportMask.getId()) ||
+                    !matchedMask.getStorageDevice().equals(exportMask.getStorageDevice())) {
+                continue;
+            }
+            // Iterate through the set of initiators and find if any exist in the ExportMask's userAddedInitiator list
+            Iterator<Initiator> iterator = newInitiators.iterator();
+            while (iterator.hasNext()) {
+                Initiator initiator = iterator.next();
+                if (matchedMask.hasUserInitiator(initiator.getId())) {
+                    // This initiator is user-added for this matchedMask
+                    userAddedInitiators.add(initiator);
+                    // Since this ExportMask has the initiator, we need to remove it from 'newInitiators'.
+                    iterator.remove();
+                }
+            }
+        }
+
+        Collection portNames = Collections2.transform(userAddedInitiators, CommonTransformerFunctions.fctnInitiatorToPortName());
+        if (!portNames.isEmpty()) {
+            _log.info(String.format("The following initiators were found in another ExportMask as user-added initiators: %s",
+                    CommonTransformerFunctions.collectionToString(portNames)));
+        }
+        return userAddedInitiators;
     }
 }

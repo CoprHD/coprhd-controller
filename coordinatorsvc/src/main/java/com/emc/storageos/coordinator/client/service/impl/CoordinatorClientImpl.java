@@ -51,6 +51,7 @@ import org.apache.curator.utils.EnsurePath;
 import org.apache.curator.utils.ZKPaths;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -298,20 +299,44 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
     
     /**
-     * Create a znode "/site/<uuid>" for specific site. This znode should have the following sub zones
+     * Create a znode "/sites/<uuid>" for specific site, along with nodes for its sub zones below:
      *  - config : site specific configurations
+     *    - siteError
+     *    - siteNetworkState
+     *    - siteMonitorState
+     *    - sitetargetconfig
      *  - service: service beacons of this site
      *  - mutex: locks for nodes in this ste
      */
     @Override
     public void addSite(String siteId) throws Exception {
         String sitePath = getSitePrefix(siteId);
-        ZkConnection zkConnection = getZkConnection();
+
+        String siteConfigPath = sitePath + ZkPath.CONFIG;
+        String siteServicePath = sitePath + ZkPath.SERVICE;
+        String siteMutexPath = sitePath + ZkPath.MUTEX;
+
+        String siteErrorPath = siteConfigPath + ZkPath.SITEERROR;
+        String siteMonitorState = siteConfigPath + ZkPath.SITEMONITORSTATE;
+        String siteNetworkState = siteConfigPath + ZkPath.SITENETWORKSTATE;
+        String siteTargetConfig = siteConfigPath + ZkPath.SITETARGETCONFIG;
+
+
+        ZooKeeper zooKeeper =  getZkConnection().curator().getZookeeperClient().getZooKeeper();
         try {
-            //create /sites/${siteID} path
-            EnsurePath ensurePath = new EnsurePath(sitePath);
-            log.info("create ZK path {}", sitePath);
-            ensurePath.ensure(zkConnection.curator().getZookeeperClient());
+            /* creating above paths, no need specifically create /sites/${siteID} and /sites/${siteID}/config paths.
+             * as ZKPaths.mkdirs will create nodes's parent recursively.
+             *
+             * User ZKpaths.mkdir directly, instead of EsuerPath, as it is the first time to
+             * create the site, no lock needed.
+             */
+            log.info("create ZK path {}, and its sub zone nodes", sitePath);
+            ZKPaths.mkdirs(zooKeeper, siteServicePath);
+            ZKPaths.mkdirs(zooKeeper, siteMutexPath);
+            ZKPaths.mkdirs(zooKeeper, siteErrorPath);
+            ZKPaths.mkdirs(zooKeeper, siteMonitorState);
+            ZKPaths.mkdirs(zooKeeper, siteNetworkState);
+            ZKPaths.mkdirs(zooKeeper, siteTargetConfig);
         }catch(Exception e) {
             log.error("Failed to set site info of {}. Error {}", sitePath, e);
             throw e;
@@ -1130,7 +1155,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         }
 
         // add site specific properties
-        PropertyInfoExt siteScopePropInfo = getTargetInfo(PropertyInfoExt.class, getSiteId(), PropertyInfoExt.TARGET_PROPERTY);
+        PropertyInfoExt siteScopePropInfo = getTargetInfo(getSiteId(), PropertyInfoExt.class);
         if (siteScopePropInfo != null) {
             info.getProperties().putAll(siteScopePropInfo.getProperties());
         }
@@ -1265,12 +1290,6 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
         return getTargetInfo(siteId, clazz, id, kind);
     }
-    
-    public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz, String id,
-            String kind) throws CoordinatorException {
-        
-        return getTargetInfo(null, clazz, id, kind);
-    }
 
     private <T extends CoordinatorSerializable> T getTargetInfo(String siteId, final Class<T> clazz, String id,
             String kind) throws CoordinatorException {
@@ -1320,7 +1339,11 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         cfg.setKind(kind);
         cfg.setConfig(TARGET_INFO, info.encodeAsString());
         persistServiceConfiguration(siteId, cfg);
-        log.info("Target info set: {} for site {}", info, siteId);
+        if (siteId == null) {
+            log.info("Target info set: {} for local site", info);
+        } else {
+            log.info("Target info set: {} for site {}", info, siteId);
+        }
     }
     
     
@@ -2025,12 +2048,16 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
     public void createEphemeralNode(String path, byte[] data) throws Exception {
         log.info("create ephemeral node path={} data={}", path, data);
-        _zkConnection.curator().create().withMode(CreateMode.EPHEMERAL).
+        _zkConnection.curator().create().creatingParentContainersIfNeeded().withMode(CreateMode.EPHEMERAL).
                 forPath(path, data);
     }
 
     public void deleteNode(String path) throws Exception {
         log.info("delete ephemeral node path={}", path);
         _zkConnection.curator().delete().forPath(path);
+    }
+
+    public List<String> getChildren(String path) throws Exception {
+        return _zkConnection.curator().getChildren().forPath(path);
     }
 }

@@ -2344,6 +2344,11 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     }
 
     @Override
+    public void doModifyReplicationRPO(StorageSystem system, Long rpoValue, String rpoType, FileShare target, TaskCompleter completer) {
+        mirrorOperations.doModifyReplicationRPO(system, rpoValue, rpoType, target, completer);
+    }
+
+    @Override
     public void doCancelMirrorLink(StorageSystem system, FileShare target, TaskCompleter completer) {
         mirrorOperations.cancelMirrorFileShareLink(system, target, completer);
     }
@@ -2570,9 +2575,13 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                         snap.setParent(new NamedURI(fs.getId(), islon_snap.getName()));
                         StringMap map = new StringMap();
                         Long createdTime = Long.parseLong(islon_snap.getCreated()) * SEC_IN_MILLI;
-                        Long expiresTime = Long.parseLong(islon_snap.getExpires()) * SEC_IN_MILLI;
+                        String expiresTime = "Never";
+                        if (islon_snap.getExpires() != null && !islon_snap.getExpires().isEmpty()) {
+                            Long expTime = Long.parseLong(islon_snap.getExpires()) * SEC_IN_MILLI;
+                            expiresTime = expTime.toString();
+                        }
                         map.put("created", createdTime.toString());
-                        map.put("expires", expiresTime.toString());
+                        map.put("expires", expiresTime);
                         map.put("schedule", sp.getPolicyName());
                         snap.setExtensions(map);
                         _dbClient.updateObject(snap);

@@ -408,6 +408,12 @@ def unassign_parser(subcommand_parsers, common_parser):
                                help='Names of project',
                                required=True,
                                nargs='+')
+    
+    mandatory_args.add_argument('-tenant', '-tn',
+                               metavar='<tenant>',
+                               dest='tenant',
+                               help='Name of tenant',
+                               required=True)
     unassign_parser.set_defaults(func=vnasserver_unassign)
 
 
@@ -419,8 +425,9 @@ def vnasserver_unassign(args):
         for name in args.name:
             vnas_server_list = []
             vnas_server_list.append(name)
+            project_name = args.tenant + "/" + project
             try:
-                obj.unassign(vnas_server_list, project)
+                obj.unassign(vnas_server_list, project_name)
             except SOSError as e:
                 vnas_unassign_failure = vnas_unassign_failure + 1
 

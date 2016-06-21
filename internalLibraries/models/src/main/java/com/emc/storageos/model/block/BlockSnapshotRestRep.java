@@ -5,11 +5,12 @@
 
 package com.emc.storageos.model.block;
 
-import com.emc.storageos.model.RelatedResourceRep;
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+
+import com.emc.storageos.model.RelatedResourceRep;
 
 @XmlAccessorType(XmlAccessType.PROPERTY)
 @XmlRootElement(name = "block_snapshot")
@@ -22,6 +23,8 @@ public class BlockSnapshotRestRep extends BlockObjectRestRep {
     private String replicaState;
     private Boolean readOnly;
     private String snapsetLabel;
+    private String provisionedCapacity;
+    private String allocatedCapacity;
 
     /**
      * URI and reference link to the volume that is the
@@ -122,5 +125,31 @@ public class BlockSnapshotRestRep extends BlockObjectRestRep {
 
     public void setSnapsetLabel(String snapsetLabel) {
         this.snapsetLabel = snapsetLabel;
+    }
+
+    /**
+     * This snapshot's logical capacity in Gb (Gigabytes).
+     * 
+     */
+    @XmlElement(name = "provisioned_capacity_gb")
+    public String getProvisionedCapacity() {
+        return provisionedCapacity;
+    }
+
+    public void setProvisionedCapacity(String provisionedCapacity) {
+        this.provisionedCapacity = provisionedCapacity;
+    }
+
+    /**
+     * The total amount of space allocated from the snapshot's storage pool (GB)
+     * 
+     */
+    @XmlElement(name = "allocated_capacity_gb")
+    public String getAllocatedCapacity() {
+        return allocatedCapacity;
+    }
+
+    public void setAllocatedCapacity(String allocatedCapacity) {
+        this.allocatedCapacity = allocatedCapacity;
     }
 }

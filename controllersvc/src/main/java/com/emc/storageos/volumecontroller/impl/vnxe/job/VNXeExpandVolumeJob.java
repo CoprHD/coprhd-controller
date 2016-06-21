@@ -89,7 +89,7 @@ public class VNXeExpandVolumeJob extends VNXeJob {
             logMsgBuilder.append(String.format(
                     "Expand volume successfully for NativeId: %s, URI: %s", volumeObj.getNativeId(),
                     getTaskCompleter().getId()));
-            dbClient.persistObject(volumeObj);
+            dbClient.updateObject(volumeObj);
         } else {
             logMsgBuilder.append("Could not find corresponding volume in the VNXe, using the resource ID: ");
             logMsgBuilder.append(volumeObj.getNativeId());

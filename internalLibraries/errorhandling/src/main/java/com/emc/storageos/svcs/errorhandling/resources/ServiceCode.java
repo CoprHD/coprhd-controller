@@ -118,7 +118,7 @@ public enum ServiceCode {
     SECURITY_INSUFFICIENT_PERMISSIONS(3000),
     LICENSE_OPERATION_FORBIDDEN(3001),
     DR_OPERATION_FORBIDDEN(3002),
-    
+
     // API Unauthorized (4000s)
     SECURITY_UNAUTHORIZED_OPERATION(4000),
 
@@ -177,7 +177,7 @@ public enum ServiceCode {
     DBSVC_ANNOTATION_ERROR(8007),
     DBSVC_GEO_UPDATE_ERROR(8008),
     DBSVC_FIELD_LENGTH_ERROR(8009),
-    
+
     // Retryable Database Client Errors (8500 - 8999):
     DBSVC_CONNECTION_ERROR(8500),
     DBSVC_DUMMY_ERROR(8501),
@@ -265,6 +265,7 @@ public enum ServiceCode {
     WORKFLOW_IN_WRONG_STATE(14004),
     WORKFLOW_CANNOT_BE_ROLLED_BACK(14005),
     WORKFLOW_TERMINATED_DR_FAILOVER(14006),
+    WORKFLOW_CONSTRUCTION_ERROR(14007),
 
     // Dispatcher errors (15000 - 15999):
     DISPATCHER_UNABLE_FIND_CONTROLLER(15000),
@@ -301,6 +302,7 @@ public enum ServiceCode {
     VPLEX_CANT_FIND_REQUESTED_VOLUME(18006),
     VPLEX_UNMANAGED_EXPORT_MASK_EXCEPTION(18007),
     VPLEX_API_CONCURRENCY_ERROR(18008),
+    VPLEX_API_RESPONSE_TIMEOUT_ERROR(180009),
 
     // Recover Point errors (19000 - 19999):
     RECOVER_POINT_ERROR(19000),
@@ -445,11 +447,9 @@ public enum ServiceCode {
     SYS_DR_SITE_CONNECTION_BROKEN(30059),
 
     SYS_BACKUP_EXTERNAL_SERVER_ERROR(30060),
-    SYS_BACKUP_PULL_FAILED(30061),
+    SYS_BACKUP_EXTERNAL_SERVER_FAILED(30061),
     SYS_BACKUP_RESTORE_FAILED(30062),
-
     
-
     // Objsvc errors (40000 - 40999)
     OBJ_DATASTORE_CREATE_ERROR(40000),
     OBJ_DATASTORE_DELETE_ERROR(40001),
@@ -487,7 +487,7 @@ public enum ServiceCode {
     GLANCE_OPERATION_FAILED(41200),
     GLANCE_JOB_FAILED(41201),
     GLANCE_RESPONSE_PARSE_ERROR(41202),
-    
+
     // Vnxe errors (42000 - 42999):
     VNXE_COMMAND_ERROR(42000),
     VNXE_UNEXPECTED_DATA(42001),
@@ -543,6 +543,7 @@ public enum ServiceCode {
     BACKUP_DISABLED_AS_DISK_FULL(61011),
     BACKUP_DISABLED_AS_REACH_LIMIT(61012),
     BACKUP_DISABLED_AS_ON_STANDBY(61013),
+    BACKUP_PULL_FAILED(61014),
 
     // ScaleIO errors (60000 - 60999)
     SCALEIO_UNSUPPORTED_OPERATION(60000),
@@ -609,6 +610,7 @@ public enum ServiceCode {
     ECS_GET_USER_SECRET_KEYS_ERROR(65015),
     ECS_ADD_USER_SECRET_KEYS_ERROR(65016),
     ECS_BUCKET_ACL_ERROR(65017),
+    ECS_NODE_ERROR(65018),
 
     // External Device Errors (66000 - 66999)
     EXTERNALDEVICE_NO_DRIVER_DEFINED_FOR_DEVICE_ERROR(66001),
@@ -630,54 +632,45 @@ public enum ServiceCode {
     EXTERNALDEVICE_DETACH_CLONE_ERROR(66017),
     EXTERNALDEVICE_RESTORE_CLONES_ERROR(66018),
     EXTERNALDEVICE_EXPAND_VOLUME_ERROR(66019),
+    EXTERNALDEVICE_ADD_EXPORT_MASK_INITIATORS_ERROR(66020),
+    EXTERNALDEVICE_REMOVE_EXPORT_MASK_INITIATORS_ERROR(66021),
 
+    // Ceph errors (67000 - 67999)
+    CEPH_CONNECTION_ERROR(67000),
+    CEPH_OPERATION_EXCEPTION(67001),
+    CEPH_INVALID_CREDENTIALS_ERROR(67002),
 
     // ****************************
     // Old style of Service codes
     // ****************************
 
     // API Errors:
-    @Deprecated
-    API_BAD_PARAMETERS(30, FATAL),
-    @Deprecated
-    API_UNAUTHORIZED_OPERATION(20, FATAL),
-    @Deprecated
-    API_ERROR(70, FATAL),
+    @Deprecated API_BAD_PARAMETERS(30, FATAL),
+    @Deprecated API_UNAUTHORIZED_OPERATION(20, FATAL),
+    @Deprecated API_ERROR(70, FATAL),
 
     // Controller Errors:
-    @Deprecated
-    CONTROLLER_ERROR(160, FATAL),
-    @Deprecated
-    CONTROLLER_STORAGE_ERROR(180, FATAL),
-    @Deprecated
-    CONTROLLER_OBJECT_ERROR(190, FATAL),
-    @Deprecated
-    CONTROLLER_NOT_FOUND(200, FATAL),
-    @Deprecated
-    CONTROLLER_WORKFLOW_ERROR(210, FATAL),
+    @Deprecated CONTROLLER_ERROR(160, FATAL),
+    @Deprecated CONTROLLER_STORAGE_ERROR(180, FATAL),
+    @Deprecated CONTROLLER_OBJECT_ERROR(190, FATAL),
+    @Deprecated CONTROLLER_NOT_FOUND(200, FATAL),
+    @Deprecated CONTROLLER_WORKFLOW_ERROR(210, FATAL),
 
     // Device Controller Errors (Asynchronous aspect of controllers):
-    @Deprecated
-    WORKFLOW_ERROR(240, FATAL),
-    @Deprecated
-    WORKFLOW_RESTARTED_ERROR(250, FATAL),
+    @Deprecated WORKFLOW_ERROR(240, FATAL),
+    @Deprecated WORKFLOW_RESTARTED_ERROR(250, FATAL),
 
     // Token encoding errors:
-    @Deprecated
-    AUTH_TOKEN_ENCODING_ERROR(290, FATAL),
+    @Deprecated AUTH_TOKEN_ENCODING_ERROR(290, FATAL),
 
     // General errors:
-    @Deprecated
-    IO_ERROR(320, FATAL);
+    @Deprecated IO_ERROR(320, FATAL);
 
     @Deprecated
     static enum Action {
-        @Deprecated
-        RETRY,
-        @Deprecated
-        FATAL,
-        @Deprecated
-        NON_APPLICABLE
+        @Deprecated RETRY,
+        @Deprecated FATAL,
+        @Deprecated NON_APPLICABLE
     };
 
     private final int _serviceCode;

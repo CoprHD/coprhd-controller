@@ -18,7 +18,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -36,14 +35,13 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.DiscoveredSystemObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
-import com.emc.storageos.db.client.model.StorageProtocol.Transport;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.ExportPathParams;
-import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProtocol;
+import com.emc.storageos.db.client.model.StorageProtocol.Transport;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
@@ -139,6 +137,59 @@ public class BlockStorageScheduler {
         }
         return assignmentMap;
     }
+
+    /**
+     * Assigns storage ports to initiators.
+     *
+     * @param system storage system which contains storage ports
+     * @param storagePorts storage ports to assign
+     * @param virtualArray virtual array which contains storage ports
+     * @param initiators list of initiators
+     * @param pathParams the export path parameters
+     * @param existingZoningMap existing zoning map in the mask
+     * @return assignments of storage ports to initiators
+     * @throws DeviceControllerException
+     */
+    public Map<URI, List<URI>> assignSelectedStoragePorts(StorageSystem system, List<StoragePort> storagePorts, URI virtualArray,
+                                                          List<Initiator> initiators,
+                                                          ExportPathParams pathParams,
+                                                          StringSetMap existingZoningMap) throws DeviceControllerException {
+        Map<Initiator, List<StoragePort>> assignments = new HashMap<>();
+        try {
+            // Group the new initiators by their networks - filter out those not in a network
+            Map<NetworkLite, List<Initiator>> initiatorsByNetwork = getInitiatorsByNetwork(initiators, existingZoningMap, _dbClient);
+            Map<Initiator, NetworkLite> initiatorsToNetworkLiteMap = getInitiatorToNetworkLiteMap(initiatorsByNetwork);
+            // Get the storage ports that can be used in the initiators networks
+            Map<NetworkLite, List<StoragePort>> portsByNetwork =
+                    selectStoragePortsInNetworks(storagePorts, initiatorsByNetwork.keySet(), virtualArray, pathParams);
+
+            StoragePortsAssigner assigner = StoragePortsAssignerFactory.getAssigner(system.getSystemType());
+            // Call StoragePortsAssigner once per host to do the assignments
+            Map <URI, Map<URI, List<Initiator>>> hostsToNetToInitiators =
+                    getHostInitiatorsMapFromNetworkLite(initiatorsByNetwork);
+            Map<URI, List<StoragePort>> allocatedPortsMap = getAllocatedPortsMap(portsByNetwork);
+
+            // Get the existing assignments in object form.
+            Map<Initiator, List<StoragePort>> existingAssignments =
+                    generateInitiatorsToStoragePortsMap(existingZoningMap, virtualArray);
+            // For each host, assign the ports to the appropriate initiators.
+            for (URI hostURI : hostsToNetToInitiators.keySet()) {
+                assigner.assignPortsToHost(assignments, hostsToNetToInitiators.get(hostURI),
+                        allocatedPortsMap, pathParams, existingAssignments, hostURI, initiatorsToNetworkLiteMap);
+
+            }
+            // Validate that minPaths was met across all assignments (existing and new).
+            validateMinPaths(system, pathParams, existingAssignments, assignments, initiators);
+            return convertAssignmentsToURIs(assignments);
+        } catch (PlacementException e) {
+            _log.error("Unable to assign storage Ports", e);
+            throw DeviceControllerException.exceptions.exceptionAssigningStoragePorts(e.getMessage(), e);
+        } catch (Exception e) {
+            _log.error("Unable to assign Storage Ports", e);
+            throw DeviceControllerException.exceptions.unexpectedExceptionAssigningPorts(e);
+        }
+    }
+
 
     /**
      * Allocates and assigns StoragePorts.
@@ -330,7 +381,7 @@ public class BlockStorageScheduler {
             NetworkLite network = networkMap.get(netURI);
             Integer portsNeeded = net2PortsNeeded.get(netURI);
             if (portsNeeded == null || portsNeeded == 0) {
-                _log.info("No ports to be assigned for net: " + netURI);
+                _log.info("No ports to be assigned for network: " + netURI);
                 continue;
             }
 
@@ -338,14 +389,13 @@ public class BlockStorageScheduler {
             // Check that there are initiators to get assignments. This check is
             // needed for when initiators were eliminate by #filterRemoteInitiators
             if (initiators == null || initiators.isEmpty()) {
-                _log.info("No initiators to be assigned for net: " + netURI);
+                _log.info("No initiators to be assigned for network: " + netURI);
                 continue;
             }
 
             if (portUsageMap.get(netURI).isEmpty()) {
-                _log.info("No ports available for allocation net: " + netURI);
-                throw PlacementException.exceptions.cannotAllocateRequestedPorts(
-                        network.getLabel(), system.getNativeGuid(), portsNeeded, 0, 0);
+                _log.warn(String.format("No ports available for network: %s. Hence skipping allocation of ports in this network", netURI));
+                continue;                
             }
             // Allocate the storage ports.
             portsAllocated.put(network, allocatePortsFromNetwork(
@@ -975,7 +1025,7 @@ public class BlockStorageScheduler {
                     notInVarray.add(portName(sp));
                 }
             } else {
-                _log.debug("Storage port {} not selected because it's network {} " +
+                _log.debug("Storage port {} not selected because its network {} " +
                         "is not the requested network {}",
                         new Object[] { sp.getNativeGuid(), sp.getNetwork(), networkURI });
                 wrongNetwork.add(portName(sp));
@@ -1012,7 +1062,7 @@ public class BlockStorageScheduler {
      * and it must be a frontend port.
      *
      * @param storageSystemURI The URI of the storage system
-     * @param networkURI The URI of the network.
+     * @param networks collection of networks
      * @param varrayURI The URI of the virtual array.
      * @param pathParams The ExportPathParameter settings which may contain a set of allowed ports. 
      *              Optional, can be null.
@@ -1021,9 +1071,28 @@ public class BlockStorageScheduler {
      */
     public Map<NetworkLite, List<StoragePort>> selectStoragePortsInNetworks(URI storageSystemURI, Collection<NetworkLite> networks,
             URI varrayURI, ExportPathParams pathParams) {
-        Map<NetworkLite, List<StoragePort>> portsInNetwork = new HashMap<NetworkLite, List<StoragePort>>();
         List<StoragePort> storagePorts = ExportUtils.getStorageSystemAssignablePorts(
-                                                _dbClient, storageSystemURI, varrayURI, pathParams);
+                _dbClient, storageSystemURI, varrayURI, pathParams);
+
+        return selectStoragePortsInNetworks(storagePorts, networks, varrayURI, pathParams);
+    }
+
+    /**
+     * Return list of storage ports from the given storage ports connected
+     * to the given network and with connectivity to the passed virtual
+     * array.
+     *
+     * @param storagePorts storage ports to process
+     * @param networks collection of networks
+     * @param varrayURI The URI of the virtual array.
+     * @param pathParams The ExportPathParameter settings which may contain a set of allowed ports.
+     *              Optional, can be null.
+     *
+     * @return The list of storage ports.
+     */
+    public Map<NetworkLite, List<StoragePort>> selectStoragePortsInNetworks(List<StoragePort> storagePorts, Collection<NetworkLite> networks,
+                                                                            URI varrayURI, ExportPathParams pathParams) {
+        Map<NetworkLite, List<StoragePort>> portsInNetwork = new HashMap<>();
         for (NetworkLite networkLite : networks) {
             URI networkURI = networkLite.getId();
             _log.info("Selecting ports for network {} {}", networkLite.getLabel(), networkLite.getId());
@@ -1052,7 +1121,7 @@ public class BlockStorageScheduler {
                         routedPorts.add(portName(sp));
                     }
                 } else {
-                    _log.debug("Storage port {} not selected because it's network {} " +
+                    _log.debug("Storage port {} not selected because its network {} " +
                             "is not the requested network {}",
                             new Object[] { sp.getNativeGuid(), sp.getNetwork(), networkURI });
                     wrongNetwork.add(portName(sp));
@@ -1168,7 +1237,7 @@ public class BlockStorageScheduler {
      * @param existingZoningMap -- StringSetMap
      * @return Map<Initiator, List<StoragePort>> existing assignment map with Objects
      */
-    Map<Initiator, List<StoragePort>> generateInitiatorsToStoragePortsMap(StringSetMap existingZoningMap, URI varray) {
+    public Map<Initiator, List<StoragePort>> generateInitiatorsToStoragePortsMap(StringSetMap existingZoningMap, URI varray) {
         Map<Initiator, List<StoragePort>> initiatorsToStoragePortsMap = new HashMap<Initiator, List<StoragePort>>();
         if (existingZoningMap == null) {
             return initiatorsToStoragePortsMap;
@@ -1798,7 +1867,7 @@ public class BlockStorageScheduler {
         }
 
         // Save the updated ExportMask
-        _dbClient.updateAndReindexObject(mask);
+        _dbClient.updateObject(mask);
     }
 
     /**
@@ -1817,6 +1886,7 @@ public class BlockStorageScheduler {
         // This check is needed for arrays with single storage HA domain
         return (!(system.getSystemType().equals(DiscoveredSystemObject.Type.scaleio.name()))
                 && !(system.getSystemType().equals(DiscoveredSystemObject.Type.xtremio.name()))
+                && !(system.getSystemType().equals(DiscoveredSystemObject.Type.ceph.name()))
                 && (HDSUtils.checkForAMSSeries(system) || HDSUtils.checkForHUSSeries(system)));
     }
 

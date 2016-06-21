@@ -432,7 +432,7 @@ public class BlockVirtualPools extends ViprResourceController {
     private static void error(BlockVirtualPoolForm vpool) {
         // Only flash vpool parameters to reduce amount stored in flash scope
         for (String param : params.all().keySet()) {
-            if (param.startsWith("vpool.")) {
+            if (param.startsWith("vpool.") && !StringUtils.equalsIgnoreCase(param, "vpool.rpCopiesJson")) {
                 params.flash(param);
             }
         }
@@ -462,18 +462,21 @@ public class BlockVirtualPools extends ViprResourceController {
         renderArgs.put("protocolsOptions", BlockProtocols.options(
                 BlockProtocols.FC,
                 BlockProtocols.iSCSI,
-                BlockProtocols.ScaleIO
+                BlockProtocols.ScaleIO,
+                BlockProtocols.RBD
                 ));
         renderArgs.put("systemTypeOptions", StorageSystemTypes.options(
                 StorageSystemTypes.NONE,
                 StorageSystemTypes.VMAX,
                 StorageSystemTypes.VNX_BLOCK,
                 StorageSystemTypes.VNXe,
+                StorageSystemTypes.UNITY,
                 StorageSystemTypes.HITACHI,
                 StorageSystemTypes.OPENSTACK,
                 StorageSystemTypes.SCALEIO,
                 StorageSystemTypes.XTREMIO,
-                StorageSystemTypes.IBMXIV
+                StorageSystemTypes.IBMXIV,
+                StorageSystemTypes.CEPH
                 ));
         renderArgs.put("driveTypeOptions", DriveTypes.options(
                 DriveTypes.NONE,

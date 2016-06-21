@@ -63,15 +63,23 @@ public class HttpRestClient {
         this.password = password;
     }
 
-    String request(String path) {
+    public HttpRestClient(String host, int port, String user, String password) {
+        this.scheme = "https";
+        this.host = host;
+        this.port = port;
+        this.user = user;
+        this.password = password;
+    }
+
+    public String request(String path) {
         return this.request(path, HttpRequestType.GET, null);
     }
 
-    String request(String path, HttpRequestType requestType) {
+    public String request(String path, HttpRequestType requestType) {
         return this.request(path, requestType, null);
     }
 
-    String request(String path, HttpRequestType requestType, String body) {
+    public String request(String path, HttpRequestType requestType, String body) {
         CloseableHttpClient client = null;
         try {
             // Authentication information setting.

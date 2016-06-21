@@ -57,7 +57,7 @@ public class ScaleIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
             if (initiatorURIs != null && !initiatorURIs.isEmpty()) {
                 // Set up workflow steps.
                 Workflow workflow = _workflowService.getNewWorkflow(
-                        MaskingWorkflowEntryPoints.getInstance(), "exportGroupCreate", true, token);
+                        MaskingWorkflowEntryPoints.getInstance(), "exportGroupCreate", true, token, null);
 
                 // Create a mapping of ExportMasks to Add Volumes to or
                 // add to a list of new Exports to create
@@ -129,7 +129,7 @@ public class ScaleIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
             if (initiatorURIs != null && !initiatorURIs.isEmpty()) {
                 // Set up workflow steps.
                 Workflow workflow = _workflowService.getNewWorkflow(
-                        MaskingWorkflowEntryPoints.getInstance(), "exportGroupAddInitiators", true, token);
+                        MaskingWorkflowEntryPoints.getInstance(), "exportGroupAddInitiators", true, token, null);
 
                 Map<String, URI> portNameToInitiatorURI = new HashMap<>();
                 List<URI> hostURIs = new ArrayList<>();
@@ -210,7 +210,7 @@ public class ScaleIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
             if (initiatorURIs != null && !initiatorURIs.isEmpty() && exportGroup.getExportMasks() != null) {
                 // Set up workflow steps.
                 Workflow workflow = _workflowService.getNewWorkflow(
-                        MaskingWorkflowEntryPoints.getInstance(), "exportGroupRemoveInitiators", true, token);
+                        MaskingWorkflowEntryPoints.getInstance(), "exportGroupRemoveInitiators", true, token, null);
 
                 // Create a mapping of ExportMask URI to initiators to remove
                 Map<URI, List<URI>> exportToInitiatorsToRemove = new HashMap<>();
@@ -330,7 +330,7 @@ public class ScaleIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
             if (initiatorURIs != null && !initiatorURIs.isEmpty()) {
                 // Set up workflow steps.
                 Workflow workflow = _workflowService.getNewWorkflow(
-                        MaskingWorkflowEntryPoints.getInstance(), "exportGroupAddVolumes", true, token);
+                        MaskingWorkflowEntryPoints.getInstance(), "exportGroupAddVolumes", true, token, null);
 
                 // Create a mapping of ExportMasks to Add Volumes to or
                 // add to a list of new Exports to create
@@ -399,7 +399,7 @@ public class ScaleIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
             if (masks != null && !masks.isEmpty()) {
                 // Set up workflow steps.
                 Workflow workflow = _workflowService.getNewWorkflow(
-                        MaskingWorkflowEntryPoints.getInstance(), "exportGroupRemoveVolumes", true, token);
+                        MaskingWorkflowEntryPoints.getInstance(), "exportGroupRemoveVolumes", true, token, null);
 
                 // Generate a list of Initiators
                 List<URI> initiatorURIs = StringSetUtil.stringSetToUriList(exportGroup.getInitiators());
@@ -465,7 +465,7 @@ public class ScaleIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
             List<ExportMask> masks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup, storageURI);
             if (masks != null && !masks.isEmpty()) {
                 Workflow workflow = _workflowService.getNewWorkflow(
-                        MaskingWorkflowEntryPoints.getInstance(), "exportGroupDelete", true, token);
+                        MaskingWorkflowEntryPoints.getInstance(), "exportGroupDelete", true, token, null);
 
                 Map<URI, Integer> volumeMap = ExportUtils.getExportGroupVolumeMap(_dbClient, storage, exportGroup);
                 List<URI> volumeURIs = new ArrayList<>(volumeMap.keySet());

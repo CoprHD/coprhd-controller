@@ -115,7 +115,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 // Set up workflow steps.
                 Workflow workflow = _workflowService.getNewWorkflow(
                         MaskingWorkflowEntryPoints.getInstance(), "exportGroupAddVolumes", true,
-                        token);
+                        token, null);
 
                 Collection<URI> initiatorIds = Collections2.transform(StringSetUtil.get(exportGroup.getInitiators()),
                         CommonTransformerFunctions.FCTN_STRING_TO_URI);
@@ -168,7 +168,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         logExportGroup(exportGroup, storageURI);
         // Set up workflow steps.
         Workflow workflow = _workflowService.getNewWorkflow(
-                MaskingWorkflowEntryPoints.getInstance(), "exportGroupAddInitiators", true, token);
+                MaskingWorkflowEntryPoints.getInstance(), "exportGroupAddInitiators", true, token, null);
         Map<URI, List<URI>> zoneMasksToInitiatorsURIs = new HashMap<URI, List<URI>>();
         Map<URI, Map<URI, Integer>> zoneNewMasksToVolumeMap = new HashMap<URI, Map<URI, Integer>>();
         Map<URI, ExportMask> refreshedMasks = new HashMap<URI, ExportMask>();
@@ -477,7 +477,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         // Set up workflow steps.
         Workflow workflow = _workflowService.getNewWorkflow(
                 MaskingWorkflowEntryPoints.getInstance(), "exportGroupRemoveInitiators", true,
-                token);
+                token, null);
 
         InitiatorHelper initiatorHelper = new InitiatorHelper(initiatorURIs).process(exportGroup);
 

@@ -17,7 +17,6 @@ import com.emc.storageos.db.client.constraint.ContainmentPermissionsConstraint;
 import com.emc.storageos.db.client.impl.ColumnField;
 import com.emc.storageos.db.client.impl.IndexColumnName;
 import com.emc.storageos.db.client.model.DataObject;
-import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
 /**
@@ -39,11 +38,6 @@ public class ContainmentPermissionsConstraintImpl extends ConstraintImpl impleme
         _indexKey = indexKey;
         _prefix = clazz.getSimpleName();
         _field = field;
-    }
-
-    @Override
-    public void setKeyspace(Keyspace keyspace) {
-        _keyspace = keyspace;
     }
 
     @Override

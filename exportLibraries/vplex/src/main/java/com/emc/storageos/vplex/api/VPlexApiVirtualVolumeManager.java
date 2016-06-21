@@ -722,9 +722,6 @@ public class VPlexApiVirtualVolumeManager {
         Map<VolumeInfo, VPlexStorageVolumeInfo> storageVolumeInfoMap = null;
         VPlexApiDiscoveryManager discoveryMgr = _vplexApiClient.getDiscoveryManager();
 
-        // Find if ITL based search needs to be done - Currently Cinder uses this
-        boolean isITLBasedLookUp = VPlexApiUtils.isITLBasedSearch(nativeVolumeInfoList.get(0));
-
         if (discoveryRequired) {
             s_logger.info("Storage volume discovery is required.");
             int retryCount = 0;
@@ -747,7 +744,7 @@ public class VPlexApiVirtualVolumeManager {
                     s_logger.info("Discovery completed");
 
                     // Get the cluster information.
-                    clusterInfoList.addAll(discoveryMgr.getClusterInfo(false, isITLBasedLookUp));
+                    clusterInfoList.addAll(discoveryMgr.getClusterInfo(false, true));
                     s_logger.info("Retrieved storage volume info for VPlex clusters");
 
                     // Find the back-end storage volumes. If a volume cannot be
@@ -776,7 +773,7 @@ public class VPlexApiVirtualVolumeManager {
 
             // Get the cluster information.
             if (clusterInfoList.isEmpty()) {
-                clusterInfoList.addAll(discoveryMgr.getClusterInfo(false, isITLBasedLookUp));
+                clusterInfoList.addAll(discoveryMgr.getClusterInfo(false, true));
                 s_logger.info("Retrieved storage volume info for VPlex clusters");
             }
 

@@ -68,6 +68,9 @@ function installJava
 
   update-alternatives --set java /usr/lib64/jvm/jre-1.${java}.0-openjdk/bin/java
   update-alternatives --set javac /usr/lib64/jvm/java-1.${java}.0-openjdk/bin/javac
+  if [ -f /usr/lib64/jvm/jre-1.${java}.0-openjdk/lib/security/java.security ]; then
+    sed -i s/'^jdk.certpath.disabledAlgorithms=.*'/'jdk.certpath.disabledAlgorithms=MD2 # remove MD5'/g /usr/lib64/jvm/jre-1.${java}.0-openjdk/lib/security/java.security
+  fi
 }
 
 function installNginx

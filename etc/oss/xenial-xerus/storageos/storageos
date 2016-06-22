@@ -1,0 +1,211 @@
+#!/bin/bash
+#
+# Copyright (c) 2012-2015 EMC Corporation
+# All Rights Reserved
+#
+# This software contains the intellectual property of EMC Corporation
+# or is licensed to EMC Corporation from third parties.  Use of this
+# software and the intellectual property contained therein is expressly
+# limited to the terms and conditions of the License Agreement under which
+# it is provided by or on behalf of EMC.
+#
+# /etc/storageos
+#
+# Service lifecycle management script for the @product_brand@ services
+#
+
+# Return values acc. to LSB for all commands but status:
+# 0 - success
+# 1 - generic or unspecified error
+# 2 - invalid or excess argument(s)
+# 3 - unimplemented feature (e.g. "reload")
+# 4 - insufficient privilege
+# 5 - program is not installed
+# 6 - program is not configured
+# 7 - program is not running
+# 
+# Note that starting an already running service, stopping
+# or restarting a not-running service as well as the restart
+# with force-reload (in case signalling is not supported) are
+# considered a success.
+
+
+# Source /etc/sysconfig/storageos and make the basic checks
+#
+case $(lsb_release -si) in
+    Ubuntu|Debian|Devuan)
+        DISTRO="debian"
+        ;;
+    CentOS|Fedora|RedHatEnterpriseServer)
+        DISTRO="fedora"
+        ;;
+    *SUSE*)
+        DISTRO="opensuse" # just keeping lower case to make it easy
+        ;;
+    *)
+        echo "$(lsb_release -si) is unknown distribution, exiting.."
+        ;;
+esac
+
+STORAGEOS_SYSCONFIG=${STORAGEOS_SYSCONFIG:-'/etc/sysconfig/storageos'}
+test -r "${STORAGEOS_SYSCONFIG}"       || exit 6
+. ${STORAGEOS_SYSCONFIG}
+
+STORAGEOS_DIR=${STORAGEOS_DIR:-'@product_prefix@'}
+test -d "${STORAGEOS_DIR}"             || exit 5
+
+STORAGEOS_LOGS=${STORAGEOS_LOGS:-"${STORAGEOS_DIR}/logs"}
+test -d "${STORAGEOS_LOGS}"            || exit 6
+
+SYSTEMCTL=/usr/bin/systemctl
+[[ "$DISTRO" != "debian" && ! -x "${SYSTEMCTL}" ]] && exit 6
+
+export PRODUCT_HOME="${STORAGEOS_DIR}"
+export PLATFORM="linux"
+
+
+_checkConfigurable() {
+    /etc/getovfproperties --is-vapp
+    if [ $? -eq 0 ]; then
+        echo -e "\n\e[1;31m***\n*** VMware vApp network configuration can not be altered using ViPR Installer.\n*** Please power off the vApp and use vSphere Client to edit network properties.\n***\n*** Press any key to power off this VM\n***\e[0m"
+        read -n 1
+        /etc/systool --poweroff
+    fi
+}
+
+_startsvc() {
+	if [[ "$DISTRO" == "debian" ]]; then
+		_checkactive ${1} || start storageos-${1}
+	else
+		_checkactive ${1} || ${SYSTEMCTL} start storageos-${1}.service
+	fi
+}
+
+_checksvc() {
+	if [[ "$DISTRO" == "debian" ]]; then
+		sudo status storageos-${1}
+	else
+    	${SYSTEMCTL} -n 0 status storageos-${1}.service
+	fi
+}
+
+_killsvc() {
+	if [[ "$DISTRO" == "debian" ]]; then
+		sudo stop storageos-${1}
+	else
+		${SYSTEMCTL} stop storageos-${1}.service
+	fi
+}
+
+# Enable service autostart during boot
+_enablesvc() {
+	if [[ "$DISTRO" == "debian" ]]; then
+		sudo rm -f /etc/init/storageos-${1}.override
+	else
+		${SYSTEMCTL} enable storageos-${1}.service
+	fi
+}
+
+# Disable service autostart during boot
+_disablesvc() {
+	if [[ "$DISTRO" == "debian" ]]; then
+		echo manual | sudo tee /etc/init/storageos-${1}.override
+	else
+		${SYSTEMCTL} disable storageos-${1}.service
+	fi
+}
+
+_checkactive() {
+	if [[ "$DISTRO" == "debian" ]]; then
+		local status=$(sudo status storageos-${1} | nawk '{print $2;}')
+    	[[ ${status} == "start/running," ]] || return 1
+	else
+		local status=$(${SYSTEMCTL} is-active storageos-${1}.service)
+		[ ${status} == "active" ] || return 1
+	fi
+}
+
+# Start services 
+_start_services() {
+    if [ "${STORAGEOS_BOOT_MODE}" != "normal" ]; then
+        _checkConfigurable
+        exit
+    fi
+
+	
+	# this is really not needed for single machine, development environments
+    [[ "$DISTRO" != "debian" ]] && /etc/storageos/ipchecktool --panic
+
+    echo -n "Starting @product_brand@ ${STORAGEOS_VARIANT} services "
+    for svc in @systemd_storageos@ ; do
+        _startsvc ${svc}
+        echo -n "."
+    done
+    echo " Done"
+} 
+
+# Stop services
+_stop_services() {
+    echo -n "Stopping @product_brand@ ${STORAGEOS_VARIANT} services "
+    for svc in @systemd_storageos@ ; do
+        _killsvc ${svc}
+        echo -n "."
+    done
+    echo " Done"
+}
+
+_set_variant() {
+    sed -i "s,STORAGEOS_VARIANT=\"[a-z\-]*\",STORAGEOS_VARIANT=\"${STORAGEOS_VARIANT}\",g" ${STORAGEOS_SYSCONFIG}
+}
+
+# Actions
+#
+case ${1} in
+start)
+    STORAGEOS_VARIANT=""
+    _set_variant
+    _start_services
+    ;;
+startcoverage)
+    STORAGEOS_VARIANT="-coverage"
+    _set_variant 
+    _start_services
+    ;;
+api)
+    echo -n "Starting @product_brand@ api services"
+    for svc in auth coordinator db geodb api geo ; do
+        _startsvc ${svc}
+    done
+    ;;
+controller)
+    echo -n "Starting @product_brand@ controller service"
+    _startsvc controller
+    ;;
+stop)
+    _stop_services
+    ;;
+status)
+    for svc in @systemd_storageos@ ; do
+        _checksvc ${svc}
+    done
+    ;;
+restart)
+    $0 stop
+    $0 start
+    ;;
+enable)
+    for svc in @systemd_storageos@ ; do
+       _enablesvc ${svc}
+    done
+    ;;
+disable)
+    for svc in @systemd_storageos@ ; do
+       _disablesvc ${svc}
+    done
+    ;;
+*)
+    echo "Usage: $0 [ start | startcoverage | stop | status | restart | api | controller | enable | disable ]"
+    exit 7
+esac
+
+

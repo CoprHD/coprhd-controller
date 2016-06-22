@@ -1,0 +1,124 @@
+#!/bin/bash
+#
+# Copyright (c) 2012 EMC Corporation
+# All Rights Reserved
+#
+# This software contains the intellectual property of EMC Corporation
+# or is licensed to EMC Corporation from third parties.  Use of this
+# software and the intellectual property contained therein is expressly
+# limited to the terms and conditions of the License Agreement under which
+# it is provided by or on behalf of EMC.
+#
+# /etc/init.d/boot.ovfenv
+#
+# Boot time script to populate timezone and network configuration files
+# using parameters provided in ovf-env.xml 
+#
+### BEGIN INIT INFO
+# Provides:          boot.ovfenv
+# Required-Start:    boot.localfs
+# Required-Stop:
+# Should-Stop:
+# Default-Start:     B
+# Default-Stop:
+# Description:       Initialize configuration files using ovf-env.xml
+### END INIT INFO
+
+# Source /etc/sysconfig/storageos 
+#
+STORAGEOS_SYSCONFIG=${STORAGEOS_SYSCONFIG:-'/etc/sysconfig/storageos'}
+test -r "${STORAGEOS_SYSCONFIG}"       || exit 6
+. ${STORAGEOS_SYSCONFIG}
+
+. /etc/rc.status
+
+rc_reset
+
+_checkConfigurable() {
+    /etc/getovfproperties --is-vapp
+    if [ $? -eq 0 ]; then
+        echo -e "\n\e[1;31m***\n*** VMware vApp network configuration can not be altered using ViPR Installer.\n*** Please power off the vApp and use vSphere Client to edit network properties.\n***\n*** Press any key to power off this VM\n***\e[0m"
+        read -n 1
+        /etc/systool --poweroff
+        exit
+    fi
+}
+
+_set_storageos_variable() {
+    sed -i "s,${1}=\"[a-z\-]*\",${1}=\"${2}\",g" ${STORAGEOS_SYSCONFIG}
+}
+
+_setSysconfigEnv() {
+
+    /sbin/findfs UUID="3c426f75-726e-6520-2f6f-7666656e763e" >/dev/null 2>&1 && STORAGEOS_BOOT_MODE=config
+
+    for arg in $(</proc/cmdline) ; do
+        case ${arg} in
+            boot_mode=*) STORAGEOS_BOOT_MODE="${arg#*=}" ;;
+            dev_mode=*) STORAGEOS_DEV_MODE="${arg#*=}" ;;
+            ipreconfig_mode=*) STORAGEOS_IPRECONFIG_MODE="${arg#*=}" ;;
+        esac
+    done
+
+    _set_storageos_variable STORAGEOS_IPRECONFIG_MODE ${STORAGEOS_IPRECONFIG_MODE}
+    _set_storageos_variable STORAGEOS_DEV_MODE ${STORAGEOS_DEV_MODE}
+    _set_storageos_variable STORAGEOS_BOOT_MODE ${STORAGEOS_BOOT_MODE}
+}
+
+_setBootmodeFlag() {
+   local run_root_dir=/var/run/storageos
+   if [ ! -d ${run_root_dir} ]; then
+       mkdir ${run_root_dir}
+       chown storageos:storageos ${run_root_dir}
+       chmod 0755 ${run_root_dir}
+   fi
+   touch ${run_root_dir}/bootmode_normal
+}
+
+# Add user svcuser if it does not exist
+_add_svcuser() {
+    getent passwd svcuser >&/dev/null || useradd svcuser -c "Appliance Maintenance" -d /home/svcuser -m
+    usermod svcuser -u 1001 -s /usr/bin/rbash
+    chmod 750 /home/svcuser
+    chmod 640 /home/svcuser/.bashrc
+}
+
+# Add user and group storageos if they do not exist
+_add_storageos() {
+    getent group  storageos >&/dev/null || groupadd -g 444 storageos
+    getent passwd storageos >&/dev/null || useradd -r -d /opt/storageos -c "StorageOS"   -g 444 -u 444 -s /bin/bash storageos
+}
+
+_addGroupAndUser() {
+    _add_svcuser
+    _add_storageos
+}
+
+case ${1} in
+    start|restart|reload)
+        echo -n "Initializing storageos environment variables"
+        _setSysconfigEnv
+        # create a flag file for normal boot mode. Some services should
+        # be skipped during boot for config/redeploy mode
+        if [ "${STORAGEOS_BOOT_MODE}" == "normal" ]; then
+            _setBootmodeFlag  
+        fi
+        echo -n "Adding group and user accounts"
+        _addGroupAndUser
+        echo -n "Initializing configuration properties"
+        /etc/systool --initializeprops 2>>/var/log/genconfig.log || rc_failed 1
+        rc_status -v
+        echo -n "Generating configuration files"
+        /etc/systool --getprops | /etc/genconfig --test 2>>/var/log/genconfig.log || rc_failed 1
+        rc_status -v
+        ;;
+    stop|status)
+        rc_failed 0
+        ;;
+    *)
+        echo "Usage: $0 {start|stop|restart|status|reload}"
+        exit 1
+esac
+
+rc_exit
+

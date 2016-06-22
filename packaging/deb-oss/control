@@ -1,0 +1,8 @@
+Package: <<package>>
+Version: <<version>>
+Architecture: <<architecture>>
+Maintainer: root <root@coprhdu>
+Section: alien
+Priority: extra
+Description: <<description>>
+ ViPR services

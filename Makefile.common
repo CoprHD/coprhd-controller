@@ -17,7 +17,13 @@
 
 # Shell used by make to exectute commands (must be first)
 #
+ifeq ($(OS_DISTRO),trusty-tahr)
+                     SHELL = /bin/bash
+else ifeq ($(OS_DISTRO),xenial-xerus)
+                     SHELL = /bin/bash
+else
                      SHELL = /bin/sh
+endif
 
 # These variables make things verbose or not
 #
@@ -43,11 +49,18 @@ else
     # if BUILD_TYPE=oss not supplied on make command line we will default to EMC mode build
     BUILD_TYPE = emc
     GRADLE = ./gradlew --info
-endif 
+endif
+
+# OS_DISTRO must be defined. Otherwise Gradle build will fail.
+ifndef $(OS_DISTRO)
+    # if OS_TYPE=oss not supplied on make command line we will default to EMC mode build
+    OS_DISTRO = suse
+endif
 
 # Define Gradle Property to pass on Gradle command line
 # 
       BUILD_TYPE_PROPERTY := -PbuildType=$(BUILD_TYPE)
+      OS_DISTRO_PROPERTY := -PosDistro=$(OS_DISTRO)
 
 # The distributionUrl in the properties file for the gradle-wrapper 
 # needs to be set based on BUILD_TYPE.  To avoid modifying a file
@@ -112,7 +125,13 @@ endif
                     MOUNT := /bin/mount
                    UMOUNT := /bin/umount
                     TOUCH := /usr/bin/touch
+ifeq ($(OS_DISTRO),trusty-tahr)
+                      SED := /bin/sed
+else ifeq ($(OS_DISTRO),xenial-xerus)
+                      SED := /bin/sed
+else
                       SED := /usr/bin/sed
+endif
                       AWK := /usr/bin/awk
                    PYTHON := /usr/bin/python
                       CMP := /usr/bin/cmp

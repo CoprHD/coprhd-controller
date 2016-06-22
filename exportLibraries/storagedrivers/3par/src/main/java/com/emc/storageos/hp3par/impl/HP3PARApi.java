@@ -6,6 +6,7 @@ package com.emc.storageos.hp3par.impl;
 
 import java.net.URI;
 import java.text.MessageFormat;
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.ws.rs.core.MultivaluedMap;
@@ -834,6 +835,43 @@ public class HP3PARApi {
             _log.info("3PARDriver:deleteVlun leave");
         } //end try/catch/finally
     }    
+
+    public void createHost(String name, ArrayList<String> portIds, Integer persona) throws Exception {
+        _log.info("3PARDriver:createHost enter");
+        ClientResponse clientResp = null;
+        String portIdstr = "[";
+        
+        for (String Id:portIds) {
+            if (portIdstr.length() > 1 ) {
+                portIdstr = portIdstr.concat(",");
+            }
+            portIdstr = portIdstr.concat("\"" + Id + "\"");
+        }
+        portIdstr = portIdstr.concat("]");
+        
+        String body = "{\"name\":\"" + name + "\", \"FCWWNs\":" + portIdstr + 
+                 ", \"persona\":" + persona.toString() + "}";
+        try {
+            clientResp = post(URI_HOSTS, body);
+            if (clientResp == null) {
+                _log.error("3PARDriver:There is no response from 3PAR");
+                throw new HP3PARException("There is no response from 3PAR");
+            } else if (clientResp.getStatus() != 201) {
+                String errResp = getResponseDetails(clientResp);
+                throw new HP3PARException(errResp);
+            } else {
+                String responseString = getHeaderFieldValue(clientResp, "Location");
+                _log.info("3PARDriver:createHost 3PAR response is Location: {}", responseString);
+            }
+        } catch (Exception e) {
+            throw e;
+        } finally {
+            if (clientResp != null) {
+                clientResp.close();
+            }
+            _log.info("3PARDriver:createHost leave");
+        } //end try/catch/finally
+    }
 
     private CompleteError getCompleteResponseDetails(ClientResponse clientResp) {
         String detailedResponse = null, ref=null;

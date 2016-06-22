@@ -6,6 +6,8 @@ package com.emc.storageos.hp3par.connection;
 
 import java.io.IOException;
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -202,7 +204,12 @@ public class HP3PARApiFactory {
 //        HostSetDetailsCommandResult hostsetRes = hp3parApi.getHostSetDetails("LGLBW015_016");
 //        HostMember hostRes = hp3parApi.getHostDetails("LGLBW015");
 //        VirtualLunsList vlunRes = hp3parApi.getAllVlunDetails();
-        hp3parApi.deleteVlun("One_Thin30", "10", "LGLOE199", "1:1:1");
+//        hp3parApi.deleteVlun("One_Thin30", "10", "LGLOE199", "1:1:1");
+        ArrayList<String> portIds = new ArrayList<>();
+        portIds.add("1111222233334444");
+        portIds.add("1111222233334445");
+        portIds.add("1111222233334446");
+        hp3parApi.createHost("myhost4", portIds, 4);
         
         
         int a=0; a++; System.out.println(a);

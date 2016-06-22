@@ -39,6 +39,7 @@ import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportOrchestrationTask;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SnapshotWorkflowEntryPoints;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
+import com.emc.storageos.volumecontroller.impl.xiv.XIVRestOperationsHelper;
 import com.emc.storageos.workflow.Workflow;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
@@ -60,6 +61,12 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
     private static final AtomicReference<BlockStorageDevice> XIV_BLOCK_DEVICE = new AtomicReference<BlockStorageDevice>();
     public static final String XIV_SMIS_DEVICE = "xivSmisDevice";
     public static final String DEFAULT_LABEL = "Default";
+
+    private XIVRestOperationsHelper _restHelper;
+
+    public void setRestOperationsHelper(XIVRestOperationsHelper helper) {
+        _restHelper = helper;
+    }
 
     @Override
     public BlockStorageDevice getDevice() {
@@ -95,9 +102,8 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 // Add the volume to all the ExportMasks that are contained in the
                 // ExportGroup. The volumes should be added only if they don't
                 // already exist for the ExportMask.
-                Collection<URI> initiatorURIs =
-                        Collections2.transform(exportGroup.getInitiators(),
-                                CommonTransformerFunctions.FCTN_STRING_TO_URI);
+                Collection<URI> initiatorURIs = Collections2.transform(exportGroup.getInitiators(),
+                        CommonTransformerFunctions.FCTN_STRING_TO_URI);
                 List<URI> hostURIs = new ArrayList<URI>();
                 Map<String, URI> portNameToInitiatorURI = new HashMap<String, URI>();
                 List<String> portNames = new ArrayList<String>();
@@ -108,6 +114,9 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 queryHostInitiatorsAndAddToList(portNames, portNameToInitiatorURI,
                         initiatorURIs, hostURIs);
                 Map<String, Set<URI>> foundMatches = device.findExportMasks(storage, portNames, false);
+                // Need to maintain separate Export mask for Cluster and Host.
+                // So remove off the Export mask not matching to the Export Group.
+                filterExportMaskForGroup(exportGroup, foundMatches);
                 Set<String> checkMasks = mergeWithExportGroupMaskURIs(exportGroup, foundMatches.values());
                 for (String maskURIStr : checkMasks) {
                     ExportMask exportMask = _dbClient.queryObject(ExportMask.class,
@@ -144,9 +153,8 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                                     existingVolumesInMask.containsValue(requestedHLU.toString())) {
                                 ExportOrchestrationTask completer = new ExportOrchestrationTask(
                                         exportGroup.getId(), token);
-                                ServiceError serviceError =
-                                        DeviceControllerException.errors.
-                                                exportHasExistingVolumeWithRequestedHLU(boURI.toString(), requestedHLU.toString());
+                                ServiceError serviceError = DeviceControllerException.errors
+                                        .exportHasExistingVolumeWithRequestedHLU(boURI.toString(), requestedHLU.toString());
                                 completer.error(_dbClient, serviceError);
                                 return;
                             }
@@ -162,10 +170,10 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
                             // Make sure the zoning map is getting updated for user-created masks
                             updateZoningMap(exportGroup, exportMask, true);
-                            
+
                             // Update volumeMap to find the next HLU here.
                             updateVolumeHLU(storage, initiatorURIs, exportGroup, volumesToAdd);
-                            
+
                             generateExportMaskAddVolumesWorkflow(workflow, EXPORT_GROUP_ZONING_TASK, storage,
                                     exportGroup, exportMask, volumesToAdd);
                             anyVolumesAdded = true;
@@ -192,12 +200,10 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     if (!ExportMaskUtils.hasExportMaskForStorage(_dbClient,
                             exportGroup, storageURI) && exportGroup.hasInitiators()) {
                         _log.info("No existing masks to which the requested volumes can be added. Creating a new mask");
-                        List<URI> initiators =
-                                StringSetUtil.stringSetToUriList(exportGroup.getInitiators());
+                        List<URI> initiators = StringSetUtil.stringSetToUriList(exportGroup.getInitiators());
 
-                        attachGroupSnapshot =
-                                checkForSnapshotsToCopyToTarget(workflow, storage,
-                                        null, volumeMap, null);
+                        attachGroupSnapshot = checkForSnapshotsToCopyToTarget(workflow, storage,
+                                null, volumeMap, null);
 
                         Map<URI, List<URI>> hostInitiatorMap = new HashMap<URI, List<URI>>();
                         for (URI newExportMaskInitiator : initiators) {
@@ -322,8 +328,10 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 initiatorURIs, hostURIs);
 
         boolean anyOperationsToDo = false;
-        Map<String, Set<URI>> matchingExportMaskURIs =
-                device.findExportMasks(storage, portNames, false);
+        Map<String, Set<URI>> matchingExportMaskURIs = device.findExportMasks(storage, portNames, false);
+        // Need to maintain separate Export mask for Cluster and Host.
+        // So remove off the Export mask not matching to the Export Group.
+        filterExportMaskForGroup(exportGroup, matchingExportMaskURIs);
         if (!matchingExportMaskURIs.isEmpty()) {
             // There were some exports out there that already have some or all of the
             // initiators that we are attempting to add. We need to only add
@@ -479,9 +487,8 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             _log.info(String.format("existingMasksToUpdateWithNewVolumes.size = %d",
                     existingMasksToUpdateWithNewVolumes.size()));
 
-            String attachGroupSnapshot =
-                    checkForSnapshotsToCopyToTarget(workflow, storage, null,
-                            volumeMap, existingMasksToUpdateWithNewVolumes.values());
+            String attachGroupSnapshot = checkForSnapshotsToCopyToTarget(workflow, storage, null,
+                    volumeMap, existingMasksToUpdateWithNewVolumes.values());
 
             // At this point we have a mapping of all the masks that we need to update with new volumes
             // stepMap [URI, String] => [Export Mask URI, StepId of previous task i.e. Add volumes work flow.]
@@ -564,8 +571,7 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     if (mask != null && !mask.getInactive()
                             && mask.getStorageDevice().equals(storageURI)
                             && mask.getCreatedBySystem()) {
-                        List<URI> newInitiators =
-                                hostInitiatorMap.get(mask.getResource());
+                        List<URI> newInitiators = hostInitiatorMap.get(mask.getResource());
                         if (newInitiators != null && !newInitiators.isEmpty()) {
                             zoneMasksToInitiatorsURIs.put(maskURI, newInitiators);
 
@@ -583,9 +589,9 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
                 for (String host : hostInitiatorMap.keySet()) {
                     // Zoning is done for the new masks identified i.e. zoneNewMasksToVolumeMap.
-                    GenExportMaskCreateWorkflowResult result =
-                            generateDeviceSpecificExportMaskCreateWorkFlow(workflow, EXPORT_GROUP_ZONING_TASK, storage, exportGroup,
-                                    hostInitiatorMap.get(host), volumeMap, token);
+                    GenExportMaskCreateWorkflowResult result = generateDeviceSpecificExportMaskCreateWorkFlow(workflow,
+                            EXPORT_GROUP_ZONING_TASK, storage, exportGroup,
+                            hostInitiatorMap.get(host), volumeMap, token);
                     zoneNewMasksToVolumeMap.put(result.getMaskURI(), volumeMap);
                     anyOperationsToDo = true;
                 }
@@ -647,7 +653,7 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         // existing exports for a given host.
         queryHostInitiatorsAndAddToList(portNames, portNameToInitiatorURI,
                 initiatorURIs, hostURIs);
-        
+
         // Update volumeMap to find the next HLU here.
         updateVolumeHLU(storage, initiatorURIs, exportGroup, volumeMap);
 
@@ -655,10 +661,12 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         // portNames. We will have to do processing differently based on whether
         // or there is an existing ExportMasks.
         Map<String, Set<URI>> matchingExportMaskURIs = device.findExportMasks(storage, portNames, false);
+        // Need to maintain separate Export mask for Cluster and Host.
+        // So remove off the Export mask not matching to the Export Group.
+        filterExportMaskForGroup(exportGroup, matchingExportMaskURIs);
         if (matchingExportMaskURIs.isEmpty()) {
-            String attachGroupSnapshot =
-                    checkForSnapshotsToCopyToTarget(workflow, storage, previousStep,
-                            volumeMap, null);
+            String attachGroupSnapshot = checkForSnapshotsToCopyToTarget(workflow, storage, previousStep,
+                    volumeMap, null);
 
             _log.info(String.format("No existing mask found w/ initiators { %s }", Joiner.on(",")
                     .join(portNames)));
@@ -666,8 +674,9 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         } else {
             _log.info(String.format("Mask(s) found w/ initiators {%s}. "
                     + "MatchingExportMaskURIs {%s}, portNameToInitiators {%s}", Joiner.on(",")
-                    .join(portNames), Joiner.on(",").join(matchingExportMaskURIs.keySet()), Joiner
-                    .on(",").join(portNameToInitiatorURI.entrySet())));
+                            .join(portNames),
+                    Joiner.on(",").join(matchingExportMaskURIs.keySet()), Joiner
+                            .on(",").join(portNameToInitiatorURI.entrySet())));
             // There are some initiators that already exist. We need to create a
             // workflow that create new masking containers or updates masking
             // containers as necessary.
@@ -775,9 +784,8 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                                     existingVolumesInMask.containsValue(requestedHLU.toString())) {
                                 ExportOrchestrationTask completer = new ExportOrchestrationTask(
                                         exportGroup.getId(), token);
-                                ServiceError serviceError =
-                                        DeviceControllerException.errors.
-                                                exportHasExistingVolumeWithRequestedHLU(boURI.toString(), requestedHLU.toString());
+                                ServiceError serviceError = DeviceControllerException.errors
+                                        .exportHasExistingVolumeWithRequestedHLU(boURI.toString(), requestedHLU.toString());
                                 completer.error(_dbClient, serviceError);
                                 return false;
                             }
@@ -835,9 +843,8 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             _log.info(String.format("existingMasksToUpdateWithNewVolumes.size = %d",
                     existingMasksToUpdateWithNewVolumes.size()));
 
-            String attachGroupSnapshot =
-                    checkForSnapshotsToCopyToTarget(workflow, storage, previousStep,
-                            volumeMap, existingMasksToUpdateWithNewVolumes.values());
+            String attachGroupSnapshot = checkForSnapshotsToCopyToTarget(workflow, storage, previousStep,
+                    volumeMap, existingMasksToUpdateWithNewVolumes.values());
 
             // At this point we have the necessary data structures populated to
             // determine the workflow steps. We are going to create new masks
@@ -848,8 +855,7 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     // the host. If there is we will need to add these intiators
                     // associated with that host to the list
                     if (hostToExistingExportMaskMap.containsKey(hostID)) {
-                        URI existingExportMaskURI =
-                                hostToExistingExportMaskMap.get(hostID);
+                        URI existingExportMaskURI = hostToExistingExportMaskMap.get(hostID);
                         Set<Initiator> toAddInits = new HashSet<Initiator>();
                         List<URI> hostInitaitorList = hostInitiatorMap.get(hostID);
                         for (URI initURI : hostInitaitorList) {
@@ -901,6 +907,29 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         return true;
     }
 
+    private void filterExportMaskForGroup(ExportGroup exportGroup, Map<String, Set<URI>> matchingExportMaskURIs) {
+        if (null != matchingExportMaskURIs && !matchingExportMaskURIs.isEmpty()) {
+            Set<String> portNames = new HashSet<String>();
+            Iterator<Entry<String, Set<URI>>> emITR = matchingExportMaskURIs.entrySet().iterator();
+            while (emITR.hasNext()) {
+                Entry<String, Set<URI>> exprotMaskURI = emITR.next();
+                Set<URI> uris = exprotMaskURI.getValue();
+                for (URI uri : uris) {
+                    List<ExportGroup> exportGroups = ExportUtils.getExportGroupsForMask(uri, _dbClient);
+                    if (!exportGroups.contains(exportGroup)) {
+                        uris.remove(uri);
+                    }
+                }
+                if (uris.isEmpty()) {
+                    portNames.add(exprotMaskURI.getKey());
+                }
+            }
+            for (String portName : portNames) {
+                matchingExportMaskURIs.remove(portName);
+            }
+        }
+    }
+
     /**
      * Method creates a workflow step for copying snapshots to the target devices,
      * so that they can be exported.
@@ -922,17 +951,15 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     Map<URI, Integer> volumeMap,
                     Collection<Map<URI, Integer>> volumesToAdd) {
         String step = previousStep;
-        ListMultimap<String, URI> snaps =
-                getBlockSnapshotsRequiringCopyToTarget(volumeMap, volumesToAdd);
+        ListMultimap<String, URI> snaps = getBlockSnapshotsRequiringCopyToTarget(volumeMap, volumesToAdd);
         if (snaps != null && !snaps.isEmpty()) {
             for (Map.Entry<String, Collection<URI>> entries : snaps.asMap().entrySet()) {
                 List<URI> snapshots = new ArrayList<URI>();
                 snapshots.addAll(entries.getValue());
                 _log.info(String.format("Need to run copy-to-target snapshots in snap set %s:%n%s",
                         entries.getKey(), Joiner.on(',').join(snapshots)));
-                step = SnapshotWorkflowEntryPoints.
-                        generateCopySnapshotsToTargetWorkflow(workflow, step,
-                                storageSystem, snapshots);
+                step = SnapshotWorkflowEntryPoints.generateCopySnapshotsToTargetWorkflow(workflow, step,
+                        storageSystem, snapshots);
             }
         } else {
             _log.info("There are no block snapshots that require copy-to-target.");
@@ -972,8 +999,7 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
             BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, uri);
             if (snapshot != null && snapshot.getNeedsCopyToTarget()) {
-                String label = (Strings.isNullOrEmpty(snapshot.getSnapsetLabel())) ?
-                        DEFAULT_LABEL : snapshot.getSnapsetLabel();
+                String label = (Strings.isNullOrEmpty(snapshot.getSnapsetLabel())) ? DEFAULT_LABEL : snapshot.getSnapsetLabel();
                 snapLabelToSnapURIs.put(label, uri);
             }
         }
@@ -991,25 +1017,32 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
         List<String> newSteps = new ArrayList<>();
         if (!initiatorURIs.isEmpty()) {
-            Map<String, List<URI>> computeResourceToInitiators = mapInitiatorsToComputeResource(
-                    exportGroup, initiatorURIs);
-            for (Map.Entry<String, List<URI>> resourceEntry : computeResourceToInitiators
-                    .entrySet()) {
-                String computeKey = resourceEntry.getKey();
-                List<URI> computeInitiatorURIs = resourceEntry.getValue();
-                _log.info(String.format("New export masks for %s", computeKey));
-                GenExportMaskCreateWorkflowResult result =
-                        generateDeviceSpecificExportMaskCreateWorkFlow(workflow, previousStep, storage, exportGroup,
-                                computeInitiatorURIs, volumeMap, token);
-                // Run the creates sequentially. There could be some issues with database consistency if
-                // masking operations are run in parallel as calls get interleaved against the provider.
+            List<Initiator> initiators = _dbClient.queryObject(Initiator.class, initiatorURIs);
+            if (_restHelper.isClusteredHost(storage, initiators)) {
+                _log.info(String.format("New export masks for %s", exportGroup.getLabel()));
+                GenExportMaskCreateWorkflowResult result = generateDeviceSpecificExportMaskCreateWorkFlow(workflow, previousStep, storage,
+                        exportGroup, initiatorURIs, volumeMap, token);
                 previousStep = result.getStepId();
+            } else {
+                Map<String, List<URI>> computeResourceToInitiators = mapInitiatorsToComputeResource(
+                        exportGroup, initiatorURIs);
+                for (Map.Entry<String, List<URI>> resourceEntry : computeResourceToInitiators
+                        .entrySet()) {
+                    String computeKey = resourceEntry.getKey();
+                    List<URI> computeInitiatorURIs = resourceEntry.getValue();
+                    _log.info(String.format("New export masks for %s", computeKey));
+                    GenExportMaskCreateWorkflowResult result = generateDeviceSpecificExportMaskCreateWorkFlow(workflow, previousStep,
+                            storage, exportGroup, computeInitiatorURIs, volumeMap, token);
+                    // Run the creates sequentially. There could be some issues with database consistency if
+                    // masking operations are run in parallel as calls get interleaved against the provider.
+                    previousStep = result.getStepId();
+                }
             }
         }
         newSteps.add(previousStep);
         return newSteps;
     }
-    
+
     /**
      * Finds Next available HLU for the Host/Hosts (Cluster) and updates the
      * volume Map to the next HLU reference if user has chosen system to decide on HLU number
@@ -1023,7 +1056,8 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
      * @param volumeMap
      *            Volume and HLU mapping.
      */
-    private void updateVolumeHLU(StorageSystem system, Collection<URI> initiatorURIs, ExportGroup exportGroup, Map<URI, Integer> volumeMap) {
+    private void updateVolumeHLU(StorageSystem system, Collection<URI> initiatorURIs, ExportGroup exportGroup,
+            Map<URI, Integer> volumeMap) {
         boolean findHLU = false;
         Map<String, List<URI>> computeResourceToInitiators = mapInitiatorsToComputeResource(exportGroup, initiatorURIs);
         Set<String> hostURISet = computeResourceToInitiators.keySet();
@@ -1031,20 +1065,20 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         for (String hostURI : hostURISet) {
             hostURIs.add(URI.create(hostURI));
         }
-        //Loop through the volume entries to see if there is a request for Auto HLU.
+        // Loop through the volume entries to see if there is a request for Auto HLU.
         for (Entry<URI, Integer> volumeMapEntry : volumeMap.entrySet()) {
             if (volumeMapEntry.getValue() == -1) {
                 findHLU = true;
                 break;
             }
         }
-        //If auto HLU then start finding out the next HLU
+        // If auto HLU then start finding out the next HLU
         if (findHLU && !volumeMap.isEmpty()) {
             BlockStorageDevice device = getDevice();
-            Map<URI, List<String>> hostToHLUsMap = device.doFindHostHLUs(system, hostURIs, null);
+            Map<URI, List<String>> hostToHLUsMap = device.doFindHostHLUs(system, hostURIs);
             Iterator<Entry<URI, List<String>>> hostToHLUsItr = hostToHLUsMap.entrySet().iterator();
             Set<String> commonHLUs = new HashSet<String>();
-            //Get the list of available HLU on array and then add that to the Set of common HLU
+            // Get the list of available HLU on array and then add that to the Set of common HLU
             while (hostToHLUsItr.hasNext()) {
                 Entry<URI, List<String>> hostHLUs = hostToHLUsItr.next();
                 commonHLUs.addAll(hostHLUs.getValue());

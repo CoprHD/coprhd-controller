@@ -1054,8 +1054,7 @@ public interface BlockStorageDevice {
      * 
      * @param system StorageSystem on which HLU needs to be determined
      * @param hostURIs List of Host URIs. Cluster export will have more than one hosts
-     * @param completer A reference to the task completer.
      * @throws DeviceControllerException
      */
-    public Map<URI, List<String>> doFindHostHLUs(StorageSystem storage, List<URI> hostURIs, TaskCompleter completer) throws DeviceControllerException;
+    public Map<URI, List<String>> doFindHostHLUs(StorageSystem storage, List<URI> hostURIs) throws DeviceControllerException;
 }

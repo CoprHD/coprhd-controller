@@ -34,6 +34,7 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
@@ -593,55 +594,22 @@ public class XIVExportOperations implements ExportMaskOperations {
                         matchingInitiators.add(port);
                     }
                 }
+                
                 builder.append(String.format("XM:%s I:{%s}%n", name, Joiner.on(',').join(initiatorPorts)));
                 if (!matchingInitiators.isEmpty()) {
                     // Look up ExportMask by deviceId/name and storage URI
-                    boolean foundMaskInDb = false;
                     ExportMask exportMask = null;
                     URIQueryResultList uriQueryList = new URIQueryResultList();
                     _dbClient.queryByConstraint(AlternateIdConstraint.Factory
                             .getExportMaskByNameConstraint(name), uriQueryList);
                     while (uriQueryList.iterator().hasNext()) {
                         URI uri = uriQueryList.iterator().next();
-                        exportMask = _dbClient.queryObject(ExportMask.class,
-                                uri);
-                        if (exportMask != null
-                                && !exportMask.getInactive()
-                                && exportMask.getStorageDevice().equals(
-                                        storage.getId())) {
-                            foundMaskInDb = true;
-                            // We're expecting there to be only one export mask
-                            // of a
-                            // given name for any storage array.
+                        exportMask = _dbClient.queryObject(ExportMask.class, uri);
+                        if (exportMask != null && !exportMask.getInactive() && exportMask.getStorageDevice().equals(storage.getId())) {
+                        	ExportMaskUtils.sanitizeExportMaskContainers(_dbClient, exportMask);
+                            _dbClient.updateAndReindexObject(exportMask);
+                            // We're expecting there to be only one export mask of a given name for any storage array.
                             break;
-                        }
-                    }
-                    // If there was no export mask found in the database,
-                    // then create a new one
-                    if (!foundMaskInDb) {
-                        exportMask = new ExportMask();
-                        exportMask.setLabel(name);
-                        exportMask.setMaskName(name);
-                        exportMask.setNativeId(deviceId);
-                        exportMask.setStorageDevice(storage.getId());
-                        exportMask.setId(URIUtil.createId(ExportMask.class));
-                        exportMask.setCreatedBySystem(false);
-
-                        // Grab the storage ports that have been allocated for this existing mask
-                        // the list will be empty if there is no real connectivity between the host and the array
-                        List<String> storagePorts = _helper
-                                .getStoragePortsFromScsiProtocolController(
-                                        storage, controllerPath);
-                        List<String> storagePortURIs = storagePortNamesToURIs(storagePorts);
-                        if (storagePortURIs.isEmpty()) {
-                            _log.info("No storage port in the mask " + name);
-                        }
-                        else {
-                            exportMask.setStoragePorts(storagePortURIs);
-                            builder.append(String.format("   ----> SP { %s }\n"
-                                    + "         URI{ %s }\n",
-                                    Joiner.on(',').join(storagePorts),
-                                    Joiner.on(',').join(storagePortURIs)));
                         }
                     }
 
@@ -649,24 +617,6 @@ public class XIVExportOperations implements ExportMaskOperations {
                     Map<String, Integer> volumeWWNs = _helper
                             .getVolumesFromScsiProtocolController(storage, controllerPath);
                     builder.append(String.format("XM:%s V:{%s}%n", name, Joiner.on(',').join(volumeWWNs.keySet())));
-
-                    // Update the tracking containers
-                    exportMask.addToExistingVolumesIfAbsent(volumeWWNs);
-                    exportMask
-                            .addToExistingInitiatorsIfAbsent(matchingInitiators);
-                    builder.append(String.format(
-                            "XM %s is matching. " + "EI: { %s }, EV: { %s }%n",
-                            name,
-                            Joiner.on(',').join(
-                                    exportMask.getExistingInitiators()),
-                            Joiner.on(',').join(
-                                    exportMask.getExistingVolumes().keySet())));
-                    if (foundMaskInDb) {
-                        ExportMaskUtils.sanitizeExportMaskContainers(_dbClient, exportMask);
-                        _dbClient.updateAndReindexObject(exportMask);
-                    } else {
-                        _dbClient.createObject(exportMask);
-                    }
 
                     // update hosts
                     Initiator initiator = ExportUtils.getInitiator(Initiator.toPortNetworkId(matchingInitiators.get(0)), _dbClient);
@@ -680,14 +630,15 @@ public class XIVExportOperations implements ExportMaskOperations {
                         }
                     }
                     
-
-                    for (String it : matchingInitiators) {
-                        Set<URI> maskURIs = matchingMasks.get(it);
-                        if (maskURIs == null) {
-                            maskURIs = new HashSet<URI>();
-                            matchingMasks.put(it, maskURIs);
-                        }
-                        maskURIs.add(exportMask.getId());
+                    if(null!=exportMask){
+	                    for (String it : matchingInitiators) {
+	                        Set<URI> maskURIs = matchingMasks.get(it);
+	                        if (maskURIs == null) {
+	                            maskURIs = new HashSet<URI>();
+	                            matchingMasks.put(it, maskURIs);
+	                        }
+	                        maskURIs.add(exportMask.getId());
+	                    }
                     }
                 }
             }
@@ -1150,6 +1101,27 @@ public class XIVExportOperations implements ExportMaskOperations {
         return Collections.emptyMap();
     }
     
+    private boolean isClusterExportMask(StorageSystem storage, URI exportMaskURI){
+        boolean isClusteredHost = false;
+        List<ExportGroup> exportGroups = ExportUtils.getExportGroupsForMask(exportMaskURI, _dbClient);
+        Set<Boolean> valid = new HashSet<Boolean>();
+        for(ExportGroup exportGroup : exportGroups){
+            valid.add(exportGroup.forCluster());
+        }
+    
+        if(valid.size() == 1) {
+            List<URI> initiatorURIs = new ArrayList<URI>();
+            ExportMask mask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
+            for(String uri : mask.getInitiators()){
+                initiatorURIs.add(URI.create(uri));
+            }
+            List<Initiator> initiators = _dbClient.queryObject(Initiator.class, initiatorURIs);
+            isClusteredHost = _restAPIHelper.isClusteredHost(storage, initiators);
+        }
+        
+        return isClusteredHost;
+    }
+    
     /*
      * (non-Javadoc) Creates an ExportMask with the given initiators & volumes.
      * 
@@ -1171,7 +1143,7 @@ public class XIVExportOperations implements ExportMaskOperations {
         _log.info("createExportMask: tartets: {}", targetURIList);
         _log.info("createExportMask: initiators: {}", initiatorList);
         
-        if(_restAPIHelper.isClusteredHost(storage, exportMaskURI, initiatorList)){
+        if(_restAPIHelper.isClusteredHost(storage, initiatorList)){
             _log.info("Executing createExportMask using REST on Storage {}", storage.getLabel());
             _restAPIHelper.createRESTExportMask(storage, exportMaskURI,volumeURIHLUs, targetURIList,initiatorList,  taskCompleter);
         } else {
@@ -1182,7 +1154,7 @@ public class XIVExportOperations implements ExportMaskOperations {
     
     @Override
     public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) {
-        if(_restAPIHelper.isClusteredHost(storage, mask.getId(), null)){
+        if(isClusterExportMask(storage, mask.getId())){
             _log.info("Executing refreshExportMask using REST on Storage {}", storage.getLabel());
             _restAPIHelper.refreshRESTExportMask(storage, mask, _networkDeviceController);
         } else {
@@ -1198,7 +1170,7 @@ public class XIVExportOperations implements ExportMaskOperations {
             List<Initiator> initiatorList, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         _log.info("{} deleteExportMask START...", storage.getLabel());
-        if(_restAPIHelper.isClusteredHost(storage, exportMaskURI, null)){
+        if(isClusterExportMask(storage, exportMaskURI)){
             _log.info("Executing deleteExportMask using REST on Storage {}", storage.getLabel());
             _restAPIHelper.deleteRESTExportMask(storage, exportMaskURI, volumeURIList,  targetURIList, initiatorList, taskCompleter);
         } else {
@@ -1225,13 +1197,13 @@ public class XIVExportOperations implements ExportMaskOperations {
     public Map<String, Set<URI>> findExportMasks(StorageSystem storage, List<String> initiatorNames, boolean mustHaveAllPorts) throws DeviceControllerException {
         _log.info("{} findExportMasks START...", storage.getLabel());
         Map<String, Set<URI>> result = null;
-        if (_restAPIHelper.isClusteredHost(storage, initiatorNames)) {
-            _log.info("Executing findExportMasks using REST on Storage {}", storage.getLabel());
-            result = _restAPIHelper.findRESTExportMasks(storage, initiatorNames, mustHaveAllPorts);
-        } else {
-            _log.info("Executing findExportMasks using SMIS on Storage {}", storage.getLabel());
+//        if (_restAPIHelper.isClusteredHost(storage, initiatorNames)) {
+//            _log.info("Executing findExportMasks using REST on Storage {}", storage.getLabel());
+//            result = _restAPIHelper.findRESTExportMasks(storage, initiatorNames, mustHaveAllPorts);
+//        } else {
+//            _log.info("Executing findExportMasks using SMIS on Storage {}", storage.getLabel());
             result = findSMISExportMasks(storage, initiatorNames, mustHaveAllPorts);
-        }
+//        }
         _log.info("{} deleteExportMask END...", storage.getLabel());
         return result;
     }
@@ -1239,7 +1211,7 @@ public class XIVExportOperations implements ExportMaskOperations {
     @Override
     public void addVolume(StorageSystem storage, URI exportMaskURI, VolumeURIHLU[] volumeURIHLUs, TaskCompleter taskCompleter){
     	_log.info("{} addVolume START...", storage.getLabel());
-        if (_restAPIHelper.isClusteredHost(storage, exportMaskURI, null)) {
+        if (isClusterExportMask(storage, exportMaskURI)) {
             _log.info("Executing addVolume using REST on Storage {}", storage.getLabel());
             _restAPIHelper.addVolumeUsingREST(storage, exportMaskURI, volumeURIHLUs, taskCompleter);
         } else {
@@ -1253,7 +1225,7 @@ public class XIVExportOperations implements ExportMaskOperations {
     public void removeVolume(StorageSystem storage, URI exportMaskURI,
             List<URI> volumeURIList, TaskCompleter taskCompleter) throws DeviceControllerException {
     	_log.info("{} removeVolume START...", storage.getLabel());
-        if (_restAPIHelper.isClusteredHost(storage, exportMaskURI, null)) {
+        if (isClusterExportMask(storage, exportMaskURI)) {
             _log.info("Executing removeVolume using REST on Storage {}", storage.getLabel());
             _restAPIHelper.removeVolumeUsingREST(storage, exportMaskURI, volumeURIList, taskCompleter);
         } else {

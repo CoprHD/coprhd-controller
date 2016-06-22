@@ -1220,7 +1220,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
      * {@inheritDoc}
      */
     @Override
-    public Map<URI, List<String>> doFindHostHLUs(StorageSystem storage, List<URI> hostURIs, TaskCompleter completer) throws DeviceControllerException {
+    public Map<URI, List<String>> doFindHostHLUs(StorageSystem storage, List<URI> hostURIs) throws DeviceControllerException {
     	Map<URI, List<String>> hostToHLUMap = new HashMap<URI, List<String>>();
 
         for (URI hostURI : hostURIs) {

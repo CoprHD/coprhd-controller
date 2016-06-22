@@ -56,6 +56,7 @@
         <property name="dbClient" ref="dbclient"/>
         <property name="workflowService" ref="workflowService"/>
         <property name="networkDeviceController" ref="networkDeviceController"/>
+        <property name="restOperationsHelper" ref="xivRestOperationsHelper"/>
     </bean>
     
     <bean id="xivSnapshotOperations" class="com.emc.storageos.volumecontroller.impl.smis.ibm.xiv.XIVSnapshotOperations">

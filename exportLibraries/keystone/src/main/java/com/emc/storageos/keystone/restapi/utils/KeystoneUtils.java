@@ -653,11 +653,8 @@ public class KeystoneUtils {
 
         TenantCreateParam param = new TenantCreateParam(CinderConstants.TENANT_NAME_PREFIX + " " + tenant.getName(),
                 prepareUserMappings(tenant.getId()));
-        if (tenant.getDescription() != null) {
-            param.setDescription(tenant.getDescription());
-        } else {
-            param.setDescription(CinderConstants.TENANT_NAME_PREFIX);
-        }
+
+        param.setDescription(getProperTenantDescription(tenant.getDescription()));
 
         return param;
     }
@@ -690,11 +687,27 @@ public class KeystoneUtils {
 
         OSTenant osTenant = new OSTenant();
         osTenant.setOsId(tenant.getId());
-        osTenant.setDescription(tenant.getDescription());
+        // Check whether description is null or empty.
+        osTenant.setDescription(getProperTenantDescription(tenant.getDescription()));
         osTenant.setName(tenant.getName());
         osTenant.setEnabled(Boolean.parseBoolean(tenant.getEnabled()));
         osTenant.setExcluded(DEFAULT_EXCLUDED_TENANT_OPTION);
 
         return osTenant;
+    }
+
+    /**
+     * Checks whether given Tenant description is null or empty and returns appropriate description.
+     *
+     * @param description Tenant description.
+     * @return String.
+     */
+    public String getProperTenantDescription(String description) {
+
+        if (description != null && !description.isEmpty()) {
+            return description;
+        }
+
+        return CinderConstants.TENANT_NAME_PREFIX;
     }
 }

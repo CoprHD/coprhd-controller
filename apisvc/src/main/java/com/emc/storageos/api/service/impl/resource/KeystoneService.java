@@ -330,7 +330,7 @@ public class KeystoneService extends TaskResourceService {
         OSTenant openstackTenant = new OSTenant();
         openstackTenant.setId(URIUtil.createId(OSTenant.class));
         openstackTenant.setName(param.getName());
-        openstackTenant.setDescription(param.getDescription());
+        openstackTenant.setDescription(_keystoneUtils.getProperTenantDescription(param.getDescription()));
         openstackTenant.setEnabled(param.getEnabled());
         openstackTenant.setExcluded(param.getExcluded());
         openstackTenant.setOsId(param.getOsId());

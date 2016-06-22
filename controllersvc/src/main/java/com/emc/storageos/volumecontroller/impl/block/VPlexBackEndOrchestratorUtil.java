@@ -111,8 +111,6 @@ public class VPlexBackEndOrchestratorUtil {
             DbClient dbClient, Map<String, String> portWwnToClusterMap) {
 
         boolean passed = true;
-        if (passed)
-            return true;
 
         // Rule 1. An Export Mask must have at least two initiators from each director.
         // This is a warning if the ExportMask is non-ViPR.

@@ -17,6 +17,10 @@ public class CreateBlockVolumeService extends VMwareHostService {
 
     @Override
     public void init() throws Exception {
+        hostService.setClientConfig(getClientConfig());
+        hostService.setModelClient(getModelClient());
+        hostService.setEncryptionProvider(getEncryptionProvider());
+        hostService.setProxyUser(getProxyUser());
         hostService.init();
     }
 

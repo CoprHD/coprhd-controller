@@ -80,25 +80,37 @@ public class VplexDBCkr {
                 nerrors++;
                 continue;
             }
-            
-            StringSet wwns = new StringSet();
+			writeLog(String.format("checking %s wwn %s ",vvInfo.getName(), vvInfo.getWwn()));
+			if (vvInfo.getName().equals(volume.getDeviceLabel())) {
+			  if (vvInfo.getWwn().toUpperCase().equals(volume.getWWN().toUpperCase())) {
+			    writeLog(String.format("Virtual Volume %s wwn %s matches VPLEX", vvInfo.getName(), vvInfo.getWwn()));
+			  }  else {
+                    writeLog(String.format("ERROR: Virtual Volume %s wwn %s is not present in VPLEX", 
+                            vvInfo.getName(), vvInfo.getWwn()));
+                    nerrors++;
+               }
+			}
+			
+			StringSet wwns = new StringSet();
             for (String cluster : vvInfo.getClusters()) {
                 Map<String, VPlexStorageVolumeInfo> svInfoMap = client.getStorageVolumeInfoForDevice(
                         vvInfo.getSupportingDevice(), vvInfo.getLocality(), cluster, false);
                 for (String wwn : svInfoMap.keySet()) {
-                    wwns.add(wwn.toUpperCase());
+                    //writeLog("adding wwn " + wwn.toUpperCase());
+					wwns.add(wwn.toUpperCase());
                     VPlexStorageVolumeInfo svInfo = svInfoMap.get(wwn);
                     writeLog(String.format("StorageVolume wwn %s name %s cluster %s", wwn, svInfo.getName(), cluster));
                 }
             }
             
-            // Now check associated volumes against the wwns.
+			// Now check associated volumes against the wwns.
             for (String associatedVolume : volume.getAssociatedVolumes()) {
                 Volume assocVolume = dbClient.queryObject(Volume.class, URI.create(associatedVolume));
                 if (assocVolume == null) {
                     writeLog("Associated volunme not found in database... skipping: " + associatedVolume);
                     continue;
                 }
+								
                 if (wwns.contains(assocVolume.getWWN().toUpperCase())) {
                     writeLog(String.format("Volume %s wwn %s matches VPLEX", assocVolume.getLabel(), assocVolume.getWWN()));
                 } else {

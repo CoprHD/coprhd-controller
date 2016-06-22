@@ -100,7 +100,7 @@ public class BlockVirtualPoolForm extends VirtualPoolCommonForm<BlockVirtualPool
     public Integer hostIOLimitIOPs; // Host Front End limit I/O. If not specified or 0, indicated unlimited
 
     // Indicates policy that will be used for resource placement of the VirtualPool
-    public String placementPolicy;
+    private String placementPolicy;
 
     public void deserialize() {
         Gson g = new Gson();

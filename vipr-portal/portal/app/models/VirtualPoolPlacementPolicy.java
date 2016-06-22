@@ -14,6 +14,9 @@ public class VirtualPoolPlacementPolicy {
     public static final String DEFAULT = "default_policy";
     public static final String ARRAY_AFFINITY = "array_affinity";
 
+    private VirtualPoolPlacementPolicy() {
+    }
+
     public static boolean isDefaultPolicy(String policy) {
         return DEFAULT.equals(policy);
     }

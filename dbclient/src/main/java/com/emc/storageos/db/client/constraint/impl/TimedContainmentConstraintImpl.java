@@ -8,12 +8,12 @@ import java.net.URI;
 
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.Statement;
+import com.datastax.driver.core.exceptions.DriverException;
 import com.datastax.driver.core.utils.UUIDs;
 import com.emc.storageos.db.client.impl.ColumnField;
 import com.emc.storageos.db.client.impl.IndexColumnName;
 import com.emc.storageos.db.client.impl.RelationDbIndex;
 import com.emc.storageos.db.client.model.DataObject;
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
 /**
  * A containment constraint that returns only those elements from the index that were added between startTime and endTime
@@ -40,7 +40,7 @@ public class TimedContainmentConstraintImpl extends ConstraintImpl {
         returnOnePage = true;
     }
 
-    protected <T> void queryOnePage(final QueryResult<T> result) throws ConnectionException {
+    protected <T> void queryOnePage(final QueryResult<T> result) throws DriverException {
         QueryHitIterator<T> it = createQueryHitIterator(genQueryStatement(), result);
         it.prime();
         result.setResult(it);

@@ -9,12 +9,12 @@ import java.net.URI;
 
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.Statement;
+import com.datastax.driver.core.exceptions.DriverException;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.impl.ColumnField;
 import com.emc.storageos.db.client.impl.IndexColumnName;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.ScopedLabel;
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
 /**
  * Default prefix constraint implementation
@@ -43,7 +43,7 @@ public class PrefixConstraintImpl extends ConstraintImpl implements PrefixConstr
     }
 
     @Override
-    protected <T> void queryOnePage(final QueryResult<T> result) throws ConnectionException {
+    protected <T> void queryOnePage(final QueryResult<T> result) throws DriverException {
         queryOnePageWithAutoPaginate(genQueryStatement(), result);
     }
 

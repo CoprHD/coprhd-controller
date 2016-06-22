@@ -9,17 +9,12 @@ import java.util.NoSuchElementException;
 import com.datastax.driver.core.Statement;
 import com.emc.storageos.db.client.impl.DbClientContext;
 import com.emc.storageos.db.client.impl.IndexColumnName;
-import com.netflix.astyanax.query.RowQuery;
 
 /**
  * QueryHitIterator with a filter based on column name
  */
 public abstract class FilteredQueryHitIterator<T> extends QueryHitIterator<T> {
     private IndexColumnName _current;
-
-    public FilteredQueryHitIterator(RowQuery<String, IndexColumnName> query) {
-        super(query);
-    }
     
     public FilteredQueryHitIterator(DbClientContext dbClientContext, Statement queryStatement) {
         super(dbClientContext, queryStatement);

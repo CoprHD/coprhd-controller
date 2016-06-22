@@ -14,13 +14,13 @@ import org.slf4j.LoggerFactory;
 
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.Statement;
+import com.datastax.driver.core.exceptions.DriverException;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.impl.AltIdDbIndex;
 import com.emc.storageos.db.client.impl.ColumnField;
 import com.emc.storageos.db.client.impl.IndexColumnName;
 import com.emc.storageos.db.client.impl.RelationDbIndex;
 import com.emc.storageos.db.client.model.DataObject;
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
 /**
  * Abstract base for all containment queries
@@ -56,7 +56,7 @@ public class ContainmentConstraintImpl extends ConstraintImpl implements Contain
     }
 
     @Override
-    protected <T> void queryOnePage(final QueryResult<T> result) throws ConnectionException {
+    protected <T> void queryOnePage(final QueryResult<T> result) throws DriverException {
         StringBuilder queryString = new StringBuilder();
         queryString.append("select").append(" * from \"").append(_field.getIndexCF().getName()).append("\"");
         queryString.append(" where key=?");

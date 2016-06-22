@@ -11,25 +11,19 @@ import java.util.NoSuchElementException;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Statement;
-import com.datastax.driver.core.exceptions.ConnectionException;
+import com.datastax.driver.core.exceptions.DriverException;
 import com.emc.storageos.db.client.impl.DbClientContext;
 import com.emc.storageos.db.client.impl.IndexColumnName;
 import com.emc.storageos.db.exceptions.DatabaseException;
-import com.netflix.astyanax.query.RowQuery;
 
 /**
  * QueryHit iterator
  */
 public abstract class QueryHitIterator<T> implements Iterator<T> {
-    protected RowQuery<String, IndexColumnName> _query;
     protected Statement queryStatement;
     protected ResultSet resultSet;
     protected DbClientContext dbClientContext;
     protected Iterator<Row> resultIterator;
-
-    public QueryHitIterator(RowQuery<String, IndexColumnName> query) {
-        _query = query;
-    }
     
     public QueryHitIterator(DbClientContext dbClientContext, Statement queryStatement) {
         this.queryStatement = queryStatement;
@@ -44,8 +38,8 @@ public abstract class QueryHitIterator<T> implements Iterator<T> {
         try {
             resultSet = dbClientContext.getSession().execute(queryStatement);
             resultIterator = resultSet.iterator();
-        } catch (ConnectionException e) {
-            throw DatabaseException.retryables.connectionFailed(e);
+        } catch (DriverException e) {
+            throw DatabaseException.retryables.operationFailed(e);
         }
     }
 

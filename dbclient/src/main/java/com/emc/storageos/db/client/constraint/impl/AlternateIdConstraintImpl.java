@@ -14,11 +14,11 @@ import org.slf4j.LoggerFactory;
 
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.Statement;
+import com.datastax.driver.core.exceptions.DriverException;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.impl.ColumnField;
 import com.emc.storageos.db.client.impl.IndexColumnName;
 import com.emc.storageos.db.client.model.DataObject;
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.ColumnFamily;
 
 /**
@@ -40,7 +40,7 @@ public class AlternateIdConstraintImpl extends ConstraintImpl implements Alterna
     }
 
     @Override
-    protected <T> void queryOnePage(final QueryResult<T> result) throws ConnectionException {
+    protected <T> void queryOnePage(final QueryResult<T> result) throws DriverException {
         StringBuilder queryString = new StringBuilder();
         queryString.append("select").append(" * from \"").append(_altIdCf.getName()).append("\"");
         queryString.append(" where key=?");

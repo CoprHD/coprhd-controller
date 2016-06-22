@@ -9,11 +9,11 @@ import java.net.URI;
 
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.Statement;
+import com.datastax.driver.core.exceptions.DriverException;
 import com.emc.storageos.db.client.constraint.ContainmentPrefixConstraint;
 import com.emc.storageos.db.client.impl.ColumnField;
 import com.emc.storageos.db.client.impl.IndexColumnName;
 import com.emc.storageos.db.client.model.DataObject;
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
 /**
  * ContainmentPrefixConstrat default implementation
@@ -33,7 +33,7 @@ public class ContainmentPrefixConstraintImpl extends ConstraintImpl implements C
     }
 
     @Override
-    protected <T> void queryOnePage(final QueryResult<T> result) throws ConnectionException {
+    protected <T> void queryOnePage(final QueryResult<T> result) throws DriverException {
         queryOnePageWithAutoPaginate(genQueryStatement(), result);
     }
     

@@ -11,11 +11,11 @@ import java.util.List;
 
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.Statement;
+import com.datastax.driver.core.exceptions.DriverException;
 import com.datastax.driver.core.utils.UUIDs;
 import com.emc.storageos.db.client.constraint.DecommissionedConstraint;
 import com.emc.storageos.db.client.impl.IndexColumnName;
 import com.emc.storageos.db.client.model.DataObject;
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.ColumnFamily;
 
 /**
@@ -95,7 +95,7 @@ public class TimeConstraintImpl extends ConstraintImpl implements Decommissioned
     }
 
     @Override
-    protected <T> void queryOnePage(final QueryResult<T> result) throws ConnectionException {
+    protected <T> void queryOnePage(final QueryResult<T> result) throws DriverException {
         StringBuilder queryString = new StringBuilder();
         queryString.append("select").append(" * from \"").append(cf.getName()).append("\"");
         queryString.append(" where key=?");

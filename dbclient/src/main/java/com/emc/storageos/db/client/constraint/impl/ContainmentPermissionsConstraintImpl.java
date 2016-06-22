@@ -13,11 +13,11 @@ import org.slf4j.LoggerFactory;
 
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.Statement;
+import com.datastax.driver.core.exceptions.DriverException;
 import com.emc.storageos.db.client.constraint.ContainmentPermissionsConstraint;
 import com.emc.storageos.db.client.impl.ColumnField;
 import com.emc.storageos.db.client.impl.IndexColumnName;
 import com.emc.storageos.db.client.model.DataObject;
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
 /**
  * ContainmentPermissions constraint. For example:
@@ -41,7 +41,7 @@ public class ContainmentPermissionsConstraintImpl extends ConstraintImpl impleme
     }
 
     @Override
-    protected <T> void queryOnePage(final QueryResult<T> result) throws ConnectionException {
+    protected <T> void queryOnePage(final QueryResult<T> result) throws DriverException {
         StringBuilder queryString = generateQueryString();
         
         List<Object> queryParameters = new ArrayList<Object>();

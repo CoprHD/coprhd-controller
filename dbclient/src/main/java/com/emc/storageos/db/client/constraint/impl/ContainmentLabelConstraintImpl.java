@@ -8,11 +8,11 @@ import java.net.URI;
 
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.Statement;
+import com.datastax.driver.core.exceptions.DriverException;
 import com.emc.storageos.db.client.constraint.ContainmentPrefixConstraint;
 import com.emc.storageos.db.client.impl.ColumnField;
 import com.emc.storageos.db.client.impl.IndexColumnName;
 import com.emc.storageos.db.client.model.DataObject;
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
 /**
  * default implementation for full name matcher
@@ -31,7 +31,7 @@ public class ContainmentLabelConstraintImpl extends ConstraintImpl implements Co
         _field = field;
     }
 
-    protected <T> void queryOnePage(final QueryResult<T> result) throws ConnectionException {
+    protected <T> void queryOnePage(final QueryResult<T> result) throws DriverException {
         queryOnePageWithAutoPaginate(genQueryStatement(), result);
     }
 

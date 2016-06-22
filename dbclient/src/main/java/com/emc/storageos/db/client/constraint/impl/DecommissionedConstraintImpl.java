@@ -13,12 +13,12 @@ import org.slf4j.LoggerFactory;
 
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.Statement;
+import com.datastax.driver.core.exceptions.DriverException;
 import com.emc.storageos.db.client.constraint.DecommissionedConstraint;
 import com.emc.storageos.db.client.impl.ColumnField;
 import com.emc.storageos.db.client.impl.IndexColumnName;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.NoInactiveIndex;
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.util.TimeUUIDUtils;
 
@@ -75,7 +75,7 @@ public class DecommissionedConstraintImpl extends ConstraintImpl implements Deco
     }
 
     @Override
-    protected <T> void queryOnePage(final QueryResult<T> result) throws ConnectionException {
+    protected <T> void queryOnePage(final QueryResult<T> result) throws DriverException {
         if (_value != null) {
             StringBuilder queryString = new StringBuilder();
             queryString.append("select").append(" * from \"").append(_cf.getName()).append("\"");

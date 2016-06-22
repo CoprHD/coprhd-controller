@@ -16,13 +16,13 @@ import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Statement;
+import com.datastax.driver.core.exceptions.DriverException;
 import com.emc.storageos.db.client.constraint.Constraint;
 import com.emc.storageos.db.client.constraint.ConstraintDescriptor;
 import com.emc.storageos.db.client.impl.ColumnField;
 import com.emc.storageos.db.client.impl.DbClientContext;
 import com.emc.storageos.db.client.impl.IndexColumnName;
 import com.emc.storageos.db.exceptions.DatabaseException;
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
 /**
  * Abstract base for all containment queries
@@ -103,15 +103,15 @@ public abstract class ConstraintImpl implements Constraint {
                 queryOnePage(result);
                 return;
             }
-        } catch (ConnectionException e) {
+        } catch (DriverException e) {
             log.info("Query failed e=", e);
-            throw DatabaseException.retryables.connectionFailed(e);
+            throw DatabaseException.retryables.operationFailed(e);
         }
 
         queryWithAutoPaginate(genQueryStatement(), result, this);
     }
 
-    protected abstract <T> void queryOnePage(final QueryResult<T> result) throws ConnectionException;
+    protected abstract <T> void queryOnePage(final QueryResult<T> result) throws DriverException;
     
     protected abstract Statement genQueryStatement();
 
@@ -135,7 +135,7 @@ public abstract class ConstraintImpl implements Constraint {
     }
     
     protected <T> void queryOnePageWithoutAutoPaginate(StringBuilder queryString, String prefix, final QueryResult<T> result, List<Object> queryParameters)
-            throws ConnectionException {
+            throws DriverException {
 
         queryString.append(" and column1=?");
         queryParameters.add(prefix);

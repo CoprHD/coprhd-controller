@@ -8,12 +8,12 @@ import java.net.URI;
 
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.Statement;
+import com.datastax.driver.core.exceptions.DriverException;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.impl.ColumnField;
 import com.emc.storageos.db.client.impl.IndexColumnName;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.ScopedLabel;
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
 /**
  * find resources matching label
@@ -42,7 +42,7 @@ public class LabelConstraintImpl extends ConstraintImpl implements PrefixConstra
     }
 
     @Override
-    protected <T> void queryOnePage(final QueryResult<T> result) throws ConnectionException {
+    protected <T> void queryOnePage(final QueryResult<T> result) throws DriverException {
         queryOnePageWithAutoPaginate(genQueryStatement(), result);
     }
 

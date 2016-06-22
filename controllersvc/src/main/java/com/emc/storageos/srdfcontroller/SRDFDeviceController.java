@@ -1984,7 +1984,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
     @Override
     public void expandVolume(URI storage, URI pool, URI volumeId, Long size, String task) throws InternalException {
         TaskCompleter completer = null;
-        Workflow workflow = workflowService.getNewWorkflow(this, "expandVolume", true, task);
+        Workflow workflow = workflowService.getNewWorkflow(this, "expandVolume", true, task, null);
         String waitFor = null;
         try {
             Volume source = dbClient.queryObject(Volume.class, volumeId);

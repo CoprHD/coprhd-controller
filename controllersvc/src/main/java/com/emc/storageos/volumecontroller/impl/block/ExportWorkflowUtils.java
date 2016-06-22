@@ -430,7 +430,7 @@ public class ExportWorkflowUtils {
      */
     public Workflow newWorkflow(String name, boolean rollback, String opId)
             throws WorkflowRestartedException {
-        return _workflowSvc.getNewWorkflow(_exportWfEntryPoints, name, rollback, opId);
+        return _workflowSvc.getNewWorkflow(_exportWfEntryPoints, name, rollback, opId, null);
     }
 
     /**

@@ -700,10 +700,10 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      */
     @Override
     public void changeVolumeVirtualPool(URI systemURI, Volume volume, VirtualPool vpool,
-            VirtualPoolChangeParam vpoolChangeParam, Map<URI, String> taskMap) throws InternalException {
+            VirtualPoolChangeParam vpoolChangeParam, String taskId) throws InternalException {
         List<Volume> volumes = new ArrayList<Volume>();
         volumes.add(volume);
-        if (checkCommonVpoolUpdates(volumes, vpool, taskMap)) {
+        if (checkCommonVpoolUpdates(volumes, vpool, taskId)) {
             return;
         }
         throw APIException.methodNotAllowed.notSupported();
@@ -716,12 +716,12 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      */
     @Override
     public void changeVolumeVirtualPool(List<Volume> volumes, VirtualPool vpool,
-            VirtualPoolChangeParam vpoolChangeParam, Map<URI, String> taskMap) throws InternalException {
+            VirtualPoolChangeParam vpoolChangeParam, String taskId) throws InternalException {
         /**
          * 'Auto-tiering policy change' operation supports multiple volume processing.
          * At present, other operations only support single volume processing.
          */
-        if (checkCommonVpoolUpdates(volumes, vpool, taskMap)) {
+        if (checkCommonVpoolUpdates(volumes, vpool, taskId)) {
             return;
         }
         throw APIException.methodNotAllowed.notSupported();
@@ -1039,14 +1039,14 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      * @throws InternalException
      */
     protected boolean checkCommonVpoolUpdates(List<Volume> volumes, VirtualPool newVirtualPool,
-            Map<URI, String> taskMap) throws InternalException {
+            String taskId) throws InternalException {
         VirtualPool volumeVirtualPool = _dbClient.queryObject(VirtualPool.class, volumes.get(0).getVirtualPool());
         StringBuffer notSuppReasonBuff = new StringBuffer();
         if (VirtualPoolChangeAnalyzer.isSupportedPathParamsChange(volumes.get(0),
                 volumeVirtualPool, newVirtualPool, _dbClient, notSuppReasonBuff)) {
             BlockExportController exportController = getController(BlockExportController.class, BlockExportController.EXPORT);
             for (Volume volume : volumes) {
-                exportController.updateVolumePathParams(volume.getId(), newVirtualPool.getId(), taskMap.get(volume.getId()));
+                exportController.updateVolumePathParams(volume.getId(), newVirtualPool.getId(), taskId);
             }
             return true;
         }
@@ -1063,11 +1063,8 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
             for (Volume volume : volumes) {
                 volumeURIs.add(volume.getId());
             }
-            // DUPP TODO: I did not change the controller code to take the entire map of tasks.
-            // The block orchestrator change virtual pool will create a single task for all volumes.
-            // This will need to be reconciled at some point and testing multiple volumes through the
-            // change vpool code will be required.
-            exportController.updatePolicyAndLimits(volumeURIs, newVirtualPool.getId(), taskMap.values().iterator().next());
+
+            exportController.updatePolicyAndLimits(volumeURIs, newVirtualPool.getId(), taskId);
             return true;
         }
 

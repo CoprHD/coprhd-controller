@@ -260,7 +260,7 @@ public class VcenterControllerImpl implements VcenterController {
 
             completer = new VcenterClusterCompleter(vcenterDataCenterId, task._opId, OperationTypeEnum.CREATE_UPDATE_VCENTER_CLUSTER,
                     "VCENTER_CONTROLLER");
-            Workflow workflow = _workflowService.getNewWorkflow(this, "CREATE_UPDATE_VCENTER_CLUSTER_WORKFLOW", true, task._opId);
+            Workflow workflow = _workflowService.getNewWorkflow(this, "CREATE_UPDATE_VCENTER_CLUSTER_WORKFLOW", true, task._opId, null);
             String clusterStep = workflow.createStep("CREATE_UPDATE_VCENTER_CLUSTER_STEP",
                     String.format("vCenter cluster operation in vCenter datacenter %s", vcenterDataCenterId), null,
                     vcenterDataCenterId, vcenterDataCenterId.toString(),

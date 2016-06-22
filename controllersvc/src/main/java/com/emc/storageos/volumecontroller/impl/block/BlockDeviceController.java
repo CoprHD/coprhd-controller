@@ -1472,7 +1472,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             if (!WorkflowService.getInstance().hasWorkflowBeenCreated(opId, workflowKey)) {
                 // Get a new workflow to execute volume expand
                 Workflow workflow = _workflowService.getNewWorkflow(this,
-                        EXPAND_VOLUME_WF_NAME, false, opId);
+                        EXPAND_VOLUME_WF_NAME, false, opId, null);
                 _log.info("Created new expansion workflow with operation id {}", opId);
 
                 String stepId = workflow.createStepId();
@@ -2066,7 +2066,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             throws ControllerException {
         _log.info("START establishVolumeAndSnapshotGroupRelation workflow");
 
-        Workflow workflow = _workflowService.getNewWorkflow(this, ESTABLISH_VOLUME_SNAPSHOT_GROUP_WF_NAME, false, opId);
+        Workflow workflow = _workflowService.getNewWorkflow(this, ESTABLISH_VOLUME_SNAPSHOT_GROUP_WF_NAME, false, opId, null);
         TaskCompleter taskCompleter = null;
         StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
 
@@ -2154,7 +2154,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         SimpleTaskCompleter completer = new SimpleTaskCompleter(BlockSnapshot.class, snapshot, opId);
 
         try {
-            Workflow workflow = _workflowService.getNewWorkflow(this, RESTORE_VOLUME_WF_NAME, false, opId);
+            Workflow workflow = _workflowService.getNewWorkflow(this, RESTORE_VOLUME_WF_NAME, false, opId, null);
             _log.info("Created new restore workflow with operation id {}", opId);
 
             Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
@@ -2636,7 +2636,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     public void attachNativeContinuousCopies(URI storage, URI sourceVolume, List<URI> mirrorList, String opId) throws ControllerException {
         _log.info("START attach continuous copies workflow");
 
-        Workflow workflow = _workflowService.getNewWorkflow(this, ATTACH_MIRRORS_WF_NAME, true, opId);
+        Workflow workflow = _workflowService.getNewWorkflow(this, ATTACH_MIRRORS_WF_NAME, true, opId, null);
         TaskCompleter taskCompleter = null;
 
         Volume sourceVolumeObj = _dbClient.queryObject(Volume.class, sourceVolume);
@@ -2662,7 +2662,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             String opId) throws ControllerException {
         _log.info("START detach continuous copies workflow");
 
-        Workflow workflow = _workflowService.getNewWorkflow(this, DETACH_MIRRORS_WF_NAME, false, opId);
+        Workflow workflow = _workflowService.getNewWorkflow(this, DETACH_MIRRORS_WF_NAME, false, opId, null);
         TaskCompleter taskCompleter = null;
 
         try {
@@ -2775,7 +2775,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             return;
         }
 
-        Workflow workflow = _workflowService.getNewWorkflow(this, PAUSE_MIRRORS_WF_NAME, false, opId);
+        Workflow workflow = _workflowService.getNewWorkflow(this, PAUSE_MIRRORS_WF_NAME, false, opId, null);
         TaskCompleter taskCompleter = null;
         BlockMirror mirror = _dbClient.queryObject(BlockMirror.class, mirrors.get(0));
         StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
@@ -2814,7 +2814,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     public void resumeNativeContinuousCopies(URI storage, List<URI> mirrors, String opId) throws ControllerException {
         _log.info("START resume continuous copies workflow");
 
-        Workflow workflow = _workflowService.getNewWorkflow(this, RESUME_MIRRORS_WF_NAME, false, opId);
+        Workflow workflow = _workflowService.getNewWorkflow(this, RESUME_MIRRORS_WF_NAME, false, opId, null);
         TaskCompleter taskCompleter = null;
         List<BlockMirror> mirrorList = _dbClient.queryObject(BlockMirror.class, mirrors);
         StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
@@ -3219,7 +3219,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
         try {
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
-            Workflow workflow = _workflowService.getNewWorkflow(this, "deactivateMirror", true, opId);
+            Workflow workflow = _workflowService.getNewWorkflow(this, "deactivateMirror", true, opId, null);
             taskCompleter = new BlockMirrorDeactivateCompleter(mirrorList, promotees, opId);
             ControllerUtils.checkMirrorConsistencyGroup(mirrorList, _dbClient, taskCompleter);
 
@@ -3297,7 +3297,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             throws ControllerException {
         _log.info("START establishVolumeAndNativeContinuousCopyGroupRelation workflow");
 
-        Workflow workflow = _workflowService.getNewWorkflow(this, ESTABLISH_VOLUME_MIRROR_GROUP_WF_NAME, false, opId);
+        Workflow workflow = _workflowService.getNewWorkflow(this, ESTABLISH_VOLUME_MIRROR_GROUP_WF_NAME, false, opId, null);
         TaskCompleter taskCompleter = null;
         StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
 
@@ -3360,7 +3360,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
         try {
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
-            Workflow workflow = _workflowService.getNewWorkflow(this, FULL_COPY_WORKFLOW, true, taskId);
+            Workflow workflow = _workflowService.getNewWorkflow(this, FULL_COPY_WORKFLOW, true, taskId, null);
             boolean isCG = false;
 
             Volume source = URIUtil.isType(sourceVolume, Volume.class) ? _dbClient.queryObject(Volume.class, sourceVolume) : null;
@@ -3604,7 +3604,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         TaskCompleter completer = new CloneWorkflowCompleter(fullCopy, opId);
         try {
             // need to create a workflow to wait sync finish, then do fracture/activate
-            Workflow workflow = _workflowService.getNewWorkflow(this, ACTIVATE_CLONE_WF_NAME, false, opId);
+            Workflow workflow = _workflowService.getNewWorkflow(this, ACTIVATE_CLONE_WF_NAME, false, opId, null);
             _log.info("Created new activate workflow with operation id {}", opId);
 
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
@@ -3708,7 +3708,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         try {
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
 
-            Workflow workflow = _workflowService.getNewWorkflow(this, DETACH_CLONE_WF_NAME, true, taskId);
+            Workflow workflow = _workflowService.getNewWorkflow(this, DETACH_CLONE_WF_NAME, true, taskId, null);
             _log.info("Created new detach workflow with operation id {}", taskId);
 
             // add CG to taskCompleter
@@ -3733,7 +3733,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             throws ControllerException {
         _log.info("START establishVolumeAndFullCopyGroupRelation workflow");
 
-        Workflow workflow = _workflowService.getNewWorkflow(this, ESTABLISH_VOLUME_FULL_COPY_GROUP_WF_NAME, false, opId);
+        Workflow workflow = _workflowService.getNewWorkflow(this, ESTABLISH_VOLUME_FULL_COPY_GROUP_WF_NAME, false, opId, null);
         TaskCompleter taskCompleter = null;
         StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
 
@@ -4242,7 +4242,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
             // Generate the Workflow.
             Workflow workflow = _workflowService.getNewWorkflow(this,
-                    UPDATE_CONSISTENCY_GROUP_WF_NAME, false, task);
+                    UPDATE_CONSISTENCY_GROUP_WF_NAME, false, task, null);
             String waitFor = null;
             // check if cg is created, if not create it
             if (!cg.created()) {
@@ -4676,7 +4676,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             Boolean updateOpStatus, String opId) throws InternalException {
         TaskCompleter completer = new CloneWorkflowCompleter(clones, opId);
         try {
-            Workflow workflow = _workflowService.getNewWorkflow(this, RESTORE_FROM_CLONE_WF_NAME, false, opId);
+            Workflow workflow = _workflowService.getNewWorkflow(this, RESTORE_FROM_CLONE_WF_NAME, false, opId, null);
             _log.info("Created new restore workflow with operation id {}", opId);
             String waitFor = null;
 
@@ -4876,7 +4876,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             Boolean updateOpStatus, String opId) throws InternalException {
         TaskCompleter completer = new CloneWorkflowCompleter(clones, opId);
         try {
-            Workflow workflow = _workflowService.getNewWorkflow(this, RESYNC_CLONE_WF_NAME, false, opId);
+            Workflow workflow = _workflowService.getNewWorkflow(this, RESYNC_CLONE_WF_NAME, false, opId, null);
             _log.info("Created new resync workflow with operation id {}", opId);
 
             StorageSystem system = _dbClient.queryObject(StorageSystem.class, storage);
@@ -5537,7 +5537,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         try {
             // Generate the Workflow.
             Workflow workflow = _workflowService.getNewWorkflow(this,
-                    UPDATE_VOLUMES_FOR_APPLICATION_WS_NAME, false, opId);
+                    UPDATE_VOLUMES_FOR_APPLICATION_WS_NAME, false, opId, null);
 
             List<URI> volumesToAdd = null;
             if (addVolList != null) {
@@ -5621,7 +5621,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         try {
             // Get a new workflow to execute creation of the snapshot session and if
             // necessary creation and linking of target volumes to the new session.
-            Workflow workflow = _workflowService.getNewWorkflow(this, CREATE_SAPSHOT_SESSION_WF_NAME, false, opId);
+            Workflow workflow = _workflowService.getNewWorkflow(this, CREATE_SAPSHOT_SESSION_WF_NAME, false, opId, null);
             _log.info("Created new workflow to create a new snapshot session for source with operation id {}", opId);
 
             // When creating a group snapshot we need the name of the group.
@@ -5944,7 +5944,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         try {
             // Get a new workflow to execute the linking of the target volumes
             // to the new session.
-            Workflow workflow = _workflowService.getNewWorkflow(this, LINK_SNAPSHOT_SESSION_TARGETS_WF_NAME, false, opId);
+            Workflow workflow = _workflowService.getNewWorkflow(this, LINK_SNAPSHOT_SESSION_TARGETS_WF_NAME, false, opId, null);
             _log.info("Created new workflow to create and link new targets for snapshot session {} with operation id {}",
                     snapSessionURI, opId);
 
@@ -5986,7 +5986,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         try {
             // Get a new workflow to execute the linking of the target volumes
             // to the new session.
-            Workflow workflow = _workflowService.getNewWorkflow(this, RELINK_SNAPSHOT_SESSION_TARGETS_WF_NAME, false, opId);
+            Workflow workflow = _workflowService.getNewWorkflow(this, RELINK_SNAPSHOT_SESSION_TARGETS_WF_NAME, false, opId, null);
             _log.info("Created new workflow to re-link targets to snapshot session {} with operation id {}",
                     tgtSnapSessionURI, opId);
 
@@ -6088,7 +6088,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         TaskCompleter completer = new BlockSnapshotSessionUnlinkTargetsWorkflowCompleter(snapSessionURI, opType, opId);
         try {
             // Get a new workflow to unlinking of the targets from session.
-            Workflow workflow = _workflowService.getNewWorkflow(this, UNLINK_SNAPSHOT_SESSION_TARGETS_WF_NAME, false, opId);
+            Workflow workflow = _workflowService.getNewWorkflow(this, UNLINK_SNAPSHOT_SESSION_TARGETS_WF_NAME, false, opId, null);
             _log.info("Created new workflow to unlink targets for snapshot session {} with operation id {}",
                     snapSessionURI, opId);
             Set<URI> targetKeys = snapshotDeletionMap.keySet();
@@ -6205,7 +6205,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         TaskCompleter completer = new BlockSnapshotSessionRestoreWorkflowCompleter(snapshotSession.getId(), updateStatus, opId);
         try {
             // Get a new workflow to restore the snapshot session.
-            Workflow workflow = _workflowService.getNewWorkflow(this, RESTORE_SNAPSHOT_SESSION_WF_NAME, false, opId);
+            Workflow workflow = _workflowService.getNewWorkflow(this, RESTORE_SNAPSHOT_SESSION_WF_NAME, false, opId, null);
             _log.info("Created new workflow to restore snapshot session {} with operation id {}",
                     snapSessionURI, opId);
             String waitFor = null;
@@ -6339,7 +6339,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         TaskCompleter completer = new BlockSnapshotSessionDeleteWorkflowCompleter(snapSessionURI, opId);
         try {
             // Get a new workflow delete the snapshot session.
-            Workflow workflow = _workflowService.getNewWorkflow(this, DELETE_SNAPSHOT_SESSION_WF_NAME, false, opId);
+            Workflow workflow = _workflowService.getNewWorkflow(this, DELETE_SNAPSHOT_SESSION_WF_NAME, false, opId, null);
             _log.info("Created new workflow to delete snapshot session {} with operation id {}",
                     snapSessionURI, opId);
 

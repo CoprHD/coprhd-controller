@@ -517,6 +517,15 @@ render.taskState = function(o, val) {
     else if (state.toUpperCase() == "ERROR") {
       s += ' ' + Messages.get('resources.tasks.error');
     }
+    else if (state.toUpperCase() == "QUEUED") {
+      s += ' ' + Messages.get('resources.tasks.queued');
+    }
+    else if (state.toUpperCase() == "SUSPENDED_NO_ERROR") {
+      s += ' ' + Messages.get('resources.tasks.suspended_no_error');
+    }
+    else if (state.toUpperCase() == "SUSPENDED_ERROR") {
+      s += ' ' + Messages.get('resources.tasks.suspended_error');
+    }
     s += '</div>';
   }      
   return s;
@@ -668,6 +677,15 @@ function renderTaskStateIcon(state) {
     }
     else if (state.toUpperCase() == "ERROR") {
       s += '<span class="glyphicon glyphicon-remove"></span>';
+    }
+    else if (state.toUpperCase() == "QUEUED") {
+      s += '<span class="glyphicon glyphicon-lock"></span>';
+    }
+    else if (state.toUpperCase() == "SUSPENDED_NO_ERROR") {
+      s += '<span class="glyphicon glyphicon-pause"></span>';
+    }
+    else if (state.toUpperCase() == "SUSPENDED_ERROR") {
+      s += '<span class="glyphicon glyphicon-remove-circle"></span>';
     }
   }      
   return s;

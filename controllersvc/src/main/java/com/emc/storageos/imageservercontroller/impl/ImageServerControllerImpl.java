@@ -334,7 +334,7 @@ public class ImageServerControllerImpl implements ImageServerController {
         URI ciId = task._id;
         boolean wfHasSteps = false;
         Workflow workflow = workflowService.getNewWorkflow(this,
-                IMPORT_IMAGE_WF, true, task._opId);
+                IMPORT_IMAGE_WF, true, task._opId, null);
         TaskCompleter completer = new ComputeImageCompleter(ciId, task._opId,
                 OperationTypeEnum.CREATE_COMPUTE_IMAGE, EVENT_SERVICE_TYPE);
         try {
@@ -711,7 +711,7 @@ public class ImageServerControllerImpl implements ImageServerController {
             completer = new ComputeImageCompleter(ciId, task._opId,
                     OperationTypeEnum.DELETE_COMPUTE_IMAGE, EVENT_SERVICE_TYPE);
             Workflow workflow = workflowService.getNewWorkflow(this,
-                    DELETE_IMAGE_WF, true, task._opId);
+                    DELETE_IMAGE_WF, true, task._opId, null);
             List<URI> ids = dbClient
                     .queryByType(ComputeImageServer.class, true);
             for (URI imageServerId : ids) {
@@ -820,7 +820,7 @@ public class ImageServerControllerImpl implements ImageServerController {
                         + imageServerErrorMsg);
             }
 
-            Workflow workflow = workflowService.getNewWorkflow(this, OS_INSTALL_WF, true, task._opId);
+            Workflow workflow = workflowService.getNewWorkflow(this, OS_INSTALL_WF, true, task._opId, null);
 
             String waitFor = null;
             waitFor = workflow.createStep(OS_INSTALL_IMAGE_SERVER_CHECK_STEP,
@@ -1083,7 +1083,7 @@ public class ImageServerControllerImpl implements ImageServerController {
                     EVENT_SERVICE_TYPE);
 
             Workflow workflow = workflowService.getNewWorkflow(this,
-                    IMAGESERVER_VERIFY_IMPORT_IMAGE_WF, true, task._opId);
+                    IMAGESERVER_VERIFY_IMPORT_IMAGE_WF, true, task._opId, null);
             workflow.createStep(IMAGESERVER_VERIFICATION_STEP, String.format(
                     "Verfiying ImageServer %s", computeImageServerID), null,
                     computeImageServerID, computeImageServerID.toString(), this

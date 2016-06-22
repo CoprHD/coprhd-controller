@@ -4437,7 +4437,7 @@ recoverpoint_direct_access_test()
 
         # Test creating snapshots after target copy is in direct access mode
 
-        if [ "${#rp_tgt_varrays[@]}" = "1" ]; then
+        if [ "${#rp_tgt_varrays[@]}" -eq "1" ]; then
             echo 'Attempt to create a RP bookmark on CG with single copy in direct access mode - expected failure'
             fail blocksnapshot create ${PROJECT}/${src_volume} ${rp_bookmark} --type rp
         else 
@@ -4446,7 +4446,7 @@ recoverpoint_direct_access_test()
 
             for tgt_varray in ${rp_tgt_varrays[@]}
             do
-                #if [ "$tgt_varray" = "$direct_access_mode_varray" ]; then
+                #if [ "$tgt_varray" -eq "$direct_access_mode_varray" ]; then
                     # TODO: Uncomment this test and the if/else once COP-22617 has been resolved
                     #secho 'Verifying that the bookmark associated with the target copy has not been created'
                     #fail blocksnapshot show ${PROJECT}/${src_volume}/${rp_bookmark}-2-${direct_access_mode_varray}
@@ -4496,7 +4496,7 @@ recoverpoint_direct_access_test()
         if [ "${#rp_tgt_varrays[@]}" -gt "1" ]; then
             for tgt_varray in ${rp_tgt_varrays[@]}
             do
-                if [ "$tgt_varray" != "$direct_access_mode_varray" ]; then        
+                if [ "$tgt_varray" -ne "$direct_access_mode_varray" ]; then        
                     target_vol=${src_volume}-target-${tgt_varray}
                     secho 'Failover to target virtual array '${tgt_varray}
                     run volume change_link ${PROJECT}/${src_volume} failover ${PROJECT}/${target_vol} rp

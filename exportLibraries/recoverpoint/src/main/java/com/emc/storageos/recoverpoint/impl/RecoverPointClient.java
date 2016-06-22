@@ -2085,9 +2085,11 @@ public class RecoverPointClient {
             FunctionalAPIInternalError_Exception {
         if (clusterID != null) {
             RecoverPointClustersInformation clustersInfo = functionalAPI.getRecoverPointClustersInformation();
-            for (ClusterInfo clusterInfo : clustersInfo.getClustersInformations()) {
-                if (clusterInfo.getClusterUID().getId() == clusterID.getId()) {
-                    return clusterInfo.getClusterName();
+            if (clustersInfo != null) {
+                for (ClusterInfo clusterInfo : clustersInfo.getClustersInformations()) {
+                    if (clusterInfo.getClusterUID().getId() == clusterID.getId()) {
+                        return clusterInfo.getClusterName();
+                    }
                 }
             }
         }

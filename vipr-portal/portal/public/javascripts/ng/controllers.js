@@ -1444,7 +1444,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
     completedSteps = 0;
     guideVisible = false;
     guideDataAvailable = false;
-    $scope.$parent.currentMode = 'side';
+    $scope.$parent.currentMode = 'full';
 
     $scope.toggleGuide = function() {
 
@@ -1463,12 +1463,12 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
         }
         else {
 		    $scope.$parent.guideVisible = true;
-		    //$scope.$parent.currentMode='full';
-            if ($scope.$parent.completedSteps <= requiredSteps){
+		    $scope.$parent.currentMode='full';
+            if ($scope.$parent.completedSteps <= requiredSteps || !completedSteps){
                 if ($window.location.pathname == '/setup/license') {
                     if ($scope.$parent.currentStep == 1) {return;};
                 }
-                else if ($window.location.pathname == '/setup/index') {
+                if ($window.location.pathname == '/setup/index') {
                     if ($scope.$parent.currentStep == 2) {return;};
                 }
             }
@@ -1494,36 +1494,34 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
         //var newObject = readCookie(cookieKey);
         //console.table(angular.fromJson(newObject));
 
-        setTimeout(function(){
-            $http.get(routes.Setup_license()).then(function (data) {
-                isLicensed = data.data;
-                if (isLicensed == 'true') {
-                    console.log('Licensed');
-                    $scope.$parent.completedSteps = 1;
-                    $scope.$parent.currentStep = 2;
-                }
-            return $http.get(routes.Setup_initialSetup())
-            }).then(function (data2) {
-                isSetup = data2.data;
-                if (isSetup == 'true') {
-                    console.log('Setup Complete');
-                    $scope.$parent.completedSteps = 2;
-                    $scope.$parent.currentStep = 3;
-                }
-            }, function(error) {
-                console.log('error');
-                //dataObj.error = error;
-            }).then(function () {
-                //dataObj.completedStepLevel = completedStepLevel;
-                //$scope.completedStepLevel = completedStepLevel;
-                $scope.$parent.guideDataAvailable = true;
+        $http.get(routes.Setup_license()).then(function (data) {
+            isLicensed = data.data;
+            if (isLicensed == 'true') {
+                console.log('Licensed');
+                $scope.$parent.completedSteps = 1;
+                $scope.$parent.currentStep = 2;
+            }
+        return $http.get(routes.Setup_initialSetup())
+        }).then(function (data2) {
+            isSetup = data2.data;
+            if (isSetup == 'true') {
+                console.log('Setup Complete');
+                $scope.$parent.completedSteps = 2;
+                $scope.$parent.currentStep = 3;
+            }
+        }, function(error) {
+            console.log('error');
+            //dataObj.error = error;
+        }).then(function () {
+            //dataObj.completedStepLevel = completedStepLevel;
+            //$scope.completedStepLevel = completedStepLevel;
+            $scope.$parent.guideDataAvailable = true;
 
-                cookieObject = {};
-                cookieObject.currentStep=$scope.$parent.currentStep;
-                cookieObject.completedSteps=$scope.$parent.completedSteps;
-                createCookie(cookieKey,angular.toJson(cookieObject),'session');
-            });
-        }, 1000);
+            cookieObject = {};
+            cookieObject.currentStep=$scope.$parent.currentStep;
+            cookieObject.completedSteps=$scope.$parent.completedSteps;
+            createCookie(cookieKey,angular.toJson(cookieObject),'session');
+        });
     }
 
     $scope.goToNextStep = function() {

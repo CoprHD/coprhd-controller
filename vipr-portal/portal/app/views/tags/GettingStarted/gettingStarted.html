@@ -14,8 +14,8 @@
             <div class='btn-toolbar pull-right'>
                 <div class='btn-group'>
                     <span ng-show="currentMode=='side'">
-                        <a ng-show="completedSteps > currentStep" ng-click="toggleMode('full');"><i class="glyphicon glyphicon-fullscreen"></i></a>
-                        <a ng-show="currentStep > completedSteps && (currentStep != 6 && currentStep != 8 && currentStep != 10)" ng-click="gotoNext('full');"><i class="glyphicon glyphicon-arrow-right"></i></a>
+                        <a ng-show="currentStep <= 2" ng-click="toggleMode('full');"><i class="glyphicon glyphicon-fullscreen"></i></a>
+                        <a ng-show="currentStep > completedSteps && currentStep > 2" ng-click="gotoNext('full');"><i class="glyphicon glyphicon-arrow-right"></i></a>
                         <a ng-show="currentStep <= completedSteps && (currentStep == 6 || currentStep == 8)" ng-click="goToMode(currentStep+2,'full');"><i class="glyphicon glyphicon-arrow-right"></i></a>
                     </span> &nbsp;
                     <a ng-click="closeGuide();"><i class="glyphicon glyphicon-remove-circle" ></i></a>

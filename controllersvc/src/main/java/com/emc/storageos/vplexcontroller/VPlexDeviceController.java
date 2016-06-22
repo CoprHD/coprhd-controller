@@ -905,6 +905,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     vplexVolume.setNativeId(vvInfo.getPath());
                     vplexVolume.setNativeGuid(vvInfo.getPath());
                     vplexVolume.setDeviceLabel(vvInfo.getName());
+                    vplexVolume.setThinlyProvisioned(vvInfo.isThinEnabled());
                     // For Vplex virtual volumes set allocated capacity to 0 (cop-18608)
                     vplexVolume.setAllocatedCapacity(0L);
                     vplexVolume.setProvisionedCapacity(vvInfo.getCapacityBytes());
@@ -5590,6 +5591,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     virtualVolume.setDeviceLabel(updatedVirtualVolumeInfo.getName());
                     virtualVolume.setNativeId(updatedVirtualVolumeInfo.getPath());
                     virtualVolume.setNativeGuid(updatedVirtualVolumeInfo.getPath());
+                    virtualVolume.setThinlyProvisioned(updatedVirtualVolumeInfo.isThinEnabled());
                 }
                 // Note that for ingested volumes, there will be no associated volumes
                 // at first.
@@ -6350,6 +6352,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     vplexVolume.setNativeId(virtvinfo.getPath());
                     vplexVolume.setNativeGuid(virtvinfo.getPath());
                     vplexVolume.setDeviceLabel(virtvinfo.getName());
+                    vplexVolume.setThinlyProvisioned(virtvinfo.isThinEnabled());
                     _dbClient.updateObject(vplexVolume);
                 }
             } else {
@@ -6382,6 +6385,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             vplexVolume.setNativeId(virtvinfo.getPath());
             vplexVolume.setNativeGuid(virtvinfo.getPath());
             vplexVolume.setDeviceLabel(virtvinfo.getName());
+            vplexVolume.setThinlyProvisioned(virtvinfo.isThinEnabled());
 
             // If we are importing, we need to move the existing import volume to
             // the system project/tenant, update its label, and set the new CoS.
@@ -9086,6 +9090,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             promoteVolume.setNativeId(vvInfo.getPath());
             promoteVolume.setNativeGuid(vvInfo.getPath());
             promoteVolume.setDeviceLabel(vvInfo.getName());
+            promoteVolume.setThinlyProvisioned(vvInfo.isThinEnabled());
             // For Vplex virtual volumes set allocated capacity to 0 (cop-18608)
             promoteVolume.setAllocatedCapacity(0L);
             promoteVolume.setCapacity(vplexMirror.getCapacity());

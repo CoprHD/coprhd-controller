@@ -10,10 +10,22 @@
 #
 
 ifeq ($(BUILD_TYPE),oss)
+ifeq ($(OS_DISTRO),trusty-tahr)
+    DEVKIT_BUILD=1
+    DEVKIT_IMAGE=coprhddevkittrusty:3.5.0.0.$(DEVKIT_BUILD)
+    DEVKIT_LOCAL=CoprHDDevKit-TrustyTahr.x86_64-3.5.0.0.$(DEVKIT_BUILD).tbz
+    DEVKIT_ADDRS=https://build.coprhd.org/jenkins/userContent/DevKits/3.5.0.0.$(DEVKIT_BUILD)/$(DEVKIT_LOCAL)
+else ifeq ($(OS_DISTRO),xenial-xerus)
+    DEVKIT_BUILD=1
+    DEVKIT_IMAGE=coprhddevkitxenial:3.5.0.0.$(DEVKIT_BUILD)
+    DEVKIT_LOCAL=CoprHDDevKit-XenialXerus.x86_64-3.5.0.0.$(DEVKIT_BUILD).tbz
+    DEVKIT_ADDRS=https://build.coprhd.org/jenkins/userContent/DevKits/3.5.0.0.$(DEVKIT_BUILD)/$(DEVKIT_LOCAL)
+else
     DEVKIT_BUILD=27
     DEVKIT_IMAGE=coprhddevkit:3.5.0.0.$(DEVKIT_BUILD)
     DEVKIT_LOCAL=CoprHDDevKit.x86_64-3.5.0.0.$(DEVKIT_BUILD).tbz
     DEVKIT_ADDRS=https://build.coprhd.org/jenkins/userContent/DevKits/3.5.0.0.$(DEVKIT_BUILD)/$(DEVKIT_LOCAL)
+endif
 else
     DEVKIT_BUILD=4
     DEVKIT_IMAGE=nile-registry.lss.emc.com:5000/viprcontroller/viprdevkit-sles12:3.5.0.0.$(DEVKIT_BUILD)

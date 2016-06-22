@@ -177,7 +177,11 @@ endif
               EXTRA_CFLAGS +=
             EXTRA_CXXFLAGS +=
 
+ifeq ($(OS_DISTRO),xenial-xerus)
+                        CC = gcc-5
+else
                         CC = gcc-4.8
+endif
                  CCOPTIONS = -pthread \
                              -m64  \
                              -g \

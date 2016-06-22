@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -27,6 +28,10 @@ import com.emc.storageos.vplex.api.VPlexResourceInfo;
 import com.emc.storageos.vplex.api.VPlexStorageVolumeInfo;
 import com.emc.storageos.vplex.api.VPlexVirtualVolumeInfo;
 import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
+import com.emc.storageos.vplex.api.VPlexStorageViewInfo;
+import com.emc.storageos.db.client.model.ExportMask;
+import com.emc.storageos.db.client.model.StringMap;
+import com.emc.storageos.db.client.URIUtil;
 
 /**
  * A single bean instance of this class is started from the Spring configuration.
@@ -54,6 +59,7 @@ public class VplexDBCkr {
         // we will spend time below getting details.
         writeLog("Retrieving all virtual volumes... this will take some time...");
         Map<String, VPlexVirtualVolumeInfo> vvInfoMap = client.getVirtualVolumes(true);
+		List<VPlexStorageViewInfo> storageViews = client.getStorageViews();
         writeLog("... done");
         while(iter.hasNext()) {
             Volume volume = dbClient.queryObject(Volume.class, iter.next());
@@ -101,8 +107,38 @@ public class VplexDBCkr {
                     nerrors++;
                 }
             }
-            
-        }
+					
+           }
+		
+		
+		  for (VPlexStorageViewInfo storageView : storageViews) {
+             List<URI> maskUris = dbClient.queryByConstraint(AlternateIdConstraint.Factory.getExportMaskByNameConstraint(storageView.getName()));
+			 writeLog(String.format("\nChecking Storageview %s",storageView.getName()));
+			 for (String volumeNameStr : storageView.getVirtualVolumes()) {
+              String[] tokens = volumeNameStr.split(",");
+              String volumeName = tokens[1];
+              ExportMask exportMask = null;
+			  boolean found = false;
+			  if (null != maskUris && !maskUris.isEmpty()) {
+              for (URI maskUri : maskUris) {
+                exportMask = dbClient.queryObject(ExportMask.class, maskUri);
+                if (null != exportMask && exportMask.getInitiators() != null) {
+				   for (Map.Entry<String, String> entry : exportMask.getVolumes().entrySet()) {
+				      Volume maskvolume = dbClient.queryObject(Volume.class, URIUtil.uri(entry.getKey()));
+					  if (volumeName.equals(maskvolume.getDeviceLabel())) {
+					   writeLog(String.format("devicelabel found %s",volumeName));
+					   found = true;
+					  }
+				    }
+				  }
+                }
+				if(!found)
+				{
+				 writeLog(String.format("devicelabel not found %s",volumeName));
+				}
+               }
+             }
+            }
         writeLog("Total errors for this VPLEX: " + nerrors);
     }
     

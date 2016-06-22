@@ -26,6 +26,10 @@ function installRepositories
          --no-gpgcheck http://download.opensuse.org/repositories/Virtualization:/Appliances/openSUSE_13.2 suse-13.2-appliances
   zypper --non-interactive --no-gpg-checks addrepo --no-check --name suse-13.2-containers \
          --no-gpgcheck http://download.opensuse.org/repositories/Virtualization:/containers/openSUSE_13.2 suse-13.2-containers
+  zypper --non-interactive --no-gpg-checks addrepo --no-check --name suse-13.2-filesystems-ceph \
+         --no-gpgcheck http://download.opensuse.org/repositories/filesystems:/ceph:/Unstable/openSUSE_13.2 suse-13.2-filesystems-ceph
+  zypper --non-interactive --no-gpg-checks addrepo --no-check --name suse-13.2-electronics \
+         --no-gpgcheck http://download.opensuse.org/repositories/electronics/openSUSE_13.2 suse-13.2-electronics
 
   zypper --non-interactive --no-gpg-checks modifyrepo --priority  3 suse-13.2-oss
   zypper --non-interactive --no-gpg-checks modifyrepo --priority  3 suse-13.2-oss-update
@@ -37,6 +41,8 @@ function installRepositories
   zypper --non-interactive --no-gpg-checks modifyrepo --priority  5 suse-13.2-building
   zypper --non-interactive --no-gpg-checks modifyrepo --priority  1 suse-13.2-appliances
   zypper --non-interactive --no-gpg-checks modifyrepo --priority  1 suse-13.2-containers
+  zypper --non-interactive --no-gpg-checks modifyrepo --priority  1 suse-13.2-filesystems-ceph
+  zypper --non-interactive --no-gpg-checks modifyrepo --priority  1 suse-13.2-electronics
 
   return 0
 }
@@ -51,6 +57,8 @@ function installPackages
   cp -f /etc/zypp/repos.d/suse-13.2-network.repo /tmp/coprhd.d/
   cp -f /etc/zypp/repos.d/suse-13.2-seife.repo /tmp/coprhd.d/
   cp -f /etc/zypp/repos.d/suse-13.2-containers.repo /tmp/coprhd.d/
+  cp -f /etc/zypp/repos.d/suse-13.2-filesystems-ceph.repo /tmp/coprhd.d/
+  cp -f /etc/zypp/repos.d/suse-13.2-electronics.repo /tmp/coprhd.d/
 
   ISO=$(mount | grep openSUSE-13.2-DVD-x86_64.iso | cut -d ' ' -f 3)
   if [ ! -z "${ISO}" ]; then
@@ -60,7 +68,7 @@ function installPackages
   fi
 
   zypper --reposd-dir=/tmp/coprhd.d --non-interactive --no-gpg-checks refresh
-  zypper --reposd-dir=/tmp/coprhd.d --non-interactive --no-gpg-checks install --details --no-recommends --force-resolution ant apache2-mod_perl apache2-prefork atop bind-libs bind-utils ca-certificates-cacert ca-certificates-mozilla curl createrepo dhcpcd docker docker-compose expect fontconfig fonts-config gcc-c++ GeoIP GeoIP-data git git-core glib2-devel gpgme grub2 ifplugd inst-source-utils iproute2 iputils java-1_7_0-openjdk java-1_7_0-openjdk-devel java-1_8_0-openjdk java-1_8_0-openjdk-devel keepalived kernel-default kernel-default-devel kernel-source kiwi kiwi-desc-isoboot kiwi-desc-oemboot kiwi-desc-vmxboot kiwi-templates libaudiofile1 libesd0 libgcrypt-devel libGeoIP1 libgpg-error-devel libmng2 libopenssl-devel libpcrecpp0 libpcreposix0 libqt4 libqt4-sql libqt4-x11 libSDL-1_2-0 libserf-devel libtool libuuid-devel libvpx1 libxml2-devel libXmu6 lvm2 make mkfontdir mkfontscale mozilla-nss-certs netcfg net-tools ndisc6 nfs-client openssh openssh-fips p7zip pam-devel parted pcre-devel perl-Config-General perl-Error perl-Tk plymouth python-cjson python-devel python-gpgme python-iniparse python-libxml2 python-py python-requests python-setools qemu qemu-tools readline-devel regexp rpm-build setools-libs sipcalc sshpass strongswan strongswan-ipsec strongswan-libs0 subversion sudo SuSEfirewall2 sysconfig sysconfig-netconfig syslinux sysstat systemd-logger tar telnet unixODBC vim virtualbox virtualbox-guest-tools virtualbox-guest-kmp-default virtualbox-host-kmp-default wget xbitmaps xfsprogs xml-commons-jaxp-1.3-apis xmlstarlet xorg-x11-essentials xorg-x11-fonts xorg-x11-server xz-devel yum zlib-devel
+  zypper --reposd-dir=/tmp/coprhd.d --non-interactive --no-gpg-checks install --details --no-recommends --force-resolution ant apache2-mod_perl apache2-prefork atop bind-libs bind-utils ca-certificates-cacert ca-certificates-mozilla curl createrepo dhcpcd docker docker-compose expect fontconfig fonts-config gcc-c++ GeoIP GeoIP-data git git-core glib2-devel gpgme grub2 ifplugd inst-source-utils iproute2 iputils java-1_7_0-openjdk java-1_7_0-openjdk-devel java-1_8_0-openjdk java-1_8_0-openjdk-devel keepalived kernel-default kernel-default-devel kernel-source kiwi kiwi-desc-isoboot kiwi-desc-oemboot kiwi-desc-vmxboot kiwi-templates libaudiofile1 libesd0 libgcrypt-devel libGeoIP1 libgpg-error-devel libmng2 libopenssl-devel libpcrecpp0 libpcreposix0 libqt4 libqt4-sql libqt4-x11 libSDL-1_2-0 libserf-devel libtool libuuid-devel libvpx1 libxml2-devel libXmu6 lvm2 make mkfontdir mkfontscale mozilla-nss-certs netcfg net-tools ndisc6 nfs-client openssh openssh-fips p7zip pam-devel parted pcre-devel perl-Config-General perl-Error perl-Tk plymouth python-cjson python-devel python-gpgme python-iniparse python-libxml2 python-py python-requests python-setools qemu qemu-tools readline-devel regexp rpm-build setools-libs sipcalc sshpass strongswan strongswan-ipsec strongswan-libs0 subversion sudo SuSEfirewall2 sysconfig sysconfig-netconfig syslinux sysstat systemd-logger tar telnet unixODBC vim virtualbox virtualbox-guest-tools virtualbox-guest-kmp-default virtualbox-host-kmp-default wget xbitmaps xfsprogs xml-commons-jaxp-1.3-apis xmlstarlet xorg-x11-essentials xorg-x11-fonts xorg-x11-server xz-devel yum zlib-devel boost-license1_58_0 libboost_system1_58_0 libboost_thread1_58_0 librados2 librbd1
   rm -fr /tmp/coprhd.d
 
   # distribution updates and security fixes
@@ -82,6 +90,11 @@ function installJava
 
   update-alternatives --set java /usr/lib64/jvm/jre-1.${java}.0-openjdk/bin/java
   update-alternatives --set javac /usr/lib64/jvm/java-1.${java}.0-openjdk/bin/javac
+  if [ -f /usr/lib64/jvm/jre-1.${java}.0-openjdk/lib/security/java.security ] ; then
+    cp -p /usr/lib64/jvm/jre-1.${java}.0-openjdk/lib/security/java.security /usr/lib64/jvm/jre-1.${java}.0-openjdk/lib/security/java.security.orig
+    sed -i 's/^jdk.tls.disabledAlgorithms=SSLv3/\#jdk.tls.disabledAlgorithms=SSLv3/' /usr/lib64/jvm/jre-1.${java}.0-openjdk/lib/security/java.security
+    sed -i 's/^jdk.certpath.disabledAlgorithms=.*/jdk.certpath.disabledAlgorithms=MD2/' /usr/lib64/jvm/jre-1.${java}.0-openjdk/lib/security/java.security
+  fi
 }
 
 function installNginx

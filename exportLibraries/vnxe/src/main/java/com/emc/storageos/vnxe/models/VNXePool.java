@@ -274,13 +274,14 @@ public class VNXePool extends VNXeBase {
 
     public String getStatus() {
         String statusString = null;
+        if (operationalStatus !=null){
         for (Integer opStatus : operationalStatus) {
             if (opStatus == 2) {
                 statusString = "READY";
                 break;
             }
 
-        }
+        }}
         if (statusString == null) {
             statusString = "NOTREADY";
         }

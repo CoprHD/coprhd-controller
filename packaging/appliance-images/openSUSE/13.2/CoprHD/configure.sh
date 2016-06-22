@@ -26,6 +26,10 @@ function installRepositories
          --no-gpgcheck http://download.opensuse.org/repositories/Virtualization:/Appliances/openSUSE_13.2 suse-13.2-appliances
   zypper --non-interactive --no-gpg-checks addrepo --no-check --name suse-13.2-containers \
          --no-gpgcheck http://download.opensuse.org/repositories/Virtualization:/containers/openSUSE_13.2 suse-13.2-containers
+  zypper --non-interactive --no-gpg-checks addrepo --no-check --name suse-13.2-filesystems-ceph \
+         --no-gpgcheck http://download.opensuse.org/repositories/filesystems:/ceph:/Unstable/openSUSE_13.2 suse-13.2-filesystems-ceph
+  zypper --non-interactive --no-gpg-checks addrepo --no-check --name suse-13.2-electronics \
+         --no-gpgcheck http://download.opensuse.org/repositories/electronics/openSUSE_13.2 suse-13.2-electronics
 
   zypper --non-interactive --no-gpg-checks modifyrepo --priority  3 suse-13.2-oss
   zypper --non-interactive --no-gpg-checks modifyrepo --priority  3 suse-13.2-oss-update
@@ -37,6 +41,8 @@ function installRepositories
   zypper --non-interactive --no-gpg-checks modifyrepo --priority  5 suse-13.2-building
   zypper --non-interactive --no-gpg-checks modifyrepo --priority  1 suse-13.2-appliances
   zypper --non-interactive --no-gpg-checks modifyrepo --priority  1 suse-13.2-containers
+  zypper --non-interactive --no-gpg-checks modifyrepo --priority  1 suse-13.2-filesystems-ceph
+  zypper --non-interactive --no-gpg-checks modifyrepo --priority  1 suse-13.2-electronics
 
   return 0
 }
@@ -62,6 +68,11 @@ function installJava
 
   update-alternatives --set java /usr/lib64/jvm/jre-1.${java}.0-openjdk/bin/java
   update-alternatives --set javac /usr/lib64/jvm/java-1.${java}.0-openjdk/bin/javac
+  if [ -f /usr/lib64/jvm/jre-1.${java}.0-openjdk/lib/security/java.security ] ; then
+    cp -p /usr/lib64/jvm/jre-1.${java}.0-openjdk/lib/security/java.security /usr/lib64/jvm/jre-1.${java}.0-openjdk/lib/security/java.security.orig
+    sed -i 's/^jdk.tls.disabledAlgorithms=SSLv3/\#jdk.tls.disabledAlgorithms=SSLv3/' /usr/lib64/jvm/jre-1.${java}.0-openjdk/lib/security/java.security
+    sed -i 's/^jdk.certpath.disabledAlgorithms=.*/jdk.certpath.disabledAlgorithms=MD2/' /usr/lib64/jvm/jre-1.${java}.0-openjdk/lib/security/java.security
+  fi
 }
 
 function installNginx

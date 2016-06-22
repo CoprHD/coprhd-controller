@@ -280,7 +280,7 @@ public interface BlockServiceApi {
      * @throws InternalException
      *             the internal exception
      */
-    public void changeVolumeVirtualPool(List<Volume> volumes,
+    public TaskList changeVolumeVirtualPool(List<Volume> volumes,
             VirtualPool targetVpool, VirtualPoolChangeParam vpoolChangeParam, String taskId)
                     throws InternalException;
 

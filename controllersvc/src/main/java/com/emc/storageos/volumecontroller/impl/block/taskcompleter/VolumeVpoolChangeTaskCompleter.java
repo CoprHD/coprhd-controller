@@ -14,6 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.VirtualPool;
@@ -44,10 +45,16 @@ public class VolumeVpoolChangeTaskCompleter extends VolumeWorkflowCompleter {
         this.oldVpool = oldVpool;
     }
 
-    public VolumeVpoolChangeTaskCompleter(List<URI> volumeURIs, List<URI> migrationURIs, Map<URI, URI> oldVpools, String task) {
+    public VolumeVpoolChangeTaskCompleter(List<URI> volumeURIs, List<URI> migrationURIs, Map<URI, URI> oldVpools, List<URI> cgIds,
+            String task) {
         super(volumeURIs, task);
         this.oldVpools = oldVpools;
         this.migrationURIs.addAll(migrationURIs);
+        if (cgIds != null) {
+            for (URI cgId : cgIds) {
+                this.addConsistencyGroupId(cgId);
+            }
+        }
     }
 
     public VolumeVpoolChangeTaskCompleter(List<URI> volumeURIs, Map<URI, URI> oldVpools, String task) {
@@ -112,6 +119,12 @@ public class VolumeVpoolChangeTaskCompleter extends VolumeWorkflowCompleter {
                         handleVplexVolumeErrors(dbClient);
                     }
 
+                    // If there's a task associated with the CG, update that as well
+                    if (this.getConsistencyGroupIds() != null) {
+                        for (URI cgId : this.getConsistencyGroupIds()) {
+                            dbClient.error(BlockConsistencyGroup.class, cgId, this.getOpId(), serviceCoded);
+                        }
+                    }
                     break;
                 case ready:
                     // The new Vpool has already been stored in the volume in BlockDeviceExportController.
@@ -131,6 +144,27 @@ public class VolumeVpoolChangeTaskCompleter extends VolumeWorkflowCompleter {
                     } catch (Exception ex) {
                         _logger.error("Failed to record block volume operation {}, err: {}", opType.toString(), ex);
                     }
+
+                    // If there's a task associated with the CG, update that as well
+                    if (this.getConsistencyGroupIds() != null) {
+                        for (URI cgId : this.getConsistencyGroupIds()) {
+                            dbClient.ready(BlockConsistencyGroup.class, cgId, this.getOpId());
+                        }
+                    }
+                    break;
+                case suspended_error:
+                    if (this.getConsistencyGroupIds() != null) {
+                        for (URI cgId : this.getConsistencyGroupIds()) {
+                            dbClient.suspended_error(BlockConsistencyGroup.class, cgId, this.getOpId(), serviceCoded);
+                        }
+                    }
+                    break;
+                case suspended_no_error:
+                    if (this.getConsistencyGroupIds() != null) {
+                        for (URI cgId : this.getConsistencyGroupIds()) {
+                            dbClient.suspended_no_error(BlockConsistencyGroup.class, cgId, this.getOpId());
+                        }
+                    }
                     break;
                 default:
                     break;
@@ -141,11 +175,35 @@ public class VolumeVpoolChangeTaskCompleter extends VolumeWorkflowCompleter {
                     for (URI migrationURI : migrationURIs) {
                         dbClient.error(Migration.class, migrationURI, getOpId(), serviceCoded);
                     }
+                    if (this.getConsistencyGroupIds() != null) {
+                        for (URI cgId : this.getConsistencyGroupIds()) {
+                            dbClient.error(BlockConsistencyGroup.class, cgId, this.getOpId(), serviceCoded);
+                        }
+                    }
+                    break;
+                case suspended_error:
+                    if (this.getConsistencyGroupIds() != null) {
+                        for (URI cgId : this.getConsistencyGroupIds()) {
+                            dbClient.suspended_error(BlockConsistencyGroup.class, cgId, this.getOpId(), serviceCoded);
+                        }
+                    }
+                    break;
+                case suspended_no_error:
+                    if (this.getConsistencyGroupIds() != null) {
+                        for (URI cgId : this.getConsistencyGroupIds()) {
+                            dbClient.suspended_no_error(BlockConsistencyGroup.class, cgId, this.getOpId());
+                        }
+                    }
                     break;
                 case ready:
                 default:
                     for (URI migrationURI : migrationURIs) {
                         dbClient.ready(Migration.class, migrationURI, getOpId());
+                    }
+                    if (this.getConsistencyGroupIds() != null) {
+                        for (URI cgId : this.getConsistencyGroupIds()) {
+                            dbClient.ready(BlockConsistencyGroup.class, cgId, this.getOpId());
+                        }
                     }
             }
             super.complete(dbClient, status, serviceCoded);
@@ -155,10 +213,14 @@ public class VolumeVpoolChangeTaskCompleter extends VolumeWorkflowCompleter {
     /**
      * Roll back vPool on vplex backend volumes.
      *
-     * @param volume VPLEX Volume to rollback backend vpool on
-     * @param volumesToUpdate List of all volumes to update
-     * @param dbClient DBClient
-     * @param oldVpoolURI The old vpool URI
+     * @param volume
+     *            VPLEX Volume to rollback backend vpool on
+     * @param volumesToUpdate
+     *            List of all volumes to update
+     * @param dbClient
+     *            DBClient
+     * @param oldVpoolURI
+     *            The old vpool URI
      */
     private void rollBackVpoolOnVplexBackendVolume(Volume volume, List<Volume> volumesToUpdate, DbClient dbClient, URI oldVpoolURI) {
         // Check if it is a VPlex volume, and get backend volumes
@@ -193,7 +255,8 @@ public class VolumeVpoolChangeTaskCompleter extends VolumeWorkflowCompleter {
      * during rollback in order to allow delete operations if backing volumes are
      * not removed properly. Marking the volume inactive will be taken care of here.
      *
-     * @param dbClient the DB client.
+     * @param dbClient
+     *            the DB client.
      */
     private void handleVplexVolumeErrors(DbClient dbClient) {
 
@@ -212,7 +275,8 @@ public class VolumeVpoolChangeTaskCompleter extends VolumeWorkflowCompleter {
                 for (String associatedVolumeUri : volume.getAssociatedVolumes()) {
                     Volume associatedVolume = dbClient.queryObject(Volume.class, URI.create(associatedVolumeUri));
                     if (associatedVolume != null && !associatedVolume.getInactive()) {
-                        _log.warn("VPLEX virtual volume {} has active associated volume {}", volume.getLabel(), associatedVolume.getLabel());
+                        _log.warn("VPLEX virtual volume {} has active associated volume {}", volume.getLabel(),
+                                associatedVolume.getLabel());
                         livingVolumeNames.add(associatedVolume.getLabel());
                         deactivateVirtualVolume = false;
                     }

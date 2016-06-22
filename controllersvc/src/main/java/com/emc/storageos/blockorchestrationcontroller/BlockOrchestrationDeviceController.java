@@ -307,16 +307,18 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
             throws ControllerException {
         Map<URI, URI> changeVpoolVolsMap = VolumeDescriptor.getAllVirtualPoolChangeSourceVolumes(volumes);
         List<URI> volURIs = VolumeDescriptor.getVolumeURIs(volumes);
+        List<URI> cgIds = null;
         List<URI> migrationURIs = new ArrayList<URI>();
         for (VolumeDescriptor desc : volumes) {
             URI migrationURI = desc.getMigrationId();
             if (!NullColumnValueGetter.isNullURI(migrationURI)) {
                 migrationURIs.add(migrationURI);
             }
+            cgIds = Volume.fetchCgIds(s_dbClient, volURIs);
         }
 
         VolumeVpoolChangeTaskCompleter completer = new VolumeVpoolChangeTaskCompleter(
-                volURIs, migrationURIs, changeVpoolVolsMap, taskId);
+                volURIs, migrationURIs, changeVpoolVolsMap, cgIds, taskId);
 
         try {
             // Generate the Workflow.

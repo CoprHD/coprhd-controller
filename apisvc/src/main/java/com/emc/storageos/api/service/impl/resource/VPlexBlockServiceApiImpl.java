@@ -1280,12 +1280,12 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * {@inheritDoc}
      */
     @Override
-    public void changeVolumeVirtualPool(List<Volume> volumes, VirtualPool vpool,
+    public TaskList changeVolumeVirtualPool(List<Volume> volumes, VirtualPool vpool,
             VirtualPoolChangeParam vpoolChangeParam, String taskId) throws InternalException {
 
         // Check for common Vpool updates handled by generic code. It returns true if handled.
         if (checkCommonVpoolUpdates(volumes, vpool, taskId)) {
-            return;
+            return createTasksForVolumes(vpool, volumes, taskId);
         }
 
         // Check if any of the volumes passed is a VPLEX volume
@@ -1325,6 +1325,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                         volumesNotInRG.add(volume);
                     }
                 }
+                TaskList taskList = new TaskList();
+
                 for (Table.Cell<URI, String, List<Volume>> cell : groupVolumes.cellSet()) {
                     List<Volume> volumesInRGRequest = cell.getValue();
                     List<Volume> rgVolumes = getVolumesInSameReplicationGroup(cell.getColumnKey(), cell.getRowKey());
@@ -1372,16 +1374,32 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                                 volume, vpool, taskId, null, null, operationsWrapper));
                     }
 
+                    // TODO DUPP:
+                    // 1. This is not really splitting up the work by CGs but rather by replication groups.
+                    // But the task is by CG, and this will cause an issue when two replication groups exist in the
+                    // same BlockConsistencyGroup. We'll hit the same issue when we try to do a multi-volume creation
+                    // and we don't have a parent object to base the Task resource on.
+                    if (rgVolumes != null && !rgVolumes.isEmpty() && rgVolumes.get(0).getConsistencyGroup() != null) {
+                        cg = _dbClient.queryObject(BlockConsistencyGroup.class, rgVolumes.get(0).getConsistencyGroup());
+                    }
+
+                    // Create a task object associated with the CG
+                    taskList.getTaskList().add(createTaskForCG(vpool, cg, volumes, taskId));
+
                     // Orchestrate the vpool changes of all volumes as a single request.
                     orchestrateVPoolChanges(volumesInRGRequest, descriptors, taskId);
+
                 }
                 if (!volumesNotInRG.isEmpty()) {
+                    // Create a task object associated with the Volumes
+                    taskList.getTaskList().addAll(createTasksForVolumes(vpool, volumes, taskId).getTaskList());
+
                     for (Volume volume : volumesNotInRG) {
                         changeVolumeVirtualPool(volume.getStorageController(), volume, vpool,
                                 vpoolChangeParam, taskId);
                     }
                 }
-                return;
+                return taskList;
             }
         }
 
@@ -1391,6 +1409,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             changeVolumeVirtualPool(volume.getStorageController(), volume, vpool,
                     vpoolChangeParam, taskId);
         }
+        return createTasksForVolumes(vpool, volumes, taskId);
     }
 
     /**

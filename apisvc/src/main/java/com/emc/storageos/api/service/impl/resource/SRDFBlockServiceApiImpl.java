@@ -1036,12 +1036,12 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
     }
 
     @Override
-    public void changeVolumeVirtualPool(List<Volume> volumes, VirtualPool vpool,
+    public TaskList changeVolumeVirtualPool(List<Volume> volumes, VirtualPool vpool,
             VirtualPoolChangeParam vpoolChangeParam, String taskId) throws InternalException {
 
         // Check for common Vpool updates handled by generic code. It returns true if handled.
         if (checkCommonVpoolUpdates(volumes, vpool, taskId)) {
-            return;
+            return createTasksForVolumes(vpool, volumes, taskId);
         }
 
         // TODO Modified the code for COP-20817 Needs to revisit this code flow post release.
@@ -1081,6 +1081,7 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
                 BlockOrchestrationController.BLOCK_ORCHESTRATION_DEVICE);
         controller.createVolumes(volumeDescriptorsList, taskId);
         _log.info("Change virutal pool steps has been successfully inititated");
+        return createTasksForVolumes(vpool, volumes, taskId);
     }
 
     /**

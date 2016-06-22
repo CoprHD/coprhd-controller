@@ -1463,11 +1463,28 @@ public class WorkflowService implements WorkflowController {
 
             if (workflow.getOrchTaskId() != null) {
                 List<Task> tasks = new ArrayList<>();
+
                 if (workflow._taskCompleter != null && workflow._taskCompleter.getId() != null) {
+                    Set<URI> taskIds = new HashSet<>();
+
+                    // In typical situations, the task completer will be attached to Volumes, such
+                    // as migrating a non-CG virtual volume.
                     for (URI resourceId : workflow._taskCompleter.getIds()) {
                         Task task = TaskUtils.findTaskForRequestId(_dbClient, resourceId, workflow.getOrchTaskId());
-                        if (task != null) {
+                        if (task != null && !taskIds.contains(task.getId())) {
                             tasks.add(task);
+                            taskIds.add(task.getId());
+                        }
+                    }
+
+                    // In other situations, the task completer will be attached to Volumes but the Task resource
+                    // will be a parent object, such as a CG (in the case of Migration of a CG of volumes, for
+                    // instance)
+                    for (URI resourceId : workflow._taskCompleter.getIds()) {
+                        Task task = TaskUtils.findTaskForRequestIdAssociatedResource(_dbClient, resourceId, workflow.getOrchTaskId());
+                        if (task != null && !taskIds.contains(task.getId())) {
+                            tasks.add(task);
+                            taskIds.add(task.getId());
                         }
                     }
                 } else {

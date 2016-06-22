@@ -3068,12 +3068,6 @@ rp_storage_setup()
            provider_ip='RECOVERPOINT_SMIS_PROVIDER_'$var'_IP'
            provider_ip=${!provider_ip}
 
-           provider_port='RECOVERPOINT_SMIS_PROVIDER_'$var'_PORT'
-           provider_port=${!provider_port}
-
-           provider_use_ssl='RECOVERPOINT_SMIS_PROVIDER_'$var'_USE_SSL'
-           provider_use_ssl=${!provider_use_ssl}
-
            array_guid='RECOVERPOINT_STORAGE_ARRAY_'$var'_GUID'
            array_guid=${!array_guid}
 
@@ -10518,7 +10512,9 @@ application_full_copy_tests()
     fi
 
     # run restore (no way to verify)
-    run volumegroup restore-copy $copy_type $VG_COPYVG1 $VG_FCNAME
+    if [[ $APP_RESTORE_SUPPORTED -eq 1 ]]; then
+        run volumegroup restore-copy $copy_type $VG_COPYVG1 $VG_FCNAME
+    fi
 
     # detach the copies
     if [[ $APPLICATION_DETACH_COPY_SUPPORTED -eq 1 ]]; then
@@ -10537,7 +10533,9 @@ application_full_copy_tests()
         if [[ $APPLICATION_LINK_COPY_SUPPORTED -eq 1 ]]; then
             target_name="tgt-${VG_FCNAME}"
             run volumegroup link-copy $copy_type $VG_COPYVG1 $VG_FCNAME 1 $target_name nocopy
-            run volumegroup restore-copy $copy_type $VG_COPYVG1 $VG_FCNAME
+            if [[ $APP_RESTORE_SUPPORTED -eq 1 ]]; then
+                run volumegroup restore-copy $copy_type $VG_COPYVG1 $VG_FCNAME
+            fi
             run volumegroup relink-copy $copy_type $VG_COPYVG1 $VG_FCNAME ${target_name}-1
             run volumegroup unlink-copy $copy_type $VG_COPYVG1 $VG_FCNAME ${target_name}-1
         fi
@@ -10599,6 +10597,7 @@ application_tests()
     VG_CG2VOL3="${VG_VOLUME2}-3"
 
     APP_RUNNING_XIO_TEST=0
+    APP_RESTORE_SUPPORTED=1
 
     if [ $APPLICATION_TEST_CRUD -eq 1 ]; then
         application_crud_test
@@ -10679,10 +10678,7 @@ application_tests()
             app_test_subgroup2a="${VG_CGNAME2}a"
             app_test_subgroup2b="${VG_CGNAME2}b"
 
-            application_createvols
-            application_add_remove_volume_tests
-            application_copy_tests
-            application_deleteall
+            application_createvols application_add_remove_volume_tests application_copy_tests application_deleteall
             secho "completed running block vplex+vmax2 tests"
         fi
         if [ $APPLICATION_TEST_VPLEX_DIST -eq 1 ]; then
@@ -10709,6 +10705,8 @@ application_tests()
             VG_VARRAY_CG=$APP_VARRAY1
             APP_RUNNING_BLOCK_TEST=0
             APPLICATION_CREATE_INACTIVE_SUPPORTED=0
+            # TODO restore is supported for RP but there's some simulator issue that needs to be resolved
+            APP_RESTORE_SUPPORTED=0
 
             app_test_subgroup1a="${VG_CGNAME1}a"
             app_test_subgroup1b="${VG_CGNAME1}b"
@@ -11327,6 +11325,7 @@ unity_cos_setup()
                          --multiVolumeConsistency 
 }
 
+# set DO_TESTS_ONLY to 1 if setup does not need to be re-run
 DO_TESTS_ONLY=${DO_TESTS_ONLY:-0}
 if [ $DO_TESTS_ONLY -eq 0 ]; then
     ${SS}_setup

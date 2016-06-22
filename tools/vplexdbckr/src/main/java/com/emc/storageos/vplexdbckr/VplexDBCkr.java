@@ -80,8 +80,10 @@ public class VplexDBCkr {
                 nerrors++;
                 continue;
             }
-			writeLog(String.format("checking %s wwn %s ",vvInfo.getName(), vvInfo.getWwn()));
-			if (vvInfo.getName().equals(volume.getDeviceLabel())) {
+			
+			//writeLog(String.format("checking %s wwn %s ",vvInfo.getName(), vvInfo.getWwn()));
+			if ((null != vvInfo.getWwn()) && (null != volume.getWWN())) {
+			 if (vvInfo.getName().equals(volume.getDeviceLabel())) {
 			  if (vvInfo.getWwn().toUpperCase().equals(volume.getWWN().toUpperCase())) {
 			    writeLog(String.format("Virtual Volume %s wwn %s matches VPLEX", vvInfo.getName(), vvInfo.getWwn()));
 			  }  else {
@@ -89,6 +91,7 @@ public class VplexDBCkr {
                             vvInfo.getName(), vvInfo.getWwn()));
                     nerrors++;
                }
+			}
 			}
 			
 			StringSet wwns = new StringSet();

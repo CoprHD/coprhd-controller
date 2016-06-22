@@ -30,7 +30,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import com.emc.storageos.cimadapter.connections.cim.CimConnection;
 import com.emc.storageos.cimadapter.connections.cim.CimObjectPathCreator;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
@@ -428,7 +427,7 @@ public class XIVExportOperations implements ExportMaskOperations {
         _log.info("{} deleteExportMask END...", storage.getLabel());
     }
 
-    public void addVolumeUsingSMIS(StorageSystem storage, URI exportMaskURI,
+    private void addVolumeUsingSMIS(StorageSystem storage, URI exportMaskURI,
             VolumeURIHLU[] volumeURIHLUs, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         _log.info("{} addVolume START...", storage.getLabel());
@@ -567,7 +566,21 @@ public class XIVExportOperations implements ExportMaskOperations {
         _log.info("{} removeInitiator END...", storage.getLabel());
     }
 
-    private Map<String, Set<URI>> findSMISExportMasks(StorageSystem storage,
+    /**
+     * This call can be used to look up the passed in initiator/port names and
+     * find (if any) to which export masks they belong on the 'storage' array.
+     * 
+     * 
+     * @param storage
+     *            [in] - StorageSystem object representing the array
+     * @param initiatorNames
+     *            [in] - normalized Port identifiers (WWPN or iSCSI name) (all initiators of all hosts involved)
+     * @param mustHaveAllPorts
+     *            [in] NOT APPLICABLE FOR XIV
+     * @return Map of port name to Set of ExportMask URIs
+     */
+    @Override
+    public Map<String, Set<URI>> findExportMasks(StorageSystem storage,
             List<String> initiatorNames, boolean mustHaveAllPorts) {
         long startTime = System.currentTimeMillis();
         Map<String, Set<URI>> matchingMasks = new HashMap<String, Set<URI>>();
@@ -1140,30 +1153,39 @@ public class XIVExportOperations implements ExportMaskOperations {
         _log.info("{} createExportMask START...", storage.getLabel());
         _log.info("createExportMask: mask id: {}", exportMaskURI);
         _log.info("createExportMask: volume-HLU pairs: {}", volumeURIHLUs.toString());
-        _log.info("createExportMask: tartets: {}", targetURIList);
+        _log.info("createExportMask: targets: {}", targetURIList);
         _log.info("createExportMask: initiators: {}", initiatorList);
-        
-        if(_restAPIHelper.isClusteredHost(storage, initiatorList)){
-            _log.info("Executing createExportMask using REST on Storage {}", storage.getLabel());
+        final ExportMask mask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
+        final String exportType = ExportMaskUtils.getExportType(_dbClient, mask);
+        if (ExportGroup.ExportGroupType.Cluster.name().equals(exportType) && _restAPIHelper.isClusteredHost(storage, initiatorList)){
+            _log.debug("Executing createExportMask using REST on Storage {}", storage.getLabel());
             _restAPIHelper.createRESTExportMask(storage, exportMaskURI,volumeURIHLUs, targetURIList,initiatorList,  taskCompleter);
         } else {
-            _log.info("Executing createExportMask using SMIS on Storage {}", storage.getLabel());
+            _log.debug("Executing createExportMask using SMIS on Storage {}", storage.getLabel());
             createSMISExportMask(storage, exportMaskURI, volumeURIHLUs, targetURIList, initiatorList, taskCompleter);
         }
     }
     
+    /*
+     * (non-Javadoc) Refresh Export Mask with the latest data
+     * @see com.emc.storageos.volumecontroller.impl.smis.ExportMaskOperations#refreshExportMask(com.emc.storageos.db.client.model.StorageSystem, com.emc.storageos.db.client.model.ExportMask)
+     */
     @Override
     public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) {
         if(isClusterExportMask(storage, mask.getId())){
-            _log.info("Executing refreshExportMask using REST on Storage {}", storage.getLabel());
+            _log.debug("Executing refreshExportMask using REST on Storage {}", storage.getLabel());
             _restAPIHelper.refreshRESTExportMask(storage, mask, _networkDeviceController);
         } else {
-            _log.info("Executing refreshExportMask using SMIS on Storage {}", storage.getLabel());
+            _log.debug("Executing refreshExportMask using SMIS on Storage {}", storage.getLabel());
             refreshSMISExportMask(storage, mask);
         }
         return mask;
     }
     
+    /*
+     * (non-Javadoc) Delete Export Mask
+     * @see com.emc.storageos.volumecontroller.impl.smis.ExportMaskOperations#deleteExportMask(com.emc.storageos.db.client.model.StorageSystem, java.net.URI, java.util.List, java.util.List, java.util.List, com.emc.storageos.volumecontroller.TaskCompleter)
+     */
     @Override
     public void deleteExportMask(StorageSystem storage, URI exportMaskURI,
             List<URI> volumeURIList, List<URI> targetURIList,
@@ -1171,65 +1193,45 @@ public class XIVExportOperations implements ExportMaskOperations {
             throws DeviceControllerException {
         _log.info("{} deleteExportMask START...", storage.getLabel());
         if(isClusterExportMask(storage, exportMaskURI)){
-            _log.info("Executing deleteExportMask using REST on Storage {}", storage.getLabel());
+            _log.debug("Executing deleteExportMask using REST on Storage {}", storage.getLabel());
             _restAPIHelper.deleteRESTExportMask(storage, exportMaskURI, volumeURIList,  targetURIList, initiatorList, taskCompleter);
         } else {
-            _log.info("Executing deleteExportMask using SMIS on Storage {}", storage.getLabel());
+            _log.debug("Executing deleteExportMask using SMIS on Storage {}", storage.getLabel());
             deleteSMISExportMask(storage, exportMaskURI, volumeURIList,  targetURIList, initiatorList, taskCompleter);
         }
         _log.info("{} deleteExportMask END...", storage.getLabel());
     }
     
-    /**
-     * This call can be used to look up the passed in initiator/port names and
-     * find (if any) to which export masks they belong on the 'storage' array.
-     * 
-     * 
-     * @param storage
-     *            [in] - StorageSystem object representing the array
-     * @param initiatorNames
-     *            [in] - normalized Port identifiers (WWPN or iSCSI name) (all initiators of all hosts involved)
-     * @param mustHaveAllPorts
-     *            [in] NOT APPLICABLE FOR XIV
-     * @return Map of port name to Set of ExportMask URIs
+    /*
+     * (non-Javadoc) Add volume to a Export Mask
+     * @see com.emc.storageos.volumecontroller.impl.smis.ExportMaskOperations#addVolume(com.emc.storageos.db.client.model.StorageSystem, java.net.URI, com.emc.storageos.volumecontroller.impl.VolumeURIHLU[], com.emc.storageos.volumecontroller.TaskCompleter)
      */
-    @Override
-    public Map<String, Set<URI>> findExportMasks(StorageSystem storage, List<String> initiatorNames, boolean mustHaveAllPorts) throws DeviceControllerException {
-        _log.info("{} findExportMasks START...", storage.getLabel());
-        Map<String, Set<URI>> result = null;
-//        if (_restAPIHelper.isClusteredHost(storage, initiatorNames)) {
-//            _log.info("Executing findExportMasks using REST on Storage {}", storage.getLabel());
-//            result = _restAPIHelper.findRESTExportMasks(storage, initiatorNames, mustHaveAllPorts);
-//        } else {
-//            _log.info("Executing findExportMasks using SMIS on Storage {}", storage.getLabel());
-            result = findSMISExportMasks(storage, initiatorNames, mustHaveAllPorts);
-//        }
-        _log.info("{} deleteExportMask END...", storage.getLabel());
-        return result;
-    }
-    
     @Override
     public void addVolume(StorageSystem storage, URI exportMaskURI, VolumeURIHLU[] volumeURIHLUs, TaskCompleter taskCompleter){
     	_log.info("{} addVolume START...", storage.getLabel());
         if (isClusterExportMask(storage, exportMaskURI)) {
-            _log.info("Executing addVolume using REST on Storage {}", storage.getLabel());
+            _log.debug("Executing addVolume using REST on Storage {}", storage.getLabel());
             _restAPIHelper.addVolumeUsingREST(storage, exportMaskURI, volumeURIHLUs, taskCompleter);
         } else {
-            _log.info("Executing addVolume using SMIS on Storage {}", storage.getLabel());
+            _log.debug("Executing addVolume using SMIS on Storage {}", storage.getLabel());
             addVolumeUsingSMIS(storage, exportMaskURI, volumeURIHLUs, taskCompleter);
         }
         _log.info("{} addVolume END...", storage.getLabel());
     }
     
+    /*
+     * (non-Javadoc) Remove Volume from a Export mask
+     * @see com.emc.storageos.volumecontroller.impl.smis.ExportMaskOperations#removeVolume(com.emc.storageos.db.client.model.StorageSystem, java.net.URI, java.util.List, com.emc.storageos.volumecontroller.TaskCompleter)
+     */
     @Override
     public void removeVolume(StorageSystem storage, URI exportMaskURI,
             List<URI> volumeURIList, TaskCompleter taskCompleter) throws DeviceControllerException {
     	_log.info("{} removeVolume START...", storage.getLabel());
         if (isClusterExportMask(storage, exportMaskURI)) {
-            _log.info("Executing removeVolume using REST on Storage {}", storage.getLabel());
+            _log.debug("Executing removeVolume using REST on Storage {}", storage.getLabel());
             _restAPIHelper.removeVolumeUsingREST(storage, exportMaskURI, volumeURIList, taskCompleter);
         } else {
-            _log.info("Executing removeVolume using SMIS on Storage {}", storage.getLabel());
+            _log.debug("Executing removeVolume using SMIS on Storage {}", storage.getLabel());
             removeVolumeUsingSMIS(storage, exportMaskURI, volumeURIList, taskCompleter);
         }
         _log.info("{} removeVolume END...", storage.getLabel());

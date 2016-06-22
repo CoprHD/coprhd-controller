@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2014 EMC Corporation
+ * Copyright (c) 2008-2016 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.xiv.api;
@@ -30,7 +30,7 @@ import com.sun.jersey.api.client.filter.LoggingFilter;
 /**
  * Performs all the operations on XIV - Hyperscale Manager using its REST APIs
  */
-public class XIVRestClient extends StandardRestClient{
+public class XIVRestClient extends StandardRestClient {
 
     private static Logger _log = LoggerFactory.getLogger(XIVRestClient.class);
     private static final String ERROR_CODE = "httpStatusCode";
@@ -177,11 +177,11 @@ public class XIVRestClient extends StandardRestClient{
      * @param endpoint Base URI of Hyperscale Manager
      * @param client REST Client instance
      */
-    
+
     /**
      * 
      * @param baseURI Base URI of Hyperscale Manager
-     * @param username user name of XIV 
+     * @param username user name of XIV
      * @param password password of XIV
      * @param client REST Client instance
      */
@@ -192,9 +192,10 @@ public class XIVRestClient extends StandardRestClient{
         _password = password;
         _client.addFilter(new HTTPBasicAuthFilter(username, password));
     }
-    
+
     /**
      * Sets User Name
+     * 
      * @param username User Name of XIV
      */
     public void setUsername(String username) {
@@ -203,14 +204,16 @@ public class XIVRestClient extends StandardRestClient{
 
     /**
      * Sets password
+     * 
      * @param password Password of XIV
      */
     public void setPassword(String password) {
         _password = password;
     }
-    
+
     /*
      * (non-Javadoc)
+     * 
      * @see com.emc.storageos.services.restutil.StandardRestClient#setResourceHeaders(com.sun.jersey.api.client.WebResource)
      */
     @Override
@@ -220,6 +223,7 @@ public class XIVRestClient extends StandardRestClient{
 
     /*
      * (non-Javadoc)
+     * 
      * @see com.emc.storageos.services.restutil.StandardRestClient#authenticate()
      */
     @Override
@@ -232,6 +236,7 @@ public class XIVRestClient extends StandardRestClient{
 
     /*
      * (non-Javadoc)
+     * 
      * @see com.emc.storageos.services.restutil.StandardRestClient#checkResponse(java.net.URI, com.sun.jersey.api.client.ClientResponse)
      */
     @Override
@@ -607,17 +612,19 @@ public class XIVRestClient extends StandardRestClient{
      * Gets Volumes mapped on the XIV
      * 
      * @param xivSystem XIV system
+     * @param clusterName Cluster name
      * @param hostName Host name
      * @return Map of Volume and LUN id
      * @throws Exception Throws Exception If error occurs during execution
      */
-    public Map<String, Integer> getVolumesMappedToHost(final String xivSystem, final String clusterName, final String hostName) throws Exception {
-    	Map<String, Integer> discVolsMappedToCluster = new HashMap<String, Integer>();
-    	Map<String, Integer> discVolsMappedToHost = new HashMap<String, Integer>();
+    public Map<String, Integer> getVolumesMappedToHost(final String xivSystem, final String clusterName, final String hostName)
+            throws Exception {
+        Map<String, Integer> discVolsMappedToCluster = new HashMap<String, Integer>();
+        Map<String, Integer> discVolsMappedToHost = new HashMap<String, Integer>();
         Map<String, Integer> discVolWWNMappedToHost = new HashMap<String, Integer>();
-        
-        if(null!=clusterName && !clusterName.isEmpty()){
-        	String clusterVolsSearchURL = MessageFormat.format(EXPORT_VOLUME_URL + SEARCH_URL, xivSystem, CLUSTER, clusterName);
+
+        if (null != clusterName && !clusterName.isEmpty()) {
+            String clusterVolsSearchURL = MessageFormat.format(EXPORT_VOLUME_URL + SEARCH_URL, xivSystem, CLUSTER, clusterName);
             JSONObject volsMappedToClusterInstance = getInstance(clusterVolsSearchURL);
             if (findAvailability(volsMappedToClusterInstance)) {
                 JSONObject cluResponse = volsMappedToClusterInstance.getJSONObject(RESPONSE);
@@ -629,16 +636,16 @@ public class XIVRestClient extends StandardRestClient{
                     discVolsMappedToHost.put(mappedVolume.getString(VOLUME), new Integer(mappedVolume.getString(LUN)));
                 }
             }
-        } else if(null!=hostName && !hostName.isEmpty()){
-        	final String hostURL = MessageFormat.format(HOST_INSTANCE_URL, xivSystem, hostName);
+        } else if (null != hostName && !hostName.isEmpty()) {
+            final String hostURL = MessageFormat.format(HOST_INSTANCE_URL, xivSystem, hostName);
             JSONObject hostInstance = getInstance(hostURL);
             if (findAvailability(hostInstance)) {
-            	JSONObject response = hostInstance.getJSONObject(RESPONSE);
+                JSONObject response = hostInstance.getJSONObject(RESPONSE);
                 JSONObject data = response.getJSONObject(DATA);
                 JSONObject host = data.getJSONObject(HOST);
                 final String hostCluster = host.getString(CLUSTER);
                 if (null != hostCluster && !hostCluster.isEmpty()) {
-                	String clusterVolsSearchURL = MessageFormat.format(EXPORT_VOLUME_URL + SEARCH_URL, xivSystem, CLUSTER, hostCluster);
+                    String clusterVolsSearchURL = MessageFormat.format(EXPORT_VOLUME_URL + SEARCH_URL, xivSystem, CLUSTER, hostCluster);
                     JSONObject volsMappedToClusterInstance = getInstance(clusterVolsSearchURL);
                     if (findAvailability(volsMappedToClusterInstance)) {
                         JSONObject cluResponse = volsMappedToClusterInstance.getJSONObject(RESPONSE);
@@ -665,17 +672,17 @@ public class XIVRestClient extends StandardRestClient{
                     discVolsMappedToHost.put(mappedVolume.getString(VOLUME), new Integer(mappedVolume.getString(LUN)));
                 }
             }
-            
-            //Remove the Cluster Volumes as it belongs to Cluster Mask.
-            if(!discVolsMappedToHost.isEmpty() && !discVolsMappedToCluster.isEmpty()){
-            	for(String key : discVolsMappedToCluster.keySet()){
-            		discVolsMappedToHost.remove(key);
-            	}
-            } 
+
+            // Remove the Cluster Volumes as it belongs to Cluster Mask.
+            if (!discVolsMappedToHost.isEmpty() && !discVolsMappedToCluster.isEmpty()) {
+                for (String key : discVolsMappedToCluster.keySet()) {
+                    discVolsMappedToHost.remove(key);
+                }
+            }
         }
-        
+
         if (!discVolsMappedToHost.isEmpty()) {
-        	Set<Entry<String, Integer>> discVolsMappedToHostSet = discVolsMappedToHost.entrySet();
+            Set<Entry<String, Integer>> discVolsMappedToHostSet = discVolsMappedToHost.entrySet();
             for (Entry<String, Integer> volMapping : discVolsMappedToHostSet) {
                 String volName = volMapping.getKey();
                 String volInstanceURL = MessageFormat.format(VOLUME_INSTANCE_URL, xivSystem, volName);
@@ -689,7 +696,15 @@ public class XIVRestClient extends StandardRestClient{
 
         return discVolWWNMappedToHost;
     }
-    
+
+    /**
+     * Returns Port details for a port name specified if exist on Array
+     * 
+     * @param xivSystem XIV Storage System name
+     * @param portName Port name for which the details to be found
+     * @return JSONArray of Port details
+     * @throws Exception If error occurs during execution.
+     */
     public JSONArray getPortDetails(final String xivSystem, final String portName) throws Exception {
         JSONArray result = new JSONArray();
         String hostPortSearchURL = MessageFormat.format(HOST_PORT_URL + SEARCH_URL, xivSystem, PORT, portName);

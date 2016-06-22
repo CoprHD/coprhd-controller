@@ -61,6 +61,7 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
     private static final AtomicReference<BlockStorageDevice> XIV_BLOCK_DEVICE = new AtomicReference<BlockStorageDevice>();
     public static final String XIV_SMIS_DEVICE = "xivSmisDevice";
     public static final String DEFAULT_LABEL = "Default";
+    private static final int MAX_HLU = 512;
 
     private XIVRestOperationsHelper _restHelper;
 
@@ -1073,28 +1074,29 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             }
         }
         // If auto HLU then start finding out the next HLU
-        if (findHLU && !volumeMap.isEmpty()) {
+        if (findHLU) {
             BlockStorageDevice device = getDevice();
             Map<URI, List<String>> hostToHLUsMap = device.doFindHostHLUs(system, hostURIs);
             Iterator<Entry<URI, List<String>>> hostToHLUsItr = hostToHLUsMap.entrySet().iterator();
-            Set<String> commonHLUs = new HashSet<String>();
-            // Get the list of available HLU on array and then add that to the Set of common HLU
+            Set<String> usedHLUs = new HashSet<String>();
+            // Get the list of available HLU on array and then add that to the Set of common used HLUs
             while (hostToHLUsItr.hasNext()) {
                 Entry<URI, List<String>> hostHLUs = hostToHLUsItr.next();
-                commonHLUs.addAll(hostHLUs.getValue());
+                usedHLUs.addAll(hostHLUs.getValue());
             }
             // Update Volume Map to the next available HLU.
+            int nextHLU = 1;
             for (Entry<URI, Integer> volumeMapEntry : volumeMap.entrySet()) {
-                int nextHLU = 1;
-                while (commonHLUs.contains(String.valueOf(nextHLU))) {
+                while (usedHLUs.contains(String.valueOf(nextHLU))) {
                     nextHLU++;
                 }
-                if (nextHLU < 512) {
-                    _log.info("Updating HLU of Volume {} from {} to " + nextHLU, volumeMapEntry.getKey(), volumeMapEntry.getValue());
-                    commonHLUs.add(String.valueOf(nextHLU));
+                // Max allowed HLU number for XIV is 511. Restricting it to that number.
+                if (nextHLU < MAX_HLU) {
+                    _log.debug("Updating HLU of Volume {} from {} to " + nextHLU, volumeMapEntry.getKey(), volumeMapEntry.getValue());
+                    usedHLUs.add(String.valueOf(nextHLU));
                     volumeMap.put(volumeMapEntry.getKey(), Integer.valueOf(nextHLU));
                 } else {
-                    DeviceControllerException.errors.voluemExportNotPossible(volumeMapEntry.getKey().toString(), nextHLU, new Throwable());
+                    DeviceControllerException.errors.volumeReachedMaxExports(volumeMapEntry.getKey().toString(), nextHLU, new Throwable());
                 }
             }
         }

@@ -8,7 +8,6 @@ package com.emc.storageos.volumecontroller.impl.xiv;
 import java.net.URI;
 import java.text.MessageFormat;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -44,7 +43,6 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
@@ -57,7 +55,6 @@ import com.emc.storageos.xiv.api.XIVRestClient.HOST_STATUS;
 import com.emc.storageos.xiv.api.XIVRestClientFactory;
 import com.emc.storageos.xiv.api.XIVRestException;
 import com.google.common.base.Joiner;
-import com.google.common.collect.Collections2;
 
 /**
  * Helper class to support all REST operations performed on IBM XIV - Hyper Scale manager.
@@ -114,40 +111,13 @@ public class XIVRestOperationsHelper {
      */
     public boolean isClusteredHost(StorageSystem storage, List<Initiator> initiators) {
         Set<Boolean> result = new HashSet<Boolean>();
-        if(null!=initiators){
-            for(Initiator initiator : initiators){
+        if (null != initiators) {
+            for (Initiator initiator : initiators) {
                 Host host = _dbClient.queryObject(Host.class, initiator.getHost());
                 result.add(isClusteredHostOnArray(storage, host.getLabel()));
             }
         }
         return result.size() == 1 ? result.iterator().next() : false;
-    }
-    
-    public boolean isClusteredHost(StorageSystem storage, Collection<String> initiators) {
-        boolean isClusteredHost = false;
-        XIVRestClient restExportOpr = getRestClient(storage);
-        if (null != restExportOpr) {
-            for (String initiator : initiators) {
-                if (!isClusteredHost) {
-                    JSONArray iniDetails = null;
-                    try {
-                        iniDetails = restExportOpr.getPortDetails(storage.getSmisProviderIP(), initiator);
-                    } catch (Exception e) {
-                        _log.error("Unable to pull hostport details for port {} on array : {} ", initiator, storage.getLabel(), e);
-                    }
-                    if (null != iniDetails) {
-                        for (int i = 0; i < iniDetails.length(); i++) {
-                            JSONObject iniDetail = iniDetails.optJSONObject(i);
-                            final String hostName = iniDetail.optString("host");
-                            if (!isClusteredHost && null != hostName && !hostName.isEmpty()) {
-                                isClusteredHost = isClusteredHostOnArray(storage, hostName);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        return isClusteredHost;
     }
 
     /**
@@ -196,8 +166,7 @@ public class XIVRestOperationsHelper {
      * @param initiatorList Initiator ports
      * @param taskCompleter Task Completer instance
      */
-    public void createRESTExportMask(StorageSystem storage, URI exportMaskURI,
-            VolumeURIHLU[] volumeURIHLUs, List<URI> targetURIList,
+    public void createRESTExportMask(StorageSystem storage, URI exportMaskURI, VolumeURIHLU[] volumeURIHLUs, List<URI> targetURIList,
             List<Initiator> initiatorList, TaskCompleter taskCompleter) {
 
         try {
@@ -208,18 +177,18 @@ public class XIVRestOperationsHelper {
             final String storageIP = storage.getSmisProviderIP();
             String exportName = null;
             String clusterName = null;
-            
+
             URI clusterURI = null;
             Set<String> hosts = new HashSet<String>();
             for (Initiator initiator : initiatorList) {
-            	final Host host = _dbClient.queryObject(Host.class, initiator.getHost());
-            	exportName = host.getLabel();
-            	hosts.add(exportName);
-            	clusterURI = host.getCluster();
+                final Host host = _dbClient.queryObject(Host.class, initiator.getHost());
+                exportName = host.getLabel();
+                hosts.add(exportName);
+                clusterURI = host.getCluster();
             }
-            
+
             final String exportType = ExportMaskUtils.getExportType(_dbClient, exportMask);
-            if (ExportGroup.ExportGroupType.Cluster.name().equals(exportType) && null!=clusterURI) {
+            if (ExportGroup.ExportGroupType.Cluster.name().equals(exportType) && null != clusterURI) {
                 Cluster cluster = _dbClient.queryObject(Cluster.class, clusterURI);
                 clusterName = cluster.getLabel();
                 exportName = clusterName;
@@ -229,21 +198,22 @@ public class XIVRestOperationsHelper {
             }
 
             // Create Host if not exist
-            for(String hostName : hosts){
-            	restExportOpr.createHost(storageIP, clusterName, hostName);
+            for (String hostName : hosts) {
+                restExportOpr.createHost(storageIP, clusterName, hostName);
             }
-            
+
             List<Initiator> userAddedInitiator = new ArrayList<Initiator>();
             List<BlockObject> userAddedVolumes = new ArrayList<BlockObject>();
             for (Initiator initiator : initiatorList) {
-            	final Host host = _dbClient.queryObject(Host.class, initiator.getHost());
-            	
-            	// Add Initiators to Host.
-            	if(!restExportOpr.createHostPort(storageIP, host.getLabel(), Initiator.normalizePort(initiator.getInitiatorPort()), initiator.getProtocol().toLowerCase())){
-            		userAddedInitiator.add(initiator);
-            	}
+                final Host host = _dbClient.queryObject(Host.class, initiator.getHost());
+
+                // Add Initiators to Host.
+                if (!restExportOpr.createHostPort(storageIP, host.getLabel(), Initiator.normalizePort(initiator.getInitiatorPort()),
+                        initiator.getProtocol().toLowerCase())) {
+                    userAddedInitiator.add(initiator);
+                }
             }
-            
+
             // Export volume to Cluster
             if (volumeURIHLUs != null && volumeURIHLUs.length > 0) {
                 for (VolumeURIHLU volumeURIHLU : volumeURIHLUs) {
@@ -256,9 +226,10 @@ public class XIVRestOperationsHelper {
                             _log.error(errMsg);
                             throw new Exception(errMsg);
                         } else {
-                        	if(!restExportOpr.exportVolume(storageIP, exportType, exportName, blockObject.getLabel(), String.valueOf(hluDec))){
-                        		userAddedVolumes.add(blockObject);
-                        	}
+                            if (!restExportOpr.exportVolume(storageIP, exportType, exportName, blockObject.getLabel(),
+                                    String.valueOf(hluDec))) {
+                                userAddedVolumes.add(blockObject);
+                            }
                         }
                     }
                 }
@@ -292,13 +263,13 @@ public class XIVRestOperationsHelper {
      *             if URI is not a Volume/BlockSnapshot URI
      */
     private BlockObject getBlockObject(URI uri) throws Exception {
-    	BlockObject object;
+        BlockObject object;
         if (URIUtil.isType(uri, Volume.class)) {
-        	object = _dbClient.queryObject(Volume.class, uri);
+            object = _dbClient.queryObject(Volume.class, uri);
         } else if (URIUtil.isType(uri, BlockSnapshot.class)) {
-        	object = _dbClient.queryObject(BlockSnapshot.class, uri);
+            object = _dbClient.queryObject(BlockSnapshot.class, uri);
         } else if (URIUtil.isType(uri, BlockMirror.class)) {
-        	object = _dbClient.queryObject(BlockMirror.class, uri);
+            object = _dbClient.queryObject(BlockMirror.class, uri);
         } else {
             throw XIVRestException.exceptions.notAVolumeOrBlocksnapshotUri(uri);
         }
@@ -308,7 +279,7 @@ public class XIVRestOperationsHelper {
     /**
      * Refresh the export mask with the user added configuration
      * 
-     * @param storage XIX sotrage system
+     * @param storage XIV sotrage system
      * @param mask Export Mask instance
      * @param _networkDeviceController Network configuration instance
      */
@@ -320,20 +291,20 @@ public class XIVRestOperationsHelper {
 
             XIVRestClient restExportOpr = getRestClient(storage);
             StringBuilder builder = new StringBuilder();
-            
+
             Set<String> discoveredPorts = new HashSet<String>();
             Set<URI> hostURIs = new HashSet<URI>();
             Set<Initiator> exportMaskInits = ExportMaskUtils.getInitiatorsForExportMask(_dbClient, mask, null);
             Iterator<Initiator> exportMaskInitsItr = exportMaskInits.iterator();
-            while(exportMaskInitsItr.hasNext()) {
-            	hostURIs.add(exportMaskInitsItr.next().getHost());
+            while (exportMaskInitsItr.hasNext()) {
+                hostURIs.add(exportMaskInitsItr.next().getHost());
             }
-            
+
             // Check the initiators and update the lists as necessary
             List<Host> hostList = _dbClient.queryObject(Host.class, hostURIs);
-	        for(Host host : hostList){
-	        	discoveredPorts.addAll(restExportOpr.getHostPorts(storageIP, host.getLabel()));
-	        }
+            for (Host host : hostList) {
+                discoveredPorts.addAll(restExportOpr.getHostPorts(storageIP, host.getLabel()));
+            }
             boolean addInitiators = false;
             List<String> initiatorsToAdd = new ArrayList<String>();
             List<Initiator> initiatorIdsToAdd = new ArrayList<>();
@@ -361,14 +332,14 @@ public class XIVRestOperationsHelper {
 
             // Get Volumes mapped to a Host on Array
             Map<String, Integer> discoveredVolumes = new HashMap<String, Integer>();
-	        final String exportType = ExportMaskUtils.getExportType(_dbClient, mask);
-	        if (ExportGroup.ExportGroupType.Cluster.name().equals(exportType)) {
-	        	discoveredVolumes.putAll(restExportOpr.getVolumesMappedToHost(storageIP, mask.getLabel(), null));	
-	        } else {
-	        	for(Host host : hostList){
-	        		discoveredVolumes.putAll(restExportOpr.getVolumesMappedToHost(storageIP, null, host.getLabel()));
-	        	}
-	        }
+            final String exportType = ExportMaskUtils.getExportType(_dbClient, mask);
+            if (ExportGroup.ExportGroupType.Cluster.name().equals(exportType)) {
+                discoveredVolumes.putAll(restExportOpr.getVolumesMappedToHost(storageIP, mask.getLabel(), null));
+            } else {
+                for (Host host : hostList) {
+                    discoveredVolumes.putAll(restExportOpr.getVolumesMappedToHost(storageIP, null, host.getLabel()));
+                }
+            }
 
             // Check the volumes and update the lists as necessary
             Map<String, Integer> volumesToAdd = ExportMaskUtils.diffAndFindNewVolumes(mask, discoveredVolumes);
@@ -392,13 +363,14 @@ public class XIVRestOperationsHelper {
                     Joiner.on(',').join(volumesToRemove)));
 
             if (addInitiators || removeInitiators || addVolumes || removeVolumes) {
-            	builder.append("XM refresh: There are changes to mask, " +
+                builder.append("XM refresh: There are changes to mask, " +
                         "updating it...\n");
                 mask.removeFromExistingInitiators(initiatorsToRemove);
                 if (initiatorIdsToRemove != null && !initiatorIdsToRemove.isEmpty()) {
                     mask.removeInitiators(_dbClient.queryObject(Initiator.class, initiatorIdsToRemove));
                 }
-                List<Initiator> userAddedInitiators = ExportMaskUtils.findIfInitiatorsAreUserAddedInAnotherMask(mask, initiatorIdsToAdd, _dbClient);
+                List<Initiator> userAddedInitiators = ExportMaskUtils.findIfInitiatorsAreUserAddedInAnotherMask(mask, initiatorIdsToAdd,
+                        _dbClient);
                 mask.addToUserCreatedInitiators(userAddedInitiators);
                 mask.addToExistingInitiatorsIfAbsent(initiatorsToAdd);
                 mask.addInitiators(initiatorIdsToAdd);
@@ -468,10 +440,10 @@ public class XIVRestOperationsHelper {
             }
 
             // Delete Host if there are no associated Initiators/Volume to it.
-            for(URI hostURI : hostURIs){
-            	Host host = _dbClient.queryObject(Host.class, hostURI);
-            	boolean hostDeleted = restExportOpr.deleteHost(storageIP, host.getLabel());
-            	// Perform post-mask-delete cleanup steps
+            for (URI hostURI : hostURIs) {
+                Host host = _dbClient.queryObject(Host.class, hostURI);
+                boolean hostDeleted = restExportOpr.deleteHost(storageIP, host.getLabel());
+                // Perform post-mask-delete cleanup steps
                 if (hostDeleted && emVolumeURIs.size() > 0) {
                     unsetTag(host, storage.getSerialNumber());
                 }
@@ -497,7 +469,7 @@ public class XIVRestOperationsHelper {
             taskCompleter.error(_dbClient, error);
         }
     }
-    
+
     private void setTag(DataObject object, String scope, String label) {
         if (label == null) { // shouldn't happen
             label = "";
@@ -545,6 +517,14 @@ public class XIVRestOperationsHelper {
         }
     }
 
+    /**
+     * Find Export mask
+     * 
+     * @param storage Storage System instance
+     * @param initiatorNames Initiator names
+     * @param mustHaveAllPorts Must have all the ports boolean
+     * @return Initiator to Export mask map.
+     */
     public Map<String, Set<URI>> findRESTExportMasks(StorageSystem storage, List<String> initiatorNames, boolean mustHaveAllPorts) {
         long startTime = System.currentTimeMillis();
         Map<String, Set<URI>> matchingMasks = new HashMap<String, Set<URI>>();
@@ -609,8 +589,8 @@ public class XIVRestOperationsHelper {
 
                     // update hosts
                     Initiator initiator = ExportUtils.getInitiator(Initiator.toPortNetworkId(hostPortSet.get(0)), _dbClient);
-                    if(null!=initiator && null!=initiator.getHost()){
-                    	Host hostIns = _dbClient.queryObject(Host.class, initiator.getHost());
+                    if (null != initiator && null != initiator.getHost()) {
+                        Host hostIns = _dbClient.queryObject(Host.class, initiator.getHost());
                         String label = hostIns.getLabel();
                         if (label.equals(host)) {
                             unsetTag(hostIns, storage.getSerialNumber());
@@ -641,58 +621,66 @@ public class XIVRestOperationsHelper {
         return matchingMasks;
     }
 
-	public void addVolumeUsingREST(StorageSystem storage, URI exportMaskURI, VolumeURIHLU[] volumeURIHLUs, TaskCompleter taskCompleter) {
-		
-		_log.info("{} addVolume START...", storage.getLabel());
+    /**
+     * Adds a volume to a Export Group
+     * 
+     * @param storage Storage system instance
+     * @param exportMaskURI Export mask URI
+     * @param volumeURIHLUs Volume to be added URI
+     * @param taskCompleter task completer instance
+     */
+    public void addVolumeUsingREST(StorageSystem storage, URI exportMaskURI, VolumeURIHLU[] volumeURIHLUs, TaskCompleter taskCompleter) {
+
+        _log.info("{} addVolume START...", storage.getLabel());
         try {
-        
-			// Export volume to Cluster
-	        if (volumeURIHLUs != null && volumeURIHLUs.length > 0) {
-	        	ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
-	        	final String storageIP = storage.getSmisProviderIP();
-	            XIVRestClient restExportOpr = getRestClient(storage);
-	            
-	            //Find HOST from Export Mask
-	            URI hostName = null;
-	            Set<Initiator> exportMaskInits = ExportMaskUtils.getInitiatorsForExportMask(_dbClient, exportMask, null);
-	            Iterator<Initiator> exportMaskInitsItr = exportMaskInits.iterator();
-	            if (exportMaskInitsItr.hasNext()) {
-	                hostName = exportMaskInitsItr.next().getHost();
-	            }
-	            final Host host = _dbClient.queryObject(Host.class, hostName);
-	            
-	            //Validate if it is a cluster
-	            String exportName = host.getLabel();
-	            String clusterName = null;
-	            final String exportType = ExportMaskUtils.getExportType(_dbClient, exportMask);
-	            if (ExportGroup.ExportGroupType.Cluster.name().equals(exportType)) {
-	                Cluster cluster = _dbClient.queryObject(Cluster.class, host.getCluster());
-	                clusterName = cluster.getLabel();
-	                exportName = clusterName;
-	            }
-	  
-	            //Export volume
-	            List<BlockObject> userAddedVolumes = new ArrayList<BlockObject>();
-	            for (VolumeURIHLU volumeURIHLU : volumeURIHLUs) {
-	            	final BlockObject blockObject = getBlockObject(volumeURIHLU.getVolumeURI());
-	                final String volumeHLU = volumeURIHLU.getHLU();
-	                if (volumeHLU != null && !volumeHLU.equalsIgnoreCase(ExportGroup.LUN_UNASSIGNED_STR)) {
-	                	int hluDec = Integer.parseInt(volumeHLU, 16);
-	                    if (hluDec > MAXIMUM_LUN) {
-	                        String errMsg = String.format(INVALID_LUN_ERROR_MSG, hluDec, MAXIMUM_LUN);
-	                        _log.error(errMsg);
-	                        throw new Exception(errMsg);
-	                    } else {
-	                        restExportOpr.exportVolume(storageIP, exportType, exportName, blockObject.getLabel(), String.valueOf(hluDec));
-	                        userAddedVolumes.add(blockObject);
-	                    }
-	                }
-	            }
-	            exportMask.addToUserCreatedVolumes(userAddedVolumes);
-	            _dbClient.updateObject(exportMask);
-	            
-	            taskCompleter.ready(_dbClient);
-	        }
+
+            // Export volume to Cluster
+            if (volumeURIHLUs != null && volumeURIHLUs.length > 0) {
+                ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
+                final String storageIP = storage.getSmisProviderIP();
+                XIVRestClient restExportOpr = getRestClient(storage);
+
+                // Find HOST from Export Mask
+                URI hostName = null;
+                Set<Initiator> exportMaskInits = ExportMaskUtils.getInitiatorsForExportMask(_dbClient, exportMask, null);
+                Iterator<Initiator> exportMaskInitsItr = exportMaskInits.iterator();
+                if (exportMaskInitsItr.hasNext()) {
+                    hostName = exportMaskInitsItr.next().getHost();
+                }
+                final Host host = _dbClient.queryObject(Host.class, hostName);
+
+                // Validate if it is a cluster
+                String exportName = host.getLabel();
+                String clusterName = null;
+                final String exportType = ExportMaskUtils.getExportType(_dbClient, exportMask);
+                if (ExportGroup.ExportGroupType.Cluster.name().equals(exportType)) {
+                    Cluster cluster = _dbClient.queryObject(Cluster.class, host.getCluster());
+                    clusterName = cluster.getLabel();
+                    exportName = clusterName;
+                }
+
+                // Export volume
+                List<BlockObject> userAddedVolumes = new ArrayList<BlockObject>();
+                for (VolumeURIHLU volumeURIHLU : volumeURIHLUs) {
+                    final BlockObject blockObject = getBlockObject(volumeURIHLU.getVolumeURI());
+                    final String volumeHLU = volumeURIHLU.getHLU();
+                    if (volumeHLU != null && !volumeHLU.equalsIgnoreCase(ExportGroup.LUN_UNASSIGNED_STR)) {
+                        int hluDec = Integer.parseInt(volumeHLU, 16);
+                        if (hluDec > MAXIMUM_LUN) {
+                            String errMsg = String.format(INVALID_LUN_ERROR_MSG, hluDec, MAXIMUM_LUN);
+                            _log.error(errMsg);
+                            throw new Exception(errMsg);
+                        } else {
+                            restExportOpr.exportVolume(storageIP, exportType, exportName, blockObject.getLabel(), String.valueOf(hluDec));
+                            userAddedVolumes.add(blockObject);
+                        }
+                    }
+                }
+                exportMask.addToUserCreatedVolumes(userAddedVolumes);
+                _dbClient.updateObject(exportMask);
+
+                taskCompleter.ready(_dbClient);
+            }
         } catch (Exception e) {
             _log.error("Unexpected error: addVolume failed.", e);
             ServiceError error = XIVRestException.exceptions.methodFailed("addVolume", e.getMessage());
@@ -700,48 +688,56 @@ public class XIVRestOperationsHelper {
         }
 
         _log.info("{} addVolume END...", storage.getLabel());
-	}
+    }
 
-	public void removeVolumeUsingREST(StorageSystem storage, URI exportMaskURI, List<URI> volumeURIList, TaskCompleter taskCompleter) {
-		try {
-	        
-			// Export volume to Cluster
-	        if (volumeURIList != null && volumeURIList.size() > 0) {
-	        	ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
-	        	final String storageIP = storage.getSmisProviderIP();
-	            XIVRestClient restExportOpr = getRestClient(storage);
-	            
-	            //Find HOST from Export Mask
-	            URI hostName = null;
-	            Set<Initiator> exportMaskInits = ExportMaskUtils.getInitiatorsForExportMask(_dbClient, exportMask, null);
-	            Iterator<Initiator> exportMaskInitsItr = exportMaskInits.iterator();
-	            if (exportMaskInitsItr.hasNext()) {
-	                hostName = exportMaskInitsItr.next().getHost();
-	            }
-	            final Host host = _dbClient.queryObject(Host.class, hostName);
-	            
-	            //Validate if it is a cluster
-	            String exportName = host.getLabel();
-	            final String exportType = ExportMaskUtils.getExportType(_dbClient, exportMask);
-	            if (ExportGroup.ExportGroupType.Cluster.name().equals(exportType)) {
-	                Cluster cluster = _dbClient.queryObject(Cluster.class, host.getCluster());
-	                exportName = cluster.getLabel();
-	            }
-	  
-	            //Export volume
-	            for (URI volumeURI : volumeURIList) {
-	            	final Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
-	                if (volume != null) {
-	                        restExportOpr.unExportVolume(storageIP, exportType, exportName, volume.getLabel());
-	                    }
-	                }
-	            }
-	        taskCompleter.ready(_dbClient);
+    /**
+     * Removes a volume from a Export group
+     * 
+     * @param storage Storage system instance
+     * @param exportMaskURI Export mask URI
+     * @param volumeURIList Volume to be removed URI
+     * @param taskCompleter task completer instance
+     */
+    public void removeVolumeUsingREST(StorageSystem storage, URI exportMaskURI, List<URI> volumeURIList, TaskCompleter taskCompleter) {
+        try {
+
+            // Export volume to Cluster
+            if (volumeURIList != null && volumeURIList.size() > 0) {
+                ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
+                final String storageIP = storage.getSmisProviderIP();
+                XIVRestClient restExportOpr = getRestClient(storage);
+
+                // Find HOST from Export Mask
+                URI hostName = null;
+                Set<Initiator> exportMaskInits = ExportMaskUtils.getInitiatorsForExportMask(_dbClient, exportMask, null);
+                Iterator<Initiator> exportMaskInitsItr = exportMaskInits.iterator();
+                if (exportMaskInitsItr.hasNext()) {
+                    hostName = exportMaskInitsItr.next().getHost();
+                }
+                final Host host = _dbClient.queryObject(Host.class, hostName);
+
+                // Validate if it is a cluster
+                String exportName = host.getLabel();
+                final String exportType = ExportMaskUtils.getExportType(_dbClient, exportMask);
+                if (ExportGroup.ExportGroupType.Cluster.name().equals(exportType)) {
+                    Cluster cluster = _dbClient.queryObject(Cluster.class, host.getCluster());
+                    exportName = cluster.getLabel();
+                }
+
+                // Export volume
+                for (URI volumeURI : volumeURIList) {
+                    final Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
+                    if (volume != null) {
+                        restExportOpr.unExportVolume(storageIP, exportType, exportName, volume.getLabel());
+                    }
+                }
+            }
+            taskCompleter.ready(_dbClient);
         } catch (Exception e) {
             _log.error("Unexpected error: removeVolume failed.", e);
             ServiceError error = XIVRestException.exceptions.methodFailed("removeVolume", e.getMessage());
             taskCompleter.error(_dbClient, error);
         }
-		
-	}
+
+    }
 }

@@ -1,4 +1,4 @@
-package com.emc.storageos.driver.vmaxv3driver.rest;
+package com.emc.storageos.driver.vmaxv3driver.utils.rest;
 
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;

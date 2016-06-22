@@ -10678,7 +10678,10 @@ application_tests()
             app_test_subgroup2a="${VG_CGNAME2}a"
             app_test_subgroup2b="${VG_CGNAME2}b"
 
-            application_createvols application_add_remove_volume_tests application_copy_tests application_deleteall
+            application_createvols 
+            application_add_remove_volume_tests 
+            application_copy_tests 
+            application_deleteall
             secho "completed running block vplex+vmax2 tests"
         fi
         if [ $APPLICATION_TEST_VPLEX_DIST -eq 1 ]; then

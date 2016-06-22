@@ -613,7 +613,8 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
         String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
         DriverTask task = new DriverSimulatorTask(taskId);
         task.setStatus(DriverTask.TaskStatus.READY);
-        String msg = String.format("StorageDriver: exportVolumesToInitiators - end");
+        String msg = String.format("StorageDriver: exportVolumesToInitiators: export type %s, initiators %s .",
+                initiators.get(0).getInitiatorType(), initiators.toString());
         _log.info(msg);
         task.setMessage(msg);
         return task;
@@ -625,7 +626,8 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
         String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
         DriverTask task = new DriverSimulatorTask(taskId);
         task.setStatus(DriverTask.TaskStatus.READY);
-        String msg = String.format("StorageDriver: unexportVolumesFromInitiators - end");
+        String msg = String.format("StorageDriver: unexportVolumesFromInitiators: export type %s, initiators %s .",
+                initiators.get(0).getInitiatorType(), initiators.toString());
         _log.info(msg);
         task.setMessage(msg);
         return task;

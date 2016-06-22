@@ -107,7 +107,7 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
 
             // Prepare initiators
             List<Initiator> driverInitiators = new ArrayList<>();
-            prepareInitiators(initiatorList, driverInitiators);
+            prepareInitiators(initiatorList, exportGroup.forCluster(), driverInitiators);
 
             // Prepare target storage ports
             List<StoragePort> recommendedPorts = new ArrayList<>();
@@ -220,7 +220,10 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
             Set<com.emc.storageos.db.client.model.Initiator>  maskInitiators =
                     ExportMaskUtils.getInitiatorsForExportMask(dbClient, exportMask, null);
             List<Initiator> driverInitiators = new ArrayList<>();
-            prepareInitiators(initiators, driverInitiators);
+            // Get export group uri from task completer
+            URI exportGroupUri = taskCompleter.getId();
+            ExportGroup exportGroup = (ExportGroup)dbClient.queryObject(exportGroupUri);
+            prepareInitiators(maskInitiators, exportGroup.forCluster(), driverInitiators);
 
             // Ready to call driver
             DriverTask task = driver.unexportVolumesFromInitiators(driverInitiators, driverVolumes);
@@ -271,7 +274,8 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
 
             // Prepare initiators
             List<Initiator> driverInitiators = new ArrayList<>();
-            prepareInitiators(initiatorList, driverInitiators);
+
+            prepareInitiators(initiatorList, exportGroup.forCluster(), driverInitiators);
 
             // Prepare target storage ports
             List<StoragePort> recommendedPorts = new ArrayList<>();
@@ -362,7 +366,10 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
 
             // Prepare initiators
             List<Initiator> driverInitiators = new ArrayList<>();
-            prepareInitiators(initiatorList, driverInitiators);
+            // Get export group uri from task completer
+            URI exportGroupUri = taskCompleter.getId();
+            ExportGroup exportGroup = (ExportGroup)dbClient.queryObject(exportGroupUri);
+            prepareInitiators(initiatorList, exportGroup.forCluster(), driverInitiators);
 
             // Ready to call driver
             DriverTask task = driver.unexportVolumesFromInitiators(driverInitiators, driverVolumes);
@@ -431,7 +438,7 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
             Set<com.emc.storageos.db.client.model.Initiator>  initiators =
                     ExportMaskUtils.getInitiatorsForExportMask(dbClient, exportMask, null);
             List<Initiator> driverInitiators = new ArrayList<>();
-            prepareInitiators(initiators, driverInitiators);
+            prepareInitiators(initiators, exportGroup.forCluster(), driverInitiators);
 
             // Prepare target storage ports
             List<StoragePort> recommendedPorts = new ArrayList<>();
@@ -529,7 +536,10 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
             Set<com.emc.storageos.db.client.model.Initiator>  initiators =
                     ExportMaskUtils.getInitiatorsForExportMask(dbClient, exportMask, null);
             List<Initiator> driverInitiators = new ArrayList<>();
-            prepareInitiators(initiators, driverInitiators);
+            // Get export group uri from task completer
+            URI exportGroupUri = taskCompleter.getId();
+            ExportGroup exportGroup = (ExportGroup)dbClient.queryObject(exportGroupUri);
+            prepareInitiators(initiators, exportGroup.forCluster(), driverInitiators);
 
             // Ready to call driver
             DriverTask task = driver.unexportVolumesFromInitiators(driverInitiators, driverVolumes);
@@ -658,9 +668,14 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
     }
 
 
-    private void prepareInitiators(Collection<com.emc.storageos.db.client.model.Initiator> initiatorList, List<Initiator> driverInitiators) {
+    private void prepareInitiators(Collection<com.emc.storageos.db.client.model.Initiator> initiatorList, boolean isClusterExport,  List<Initiator> driverInitiators) {
         for (com.emc.storageos.db.client.model.Initiator initiator : initiatorList) {
             Initiator driverInitiator = createDriverInitiator(initiator);
+            if (isClusterExport) {
+                driverInitiator.setInitiatorType(Initiator.Type.Cluster);
+            } else {
+                driverInitiator.setInitiatorType(Initiator.Type.Host);
+            }
             driverInitiators.add(driverInitiator);
         }
     }

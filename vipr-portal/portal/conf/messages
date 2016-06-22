@@ -3016,6 +3016,11 @@ currency.format=$%.2f
 order.submitSuccess=Your order has been successfully received and is being processed. You may leave this page and return at any time through your Orders.
 order.submitFailed=Your order was unable to be submitted due to an internal error.
 order.processingFailed=Error processing order
+order.pausedFailed=Your order was unable to be paused due to an internal error.
+order.resumeFailed=Your order was unable to be resumed due to an internal error.
+
+service.order.pause=Pausing...
+service.order.resume=Resuming...
 
 OrderStatus.PENDING=Preparing Order
 OrderStatus.EXECUTING=Executing...

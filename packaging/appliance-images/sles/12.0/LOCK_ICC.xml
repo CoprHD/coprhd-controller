@@ -144,7 +144,7 @@
 <target name="dialog"                              depends="dialog-1.2-5.36_1"/>
 <target name="dmidecode"                           depends="dmidecode-2.12-5.20_1"/>
 <target name="dmt-api-java"                        depends="dmt-api-java-8.0.9.0.28-1"/>
-<target name="docker"                              depends="docker-1.4.1-16.1_1"/>
+<target name="docker"                              depends="docker-1.10.3-66.1_1"/>
 <target name="docker-compose"                      depends="docker-compose-1.1.0-2_1"/>
 <target name="dom4j"                               depends="dom4j-1.6.1"/>
 <target name="dos2unix"                            depends="dos2unix-6.0.4-1.133_1"/>

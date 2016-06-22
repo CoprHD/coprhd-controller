@@ -273,6 +273,38 @@ public class DefaultStorageDriver extends AbstractStorageDriver implements Block
         task.setMessage(msg);
         return task;
     }
+    
+    @Override
+    public DriverTask addVolumesToConsistencyGroup (List<StorageVolume> volumes, StorageCapabilities capabilities){
+    	_log.info("addVolumesToConsistencyGroup : unsupported operation.");
+    	String driverName = this.getClass().getSimpleName();
+        String taskType = "add-volumes-to-consistency-groupd";
+        String taskId = String.format("%s+%s+%s", driverName, taskType, UUID.randomUUID().toString());
+        DriverTask task = new DefaultDriverTask(taskId);
+        task.setStatus(DriverTask.TaskStatus.FAILED);
+        
+        String msg = String.format("addVolumesToConsistencyGroup: unsupported operation");
+        _log.info(msg);
+        task.setMessage(msg);
+        
+        return task;
+    }
+    
+    @Override
+    public DriverTask removeVolumesFromConsistencyGroup(List<StorageVolume> volumes,  StorageCapabilities capabilities){
+    	_log.info("removeVolumesFromConsistencyGroup : unsupported operation.");
+        String taskType = "remove-volumes-to-consistency-groupd";
+        String driverName = this.getClass().getSimpleName();
+        String taskId = String.format("%s+%s+%s", driverName, taskType, UUID.randomUUID().toString());
+        DriverTask task = new DefaultDriverTask(taskId);
+        task.setStatus(DriverTask.TaskStatus.FAILED);
+        
+        String msg = String.format("removeVolumesFromConsistencyGroup: unsupported operation");
+        _log.info(msg);
+        task.setMessage(msg);
+        
+        return task;
+    }
 
     @Override
     public DriverTask splitVolumeMirror(List<VolumeMirror> mirrors) {

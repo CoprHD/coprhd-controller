@@ -50,12 +50,9 @@ public abstract class FilteredQueryHitIterator<T> extends QueryHitIterator<T> {
      */
     private void moveNext() {
         _current = null;
-        while (resultIterator != null) {
-            skipToNext();
-            if (_current != null) {
-                return;
-            }
-            super.runQuery();
+        skipToNext();
+        if (_current != null) {
+        	return;
         }
     }
 

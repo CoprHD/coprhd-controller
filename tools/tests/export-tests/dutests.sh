@@ -391,6 +391,26 @@ nwwn()
     echo 20:${macaddr}:${idx}
 }
 
+setup_yaml() {
+    dir=`pwd`
+    tools_file="${dir}/tools/tests/export-tests/tools.yml"
+    if [ -f "$tools_file" ]; then
+	echo "stale $tools_file found. Deleting it."
+	rm $tools_file
+    fi
+    # create the yml file to be used for array tooling
+    touch $tools_file
+    storage_type=`storagedevice list | grep COMPLETE | awk '{print $1}'`
+    storage_name=`storagedevice list | grep COMPLETE | awk '{print $2}'`
+    storage_version=`storagedevice show ${storage_name} | grep firmware_version | awk '{print $2}' | cut -d '"' -f2`
+    storage_ip=`storagedevice show ${storage_name} | grep smis_provider_ip | awk '{print $2}' | cut -d '"' -f2`
+    storage_port=`storagedevice show ${storage_name} | grep smis_port_number | awk '{print $2}' | cut -d ',' -f1`
+    storage_user=`storagedevice show ${storage_name} | grep smis_user_name | awk '{print $2}' | cut -d '"' -f2`
+    ##update tools.yml file with the array details
+    printf 'array:\n  %s:\n  - ip: %s:%s\n    id: %s\n    username: %s\n    password: %s\n    version: %s' "$storage_type" "$storage_ip" "$storage_port" "$SERIAL_NUMBER" "$storage_user" "$storage_password" "$storage_version" >>$tools_file
+
+}
+
 login() {
     echo "Tenant is ${TENANT}";
     security login $SYSADMIN $SYSADMIN_PASSWORD
@@ -410,10 +430,14 @@ login() {
        # figure out what type of array we're running against
        storage_type=`storagedevice list | grep COMPLETE | awk '{print $1}'`
        echo "Found storage type is: $storage_type"
-
        SERIAL_NUMBER=`storagedevice list | grep COMPLETE | awk '{print $2}' | awk -F+ '{print $2}'`
        echo "Serial number is: $SERIAL_NUMBER"
+       if [ "${storage_type}" = "xtremio" ]
+       then
+	    storage_password=${XTREMIO_3X_PASSWD}
+        fi
     fi
+    
 }
 
 vmax_setup() {
@@ -444,7 +468,7 @@ xio_setup() {
     # do this only once
     echo "Setting up XtremIO"
     XTREMIO_NATIVEGUID=$XIO_4X_SIM_NATIVEGUID
-
+    storage_password=$XTREMIO_3X_PASSWD
     runcmd storageprovider create XIO-PROVIDER $XIO_SIMULATOR_IP $XIO_4X_SIMULATOR_PORT $XTREMIO_3X_USER "$XTREMIO_3X_PASSWD" xtremio
     runcmd storagedevice discover_all --ignore_error
 
@@ -461,8 +485,6 @@ xio_setup() {
     runcmd storageport update ${XTREMIO_NATIVEGUID} FC --tzone $NH/$FC_ZONE_A
     
     runcmd cos update block $VPOOL_BASE --storage ${XTREMIO_NATIVEGUID}
-    ##update tools.yml file with the array details
-    printf 'array:\n  xio:\n  - ip: %s:%s\n    id: APM99990000241\n    username: %s\n    password: %s\n    version: 4.0.0-64' "$XIO_SIMULATOR_IP" "$XIO_4X_SIMULATOR_PORT" "$XTREMIO_3X_USER" "$XTREMIO_3X_PASSWD" >>$tools_file
 }
 
 common_setup() {
@@ -567,8 +589,9 @@ setup() {
 
 
     ${SS}_setup
- 
+
     SERIAL_NUMBER=`storagedevice list | grep COMPLETE | awk '{print $2}' | awk -F+ '{print $2}'`
+    
     runcmd cos allow $VPOOL_BASE block $TENANT
     sleep 30
     runcmd volume create ${VOLNAME} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 2
@@ -611,7 +634,6 @@ set_suspend_on_error() {
 }
 
 set_suspend_on_class_method() {
-    echo "BOURNE_IPADDR is ${BOURNE_IPADDR}"
     runcmd syssvc $SANITY_CONFIG_FILE localhost set_prop workflow_suspend_on_class_method "$1"
 }
 
@@ -1223,7 +1245,7 @@ test_8() {
     verify_export ${expname}1 ${HOST1} 2 1
 
     # Now add that volume using ViPR
-    runcmd export_group update $PROJECT/${expname}1 --addInits ${PROJECT}/${H1PI2}
+    runcmd export_group update $PROJECT/${expname}1 --addInits ${HOST1}/${H1PI2}
 
     # Verify the mask is "normal" after that command
     verify_export ${expname}1 ${HOST1} 2 1
@@ -1406,16 +1428,6 @@ case $SS in
     Usage
     ;;
 esac
-if [ "$SS" = "xio" -o "$SS" = "vplex" ]; then
-    dir=`pwd`
-    tools_file="${dir}/tools/tests/export-tests/tools.yml"
-    if [ -f "$tools_file" ]; then
-	echo "stale $tools_file found. Deleting it."
-	rm $tools_file
-    fi
-    # create the yml file to be used for array tooling
-    touch $tools_file
-fi
 
 if [ "$1" = "regression" ]
 then
@@ -1426,6 +1438,10 @@ fi
 if [ ${setup} -eq 1 ]
 then
     setup
+fi
+
+if [ "$SS" = "xio" -o "$SS" = "vplex" ]; then
+    setup_yaml;
 fi
 
 # If there's a last parameter, take that

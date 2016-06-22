@@ -15,7 +15,7 @@ add_volume_to_mask() {
     serial_number=$1
     device_id=$2
     pattern=$3
-    java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays xio -method add_volume_to_mask -params "${device_id},${pattern}" 
+    java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays xtremio -method add_volume_to_mask -params "${device_id},${pattern}" 
     echo "Added volume ${device_id} to initiator group ${pattern}"
 }
 
@@ -23,21 +23,21 @@ remove_volume_from_mask() {
     serial_number=$1
     device_id=$2
     pattern=$3
-    java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays xio -method remove_volume_from_mask -params "${device_id},${pattern}"
+    java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays xtremio -method remove_volume_from_mask -params "${device_id},${pattern}"
     echo "Removed volume ${device_id} from initiator group ${pattern}"
 }
 
 delete_volume() {
     serial_number=$1
     device_id=$2
-    java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays xio -method delete_volume -params "${device_id}" 
+    java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays xtremio -method delete_volume -params "${device_id}" 
 }
 
 remove_initiator_from_mask() {
     serial_number=$1
     device_id=$2
     pattern=$3
-    java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays xio -method remove_initiator_from_mask -params "${device_id},${pattern}"
+    java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays xtremio -method remove_initiator_from_mask -params "${device_id},${pattern}"
 
 }
 
@@ -45,7 +45,7 @@ add_initiator_to_mask() {
     serial_number=$1
     device_id=$2
     pattern=$3
-    java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays xio -method add_initiator_to_mask -params "${device_id},${pattern}"
+    java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays xtremio -method add_initiator_to_mask -params "${device_id},${pattern}"
 
 }
 
@@ -62,7 +62,7 @@ verify_export() {
     TMPFILE1=/tmp/verify-${RANDOM}
     TMPFILE2=/dev/null
 
-    java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays xio -method get_initiator_group -params ${IG_PATTERN} > ${TMPFILE1} 2> ${TMPFILE2}
+    java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays xtremio -method get_initiator_group -params ${IG_PATTERN} > ${TMPFILE1} 2> ${TMPFILE2}
     grep -n ${IG_PATTERN} ${TMPFILE1} > /dev/null
     if [ $? -ne 0 ]
 	then

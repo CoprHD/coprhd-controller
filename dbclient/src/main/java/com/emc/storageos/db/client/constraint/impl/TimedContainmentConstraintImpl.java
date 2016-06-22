@@ -6,15 +6,14 @@ package com.emc.storageos.db.client.constraint.impl;
 
 import java.net.URI;
 
+import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.Statement;
+import com.datastax.driver.core.utils.UUIDs;
 import com.emc.storageos.db.client.impl.ColumnField;
-import com.emc.storageos.db.client.impl.CompositeColumnNameSerializer;
 import com.emc.storageos.db.client.impl.IndexColumnName;
 import com.emc.storageos.db.client.impl.RelationDbIndex;
 import com.emc.storageos.db.client.model.DataObject;
-import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
-import com.netflix.astyanax.query.RowQuery;
-import com.netflix.astyanax.util.TimeUUIDUtils;
 
 /**
  * A containment constraint that returns only those elements from the index that were added between startTime and endTime
@@ -28,7 +27,6 @@ public class TimedContainmentConstraintImpl extends ConstraintImpl {
     private URI indexKey;
     private Class<? extends DataObject> entryType;
     private final ColumnField field;
-    private Keyspace keyspace;
 
     public TimedContainmentConstraintImpl(URI indexKey, long startTimeMicros, long endTimeMicros, Class<? extends DataObject> entryType,
             ColumnField field) {
@@ -42,42 +40,30 @@ public class TimedContainmentConstraintImpl extends ConstraintImpl {
         returnOnePage = true;
     }
 
-    @Override
-    public void setKeyspace(Keyspace keyspace) {
-        this.keyspace = keyspace;
-    }
-
     protected <T> void queryOnePage(final QueryResult<T> result) throws ConnectionException {
-        RowQuery<String, IndexColumnName> query = keyspace.prepareQuery(field.getIndexCF())
-                .getKey(indexKey.toString())
-                .withColumnRange(
-                        CompositeColumnNameSerializer.get().buildRange()
-                                .greaterThanEquals(entryType.getSimpleName())
-                                .lessThanEquals(entryType.getSimpleName()));
-
-        QueryHitIterator<T> it = createQueryHitIterator(query, result);
-        query.autoPaginate(true);
+        QueryHitIterator<T> it = createQueryHitIterator(genQueryStatement(), result);
         it.prime();
         result.setResult(it);
     }
-
+    
     @Override
-    protected RowQuery<String, IndexColumnName> genQuery() {
-        RowQuery<String, IndexColumnName> query = keyspace
-                .prepareQuery(field.getIndexCF())
-                .getKey(indexKey.toString())
-                .withColumnRange(
-                        CompositeColumnNameSerializer.get().buildRange()
-                                .greaterThanEquals(entryType.getSimpleName())
-                                .lessThanEquals(entryType.getSimpleName())
-                                .limit(pageCount));
-        return query;
-
+    protected Statement genQueryStatement() {
+        StringBuilder queryString = new StringBuilder();
+        queryString.append("select").append(" * from \"").append(field.getIndexCF().getName()).append("\"");
+        queryString.append(" where key=?");
+        queryString.append(" and column1=?");
+        
+        PreparedStatement preparedStatement = this.dbClientContext.getPreparedStatement(queryString.toString());
+        Statement statement =  preparedStatement.bind(indexKey.toString(),
+                entryType.getSimpleName());
+        statement.setFetchSize(pageCount);
+        
+        return statement;
     }
 
-    protected <T> QueryHitIterator<T> createQueryHitIterator(RowQuery<String, IndexColumnName> query, final QueryResult<T> result) {
+    protected <T> QueryHitIterator<T> createQueryHitIterator(Statement statement, final QueryResult<T> result) {
 
-        return new FilteredQueryHitIterator<T>(query) {
+        return new FilteredQueryHitIterator<T>(dbClientContext, statement) {
             @Override
             protected T createQueryHit(IndexColumnName column) {
                 return result.createQueryHit(getURI(column), column.getThree(), column.getTimeUUID());
@@ -85,7 +71,7 @@ public class TimedContainmentConstraintImpl extends ConstraintImpl {
 
             @Override
             public boolean filter(IndexColumnName column) {
-                long columnTime = TimeUUIDUtils.getMicrosTimeFromUUID(column.getTimeUUID());
+                long columnTime = UUIDs.unixTimestamp(column.getTimeUUID())*1000;
                 // Filtering on startTime, startTime = -1 for no filtering
                 if (startTimeMicros > 0 && columnTime < startTimeMicros) {
                     return false;

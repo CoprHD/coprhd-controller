@@ -21,14 +21,8 @@ import com.emc.storageos.db.client.constraint.ConstraintDescriptor;
 import com.emc.storageos.db.client.impl.ColumnField;
 import com.emc.storageos.db.client.impl.DbClientContext;
 import com.emc.storageos.db.client.impl.IndexColumnName;
-import com.emc.storageos.db.client.impl.IndexColumnNameSerializer;
 import com.emc.storageos.db.exceptions.DatabaseException;
-import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
-import com.netflix.astyanax.model.Column;
-import com.netflix.astyanax.model.ColumnList;
-import com.netflix.astyanax.query.RowQuery;
-import com.netflix.astyanax.serializers.CompositeRangeBuilder;
 
 /**
  * Abstract base for all containment queries
@@ -43,7 +37,6 @@ public abstract class ConstraintImpl implements Constraint {
     protected int pageCount = DEFAULT_PAGE_SIZE;
     protected boolean returnOnePage;
     protected DbClientContext dbClientContext;
-    protected Keyspace _keyspace;
 
     public ConstraintImpl(Object... arguments) {
         ColumnField field = null;
@@ -119,14 +112,8 @@ public abstract class ConstraintImpl implements Constraint {
     }
 
     protected abstract <T> void queryOnePage(final QueryResult<T> result) throws ConnectionException;
-
-    protected RowQuery<String, IndexColumnName> genQuery() {
-        return null;
-    }
     
-    protected Statement genQueryStatement() {
-        return null;
-    }
+    protected abstract Statement genQueryStatement();
 
     protected <T> void queryWithAutoPaginate(Statement statement, final QueryResult<T> result,
             final ConstraintImpl constraint) {
@@ -145,58 +132,6 @@ public abstract class ConstraintImpl implements Constraint {
     
     protected <T> T createQueryHit(final QueryResult<T> result, IndexColumnName col) {
         return null;
-    }
-
-    protected <T> void queryOnePageWithoutAutoPaginate(RowQuery<String, IndexColumnName> query, String prefix, final QueryResult<T> result)
-            throws ConnectionException {
-
-        CompositeRangeBuilder builder = IndexColumnNameSerializer.get().buildRange()
-                .greaterThanEquals(prefix)
-                .lessThanEquals(prefix)
-                .reverse() // last column comes only
-                .limit(1);
-
-        query.withColumnRange(builder);
-
-        ColumnList<IndexColumnName> columns = query.execute().getResult();
-
-        List<T> ids = new ArrayList();
-        if (columns.isEmpty()) {
-            result.setResult(ids.iterator());
-            return; // not found
-        }
-
-        Column<IndexColumnName> lastColumn = columns.getColumnByIndex(0);
-
-        String endId = lastColumn.getName().getTwo();
-
-        builder = IndexColumnNameSerializer.get().buildRange();
-
-        if (startId == null) {
-            // query first page
-            builder.greaterThanEquals(prefix)
-                    .lessThanEquals(prefix)
-                    .limit(pageCount);
-
-        } else {
-            builder.withPrefix(prefix)
-                    .greaterThan(startId)
-                    .lessThanEquals(endId)
-                    .limit(pageCount);
-        }
-
-        query = query.withColumnRange(builder);
-
-        columns = query.execute().getResult();
-
-        for (Column<IndexColumnName> col : columns) {
-            T obj = createQueryHit(result, col.getName());
-            if (!ids.contains(obj)) {
-                ids.add(createQueryHit(result, col.getName()));
-            }
-        }
-
-        result.setResult(ids.iterator());
     }
     
     protected <T> void queryOnePageWithoutAutoPaginate(StringBuilder queryString, String prefix, final QueryResult<T> result, List<Object> queryParameters)
@@ -233,55 +168,6 @@ public abstract class ConstraintImpl implements Constraint {
         result.setResult(ids.iterator());
     }
 
-/*    protected <T> void queryOnePageWithAutoPaginate(RowQuery<String, IndexColumnName> query, String prefix, final QueryResult<T> result)
-            throws ConnectionException {
-        CompositeRangeBuilder range = IndexColumnNameSerializer.get().buildRange()
-                .greaterThanEquals(prefix)
-                .lessThanEquals(prefix)
-                .limit(pageCount);
-        query.withColumnRange(range);
-
-        queryOnePageWithAutoPaginate(query, result);
-    }*/
-
-    protected <T> void queryOnePageWithAutoPaginate(RowQuery<String, IndexColumnName> query, final QueryResult<T> result)
-            throws ConnectionException {
-        boolean start = false;
-        List<T> ids = new ArrayList();
-        int count = 0;
-
-        query.autoPaginate(true);
-
-        ColumnList<IndexColumnName> columns;
-
-        while (count < pageCount) {
-            columns = query.execute().getResult();
-
-            if (columns.isEmpty())
-            {
-                break; // reach the end
-            }
-
-            for (Column<IndexColumnName> col : columns) {
-                if (startId == null) {
-                    start = true;
-                } else if (startId.equals(getURI(col.getName()).toString())) {
-                    start = true;
-                    continue;
-                }
-
-                if (start) {
-                    T obj = createQueryHit(result, col.getName());
-                    if (!ids.contains(obj)) {
-                        ids.add(obj);
-                    }
-                    count++;
-                }
-            }
-        }
-        result.setResult(ids.iterator());
-    }
-    
     protected <T> void queryOnePageWithAutoPaginate(Statement queryStatement, final QueryResult<T> result) {
         boolean start = false;
         List<T> ids = new ArrayList<T>();
@@ -322,10 +208,5 @@ public abstract class ConstraintImpl implements Constraint {
     @Override
     public void setDbClientContext(DbClientContext dbClientContext) {
         this.dbClientContext = dbClientContext;
-    }
-    
-    @Override
-    public void setKeyspace(Keyspace keyspace) {
-        _keyspace = keyspace;
     }
 }

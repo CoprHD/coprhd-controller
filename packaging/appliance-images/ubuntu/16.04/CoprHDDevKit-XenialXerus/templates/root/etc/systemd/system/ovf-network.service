@@ -1,0 +1,13 @@
+[Unit]
+Description=ADG Pre Network configuration
+After=local-fs.target
+Before=network.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/opt/ADG/conf/ovf-network.sh
+
+[Install]
+WantedBy=multi-user.target
+Alias=ovf-network.service

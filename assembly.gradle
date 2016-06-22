@@ -97,8 +97,11 @@ task assembleWars() {
 task assembleScripts(type: Copy) {
     eachExternalProject { project->
         // FIXME: hardcode to openjdk for now, need to find a way for customer to override it.
-        if (buildType == 'oss')
+        if (buildType == 'oss' && (osDistro == 'trusty-tahr' || osDistro == 'xenial-xerus')) {
+            project.jdkHome = '/usr/lib/jvm/java-1.8.0-openjdk-amd64'
+        } else if (buildType == 'oss') {
             project.jdkHome = '/usr/lib64/jvm/java-1.8.0-openjdk'
+        }
 
         from "${project.buildDir}/bin"
         dependsOn project.tasks.getByName('assemble')

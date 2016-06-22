@@ -14,7 +14,6 @@
         <property name="geoEncryptionProvider" ref="geoEncryptionProvider"/>
         <property name="localContext" ref="dbclientcontext"/>
         <property name="geoContext" ref="geodbclientcontext"/>
-        <property name="drUtil" ref="drUtil"/>
     </bean>
 
     <bean id="vplexdbckr" class="com.emc.storageos.vplexdbckr.VplexDBCkr">
@@ -24,8 +23,6 @@
     <bean id="vplexapifactory" class="com.emc.storageos.vplex.api.VPlexApiFactory"
           factory-method="getInstance">
         <property name="connectionTimeoutMs" value="30000"/>
-        <property name="connManagerTimeout" value="60000"/>
-        <property name="socketConnectionTimeoutMs" value="7200000" />
     </bean>
 
 </beans>

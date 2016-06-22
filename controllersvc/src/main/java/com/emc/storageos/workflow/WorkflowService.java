@@ -1464,10 +1464,11 @@ public class WorkflowService implements WorkflowController {
             if (workflow.getOrchTaskId() != null) {
                 List<Task> tasks = new ArrayList<>();
                 if (workflow._taskCompleter != null && workflow._taskCompleter.getId() != null) {
-                    Task task = TaskUtils.findTaskForRequestId(_dbClient, workflow._taskCompleter.getId(),
-                            workflow.getOrchTaskId());
-                    if (task != null) {
-                        tasks.add(task);
+                    for (URI resourceId : workflow._taskCompleter.getIds()) {
+                        Task task = TaskUtils.findTaskForRequestId(_dbClient, resourceId, workflow.getOrchTaskId());
+                        if (task != null) {
+                            tasks.add(task);
+                        }
                     }
                 } else {
                     List<Task> foundTasks = TaskUtils.findTasksForRequestId(_dbClient, workflow.getOrchTaskId());

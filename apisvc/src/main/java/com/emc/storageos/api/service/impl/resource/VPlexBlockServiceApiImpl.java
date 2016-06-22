@@ -1362,16 +1362,17 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     URI systemURI = changeVPoolVolume.getStorageController();
                     StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, systemURI);
                     List<VolumeDescriptor> descriptors = new ArrayList<VolumeDescriptor>();
+                    ControllerOperationValuesWrapper operationsWrapper = new ControllerOperationValuesWrapper();
+                    operationsWrapper.put(ControllerOperationValuesWrapper.MIGRATION_SUSPEND_BEFORE_COMMIT,
+                            vpoolChangeParam.getMigrationSuspendBeforeCommit());
+                    operationsWrapper.put(ControllerOperationValuesWrapper.MIGRATION_SUSPEND_BEFORE_DELETE_SOURCE,
+                            vpoolChangeParam.getMigrationSuspendBeforeDeleteSource());
                     for (Volume volume : volumesInRGRequest) {
                         descriptors.addAll(createChangeVirtualPoolDescriptors(storageSystem,
-                                volume, vpool, taskId, null, null, null));
+                                volume, vpool, taskId, null, null, operationsWrapper));
                     }
 
                     // Orchestrate the vpool changes of all volumes as a single request.
-                    // DUPP TODO: I did not change the controller code to take the entire map of tasks.
-                    // The block orchestrator change virtual pool will create a single task for all volumes.
-                    // This will need to be reconciled at some point and testing multiple volumes through the
-                    // change vpool code will be required.
                     orchestrateVPoolChanges(volumesInRGRequest, descriptors, taskId);
                 }
                 if (!volumesNotInRG.isEmpty()) {

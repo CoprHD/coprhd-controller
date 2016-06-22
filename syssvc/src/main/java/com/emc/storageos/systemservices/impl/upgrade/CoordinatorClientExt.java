@@ -1611,8 +1611,7 @@ public class CoordinatorClientExt {
                 _coordinator.persistServiceConfiguration(localSite.toConfiguration());
                 // Trigger rollback for disrupted standby resuming (manual or automatic)
                 // Do nothing for disrupted standby adding operation
-                if (SiteState.STANDBY_SYNCING.equals(state) && !SiteState.STANDBY_ADDING.equals(localSite.getLastState())
-                        || SiteState.STANDBY_RESUMING.equals(state)) {
+                if (SiteState.STANDBY_SYNCING.equals(state) && !SiteState.STANDBY_ADDING.equals(localSite.getLastState())) {
                     try {
                         LocalRepository localRepository = LocalRepository.getInstance();
                         long rollbackTargetRevision = Long.parseLong(localRepository.getPreviousDataRevision());

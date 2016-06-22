@@ -1,11 +1,14 @@
 package com.emc.storageos.driver.vmaxv3driver.operations.discovery;
 
 import com.emc.storageos.driver.vmaxv3driver.base.OperationImpl;
+import com.emc.storageos.driver.vmaxv3driver.rest.GetVersion;
+import com.emc.storageos.driver.vmaxv3driver.rest.ListArray;
 import com.emc.storageos.storagedriver.model.StorageProvider;
 import com.emc.storageos.storagedriver.model.StorageSystem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,8 +22,6 @@ public class DiscoverStorageProviderOperation extends OperationImpl {
 
     private StorageProvider storageProvider;
     private List<StorageSystem> storageSystems;
-
-    private String sloprovisioning_symmetrix = "/univmax/restapi/sloprovisioning/symmetrix";
 
     @Override
     public boolean isMatch(String name, Object... parameters) {
@@ -42,15 +43,23 @@ public class DiscoverStorageProviderOperation extends OperationImpl {
      */
     @Override
     public Map<String, Object> execute() {
-        String path = sloprovisioning_symmetrix;
         Map<String, Object> result = new HashMap<>();
         try {
-            String responseBody = this.getClient().request(path);
-
-
-
-
-
+            List<String> arrayIds = new ListArray().execute(this.getClient());
+            for(String arrayId : arrayIds) {
+                StorageSystem storageSystem = new StorageSystem();
+                storageSystem.setNativeId(arrayId);
+                storageSystem.setIpAddress(this.storageProvider.getProviderHost());
+                storageSystem.setPortNumber(this.storageProvider.getPortNumber());
+                storageSystem.setUsername(this.storageProvider.getUsername());
+                storageSystem.setPassword(this.storageProvider.getPassword());
+                List<String> protocols = new ArrayList<>();
+                protocols.add(this.storageProvider.getUseSSL() ? "https" : "http");
+                storageSystem.setProtocols(protocols);
+                this.storageSystems.add(storageSystem);
+            }
+            String version = new GetVersion().execute(this.getClient());
+            this.storageProvider.setIsSupportedVersion((version.compareTo("V8.2.0.0") >= 0));
             result.put("success", true);
         } catch(Exception e) {
             logger.error(e.getMessage(), e);

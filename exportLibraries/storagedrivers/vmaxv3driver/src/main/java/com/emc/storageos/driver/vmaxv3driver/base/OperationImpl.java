@@ -3,6 +3,7 @@ package com.emc.storageos.driver.vmaxv3driver.base;
 import com.emc.storageos.driver.vmaxv3driver.rest.HttpRestClient;
 import com.emc.storageos.storagedriver.LockManager;
 import com.emc.storageos.storagedriver.Registry;
+import com.emc.storageos.storagedriver.model.StorageProvider;
 import com.emc.storageos.storagedriver.model.StorageSystem;
 
 /**
@@ -16,20 +17,28 @@ public abstract class OperationImpl implements Operation {
 
     /**
      * This method is used to create HttpRestClient instance according to the given
-     * StorageSystem input instance. Currently since Southbound SDK does not support
-     * StorageProvider discovery, the StorageSystem native ID has to be set in the
-     * IpAddress(hostName) field such as "lglw7150.lss.emc.com$000196801612". After
-     * the StorageProvider discovery is ready, this class will be updated by removing
-     * the native ID parsing logic.
+     * StorageProvider input instance.
+     *
+     * @param storageProviderInput  The given StorageProvider instance passed by SB SDK.
+     */
+    protected void setClient(StorageProvider storageProviderInput) {
+        String scheme = storageProviderInput.getUseSSL() ? "https" : "http";
+        String hostName = storageProviderInput.getProviderHost();
+        int port = storageProviderInput.getPortNumber();
+        String userName = storageProviderInput.getUsername();
+        String password = storageProviderInput.getPassword();
+        HttpRestClient client = new HttpRestClient(scheme, hostName, port, userName, password);
+        this.setClient(client);
+    }
+
+    /**
+     * This method is used to create HttpRestClient instance according to the given
+     * StorageSystem input instance.
      *
      * @param storageSystemInput The given StorageSystem instance passed by SB SDK.
      */
     protected void setClient(StorageSystem storageSystemInput) {
-        String[] tokens = storageSystemInput.getIpAddress().split("\\$");
-        String hostName = tokens[0];
-        if(storageSystemInput.getNativeId() == null && tokens.length >= 2) {
-            storageSystemInput.setNativeId(tokens[1]);
-        }
+        String hostName = storageSystemInput.getIpAddress();
         int port = storageSystemInput.getPortNumber();
         String userName = storageSystemInput.getUsername();
         String password = storageSystemInput.getPassword();

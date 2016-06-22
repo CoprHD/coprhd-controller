@@ -9,17 +9,19 @@ import com.iwave.ext.linux.command.MountCommand;
 public class MountNFSPath extends LinuxExecutionTask<Void> {
     private String path;
     private String security;
+    private String arg;
 
-    public MountNFSPath(String path, String security) {
+    public MountNFSPath(String path, String security, String arg) {
         this.path = path;
         this.security = security;
+        this.arg = arg;
     }
 
     @Override
     public void execute() throws Exception {
         MountCommand command = new MountCommand();
         command.enableOptions();
-        command.setSecurity(security);
+        command.setOptions(arg, security);
         command.setPath(path);
         executeCommand(command, SHORT_TIMEOUT);
     }

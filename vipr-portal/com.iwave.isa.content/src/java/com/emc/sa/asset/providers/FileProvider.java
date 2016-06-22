@@ -769,10 +769,13 @@ public class FileProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getExportedSubdirectory(AssetOptionsContext ctx, URI fileExportedFilesystem) {
         List<AssetOption> options = Lists.newArrayList();
         List<FileSystemExportParam> exports = api(ctx).fileSystems().getExports(fileExportedFilesystem);
+        options.add(new AssetOption("!No Sub Directory", "No Sub Directory"));
         for (FileSystemExportParam export : exports) {
-            options.add(new AssetOption(export.getSubDirectory(), export.getSubDirectory()));
+            if (export.getSubDirectory() != null) {
+                options.add(new AssetOption(export.getSubDirectory(), export.getSubDirectory()));
+            }
         }
-        AssetOptionsUtils.sortOptionsByLabel(options);
+        AssetOptionsUtils.sortOptionsByKey(options);
         return options;
     }
 
@@ -781,9 +784,9 @@ public class FileProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getExportedSubdirectory(AssetOptionsContext ctx, URI fileExportedFilesystem, String subDirectory) {
         List<AssetOption> options = Lists.newArrayList();
         List<FileSystemExportParam> exports = api(ctx).fileSystems().getExports(fileExportedFilesystem);
-        if (subDirectory == null) {
+        if (subDirectory.equalsIgnoreCase("!No Sub Directory")) {
             for (FileSystemExportParam export : exports) {
-                if (export.getSubDirectory().isEmpty()) {
+                if (export.getSubDirectory() == null) {
                     options.add(new AssetOption(export.getSecurityType(), export.getSecurityType()));
                 }
             }
@@ -807,7 +810,7 @@ public class FileProvider extends BaseAssetOptionsProvider {
         Map<String, MountInfo> mountTagMap = getMountInfoFromTags(api(ctx));
         for (Map.Entry<String, MountInfo> entry : mountTagMap.entrySet()) {
             if (entry.getValue().getHostId().equals(host)) {
-                options.add(new AssetOption(entry.getKey(),
+                options.add(new AssetOption(entry.getKey() + " " + entry.getValue().getFsId(),
                         api(ctx).fileSystems().get(entry.getValue().getFsId()).getName() + "/" + entry.getValue().getSubDirectory()));
             }
         }
@@ -818,31 +821,29 @@ public class FileProvider extends BaseAssetOptionsProvider {
     public Map<String, MountInfo> getMountInfoFromTags(ViPRCoreClient client) {
         List<URI> fsIds = client.fileSystems().listBulkIds();
         Map<String, MountInfo> results = new HashMap<String, MountInfo>();
-        List<String> mountTags = new ArrayList<String>();
         for (URI fsId : fsIds) {
+            List<String> mountTags = new ArrayList<String>();
             mountTags.addAll(client.fileSystems().getTags(fsId));
-        }
-        for (String tag : mountTags) {
-            if (tag.startsWith("mountNfs")) {
-                String[] pieces = StringUtils.trim(tag).split("-|\\s+");
-                MountInfo mountInfo = new MountInfo();
-                if (pieces.length > 1) {
-                    mountInfo.setHostId(uri(pieces[1]));
+            for (String tag : mountTags) {
+                if (tag.startsWith("mountNfs")) {
+                    String[] pieces = StringUtils.trim(tag).split("-|\\s+");
+                    MountInfo mountInfo = new MountInfo();
+                    if (pieces.length > 1) {
+                        mountInfo.setHostId(uri(pieces[1]));
+                    }
+                    if (pieces.length > 2) {
+                        mountInfo.setMountPoint(pieces[3]);
+                    }
+                    if (pieces.length > 3) {
+                        mountInfo.setSubDirectory(pieces[4]);
+                    }
+                    if (pieces.length > 4) {
+                        mountInfo.setSecurityType(pieces[5]);
+                    }
+                    mountInfo.setFsId(fsId);
+                    mountInfo.setTag(tag);
+                    results.put(tag, mountInfo);
                 }
-                if (pieces.length > 2) {
-                    mountInfo.setFsId(uri(pieces[2]));
-                }
-                if (pieces.length > 3) {
-                    mountInfo.setMountPoint(pieces[3]);
-                }
-                if (pieces.length > 4) {
-                    mountInfo.setSubDirectory(pieces[4]);
-                }
-                if (pieces.length > 5) {
-                    mountInfo.setSecurityType(pieces[5]);
-                }
-                mountInfo.setTag(tag);
-                results.put(tag, mountInfo);
             }
         }
         return results;

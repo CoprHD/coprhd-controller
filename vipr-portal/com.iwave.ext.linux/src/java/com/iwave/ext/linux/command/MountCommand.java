@@ -27,7 +27,8 @@ public class MountCommand extends LinuxCommand {
         addArgument("-o");
     }
 
-    public void setSecurity(String sec) {
-        addArgument("sec=" + sec);
+    public void setOptions(String arg, String sec) {
+        addArgument(arg + ",sec=" + sec);
     }
+
 }

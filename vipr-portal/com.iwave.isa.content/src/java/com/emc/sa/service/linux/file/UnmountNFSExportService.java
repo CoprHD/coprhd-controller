@@ -34,22 +34,22 @@ public class UnmountNFSExportService extends LinuxFileService {
 
     public void convertTagsToMounts() {
         for (String tag : mountTags) {
-            String[] pieces = StringUtils.trim(tag).split("-|\\s+");
+            String[] pieces = StringUtils.trim(tag).split("\\s+");
             MountInfo mountInfo = new MountInfo();
             if (pieces.length > 1) {
                 mountInfo.setHostId(uri(pieces[1]));
             }
             if (pieces.length > 2) {
-                mountInfo.setFsId(uri(pieces[2]));
+                mountInfo.setMountPoint(pieces[2]);
             }
             if (pieces.length > 3) {
-                mountInfo.setMountPoint(pieces[3]);
+                mountInfo.setSubDirectory(pieces[3]);
             }
             if (pieces.length > 4) {
-                mountInfo.setSubDirectory(pieces[4]);
+                mountInfo.setSecurityType(pieces[4]);
             }
             if (pieces.length > 5) {
-                mountInfo.setSecurityType(pieces[5]);
+                mountInfo.setFsId(uri(pieces[5]));
             }
             mountInfo.setTag(tag);
             mountList.add(mountInfo);

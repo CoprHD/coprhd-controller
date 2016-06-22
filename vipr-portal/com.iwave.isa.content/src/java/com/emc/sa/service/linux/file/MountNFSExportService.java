@@ -39,7 +39,7 @@ public class MountNFSExportService extends LinuxFileService {
 
     @Override
     public void execute() throws Exception {
-        mountNFSExportHelper.mountExport(fs);
         FileStorageUtils.setFSTag(fsId.toString(), mountNFSExportHelper.generateMountTag(fsId, hostId));
+        mountNFSExportHelper.mountExport(fs);
     }
 }

@@ -55,11 +55,18 @@ public class MountNFSExportHelper {
     }
 
     public String generateMountTag(URI fsId, URI hostId) {
-        return "mountNfs " + hostId.toString() + " " + fsId.toString() + " " + destinationPath + " " + subDirectory + " " + securityType;
+        return "mountNfs " + hostId.toString() + " " + destinationPath + " " + subDirectory + " " + securityType;
     }
 
     public FileSystemExportParam findExport(FileShareRestRep fs) {
         List<FileSystemExportParam> exportList = FileStorageUtils.getNfsExports(fs.getId());
+        if (subDirectory.equalsIgnoreCase("No Sub Directory")) {
+            for (FileSystemExportParam export : exportList) {
+                if (subDirectory == null && securityType.equals(export.getSecurityType())) {
+                    return export;
+                }
+            }
+        }
         for (FileSystemExportParam export : exportList) {
             if (subDirectory.equals(export.getSubDirectory()) && securityType.equals(export.getSecurityType())) {
                 return export;
@@ -69,10 +76,11 @@ public class MountNFSExportHelper {
     }
 
     public void mountExport(FileShareRestRep fs) {
-        logInfo("linux.mount.file.export.mount", hostname, findExport(fs).getMountPoint(), destinationPath, AUTO, subDirectory);
+        FileSystemExportParam export = findExport(fs);
+        logInfo("linux.mount.file.export.mount", hostname, export.getMountPoint(), destinationPath, AUTO, subDirectory);
         linuxSupport.createDirectory(destinationPath);
-        linuxSupport.addToFSTab(fs.getMountPath(), destinationPath, AUTO, null);
-        linuxSupport.mountPath(destinationPath, securityType);
+        linuxSupport.addToFSTab(export.getMountPoint(), destinationPath, AUTO, null);
+        linuxSupport.mountPath(destinationPath, securityType, "nolock");
         ExecutionUtils.addAffectedResource(fs.getId().toString());
     }
 }

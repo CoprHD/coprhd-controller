@@ -98,8 +98,8 @@ public class LinuxFileSupport {
         execute(new RemoveFromFSTab(path));
     }
 
-    public void mountPath(String path, String security) {
-        execute(new MountNFSPath(path, security));
+    public void mountPath(String path, String security, String arg) {
+        execute(new MountNFSPath(path, security, arg));
         addRollback(new UnmountPath(path));
     }
 

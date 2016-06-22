@@ -1,6 +1,6 @@
 package com.emc.storageos.driver.vmaxv3driver.base;
 
-import com.emc.storageos.driver.vmaxv3driver.rest.HttpRestClient;
+import com.emc.storageos.driver.vmaxv3driver.utils.rest.HttpRestClient;
 import com.emc.storageos.storagedriver.LockManager;
 import com.emc.storageos.storagedriver.Registry;
 import com.emc.storageos.storagedriver.model.StorageProvider;

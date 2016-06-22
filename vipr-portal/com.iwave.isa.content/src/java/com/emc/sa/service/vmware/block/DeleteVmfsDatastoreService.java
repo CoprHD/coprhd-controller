@@ -43,6 +43,7 @@ public class DeleteVmfsDatastoreService extends VMwareHostService {
         for (Map.Entry<Datastore, List<VolumeRestRep>> entry : datastores.entrySet()) {
             vmware.deleteVmfsDatastore(entry.getValue(), hostId, entry.getKey(), false);
         }
+        vmware.refreshStorage(host, cluster);
         if (hostId != null) {
             ExecutionUtils.addAffectedResource(hostId.toString());
         }

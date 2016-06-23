@@ -1,6 +1,6 @@
-#!/bin/bash
+#!/bin/sh
 #
-# Copyright (c) 2012-2015 EMC Corporation
+# Copyright (c) 2016 EMC Corporation
 # All Rights Reserved
 #
 # This software contains the intellectual property of EMC Corporation
@@ -32,21 +32,6 @@
 
 # Source /etc/sysconfig/storageos and make the basic checks
 #
-case $(lsb_release -si) in
-    Ubuntu|Debian|Devuan)
-        DISTRO="debian"
-        ;;
-    CentOS|Fedora|RedHatEnterpriseServer)
-        DISTRO="fedora"
-        ;;
-    *SUSE*)
-        DISTRO="opensuse" # just keeping lower case to make it easy
-        ;;
-    *)
-        echo "$(lsb_release -si) is unknown distribution, exiting.."
-        ;;
-esac
-
 STORAGEOS_SYSCONFIG=${STORAGEOS_SYSCONFIG:-'/etc/sysconfig/storageos'}
 test -r "${STORAGEOS_SYSCONFIG}"       || exit 6
 . ${STORAGEOS_SYSCONFIG}
@@ -57,8 +42,8 @@ test -d "${STORAGEOS_DIR}"             || exit 5
 STORAGEOS_LOGS=${STORAGEOS_LOGS:-"${STORAGEOS_DIR}/logs"}
 test -d "${STORAGEOS_LOGS}"            || exit 6
 
-SYSTEMCTL=/usr/bin/systemctl
-[[ "$DISTRO" != "debian" && ! -x "${SYSTEMCTL}" ]] && exit 6
+SYSTEMCTL=/bin/systemctl
+test -x "${SYSTEMCTL}"            || exit 6
 
 export PRODUCT_HOME="${STORAGEOS_DIR}"
 export PLATFORM="linux"
@@ -74,55 +59,30 @@ _checkConfigurable() {
 }
 
 _startsvc() {
-	if [[ "$DISTRO" == "debian" ]]; then
-		_checkactive ${1} || start storageos-${1}
-	else
-		_checkactive ${1} || ${SYSTEMCTL} start storageos-${1}.service
-	fi
+    _checkactive ${1} || ${SYSTEMCTL} start storageos-${1}.service
 }
 
 _checksvc() {
-	if [[ "$DISTRO" == "debian" ]]; then
-		sudo status storageos-${1}
-	else
-    	${SYSTEMCTL} -n 0 status storageos-${1}.service
-	fi
+    ${SYSTEMCTL} -n 0 status storageos-${1}.service
 }
 
 _killsvc() {
-	if [[ "$DISTRO" == "debian" ]]; then
-		sudo stop storageos-${1}
-	else
-		${SYSTEMCTL} stop storageos-${1}.service
-	fi
+    ${SYSTEMCTL} stop storageos-${1}.service
 }
 
 # Enable service autostart during boot
 _enablesvc() {
-	if [[ "$DISTRO" == "debian" ]]; then
-		sudo rm -f /etc/init/storageos-${1}.override
-	else
-		${SYSTEMCTL} enable storageos-${1}.service
-	fi
+    ${SYSTEMCTL} enable storageos-${1}.service
 }
 
 # Disable service autostart during boot
 _disablesvc() {
-	if [[ "$DISTRO" == "debian" ]]; then
-		echo manual | sudo tee /etc/init/storageos-${1}.override
-	else
-		${SYSTEMCTL} disable storageos-${1}.service
-	fi
+    ${SYSTEMCTL} disable storageos-${1}.service
 }
 
 _checkactive() {
-	if [[ "$DISTRO" == "debian" ]]; then
-		local status=$(sudo status storageos-${1} | nawk '{print $2;}')
-    	[[ ${status} == "start/running," ]] || return 1
-	else
-		local status=$(${SYSTEMCTL} is-active storageos-${1}.service)
-		[ ${status} == "active" ] || return 1
-	fi
+    local status=$(${SYSTEMCTL} is-active storageos-${1}.service)
+    [ ${status} == "active" ] || return 1
 }
 
 # Start services 
@@ -132,10 +92,7 @@ _start_services() {
         exit
     fi
 
-	
-	# this is really not needed for single machine, development environments
-    [[ "$DISTRO" != "debian" ]] && /etc/storageos/ipchecktool --panic
-
+    /etc/storageos/ipchecktool --panic
     echo -n "Starting @product_brand@ ${STORAGEOS_VARIANT} services "
     for svc in @systemd_storageos@ ; do
         _startsvc ${svc}

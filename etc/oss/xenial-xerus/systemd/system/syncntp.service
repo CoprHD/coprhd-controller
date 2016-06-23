@@ -1,0 +1,15 @@
+[Unit]
+Description=StorageOS initial time synchronization
+Wants=networking.service ipchecktool.service
+After=networking.service ipchecktool.service
+Before=ntp.service
+ConditionPathExists=/var/run/storageos/bootmode_normal
+
+[Service]
+Type=oneshot
+ExecStart=/etc/storageos/syncntp start
+RemainAfterExit=yes
+Restart=no
+
+[Install]
+WantedBy=multi-user.target

@@ -1,8 +1,4 @@
 #!/bin/bash
 /sbin/ldconfig
-#rm -rf /opt/storageos/lib
-#rm -rf /opt/storageos/bin
-#rm -rf /opt/storageos/pylib
 rm -rf /opt/storageos
-rm -rf /etc/init/storageos-*.override
 exit 0

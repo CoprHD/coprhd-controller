@@ -1,0 +1,18 @@
+[Unit]
+Description=Keepalived service
+Wants=networking.service ipchecktool.service
+After=networking.service ipchecktool.service ntp.service
+# keepalived should be restarted if network service is restarted,
+# so that vip election could be triggered when network is up
+Requires=networking.service
+ConditionPathExists=/var/run/storageos/bootmode_normal
+
+[Service]
+Type=forking
+PIDFile=/var/run/keepalived.pid
+ExecStart=/usr/sbin/keepalived /etc/keepalived/keepalived.conf -D
+RestartSec=10
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

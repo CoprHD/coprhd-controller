@@ -92,7 +92,6 @@ _start_services() {
         exit
     fi
 
-    /etc/storageos/ipchecktool --panic
     echo -n "Starting @product_brand@ ${STORAGEOS_VARIANT} services "
     for svc in @systemd_storageos@ ; do
         _startsvc ${svc}

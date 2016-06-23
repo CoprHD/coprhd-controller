@@ -253,7 +253,7 @@ _reload() {
         ssl)
             exec /bin/systemctl restart nginx ;;
         firewall)
-            exec /bin/systemctl restart SuSEfirewall2 ;;
+            echo "skip firewall in oss ubuntu" ;;
         ipsec)
             echo "skip reload ipsec in oss platform" ;;
         *)

@@ -1,6 +1,13 @@
-package exceptions;
+/*
+ * Copyright (c) 2016 EMC Corporation
+ * All Rights Reserved
+ */
+
+package com.emc.storageos.driver.vmaxv3driver.exception;
 
 /**
+ * This class defines the default VMAX V3 REST Call exception.
+ *
  * Created by gang on 6/22/16.
  */
 public class Vmaxv3RestCallException extends RuntimeException {

@@ -1,25 +1,33 @@
+/*
+ * Copyright (c) 2016 EMC Corporation
+ * All Rights Reserved
+ */
+
 package com.emc.storageos.driver.vmaxv3driver.base;
 
-import com.emc.storageos.driver.vmaxv3driver.utils.rest.HttpRestClient;
+import com.emc.storageos.driver.vmaxv3driver.util.rest.RestClient;
 import com.emc.storageos.storagedriver.LockManager;
 import com.emc.storageos.storagedriver.Registry;
 import com.emc.storageos.storagedriver.model.StorageProvider;
 import com.emc.storageos.storagedriver.model.StorageSystem;
 
 /**
+ * The base abstract implementation of "Operation" which is the super class of
+ * all concrete "Operation" implementation class.
+ *
  * Created by gang on 6/21/16.
  */
 public abstract class OperationImpl implements Operation {
 
     private Registry registry;
     private LockManager lockManager;
-    private HttpRestClient client;
+    private RestClient client;
 
     /**
-     * This method is used to create HttpRestClient instance according to the given
+     * This method is used to create RestClient instance according to the given
      * StorageProvider input instance.
      *
-     * @param storageProviderInput  The given StorageProvider instance passed by SB SDK.
+     * @param storageProviderInput The given StorageProvider instance passed by SB SDK.
      */
     protected void setClient(StorageProvider storageProviderInput) {
         String scheme = storageProviderInput.getUseSSL() ? "https" : "http";
@@ -27,12 +35,12 @@ public abstract class OperationImpl implements Operation {
         int port = storageProviderInput.getPortNumber();
         String userName = storageProviderInput.getUsername();
         String password = storageProviderInput.getPassword();
-        HttpRestClient client = new HttpRestClient(scheme, hostName, port, userName, password);
+        RestClient client = new RestClient(scheme, hostName, port, userName, password);
         this.setClient(client);
     }
 
     /**
-     * This method is used to create HttpRestClient instance according to the given
+     * This method is used to create RestClient instance according to the given
      * StorageSystem input instance.
      *
      * @param storageSystemInput The given StorageSystem instance passed by SB SDK.
@@ -42,7 +50,7 @@ public abstract class OperationImpl implements Operation {
         int port = storageSystemInput.getPortNumber();
         String userName = storageSystemInput.getUsername();
         String password = storageSystemInput.getPassword();
-        HttpRestClient client = new HttpRestClient(hostName, port, userName, password);
+        RestClient client = new RestClient(hostName, port, userName, password);
         this.setClient(client);
     }
 
@@ -64,11 +72,11 @@ public abstract class OperationImpl implements Operation {
         this.lockManager = lockManager;
     }
 
-    public HttpRestClient getClient() {
+    public RestClient getClient() {
         return client;
     }
 
-    public void setClient(HttpRestClient client) {
+    public void setClient(RestClient client) {
         this.client = client;
     }
 }

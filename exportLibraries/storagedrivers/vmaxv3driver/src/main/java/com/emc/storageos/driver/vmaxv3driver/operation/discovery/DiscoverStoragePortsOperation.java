@@ -1,10 +1,17 @@
-package com.emc.storageos.driver.vmaxv3driver.operations.discovery;
+/*
+ * Copyright (c) 2016 EMC Corporation
+ * All Rights Reserved
+ */
+
+package com.emc.storageos.driver.vmaxv3driver.operation.discovery;
 
 import com.emc.storageos.driver.vmaxv3driver.base.OperationImpl;
 
 import java.util.Map;
 
 /**
+ * Implementation of "DiscoverStoragePorts" operation.
+ * 
  * Created by gang on 6/21/16.
  */
 public class DiscoverStoragePortsOperation extends OperationImpl {
@@ -18,4 +25,3 @@ public class DiscoverStoragePortsOperation extends OperationImpl {
         return null;
     }
 }
-

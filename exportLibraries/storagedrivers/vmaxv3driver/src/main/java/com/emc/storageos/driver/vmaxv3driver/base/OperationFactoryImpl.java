@@ -1,9 +1,14 @@
+/*
+ * Copyright (c) 2016 EMC Corporation
+ * All Rights Reserved
+ */
+
 package com.emc.storageos.driver.vmaxv3driver.base;
 
-import com.emc.storageos.driver.vmaxv3driver.operations.discovery.DiscoverStoragePoolsOperation;
-import com.emc.storageos.driver.vmaxv3driver.operations.discovery.DiscoverStoragePortsOperation;
-import com.emc.storageos.driver.vmaxv3driver.operations.discovery.DiscoverStorageProviderOperation;
-import com.emc.storageos.driver.vmaxv3driver.operations.discovery.DiscoverStorageSystemOperation;
+import com.emc.storageos.driver.vmaxv3driver.operation.discovery.DiscoverStoragePoolsOperation;
+import com.emc.storageos.driver.vmaxv3driver.operation.discovery.DiscoverStoragePortsOperation;
+import com.emc.storageos.driver.vmaxv3driver.operation.discovery.DiscoverStorageProviderOperation;
+import com.emc.storageos.driver.vmaxv3driver.operation.discovery.DiscoverStorageSystemOperation;
 import com.emc.storageos.storagedriver.LockManager;
 import com.emc.storageos.storagedriver.Registry;
 
@@ -11,6 +16,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
+ * The default "OperationFactory" implementation.
+ *
  * Created by gang on 6/21/16.
  */
 public class OperationFactoryImpl implements OperationFactory {

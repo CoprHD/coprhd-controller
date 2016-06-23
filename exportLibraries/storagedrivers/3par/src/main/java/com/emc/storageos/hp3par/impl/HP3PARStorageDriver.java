@@ -903,6 +903,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
                 clone.setNativeId(clone.getDisplayName()); //required for volume delete
                 clone.setDeviceLabel(clone.getDisplayName());
                 clone.setAccessStatus(clone.getAccessStatus());
+                clone.setReplicationState(VolumeClone.ReplicationState.SYNCHRONIZED);
 
                 task.setStatus(DriverTask.TaskStatus.READY);
                 _log.info("createVolumeClone for storage system native id {}, volume name {} - end",
@@ -925,8 +926,9 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 
     @Override
     public DriverTask detachVolumeClone(List<VolumeClone> clones) {
-    	// not sure why this needs to be called while restore clone, there is no equivalent HP3PAR REST API available
-    	// hence setting this by default as working
+    	// There is no REST API avaialble for detach clone in HP3PAR
+    	// This is getting called while delete / restore clone
+    	// hence setting this as working by default
     	_log.info("3PARDriver: detachVolumeClone Running ");
     	DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_RESTORE_CLONE_VOLUMES);
     	task.setStatus(DriverTask.TaskStatus.READY);
@@ -954,6 +956,8 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 
                 // restore virtual copy
                 hp3parApi.restoreVirtualCopy(clone.getNativeId());
+                
+                clone.setReplicationState(VolumeClone.ReplicationState.RESTORED);
                 
                 task.setStatus(DriverTask.TaskStatus.READY);
                 _log.info("3PARDriver: restoreFromClone for storage system  id {}, volume clone display name {} - end",

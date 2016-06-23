@@ -22,22 +22,27 @@ import java.util.List;
  */
 public class OperationFactoryImpl implements OperationFactory {
 
-    private List<Operation> operations = new ArrayList<>();
+    private List<Class<? extends Operation>> operationClasses = new ArrayList<>();
 
     public OperationFactoryImpl() {
-        operations.add(new DiscoverStorageProviderOperation());
-        operations.add(new DiscoverStorageSystemOperation());
-        operations.add(new DiscoverStoragePoolsOperation());
-        operations.add(new DiscoverStoragePortsOperation());
+        operationClasses.add(DiscoverStorageProviderOperation.class);
+        operationClasses.add(DiscoverStorageSystemOperation.class);
+        operationClasses.add(DiscoverStoragePoolsOperation.class);
+        operationClasses.add(DiscoverStoragePortsOperation.class);
     }
 
     @Override
     public Operation getInstance(Registry registry, LockManager lockManager, String name, Object... parameters) {
-        for(Operation operation : this.operations) {
-            if(operation.isMatch(name, parameters)) {
-                operation.setRegistry(registry);
-                operation.setLockManager(lockManager);
-                return operation;
+        for(Class<? extends Operation> clazz : this.operationClasses) {
+            try {
+                Operation operation = clazz.newInstance();
+                if(operation.isMatch(name, parameters)) {
+                    operation.setRegistry(registry);
+                    operation.setLockManager(lockManager);
+                    return operation;
+                }
+            } catch (Exception e) {
+                throw new RuntimeException(e);
             }
         }
         return null;

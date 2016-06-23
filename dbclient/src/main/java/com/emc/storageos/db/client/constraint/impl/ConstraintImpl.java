@@ -149,6 +149,8 @@ public abstract class ConstraintImpl implements Constraint {
         PreparedStatement preparedStatement = this.dbClientContext.getPreparedStatement(queryString.toString());
         Statement statement =  preparedStatement.bind(queryParameters.toArray(new Object[]{0}));
 
+        log.info("query string: {}", preparedStatement.getQueryString());
+        
         ResultSet resultSet = dbClientContext.getSession().execute(statement);
         List<T> ids = new ArrayList<T>();
         

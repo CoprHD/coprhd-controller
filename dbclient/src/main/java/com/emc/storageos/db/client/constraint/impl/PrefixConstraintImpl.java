@@ -7,6 +7,9 @@ package com.emc.storageos.db.client.constraint.impl;
 
 import java.net.URI;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.exceptions.DriverException;
@@ -20,7 +23,7 @@ import com.emc.storageos.db.client.model.ScopedLabel;
  * Default prefix constraint implementation
  */
 public class PrefixConstraintImpl extends ConstraintImpl implements PrefixConstraint {
-    
+	private static final Logger log = LoggerFactory.getLogger(PrefixConstraintImpl.class);
     private ScopedLabel _label;
     private ColumnField _field;
 
@@ -62,6 +65,7 @@ public class PrefixConstraintImpl extends ConstraintImpl implements PrefixConstr
                 target, target + Character.MAX_VALUE);
         statement.setFetchSize(pageCount);
         
+        log.info("query string: {}", preparedStatement.getQueryString());
         return statement;
     }
 

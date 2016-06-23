@@ -158,6 +158,7 @@ public class DecommissionedConstraintImpl extends ConstraintImpl implements Deco
         Statement statement =  preparedStatement.bind(queryParameters.toArray(new Object[]{0}));
         statement.setFetchSize(pageCount);
         
+        log.info("query string: {}", preparedStatement.getQueryString());
         return statement;
     }
 

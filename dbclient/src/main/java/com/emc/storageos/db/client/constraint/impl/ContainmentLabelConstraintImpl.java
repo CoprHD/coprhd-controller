@@ -6,6 +6,9 @@ package com.emc.storageos.db.client.constraint.impl;
 
 import java.net.URI;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.exceptions.DriverException;
@@ -18,7 +21,7 @@ import com.emc.storageos.db.client.model.DataObject;
  * default implementation for full name matcher
  */
 public class ContainmentLabelConstraintImpl extends ConstraintImpl implements ContainmentPrefixConstraint {
-
+	private static final Logger log = LoggerFactory.getLogger(ContainmentLabelConstraintImpl.class);
     private URI _indexKey;
     private String _prefix;
     private ColumnField _field;
@@ -59,6 +62,7 @@ public class ContainmentLabelConstraintImpl extends ConstraintImpl implements Co
                 _prefix.toLowerCase());
         statement.setFetchSize(pageCount);
         
+        log.info("query string: {}", preparedStatement.getQueryString());
         return statement;
     }
 

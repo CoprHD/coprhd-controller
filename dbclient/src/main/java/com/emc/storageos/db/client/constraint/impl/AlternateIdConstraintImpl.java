@@ -62,6 +62,7 @@ public class AlternateIdConstraintImpl extends ConstraintImpl implements Alterna
                 _entryType.getSimpleName());
         statement.setFetchSize(pageCount);
         
+        log.info("query string: {}", preparedStatement.getQueryString());
         return statement;
     }
 

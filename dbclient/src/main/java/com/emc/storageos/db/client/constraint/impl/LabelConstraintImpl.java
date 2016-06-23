@@ -6,6 +6,9 @@ package com.emc.storageos.db.client.constraint.impl;
 
 import java.net.URI;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.exceptions.DriverException;
@@ -19,7 +22,7 @@ import com.emc.storageos.db.client.model.ScopedLabel;
  * find resources matching label
  */
 public class LabelConstraintImpl extends ConstraintImpl implements PrefixConstraint {
-
+	private static final Logger log = LoggerFactory.getLogger(LabelConstraintImpl.class);
     private ScopedLabel _label;
     private ColumnField _field;
 
@@ -70,6 +73,7 @@ public class LabelConstraintImpl extends ConstraintImpl implements PrefixConstra
                 _label.getLabel());
         statement.setFetchSize(pageCount);
         
+        log.info("query string: {}", preparedStatement.getQueryString());
         return statement;
     }
 

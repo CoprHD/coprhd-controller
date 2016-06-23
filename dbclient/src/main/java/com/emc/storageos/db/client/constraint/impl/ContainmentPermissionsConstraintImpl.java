@@ -68,6 +68,7 @@ public class ContainmentPermissionsConstraintImpl extends ConstraintImpl impleme
         Statement statement =  preparedStatement.bind(_indexKey.toString());
         statement.setFetchSize(pageCount);
         
+        log.info("query string: {}", preparedStatement.getQueryString());
         return statement;
     }
 

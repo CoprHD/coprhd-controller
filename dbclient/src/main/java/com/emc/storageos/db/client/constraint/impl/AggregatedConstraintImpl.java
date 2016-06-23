@@ -6,6 +6,9 @@ package com.emc.storageos.db.client.constraint.impl;
 
 import java.net.URI;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.exceptions.DriverException;
@@ -20,7 +23,7 @@ import com.netflix.astyanax.model.ColumnFamily;
  * Constrained query to get list of decommissioned object URIs of a given type
  */
 public class AggregatedConstraintImpl extends ConstraintImpl implements AggregatedConstraint {
-
+	private static final Logger log = LoggerFactory.getLogger(AggregatedConstraintImpl.class);
     private final ColumnFamily<String, IndexColumnName> cf;
     private final ColumnField field;
     private final String fieldName;
@@ -83,6 +86,7 @@ public class AggregatedConstraintImpl extends ConstraintImpl implements Aggregat
                 fieldName);
         statement.setFetchSize(pageCount);
         
+        log.info("query string: {}", preparedStatement.getQueryString());
         return statement;
     }
 

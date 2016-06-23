@@ -9,6 +9,9 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.exceptions.DriverException;
@@ -25,6 +28,7 @@ import com.netflix.astyanax.model.ColumnFamily;
  * between this time period.
  */
 public class TimeConstraintImpl extends ConstraintImpl implements DecommissionedConstraint {
+	private static final Logger log = LoggerFactory.getLogger(TimeConstraintImpl.class);
     private static final long MILLIS_TO_MICROS = 1000L;
     private static final int DEFAULT_PAGE_SIZE = 100;
     private final ColumnFamily<String, IndexColumnName> cf;
@@ -135,6 +139,7 @@ public class TimeConstraintImpl extends ConstraintImpl implements Decommissioned
         Statement statement =  preparedStatement.bind(queryParameters.toArray(new Object[]{0}));
         statement.setFetchSize(DEFAULT_PAGE_SIZE);
         
+        log.info("query string: {}", preparedStatement.getQueryString());
         return statement;
     }
 

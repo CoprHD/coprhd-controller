@@ -953,40 +953,29 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
     	_log.info("3PARDriver: getVolumeExportInfoForHosts Running ");       
     	    	
     	try{    		    		
-    		if(!volume.getDisplayName().equals("vipr-ravi-volume2")){
-    			return null; 
-    		}
-    		
+    		_log.info("volume.getdisplay name is {}",volume.getNativeId());
+    		_log.info("volume.getstoragesysid  is {}",volume.getStorageSystemId());    
     		Map<String, HostExportInfo> resultMap = new HashMap<String, HostExportInfo>();
     		    		
     		//get the vlun associated with the volume at consideration.
     		HP3PARApi hp3parApi = getHP3PARDeviceFromNativeId(volume.getStorageSystemId());
-    		//VirtualLunsList vlunsOfVolume = hp3parApi.getVLunsOfVolume(volume.getWwn());
-    		
-    		
+    		VirtualLunsList vlunsOfVolume = hp3parApi.getVLunsOfVolume(volume.getWwn());
+    		    		
     		//process the vlun information by iterating through the vluns
     		//and then for each vlun, we create the appropriate key:value pair
     		//in the resultMap with hostname:HostExportInfo information.    		
-    		//for( int index=0; index < vlunsOfVolume.getTotal() ; index++ ){
-    		{
-    			//VirtualLun objVirtualLun = vlunsOfVolume.getMembers().get(index);
-    			VirtualLun objVirtualLun = new VirtualLun();
-    			Position pos = new Position();
-    			pos.setNode(0);
-    			pos.setNode(1);
-    			pos.setNode(1);    			
-    			objVirtualLun.setActive(true);
-    			objVirtualLun.setVolumeName("vipr-ravi-volume2");
-    			objVirtualLun.setHostName("LGLBW011");
-    			objVirtualLun.setRemoteName("10000090FA3D2D28");
-    			objVirtualLun.setPortPos(pos);
-    			objVirtualLun.setType(4);
-    			objVirtualLun.setVolumeWWN("60002AC0000000000000142E0000AE90");
-    			objVirtualLun.setMultipathing(1);
-    			    		    	
-    			
-    			if(!objVirtualLun.isActive()){
-    				//continue;
+    		for( int index=0; index < vlunsOfVolume.getTotal() ; index++ ){    			    		    	
+    			_log.info("after virtual lun init");
+				VirtualLun objVirtualLun = vlunsOfVolume.getMembers().get(index);
+				_log.info("objVirtualLun.getHostName {}", objVirtualLun.getHostname());
+				_log.info("objVirtualLun.getPortPos {}", objVirtualLun.getPortPos());
+				_log.info("objVirtualLun.getRemoteName {}", objVirtualLun.getRemoteName());
+				_log.info("objVirtualLun.getVolumeWWN {}", objVirtualLun.getVolumeWWN());
+				_log.info("objVirtualLun.getVolumeName {}", objVirtualLun.getVolumeName());
+				_log.info("objVirtualLun.getType {}", objVirtualLun.getType());
+								    		
+				if(!objVirtualLun.isActive()){
+    				continue;				
     			}
     			
     			List<String> volumeIds = new ArrayList<>();
@@ -995,39 +984,69 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
     			
     			//To volumeIds we need to add the native id of volume 
     			//and for hp3par volume name would be the native id
-    	        volumeIds.add(objVirtualLun.getVolumeName());
-    	        
-    	        Initiator hostInitiator = new Initiator();
-    	        //hp3par returns remote name in the format like 10000000C98F5C79. 
+		        volumeIds.add(objVirtualLun.getVolumeName());
+	        
+		        Initiator hostInitiator = new Initiator();
+	        	//hp3par returns remote name in the format like 10000000C98F5C79. 
     	        //we now convert this to the format 10:00:00:00:C9:8F:5C:79
-    	        String portId = objVirtualLun.getRemoteName().substring(0, 2) + ":" + 
-    	        				objVirtualLun.getRemoteName().substring(2, 4) + ":" +
-    	        				objVirtualLun.getRemoteName().substring(4, 6) + ":" +
-    	        				objVirtualLun.getRemoteName().substring(6, 8) + ":" +
-    	        				objVirtualLun.getRemoteName().substring(8, 10) + ":" +
-    	        				objVirtualLun.getRemoteName().substring(10, 12) + ":" +
-    	        				objVirtualLun.getRemoteName().substring(12, 14) + ":" +
-    	        				objVirtualLun.getRemoteName().substring(14, 16);
+		        String portId = objVirtualLun.getRemoteName().substring(0, 2) + ":" + 
+	        				objVirtualLun.getRemoteName().substring(2, 4) + ":" +
+	        				objVirtualLun.getRemoteName().substring(4, 6) + ":" +
+	        				objVirtualLun.getRemoteName().substring(6, 8) + ":" +
+	        				objVirtualLun.getRemoteName().substring(8, 10) + ":" +
+	        				objVirtualLun.getRemoteName().substring(10, 12) + ":" +
+	        				objVirtualLun.getRemoteName().substring(12, 14) + ":" +
+	        				objVirtualLun.getRemoteName().substring(14, 16);
     	        
-    	        String nativeId = String.format("%s:%s:%s", objVirtualLun.getPortPos().getNode(),
-    	        		objVirtualLun.getPortPos().getSlot(), objVirtualLun.getPortPos().getCardPort());
-    	        
-    	        //Check which of the storage ports discovered, matches the node:portpos:cardport 
+		        _log.info("before native id");
+    		        String nativeId = String.format("%s:%s:%s", objVirtualLun.getPortPos().getNode(),
+	    	        		objVirtualLun.getPortPos().getSlot(), objVirtualLun.getPortPos().getCardPort());
+	        
+	        	//Check which of the storage ports discovered, matches the node:portpos:cardport 
     	        //combination of the VLUN
-    	        List<StoragePort> storPortsOfStorage = storagePortMap.get(volume.getStorageSystemId());    	        
-    	        for(int portIndex = 0 ; portIndex < storPortsOfStorage.size() ; portIndex++){
-    	        	StoragePort port = storPortsOfStorage.get(portIndex);
-    	        	if(port.getNativeId().equals(nativeId)){
-    	        		storageports.add(port);
-    	        	}    	        	
+		        List<StoragePort> storPortsOfStorage = storagePortMap.get(volume.getStorageSystemId());    	        
+				_log.info("storPortsOfStorage are {}",storPortsOfStorage);
+				_log.info("storPortMap are {}",storagePortMap);
+
+	        	for(int portIndex = 0 ; portIndex < storPortsOfStorage.size() ; portIndex++){
+	        		StoragePort port = storPortsOfStorage.get(portIndex);
+					_log.info("native id is {}" , nativeId);
+					_log.info("port.getNativeId() is {} " , port.getNativeId());
+
+	        		if(port.getNativeId().equals(nativeId)){
+	        			storageports.add(port);
+	        		}    	        	
+	        	}
+	        
+	        	hostInitiator.setHostName(objVirtualLun.getHostname());    	        
+	        	hostInitiator.setPort(portId);
+	        	initiators.add(hostInitiator);
+
+    	        HostExportInfo exportInfo = null;
+    	        
+		        if(resultMap.containsKey(objVirtualLun.getHostname())){
+    	        	exportInfo = resultMap.get(objVirtualLun.getHostname());	
+					for(int i1 = 0; i1 < storageports.size() ; i1++)
+					{
+						StoragePort ob1 = storageports.get(i1);
+						if(!exportInfo.getTargets().contains(ob1)){
+							exportInfo.getTargets().add(ob1);
+						}
+					}
+					for(int i1 = 0; i1 < initiators.size() ; i1++)
+					{
+						Initiator ob1 = initiators.get(i1);
+						if(!exportInfo.getInitiators().contains(ob1)){
+							exportInfo.getInitiators().add(ob1);
+						}
+					}    	       
+    		    }
+	    	    else{
+    	        	exportInfo = new HostExportInfo(objVirtualLun.getHostname(), volumeIds, initiators, storageports);
     	        }
-    	        
-    	        hostInitiator.setHostName(objVirtualLun.getHostName());    	        
-    	        hostInitiator.setPort(portId);
-    	        initiators.add(hostInitiator);
-    	        
-    			HostExportInfo exportInfo = new HostExportInfo(objVirtualLun.getHostName(), volumeIds, initiators, storageports);
-    			resultMap.put(objVirtualLun.getHostName(), exportInfo);
+    			    	        
+    			resultMap.put(objVirtualLun.getHostname(), exportInfo);
+    			_log.info("RESULTMAP FROM GETVOLUMEEXPORTINFO {}",resultMap);
     		}    		
     		return resultMap;
     	}

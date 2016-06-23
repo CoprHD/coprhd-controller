@@ -77,14 +77,11 @@ public class HP3PARApi {
     private static final String URI_CG_DETAILS = "/api/v1/volumesets/{0}";
     private static final String URI_CG_LIST_DETAILS = "/api/v1/volumesets";
     
-<<<<<<< HEAD
-    private static final String URI_VLUNS_OF_VOLUME = "/api/v1/vluns?query=”volumeWWN EQ {}";
+    private static final String URI_VLUNS_OF_VOLUME = "/api/v1/vluns?query=%22volumeWWN=={0}%22";
     
-=======
     // Export related
     private static final String URI_CREATE_VLUN = "/api/v1/vluns";
     private static final String URI_HOSTS = "/api/v1/hosts";
->>>>>>> 4e1a6de80dfbc3c319dc56cad3db3e19b8a5bf69
 
     
     public HP3PARApi(URI endpoint, RESTClient client, String userName, String pass) {
@@ -1036,8 +1033,10 @@ public class HP3PARApi {
         _log.info("3PARDriver: getVLunsOfVolume enter");
         ClientResponse clientResp = null;
         final String path = MessageFormat.format(URI_VLUNS_OF_VOLUME, volumeWWN);
+        _log.info("getVLunsOfVolume path is {}", path);
         
         try {
+	    _log.info("BEFORE GET CALL");
             clientResp = get(path);
             if (clientResp == null) {
                 _log.error("3PARDriver: getVLunsOfVolume There is no response from 3PAR");
@@ -1054,6 +1053,7 @@ public class HP3PARApi {
                 return vlunsListResult;
             }
         } catch (Exception e) {
+	    _log.info("getVLunsOfVolume exception is {}", e.getMessage());
             throw e;
         } finally {
             if (clientResp != null) {

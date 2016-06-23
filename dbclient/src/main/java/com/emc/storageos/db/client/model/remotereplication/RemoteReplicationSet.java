@@ -2,20 +2,19 @@
  * Copyright (c) 2016 EMC Corporation
  * All Rights Reserved
  */
-package com.emc.storageos.storagedriver.model.remotereplication;
+package com.emc.storageos.db.client.model.remotereplication;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
 
-/**
- * This class describes set of interconnected storage systems configured for remote replication.
- * The instances of this class are discovered by driver and are read-only from driver management perspective.
- */
-public class RemoteReplicationSet {
+import com.emc.storageos.db.client.model.Cf;
+import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.StringSetMap;
+
+@Cf("RemoteReplicationSet")
+public class RemoteReplicationSet extends DataObject {
 
     private String nativeId;
+    private String storageSystemType;
     private String displayName;
 
     public enum ReplicationRole {
@@ -23,7 +22,7 @@ public class RemoteReplicationSet {
         TARGET
     }
 
-    private Map<String, Set<ReplicationRole>> systemMap = new HashMap<>();
+    private StringSetMap systemToRolesMap = new StringSetMap();
 
     public enum ReplicationGranularity {
         SET,
@@ -31,7 +30,7 @@ public class RemoteReplicationSet {
         PAIR
     }
 
-    private Set<ReplicationGranularity> supportedReplicationGranularity = new HashSet<>();
+    private StringSet supportedReplicationGranularity = new StringSet();
 
     public enum ReplicationMode {
         SYNC,
@@ -63,8 +62,7 @@ public class RemoteReplicationSet {
      * If ContainedElementType is REPLICATION_GROUP, should be populated by driver.
      * If ContainedElementType is REPLICATIOM_PAIR, driver should leave this element empty.
      */
-    private Set<RemoteReplicationGroup> replicationGroups;
-
+    //private Set<RemoteReplicationGroup> replicationGroups;
 
 
 }

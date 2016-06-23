@@ -67,7 +67,7 @@ import com.google.common.base.Strings;
  * Note: If references to driver model instances are used in internal hash maps, wrap  collections in unmodifiable view when calling
  * driver. For example: use Collections.unmodifiableList(modifiableList) for List collections.
  */
-public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
+public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implements RemoteReplicationDevice {
 
     private Logger _log = LoggerFactory.getLogger(ExternalBlockStorageDevice.class);
     // Storage drivers for block  devices
@@ -1468,4 +1468,38 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
 
     }
 
+    @Override
+    public void start(List<RemoteReplicationTarget> replicationTargetList, TaskCompleter taskCompleter) {
+
+    }
+
+    @Override
+    public void stop(RemoteReplicationTarget replicationTarget, TaskCompleter taskCompleter) {
+
+    }
+
+    @Override
+    public void pause(RemoteReplicationTarget replicationTarget, TaskCompleter taskCompleter) {
+
+    }
+
+    @Override
+    public void resume(RemoteReplicationTarget replicationTarget, TaskCompleter taskCompleter) {
+
+    }
+
+    @Override
+    public void failover(RemoteReplicationTarget replicationTarget, TaskCompleter taskCompleter) {
+
+    }
+
+    @Override
+    public void failback(RemoteReplicationTarget replicationTarget, TaskCompleter taskCompleter) {
+
+    }
+
+    @Override
+    public void swap(RemoteReplicationTarget replicationTarget, TaskCompleter taskCompleter) {
+
+    }
 }

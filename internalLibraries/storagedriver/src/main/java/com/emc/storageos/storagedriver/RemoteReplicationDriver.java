@@ -10,6 +10,8 @@ import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplication
 import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationPair;
 import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationTarget;
 
+import java.util.List;
+
 public interface RemoteReplicationDriver {
 
     public DriverTask createReplicationGroup(RemoteReplicationGroup replicationGroup);
@@ -18,10 +20,13 @@ public interface RemoteReplicationDriver {
     public DriverTask deleteReplicationPair(RemoteReplicationPair replicationPair);
 
     // replication link (target) operations
-    public DriverTask start(RemoteReplicationTarget replicationTarget);
+    // We use multiple targets in the call to support create for multiple replicated volumes.
+    // Only drivers has details how to orchestrate this operation on device.
+    public DriverTask start(List<RemoteReplicationTarget> replicationTargetList);
     public DriverTask stop(RemoteReplicationTarget replicationTarget);
-    public DriverTask pause(RemoteReplicationTarget replicationTarget);
+    public DriverTask suspend(RemoteReplicationTarget replicationTarget);
     public DriverTask resume(RemoteReplicationTarget replicationTarget);
+    public DriverTask split(RemoteReplicationTarget replicationTarget);
     public DriverTask failover(RemoteReplicationTarget replicationTarget);
     public DriverTask failback(RemoteReplicationTarget replicationTarget);
     public DriverTask swap(RemoteReplicationTarget replicationTarget);

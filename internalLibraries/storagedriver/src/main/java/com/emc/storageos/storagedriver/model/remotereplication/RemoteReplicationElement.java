@@ -7,7 +7,7 @@ package com.emc.storageos.storagedriver.model.remotereplication;
 
 public class RemoteReplicationElement {
 
-    public static enum ElementType {
+    public enum ElementType {
         VOLUME,
         CONSISTENCY_GROUP
     }

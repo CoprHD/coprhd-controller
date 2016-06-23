@@ -61,15 +61,22 @@ public class HP3PARApi {
     private static final String URI_PORTS = "/api/v1/ports";
     private static final String URI_PORT_STATISTICS = "/api/v1/systemreporter/attime/portstatistics/daily";
 
-    // Base, snap and clone volume related
+    // Base volume , snap and clone volume related
     private static final String URI_CREATE_VOLUME = "/api/v1/volumes";
     private static final String URI_VOLUME_DETAILS = "/api/v1/volumes/{0}";
     private static final String URI_EXPAND_VOLUME = "/api/v1/volumes/{0}";
     private static final String URI_DELETE_VOLUME = "/api/v1/volumes/{0}";
-    private static final String URI_VOLUME_SNAPSHOT = "/api/v1/volumes/{0}";
+    private static final String URI_STORAGE_VOLUMES = "/api/v1/volumes";
+    
+    // snapshot / virtual copy
+    private static final String URI_CREATE_VOLUME_SNAPSHOT = "/api/v1/volumes/{0}";
     private static final String URI_DELETE_VOLUME_SNAPSHOT = "/api/v1/volumes/{0}";
     private static final String URI_RESTORE_VOLUME_SNAPSHOT = "/api/v1/volumes/{0}";
-    private static final String URI_STORAGE_VOLUMES = "/api/v1/volumes";
+    
+    // clone / physical copy
+    private static final String URI_CREATE_VOLUME_CLONE = "/api/v1/volumes/{0}";
+    private static final String URI_DELETE_VOLUME_CLONE = "/api/v1/volumes/{0}";
+    private static final String URI_RESTORE_VOLUME_CLONE = "/api/v1/volumes/{0}";
     
     // CG related
     private static final String URI_CREATE_CG = "/api/v1/volumesets";
@@ -456,7 +463,7 @@ public class HP3PARApi {
         // for snapshot creation 
         String payload = "{\"action\":\"createSnapshot\", \"parameters\": { \"name\": \"" + snapName +"\" , \"readOnly\": " + readOnly +"} }";
 
-        final String path = MessageFormat.format(URI_VOLUME_SNAPSHOT, baseVolumeName);
+        final String path = MessageFormat.format(URI_CREATE_VOLUME_SNAPSHOT, baseVolumeName);
         
         _log.info(" 3PARDriver:createVolumeVirtualCopy uri = {} payload {} ",path,payload);
         try {
@@ -488,6 +495,101 @@ public class HP3PARApi {
             _log.info("3PARDriver:createVolumeVirtualCopy leave");
         } //end try/catch/finally
     }
+
+    public void createPhysicalCopy(String baseVolumeName, String cloneName, String cloneCPG) throws Exception {
+		_log.info("3PARDriver: createPhysicalCopy enter");
+
+        String baseVolumeSnapCPG = cloneCPG;
+        String baseVolumeUserCPG = cloneCPG;
+        
+		ClientResponse clientResp = null;
+		String payload = null;
+		String secondPayload = null;
+
+		// clone creation, check if destination volume exists as expected by this API
+		payload = "{\"action\":\"createPhysicalCopy\", \"parameters\": { \"destVolume\": \"" + cloneName
+				+ "\" , \"saveSnapshot\": " + true + "} }";
+		
+		final String path = MessageFormat.format(URI_CREATE_VOLUME_CLONE, baseVolumeName);
+
+		_log.info(" 3PARDriver: createPhysicalCopy uri = {} payload {} secondPayload {}", path, payload, secondPayload);
+
+		try {
+			// create clone considering destination volume already created
+
+			clientResp = post(path, payload);
+
+			if (clientResp == null || clientResp.getStatus() != 201) {
+				if (clientResp != null) {
+				String errResp = getResponseDetails(clientResp);
+				_log.info(" 3PARDriver: createPhysicalCopy destination clone volume absent, hence creating new volume for clone. Error Info : {}",errResp);
+				}
+
+				VolumeDetailsCommandResult volResult = null;
+                
+                try {
+                volResult = getVolumeDetails(baseVolumeName);
+                } catch (Exception e) {
+                	_log.info("3PARDriver: createVolumeClone the specified volume {} for clone creation not found, its parent {}; continue with clone creation: {}.\n",
+                            baseVolumeName, cloneName, e.getMessage());
+                }
+                
+                if (volResult != null) {
+                	// UserCPG will be absent for clones, hence using snapCPG here. We might need to re-look CPG selection later
+                	baseVolumeUserCPG = volResult.getUserCPG();
+                	baseVolumeSnapCPG = volResult.getSnapCPG();
+                	Boolean tpvv = true;
+                	// Use below code when we add TDVV support and different snap CPG 
+/*
+                    Boolean online = true;
+                    Boolean tdvv = false;
+
+                	if (volResult.getProvisioningType() == 6) {
+                		tdvv = true;
+                		tpvv = false;
+                	}
+                	*/
+                	_log.info("3PARDriver: createVolumeClone base volume exists, id {}, baseVolumeSnapCPG {} , baseVolumeUserCPG {} , copyOf {}, copyType {} , name {}, volume type {} - ",
+                			baseVolumeName, baseVolumeSnapCPG, baseVolumeUserCPG,volResult.getCopyOf(), volResult.getCopyType(), volResult.getName(), volResult.getProvisioningType());
+                
+                createVolume(cloneName, baseVolumeSnapCPG, tpvv, volResult.getSizeMiB());
+
+                try {
+                    volResult = getVolumeDetails(baseVolumeName);
+                    } catch (Exception e) {
+                    	_log.info("3PARDriver: createVolumeClone the specified clone volume {} not created successfully yet. error {}",
+                    			cloneName, e.getMessage());
+                    }
+                	
+				if (volResult != null) {
+					clientResp = post(path, payload);
+				} else {
+                	_log.info("3PARDriver: createVolumeClone unable to find the newly created volume, volResult is null");
+                }
+                } else {
+                	_log.info("3PARDriver: createVolumeClone base volume not found, volResult is null");
+                }
+			}
+
+			if (clientResp == null) {
+				_log.error("3PARDriver:There is no response from 3PAR");
+				throw new HP3PARException("There is no response from 3PAR");
+			} else if (clientResp.getStatus() != 201) {
+				String errResp = getResponseDetails(clientResp);
+				_log.info("3PARDriver: createPhysicalCopy error resopnse : {} ", errResp);
+				throw new HP3PARException(errResp);
+			} else {
+				_log.info("3PARDriver: createPhysicalCopy success");
+			}
+		} catch (Exception e) {
+			throw e;
+		} finally {
+			if (clientResp != null) {
+				clientResp.close();
+			}
+			_log.info("3PARDriver: createPhysicalCopy leave");
+		} // end try/catch/finally
+	}
 
     public VolumeDetailsCommandResult getVolumeDetails(String name) throws Exception {
         _log.info("3PARDriver:getVolumeDetails enter");
@@ -629,6 +731,32 @@ public class HP3PARApi {
             _log.info("3PARDriver: deleteVolumeVirtualCOpy leave");
         } //end try/catch/finally
     }
+    
+    public void deletePhysicalCopy(String name) throws Exception {
+        _log.info("3PARDriver: deletePhysicalCopy enter");
+        ClientResponse clientResp = null;
+        final String path = MessageFormat.format(URI_DELETE_VOLUME_CLONE, name);
+
+        try {
+            clientResp = delete(path);
+            if (clientResp == null) {
+                _log.error("3PARDriver:There is no response from 3PAR");
+                throw new HP3PARException("There is no response from 3PAR");
+            } else if (clientResp.getStatus() != 200) {
+                String errResp = getResponseDetails(clientResp);
+                throw new HP3PARException(errResp);
+            } else {
+                _log.info("3PARDriver: deletePhysicalCopy success");
+            }
+        } catch (Exception e) {
+            throw e;
+        } finally {
+            if (clientResp != null) {
+                clientResp.close();
+            }
+            _log.info("3PARDriver: deletePhysicalCopy leave");
+        } //end try/catch/finally
+    }
 
 	public void restoreVirtualCopy(String name) throws Exception {
         _log.info("3PARDriver: restoreVirtualCopy enter");
@@ -670,6 +798,51 @@ public class HP3PARApi {
                 clientResp.close();
             }
             _log.info("3PARDriver: restoreVirtualCopy leave");
+        } //end try/catch/finally
+    }
+
+	public void restorePhysicalCopy(String name) throws Exception {
+        _log.info("3PARDriver: restorePhysicalCopy enter");
+        ClientResponse clientResp = null;
+        Boolean offline = false;
+        String intermediateSnapshot = name;
+        
+        // Offline restore is performed on intermediate snapshot
+        String offlinePayload = "{\"action\":4, \"online\": " + offline +" }";
+        
+        try {
+        	
+        	VolumeDetailsCommandResult volResult = null;
+            
+            volResult = getVolumeDetails(name);
+            
+            if (volResult != null && volResult.getProvisioningType() == 2) {
+            	// get intermediate snapshot of clone/physical copy 
+            	intermediateSnapshot = volResult.getCopyOf();
+            }
+            final String  path = MessageFormat.format(URI_RESTORE_VOLUME_CLONE, intermediateSnapshot);
+        	
+        	// trying offline restore
+            clientResp = put(path,offlinePayload);
+            
+            if (clientResp == null) {
+                _log.error("3PARDriver: restorePhysicalCopy There is no response from 3PAR");
+                throw new HP3PARException("There is no response from 3PAR");
+            } else if (clientResp.getStatus() != 200) {
+                String errResp = getResponseDetails(clientResp);
+                _log.info("3PARDriver: restorePhysicalCopy error {} ", errResp);
+                throw new HP3PARException(errResp);
+            } else {
+                _log.info("3PARDriver: restorePhysicalCopy success");
+            }
+        } catch (Exception e) {
+        	_log.info("3PARDriver: restorePhysicalCopy exception info {} ",e.getMessage());
+            throw e;
+        } finally {
+            if (clientResp != null) {
+                clientResp.close();
+            }
+            _log.info("3PARDriver: restorePhysicalCopy leave");
         } //end try/catch/finally
     }
 

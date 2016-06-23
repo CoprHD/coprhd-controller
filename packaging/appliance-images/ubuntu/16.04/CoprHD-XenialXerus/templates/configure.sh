@@ -99,9 +99,9 @@ EOF
   if [ -f /opt/ADG/conf/storageos*.deb ]; then
     export DO_NOT_START=yes
     dpkg -i /opt/ADG/conf/storageos*.deb
-    echo "manual" > /etc/init/boot-ovfenv.override
-    echo "manual" > /etc/init/nginx.override
-    echo "manual" > /etc/init/keepalived.override
+    systemctl disable boot-ovfenv
+    systemctl disable nginx
+    systemctl disable keepalived
     /etc/storageos/storageos disable
     rm /opt/ADG/conf/storageos*.deb
     unset DO_NOT_START
@@ -114,9 +114,9 @@ function enableStorageOS
 {
   dpkg -s storageos &> /dev/null
   if [ $? -eq 0 ]; then
-    rm /etc/init/keepalived.override
-    rm /etc/init/nginx.override
-    rm /etc/init/boot-ovfenv.override
+    systemctl enable keepalived
+    systemctl enable nginx
+    systemctl enable boot-ovfenv
     /etc/storageos/storageos enable
     /etc/storageos/boot-ovfenv start
     service keepalived start
@@ -129,9 +129,10 @@ function disableStorageOS
 {
   dpkg -s storageos &> /dev/null
   if [ $? -eq 0 ]; then
-    echo "manual" > /etc/init/boot-ovfenv.override
-    echo "manual" > /etc/init/nginx.override
-    echo "manual" > /etc/init/keepalived.override
+    systemctl disable boot-ovfenv
+    systemctl disable nginx
+    systemctl disable keepalived
+    /etc/storageos/storageos disable
     if [ -f /etc/storageos/storageos ]; then
       /etc/storageos/storageos stop
       /etc/storageos/storageos disable

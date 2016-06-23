@@ -1,0 +1,20 @@
+[Unit]
+Description=StorageOS @svcname@ service
+Wants=networking.service storageos-installer.service ipchecktool.service ipsec.service
+After=boot-ovfenv.service networking.service storageos-installer.service ipchecktool.service ntp.service ipsec.service
+ConditionPathExists=/var/run/storageos/bootmode_normal
+ConditionPathExists=!/var/run/storageos/@svcname@_disabled
+
+[Service]
+Type=simple
+User=storageos
+EnvironmentFile=/etc/sysconfig/storageos
+LimitNOFILE=32768
+WorkingDirectory=/
+ExecStart=-/bin/bash -c "${STORAGEOS_DIR}/bin/@svcname@svc${STORAGEOS_VARIANT} file:${STORAGEOS_DIR}/conf/@svcname@-conf.xml file:${STORAGEOS_DIR}/conf/@svcname@-emc-conf.xml file:${STORAGEOS_DIR}/conf/@svcname@-oss-conf.xml >${STORAGEOS_DIR}/logs/@svcname@svc.out 2>&1"
+ExecStopPost=/usr/bin/rm /var/run/storageos/@svcname@svc.pid
+RestartSec=10
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

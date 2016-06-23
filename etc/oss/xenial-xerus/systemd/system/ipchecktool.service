@@ -1,0 +1,20 @@
+[Unit]
+Description=Duplicate IP Checker
+Wants=networking.service
+After=networking.service storageos-installer.service
+Before=getty@tty1.service user.slice
+ConditionPathExists=/var/run/storageos/bootmode_normal
+
+[Service]
+Type=oneshot
+ExecStart=/etc/storageos/ipchecktool --panic
+RemainAfterExit=yes
+Restart=no
+TimeoutSec=0
+StandardOutput=tty
+StandardInput=tty-force
+TTYReset=yes
+TTYVHangup=yes
+
+[Install]
+WantedBy=multi-user.target

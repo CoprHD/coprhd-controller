@@ -1,4 +1,4 @@
-#!/bin/bash -e
+#!/bin/bash 
 #
 # Copyright (c) 2014 EMC Corporation
 # All Rights Reserved
@@ -15,6 +15,7 @@
 export PATH=/bin:/bin:/sbin:/usr/bin:/usr/sbin
 
 . /etc/rc.status
+set -e
 
 _usage() {
     set +Ex
@@ -238,28 +239,21 @@ EOF
 }
 
 _restart() {
-	case $(lsb_release -si) in
-		Ubuntu|Debian|Devuan)
-			restart storageos-${1%*svc} || _fatal2 67 "Unexpected restart ${1} failure. Error code $?"
-			;;
-		*)
-    		/usr/bin/systemctl restart storageos-${1%*svc} || _fatal2 67 "Unexpected restart ${1} failure. Error code $?"
-			;;
-	esac
+    /bin/systemctl restart storageos-${1%*svc} || _fatal2 67 "Unexpected restart ${1} failure. Error code $?"
 }
 
 _reload() {
     case ${1} in
         ntp)     
-            exec /usr/bin/systemctl restart ntpd ;;
+            exec /bin/systemctl restart ntpd ;;
         ssh)
-            exec /usr/bin/systemctl restart sshd ;;
+            exec /bin/systemctl restart sshd ;;
         connectemc)
-            exec /usr/bin/systemctl restart connectemc ;;
+            exec /bin/systemctl restart connectemc ;;
         ssl)
-            exec /usr/bin/systemctl restart nginx ;;
+            exec /bin/systemctl restart nginx ;;
         firewall)
-            exec /usr/bin/systemctl restart SuSEfirewall2 ;;
+            exec /bin/systemctl restart SuSEfirewall2 ;;
         ipsec)
             echo "skip reload ipsec in oss platform" ;;
         *)

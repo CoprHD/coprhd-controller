@@ -1,0 +1,18 @@
+[Unit]
+Description=Nginx service
+
+Wants=networking.service storageos-installer.service ipchecktool.service 
+After=networking.service storageos-installer.service ipchecktool.service ntp.service
+ConditionFileNotEmpty=/opt/storageos/conf/storageos.key
+ConditionFileNotEmpty=/opt/storageos/conf/storageos.crt
+ConditionPathExists=/var/run/storageos/bootmode_normal
+
+[Service]
+Type=forking
+PIDFile=/var/run/nginx.pid
+ExecStart=/etc/nginx/nginx.wrapper /usr/sbin/nginx -c /etc/nginx/nginx.conf
+RestartSec=10
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

@@ -4,13 +4,12 @@ if [ -f /etc/storageos/storageos ] ; then
   /etc/storageos/storageos disable
 fi
 
-service keepalived stop
-stop nginx
-
-#stop boot-ovfenv
-#disable boot-ovfenv
-#disable nginx
-#stop syncntp
-#disable syncntp
-#disable keepalived
+/bin/systemctl stop boot-ovfenv
+/bin/systemctl disable boot-ovfenv
+/bin/systemctl stop nginx
+/bin/systemctl disable nginx
+/bin/systemctl stop syncntp
+/bin/systemctl disable syncntp
+/bin/systemctl stop keepalived
+/bin/systemctl disable keepalived
 exit 0

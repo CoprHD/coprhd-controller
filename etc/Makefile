@@ -203,10 +203,14 @@ endif
 
 ifeq ($(OS_DISTRO),xenial-xerus)
 ETCFILES_LINUX += \
-    xenial-xerus/init/boot-ovfenv.conf \
-    xenial-xerus/init/keepalived.conf \
-    xenial-xerus/init/nginx.conf \
-    xenial-xerus/init/storageos-template.conf \
+    xenial-xerus/systemd/system/boot-ovfenv.service \
+    xenial-xerus/systemd/system/ipchecktool.service \
+    xenial-xerus/systemd/system/ipsec.service \
+    xenial-xerus/systemd/system/keepalived.service \
+    xenial-xerus/systemd/system/nginx.service \
+    xenial-xerus/systemd/system/storageos-installer.service \
+    xenial-xerus/systemd/system/storageos-template.service \
+    xenial-xerus/systemd/system/syncntp.service \
     xenial-xerus/oss/storageos/boot-ovfenv \
     xenial-xerus/oss/systool \
     xenial-xerus/storageos/storageos

@@ -1,0 +1,21 @@
+[Unit]
+Description=StorageOS installer for baremetal
+
+Wants=networking.service
+After=networking.service
+Before=getty@tty1.service user.slice ntp.service systemd-tmpfiles-clean.timer
+
+[Service]
+Type=oneshot
+ExecStart=/etc/storageos/installer
+RemainAfterExit=yes
+Restart=no
+TimeoutSec=0
+StandardOutput=tty
+StandardInput=tty-force
+TTYReset=yes
+TTYVHangup=yes
+TTYVTDisallocate=yes
+
+[Install]
+WantedBy=multi-user.target

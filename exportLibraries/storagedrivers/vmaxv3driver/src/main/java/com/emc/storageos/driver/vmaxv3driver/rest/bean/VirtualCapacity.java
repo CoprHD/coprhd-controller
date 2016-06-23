@@ -6,7 +6,7 @@
 package com.emc.storageos.driver.vmaxv3driver.rest.bean;
 
 /**
- * Java bean class(nested) for "sloprovisioning/symmetrix" GET method JSON result deserialization.
+ * Java bean class(nested) for "sloprovisioning/symmetrix/{}" GET method JSON result deserialization.
  *
  * Created by gang on 6/23/16.
  */

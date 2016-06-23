@@ -23,4 +23,8 @@ public abstract class BaseRestTest {
         // "000196801468";
         return "000196801612";
     }
+
+    protected String getDefaultSrpId() {
+        return "SRP_1";
+    }
 }

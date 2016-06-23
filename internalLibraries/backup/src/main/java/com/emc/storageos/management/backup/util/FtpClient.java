@@ -180,9 +180,9 @@ public class FtpClient implements BackupClient {
         return this.uri;
     }
 
-    public void test() throws AuthenticationException, ConnectException {
+    public void validate() throws AuthenticationException, ConnectException {
         ProcessBuilder builder = getBuilder();
-        builder.command().add("-l");
+        builder.command().add("-I");
         builder.command().add("--connect-timeout");
         builder.command().add("30");
         builder.command().add(uri);

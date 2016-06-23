@@ -26,17 +26,11 @@ import java.util.List;
 public class CifsClient implements BackupClient{
     private static final Logger log = LoggerFactory.getLogger(CifsClient.class);
     private final String uri;
-    private final String domain;
-    private final String username;
-    private final String password;
     private NtlmPasswordAuthentication auth;
 
     public CifsClient(String uri, String domain, String username, String password) {
         this.uri = uri + "/";
-        this.domain = domain;
-        this.username = username;
-        this.password = password;
-        if ( this.domain != null && !this.domain.equals("")){
+        if ( domain != null && !domain.equals("")){
             auth = new NtlmPasswordAuthentication(domain,username,password);
         }else {
             auth = new NtlmPasswordAuthentication(username + ":" + password);
@@ -44,13 +38,13 @@ public class CifsClient implements BackupClient{
     }
 
     public OutputStream upload(String fileName, long offset) throws Exception {
-        SmbFile uploadFile = new SmbFile(uri + fileName, auth);
+        SmbFile uploadFile = getSmbFileHandler(fileName);
         return new BufferedOutputStream(new SmbFileOutputStream(uploadFile));
     }
 
     public List<String> listFiles(String prefix) throws Exception {
         List<String> fileList = new ArrayList<String>();
-        SmbFile smbDir = new SmbFile(uri, auth);
+        SmbFile smbDir = getSmbFileHandler("");
         String[] files = smbDir.list();
         for (String file : files) {
             if (!file.endsWith(BackupConstants.COMPRESS_SUFFIX)) {
@@ -58,9 +52,9 @@ public class CifsClient implements BackupClient{
             }
             if (prefix == null || file.startsWith(prefix)) {
                 fileList.add(file);
-                log.info("Listing {}", file);
             }
         }
+        log.info("Listing {}",fileList);
         return fileList;
     }
 
@@ -69,13 +63,13 @@ public class CifsClient implements BackupClient{
     }
 
     public InputStream download(String backupFileName) throws MalformedURLException, SmbException, UnknownHostException {
-        SmbFile remoteBackupFile = new SmbFile(uri + backupFileName, auth);
+        SmbFile remoteBackupFile = getSmbFileHandler(backupFileName);
         return new BufferedInputStream(new SmbFileInputStream(remoteBackupFile));
     }
 
     public void rename (String sourceFileName ,String destFileName) throws Exception {
-        SmbFile sourceFile = new SmbFile(uri + sourceFileName,auth);
-        SmbFile destFile = new SmbFile(uri + destFileName,auth);
+        SmbFile sourceFile = getSmbFileHandler(sourceFileName);
+        SmbFile destFile = getSmbFileHandler(destFileName);
         try {
             sourceFile.renameTo(destFile);
         }catch (SmbException e) {
@@ -85,7 +79,7 @@ public class CifsClient implements BackupClient{
     }
 
     public long getFileSize(String fileName) throws Exception{
-        SmbFile smbFile = new SmbFile(uri + fileName,auth);
+        SmbFile smbFile = getSmbFileHandler(fileName);
         long len = 0;
         try {
             len = smbFile.length();
@@ -95,7 +89,7 @@ public class CifsClient implements BackupClient{
         return len;
     }
 
-    public static Boolean isSupported (String url) {
+    public static boolean isSupported (String url) {
         return url.regionMatches(true, 0, BackupConstants.SMB_URL_PREFIX, 0, BackupConstants.SMB_URL_PREFIX.length());
     }
 
@@ -103,9 +97,9 @@ public class CifsClient implements BackupClient{
         return uri;
     }
 
-    public void test() throws AuthenticationException,ConnectException{
+    public void validate() throws AuthenticationException,ConnectException{
         try {
-            this.listAllFiles();
+            getFileSize("");
         }catch (SmbAuthException e){
             log.info("SmbAuthException when test external server :{}",e);
             throw new AuthenticationException(e.getMessage());
@@ -113,15 +107,11 @@ public class CifsClient implements BackupClient{
             log.info("Exception when test external server :{}",e);
             throw new ConnectException(e.getMessage());
         }
-
     }
 
-    private NtlmPasswordAuthentication getNtlmPasswordAuthentication() {
-        return new NtlmPasswordAuthentication(username + ":" + password);
-
+    private SmbFile getSmbFileHandler(String fileName) throws MalformedURLException{
+        StringBuilder sb = new StringBuilder(uri);
+        sb.append(fileName);
+        return new SmbFile(sb.toString(),auth);
     }
-
-
-
-
 }

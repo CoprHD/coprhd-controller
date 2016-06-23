@@ -2285,7 +2285,7 @@
         value : "150",
     },
     {
-        key : "backup_external_location_type",
+        key : "backup_external_server_type",
         label : "External Server Type",
         description : "The type of external server to store backup files",
         type : "string",

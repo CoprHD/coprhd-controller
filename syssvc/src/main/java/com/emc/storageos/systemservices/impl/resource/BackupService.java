@@ -216,9 +216,8 @@ public class BackupService {
                 log.warn("External server has not been configured");
                 throw new IllegalStateException("External server has not been configured");
             }
-            List<String> backupFiles = null;
             BackupClient client = getExternalServerClient(backupConfig);
-            backupFiles = client.listAllFiles();
+            List<String> backupFiles = client.listAllFiles();
             ExternalBackups backups = new ExternalBackups(backupFiles);
             return backups;
         } catch (Exception e) {
@@ -963,7 +962,7 @@ public class BackupService {
     }
     private BackupClient getExternalServerClient(SchedulerConfig cfg ) {
         if (ExternalServerType.CIFS.equals(cfg.getExternalServerType())) {
-                return new CifsClient(cfg.getExternalServerUrl(), cfg.getExternalDomain(), cfg.getExternalServerUserName(), cfg.getExternalServerPassword());
+            return new CifsClient(cfg.getExternalServerUrl(), cfg.getExternalDomain(), cfg.getExternalServerUserName(), cfg.getExternalServerPassword());
         }else {
             return new FtpClient(cfg.getExternalServerUrl(), cfg.getExternalServerUserName(), cfg.getExternalServerPassword());
         }

@@ -19,7 +19,7 @@ import java.util.List;
 public interface BackupClient {
 
     /**
-     * upload file from to external server from offset
+     * Upload file from to external server from offset
      * @param fileName upload filename
      * @param offset offset for upload begin
      * @return OutputStream of to be uploaded file on external server
@@ -27,14 +27,14 @@ public interface BackupClient {
     public OutputStream upload(String fileName, long offset) throws Exception;
 
     /**
-     *list backup file on external server
+     * List backup file on external server
      * @param prefix prefix of file to be listed
      * @return list of files with prefix on external server
      */
     public List<String> listFiles(String prefix) throws Exception;
 
     /**
-     *list backup files on external server
+     * List backup files on external server
      * @return list of files on external server
      */
     public List<String> listAllFiles() throws Exception;
@@ -54,21 +54,21 @@ public interface BackupClient {
     public void rename(String sourceFileName, String destFileName) throws Exception;
 
     /**
-     * get the file size on external server
+     * Get the file size on external server
      * @param fileName  filename
      * @return file size
      */
     public long getFileSize(String fileName) throws Exception;
 
     /**
-     * get the uri of external server
+     * Get the uri of external server
      * @return external server URI
      */
     public String getUri();
 
     /**
-     * test of external server parameter validation used for GUI
+     * Validate of external server parameter validation used for GUI
      */
-    public void test() throws AuthenticationException,ConnectException;
+    public void validate() throws AuthenticationException,ConnectException;
 
 }

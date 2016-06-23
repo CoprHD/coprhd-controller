@@ -33,7 +33,7 @@ public interface BackupConstants {
     public static final String SCHEDULE_INTERVAL = "backup_scheduler_interval";
     public static final String SCHEDULE_TIME = "backup_scheduler_time";
     public static final String COPIES_TO_KEEP = "backup_scheduler_copies_to_keep";
-    public static final String UPLOAD_SERVER_TYPE = "backup_external_location_type";
+    public static final String UPLOAD_SERVER_TYPE= "backup_external_server_type";
     public static final String UPLOAD_SERVER_DOMAIN = "backup_external_location_domain";
     public static final String UPLOAD_URL = "backup_external_location_url";
     public static final String UPLOAD_USERNAME = "backup_external_location_username";

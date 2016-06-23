@@ -278,7 +278,7 @@ public class ConfigProperties extends Controller {
                                                 String password) {
         BackupClient client;
         String passwd = PasswordUtil.decryptedValue(password);
-        if (serverType.equalsIgnoreCase("CIFS")) {
+        if (serverType.equalsIgnoreCase(ExternalServerType.CIFS.name())) {
             if (!serverUrl.startsWith("smb://")) {
                 Validation.addError(null,Messages.get("configProperties.backup.serverType.invalid"));
                 renderJSON(ValidationResponse.collectErrors());
@@ -292,7 +292,7 @@ public class ConfigProperties extends Controller {
             client = new FtpClient(serverUrl, user, passwd);
         }
         try {
-            client.test();
+            client.validate();
         }catch (AuthenticationException e ){
             Validation.addError(null,Messages.get("configProperties.backup.credential.invalid"),e.getMessage());
         }catch (ConnectException e) {

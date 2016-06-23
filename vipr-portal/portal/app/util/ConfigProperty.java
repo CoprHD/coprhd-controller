@@ -45,7 +45,7 @@ public class ConfigProperty {
     public static final String IMAGE_SERVER_TFTPBOOT = "image_server_tftpboot_directory";
 
     public static final String BACKUP_EXTERNAL_URL = "backup_external_location_url";
-    public static final String BACKUP_EXTERNAL_TYPE = "backup_external_location_type";
+    public static final String BACKUP_EXTERNAL_TYPE = "backup_external_server_type";
     public static final String BACKUP_EXTERNAL_DOMAIN = "backup_external_location_domain";
     public static final String BACKUP_EXTERNAL_USERNAME = "backup_external_location_username";
     public static final String BACKUP_EXTERNAL_PWD = "backup_external_location_password";

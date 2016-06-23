@@ -226,10 +226,7 @@ public class SchedulerConfig {
 
     private ExternalServerType getExternalServerType(PropertyInfo propInfo) {
         String serverType = propInfo.getProperty(BackupConstants.UPLOAD_SERVER_TYPE);
-        if (serverType.equalsIgnoreCase(ExternalServerType.CIFS.toString())) {
-            return ExternalServerType.CIFS;
-        }
-        return ExternalServerType.FTP;
+        return ExternalServerType.valueOf(serverType);
     }
 
     private String getExternalDomain(PropertyInfo propInfo) {

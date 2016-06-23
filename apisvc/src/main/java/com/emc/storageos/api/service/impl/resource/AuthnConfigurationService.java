@@ -565,7 +565,7 @@ public class AuthnConfigurationService extends TaggedResource {
             }
             if (oldOptions.isEmpty()) {
                 ArgValidator.checkFieldNotEmpty(oldOptions,
-                        "Interval cannots be empty. Please provide the vales.");
+                        "Interval cannot be empty. Please provide the value.");
             }
             authn.setTenantsSynchronizationOptions(oldOptions);
         }

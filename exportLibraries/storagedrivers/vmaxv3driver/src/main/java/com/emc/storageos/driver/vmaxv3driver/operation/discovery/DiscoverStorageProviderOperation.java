@@ -3,7 +3,6 @@
  * All Rights Reserved
  */
 
-
 package com.emc.storageos.driver.vmaxv3driver.operation.discovery;
 
 import com.emc.storageos.driver.vmaxv3driver.base.OperationImpl;
@@ -33,9 +32,12 @@ public class DiscoverStorageProviderOperation extends OperationImpl {
 
     @Override
     public boolean isMatch(String name, Object... parameters) {
-        if("discoverStorageSystem".equals(name)) {
-            this.storageProvider = (StorageProvider)parameters[0];
-            this.storageSystems = (List<StorageSystem>)parameters[1];
+        if ("discoverStorageSystem".equals(name)) {
+            this.storageProvider = (StorageProvider) parameters[0];
+            this.storageSystems = (List<StorageSystem>) parameters[1];
+            if (this.storageSystems == null) {
+                this.storageSystems = new ArrayList<>();
+            }
             this.setClient(this.storageProvider);
             return true;
         } else {
@@ -58,7 +60,7 @@ public class DiscoverStorageProviderOperation extends OperationImpl {
             this.storageProvider.setIsSupportedVersion((version.compareTo("V8.2.0.0") >= 0));
             // Get storage array list.
             List<String> arrayIds = new SloprovisioningSymmetrixList().perform(this.getClient());
-            for(String arrayId : arrayIds) {
+            for (String arrayId : arrayIds) {
                 StorageSystem storageSystem = new StorageSystem();
                 storageSystem.setNativeId(arrayId);
                 storageSystem.setIpAddress(this.storageProvider.getProviderHost());
@@ -72,7 +74,7 @@ public class DiscoverStorageProviderOperation extends OperationImpl {
                 this.storageSystems.add(storageSystem);
             }
             result.put("success", true);
-        } catch(Exception e) {
+        } catch (Exception e) {
             logger.error(e.getMessage(), e);
             result.put("success", false);
             result.put("message", e.getMessage());

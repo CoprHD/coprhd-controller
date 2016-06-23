@@ -468,7 +468,7 @@ public class Orders extends OrderExecution {
                     List<WorkflowStep> steps = Tasks.getWorkflowSteps(task.getWorkflow().getId());
                     String message = "";
                     for (WorkflowStep step : steps) {
-                        if (TaskUtil.isSuspended(task)) {
+                        if (TaskUtil.isSuspended(task) && step.isSuspended()) {
                             message += step.message;
                         }
                     }

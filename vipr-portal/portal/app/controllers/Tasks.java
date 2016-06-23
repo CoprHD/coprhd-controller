@@ -29,6 +29,7 @@ import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.tasks.TaskStatsRestRep;
 import com.emc.storageos.model.workflow.WorkflowStepRestRep;
 import com.emc.vipr.client.ViPRCoreClient;
+import com.emc.vipr.client.core.impl.TaskUtil.State;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
@@ -518,6 +519,11 @@ public class Tasks extends Controller {
 
                 }
             }
+        }
+
+        public boolean isSuspended() {
+            return state != null && (State.suspended_no_error.name().equalsIgnoreCase(state) ||
+                    State.suspended_error.name().equalsIgnoreCase(state));
         }
     }
 }

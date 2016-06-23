@@ -1,4 +1,9 @@
-package com.emc.storageos.driver.vmaxv3driver.utils.rest;
+/*
+ * Copyright (c) 2016 EMC Corporation
+ * All Rights Reserved
+ */
+
+package com.emc.storageos.driver.vmaxv3driver.util.rest;
 
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
@@ -30,11 +35,13 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
+ * VMAX V3 HTTP REST client implementation.
+ *
  * Created by gang on 6/16/16.
  */
-public class HttpRestClient {
+public class RestClient {
 
-    private static Logger logger = LoggerFactory.getLogger(HttpRestClient.class);
+    private static Logger logger = LoggerFactory.getLogger(RestClient.class);
 
     private String scheme;
     private String host;
@@ -42,20 +49,19 @@ public class HttpRestClient {
     private String user;
     private String password;
 
-    private static Map<HttpRequestType, Class<? extends HttpRequestBase>>
-        requestHandlers = new HashMap<>();
+    private static Map<RequestType, Class<? extends HttpRequestBase>> requestHandlers = new HashMap<>();
 
     static {
-        requestHandlers.put(HttpRequestType.GET, HttpGet.class);
-        requestHandlers.put(HttpRequestType.POST, HttpPost.class);
-        requestHandlers.put(HttpRequestType.PUT, HttpPut.class);
-        requestHandlers.put(HttpRequestType.DELETE, HttpDelete.class);
+        requestHandlers.put(RequestType.GET, HttpGet.class);
+        requestHandlers.put(RequestType.POST, HttpPost.class);
+        requestHandlers.put(RequestType.PUT, HttpPut.class);
+        requestHandlers.put(RequestType.DELETE, HttpDelete.class);
     }
 
-    public HttpRestClient() {
+    public RestClient() {
     }
 
-    public HttpRestClient(String scheme, String host, int port, String user, String password) {
+    public RestClient(String scheme, String host, int port, String user, String password) {
         this.scheme = scheme;
         this.host = host;
         this.port = port;
@@ -63,7 +69,7 @@ public class HttpRestClient {
         this.password = password;
     }
 
-    public HttpRestClient(String host, int port, String user, String password) {
+    public RestClient(String host, int port, String user, String password) {
         this.scheme = "https";
         this.host = host;
         this.port = port;
@@ -72,44 +78,45 @@ public class HttpRestClient {
     }
 
     public String request(String path) {
-        return this.request(path, HttpRequestType.GET, null);
+        return this.request(path, RequestType.GET, null);
     }
 
-    public String request(String path, HttpRequestType requestType) {
+    public String request(String path, RequestType requestType) {
         return this.request(path, requestType, null);
     }
 
-    public String request(String path, HttpRequestType requestType, String body) {
+    public String request(String path, RequestType requestType, String body) {
         CloseableHttpClient client = null;
         try {
             // Authentication information setting.
             CredentialsProvider provider = new BasicCredentialsProvider();
             provider.setCredentials(new AuthScope(this.host, this.port),
-                new UsernamePasswordCredentials(this.user, this.password));
+                    new UsernamePasswordCredentials(this.user, this.password));
             // Bypass the SSL certificate checking.
             SSLContext sslContext = SSLContext.getInstance("SSL");
-            TrustManager[] managers = {new X509TrustManager() {
+            TrustManager[] managers = { new X509TrustManager() {
                 public X509Certificate[] getAcceptedIssuers() {
                     return null;
                 }
+
                 public void checkClientTrusted(X509Certificate[] certs, String authType) {
                 }
+
                 public void checkServerTrusted(X509Certificate[] certs, String authType) {
                 }
-            }};
+            } };
             sslContext.init(null, managers, new SecureRandom());
             // Create the HTTP client.
             SSLConnectionSocketFactory socketFactory = new SSLConnectionSocketFactory(
-                sslContext, SSLConnectionSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
-            client = HttpClients.custom().setSSLSocketFactory(socketFactory).
-                setDefaultCredentialsProvider(provider).build();
+                    sslContext, SSLConnectionSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
+            client = HttpClients.custom().setSSLSocketFactory(socketFactory).setDefaultCredentialsProvider(provider).build();
             // Send the request and parse the response.
             String uri = this.scheme + "://" + this.host + ":" + this.port + "/" + path;
             HttpRequestBase request = requestHandlers.get(requestType).getDeclaredConstructor(String.class).newInstance(
-                uri);
+                    uri);
             request.setHeader("Content-Type", "application/json");
             request.setHeader("Accept", "application/json");
-            if(request instanceof HttpEntityEnclosingRequestBase) {
+            if (request instanceof HttpEntityEnclosingRequestBase) {
                 StringEntity entity = new StringEntity(body, ContentType.APPLICATION_JSON);
                 ((HttpEntityEnclosingRequestBase) request).setEntity(entity);
             }
@@ -118,7 +125,7 @@ public class HttpRestClient {
             try {
                 logger.info(response.getStatusLine().toString());
                 String responseBody = null;
-                if(response.getEntity() == null) {
+                if (response.getEntity() == null) {
                     responseBody = "";
                 } else {
                     responseBody = EntityUtils.toString(response.getEntity());
@@ -127,14 +134,14 @@ public class HttpRestClient {
             } finally {
                 response.close();
             }
-        } catch(Exception e) {
+        } catch (Exception e) {
             throw new RuntimeException(e);
         } finally {
             try {
                 if (client != null) {
                     client.close();
                 }
-            } catch(IOException e) {
+            } catch (IOException e) {
                 throw new RuntimeException(e);
             }
         }

@@ -1,4 +1,9 @@
-package com.emc.storageos.driver.vmaxv3driver.utils.rest;
+/*
+ * Copyright (c) 2016 EMC Corporation
+ * All Rights Reserved
+ */
+
+package com.emc.storageos.driver.vmaxv3driver.util.rest;
 
 import com.emc.storageos.driver.vmaxv3driver.rest.BaseRestTest;
 import org.slf4j.Logger;
@@ -8,11 +13,11 @@ import org.testng.annotations.Test;
 /**
  * Created by gang on 6/16/16.
  */
-public class HttpRestClientTest extends BaseRestTest {
+public class RestClientTest extends BaseRestTest {
 
-    private static Logger logger = LoggerFactory.getLogger(HttpRestClientTest.class);
+    private static Logger logger = LoggerFactory.getLogger(RestClientTest.class);
 
-    HttpRestClient client = this.getClient();
+    RestClient client = this.getClient();
     String symId = this.getDefaultArrayId();
 
     @Test
@@ -28,7 +33,7 @@ public class HttpRestClientTest extends BaseRestTest {
             "{\"volume_size\": \"10\", \"capacityUnit\": \"GB\"}}]}";
         logger.info("body = {}", body);
         String response = client.request("/univmax/restapi/sloprovisioning/symmetrix/" + symId + "/storagegroup",
-            HttpRequestType.POST, body);
+            RequestType.POST, body);
         logger.info("response = {}", response);
     }
 
@@ -38,14 +43,14 @@ public class HttpRestClientTest extends BaseRestTest {
             "\"num_of_vols\": 1, \"volumeAttribute\": {\"volume_size\": \"10\", \"capacityUnit\": \"GB\"}, \"create_new_volumes\": true}}}";
         logger.info("body = {}", body);
         String response = client.request("/univmax/restapi/sloprovisioning/symmetrix/" + symId + "/storagegroup/test1",
-            HttpRequestType.PUT, body);
+            RequestType.PUT, body);
         logger.info("response = {}", response);
     }
 
     @Test(dependsOnMethods = {"testUpdateStorageGroup"})
     public void testDeleteStorageGroup() {
         String response = client.request("/univmax/restapi/sloprovisioning/symmetrix/" + symId + "/storagegroup/test1",
-            HttpRequestType.DELETE);
+            RequestType.DELETE);
         logger.info("response = {}", response);
     }
 }

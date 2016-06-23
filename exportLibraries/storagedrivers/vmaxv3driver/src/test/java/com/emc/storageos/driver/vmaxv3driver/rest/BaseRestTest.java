@@ -1,15 +1,22 @@
+/*
+ * Copyright (c) 2016 EMC Corporation
+ * All Rights Reserved
+ */
+
 package com.emc.storageos.driver.vmaxv3driver.rest;
 
-import com.emc.storageos.driver.vmaxv3driver.utils.rest.HttpRestClient;
+import com.emc.storageos.driver.vmaxv3driver.util.rest.RestClient;
 
 /**
+ * The base testing class for all REST API call testing class.
+ *
  * Created by gang on 6/23/16.
  */
 public abstract class BaseRestTest {
 
-    protected HttpRestClient getClient() {
-        // new HttpRestClient("https", "lgloc227.lss.emc.com", 8443, "smc", "smc");
-        return new HttpRestClient("https", "lglw7150.lss.emc.com", 8443, "smc", "smc");
+    protected RestClient getClient() {
+        // new RestClient("https", "lgloc227.lss.emc.com", 8443, "smc", "smc");
+        return new RestClient("https", "lglw7150.lss.emc.com", 8443, "smc", "smc");
     }
 
     protected String getDefaultArrayId() {

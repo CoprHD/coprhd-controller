@@ -1,4 +1,9 @@
-package com.emc.storageos.driver.vmaxv3driver.utils;
+/*
+ * Copyright (c) 2016 EMC Corporation
+ * All Rights Reserved
+ */
+
+package com.emc.storageos.driver.vmaxv3driver.util;
 
 import org.testng.Assert;
 import org.testng.annotations.Test;

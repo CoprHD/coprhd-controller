@@ -90,8 +90,6 @@ public class HP3PARApi {
     private static final String URI_HOST_DETAILS = "/api/v1/hosts/{0}";
     private static final String URI_VLUNS = "/api/v1/vluns";
     private static final String URI_DELETE_VLUN = "/api/v1/vluns/{0},{1},{2},{3}";
->>>>>>> cc6a253e61383397fe13daf71bc599332007f951
-
     
     public HP3PARApi(URI endpoint, RESTClient client, String userName, String pass) {
         _baseUrl = endpoint;

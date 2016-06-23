@@ -1,25 +1,25 @@
 package com.emc.storageos.driver.vmaxv3driver.rest;
 
+import com.emc.storageos.driver.vmaxv3driver.Vmaxv3Constants;
+import com.emc.storageos.driver.vmaxv3driver.base.RestActionImpl;
 import com.emc.storageos.driver.vmaxv3driver.utils.rest.HttpRestClient;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import exceptions.Vmaxv3RestCallException;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 /**
  * Created by gang on 6/22/16.
  */
-public class ListArray {
+public class ListArray extends RestActionImpl {
 
-    private String sloprovisioning_symmetrix = "/univmax/restapi/sloprovisioning/symmetrix";
-
+    @Override
     public List<String> execute(HttpRestClient client) {
-        String path = sloprovisioning_symmetrix;
-        String responseBody = client.request(path);
+        String responseBody = client.request(Vmaxv3Constants.REST_PATH_SLOPROVISIONING_SYMMETRIX);
         List<String> arrayIds = parseRestResult(responseBody);
         return arrayIds;
     }
@@ -46,18 +46,16 @@ public class ListArray {
      * @param body
      */
     private List<String> parseRestResult(String body) {
-        JsonParser parser = new JsonParser();
-        JsonElement json = parser.parse(body);
-        JsonObject root = json.getAsJsonObject();
+        JsonObject root = this.parseResponse(body);
         Boolean success = root.get("success").getAsBoolean();
         if(!success) {
             throw new Vmaxv3RestCallException(root.get("message").getAsString());
         }
         List<String> result = new ArrayList<>();
         JsonArray list = root.getAsJsonArray("symmetrixId");
-        while(list.iterator().hasNext()) {
-            String arrayId = list.iterator().next().getAsString();
-            result.add(arrayId);
+        Iterator<JsonElement> it = list.iterator();
+        while(it.hasNext()) {
+            result.add(it.next().getAsString());
         }
         return result;
     }

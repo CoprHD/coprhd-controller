@@ -3072,6 +3072,7 @@ affectedResources.volume.lun=LUN
  resources.bucket.vpool=Virtual Pool
  resources.bucket.project=Project
  
+affectedResources.initiator.image=assets/Initiator.png
 
 affectedResources.host=Host
 affectedResources.host.image=assets/Host.png

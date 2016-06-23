@@ -40,6 +40,9 @@ angular.module("config", []).constant({
         Host: {
             icon:'Host.png'
         },
+        Initiator: {
+            icon:'Initiator.png'
+        },
         NetworkSystem: {
             icon:'Switch.png'
         },

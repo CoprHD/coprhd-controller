@@ -714,7 +714,10 @@ function renderResourceImage(resourceType) {
       }         
       else if (resourceType.toUpperCase() == "HOST") {
         resourceImage = Messages.get('affectedResources.host.image');
-      }         
+      }
+      else if (resourceType.toUpperCase() == "INITIATOR") {
+          resourceImage = Messages.get('affectedResources.initiator.image');
+      }
       else if (resourceType.toUpperCase() == "CLUSTER") {
         resourceImage = Messages.get('affectedResources.cluster.image');
       }   

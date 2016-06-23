@@ -1596,6 +1596,17 @@ approvalConfig.approverEmail.help=The email addresses for approvers (comma separ
 approvalConfig.approvalUrl=Approval Service URL
 approvalConfig.approvalUrl.help=URL to an external service to receive approval notifications
 
+nav.keystoneProvider=Synchronization Options
+keystoneProvider.title=Tenants Synchronization Options
+keystoneProvider.addTenants=Synchronize tenants
+keystoneProvider.addTenants.description=Select Tenants to synchronize with OpenStack
+keystoneProvider.synchronizationInterval=Synchronization interval
+keystoneProvider.synchronizationInterval.description=Synchronization interval provided in seconds. The value should be greater than 10 seconds. Default value is 900 s
+keystoneProvider.tenantsSynchronizationOptions =Tenants synchronization options
+keystoneProvider.updated=Tenants successfully updated
+ostenants.name=Name
+ostenants.description=Description
+
 Introspection.Started=%s assets added to the discovery queue.
 
 #### Infrastructure management
@@ -1621,6 +1632,8 @@ ldapSources.addTenants=Add tenants
 ldapSources.addTenants.description=Check which OpenStack tenants to add.
 ldapSources.synchronizationInterval=Synchronization interval
 ldapSources.synchronizationInterval.description=Synchronization interval provided in seconds. The value should be greater than 10 seconds. Default value is 60 seconds.
+ldapSources.synchronizationInterval.integerRequired=Integer value greater than 10 required.
+ldapSources.synchronizationInterval.greaterValueRequired=Integer value required.
 ldapSources.domains=Domains
 ldapSources.domains.description=List all Domains, one per line
 ldapSources.groupAttribute=Group Attribute
@@ -3852,6 +3865,7 @@ button.associate=Associate Project
 button.dissociate=Dissociate Project
 button.failover=Failover
 button.ipsec.rotate.keys=Rotate IPsec Key
+button.synchronize=Synchronize
 selectOne.chooseOption=-- Please Choose --
 
 button.mirroring.start=Start

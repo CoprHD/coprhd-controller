@@ -10,6 +10,7 @@
 
 #{set isActiveSite:controllers.infra.DisasterRecovery.isActiveSite() /}
 #{set localSiteName:controllers.infra.DisasterRecovery.getLocalSiteName() /}
+#{set isKeystoneAuthnProviderCreated:controllers.tenant.TenantsSynchronization.isKeystoneAuthnProviderCreated() /}
 
 <body>
 <header>
@@ -198,6 +199,9 @@
       #{nav.menuSection 'nav.tenantsettings'}   
         #{deadbolt.restrict roles:[['ROOT_TENANT_ADMIN'], ['TENANT_ADMIN'], ['SECURITY_ADMIN']]}
           #{nav.item 'tenants', href:@tenant.Tenants.list() /}
+          #{if isKeystoneAuthnProviderCreated}
+            #{nav.item 'keystoneProvider', href: @tenant.TenantsSynchronization.edit()/}
+          #{/if}
           #{deadbolt.restrict roles:[['TENANT_ADMIN']]}
             #{nav.separator/}
           #{/deadbolt.restrict}

@@ -1,0 +1,45 @@
+%{
+titleKey = 'keystoneProvider.title';
+}%
+#{extends 'main.html'/}
+#{set navSelected: ['nav.tenantsettings', 'nav.keystoneProvider'] /}
+#{set 'title'}&{titleKey}#{/set}
+
+#{set 'moreScripts'}
+<script type="text/javascript">
+
+    $(document).ready(function () {
+        var interval = $('#keystoneProvider_synchronizationInterval');
+        interval.val('${defaultInterval}');
+    });
+
+</script>
+#{/set}
+
+
+<div class="container">
+    #{Form.header titleKey:titleKey /}
+
+    #{alerts/}
+
+#{form @save(), id:'keystoneProviderForm', class:'form form-horizontal', autocomplete:"off"}
+  #{field 'keystoneProvider.tenantsSynchronizationOptions'}
+    %{
+    }%
+    #{Form.selectManyControlGroup field:field, options:tenantsOptions/}
+  #{/field}
+
+  #{field 'keystoneProvider.synchronizationInterval'}
+    %{
+        field.helpTextKey = field.name + '.description'
+        field.required = true
+    }%
+    #{Form.inputTextControlGroup field:field /}
+  #{/field}
+
+#{Form.buttonBar}
+<button type="submit" class="btn btn-primary btn-large">#{icon 'ok-sign'/} &{'button.save'}</button>
+#{/Form.buttonBar}
+#{/form}
+
+</div>

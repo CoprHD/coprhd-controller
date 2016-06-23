@@ -865,32 +865,142 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
         return task;
     }
 
+    /**
+     * Physical Copy is a 3PAR term for Volume clone
+     * 
+     * Vipr UI doesn't provide offline/online options while creating clone, so below logic will be followed
+     * First, create clone creation as offline volume [Attached volume]
+     *   if error, create a new volume with clone name by using its base volume parameters like TPVV,CPG.
+     *        Then create a offline volume clone using newly created volume clone 
+     *        Note: A offline clone creates a attached clone, which actually creates a intermediate snapshot 
+     *              which can be utilized for restore/update.
+     */
+    
     @Override
     public DriverTask createVolumeClone(List<VolumeClone> clones, StorageCapabilities capabilities) {
-    	_log.info("3PARDriver: createVolumeClone Running ");
-        // TODO Auto-generated method stub
-        return null;
+
+    	DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_CREATE_CLONE_VOLUMES);
+
+    	for (VolumeClone clone : clones) {
+            try {
+            	//native id = null , 
+                _log.info("3PARDriver: createVolumeClone for storage system native id {}, volume name {} , volume clone name {} - start",
+                		clone.toString(), clone.getParentId(), clone.getDisplayName() );  
+             // get Api client
+                HP3PARApi hp3parApi = getHP3PARDeviceFromNativeId(clone.getStorageSystemId());
+                VolumeDetailsCommandResult volResult = null;
+                
+                // Create volume clone
+                hp3parApi.createPhysicalCopy(clone.getParentId(),clone.getDisplayName(),clone.getStoragePoolId());
+                volResult = hp3parApi.getVolumeDetails(clone.getDisplayName());
+                                
+                // Actual size of the volume in array
+                clone.setProvisionedCapacity(volResult.getSizeMiB() * HP3PARConstants.MEGA_BYTE);
+                clone.setWwn(volResult.getWwn());
+                clone.setNativeId(clone.getDisplayName()); //required for volume delete
+                clone.setDeviceLabel(clone.getDisplayName());
+                clone.setAccessStatus(clone.getAccessStatus());
+
+                task.setStatus(DriverTask.TaskStatus.READY);
+                _log.info("createVolumeClone for storage system native id {}, volume name {} - end",
+                		clone.getStorageSystemId(), clone.getDisplayName());            
+            } catch (Exception e) {
+                String msg = String.format(
+                        "3PARDriver: createVolumeClone Unable to create volume clone name %s for parent base volume id %s whose storage system native id is %s; Error: %s.\n",
+                        clone.getDisplayName(), clone.getParentId(), clone.getStorageSystemId(), e.getMessage());
+                _log.info("createVolumeClone exception message {} ",e.getMessage());
+                _log.error(msg);
+                task.setMessage(msg);
+                task.setStatus(DriverTask.TaskStatus.PARTIALLY_FAILED);
+                e.printStackTrace();
+            }
+        } // end for each volume clone creation
+        
+        return task;
+    
     }
 
     @Override
     public DriverTask detachVolumeClone(List<VolumeClone> clones) {
+    	// not sure why this needs to be called while restore clone, there is no equivalent HP3PAR REST API available
+    	// hence setting this by default as working
     	_log.info("3PARDriver: detachVolumeClone Running ");
-        // TODO Auto-generated method stub
-        return null;
+    	DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_RESTORE_CLONE_VOLUMES);
+    	task.setStatus(DriverTask.TaskStatus.READY);
+    	return task;
     }
 
+    /**
+     * restore clone is equivalent to promote physical copy
+     * Here we will be using intermediate snapshot for restore which got generated during clone creation
+     * NOTE: intermediate snapshot cannot be exported hence offline restore will be used
+     */
     @Override
     public DriverTask restoreFromClone(List<VolumeClone> clones) {
-    	_log.info("3PARDriver: restoreFromClone Running ");
-        // TODO Auto-generated method stub
-        return null;
+
+	    DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_RESTORE_CLONE_VOLUMES);
+
+        // Executing restore for each requested volume clone (in one or more 3par system)
+        for (VolumeClone clone : clones) {
+            try {
+                _log.info("3PARDriver: restoreFromClone for storage system system id {}, volume name {} , native id {} , all = {} - start",
+                		clone.getStorageSystemId(), clone.getDisplayName(), clone.getNativeId(), clone.toString());     
+
+                // get Api client
+                HP3PARApi hp3parApi = getHP3PARDeviceFromNativeId(clone.getStorageSystemId());
+
+                // restore virtual copy
+                hp3parApi.restoreVirtualCopy(clone.getNativeId());
+                
+                task.setStatus(DriverTask.TaskStatus.READY);
+                _log.info("3PARDriver: restoreFromClone for storage system  id {}, volume clone display name {} - end",
+                		clone.getStorageSystemId(), clone.getDisplayName());            
+            } catch (Exception e) {
+                String msg = String.format(
+                        "3PARDriver:restoreFromClone Unable to restore volume display name %s with native id %s for storage system id %s; Error: %s.\n",
+                        clone.getDisplayName(), clone.getNativeId(), clone.getStorageSystemId(), e.getMessage());
+                _log.error(msg);
+                task.setMessage(msg);
+                task.setStatus(DriverTask.TaskStatus.PARTIALLY_FAILED);
+                e.printStackTrace();
+            }
+        } // end for each restore clone
+        
+        return task;
     }
 
     @Override
     public DriverTask deleteVolumeClone(List<VolumeClone> clones) {
-    	_log.info("3PARDriver: deleteVolumeClone Running ");
-        // TODO Auto-generated method stub
-        return null;
+
+	    DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_DELETE_CLONE_VOLUMES);
+
+        // For each requested volume snapshot (in one or more 3par system)
+        for (VolumeClone clone : clones) {
+            try {
+                _log.info("3PARDriver: deleteVolumeSnapshot for storage system native id {}, volume name {} , native id {} - start",
+                		clone.getStorageSystemId(), clone.getDisplayName(), clone.getNativeId());     
+
+                // get Api client
+                HP3PARApi hp3parApi = getHP3PARDeviceFromNativeId(clone.getStorageSystemId());
+
+                // Delete physical copy
+                hp3parApi.deletePhysicalCopy(clone.getNativeId());
+                
+                task.setStatus(DriverTask.TaskStatus.READY);
+                _log.info("3PARDriver: deleteVolumecloneshot for storage system native id {}, volume name {} - end",
+                		clone.getStorageSystemId(), clone.getDisplayName());            
+            } catch (Exception e) {
+                String msg = String.format(
+                        "3PARDriver: Unable to delete volume name %s with native id %s for storage system native id %s; Error: %s.\n",
+                        clone.getDisplayName(), clone.getNativeId(), clone.getStorageSystemId(), e.getMessage());
+                _log.error(msg);
+                task.setMessage(msg);
+                task.setStatus(DriverTask.TaskStatus.PARTIALLY_FAILED);
+                e.printStackTrace();
+            }
+        } // end for each delete clone
+        
+        return task;
     }
 
     @Override

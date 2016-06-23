@@ -1,8 +1,8 @@
 [Unit]
 Description=Nginx service
 
-Wants=networking.service storageos-installer.service ipchecktool.service 
-After=networking.service storageos-installer.service ipchecktool.service ntp.service
+Wants=networking.service storageos-installer.service
+After=networking.service storageos-installer.service ntp.service
 ConditionFileNotEmpty=/opt/storageos/conf/storageos.key
 ConditionFileNotEmpty=/opt/storageos/conf/storageos.crt
 ConditionPathExists=/var/run/storageos/bootmode_normal

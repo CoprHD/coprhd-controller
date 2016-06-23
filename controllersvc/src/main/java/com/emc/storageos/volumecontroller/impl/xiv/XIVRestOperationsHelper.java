@@ -247,7 +247,7 @@ public class XIVRestOperationsHelper {
             taskCompleter.ready(_dbClient);
         } catch (Exception e) {
             _log.error("Unexpected error: createRESTExportMask failed.", e);
-            ServiceError error = XIVRestException.exceptions.methodFailed("createExportMask", e.getMessage());
+            ServiceError error = XIVRestException.exceptions.methodFailed("createExportMask", e);
             taskCompleter.error(_dbClient, error);
         }
     }
@@ -465,7 +465,7 @@ public class XIVRestOperationsHelper {
             taskCompleter.ready(_dbClient);
         } catch (Exception e) {
             _log.error("Unexpected error: deleteExportMask failed.", e);
-            ServiceError error = XIVRestException.exceptions.methodFailed("createExportMask", e.getMessage());
+            ServiceError error = XIVRestException.exceptions.methodFailed("createExportMask", e);
             taskCompleter.error(_dbClient, error);
         }
     }
@@ -683,7 +683,7 @@ public class XIVRestOperationsHelper {
             }
         } catch (Exception e) {
             _log.error("Unexpected error: addVolume failed.", e);
-            ServiceError error = XIVRestException.exceptions.methodFailed("addVolume", e.getMessage());
+            ServiceError error = XIVRestException.exceptions.methodFailed("addVolume", e);
             taskCompleter.error(_dbClient, error);
         }
 
@@ -735,7 +735,7 @@ public class XIVRestOperationsHelper {
             taskCompleter.ready(_dbClient);
         } catch (Exception e) {
             _log.error("Unexpected error: removeVolume failed.", e);
-            ServiceError error = XIVRestException.exceptions.methodFailed("removeVolume", e.getMessage());
+            ServiceError error = XIVRestException.exceptions.methodFailed("removeVolume", e);
             taskCompleter.error(_dbClient, error);
         }
 

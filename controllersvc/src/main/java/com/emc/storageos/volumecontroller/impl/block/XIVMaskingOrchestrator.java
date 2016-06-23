@@ -1093,8 +1093,8 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 // Max allowed HLU number for XIV is 511. Restricting it to that number.
                 if (nextHLU < MAX_HLU) {
                     _log.debug("Updating HLU of Volume {} from {} to " + nextHLU, volumeMapEntry.getKey(), volumeMapEntry.getValue());
-                    usedHLUs.add(String.valueOf(nextHLU));
                     volumeMap.put(volumeMapEntry.getKey(), Integer.valueOf(nextHLU));
+                    nextHLU++;
                 } else {
                     DeviceControllerException.errors.volumeReachedMaxExports(volumeMapEntry.getKey().toString(), nextHLU, new Throwable());
                 }

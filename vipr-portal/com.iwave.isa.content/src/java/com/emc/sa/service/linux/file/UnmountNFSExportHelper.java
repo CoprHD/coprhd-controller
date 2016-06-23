@@ -43,7 +43,8 @@ public class UnmountNFSExportHelper {
             if (linux.isDirectoryEmpty(mount.getMountPoint())) {
                 linux.deleteDirectory(mount.getMountPoint());
             }
-            FileStorageUtils.removeFSTag(mount.getFsId(), mount.getTag());
+            FileStorageUtils.removeFSTag(mount.getFsId(), mount.getTag().substring(0, mount.getTag().lastIndexOf(" ")));
+            ExecutionUtils.addAffectedResource(mount.getFsId().toString());
         }
     }
 }

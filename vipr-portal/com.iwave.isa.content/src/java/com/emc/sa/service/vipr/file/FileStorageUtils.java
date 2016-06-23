@@ -58,13 +58,13 @@ import com.emc.sa.service.vipr.file.tasks.GetNfsExportsForFileSystem;
 import com.emc.sa.service.vipr.file.tasks.GetQuotaDirectory;
 import com.emc.sa.service.vipr.file.tasks.GetSharesForFileSnapshot;
 import com.emc.sa.service.vipr.file.tasks.PauseFileContinuousCopy;
+import com.emc.sa.service.vipr.file.tasks.RemoveFileSystemTag;
 import com.emc.sa.service.vipr.file.tasks.RestoreFileSnapshot;
 import com.emc.sa.service.vipr.file.tasks.SetFileSnapshotShareACL;
 import com.emc.sa.service.vipr.file.tasks.SetFileSystemShareACL;
 import com.emc.sa.service.vipr.file.tasks.SetFileSystemTag;
 import com.emc.sa.service.vipr.file.tasks.UpdateFileSnapshotExport;
 import com.emc.sa.service.vipr.file.tasks.UpdateFileSystemExport;
-import com.emc.sa.service.vipr.file.tasks.removeFileSystemTag;
 import com.emc.sa.util.DiskSizeConversionUtils;
 import com.emc.storageos.api.service.impl.resource.FileService.FileTechnologyType;
 import com.emc.storageos.db.client.model.FileShare.MirrorStatus;
@@ -604,7 +604,7 @@ public class FileStorageUtils {
     }
 
     public static void removeFSTag(URI fileSystemId, String removeTag) {
-        execute(new removeFileSystemTag(fileSystemId, removeTag));
+        execute(new RemoveFileSystemTag(fileSystemId, removeTag));
     }
 
     public static class FileSystemACLs {

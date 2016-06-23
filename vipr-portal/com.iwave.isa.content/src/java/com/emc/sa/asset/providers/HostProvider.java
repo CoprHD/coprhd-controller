@@ -85,7 +85,7 @@ public class HostProvider extends BaseHostProvider {
     @Asset("linuxFileHost")
     public List<AssetOption> getLinuxFileHostOptions(AssetOptionsContext context) {
         debug("getting linuxFileHosts");
-        return createHostOptions(context, getLinuxFileHosts(context));
+        return createFileHostOptions(context, getLinuxFileHosts(context));
     }
 
     @Asset("windowsHost")

@@ -8,6 +8,7 @@ import static com.emc.sa.service.ServiceParams.FILESYSTEM;
 
 import java.net.URI;
 
+import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.file.FileStorageUtils;
@@ -39,7 +40,8 @@ public class MountNFSExportService extends LinuxFileService {
 
     @Override
     public void execute() throws Exception {
-        FileStorageUtils.setFSTag(fsId.toString(), mountNFSExportHelper.generateMountTag(fsId, hostId));
         mountNFSExportHelper.mountExport(fs);
+        ExecutionUtils.addAffectedResource(hostId.toString());
+        FileStorageUtils.setFSTag(fsId.toString(), mountNFSExportHelper.generateMountTag(fsId, hostId));
     }
 }

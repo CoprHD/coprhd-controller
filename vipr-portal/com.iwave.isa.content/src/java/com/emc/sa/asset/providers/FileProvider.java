@@ -769,7 +769,7 @@ public class FileProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getExportedSubdirectory(AssetOptionsContext ctx, URI fileExportedFilesystem) {
         List<AssetOption> options = Lists.newArrayList();
         List<FileSystemExportParam> exports = api(ctx).fileSystems().getExports(fileExportedFilesystem);
-        options.add(new AssetOption("!No Sub Directory", "No Sub Directory"));
+        options.add(new AssetOption("!nodir", "No Sub Directory"));
         for (FileSystemExportParam export : exports) {
             if (export.getSubDirectory() != null) {
                 options.add(new AssetOption(export.getSubDirectory(), export.getSubDirectory()));
@@ -784,9 +784,9 @@ public class FileProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getExportedSubdirectory(AssetOptionsContext ctx, URI fileExportedFilesystem, String subDirectory) {
         List<AssetOption> options = Lists.newArrayList();
         List<FileSystemExportParam> exports = api(ctx).fileSystems().getExports(fileExportedFilesystem);
-        if (subDirectory.equalsIgnoreCase("!No Sub Directory")) {
+        if (subDirectory.equalsIgnoreCase("!nodir")) {
             for (FileSystemExportParam export : exports) {
-                if (export.getSubDirectory() == null) {
+                if (export.getSubDirectory().isEmpty()) {
                     options.add(new AssetOption(export.getSecurityType(), export.getSecurityType()));
                 }
             }
@@ -811,7 +811,9 @@ public class FileProvider extends BaseAssetOptionsProvider {
         for (Map.Entry<String, MountInfo> entry : mountTagMap.entrySet()) {
             if (entry.getValue().getHostId().equals(host)) {
                 options.add(new AssetOption(entry.getKey() + " " + entry.getValue().getFsId(),
-                        api(ctx).fileSystems().get(entry.getValue().getFsId()).getName() + "/" + entry.getValue().getSubDirectory()));
+                        api(ctx).fileSystems().get(entry.getValue().getFsId()).getName()
+                                + (entry.getValue().getSubDirectory().equalsIgnoreCase("!nodir") ? ""
+                                        : ("/" + entry.getValue().getSubDirectory()))));
             }
         }
         AssetOptionsUtils.sortOptionsByLabel(options);
@@ -826,19 +828,19 @@ public class FileProvider extends BaseAssetOptionsProvider {
             mountTags.addAll(client.fileSystems().getTags(fsId));
             for (String tag : mountTags) {
                 if (tag.startsWith("mountNfs")) {
-                    String[] pieces = StringUtils.trim(tag).split("-|\\s+");
+                    String[] pieces = StringUtils.trim(tag).split("\\s+");
                     MountInfo mountInfo = new MountInfo();
                     if (pieces.length > 1) {
                         mountInfo.setHostId(uri(pieces[1]));
                     }
                     if (pieces.length > 2) {
-                        mountInfo.setMountPoint(pieces[3]);
+                        mountInfo.setMountPoint(pieces[2]);
                     }
                     if (pieces.length > 3) {
-                        mountInfo.setSubDirectory(pieces[4]);
+                        mountInfo.setSubDirectory(pieces[3]);
                     }
                     if (pieces.length > 4) {
-                        mountInfo.setSecurityType(pieces[5]);
+                        mountInfo.setSecurityType(pieces[4]);
                     }
                     mountInfo.setFsId(fsId);
                     mountInfo.setTag(tag);

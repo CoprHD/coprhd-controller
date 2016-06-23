@@ -24,6 +24,7 @@ public class SetFileSystemTag extends ViPRExecutionTask<FileShareRestRep> {
     public FileShareRestRep executeTask() throws Exception {
         Set<String> tags = new HashSet<String>();
         tags.add(tag);
+        setDetail("SetFileSystemTag.title", tag, fileSystemId);
         getClient().fileSystems().addTags(uri(fileSystemId), tags);
         return null;
     }

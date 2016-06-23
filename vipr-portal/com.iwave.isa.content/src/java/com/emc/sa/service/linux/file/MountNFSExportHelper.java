@@ -60,9 +60,9 @@ public class MountNFSExportHelper {
 
     public FileSystemExportParam findExport(FileShareRestRep fs) {
         List<FileSystemExportParam> exportList = FileStorageUtils.getNfsExports(fs.getId());
-        if (subDirectory.equalsIgnoreCase("No Sub Directory")) {
+        if (subDirectory.equalsIgnoreCase("!nodir")) {
             for (FileSystemExportParam export : exportList) {
-                if (subDirectory == null && securityType.equals(export.getSecurityType())) {
+                if (export.getSubDirectory().isEmpty() && securityType.equals(export.getSecurityType())) {
                     return export;
                 }
             }
@@ -77,10 +77,9 @@ public class MountNFSExportHelper {
 
     public void mountExport(FileShareRestRep fs) {
         FileSystemExportParam export = findExport(fs);
-        logInfo("linux.mount.file.export.mount", hostname, export.getMountPoint(), destinationPath, AUTO, subDirectory);
+        logInfo("linux.mount.file.export.mount", export.getMountPoint(), destinationPath, hostname);
         linuxSupport.createDirectory(destinationPath);
         linuxSupport.addToFSTab(export.getMountPoint(), destinationPath, AUTO, null);
         linuxSupport.mountPath(destinationPath, securityType, "nolock");
-        ExecutionUtils.addAffectedResource(fs.getId().toString());
     }
 }

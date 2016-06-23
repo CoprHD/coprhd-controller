@@ -17,8 +17,7 @@
     },
     
     subDirectory:{
-      type:"assetType.vipr.subDirectory",
-      required: "false"
+      type:"assetType.vipr.subDirectory"
     },
     
     securityType:{

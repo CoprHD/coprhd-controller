@@ -1,17 +1,12 @@
-/*
- * Copyright (c) 2016 EMC Corporation
- * All Rights Reserved
- */
-
 package com.emc.storageos.driver.vmaxv3driver.rest;
 
 import com.emc.storageos.driver.vmaxv3driver.Vmaxv3Constants;
 import com.emc.storageos.driver.vmaxv3driver.base.RestActionImpl;
+import com.emc.storageos.driver.vmaxv3driver.exception.Vmaxv3RestCallException;
 import com.emc.storageos.driver.vmaxv3driver.util.rest.RestClient;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.emc.storageos.driver.vmaxv3driver.exception.Vmaxv3RestCallException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,37 +15,36 @@ import java.util.Iterator;
 import java.util.List;
 
 /**
- * REST API call to get managed array list.
- *
- * Created by gang on 6/22/16.
+ * Created by gang on 6/23/16.
  */
-public class SloprovisioningSymmetrixList extends RestActionImpl {
+public class SloprovisioningSymmetrixSrpList extends RestActionImpl {
 
-    private static final Logger logger = LoggerFactory.getLogger(SloprovisioningSymmetrixList.class);
+    private static final Logger logger = LoggerFactory.getLogger(SloprovisioningSymmetrixSrpList.class);
+
+    private String symmetrixId;
+
+    public SloprovisioningSymmetrixSrpList(String symmetrixId) {
+        this.symmetrixId = symmetrixId;
+    }
 
     @Override
     public List<String> perform(RestClient client) {
-        String responseBody = client.request(Vmaxv3Constants.RA_SLOPROVISIONING_SYMMETRIX);
-        List<String> arrayIds = parseRestResult(responseBody);
-        return arrayIds;
+        String path = String.format(Vmaxv3Constants.RA_SLOPROVISIONING_SYMMETRIX_SRP, this.symmetrixId);
+        String responseBody = client.request(path);
+        List<String> srpIds = parseRestResult(responseBody);
+        return srpIds;
     }
 
     /**
      * Parse the REST response below and return the array list:
      *
      * {
-     * "symmetrixId": [
-     * "000196701029",
-     * "000196701035",
-     * "000196701343",
-     * "000196701405",
-     * "000196800794",
-     * "000196801468",
-     * "000196801612",
-     * "000197000143"
+     * "srpId": [
+     * "SRP_0x102",
+     * "SRP_1"
      * ],
      * "success": true,
-     * "num_of_symmetrix_arrays": 8
+     * "num_of_srps": 2
      * }
      *
      * @param responseBody
@@ -63,7 +57,7 @@ public class SloprovisioningSymmetrixList extends RestActionImpl {
             throw new Vmaxv3RestCallException(root.get("message").getAsString());
         }
         List<String> result = new ArrayList<>();
-        JsonArray list = root.getAsJsonArray("symmetrixId");
+        JsonArray list = root.getAsJsonArray("srpId");
         Iterator<JsonElement> it = list.iterator();
         while (it.hasNext()) {
             result.add(it.next().getAsString());

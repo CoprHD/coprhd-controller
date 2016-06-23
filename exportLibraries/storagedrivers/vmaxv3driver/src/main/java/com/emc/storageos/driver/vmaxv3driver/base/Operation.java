@@ -19,7 +19,7 @@ public interface Operation {
 
     /**
      * Check if the current operation instance is matched to the given
-     * operation request.
+     * operation perform.
      *
      * @param name Requested operation name.
      * @param parameters Request operation arguments.
@@ -28,7 +28,7 @@ public interface Operation {
     public boolean isMatch(String name, Object... parameters);
 
     /**
-     * Execute the operation. Note that in the "execute" implementation,
+     * Execute the operation. Note that in the "perform" implementation,
      * the given "Object... parameters" may need to be updated by adding
      * information, which is requested by the Southbound SDK framework.
      *

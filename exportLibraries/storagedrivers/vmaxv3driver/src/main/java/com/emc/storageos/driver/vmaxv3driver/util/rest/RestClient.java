@@ -69,14 +69,6 @@ public class RestClient {
         this.password = password;
     }
 
-    public RestClient(String host, int port, String user, String password) {
-        this.scheme = "https";
-        this.host = host;
-        this.port = port;
-        this.user = user;
-        this.password = password;
-    }
-
     public String request(String path) {
         return this.request(path, RequestType.GET, null);
     }
@@ -110,7 +102,7 @@ public class RestClient {
             SSLConnectionSocketFactory socketFactory = new SSLConnectionSocketFactory(
                     sslContext, SSLConnectionSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
             client = HttpClients.custom().setSSLSocketFactory(socketFactory).setDefaultCredentialsProvider(provider).build();
-            // Send the request and parse the response.
+            // Send the perform and parse the response.
             String uri = this.scheme + "://" + this.host + ":" + this.port + "/" + path;
             HttpRequestBase request = requestHandlers.get(requestType).getDeclaredConstructor(String.class).newInstance(
                     uri);
@@ -120,7 +112,7 @@ public class RestClient {
                 StringEntity entity = new StringEntity(body, ContentType.APPLICATION_JSON);
                 ((HttpEntityEnclosingRequestBase) request).setEntity(entity);
             }
-            logger.info("Executing request: {}", request.getRequestLine());
+            logger.info("Executing perform: {}", request.getRequestLine());
             CloseableHttpResponse response = client.execute(request);
             try {
                 logger.info(response.getStatusLine().toString());

@@ -6,6 +6,8 @@
 package com.emc.storageos.driver.vmaxv3driver.operation.discovery;
 
 import com.emc.storageos.driver.vmaxv3driver.base.OperationImpl;
+import com.emc.storageos.driver.vmaxv3driver.rest.SloprovisioningSymmetrixGet;
+import com.emc.storageos.driver.vmaxv3driver.rest.bean.Symmetrix;
 import com.emc.storageos.storagedriver.model.StorageSystem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,15 +24,13 @@ public class DiscoverStorageSystemOperation extends OperationImpl {
 
     private static final Logger logger = LoggerFactory.getLogger(DiscoverStorageSystemOperation.class);
 
-    private StorageSystem storageSystemInput;
-
-    private String sloprovisioning_symmetrix = "/univmax/restapi/sloprovisioning/symmetrix/%1";
+    private StorageSystem storageSystem;
 
     @Override
     public boolean isMatch(String name, Object... parameters) {
         if ("discoverStorageSystem".equals(name)) {
-            this.storageSystemInput = (StorageSystem) parameters[0];
-            this.setClient(this.storageSystemInput);
+            this.storageSystem = (StorageSystem) parameters[0];
+            this.setClient(this.storageSystem);
             return true;
         } else {
             return false;
@@ -39,11 +39,16 @@ public class DiscoverStorageSystemOperation extends OperationImpl {
 
     @Override
     public Map<String, Object> execute() {
-        String path = String.format(this.sloprovisioning_symmetrix, this.storageSystemInput.getNativeId());
         Map<String, Object> result = new HashMap<>();
         try {
-            String responseBody = this.getClient().request(path);
-
+            Symmetrix bean = new SloprovisioningSymmetrixGet(this.storageSystem.getNativeId()).perform(this.getClient());
+            this.storageSystem.setFirmwareVersion(bean.getUcode());
+            this.storageSystem.setModel(bean.getModel());
+            this.storageSystem.setProvisioningType(StorageSystem.SupportedProvisioningType.THIN);
+            this.storageSystem.setSerialNumber(bean.getSymmetrixId());
+            if (this.storageSystem.getDeviceLabel() == null) {
+                this.storageSystem.setDeviceLabel(bean.getSymmetrixId());
+            }
             result.put("success", true);
         } catch (Exception e) {
             logger.error(e.getMessage(), e);

@@ -46,11 +46,12 @@ public abstract class OperationImpl implements Operation {
      * @param storageSystemInput The given StorageSystem instance passed by SB SDK.
      */
     protected void setClient(StorageSystem storageSystemInput) {
+        String scheme = storageSystemInput.getProtocols().get(0);
         String hostName = storageSystemInput.getIpAddress();
         int port = storageSystemInput.getPortNumber();
         String userName = storageSystemInput.getUsername();
         String password = storageSystemInput.getPassword();
-        RestClient client = new RestClient(hostName, port, userName, password);
+        RestClient client = new RestClient(scheme, hostName, port, userName, password);
         this.setClient(client);
     }
 

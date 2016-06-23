@@ -7,8 +7,8 @@
 package com.emc.storageos.driver.vmaxv3driver.operation.discovery;
 
 import com.emc.storageos.driver.vmaxv3driver.base.OperationImpl;
-import com.emc.storageos.driver.vmaxv3driver.rest.GetVersion;
-import com.emc.storageos.driver.vmaxv3driver.rest.ListArray;
+import com.emc.storageos.driver.vmaxv3driver.rest.SloprovisioningSymmetrixList;
+import com.emc.storageos.driver.vmaxv3driver.rest.SystemVersionGet;
 import com.emc.storageos.storagedriver.model.StorageProvider;
 import com.emc.storageos.storagedriver.model.StorageSystem;
 import org.slf4j.Logger;
@@ -53,7 +53,11 @@ public class DiscoverStorageProviderOperation extends OperationImpl {
     public Map<String, Object> execute() {
         Map<String, Object> result = new HashMap<>();
         try {
-            List<String> arrayIds = new ListArray().execute(this.getClient());
+            // Get version.
+            String version = new SystemVersionGet().perform(this.getClient());
+            this.storageProvider.setIsSupportedVersion((version.compareTo("V8.2.0.0") >= 0));
+            // Get storage array list.
+            List<String> arrayIds = new SloprovisioningSymmetrixList().perform(this.getClient());
             for(String arrayId : arrayIds) {
                 StorageSystem storageSystem = new StorageSystem();
                 storageSystem.setNativeId(arrayId);
@@ -64,10 +68,9 @@ public class DiscoverStorageProviderOperation extends OperationImpl {
                 List<String> protocols = new ArrayList<>();
                 protocols.add(this.storageProvider.getUseSSL() ? "https" : "http");
                 storageSystem.setProtocols(protocols);
+                storageSystem.setMajorVersion(version);
                 this.storageSystems.add(storageSystem);
             }
-            String version = new GetVersion().execute(this.getClient());
-            this.storageProvider.setIsSupportedVersion((version.compareTo("V8.2.0.0") >= 0));
             result.put("success", true);
         } catch(Exception e) {
             logger.error(e.getMessage(), e);

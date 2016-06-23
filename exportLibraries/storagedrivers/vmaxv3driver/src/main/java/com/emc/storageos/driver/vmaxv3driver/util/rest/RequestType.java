@@ -6,7 +6,7 @@
 package com.emc.storageos.driver.vmaxv3driver.util.rest;
 
 /**
- * HTTP request enum types.
+ * HTTP perform enum types.
  *
  * Created by gang on 6/16/16.
  */

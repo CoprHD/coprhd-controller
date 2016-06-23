@@ -21,5 +21,5 @@ public interface RestAction {
      * @return The result of the REST call, or an thrown "Vmaxv3RestCallException"
      *         instance if error happens.
      */
-    public Object execute(RestClient client);
+    public Object perform(RestClient client);
 }

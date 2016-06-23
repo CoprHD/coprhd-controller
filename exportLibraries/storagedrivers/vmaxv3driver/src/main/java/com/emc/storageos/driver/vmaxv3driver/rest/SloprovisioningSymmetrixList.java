@@ -22,10 +22,10 @@ import java.util.List;
  *
  * Created by gang on 6/22/16.
  */
-public class ListArray extends RestActionImpl {
+public class SloprovisioningSymmetrixList extends RestActionImpl {
 
     @Override
-    public List<String> execute(RestClient client) {
+    public List<String> perform(RestClient client) {
         String responseBody = client.request(Vmaxv3Constants.REST_PATH_SLOPROVISIONING_SYMMETRIX);
         List<String> arrayIds = parseRestResult(responseBody);
         return arrayIds;
@@ -50,10 +50,10 @@ public class ListArray extends RestActionImpl {
      * "num_of_symmetrix_arrays": 8
      * }
      *
-     * @param body
+     * @param responseBody
      */
-    private List<String> parseRestResult(String body) {
-        JsonObject root = this.parseResponse(body);
+    private List<String> parseRestResult(String responseBody) {
+        JsonObject root = this.parseResponse(responseBody);
         Boolean success = root.get("success").getAsBoolean();
         if (!success) {
             throw new Vmaxv3RestCallException(root.get("message").getAsString());

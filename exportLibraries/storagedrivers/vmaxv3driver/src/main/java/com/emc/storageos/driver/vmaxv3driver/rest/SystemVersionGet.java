@@ -16,10 +16,10 @@ import com.emc.storageos.driver.vmaxv3driver.exception.Vmaxv3RestCallException;
  *
  * Created by gang on 6/22/16.
  */
-public class GetVersion extends RestActionImpl {
+public class SystemVersionGet extends RestActionImpl {
 
     @Override
-    public String execute(RestClient client) {
+    public String perform(RestClient client) {
         String responseBody = client.request(Vmaxv3Constants.REST_PATH_SYSTEM_VERSION);
         String version = parseRestResult(responseBody);
         return version;

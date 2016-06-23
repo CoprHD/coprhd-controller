@@ -989,7 +989,7 @@ ifeq ($(OS_DISTRO),trusty-tahr)
 endif
 ifeq ($(OS_DISTRO),xenial-xerus)
 	$(ATECHO) mv -f xenial-xerus
-	$(ATSIGN)$(MV) -f $(INSTALL_PREFIX)/etc/xenial-xerus/systemd/* $(INSTALL_PREFIX)/etc/systemd/
+	$(ATSIGN)$(MV) -f $(INSTALL_PREFIX)/etc/xenial-xerus/systemd/system/* $(INSTALL_PREFIX)/etc/systemd/system/
 	$(ATSIGN)$(MV) -f $(INSTALL_PREFIX)/etc/xenial-xerus/oss/systool  $(INSTALL_PREFIX)/etc/
 	$(ATSIGN)$(MV) -f $(INSTALL_PREFIX)/etc/xenial-xerus/oss/storageos/boot-ovfenv  $(INSTALL_PREFIX)/etc/storageos/
 	$(ATSIGN)$(MV) -f $(INSTALL_PREFIX)/etc/xenial-xerus/storageos/storageos $(INSTALL_PREFIX)/etc/storageos/
@@ -1068,16 +1068,15 @@ ifeq ($(OS_DISTRO),trusty-tahr)
 	$(ATSIGN)$(RM) -r $(DEBBUILD_BUILDROOT)/etc/systemd
 endif
 	$(ATSIGN)$(RM) -r $(DEBBUILD_BUILDROOT)/etc/sysconfig/SuSE*
+ifeq ($(OS_DISTRO),trusty-tahr)
 	$(ATSIGN)for svc in api auth controller coordinator db geo geodb portal sa sys; do \
-ifeq ($(OS_DISTRO),trusty-tahr)
 		sed -e "s,@svcname@,$$svc,g" $(DEBBUILD_BUILDROOT)/etc/init/storageos-template.conf > $(DEBBUILD_BUILDROOT)/etc/init/storageos-$$svc.conf; \
-else ifeq ($(OS_DISTRO),xenial-xerus)
-		sed -e "s,@svcname@,$$svc,g" $(DEBBUILD_BUILDROOT)/etc/systemd/system/storageos-template.service > $(DEBBUILD_BUILDROOT)/etc/systemd/system/storageos-$$svc.service; \
-endif
 	done
-ifeq ($(OS_DISTRO),trusty-tahr)
 	$(ATSIGN)$(RM) -r $(DEBBUILD_BUILDROOT)/etc/init/storageos-template.conf
 else ifeq ($(OS_DISTRO),xenial-xerus)
+	$(ATSIGN)for svc in api auth controller coordinator db geo geodb portal sa sys; do \
+		sed -e "s,@svcname@,$$svc,g" $(DEBBUILD_BUILDROOT)/etc/systemd/system/storageos-template.service > $(DEBBUILD_BUILDROOT)/etc/systemd/system/storageos-$$svc.service; \
+	done
 	$(ATSIGN)$(RM) -r $(DEBBUILD_BUILDROOT)/etc/systemd/system/storageos-template.service
 endif
 	@$(ECHO) "Creating $(DEBBUILD_TARGET_CONTROL_FILE).."

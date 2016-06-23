@@ -6,6 +6,8 @@ package com.emc.storageos.hp3par.connection;
 
 import java.io.IOException;
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -22,8 +24,11 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.hp3par.command.CPGCommandResult;
 import com.emc.storageos.hp3par.command.HostCommandResult;
+import com.emc.storageos.hp3par.command.HostMember;
+import com.emc.storageos.hp3par.command.HostSetDetailsCommandResult;
 import com.emc.storageos.hp3par.command.PortStatisticsCommandResult;
 import com.emc.storageos.hp3par.command.SystemCommandResult;
+import com.emc.storageos.hp3par.command.VirtualLunsList;
 import com.emc.storageos.hp3par.command.VolumeDetailsCommandResult;
 import com.emc.storageos.hp3par.impl.HP3PARApi;
 import com.emc.storageos.hp3par.impl.HP3PARException;
@@ -188,16 +193,26 @@ public class HP3PARApiFactory {
 //        hp3parApi.getPortDetails();
 //        PortStatisticsCommandResult portStatRes = hp3parApi.getPortStatisticsDetail();
         
-        String vol = "One_Thin40";
+//        String vol = "One_Thin40"; 
 //        hp3parApi.createVolume(vol, "One", true, (long)1024);
 //        hp3parApi.createVlun(vol, -1, "myhost", "1:1:1");
 //        hp3parApi.expandVolume(vol, (long)2048);
 //        hp3parApi.getCPGDetails("One");
 //        hp3parApi.deleteVolume(vol);
         
-        HostCommandResult hostRes = hp3parApi.getHostDetails();
+//        HostCommandResult hostRes = hp3parApi.getAllHostDetails();
+//        HostSetDetailsCommandResult hostsetRes = hp3parApi.getHostSetDetails("LGLBW015_016");
+//        HostMember hostRes = hp3parApi.getHostDetails("LGLBW015");
+//        VirtualLunsList vlunRes = hp3parApi.getAllVlunDetails();
+//        hp3parApi.deleteVlun("One_Thin30", "10", "LGLOE199", "1:1:1");
+        ArrayList<String> portIds = new ArrayList<>();
+        portIds.add("1111222233334444");
+        portIds.add("1111222233334445");
+        portIds.add("1111222233334446");
+        hp3parApi.createHost("myhost4", portIds, 4);
         
-        int a=0;
+        
+        int a=0; a++; System.out.println(a);
         } catch (Exception e) {
             System.out.println("ERRRRRRROR");
             System.out.println(e.getMessage());

@@ -6,7 +6,7 @@ package com.emc.storageos.hp3par.command;
 
 public class ISCSIPath {
     private String name;
-    private Position postPos;
+    private Position portPos;
     
     public String getName() {
         return name;
@@ -14,10 +14,10 @@ public class ISCSIPath {
     public void setName(String name) {
         this.name = name;
     }
-    public Position getPostPos() {
-        return postPos;
+    public Position getPortPos() {
+        return portPos;
     }
-    public void setPostPos(Position postPos) {
-        this.postPos = postPos;
+    public void setPortPos(Position portPos) {
+        this.portPos = portPos;
     }
 }

@@ -30,17 +30,47 @@ public class VPlexStorageSystemInfo extends VPlexResourceInfo {
     }
 
     /**
-     * Check if the storageSystemNativeGuid matches with Vplex 
+     * Check if the storageSystemNativeGuid matches with Vplex
      * storage systems unique Id.
      * 
      * @param storageSystemNativeGuid
      * @return
      */
     public boolean matches(String storageSystemNativeGuid) {
+
+        String vplexStorageSystemId = getUniqueId();
         s_logger.info(String.format("Matching the storageSystemNativeGuid %s with %s",
-                storageSystemNativeGuid, getUniqueId()));
-        if (storageSystemNativeGuid.contains(getUniqueId().trim())) {
+                storageSystemNativeGuid, vplexStorageSystemId));
+        if (storageSystemNativeGuid.contains(vplexStorageSystemId.trim())) {
             return true;
+        }
+
+        // For IBM XIV there needs a conversion between what is shown on VPLEX console
+        // to what is present in ViPR console, to pass the match.
+        if (storageSystemNativeGuid.startsWith("IBMXIV+IBM")) {
+
+            int decimalNum = 0;
+            try {
+                // Convert vplexStorageSystemId to decimal integer
+                decimalNum = Integer.parseInt(vplexStorageSystemId);
+            } catch (NumberFormatException nfe) {
+                // If this is not a decimal number, then consider it as mismatch
+                return false;
+
+            }
+
+            // Convert the decimal to hex
+            String hexString = Integer.toHexString(decimalNum);
+
+            // Remove first 2 digits/chars from the hex string
+            String subHexString = hexString.substring(1, hexString.length());
+
+            // Convert it to decimal, this should be the serial number of the XIV array
+            String decimalString = Integer.toString(Integer.parseInt(subHexString, 16));
+            if (storageSystemNativeGuid.endsWith(decimalString)) {
+                return true;
+            }
+
         }
 
         return false;

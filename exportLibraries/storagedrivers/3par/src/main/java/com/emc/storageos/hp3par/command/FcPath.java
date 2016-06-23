@@ -14,10 +14,10 @@ public class FcPath {
     public void setWwn(String wwn) {
         this.wwn = wwn;
     }
-    public Position getPostPos() {
+    public Position getPortPos() {
         return portPos;
     }
-    public void setPostPos(Position postPos) {
+    public void setPortPos(Position postPos) {
         this.portPos = postPos;
     }
 }

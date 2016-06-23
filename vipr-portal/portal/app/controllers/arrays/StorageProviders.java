@@ -12,17 +12,24 @@ import static controllers.Common.copyRenderArgsToAngular;
 import static util.BourneUtil.getViprClient;
 
 import java.net.URI;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
-import models.StorageProviderTypes;
-import models.StorageSystemTypes;
-import models.datatable.StorageProviderDataTable;
-import models.datatable.StorageProviderDataTable.StorageProviderInfo;
-
 import org.apache.commons.lang.StringUtils;
 
+import com.emc.storageos.model.NamedRelatedResourceRep;
+import com.emc.storageos.model.smis.StorageProviderRestRep;
+import com.emc.vipr.client.Task;
+import com.emc.vipr.client.ViPRCoreClient;
+
+import controllers.Common;
+import controllers.deadbolt.Restrict;
+import controllers.deadbolt.Restrictions;
+import controllers.util.FlashException;
+import controllers.util.ViprResourceController;
+import models.StorageProviderTypes;
+import models.datatable.StorageProviderDataTable;
+import models.datatable.StorageProviderDataTable.StorageProviderInfo;
 import play.data.binding.As;
 import play.data.validation.MaxSize;
 import play.data.validation.MinSize;
@@ -35,17 +42,6 @@ import util.EnumOption;
 import util.MessagesUtils;
 import util.StorageProviderUtils;
 import util.validation.HostNameOrIpAddress;
-
-import com.emc.storageos.model.NamedRelatedResourceRep;
-import com.emc.storageos.model.smis.StorageProviderRestRep;
-import com.emc.vipr.client.Task;
-import com.emc.vipr.client.ViPRCoreClient;
-
-import controllers.Common;
-import controllers.deadbolt.Restrict;
-import controllers.deadbolt.Restrictions;
-import controllers.util.ViprResourceController;
-import controllers.util.FlashException;
 
 @With(Common.class)
 @Restrictions({ @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
@@ -229,6 +225,17 @@ public class StorageProviders extends ViprResourceController {
 
         public String elementManagerURL;
 
+        @MaxSize(2048)
+        public String hyperScaleUser;
+
+        @MaxSize(2048)
+        public String hyperScalePassword = "";
+
+        @MaxSize(2048)
+        public String hyperScaleConfPasswd = "";
+
+        public String hyperScaleURL;
+
         public StorageProviderForm() {
         }
 
@@ -244,6 +251,21 @@ public class StorageProviders extends ViprResourceController {
             return StorageProviderTypes.isScaleIOApi(interfaceType);
         }
 
+        public void setXIVParameters() {
+            if (StringUtils.isNotEmpty(this.hyperScaleUser)) {
+                this.secondaryUsername = this.hyperScaleUser;
+            }
+            if (StringUtils.isNotEmpty(this.hyperScalePassword)) {
+                this.secondaryPassword = this.hyperScalePassword;
+            }
+            if (StringUtils.isNotEmpty(this.hyperScaleConfPasswd)) {
+                this.secondaryPasswordConfirm = this.hyperScaleConfPasswd;
+            }
+            if (StringUtils.isNotEmpty(this.hyperScaleURL)) {
+                this.elementManagerURL = this.hyperScaleURL;
+            }
+        }
+
         public void readFrom(StorageProviderRestRep storageProvider) {
             this.id = storageProvider.getId().toString();
             this.name = storageProvider.getName();
@@ -255,17 +277,22 @@ public class StorageProviders extends ViprResourceController {
             this.useSSL = storageProvider.getUseSSL();
             this.interfaceType = storageProvider.getInterface();
             this.secondaryUsername = storageProvider.getSecondaryUsername();
-            this.secondaryPassword = ""; // the platform will never return the
-                                         // real password
+            this.secondaryPassword = ""; // the platform will never return the real password
             this.elementManagerURL = storageProvider.getElementManagerURL();
+            this.hyperScaleUser = storageProvider.getSecondaryUsername();
+            this.hyperScalePassword = ""; // the platform will never return the real password
+            this.hyperScaleURL = storageProvider.getElementManagerURL();
             if (isScaleIOApi()) {
                 this.secondaryUsername = this.userName;
                 this.secondaryPassword = this.password;
                 this.secondaryPasswordConfirm = this.confirmPassword;
             }
+            setXIVParameters();
+
         }
 
         public URI save() {
+            setXIVParameters();
             if (isNew()) {
                 return create().getResourceId();
             } else {

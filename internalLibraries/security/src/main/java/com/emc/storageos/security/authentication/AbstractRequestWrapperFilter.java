@@ -237,7 +237,11 @@ public abstract class AbstractRequestWrapperFilter implements Filter {
                             throw APIException.notFound.openstackTenantNotFound(targetTenantId);
                         }
 
-                        createTenantNProject(tenant);
+                        // Check whether Tenant with given ID is already imported to the CoprHD.
+                        OSTenant osTenant = _keystoneUtils.findOpenstackTenantInCoprhd(targetTenantId);
+                        if (osTenant == null) {
+                            createTenantNProject(tenant);
+                        }
                     }
                 }
             }

@@ -36,6 +36,7 @@
 
         size:{
             type:"assetType.vipr.blockJournalSize",
+            dynamicHelp:"assetType.vipr.blockJournalSizeHelp",
             select:"field",
             validation:{
                 min:1

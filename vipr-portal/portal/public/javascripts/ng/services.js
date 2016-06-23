@@ -66,6 +66,12 @@ angular.module("services", []).directive({
                         	$scope[dependencyName].disableCount += 1;
                         });
                         $http.get("/api/options/" + fieldDescriptor.assetType, {params: params }).success(function(data) {
+                        	debugger
+                        	if (fieldDescriptor.dynamicHelp != null) {
+                        		$http.get("/api/options/vipr.dynamicHelp" + fieldDescriptor.dynamicHelp, {params:"124"}).success(function(helperData) {
+                        			alert(helperData[0].value);
+                        		});
+                        	}
                             item.disabled = false;
                             if (item.select == 'field') {
                             	item.value = data[0].value

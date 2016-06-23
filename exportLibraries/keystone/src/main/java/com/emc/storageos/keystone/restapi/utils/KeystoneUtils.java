@@ -24,6 +24,9 @@ import com.emc.storageos.keystone.KeystoneConstants;
 import com.emc.storageos.keystone.restapi.KeystoneApiClient;
 import com.emc.storageos.keystone.restapi.KeystoneRestClientFactory;
 import com.emc.storageos.keystone.restapi.model.response.*;
+import com.emc.storageos.model.tenant.TenantCreateParam;
+import com.emc.storageos.model.tenant.UserMappingAttributeParam;
+import com.emc.storageos.model.tenant.UserMappingParam;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.vipr.model.sys.ipreconfig.ClusterIpv4Setting;
 import org.slf4j.Logger;
@@ -46,6 +49,8 @@ public class KeystoneUtils {
     public static final String OPENSTACK_DEFAULT_REGION = "RegionOne";
     public static final String TENANT_ID = "tenant_id";
     public static final String VALUES = "values";
+    // Default excluded option for OSTenant.
+    private static final boolean DEFAULT_EXCLUDED_TENANT_OPTION = false;
 
     private KeystoneRestClientFactory _keystoneApiFactory;
     private Properties _ovfProperties;
@@ -213,7 +218,7 @@ public class KeystoneUtils {
      * @param managerDN of a Authentication Provider.
      * @return StringMap containing username and tenantname keys with values.
      */
-    private StringMap getUsernameAndTenant(String managerDN){
+    private StringMap getUsernameAndTenant(String managerDN) {
 
         String username = managerDN.split(",")[0].split("=")[1];
         String tenantName = managerDN.split(",")[1].split("=")[1];
@@ -252,7 +257,7 @@ public class KeystoneUtils {
      * @param serverUrls of an Authentication Provider
      * @param managerPassword of an Authentication Provider
      */
-    public void registerCoprhdInKeystone(String managerDN, StringSet serverUrls,  String managerPassword) {
+    public void registerCoprhdInKeystone(String managerDN, StringSet serverUrls, String managerPassword) {
         _log.debug("START - register CoprHD in Keystone");
 
         // Create a new KeystoneAPI.
@@ -408,7 +413,7 @@ public class KeystoneUtils {
      * @param serverUrls of an Authentication Provider
      * @param managerPassword of an Authentication Provider
      */
-    public void deleteCinderEndpoints(String managerDN, StringSet serverUrls, String managerPassword){
+    public void deleteCinderEndpoints(String managerDN, StringSet serverUrls, String managerPassword) {
 
         // Create a new KeystoneAPI.
         KeystoneApiClient keystoneApi = getKeystoneApi(managerDN, serverUrls, managerPassword);
@@ -476,6 +481,34 @@ public class KeystoneUtils {
     }
 
     /**
+     * Retrieves OpenStack Tenant with given id.
+     *
+     * @param id Tenant ID.
+     *
+     * @return OpenStack Tenant.
+     */
+    public TenantV2 getTenantWithId(String id) {
+
+        AuthnProvider keystoneProvider = getKeystoneProvider();
+
+        if (keystoneProvider == null) {
+            throw APIException.internalServerErrors.targetIsNullOrEmpty("Keystone provider");
+        }
+
+        // Get Keystone API client.
+        KeystoneApiClient keystoneApiClient = getKeystoneApi(keystoneProvider.getManagerDN(),
+                keystoneProvider.getServerUrls(), keystoneProvider.getManagerPassword());
+
+        for (TenantV2 tenant : keystoneApiClient.getKeystoneTenants().getTenants()) {
+            if (tenant.getId().equals(id)) {
+                return tenant;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Retrieves CoprHD Tenants with OpenStack ID parameter.
      *
      * @return List of CoprHD Tenants.
@@ -495,6 +528,24 @@ public class KeystoneUtils {
         }
 
         return tenants;
+    }
+
+    /**
+     * Retrieves CoprHD Tenant with given OpenStack ID.
+     *
+     * @return CoprHD Tenant.
+     */
+    public TenantOrg getCoprhdTenantWithOpenstackId(String id) {
+
+        List<TenantOrg> tenants = getCoprhdTenantsWithOpenStackId();
+
+        for (TenantOrg tenant : tenants) {
+            if (getCoprhdTenantUserMapping(tenant).contains(id)) {
+                return tenant;
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -567,5 +618,83 @@ public class KeystoneUtils {
         }
 
         return null;
+    }
+
+    /**
+     * Prepares userMappings with OpenStack Tenant ID for CoprHD Tenant.
+     *
+     * @param openstackId OpenStack Tenant ID.
+     * @return UserMappings.
+     */
+    public List<UserMappingParam> prepareUserMappings(String openstackId) {
+
+        AuthnProvider provider = getKeystoneProvider();
+
+        // Create mapping rules
+        List<UserMappingParam> userMappings = new ArrayList<>();
+        List<String> values = new ArrayList<>();
+        values.add(openstackId);
+
+        List<UserMappingAttributeParam> attributes = new ArrayList<>();
+        attributes.add(new UserMappingAttributeParam(KeystoneUtils.OPENSTACK_TENANT_ID, values));
+
+        userMappings.add(new UserMappingParam(provider.getDomains().iterator().next(), attributes, new ArrayList<String>()));
+
+        return userMappings;
+    }
+
+    /**
+     * Prepares TenantCreateParam class filled with information from given Tenant.
+     *
+     * @param tenant OpenStack Tenant.
+     * @return TenantCreateParam.
+     */
+    public TenantCreateParam prepareTenantParam(TenantV2 tenant) {
+
+        TenantCreateParam param = new TenantCreateParam(CinderConstants.TENANT_NAME_PREFIX + " " + tenant.getName(),
+                prepareUserMappings(tenant.getId()));
+        if (tenant.getDescription() != null) {
+            param.setDescription(tenant.getDescription());
+        } else {
+            param.setDescription(CinderConstants.TENANT_NAME_PREFIX);
+        }
+
+        return param;
+    }
+
+    /**
+     * Tags Project with given Openstack Tenant ID.
+     *
+     * @param projectId CoprHD Project ID.
+     * @param osTenantId OpenStack Tenant ID.
+     * @param coprhdTenantId CoprHD Tenant ID.
+     */
+    public void tagProjectWithOpenstackId(URI projectId, String osTenantId, String coprhdTenantId) {
+
+        // Tag project with OpenStack tenant_id
+        Project project = _dbClient.queryObject(Project.class, projectId);
+        ScopedLabelSet tagSet = new ScopedLabelSet();
+        ScopedLabel tagLabel = new ScopedLabel(coprhdTenantId, osTenantId);
+        tagSet.add(tagLabel);
+        project.setTag(tagSet);
+        _dbClient.updateObject(project);
+    }
+
+    /**
+     * Maps Openstack TenantV2 to OSTenant.
+     *
+     * @param tenant OpenStack Tenant to map.
+     * @return OSTenant.
+     */
+    public OSTenant mapToOsTenant(TenantV2 tenant) {
+
+        OSTenant osTenant = new OSTenant();
+        osTenant.setOsId(tenant.getId());
+        osTenant.setDescription(tenant.getDescription());
+        osTenant.setName(tenant.getName());
+        osTenant.setEnabled(Boolean.parseBoolean(tenant.getEnabled()));
+        osTenant.setExcluded(DEFAULT_EXCLUDED_TENANT_OPTION);
+
+        return osTenant;
     }
 }

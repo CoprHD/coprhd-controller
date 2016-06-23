@@ -284,7 +284,7 @@ public class AuthnConfigurationService extends TaggedResource {
         return password;
     }
 
-    public void createTenantsAndProjectsForAutomaticKeystoneRegistration(AuthnProvider provider) {
+    public void createTenantsAndProjectsForAutomaticKeystoneRegistration() {
 
         List<URI> osTenantURI = _dbClient.queryByType(OSTenant.class, true);
         Iterator<OSTenant> osTenantIter = _dbClient.queryIterativeObjects(OSTenant.class, osTenantURI);
@@ -292,14 +292,14 @@ public class AuthnConfigurationService extends TaggedResource {
         while (osTenantIter.hasNext()) {
             OSTenant osTenant = osTenantIter.next();
             if (!osTenant.getExcluded()) {
-                createTenantAndProjectForOpenstackTenant(osTenant, provider);
+                createTenantAndProjectForOpenstackTenant(osTenant);
             }
         }
     }
 
-    public void createTenantAndProjectForOpenstackTenant(OSTenant tenant, AuthnProvider provider) {
+    public void createTenantAndProjectForOpenstackTenant(OSTenant tenant) {
 
-        TenantCreateParam param = prepareTenantMappingForOpenstack(tenant, provider);
+        TenantCreateParam param = prepareTenantMappingForOpenstack(tenant);
 
         // Create a tenant.
         TenantOrgRestRep tenantOrgRestRep = _tenantsService.createSubTenant(_permissionsHelper.getRootTenant().getId(), param);
@@ -308,19 +308,12 @@ public class AuthnConfigurationService extends TaggedResource {
         ProjectParam projectParam = new ProjectParam(tenant.getName() + CinderConstants.PROJECT_NAME_SUFFIX);
         ProjectElement projectElement = _tenantsService.createProject(tenantOrgRestRep.getId(), projectParam);
 
-        tagProjectWithOpenstackId(projectElement.getId(), tenant.getOsId(), tenantOrgRestRep.getId().toString());
+        _keystoneUtils.tagProjectWithOpenstackId(projectElement.getId(), tenant.getOsId(), tenantOrgRestRep.getId().toString());
     }
 
-    public TenantCreateParam prepareTenantMappingForOpenstack(OSTenant tenant, AuthnProvider provider) {
-        // Create mapping rules
-        List<UserMappingParam> userMappings = new ArrayList<>();
-        List<String> values = new ArrayList<>();
-        values.add(tenant.getOsId());
+    public TenantCreateParam prepareTenantMappingForOpenstack(OSTenant tenant) {
 
-        List<UserMappingAttributeParam> attributes = new ArrayList<>();
-        attributes.add(new UserMappingAttributeParam(KeystoneUtils.OPENSTACK_TENANT_ID, values));
-
-        userMappings.add(new UserMappingParam(provider.getDomains().iterator().next(), attributes, new ArrayList<String>()));
+        List<UserMappingParam> userMappings = _keystoneUtils.prepareUserMappings(tenant.getOsId());
 
         TenantCreateParam param = new TenantCreateParam(CinderConstants.TENANT_NAME_PREFIX + " " + tenant.getName(), userMappings);
         if (tenant.getDescription() != null) {
@@ -330,17 +323,6 @@ public class AuthnConfigurationService extends TaggedResource {
         }
 
         return param;
-    }
-
-    public void tagProjectWithOpenstackId(URI projectId, String osTenantId, String coprhdTenantId) {
-
-        // Tag project with OpenStack tenant_id
-        Project project = _dbClient.queryObject(Project.class, projectId);
-        ScopedLabelSet tagSet = new ScopedLabelSet();
-        ScopedLabel tagLabel = new ScopedLabel(coprhdTenantId, osTenantId);
-        tagSet.add(tagLabel);
-        project.setTag(tagSet);
-        _dbClient.updateObject(project);
     }
 
     /**
@@ -407,7 +389,7 @@ public class AuthnConfigurationService extends TaggedResource {
 
         if (provider.getAutoRegCoprHDNImportOSProjects() && !isAutoRegistered) {
             _keystoneUtils.registerCoprhdInKeystone(provider.getManagerDN(), provider.getServerUrls(), provider.getManagerPassword());
-            createTenantsAndProjectsForAutomaticKeystoneRegistration(provider);
+            createTenantsAndProjectsForAutomaticKeystoneRegistration();
             _openStackSynchronizationTask.startSynchronizationTask(newSynchronizationInterval);
         }
          if (isAutoRegistered && synchronizationInterval != newSynchronizationInterval) {
@@ -793,6 +775,12 @@ public class AuthnConfigurationService extends TaggedResource {
             verifyDomainsIsNotInUse(provider.getDomains());
         } else {
             _openStackSynchronizationTask.stopSynchronizationTask();
+            // Remove all OSTenant objects from DB when Keystone Provider is deleted.
+            List<URI> osTenantURIs = _dbClient.queryByType(OSTenant.class, true);
+            List<OSTenant> tenants = _dbClient.queryObject(OSTenant.class, osTenantURIs);
+            for (OSTenant osTenant : tenants) {
+                _dbClient.removeObject(osTenant);
+            }
             // Delete Cinder endpoints.
             _keystoneUtils.deleteCinderEndpoints(provider.getManagerDN(), provider.getServerUrls(), provider.getManagerPassword());
         }

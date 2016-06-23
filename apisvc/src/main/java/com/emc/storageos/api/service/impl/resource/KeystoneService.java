@@ -182,7 +182,7 @@ public class KeystoneService extends TaskResourceService {
 
             if (_openStackSynchronizationTask.getSynchronizationTask() == null) {
                 // Do not create Tenants and Projects once synchronization task is running.
-                _authService.createTenantsAndProjectsForAutomaticKeystoneRegistration(keystoneProvider);
+                _authService.createTenantsAndProjectsForAutomaticKeystoneRegistration();
                 _openStackSynchronizationTask.startSynchronizationTask(_openStackSynchronizationTask.getTaskInterval());
             }
         }
@@ -218,8 +218,7 @@ public class KeystoneService extends TaskResourceService {
         OSTenant osTenant;
         for (OpenStackTenantParam tenant : param.getOpenstackTenants()) {
             osTenant = _dbClient.queryObject(OSTenant.class, tenant.getId());
-            /*if ((osTenant.getExcluded() && !osTenant.getExcluded().equals(tenant.getExcluded()))
-                    || (!osTenant.getExcluded() && !osTenant.getExcluded().equals(tenant.getExcluded()))) {*/
+
             if (!osTenant.getExcluded().equals(tenant.getExcluded())) {
                 // Tenant changed from included to excluded. Mark for deletion related Tenant and Project.
                 if (!osTenant.getExcluded()) {
@@ -236,11 +235,10 @@ public class KeystoneService extends TaskResourceService {
         List<TenantOrg> tenantOrgs = _keystoneUtils.getCoprhdTenantsWithOpenStackId();
 
         if (!tenantsToUpdate.isEmpty()) {
-            AuthnProvider keystoneProvider = _keystoneUtils.getKeystoneProvider();
             // Create Tenant and Project for included Tenants.
             for (OSTenant tenant : tenantsToUpdate) {
-                if (getTenantWithOsId(tenantOrgs, tenant.getOsId()) == null) {
-                    _authService.createTenantAndProjectForOpenstackTenant(tenant, keystoneProvider);
+                if (_keystoneUtils.getCoprhdTenantWithOpenstackId(tenant.getOsId()) == null) {
+                    _authService.createTenantAndProjectForOpenstackTenant(tenant);
                 }
             }
         }
@@ -254,7 +252,7 @@ public class KeystoneService extends TaskResourceService {
         if (!tenantsToDelete.isEmpty()) {
 
             for (OSTenant tenant : tenantsToDelete) {
-                TenantOrg tenantOrg = getTenantWithOsId(tenantOrgs, tenant.getOsId());
+                TenantOrg tenantOrg = _keystoneUtils.getCoprhdTenantWithOpenstackId(tenant.getOsId());
                 if (tenantOrg != null && !TenantOrg.isRootTenant(tenantOrg)) {
                     URIQueryResultList uris = new URIQueryResultList();
                     _dbClient.queryByConstraint(
@@ -372,17 +370,6 @@ public class KeystoneService extends TaskResourceService {
         to.setName(from.getName());
 
         return to;
-    }
-
-    private TenantOrg getTenantWithOsId(List<TenantOrg> tenants, String id) {
-
-        for (TenantOrg tenant : tenants) {
-            if (_keystoneUtils.getCoprhdTenantUserMapping(tenant).contains(id)) {
-                return tenant;
-            }
-        }
-
-        return null;
     }
 
     @Override

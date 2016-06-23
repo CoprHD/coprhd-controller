@@ -839,7 +839,7 @@
         <property name="keystoneUtilsService" ref="keystoneUtils" />
         <property name="dbClient" ref="dbclient" />
         <property name="coordinator" ref="coordinator" />
-        <property name="authnConfigurationService" ref="authnConfigurationService" />
+        <property name="internalTenantSvcClient" ref="internalTenantSvcClient" />
     </bean>
 
     <bean id="apiservice" class="com.emc.storageos.api.service.impl.ProvisioningServiceImpl">

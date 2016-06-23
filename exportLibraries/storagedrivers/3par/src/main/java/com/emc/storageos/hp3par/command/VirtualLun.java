@@ -9,7 +9,7 @@ import java.util.ArrayList;
 public class VirtualLun {
 	private String id;
 	private String volumeName;
-	private String hostName;
+	private String hostname;
 	private String remoteName;
 	private Integer lun;
 	private Integer type;
@@ -37,11 +37,11 @@ public class VirtualLun {
 	public void setVolumeName(String volumeName) {
 		this.volumeName = volumeName;
 	}
-	public String getHostName() {
-		return hostName;
+	public String getHostname() {
+		return hostname;
 	}
-	public void setHostName(String hostName) {
-		this.hostName = hostName;
+	public void setHostname(String hostname) {
+		this.hostname = hostname;
 	}
 	public String getRemoteName() {
 		return remoteName;

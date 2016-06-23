@@ -1,5 +1,6 @@
 package com.emc.storageos.driver.vmaxv3driver.utils.rest;
 
+import com.emc.storageos.driver.vmaxv3driver.rest.BaseRestTest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.annotations.Test;
@@ -7,15 +8,12 @@ import org.testng.annotations.Test;
 /**
  * Created by gang on 6/16/16.
  */
-public class HttpRestClientTest {
+public class HttpRestClientTest extends BaseRestTest {
 
     private static Logger logger = LoggerFactory.getLogger(HttpRestClientTest.class);
 
-//    HttpRestClient client = new HttpRestClient("https", "lgloc227.lss.emc.com", 8443, "smc", "smc");
-//    String symId = "000196801468";
-
-    HttpRestClient client = new HttpRestClient("https", "lglw7150.lss.emc.com", 8443, "smc", "smc");
-    String symId = "000196801612";
+    HttpRestClient client = this.getClient();
+    String symId = this.getDefaultArrayId();
 
     @Test
     public void testGetVersion() {

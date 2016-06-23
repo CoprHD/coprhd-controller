@@ -14,6 +14,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
@@ -202,11 +203,13 @@ public class VolumeDescriptor implements Serializable {
      * @return List<URI> of volumes in the input list
      */
     public static List<URI> getVolumeURIs(List<VolumeDescriptor> descriptors) {
-        List<URI> volumeURIs = new ArrayList<URI>();
+        Set<URI> volumeURIs = new HashSet<>();
         for (VolumeDescriptor desc : descriptors) {
             volumeURIs.add(desc.getVolumeURI());
         }
-        return volumeURIs;
+        List<URI> volumeList = new ArrayList<>();
+        volumeList.addAll(volumeURIs);
+        return volumeList;
     }
 
     /**

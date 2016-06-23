@@ -194,7 +194,7 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
                 // Set up workflow steps.
                 Workflow workflow = _workflowService.getNewWorkflow(
-                        MaskingWorkflowEntryPoints.getInstance(), "exportGroupCreate", true, token);
+                        MaskingWorkflowEntryPoints.getInstance(), "exportGroupCreate", true, token, null);
 
                 boolean createdSteps = determineExportGroupCreateSteps(workflow, null,
                         device, storage, exportGroup, initiatorURIs, volumeMap, false, token);
@@ -247,7 +247,7 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 // Set up workflow steps.
                 Workflow workflow = _workflowService.getNewWorkflow(
                         MaskingWorkflowEntryPoints.getInstance(), "exportGroupAddVolumes", true,
-                        token);
+                        token, null);
                 List<ExportMask> exportMasksToZoneAddVolumes = new ArrayList<ExportMask>();
                 List<URI> volumesToZoneAddVolumes = new ArrayList<URI>();
                 // Add the volume to all the ExportMasks that are contained in the

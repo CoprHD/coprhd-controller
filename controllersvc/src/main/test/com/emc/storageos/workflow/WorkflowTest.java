@@ -84,7 +84,7 @@ public class WorkflowTest extends ControllersvcTestBase implements Controller {
         workflowService.setSuspendOnErrorTestOnly(true);
         injectedFailures.clear();
         taskStatusMap.put(taskId, WorkflowState.CREATED);
-        Workflow workflow = workflowService.getNewWorkflow(this, testname, false, taskId);
+        Workflow workflow = workflowService.getNewWorkflow(this, testname, false, taskId, null);
         workflow.createStep(testname, "nop", null, nullURI, this.getClass().getName(), false, this.getClass(),
                 nopMethod(1, 1), nopMethod(1, 1), false, null);
         workflow.executePlan(null, "success", new WorkflowCallback(), args, null, null);
@@ -450,7 +450,7 @@ public class WorkflowTest extends ControllersvcTestBase implements Controller {
         String[] args = new String[1];
         args[0] = taskId;
         taskStatusMap.put(taskId, WorkflowState.CREATED);
-        Workflow workflow = workflowService.getNewWorkflow(this, "generate3StepWF", false, taskId);
+        Workflow workflow = workflowService.getNewWorkflow(this, "generate3StepWF", false, taskId, null);
         WorkflowTaskCompleter completer = new WorkflowTaskCompleter(workflow.getWorkflowURI(), taskId);
         // first step
         String lastStep = workflow.createStep("first deep", genMsg(0, 1, "sub"), null, nullURI,
@@ -539,7 +539,7 @@ public class WorkflowTest extends ControllersvcTestBase implements Controller {
         String[] args = new String[1];
         args[0] = taskId;
         taskStatusMap.put(taskId, WorkflowState.CREATED);
-        Workflow workflow = workflowService.getNewWorkflow(this, "generate3StepWF", false, taskId);
+        Workflow workflow = workflowService.getNewWorkflow(this, "generate3StepWF", false, taskId, null);
         WorkflowTaskCompleter completer = new WorkflowTaskCompleter(workflow.getWorkflowURI(), taskId);
         // first step
         workflow.createStep("first deep", genMsg(0, 1, "sub"), null, nullURI,
@@ -1099,7 +1099,7 @@ public class WorkflowTest extends ControllersvcTestBase implements Controller {
         String[] args = new String[1];
         args[0] = orchTaskId;
         taskStatusMap.put(orchTaskId, WorkflowState.CREATED);
-        Workflow workflow = workflowService.getNewWorkflow(this, "generate3StepWF", false, orchTaskId);
+        Workflow workflow = workflowService.getNewWorkflow(this, "generate3StepWF", false, orchTaskId, null);
         WorkflowTaskCompleter completer = new WorkflowTaskCompleter(workflow.getWorkflowURI(), orchTaskId);
         // first step
         String lastStep = null;
@@ -1142,7 +1142,7 @@ public class WorkflowTest extends ControllersvcTestBase implements Controller {
         String[] args = new String[1];
         args[0] = orchTaskId;
         taskStatusMap.put(orchTaskId, WorkflowState.CREATED);
-        Workflow workflow = workflowService.getNewWorkflow(this, "generate3StepWFForTest10", false, orchTaskId);
+        Workflow workflow = workflowService.getNewWorkflow(this, "generate3StepWFForTest10", false, orchTaskId, null);
         WorkflowTaskCompleter completer = new WorkflowTaskCompleter(workflow.getWorkflowURI(), orchTaskId);
         // first step
         String lastStep = workflow.createStep("first", genMsg(level, 1, "sub"), null, nullURI,

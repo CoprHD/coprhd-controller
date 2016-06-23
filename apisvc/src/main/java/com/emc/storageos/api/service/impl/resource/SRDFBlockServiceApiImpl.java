@@ -999,14 +999,14 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
      */
     @Override
     public void changeVolumeVirtualPool(final URI systemURI, final Volume volume,
-            final VirtualPool vpool, final VirtualPoolChangeParam vpoolChangeParam, Map<URI, String> taskMap)
+            final VirtualPool vpool, final VirtualPoolChangeParam vpoolChangeParam, String taskId)
                     throws InternalException {
         _log.debug("Volume {} VirtualPool change.", volume.getId());
 
         // Check for common Vpool updates handled by generic code. It returns true if handled.
         List<Volume> volumes = new ArrayList<Volume>();
         volumes.add(volume);
-        if (checkCommonVpoolUpdates(volumes, vpool, taskMap)) {
+        if (checkCommonVpoolUpdates(volumes, vpool, taskId)) {
             return;
         }
 
@@ -1028,7 +1028,7 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
         String systemType = storageSystem.getSystemType();
         if (DiscoveredDataObject.Type.vmax.name().equals(systemType)) {
             _log.debug("SRDF Protection VirtualPool change for vmax volume.");
-            upgradeToTargetVolume(volume, vpool, vpoolChangeParam, taskMap.get(volume.getId()));
+            upgradeToTargetVolume(volume, vpool, vpoolChangeParam, taskId);
         } else {
             // not vmax volume
             throw APIException.badRequests.srdfVolumeVPoolChangeNotSupported(volume.getId());
@@ -1036,12 +1036,12 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
     }
 
     @Override
-    public void changeVolumeVirtualPool(List<Volume> volumes, VirtualPool vpool,
-            VirtualPoolChangeParam vpoolChangeParam, Map<URI, String> taskMap) throws InternalException {
+    public TaskList changeVolumeVirtualPool(List<Volume> volumes, VirtualPool vpool,
+            VirtualPoolChangeParam vpoolChangeParam, String taskId) throws InternalException {
 
         // Check for common Vpool updates handled by generic code. It returns true if handled.
-        if (checkCommonVpoolUpdates(volumes, vpool, taskMap)) {
-            return;
+        if (checkCommonVpoolUpdates(volumes, vpool, taskId)) {
+            return createTasksForVolumes(vpool, volumes, taskId);
         }
 
         // TODO Modified the code for COP-20817 Needs to revisit this code flow post release.
@@ -1067,7 +1067,7 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
             String systemType = storageSystem.getSystemType();
             if (DiscoveredDataObject.Type.vmax.name().equals(systemType)) {
                 _log.debug("SRDF Protection VirtualPool change for vmax volume.");
-                volumeDescriptorsList.addAll(upgradeToSRDFTargetVolume(volume, vpool, vpoolChangeParam, taskMap.get(volume.getId())));
+                volumeDescriptorsList.addAll(upgradeToSRDFTargetVolume(volume, vpool, vpoolChangeParam, taskId));
             } else {
                 // not vmax volume
                 throw APIException.badRequests.srdfVolumeVPoolChangeNotSupported(volume.getId());
@@ -1079,8 +1079,9 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
         // mismatch problem.
         BlockOrchestrationController controller = getController(BlockOrchestrationController.class,
                 BlockOrchestrationController.BLOCK_ORCHESTRATION_DEVICE);
-        controller.createVolumes(volumeDescriptorsList, taskMap.values().iterator().next());
+        controller.createVolumes(volumeDescriptorsList, taskId);
         _log.info("Change virutal pool steps has been successfully inititated");
+        return createTasksForVolumes(vpool, volumes, taskId);
     }
 
     /**

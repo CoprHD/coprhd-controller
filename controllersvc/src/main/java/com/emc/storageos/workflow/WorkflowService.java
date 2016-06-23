@@ -50,6 +50,7 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.ControllerLockingService;
+import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.Dispatcher;
 import com.emc.storageos.workflow.Workflow.Step;
@@ -628,10 +629,13 @@ public class WorkflowService implements WorkflowController {
      *            - Keep rolling back even if there's a rollback error
      * @param taskId
      *            -- Orchestration taskId from API service.
+     * @param completer
+     *            task completer
      * @return Workflow
      */
-    public Workflow getNewWorkflow(Controller controller, String method, Boolean rollbackContOnError, String taskId) {
-        return getNewWorkflow(controller, method, rollbackContOnError, taskId, null);
+    public Workflow getNewWorkflow(Controller controller, String method, Boolean rollbackContOnError, String taskId,
+            TaskCompleter completer) {
+        return getNewWorkflow(controller, method, rollbackContOnError, taskId, null, completer);
     }
 
     /**
@@ -646,15 +650,17 @@ public class WorkflowService implements WorkflowController {
      * @param taskId
      *            -- Orchestration taskId from API service.
      * @param workflowURI
-     *            -- If non-null, will use the passed UIR parameter for the workflowURI
+     *            -- If non-null, will use the passed URI parameter for the workflowURI
      * @return Workflow
      */
-    public Workflow getNewWorkflow(Controller controller, String method, Boolean rollbackContOnError, String taskId, URI workflowURI) {
+    private Workflow getNewWorkflow(Controller controller, String method, Boolean rollbackContOnError, String taskId, URI workflowURI,
+            TaskCompleter completer) {
         Workflow workflow = new Workflow(this, controller.getClass().getSimpleName(),
                 method, taskId, workflowURI);
         workflow.setRollbackContOnError(rollbackContOnError);
         workflow.setSuspendOnError(_suspendOnErrorTestOnly != null ? _suspendOnErrorTestOnly : Boolean.valueOf(ControllerUtils
                 .getPropertyValueFromCoordinator(_coordinator, WORKFLOW_SUSPEND_ON_ERROR_PROPERTY)));
+        workflow._taskCompleter = completer;
         // logWorkflow assigns the workflowURI.
         logWorkflow(workflow, false);
         // Keep track if it's a nested Workflow
@@ -1456,9 +1462,39 @@ public class WorkflowService implements WorkflowController {
             }
 
             if (workflow.getOrchTaskId() != null) {
-                List<Task> tasks = TaskUtils.findTasksForRequestId(_dbClient,
-                        workflow.getOrchTaskId());
-                if (tasks != null && false == tasks.isEmpty()) {
+                List<Task> tasks = new ArrayList<>();
+
+                if (workflow._taskCompleter != null && workflow._taskCompleter.getId() != null) {
+                    Set<URI> taskIds = new HashSet<>();
+
+                    // In typical situations, the task completer will be attached to Volumes, such
+                    // as migrating a non-CG virtual volume.
+                    for (URI resourceId : workflow._taskCompleter.getIds()) {
+                        Task task = TaskUtils.findTaskForRequestId(_dbClient, resourceId, workflow.getOrchTaskId());
+                        if (task != null && !taskIds.contains(task.getId())) {
+                            tasks.add(task);
+                            taskIds.add(task.getId());
+                        }
+                    }
+
+                    // In other situations, the task completer will be attached to Volumes but the Task resource
+                    // will be a parent object, such as a CG (in the case of Migration of a CG of volumes, for
+                    // instance)
+                    for (URI resourceId : workflow._taskCompleter.getIds()) {
+                        Task task = TaskUtils.findTaskForRequestIdAssociatedResource(_dbClient, resourceId, workflow.getOrchTaskId());
+                        if (task != null && !taskIds.contains(task.getId())) {
+                            tasks.add(task);
+                            taskIds.add(task.getId());
+                        }
+                    }
+                } else {
+                    List<Task> foundTasks = TaskUtils.findTasksForRequestId(_dbClient, workflow.getOrchTaskId());
+                    if (foundTasks != null && !foundTasks.isEmpty()) {
+                        tasks.addAll(foundTasks);
+                    }
+                }
+
+                if (tasks != null && !tasks.isEmpty()) {
                     for (Task task : tasks) {
                         task.setWorkflow(workflow.getWorkflowURI());
                     }

@@ -50,7 +50,8 @@ public class Volume extends BlockObject implements ProjectResource {
     // Associated volumes. In the case that this volume is a virtual volume, this
     // member captures the backend volume(s) that provide the actual storage.
     private StringSet _associatedVolumes;
-    // In case when the volume is a meta volume, metaVolumeMembers have list of meta volume members (meta volume head is not included).
+    // In case when the volume is a meta volume, metaVolumeMembers have list of meta volume members (meta volume head is
+    // not included).
     private StringSet _metaVolumeMembers;
     // Basic volume personality type (source, target, metadata) [determined internally]
     private String _personality;
@@ -95,12 +96,10 @@ public class Volume extends BlockObject implements ProjectResource {
 
     // The value alignments 0-4 correspond to SMIS values. Other storage types must map to these values.
     public static enum VolumeAccessState {
-        UNKNOWN("0"),
-        READABLE("1"),
-        WRITEABLE("2"),
-        READWRITE("3"),
-        WRITEONCE("4"),
-        NOT_READY("5"); // Not part of SMIS "Access" field, gathered from StatusDescriptions
+        UNKNOWN("0"), READABLE("1"), WRITEABLE("2"), READWRITE("3"), WRITEONCE("4"), NOT_READY("5"); // Not part of SMIS
+                                                                                                     // "Access" field,
+                                                                                                     // gathered from
+                                                                                                     // StatusDescriptions
 
         private final String state;
 
@@ -134,14 +133,7 @@ public class Volume extends BlockObject implements ProjectResource {
     }
 
     public enum LinkStatus {
-        FAILED_OVER("6014"),
-        IN_SYNC("6002 6015"),
-        SUSPENDED("6013"),
-        CONSISTENT("6111"),
-        SPLIT(""),
-        SWAPPED(""),
-        DETACHED(""),
-        OTHER("");
+        FAILED_OVER("6014"), IN_SYNC("6002 6015"), SUSPENDED("6013"), CONSISTENT("6111"), SPLIT(""), SWAPPED(""), DETACHED(""), OTHER("");
         private final String status;
 
         LinkStatus(String status) {
@@ -165,8 +157,7 @@ public class Volume extends BlockObject implements ProjectResource {
     }
 
     public static enum CompositionType {
-        STRIPED,
-        CONCATENATED
+        STRIPED, CONCATENATED
     }
 
     // Total capacity in bytes of all meta members
@@ -613,8 +604,10 @@ public class Volume extends BlockObject implements ProjectResource {
      * Get all of the volumes in this SRDF set; the source and all of its targets. For a
      * multi-volume SRDF, it only returns the targets (and source) associated with this one volume.
      * 
-     * @param dbClient db object to read from database
-     * @param volumeURI volume object
+     * @param dbClient
+     *            db object to read from database
+     * @param volumeURI
+     *            volume object
      * @return list of volume URIs
      */
     public static List<URI> fetchSRDFVolumes(DbClient dbClient, URI volumeURI) {
@@ -655,7 +648,8 @@ public class Volume extends BlockObject implements ProjectResource {
      * 
      * This utility function is called from various places in the controller code when it is necessary to determine
      * if the operation needs to be performed on the actual block object or its parent. In the case of RP snapshots,
-     * operations such as export/unexport of RP type snapshots needs to be performed on the parent of the snapshot rather
+     * operations such as export/unexport of RP type snapshots needs to be performed on the parent of the snapshot
+     * rather
      * than the snapshot object itself.
      * 
      * @param dbClient
@@ -762,19 +756,20 @@ public class Volume extends BlockObject implements ProjectResource {
         this.replicaState = state;
         setChanged("replicaState");
     }
-    
+
     /**
      * Returns true if the volume is of the personality of the passed in param.
      * 
-     * @param personality to check
+     * @param personality
+     *            to check
      * 
      * @return true if the volume is of that personality, false otherwise
      */
-    public boolean checkPersonality(String personality) {    	
-    	if (NullColumnValueGetter.isNotNullValue(this.getPersonality()) && this.getPersonality().equalsIgnoreCase(personality)) {
-    		return true;
-    	}    		
-		return false;
+    public boolean checkPersonality(String personality) {
+        if (NullColumnValueGetter.isNotNullValue(this.getPersonality()) && this.getPersonality().equalsIgnoreCase(personality)) {
+            return true;
+        }
+        return false;
     }
 
     @AlternateId("AltIdIndex")
@@ -791,7 +786,8 @@ public class Volume extends BlockObject implements ProjectResource {
     /**
      * Returns true if the passed volume is in an export group, false otherwise.
      * 
-     * @param dbClient A reference to a DbClient.
+     * @param dbClient
+     *            A reference to a DbClient.
      * 
      * @return true if the passed volume is in an export group, false otherwise.
      */
@@ -804,8 +800,10 @@ public class Volume extends BlockObject implements ProjectResource {
     /**
      * Returns true if the passed volume is in an export group, false otherwise.
      *
-     * @param dbClient A reference to a DbClient.
-     * @param ignoreRPExports If true, ignore if this volume has been exported to RP
+     * @param dbClient
+     *            A reference to a DbClient.
+     * @param ignoreRPExports
+     *            If true, ignore if this volume has been exported to RP
      * @return true if the passed volume is in an export group, false otherwise.
      */
     public boolean isVolumeExported(DbClient dbClient, boolean ignoreRPExports, boolean ignoreVPlexExports) {
@@ -833,7 +831,8 @@ public class Volume extends BlockObject implements ProjectResource {
     /**
      * Returns true if the passed volume is in an export group that isn't associated with RP.
      * 
-     * @param dbClient A reference to a DbClient
+     * @param dbClient
+     *            A reference to a DbClient
      * 
      * @return true if the passed volume is in an export group that isn't associated with RP, false otherwise
      */
@@ -855,7 +854,8 @@ public class Volume extends BlockObject implements ProjectResource {
      * Return whether or not a volume in ViPR was created outside
      * of ViPR and ingested.
      * 
-     * @param volume A reference to a volume.
+     * @param volume
+     *            A reference to a volume.
      * 
      * @return true if the volume was ingested, else false.
      */
@@ -897,7 +897,8 @@ public class Volume extends BlockObject implements ProjectResource {
     }
 
     /**
-     * Given a volume, this is an utility method that returns the VPLEX virtual volume that this volume is associated with.
+     * Given a volume, this is an utility method that returns the VPLEX virtual volume that this volume is associated
+     * with.
      * 
      * @param dbClient
      * @param volume
@@ -926,14 +927,15 @@ public class Volume extends BlockObject implements ProjectResource {
     /**
      * Check if the volume is a VPLEX volume.
      *
-     * @param dbClient the db client
+     * @param dbClient
+     *            the db client
      * @return true or false
      */
     public boolean isVPlexVolume(DbClient dbClient) {
         StorageSystem storage = dbClient.queryObject(StorageSystem.class, getStorageController());
         return DiscoveredDataObject.Type.vplex.name().equals(storage.getSystemType());
     }
-    
+
     /**
      * Check whether the given volume is vmax3 volume
      * 
@@ -972,8 +974,8 @@ public class Volume extends BlockObject implements ProjectResource {
             }
         }
         return false;
-    }    
-    
+    }
+
     public static enum ReplicationState {
         UNKNOWN(0), SYNCHRONIZED(1), CREATED(2), RESYNCED(3), INACTIVE(4), DETACHED(5), RESTORED(6);
 
@@ -984,6 +986,7 @@ public class Volume extends BlockObject implements ProjectResource {
                 states.put(state.name(), state);
             }
         }
+
         private final int value;
 
         ReplicationState(int value) {
@@ -1057,5 +1060,29 @@ public class Volume extends BlockObject implements ProjectResource {
      */
     public boolean isInVolumeGroup() {
         return !getVolumeGroupIds().isEmpty();
+    }
+
+    /**
+     * Convenience method to retrieve all of the CGs associated with the volume IDs
+     * 
+     * @param dbClient
+     *            dbClient
+     * @param volURIs
+     *            volume IDs
+     * @return list of CG IDs
+     */
+    public static List<URI> fetchCgIds(DbClient dbClient, List<URI> volURIs) {
+        List<URI> cgIds = new ArrayList<>();
+
+        if (volURIs != null) {
+            for (URI volumeId : volURIs) {
+                Volume volume = dbClient.queryObject(Volume.class, volumeId);
+                if (volume != null && volume.getConsistencyGroup() != null && !cgIds.contains(volume.getConsistencyGroup())) {
+                    cgIds.add(volume.getConsistencyGroup());
+                }
+            }
+        }
+
+        return cgIds;
     }
 }

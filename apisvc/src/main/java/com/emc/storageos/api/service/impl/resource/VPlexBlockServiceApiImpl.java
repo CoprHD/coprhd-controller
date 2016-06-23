@@ -1211,7 +1211,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      */
     @Override
     public void changeVolumeVirtualPool(URI systemURI, Volume volume, VirtualPool vpool,
-            VirtualPoolChangeParam vpoolChangeParam, Map<URI, String> taskMap) throws InternalException {
+            VirtualPoolChangeParam vpoolChangeParam, String taskId) throws InternalException {
         VirtualPool volumeVirtualPool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
         s_logger.info("Volume {} VirtualPool change.", volume.getId());
 
@@ -1219,7 +1219,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         ArrayList<Volume> volumes = new ArrayList<Volume>();
         volumes.add(volume);
 
-        if (checkCommonVpoolUpdates(volumes, vpool, taskMap)) {
+        if (checkCommonVpoolUpdates(volumes, vpool, taskId)) {
             return;
         }
 
@@ -1230,7 +1230,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         if (!DiscoveredDataObject.Type.vplex.name().equals(systemType)) {
             // If it is not a VPLEX volume, then this must be an import to VPLEX.
             s_logger.info("High availability VirtualPool change for vmax or vnx volume.");
-            importVirtualVolume(systemURI, volume, vpool, taskMap.get(volume.getId()));
+            importVirtualVolume(systemURI, volume, vpool, taskId);
         } else {
             if (VirtualPoolChangeAnalyzer.isVPlexConvertToDistributed(volumeVirtualPool, vpool,
                     new StringBuffer())) {
@@ -1240,7 +1240,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                             transferSpeed);
                 }
                 // Convert vplex_local to vplex_distributed
-                upgradeToDistributed(systemURI, volume, vpool, transferSpeed, taskMap.get(volume.getId()));
+                upgradeToDistributed(systemURI, volume, vpool, transferSpeed, taskId);
             } else if (!VirtualPool.vPoolSpecifiesMirrors(volumeVirtualPool, _dbClient)
                     && (VirtualPool.vPoolSpecifiesMirrors(vpool, _dbClient))
                     && VirtualPoolChangeAnalyzer.isSupportedAddMirrorsVirtualPoolChange(volume, volumeVirtualPool, vpool, _dbClient,
@@ -1254,9 +1254,9 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 String msg = format("VirtualPool changed from %s to %s for Volume %s",
                         originalVirtualPool, vpool.getId(), volume.getId());
                 s_logger.info(msg);
-                _dbClient.createTaskOpStatus(Volume.class, volume.getId(), taskMap.get(volume.getId()),
+                _dbClient.createTaskOpStatus(Volume.class, volume.getId(), taskId,
                         ResourceOperationTypeEnum.CHANGE_BLOCK_VOLUME_VPOOL);
-                _dbClient.ready(Volume.class, volume.getId(), taskMap.get(volume.getId()), msg);
+                _dbClient.ready(Volume.class, volume.getId(), taskId, msg);
             } else {
                 // Prepare for VPlex virtual volume VirtualPool change.
                 // Get the varray for the virtual volume.
@@ -1267,11 +1267,11 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 operationsWrapper.put(ControllerOperationValuesWrapper.MIGRATION_SUSPEND_BEFORE_DELETE_SOURCE,
                         vpoolChangeParam.getMigrationSuspendBeforeDeleteSource());
                 List<VolumeDescriptor> descriptors = createChangeVirtualPoolDescriptors(storageSystem, volume, vpool,
-                        taskMap.get(volume.getId()), null, null,
+                        taskId, null, null,
                         operationsWrapper);
 
                 // Now we get the Orchestration controller and use it to change the virtual pool of the volumes.
-                orchestrateVPoolChanges(Arrays.asList(volume), descriptors, taskMap.get(volume.getId()));
+                orchestrateVPoolChanges(Arrays.asList(volume), descriptors, taskId);
             }
         }
     }
@@ -1280,12 +1280,12 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * {@inheritDoc}
      */
     @Override
-    public void changeVolumeVirtualPool(List<Volume> volumes, VirtualPool vpool,
-            VirtualPoolChangeParam vpoolChangeParam, Map<URI, String> taskMap) throws InternalException {
+    public TaskList changeVolumeVirtualPool(List<Volume> volumes, VirtualPool vpool,
+            VirtualPoolChangeParam vpoolChangeParam, String taskId) throws InternalException {
 
         // Check for common Vpool updates handled by generic code. It returns true if handled.
-        if (checkCommonVpoolUpdates(volumes, vpool, taskMap)) {
-            return;
+        if (checkCommonVpoolUpdates(volumes, vpool, taskId)) {
+            return createTasksForVolumes(vpool, volumes, taskId);
         }
 
         // Check if any of the volumes passed is a VPLEX volume
@@ -1325,6 +1325,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                         volumesNotInRG.add(volume);
                     }
                 }
+                TaskList taskList = new TaskList();
+
                 for (Table.Cell<URI, String, List<Volume>> cell : groupVolumes.cellSet()) {
                     List<Volume> volumesInRGRequest = cell.getValue();
                     List<Volume> rgVolumes = getVolumesInSameReplicationGroup(cell.getColumnKey(), cell.getRowKey());
@@ -1362,25 +1364,42 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     URI systemURI = changeVPoolVolume.getStorageController();
                     StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, systemURI);
                     List<VolumeDescriptor> descriptors = new ArrayList<VolumeDescriptor>();
+                    ControllerOperationValuesWrapper operationsWrapper = new ControllerOperationValuesWrapper();
+                    operationsWrapper.put(ControllerOperationValuesWrapper.MIGRATION_SUSPEND_BEFORE_COMMIT,
+                            vpoolChangeParam.getMigrationSuspendBeforeCommit());
+                    operationsWrapper.put(ControllerOperationValuesWrapper.MIGRATION_SUSPEND_BEFORE_DELETE_SOURCE,
+                            vpoolChangeParam.getMigrationSuspendBeforeDeleteSource());
                     for (Volume volume : volumesInRGRequest) {
                         descriptors.addAll(createChangeVirtualPoolDescriptors(storageSystem,
-                                volume, vpool, taskMap.get(volume.getId()), null, null, null));
+                                volume, vpool, taskId, null, null, operationsWrapper));
                     }
 
+                    // TODO DUPP:
+                    // 1. This is not really splitting up the work by CGs but rather by replication groups.
+                    // But the task is by CG, and this will cause an issue when two replication groups exist in the
+                    // same BlockConsistencyGroup. We'll hit the same issue when we try to do a multi-volume creation
+                    // and we don't have a parent object to base the Task resource on.
+                    if (rgVolumes != null && !rgVolumes.isEmpty() && rgVolumes.get(0).getConsistencyGroup() != null) {
+                        cg = _dbClient.queryObject(BlockConsistencyGroup.class, rgVolumes.get(0).getConsistencyGroup());
+                    }
+
+                    // Create a task object associated with the CG
+                    taskList.getTaskList().add(createTaskForCG(vpool, cg, volumes, taskId));
+
                     // Orchestrate the vpool changes of all volumes as a single request.
-                    // DUPP TODO: I did not change the controller code to take the entire map of tasks.
-                    // The block orchestrator change virtual pool will create a single task for all volumes.
-                    // This will need to be reconciled at some point and testing multiple volumes through the
-                    // change vpool code will be required.
-                    orchestrateVPoolChanges(volumesInRGRequest, descriptors, taskMap.values().iterator().next());
+                    orchestrateVPoolChanges(volumesInRGRequest, descriptors, taskId);
+
                 }
                 if (!volumesNotInRG.isEmpty()) {
+                    // Create a task object associated with the Volumes
+                    taskList.getTaskList().addAll(createTasksForVolumes(vpool, volumes, taskId).getTaskList());
+
                     for (Volume volume : volumesNotInRG) {
                         changeVolumeVirtualPool(volume.getStorageController(), volume, vpool,
-                                vpoolChangeParam, taskMap);
+                                vpoolChangeParam, taskId);
                     }
                 }
-                return;
+                return taskList;
             }
         }
 
@@ -1388,8 +1407,9 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         // individual vpool changes for each volume.
         for (Volume volume : volumes) {
             changeVolumeVirtualPool(volume.getStorageController(), volume, vpool,
-                    vpoolChangeParam, taskMap);
+                    vpoolChangeParam, taskId);
         }
+        return createTasksForVolumes(vpool, volumes, taskId);
     }
 
     /**

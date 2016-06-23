@@ -24,6 +24,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.Controller;
+import com.emc.storageos.api.mapper.TaskMapper;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.placement.StorageScheduler;
 import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyManager;
@@ -81,6 +82,7 @@ import com.emc.storageos.model.varray.VirtualArrayConnectivityRestRep;
 import com.emc.storageos.model.vpool.VirtualPoolChangeList;
 import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
 import com.emc.storageos.plugins.common.Constants;
+import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.ConnectivityUtil;
@@ -544,7 +546,8 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, volumeSystemURI);
         StoragePort.PortType portType = getSystemConnectivityPortType();
         if (ConnectivityUtil.isAVPlex(storageSystem)) {
-            s_logger.info("Volume Storage System is a VPLEX, setting port type to backend for storage systems network association check.");
+            s_logger
+                    .info("Volume Storage System is a VPLEX, setting port type to backend for storage systems network association check.");
             portType = StoragePort.PortType.backend;
         }
 
@@ -700,10 +703,10 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      */
     @Override
     public void changeVolumeVirtualPool(URI systemURI, Volume volume, VirtualPool vpool,
-            VirtualPoolChangeParam vpoolChangeParam, Map<URI, String> taskMap) throws InternalException {
+            VirtualPoolChangeParam vpoolChangeParam, String taskId) throws InternalException {
         List<Volume> volumes = new ArrayList<Volume>();
         volumes.add(volume);
-        if (checkCommonVpoolUpdates(volumes, vpool, taskMap)) {
+        if (checkCommonVpoolUpdates(volumes, vpool, taskId)) {
             return;
         }
         throw APIException.methodNotAllowed.notSupported();
@@ -715,14 +718,14 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      * @throws InternalException
      */
     @Override
-    public void changeVolumeVirtualPool(List<Volume> volumes, VirtualPool vpool,
-            VirtualPoolChangeParam vpoolChangeParam, Map<URI, String> taskMap) throws InternalException {
+    public TaskList changeVolumeVirtualPool(List<Volume> volumes, VirtualPool vpool,
+            VirtualPoolChangeParam vpoolChangeParam, String taskId) throws InternalException {
         /**
          * 'Auto-tiering policy change' operation supports multiple volume processing.
          * At present, other operations only support single volume processing.
          */
-        if (checkCommonVpoolUpdates(volumes, vpool, taskMap)) {
-            return;
+        if (checkCommonVpoolUpdates(volumes, vpool, taskId)) {
+            return createTasksForVolumes(vpool, volumes, taskId);
         }
         throw APIException.methodNotAllowed.notSupported();
     }
@@ -1039,14 +1042,14 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      * @throws InternalException
      */
     protected boolean checkCommonVpoolUpdates(List<Volume> volumes, VirtualPool newVirtualPool,
-            Map<URI, String> taskMap) throws InternalException {
+            String taskId) throws InternalException {
         VirtualPool volumeVirtualPool = _dbClient.queryObject(VirtualPool.class, volumes.get(0).getVirtualPool());
         StringBuffer notSuppReasonBuff = new StringBuffer();
         if (VirtualPoolChangeAnalyzer.isSupportedPathParamsChange(volumes.get(0),
                 volumeVirtualPool, newVirtualPool, _dbClient, notSuppReasonBuff)) {
             BlockExportController exportController = getController(BlockExportController.class, BlockExportController.EXPORT);
             for (Volume volume : volumes) {
-                exportController.updateVolumePathParams(volume.getId(), newVirtualPool.getId(), taskMap.get(volume.getId()));
+                exportController.updateVolumePathParams(volume.getId(), newVirtualPool.getId(), taskId);
             }
             return true;
         }
@@ -1063,11 +1066,8 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
             for (Volume volume : volumes) {
                 volumeURIs.add(volume.getId());
             }
-            // DUPP TODO: I did not change the controller code to take the entire map of tasks.
-            // The block orchestrator change virtual pool will create a single task for all volumes.
-            // This will need to be reconciled at some point and testing multiple volumes through the
-            // change vpool code will be required.
-            exportController.updatePolicyAndLimits(volumeURIs, newVirtualPool.getId(), taskMap.values().iterator().next());
+
+            exportController.updatePolicyAndLimits(volumeURIs, newVirtualPool.getId(), taskId);
             return true;
         }
 
@@ -1916,5 +1916,152 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
             List<Volume> removeVolumes,
             URI applicationId, String taskId) {
         throw APIException.methodNotAllowed.notSupported();
+    }
+
+    /**
+     * Determines if there are any associated resources that are indirectly affected by this volume operation. If
+     * there are we should add them to the Task object.
+     *
+     * @param volume
+     *            The volume the operation is being performed on
+     * @param vpool
+     *            The vpool needed for extra information on whether to add associated resources
+     * @return A list of any associated resources, null otherwise
+     */
+    protected List<? extends DataObject> getTaskAssociatedResources(Volume volume, VirtualPool vpool) {
+        List<? extends DataObject> associatedResources = null;
+
+        VirtualPool currentVpool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
+
+        // If RP protection has been specified, we want to further determine what type of virtual pool
+        // change has been made.
+        if (VirtualPool.vPoolSpecifiesProtection(currentVpool) && VirtualPool.vPoolSpecifiesProtection(vpool)
+                && !NullColumnValueGetter.isNullURI(volume.getConsistencyGroup())) {
+            // Get all RP Source volumes in the CG
+            List<Volume> allRPSourceVolumesInCG = RPHelper.getCgSourceVolumes(volume.getConsistencyGroup(), _dbClient);
+            // Remove the volume in question from the associated list, don't want a double entry because the
+            // volume passed in will already be counted as an associated resource for the Task.
+            allRPSourceVolumesInCG.remove(volume.getId());
+
+            if (VirtualPool.vPoolSpecifiesRPVPlex(currentVpool)
+                    && VirtualPool.vPoolSpecifiesMetroPoint(vpool)) {
+                // For an upgrade to MetroPoint (moving from RP+VPLEX vpool to MetroPoint vpool), even though the user
+                // would have chosen 1 volume to update but we need to update ALL the RSets/volumes in the CG.
+                // We can't just update one RSet/volume.
+                s_logger.info("VirtualPool change for to upgrade to MetroPoint.");
+                return allRPSourceVolumesInCG;
+            }
+
+            // Determine if the copy mode setting has changed. For this type of change, all source volumes
+            // in the consistency group are affected.
+            String currentCopyMode = currentVpool.getRpCopyMode() == null ? "" : currentVpool.getRpCopyMode();
+            String newCopyMode = vpool.getRpCopyMode() == null ? "" : vpool.getRpCopyMode();
+
+            if (!newCopyMode.equals(currentCopyMode)) {
+                // The copy mode setting has changed.
+                s_logger.info(String.format("VirtualPool change to update copy from %s to %s.", currentCopyMode, newCopyMode));
+                return allRPSourceVolumesInCG;
+            }
+        }
+
+        return associatedResources;
+    }
+
+    /**
+     * Create a task list for the volumes sent in.
+     * 
+     * @param vPool
+     *            virtual pool
+     * @param volumes
+     *            volumes
+     * @param taskId
+     *            task ID
+     * @return a task list
+     */
+    protected TaskList createTasksForVolumes(VirtualPool vPool, List<Volume> volumes, String taskId) {
+
+        TaskList taskList = new TaskList();
+        if (volumes == null) {
+            s_logger.info("No volumes were presented to create task objects.  This is a fatal error");
+            // TODO DUPP: throw exception;
+            return taskList;
+        }
+
+        for (Volume volume : volumes) {
+            // Associated resources are any resources that are indirectly affected by this
+            // volume's virtual pool change. The user should be notified if there are any.
+            List<? extends DataObject> associatedResources = getTaskAssociatedResources(volume, vPool);
+            List<URI> associatedResourcesURIs = new ArrayList<URI>();
+            if (associatedResources != null
+                    && !associatedResources.isEmpty()) {
+                for (DataObject obj : associatedResources) {
+                    associatedResourcesURIs.add(obj.getId());
+                }
+            }
+
+            // New operation
+            Operation op = new Operation();
+            op.setResourceType(ResourceOperationTypeEnum.CHANGE_BLOCK_VOLUME_VPOOL);
+            op.setDescription("Change vpool operation");
+            if (!associatedResourcesURIs.isEmpty()) {
+                op.setAssociatedResourcesField(Joiner.on(',').join(associatedResourcesURIs));
+            }
+            op = _dbClient.createTaskOpStatus(Volume.class, volume.getId(), taskId, op);
+
+            TaskResourceRep volumeTask = null;
+            if (associatedResources != null) {
+                // We need the task to reflect that there are associated resources affected by this operation.
+                volumeTask = TaskMapper.toTask(volume, associatedResources, taskId, op);
+            } else {
+                volumeTask = TaskMapper.toTask(volume, taskId, op);
+            }
+            taskList.getTaskList().add(volumeTask);
+        }
+
+        return taskList;
+    }
+
+    /**
+     * Create a task for the CG and volumes sent in.
+     * 
+     * @param vPool
+     *            virtual pool
+     * @param volumes
+     *            volumes
+     * @param taskId
+     *            task ID
+     * @return a task list
+     */
+    protected TaskResourceRep createTaskForCG(VirtualPool vPool, BlockConsistencyGroup cg, List<Volume> volumes, String taskId) {
+        if (volumes == null) {
+            s_logger.info("No volumes were presented to create task objects.  This is a fatal error");
+            // TODO DUPP: throw exception;
+            return null;
+        }
+
+        List<? extends DataObject> associatedResources = new ArrayList<>();
+        List<URI> associatedResourcesURIs = new ArrayList<URI>();
+        for (Volume volume : volumes) {
+            associatedResourcesURIs.add(volume.getId());
+        }
+
+        // New operation
+        Operation op = new Operation();
+        op.setResourceType(ResourceOperationTypeEnum.CHANGE_BLOCK_VOLUME_VPOOL);
+        op.setDescription("Change vpool operation");
+        if (!associatedResourcesURIs.isEmpty()) {
+            op.setAssociatedResourcesField(Joiner.on(',').join(associatedResourcesURIs));
+        }
+        op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, cg.getId(), taskId, op);
+
+        TaskResourceRep cgTask = null;
+        if (!associatedResources.isEmpty()) {
+            // We need the task to reflect that there are associated resources affected by this operation.
+            cgTask = TaskMapper.toTask(cg, associatedResources, taskId, op);
+        } else {
+            cgTask = TaskMapper.toTask(cg, taskId, op);
+        }
+
+        return cgTask;
     }
 }

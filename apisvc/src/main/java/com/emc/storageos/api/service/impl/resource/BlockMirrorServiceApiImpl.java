@@ -690,13 +690,13 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
     @Override
     public void changeVolumeVirtualPool(URI systemURI, Volume volume, VirtualPool virtualPool,
             VirtualPoolChangeParam cosChangeParam,
-            Map<URI, String> taskMap) throws ControllerException {
+            String taskId) throws ControllerException {
         StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, systemURI);
         String systemType = storageSystem.getSystemType();
 
         List<Volume> volumes = new ArrayList<Volume>();
         volumes.add(volume);
-        if (checkCommonVpoolUpdates(volumes, virtualPool, taskMap)) {
+        if (checkCommonVpoolUpdates(volumes, virtualPool, taskId)) {
             return;
         }
 
@@ -710,24 +710,25 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
             String msg = format("VirtualPool changed from %s to %s for Volume %s",
                     original, virtualPool.getId(), volume.getId());
             Operation opStatus = new Operation(Operation.Status.ready.name(), msg);
-            _dbClient.updateTaskOpStatus(Volume.class, volume.getId(), taskMap.get(volume.getId()), opStatus);
+            _dbClient.updateTaskOpStatus(Volume.class, volume.getId(), taskId, opStatus);
         } else {
             throw APIException.badRequests.unsupportedSystemType(systemType);
         }
     }
 
     @Override
-    public void changeVolumeVirtualPool(List<Volume> volumes, VirtualPool vpool,
-            VirtualPoolChangeParam vpoolChangeParam, Map<URI, String> taskMap) throws InternalException {
+    public TaskList changeVolumeVirtualPool(List<Volume> volumes, VirtualPool vpool,
+            VirtualPoolChangeParam vpoolChangeParam, String taskId) throws InternalException {
 
         // Check for common Vpool updates handled by generic code. It returns true if handled.
-        if (checkCommonVpoolUpdates(volumes, vpool, taskMap)) {
-            return;
+        if (checkCommonVpoolUpdates(volumes, vpool, taskId)) {
+            return createTasksForVolumes(vpool, volumes, taskId);
         }
 
         for (Volume volume : volumes) {
-            changeVolumeVirtualPool(volume.getStorageController(), volume, vpool, vpoolChangeParam, taskMap);
+            changeVolumeVirtualPool(volume.getStorageController(), volume, vpool, vpoolChangeParam, taskId);
         }
+        return createTasksForVolumes(vpool, volumes, taskId);
     }
 
     private Predicate<URI> isMirrorInactivePredicate() {

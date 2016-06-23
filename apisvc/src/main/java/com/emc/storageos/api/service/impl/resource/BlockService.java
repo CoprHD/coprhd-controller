@@ -151,7 +151,6 @@ import com.emc.storageos.model.vpool.VirtualPoolChangeList;
 import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
 import com.emc.storageos.protectioncontroller.ProtectionController;
 import com.emc.storageos.protectioncontroller.RPController;
-import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.ACL;
@@ -171,7 +170,6 @@ import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.volumecontroller.placement.ExportPathUpdater;
 import com.emc.storageos.vplexcontroller.VPlexDeviceController;
-import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 
@@ -1136,19 +1134,6 @@ public class BlockService extends TaskResourceService {
     }
 
     /**
-     * Validates VMAX Thin volume preallocation size.
-     *
-     * @param thinVolumePreAllocationPercentage
-     * @param volumeSize
-     */
-    private void validateVMaxThinVolumePreAllocateParam(Integer thinVolumePreAllocationPercentage, Long volumeSize) {
-        if (CapacityUtils.convertBytesToGB(VirtualPoolUtil.getThinVolumePreAllocationSize(
-                thinVolumePreAllocationPercentage, volumeSize)) > THIN_VOLUME_MAX_LIMIT) {
-            throw APIException.badRequests.invalidVirtualPoolSpecifiedVMAXThin();
-        }
-    }
-
-    /**
      * Returns the bean responsible for servicing the request
      *
      * @param vpool
@@ -1372,22 +1357,6 @@ public class BlockService extends TaskResourceService {
                 volume.getId().toString(), volume.getCapacity(), newSize);
 
         return toTask(volume, taskId, op);
-    }
-
-    private String validateQueryParams(String local, String remote) {
-        if (local == null && remote == null) {
-            return "source";
-        }
-        if (local != null && remote != null) {
-            throw new ServiceCodeException(ServiceCode.IO_ERROR, "Cannot specify both local and remote", null);
-        }
-        if (local != null && local.equalsIgnoreCase(TRUE_STR)) {
-            return "local";
-        }
-        if (remote != null && remote.equalsIgnoreCase(TRUE_STR)) {
-            return "remote";
-        }
-        throw new ServiceCodeException(ServiceCode.IO_ERROR, "local or remote query options can only be 'true'", null);
     }
 
     /**
@@ -3190,7 +3159,7 @@ public class BlockService extends TaskResourceService {
             _log.info("Got block service implementation for VirtualPool change request");
             Map<URI, String> taskMap = new HashMap<>();
             taskMap.put(volume.getId(), taskId);
-            blockServiceAPI.changeVolumeVirtualPool(Arrays.asList(volume), vpool, param, taskMap);
+            blockServiceAPI.changeVolumeVirtualPool(Arrays.asList(volume), vpool, param, taskId);
             _log.info("Executed VirtualPool change for volume.");
         } catch (InternalException | APIException e) {
             String errorMsg = String.format("Volume VirtualPool change error: %s", e.getMessage());
@@ -3269,7 +3238,6 @@ public class BlockService extends TaskResourceService {
 
         List<Volume> volumes = new ArrayList<Volume>();
         TaskList taskList = new TaskList();
-        Map<URI, String> taskMap = new HashMap<>();
 
         for (URI id : ids) {
             // Get the volume.
@@ -3347,42 +3315,8 @@ public class BlockService extends TaskResourceService {
                     vPool.getLabel(), "volume");
         }
 
-        // Create a task for each volume and set the initial task state to pending.
-        for (Volume volume : volumes) {
-            // Associated resources are any resources that are indirectly affected by this
-            // volume's virtual pool change. The user should be notified if there are any.
-            List<? extends DataObject> associatedResources = getTaskAssociatedResources(volume, vPool);
-            List<URI> associatedResourcesURIs = new ArrayList<URI>();
-            if (associatedResources != null
-                    && !associatedResources.isEmpty()) {
-                for (DataObject obj : associatedResources) {
-                    associatedResourcesURIs.add(obj.getId());
-                }
-            }
-
-            // Create a unique task id.
-            String taskId = UUID.randomUUID().toString();
-
-            // New operation
-            Operation op = new Operation();
-            op.setResourceType(ResourceOperationTypeEnum.CHANGE_BLOCK_VOLUME_VPOOL);
-            op.setDescription("Change vpool operation");
-            if (!associatedResourcesURIs.isEmpty()) {
-                op.setAssociatedResourcesField(Joiner.on(',').join(associatedResourcesURIs));
-            }
-            op = _dbClient.createTaskOpStatus(Volume.class, volume.getId(), taskId, op);
-
-            TaskResourceRep volumeTask = null;
-            if (associatedResources != null) {
-                // We need the task to reflect that there are associated resources affected by this operation.
-                volumeTask = toTask(volume, associatedResources, taskId, op);
-            } else {
-                volumeTask = toTask(volume, taskId, op);
-            }
-
-            taskList.getTaskList().add(volumeTask);
-            taskMap.put(volume.getId(), taskId);
-        }
+        // Create a unique task id.
+        String taskId = UUID.randomUUID().toString();
 
         // if this vpool request change has a consistency group, set its requested types
         if (param.getConsistencyGroup() != null) {
@@ -3408,8 +3342,8 @@ public class BlockService extends TaskResourceService {
                     volumes.get(0), vPool);
             _log.info("Got block service implementation for VirtualPool change request");
             VirtualPoolChangeParam oldParam = convertNewVirtualPoolChangeParamToOldParam(param);
-            blockServiceAPI.changeVolumeVirtualPool(volumes, vPool,
-                    oldParam, taskMap);
+            taskList = blockServiceAPI.changeVolumeVirtualPool(volumes, vPool,
+                    oldParam, taskId);
             _log.info("Executed VirtualPool change for given volumes.");
         } catch (Exception e) {
             String errorMsg = String.format(
@@ -3419,7 +3353,7 @@ public class BlockService extends TaskResourceService {
                 volumeTask.setState(Operation.Status.error.name());
                 volumeTask.setMessage(errorMsg);
                 _dbClient.updateTaskOpStatus(Volume.class, volumeTask
-                        .getResource().getId(), taskMap.get(volumeTask.getResource().getId()),
+                        .getResource().getId(), taskId,
                         new Operation(Operation.Status.error.name(), errorMsg));
             }
             throw e;
@@ -3435,55 +3369,6 @@ public class BlockService extends TaskResourceService {
         }
 
         return taskList;
-    }
-
-    /**
-     * Determines if there are any associated resources that are indirectly affected by this volume operation. If
-     * there are we should add them to the Task object.
-     *
-     * @param volume
-     *            The volume the operation is being performed on
-     * @param vpool
-     *            The vpool needed for extra information on whether to add associated resources
-     * @return A list of any associated resources, null otherwise
-     */
-    private List<? extends DataObject> getTaskAssociatedResources(Volume volume, VirtualPool vpool) {
-        List<? extends DataObject> associatedResources = null;
-
-        VirtualPool currentVpool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
-
-        // If RP protection has been specified, we want to further determine what type of virtual pool
-        // change has been made.
-        if (VirtualPool.vPoolSpecifiesProtection(currentVpool) && VirtualPool.vPoolSpecifiesProtection(vpool)
-                && !NullColumnValueGetter.isNullURI(volume.getConsistencyGroup())) {
-            // Get all RP Source volumes in the CG
-            List<Volume> allRPSourceVolumesInCG = RPHelper.getCgSourceVolumes(volume.getConsistencyGroup(), _dbClient);
-            // Remove the volume in question from the associated list, don't want a double entry because the
-            // volume passed in will already be counted as an associated resource for the Task.
-            allRPSourceVolumesInCG.remove(volume.getId());
-
-            if (VirtualPool.vPoolSpecifiesRPVPlex(currentVpool)
-                    && VirtualPool.vPoolSpecifiesMetroPoint(vpool)) {
-                // For an upgrade to MetroPoint (moving from RP+VPLEX vpool to MetroPoint vpool), even though the user
-                // would have chosen 1 volume to update but we need to update ALL the RSets/volumes in the CG.
-                // We can't just update one RSet/volume.
-                _log.info("VirtualPool change for to upgrade to MetroPoint.");
-                return allRPSourceVolumesInCG;
-            }
-
-            // Determine if the copy mode setting has changed. For this type of change, all source volumes
-            // in the consistency group are affected.
-            String currentCopyMode = currentVpool.getRpCopyMode() == null ? "" : currentVpool.getRpCopyMode();
-            String newCopyMode = vpool.getRpCopyMode() == null ? "" : vpool.getRpCopyMode();
-
-            if (!newCopyMode.equals(currentCopyMode)) {
-                // The copy mode setting has changed.
-                _log.info(String.format("VirtualPool change to update copy from %s to %s.", currentCopyMode, newCopyMode));
-                return allRPSourceVolumesInCG;
-            }
-        }
-
-        return associatedResources;
     }
 
     /**
@@ -5371,25 +5256,6 @@ public class BlockService extends TaskResourceService {
             }
         }
         return isMatched;
-    }
-
-    /**
-     * Determines if the volumes are associated with a Block CG for ScaleIO
-     *
-     * @param activeCGVolumes
-     *            [in] - List of volumes that are associated to a BlockConsistencyGroup
-     * @return
-     */
-    private boolean cgVolumesAreOnScaleIO(List<Volume> activeCGVolumes) {
-        boolean result = false;
-        // All volumes belonging to a CG should belong to the same StorageSystem, so
-        // take any sample volume to find the StorageSystem and determine its type
-        if (!activeCGVolumes.isEmpty()) {
-            Volume checkVol = activeCGVolumes.get(0);
-            StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, checkVol.getStorageController());
-            result = (storageSystem != null && storageSystem.getSystemType().equals(DiscoveredDataObject.Type.scaleio.name()));
-        }
-        return result;
     }
 
     protected static boolean isSuspendCopyRequest(String op, Copy copy) {

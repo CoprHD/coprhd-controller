@@ -7,7 +7,6 @@ package com.emc.storageos.api.service.impl.resource;
 import java.net.URI;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 
 import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyManager;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
@@ -257,13 +256,13 @@ public interface BlockServiceApi {
      *            A reference to the new vpool.
      * @param vpoolChangeParam
      *            vpool change request
-     * @param taskMap
+     * @param taskId
      *            The task identifier.
      * 
      * @throws InternalException
      */
     public void changeVolumeVirtualPool(URI systemURI, Volume volume,
-            VirtualPool targetVpool, VirtualPoolChangeParam vpoolChangeParam, Map<URI, String> taskMap)
+            VirtualPool targetVpool, VirtualPoolChangeParam vpoolChangeParam, String taskId)
                     throws InternalException;
 
     /**
@@ -276,13 +275,13 @@ public interface BlockServiceApi {
      *            A reference to the new vpool.
      * @param vpoolChangeParam
      *            vpool change request
-     * @param taskMap
-     *            Mapping of volume ID to task ID
+     * @param taskId
+     *            task ID
      * @throws InternalException
      *             the internal exception
      */
-    public void changeVolumeVirtualPool(List<Volume> volumes,
-            VirtualPool targetVpool, VirtualPoolChangeParam vpoolChangeParam, Map<URI, String> taskMap)
+    public TaskList changeVolumeVirtualPool(List<Volume> volumes,
+            VirtualPool targetVpool, VirtualPoolChangeParam vpoolChangeParam, String taskId)
                     throws InternalException;
 
     /**

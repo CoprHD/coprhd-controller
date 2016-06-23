@@ -15,8 +15,7 @@ add_volume_to_mask() {
     serial_number=$1
     device_id=$2
     pattern=$3
-    java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays xio -method remove_volume_from_mask -params ${device_id},${pattern} > ${TMPFILE1} 2> ${TMPFILE2}
-
+    java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays xtremio -method add_volume_to_mask -params "${device_id},${pattern}" 
     echo "Added volume ${device_id} to initiator group ${pattern}"
 }
 
@@ -24,12 +23,30 @@ remove_volume_from_mask() {
     serial_number=$1
     device_id=$2
     pattern=$3
-    java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays xio -method add_volume_to_mask -params ${device_id},${pattern} > ${TMPFILE1} 2> ${TMPFILE2}
+    java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays xtremio -method remove_volume_from_mask -params "${device_id},${pattern}"
     echo "Removed volume ${device_id} from initiator group ${pattern}"
 }
 
 delete_volume() {
-    echo "Not yet implemented for XIO"
+    serial_number=$1
+    device_id=$2
+    java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays xtremio -method delete_volume -params "${device_id}" 
+}
+
+remove_initiator_from_mask() {
+    serial_number=$1
+    device_id=$2
+    pattern=$3
+    java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays xtremio -method remove_initiator_from_mask -params "${device_id},${pattern}"
+
+}
+
+add_initiator_to_mask() {
+    serial_number=$1
+    device_id=$2
+    pattern=$3
+    java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays xtremio -method add_initiator_to_mask -params "${device_id},${pattern}"
+
 }
 
 verify_export() {
@@ -45,7 +62,7 @@ verify_export() {
     TMPFILE1=/tmp/verify-${RANDOM}
     TMPFILE2=/dev/null
 
-    java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays xio -method get_initiator_group -params ${IG_PATTERN} > ${TMPFILE1} 2> ${TMPFILE2}
+    java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays xtremio -method get_initiator_group -params ${IG_PATTERN} > ${TMPFILE1} 2> ${TMPFILE2}
     grep -n ${IG_PATTERN} ${TMPFILE1} > /dev/null
     if [ $? -ne 0 ]
 	then
@@ -101,6 +118,12 @@ if [ "$1" = "add_volume_to_mask" ]; then
 elif [ "$1" = "remove_volume_from_mask" ]; then
     shift
     remove_volume_from_mask $1 $2 $3
+elif [ "$1" = "add_initiator_to_mask" ]; then
+    shift
+    add_initiator_to_mask $1 $2 $3
+elif [ "$1" = "remove_initiator_from_mask" ]; then
+    shift
+    remove_initiator_from_mask $1 $2 $3
 elif [ "$1" = "delete_volume" ]; then
     shift
     delete_volume $1 $2

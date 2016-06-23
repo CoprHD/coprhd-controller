@@ -110,7 +110,7 @@ public class CinderMaskingOrchestrator extends AbstractMaskingFirstOrchestrator 
         // Get new work flow to setup steps for export group creation
         Workflow workflow = _workflowService.getNewWorkflow(
                 MaskingWorkflowEntryPoints.getInstance(), "exportGroupCreate",
-                true, token);
+                true, token, null);
 
         // Create two steps, one for the ExportGroup actions and one for Zoning.
         boolean createdSteps = determineExportGroupCreateSteps(workflow, null,
@@ -156,7 +156,7 @@ public class CinderMaskingOrchestrator extends AbstractMaskingFirstOrchestrator 
             Workflow workflow = _workflowService.getNewWorkflow(
                     MaskingWorkflowEntryPoints.getInstance(),
                     "exportGroupAddVolumes - Added volumes to existing mask",
-                    true, token);
+                    true, token, null);
 
             // For each export mask in export group, invoke add Volumes if export Mask belongs to the same storage Array
             for (ExportMask exportMask : exportMasks) {
@@ -200,7 +200,7 @@ public class CinderMaskingOrchestrator extends AbstractMaskingFirstOrchestrator 
                 Workflow workflow = _workflowService.getNewWorkflow(
                         MaskingWorkflowEntryPoints.getInstance(),
                         "exportGroupAddVolumes - Create a new mask", true,
-                        token);
+                        token, null);
 
                 generateExportMaskCreateWorkflow(workflow, null, storage,
                         exportGroup, initiatorURIs, volumeMap, token);

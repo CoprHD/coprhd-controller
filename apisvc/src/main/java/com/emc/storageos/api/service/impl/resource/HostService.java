@@ -834,7 +834,7 @@ public class HostService extends TaskResourceService {
         initiator.setProtocol(param.getProtocol());
 
         // Set label to the initiator port if not specified on create.
-        if (initiator.getLabel() == null && StringUtils.isEmpty(param.getName())) {
+        if (StringUtils.isEmpty(initiator.getLabel()) && StringUtils.isEmpty(param.getName())) {
             initiator.setLabel(initiator.getInitiatorPort());
         } else if (param.getName() != null) {
             initiator.setLabel(param.getName());

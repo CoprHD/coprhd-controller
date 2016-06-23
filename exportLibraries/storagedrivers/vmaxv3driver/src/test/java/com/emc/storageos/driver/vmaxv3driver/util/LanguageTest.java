@@ -32,7 +32,7 @@ public class LanguageTest {
 
     @Test
     public void format() {
-        String value = String.format(Vmaxv3Constants.REST_PATH_SLOPROVISIONING_SYMMETRIX_GET, "100");
+        String value = String.format(Vmaxv3Constants.RA_SLOPROVISIONING_SYMMETRIX_ID, "100");
         logger.info("value = {}", value);
         Assert.assertEquals(value, "/univmax/restapi/sloprovisioning/symmetrix/100");
     }

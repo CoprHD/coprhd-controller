@@ -14,7 +14,7 @@ import org.testng.annotations.Test;
  */
 public class SloprovisioningSymmetrixListTest extends BaseRestTest {
 
-    private static final Logger logger = LoggerFactory.getLogger(SystemVersionGetTest.class);
+    private static final Logger logger = LoggerFactory.getLogger(SloprovisioningSymmetrixListTest.class);
 
     @Test
     public void test() {

@@ -1,7 +1,7 @@
 [Unit]
 Description=StorageOS initial time synchronization
-Wants=networking.service ipchecktool.service
-After=networking.service ipchecktool.service
+Wants=networking.service
+After=networking.service
 Before=ntp.service
 ConditionPathExists=/var/run/storageos/bootmode_normal
 

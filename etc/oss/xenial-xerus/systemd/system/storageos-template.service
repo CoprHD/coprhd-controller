@@ -1,7 +1,7 @@
 [Unit]
 Description=StorageOS @svcname@ service
-Wants=networking.service storageos-installer.service ipchecktool.service ipsec.service
-After=boot-ovfenv.service networking.service storageos-installer.service ipchecktool.service ntp.service ipsec.service
+Wants=networking.service storageos-installer.service
+After=boot-ovfenv.service networking.service storageos-installer.service ntp.service
 ConditionPathExists=/var/run/storageos/bootmode_normal
 ConditionPathExists=!/var/run/storageos/@svcname@_disabled
 

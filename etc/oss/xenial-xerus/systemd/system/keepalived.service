@@ -1,7 +1,7 @@
 [Unit]
 Description=Keepalived service
-Wants=networking.service ipchecktool.service
-After=networking.service ipchecktool.service ntp.service
+Wants=networking.service
+After=networking.service ntp.service
 # keepalived should be restarted if network service is restarted,
 # so that vip election could be triggered when network is up
 Requires=networking.service

@@ -52,9 +52,9 @@ public abstract class DrHealthMonitor implements Runnable {
     public void start() {
         log.info("Start DR health monitor {} with frequency {}", this.name, this.frequencyInSecs);
         stopped = false;
-        Thread drNetworkMonitorThread = new Thread(this);
-        drNetworkMonitorThread.setName(this.name);
-        drNetworkMonitorThread.start();
+        Thread drHealthMonitorThread = new Thread(this);
+        drHealthMonitorThread.setName(this.name);
+        drHealthMonitorThread.start();
     }
     
     /**

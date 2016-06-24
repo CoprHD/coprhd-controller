@@ -1,0 +1,13 @@
+{
+  "friendlyName": "Get ViPR Volumes For Export",
+  "injectableName": "Task.ViPR.VolumesForExport.Get",
+  "implementsTask": "Task.Base.Ansible",
+  "options": {
+    "playbook": "/root/ansible-work/playbook-vipr-options-VolumesForExport.yml",
+    "limit": "localhost",
+    "vars":{
+      "ProjectForExport": "exclusive"
+    } 
+  },
+  "properties": {}
+} 

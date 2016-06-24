@@ -1,0 +1,113 @@
+---
+- hosts: localhost
+  connection: local #commands run on this server (not remotely)
+  tasks:
+
+  - name: Call script to login to ViPR
+    include: playbook-vipr-login.yml
+ 
+  - fail: msg="Cannot export volume to host.  No storage type chosen.  Must be 'exclusive' or 'shared'"   #"
+    when: BlockStorageTypeForExport is undefined
+
+  - set_fact: hostOrCluster="clusters"
+    when: BlockStorageTypeForExport == "shared"
+
+  - set_fact: hostOrCluster="hosts"
+    when: BlockStorageTypeForExport== "exclusive"
+
+  - set_fact: type="Cluster"
+    when: BlockStorageTypeForExport|lower == "shared"
+
+  - set_fact: type="Host"
+    when: BlockStorageTypeForExport|lower == "exclusive"
+
+  - name: Get ID of a volume to get varray for
+    set_fact: lastVol={{item}}
+    with_items: "{{VolumesForExport}}"
+
+#could vols be from different varrays?!
+
+  - name: Get varray for a volume to make export
+    set_fact: path="/block/volumes/{{lastVol}}.json"
+  - include: playbook-rest-request.yml
+  - set_fact: varray="{{restResult.json.varray.id}}"
+
+  - name: Get host/cluster name to use as export name
+    set_fact: path="/compute/{{hostOrCluster}}/{{HostForExport}}.json"
+  - include: playbook-rest-request.yml 
+  - set_fact: exportName="{{restResult.json.name}}"
+
+  - name: Assemble volume list with HLUs
+    set_fact: vol_hlu_list={'id':'{{item}}','lun':'{{HluForExport}}'}
+    with_items: "{{VolumesForExport}}"
+    register: vol_hlu_list_result
+
+  - name: Make a list of Volume IDs with HLUs
+    set_fact: vol_hlus={{ vol_hlu_list_result.results | selectattr('ansible_facts', 'defined') | map(attribute='ansible_facts.vol_hlu_list') | list }}
+
+  - name: Set path to create export
+    set_fact: path="/block/exports.json"
+
+  - name: Set body to create export
+    set_fact: body='{"{{hostOrCluster}}":["{{HostForExport}}"],"project":"{{ProjectForExport}}","type":"{{type}}","name":"{{exportName}}","varray":"{{varray}}","volumes":{{vol_hlus}}}'
+
+  - include: playbook-rest-request.yml
+
+
+#sample:
+#{
+#  "hosts": [
+#    "urn:storageos:Host:6e149df4-d92b-4bcd-ab91-ce4cf644dad6:vdc1"
+#  ],
+#  "project": "urn:storageos:Project:31f1549b-d8e8-4c53-b8a2-52879eb332d9:global",
+#  "type": "Host",
+#  "name": "MyExport",
+#  "varray": "urn:storageos:VirtualArray:bdfc8f46-ff59-4ac2-a717-cc7827b944e8:vdc1",
+#  "volumes": [
+#    {
+#      "id": "urn:storageos:Volume:4f5a64e5-706e-4f11-a3cb-26bfd88ea83e:vdc1",
+#      "lun": "-1"
+#    }
+#  ]
+#}
+
+
+#{
+#  "clusters": [
+#    ""
+#  ],
+#  "hosts": [
+#    ""
+#  ],
+#  "initiators": [
+#    ""
+#  ],
+#  "name": "",
+#  "project": "",
+#  "type": "",
+#  "varray": "",
+#  "volumes": [
+#    {
+#      "id": "",
+#      "lun": ""
+#    }
+#  ],
+#  "path_parameters": {
+#    "max_paths": "",
+#    "paths_per_initiator": "",
+#    "min_paths": "",
+#    "storage_ports": [
+#      ""
+#    ]
+#  }
+#}
+
+
+#  include rest_request.yml
+
+
+  - name: Call script to wait for ViPR tasks
+    include: playbook-vipr-waitfortasks.yml
+
+  - name: Call script to log out of ViPR
+    include: playbook-vipr-logout.yml

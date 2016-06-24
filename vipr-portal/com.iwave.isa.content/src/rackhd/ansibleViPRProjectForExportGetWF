@@ -1,0 +1,10 @@
+{
+ "friendlyName": "Get ViPR Projects For Export",
+ "injectableName": "assetType.rackhd.ProjectForExport",
+ "tasks": [
+  {
+   "label": "Get ViPR Virtual Projects",
+   "taskName": "Task.ViPR.Projects.Get"
+  }
+ ]
+}

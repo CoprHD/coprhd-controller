@@ -955,7 +955,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
                 HP3PARApi hp3parApi = getHP3PARDeviceFromNativeId(clone.getStorageSystemId());
 
                 // restore virtual copy
-                hp3parApi.restoreVirtualCopy(clone.getNativeId());
+                hp3parApi.restorePhysicalCopy(clone.getNativeId());
                 
                 clone.setReplicationState(VolumeClone.ReplicationState.RESTORED);
                 

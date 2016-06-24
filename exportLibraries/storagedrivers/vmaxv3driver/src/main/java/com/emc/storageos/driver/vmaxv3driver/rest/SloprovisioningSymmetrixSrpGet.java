@@ -92,9 +92,8 @@ public class SloprovisioningSymmetrixSrpGet extends RestActionImpl {
         if (!success) {
             throw new Vmaxv3RestCallException(root.get("message").getAsString());
         }
-        // Parse the inside "srp" instance.
         Srp bean = new Gson().fromJson(root.getAsJsonArray("srp").get(0), Srp.class);
-        logger.debug("Srp bean = {}", bean);
+        logger.debug("Parsed bean = {}", bean);
         return bean;
     }
 }

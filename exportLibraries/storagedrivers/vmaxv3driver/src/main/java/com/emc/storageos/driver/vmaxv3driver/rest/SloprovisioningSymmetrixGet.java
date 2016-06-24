@@ -74,9 +74,8 @@ public class SloprovisioningSymmetrixGet extends RestActionImpl {
         if (!success) {
             throw new Vmaxv3RestCallException(root.get("message").getAsString());
         }
-        // Parse the inside "symmetrix" instance.
         Symmetrix bean = new Gson().fromJson(root.getAsJsonArray("symmetrix").get(0), Symmetrix.class);
-        logger.debug("Symmetrix bean = {}", bean);
+        logger.debug("Parsed bean = {}", bean);
         return bean;
     }
 }

@@ -17,10 +17,12 @@ import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.Volume;
 import com.iwave.ext.command.CommandOutput;
 import com.iwave.ext.linux.LinuxSystemCLI;
-import com.iwave.ext.linux.command.CopyFileCommand;
 import com.iwave.ext.linux.command.ListMultiPathEntriesCommand;
 import com.iwave.ext.linux.command.MultipathCommand;
 import com.iwave.ext.linux.command.MultipathException;
+import com.iwave.ext.linux.command.migration.CancelMigrationCommand;
+import com.iwave.ext.linux.command.migration.MigrateVolumeCommand;
+import com.iwave.ext.linux.command.migration.PollMigrationCommand;
 import com.iwave.ext.linux.command.powerpath.PowerPathException;
 import com.iwave.ext.linux.command.powerpath.PowerPathHDSInquiry;
 import com.iwave.ext.linux.command.powerpath.PowerPathInquiry;
@@ -33,8 +35,8 @@ import com.iwave.ext.linux.model.MultiPathEntry;
 import com.iwave.ext.linux.model.PathInfo;
 import com.iwave.ext.linux.model.PowerPathDevice;
 
-public class HostMigrationCommand {
-    private static final Logger _log = LoggerFactory.getLogger(HostMigrationCommand.class);
+public class HostMigrationCLI {
+    private static final Logger _log = LoggerFactory.getLogger(HostMigrationCLI.class);
 
     private static final int HUS_VM_PARTIAL_WWN_LENGTH = 12;
 
@@ -48,7 +50,7 @@ public class HostMigrationCommand {
 
     private static DbClient _dbClient;
 
-    private HostMigrationCommand() {
+    private HostMigrationCLI() {
 
     }
 
@@ -96,23 +98,12 @@ public class HostMigrationCommand {
         cli.executeCommand(command);
     }
 
-    public static void copyMigrationScriptsToHost(Host host, Map<String, String> scriptMap) {
-        LinuxSystemCLI cli = LinuxHostDiscoveryAdapter.createLinuxCLI(host);
-        for (String script : scriptMap.keySet()) {
-            String tgtFile = scriptMap.get(script);
-            CopyFileCommand command = new CopyFileCommand(script, tgtFile);
-            cli.executeCommand(command);
-        }
-    }
-
     public static void migrationCommand(Host host, URI migrationURI) {
         LinuxSystemCLI cli = LinuxHostDiscoveryAdapter.createLinuxCLI(host);
         Migration migration = getDataObject(Migration.class, migrationURI, _dbClient); 
         String srcDevice = migration.getSrcDev();
         String tgtDevice = migration.getTgtDev();
-        // Set up the command arguments and execute the command
-        String args = String.format("if=%s of=%s", srcDevice, tgtDevice);
-        MigrateVolumeCommand command = new MigrateVolumeCommand(args);
+        MigrateVolumeCommand command = new MigrateVolumeCommand(srcDevice, tgtDevice);
         cli.executeCommand(command);
         CommandOutput output = command.getOutput();
         if (output.getStderr() != null) {
@@ -133,9 +124,8 @@ public class HostMigrationCommand {
         String migrationPid = migration.getMigrationPid();
         String srcDevice = migration.getSrcDev();
         String tgtDevice = migration.getTgtDev();
-        // Set up the command arguments and execute the command.
-        String args = String.format("pid=%s if=%s of=%s", migrationPid, srcDevice, tgtDevice);
-        PollMigrationCommand command = new PollMigrationCommand(args);
+        PollMigrationCommand command = new PollMigrationCommand(migrationPid,
+                srcDevice, tgtDevice);
         cli.executeCommand(command);
         String percentDone = command.getResults();
         int percentDoneInt = Integer.parseInt(percentDone);
@@ -180,39 +170,6 @@ public class HostMigrationCommand {
 
     }
 
-    public static String deleteHostDevice(Host host, String targetName) {
-        LinuxSystemCLI cli = LinuxHostDiscoveryAdapter.createLinuxCLI(host);
-        deleteDeviceCommand command = new deleteDeviceCommand(targetName);
-        cli.executeCommand(command);
-        try {
-            CommandOutput output = command.getOutput();
-            if (output.getStderr() != null) {
-                String string = "delete device failed";
-                return string;
-            }
-            return output.getStdout();
-        } catch (Exception e) {
-            return e.getMessage();
-        }
-    }
-
-    public static String removeCommittedOrCanceledMigrations(Host host, String args) {
-        LinuxSystemCLI cli = LinuxHostDiscoveryAdapter.createLinuxCLI(host);
-        removeCanceledMigrationsCommand command = new removeCanceledMigrationsCommand(args);
-        cli.executeCommand(command);
-        try {
-            CommandOutput output = command.getOutput();
-            if (output.getStderr() != null) {
-                String string = "remove canceled migration record failed";
-                return string;
-            }
-            return output.getStdout();
-        } catch (Exception e) {
-            return e.getMessage();
-        }
-
-    }
-
     /**
      * Commits the completed migrations with the passed names and tears down the
      * old devices and unclaims the storage volumes.
@@ -229,23 +186,10 @@ public class HostMigrationCommand {
                 throw MigrationControllerException.exceptions
                         .cantCommitedMigrationNotCompletedSuccessfully(migration.getLabel());
             }
-            String args = String.format("srcDevice=%s tgtDevice=%s", srcDevice, tgtDevice);
-            LinuxSystemCLI cli = LinuxHostDiscoveryAdapter.createLinuxCLI(host);
-            commitMigrationsCommand command = new commitMigrationsCommand(args);
-            cli.executeCommand(command);
-            try {
-                CommandOutput output = command.getOutput();
-                if (output.getStderr() != null) {
-                    String string = "commit Migration failed";
-                    return string;
-                }
-
-            } catch (Exception e) {
-                return e.getMessage();
-            }
         }
         return "SUCCESS_STATUS";
     }
+
     private static void checkStatus(MultiPathEntry entry) {
         for (PathInfo path : entry.getPaths()) {
             if (path.isFailed()) {

@@ -1,10 +1,10 @@
-package com.emc.storageos.migrationcontroller;
+package com.iwave.ext.linux.command.migration;
 
 import com.iwave.ext.linux.command.LinuxResultsCommand;
 
-public class commitMigrationsCommand extends LinuxResultsCommand<String> {
-    public commitMigrationsCommand(String args) {
-        setCommand("/usr/bin/commitMigration");
+public class CancelMigrationCommand extends LinuxResultsCommand<String> {
+    public CancelMigrationCommand(String args) {
+        setCommand("/usr/bin/cancelmigration");
         addArgument(args);
     }
 

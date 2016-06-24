@@ -564,7 +564,15 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
             } else {
                 _log.debug(String.format("Calling doExportRemoveVolumes on the device %s",
                         array.getId().toString()));
-                List<Initiator> initiators = _dbClient.queryObject(Initiator.class, initiatorURIs);
+                List<Initiator> initiators = null;
+                // TODO DUPP:
+                // Make sure the caller to this method (the caller that assembles the steps) adds the initiator list to
+                // send down here. (then remove the log)
+                if (initiatorURIs != null && !initiatorURIs.isEmpty()) {
+                    initiators = _dbClient.queryObject(Initiator.class, initiatorURIs);
+                } else {
+                    _log.error("ERROR Poka Yoke: add the initiatorURIs to the call that assembles this step.");
+                }
                 device.doExportRemoveVolumes(array, exportMask, volumes, initiators, completer);
             }
         } catch (Exception ex) {

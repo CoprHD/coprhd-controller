@@ -40,9 +40,6 @@ public class DrSiteNetworkMonitor extends DrHealthMonitor {
     @Autowired
     private CoordinatorClient coordinatorClient;
 
-    private final Waiter waiter = new Waiter();
-
-    private static final int NETWORK_MONITORING_INTERVAL = 60; // in seconds
     private static final int SOCKET_TEST_PORT = 443;
     private static final int NETWORK_SLOW_THRESHOLD = 150;
     private static final int NETWORK_TIMEOUT = 10 * 1000;
@@ -51,14 +48,10 @@ public class DrSiteNetworkMonitor extends DrHealthMonitor {
     }
 
     @Override
-    public void run() {
+    public void tick() {
         if (shouldStartOnCurrentSite() && drUtil.isLeaderNode()) {
             checkPing();
         }
-    }
-
-    public void wakeup() {
-        waiter.wakeup();
     }
 
     /**

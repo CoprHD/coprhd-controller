@@ -4491,6 +4491,18 @@ recoverpoint_direct_access_test()
         #    volume delete $PROJECT/${new_volume} --wait
         #fi
 
+        secho 'Expand source volume when one of the RP target copies is in direct access mode'
+        run volume expand ${PROJECT}/${src_volume} ${RP_SIZE_EXPAND}
+
+        secho 'Export/unexport target volume whose copy is in DIRECT_ACCESS mode'
+        recoverpoint_export_host_setup ${rp_src_vpool} ${rp_type}
+        sleep 20
+        run export_group create ${PROJECT} ${RP_EXPORT_GROUP} ${rp_tgt_varrays[0]} --type Host --volspec ${PROJECT}/${tgt_volume} --hosts "${RP_HOSTNAME}"
+        run export_group delete ${PROJECT}/${RP_EXPORT_GROUP}
+
+        secho 'Removing export host'
+        run hosts delete ${RP_HOSTNAME}
+
         secho 'Swap/swap-back while single target volume is in direct access mode'
         run volume change_link ${PROJECT}/${src_volume} swap ${PROJECT}/${tgt_volume} rp       
         run volume change_link ${PROJECT}/${tgt_volume} swap ${PROJECT}/${src_volume} rp
@@ -4505,35 +4517,35 @@ recoverpoint_direct_access_test()
                     run volume change_link ${PROJECT}/${src_volume} failover ${PROJECT}/${target_vol} rp
                     secho 'Setting access mode to direct access for target virtual array '${tgt_varray}
                     run volume change_link ${PROJECT}/${src_volume} accessmode ${PROJECT}/${target_vol} rp --am DIRECT_ACCESS
+                    
+                    sleep 10
+
+                    secho 'Swap/swap-back while all target copies are in direct access mode'
+                    run volume change_link ${PROJECT}/${src_volume} swap ${PROJECT}/${target_vol} rp
+                    run volume change_link ${PROJECT}/${target_vol} swap ${PROJECT}/${src_volume} rp
                 fi
             done
-
-            sleep 20
-
-            secho 'Swap/swap-back while all target copies are in direct access mode'
-            run volume change_link ${PROJECT}/${src_volume} swap ${PROJECT}/${tgt_volume} rp
-            run volume change_link ${PROJECT}/${tgt_volume} swap ${PROJECT}/${src_volume} rp 
         fi
-
-        secho 'Expand source volume when one of the RP target copies is in direct access mode'
-        run volume expand ${PROJECT}/${src_volume} ${RP_SIZE_EXPAND} 
-
-        secho 'Export/unexport target volume whose copy is in DIRECT_ACCESS mode'
-        recoverpoint_export_host_setup ${rp_src_vpool} ${rp_type}
+       
+        secho 'Failover'
+        run volume change_link ${PROJECT}/${src_volume} failover ${PROJECT}/${tgt_volume} rp
+        secho 'Setting access mode to direct access'
+        run volume change_link ${PROJECT}/${src_volume} accessmode ${PROJECT}/${tgt_volume} rp --am DIRECT_ACCESS
+ 
         sleep 20
-        run export_group create ${PROJECT} ${RP_EXPORT_GROUP} ${rp_tgt_varrays[0]} --type Host --volspec ${PROJECT}/${tgt_volume} --hosts "${RP_HOSTNAME}"
-        run export_group delete ${PROJECT}/${RP_EXPORT_GROUP}
 
-        secho 'Removing export host'
-        run hosts delete ${RP_HOSTNAME}
+        secho 'Failover Cancel - returning copy image acess to no_access for target copy '${rp_tgt_varrays[0]}
+        run volume change_link ${PROJECT}/${src_volume} failover-cancel ${PROJECT}/${tgt_volume} rp
 
-        #for tgt_varray in ${rp_tgt_varrays[@]}
-        #do 
-        #    target_vol=${src_volume}-target-${tgt_varray}
-        #    secho 'Failover Cancel - returning copy image acess to no_access for target copy '${tgt_varray}
-        #    run volume change_link ${PROJECT}/${src_volume} failover-cancel ${PROJECT}/${target_vol} rp
-        #done
-    else
+        secho 'Verify the current state of the source and target vols'
+        run volume verify ${PROJECT}/${src_volume} personality SOURCE
+        run volume verify ${PROJECT}/${src_volume} access_state READWRITE
+        run volume verify ${PROJECT}/${src_volume} link_status IN_SYNC
+        run volume verify ${PROJECT}/${tgt_volume} personality TARGET
+        run volume verify ${PROJECT}/${tgt_volume} access_state NOT_READY
+        run volume verify ${PROJECT}/${tgt_volume} link_status IN_SYNC
+
+   else
         secho 'Skipping RecoverPoint Direct Access Tests'
    fi
 }

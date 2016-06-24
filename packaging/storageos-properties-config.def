@@ -1555,7 +1555,7 @@
     {
         key : "controller_vplex_director_min_port_count",
         label : "VPLEX director minimum port count",
-        description : "The minimum number of VPLEX director ports required when validating backend export masking. The VPLEX best practices recommendation is 2 ports (the default) or greater, but no more than 4 ports are necessary. Select a value between 1 and 4.",
+        description : "The minimum number of VPLEX director ports required when validating backend export masking. The VPLEX best practices recommendation is 2 ports (the default) or greater. Select a value between 1 and 4.",
         type : "uint8",
         allowedValues : ("1", "2", "3", "4"),
         userConfigurable : true,

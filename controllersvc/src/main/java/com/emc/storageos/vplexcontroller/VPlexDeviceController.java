@@ -4849,7 +4849,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // Get the initiator port map for this VPLEX and storage system
             // for this volumes virtual array.
             VPlexBackendManager backendMgr = new VPlexBackendManager(_dbClient, this, _blockDeviceController,
-                    _blockScheduler, _networkDeviceController, projectURI, tenantURI, _vplexApiLockManager);
+                    _blockScheduler, _networkDeviceController, projectURI, tenantURI, _vplexApiLockManager, coordinator);
             Map<URI, List<StoragePort>> initiatorPortMap = backendMgr.getInitiatorPortsForArray(
                     vplexURI, storageSystemURI, varray);
 
@@ -6627,7 +6627,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     continue; // CTRL 12474: Do not generate steps if there are no volumes to process
                 }
                 VPlexBackendManager backendMgr = new VPlexBackendManager(_dbClient, this,
-                        _blockDeviceController, _blockScheduler, _networkDeviceController, null, null, _vplexApiLockManager);
+                        _blockDeviceController, _blockScheduler, _networkDeviceController, 
+                        null, null, _vplexApiLockManager, coordinator);
                 boolean stepsAdded = backendMgr.addWorkflowStepsToRemoveBackendVolumes(subWorkflow,
                         waitFor, storage, exportGroupURI, volumes);
                 if (stepsAdded) {

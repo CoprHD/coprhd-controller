@@ -1606,6 +1606,7 @@ keystoneProvider.tenantsSynchronizationOptions =Tenants synchronization options
 keystoneProvider.updated=Tenants successfully updated
 ostenants.name=Name
 ostenants.description=Description
+ostenants.includedStatus=Included
 
 Introspection.Started=%s assets added to the discovery queue.
 

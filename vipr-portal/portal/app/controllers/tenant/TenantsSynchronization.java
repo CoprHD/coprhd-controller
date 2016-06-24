@@ -21,11 +21,14 @@ import java.util.*;
 import com.emc.storageos.db.client.model.AuthnProvider;
 import com.emc.storageos.model.auth.AuthnProviderRestRep;
 import com.emc.storageos.model.auth.AuthnUpdateParam;
+import com.emc.storageos.model.keystone.CoprhdOsTenant;
+import com.emc.storageos.model.keystone.CoprhdOsTenantListRestRep;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import controllers.Common;
 import controllers.util.ViprResourceController;
 import models.TenantsSynchronizationOptions;
+import models.datatable.OpenStackTenantsDataTable;
 import org.apache.commons.lang.StringUtils;
 import util.AuthnProviderUtils;
 import util.MessagesUtils;
@@ -36,6 +39,8 @@ import controllers.util.FlashException;
 
 import play.data.binding.As;
 import play.mvc.With;
+import util.OpenStackTenantsUtils;
+import util.datatable.DataTablesSupport;
 
 @With(Common.class)
 @Restrictions({ @Restrict("TENANT_ADMIN") })
@@ -53,7 +58,8 @@ public class TenantsSynchronization extends ViprResourceController {
         keystoneProvider.readFrom(authnProvider);
         renderArgs.put("tenantsOptions",
                 TenantsSynchronizationOptions.options(TenantsSynchronizationOptions.ADDITION, TenantsSynchronizationOptions.DELETION));
-        renderArgs.put("defaultInterval", getInterval(authnProvider));
+        renderArgs.put("interval", getInterval(authnProvider));
+        renderArgs.put("ostenants", new KeystoneSynchronizationTenantsDataTable());
         render(keystoneProvider);
     }
 
@@ -67,6 +73,41 @@ public class TenantsSynchronization extends ViprResourceController {
             flash.success(MessagesUtils.get(SAVED, authnProviderName));
         }
         edit();
+    }
+
+    public static void synchronizeOSTenants(@As(",") String[] ids) {
+        List<CoprhdOsTenant> tenants = OpenStackTenantsUtils.getOpenStackTenantsFromDataBase();
+        if (ids != null) {
+            List<String> idList = Arrays.asList(ids);
+            for (CoprhdOsTenant tenant : tenants) {
+                if (idList.contains(tenant.getId().toString())) {
+                    if (tenant.getExcluded()) {
+                        tenant.setExcluded(false);
+                    } else {
+                        tenant.setExcluded(true);
+                    }
+                }
+            }
+        }
+
+        CoprhdOsTenantListRestRep params = new CoprhdOsTenantListRestRep();
+        params.setCoprhdOsTenants(tenants);
+
+        OpenStackTenantsUtils.updateOpenStackTenants(params);
+
+        flash.success(MessagesUtils.get(UPDATED));
+        edit();
+    }
+
+    /**
+     * Gets the list of tenants.
+     */
+    public static void tenantsListJson() {
+        List<OpenStackTenantsDataTable.OpenStackTenant> tenants = Lists.newArrayList();
+        for (CoprhdOsTenant tenant : OpenStackTenantsUtils.getOpenStackTenantsFromDataBase()) {
+            tenants.add(new OpenStackTenantsDataTable.OpenStackTenant(tenant));
+        }
+        renderJSON(DataTablesSupport.createJSON(tenants, params));
     }
 
     public static class Form {
@@ -127,6 +168,12 @@ public class TenantsSynchronization extends ViprResourceController {
             }
         }
         return interval;
+    }
+
+    public static class KeystoneSynchronizationTenantsDataTable extends OpenStackTenantsDataTable {
+        public KeystoneSynchronizationTenantsDataTable() {
+            alterColumn("name").setRenderFunction(null);
+        }
     }
 
     public static boolean isKeystoneAuthnProviderCreated() {

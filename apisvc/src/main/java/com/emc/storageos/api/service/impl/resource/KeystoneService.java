@@ -204,11 +204,11 @@ public class KeystoneService extends TaskResourceService {
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SECURITY_ADMIN })
-    public CoprhdOsTenantListRestRep updateOpenstackTenants(OpenStackTenantListParam param) {
+    public CoprhdOsTenantListRestRep updateOpenstackTenants(CoprhdOsTenantListRestRep param) {
 
         _log.debug("Keystone Service - updateOpenstackTenants");
 
-        if (param.getOpenstackTenants() == null) {
+        if (param.getCoprhdOsTenants() == null) {
             throw APIException.internalServerErrors.targetIsNullOrEmpty("Tenant list param");
         }
 
@@ -216,7 +216,7 @@ public class KeystoneService extends TaskResourceService {
         List<OSTenant> tenantsToUpdate = new ArrayList<>();
         List<OSTenant> tenantsToDelete = new ArrayList<>();
         OSTenant osTenant;
-        for (OpenStackTenantParam tenant : param.getOpenstackTenants()) {
+        for (CoprhdOsTenant tenant : param.getCoprhdOsTenants()) {
             osTenant = _dbClient.queryObject(OSTenant.class, tenant.getId());
 
             if (!osTenant.getExcluded().equals(tenant.getExcluded())) {

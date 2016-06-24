@@ -10,7 +10,7 @@ titleKey = 'keystoneProvider.title';
 
     $(document).ready(function () {
         var interval = $('#keystoneProvider_synchronizationInterval');
-        interval.val('${defaultInterval}');
+        interval.val('${interval}');
     });
 
 </script>
@@ -41,5 +41,19 @@ titleKey = 'keystoneProvider.title';
 <button type="submit" class="btn btn-primary btn-large">#{icon 'ok-sign'/} &{'button.save'}</button>
 #{/Form.buttonBar}
 #{/form}
+
+#{DataTable.header titleKey:'keystoneProvider.addTenants', descriptionKey:'keystoneProvider.addTenants.description', hideAlerts:true/}
+#{DataTable.table id: 'ostenants',
+                  dataTable: ostenants,
+                  source: @tenantsListJson(),
+                  selectable: true,
+                  options:['iDisplayLength': '5']}
+
+   #{DataTable.buttonBar}
+     #{Form.button name:'button.synchronize', class:'success', dropdown:false, submit:'addForm'/}
+   #{/DataTable.buttonBar}
+
+   #{DataTable.formAction @synchronizeOSTenants(), id:'addForm', table:'ostenants'/}
+#{/DataTable.table}
 
 </div>

@@ -74,8 +74,29 @@ public class OpenStackTenants extends AbstractCoreResources<OpenStackTenantParam
     }
 
     /**
+     * Lists all OpenStack tenants.
+     * <p>
+     * API Call: <tt>GET /v2/keystone/ostenants</tt>
      *
+     * @return list of OpenStack tenants.
      */
+    public CoprhdOsTenantListRestRep getOpenStackTenants() {
+        return client.get(CoprhdOsTenantListRestRep.class, PathConstants.KEYSTONE_URL + "/ostenants");
+    }
+
+    /**
+     * Updates OpenStack tenants.
+     * <p>
+     * API Call: <tt>PUT /v2/keystone/ostenants</tt>
+     *
+     * @param list list of OpenStack tenants to update.
+     *
+     * @return list of updated OpenStack tenants.
+     */
+    public CoprhdOsTenantListRestRep updateOpenStackTenants(CoprhdOsTenantListRestRep list) {
+        return client.put(CoprhdOsTenantListRestRep.class, list, PathConstants.KEYSTONE_URL + "/ostenants");
+    }
+
     @Override
     public List<OpenStackTenantParam> getAll(ResourceFilter<OpenStackTenantParam> filter) {
         List<NamedRelatedResourceRep> refs = list();
@@ -84,6 +105,10 @@ public class OpenStackTenants extends AbstractCoreResources<OpenStackTenantParam
 
     /**
      * Gets OpenStack tenant with given ID.
+     * <p>
+     * API Call: <tt>PUT /v2/keystone/tenants/{id}</tt>
+     *
+     * @param id the OpenStack tenant ID.
      *
      * @return single OpenStack tenant.
      */
@@ -92,7 +117,11 @@ public class OpenStackTenants extends AbstractCoreResources<OpenStackTenantParam
     }
 
     /**
+     * Creates representation of OpenStack Tenants in CoprHD.
+     * <p>
+     * API Call: <tt>PUT /v2/keystone/tenants</tt>
      *
+     * @return list of saved OpenStack tenants.
      */
     public CoprhdOsTenantListRestRep registerOpenStackTenants(OpenStackTenantListParam list) {
         return client.post(CoprhdOsTenantListRestRep.class, list, baseUrl);

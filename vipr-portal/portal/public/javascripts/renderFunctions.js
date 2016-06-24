@@ -281,6 +281,23 @@ render.registrationStatus = function(o, val) {
     }
 }
 
+render.includeStatus = function(o, val) {
+    if (!val) {
+        return "";
+    }
+    var icons = {
+        'TRUE':  'glyphicon glyphicon-ok',
+        'true':  'glyphicon glyphicon-ok'
+    };
+    var icon = icons[val];
+    if (icon != null) {
+        return "<span class='" + icon + "'></span>";
+    }
+    else {
+        return "";
+    }
+}
+
 render.allocationDisqualified = function (o,val) {
     return (val) ? '<span class="glyphicon glyphicon-thumbs-down"></span>' : '<span class="glyphicon glyphicon-thumbs-up"></span>';
 }

@@ -4406,25 +4406,28 @@ recoverpoint_direct_access_test()
         secho 'Failover'
         run volume change_link ${PROJECT}/${src_volume} failover ${PROJECT}/${tgt_volume} rp		
 
-        secho 'Verify the current state of the source and target vols'
+        secho 'Verify the post failover state of the source and target vols'
         run volume verify ${PROJECT}/${src_volume} personality SOURCE
         run volume verify ${PROJECT}/${src_volume} access_state READWRITE
-        run volume verify ${PROJECT}/${src_volume} link_status IN_SYNC
+        run volume verify ${PROJECT}/${src_volume} link_status FAILED_OVER
         run volume verify ${PROJECT}/${tgt_volume} personality TARGET
-        run volume verify ${PROJECT}/${tgt_volume} access_state NOT_READY
-        run volume verify ${PROJECT}/${tgt_volume} link_status IN_SYNC
+        run volume verify ${PROJECT}/${tgt_volume} access_state READWRITE
+        run volume verify ${PROJECT}/${tgt_volume} link_status FAILED_OVER
 
         secho 'Setting access mode to direct access'
         run volume change_link ${PROJECT}/${src_volume} accessmode ${PROJECT}/${tgt_volume} rp --am DIRECT_ACCESS
 
         sleep 20
 
+        secho 'Setting access mode to direct access a second time'
+        run volume change_link ${PROJECT}/${src_volume} accessmode ${PROJECT}/${tgt_volume} rp --am DIRECT_ACCESS
+
         # TODO: Would be nice to verify the copy is in DIRECT_ACCESS mode but there is currently no way to do
         # that querying volume attributes.
 
         for tgt_varray in ${rp_tgt_varrays[@]}
         do
-            if [ "$tgt_varray" = "$direct_access_mode_varray" ]; then
+            if [ "$tgt_varray" == "$direct_access_mode_varray" ]; then
                 secho 'Verifying that the bookmark associated with the target copy in direct access mode has been removed'
                 fail blocksnapshot show ${PROJECT}/${src_volume}/${rp_bookmark}-${direct_access_mode_varray}
             else
@@ -4446,7 +4449,7 @@ recoverpoint_direct_access_test()
 
             for tgt_varray in ${rp_tgt_varrays[@]}
             do
-                #if [ "$tgt_varray" -eq "$direct_access_mode_varray" ]; then
+                #if [ "$tgt_varray" == "$direct_access_mode_varray" ]; then
                     # TODO: Uncomment this test and the if/else once COP-22617 has been resolved
                     #secho 'Verifying that the bookmark associated with the target copy has not been created'
                     #fail blocksnapshot show ${PROJECT}/${src_volume}/${rp_bookmark}-2-${direct_access_mode_varray}
@@ -4481,12 +4484,12 @@ recoverpoint_direct_access_test()
             fi 
         done 
 
-        if [ "${#rp_tgt_varrays[@]}" -gt "1" ]; then
-            secho 'Add replication set to consistency group while a copy is in direct access mode'
-            run volume create ${new_volume} $PROJECT ${rp_src_varray} ${rp_src_vpool} $RP_VOLUME_SIZE --consistencyGroup ${consistency_group} --count=1
-            secho 'Remove replication set from consistency group while a copy is in direct access mode'		
-            fail volume delete $PROJECT/${new_volume} --wait
-        fi
+        #if [ "${#rp_tgt_varrays[@]}" -gt "1" ]; then
+        #    secho 'Add replication set to consistency group while a copy is in direct access mode'
+        #    run volume create ${new_volume} $PROJECT ${rp_src_varray} ${rp_src_vpool} $RP_VOLUME_SIZE --consistencyGroup ${consistency_group} --count=1
+        #    secho 'Remove replication set from consistency group while a copy is in direct access mode'		
+        #    volume delete $PROJECT/${new_volume} --wait
+        #fi
 
         secho 'Swap/swap-back while single target volume is in direct access mode'
         run volume change_link ${PROJECT}/${src_volume} swap ${PROJECT}/${tgt_volume} rp       
@@ -4496,12 +4499,12 @@ recoverpoint_direct_access_test()
         if [ "${#rp_tgt_varrays[@]}" -gt "1" ]; then
             for tgt_varray in ${rp_tgt_varrays[@]}
             do
-                if [ "$tgt_varray" -ne "$direct_access_mode_varray" ]; then        
+                if [ "$tgt_varray" != "$direct_access_mode_varray" ]; then        
                     target_vol=${src_volume}-target-${tgt_varray}
                     secho 'Failover to target virtual array '${tgt_varray}
                     run volume change_link ${PROJECT}/${src_volume} failover ${PROJECT}/${target_vol} rp
                     secho 'Setting access mode to direct access for target virtual array '${tgt_varray}
-                    run volume change_link ${PROJECT}/${src_volume} accessmode ${PROJECT}/${tgt_volume} rp --am DIRECT_ACCESS
+                    run volume change_link ${PROJECT}/${src_volume} accessmode ${PROJECT}/${target_vol} rp --am DIRECT_ACCESS
                 fi
             done
 
@@ -4524,17 +4527,12 @@ recoverpoint_direct_access_test()
         secho 'Removing export host'
         run hosts delete ${RP_HOSTNAME}
 
-        for tgt_varray in ${rp_tgt_varrays[@]}
-        do 
-            target_vol=${src_volume}-target-${tgt_varray}
-            secho 'Failover Cancel - returning copy image acess to no_access for target copy '${tgt_varray}
-            run volume change_link ${PROJECT}/${src_volume} failover-cancel ${PROJECT}/${target_vol} rp
-        done
-
-        if [ "${#rp_tgt_varrays[@]}" -gt "1" ]; then
-            secho 'Cleanup volume'
-            run volume delete $PROJECT/${new_volume} --wait
-        fi
+        #for tgt_varray in ${rp_tgt_varrays[@]}
+        #do 
+        #    target_vol=${src_volume}-target-${tgt_varray}
+        #    secho 'Failover Cancel - returning copy image acess to no_access for target copy '${tgt_varray}
+        #    run volume change_link ${PROJECT}/${src_volume} failover-cancel ${PROJECT}/${target_vol} rp
+        #done
     else
         secho 'Skipping RecoverPoint Direct Access Tests'
    fi

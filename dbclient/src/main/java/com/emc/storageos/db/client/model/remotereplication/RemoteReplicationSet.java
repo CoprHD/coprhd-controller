@@ -14,6 +14,8 @@ import com.emc.storageos.db.client.model.StringSetMap;
 public class RemoteReplicationSet extends DataObject {
 
     private String nativeId;
+
+    // index this field.
     private String storageSystemType;
     private String displayName;
 

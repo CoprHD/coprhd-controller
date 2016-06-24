@@ -131,7 +131,7 @@
                       source: @availableHostEndpointsJson(network.id),
                       selectable: true,
                       delayCreate: true,
-                      options: ['iDisplayLength': '8'] /}
+                      options: ['iDisplayLength': '8','aLengthMenu':[8,15]] /}
   #{/Modal.body}
   #{Modal.footer}
     #{Form.button name:'button.add', class:'primary', icon:'plus', submit:'addHostPortsForm', 
@@ -153,7 +153,7 @@
                       source: @availableArrayEndpointsJson(network.id),
                       selectable: true,
                       delayCreate: true,
-                      options: ['iDisplayLength': '8'] /}
+                      options: ['iDisplayLength': '8','aLengthMenu':[8,15]] /}
   #{/Modal.body}
   #{Modal.footer}
     #{Form.button name:'button.add', class:'primary', icon:'plus', submit:'addArrayPortsForm', 

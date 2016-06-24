@@ -124,7 +124,7 @@
           #{DataTable.table id:'storageArray',
                             dataTable:storageSystems,
                             source:@storageSystemsJson(virtualArray?.id),
-                            options:['iDisplayLength': '5', 'fnDrawCallback': 'updateStorageSystems']/}
+                            options:['iDisplayLength': '5','aLengthMenu':[5,10] ,'fnDrawCallback': 'updateStorageSystems']/}
         #{/collapse}
 
         #{collapse 'VirtualArrays.VirtualPools.list.title', badge: 'vpoolsCountBadge', noPanelBody: true}
@@ -132,7 +132,7 @@
           #{DataTable.table id:'virtualPools',
                             dataTable:virtualPools,
                             source:@virtualPoolsJson(virtualArray?.id),
-                            options:['iDisplayLength': '5', 'fnDrawCallback': 'updateVpools']/}
+                            options:['iDisplayLength': '5', 'aLengthMenu':[5,10] ,'fnDrawCallback': 'updateVpools']/}
         #{/collapse}
       #{/license.ifController}
     </div>

@@ -47,7 +47,7 @@ function renderSnapsets(o,val) {
                   dataTable:dataTable,
                   source:@applicationVolumeJson(application.id), 
                   cssClass:'editableRows',
-                  options:['iDisplayLength': '5']/}
+                  options:['iDisplayLength': '5','aLengthMenu':[5,10] ]/}
                   
         #{/collapse}
       
@@ -59,7 +59,7 @@ function renderSnapsets(o,val) {
                   dataTable:cloneDataTable,
                   source:@applicationCloneJson(application.id), 
                   cssClass:'editableRows',
-                  options:['iDisplayLength': '5']/}
+                  options:['iDisplayLength': '5','aLengthMenu':[5,10]]/}
 	#{/collapse}
   </div>
   
@@ -69,7 +69,7 @@ function renderSnapsets(o,val) {
                   dataTable:snapsessionDataTable,
                   source:@applicationSnapSessionJson(application.id), 
                   cssClass:'editableRows',
-                  options:['iDisplayLength': '5']/}
+                  options:['iDisplayLength': '5','aLengthMenu':[5,10]]/}
 	#{/collapse}
 	</div>
 	
@@ -80,7 +80,7 @@ function renderSnapsets(o,val) {
                   dataTable:snapshotDataTable,
                   source:@applicationSnapshotJson(application.id), 
                   cssClass:'editableRows',
-                  options:['iDisplayLength': '5']/}
+                  options:['iDisplayLength': '5','aLengthMenu':[5,10]]/}
   	#{/collapse}
   
   </div>

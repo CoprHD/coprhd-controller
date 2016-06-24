@@ -114,13 +114,13 @@ function enableStorageOS
 {
   dpkg -s storageos &> /dev/null
   if [ $? -eq 0 ]; then
-    systemctl enable keepalived
-    systemctl enable nginx
-    systemctl enable boot-ovfenv
+    /bin/systemctl enable keepalived
+    /bin/systemctl enable nginx
+    /bin/systemctl enable boot-ovfenv
     /etc/storageos/storageos enable
     /etc/storageos/boot-ovfenv start
-    service keepalived start
-    start nginx
+    /bin/systemctl start keepalived
+    /bin/systemctl start nginx
     /etc/storageos/storageos start
   fi
 }
@@ -129,17 +129,16 @@ function disableStorageOS
 {
   dpkg -s storageos &> /dev/null
   if [ $? -eq 0 ]; then
-    systemctl disable boot-ovfenv
-    systemctl disable nginx
-    systemctl disable keepalived
-    /etc/storageos/storageos disable
+    /bin/systemctl disable boot-ovfenv
+    /bin/systemctl disable nginx
+    /bin/systemctl disable keepalived
     if [ -f /etc/storageos/storageos ]; then
       /etc/storageos/storageos stop
       /etc/storageos/storageos disable
     fi
     /etc/storageos/boot-ovfenv stop
-    stop nginx
-    service keepalived stop
+    /bin/systemctl stop nginx
+    /bin/systemctl stop keepalived
   fi
 }
 

@@ -151,7 +151,7 @@ $(VMDK): | downloadISO createREPO
 	$(call targetLog,+)
 	mkdir -p $(DIR_MOUNT) $(ISO_MOUNT)
 	-mountpoint -q $(ISO_MOUNT) || mount $(WORKSPACE)/iso/$(ISO_FILE) $(ISO_MOUNT)
-	readlink -f /sbin/initctl | grep -v --quiet /bin/true || udevd &
+	-[ -f /.dockerenv ] && udevd &
 
 	mkdir -p $(WORKSPACE)/build/$(NAME)-$(VERSION).$(JOB)
 	mkdir -p $(WORKSPACE)/image
@@ -169,7 +169,7 @@ $(VMDK): | downloadISO createREPO
 	bash functions.sh installConfiguration $(DISK_QEMU) $(SECTOR_INIT) $(SECTOR_SIZE) $(DIR_MOUNT) $(ISO_MOUNT) $(NAME) $(VERSION) $(JOB)
 	qemu-img convert -p -O vmdk $(DISK_QEMU) $(VMDK)
 
-	readlink -f /sbin/initctl | grep -v --quiet /bin/true || pkill udevd
+	-[ -f /.dockerenv ] && pkill udevd
 	-umount $(ISO_MOUNT)
 	$(call targetLog,-)
 
@@ -266,7 +266,7 @@ $(QCOW2): | downloadISO createREPO
 	$(call targetLog,+)
 	mkdir -p $(DIR_MOUNT) $(ISO_MOUNT)
 	-mountpoint -q $(ISO_MOUNT) || mount $(WORKSPACE)/iso/$(ISO_FILE) $(ISO_MOUNT)
-	readlink -f /sbin/initctl | grep -v --quiet /bin/true || udevd &
+	-[ -f /.dockerenv ] && udevd &
 
 	mkdir -p $(WORKSPACE)/build/$(NAME)-$(VERSION).$(JOB)
 	mkdir -p $(WORKSPACE)/image
@@ -283,7 +283,7 @@ $(QCOW2): | downloadISO createREPO
 	bash functions.sh installOverlay $(DISK_QEMU).openstack $(SECTOR_INIT) $(SECTOR_SIZE) $(DIR_MOUNT) $(WORKSPACE)
 	bash functions.sh installConfiguration $(DISK_QEMU).openstack $(SECTOR_INIT) $(SECTOR_SIZE) $(DIR_MOUNT) $(ISO_MOUNT) $(NAME) $(VERSION) $(JOB)
 
-	readlink -f /sbin/initctl | grep -v --quiet /bin/true || pkill udevd
+	-[ -f /.dockerenv ] && pkill udevd
 	-umount $(ISO_MOUNT)
 	qemu-img convert -O qcow2 $(DISK_QEMU).openstack $(QCOW2)
 	$(call targetLog,-)

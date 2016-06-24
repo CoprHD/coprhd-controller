@@ -41,6 +41,11 @@ public class VirtualArrayParam {
         getBlockSettings().setAutoSanZoning(autoSanZoning);
     }
 
+    public VirtualArrayParam(Boolean autoSanZoning, Boolean noNetwork) {
+        getBlockSettings().setAutoSanZoning(autoSanZoning);
+        getBlockSettings().setNoNetwork(noNetwork);
+    }
+
     /**
      * Specifies whether or not zoning is automatic for the virtual array.
      * 

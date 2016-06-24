@@ -19,6 +19,8 @@ public class VirtualArray extends DataObjectWithACLs implements Serializable, Ge
 
     Boolean autoSanZoning = new Boolean(true);
 
+    Boolean noNetwork = new Boolean(false);
+
     Boolean deviceRegistered = new Boolean(false);
 
     String protectionType = "";
@@ -31,6 +33,16 @@ public class VirtualArray extends DataObjectWithACLs implements Serializable, Ge
     public void setAutoSanZoning(Boolean autoSanZoning) {
         this.autoSanZoning = autoSanZoning;
         setChanged("autoSanZoning");
+    }
+
+    @Name("noNetwork")
+    public Boolean getNoNetwork() {
+        return noNetwork;
+    }
+
+    public void setNoNetwork(Boolean noNetwork) {
+        this.noNetwork = noNetwork;
+        setChanged("noNetwork");
     }
 
     @Name("deviceRegistered")

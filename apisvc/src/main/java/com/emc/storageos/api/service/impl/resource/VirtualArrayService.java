@@ -20,7 +20,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Collection;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DefaultValue;
@@ -428,10 +427,16 @@ public class VirtualArrayService extends TaggedResource {
         VirtualArray varray = new VirtualArray();
         varray.setId(URIUtil.createId(VirtualArray.class));
         varray.setLabel(param.getLabel());
-        if (param.getAutoSanZoning() != null) {
-            varray.setAutoSanZoning(param.getAutoSanZoning());
+        if (param.getBlockSettings().getAutoSanZoning() != null) {
+            varray.setAutoSanZoning(param.getBlockSettings().getAutoSanZoning());
         } else {
             varray.setAutoSanZoning(true);
+        }
+
+        if (param.getBlockSettings().getNoNetwork() != null) {
+            varray.setAutoSanZoning(param.getBlockSettings().getNoNetwork());
+        } else {
+            varray.setNoNetwork(false);
         }
 
         if (param.getObjectSettings().getProtectionType() != null) {
@@ -441,7 +446,7 @@ public class VirtualArrayService extends TaggedResource {
         _dbClient.createObject(varray);
 
         auditOp(OperationTypeEnum.CREATE_VARRAY, true, null,
-                param.getLabel(), varray.getAutoSanZoning().toString(), varray.getId().toString());
+                param.getLabel(), varray.getAutoSanZoning().toString(), varray.getId().toString(), varray.getNoNetwork().toString());
 
         return map(varray);
     }
@@ -468,8 +473,12 @@ public class VirtualArrayService extends TaggedResource {
             varray.setLabel(param.getLabel());
         }
 
-        if (param.getAutoSanZoning() != null) {
-            varray.setAutoSanZoning(param.getAutoSanZoning());
+        if (param.getBlockSettings().getAutoSanZoning() != null) {
+            varray.setAutoSanZoning(param.getBlockSettings().getAutoSanZoning());
+        }
+
+        if (param.getBlockSettings().getNoNetwork() != null) {
+            varray.setAutoSanZoning(param.getBlockSettings().getNoNetwork());
         }
 
         if (param.getObjectSettings().getProtectionType() != null) {
@@ -479,7 +488,7 @@ public class VirtualArrayService extends TaggedResource {
         _dbClient.persistObject(varray);
 
         auditOp(OperationTypeEnum.UPDATE_VARRAY, true, null,
-                id.toString(), param.getLabel(), varray.getAutoSanZoning().toString());
+                id.toString(), param.getLabel(), varray.getAutoSanZoning().toString(), varray.getNoNetwork().toString());
 
         return map(varray);
     }

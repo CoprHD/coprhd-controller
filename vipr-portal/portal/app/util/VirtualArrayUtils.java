@@ -146,6 +146,14 @@ public class VirtualArrayUtils {
         return getViprClient().varrays().update(uri(id), virtualArray);
     }
 
+    public static VirtualArrayRestRep update(String id, String name, boolean autoSanZoning, boolean noNetwork) {
+        VirtualArrayUpdateParam virtualArray = new VirtualArrayUpdateParam();
+        virtualArray.setLabel(name);
+        virtualArray.getBlockSettings().setAutoSanZoning(autoSanZoning);
+        virtualArray.getBlockSettings().setNoNetwork(noNetwork);
+        return getViprClient().varrays().update(uri(id), virtualArray);
+    }
+
     public static void deactivate(URI id) {
         getViprClient().varrays().deactivate(id);
     }

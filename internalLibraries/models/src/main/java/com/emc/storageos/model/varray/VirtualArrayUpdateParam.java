@@ -30,6 +30,11 @@ public class VirtualArrayUpdateParam extends VirtualArrayParam {
         this.label = label;
     }
 
+    public VirtualArrayUpdateParam(Boolean autoSanZoning, Boolean noNetwork, String label) {
+        super(autoSanZoning, noNetwork);
+        this.label = label;
+    }
+
     /**
      * The new name for the virtual array.
      * 

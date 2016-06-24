@@ -1,0 +1,110 @@
+---
+- hosts: localhost 
+  tasks:
+
+  - fail: msg="Failed to get options for Export for Volume.  No project defined"
+    when: ProjectForExport is undefined
+
+  - debug: msg="Finding Volumes for Export by project {{ProjectForExport}}"  #"
+
+  - name: Logging in to ViPR
+    include: playbook-vipr-login.yml
+
+
+
+  - name: Get Volumes IDs for this Project
+    set_fact: path="/block/volumes/search.json?project={{ProjectForExport}}"
+
+  - include: playbook-rest-request.yml
+
+  - name: Extract Volume IDs from restResults
+    set_fact: vol_id_item="{{item.id}}"
+    with_items: "{{ restResult.json.resource }}"
+    register: vol_ids_result
+
+  - name: Make a list of Volume IDs 
+    set_fact: vol_ids={{ vol_ids_result.results | selectattr('ansible_facts', 'defined') | map(attribute='ansible_facts.vol_id_item') | list }}
+
+
+
+  - name: Get exports for this project
+    set_fact: path="/block/exports/search.json?project={{ProjectForExport}}"
+
+  - set_fact: method="GET"
+
+  - include: playbook-rest-request.yml
+
+  - name: Extract Export IDs from search results
+    set_fact: exp_id_item="{{item.id}}"
+    with_items: "{{ restResult.json.resource }}"
+    register: exp_ids_result
+
+  - name: Make a list of Export IDs
+    set_fact: exp_ids={{ exp_ids_result.results | selectattr('ansible_facts', 'defined') | map(attribute='ansible_facts.exp_id_item') | list }}
+
+  - name: Set resource path to get exports using those IDs
+    set_fact: path="/block/exports/bulk.json"
+
+  - set_fact: method="POST"
+
+  - name: Make body with export IDs
+    set_fact: body="{\"id\":["{{ exp_ids | join('","') }}"]}" 
+    when: exp_ids|length > 0
+
+  - set_fact: body="{\"id\":[]}"
+    when: exp_ids|length < 1
+
+  - include: playbook-rest-request.yml
+
+
+
+  - name: Extract lists of exported volumes from restResults for Host/Cluster exports
+    set_fact: exp_host_clstr_vols_item="{{item.volumes}}"
+    with_items: "{{ restResult.json.exportgroup }}"
+    when: (not item.internal) and ((item.type == "Cluster") or (item.type == "Host"))
+    register: exp_host_clstr_vols_result
+
+  - name: Make list of exported volume lists
+    set_fact: exp_host_clstr_vol_id_lists={{ exp_host_clstr_vols_result.results | selectattr('ansible_facts', 'defined') | map(attribute='ansible_facts.exp_host_clstr_vols_item') | list }}
+
+  - name: Flatten lists of lists to get volume IDs
+    set_fact: exp_host_clstr_vol_ids_flat={{item.id}}
+    with_flattened: '{{exp_host_clstr_vol_id_lists}}'
+    register: exp_host_clstr_vol_ids_flat_result
+
+  - name: Flatten lists of exported volumes into simple list
+    set_fact: exp_vol_ids={{ exp_host_clstr_vol_ids_flat_result.results | selectattr('ansible_facts', 'defined') | map(attribute='ansible_facts.exp_host_clstr_vol_ids_flat') | list | unique}}
+
+
+
+  - name: Get unexported volumes by removing exported vols from list of all vols
+    set_fact: unexp_vol_ids={{ vol_ids | difference(exp_vol_ids) }}
+
+
+
+  - name: Get volume info for unexported volume IDs
+    set_fact: path="/block/volumes/bulk.json"
+
+  - name: Make body with volume IDs
+    set_fact: body="{\"id\":["{{ unexp_vol_ids | join('","') }}"]}"
+    when: unexp_vol_ids|length > 0
+
+  - set_fact: body="{\"id\":[]}"
+    when: unexp_vol_ids|length < 1
+
+  - include: playbook-rest-request.yml
+
+  - include: playbook-vipr-logout.yml
+
+
+
+  - name: Get menu option data for volumes, except RP vols that are not 'source' or 'target' type, & internal vols
+    set_fact: vol_options="{\"name\":\"{{item.name}}\",\"id\":\"{{item.id}}\"}"
+    with_items: "{{ restResult.json.volume }}"
+    when: (item.internal == "false") or (item.protection is undefined) or (item.protection.recoverpoint is undefined) or (item.protection.recoverpoint.personality is undefined) or (item.protection.recoverpoint.personality == "SOURCE") or (item.protection.recoverpoint.personality == "TARGET")
+    register: vol_options_results
+
+  - name: Format options from results
+    set_fact: optionsData={{ vol_options_results.results | selectattr('ansible_facts', 'defined') | map(attribute='ansible_facts.vol_options') | list }}
+
+  - include: playbook-vipr-options-write.yml 

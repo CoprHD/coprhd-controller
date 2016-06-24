@@ -1,0 +1,10 @@
+{
+ "friendlyName": "Get ViPR BlockStorageTypeForExport",
+ "injectableName": "assetType.rackhd.BlockStorageTypeForExport",
+ "tasks": [
+  {
+   "label": "Get ViPR Hosts",
+   "taskName": "Task.ViPR.BlockStorageTypeForExport.Get"
+  }
+ ]
+}

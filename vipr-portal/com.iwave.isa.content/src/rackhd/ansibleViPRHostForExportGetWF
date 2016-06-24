@@ -1,0 +1,10 @@
+{
+ "friendlyName": "Get ViPR Host For Export",
+ "injectableName": "assetType.rackhd.HostForExport",
+ "tasks": [
+  {
+   "label": "Get ViPR Host For Export",
+   "taskName": "Task.ViPR.HostForExport.Get"
+  }
+ ]
+}

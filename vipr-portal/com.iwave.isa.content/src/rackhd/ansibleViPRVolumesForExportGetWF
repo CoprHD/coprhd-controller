@@ -1,0 +1,10 @@
+{
+ "friendlyName": "Get ViPR Volumes For Export",
+ "injectableName": "assetType.rackhd.VolumesForExport",
+ "tasks": [
+  {
+   "label": "Get ViPR Volumes For Export",
+   "taskName": "Task.ViPR.VolumesForExport.Get"
+  }
+ ]
+}

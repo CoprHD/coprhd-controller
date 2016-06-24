@@ -1466,7 +1466,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
 
     private boolean checkIfCGHasSnapshotSessions(List<Volume> volumes) {
         for (BlockObject volume : volumes) {
-            if (volume.getConsistencyGroup() != null && NullColumnValueGetter.isNotNullValue(volume.getConsistencyGroup().toString())) {
+            if (!NullColumnValueGetter.isNullURI(volume.getConsistencyGroup())) {
                 List<BlockSnapshotSession> sessions = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient,
                         BlockSnapshotSession.class,
                         ContainmentConstraint.Factory.getBlockSnapshotSessionByConsistencyGroup(volume.getConsistencyGroup()));

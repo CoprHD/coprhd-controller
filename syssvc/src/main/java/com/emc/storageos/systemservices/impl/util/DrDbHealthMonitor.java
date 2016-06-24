@@ -46,9 +46,7 @@ public class DrDbHealthMonitor extends DrHealthMonitor {
     private DrUtil drUtil;
     private CoordinatorClient coordinatorClient;
 
-    public DrDbHealthMonitor(CoordinatorClient coordinatorClient) {
-        this.drUtil = new DrUtil(coordinatorClient);
-        this.coordinatorClient = coordinatorClient;
+    public DrDbHealthMonitor() {
     }
 
     @Override
@@ -314,4 +312,21 @@ public class DrDbHealthMonitor extends DrHealthMonitor {
                 monitorResult.getDbQuorumLostSince(), monitorResult.getDbQuorumLastActive(), siteId));
         return monitorResult;
     }
+
+    public DrUtil getDrUtil() {
+        return drUtil;
+    }
+
+    public void setDrUtil(DrUtil drUtil) {
+        this.drUtil = drUtil;
+    }
+
+    public CoordinatorClient getCoordinatorClient() {
+        return coordinatorClient;
+    }
+
+    public void setCoordinatorClient(CoordinatorClient coordinatorClient) {
+        this.coordinatorClient = coordinatorClient;
+    }
+    
 }

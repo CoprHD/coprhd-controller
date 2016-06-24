@@ -831,6 +831,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             StringBuilder buf = new StringBuilder();
             buf.append("Vplex: " + vplexURI + " created virtual volume(s): ");
 
+            boolean thinEnabled = false;
             List<VPlexVirtualVolumeInfo> virtualVolumeInfos = new ArrayList<VPlexVirtualVolumeInfo>();
             Map<String, Volume> vplexVolumeNameMap = new HashMap<String, Volume>();
             List<VPlexClusterInfo> clusterInfoList = null;
@@ -841,7 +842,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 String clusterId = ConnectivityUtil.getVplexClusterForVarray(
                         vplexVolumeVarrayURI, vplexVolume.getStorageController(), _dbClient);
                 List<VolumeInfo> vinfos = new ArrayList<VolumeInfo>();
-                boolean thinEnabled = false;
                 for (Volume storageVolume : volumeMap.get(vplexVolume)) {
                     StorageSystem storage = storageMap.get(storageVolume.getStorageController());
                     List<String> itls = VPlexControllerUtils.getVolumeITLs(storageVolume);
@@ -888,8 +888,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     throw ex;
                 }
 
-                checkThinEnabledResult(vvInfo, thinEnabled, _workflowService.getWorkflowFromStepId(stepId).getOrchTaskId());
-
                 vplexVolumeNameMap.put(vvInfo.getName(), vplexVolume);
                 virtualVolumeInfos.add(vvInfo);
             }
@@ -906,6 +904,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     vplexVolume.setNativeGuid(vvInfo.getPath());
                     vplexVolume.setDeviceLabel(vvInfo.getName());
                     vplexVolume.setThinlyProvisioned(vvInfo.isThinEnabled());
+                    checkThinEnabledResult(vvInfo, thinEnabled, _workflowService.getWorkflowFromStepId(stepId).getOrchTaskId());
                     // For Vplex virtual volumes set allocated capacity to 0 (cop-18608)
                     vplexVolume.setAllocatedCapacity(0L);
                     vplexVolume.setProvisionedCapacity(vvInfo.getCapacityBytes());
@@ -4849,7 +4848,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // Get the initiator port map for this VPLEX and storage system
             // for this volumes virtual array.
             VPlexBackendManager backendMgr = new VPlexBackendManager(_dbClient, this, _blockDeviceController,
-                    _blockScheduler, _networkDeviceController, projectURI, tenantURI, _vplexApiLockManager);
+                    _blockScheduler, _networkDeviceController, projectURI, tenantURI, _vplexApiLockManager, coordinator);
             Map<URI, List<StoragePort>> initiatorPortMap = backendMgr.getInitiatorPortsForArray(
                     vplexURI, storageSystemURI, varray);
 
@@ -6627,7 +6626,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     continue; // CTRL 12474: Do not generate steps if there are no volumes to process
                 }
                 VPlexBackendManager backendMgr = new VPlexBackendManager(_dbClient, this,
-                        _blockDeviceController, _blockScheduler, _networkDeviceController, null, null, _vplexApiLockManager);
+                        _blockDeviceController, _blockScheduler, _networkDeviceController, 
+                        null, null, _vplexApiLockManager, coordinator);
                 boolean stepsAdded = backendMgr.addWorkflowStepsToRemoveBackendVolumes(subWorkflow,
                         waitFor, storage, exportGroupURI, volumes);
                 if (stepsAdded) {
@@ -11715,7 +11715,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @param taskId the current Workflow task id
      */
     private void checkThinEnabledResult(VPlexVirtualVolumeInfo info, boolean thinEnabled, String taskId) {
-        if (thinEnabled && null != info && !info.isThinEnabled()) {
+        if (thinEnabled && (null != info) && !info.isThinEnabled()) {
             // this is not considered an error situation, but we need to log it for the user's knowledge.
             // stepId is included so that it will appear in the Task's Logs section in the ViPR UI.
             _log.warn(String.format("Virtual Volume %s was created from a thin virtual pool, but it could not be created "

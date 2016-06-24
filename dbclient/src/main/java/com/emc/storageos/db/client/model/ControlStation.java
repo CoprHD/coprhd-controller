@@ -12,12 +12,42 @@ package com.emc.storageos.db.client.model;
  */
 @Cf("ControlStation")
 public class ControlStation extends AbstractComputeSystem {
+    private String _type;
     private String _userName;
     private String _password;
     private String _ipAddress;
     private Integer _portNumber;
     private String _osVersion;
     private Boolean _useSsl;
+
+    /**
+     * The expected list of host OS types
+     * 
+     */
+    public enum ControlStationType {
+        HMC, Other
+    }
+
+    /**
+     * Gets the ControlStation type which is an instance of {@link ControlStationType}
+     * 
+     * @return The type of ControlStation.
+     */
+    @Name("type")
+    public String getType() {
+        return _type;
+    }
+
+    /**
+     * Sets the type of ControlStation
+     * 
+     * @see ControlStationType
+     * @param type the ControlStation type
+     */
+    public void setType(String type) {
+        this._type = type;
+        setChanged("type");
+    }
 
     /**
      * Gets the login account name
@@ -144,7 +174,7 @@ public class ControlStation extends AbstractComputeSystem {
     @Override
     public Object[] auditParameters() {
         return new Object[] { getLabel(), getIpAddress(),
-                getPortNumber(), getOsVersion(), getTenant(), getId() };
+                getPortNumber(), getOsVersion(), getId() };
     }
 
 }

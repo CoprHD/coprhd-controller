@@ -33,8 +33,6 @@ public abstract class HostParam {
     private URI project;
     private URI tenant;
     private Boolean discoverable;
-    private Boolean hasControlStation;
-    private ControlStationParam controlSation;
     private URI bootVolume;
 
     public HostParam() {
@@ -211,22 +209,6 @@ public abstract class HostParam {
         this.discoverable = discoverable;
     }
 
-    /**
-     * Gets the hasControlStation flag. hasControlStation indicates Control Station a used in discover Host information. 
-     * 
-     * @return true if automatic discovery is enabled, false if automatic discovery is disabled.
-     * default value is true
-     */
-    @XmlElement(name = "has_control_station", required = false)
-    public Boolean getHasControlStation() {
-        return hasControlStation;
-    }
-
-    public void setHasControlStation(Boolean hasControlStation) {
-        this.hasControlStation = hasControlStation;
-    }
-    
-    
     /**
      * The URI of the tenant owning the host.
      * 

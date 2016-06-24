@@ -21,6 +21,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.ComputeSystem;
+import com.emc.storageos.db.client.model.ControlStation;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DecommissionedResource;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
@@ -127,6 +128,8 @@ public class DataCollectionJobUtil {
             populateAccessProfile(profile, (Host) taskObject);
         } else if (clazz == Vcenter.class) {
             populateAccessProfile(profile, (Vcenter) taskObject);
+        } else if (clazz == ControlStation.class) {
+            populateAccessProfile(profile, (ControlStation) taskObject);
         } else {
             throw new RuntimeException("getAccessProfile: profile is unknown for objects of type : "
                     + taskObject.getClass());
@@ -190,6 +193,14 @@ public class DataCollectionJobUtil {
         profile.setSystemType(Type.vcenter.toString());
         profile.setUserName(vcenter.getUsername());
         profile.setPassword(vcenter.getPassword());
+    }
+
+    private void populateAccessProfile(AccessProfile profile, ControlStation cs) {
+        profile.setSystemId(cs.getId());
+        profile.setSystemClazz(cs.getClass());
+        profile.setSystemType(Type.controlstation.toString());
+        profile.setUserName(cs.getUsername());
+        profile.setPassword(cs.getPassword());
     }
 
     private void populateAccessProfile(AccessProfile profile, ProtectionSystem system, String nameSpace) {
@@ -355,7 +366,7 @@ public class DataCollectionJobUtil {
         accessProfile.setPortNumber(providerInfo.getPortNumber());
         accessProfile.setSslEnable(String.valueOf(providerInfo.getUseSSL()));
     }
-    
+
     /**
      * inject details needed for Scanning
      * 
@@ -582,7 +593,7 @@ public class DataCollectionJobUtil {
             }
         } else if (storageDevice.getSystemType().equals(Type.hds.toString())) {
             populateHDSAccessProfile(accessProfile, storageDevice, nameSpace);
-        }  else if (storageDevice.getSystemType().equals(
+        } else if (storageDevice.getSystemType().equals(
                 Type.ceph.toString())) {
             accessProfile.setSystemType(storageDevice.getSystemType());
             accessProfile.setIpAddress(storageDevice.getSmisProviderIP());
@@ -673,6 +684,7 @@ public class DataCollectionJobUtil {
      * Populate access profile for storage system.
      * If it has active provider, it will populate the access profile from provider info,
      * otherwise, it will populate the access profile from the storage system.
+     * 
      * @param accessProfile
      * @param storageDevice
      */
@@ -697,6 +709,7 @@ public class DataCollectionJobUtil {
             accessProfile.setLastSampleTime(0L);
         }
     }
+
     /**
      * If storageDevice is not AMS, use embedded provider else HCS ipAddress.
      * 

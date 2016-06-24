@@ -4,14 +4,15 @@
  */
 package com.emc.storageos.db.client.model;
 
-import com.emc.storageos.services.util.StorageDriverManager;
+import java.io.Serializable;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 
-import java.io.Serializable;
-import java.util.HashMap;
-import java.util.Map;
+import com.emc.storageos.services.util.StorageDriverManager;
 
 public class DiscoveredDataObject extends DataObject {
 
@@ -29,7 +30,7 @@ public class DiscoveredDataObject extends DataObject {
         // Ex. DB migration test framework.
         ApplicationContext context = StorageDriverManager.getApplicationContext();
         if (context != null) {
-            storageDriverManager = (StorageDriverManager)StorageDriverManager.
+            storageDriverManager = (StorageDriverManager) StorageDriverManager.
                     getApplicationContext().getBean(StorageDriverManager.STORAGE_DRIVER_MANAGER);
         } else {
             _log.warn("Cannot set storageDriverManager. Application context is null. Assuming not a real deployment.");
@@ -67,6 +68,7 @@ public class DiscoveredDataObject extends DataObject {
         static public Type ecs = new Type("ecs", types.values().size());
         static public Type ceph = new Type("ceph", types.values().size());
         static public Type unity = new Type("unity", types.values().size());
+        static public Type controlstation = new Type("controlstation", types.values().size());
 
         private String name;
         private int ordinal;
@@ -96,7 +98,7 @@ public class DiscoveredDataObject extends DataObject {
         }
 
         @Override
-        public  String toString(){
+        public String toString() {
             return name;
         }
 
@@ -104,23 +106,22 @@ public class DiscoveredDataObject extends DataObject {
             return name;
         }
 
-        static public Type valueOf(String typeName){
-            // check map  with types
+        static public Type valueOf(String typeName) {
+            // check map with types
             if (types.containsKey(typeName)) {
                 return types.get(typeName);
-            } else if (storageDriverManager != null && storageDriverManager.isDriverManaged(typeName)){
+            } else if (storageDriverManager != null && storageDriverManager.isDriverManaged(typeName)) {
                 // check if this is new driver managed type
                 types.put(typeName, new Type(typeName, types.values().size()));
                 return types.get(typeName);
             } else {
-                throw new IllegalArgumentException("Class "+ Type.class.getSimpleName() + "does not have member: " +typeName);
+                throw new IllegalArgumentException("Class " + Type.class.getSimpleName() + "does not have member: " + typeName);
             }
         }
 
-        public static Type []  values() {
-            return  types.values().toArray(new Type[0]);
+        public static Type[] values() {
+            return types.values().toArray(new Type[0]);
         }
-
 
         static public boolean isDriverManagedStorageSystem(String storageType) {
             return storageDriverManager != null && storageDriverManager.isDriverManaged(storageType);
@@ -131,7 +132,8 @@ public class DiscoveredDataObject extends DataObject {
                 return storageDriverManager.isFileStorageSystem(storageType);
             } else {
                 Type type = Type.valueOf(storageType);
-                return (type.equals(isilon) || type.equals(vnxfile) || type.equals(netapp) || type.equals(netappc) || type.equals(vnxe) || type.equals(datadomain));
+                return (type.equals(isilon) || type.equals(vnxfile) || type.equals(netapp) || type.equals(netappc) || type.equals(vnxe) || type
+                        .equals(datadomain));
             }
         }
 
@@ -140,7 +142,7 @@ public class DiscoveredDataObject extends DataObject {
                 return storageDriverManager.isProviderStorageSystem(storageType);
             } else {
                 Type type = Type.valueOf(storageType);
-                return  type.equals(vnxblock) ||
+                return type.equals(vnxblock) ||
                         type.equals(datadomain) ||
                         type.equals(vmax) ||
                         type.equals(hds) ||
@@ -166,10 +168,10 @@ public class DiscoveredDataObject extends DataObject {
                 return storageDriverManager.isBlockStorageSystem(storageType);
             } else {
                 Type type = Type.valueOf(storageType);
-                return (type.equals(vnxblock) || type.equals(vmax) || type.equals(vnxe) || type.equals(hds) || type.equals(ibmxiv) || type.equals(xtremio) || type.equals(scaleio) || type.equals(ceph) || type.equals(unity));
+                return (type.equals(vnxblock) || type.equals(vmax) || type.equals(vnxe) || type.equals(hds) || type.equals(ibmxiv)
+                        || type.equals(xtremio) || type.equals(scaleio) || type.equals(ceph) || type.equals(unity));
             }
         }
-
 
         static public boolean isHDSStorageSystem(Type type) {
             return (type.equals(hds));
@@ -180,7 +182,6 @@ public class DiscoveredDataObject extends DataObject {
         }
 
     }
-
 
     public static enum DataCollectionJobStatus {
         CREATED,

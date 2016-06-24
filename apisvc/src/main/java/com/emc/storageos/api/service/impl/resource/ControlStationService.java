@@ -4,13 +4,15 @@
  */
 package com.emc.storageos.api.service.impl.resource;
 
+import static com.emc.storageos.api.mapper.TaskMapper.toTask;
+
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DefaultValue;
+import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -23,25 +25,20 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.api.service.impl.resource.utils.AsyncTaskExecutorIntf;
 import com.emc.storageos.api.service.impl.resource.utils.DiscoveredObjectTaskScheduler;
 import com.emc.storageos.computesystemcontroller.ComputeSystemController;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.ControlStation;
 import com.emc.storageos.db.client.model.DataObject;
-import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
-import com.emc.storageos.db.client.model.Task;
-import com.emc.storageos.db.client.model.TenantOrg;
-import com.emc.storageos.db.client.util.NullColumnValueGetter;
-import com.emc.storageos.model.RelatedResourceRep;
+import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
-import com.emc.storageos.model.RestLinkRep;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.host.ControlStationCreateParam;
-import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
-import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.ControllerException;
 
@@ -50,15 +47,21 @@ import com.emc.storageos.volumecontroller.ControllerException;
  * 
  *
  */
-@Path("/compute/controlStation")
-@DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR }, writeRoles = {
-        Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+
+@Path("/compute/controlstation")
+@DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR },
+        writeRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
 public class ControlStationService extends TaskResourceService {
 
     private static final Logger _log = LoggerFactory
             .getLogger(ControlStationService.class);
 
-    private static final String EVENT_SERVICE_TYPE = "ControlStationService";
+    private static final String EVENT_SERVICE_TYPE = "controlstation";
+
+    @Override
+    public String getServiceType() {
+        return EVENT_SERVICE_TYPE;
+    }
 
     private static class DiscoverJobExec implements AsyncTaskExecutorIntf {
 
@@ -93,27 +96,103 @@ public class ControlStationService extends TaskResourceService {
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = { Role.TENANT_ADMIN })
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.TENANT_ADMIN })
     public TaskResourceRep createControlStation(ControlStationCreateParam createParam,
-            @QueryParam("validate_connection") @DefaultValue("false") final Boolean validateConnection) {
-        // This is mostly to validate the tenant
-        URI tid = createParam.getTenant();
-        if ((tid == null) || tid.toString().isEmpty()) {
-            _log.error("The tenant id is missing");
-            throw APIException.badRequests.requiredParameterMissingOrEmpty("tenant");
+            @QueryParam("validate_connection") @DefaultValue("false") final Boolean validateConnection,
+            @QueryParam("discover_controlstation") @DefaultValue("true") final Boolean discoverControlStation) {
+        ControlStation controlStation = createNewControlStation(createParam, validateConnection);
+
+        controlStation.setRegistrationStatus(DiscoveredDataObject.RegistrationStatus.REGISTERED.toString());
+        _dbClient.createObject(controlStation);
+        auditOp(OperationTypeEnum.CREATE_CONTROL_STATION, true, null,
+                controlStation.auditParameters());
+
+        if (discoverControlStation) {
+            return doDiscoverControlStation(queryObject(ControlStation.class, controlStation.getId(), true));
+        } else {
+            return createManualReadyTask(controlStation);
+
+        }
+    }
+
+    /**
+     * Gets the id, name, and self link for all registered control station .
+     * 
+     * @brief List control station
+     * @return A reference to control station List.
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
+    public ControlStationCreateParam testRestcall() {
+        ControlStationCreateParam cs = new ControlStationCreateParam();
+        cs.setName("test");
+        return cs;
+    }
+
+    /**
+     * Creates a manual (fake) controlStation discover task, so that
+     * there wont be any controlStation discovery happening because of
+     * this task.
+     *
+     * @param vcenter controlStation to create its manual/fake discovery task.
+     *
+     * @return returns fake/manual controlStation discovery task.
+     */
+    private TaskResourceRep createManualReadyTask(ControlStation controlStation) {
+        // if not discoverable, manually create a ready task
+        Operation op = new Operation();
+        op.setResourceType(ResourceOperationTypeEnum.DISCOVER_CONTROL_STATION);
+        op.ready("controlStation not discoverable.");
+
+        String taskId = UUID.randomUUID().toString();
+        _dbClient.createTaskOpStatus(ControlStation.class, controlStation.getId(), taskId, op);
+
+        return toTask(controlStation, taskId, op);
+    }
+
+    private ControlStation createNewControlStation(ControlStationCreateParam createParam, Boolean validateConnection) {
+        validateControlSationData(createParam, validateConnection);
+
+        ControlStation cs = new ControlStation();
+        cs.setId(URIUtil.createId(ControlStation.class));
+
+        populateControlStation(cs, createParam);
+        return cs;
+    }
+
+    private void populateControlStation(ControlStation cs, ControlStationCreateParam param) {
+        cs.setLabel(param.getName());
+        cs.setType(param.getType());
+        cs.setOsVersion(param.getOsVersion());
+        cs.setUsername(param.getUserName());
+        cs.setPassword(param.getPassword());
+        cs.setIpAddress(param.findIpAddress());
+        cs.setPortNumber(param.getPortNumber());
+        cs.setUseSSL(param.getUseSsl());
+
+    }
+
+    private void validateControlSationData(ControlStationCreateParam param, Boolean validateConnection) {
+        if (param.findIpAddress() != null) {
+            checkDuplicateAltId(ControlStation.class, "ipAddress", param.findIpAddress(), "controlstation");
         }
 
-        TenantOrg tenant = _permissionsHelper.getObjectById(tid, TenantOrg.class);
-        ArgValidator.checkEntity(tenant, tid, isIdEmbeddedInURL(tid), true);
+        if (param.getName() != null) {
+            checkDuplicateLabel(ControlStation.class, param.getName());
+        }
 
-        validateControlStationData(createParam, tid, null, validateConnection);
+        ArgValidator.checkFieldNotNull(param.getUserName(), "username");
+        ArgValidator.checkFieldNotNull(param.getPassword(), "password");
 
-        // Create the host
-        ControlStation cs = createNewControlStation(tenant, createParam);
-        cs.setRegistrationStatus(RegistrationStatus.REGISTERED.toString());
-        _dbClient.createObject(cs);
-        auditOp(OperationTypeEnum.CREATE_CONTROL_STATION, true, null, cs.auditParameters());
-        return doDiscoverControlStation(cs);
+        // TODO check for connection validation
+        if (validateConnection != null && validateConnection == true) {
+            // String errorMessage = ControlStationConnectionValidator.isConnectionValid(param);
+            // if (StringUtils.isNotBlank(errorMessage)) {
+            // throw APIException.badRequests.invalidControlStationConnection(errorMessage);
+            // }
+        }
+
     }
 
     /**
@@ -134,51 +213,8 @@ public class ControlStationService extends TaskResourceService {
         TaskList taskList = scheduler.scheduleAsyncTasks(tasks);
 
         TaskResourceRep taskResourceRep = taskList.getTaskList().iterator().next();
-        updateTaskTenant(taskResourceRep);
 
         return taskResourceRep;
-    }
-
-    /**
-     * Updates the tenant information in the Task data object and
-     * TaskResourceRep (the response object to the API request).
-     * Both Task and TaskResourceRep is updated with the user's
-     * tenant information if it they don't contain any tenant information
-     * already.
-     *
-     * @param taskResourceRep api response to be updated.
-     */
-    private void updateTaskTenant(TaskResourceRep taskResourceRep) {
-        Task task = _dbClient.queryObject(Task.class, taskResourceRep.getId());
-        if (areEqual(task.getTenant(), NullColumnValueGetter.getNullURI())) {
-            StorageOSUser user = getUserFromContext();
-            URI userTenantUri = URI.create(user.getTenantId());
-            task.setTenant(userTenantUri);
-
-            RelatedResourceRep tenant = new RelatedResourceRep();
-            tenant.setId(userTenantUri);
-            tenant.setLink(new RestLinkRep("self", URI.create("/tenants/" + userTenantUri.toString())));
-
-            taskResourceRep.setTenant(tenant);
-            _dbClient.persistObject(task);
-
-            List<String> traceParams = new ArrayList<String>();
-            traceParams.add(task.getId().toString());
-            traceParams.add(user.getName());
-            traceParams.add(user.getTenantId());
-
-            _log.info("Update the task {} with the user's {} tenant {}", traceParams);
-        }
-    }
-
-    private ControlStation createNewControlStation(TenantOrg tenant, ControlStationCreateParam createParam) {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    private void validateControlStationData(ControlStationCreateParam createParam, URI tid, Object object, Boolean validateConnection) {
-        // TODO Auto-generated method stub
-
     }
 
     @Override

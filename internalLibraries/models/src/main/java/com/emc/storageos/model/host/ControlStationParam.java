@@ -1,42 +1,25 @@
 package com.emc.storageos.model.host;
 
-import java.net.URI;
-
 import javax.xml.bind.annotation.XmlElement;
 
 import org.codehaus.jackson.annotate.JsonProperty;
 
-import com.emc.storageos.model.valid.Endpoint;
 import com.emc.storageos.model.valid.Length;
 import com.emc.storageos.model.valid.Range;
 
-public class ControlStationParam {
-
+public abstract class ControlStationParam {
     private String type;
-    private String controlStationName;
     private String osVersion;
-
     private String name;
     private Integer portNumber;
     private String userName;
     private String password;
     private Boolean useSsl;
-    private URI project;
-    private URI tenant;
     private Boolean discoverable;
-    private URI bootVolume;
 
     public ControlStationParam() {
     }
 
-    /**
-     * The Control Station type.
-     * Valid values:
-     * HMC
-     * Other
-     * 
-     */
-    // @EnumType(Host.HostType.class)
     @XmlElement(required = false)
     public String getType() {
         return type;
@@ -44,21 +27,6 @@ public class ControlStationParam {
 
     public void setType(String type) {
         this.type = type;
-    }
-
-    /**
-     * The short or fully qualified host name or IP address of the host management interface.
-     * 
-     */
-    @XmlElement(name = "control_station_name", required = false)
-    @Endpoint(type = Endpoint.EndpointType.HOST)
-    @JsonProperty("control_station_name")
-    public String getControlStationName() {
-        return controlStationName;
-    }
-
-    public void setControlStationName(String controlStationName) {
-        this.controlStationName = controlStationName;
     }
 
     /**
@@ -142,19 +110,6 @@ public class ControlStationParam {
     }
 
     /**
-     * This field is currently not used. Any values passed into it will be ignored.
-     * 
-     */
-    @XmlElement()
-    public URI getProject() {
-        return project;
-    }
-
-    public void setProject(URI project) {
-        this.project = project;
-    }
-
-    /**
      * Gets the discoverable flag. Discoverable indicates if automatic discovery should be
      * performed against this host. Defaults to true.
      * 
@@ -170,25 +125,7 @@ public class ControlStationParam {
         this.discoverable = discoverable;
     }
 
-    /**
-     * The URI of the tenant owning the host.
-     * 
-     */
-    @XmlElement(name = "tenant")
-    public URI getTenant() {
-        return tenant;
-    }
+    /** Gets the Control Station IP address */
+    public abstract String findIpAddress();
 
-    public void setTenant(URI tenant) {
-        this.tenant = tenant;
-    }
-
-    @XmlElement(name = "boot_volume", required = false)
-    public URI getBootVolume() {
-        return bootVolume;
-    }
-
-    public void setBootVolume(URI bootVolume) {
-        this.bootVolume = bootVolume;
-    }
 }

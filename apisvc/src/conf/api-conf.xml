@@ -157,6 +157,11 @@
         <property name="coordinator" ref="coordinator"/>
     </bean>
     
+    <bean id="controlstationService" class="com.emc.storageos.api.service.impl.resource.ControlStationService">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="coordinator" ref="coordinator"/>
+    </bean>
+    
     <bean id="vcenterDataCenterService" class="com.emc.storageos.api.service.impl.resource.VcenterDataCenterService">
         <property name="dbClient" ref="dbclient"/>
         <property name="coordinator" ref="coordinator"/>
@@ -493,6 +498,7 @@
                 <ref bean="computeImageServerService"/>
                 <ref bean="vcenterService"/>
                 <ref bean="vcenterDataCenterService"/>
+                <ref bean="controlstationService"/>
                 <ref bean="clusterService"/>
                 <ref bean="ipInterfaceService"/>
                 <ref bean="customConfigService"/>

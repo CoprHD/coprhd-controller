@@ -12,45 +12,37 @@ import org.codehaus.jackson.annotate.JsonProperty;
 import com.emc.storageos.model.valid.Endpoint;
 
 /**
- * Request POST parameter for host creation.
+ * Request POST parameter for control station creation.
  */
 @XmlRootElement(name = "control_station_create")
 public class ControlStationCreateParam extends ControlStationParam {
+
+    private String ipAddress;
+
     public ControlStationCreateParam() {
-        setDiscoverable(true);
+    }
+
+    public ControlStationCreateParam(String ipAddress) {
+        this.ipAddress = ipAddress;
     }
 
     /**
-     * The host type.
-     * Valid values:
-     * HMC
-     * Other
-     */
-    @Override
-    @XmlElement(required = true)
-    public String getType() {
-        return super.getType();
-    }
-
-    /**
-     * The short or fully qualified host name or IP address of the host
-     * management interface.
+     * The IP address or host name of the vCenter.
      * 
      */
-    @Override
-    @XmlElement(name = "control_station_name", required = true)
+    @XmlElement(name = "ip_address", required = true)
     @Endpoint(type = Endpoint.EndpointType.HOST)
-    @JsonProperty("control_station_name")
-    public String getControlStationName() {
-        return super.getControlStationName();
+    @JsonProperty("ip_address")
+    public String getIpAddress() {
+        return ipAddress;
     }
 
-    /**
-     * The user label for this host.
-     * 
-     */
-    @XmlElement(required = true)
-    public String getName() {
-        return super.getName();
+    public void setIpAddress(String ipAddress) {
+        this.ipAddress = ipAddress;
+    }
+
+    @Override
+    public String findIpAddress() {
+        return ipAddress;
     }
 }

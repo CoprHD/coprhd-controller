@@ -1405,14 +1405,12 @@ def update_parser(subcommand_parsers, common_parser):
                                help='Supported System Types',
                                metavar='<systemtype>',
                                choices=StorageSystem.SYSTEM_TYPE_LIST,
-                               dest='systemtype',
-                               default='NONE')
+                               dest='systemtype')
     update_parser.add_argument('-drivetype', '-dt',
                                help='Supported Drive Types',
                                metavar='<drivetype>',
                                choices=VirtualPool.DRIVE_TYPE_LIST,
-                               dest='drivetype',
-                               default='NONE')
+                               dest='drivetype')
     update_parser.add_argument('-multivolconsistency', '-mvc',
                                help=' multi volume consistency',
                                metavar='<multivolconsistency>',
@@ -1573,7 +1571,8 @@ def vpool_update(args):
            args.quota_enable is not None or args.quota_capacity is not None or
            args.systemtype is not None or args.drivetype is not None or
            args.fr_policy is not None or args.fr_addcopies is not None or
-           args.fr_removecopies is not None):
+           args.fr_removecopies is not None or
+           args.placementpolicy is not None):
             obj = VirtualPool(args.ip, args.port)
             obj.vpool_update(args.name,
                              args.label,
@@ -1616,7 +1615,7 @@ def vpool_update(args):
                              args.placementpolicy)
         else:
             raise SOSError(SOSError.CMD_LINE_ERR,
-                           "Please provide atleast one of parameters")
+                           "Please provide at least one of parameters")
 
     except SOSError as e:
         common.format_err_msg_and_raise("update", "vpool", e.err_text,

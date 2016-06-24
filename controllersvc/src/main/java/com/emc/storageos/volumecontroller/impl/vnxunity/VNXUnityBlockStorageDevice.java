@@ -10,10 +10,12 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.eclipse.jetty.util.log.Log;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,6 +27,8 @@ import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
+import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
@@ -640,23 +644,41 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
         BlockConsistencyGroup consistencyGroup = dbClient.queryObject(BlockConsistencyGroup.class,
                 consistencyGroupId);
 
+        StringSet cgNames = new StringSet();
         if (NullColumnValueGetter.isNullValue(replicationGroupName)) {
-            logger.error("The consistency group does not exist in the array: {}", storage.getSerialNumber());
-            taskCompleter.error(dbClient, DeviceControllerException.exceptions
-                    .consistencyGroupNotFound(storage.getSerialNumber(), consistencyGroup.getLabel()));
-            return;
+            StringSetMap ssm = consistencyGroup.getSystemConsistencyGroups();
+            if (ssm != null) {
+                cgNames = ssm.get(storage.getId().toString());
+                if (cgNames == null || cgNames.isEmpty()) {
+                    logger.info("There is no array consistency group to be deleted.");
+                    if (markInactive) {
+                        consistencyGroup.setInactive(true);
+                        dbClient.updateObject(consistencyGroup);
+                    }
+                    taskCompleter.ready(dbClient);
+                    return;
+                }
+            }
 
+        } else {
+            cgNames.add(replicationGroupName);
         }
         VNXeApiClient apiClient = getVnxUnityClient(storage);
         try {
-            String id = apiClient.getConsistencyGroupIdByName(replicationGroupName);
-            apiClient.deleteConsistencyGroup(id, false, false);
-            URI systemURI = storage.getId();
-            consistencyGroup.removeSystemConsistencyGroup(systemURI.toString(), replicationGroupName);
+            for (String cgName : cgNames) {
+                logger.info("Deleting the consistency group {}", cgName);
+                String id = apiClient.getConsistencyGroupIdByName(cgName);
+                if (id != null && !id.isEmpty()) {
+                    apiClient.deleteConsistencyGroup(id, false, false);
+                    URI systemURI = storage.getId();
+                    consistencyGroup.removeSystemConsistencyGroup(systemURI.toString(), replicationGroupName);
+                }
+            }
             if (markInactive) {
                 consistencyGroup.setInactive(true);
                 logger.info("Consistency group {} deleted", consistencyGroup.getLabel());
             }
+            
             dbClient.updateObject(consistencyGroup);
 
             taskCompleter.ready(dbClient);

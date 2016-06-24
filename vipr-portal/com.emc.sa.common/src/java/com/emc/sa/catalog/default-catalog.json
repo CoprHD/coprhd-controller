@@ -371,6 +371,10 @@
         {
           "image": "Service_Failover_File_System.png",
           "baseService": "FailoverFileSystem"
+        },
+        {
+          "image": "Service_Failback_File_System.png",
+          "baseService": "FailbackFileSystem"
         }
       ]
     },

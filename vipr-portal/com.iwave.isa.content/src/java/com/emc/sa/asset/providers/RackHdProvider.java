@@ -12,19 +12,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.commons.lang.StringUtils;
 import org.springframework.stereotype.Component;
 
-import com.emc.sa.asset.AssetConverter;
 import com.emc.sa.asset.AssetOptionsContext;
 import com.emc.sa.asset.BaseAssetOptionsProvider;
 import com.emc.sa.asset.annotation.Asset;
 import com.emc.sa.asset.annotation.AssetNamespace;
+import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.service.vipr.rackhd.RackHdUtils;
 import com.emc.sa.service.vipr.rackhd.gson.AssetOptionPair;
 import com.emc.sa.service.vipr.rackhd.gson.Workflow;
 import com.emc.sa.service.vipr.rackhd.gson.WorkflowDefinition;
-import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.rackhd.api.restapi.RackHdRestClient;
 import com.emc.storageos.rackhd.api.restapi.RackHdRestClientFactory;
 import com.emc.vipr.model.catalog.AssetOption;
@@ -117,6 +115,10 @@ public class RackHdProvider extends BaseAssetOptionsProvider {
                     " = " + parentAssetValue);
         }
         
+        if(!parentAssetParams.isEmpty()) {
+            info(assetTypeName + " has parentAssetParams of " + parentAssetParams);
+        }
+
         thisAssetType = assetTypeName.split("\\.")[1];
         assetTypeName = ASSET_NAMESPACE_TAG + "." + ASSET_TAG;  // force to our method name 
         return super.getAssetOptions(context,assetTypeName,availableAssets); 
@@ -130,14 +132,27 @@ public class RackHdProvider extends BaseAssetOptionsProvider {
         String[] assetTypeParts = assetType.split("\\.");
         for(int i=2;i<assetTypeParts.length;i++) {
             String assetDependsOn = assetTypeParts[0] + "." + assetTypeParts[i];
-            if(availableTypes.contains(assetDependsOn)) {
-                result.add(assetDependsOn);
+            String fullType = availableTypesContains(availableTypes,
+            				assetDependsOn);
+            if(fullType != null) {
+                result.add(fullType);
             }
         }
         return result;
     }
 
-    @Asset(ASSET_TAG)
+    // find any available types that start with this one
+	private String availableTypesContains(Set<String> availableTypes, 
+			String assetDependsOn) {
+		for(String availableType : availableTypes) {
+			if(availableType.startsWith(assetDependsOn)) {
+				return availableType;
+			}
+		}
+		return null;
+	}
+
+	@Asset(ASSET_TAG)
     public List<AssetOption> getRackHdOptions(AssetOptionsContext ctx) { 
 
         info("Getting asset options for '" + thisAssetType + "' from RackHD."); 
@@ -162,6 +177,9 @@ public class RackHdProvider extends BaseAssetOptionsProvider {
                 parentAssetParams.get(ASSET_TYPE_NODE) + "/workflows" :
                 RACKHD_API_WORKFLOWS;
 
+        // pass a proxy token that OE can use to login to ViPR API
+        parentAssetParams.put("ProxyToken", api(ctx).auth().proxyToken());
+        
         // Start the RackHD workflow to get options
         String workflowResponse = RackHdUtils.makeRestCall(apiUrl,
                 makePostBody(),restClient);
@@ -174,7 +192,7 @@ public class RackHdProvider extends BaseAssetOptionsProvider {
             sleep(RACKHD_WORKFLOW_CHECK_INTERVAL);
             workflowResponse = RackHdUtils.makeRestCall(RACKHD_API_WORKFLOWS + "/" +
                     getWorkflowTaskId(workflowResponse),restClient);
-            if( isTimedOut(++intervals) ) {
+            if( isFailed(workflowResponse) || isTimedOut(++intervals) ) {
                 error("RackHD workflow " + getWorkflowTaskId(workflowResponse) + " timed out.");
                 return jsonToOptions(Arrays.asList(WORKFLOW_TIMEOUT_RESPONSE));
             }
@@ -184,7 +202,11 @@ public class RackHdProvider extends BaseAssetOptionsProvider {
         return jsonToOptions(optionListJson);       
     }
 
-    private List<AssetOption> getWorkflowOptions(String workflowJson) {
+    private boolean isFailed(String workflowResponse) {
+    	return RackHdUtils.isWorkflowFailed(workflowResponse);
+	}
+
+	private List<AssetOption> getWorkflowOptions(String workflowJson) {
         List<AssetOption> assetOptionList = new ArrayList<>();
         WorkflowDefinition[] wfDefs = 
                 gson.fromJson(workflowJson,WorkflowDefinition[].class);    
@@ -228,14 +250,14 @@ public class RackHdProvider extends BaseAssetOptionsProvider {
         StringBuffer postBody = new StringBuffer("{\"name\": \"assetType." + 
                 ASSET_NAMESPACE_TAG + "." + thisAssetType + "\"");
         if(!parentAssetParams.isEmpty()) {
-           postBody.append(",\"options\":{");
+           postBody.append(",\"options\":{\"defaults\":{\"vars\":{");
            for(String parentAssetParam : parentAssetParams.keySet()) {
                postBody.append("\"" + parentAssetParam + "\":\"" +
                        parentAssetParams.get(parentAssetParam) +
                        "\",");
            }
            postBody.deleteCharAt(postBody.length()-1); // remove last comma
-           postBody.append("}");
+           postBody.append("}}}");
         }
         postBody.append("}");; 
         return postBody.toString();
@@ -272,7 +294,5 @@ public class RackHdProvider extends BaseAssetOptionsProvider {
         catch (InterruptedException e) {
             e.printStackTrace();
         } 
-    }
-
-
+    } 
 }

@@ -1,0 +1,19 @@
+---
+- hosts: localhost
+  connection: local #commands run on this server (not remotely)
+  tasks:
+
+  - name: Call script to login to ViPR
+    include: playbook-vipr-login.yml
+ 
+  - name: Call script to create volume
+    include: playbook-vipr-failover-volume-failover.yml
+
+  - name: Call script to publish results of creating volume
+    include: playbook-vipr-failover-volume-publish.yml
+
+  - name: Call script to wait for ViPR tasks
+    include: playbook-vipr-waitfortasks.yml
+
+  - name: Call script to log out of ViPR
+    include: playbook-vipr-logout.yml

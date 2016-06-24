@@ -1,6 +1,6 @@
 
-  - name: Setting port for REST request to 4443
-    set_fact: port="4443"
+  - name: include vipr specific settings
+    include: playbook-vipr-creds.yml
 
   - name: setting host address to inventory hostname if not set already
     set_fact: host_address="{{ inventory_hostname }}"
@@ -15,7 +15,7 @@
     # make REST request
   - name: REST Request
     uri:
-      url: https://{{ host_address }}:{{ port }}{{ path_included|default(path) }}
+      url: https://{{ host_address }}:{{ api_port }}{{ path_included|default(path) }}
       validate_certs: no  # TODO: enable for production
       HEADER_X-SDS-AUTH-TOKEN: "{{ loginToken|default(omit) }}"
       HEADER_Content-Type: "application/json"
@@ -23,7 +23,27 @@
       method: "{{ method|default('GET') }}"
       body: "{{ body|default(omit) }}"
       return_content: yes
+      status_code: 200,202
     ignore_errors: yes  # so we can get response into result file
     register: restResult
 
-    #TODO: make sure response only includes data this tenant should see
+  - name: Logging Request if failed
+    debug: msg="Request was https://{{ host_address }}:{{ api_port }}{{ path_included|default(path) }} with body:{{body|default(omit)}}" #"
+    when: restResult.failed is defined
+
+  - name: Logging REST results if failed
+    debug: var=restResult
+    when: restResult.failed is defined
+
+  - name: If request fails, write results out to Ansible results file
+    lineinfile: dest={{ ansibleResultFile }}
+                line="Request {{ host_address }}:{{ api_port }}{{ path_included|default(path) }} failed. {{ restResult.msg }}"
+                create="yes"
+    when: restResult.failed is defined
+
+  - name: Fail workflow if request fails
+    fail: msg="Request {{ host_address }}:{{ api_port }}{{ path_included|default(path) }} failed. {{ restResult.msg }}"  #"
+    when: restResult.failed is defined
+
+
+

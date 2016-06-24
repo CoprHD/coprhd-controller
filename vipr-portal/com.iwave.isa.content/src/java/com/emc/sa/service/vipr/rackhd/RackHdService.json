@@ -99,6 +99,57 @@
       type:"assetType.rackhd.sio_mdm_pri",
       required: "false",
       lockable: true
-    }
+    },
+    project:{
+      type:"assetType.vipr.project",
+      lockable: true,
+      required: "false"
+    },
+    storageType:{
+      type:"assetType.vipr.blockVolumeOrConsistencyType",
+      lockable:true,
+      initialValue:"volume",
+      required: "false"
+    },
+    volumes:{
+      type:"assetType.vipr.protectedBlockVolume",
+      lockable:true,
+      required: "false"
+    },
+    failoverTarget:{
+      type: "assetType.vipr.failoverTarget",
+      lockable:true,
+      required: "false"
+    }, 
+    BlockStorageTypeForExport:{
+      type:"assetType.rackhd.BlockStorageTypeForExport",
+      lockable:true,
+      initialValue:"exclusive",
+      required: "false"
+    },
+    HostForExport:{
+      type: "assetType.rackhd.HostForExport.BlockStorageTypeForExport",
+      lockable:true,
+      required: "false"
+    },
+    ProjectForExport:{ 
+      type:"assetType.rackhd.ProjectForExport",
+      lockable: true,
+      required: "false"
+    }, 
+    HluForExport:{
+      type:"number",
+      lockable: true,
+      required: "false",
+      initialValue: "-1",
+      validation: {
+        min:-1
+      }
+    }, 
+    VolumesForExport:{
+      type:"assetType.rackhd.VolumesForExport.ProjectForExport.HostForExport",
+      select:"many",
+      required: "false"
+    } 
   }
 }

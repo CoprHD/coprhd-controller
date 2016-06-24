@@ -1,6 +1,22 @@
+  - name: Getting ViPR info from include file
+    include: playbook-vipr-creds.yml
+
   - name: Logout of ViPR
     uri:
       url: https://{{ host_address }}:{{ api_port }}/logout
       validate_certs: no
       HEADER_X-SDS-AUTH-TOKEN: "{{loginToken}}"
-    register: logoutResults   # get results of last call in this var 
+    register: logoutResults   # get results of last call in this var
+    ignore_errors: true
+
+  - name: Log failures
+    debug: msg="Logout failed. {{logoutResults.msg}}" #"
+    when: logoutResults.failed is defined
+
+  - name: Include logout error in response
+    lineinfile: dest='{{ ansibleResultFile }}' line='Logout failed. {{ logoutResults.msg }}' create='yes'
+    when: (logoutResults.failed is defined) and (ansibleResultFile is defined)
+
+  - name: Fail workflow when logout fails
+    fail: msg="Logout from {{ host_address }}:{{ api_port }} failed. {{logoutResults.msg}}" #"
+    when: logoutResults.failed is defined

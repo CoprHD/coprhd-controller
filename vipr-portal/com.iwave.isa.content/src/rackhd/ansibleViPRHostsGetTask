@@ -1,0 +1,10 @@
+{
+  "friendlyName": "Get ViPR Hosts",
+  "injectableName": "Task.ViPR.Hosts.Get",
+  "implementsTask": "Task.Base.Ansible",
+  "options": {
+    "playbook": "/root/ansible-work/playbook-vipr-options-hosts.yml",
+    "limit": "localhost"
+  },
+  "properties": {}
+} 

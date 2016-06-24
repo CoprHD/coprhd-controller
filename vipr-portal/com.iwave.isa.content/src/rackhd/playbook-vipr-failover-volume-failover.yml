@@ -1,0 +1,12 @@
+
+  - name: Set body for REST volume failover call to ViPR
+    set_fact: body='{"copy":[{"type":"RP","copyID":"{{failoverTarget}}"}]}'
+
+  - name: Set path for REST call
+    set_fact: path="/block/volumes/{{ volumes }}/protection/continuous-copies/failover.json"
+
+  - name: include script for REST request
+    include: playbook-rest-request.yml
+
+  - name: Write results of volume create call out to Ansible result file
+    lineinfile: dest='{{ansibleResultFile}}' line=' {{restResult.content}}' create='yes' 

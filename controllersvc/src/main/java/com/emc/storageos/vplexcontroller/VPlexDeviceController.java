@@ -106,6 +106,7 @@ import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.VPlexSrdfUtil;
 import com.emc.storageos.util.VPlexUtil;
+import com.emc.storageos.util.VersionChecker;
 import com.emc.storageos.volumecontroller.ApplicationAddVolumeList;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.TaskCompleter;
@@ -878,6 +879,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // Make the call to create a virtual volume. It is distributed if there are two (or more?)
                 // physical volumes.
                 boolean isDistributed = (vinfos.size() >= 2);
+                thinEnabled = thinEnabled && verifyVplexSupportsThinProvisioning(vplex);
                 VPlexVirtualVolumeInfo vvInfo = client.createVirtualVolume(vinfos, isDistributed, false, false, clusterId, clusterInfoList,
                         false, thinEnabled);
 
@@ -903,6 +905,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     vplexVolume.setNativeId(vvInfo.getPath());
                     vplexVolume.setNativeGuid(vvInfo.getPath());
                     vplexVolume.setDeviceLabel(vvInfo.getName());
+                    vplexVolume.setThinlyProvisioned(vvInfo.isThinEnabled());
                     // For Vplex virtual volumes set allocated capacity to 0 (cop-18608)
                     vplexVolume.setAllocatedCapacity(0L);
                     vplexVolume.setProvisionedCapacity(vvInfo.getCapacityBytes());
@@ -5588,6 +5591,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     virtualVolume.setDeviceLabel(updatedVirtualVolumeInfo.getName());
                     virtualVolume.setNativeId(updatedVirtualVolumeInfo.getPath());
                     virtualVolume.setNativeGuid(updatedVirtualVolumeInfo.getPath());
+                    virtualVolume.setThinlyProvisioned(updatedVirtualVolumeInfo.isThinEnabled());
                 }
                 // Note that for ingested volumes, there will be no associated volumes
                 // at first.
@@ -6325,6 +6329,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         existingVolume.getWWN().toUpperCase().replaceAll(":", ""),
                         existingVolume.getNativeId(), thinEnabled, itls);
                 vinfos.add(vinfo);
+                thinEnabled = thinEnabled && verifyVplexSupportsThinProvisioning(vplex);
                 virtvinfo = client.createVirtualVolume(vinfos, false, true, true, null, null, true, thinEnabled);
                 if (virtvinfo == null) {
                     String opName = ResourceOperationTypeEnum.CREATE_VVOLUME_FROM_IMPORT.getName();
@@ -6347,6 +6352,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     vplexVolume.setNativeId(virtvinfo.getPath());
                     vplexVolume.setNativeGuid(virtvinfo.getPath());
                     vplexVolume.setDeviceLabel(virtvinfo.getName());
+                    vplexVolume.setThinlyProvisioned(virtvinfo.isThinEnabled());
                     _dbClient.updateObject(vplexVolume);
                 }
             } else {
@@ -6379,6 +6385,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             vplexVolume.setNativeId(virtvinfo.getPath());
             vplexVolume.setNativeGuid(virtvinfo.getPath());
             vplexVolume.setDeviceLabel(virtvinfo.getName());
+            vplexVolume.setThinlyProvisioned(virtvinfo.isThinEnabled());
 
             // If we are importing, we need to move the existing import volume to
             // the system project/tenant, update its label, and set the new CoS.
@@ -9083,6 +9090,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             promoteVolume.setNativeId(vvInfo.getPath());
             promoteVolume.setNativeGuid(vvInfo.getPath());
             promoteVolume.setDeviceLabel(vvInfo.getName());
+            promoteVolume.setThinlyProvisioned(vvInfo.isThinEnabled());
             // For Vplex virtual volumes set allocated capacity to 0 (cop-18608)
             promoteVolume.setAllocatedCapacity(0L);
             promoteVolume.setCapacity(vplexMirror.getCapacity());
@@ -11714,6 +11722,21 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     + "as a thin virtual volume due to inadequate thin-capability of a child component. See controllersvc "
                     + "and VPLEX API logs for further details. Task ID: %s", info.getName(), taskId));
         }
+    }
+
+    /**
+     * Returns true if the firmware version of the given VPLEX supports thin virtual volume provisioning.
+     * 
+     * @param vplex the VPLEX StorageSystem object to check
+     * @return true if the firmware version of the given VPLEX supports thin virtual volume provisioning
+     */
+    private boolean verifyVplexSupportsThinProvisioning(StorageSystem vplex) {
+        int versionValue = VersionChecker.verifyVersionDetails(VPlexApiConstants.MIN_VERSION_THIN_PROVISIONING, vplex.getFirmwareVersion());
+        boolean isCompatible = versionValue >= 0;
+        _log.info("minimum VPLEX thin provisioning firmware version is {}, discovered firmeware version for VPLEX {} is {}", 
+                VPlexApiConstants.MIN_VERSION_THIN_PROVISIONING, vplex.forDisplay(), vplex.getFirmwareVersion());
+        _log.info("VPLEX support for thin volumes is " + isCompatible);
+        return isCompatible;
     }
 
     /**

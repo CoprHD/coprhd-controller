@@ -1,0 +1,34 @@
+---
+- hosts: localhost 
+  tasks:
+
+
+  - name: Getting AssetOptions for Host For Export
+    fail: msg="Getting hosts for export depends on BlockStorageTypeForExport which is undefined"
+    when: BlockStorageTypeForExport is undefined
+
+  - set_fact: path="/compute/hosts/bulk.json" #API path to get IDs
+    when: BlockStorageTypeForExport == "exclusive"
+
+  - set_fact: path="/compute/clusters/bulk.json" #API path to get IDs
+    when: BlockStorageTypeForExport == "shared"
+
+  - fail: msg="Getting hosts for export depends on BlockStorageTypeForExport being either 'exclusive' or 'shared', but it is set to {{ BlockStorageTypeForExport }}" #"
+    when: BlockStorageTypeForExport is undefined
+
+  - include: playbook-vipr-login.yml
+
+  - include: playbook-rest-request.yml 
+
+  - set_fact: body="{{ restResult.json }}"  #POST IDs from previous request"
+  - include: playbook-rest-request.yml
+
+  - include: playbook-vipr-logout.yml
+
+  - set_fact: optionsData="{{restResult.json.host}}"
+    when: restResult.json.host is defined
+
+  - set_fact: optionsData="{{restResult.json.cluster}}"
+    when: restResult.json.cluster is defined
+
+  - include: playbook-vipr-options-write.yml 

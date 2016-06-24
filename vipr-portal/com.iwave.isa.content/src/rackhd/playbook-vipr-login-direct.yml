@@ -12,19 +12,18 @@
     ignore_errors: yes 
     register: loginResults
 
-  - name: Determining success based on HTTP return code
-    set_fact: loginSucceeded={{ loginResults.status|int < 300 }}
+  - name: Logging REST results if failed
+    debug: var=loginResults
+    when: loginResults.failed is defined
+
+  - name: If login fails, write results out to Ansible results file
+    lineinfile: dest={{ ansibleResultFile }} line="Login to {{ host_address }}:{{ api_port }} failed. {{ loginResults.msg }}" create="yes" 
+    when: loginResults.failed is defined
+
+  - name: Fail workflow if login fails
+    fail: msg="Login to {{ host_address }}:{{ api_port }} failed.  {{ loginResults.msg }}"  #"
+    when: loginResults.failed is defined
+
   - name: Saving ViPR login token
     set_fact: loginToken={{ loginResults.x_sds_auth_token }}
 
-  - name: Logging REST results if failed
-    debug: var=loginResults
-    when: not loginSucceeded
-
-  - name: If login fails, write results out to Ansible results file
-    lineinfile: dest={{ ansibleResultFile }} line="{{ loginResults.content }}" create="yes" 
-    when: not loginSucceeded
-
-  - name: Fail playbook if login fails
-    fail: msg="Login failed"
-    when: not loginSucceeded 

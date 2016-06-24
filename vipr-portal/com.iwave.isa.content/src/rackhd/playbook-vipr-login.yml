@@ -3,6 +3,6 @@
     include: playbook-vipr-login-direct.yml
     when: ProxyToken is undefined
 
-  - name: Using proxy token for login
+  - name: Using proxy token for login 
     set_fact: loginToken={{ ProxyToken }}
     when: ProxyToken is defined

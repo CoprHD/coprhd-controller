@@ -1,0 +1,13 @@
+{
+  "friendlyName": "Get ViPR Host For Export",
+  "injectableName": "Task.ViPR.HostForExport.Get",
+  "implementsTask": "Task.Base.Ansible",
+  "options": {
+    "playbook": "/root/ansible-work/playbook-vipr-options-HostForExport.yml",
+    "limit": "localhost",
+    "vars":{
+      "BlockStorageTypeForExport": "exclusive"
+    }
+  },
+  "properties": {}
+} 

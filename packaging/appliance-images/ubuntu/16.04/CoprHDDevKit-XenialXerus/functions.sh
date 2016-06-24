@@ -319,8 +319,8 @@ function installContainer
 
   echo '' > ${DIR_MOUNT}/etc/fstab
   echo 'console"' >> ${DIR_MOUNT}/etc/securetty
-  mv ${DIR_MOUNT}/sbin/initctl ${DIR_MOUNT}/sbin/initctl.bin
-  ln -fs /bin/true ${DIR_MOUNT}/sbin/initctl
+  mv ${DIR_MOUNT}/sbin/init ${DIR_MOUNT}/sbin/init.bin
+  ln -fs /bin/true ${DIR_MOUNT}/sbin/init
   rm -fr ${DIR_MOUNT}/run/*
   tar -czf ${TGZ} -C ${DIR_MOUNT} .
 

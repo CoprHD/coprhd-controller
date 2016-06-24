@@ -27,4 +27,12 @@ public abstract class BaseRestTest {
     protected String getDefaultSrpId() {
         return "SRP_1";
     }
+
+    protected String getDefaultDirectorId() {
+        return "DF-1C";
+    }
+
+    protected String getDefaultPortId() {
+        return "12";
+    }
 }

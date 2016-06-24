@@ -690,7 +690,6 @@
         <property name="dataSourceVariables">
             <map>
                 <entry key-ref="volumeLabel" value="true"/>
-                <entry key-ref="volumeNativeId" value="false"/>
                 <entry key-ref="volumeWwn" value="false"/>
                 <entry key-ref="projectName" value="false"/>
                 <entry key-ref="tenantName" value="false"/>
@@ -723,7 +722,6 @@
         <property name="dataSourceVariables">
             <map>
                 <entry key-ref="volumeLabel" value="true"/>
-                <entry key-ref="volumeNativeId" value="false"/>
                 <entry key-ref="volumeWwn" value="false"/>
                 <entry key-ref="projectName" value="false"/>
                 <entry key-ref="tenantName" value="false"/>
@@ -757,13 +755,6 @@
         <property name="sample" value="volumeABC"/>
     </bean>
 
-    <bean id="volumeNativeId" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
-        <property name="sourceClass" value="com.emc.storageos.db.client.model.Volume"/>
-        <property name="displayName" value="volume_native_id"/>
-        <property name="propertyName" value="nativeId"/>
-        <property name="sample" value="01370"/>
-    </bean>
-    
     <bean id="volumeWwn" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
         <property name="sourceClass" value="com.emc.storageos.db.client.model.Volume"/>
         <property name="displayName" value="volume_wwn"/>

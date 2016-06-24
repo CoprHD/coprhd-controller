@@ -74,6 +74,7 @@ import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.VpoolProtectionVarraySettings;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
+import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.ResourceOnlyNameGenerator;
@@ -2172,7 +2173,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             removeProtection(volumes, vpool, taskId);
         } else if (VirtualPoolChangeAnalyzer.isSupportedRPVPlexMigrationVirtualPoolChange(firstVolume, currentVpool, vpool,
                 _dbClient, notSuppReasonBuff, validMigrations)) {
-            rpVPlexDataMigration(volumes, vpool, taskId, validMigrations);
+            return rpVPlexDataMigration(volumes, vpool, taskId, validMigrations);
         } else {
             // For now we only support changing the virtual pool for a single volume at a time
             // until CTRL-1347 and CTRL-5609 are fixed.
@@ -3879,52 +3880,115 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      * @param validMigrations
      * @throws InternalException
      */
-    private void rpVPlexDataMigration(List<Volume> volumes, VirtualPool newVpool, String taskId, Map<Volume.PersonalityTypes, Map<URI, URI>> validMigrations)
+    private TaskList rpVPlexDataMigration(List<Volume> volumes, VirtualPool newVpool, String taskId, Map<Volume.PersonalityTypes, Map<URI, URI>> validMigrations)
             throws InternalException {
+        TaskList taskList = new TaskList();      
+        
+        _log.info("TASK_ID: " + taskId);
+        
         List<VolumeDescriptor> migrateVolumeDescriptors = new ArrayList<VolumeDescriptor>();
         
-        HashMap<Volume, VirtualPool> migrations = new HashMap<Volume, VirtualPool>();
+        List<Volume> srcVolumesForMigrate = new ArrayList<Volume>();
+        
+        HashMap<Volume, VirtualPool> allMigrations = new HashMap<Volume, VirtualPool>();
         
         Map<URI, URI> sourceMigrations = validMigrations.get(Volume.PersonalityTypes.SOURCE);
         Map<URI, URI> targetMigrations = validMigrations.get(Volume.PersonalityTypes.TARGET);
         
         Set<URI> sourceFromVpools = sourceMigrations.keySet();
-        Set<URI> targetFromVpools = sourceMigrations.keySet();
+        Set<URI> targetFromVpools = targetMigrations.keySet();
         
+        boolean sourceMigrationsExist = (sourceMigrations != null && !sourceMigrations.isEmpty());
+        boolean targetMigrationsExist = (targetMigrations != null && !targetMigrations.isEmpty());
+        
+  
+        // Step 1
+        // Let's find out if there are any Source volumes to migrate.
+        //
+        // Source migrations will be treated in two different ways:
+        // 1. In an RG
+        //    Being in an RG means that the Source volume and all other Source volumes in the RG will need to be
+        //    migrated together. 
+        //    NOTE: All Source volumes in the RG will need to be selected for the operation to proceed.
+        // 2. Not in RG
+        //    Treated as a normal single migration.
+        if (sourceMigrationsExist) {
+            for (Volume volume : volumes) {
+                // Check Source            
+                srcVolumesForMigrate.add(volume);
+                _log.info(String.format("RP+VPLEX Migration being prepared for Source volume [%s](%s) - new vpool will be [%s](%s)",
+                        volume.getLabel(), volume.getId(),
+                        newVpool.getLabel(), newVpool.getId()));                
+            }
+        }
+        
+        // Step 2
+        // Migrate volumes grouped by RG together
+        List<Volume> volumesNotInRG = new ArrayList<Volume>();
+        List<Volume> volumesInRG = new ArrayList<Volume>();
+        if (!srcVolumesForMigrate.isEmpty()) {            
+            vplexBlockServiceApiImpl.migrateVolumesInReplicationGroup(srcVolumesForMigrate, newVpool, 
+                    volumesNotInRG, volumesInRG, taskId);
+        }
+        
+        // Step 3
+        // Single migrations - not grouped by RGs
         for (Volume volume : volumes) {
             // Check Source
-            if (sourceMigrations != null && !sourceMigrations.isEmpty()) {
-                if (sourceFromVpools.contains(volume.getVirtualPool())) {
-                    URI migrateToVpoolURI = sourceMigrations.get(volume.getVirtualPool());
-                    VirtualPool migrateToVpool = _dbClient.queryObject(VirtualPool.class, migrateToVpoolURI);
-                    migrations.put(volume, migrateToVpool);
-                    _log.info(String.format("RP+VPLEX Migration being prepared for Source volume [%s](%s) - new vpool will be [%s](%s)",
-                            volume.getLabel(), volume.getId(),
-                            migrateToVpool.getLabel(), migrateToVpool.getId()));
-                }
+            if (sourceMigrationsExist) {
+//                if (sourceFromVpools.contains(volume.getVirtualPool())) {
+//                    URI migrateToVpoolURI = sourceMigrations.get(volume.getVirtualPool());
+//                    VirtualPool migrateToVpool = _dbClient.queryObject(VirtualPool.class, migrateToVpoolURI);
+                    
+                    // Only need to migrate Source volumes that were not in RGs. All the ones
+                    // in RGs will have already been migrated.
+                    if (volumesNotInRG.contains(volume)) {
+                        allMigrations.put(volume, newVpool);
+                        
+                        _log.info(String.format("RP+VPLEX Migration being prepared for Source volume [%s](%s) - new vpool will be [%s](%s)",
+                                volume.getLabel(), volume.getId(),
+                                newVpool.getLabel(), newVpool.getId()));
+                    } else {
+                        _log.info(String.format("Skipping Source volume [%s](%s) - already would have been migrated to vpool [%s](%s)",
+                                volume.getLabel(), volume.getId(),
+                                newVpool.getLabel(), newVpool.getId()));
+                    }
+               // }
             }
             // Check Targets
-            if (targetMigrations != null && !targetMigrations.isEmpty()) {               
+            if (targetMigrationsExist) {               
                 StringSet rpTargets = volume.getRpTargets();
                 for (String rpTarget : rpTargets) {
                     Volume rpTargetVolume = _dbClient.queryObject(Volume.class, URI.create(rpTarget));
                     if (targetFromVpools.contains(rpTargetVolume.getVirtualPool())) {
+                        
+                        //String subTaskId = UUID.randomUUID().toString();
+                        _log.info("Creating new task for target migration: " + rpTargetVolume.getLabel());
+                        Operation op = new Operation();
+                        op.setResourceType(ResourceOperationTypeEnum.CHANGE_BLOCK_VOLUME_VPOOL);
+                        op.setDescription("Change vpool operation");
+                        op = _dbClient.createTaskOpStatus(Volume.class, rpTargetVolume.getId(), taskId, op);
+                        taskList.addTask(toTask(rpTargetVolume, taskId, op));
+                        
+                        
                         URI migrateToVpoolURI = targetMigrations.get(rpTargetVolume.getVirtualPool());
                         VirtualPool migrateToVpool = _dbClient.queryObject(VirtualPool.class, migrateToVpoolURI);
-                        migrations.put(rpTargetVolume, migrateToVpool);
+                        allMigrations.put(rpTargetVolume, migrateToVpool);
                         _log.info(String.format("RP+VPLEX Migration being prepared for Target volume [%s](%s) - new vpool will be [%s](%s)",
-                                volume.getLabel(), volume.getId(),
-                                rpTargetVolume.getLabel(), rpTargetVolume.getId()));
+                                rpTargetVolume.getLabel(), rpTargetVolume.getId(),
+                                migrateToVpool.getLabel(), migrateToVpool.getId()));
                     }
                 }
             }
         }
-        
-        for (Map.Entry<Volume, VirtualPool> entry : migrations.entrySet()) {
+  
+        // Step 4
+        // Assuming we have single migrations
+        for (Map.Entry<Volume, VirtualPool> entry : allMigrations.entrySet()) {
             Volume migrateVolume = entry.getKey();
             VirtualPool migrateToVpool = entry.getValue();
             
-            _log.info(String.format("Request to Migrate Data for RP protected VPLEX Volume [%s] (%s) and move it to Virtual Pool [%s] (%s)",
+            _log.info(String.format("Request to Migrate Data for RP protected VPLEX Volume [%s] (%s) and move it to Virtual Pool [%s](%s)",
                     migrateVolume.getLabel(), migrateVolume.getId(), migrateToVpool.getLabel(), migrateToVpool.getId()));
             
             StorageSystem vplexStorageSystem = _dbClient.queryObject(StorageSystem.class, migrateVolume.getStorageController());
@@ -3932,10 +3996,68 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                                       .createChangeVirtualPoolDescriptors(vplexStorageSystem, migrateVolume, migrateToVpool, taskId,
                                                                           null, null));
         }
-
-        BlockOrchestrationController controller = getController(
-                BlockOrchestrationController.class,
-                BlockOrchestrationController.BLOCK_ORCHESTRATION_DEVICE);
-        controller.changeVirtualPool(migrateVolumeDescriptors, taskId);
+        
+        // Step 5
+        // Call migrations if there are any left to do
+        if (!migrateVolumeDescriptors.isEmpty()) {
+            BlockOrchestrationController controller = getController(
+                    BlockOrchestrationController.class,
+                    BlockOrchestrationController.BLOCK_ORCHESTRATION_DEVICE);
+            controller.changeVirtualPool(migrateVolumeDescriptors, taskId);
+            
+            
+            
+//            // Stay out of controller for now...
+//            _log.info(String.format("Migrations firing..."));
+//            for (VolumeDescriptor desc : migrateVolumeDescriptors) {
+//                _log.info(String.format("%s", desc.toString()));
+//            }
+            
+            // No source migrations? Clean up the tasks for it.
+            if (!sourceMigrationsExist) {
+             // Get a unique list of Task objects associated with the data objects
+                for (Volume volume : volumes) {
+                    List<Task> newTasks = TaskUtils.findResourceTasks(_dbClient, volume.getId());
+                    for (Task newTask : newTasks) {
+//                            if (newTask.isPending() && newTask.getTenant().equals(tenant)) {
+//                                objectURIsThatHavePendingTasks.add(dataObject.getId());
+//                            }
+                        if (newTask.isPending()) {
+//                            newTask.setCompletedFlag(true);
+//                            
+//                            _dbClient.updateObject(newTask);
+                            
+                            Operation opStatus = new Operation(Operation.Status.ready.name());
+                            _dbClient.updateTaskOpStatus(Volume.class, volume.getId(), 
+                                    taskId, opStatus);
+                            
+                            _log.info(String.format("Removed task for Source volume [%s](%s) ",
+                                    volume.getLabel(), volume.getId()));
+                        }
+                    }
+                }
+            }
+            
+            // If the were no direct Source volumes involved in migration but there were Target or
+            // Journal migrations then we implicitly need to update the passed in Source volumes
+            // with the new vpool we have moved to (including their backing volume vpools).
+            if (!sourceMigrationsExist && targetMigrationsExist) {
+                for (Volume volume : volumes) {                              
+                    if (volume.checkPersonality(Volume.PersonalityTypes.SOURCE)) {                       
+                        volume.setVirtualPool(newVpool.getId());
+                        _dbClient.updateObject(volume);
+                        VPlexUtil.updateVPlexBackingVolumeVpools(volume, newVpool.getId(), _dbClient);
+                        
+                        _log.info(String.format("Updated Source volume [%s](%s) to new vpool [%s](%s)",
+                                volume.getLabel(), volume.getId(),
+                                newVpool.getLabel(), newVpool.getId())); 
+                    }
+                }
+            }
+        } else {
+            _log.info(String.format("No extra migrations needed."));
+        }
+        
+        return taskList;
     }
 }

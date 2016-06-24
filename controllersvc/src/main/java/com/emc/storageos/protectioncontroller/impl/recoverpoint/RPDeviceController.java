@@ -114,6 +114,7 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.NetworkLite;
+import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.ApplicationAddVolumeList;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.BlockController;
@@ -1714,7 +1715,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
                 // We might need to update the vpools of the backing volumes if this is an RP+VPLEX
                 // or MetroPoint change vpool.
-                updateVPlexBackingVolumeVpools(volume, newVpoolURI);
+                VPlexUtil.updateVPlexBackingVolumeVpools(volume, newVpoolURI, _dbClient);
 
                 // Record Audit operation. (virtualpool change only)
                 AuditBlockUtil.auditBlock(_dbClient, OperationTypeEnum.CHANGE_VOLUME_VPOOL,
@@ -5814,65 +5815,6 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     }
 
     /**
-     * Update the backing volume virtual pool reference, needed for change vpool
-     * operations for RP+VPLEX and MetroPoint.
-     *
-     * @param volumeDescriptors
-     *            The Volume descriptors, needed to see if there are any
-     *            migrations present.
-     * @param volume
-     *            The source volume
-     * @param srcVpoolURI
-     *            The new vpool
-     */
-    private void updateVPlexBackingVolumeVpools(Volume volume, URI srcVpoolURI) {
-        // Check to see if this is a VPLEX virtual volume
-        if (RPHelper.isVPlexVolume(volume)) {
-            _log.info(String.format("Update the virtual pool on backing volume(s) for virtual volume [%s] (%s).",
-                    volume.getLabel(), volume.getId()));
-            VirtualPool srcVpool = _dbClient.queryObject(VirtualPool.class, srcVpoolURI);
-            String srcVpoolName = srcVpool.getLabel();
-            URI haVpoolURI = null;
-            String haVpoolName = null;
-
-            // We only have to get the HA vpool URI if there are more than 1 associated backing volumes.
-            if (volume.getAssociatedVolumes().size() > 1) {
-                // Find the HA vpool from the source vpool
-                VirtualPool haVpool = VirtualPool.getHAVPool(srcVpool, _dbClient);
-
-                // If the HA vpool is null, it means the src vpool is the HA vpool
-                haVpool = (haVpool == null) ? srcVpool : haVpool;
-
-                haVpoolURI = haVpool.getId();
-                haVpoolName = haVpool.getLabel();
-            }
-
-            // Check each backing volume, if the varray is the same as the virtual volume passed in
-            // then the backing volume would have the same
-            for (String associatedVolId : volume.getAssociatedVolumes()) {
-                Volume associatedVol = _dbClient.queryObject(Volume.class, URI.create(associatedVolId));
-
-                URI vpoolURI = srcVpoolURI;
-                String vpoolName = srcVpoolName;
-
-                // If the backing volume does not have the same varray as the source virtual
-                // volume, then we must be looking at the HA backing volume.
-                if (!associatedVol.getVirtualArray().equals(volume.getVirtualArray())) {
-                    vpoolURI = haVpoolURI;
-                    vpoolName = haVpoolName;
-                }
-
-                VirtualPool oldVpool = _dbClient.queryObject(VirtualPool.class, associatedVol.getVirtualPool());
-                _log.info(String.format("Update backing volume [%s] (%s) virtual pool from [%s] (%s) to [%s] (%s).",
-                        associatedVol.getLabel(), associatedVol.getId(), oldVpool.getLabel(), oldVpool.getId(), vpoolName, vpoolURI));
-                associatedVol.setVirtualPool(vpoolURI);
-                // Update the backing volume
-                _dbClient.updateObject(associatedVol);
-            }
-        }
-    }
-
-    /**
      * Adds steps for modifying a RP CG.
      *
      * @param workflow The current workflow
@@ -6205,7 +6147,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 if (RPHelper.isVPlexVolume(volume)) {
                     // We might need to update the vpools of the backing volumes after the
                     // change vpool operation to remove protection
-                    updateVPlexBackingVolumeVpools(volume, newVpoolURI);
+                    VPlexUtil.updateVPlexBackingVolumeVpools(volume, newVpoolURI, _dbClient);
                 }
 
                 // Rollback protection on the volume

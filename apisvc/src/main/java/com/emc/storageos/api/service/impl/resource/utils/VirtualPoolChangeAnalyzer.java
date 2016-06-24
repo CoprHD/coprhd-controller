@@ -1551,6 +1551,11 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
             DbClient dbClient, StringBuffer notSuppReasonBuff, Map<Volume.PersonalityTypes, Map<URI, URI>> validMigrations) {
         s_logger.info(String.format("Checking isSupportedRPVPlexMigrationVirtualPoolChange from [%s] to [%s]...",
                 currentVpool.getLabel(), newVpool.getLabel()));
+        // Make sure the VirtualPool's are not the same instance.
+        if (isSameVirtualPool(currentVpool, newVpool, notSuppReasonBuff)) {
+            return false;
+        }
+        
         // Flag to indicate that at least one valid migration has been found
         boolean validMigrationsFound = false;
         
@@ -1572,18 +1577,22 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
             if (validMigrations != null) {
                 validMigrations.put(Volume.PersonalityTypes.SOURCE, new HashMap<URI, URI>());
                 validMigrations.put(Volume.PersonalityTypes.TARGET, new HashMap<URI, URI>());
+                validMigrations.put(Volume.PersonalityTypes.METADATA, new HashMap<URI, URI>());
             }
             
             // Keep track of the potential Source migrations
             Map<VirtualPool, VirtualPool> sourceMigrations = new HashMap<VirtualPool, VirtualPool>();
             // Keep track of the potential Target migrations
             Map<VirtualPool, VirtualPool> targetMigrations = new HashMap<VirtualPool, VirtualPool>();
+            // Keep track of the potential Journal migrations
+            Map<VirtualPool, VirtualPool> journalMigrations = new HashMap<VirtualPool, VirtualPool>();
                         
             // Store all the potential candidates for migrations
             Map<Volume.PersonalityTypes, Map<VirtualPool, VirtualPool>> candidatesForMigration 
                 = new HashMap<Volume.PersonalityTypes, Map<VirtualPool, VirtualPool>>();
             candidatesForMigration.put(Volume.PersonalityTypes.SOURCE, sourceMigrations);
             candidatesForMigration.put(Volume.PersonalityTypes.TARGET, targetMigrations);
+            candidatesForMigration.put(Volume.PersonalityTypes.METADATA, journalMigrations);
             
             // The Source is always a potential candidate for migration
             sourceMigrations.put(currentVpool, newVpool);
@@ -1723,8 +1732,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
                         return false;
                     }
                     
-                    if (VirtualPool.vPoolSpecifiesRPVPlex(candidateCurrentVpool)
-                            && VirtualPool.vPoolSpecifiesRPVPlex(candidateNewVpool)) {
+                   
                     
                         // Determine if source side will be migrated.
                         boolean migrateSourceVolume = VirtualPoolChangeAnalyzer
@@ -1753,7 +1761,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
                             }
                         }
                     }
-                }
+                
             }
         }
 

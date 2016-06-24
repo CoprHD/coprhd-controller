@@ -24,8 +24,6 @@ import java.util.UUID;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
-import com.google.common.base.Strings;
-import com.google.common.collect.Sets;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,7 +66,9 @@ import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.google.common.base.Joiner;
+import com.google.common.base.Strings;
 import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.Sets;
 import com.google.common.collect.Table;
 
 /**
@@ -171,7 +171,7 @@ public class BlockServiceUtils {
             StorageOSUser user, PermissionsHelper permissionsHelper) {
         if (!(permissionsHelper.userHasGivenRole(user, project.getTenantOrg().getURI(),
                 Role.TENANT_ADMIN) || permissionsHelper.userHasGivenACL(user,
-                        project.getId(), ACL.OWN, ACL.ALL))) {
+                project.getId(), ACL.OWN, ACL.ALL))) {
             throw APIException.forbidden.insufficientPermissionsForUser(user.getName());
         }
     }
@@ -238,10 +238,10 @@ public class BlockServiceUtils {
      * higher
      *
      * Fox XtremIO creating/deleting volume in/from CG with existing CG is supported.
-     * 
+     *
      * For VNX, creating/deleting volume in/from CG with existing group relationship is supported if volume is not part of an array
      * replication group
-     * 
+     *
      * For Application support, allow volumes to be added/removed to/from CG for VPLEX when the backend volume is VMAX/VNX/XtremIO
      *
      * @param cg BlockConsistencyGroup
@@ -467,7 +467,7 @@ public class BlockServiceUtils {
                     snapshot.getId()), queryResults);
             Iterator<URI> queryResultsIter = queryResults.iterator();
             if ((!queryResultsIter.hasNext()) &&
-                    (snapshot.getTechnologyType().equals(TechnologyType.NATIVE.toString()))) {
+                    (TechnologyType.NATIVE.toString().equalsIgnoreCase(snapshot.getTechnologyType()))) {
                 numSnapshots++;
             }
         }
@@ -602,7 +602,8 @@ public class BlockServiceUtils {
      * @param dbClient
      * @return table with storage URI, replication group name, and volumes
      */
-    public static Table<URI, String, List<Volume>> getReplicationGroupVolumes(List<URI> volumeUris, URI cgUri, DbClient dbClient, UriInfo uriInfo) {
+    public static Table<URI, String, List<Volume>> getReplicationGroupVolumes(List<URI> volumeUris, URI cgUri, DbClient dbClient,
+            UriInfo uriInfo) {
         // Group volumes by storage system and replication group
         Table<URI, String, List<Volume>> storageRgToVolumes = HashBasedTable.create();
         for (URI volumeUri : volumeUris) {
@@ -644,7 +645,7 @@ public class BlockServiceUtils {
                     volumes = vplexVolumes;
                 }
 
-                storageRgToVolumes.put(storage,  rgName, volumes);
+                storageRgToVolumes.put(storage, rgName, volumes);
             }
         }
 
@@ -711,7 +712,7 @@ public class BlockServiceUtils {
         // no need to check backing volumes for vplex virtual volumes because for full copies
         // there will be a virtual volume for the clone
         boolean hasReplica = volume.getFullCopies() != null && !volume.getFullCopies().isEmpty() ||
-                    volume.getMirrors() != null && !volume.getMirrors().isEmpty();
+                volume.getMirrors() != null && !volume.getMirrors().isEmpty();
 
         // check for snaps only if no full copies
         if (!hasReplica) {

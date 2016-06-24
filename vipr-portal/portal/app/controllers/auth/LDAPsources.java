@@ -87,7 +87,7 @@ public class LDAPsources extends ViprResourceController {
     private static final String KEYSTONE_SERVER_URL = CinderConstants.HTTP_URL + "[IP Address]" + CinderConstants.COLON
             + CinderConstants.OS_ADMIN_PORT
             + CinderConstants.REST_API_VERSION_2;
-    private static final String DEFAULT_INTERVAL = "60";
+    private static final String DEFAULT_INTERVAL = "900";
     
     //
     // Add reference data so that they can be reference in html template
@@ -135,7 +135,6 @@ public class LDAPsources extends ViprResourceController {
     /**
      * Gets the list of tenants.
      *
-     * @param id the Authn Provider ID.
      */
     public static void tenantsListJson() {
         List<OpenStackTenantsDataTable.OpenStackTenant> tenants = Lists.newArrayList();
@@ -313,7 +312,6 @@ public class LDAPsources extends ViprResourceController {
             renderArgs.put("groupMemberAttributesString", StringUtils.join(this.groupMemberAttributes, "\n"));
             renderArgs.put("readOnlyGroupAttribute", !isGroupAttributeBlankOrNull(this.groupAttribute));
             renderArgs.put("readOnlyCheckboxForAutomaticRegistration", this.autoRegCoprHDNImportOSProjects);
-            renderArgs.put("readOnlySynchronizationInterval", this.synchronizationInterval);
         }
 
         public boolean isNew() {
@@ -328,6 +326,7 @@ public class LDAPsources extends ViprResourceController {
             this.disable = ldapSources.getDisable();
             this.autoRegCoprHDNImportOSProjects = ldapSources.getAutoRegCoprHDNImportOSProjects();
             this.tenantsSynchronizationOptions = Lists.newArrayList(ldapSources.getTenantsSynchronizationOptions());
+            this.synchronizationInterval = getInterval(ldapSources.getTenantsSynchronizationOptions());
             this.domains = Lists.newArrayList(ldapSources.getDomains());
             this.groupAttribute = isGroupAttributeBlankOrNull(ldapSources.getGroupAttribute()) ? "" : ldapSources.getGroupAttribute();
             this.groupWhiteListValues = Lists.newArrayList(ldapSources.getGroupWhitelistValues());
@@ -396,8 +395,27 @@ public class LDAPsources extends ViprResourceController {
             return changes;
         }
 
+        public static String getInterval(Set<String> tenantsSynchronizationOptions) {
+            String interval = "";
+            for (String option : tenantsSynchronizationOptions) {
+                // There is only ADDITION, DELETION and interval in this StringSet.
+                if (!AuthnProvider.TenantsSynchronizationOptions.ADDITION.toString().equals(option)
+                        && !AuthnProvider.TenantsSynchronizationOptions.DELETION.toString().equals(option)) {
+                    interval = option;
+                }
+            }
+            return interval;
+        }
+
         private TenantsSynchronizationOptionsChanges getTenantsSynchronizationOptionsChanges(AuthnProviderRestRep provider) {
-            Set<String> newValues = Sets.newHashSet(parseMultiLineInput(this.tenantsSynchronizationOptions.get(0)));
+            Set<String> newValues;
+            if (this.tenantsSynchronizationOptions != null) {
+                newValues = Sets.newHashSet(this.tenantsSynchronizationOptions);
+                newValues.add(this.synchronizationInterval);
+            } else {
+                newValues = Sets.newHashSet(this.synchronizationInterval);
+            }
+            
             Set<String> oldValues = provider.getTenantsSynchronizationOptions();
 
             TenantsSynchronizationOptionsChanges changes = new TenantsSynchronizationOptionsChanges();
@@ -468,13 +486,14 @@ public class LDAPsources extends ViprResourceController {
             param.setDescription(StringUtils.trimToNull(this.description));
             param.setDisable(this.disable);
             param.setAutoRegCoprHDNImportOSProjects(this.autoRegCoprHDNImportOSProjects);
-            if (tenantsSynchronizationOptions != null) {
-                param.setTenantsSynchronizationOptions((Sets.newHashSet(tenantsSynchronizationOptions)));
+            if (this.autoRegCoprHDNImportOSProjects) {
+                if (tenantsSynchronizationOptions != null) {
+                    param.setTenantsSynchronizationOptions((Sets.newHashSet(this.tenantsSynchronizationOptions)));
+                } else {
+                    param.setTenantsSynchronizationOptions(Sets.<String> newHashSet());
+                }
                 param.getTenantsSynchronizationOptions().add(this.synchronizationInterval);
-            } else {
-                param.setTenantsSynchronizationOptions(Sets.<String>newHashSet());
             }
-            param.getTenantsSynchronizationOptions().add(StringUtils.trimToNull(this.synchronizationInterval));
             param.setGroupAttribute(this.groupAttribute);
             param.setManagerDn(this.managerDn);
             param.setManagerPassword(this.managerPassword);

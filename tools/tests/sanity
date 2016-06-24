@@ -4434,7 +4434,6 @@ recoverpoint_direct_access_test()
                 secho 'Verifying that the bookmark associated with target copy NOT in direct access mode still exists'
                 run blocksnapshot show ${PROJECT}/${src_volume}/${rp_bookmark}-${tgt_varray}
                 secho 'Removing bookmark after it has been verified'
-                #run blocksnapshot delete ${PROJECT}/${src_volume}/${rp_bookmark}-${tgt_varray}
             fi
         done	 
 
@@ -4456,8 +4455,6 @@ recoverpoint_direct_access_test()
                 #else
                     secho 'Verifying that the bookmark associated with target copy NOT in direct access mode exists'
                     run blocksnapshot show ${PROJECT}/${src_volume}/${rp_bookmark}-2-${tgt_varray}
-                    #secho 'Removing array snapshot after it has been verified'
-                    #run blocksnapshot delete ${PROJECT}/${src_volume}/${rp_bookmark}-2-${tgt_varray}					 
                 #fi
             done
         fi
@@ -4466,8 +4463,6 @@ recoverpoint_direct_access_test()
         run blocksnapshot create ${PROJECT}/${src_volume} ${array_snapshot} --type native
         secho 'Verifying the local array snapshot of the source volume was created'
         run blocksnapshot show ${PROJECT}/${src_volume}/${array_snapshot}-1
-        #secho 'Removing local array snapshot after verification'
-        #run blocksnapshot delete ${PROJECT}/${src_volume}/${array_snapshot}-1
 
         for tgt_varray in ${rp_tgt_varrays[@]}
         do
@@ -4544,7 +4539,6 @@ recoverpoint_direct_access_test()
         run volume verify ${PROJECT}/${tgt_volume} personality TARGET
         run volume verify ${PROJECT}/${tgt_volume} access_state NOT_READY
         run volume verify ${PROJECT}/${tgt_volume} link_status IN_SYNC
-
    else
         secho 'Skipping RecoverPoint Direct Access Tests'
    fi

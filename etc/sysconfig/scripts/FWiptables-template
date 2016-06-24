@@ -121,11 +121,13 @@ fw_custom_iptables() {
     for sourceNode in ${DR_NODES_IPV4} ; do
         iptables  -I input_ext -p tcp -i ${NIC_NAME} -s ${sourceNode} --dport ${DR_DB_PORT} -j ACCEPT
         iptables  -I input_ext -p tcp -i ${NIC_NAME} -s ${sourceNode} --dport ${DR_GEODB_PORT} -j ACCEPT
-        iptables  -I input_ext -p tcp -i ${NIC_NAME} -s ${sourceNode} --dport ${DR_ZK_PORT1} -j ACCEPT
-        iptables  -I input_ext -p tcp -i ${NIC_NAME} -s ${sourceNode} --dport ${DR_ZK_PORT2} -j ACCEPT
-        if [ "${dr_dual_coordinator}" == "true" ]; then
-           iptables  -I input_ext -p tcp -i ${NIC_NAME} -s ${sourceNode} --dport ${DR_ZK_PORT3} -j ACCEPT
-           iptables  -I input_ext -p tcp -i ${NIC_NAME} -s ${sourceNode} --dport ${DR_ZK_PORT4} -j ACCEPT
+        if [ "${site_is_standby}" == "false" ]; then
+            iptables  -I input_ext -p tcp -i ${NIC_NAME} -s ${sourceNode} --dport ${DR_ZK_PORT1} -j ACCEPT
+            iptables  -I input_ext -p tcp -i ${NIC_NAME} -s ${sourceNode} --dport ${DR_ZK_PORT2} -j ACCEPT
+            if [ "${dr_dual_coordinator}" == "true" ]; then
+               iptables  -I input_ext -p tcp -i ${NIC_NAME} -s ${sourceNode} --dport ${DR_ZK_PORT3} -j ACCEPT
+               iptables  -I input_ext -p tcp -i ${NIC_NAME} -s ${sourceNode} --dport ${DR_ZK_PORT4} -j ACCEPT
+            fi
         fi
         iptables  -I input_ext -p udp -i ${NIC_NAME} -s ${sourceNode} -m multiport --dport ${INGRES_UDP_PORTS} -j ACCEPT
         iptables  -I input_ext -p esp -i ${NIC_NAME} -s ${sourceNode} -j ACCEPT
@@ -133,11 +135,13 @@ fw_custom_iptables() {
     for sourceNode in ${DR_NODES_IPV6} ; do
         ip6tables  -I input_ext -p tcp -i ${NIC_NAME} -s ${sourceNode} --dport ${DR_DB_PORT} -j ACCEPT
         ip6tables  -I input_ext -p tcp -i ${NIC_NAME} -s ${sourceNode} --dport ${DR_GEODB_PORT} -j ACCEPT
-        ip6tables  -I input_ext -p tcp -i ${NIC_NAME} -s ${sourceNode} --dport ${DR_ZK_PORT1} -j ACCEPT
-        ip6tables  -I input_ext -p tcp -i ${NIC_NAME} -s ${sourceNode} --dport ${DR_ZK_PORT2} -j ACCEPT
-        if [ "${dr_dual_coordinator}" == "true" ]; then
-            ip6tables  -I input_ext -p tcp -i ${NIC_NAME} -s ${sourceNode} --dport ${DR_ZK_PORT3} -j ACCEPT
-            ip6tables  -I input_ext -p tcp -i ${NIC_NAME} -s ${sourceNode} --dport ${DR_ZK_PORT4} -j ACCEPT
+        if [ "${site_is_standby}" == "false" ]; then
+            ip6tables  -I input_ext -p tcp -i ${NIC_NAME} -s ${sourceNode} --dport ${DR_ZK_PORT1} -j ACCEPT
+            ip6tables  -I input_ext -p tcp -i ${NIC_NAME} -s ${sourceNode} --dport ${DR_ZK_PORT2} -j ACCEPT
+            if [ "${dr_dual_coordinator}" == "true" ]; then
+                ip6tables  -I input_ext -p tcp -i ${NIC_NAME} -s ${sourceNode} --dport ${DR_ZK_PORT3} -j ACCEPT
+                ip6tables  -I input_ext -p tcp -i ${NIC_NAME} -s ${sourceNode} --dport ${DR_ZK_PORT4} -j ACCEPT
+            fi
         fi
         ip6tables  -I input_ext -p udp -i ${NIC_NAME} -s ${sourceNode} -m multiport --dport ${INGRES_UDP_PORTS} -j ACCEPT
         ip6tables  -I input_ext -p esp -i ${NIC_NAME} -s ${sourceNode} -j ACCEPT

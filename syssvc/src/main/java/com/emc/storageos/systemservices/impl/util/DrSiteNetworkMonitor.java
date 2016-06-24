@@ -26,7 +26,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  * If latency is less than 150ms then Network health is "Good", if it is greater then Network Health is "Slow"
  * If the testPing times out or fails to connect then pin is -1 and NetworkHealth is "Broken""
  */
-public class DrSiteNetworkMonitor implements Runnable {
+public class DrSiteNetworkMonitor extends DrHealthMonitor {
 
     private static final Logger _log = LoggerFactory.getLogger(DrSiteNetworkMonitor.class);
     private AlertsLogger _alertLog = AlertsLogger.getAlertsLogger();
@@ -50,19 +50,10 @@ public class DrSiteNetworkMonitor implements Runnable {
     public DrSiteNetworkMonitor() {
     }
 
+    @Override
     public void run() {
-        _log.info("Starting DrSiteNetworkMonitor");
-        while (true) {
-            try {
-                if (shouldStartOnCurrentSite() && drUtil.isLeaderNode()) {
-                    checkPing();
-                }
-            } catch (Exception e) {
-                //try catch exception to make sure next scheduled run can be launched.
-                _log.error("Error occurs when monitor standby network", e);
-            }
-
-            waiter.sleep(TimeUnit.MILLISECONDS.convert(NETWORK_MONITORING_INTERVAL, TimeUnit.SECONDS));
+        if (shouldStartOnCurrentSite() && drUtil.isLeaderNode()) {
+            checkPing();
         }
     }
 

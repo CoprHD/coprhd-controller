@@ -85,10 +85,6 @@ public class VPlexBackendManager {
     private static int MAX_CHARS_IN_VPLEX_NAME = 32;
     private static final long MAX_LOCK_WAIT_SECONDS = 3600;
 
-    public void setCoordinator(CoordinatorClient locator) {
-        _coordinator = locator;
-    }
-    
     private static final String ZONING_STEP = "zoning";
     private static final String EXPORT_STEP = AbstractDefaultMaskingOrchestrator.EXPORT_GROUP_MASKING_TASK;
     private static final String REVALIDATE_MASK = "update-zoning-and-revalidate-mask";

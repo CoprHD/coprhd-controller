@@ -31,8 +31,6 @@ import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAllocator;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAssigner;
-import com.emc.storageos.vplex.api.VPlexApiException;
-import com.emc.storageos.vplexcontroller.VplexBackendIngestionContext;
 
 public class VPlexBackEndOrchestratorUtil {
     private static final Logger _log = LoggerFactory.getLogger(VPlexBackEndOrchestratorUtil.class);

@@ -155,7 +155,13 @@ public class VirtualArrays extends ViprResourceController {
         Map<Boolean, String> autoSanZoningOptions = Maps.newHashMap();
         autoSanZoningOptions.put(Boolean.TRUE, Messages.get("virtualArray.autoSanZoning.true"));
         autoSanZoningOptions.put(Boolean.FALSE, Messages.get("virtualArray.autoSanZoning.false"));
+
+        Map<Boolean, String> noNetworkOptions = Maps.newHashMap();
+        noNetworkOptions.put(Boolean.TRUE, Messages.get("virtualArray.noNetwork.true"));
+        noNetworkOptions.put(Boolean.FALSE, Messages.get("virtualArray.noNetwork.false"));
+        
         renderArgs.put("autoSanZoningOptions", autoSanZoningOptions);
+        renderArgs.put("noNetworkOptions", noNetworkOptions);
         renderArgs.put("storageSystems", new VirtualArrayStorageSystemsDataTable());
         renderArgs.put("virtualPools", new VirtualArrayVirtualPoolsDataTable());
 
@@ -765,6 +771,7 @@ public class VirtualArrays extends ViprResourceController {
         @MinSize(2)
         public String name;
         public Boolean autoSanZoning = Boolean.TRUE;
+        public Boolean noNetwork = Boolean.FALSE;
         public Boolean enableTenants = Boolean.FALSE;
         public List<String> tenants = new ArrayList<String>();
 
@@ -778,6 +785,7 @@ public class VirtualArrays extends ViprResourceController {
             if (virtualArray.getBlockSettings() != null) {
                 BlockSettings settings = virtualArray.getBlockSettings();
                 this.autoSanZoning = settings.getAutoSanZoning();
+                this.noNetwork = settings.getNoNetwork();
             }
             loadTenant(virtualArray);
         }
@@ -797,10 +805,10 @@ public class VirtualArrays extends ViprResourceController {
 
         public VirtualArrayRestRep save() {
             if (isNew()) {
-                return VirtualArrayUtils.create(name, Boolean.TRUE.equals(autoSanZoning));
+                return VirtualArrayUtils.create(name, Boolean.TRUE.equals(autoSanZoning), Boolean.TRUE.equals(noNetwork));
             }
             else {
-                return VirtualArrayUtils.update(id, name, Boolean.TRUE.equals(autoSanZoning));
+                return VirtualArrayUtils.update(id, name, Boolean.TRUE.equals(autoSanZoning), Boolean.TRUE.equals(noNetwork));
             }
         }
 

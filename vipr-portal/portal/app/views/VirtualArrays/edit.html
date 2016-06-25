@@ -76,6 +76,16 @@
         }%
         #{Form.selectOneControlGroup field:field /}
       #{/field}
+      #{field 'virtualArray.noNetwork'}
+        %{
+        field.cssClass = 'span3'
+        field.valueType = Boolean.class
+        field.valueProperty = 'key'
+        field.labelProperty = 'value'
+        field.options = noNetworkOptions
+        }%
+        #{Form.selectOneControlGroup field:field /}
+      #{/field}
     #{/license.ifController}
 
     *{ tenantOptions are only available for users that can set tenant ACLs }*

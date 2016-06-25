@@ -478,7 +478,7 @@ public class VirtualArrayService extends TaggedResource {
         }
 
         if (param.getBlockSettings().getNoNetwork() != null) {
-            varray.setAutoSanZoning(param.getBlockSettings().getNoNetwork());
+            varray.setNoNetwork(param.getBlockSettings().getNoNetwork());
         }
 
         if (param.getObjectSettings().getProtectionType() != null) {

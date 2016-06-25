@@ -868,32 +868,146 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
         return task;
     }
 
+    /**
+     * Physical Copy is a 3PAR term for Volume clone
+     * 
+     * Vipr UI doesn't provide offline/online options while creating clone, so below logic will be followed
+     * First, create clone creation as offline volume [Attached volume]
+     *   if error, create a new volume with clone name by using its base volume parameters like TPVV,CPG.
+     *        Then create a offline volume clone using newly created volume clone 
+     *        Note: A offline clone creates a attached clone, which actually creates a intermediate snapshot 
+     *              which can be utilized for restore/update.
+     */
+    
     @Override
     public DriverTask createVolumeClone(List<VolumeClone> clones, StorageCapabilities capabilities) {
-    	_log.info("3PARDriver: createVolumeClone Running ");
-        // TODO Auto-generated method stub
-        return null;
+
+    	DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_CREATE_CLONE_VOLUMES);
+
+    	for (VolumeClone clone : clones) {
+            try {
+            	//native id = null , 
+                _log.info("3PARDriver: createVolumeClone for storage system native id {}, volume name {} , volume clone name {} - start",
+                		clone.toString(), clone.getParentId(), clone.getDisplayName() );  
+             // get Api client
+                HP3PARApi hp3parApi = getHP3PARDeviceFromNativeId(clone.getStorageSystemId());
+                VolumeDetailsCommandResult volResult = null;
+                
+                // Create volume clone
+                hp3parApi.createPhysicalCopy(clone.getParentId(),clone.getDisplayName(),clone.getStoragePoolId());
+                volResult = hp3parApi.getVolumeDetails(clone.getDisplayName());
+                                
+                // Actual size of the volume in array
+                clone.setProvisionedCapacity(volResult.getSizeMiB() * HP3PARConstants.MEGA_BYTE);
+                clone.setWwn(volResult.getWwn());
+                clone.setNativeId(clone.getDisplayName()); //required for volume delete
+                clone.setDeviceLabel(clone.getDisplayName());
+                clone.setAccessStatus(clone.getAccessStatus());
+                clone.setReplicationState(VolumeClone.ReplicationState.SYNCHRONIZED);
+
+                task.setStatus(DriverTask.TaskStatus.READY);
+                _log.info("createVolumeClone for storage system native id {}, volume name {} - end",
+                		clone.getStorageSystemId(), clone.getDisplayName());            
+            } catch (Exception e) {
+                String msg = String.format(
+                        "3PARDriver: createVolumeClone Unable to create volume clone name %s for parent base volume id %s whose storage system native id is %s; Error: %s.\n",
+                        clone.getDisplayName(), clone.getParentId(), clone.getStorageSystemId(), e.getMessage());
+                _log.info("createVolumeClone exception message {} ",e.getMessage());
+                _log.error(msg);
+                task.setMessage(msg);
+                task.setStatus(DriverTask.TaskStatus.PARTIALLY_FAILED);
+                e.printStackTrace();
+            }
+        } // end for each volume clone creation
+        
+        return task;
+    
     }
 
     @Override
     public DriverTask detachVolumeClone(List<VolumeClone> clones) {
+    	// There is no REST API avaialble for detach clone in HP3PAR
+    	// This is getting called while delete / restore clone
+    	// hence setting this as working by default
     	_log.info("3PARDriver: detachVolumeClone Running ");
-        // TODO Auto-generated method stub
-        return null;
+    	DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_RESTORE_CLONE_VOLUMES);
+    	task.setStatus(DriverTask.TaskStatus.READY);
+    	return task;
     }
 
+    /**
+     * restore clone is equivalent to promote physical copy
+     * Here we will be using intermediate snapshot for restore which got generated during clone creation
+     * NOTE: intermediate snapshot cannot be exported hence offline restore will be used
+     */
     @Override
     public DriverTask restoreFromClone(List<VolumeClone> clones) {
-    	_log.info("3PARDriver: restoreFromClone Running ");
-        // TODO Auto-generated method stub
-        return null;
+
+	    DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_RESTORE_CLONE_VOLUMES);
+
+        // Executing restore for each requested volume clone (in one or more 3par system)
+        for (VolumeClone clone : clones) {
+            try {
+                _log.info("3PARDriver: restoreFromClone for storage system system id {}, volume name {} , native id {} , all = {} - start",
+                		clone.getStorageSystemId(), clone.getDisplayName(), clone.getNativeId(), clone.toString());     
+
+                // get Api client
+                HP3PARApi hp3parApi = getHP3PARDeviceFromNativeId(clone.getStorageSystemId());
+
+                // restore virtual copy
+                hp3parApi.restorePhysicalCopy(clone.getNativeId());
+                
+                clone.setReplicationState(VolumeClone.ReplicationState.RESTORED);
+                
+                task.setStatus(DriverTask.TaskStatus.READY);
+                _log.info("3PARDriver: restoreFromClone for storage system  id {}, volume clone display name {} - end",
+                		clone.getStorageSystemId(), clone.getDisplayName());            
+            } catch (Exception e) {
+                String msg = String.format(
+                        "3PARDriver:restoreFromClone Unable to restore volume display name %s with native id %s for storage system id %s; Error: %s.\n",
+                        clone.getDisplayName(), clone.getNativeId(), clone.getStorageSystemId(), e.getMessage());
+                _log.error(msg);
+                task.setMessage(msg);
+                task.setStatus(DriverTask.TaskStatus.PARTIALLY_FAILED);
+                e.printStackTrace();
+            }
+        } // end for each restore clone
+        
+        return task;
     }
 
     @Override
     public DriverTask deleteVolumeClone(List<VolumeClone> clones) {
-    	_log.info("3PARDriver: deleteVolumeClone Running ");
-        // TODO Auto-generated method stub
-        return null;
+
+	    DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_DELETE_CLONE_VOLUMES);
+
+        // For each requested volume snapshot (in one or more 3par system)
+        for (VolumeClone clone : clones) {
+            try {
+                _log.info("3PARDriver: deleteVolumeSnapshot for storage system native id {}, volume name {} , native id {} - start",
+                		clone.getStorageSystemId(), clone.getDisplayName(), clone.getNativeId());     
+
+                // get Api client
+                HP3PARApi hp3parApi = getHP3PARDeviceFromNativeId(clone.getStorageSystemId());
+
+                // Delete physical copy
+                hp3parApi.deletePhysicalCopy(clone.getNativeId());
+                
+                task.setStatus(DriverTask.TaskStatus.READY);
+                _log.info("3PARDriver: deleteVolumecloneshot for storage system native id {}, volume name {} - end",
+                		clone.getStorageSystemId(), clone.getDisplayName());            
+            } catch (Exception e) {
+                String msg = String.format(
+                        "3PARDriver: Unable to delete volume name %s with native id %s for storage system native id %s; Error: %s.\n",
+                        clone.getDisplayName(), clone.getNativeId(), clone.getStorageSystemId(), e.getMessage());
+                _log.error(msg);
+                task.setMessage(msg);
+                task.setStatus(DriverTask.TaskStatus.PARTIALLY_FAILED);
+                e.printStackTrace();
+            }
+        } // end for each delete clone
+        
+        return task;
     }
 
     @Override
@@ -956,40 +1070,29 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
     	_log.info("3PARDriver: getVolumeExportInfoForHosts Running ");       
     	    	
     	try{    		    		
-    		if(!volume.getDisplayName().equals("vipr-ravi-volume2")){
-    			return null; 
-    		}
-    		
+    		_log.info("volume.getdisplay name is {}",volume.getNativeId());
+    		_log.info("volume.getstoragesysid  is {}",volume.getStorageSystemId());    
     		Map<String, HostExportInfo> resultMap = new HashMap<String, HostExportInfo>();
     		    		
     		//get the vlun associated with the volume at consideration.
     		HP3PARApi hp3parApi = getHP3PARDeviceFromNativeId(volume.getStorageSystemId());
-    		//VirtualLunsList vlunsOfVolume = hp3parApi.getVLunsOfVolume(volume.getWwn());
-    		
-    		
+    		VirtualLunsList vlunsOfVolume = hp3parApi.getVLunsOfVolume(volume.getWwn());
+    		    		
     		//process the vlun information by iterating through the vluns
     		//and then for each vlun, we create the appropriate key:value pair
     		//in the resultMap with hostname:HostExportInfo information.    		
-    		//for( int index=0; index < vlunsOfVolume.getTotal() ; index++ ){
-    		{
-    			//VirtualLun objVirtualLun = vlunsOfVolume.getMembers().get(index);
-    			VirtualLun objVirtualLun = new VirtualLun();
-    			Position pos = new Position();
-    			pos.setNode(0);
-    			pos.setNode(1);
-    			pos.setNode(1);    			
-    			objVirtualLun.setActive(true);
-    			objVirtualLun.setVolumeName("vipr-ravi-volume2");
-    			objVirtualLun.setHostName("LGLBW011");
-    			objVirtualLun.setRemoteName("10000090FA3D2D28");
-    			objVirtualLun.setPortPos(pos);
-    			objVirtualLun.setType(4);
-    			objVirtualLun.setVolumeWWN("60002AC0000000000000142E0000AE90");
-    			objVirtualLun.setMultipathing(1);
-    			    		    	
-    			
-    			if(!objVirtualLun.isActive()){
-    				//continue;
+    		for( int index=0; index < vlunsOfVolume.getTotal() ; index++ ){    			    		    	
+    			_log.info("after virtual lun init");
+				VirtualLun objVirtualLun = vlunsOfVolume.getMembers().get(index);
+				_log.info("objVirtualLun.getHostName {}", objVirtualLun.getHostname());
+				_log.info("objVirtualLun.getPortPos {}", objVirtualLun.getPortPos());
+				_log.info("objVirtualLun.getRemoteName {}", objVirtualLun.getRemoteName());
+				_log.info("objVirtualLun.getVolumeWWN {}", objVirtualLun.getVolumeWWN());
+				_log.info("objVirtualLun.getVolumeName {}", objVirtualLun.getVolumeName());
+				_log.info("objVirtualLun.getType {}", objVirtualLun.getType());
+								    		
+				if(!objVirtualLun.isActive()){
+    				continue;				
     			}
     			
     			List<String> volumeIds = new ArrayList<>();
@@ -998,39 +1101,69 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
     			
     			//To volumeIds we need to add the native id of volume 
     			//and for hp3par volume name would be the native id
-    	        volumeIds.add(objVirtualLun.getVolumeName());
-    	        
-    	        Initiator hostInitiator = new Initiator();
-    	        //hp3par returns remote name in the format like 10000000C98F5C79. 
+		        volumeIds.add(objVirtualLun.getVolumeName());
+	        
+		        Initiator hostInitiator = new Initiator();
+	        	//hp3par returns remote name in the format like 10000000C98F5C79. 
     	        //we now convert this to the format 10:00:00:00:C9:8F:5C:79
-    	        String portId = objVirtualLun.getRemoteName().substring(0, 2) + ":" + 
-    	        				objVirtualLun.getRemoteName().substring(2, 4) + ":" +
-    	        				objVirtualLun.getRemoteName().substring(4, 6) + ":" +
-    	        				objVirtualLun.getRemoteName().substring(6, 8) + ":" +
-    	        				objVirtualLun.getRemoteName().substring(8, 10) + ":" +
-    	        				objVirtualLun.getRemoteName().substring(10, 12) + ":" +
-    	        				objVirtualLun.getRemoteName().substring(12, 14) + ":" +
-    	        				objVirtualLun.getRemoteName().substring(14, 16);
+		        String portId = objVirtualLun.getRemoteName().substring(0, 2) + ":" + 
+	        				objVirtualLun.getRemoteName().substring(2, 4) + ":" +
+	        				objVirtualLun.getRemoteName().substring(4, 6) + ":" +
+	        				objVirtualLun.getRemoteName().substring(6, 8) + ":" +
+	        				objVirtualLun.getRemoteName().substring(8, 10) + ":" +
+	        				objVirtualLun.getRemoteName().substring(10, 12) + ":" +
+	        				objVirtualLun.getRemoteName().substring(12, 14) + ":" +
+	        				objVirtualLun.getRemoteName().substring(14, 16);
     	        
-    	        String nativeId = String.format("%s:%s:%s", objVirtualLun.getPortPos().getNode(),
-    	        		objVirtualLun.getPortPos().getSlot(), objVirtualLun.getPortPos().getCardPort());
-    	        
-    	        //Check which of the storage ports discovered, matches the node:portpos:cardport 
+		        _log.info("before native id");
+    		        String nativeId = String.format("%s:%s:%s", objVirtualLun.getPortPos().getNode(),
+	    	        		objVirtualLun.getPortPos().getSlot(), objVirtualLun.getPortPos().getCardPort());
+	        
+	        	//Check which of the storage ports discovered, matches the node:portpos:cardport 
     	        //combination of the VLUN
-    	        List<StoragePort> storPortsOfStorage = storagePortMap.get(volume.getStorageSystemId());    	        
-    	        for(int portIndex = 0 ; portIndex < storPortsOfStorage.size() ; portIndex++){
-    	        	StoragePort port = storPortsOfStorage.get(portIndex);
-    	        	if(port.getNativeId().equals(nativeId)){
-    	        		storageports.add(port);
-    	        	}    	        	
+		        List<StoragePort> storPortsOfStorage = storagePortMap.get(volume.getStorageSystemId());    	        
+				_log.info("storPortsOfStorage are {}",storPortsOfStorage);
+				_log.info("storPortMap are {}",storagePortMap);
+
+	        	for(int portIndex = 0 ; portIndex < storPortsOfStorage.size() ; portIndex++){
+	        		StoragePort port = storPortsOfStorage.get(portIndex);
+					_log.info("native id is {}" , nativeId);
+					_log.info("port.getNativeId() is {} " , port.getNativeId());
+
+	        		if(port.getNativeId().equals(nativeId)){
+	        			storageports.add(port);
+	        		}    	        	
+	        	}
+	        
+	        	hostInitiator.setHostName(objVirtualLun.getHostname());    	        
+	        	hostInitiator.setPort(portId);
+	        	initiators.add(hostInitiator);
+
+    	        HostExportInfo exportInfo = null;
+    	        
+		        if(resultMap.containsKey(objVirtualLun.getHostname())){
+    	        	exportInfo = resultMap.get(objVirtualLun.getHostname());	
+					for(int i1 = 0; i1 < storageports.size() ; i1++)
+					{
+						StoragePort ob1 = storageports.get(i1);
+						if(!exportInfo.getTargets().contains(ob1)){
+							exportInfo.getTargets().add(ob1);
+						}
+					}
+					for(int i1 = 0; i1 < initiators.size() ; i1++)
+					{
+						Initiator ob1 = initiators.get(i1);
+						if(!exportInfo.getInitiators().contains(ob1)){
+							exportInfo.getInitiators().add(ob1);
+						}
+					}    	       
+    		    }
+	    	    else{
+    	        	exportInfo = new HostExportInfo(objVirtualLun.getHostname(), volumeIds, initiators, storageports);
     	        }
-    	        
-    	        hostInitiator.setHostName(objVirtualLun.getHostName());    	        
-    	        hostInitiator.setPort(portId);
-    	        initiators.add(hostInitiator);
-    	        
-    			HostExportInfo exportInfo = new HostExportInfo(objVirtualLun.getHostName(), volumeIds, initiators, storageports);
-    			resultMap.put(objVirtualLun.getHostName(), exportInfo);
+    			    	        
+    			resultMap.put(objVirtualLun.getHostname(), exportInfo);
+    			_log.info("RESULTMAP FROM GETVOLUMEEXPORTINFO {}",resultMap);
     		}    		
     		return resultMap;
     	}

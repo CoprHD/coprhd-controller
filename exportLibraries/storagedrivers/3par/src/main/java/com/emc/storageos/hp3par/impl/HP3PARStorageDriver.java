@@ -1128,17 +1128,17 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
       EXCLUSIVE EXPORT: Will include port number of host
       
       1 Export volume to existing host * 
-      2 Export volume to non-existing host 
-      3 Add initiator to existing host
-      4 Remove initiator from host
-      5 Unexport volume -- (SDK break?)
+      2 Export volume to non-existing host * 
+      3 Add initiator to existing host *
+      4 Remove initiator from host *
+      5 Unexport volume *
       
       A 1-5 can be done with single/multiple volumes,initiators as applicable
-      B Should not depend on host name
-      C Adding an initiator to host will not do anything further. All volumes have to be exported
+      B Does not depend on host name
+      C Adding an initiator to 3PAR host will not do anything further. All volumes have to be exported
           to new initiator explicitly
-      --------------------------
-      SHARED EXPORT: Will not include port number, exported to all ports cluster can see
+      -------------------------------------------
+      SHARED EXPORT: Will not include port number, exported to all ports, the cluster can see
       
       1 Export volume to existing cluster (SDK gives n host calls=>export to individual host)
       2 Export volume to non-existing cluster
@@ -1155,7 +1155,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
       
       A 1-12 can be done with single/multiple volumes,initiators,hosts as applicable
       B Cluster name in ViPR and 3PAR has to be identical with case
-      C Adding a new host to host-set will automatically export all volumes to the new host(earlier export must have been host-set)
+      C Adding a new host to host-set will automatically export all volumes to the new host(initial export must have been host-set)
      */
     
     @Override
@@ -1166,68 +1166,73 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
         _log.info("3PARDriver:exportVolumesToInitiators enter");
 
         String host = null;
-        try {
-            initiators.get(0).setInitiatorType(Type.Host);
-            if (initiators.get(0).getInitiatorType().equals(Type.Host) == true) {
-                // Exclusive-Host export
-                host = get3parHostname(initiators, volumes.get(0).getStorageSystemId());
-                if (host == null) {
-                    // create a new host or add initiator to existing host
-                    // TODO: to be handled for each volume as it may be from different array
-                    HP3PARApi hp3parApi = getHP3PARDeviceFromNativeId(volumes.get(0).getStorageSystemId());
-                    
-                    ArrayList<String> portIds = new ArrayList<>();
-                    for (Initiator init:initiators) {
-                        portIds.add(init.getPort());
+        
+        for (StorageVolume vol:volumes) {
+            //If required host should get created in all arrays to which volume belongs
+            String hostArray = null;
+            try {
+                // all initiators belong to same host
+                initiators.get(0).setInitiatorType(Type.Host);
+                if (initiators.get(0).getInitiatorType().equals(Type.Host) == true) {
+                    // Exclusive-Host export
+                    hostArray = get3parHostname(initiators, vol.getStorageSystemId());
+                    if (hostArray == null) {
+                        // create a new host or add initiator to existing host
+                        HP3PARApi hp3parApi = getHP3PARDeviceFromNativeId(vol.getStorageSystemId());
+
+                        ArrayList<String> portIds = new ArrayList<>();
+                        for (Initiator init:initiators) {
+                            portIds.add(init.getPort());
+                        }
+
+                        Integer persona = 0;
+                        //Supporting from lower versions; Windows1, HPUX7, Linux1, Esx11, AIX8, AIXVIO8, SUNVCS1, No_OS6, Other6
+                        switch (initiators.get(0).getHostOsType()) {
+                            case Windows:
+                            case Linux:
+                            case SUNVCS:                            
+                                persona = 1;
+                                break;
+
+                            case HPUX:
+                                persona = 7;
+                                break;
+
+                            case Esx:
+                                persona = 11;
+                                break;
+
+                            case AIX:
+                            case AIXVIO:
+                                persona = 8;
+                                break;
+
+                            //persona 3 is by experimentation, doc is not up-to-date 
+                            case No_OS:
+                            case Other:
+                            default:
+                                persona = 3;
+                                break;
+                        }
+
+                        hp3parApi.createHost(initiators.get(0).getHostName(), portIds, persona);
+                        host = initiators.get(0).getHostName();
+
+                    } else {
+                        // volume export
+                        host = hostArray;
                     }
-                    
-                    Integer persona = 0;
-                    //Supporting from lower versions; Windows1, HPUX7, Linux1, Esx11, AIX8, AIXVIO8, SUNVCS1, No_OS6, Other6
-                    switch (initiators.get(0).getHostOsType()) {
-                        case Windows:
-                        case Linux:
-                        case SUNVCS:                            
-                            persona = 1;
-                            break;
 
-                        case HPUX:
-                            persona = 7;
-                            break;
-
-                        case Esx:
-                            persona = 11;
-                            break;
-
-                        case AIX:
-                        case AIXVIO:
-                            persona = 8;
-                            break;
-
-                        //persona is 3 is by experimentation, doc is wrong 
-                        case No_OS:
-                        case Other:
-                        default:
-                            persona = 3;
-                            break;
-                    }
-
-                    hp3parApi.createHost(initiators.get(0).getHostName(), portIds, persona);
-                    host = initiators.get(0).getHostName();
-                    
-                } else {
-                    // volume export
-                }
-
-            } else { /*else if (initiators.get(0).getInitiatorType().equals(Type.Cluster) == true) {
+                } else { /*else if (initiators.get(0).getInitiatorType().equals(Type.Cluster) == true) {
                 // Shared-Cluster export
 
 
             } else {
                 _log.error("3PARDriver:exportVolumesToInitiators error: Host type not supported");
                 throw new HP3PARException("3PARDriver:exportVolumesToInitiators error: Host type not supported");*/
-            }
-        
-            /*try {
+                }
+
+                /*try {
             // 1 This could be single host export
             // 2 There could be single host export for the cluster (private export)
             // 3 or this could be one of the host export for the entire cluster
@@ -1238,24 +1243,25 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
             if (host == null) {
                 // if clusterName == null, create single host
                 // get list of initiators and create single host
-                
+
                 // clusterName present; 1 New cluster 2 Existing cluster
                 // 2a new host addition
                 // 1a create host, create cluster, add the host to cluster
-                
+
                 // ++ create a host on 3par with this information
-                
+
                 _log.error("3PARDriver:exportVolumesToInitiators error in processing host name");
                 throw new HP3PARException("3PARDriver:exportVolumesToInitiators error in processing host name");
             }*/
-        } catch (Exception e) {
-            String msg = String.format("3PARDriver: Unable to export, error: %s", e.getMessage());
-            _log.error(msg);
-            task.setMessage(msg);
-            task.setStatus(DriverTask.TaskStatus.FAILED);
-            e.printStackTrace();
-            return task;
-        }
+            } catch (Exception e) {
+                String msg = String.format("3PARDriver: Unable to export, error: %s", e.getMessage());
+                _log.error(msg);
+                task.setMessage(msg);
+                task.setStatus(DriverTask.TaskStatus.FAILED);
+                e.printStackTrace();
+                return task;
+            }
+        } // for each volume
 
         /* 
          * Export will be done keeping volumes as the starting point
@@ -1437,10 +1443,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
                                 volume.getStorageSystemId(), volume.getNativeId(), host, lun.toString(), pos.toString());
                         _log.info(message);
 
-                        /* Multiple host initiators can map to same or different array target ports
-                           hence port can not be determined
-                           Currently unexport will happen from all array ports as we need to get this info from SDK
-                         */
+                        // Each vlun will have required info
                         String posStr = String.format("%s:%s:%s", pos.getNode(), pos.getSlot(), pos.getCardPort());
                         hp3parApi.deleteVlun(volume.getNativeId(), lun.toString(), host, posStr);
                         totalUnexport++;

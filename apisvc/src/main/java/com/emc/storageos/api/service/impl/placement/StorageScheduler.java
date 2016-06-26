@@ -88,7 +88,6 @@ import com.google.common.collect.Collections2;
 public class StorageScheduler implements Scheduler {
     public static final Logger _log = LoggerFactory.getLogger(StorageScheduler.class);
     private static final String SCHEDULER_NAME = "block";
-    private static final String GLOBAL_CUSTOM_CONFIG_SCOPE = "global";
     // factor to adjust weight of array depending on export type
     // for host export, shared arrays (host has shared volumes on those arrays) will have less weight
     // for cluster export, exclusive arrays (those have only exclusive volumes to the hosts in the cluster), will have less weight
@@ -892,7 +891,7 @@ public class StorageScheduler implements Scheduler {
         }
 
         int limit = Integer.valueOf(_customConfigHandler.getComputedCustomConfigValue(
-                CustomConfigConstants.HOST_RESOURCE_MAX_NUM_OF_ARRAYS, GLOBAL_CUSTOM_CONFIG_SCOPE, null));
+                CustomConfigConstants.HOST_RESOURCE_MAX_NUM_OF_ARRAYS, CustomConfigConstants.GLOBAL_KEY, null));
 
         return numOfPreferredSystems < limit;
     }

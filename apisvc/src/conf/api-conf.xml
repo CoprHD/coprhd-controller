@@ -151,6 +151,7 @@
     <bean id="hostService" class="com.emc.storageos.api.service.impl.resource.HostService">
         <property name="dbClient" ref="dbclient"/>
         <property name="coordinator" ref="coordinator"/>
+        <property name="customConfigHandler" ref="customConfigHandler" />
     </bean>
     
     <bean id="vcenterService" class="com.emc.storageos.api.service.impl.resource.VcenterService">

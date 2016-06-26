@@ -517,4 +517,66 @@ public class SMICommunicationInterface extends ExtendedCommunicationInterfaceImp
         String provStr[] = providerVersion.split(Constants.SMIS_DOT_REGEX);
         return Integer.parseInt(provStr[0]) >= 8;
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void discoverArrayAffinity(AccessProfile accessProfile) {
+        _logger.info("Calling discoverArrayAffinity");
+
+        URI storageSystemURI = accessProfile.getSystemId();
+        String detailedStatusMessage = "Unknown Status";
+        long startTime = System.currentTimeMillis();
+        try {
+            _logger.info("Access Profile Details :" + accessProfile.toString());
+            _keyMap = new ConcurrentHashMap<String, Object>();
+            _wbemClient = getCIMClient(accessProfile);
+            _logger.info("CIMClient initialized successfully");
+
+            _keyMap.put(Constants._cimClient, _wbemClient);
+            _keyMap.put(Constants.dbClient, _dbClient);
+            _keyMap.put(Constants.COORDINATOR_CLIENT, _coordinator);
+            _keyMap.put(Constants.PROPS, accessProfile.getProps());
+            _keyMap.put(Constants._InteropNamespace, accessProfile.getInteropNamespace());
+            _keyMap.put(Constants.ACCESSPROFILE, accessProfile);
+            _keyMap.put(Constants.SYSTEMID, accessProfile.getSystemId());
+            _keyMap.put(Constants._serialID, accessProfile.getserialID());
+            _keyMap.put(Constants.MASKING_VIEWS, new LinkedList<CIMObjectPath>());
+
+            StorageSystem storageSystem = queryStorageSystem(accessProfile);
+            String providerVersion = getProviderVersionString(storageSystem);
+            if (null != providerVersion) {
+                _keyMap.put(Constants.VERSION, providerVersion);
+                _keyMap.put(Constants.IS_NEW_SMIS_PROVIDER, isSMIS8XProvider(providerVersion));
+            }
+
+            executor.setKeyMap(_keyMap);
+            executor.execute((Namespace) namespaces.getNsList().get(DISCOVER));
+        } catch (Exception e) {
+            detailedStatusMessage = String.format("Discovery failed for Storage System: %s because %s",
+                    storageSystemURI.toString(), e.getMessage());
+            _logger.error(detailedStatusMessage, e);
+            throw new SMIPluginException(detailedStatusMessage);
+        } finally {
+            try {
+                String systemIdsStr = accessProfile.getProps().get(Constants.SYSTEM_IDS);
+                String[] systemIds = systemIdsStr.split(Constants.ID_DELIMITER);
+                List<StorageSystem> systemsToUpdate = new ArrayList<StorageSystem>();
+                for (String systemId : systemIds) {
+                    StorageSystem system = _dbClient.queryObject(StorageSystem.class, URI.create(systemId));
+                    // set detailed message
+                    system.setLastArrayAffinityStatusMessage(detailedStatusMessage);
+                    systemsToUpdate.add(system);
+                }
+                _dbClient.updateObject(systemsToUpdate);
+            } catch (DatabaseException ex) {
+                _logger.error("Error while persisting object to DB", ex);
+            }
+            releaseResources();
+            long totalTime = System.currentTimeMillis() - startTime;
+            _logger.info(String.format("Discovery of Storage System %s took %f seconds", storageSystemURI.toString(), (double) totalTime
+                    / (double) 1000));
+        }
+    }
 }

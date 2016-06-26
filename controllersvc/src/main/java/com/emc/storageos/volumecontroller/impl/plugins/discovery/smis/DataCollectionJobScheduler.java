@@ -6,13 +6,12 @@ package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -367,7 +366,7 @@ public class DataCollectionJobScheduler {
         _logger.info("Started Loading Systems from DB for " + jobType + " jobs");
         ArrayList<DataCollectionJob> jobs = new ArrayList<DataCollectionJob>();
         List<URI> allSystemsURIs = new ArrayList<URI>();
-        Map<URI, Set<URI>> providerToSystemsMap = new HashMap<URI, Set<URI>>();
+        Map<URI, List<URI>> providerToSystemsMap = new HashMap<URI, List<URI>>();
 
         if (jobType.equalsIgnoreCase(ControllerServiceImpl.NS_DISCOVERY)) {
             addToList(allSystemsURIs, _dbClient.queryByType(NetworkSystem.class, true).iterator());
@@ -385,13 +384,12 @@ public class DataCollectionJobScheduler {
                     StorageProvider provider = _dbClient.queryObject(StorageProvider.class,
                             systemObj.getActiveProviderURI());
                     if (provider != null && !provider.getInactive()) {
-                        Set<URI> systems = providerToSystemsMap.get(provider.getId());
-                        if (systems == null) {
-                            systems = new HashSet<URI>();
-                            providerToSystemsMap.put(provider.getId(), systems);
+                        List<URI> systemIds = providerToSystemsMap.get(provider.getId());
+                        if (systemIds == null) {
+                            systemIds = new ArrayList<URI>();
+                            providerToSystemsMap.put(provider.getId(), systemIds);
                         }
-                        systems.add(systemObj.getId());
-                        allSystemsURIs.add(systemObj.getId());
+                        systemIds.add(systemObj.getId());
                     }
                 }
             }
@@ -401,7 +399,18 @@ public class DataCollectionJobScheduler {
             addToList(allSystemsURIs, _dbClient.queryByType(ProtectionSystem.class, true).iterator());
         }
 
-        if (!allSystemsURIs.isEmpty()) {
+        if (!providerToSystemsMap.isEmpty()) {
+            for (Map.Entry<URI, List<URI>> entry : providerToSystemsMap.entrySet()) {
+                String taskId = UUID.randomUUID().toString();
+                List<URI> systemIds = entry.getValue();
+                Collections.shuffle(systemIds);
+                ArrayAffinityDataCollectionTaskCompleter completer = new ArrayAffinityDataCollectionTaskCompleter(StorageSystem.class, systemIds, taskId, jobType, true);
+                DataCollectionArrayAffinityJob job = new DataCollectionArrayAffinityJob(null, systemIds, completer, DataCollectionJob.JobOrigin.SCHEDULER, Discovery_Namespaces.ARRAY_AFFINITY.name());
+                jobs.add(job);
+            }
+
+            scheduleMultipleJobs(jobs, ControllerServiceImpl.Lock.getLock(jobType));
+        } else if (!allSystemsURIs.isEmpty()) {
             Iterator<URI> systemURIsItr = allSystemsURIs.iterator();
             while (systemURIsItr.hasNext()) {
                 URI systemURI = systemURIsItr.next();
@@ -443,14 +452,8 @@ public class DataCollectionJobScheduler {
                             continue;
                         }
                     }
-                    if (ControllerServiceImpl.ARRAYAFFINITY_DISCOVERY.equalsIgnoreCase(jobType) && provider != null &&
-                            providerToSystemsMap.get(provider.getId()) != null) {
-                        DiscoverTaskCompleter completer = new DiscoverTaskCompleter(StorageSystem.class, systemURI, taskId, jobType);
-                        job = new DataCollectionDiscoverJob(completer, DataCollectionJob.JobOrigin.SCHEDULER, Discovery_Namespaces.ARRAY_AFFINITY.name());
-                        providerToSystemsMap.remove(provider.getId());
-                    } else {
-                        job = getDataCollectionJobByType(StorageSystem.class, jobType, taskId, systemURI);
-                    }
+
+                    job = getDataCollectionJobByType(StorageSystem.class, jobType, taskId, systemURI);
                 } else if (URIUtil.isType(systemURI, NetworkSystem.class)) {
                     job = getDataCollectionJobByType(NetworkSystem.class, jobType, taskId, systemURI);
                 } else if (URIUtil.isType(systemURI, ComputeSystem.class)) {
@@ -534,10 +537,16 @@ public class DataCollectionJobScheduler {
                 if (isDataCollectionJobSchedulingNeeded(system,
                         job.getType(), job.isSchedulerJob(), job.getNamespace())) {
                     job.schedule(_dbClient);
-                    system.setLastDiscoveryStatusMessage("");
-                    _dbClient.persistObject(system);
-                    completer.setNextRunTime(_dbClient,
-                            System.currentTimeMillis() + JobIntervals.get(job.getType()).getInterval() * 1000);
+                    if (job instanceof DataCollectionArrayAffinityJob) {
+                        ((ArrayAffinityDataCollectionTaskCompleter) completer).setLastStatusMessage(_dbClient, "");
+                        completer.setNextRunTime(_dbClient,
+                                System.currentTimeMillis() + JobIntervals.get(job.getType()).getInterval() * 1000);
+                    } else {
+                        system.setLastDiscoveryStatusMessage("");
+                        completer.setNextRunTime(_dbClient,
+                                System.currentTimeMillis() + JobIntervals.get(job.getType()).getInterval() * 1000);
+                        _dbClient.updateObject(system);
+                    }
                     ControllerServiceImpl.enqueueDataCollectionJob(job);
                 }
                 else {

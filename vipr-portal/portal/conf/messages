@@ -731,6 +731,7 @@ CustomConfigs.configType.NasShareVNASWithMultipleProjects=Enable Association of 
 CustomConfigs.configType.VPlexMigrationSpeed=Data Migration Speed
 CustomConfigs.configType.VPlexVMAXMaskingViewMaximumVolumes=Max Volumes In VPlex Backend MaskingView
 CustomConfigs.configType.HostResourceMaximumNumberOfArrays=Maximum Number Of Arrays That Resources Can be Placed For A Host/Cluster
+CustomConfigs.configType.HostResourceTriggerArrayAffinityDiscoveryInHostDiscovery=Trigger Array Affinity Discovery In Host Discovery
 CustomConfigs.scopeType.global=Global
 CustomConfigs.scopeType.systemType=System Type
 CustomConfigs.scopeType.hostType=Host Type

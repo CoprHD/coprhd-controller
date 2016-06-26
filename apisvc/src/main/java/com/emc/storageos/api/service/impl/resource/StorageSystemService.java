@@ -50,7 +50,6 @@ import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.model.AutoTieringPolicy;
-import com.emc.storageos.db.client.model.Bucket;
 import com.emc.storageos.db.client.model.DecommissionedResource;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.CompatibilityStatus;
@@ -93,7 +92,6 @@ import com.emc.storageos.model.object.ObjectNamespaceList;
 import com.emc.storageos.model.object.ObjectNamespaceRestRep;
 import com.emc.storageos.model.object.ObjectUserSecretKeyAddRestRep;
 import com.emc.storageos.model.object.ObjectUserSecretKeyRequestParam;
-import com.emc.storageos.model.object.ObjectUserSecretKeysRestRep;
 import com.emc.storageos.model.pools.StoragePoolList;
 import com.emc.storageos.model.pools.StoragePoolRestRep;
 import com.emc.storageos.model.ports.StoragePortList;
@@ -117,6 +115,7 @@ import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCodeException;
+import com.emc.storageos.volumecontroller.ArrayAffinityAsyncTask;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.BlockController;
 import com.emc.storageos.volumecontroller.ControllerException;
@@ -126,7 +125,6 @@ import com.emc.storageos.volumecontroller.StorageController;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.StoragePortAssociationHelper;
 import com.emc.storageos.volumecontroller.impl.cinder.CinderUtils;
-import com.emc.storageos.volumecontroller.impl.ecs.BucketOperationTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
 import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
@@ -173,7 +171,7 @@ public class StorageSystemService extends TaskResourceService {
     // Is used with "system delete" operation.
     private int _retry_attempts;
 
-    protected static class DiscoverJobExec implements AsyncTaskExecutorIntf {
+    private static class DiscoverJobExec implements AsyncTaskExecutorIntf {
 
         private final StorageController _controller;
 
@@ -194,6 +192,18 @@ public class StorageSystemService extends TaskResourceService {
 
     public void setRetryAttempts(int retries) {
         _retry_attempts = retries;
+    }
+
+    protected static class ArrayAffinityJobExec extends DiscoverJobExec {
+
+        ArrayAffinityJobExec(StorageController controller) {
+            super(controller);
+        }
+
+        @Override
+        public ResourceOperationTypeEnum getOperation() {
+            return ResourceOperationTypeEnum.ARRAYAFFINITY_STORAGE_SYSTEM;
+        }
     }
 
     /**
@@ -706,19 +716,49 @@ public class StorageSystemService extends TaskResourceService {
         // Trigger unmanaged resource discovery only when system is compatible.
         if ((Discovery_Namespaces.UNMANAGED_VOLUMES.name().equalsIgnoreCase(namespace) ||
                 Discovery_Namespaces.BLOCK_SNAPSHOTS.name().equalsIgnoreCase(namespace) ||
-                Discovery_Namespaces.ARRAY_AFFINITY.name().equalsIgnoreCase(namespace) ||
                 Discovery_Namespaces.UNMANAGED_FILESYSTEMS.name().equalsIgnoreCase(namespace)) &&
                 !CompatibilityStatus.COMPATIBLE.name().equalsIgnoreCase(storageSystem.getCompatibilityStatus())) {
             throw APIException.badRequests.cannotDiscoverUnmanagedResourcesForUnsupportedSystem();
         }
 
         BlockController controller = getController(BlockController.class, deviceType);
-        DiscoveredObjectTaskScheduler scheduler = new DiscoveredObjectTaskScheduler(
-                _dbClient, new DiscoverJobExec(controller));
+        DiscoveredObjectTaskScheduler scheduler = null;
         ArrayList<AsyncTask> tasks = new ArrayList<AsyncTask>(1);
         String taskId = UUID.randomUUID().toString();
-        tasks.add(new AsyncTask(StorageSystem.class, storageSystem.getId(), taskId,
-                namespace));
+        if (Discovery_Namespaces.ARRAY_AFFINITY.name().equalsIgnoreCase(namespace)) {
+            scheduler = new DiscoveredObjectTaskScheduler(
+                    _dbClient, new ArrayAffinityJobExec(controller));
+            URI providerURI = storageSystem.getActiveProviderURI();
+            List<URI> systemIds = new ArrayList<URI>();
+            systemIds.add(id);
+            List<URI> sysURIs = _dbClient.queryByType(StorageSystem.class, true);
+            Iterator<StorageSystem> storageSystems = _dbClient.queryIterativeObjects(StorageSystem.class, sysURIs);
+            while (storageSystems.hasNext()) {
+                StorageSystem systemObj = storageSystems.next();
+                String task = UUID.randomUUID().toString();
+                if (systemObj == null) {
+                    _log.warn("StorageSystem is no longer in the DB. It could have been deleted or decommissioned");
+                    continue;
+                }
+
+                if (!systemObj.deviceIsType(Type.vmax)) {
+                    _log.info("Skip unsupported system {}", systemObj.getLabel());
+                    continue;
+                }
+
+                if (providerURI.equals(systemObj.getActiveProviderURI()) && !id.equals(systemObj.getId())) {
+                    systemIds.add(systemObj.getId());
+                }
+            }
+
+            tasks.add(new ArrayAffinityAsyncTask(StorageSystem.class, storageSystem.getId(), systemIds, null, taskId));
+        } else {
+            scheduler = new DiscoveredObjectTaskScheduler(
+                    _dbClient, new DiscoverJobExec(controller));
+            tasks.add(new AsyncTask(StorageSystem.class, storageSystem.getId(), taskId,
+                    namespace));
+        }
+
         TaskList taskList = scheduler.scheduleAsyncTasks(tasks);
         return taskList.getTaskList().listIterator().next();
     }
@@ -1922,8 +1962,7 @@ public class StorageSystemService extends TaskResourceService {
         }
 
         if (Discovery_Namespaces.ARRAY_AFFINITY.name().equalsIgnoreCase(nameSpace)) {
-            if (Type.vmax.name().equalsIgnoreCase(storageSystem.getSystemType()) ||
-                    Type.vnxblock.name().equalsIgnoreCase(storageSystem.getSystemType())) {
+            if (Type.vmax.name().equalsIgnoreCase(storageSystem.getSystemType())) {
                 return true;
             }
 

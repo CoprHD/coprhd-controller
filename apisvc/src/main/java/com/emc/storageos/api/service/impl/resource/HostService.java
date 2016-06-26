@@ -48,7 +48,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import com.emc.storageos.api.mapper.TaskMapper;
 import com.emc.storageos.api.mapper.functions.MapHost;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
-import com.emc.storageos.api.service.impl.resource.StorageSystemService.DiscoverJobExec;
 import com.emc.storageos.api.service.impl.resource.utils.AsyncTaskExecutorIntf;
 import com.emc.storageos.api.service.impl.resource.utils.DiscoveredObjectTaskScheduler;
 import com.emc.storageos.api.service.impl.resource.utils.HostConnectionValidator;
@@ -58,6 +57,8 @@ import com.emc.storageos.api.service.impl.response.ResRepFilter;
 import com.emc.storageos.computecontroller.ComputeController;
 import com.emc.storageos.computesystemcontroller.ComputeSystemController;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
+import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
+import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
@@ -144,7 +145,6 @@ import com.emc.storageos.volumecontroller.ArrayAffinityAsyncTask;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.BlockController;
 import com.emc.storageos.volumecontroller.ControllerException;
-import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.DataCollectionJob;
 
 /**
  * A service that provides APIs for viewing, updating and removing hosts and their
@@ -162,6 +162,12 @@ public class HostService extends TaskResourceService {
 
     private static final String EVENT_SERVICE_TYPE = "host";
     private static final String BLADE_RESERVATION_LOCK_NAME = "BLADE_RESERVATION_LOCK";
+
+    private CustomConfigHandler _customConfigHandler;
+
+    public void setCustomConfigHandler(CustomConfigHandler customConfigHandler) {
+        _customConfigHandler = customConfigHandler;
+    }
 
     @Autowired
     private ComputeSystemService computeSystemService;
@@ -375,7 +381,12 @@ public class HostService extends TaskResourceService {
             tasks.add(new AsyncTask(Host.class, host.getId(), taskId));
 
             TaskList taskList = scheduler.scheduleAsyncTasks(tasks);
-            discoverHostArrayAffinity(host);
+
+            boolean runArrayAffinity = Boolean.valueOf(_customConfigHandler.getComputedCustomConfigValue(
+                    CustomConfigConstants.HOST_RESOURCE_RUN_ARRAY_AFFINITY_DISCOVERY, CustomConfigConstants.GLOBAL_KEY, null));
+            if (runArrayAffinity) {
+                discoverHostArrayAffinity(host);
+            }
             return taskList.getTaskList().iterator().next();
         } else {
             // if not discoverable, manually create a ready task
@@ -396,44 +407,55 @@ public class HostService extends TaskResourceService {
     private List<TaskResourceRep> discoverHostArrayAffinity(Host host) {
         List<TaskResourceRep> taskResList = new ArrayList<TaskResourceRep>();
         String jobType = "";
+        Map<URI, List<URI>> providerToSystemsMap = new HashMap<URI, List<URI>>();
+        Map<URI, String> providerToSystemTypeMap = new HashMap<URI, String>();
         List<URI> sysURIs = _dbClient.queryByType(StorageSystem.class, true);
-        for (URI sysURI : sysURIs) {
+        Iterator<StorageSystem> storageSystems = _dbClient.queryIterativeObjects(StorageSystem.class, sysURIs);
+        while (storageSystems.hasNext()) {
+            StorageSystem systemObj = storageSystems.next();
             String task = UUID.randomUUID().toString();
-            StorageSystem systemObj = _dbClient.queryObject(StorageSystem.class, sysURI);
             if (systemObj == null) {
-                _log.warn(String.format("StorageSystem %s is no longer in the DB. It could have been deleted or decommissioned",
-                        sysURI));
+                _log.warn("StorageSystem is no longer in the DB. It could have been deleted or decommissioned");
                 continue;
             }
 
             if (!systemObj.deviceIsType(Type.vmax)) {
+                _log.info("Skip unsupported system {}", systemObj.getLabel());
                 continue;
             }
 
-            // check devices managed by SMIS/hicommand/vplex device mgr has ActiveProviderURI or not.
-            if (systemObj.isStorageSystemManagedByProvider()) {
-                if (systemObj.getActiveProviderURI() == null
-                        || NullColumnValueGetter.getNullURI().equals(systemObj.getActiveProviderURI())) {
-                    _log.info("Skipping {} Job : StorageSystem {} does not have an active provider",
-                            jobType, sysURI);
-                    continue;
-                }
-                StorageProvider provider = _dbClient.queryObject(StorageProvider.class,
-                        systemObj.getActiveProviderURI());
-                if (provider == null || provider.getInactive()) {
-                    _log.info("Skipping {} Job : StorageSystem {} does not have a valid active provider",
-                            jobType, sysURI);
-                    continue;
-                }
+            if (systemObj.getActiveProviderURI() == null
+                    || NullColumnValueGetter.getNullURI().equals(systemObj.getActiveProviderURI())) {
+                _log.info("Skipping {} Job : StorageSystem {} does not have an active provider",
+                        jobType, systemObj.getLabel());
+                continue;
             }
 
-            String deviceType = systemObj.getSystemType();
-            BlockController controller = getController(BlockController.class, deviceType);
-            DiscoveredObjectTaskScheduler scheduler = new DiscoveredObjectTaskScheduler(
-                    _dbClient, new StorageSystemService.DiscoverJobExec(controller));
-            ArrayList<AsyncTask> tasks = new ArrayList<AsyncTask>(1);
+            StorageProvider provider = _dbClient.queryObject(StorageProvider.class,
+                    systemObj.getActiveProviderURI());
+            if (provider == null || provider.getInactive()) {
+                _log.info("Skipping {} Job : StorageSystem {} does not have a valid active provider",
+                        jobType, systemObj.getLabel());
+                continue;
+            }
+
+            List<URI> systemIds = providerToSystemsMap.get(provider.getId());
+            if (systemIds == null) {
+                systemIds = new ArrayList<URI>();
+                providerToSystemsMap.put(provider.getId(), systemIds);
+                providerToSystemTypeMap.put(provider.getId(), systemObj.getSystemType());
+            }
+            systemIds.add(systemObj.getId());
+        }
+
+        for (Map.Entry<URI, List<URI>> entry : providerToSystemsMap.entrySet()) {
+            List<URI> systemIds = entry.getValue();
+            Collections.shuffle(systemIds);
+            BlockController controller = getController(BlockController.class, providerToSystemTypeMap.get(entry.getKey()));
+            DiscoveredObjectTaskScheduler scheduler = new DiscoveredObjectTaskScheduler(_dbClient, new StorageSystemService.ArrayAffinityJobExec(controller));
+            ArrayList<AsyncTask> tasks = new ArrayList<AsyncTask>();
             String taskId = UUID.randomUUID().toString();
-            tasks.add(new ArrayAffinityAsyncTask(StorageSystem.class, systemObj.getId(), host.getId(), taskId));
+            tasks.add(new ArrayAffinityAsyncTask(StorageSystem.class, systemIds.get(0), systemIds, host.getId(), taskId));
             TaskList taskList = scheduler.scheduleAsyncTasks(tasks);
             taskResList.addAll(taskList.getTaskList());
         }

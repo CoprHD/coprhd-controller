@@ -77,5 +77,5 @@ public interface CustomConfigConstants {
     public String USE_PHYSICAL_NAS_FOR_PROVISIONING = "NasUsePhysicalNASForProvisioning";
     public String SHARE_VNAS_WITH_MULTIPLE_PROJECTS = "NasShareVNASWithMultipleProjects";
     public String HOST_RESOURCE_MAX_NUM_OF_ARRAYS = "HostResourceMaximumNumberOfArrays";
-    
+    public String HOST_RESOURCE_RUN_ARRAY_AFFINITY_DISCOVERY = "HostResourceTriggerArrayAffinityDiscoveryInHostDiscovery";
 }

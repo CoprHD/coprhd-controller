@@ -76,16 +76,17 @@ class DataCollectionJobInvoker {
             // Discovery-vnxFile | Discovery-block | Discovery-host |
             // Discovery-vcenter
             String contextkey = _accessProfile.getProfileName() + "-" + contextDeviceType;
-            if (ControllerServiceImpl.isDiscoveryJobTypeSupported(_accessProfile.getProfileName())) {
-                // Discovery-vnxFile-all | Discovery-block-all |
-                // CS_Discovery-host-all | CS_Discovery-vcenter-all
-                contextkey = contextkey + "-" + _namespace.toLowerCase();
-                if (Discovery_Namespaces.ARRAY_AFFINITY.name().equals(_namespace) && _accessProfile.getProps() != null) {
+            if (ControllerServiceImpl.ARRAYAFFINITY_DISCOVERY.equals(_accessProfile.getProfileName())) {
+                if (_accessProfile.getProps() != null) {
                     String host = _accessProfile.getProps().get(Constants.HOST);
                     if (StringUtils.isNotEmpty(host)) {
                         contextkey = contextkey + "-" + Constants.HOST;
                     }
                 }
+            } else if (ControllerServiceImpl.isDiscoveryJobTypeSupported(_accessProfile.getProfileName())) {
+                // Discovery-vnxFile-all | Discovery-block-all |
+                // CS_Discovery-host-all | CS_Discovery-vcenter-all
+                contextkey = contextkey + "-" + _namespace.toLowerCase();
             }
             if (contextDeviceType.equalsIgnoreCase(DiscoveredDataObject.Type.rp.toString())) {
                 _logger.info("{} task Started using protection system {} using Namespace {}",
@@ -181,6 +182,8 @@ class DataCollectionJobInvoker {
             commInterface.scan(_accessProfile);
         } else if (ControllerServiceImpl.isDiscoveryJobTypeSupported(_accessProfile.getProfileName())) {
             commInterface.discover(_accessProfile);
+        } else if (_accessProfile.getProfileName().equalsIgnoreCase(ControllerServiceImpl.ARRAYAFFINITY_DISCOVERY)) {
+            commInterface.discoverArrayAffinity(_accessProfile);
         } else if (_accessProfile.getProfileName().equalsIgnoreCase(ControllerServiceImpl.METERING)) {
             invokeMetering();
         } else {

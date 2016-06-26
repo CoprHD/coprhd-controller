@@ -7,6 +7,7 @@ package com.emc.storageos.volumecontroller.impl;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -58,8 +59,8 @@ import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.DataCollec
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.DataCollectionJobScheduler;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.DataCollectionJobSerializer;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.DiscoverTaskCompleter;
-import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.ArrayAffinityDataCollectionDiscoverJob;
-import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.ArrayAffinityDiscoverTaskCompleter;
+import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.ArrayAffinityDataCollectionTaskCompleter;
+import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.DataCollectionArrayAffinityJob;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.ScanTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.smis.CIMConnectionFactory;
 import com.emc.storageos.volumecontroller.impl.smis.SmisCommandHelper;
@@ -105,7 +106,7 @@ public class ControllerServiceImpl implements ControllerService {
     public static final long DEFAULT_CAPACITY_COMPUTE_INTERVAL = 3600;
 
     // list of support discovery job type
-    private static final String[] DISCOVERY_JOB_TYPES = new String[] { DISCOVERY, NS_DISCOVERY, CS_DISCOVERY, COMPUTE_DISCOVERY, ARRAYAFFINITY_DISCOVERY };
+    private static final String[] DISCOVERY_JOB_TYPES = new String[] { DISCOVERY, NS_DISCOVERY, CS_DISCOVERY, COMPUTE_DISCOVERY };
 
     private static final Logger _log = LoggerFactory.getLogger(ControllerServiceImpl.class);
     private Dispatcher _dispatcher;
@@ -648,9 +649,11 @@ public class ControllerServiceImpl implements ControllerService {
         ArrayList<DataCollectionJob> jobs = new ArrayList<DataCollectionJob>();
         for (AsyncTask task : tasks) {
             if (task instanceof ArrayAffinityAsyncTask) {
-                URI hostURI = ((ArrayAffinityAsyncTask) task).getHostId();
-                ArrayAffinityDiscoverTaskCompleter completer = new ArrayAffinityDiscoverTaskCompleter((ArrayAffinityAsyncTask) task, jobType);
-                DataCollectionJob job = new ArrayAffinityDataCollectionDiscoverJob(completer, task._namespace);
+                URI hostId = ((ArrayAffinityAsyncTask) task).getHostId();
+                List<URI> systemIds = ((ArrayAffinityAsyncTask) task).getSystemIds();
+                ArrayAffinityDataCollectionTaskCompleter completer =
+                        new ArrayAffinityDataCollectionTaskCompleter(task._clazz, systemIds, task._opId, jobType, false);
+                DataCollectionJob job = new DataCollectionArrayAffinityJob(hostId, systemIds, completer, task._namespace);
                 jobs.add(job);
             } else {
                 DiscoverTaskCompleter completer = new DiscoverTaskCompleter(task, jobType);

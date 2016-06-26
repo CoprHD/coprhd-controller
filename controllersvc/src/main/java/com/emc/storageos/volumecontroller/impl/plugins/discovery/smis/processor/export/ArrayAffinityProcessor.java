@@ -5,6 +5,7 @@
 package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.export;
 
 import java.net.URI;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -40,24 +41,27 @@ public class ArrayAffinityProcessor {
     private static final String CQL = "CQL";
 
     /**
-     * Update preferred systems of a host
+     * Update preferred pools of a host
      *
-     * @param systemId URI of storage system
      * @param profile AccessProfile
      * @param cimClient WBEMClient
      * @return true if there is mapped volume
      */
-    public void updatePreferredPoolIds(URI systemId, AccessProfile profile, WBEMClient cimClient, DbClient dbClient) {
+    public void updatePreferredPoolIds(AccessProfile profile, WBEMClient cimClient, DbClient dbClient) {
         _logger.info("Calling updatePreferredPoolIds");
 
         try {
             if (profile != null && profile.getProps() != null) {
                 String hostIdStr = profile.getProps().get(Constants.HOST);
+                String systemIdsStr = profile.getProps().get(Constants.SYSTEM_IDS);
+                String[] systemIds = systemIdsStr.split(Constants.ID_DELIMITER);
+                Set<String> systemIdSet = new HashSet<String>(Arrays.asList(systemIds));
+
                 if (StringUtils.isNotEmpty(hostIdStr)) {
                     Host host = dbClient.queryObject(Host.class, URI.create(hostIdStr));
                     if (host != null && !host.getInactive()) {
                         Map<String, String> preferredPoolURIs = getPreferredPoolMap(host.getId(), profile, cimClient, dbClient);
-                        if (ArrayAffinityDiscoveryUtils.updatePreferredPools(host, systemId, dbClient, preferredPoolURIs)) {
+                        if (ArrayAffinityDiscoveryUtils.updatePreferredPools(host, systemIdSet, dbClient, preferredPoolURIs)) {
                             dbClient.updateObject(host);
                         }
                     }

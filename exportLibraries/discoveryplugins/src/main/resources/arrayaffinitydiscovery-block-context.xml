@@ -80,7 +80,7 @@
 		<property name="instance" ref="cimClient" />
 		<property name="result" value="maskingViews" />
 		<property name="method" value="enumerateInstanceNames" />
-		<property name="processor" ref="cimpathprocessor" />
+		<property name="processor" ref="maskingPathProcessor" />
 		<property name="message" value="Invoking enumerateInstances to get MaskingViews"/>
 	</bean>
 
@@ -91,8 +91,8 @@
 	</bean>
 
 	<!-- Processors -->
-	<bean id="cimpathprocessor"
-		class="com.emc.storageos.plugins.common.processor.CIMPathProcessor" />
+	<bean id="maskingPathProcessor"
+		class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.export.MaskingPathProcessor" />
 
 	<bean id="getExports" class="com.emc.storageos.plugins.common.domainmodel.Operation">
         <property name="arguments">

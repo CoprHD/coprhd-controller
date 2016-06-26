@@ -59,6 +59,7 @@
                 <ref bean="nasUsePhysicalNASForProvisioning"/>
                 <ref bean="nasShareVNASWithMultipleProjects"/>
                 <ref bean="hostResourceMaximumNumberOfArrays"/>
+                <ref bean="hostResourceTriggerArrayAffinityDiscoveryInHostDiscovery"/>
             </list>
         </property>
     </bean>
@@ -1086,6 +1087,22 @@
         </property>
         <property name="description" value="The maximum number of arrayas that resources can be placed for a host/cluster is 4096"/>
         <property name="name" value="maxArraysForHostResources"/>
+    </bean>
+
+    <bean id="hostResourceTriggerArrayAffinityDiscoveryInHostDiscovery" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+        <property name="name" value="HostResourceTriggerArrayAffinityDiscoveryInHostDiscovery"/>
+        <property name="configType" value="SimpleValue"/>
+        <property name="type" value="Boolean"/>
+        <property name="scope">
+            <map>
+                <entry key="global" value="default"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="default" value="false"/>
+            </map>
+        </property>
     </bean>
 
     <!-- We can optionally have a similar property for initiatorPortIqn which would be the same -->

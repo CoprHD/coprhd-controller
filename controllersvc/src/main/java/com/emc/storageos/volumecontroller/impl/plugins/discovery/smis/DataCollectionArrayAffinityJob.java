@@ -5,14 +5,18 @@
 package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis;
 
 import java.io.Serializable;
-
-import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.model.DataObject;
-import com.emc.storageos.exceptions.DeviceControllerException;
-import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
+import java.net.URI;
+import java.util.Iterator;
+import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.exceptions.DeviceControllerException;
+import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
+import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 
 /**
  * Job for Array Affinity data collection.
@@ -21,15 +25,21 @@ public class DataCollectionArrayAffinityJob extends DataCollectionJob implements
     private static final long serialVersionUID = -6256870762267299638L;
     private static final Logger logger = LoggerFactory
             .getLogger(DataCollectionArrayAffinityJob.class);
-    private final ArrayAffinityDataCollectionTaskCompleter _completer;
+    private URI _hostId;
+    private List<URI> _systemIds;
+    private ArrayAffinityDataCollectionTaskCompleter _completer;
+    private String _namespace;
 
-    public DataCollectionArrayAffinityJob(ArrayAffinityDataCollectionTaskCompleter completer) {
-        this(completer, JobOrigin.USER_API);
+    public DataCollectionArrayAffinityJob(URI hostId, List<URI> systemIds, ArrayAffinityDataCollectionTaskCompleter completer, String namespace) {
+        this(hostId, systemIds, completer, JobOrigin.USER_API, namespace);
     }
 
-    DataCollectionArrayAffinityJob(ArrayAffinityDataCollectionTaskCompleter completer, JobOrigin origin) {
+    DataCollectionArrayAffinityJob(URI hostId, List<URI> systemIds, ArrayAffinityDataCollectionTaskCompleter completer, JobOrigin origin, String namespace) {
         super(origin);
+        _hostId = hostId;
+        _systemIds = systemIds;
         _completer = completer;
+        _namespace = namespace;
     }
 
     @Override
@@ -68,7 +78,7 @@ public class DataCollectionArrayAffinityJob extends DataCollectionJob implements
     }
 
     public String getType() {
-        return _completer.getJobType();
+        return ControllerServiceImpl.ARRAYAFFINITY_DISCOVERY;
     }
 
     public String systemString() {
@@ -82,8 +92,25 @@ public class DataCollectionArrayAffinityJob extends DataCollectionJob implements
     }
 
     public boolean isActiveJob(DbClient dbClient) {
-        DataObject dbObject = dbClient.queryObject(_completer.getType(), _completer.getId());
-        return (dbObject != null && !dbObject.getInactive()) ? true : false;
+        Iterator<StorageSystem> systems = dbClient.queryIterativeObjects(StorageSystem.class, _systemIds);
+        while (systems.hasNext()) {
+            StorageSystem system = systems.next();
+            if (system != null && !system.getInactive()) {
+                return true;
+            }
+        }
+        return false;
     }
 
+    public String getNamespace() {
+        return _namespace;
+    }
+
+    public URI getHostId() {
+        return _hostId;
+    }
+
+    public List<URI> getSystemIds() {
+        return _systemIds;
+    }
 }

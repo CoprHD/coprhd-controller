@@ -71,7 +71,6 @@
 	<bean id="updatePreferredPoolIds" class="com.emc.storageos.plugins.common.domainmodel.Operation">
 		<property name="arguments">
 			<list>
-				<ref bean="systemId" />
 				<ref bean="accessProfile"/>
 				<ref bean="cimClient"/>
 				<ref bean="dbclient" />
@@ -80,13 +79,6 @@
 		<property name="instance" ref="arrayAffinityProcessor" />
 		<property name="method" value="updatePreferredPoolIds" />
 		<property name="message" value="Invoking updatePreferredPoolIds" />
-	</bean>
-
-	<bean id="systemId"
-		class="com.emc.storageos.plugins.common.domainmodel.Argument">
-		<property name="creator" ref="argscreator" />
-		<property name="method" value="getReferenceValue" />
-		<property name="value" value="systemId" />
 	</bean>
 
 	<bean id="arrayAffinityProcessor"

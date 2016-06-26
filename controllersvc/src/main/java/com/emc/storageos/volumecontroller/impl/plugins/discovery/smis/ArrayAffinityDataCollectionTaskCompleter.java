@@ -5,33 +5,32 @@
 package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis;
 
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.model.ComputeSystem;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
-import com.emc.storageos.db.client.model.DiscoveredSystemObject;
-import com.emc.storageos.db.client.model.Host;
-import com.emc.storageos.db.client.model.NetworkSystem;
-import com.emc.storageos.db.client.model.ProtectionSet;
-import com.emc.storageos.db.client.model.Vcenter;
-import com.emc.storageos.db.exceptions.DatabaseException;
-import com.emc.storageos.exceptions.DeviceControllerException;
+import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
-import com.emc.storageos.volumecontroller.AsyncTask;
 
 public class ArrayAffinityDataCollectionTaskCompleter extends DataCollectionTaskCompleter {
     private static final long serialVersionUID = 7659532197486432647L;
+    private static final Logger _log = LoggerFactory
+            .getLogger(ArrayAffinityDataCollectionTaskCompleter.class);
     private String _jobType;
+    private boolean _isScheduled = false;
+    private List<URI> _systemIds;
 
-    public ArrayAffinityDataCollectionTaskCompleter(Class clazz, URI id, String opId, String jobType) {
-        super(clazz, id, opId);
+    public ArrayAffinityDataCollectionTaskCompleter(Class clazz, List<URI> systemIds, String opId, String jobType, boolean isScheduled) {
+        super(clazz, systemIds.get(0), opId);
         _jobType = jobType;
-    }
-
-    public ArrayAffinityDataCollectionTaskCompleter(AsyncTask task, String jobType) {
-        super(task);
-        _jobType = jobType;
+        _isScheduled = isScheduled;
+        _systemIds = systemIds;
     }
 
     public String getJobType() {
@@ -40,105 +39,121 @@ public class ArrayAffinityDataCollectionTaskCompleter extends DataCollectionTask
 
     protected void updateObjectState(DbClient dbClient,
             DiscoveredDataObject.DataCollectionJobStatus jobStatus) {
-        Class type = getType();
-        if (DiscoveredSystemObject.class.isAssignableFrom(type)) {
-            try {
-                DiscoveredSystemObject dbObject = (DiscoveredSystemObject) DataObject.createInstance(type, getId());
-                dbObject.trackChanges();
-                dbObject.setDiscoveryStatus(jobStatus.toString());
-                dbClient.persistObject(dbObject);
-            } catch (InstantiationException ex) {
-                DatabaseException.fatals.queryFailed(ex);
-            } catch (IllegalAccessException ex) {
-                DatabaseException.fatals.queryFailed(ex);
+        Iterator<StorageSystem> systems = dbClient.queryIterativeObjects(StorageSystem.class, _systemIds);
+        List<StorageSystem> systemsToUpdate = new ArrayList<StorageSystem>();
+        while (systems.hasNext()) {
+            StorageSystem system = systems.next();
+            if (system != null && !system.getInactive()) {
+                system.trackChanges();
+                system.setArrayAffinityStatus(jobStatus.toString());
+                systemsToUpdate.add(system);
             }
         }
-        else {
-            throw DeviceControllerException.exceptions.invalidSystemType(type.toString());
+
+        if (!systemsToUpdate.isEmpty()) {
+            dbClient.updateObject(systemsToUpdate);
         }
     }
 
     @Override
     final public void setNextRunTime(DbClient dbClient, long time) {
-        Class type = getType();
-        if (DiscoveredSystemObject.class.isAssignableFrom(type)) {
-            try {
-                DiscoveredSystemObject dbObject = (DiscoveredSystemObject) DataObject.createInstance(type, getId());
-                dbObject.trackChanges();
-                dbObject.setNextDiscoveryRunTime(time);
-                dbClient.persistObject(dbObject);
-            } catch (InstantiationException ex) {
-                DatabaseException.fatals.queryFailed(ex);
-            } catch (IllegalAccessException ex) {
-                DatabaseException.fatals.queryFailed(ex);
+        if (!_isScheduled) {
+            return;
+        }
+
+        Iterator<StorageSystem> systems = dbClient.queryIterativeObjects(StorageSystem.class, _systemIds);
+        List<StorageSystem> systemsToUpdate = new ArrayList<StorageSystem>();
+        while (systems.hasNext()) {
+            StorageSystem system = systems.next();
+            if (system != null && !system.getInactive()) {
+                system.trackChanges();
+                system.setNextArrayAffinityRunTime(time);
+                systemsToUpdate.add(system);
             }
         }
-        else {
-            throw new RuntimeException("Unsupported system Type : " + type.toString());
+
+        if (!systemsToUpdate.isEmpty()) {
+            dbClient.updateObject(systemsToUpdate);
         }
     }
 
     @Override
     final public void setLastTime(DbClient dbClient, long time) {
-        Class type = getType();
-        if (DiscoveredSystemObject.class.isAssignableFrom(type)) {
-            try {
-                DiscoveredSystemObject dbObject = (DiscoveredSystemObject) DataObject.createInstance(type, getId());
-                dbObject.trackChanges();
-                dbObject.setLastDiscoveryRunTime(time);
-                dbClient.persistObject(dbObject);
-            } catch (InstantiationException ex) {
-                DatabaseException.fatals.queryFailed(ex);
-            } catch (IllegalAccessException ex) {
-                DatabaseException.fatals.queryFailed(ex);
+        if (!_isScheduled) {
+            return;
+        }
+
+        Iterator<StorageSystem> systems = dbClient.queryIterativeObjects(StorageSystem.class, _systemIds);
+        List<StorageSystem> systemsToUpdate = new ArrayList<StorageSystem>();
+        while (systems.hasNext()) {
+            StorageSystem system = systems.next();
+            if (system != null && !system.getInactive()) {
+                system.trackChanges();
+                system.setLastArrayAffinityRunTime(time);
+                systemsToUpdate.add(system);
             }
         }
-        else {
-            throw new RuntimeException("Unsupported system Type : " + type.toString());
+
+        if (!systemsToUpdate.isEmpty()) {
+            dbClient.updateObject(systemsToUpdate);
         }
     }
 
     @Override
     final public void setSuccessTime(DbClient dbClient, long time) {
-        Class type = getType();
-        if (DiscoveredSystemObject.class.isAssignableFrom(type)) {
-            try {
-                DiscoveredSystemObject dbObject = (DiscoveredSystemObject) DataObject.createInstance(type, getId());
-                dbObject.trackChanges();
-                dbObject.setSuccessDiscoveryTime(time);
-                dbClient.persistObject(dbObject);
-            } catch (InstantiationException ex) {
-                DatabaseException.fatals.queryFailed(ex);
-            } catch (IllegalAccessException ex) {
-                DatabaseException.fatals.queryFailed(ex);
-            }
-        }
-        else {
-            throw new RuntimeException("Unsupported system Type : " + type.toString());
+        if (!_isScheduled) {
+            return;
         }
 
+        Iterator<StorageSystem> systems = dbClient.queryIterativeObjects(StorageSystem.class, _systemIds);
+        List<StorageSystem> systemsToUpdate = new ArrayList<StorageSystem>();
+        while (systems.hasNext()) {
+            StorageSystem system = systems.next();
+            if (system != null && !system.getInactive()) {
+                system.trackChanges();
+                system.setSuccessArrayAffinityTime(time);
+                systemsToUpdate.add(system);
+            }
+        }
+
+        if (!systemsToUpdate.isEmpty()) {
+            dbClient.updateObject(systemsToUpdate);
+        }
     }
 
     @Override
     protected void createDefaultOperation(DbClient dbClient) {
-        ResourceOperationTypeEnum opType = ResourceOperationTypeEnum.DISCOVER_STORAGE_SYSTEM;
-
-        Class type = getType();
-
-        if (Host.class.equals(type)) {
-            opType = ResourceOperationTypeEnum.DISCOVER_HOST;
-        } else if (Vcenter.class.equals(type)) {
-            opType = ResourceOperationTypeEnum.DISCOVER_VCENTER;
-        } else if (ComputeSystem.class.equals(type)) {
-            opType = ResourceOperationTypeEnum.DISCOVER_COMPUTE_SYSTEM;
-        } else if (NetworkSystem.class.equals(type)) {
-            opType = ResourceOperationTypeEnum.DISCOVER_NETWORK_SYSTEM;
-        } else if (ProtectionSet.class.equals(type)) {
-            opType = ResourceOperationTypeEnum.DISCOVER_PROTECTION_SET;
-        }
-
+        ResourceOperationTypeEnum opType = ResourceOperationTypeEnum.ARRAYAFFINITY_STORAGE_SYSTEM;
         dbClient.createTaskOpStatus(getType(), getId(), getOpId(),
-                opType);
+                ResourceOperationTypeEnum.ARRAYAFFINITY_STORAGE_SYSTEM);
     }
 
+    @Override
+    public void schedule(DbClient dbClient) {
+        updateObjectState(dbClient, DiscoveredDataObject.DataCollectionJobStatus.SCHEDULED);
+        DataObject dbObject = dbClient.queryObject(getType(), getId());
+        if (!dbObject.getOpStatus().containsKey(getOpId())) {
+            createDefaultOperation(dbClient);
+        }
+
+        _log.info(String.format("Scheduled JobType: %s, Class: %s, Id: %s, OpId: %s",
+                getJobType(), getType().toString(), getId().toString(), getOpId()));
+    }
+
+    public void setLastStatusMessage(DbClient dbClient, String message) {
+        Iterator<StorageSystem> systems = dbClient.queryIterativeObjects(StorageSystem.class, _systemIds);
+        List<StorageSystem> systemsToUpdate = new ArrayList<StorageSystem>();
+        while (systems.hasNext()) {
+            StorageSystem system = systems.next();
+            if (system != null && !system.getInactive()) {
+                system.trackChanges();
+                system.setLastArrayAffinityStatusMessage(message);;
+                systemsToUpdate.add(system);
+            }
+        }
+
+        if (!systemsToUpdate.isEmpty()) {
+            dbClient.updateObject(systemsToUpdate);
+        }
+    }
 }

@@ -35,6 +35,9 @@ public interface CommunicationInterface {
     public void discover(AccessProfile accessProfile)
             throws BaseCollectionException;
 
+    public void discoverArrayAffinity(AccessProfile accessProfile)
+            throws BaseCollectionException;
+
     /**
      * clean up the resources.
      */

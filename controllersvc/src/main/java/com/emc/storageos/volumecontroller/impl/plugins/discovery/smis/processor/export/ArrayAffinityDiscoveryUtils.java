@@ -10,6 +10,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.cim.CIMObjectPath;
 import javax.wbem.CloseableIterator;
@@ -40,12 +41,12 @@ public class ArrayAffinityDiscoveryUtils {
      * update preferredPoolIds for a host
      *
      * @param Host host to be update
-     * @param systemId ID of the system
+     * @param systemIds IDs of the systems
      * @param dbClient DbClient
      * @param poolToTypeMap new preferred pools on the system
      * @return true if host's preferred pools have been changed
      */
-    public static boolean updatePreferredPools(Host host, URI systemId, DbClient dbClient, Map<String, String> poolToTypeMap) {
+    public static boolean updatePreferredPools(Host host, Set<String> systemIds, DbClient dbClient, Map<String, String> poolToTypeMap) {
         StringMap existingPreferredPools = host.getPreferredPoolIds();
         List<String> poolsToRemove = new ArrayList<String>();
 
@@ -54,7 +55,7 @@ public class ArrayAffinityDiscoveryUtils {
             Collection<URI> poolURIs = Collections2.transform(existingPreferredPools.keySet(), CommonTransformerFunctions.FCTN_STRING_TO_URI);
             List<StoragePool> pools = dbClient.queryObject(StoragePool.class, poolURIs);
             for (StoragePool pool : pools) {
-                if (systemId.equals(pool.getStorageDevice())) {
+                if (systemIds.contains(pool.getStorageDevice().toString())) {
                     String poolIdStr = pool.getId().toString();
                     if (!poolToTypeMap.containsKey(poolIdStr)) {
                         poolsToRemove.add(poolIdStr);

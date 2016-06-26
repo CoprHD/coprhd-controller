@@ -6,6 +6,7 @@ package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -20,7 +21,6 @@ import javax.wbem.CloseableIterator;
 import javax.wbem.client.EnumerateResponse;
 import javax.wbem.client.WBEMClient;
 
-import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,12 +53,13 @@ import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 public class ArrayAffinityExportProcessor extends Processor {
 
     private final Logger _logger = LoggerFactory.getLogger(ArrayAffinityExportProcessor.class);
-    protected Map<String, Object> _keyMap;
-    protected DbClient _dbClient;
-    protected List<Object> _args;
+    private AccessProfile _profile;
+    private Map<String, Object> _keyMap;
+    private DbClient _dbClient;
+    private List<Object> _args;
 
     private final String ISCSI_PATTERN = "^(iqn|IQN|eui).*$";
-    protected static int MAX_OBJECT_COUNT = 100;
+    private static int MAX_OBJECT_COUNT = 100;
 
     private static final String HOST = "Host";
     private static final int BATCH_SIZE = 100;
@@ -91,6 +92,7 @@ public class ArrayAffinityExportProcessor extends Processor {
             Map<String, Object> keyMap) {
         _keyMap = keyMap;
         _dbClient = (DbClient) keyMap.get(Constants.dbClient);
+        _profile = (AccessProfile) keyMap.get(Constants.ACCESSPROFILE);
     }
 
     /*
@@ -118,11 +120,6 @@ public class ArrayAffinityExportProcessor extends Processor {
         try {
             // get lun masking view CIM path
             CIMObjectPath path = getObjectPathfromCIMArgument(_args, keyMap);
-            AccessProfile profile = (AccessProfile) keyMap.get(Constants.ACCESSPROFILE);
-            if (StringUtils.contains(path.getKeyValue(SmisConstants.CP_SYSTEM_NAME).toString(), profile.getserialID())) {
-                return;
-            }
-
             _logger.info("looking at lun masking view: " + path.toString());
             response = (EnumerateResponse<CIMInstance>) resultObj;
             processVolumesAndInitiatorsPaths(response.getResponses(), path.toString(), matchedInitiators, matchedPorts, knownIniSet,
@@ -351,6 +348,10 @@ public class ArrayAffinityExportProcessor extends Processor {
         Map<URI, Set<String>> hostExportMasks = getHostToExportMasksMap();
         Map<String, Integer> exportMaskHostCount = getExportMaskToHostCountMap();
         Map<String, Set<URI>> maskStroagePools = getMaskToStoragePoolsMap();
+        String systemIdsStr = _profile.getProps().get(Constants.SYSTEM_IDS);
+        String[] systemIds = systemIdsStr.split(Constants.ID_DELIMITER);
+        Set<String> systemIdSet = new HashSet<String>(Arrays.asList(systemIds));
+
         URI systemId = (URI) _keyMap.get(Constants.SYSTEMID);
         List<Host> hostsToUpdate = new ArrayList<Host>();
 
@@ -376,7 +377,7 @@ public class ArrayAffinityExportProcessor extends Processor {
                         }
                     }
 
-                    if (ArrayAffinityDiscoveryUtils.updatePreferredPools(host, systemId, _dbClient, preferredPoolMap)) {
+                    if (ArrayAffinityDiscoveryUtils.updatePreferredPools(host, systemIdSet, _dbClient, preferredPoolMap)) {
                         hostsToUpdate.add(host);
                     }
                 }

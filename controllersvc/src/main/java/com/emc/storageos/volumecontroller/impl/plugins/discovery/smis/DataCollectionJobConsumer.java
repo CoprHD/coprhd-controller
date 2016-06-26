@@ -8,11 +8,13 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
@@ -24,11 +26,11 @@ import com.emc.storageos.coordinator.client.service.DistributedQueueItemProcesse
 import com.emc.storageos.coordinator.client.service.impl.DistributedQueueConsumer;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
-import com.emc.storageos.db.client.model.DiscoveredSystemObject;
 import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StorageSystem.Discovery_Namespaces;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
@@ -132,9 +134,27 @@ public class DataCollectionJobConsumer extends
         AccessProfile profile = _util.getAccessProfile(completer.getType(),
                 completer.getId(),
                 jobType, job.getNamespace());
-        profile.setProps(_configInfo);
-        if (job instanceof ArrayAffinityDataCollectionDiscoverJob) {
-            profile.getProps().put(Constants.HOST, ((ArrayAffinityDataCollectionDiscoverJob) job).getHostId().toString());
+        profile.setProps(new HashMap<String, String>(_configInfo));
+        if (job instanceof DataCollectionArrayAffinityJob) {
+            URI hostId = ((DataCollectionArrayAffinityJob) job).getHostId();
+            if (!NullColumnValueGetter.isNullURI(hostId)) {
+                profile.getProps().put(Constants.HOST, hostId.toString());
+            }
+
+            List<URI> systemIds = ((DataCollectionArrayAffinityJob) job).getSystemIds();
+            if (systemIds != null && !systemIds.isEmpty()) {
+                profile.getProps().put(Constants.SYSTEM_IDS, StringUtils.join(systemIds, Constants.ID_DELIMITER));
+                Iterator<StorageSystem> storageSystems = _dbClient.queryIterativeObjects(StorageSystem.class, systemIds);
+                List<String> systemSerialIds = new ArrayList<String>();
+                while (storageSystems.hasNext()) {
+                    StorageSystem systemObj = storageSystems.next();
+                    systemSerialIds.add(systemObj.getSerialNumber());
+                }
+
+                if (!systemSerialIds.isEmpty()) {
+                    profile.getProps().put(Constants.SYSTEM_SERIAL_IDS, StringUtils.join(systemSerialIds, Constants.ID_DELIMITER));
+                }
+            }
         }
         profile.setCimConnectionFactory(_connectionFactory);
         profile.setCurrentSampleTime(System.currentTimeMillis());
@@ -179,24 +199,6 @@ public class DataCollectionJobConsumer extends
         }
         _jobScheduler.scheduleMultipleJobs(jobs, ControllerServiceImpl.Lock.DISCOVER_COLLECTION_LOCK);
 
-    }
-
-    private <T extends DiscoveredSystemObject> long getLastRunTime(
-            T storageSystem, String type) {
-        if (ControllerServiceImpl.METERING.equalsIgnoreCase(type)) {
-            return storageSystem.getLastMeteringRunTime();
-        } else {
-            return storageSystem.getLastDiscoveryRunTime();
-        }
-    }
-
-    private <T extends DiscoveredSystemObject> long getNextRunTime(
-            T storageSystem, String type) {
-        if (ControllerServiceImpl.METERING.equalsIgnoreCase(type)) {
-            return storageSystem.getNextMeteringRunTime();
-        } else {
-            return storageSystem.getNextDiscoveryRunTime();
-        }
     }
 
     /**

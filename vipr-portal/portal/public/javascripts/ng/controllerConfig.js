@@ -66,7 +66,7 @@ angular
         $scope.typeOptions = [];
         $scope.valueOptions = [];
         $scope.selectedCategory;
-        $scope.categories = [ "SanZone", "VMAX", "VNX", "VPlex", "PortAllocation", "XtremIO", "HDS", "Nas", "HostResource", "Other" ];
+        $scope.categories = [ "SanZone", "VMAX", "VNX", "VPlex", "PortAllocation", "XtremIO", "HDS", "Nas", "Isilon", "VolumeNaming", "HostResource", "Other" ];
         $scope.configs = [];
         $scope.filteredConfigs = [];
         $scope.variables = [];

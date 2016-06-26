@@ -109,6 +109,7 @@
         <property name="smisCommandHelper" ref="xivSmisCommandHelper"/>
         <property name="dbClient" ref="dbclient"/>
         <property name="cimObjectPathFactory" ref="ibmCIMObjectPathFactory"/>
+        <property name="restOperationsHelper" ref="xivRestOperationsHelper"/>
     </bean>
     
     <bean id="xivStoragedevicePreProcessor" class="com.emc.storageos.volumecontroller.impl.smis.ibm.xiv.XIVSmisStorageDevicePreProcessor">
@@ -792,6 +793,12 @@
         <property name="workflowService" ref="workflowService" />
         <property name="blockDeviceController" ref="blockDeviceController" />
     </bean>
+    
+    <bean id="vplexXivMaskingOrchestrator" class="com.emc.storageos.volumecontroller.impl.block.VPlexXIVMaskingOrchestrator">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="workflowService" ref="workflowService" />
+        <property name="blockDeviceController" ref="blockDeviceController" />
+    </bean>
 
     <bean id="srdfDeviceController" class="com.emc.storageos.srdfcontroller.SRDFDeviceController">
         <property name="dbClient" ref="dbclient" />
@@ -976,7 +983,8 @@
                 <ref bean="vplexHDSMaskingOrchestrator"/>
 		        <ref bean="vplexVmaxMaskingOrchestrator"/>
 		        <ref bean="vplexVnxMaskingOrchestrator"/>
-		        <ref bean="vplexCinderMaskingOrchestrator"/>		        
+		        <ref bean="vplexCinderMaskingOrchestrator"/>
+		        <ref bean="vplexXivMaskingOrchestrator"/>		        	        
                 <ref bean="computeSystemController"/>
                 <ref bean="computeDeviceController"/>
                 <ref bean="imageservercontroller"/>
@@ -1579,4 +1587,19 @@
         <property name="coordinator" ref="coordinator"/>
         <property name="dbClient" ref="dbclient"/>
     </bean>
+    
+	<bean id="xivRestOperationsHelper" class="com.emc.storageos.volumecontroller.impl.xiv.XIVRestOperationsHelper">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="xivRestClientFactory" ref="xivRestClientFactory"/>
+    </bean>
+    
+	<bean id="xivRestClientFactory" class="com.emc.storageos.xiv.api.XIVRestClientFactory" init-method="init" >
+        <property name="connectionTimeoutMs" value="30000"/>
+        <property name="maxConnections" value="300"/>
+        <property name="maxConnectionsPerHost" value="100"/>
+        <property name="socketConnectionTimeoutMs" value="3600000" />
+        <property name="connManagerTimeout" value="60000" />
+        <property name="needCertificateManager" value="true"/>
+    </bean>
+    
 </beans>

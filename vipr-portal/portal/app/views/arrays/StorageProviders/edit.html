@@ -83,6 +83,23 @@
         <input-text></input-text>
       </control-group>
 
+	  <control-group   v-field="smisProvider.hyperScaleUser"  ng-show="smisProvider.interfaceType ==='ibmxiv'" >
+        <input-text></input-text>
+      </control-group>
+            
+      <control-group v-field="smisProvider.hyperScalePassword"  ng-show="smisProvider.interfaceType ==='ibmxiv'" >
+        <input-password></input-password>
+      </control-group>
+
+      <control-group v-field="smisProvider.hyperScaleConfPasswd" ng-show="smisProvider.interfaceType ==='ibmxiv'" >
+        <input-password></input-password>
+      </control-group>      
+      
+
+      <control-group v-field="smisProvider.hyperScaleURL" ng-show="smisProvider.interfaceType ==='ibmxiv'">
+        <input-text></input-text>
+      </control-group>
+      
     </fieldset>	
     #{Form.saveCancel cancelHref:referrer/}  
   #{/form}

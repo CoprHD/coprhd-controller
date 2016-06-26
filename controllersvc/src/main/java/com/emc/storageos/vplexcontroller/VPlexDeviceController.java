@@ -52,6 +52,7 @@ import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
+import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
@@ -73,6 +74,7 @@ import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
@@ -141,6 +143,7 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VplexMirrorDe
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VplexMirrorTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.job.QueueJob;
 import com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils;
+import com.emc.storageos.volumecontroller.impl.utils.CustomVolumeNamingUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
@@ -155,7 +158,6 @@ import com.emc.storageos.vplex.api.VPlexDeviceInfo;
 import com.emc.storageos.vplex.api.VPlexDistributedDeviceInfo;
 import com.emc.storageos.vplex.api.VPlexInitiatorInfo.Initiator_Type;
 import com.emc.storageos.vplex.api.VPlexMigrationInfo;
-import com.emc.storageos.vplex.api.VPlexPortInfo;
 import com.emc.storageos.vplex.api.VPlexStorageViewInfo;
 import com.emc.storageos.vplex.api.VPlexVirtualVolumeInfo;
 import com.emc.storageos.vplex.api.VPlexVirtualVolumeInfo.WaitOnRebuildResult;
@@ -582,10 +584,20 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     completer.error(_dbClient, serviceError);
                     throw ex;
                 }
+                
+                
+                Map<URI, URI> computeResourceMap = new HashMap<>();
+                List<VolumeDescriptor> vplexDescrs = vplexDescMap.get(vplexURI);
+                for (VolumeDescriptor descr : vplexDescrs) {
+                    URI computeResourceURI = descr.getComputeResource();
+                    if (computeResourceURI != null) {
+                        computeResourceMap.put(descr.getVolumeURI(), computeResourceURI);
+                    }
+                }
+                
 
                 // Now create each of the Virtual Volumes that may be necessary.
-                List<URI> vplexVolumeURIs = VolumeDescriptor.getVolumeURIs(vplexDescMap
-                        .get(vplexURI));
+                List<URI> vplexVolumeURIs = VolumeDescriptor.getVolumeURIs(vplexDescrs);
 
                 // Now make a Step to create the VPlex Virtual volume.
                 // This will be done from this controller.
@@ -596,7 +608,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                                 vplexSystem.getId().toString(),
                                 BlockDeviceController.getVolumesMsg(_dbClient, vplexVolumeURIs)),
                         lastStep, vplexURI, vplexSystem.getSystemType(), this.getClass(),
-                        createVirtualVolumesMethod(vplexURI, vplexVolumeURIs),
+                        createVirtualVolumesMethod(vplexURI, vplexVolumeURIs, computeResourceMap),
                         rollbackCreateVirtualVolumesMethod(vplexURI, vplexVolumeURIs, stepId),
                         stepId);
 
@@ -767,12 +779,14 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     /**
      * Returns a Workflow.Method for creating Virtual Volumes.
      *
-     * @param vplexURI
-     * @param vplexVolumeURIs
-     * @return
+     * @param vplexURI The URI of the VPLEX
+     * @param vplexVolumeURIs The URIs of the volumes
+     * @param computeResourceMap A Map of the compute resource for each volume.
+     * 
+     * @return The create virtual volumes method.
      */
-    private Workflow.Method createVirtualVolumesMethod(URI vplexURI, List<URI> vplexVolumeURIs) {
-        return new Workflow.Method(CREATE_VIRTUAL_VOLUMES_METHOD_NAME, vplexURI, vplexVolumeURIs);
+    private Workflow.Method createVirtualVolumesMethod(URI vplexURI, List<URI> vplexVolumeURIs, Map<URI, URI> computeResourceMap) {
+        return new Workflow.Method(CREATE_VIRTUAL_VOLUMES_METHOD_NAME, vplexURI, vplexVolumeURIs, computeResourceMap);
     }
 
     /**
@@ -782,10 +796,11 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @param vplexURI -- URI of the VPlex StorageSystem
      * @param vplexVolumeURIs -- URI of the VPlex volumes to be created. They must contain
      *            associatedVolumes (URI of the underlying Storage Volumes).
+     * @param computeResourceMap A Map of the compute resource for each volume.
      * @param stepId - The stepId used for completion.
      * @throws WorkflowException
      */
-    public void createVirtualVolumes(URI vplexURI, List<URI> vplexVolumeURIs, String stepId) throws WorkflowException {
+    public void createVirtualVolumes(URI vplexURI, List<URI> vplexVolumeURIs, Map<URI, URI> computeResourceMap, String stepId) throws WorkflowException {
         List<List<VolumeInfo>> rollbackData = new ArrayList<List<VolumeInfo>>();
         List<URI> createdVplexVolumeURIs = new ArrayList<URI>();
         try {
@@ -890,11 +905,50 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 for (Entry<String, Volume> entry : vplexVolumeNameMap.entrySet()) {
                     Volume vplexVolume = entry.getValue();
                     VPlexVirtualVolumeInfo vvInfo = foundVirtualVolumes.get(entry.getKey());
+                    try {
+                        // Now we try and rename the volume to the customized name. Note that if custom naming
+                        // is disabled the custom name will not be generated and will be null.
+                        // Create the VPLEX volume name custom configuration datasource and generate the
+                        // custom volume name based on whether the volume is a local or distributed volume.
+                        String hostOrClusterName = null;
+                        URI computeResourceURI = computeResourceMap.get(vplexVolume.getId());
+                        if (computeResourceURI != null) {
+                            DataObject hostOrCluster = null;
+                            if (URIUtil.isType(computeResourceURI, Cluster.class)) {
+                                hostOrCluster = getDataObject(Cluster.class, computeResourceURI, _dbClient);
+                            } else if (URIUtil.isType(computeResourceURI, Host.class)){
+                                hostOrCluster = getDataObject(Host.class, computeResourceURI, _dbClient);                             
+                            }
+                            if ((hostOrCluster != null) && 
+                                 ((vplexVolume.getPersonality() == null) || 
+                                         (Volume.PersonalityTypes.SOURCE.name().equals(vplexVolume.getPersonality())))) {
+                                hostOrClusterName = hostOrCluster.getLabel();
+                            }
+                        }
+                        if (CustomVolumeNamingUtils.isCustomVolumeNamingEnabled(customConfigHandler, vplex.getSystemType())) {
+                            String customConfigName = CustomVolumeNamingUtils.getCustomConfigName(hostOrClusterName != null);
+                            Project project = getDataObject(Project.class, vplexVolume.getProject().getURI(), _dbClient);
+                            TenantOrg tenant = getDataObject(TenantOrg.class, vplexVolume.getTenant().getURI(), _dbClient);
+                            DataSource customNameDataSource = CustomVolumeNamingUtils.getCustomConfigDataSource(
+                                    project, tenant, vplexVolume.getLabel(), vvInfo.getWwn(), null, hostOrClusterName, dataSourceFactory,
+                                    customConfigName, _dbClient);
+                            if (customNameDataSource != null) {
+                                String customVolumeName = CustomVolumeNamingUtils.getCustomName(customConfigHandler,
+                                        customConfigName, customNameDataSource, vplex.getSystemType());
+                                vvInfo = CustomVolumeNamingUtils.renameVolumeOnVPlex(vvInfo, customVolumeName, client);
+                                vplexVolume.setLabel(vvInfo.getName());
+                            }
+                        }
+                    } catch (Exception e){
+                        _log.warn(String.format("Error renaming newly created VPLEX volume %s:%s",
+                                vplexVolume.getId(), vplexVolume.getLabel()), e);                        
+                    }
                     buf.append(vvInfo.getName() + " ");
                     _log.info(String.format("Created virtual volume: %s path: %s", vvInfo.getName(), vvInfo.getPath()));
                     vplexVolume.setNativeId(vvInfo.getPath());
                     vplexVolume.setNativeGuid(vvInfo.getPath());
                     vplexVolume.setDeviceLabel(vvInfo.getName());
+                    vplexVolume.setWWN(vvInfo.getWwn());
                     // For Vplex virtual volumes set allocated capacity to 0 (cop-18608)
                     vplexVolume.setAllocatedCapacity(0L);
                     vplexVolume.setProvisionedCapacity(vvInfo.getCapacityBytes());
@@ -6298,7 +6352,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         newVolume.getNativeId(), newVolume.getThinlyProvisioned().booleanValue(), itls);
                 // Add rollback data.
                 _workflowService.storeStepData(stepId, vinfo);
-                virtvinfo = client.upgradeVirtualVolumeToDistributed(virtvinfo, vinfo, true, true, clusterId, transferSize);
+                virtvinfo = client.upgradeVirtualVolumeToDistributed(virtvinfo, vinfo, true, clusterId, transferSize);
                 if (virtvinfo == null) {
                     String opName = ResourceOperationTypeEnum.UPGRADE_VPLEX_LOCAL_TO_DISTRIBUTED.getName();
                     ServiceError serviceError = VPlexApiException.errors.upgradeLocalToDistributedFailed(opName);
@@ -6308,13 +6362,17 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             }
 
             // Update the virtual volume device label and native Id.
+            // Also make sure the WWN is set.
             vplexVolume.setNativeId(virtvinfo.getPath());
             vplexVolume.setNativeGuid(virtvinfo.getPath());
             vplexVolume.setDeviceLabel(virtvinfo.getName());
+            vplexVolume.setWWN(virtvinfo.getWwn());
 
             // If we are importing, we need to move the existing import volume to
             // the system project/tenant, update its label, and set the new CoS.
+            Volume srcSideAssocVolume = null;
             if (existingVolume != null) {
+                srcSideAssocVolume = existingVolume;
                 existingVolume.setProject(new NamedURI(vplexSystemProject, existingVolume.getLabel()));
                 existingVolume.setTenant(new NamedURI(vplexSystemTenant, existingVolume.getLabel()));
                 existingVolume.setLabel(newLabel);
@@ -6360,9 +6418,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // and update the CoS.
                 for (String assocVolume : vplexVolume.getAssociatedVolumes()) {
                     try {
-                        Volume associatedVolume = _dbClient.queryObject(Volume.class, new URI(assocVolume));
-                        associatedVolume.setVirtualPool(newCosURI);
-                        _dbClient.updateObject(associatedVolume);
+                        srcSideAssocVolume = _dbClient.queryObject(Volume.class, new URI(assocVolume));
+                        srcSideAssocVolume.setVirtualPool(newCosURI);
+                        _dbClient.updateObject(srcSideAssocVolume);
                     } catch (URISyntaxException ex) {
                         _log.error("Bad assocVolume URI: " + assocVolume, ex);
                     }
@@ -6370,8 +6428,40 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 vplexVolume.getAssociatedVolumes().add(newVolumeURI.toString());
                 vplexVolume.setVirtualPool(newCosURI);
             }
-            _dbClient.updateObject(vplexVolume);
 
+            // Set custom name if custom naming is enabled and this is not an upgrade from local to distributed.
+            // If this is a simple upgrade from local to distributed and the volume has a custom name, then the
+            // name would not change. However whenever we are importing, a new VPLEX virtual volume is being 
+            // created and we need to make sure it has the correct name.
+            try {
+                if ((CustomVolumeNamingUtils.isCustomVolumeNamingEnabled(customConfigHandler, vplex.getSystemType())) &&
+                    (existingVolume != null)) {
+                    // Create the VPLEX volume name custom configuration datasource and generate the
+                    // custom volume name.
+                    String customConfigName = CustomVolumeNamingUtils.getCustomConfigName(false);
+                    Project project = getDataObject(Project.class, vplexVolume.getProject().getURI(), _dbClient);
+                    TenantOrg tenant = getDataObject(TenantOrg.class, vplexVolume.getTenant().getURI(), _dbClient);
+                    DataSource customNameDataSource = CustomVolumeNamingUtils.getCustomConfigDataSource(project, tenant,
+                            vplexVolume.getLabel(), vplexVolume.getWWN(), null, null, dataSourceFactory, customConfigName,
+                            _dbClient);
+                    if (customNameDataSource != null) {
+                        String customVolumeName = CustomVolumeNamingUtils.getCustomName(customConfigHandler,
+                                customConfigName, customNameDataSource, vplex.getSystemType());
+                        virtvinfo = CustomVolumeNamingUtils.renameVolumeOnVPlex(virtvinfo, customVolumeName, client);
+                        vplexVolume.setNativeId(virtvinfo.getPath());
+                        vplexVolume.setNativeGuid(virtvinfo.getPath());
+                        vplexVolume.setDeviceLabel(virtvinfo.getName());
+                        vplexVolume.setLabel(virtvinfo.getName());
+                    }
+                }
+            } catch (Exception e) {
+                _log.warn(String.format("Error attempting to rename VPLEX volume %s", vplexVolumeURI), e);
+            }
+            
+            // Update the volume.
+            _dbClient.updateObject(vplexVolume);
+            
+            // Complete the workflow step.
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (VPlexApiException vae) {
             if (existingVolumeURI != null) {
@@ -8996,25 +9086,55 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // Find virtual volume that should have been created when we did detach mirror.
             // Virtual volume is created with the same name as the device name.
             VPlexVirtualVolumeInfo vvInfo = client.findVirtualVolume(vplexMirror.getDeviceLabel());
+            
+            // Get the backend volume for this promoted VPLEX volume.
+            StringSet assocVolumes = vplexMirror.getAssociatedVolumes();
+            
+            // Get the ViPR label for the promoted VPLEX volume.
+            String promotedLabel = String.format("%s-%s", sourceVplexVolume.getLabel(), vplexMirror.getLabel());
 
-            // Build the name for volume so as to rename the vplex volume that is created
-            // with the same name as the device name to follow the name pattern _vol
-            // as the suffix for the vplex volumes
-            StringBuilder volumeNameBuilder = new StringBuilder();
-            volumeNameBuilder.append(vplexMirror.getDeviceLabel());
-            volumeNameBuilder.append(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX);
+            // Rename the vplex volume created using device detach mirror. If custom naming is enabled 
+            // generate the custom name, else the name follows the default naming convention and must
+            // be renamed to append the "_vol" suffix.
+            String newVolumeName = null;
+            try {
+                if (CustomVolumeNamingUtils.isCustomVolumeNamingEnabled(customConfigHandler, DiscoveredDataObject.Type.vplex.name())) {
+                    String customConfigName = CustomConfigConstants.CUSTOM_VOLUME_NAME;
+                    Project project = _dbClient.queryObject(Project.class, promoteVolume.getProject().getURI());
+                    TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, promoteVolume.getTenant().getURI());
+                    DataSource customNameDataSource = CustomVolumeNamingUtils.getCustomConfigDataSource(
+                            project, tenant, promotedLabel, vvInfo.getWwn(), null, null, dataSourceFactory, 
+                            customConfigName, _dbClient);
+                    if (customNameDataSource != null) {
+                        newVolumeName = CustomVolumeNamingUtils.getCustomName(customConfigHandler,
+                                customConfigName, customNameDataSource, DiscoveredDataObject.Type.vplex.name());
+                    }
+                    // Rename the vplex volume created using device detach mirror,
+                    vvInfo = CustomVolumeNamingUtils.renameVolumeOnVPlex(vvInfo, newVolumeName, client);
+                    promotedLabel = newVolumeName;
+                } else {
+                    // Build the name for volume so as to rename the vplex volume that is created
+                    // with the same name as the device name to follow the name pattern _vol
+                    // as the suffix for the vplex volumes
+                    StringBuilder volumeNameBuilder = new StringBuilder();
+                    volumeNameBuilder.append(vplexMirror.getDeviceLabel());
+                    volumeNameBuilder.append(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX);
+                    newVolumeName = volumeNameBuilder.toString();
+                    // Rename the vplex volume created using device detach mirror,
+                    vvInfo = CustomVolumeNamingUtils.renameVolumeOnVPlex(vvInfo, newVolumeName, client);
+                }                
+            } catch (Exception e) {
+               _log.warn(String.format("Error renaming promoted VPLEX volume %s", promoteVolumeURI), e);
+            }
 
-            // Rename the vplex volume created using device detach mirror,
-            vvInfo = client.renameResource(vvInfo, volumeNameBuilder.toString());
-
-            _log.info(String.format("Promoted virtual volume: %s path: %s", vvInfo.getName(), vvInfo.getPath()));
+            _log.info(String.format("Renamed promoted virtual volume: %s path: %s", vvInfo.getName(), vvInfo.getPath()));
 
             // Fill in the details for the promoted vplex volume
-            String promotedLabel = String.format("%s-%s", sourceVplexVolume.getLabel(), vplexMirror.getLabel());
             promoteVolume.setLabel(promotedLabel);
             promoteVolume.setNativeId(vvInfo.getPath());
             promoteVolume.setNativeGuid(vvInfo.getPath());
             promoteVolume.setDeviceLabel(vvInfo.getName());
+            promoteVolume.setWWN(vvInfo.getWwn());
             // For Vplex virtual volumes set allocated capacity to 0 (cop-18608)
             promoteVolume.setAllocatedCapacity(0L);
             promoteVolume.setCapacity(vplexMirror.getCapacity());
@@ -9023,7 +9143,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             promoteVolume.setVirtualArray(vplexMirror.getVirtualArray());
             promoteVolume.setStorageController(vplexMirror.getStorageController());
             promoteVolume.setPool(NullColumnValueGetter.getNullURI());
-            promoteVolume.setAssociatedVolumes(new StringSet(vplexMirror.getAssociatedVolumes()));
+            promoteVolume.setAssociatedVolumes(new StringSet(assocVolumes));
             promoteVolume.setThinlyProvisioned(vplexMirror.getThinlyProvisioned());
             promoteVolume.setThinVolumePreAllocationSize(vplexMirror.getThinPreAllocationSize());
             // VPLEX volumes created by VIPR have syncActive set to true hence setting same value for promoted vplex volumes

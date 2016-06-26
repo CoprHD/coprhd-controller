@@ -46,6 +46,7 @@ dependencies {
             project(":xtremio"),
             project(":ecs"),
             project(":storagedriver"),
+            project(":xiv"),
     // temp. here, to get simulator to controllersvc classpath
             project(":storagedriversimulator")
             

@@ -1920,6 +1920,21 @@
         value : "300",
         hidden : "true"
     },
+	{
+        key : "controller_cluster_export_override_consistent_hlu",
+        label : "Add Host to Cluster Export - Override consistent HLU",
+        description : "Indicates whether to override consistent HLU if there is a conflict while adding host to Cluster export.",
+        type : "string",
+        allowedValues : ( "true", "false" ),
+        userConfigurable : false, 
+        userMutable : true,
+        advanced : true,
+        tag : "Controller",
+        reconfigRequired : false,
+        rebootRequired : false,
+        controlNodeOnly : true,
+        value : "false", 
+    },
     {
         key : "task_clean_interval",
         label : "Task Cleaning Interval",

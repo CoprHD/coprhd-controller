@@ -4716,7 +4716,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     }
 
     @Override
-    public void findAndUpdateFreeHLUsForClusterExport(ExportGroup exportGroup, List<String> initiatorNames, Map<URI, Integer> volumeMap) {
+    public void findAndUpdateFreeHLUsForClusterExport(StorageSystem storageSystem, ExportGroup exportGroup,
+            List<URI> initiatorURIs, Map<URI, Integer> volumeMap) {
+
         if (exportGroup.forCluster() && volumeMap.values().contains("-1")) {
             // call device.findHLUsForInitiators() for all cluster initiators
             // -(If HLU can be queried via host info, Device driver can group them into hosts and collects HLUs for each host)

@@ -653,10 +653,12 @@ public interface BlockStorageDevice {
      *
      * @param storage the storage system
      * @param initiatorNames the initiator names
+     * @param mustHaveAllPorts
+     *            If true, *all* the passed in initiators have to be in the existing matching mask.
+     *            If false, a mask with *any* of the specified initiators will be considered a hit.
      * @return the HLUs for the given initiators
      */
-    // TODO mustHaveAllPorts required? I don't think as we need HLUs for every Initiator
-    public Set<Integer> findHLUsForInitiators(StorageSystem storage, List<String> initiatorNames);
+    public Set<Integer> findHLUsForInitiators(StorageSystem storage, List<String> initiatorNames, boolean mustHaveAllPorts);
 
     /**
      * Gets the maximum allowed HLU number for the storage array.

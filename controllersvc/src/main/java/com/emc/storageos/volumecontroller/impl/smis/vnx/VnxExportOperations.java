@@ -439,15 +439,67 @@ public class VnxExportOperations implements ExportMaskOperations {
     }
 
     @Override
-    public Set<Integer> findHLUsForInitiators(StorageSystem storage, List<String> initiatorNames) {
-        // TODO Auto-generated method stub
-        return null;
+    public Set<Integer> findHLUsForInitiators(StorageSystem storage, List<String> initiatorNames, boolean mustHaveAllPorts) {
+        long startTime = System.currentTimeMillis();
+        Set<Integer> usedHLUs = new HashSet<Integer>();
+        CloseableIterator<CIMInstance> lunMaskingIter = null;
+        try {
+            WBEMClient client = _helper.getConnection(storage).getCimClient();
+            lunMaskingIter = _helper.getClarLunMaskingProtocolControllers(storage);
+            while (lunMaskingIter.hasNext()) {
+                CIMInstance instance = lunMaskingIter.next();
+                String systemName = CIMPropertyFactory.getPropertyValue(instance,
+                        SmisConstants.CP_SYSTEM_NAME);
+
+                if (!systemName.contains(storage.getSerialNumber())) {
+                    // We're interested in the specific StorageSystem's masks.
+                    // The above getClarLunMaskingProtocolControllers call will get
+                    // a listing of for all the protocol controllers seen by the
+                    // SMISProvider pointed to by 'storage' system.
+                    continue;
+                }
+
+                String name = CIMPropertyFactory.getPropertyValue(instance,
+                        SmisConstants.CP_ELEMENT_NAME);
+                _log.info("Processing mask {}", name);
+                // Get volumes for the masking instance
+                Map<String, Integer> volumeWWNs =
+                        _helper.getVolumesFromLunMaskingInstance(client, instance);
+                List<String> initiatorPorts =
+                        _helper.getInitiatorsFromLunMaskingInstance(client, instance);
+                // Find out if the port is in this masking container
+                for (String port : initiatorNames) {
+                    String normalizedName = Initiator.normalizePort(port);
+                    if (initiatorPorts.contains(normalizedName)) {
+                        _log.info("Found Initiator {} in mask {}", normalizedName, name);
+                        // add HLUs to set
+                        usedHLUs.addAll(volumeWWNs.values());
+                        _log.info(String.format("%nXM:%s I:{%s} V:{%s} HLU:{%s}%n", name,
+                                Joiner.on(',').join(initiatorPorts),
+                                Joiner.on(',').join(volumeWWNs.keySet()), volumeWWNs.values()));
+                        // TODO get all initiators involved. need that info for logging
+                        break;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            String errMsg = "Encountered an SMIS error when attempting to query used HLUs for initiators: " + e.getMessage();
+            _log.error(errMsg, e);
+            throw SmisException.exceptions.queryUsedHLUsFailure(errMsg, e);
+        } finally {
+            if (lunMaskingIter != null) {
+                lunMaskingIter.close();
+            }
+            long totalTime = System.currentTimeMillis() - startTime;
+            _log.info(String.format("find used HLUs for Initiators took %f seconds", (double) totalTime / (double) 1000));
+        }
+        return usedHLUs;
     }
 
     @Override
     public Integer getMaximumAllowedHLU(StorageSystem storage) {
-        // TODO Auto-generated method stub
-        return null;
+        // TODO find out how to get it
+        return 1024;
     }
 
     @Override

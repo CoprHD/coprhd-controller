@@ -338,7 +338,7 @@ public class CinderExportOperations implements ExportMaskOperations {
     }
 
     @Override
-    public Set<Integer> findHLUsForInitiators(StorageSystem storage, List<String> initiatorNames) {
+    public Set<Integer> findHLUsForInitiators(StorageSystem storage, List<String> initiatorNames, boolean mustHaveAllPorts) {
         // TODO Auto-generated method stub
         return null;
     }

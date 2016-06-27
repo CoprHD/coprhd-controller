@@ -20,5 +20,5 @@ public class RemoteReplicationTarget {
 
     // Uri of the backing object of the target instance. Depending on target type, this can be Uri of
     // replication set, replication group or replication pair. Type: Input.
-    private URI nativeId;
+    private URI targetUri;
 }

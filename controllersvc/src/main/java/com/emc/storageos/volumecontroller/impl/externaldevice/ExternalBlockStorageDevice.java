@@ -1479,7 +1479,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
     }
 
     @Override
-    public void pause(RemoteReplicationTarget replicationTarget, TaskCompleter taskCompleter) {
+    public void suspend(RemoteReplicationTarget replicationTarget, TaskCompleter taskCompleter) {
 
     }
 
@@ -1500,6 +1500,16 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
 
     @Override
     public void swap(RemoteReplicationTarget replicationTarget, TaskCompleter taskCompleter) {
+
+    }
+
+    @Override
+    public void split(RemoteReplicationTarget replicationTarget, TaskCompleter taskCompleter) {
+
+    }
+
+    @Override
+    public void synchronize(RemoteReplicationTarget replicationTarget, TaskCompleter taskCompleter) {
 
     }
 }

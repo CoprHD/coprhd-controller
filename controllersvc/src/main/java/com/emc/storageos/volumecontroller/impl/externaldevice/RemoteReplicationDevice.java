@@ -17,7 +17,9 @@ public interface RemoteReplicationDevice {
     public void suspend(RemoteReplicationTarget replicationTarget, TaskCompleter taskCompleter);
     public void resume(RemoteReplicationTarget replicationTarget, TaskCompleter taskCompleter);
     public void split(RemoteReplicationTarget replicationTarget, TaskCompleter taskCompleter);
+    public void synchronize(RemoteReplicationTarget replicationTarget, TaskCompleter taskCompleter);
     public void failover(RemoteReplicationTarget replicationTarget, TaskCompleter taskCompleter);
     public void failback(RemoteReplicationTarget replicationTarget, TaskCompleter taskCompleter);
     public void swap(RemoteReplicationTarget replicationTarget, TaskCompleter taskCompleter);
+
 }

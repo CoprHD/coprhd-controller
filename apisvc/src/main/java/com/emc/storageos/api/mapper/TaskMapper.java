@@ -140,7 +140,8 @@ public class TaskMapper {
         taskResourceRep.setAllowedOperations(Task.AllowedOperations.none_specified.name());
         if (task.getWorkflow() != null) {
             Workflow wf = configInstance.getDbClient().queryObject(Workflow.class, task.getWorkflow());
-            if (wf != null && wf.getCompletionMessage().contains("post-migration delete of original source backing volumes")) {
+            if (wf != null && wf.getCompletionMessage() != null
+                    && wf.getCompletionMessage().contains("post-migration delete of original source backing volumes")) {
                 taskResourceRep.setAllowedOperations(Task.AllowedOperations.retry_only.name());
             }
         }

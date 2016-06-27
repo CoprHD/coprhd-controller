@@ -1,0 +1,59 @@
+%{
+titleKey = 'keystoneProvider.title';
+}%
+#{extends 'main.html'/}
+#{set navSelected: ['nav.tenantsettings', 'nav.keystoneProvider'] /}
+#{set 'title'}&{titleKey}#{/set}
+
+#{set 'moreScripts'}
+<script type="text/javascript">
+
+    $(document).ready(function () {
+        var interval = $('#keystoneProvider_synchronizationInterval');
+        interval.val('${interval}');
+    });
+
+</script>
+#{/set}
+
+
+<div class="container">
+    #{Form.header titleKey:titleKey /}
+
+    #{alerts/}
+
+#{form @save(), id:'keystoneProviderForm', class:'form form-horizontal', autocomplete:"off"}
+  #{field 'keystoneProvider.tenantsSynchronizationOptions'}
+    %{
+    }%
+    #{Form.selectManyControlGroup field:field, options:tenantsOptions/}
+  #{/field}
+
+  #{field 'keystoneProvider.synchronizationInterval'}
+    %{
+        field.helpTextKey = field.name + '.description'
+        field.required = true
+    }%
+    #{Form.inputTextControlGroup field:field /}
+  #{/field}
+
+#{Form.buttonBar}
+<button type="submit" class="btn btn-primary btn-large">#{icon 'ok-sign'/} &{'button.save'}</button>
+#{/Form.buttonBar}
+#{/form}
+
+#{DataTable.header titleKey:'keystoneProvider.addTenants', descriptionKey:'keystoneProvider.addTenants.description', hideAlerts:true/}
+#{DataTable.table id: 'osTenants',
+                  dataTable: osTenants,
+                  source: @tenantsListJson(),
+                  selectable: true,
+                  options:['iDisplayLength': '5']}
+
+   #{DataTable.buttonBar}
+     #{Form.button name:'button.synchronize', class:'success', dropdown:false, submit:'addForm'/}
+   #{/DataTable.buttonBar}
+
+   #{DataTable.formAction @synchronizeOSTenants(), id:'addForm', table:'osTenants'/}
+#{/DataTable.table}
+
+</div>

@@ -10,6 +10,7 @@
 
 #{set isActiveSite:controllers.infra.DisasterRecovery.isActiveSite() /}
 #{set localSiteName:controllers.infra.DisasterRecovery.getLocalSiteName() /}
+#{set isKeystoneAuthnProviderCreated:controllers.tenant.TenantsSynchronization.isKeystoneAuthnProviderCreated() /}
 
 <body>
 <header>
@@ -212,6 +213,9 @@
             #{nav.separator/}
             #{nav.item 'windows', href: @catalog.ExecutionWindows.show()/}
             #{nav.item 'approvalConfig', href: @catalog.ApprovalConfiguration.edit()/}
+            #{if isKeystoneAuthnProviderCreated}
+              #{nav.item 'keystoneProvider', href: @tenant.TenantsSynchronization.edit()/}
+            #{/if}
           #{/deadbolt.restrict}
         #{/deadbolt.restrict}  
       #{/nav.menuSection}            

@@ -1596,6 +1596,18 @@ approvalConfig.approverEmail.help=The email addresses for approvers (comma separ
 approvalConfig.approvalUrl=Approval Service URL
 approvalConfig.approvalUrl.help=URL to an external service to receive approval notifications
 
+nav.keystoneProvider=OpenStack Synchronization Settings
+keystoneProvider.title=OpenStack Synchronization Settings
+keystoneProvider.addTenants=Synchronize Tenants
+keystoneProvider.addTenants.description=Select Tenants to synchronize with OpenStack
+keystoneProvider.synchronizationInterval=Synchronization interval
+keystoneProvider.synchronizationInterval.description=Synchronization interval provided in seconds. The value should be greater than 10 seconds. Default value is 900 s
+keystoneProvider.tenantsSynchronizationOptions =Tenants synchronization options
+keystoneProvider.updated=Tenants successfully updated
+osTenants.name=Name
+osTenants.description=Description
+osTenants.includedStatus=Included
+
 Introspection.Started=%s assets added to the discovery queue.
 
 #### Infrastructure management
@@ -1617,10 +1629,12 @@ ldapSources.disable.help=Disabled providers will not have their connectivity val
 ldapSources.autoRegCoprHDNImportOSProjects=Automatic Registration and Tenant Mapping
 ldapSources.autoRegCoprHDNImportOSProjects.help=This SDS controller will be added as Block Storage Service in Keystone. Tenants and Projects from Keystone will be imported automatically.
 ldapSources.tenantsSynchronizationOptions =Tenants synchronization options
-ldapSources.addTenants=Add tenants
-ldapSources.addTenants.description=Check which OpenStack tenants to add.
+ldapSources.addTenants=Add Tenants
+ldapSources.addTenants.description=Check which OpenStack Tenants to add.
 ldapSources.synchronizationInterval=Synchronization interval
-ldapSources.synchronizationInterval.description=Synchronization interval provided in seconds. The value should be greater than 10 seconds. Default value is 60 seconds.
+ldapSources.synchronizationInterval.description=Synchronization interval provided in seconds. The value should be greater than 10 seconds. Default value is 900 seconds.
+ldapSources.synchronizationInterval.integerRequired=Integer value greater than 10 required.
+ldapSources.synchronizationInterval.greaterValueRequired=Integer value required.
 ldapSources.domains=Domains
 ldapSources.domains.description=List all Domains, one per line
 ldapSources.groupAttribute=Group Attribute
@@ -3852,6 +3866,7 @@ button.associate=Associate Project
 button.dissociate=Dissociate Project
 button.failover=Failover
 button.ipsec.rotate.keys=Rotate IPsec Key
+button.synchronize=Synchronize
 selectOne.chooseOption=-- Please Choose --
 
 button.mirroring.start=Start

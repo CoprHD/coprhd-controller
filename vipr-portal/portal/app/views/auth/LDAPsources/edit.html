@@ -43,18 +43,19 @@
     }
 
     $(document).ready(function() {
-		if (!editMode && !errors) {
-    		setDefaults();
+        if (!editMode && !errors) {
+            setDefaults();
         }
-		var authType = $('#ldapSources_mode').val();
-		if (editMode && authType == '${keyStoneType}') {
-			$('#ldapSources_groupAttribute').prop("disabled", true);
-		}
-    	$('#ldapSources_mode').on('change', setFormByType);
-    	$('#ldapSources_mode').on('change', setDefaults);
-        $('#ldapSources_autoRegCoprHDNImportOSProjects').on('change', showTenantsSettings);
+        var authType = $('#ldapSources_mode').val();
+        if (editMode && authType == '${keyStoneType}') {
+            $('#ldapSources_groupAttribute').prop("disabled", true);
+            $('#ldapSources_synchronizationInterval').val('${defaultInterval}');
+        }
+        $('#ldapSources_mode').on('change', setFormByType);
+        $('#ldapSources_mode').on('change', setDefaults);
+        $('#ldapSources_autoRegCoprHDNImportOSProjects').on('change', showTenantsSyncOptions);
 
-        setFormByType();       
+        setFormByType();
     });
     
     function setFormByType() {
@@ -77,7 +78,7 @@
     	    }
         }else if (authType == 'keystone'){
             $('#ldapSources_autoRegCoprHDNImportOSProjects').closest($ctrlElements).show();
-            showTenantsSettings();
+            showTenantsSyncOptions();
             $('#ldapSources_groupAttribute').closest($ctrlElements).show();
             $('#ldapSources_groupWhiteListValues').closest($ctrlElements).show();
     	    $('#ldapSources_searchScopeControlGroup').closest($ctrlElements).hide();
@@ -99,12 +100,20 @@
         }
     }
 
-    function showTenantsSettings() {
-        var $ctrlElements = $("fieldset");
-        if ($('#ldapSources_autoRegCoprHDNImportOSProjects').is(':checked')) {
-            $('#ldapSources_tenantsSynchronizationOptions').closest($ctrlElements).show();
-            $('#ldapSources_synchronizationInterval').closest($ctrlElements).show();
-        } else{
+  // Shows Tenants Synchronization Options fields when "Automatic Registration and Tenant Mapping" field is checked
+  // on Create of Auth Provider and hides Tenants Synchronization Options fields if Registration in Keystone
+  // was done earlier.
+  function showTenantsSyncOptions() {
+      var $ctrlElements = $("fieldset");
+      var autoRegCheckbox = $('#ldapSources_autoRegCoprHDNImportOSProjects');
+      var autoRegSet = autoRegCheckbox.is(':checked');
+      var isAutoRegOn = '${readOnlyCheckboxForAutomaticRegistration}';
+      var isAutoRegOn = (isAutoRegOn === 'true');
+
+      if ((autoRegSet && !editMode) || (autoRegSet && editMode && !isAutoRegOn)) {
+          $('#ldapSources_tenantsSynchronizationOptions').closest($ctrlElements).show();
+          $('#ldapSources_synchronizationInterval').closest($ctrlElements).show();
+      } else {
           $('#ldapSources_tenantsSynchronizationOptions').closest($ctrlElements).hide();
           $('#ldapSources_synchronizationInterval').closest($ctrlElements).hide();
         }

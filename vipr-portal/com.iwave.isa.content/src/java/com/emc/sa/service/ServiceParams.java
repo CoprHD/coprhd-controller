@@ -154,11 +154,4 @@ public interface ServiceParams {
     public String LINKED_SNAPSHOT_COUNT = "linkedSnapshotCount";
     public String LINKED_SNAPSHOT_COPYMODE = "linkedSnapshotCopyMode";
 
-    public String AUTHN_PROVIDER = "authnProvider";
-    public String TENANTS_SYNCHRONIZATION_OPTIONS = "tenantsSynchronizationOptions";
-    public String AUTOMATIC_DELETION = "automaticDeletion";
-    public String AUTOMATIC_ADDITION = "automaticAddition";
-    public String INTERVAL = "interval";
-    public String INTERVAL1 = "interval1";
-    public String OSTENANTS = "ostenants";
 }

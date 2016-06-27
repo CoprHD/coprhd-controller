@@ -16,6 +16,7 @@
  */
 package models.datatable;
 
+import com.emc.storageos.model.keystone.CoprhdOsTenant;
 import com.emc.storageos.model.keystone.OpenStackTenantParam;
 import util.datatable.DataTable;
 
@@ -23,6 +24,7 @@ public class OpenStackTenantsDataTable extends DataTable {
 
     public OpenStackTenantsDataTable() {
         addColumn("name");
+        addColumn("includedStatus").setRenderFunction("render.includeStatus");
         addColumn("description");
         sortAll();
         setDefaultSortField("name");
@@ -30,17 +32,31 @@ public class OpenStackTenantsDataTable extends DataTable {
 
     public static class OpenStackTenant {
         public String id;
+        public String osId;
         public String name;
         public String description;
         public boolean enabled;
         public boolean exclude;
+        public boolean includedStatus;
 
         public OpenStackTenant(OpenStackTenantParam tenant) {
             this.id = tenant.getOsId();
+            this.osId = tenant.getOsId();
             this.name = tenant.getName();
             this.description = tenant.getDescription();
             this.enabled = tenant.getEnabled();
             this.exclude = tenant.getExcluded();
+            this.includedStatus = !tenant.getExcluded();
+        }
+
+        public OpenStackTenant(CoprhdOsTenant tenant) {
+            this.id = tenant.getId().toString();
+            this.osId = tenant.getOsId();
+            this.name = tenant.getName();
+            this.description = tenant.getDescription();
+            this.enabled = tenant.getEnabled();
+            this.exclude = tenant.getExcluded();
+            this.includedStatus = !tenant.getExcluded();
         }
     }
 }

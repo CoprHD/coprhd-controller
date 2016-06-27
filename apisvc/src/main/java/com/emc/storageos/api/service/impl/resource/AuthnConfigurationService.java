@@ -360,6 +360,94 @@ public class AuthnConfigurationService extends TaggedResource {
         }
     }
 
+    /**
+     * Checks if the only options that changed were Tenants Synchronization Options.
+     *
+     * @param authnProvider old AuthnProvider
+     * @param param AuthnUpdateParam with params for updated AuthnProvider
+     * @return true if only Tenants Synchronization Options changed, false otherwise
+     */
+    private boolean isTenantsSynchronizationOptionsChanged(AuthnProvider authnProvider, AuthnUpdateParam param) {
+
+        if (param.getTenantsSynchronizationOptionsChanges().getAdd().isEmpty() &&
+            param.getTenantsSynchronizationOptionsChanges().getRemove().isEmpty()) {
+            return false;
+        }
+
+        if (param.getLabel() != null && !param.getLabel().equals(authnProvider.getLabel())) {
+            return false;
+        }
+
+        if (param.getGroupAttribute() != null) {
+            return false;
+        }
+
+        if (param.getManagerDn() != null) {
+            return false;
+        }
+
+        if (param.getManagerPassword() != null) {
+            return false;
+        }
+
+        if (param.getSearchBase() != null) {
+            return false;
+        }
+
+        if (param.getSearchFilter() != null) {
+            return false;
+        }
+
+        if (param.getSearchScope() != null) {
+            return false;
+        }
+
+        if (param.getMode() != null) {
+            return false;
+        }
+
+        if (param.getLabel() != null) {
+            return false;
+        }
+
+        if (param.getDescription() != null) {
+            return false;
+        }
+
+        if (param.getDisable() != null) {
+            return false;
+        }
+
+        if (param.getAutoRegCoprHDNImportOSProjects() != null) {
+            return false;
+        }
+
+        if (param.getMaxPageSize() != null) {
+            return false;
+        }
+
+        if (!param.getGroupWhitelistValueChanges().getAdd().isEmpty() || !param.getGroupWhitelistValueChanges().getRemove().isEmpty()) {
+            return false;
+        }
+
+        if (!param.getDomainChanges().getAdd().isEmpty() || !param.getDomainChanges().getRemove().isEmpty()) {
+            return false;
+        }
+
+        if (!param.getServerUrlChanges().getAdd().isEmpty() || !param.getServerUrlChanges().getRemove().isEmpty()) {
+            return false;
+        }
+
+        if (!param.getGroupObjectClassChanges().getAdd().isEmpty() || !param.getGroupObjectClassChanges().getRemove().isEmpty()) {
+            return false;
+        }
+
+        if (!param.getGroupMemberAttributeChanges().getAdd().isEmpty() || !param.getGroupMemberAttributeChanges().getRemove().isEmpty()) {
+            return false;
+        }
+        return true;
+    }
+
     private AuthnProviderRestRep updateKeystoneProvider(URI id, AuthnUpdateParam param,
             AuthnProvider provider, AuthnProviderParamsToValidate validateP) {
         String oldPassword = provider.getManagerPassword();
@@ -367,7 +455,11 @@ public class AuthnConfigurationService extends TaggedResource {
         int synchronizationInterval = _openStackSynchronizationTask.getTaskInterval();
         //if the configured domain has tenant then we can't update
         //that domain.
-        checkForActiveTenantsUsingDomains(provider.getDomains());
+
+        if (!isTenantsSynchronizationOptionsChanged(provider, param)) {
+            checkForActiveTenantsUsingDomains(provider.getDomains());
+        }
+
         overlayProvider(provider, param);
         // Set old password if new one is a blank or null.
         provider.setManagerPassword(getPassword(provider, oldPassword));
@@ -524,8 +616,10 @@ public class AuthnConfigurationService extends TaggedResource {
             authn.setDomains(ssOld);
         }
 
-        authn.setManagerDN(param.getManagerDn());
-
+        if (param.getManagerDn() != null) {
+            authn.setManagerDN(param.getManagerDn());
+        }
+        
         authn.setManagerPassword(param.getManagerPassword());
 
         authn.setSearchBase(param.getSearchBase());
@@ -565,7 +659,7 @@ public class AuthnConfigurationService extends TaggedResource {
             }
             if (oldOptions.isEmpty()) {
                 ArgValidator.checkFieldNotEmpty(oldOptions,
-                        "Interval cannots be empty. Please provide the vales.");
+                        "Interval cannot be empty. Please provide the value.");
             }
             authn.setTenantsSynchronizationOptions(oldOptions);
         }

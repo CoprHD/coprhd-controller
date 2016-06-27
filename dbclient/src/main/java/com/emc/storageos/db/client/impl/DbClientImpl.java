@@ -895,7 +895,8 @@ public class DbClientImpl implements DbClient {
         } else {
             constraint = DecommissionedConstraint.Factory.getAllObjectsConstraint(clazz, null);
         }
-        constraint.setKeyspace(getKeyspace(clazz));
+        
+        constraint.setDbClientContext(getDbClientContext(clazz));
         constraint.execute(result);
 
         return result;
@@ -928,7 +929,7 @@ public class DbClientImpl implements DbClient {
             constraint.setStartId(startId);
             constraint.setPageCount(count);
 
-            constraint.setKeyspace(getKeyspace(clazz));
+            constraint.setDbClientContext(getDbClientContext(clazz));
             constraint.execute(result);
         }
 
@@ -962,7 +963,8 @@ public class DbClientImpl implements DbClient {
     	if (!constraintImpl.isValid()) {
     		throw new IllegalArgumentException("invalid constraint: the key can't be null or empty"); 
     	}
-        constraint.setKeyspace(getKeyspace(constraint.getDataObjectType()));
+
+        constraint.setDbClientContext(this.getDbClientContext(constraint.getDataObjectType()));
         constraint.execute(result);
     }
 
@@ -975,7 +977,7 @@ public class DbClientImpl implements DbClient {
         constraintImpl.setStartId(startId);
         constraintImpl.setPageCount(maxCount);
 
-        constraint.setKeyspace(getKeyspace(constraint.getDataObjectType()));
+        constraint.setDbClientContext(this.getDbClientContext(constraint.getDataObjectType()));
         constraint.execute(result);
     }
 

@@ -6,23 +6,23 @@
 package com.emc.storageos.db.client.constraint.impl;
 
 import java.net.URI;
-import java.util.List;
 import java.util.ArrayList;
+import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
-import com.netflix.astyanax.model.Column;
-import com.netflix.astyanax.model.ColumnList;
-import com.netflix.astyanax.query.RowQuery;
-import com.netflix.astyanax.serializers.CompositeRangeBuilder;
-
-import com.emc.storageos.db.client.constraint.ConstraintDescriptor;
-import com.emc.storageos.db.exceptions.DatabaseException;
-
+import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.Row;
+import com.datastax.driver.core.Statement;
+import com.datastax.driver.core.exceptions.DriverException;
 import com.emc.storageos.db.client.constraint.Constraint;
-import com.emc.storageos.db.client.impl.*;
+import com.emc.storageos.db.client.constraint.ConstraintDescriptor;
+import com.emc.storageos.db.client.impl.ColumnField;
+import com.emc.storageos.db.client.impl.DbClientContext;
+import com.emc.storageos.db.client.impl.IndexColumnName;
+import com.emc.storageos.db.exceptions.DatabaseException;
 
 /**
  * Abstract base for all containment queries
@@ -36,6 +36,7 @@ public abstract class ConstraintImpl implements Constraint {
     protected String startId;
     protected int pageCount = DEFAULT_PAGE_SIZE;
     protected boolean returnOnePage;
+    protected DbClientContext dbClientContext;
 
     public ConstraintImpl(Object... arguments) {
         ColumnField field = null;
@@ -102,24 +103,24 @@ public abstract class ConstraintImpl implements Constraint {
                 queryOnePage(result);
                 return;
             }
-        } catch (ConnectionException e) {
+        } catch (DriverException e) {
             log.info("Query failed e=", e);
-            throw DatabaseException.retryables.connectionFailed(e);
+            throw DatabaseException.retryables.operationFailed(e);
         }
 
-        queryWithAutoPaginate(genQuery(), result, this);
+        queryWithAutoPaginate(genQueryStatement(), result, this);
     }
 
-    protected abstract <T> void queryOnePage(final QueryResult<T> result) throws ConnectionException;
+    protected abstract <T> void queryOnePage(final QueryResult<T> result) throws DriverException;
+    
+    protected abstract Statement genQueryStatement();
 
-    protected abstract RowQuery<String, IndexColumnName> genQuery();
-
-    protected <T> void queryWithAutoPaginate(RowQuery<String, IndexColumnName> query, final QueryResult<T> result,
+    protected <T> void queryWithAutoPaginate(Statement statement, final QueryResult<T> result,
             final ConstraintImpl constraint) {
-        query.autoPaginate(true);
-        QueryHitIterator<T> it = new QueryHitIterator<T>(query) {
+        
+        QueryHitIterator<T> it = new QueryHitIterator<T>(dbClientContext , statement) {
             @Override
-            protected T createQueryHit(Column<IndexColumnName> column) {
+            protected T createQueryHit(IndexColumnName column) {
                 return constraint.createQueryHit(result, column);
             }
         };
@@ -127,108 +128,87 @@ public abstract class ConstraintImpl implements Constraint {
         result.setResult(it);
     }
 
-    protected abstract URI getURI(Column<IndexColumnName> col);
+    protected abstract URI getURI(IndexColumnName col);
+    
+    protected <T> T createQueryHit(final QueryResult<T> result, IndexColumnName col) {
+        return null;
+    }
+    
+    protected <T> void queryOnePageWithoutAutoPaginate(StringBuilder queryString, String prefix, final QueryResult<T> result, List<Object> queryParameters)
+            throws DriverException {
 
-    protected abstract <T> T createQueryHit(final QueryResult<T> result, Column<IndexColumnName> col);
+        queryString.append(" and column1=?");
+        queryParameters.add(prefix);
 
-    protected <T> void queryOnePageWithoutAutoPaginate(RowQuery<String, IndexColumnName> query, String prefix, final QueryResult<T> result)
-            throws ConnectionException {
-
-        CompositeRangeBuilder builder = IndexColumnNameSerializer.get().buildRange()
-                .greaterThanEquals(prefix)
-                .lessThanEquals(prefix)
-                .reverse() // last column comes only
-                .limit(1);
-
-        query.withColumnRange(builder);
-
-        ColumnList<IndexColumnName> columns = query.execute().getResult();
-
-        List<T> ids = new ArrayList();
-        if (columns.isEmpty()) {
-            result.setResult(ids.iterator());
-            return; // not found
+        if (startId != null) {
+            queryString.append(" and column2>?");
+            queryParameters.add(startId);
         }
 
-        Column<IndexColumnName> lastColumn = columns.getColumnByIndex(0);
+        queryString.append(" limit " + pageCount);
+        PreparedStatement preparedStatement = this.dbClientContext.getPreparedStatement(queryString.toString());
+        Statement statement =  preparedStatement.bind(queryParameters.toArray(new Object[]{0}));
 
-        String endId = lastColumn.getName().getTwo();
-
-        builder = IndexColumnNameSerializer.get().buildRange();
-
-        if (startId == null) {
-            // query first page
-            builder.greaterThanEquals(prefix)
-                    .lessThanEquals(prefix)
-                    .limit(pageCount);
-
-        } else {
-            builder.withPrefix(prefix)
-                    .greaterThan(startId)
-                    .lessThanEquals(endId)
-                    .limit(pageCount);
-        }
-
-        query = query.withColumnRange(builder);
-
-        columns = query.execute().getResult();
-
-        for (Column<IndexColumnName> col : columns) {
-            T obj = createQueryHit(result, col);
+        log.info("query string: {}", preparedStatement.getQueryString());
+        
+        ResultSet resultSet = dbClientContext.getSession().execute(statement);
+        List<T> ids = new ArrayList<T>();
+        
+        for (Row row : resultSet) {
+            IndexColumnName indexColumnName = new IndexColumnName(row.getString(1), 
+                    row.getString(2), 
+                    row.getString(3),
+                    row.getString(4),
+                    row.getUUID(5),
+                    row.getBytes(6));
+            T obj = createQueryHit(result, indexColumnName);
             if (!ids.contains(obj)) {
-                ids.add(createQueryHit(result, col));
+                ids.add(createQueryHit(result, indexColumnName));
             }
         }
 
         result.setResult(ids.iterator());
     }
 
-    protected <T> void queryOnePageWithAutoPaginate(RowQuery<String, IndexColumnName> query, String prefix, final QueryResult<T> result)
-            throws ConnectionException {
-        CompositeRangeBuilder range = IndexColumnNameSerializer.get().buildRange()
-                .greaterThanEquals(prefix)
-                .lessThanEquals(prefix)
-                .limit(pageCount);
-        query.withColumnRange(range);
-
-        queryOnePageWithAutoPaginate(query, result);
-    }
-
-    protected <T> void queryOnePageWithAutoPaginate(RowQuery<String, IndexColumnName> query, final QueryResult<T> result)
-            throws ConnectionException {
+    protected <T> void queryOnePageWithAutoPaginate(Statement queryStatement, final QueryResult<T> result) {
         boolean start = false;
-        List<T> ids = new ArrayList();
+        List<T> ids = new ArrayList<T>();
         int count = 0;
 
-        query.autoPaginate(true);
+        ResultSet resultSet = dbClientContext.getSession().execute(queryStatement);
 
-        ColumnList<IndexColumnName> columns;
-
-        while (count < pageCount) {
-            columns = query.execute().getResult();
-
-            if (columns.isEmpty())
-            {
-                break; // reach the end
+        for (Row row : resultSet) {
+            IndexColumnName indexColumnName = new IndexColumnName(row.getString(1), 
+                    row.getString(2), 
+                    row.getString(3),
+                    row.getString(4),
+                    row.getUUID(5),
+                    row.getBytes(6));
+            
+            if (startId == null) {
+                start = true;
+            } else if (startId.equals(getURI(indexColumnName).toString())) {
+                start = true;
+                continue;
             }
 
-            for (Column<IndexColumnName> col : columns) {
-                if (startId == null) {
-                    start = true;
-                } else if (startId.equals(getURI(col).toString())) {
-                    start = true;
-                    continue;
+            if (start) {
+                T obj = createQueryHit(result, indexColumnName);
+                if (!ids.contains(obj)) {
+                    ids.add(obj);
                 }
-
-                if (start) {
-                    T obj = createQueryHit(result, col);
-                    if (!ids.contains(obj)) {
-                        ids.add(obj);
-                    }
-                    count++;
+                count++;
+                
+                if (count >= pageCount) {
+                    break;
                 }
             }
         }
         result.setResult(ids.iterator());
+    }
+
+    @Override
+    public void setDbClientContext(DbClientContext dbClientContext) {
+        this.dbClientContext = dbClientContext;
     }
 }

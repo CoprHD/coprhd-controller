@@ -431,7 +431,7 @@ public class VPlexVirtualVolumeInfo extends VPlexResourceInfo {
      * @return true if the volume is thin enabled, false otherwise.
      */
     public boolean isThinEnabled() {
-        return VPlexApiConstants.TRUE.equals(getThinEnabled());
+        return VPlexApiConstants.TRUE.equals(getThinEnabled()) || VPlexApiConstants.ENABLED.equals(getThinEnabled());
     }
 
     /**

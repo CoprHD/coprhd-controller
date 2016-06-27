@@ -2123,6 +2123,14 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             while (resultsIter.hasNext()) {
                 newVarrayStoragePorts.add(resultsIter.next());
             }
+            
+            URIQueryResultList connectedResults = new URIQueryResultList();
+            _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                    .getImplicitVirtualArrayStoragePortsConstraint(newVarrayId), connectedResults);
+            Iterator<URI> iter = connectedResults.iterator();
+            while (iter.hasNext()) {
+                newVarrayStoragePorts.add(iter.next());
+            }
             if (!newVarrayStoragePorts.containsAll(storagePorts)) {
                 s_logger.info("The volume is exported, but the exported target storage ports are not all in the target virtual array");
                 throw APIException.badRequests.changesNotSupportedFor("VirtualArray", "exported volumes, and the target storage ports exported through"

@@ -51,6 +51,7 @@ deb http://us.archive.ubuntu.com/ubuntu/ xenial main restricted universe
 deb http://security.ubuntu.com/ubuntu xenial-security main
 deb http://ppa.launchpad.net/openjdk-r/ppa/ubuntu xenial main
 deb http://download.virtualbox.org/virtualbox/debian xenial contrib
+deb http://apt.dockerproject.org/repo ubuntu-xenial main
 EOF
 
   LANG=C
@@ -121,6 +122,7 @@ deb file:/tmp/archives /
 #deb http://security.ubuntu.com/ubuntu xenial-security main
 #deb http://ppa.launchpad.net/openjdk-r/ppa/ubuntu xenial main
 #deb http://download.virtualbox.org/virtualbox/debian xenial contrib
+#deb http://apt.dockerproject.org/repo ubuntu-xenial main
 EOF
 
   cat > ${DIR_MOUNT}/etc/apt/preferences <<EOF
@@ -136,6 +138,11 @@ Pin-Priority: 998
 Package: *
 Pin: origin "download.virtualbox.org"
 Pin-Priority: 997
+EOF
+
+Package: *
+Pin: origin "apt.dockerproject.org"
+Pin-Priority: 996
 EOF
 
   chroot ${DIR_MOUNT} apt-get update
@@ -264,6 +271,7 @@ EOF
   sed -i -e "s/(${LOOP_DISK1_NAME})/'hd0,msdos1'/g" ${DIR_MOUNT}/boot/grub/grub.cfg
   sed -i -e "s/loopback ${LOOP_DISK1_NAME} \/${LOOP_DISK0_NAME}/insmod part_msdos/g" ${DIR_MOUNT}/boot/grub/grub.cfg
   sed -i -e "s/\/dev\/${LOOP_DISK0_NAME}/${UUID}/g" ${DIR_MOUNT}/boot/grub/grub.cfg
+  sed -i -e "s/ro  /ro net.ifnames=0 biosdevname=0/g" ${DIR_MOUNT}/boot/grub/grub.cfg
   rm ${DIR_MOUNT}/boot/grub/device.map
 
   # END MOUNT IMAGE

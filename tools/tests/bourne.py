@@ -251,6 +251,7 @@ URI_BLOCK_CONSISTENCY_GROUP_SNAPSHOT_SESSION_LIST       = URI_BLOCK_CONSISTENCY_
 
 URI_BLOCK_CONSISTENCY_GROUP_PROTECTION_BASE       = URI_BLOCK_CONSISTENCY_GROUP + "/protection/continuous-copies"
 URI_BLOCK_CONSISTENCY_GROUP_SWAP                  = URI_BLOCK_CONSISTENCY_GROUP_PROTECTION_BASE + "/swap"
+URI_BLOCK_CONSISTENCY_GROUP_ACCESS_MODE           = URI_BLOCK_CONSISTENCY_GROUP_PROTECTION_BASE + "/accessmode"
 URI_BLOCK_CONSISTENCY_GROUP_FAILOVER              = URI_BLOCK_CONSISTENCY_GROUP_PROTECTION_BASE + "/failover"
 URI_BLOCK_CONSISTENCY_GROUP_FAILOVER_CANCEL       = URI_BLOCK_CONSISTENCY_GROUP_PROTECTION_BASE + "/failover-cancel"
 
@@ -4219,7 +4220,32 @@ class Bourne:
 
         return s
 
-    def block_consistency_group_failover(self, group, copyType, targetVarray, am, pit):
+    def block_consistency_group_accessmode(self, group, copyType, targetVarray, am):
+        copies_param = dict()
+        copy = dict()
+        copy_entries = []
+
+        copy['type'] = copyType
+        copy['copyID'] = targetVarray
+        copy['accessMode'] = am
+        copy_entries.append(copy)
+        copies_param['copy'] = copy_entries
+
+        o = self.api('POST', URI_BLOCK_CONSISTENCY_GROUP_ACCESS_MODE.format(group), copies_param )
+        self.assert_is_dict(o)
+
+        if ('task' in o):
+            tasks = []
+            for task in o['task']:
+                s = self.api_sync_2(task['resource']['id'], task['op_id'], self.block_consistency_group_show_task)
+                tasks.append(s)
+            s = tasks
+        else:
+            s = o['details']
+
+        return s
+
+    def block_consistency_group_failover(self, group, copyType, targetVarray, pit):
         copies_param = dict()
         copy = dict()
         copy_entries = []
@@ -4229,9 +4255,6 @@ class Bourne:
 
         if (pit):
             copy['pointInTime'] = pit
-
-        if (am):
-            copy['accessMode'] = am
 
         copy_entries.append(copy)
         copies_param['copy'] = copy_entries

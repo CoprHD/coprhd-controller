@@ -4539,6 +4539,24 @@ recoverpoint_direct_access_test()
         run volume verify ${PROJECT}/${tgt_volume} personality TARGET
         run volume verify ${PROJECT}/${tgt_volume} access_state NOT_READY
         run volume verify ${PROJECT}/${tgt_volume} link_status IN_SYNC
+
+        secho 'Failover using consistency group API'
+        run blockconsistencygroup failover $consistency_group --copyType rp --targetVarray ${rp_tgt_varrays[0]}
+        secho 'Setting access mode to direct access using consistency group API'
+        run blockconsistencygroup accessmode $consistency_group --copyType rp --targetVarray ${rp_tgt_varrays[0]} --am DIRECT_ACCESS
+
+        sleep 20
+
+        secho 'Failover Cancel - returning copy image acess to no_access for target copy '${rp_tgt_varrays[0]}
+        run blockconsistencygroup failover_cancel $consistency_group --copyType rp --targetVarray ${rp_tgt_varrays[0]}
+
+        secho 'Verify the current state of the source and target vols'
+        run volume verify ${PROJECT}/${src_volume} personality SOURCE
+        run volume verify ${PROJECT}/${src_volume} access_state READWRITE
+        run volume verify ${PROJECT}/${src_volume} link_status IN_SYNC
+        run volume verify ${PROJECT}/${tgt_volume} personality TARGET
+        run volume verify ${PROJECT}/${tgt_volume} access_state NOT_READY
+        run volume verify ${PROJECT}/${tgt_volume} link_status IN_SYNC
    else
         secho 'Skipping RecoverPoint Direct Access Tests'
    fi

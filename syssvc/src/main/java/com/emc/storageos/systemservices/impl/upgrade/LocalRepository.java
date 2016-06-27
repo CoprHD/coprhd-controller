@@ -498,44 +498,18 @@ public class LocalRepository {
         return Boolean.valueOf(ret[0]);
     }
 
-    public void setDataRevision(String targetRevision, boolean committed, long vdcConfigVersion) throws LocalRepositoryException {
-        setDataRevision(null, targetRevision, committed, vdcConfigVersion);
-    }
-
     /***
-     * Update data revision property
+     * Update data revision properties to local
      *
-     * @param prevRevision
-     * @param targetRevision
-     * @param committed 
-     * @param vdcConfigVersion
+     * @param localRevisionProps
      * @throws LocalRepositoryException
      */
-    public void setDataRevision(String prevRevision, String targetRevision, boolean committed, long vdcConfigVersion) throws LocalRepositoryException {
-        final String prefix = String.format("setDataRevisionTag(): to=%s committed=%s" , targetRevision, committed);
+    public void setDataRevisionPropertyInfo(PropertyInfoExt localRevisionProps) throws LocalRepositoryException {
+        final String prefix = String.format("setDataRevisionPropertyInfo(): to=%s " , localRevisionProps);
         _log.debug(prefix);
 
         final Path tmpFilePath = FileSystems.getDefault().getPath(DATA_REVISION_TMP);
-        StringBuilder s = new StringBuilder();
-        if (prevRevision != null) {
-            s.append(KEY_PREV_DATA_REVISION);
-            s.append(PropertyInfoExt.ENCODING_EQUAL);
-            s.append(String.valueOf(prevRevision));
-            s.append(PropertyInfoExt.ENCODING_NEWLINE);
-        }
-        s.append(KEY_DATA_REVISION);
-        s.append(PropertyInfoExt.ENCODING_EQUAL);
-        s.append(targetRevision == null ? "" : targetRevision);
-        s.append(PropertyInfoExt.ENCODING_NEWLINE);
-        s.append(KEY_DATA_REVISION_COMMITTED);
-        s.append(PropertyInfoExt.ENCODING_EQUAL);
-        s.append(String.valueOf(committed));
-        s.append(PropertyInfoExt.ENCODING_NEWLINE);
-        s.append(KEY_VDC_CONFIG_VERSION);
-        s.append(PropertyInfoExt.ENCODING_EQUAL);
-        s.append(String.valueOf(vdcConfigVersion));
-        
-        createTmpFile(tmpFilePath, s.toString(), prefix);
+        createTmpFile(tmpFilePath, localRevisionProps.toString(false), prefix);
 
         try {
             final String[] cmd = { _SYSTOOL_CMD, _SYSTOOL_SET_DATA_REVISION, DATA_REVISION_TMP };
@@ -546,6 +520,7 @@ public class LocalRepository {
         }
     }
 
+    
     /***
      * Get data revision from disk
      * 

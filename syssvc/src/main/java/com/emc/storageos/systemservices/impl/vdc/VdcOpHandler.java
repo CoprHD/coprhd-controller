@@ -5,6 +5,11 @@
 
 package com.emc.storageos.systemservices.impl.vdc;
 
+import static com.emc.storageos.coordinator.client.model.Constants.KEY_DATA_REVISION;
+import static com.emc.storageos.coordinator.client.model.Constants.KEY_DATA_REVISION_COMMITTED;
+import static com.emc.storageos.coordinator.client.model.Constants.KEY_PREV_DATA_REVISION;
+import static com.emc.storageos.coordinator.client.model.Constants.KEY_PREV_VDC_CONFIG_VERSION;
+import static com.emc.storageos.coordinator.client.model.Constants.KEY_VDC_CONFIG_VERSION;
 import static com.emc.storageos.services.util.FileUtils.readValueFromFile;
 
 import java.io.File;
@@ -282,23 +287,18 @@ public abstract class VdcOpHandler {
                 long targetVdcConfigVersion = targetSiteInfo.getVdcConfigVersion();
                 log.info("Check if target data revision is changed - data revision {}, vdc config version {}", targetDataRevision, targetVdcConfigVersion);
                 
-                long localRevision = 0;
                 long localVdcConfigVersion = 0;
                 PropertyInfoExt localRevisionProps = localRepository.getDataRevisionPropertyInfo();
                 String committed = localRevisionProps.getProperty(Constants.KEY_DATA_REVISION_COMMITTED);
                 if (committed != null && Boolean.valueOf(committed)) {
-                    String revision = localRevisionProps.getProperty(Constants.KEY_DATA_REVISION);
-                    localRevision = Long.parseLong(revision);
                     String configVersion = localRevisionProps.getProperty(Constants.KEY_VDC_CONFIG_VERSION);
                     localVdcConfigVersion = Long.parseLong(configVersion);
                 }
+                String localRevision = localRevisionProps.getProperty(Constants.KEY_DATA_REVISION);
                 log.info("Local data revision is {}, vdc config version is {}", localRevision, localVdcConfigVersion);
 
                 if (localVdcConfigVersion != targetVdcConfigVersion) {
-                    String prevRevision = String.valueOf(localRevision);
-                    updateDataRevision(prevRevision);
-                } else {
-                    // TODO - reset target site info
+                    updateDataRevision(localRevisionProps);
                 }
             } catch (Exception e) {
                 log.error("Failed to update data revision. {}", e);
@@ -316,9 +316,32 @@ public abstract class VdcOpHandler {
          * 
          * @throws Exception
          */
-        private void updateDataRevision(String prevDataRevision) throws Exception {
+        private void updateDataRevision(PropertyInfoExt localRevisionProps) throws Exception {
             String targetDataRevision = targetSiteInfo.getTargetDataRevision();
             long vdcConfigVersion = targetSiteInfo.getVdcConfigVersion();
+            
+            PropertyInfoExt newPropInfo = new PropertyInfoExt(localRevisionProps.getAllProperties()); // clone to new properties
+            newPropInfo.addProperty(KEY_DATA_REVISION, targetDataRevision == null ? "" : targetDataRevision);
+            newPropInfo.addProperty(KEY_VDC_CONFIG_VERSION, String.valueOf(vdcConfigVersion));
+            
+            // if target vdc config version is same as previous vdc config version at local, it means we are doing data revision rollback
+            if (StringUtils.equals(String.valueOf(vdcConfigVersion), localRevisionProps.getProperty(KEY_PREV_VDC_CONFIG_VERSION))) {
+                // no need to save data revision pointer any more.
+                log.info("Rollbacking to previous data revision {}. Skip previous data revision pointer", vdcConfigVersion);
+                newPropInfo.removeProperty(KEY_PREV_DATA_REVISION);
+                newPropInfo.removeProperty(KEY_PREV_VDC_CONFIG_VERSION);
+            } else {
+                // save previous data revision pointer to local
+                String prevDataRevision = localRevisionProps.getProperty(KEY_DATA_REVISION);
+                if (StringUtils.isNotEmpty(prevDataRevision)) {
+                    newPropInfo.addProperty(KEY_PREV_DATA_REVISION, prevDataRevision);
+                }
+                String prevVdcConfigVersion = localRevisionProps.getProperty(KEY_VDC_CONFIG_VERSION);
+                if (StringUtils.isNotEmpty(prevVdcConfigVersion)) {
+                    newPropInfo.addProperty(KEY_PREV_VDC_CONFIG_VERSION, prevVdcConfigVersion);
+                }
+            }
+            
             log.info("Trying to reach agreement with timeout for data revision change");
             String barrierPath = String.format("%s/%s/DataRevisionBarrier", ZkPath.SITES, coordinator.getCoordinatorClient().getSiteId());
             DistributedDoubleBarrier barrier = coordinator.getCoordinatorClient().getDistributedDoubleBarrier(barrierPath, coordinator.getNodeCount());
@@ -327,16 +350,18 @@ public abstract class VdcOpHandler {
                 if (phase1Agreed) {
                     // reach phase 1 agreement, we can start write to local property file
                     log.info("Reach phase 1 agreement for data revision change");
-                    localRepository.setDataRevision(prevDataRevision, targetDataRevision, false, vdcConfigVersion);
+                    newPropInfo.addProperty(KEY_DATA_REVISION_COMMITTED, String.valueOf(Boolean.FALSE)); // flush to local disk but no gurantee on consistency with other nodes
+                    localRepository.setDataRevisionPropertyInfo(newPropInfo);
                     boolean phase2Agreed = barrier.leave(VDC_OP_BARRIER_TIMEOUT, TimeUnit.SECONDS);
                     if (phase2Agreed) {
                         // phase 2 agreement is received, we can make sure data revision change is written to local property file
                         log.info("Reach phase 2 agreement for data revision change");
-                        localRepository.setDataRevision(prevDataRevision, targetDataRevision, true, vdcConfigVersion);
+                        newPropInfo.addProperty(KEY_DATA_REVISION_COMMITTED, String.valueOf(Boolean.TRUE));
+                        localRepository.setDataRevisionPropertyInfo(newPropInfo); // committed to local disk
                         setConcurrentRebootNeeded(true);
                     } else {
                         log.info("Failed to reach phase 2 agreement. Rollback revision change");
-                        localRepository.setDataRevision(prevDataRevision, true, vdcConfigVersion);
+                        localRepository.setDataRevisionPropertyInfo(localRevisionProps);
                         throw new IllegalStateException("Failed to reach phase 2 agreement on data revision change");
                     }
                 } else {
@@ -377,7 +402,14 @@ public abstract class VdcOpHandler {
             String purgeSiteId = siteInfo.getSourceSiteUUID();
             log.info("Purging data revision should be done on site {}", purgeSiteId);
             if (drUtil.getLocalSite().getUuid().equals(purgeSiteId)) {
+                // purge data directories for unused versions
                 localRepository.purgeDataRevision();
+                
+                // purge previous revision from local data revision properties
+                PropertyInfoExt localRevisionProps = localRepository.getDataRevisionPropertyInfo();
+                localRevisionProps.removeProperty(Constants.KEY_PREV_DATA_REVISION);
+                localRevisionProps.removeProperty(Constants.KEY_PREV_VDC_CONFIG_VERSION);
+                localRepository.setDataRevisionPropertyInfo(localRevisionProps);
             }
         }
     }

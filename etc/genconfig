@@ -460,8 +460,15 @@ _genconfig_data_versioning() {
        else
            /etc/datatool --create-version /data/db/1 ${tgt_dataver}
            /etc/datatool --create-version /data/geodb/1 ${tgt_dataver}
-           /etc/datatool --create-version /data/zk/version-3 ${tgt_dataver}
+           /etc/datatool --create-version /data/zk/version-2 ${tgt_dataver}
            rm -f /data/zk/myid
+           local prev_dataver=${_GENCONFIG_previous_data_revision}
+           if [ -z "${prev_dataver}" ]; then
+               # purge unused versions if we don't keep previous good copy
+               /etc/datatool --purge-unused-versions /data/db/1
+               /etc/datatool --purge-unused-versions /data/geodb/1
+               /etc/datatool --purge-unused-versions /data/zk/version-2
+           fi
        fi
    fi
 }

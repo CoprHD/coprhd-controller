@@ -10,6 +10,7 @@ import static util.BourneUtil.getCatalogClient;
 import static util.BourneUtil.getViprClient;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
@@ -432,6 +433,7 @@ public class Orders extends OrderExecution {
             ViPRCoreClient client = getViprClient();
             List<SearchResultResourceRep> searchResults = client.tasks().performSearchBy("tag", TagUtils.createOrderIdTag(orderId));
             viprTasks = client.tasks().getByRefs(searchResults);
+            removeDuplicateViprTasks();
             setTaskStepMessages();
 
             checkLastUpdated(viprTasks);
@@ -458,6 +460,24 @@ public class Orders extends OrderExecution {
                     }
                     checkLastUpdated(log);
                 }
+            }
+        }
+        
+        private void removeDuplicateViprTasks() {
+            List<TaskResourceRep> outTasks = new ArrayList<TaskResourceRep>();
+            if (viprTasks != null) {
+                URI lastWorkflowId = null;
+                for (TaskResourceRep viprTask : viprTasks) {
+                    if (viprTask.getWorkflow() != null) {
+                        if (!viprTask.getWorkflow().getId().equals(lastWorkflowId)) {
+                            outTasks.add(viprTask);
+                            lastWorkflowId = viprTask.getWorkflow().getId();
+                        } 
+                    } else {
+                        outTasks.add(viprTask);
+                    }
+                }
+                viprTasks = outTasks;
             }
         }
 

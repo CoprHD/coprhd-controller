@@ -63,6 +63,14 @@ public class TaskUtils {
 
         return tasks;
     }
+    
+    public static void setWorkflowForRequestTasks(DbClient dbClient, String requestId, URI workflowURI) {
+        List<Task> tasks = findTasksForRequestId(dbClient, requestId);
+        for (Task task : tasks) {
+            task.setWorkflow(workflowURI);
+        }
+        dbClient.updateObject(tasks);
+    }
 
     public static List<Task> findResourceTasks(DbClient dbClient, URI resourceId) {
         return getTasks(dbClient, ContainmentConstraint.Factory.getResourceTaskConstraint(resourceId));

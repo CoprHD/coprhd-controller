@@ -104,14 +104,14 @@ def task_search(args):
 #
 # display tasks in list form
 #
-task_display_fmt = '{0:60s} {1:20s} {2:10s}'
+task_display_fmt = '{0:60s} {1:20s} {2:10s} {3:20s}'
 
 def task_display_hdr():
-    print task_display_fmt.format('ID',   'NAME',    'STATUS')
-    print task_display_fmt.format('----', '------', '------')
+    print task_display_fmt.format('ID',   'NAME',    'STATUS', 'OP_ID')
+    print task_display_fmt.format('----', '------', '------', '-----')
 
 def task_display(task):
-    print task_display_fmt.format(task['id'], task['name'], task['state'])
+    print task_display_fmt.format(task['id'], task['name'], task['state'], task['op_id'])
 
 #----------------------------------------------------------------------
 # command-line parsing

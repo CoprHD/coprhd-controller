@@ -44,6 +44,7 @@ import javax.ws.rs.core.MediaType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.api.mapper.DbObjectMapper;
 import com.emc.storageos.api.mapper.functions.MapVolume;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.placement.PlacementManager;
@@ -106,6 +107,8 @@ import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.VplexMirror;
 import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
+import com.emc.storageos.db.client.model.Workflow;
+import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.SizeUtil;
@@ -992,7 +995,7 @@ public class BlockService extends TaskResourceService {
         CreateVolumeSchedulingThread.executeApiTask(this, _asyncTaskService.getExecutorService(), _dbClient, varray,
                 project, vpool, capabilities, taskList, task,
                 consistencyGroup, requestedTypes, param, blockServiceImpl);
-
+        
         _log.info("Kicked off thread to perform placement and scheduling.  Returning " + taskList.getTaskList().size() + " tasks");
         return taskList;
     }
@@ -1056,6 +1059,11 @@ public class BlockService extends TaskResourceService {
     private TaskList createVolumeTaskList(String size, Project project, VirtualArray varray, VirtualPool vpool, String label, String task,
             Integer volumeCount) {
         TaskList taskList = new TaskList();
+        
+        // The workflow URI is preallocated to the UI can associate tasks by Workflow.
+        URI workflowURI = URIUtil.createId(Workflow.class);
+        RelatedResourceRep workflowRelatedResourceRep = 
+                DbObjectMapper.toRelatedResource(ResourceTypeEnum.WORKFLOW, workflowURI);
 
         // For each volume requested, pre-create a volume object/task object
         long lsize = SizeUtil.translateSize(size);
@@ -1065,10 +1073,13 @@ public class BlockService extends TaskResourceService {
                     task, ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME);
             volume.getOpStatus().put(task, op);
             TaskResourceRep volumeTask = toTask(volume, task, op);
+            volumeTask.setWorkflow(workflowRelatedResourceRep);
             taskList.getTaskList().add(volumeTask);
             _log.info(String.format("Volume and Task Pre-creation Objects [Init]--  Source Volume: %s, Task: %s, Op: %s",
                     volume.getId(), volumeTask.getId(), task));
         }
+        // Set all the tasks to the same Workflow URI
+        TaskUtils.setWorkflowForRequestTasks(_dbClient, task, workflowURI);
 
         return taskList;
     }

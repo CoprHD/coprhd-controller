@@ -1428,7 +1428,18 @@ public class WorkflowService implements WorkflowController {
                         com.emc.storageos.db.client.model.Workflow.class,
                         workflow._workflowURI);
             } else {
-                workflow._workflowURI = URIUtil.createId(com.emc.storageos.db.client.model.Workflow.class);
+                // Check to see if the Workflow URI was assigned in the API. If so use it.
+                // This is done so that returned tasks can already have their workflow associations.
+                List<Task> tasks = 
+                        TaskUtils.findTasksForRequestId(_dbClient, workflow.getOrchTaskId());
+                if (!tasks.isEmpty() 
+                        && !NullColumnValueGetter.isNullURI(tasks.get(0).getWorkflow())) {
+                    workflow.setWorkflowURI(tasks.get(0).getWorkflow());
+                } else {
+                    // Generate new Workflow URI as it wasn't previously determined.
+                    workflow.setWorkflowURI(URIUtil.createId(
+                            com.emc.storageos.db.client.model.Workflow.class));
+                }
             }
             // Are we updating or adding?
             if (logWorkflow == null) {

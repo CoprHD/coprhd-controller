@@ -153,6 +153,7 @@ def _workflow_node(wf, spaces, already_processed):
             x = None
         print spaces + '    controller: ' + wf['orchestration_controller_name']
         print spaces + '    method: ' + wf['orchestration_method']
+        print spaces + '    task: ' + wf['orchestration_task_id']
         wflowx = bourne.workflow_steps(wf['id'])
         already_processed.add(wf['id'])
         if (type(wflowx) is dict):

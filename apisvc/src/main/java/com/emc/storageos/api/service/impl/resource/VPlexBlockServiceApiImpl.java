@@ -3682,8 +3682,10 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     List<Volume> vplexVolumes = CustomQueryUtility.queryActiveResourcesByConstraint(
                             _dbClient, Volume.class, AlternateIdConstraint.Factory.getVolumeByAssociatedVolumesConstraint(
                                     volumesWithSameNativeGuid.get(0).getId().toString()));
+                    String volumeLabel = vplexVolumes.size() > 0 ? 
+                            vplexVolumes.get(0).getLabel() : volumesWithSameNativeGuid.get(0).getId().toString();
                     throw APIException.badRequests
-                            .cantDeleteSnapshotExposedByVolume(snapshot.forDisplay(), vplexVolumes.get(0).getLabel());
+                            .cantDeleteSnapshotExposedByVolume(snapshot.forDisplay(), volumeLabel);
                 }
             }
         }

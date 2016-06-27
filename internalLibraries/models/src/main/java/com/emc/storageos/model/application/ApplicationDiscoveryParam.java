@@ -17,7 +17,6 @@ import java.util.Set;
 public class ApplicationDiscoveryParam {
 
     private URI srcStorageSystem;
-    private URI tgtStorageSystem;
     private Set<String> applicationGroupNames;
     private Set<URI> volumeIds;
     private Set<URI> hostIds;
@@ -26,10 +25,9 @@ public class ApplicationDiscoveryParam {
     public ApplicationDiscoveryParam() {
     }
 
-    public ApplicationDiscoveryParam(URI srcStorageSystem, URI tgtStorageSystem,
+    public ApplicationDiscoveryParam(URI srcStorageSystem,
             Set<String> applicationGroupNames, Set<URI> volumeIds, Set<URI> hostIds, Set<URI> clusterIds) {
         this.srcStorageSystem = srcStorageSystem;
-        this.tgtStorageSystem = tgtStorageSystem;
         this.applicationGroupNames = applicationGroupNames;
         this.volumeIds = volumeIds;
         this.hostIds = hostIds;
@@ -45,17 +43,6 @@ public class ApplicationDiscoveryParam {
     @XmlElement(required = true, name = "source_storage_system")
     public URI getSrcStorageSystem() {
         return srcStorageSystem;
-    }
-
-    /**
-     * The target storage system to which the application group is to be migrated.
-     * This identifies the storage system on which to create the new
-     * application group to which the source application group will be migrated.
-     * 
-     */
-    @XmlElement(required = true, name = "target_storage_system")
-    public URI getTgtStorageSystem() {
-        return tgtStorageSystem;
     }
 
     @XmlElementWrapper(name = "application_group_names")

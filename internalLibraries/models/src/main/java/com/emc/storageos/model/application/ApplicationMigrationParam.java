@@ -18,8 +18,8 @@ import java.util.Set;
 @XmlRootElement(name = "application_migration")
 public class ApplicationMigrationParam {
 
-    // SRCVP/TGTVPOOL list
-    private List<Map<String, String>> srcTGTVPoolPairs;
+    private URI tgtStorageSystem;
+    private List<Map<String, String>> srcTGTVPoolPairs; // SRCVP/TGTVPOOL list
     private URI storageResourcePoolId;
     private Set<URI> storageArrayPortIds;
     private boolean enableCompression;
@@ -27,12 +27,25 @@ public class ApplicationMigrationParam {
     public ApplicationMigrationParam() {
     }
 
-    public ApplicationMigrationParam(List<Map<String, String>> srcTGTVPoolPairs, URI storageResourcePoolId, Set<URI> storageArrayPortIds,
+    public ApplicationMigrationParam(URI tgtStorageSystem, List<Map<String, String>> srcTGTVPoolPairs, URI storageResourcePoolId,
+            Set<URI> storageArrayPortIds,
             boolean enableCompression) {
+        this.tgtStorageSystem = tgtStorageSystem;
         this.srcTGTVPoolPairs = srcTGTVPoolPairs;
         this.storageResourcePoolId = storageResourcePoolId;
         this.storageArrayPortIds = storageArrayPortIds;
         this.enableCompression = enableCompression;
+    }
+
+    /**
+     * The target storage system to which the application group is to be migrated.
+     * This identifies the storage system on which to create the new
+     * application group to which the source application group will be migrated.
+     * 
+     */
+    @XmlElement(required = true, name = "target_storage_system")
+    public URI getTgtStorageSystem() {
+        return tgtStorageSystem;
     }
 
     /**

@@ -154,7 +154,6 @@ import com.emc.storageos.vplex.api.VPlexDeviceInfo;
 import com.emc.storageos.vplex.api.VPlexDistributedDeviceInfo;
 import com.emc.storageos.vplex.api.VPlexInitiatorInfo.Initiator_Type;
 import com.emc.storageos.vplex.api.VPlexMigrationInfo;
-import com.emc.storageos.vplex.api.VPlexPortInfo;
 import com.emc.storageos.vplex.api.VPlexStorageViewInfo;
 import com.emc.storageos.vplex.api.VPlexVirtualVolumeInfo;
 import com.emc.storageos.vplex.api.VPlexVirtualVolumeInfo.WaitOnRebuildResult;
@@ -2809,6 +2808,15 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         }
     }
     
+    /**
+     * Checks to see if any of the volumes in the passed export group are in any of the 
+     * passed export masks.
+     * 
+     * @param exportGroup A reference to the export group
+     * @param exportMasks A list of export group's export masks.
+     * 
+     * @return true if any volume in the export group is in any o fth epassed masks, false otherwise.
+     */
     private boolean exportGroupMasksContainExportGroupVolume(ExportGroup exportGroup, List<ExportMask> exportMasks) {
         boolean maskContainsVolume = false;
         StringMap egVolumes = exportGroup.getVolumes();

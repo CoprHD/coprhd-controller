@@ -38,6 +38,7 @@ public class TaskResourceRep extends DataObjectRestRep {
     private Integer progress;
     private Calendar queuedStartTime;
     private String queueName;
+    private String allowedOperations;
 
     private RelatedResourceRep workflow;
 
@@ -47,7 +48,7 @@ public class TaskResourceRep extends DataObjectRestRep {
     public TaskResourceRep(ServiceErrorRestRep serviceError, String opId,
             RestLinkRep selfLink, NamedRelatedResourceRep resource,
             List<NamedRelatedResourceRep> associatedResources, String message,
-            String state, String description, Calendar startTime,
+            String state, String allowedOperations, String description, Calendar startTime,
             Calendar endTime) {
         super();
         this.serviceError = serviceError;
@@ -57,6 +58,7 @@ public class TaskResourceRep extends DataObjectRestRep {
         this.associatedResources = associatedResources;
         this.message = message;
         this.state = state;
+        this.allowedOperations = allowedOperations;
         this.description = description;
         this.startTime = startTime;
         this.endTime = endTime;
@@ -143,6 +145,18 @@ public class TaskResourceRep extends DataObjectRestRep {
 
     public void setState(String state) {
         this.state = state;
+    }
+
+    /**
+     * The allowed operations of the task
+     */
+    @XmlElement(name = "allowed_operations")
+    public String getAllowedOperations() {
+        return allowedOperations;
+    }
+
+    public void setAllowedOperations(String allowedOperations) {
+        this.allowedOperations = allowedOperations;
     }
 
     /**

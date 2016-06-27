@@ -76,12 +76,9 @@ public class AggregatedConstraintImpl extends ConstraintImpl implements Aggregat
     
     @Override
     protected Statement genQueryStatement() {
-        StringBuilder queryString = new StringBuilder();
-        queryString.append("select").append(" * from \"").append(cf.getName()).append("\"");
-        queryString.append(" where key=?");
-        queryString.append(" and column1=?");
+        String queryString = String.format("select * from \"%s\" where key=? and column1=?", cf.getName());
         
-        PreparedStatement preparedStatement = this.dbClientContext.getPreparedStatement(queryString.toString());
+        PreparedStatement preparedStatement = this.dbClientContext.getPreparedStatement(queryString);
         Statement statement =  preparedStatement.bind(rowKey,
                 fieldName);
         statement.setFetchSize(pageCount);

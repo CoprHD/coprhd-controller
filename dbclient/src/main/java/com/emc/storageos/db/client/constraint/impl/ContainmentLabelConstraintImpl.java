@@ -50,13 +50,10 @@ public class ContainmentLabelConstraintImpl extends ConstraintImpl implements Co
     
     @Override
     protected Statement genQueryStatement() {
-        StringBuilder queryString = new StringBuilder();
-        queryString.append("select").append(" * from \"").append(_field.getIndexCF().getName()).append("\"");
-        queryString.append(" where key=?");
-        queryString.append(" and column1=?");
-        queryString.append(" and column2=?");
+        String queryString = String.format("select * from \"%s\" where key=? and column1=? and column2=?",
+                _field.getIndexCF().getName());
         
-        PreparedStatement preparedStatement = this.dbClientContext.getPreparedStatement(queryString.toString());
+        PreparedStatement preparedStatement = this.dbClientContext.getPreparedStatement(queryString);
         Statement statement =  preparedStatement.bind(_indexKey.toString(),
                 _field.getDataObjectType().getSimpleName(),
                 _prefix.toLowerCase());

@@ -52,12 +52,9 @@ public class AlternateIdConstraintImpl extends ConstraintImpl implements Alterna
 
     @Override
     protected Statement genQueryStatement() {
-        StringBuilder queryString = new StringBuilder();
-        queryString.append("select").append(" * from \"").append(_altIdCf.getName()).append("\"");
-        queryString.append(" where key=?");
-        queryString.append(" and column1=?");
+        String queryString = String.format("select * from \"%s\" where key=? and column1=?", _altIdCf.getName());
         
-        PreparedStatement preparedStatement = this.dbClientContext.getPreparedStatement(queryString.toString());
+        PreparedStatement preparedStatement = this.dbClientContext.getPreparedStatement(queryString);
         Statement statement =  preparedStatement.bind(_altId,
                 _entryType.getSimpleName());
         statement.setFetchSize(pageCount);

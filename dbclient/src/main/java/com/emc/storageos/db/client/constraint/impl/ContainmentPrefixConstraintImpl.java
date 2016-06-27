@@ -42,14 +42,12 @@ public class ContainmentPrefixConstraintImpl extends ConstraintImpl implements C
     
     @Override
     protected Statement genQueryStatement() {
-        StringBuilder queryString = new StringBuilder();
-        queryString.append("select").append(" * from \"").append(_field.getIndexCF().getName()).append("\"");
-        queryString.append(" where key=?");
-        String target = _prefix.toLowerCase();
-        queryString.append(" and column1=?");
-        queryString.append(" and column2>=? and column2<=?");
+        String queryString = String.format("select * from \"%s\" where key=? and column1=? and column2>=? and column2<=?",
+                _field.getIndexCF().getName());
         
-        PreparedStatement preparedStatement = this.dbClientContext.getPreparedStatement(queryString.toString());
+        String target = _prefix.toLowerCase();
+        
+        PreparedStatement preparedStatement = this.dbClientContext.getPreparedStatement(queryString);
         Statement statement =  preparedStatement.bind(_indexKey.toString(),
                 _field.getDataObjectType().getSimpleName(),
                 target, target + Character.MAX_VALUE);

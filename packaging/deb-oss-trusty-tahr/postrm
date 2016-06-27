@@ -1,0 +1,5 @@
+#!/bin/bash
+/sbin/ldconfig
+rm -rf /opt/storageos
+rm -rf /etc/init/storageos-*.override
+exit 0

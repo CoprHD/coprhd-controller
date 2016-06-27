@@ -1,0 +1,10 @@
+#!/bin/bash
+if [ -f /etc/storageos/storageos ] ; then
+  /etc/storageos/storageos stop
+  /etc/storageos/storageos disable
+fi
+
+service keepalived stop
+stop nginx
+
+exit 0

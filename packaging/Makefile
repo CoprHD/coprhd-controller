@@ -63,7 +63,11 @@ include ../Makefile.common
                 DEBBUILD_TMP_DIR  = $(DEBBUILD_BUILDDIR)
                     DEBBUILD_LOG  = $(DEBBUILD_BUILDDIR)/debbuild.log
               DEBBUILD_BUILDROOT  = $(DEBBUILD_BUILDDIR)/$(DEBBUILD_NAME)-$(PRODUCT_VERSION).$(PRODUCT_RELEASE)-$(DEB_REVISION).$(DEBBUILD_DEB_ARCH)
-         DEBBUILD_SRC_CONTROLDIR  = $(SOURCE_BASE)/packaging/deb-oss
+ifeq ($(OS_DISTRO),trusty-tahr)
+         DEBBUILD_SRC_CONTROLDIR  = $(SOURCE_BASE)/packaging/deb-oss-trusty-tahr
+else ifeq ($(OS_DISTRO),xenial-xerus)
+         DEBBUILD_SRC_CONTROLDIR  = $(SOURCE_BASE)/packaging/deb-oss-xenial-xerus
+endif
       DEBBUILD_TARGET_CONTROLDIR  = $(DEBBUILD_BUILDROOT)/DEBIAN
     DEBBUILD_TARGET_CONTROL_FILE  = $(DEBBUILD_TARGET_CONTROLDIR)/control
             DEBBUILD_CONTROL_FILE = control

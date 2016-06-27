@@ -1,0 +1,24 @@
+#!/bin/bash
+# alien added permissions fixup code
+chown 'storageos:storageos' '/data/db'
+chown 'storageos:storageos' '/data/geodb'
+chown 'storageos:storageos' '/data/zk'
+chown 'storageos:storageos' '/etc/.iterable.properties'
+chown 'storageos:storageos' '/etc/.ovfenv.properties'
+chown 'storageos:storageos' '/etc/config.defaults'
+chown 'storageos:storageos' '/object/rmt'
+chown -R 'storageos:storageos' '/opt/storageos'
+chown -R 'storageos:storageos' '/var/run/storageos'
+chmod 500 /etc/nginx/nginx.wrapper
+
+/sbin/ldconfig /opt/storageos/lib
+/etc/storageos/storageos enable
+
+if [ -z "${DO_NOT_START}" ] ; then
+    /etc/storageos/boot-ovfenv start
+    service keepalived start
+    start nginx
+    /etc/storageos/storageos start
+fi
+
+exit 0

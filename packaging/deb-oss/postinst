@@ -12,13 +12,13 @@ chown -R 'storageos:storageos' '/var/run/storageos'
 chmod 500 /etc/nginx/nginx.wrapper
 
 /sbin/ldconfig /opt/storageos/lib
-
 /bin/systemctl enable storageos-installer
+/bin/systemctl enable keepalived
+/bin/systemctl enable boot-ovfenv
+/bin/systemctl enable nginx
+/etc/storageos/storageos enable
+
 if [ -z "${DO_NOT_START}" ] ; then
-    /bin/systemctl enable keepalived
-    /bin/systemctl enable boot-ovfenv
-    /bin/systemctl enable nginx
-    /etc/storageos/storageos enable
     /etc/storageos/boot-ovfenv start
     /bin/systemctl start keepalived
     /bin/systemctl start nginx 

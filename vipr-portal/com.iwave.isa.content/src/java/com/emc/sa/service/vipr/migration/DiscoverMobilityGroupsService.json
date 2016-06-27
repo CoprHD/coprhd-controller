@@ -1,0 +1,24 @@
+{
+  baseKey:"DiscoverApplication.Application",
+  serviceId:"DiscoverApplication",
+  fields:{
+    
+    sourceStorageSystem:{
+      type:"assetType.vipr.unmanagedBlockStorageSystem"
+    },
+ 
+    targetStorageSystem:{
+      type:"assetType.vipr.unmanagedBlockStorageSystem"
+    },
+      
+    mobilityGroupResources:{
+      type:"assetType.vipr.discoverApplicationResource",
+      select: "many"
+    },
+      
+    storageGroupName:{
+     type:"text"
+    }
+
+  }
+}

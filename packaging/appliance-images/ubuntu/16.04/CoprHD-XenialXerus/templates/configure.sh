@@ -99,10 +99,6 @@ EOF
   if [ -f /opt/ADG/conf/storageos*.deb ]; then
     export DO_NOT_START=yes
     dpkg -i /opt/ADG/conf/storageos*.deb
-    systemctl disable boot-ovfenv
-    systemctl disable nginx
-    systemctl disable keepalived
-    /etc/storageos/storageos disable
     rm /opt/ADG/conf/storageos*.deb
     unset DO_NOT_START
   fi

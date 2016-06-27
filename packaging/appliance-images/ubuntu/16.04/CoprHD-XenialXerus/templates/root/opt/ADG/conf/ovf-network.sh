@@ -82,7 +82,6 @@ if [ ! -f /etc/ovfenv.properties ]; then
   mountCDROM
   if [ -f /tmp/cdromOvfEnv/ovf-env.xml ]; then
     parseOVF
-    bash /opt/ADG/conf/configure.sh enableStorageOS
   else
     interface=$( ip addr | grep BROADCAST,MULTICAST | head -n 1 | tail -n 1 | cut -d ':' -f 2 | tr -d ' ' )
     if [ ! -f /etc/network/interfaces.d/$interface ]; then

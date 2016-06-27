@@ -226,8 +226,7 @@ public class BlockVirtualPoolService extends VirtualPoolService {
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public StoragePoolList getMatchingPoolsForVirtualPoolAttributes(BlockVirtualPoolParam param) {
         StoragePoolList poolList = new StoragePoolList();
-//ALIK 
-        _log.info("Alik getMatchingPoolsForVirtualPoolAttributes: ", param.getProtocols().toString());
+
         Map<URI, VpoolRemoteCopyProtectionSettings> remoteSettingsMap = new HashMap<URI, VpoolRemoteCopyProtectionSettings>();
         List<VpoolProtectionVarraySettings> protectionSettings = new ArrayList<VpoolProtectionVarraySettings>();
         Map<URI, VpoolProtectionVarraySettings> protectionSettingsMap = new HashMap<URI, VpoolProtectionVarraySettings>();

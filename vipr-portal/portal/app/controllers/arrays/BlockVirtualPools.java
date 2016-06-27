@@ -330,8 +330,7 @@ public class BlockVirtualPools extends ViprResourceController {
 
     public static void listStoragePoolsJson(BlockVirtualPoolForm vpool) {
         List<StoragePoolInfo> items = Lists.newArrayList();
-        // Alik under testing vpool, at this moment letz assume I do not have protocol
-        if (vpool != null ) { //&& vpool.protocols != null && !vpool.protocols.isEmpty()) {
+        if (vpool != null && vpool.protocols != null && !vpool.protocols.isEmpty()) {
             vpool.deserialize();
             Map<URI, String> storageSystemNames = StorageSystemUtils.getStorageSystemNames();
             List<StoragePoolRestRep> pools = getMatchingStoragePools(vpool);

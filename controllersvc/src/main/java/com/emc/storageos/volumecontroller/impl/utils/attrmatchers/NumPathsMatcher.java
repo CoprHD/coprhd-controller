@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.Set;
 
 import com.emc.storageos.plugins.common.Constants;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,6 +23,7 @@ import com.emc.storageos.db.client.model.DiscoveredSystemObject;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProtocol;
+import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.StorageProtocol.Block;
 import com.emc.storageos.db.client.model.StorageProtocol.Transport;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -174,6 +176,7 @@ public class NumPathsMatcher extends AttributeMatcher {
             StorageProtocol.Transport transportType,
             Set<String> vArrays, Map<URI, Integer> cachedUsablePorts,
             Map<URI, Integer> cachedUsableHADomains) {
+
         Integer usable = cachedUsablePorts.get(storageDeviceURI);
         if (usable != null) {
             return usable;
@@ -222,7 +225,7 @@ public class NumPathsMatcher extends AttributeMatcher {
             // must not be null or incompatible or inactive
             _logger.debug("Checking port: " + storagePort.getNativeGuid());
             if (transportType.name().equals(storagePort.getTransportType()) &&
-                    _portMetricsProcessor.isPortUsable(storagePort) &&
+                    _portMetricsProcessor.isPortUsable(storagePort, vArrays) &&
                     !_portMetricsProcessor.isPortOverCeiling(storagePort, storageDevice, false)) {
                 haDomains.add(storagePort.getStorageHADomain());
                 usable++;

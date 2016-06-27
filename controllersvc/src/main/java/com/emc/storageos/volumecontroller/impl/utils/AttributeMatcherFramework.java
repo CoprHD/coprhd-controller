@@ -169,7 +169,6 @@ public class AttributeMatcherFramework implements ApplicationContextAware {
             @SuppressWarnings("unchecked")
             List<AttributeMatcher> attrMatcherList = (List<AttributeMatcher>) getBeanFromContext(matcherGroupName);
             for (AttributeMatcher matcher : attrMatcherList) {
-            	_logger.info("ALIK running matcher {}", matcher);
                 matcher.setObjectCache(cache);
                 Map<String, Set<String>> availableAttribute = matcher.getAvailableAttribute(neighborhoodPools,
                         vArrayId);

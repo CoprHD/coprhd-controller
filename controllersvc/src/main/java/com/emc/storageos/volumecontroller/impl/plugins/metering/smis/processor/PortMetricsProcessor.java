@@ -41,6 +41,7 @@ import com.emc.storageos.db.client.model.StoragePort.TransportType;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.ZoneInfo;
@@ -823,6 +824,17 @@ public class PortMetricsProcessor {
         return isPortUsable(storagePort, true);
     }
 
+    /**
+     * Overloaded method for isPortUsable for No Network use case
+     *  
+     * @param storagePort
+     * @param vArrays
+     * @return TRUE or FALSE
+     */
+	public boolean isPortUsable(StoragePort storagePort, Set<String> vArrays) {
+		return isPortUsable(storagePort, vArrays, true);
+	}
+
     private boolean isPortUsable(StoragePort storagePort, boolean doLogging) {
         boolean usable = false;
         if (storagePort != null && CompatibilityStatus.COMPATIBLE.name().equalsIgnoreCase(storagePort.getCompatibilityStatus())
@@ -833,8 +845,8 @@ public class PortMetricsProcessor {
                 if (storagePort.getPortType().equals(StoragePort.PortType.frontend.name())) {
                     // must be registered
                     if (storagePort.getRegistrationStatus().equals(RegistrationStatus.REGISTERED.name())) {
-                        // Must be associated with a Network ALIK
-                        //if (URIUtil.isValid(storagePort.getNetwork())) {
+                        // Must be associated with a Network
+                        if (URIUtil.isValid(storagePort.getNetwork())) {
                             // must not be OperationalStatus.NOT_OK
                             if (!storagePort.getOperationalStatus().equals(
                                     StoragePort.OperationalStatus.NOT_OK.name())) {
@@ -844,11 +856,11 @@ public class PortMetricsProcessor {
                                     _log.info("StoragePort OperationalStatus NOT_OK: " + storagePort.getNativeGuid());
                                 }
                             }
-//                        } else {
-//                            if (doLogging) {
-//                                _log.info("StoragePort has no Network association: " + storagePort.getNativeGuid());
-//                            }
-//                        }
+                        } else {
+                            if (doLogging) {
+                                _log.info("StoragePort has no Network association: " + storagePort.getNativeGuid());
+                            }
+                        }
                     } else {
                         if (doLogging) {
                             _log.info("StoragePort not REGISTERED: " + storagePort.getNativeGuid());
@@ -859,6 +871,73 @@ public class PortMetricsProcessor {
         }
         return usable;
     }
+
+
+	private boolean isPortUsable(StoragePort storagePort, Set<String> vArrays, boolean doLogging) {
+		boolean usable = false;
+		// For No Network case, return list of Protocols without checking network check
+		boolean noNetwork = true;
+		for (String varrayId : vArrays) {
+			VirtualArray varray = _dbClient.queryObject(VirtualArray.class,
+					URI.create(varrayId));
+			if (!varray.getNoNetwork()) {
+				noNetwork = false;
+				break;
+			}
+		}
+
+		if (storagePort != null
+				&& CompatibilityStatus.COMPATIBLE.name().equalsIgnoreCase(storagePort.getCompatibilityStatus())
+				&& !storagePort.getInactive()
+				&& DiscoveryStatus.VISIBLE.name().equals(storagePort.getDiscoveryStatus())) {
+
+			StoragePort.TransportType storagePortTransportType = TransportType.valueOf(storagePort.getTransportType());
+			if (storagePortTransportType == TransportType.FC || storagePortTransportType == TransportType.IP) {
+				if (storagePort.getPortType().equals(StoragePort.PortType.frontend.name())) {
+					// must be registered
+					if (storagePort.getRegistrationStatus().equals(RegistrationStatus.REGISTERED.name())) {
+						// Must be associated with a Network
+						if (!noNetwork) {
+							if (URIUtil.isValid(storagePort.getNetwork())) {
+								// must not be OperationalStatus.NOT_OK
+								if (!storagePort.getOperationalStatus().equals(StoragePort.OperationalStatus.NOT_OK.name())) {
+									usable = true;
+								}
+								else {
+									if (doLogging) {
+										_log.info("StoragePort OperationalStatus NOT_OK: " + storagePort.getNativeGuid());
+									}
+								}
+							}
+							else {
+								if (doLogging) {
+									_log.info("StoragePort has no Network association: " + storagePort.getNativeGuid());
+								}
+							}
+						}
+						// No Network use case
+						else {
+							if (!storagePort.getOperationalStatus().equals(StoragePort.OperationalStatus.NOT_OK.name())) {
+								usable = true;
+							}
+							else {
+								if (doLogging) {
+									_log.info("StoragePort OperationalStatus NOT_OK: " + storagePort.getNativeGuid());
+								}
+							}
+						}
+					}
+					else {
+						if (doLogging) {
+							_log.info("StoragePort not REGISTERED: " + storagePort.getNativeGuid());
+						}
+					}
+				}
+			}
+		}
+		return usable;
+	}
+
 
     /**
      * Updates the static port usage parameters for a set of ports.

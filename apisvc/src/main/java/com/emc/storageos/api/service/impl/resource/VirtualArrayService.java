@@ -988,14 +988,14 @@ public class VirtualArrayService extends TaggedResource {
         list.setVArrayId(id);
         ObjectLocalCache cache = new ObjectLocalCache(_dbClient);
         List<StoragePool> pools = getVirtualArrayPools(Arrays.asList(id), cache).get(id);
-        _log.info("Alik available attributes for varray: {}", pools.toString());
+
         Map<String, Set<String>> availableAttrs = _matcherFramework.getAvailableAttributes(id, pools, cache,
                 AttributeMatcher.VPOOL_MATCHERS);
         cache.clearCache();
         for (Map.Entry<String, Set<String>> entry : availableAttrs.entrySet()) {
             list.getAttributes().add(new VirtualPoolAvailableAttributesResourceRep(entry.getKey(), entry.getValue()));
         }
-        _log.info("Alik 22 available attributes for varray: {}", list.toString());
+
         return list;
     }
 
@@ -1016,7 +1016,6 @@ public class VirtualArrayService extends TaggedResource {
         VArrayAttributeList vArrayAttributes = new VArrayAttributeList();
         ObjectLocalCache cache = new ObjectLocalCache(_dbClient);
         Map<URI, List<StoragePool>> allPools = getVirtualArrayPools(param.getIds(), cache);
-        _log.info("Alik 33 available attributes for varray: {}", allPools.toString());
         for (Map.Entry<URI, List<StoragePool>> varrEntry : allPools.entrySet()) {
             Map<String, Set<String>> availableAttrs = _matcherFramework.
                     getAvailableAttributes(varrEntry.getKey(), varrEntry.getValue(),
@@ -1029,10 +1028,8 @@ public class VirtualArrayService extends TaggedResource {
             if (!list.getAttributes().isEmpty()) {
                 vArrayAttributes.getAttributes().add(list);
             }
-            _log.info("Alik 44 available attributes for varray: {}", list.toString());
         }
         cache.clearCache();
-        _log.info("Alik 55 available attributes for varray: {}", vArrayAttributes.toString());
         return vArrayAttributes;
     }
 

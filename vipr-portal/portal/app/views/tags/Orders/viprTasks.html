@@ -26,11 +26,11 @@ function post(event, url) {
       <td>#{Tasks.progress task.progress, state:task.state/}</td>
       #{if task.state == 'suspended_no_error' }
       	<td>#{Tasks.state task.state/}
-      	        #{if task.allowed_operations == 'none' || task.allowed_operations == 'retry_only' || task.allowed_operations == 'retry_rollback'}
+      	        #{if task.allowedOperations == 'none' || task.allowedOperations == 'retry_only' || task.allowedOperations == 'retry_rollback'}
       			<a href="#" onclick="post(event, '@{retryTask(_order.id, task.id)}');"
 	              class="btn btn-default">&{'resources.tasks.resume'}</a>
 	            #{/if}
-      	        #{if task.allowed_operations == 'none' || task.allowed_operations == 'rollback_only' || task.allowed_operations == 'retry_rollback'}
+      	        #{if task.allowedOperations == 'none' || task.allowedOperations == 'rollback_only' || task.allowedOperations == 'retry_rollback'}
 	            <a href="#" onclick="post(event, '@{rollbackTask(_order.id, task.id)}');"
 	              class="btn btn-default">&{'resources.tasks.rollback'}</a>
 	            #{/if}
@@ -38,11 +38,11 @@ function post(event, url) {
       #{/if}
       #{elseif task.state == 'suspended_error' }
       	<td>#{Tasks.state task.state/}
-      	        #{if task.allowed_operations == 'none' || task.allowed_operations == 'retry_only' || task.allowed_operations == 'retry_rollback'}
+      	        #{if task.allowedOperations == 'none' || task.allowedOperations == 'retry_only' || task.allowedOperations == 'retry_rollback'}
       			<a href="#" onclick="post(event, '@{retryTask(_order.id, task.id)}');"
 	              class="btn btn-default">&{'resources.tasks.retry'}</a>
 	            #{/if}
-      	        #{if task.allowed_operations == 'none' || task.allowed_operations == 'rollback_only' || task.allowed_operations == 'retry_rollback'}
+      	        #{if task.allowedOperations == 'none' || task.allowedOperations == 'rollback_only' || task.allowedOperations == 'retry_rollback'}
 	            <a href="#" onclick="post(event, '@{rollbackTask(_order.id, task.id)}');"
 	              class="btn btn-default">&{'resources.tasks.rollback'}</a>
 	            #{/if}

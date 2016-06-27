@@ -27,6 +27,7 @@ import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.TenantOrg;
+import com.emc.storageos.db.client.model.Workflow;
 import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.ResourceTypeEnum;
@@ -122,7 +123,6 @@ public class TaskMapper {
 
         // Operation
         taskResourceRep.setState(task.getStatus());
-        taskResourceRep.setAllowedOperations(task.getAllowedOperations());
         if (task.getServiceCode() != null) {
             taskResourceRep.setServiceError(toServiceErrorRestRep(toServiceCode(task.getServiceCode()),
                     task.getMessage()));
@@ -130,6 +130,21 @@ public class TaskMapper {
             taskResourceRep.setMessage(task.getMessage());
         }
         taskResourceRep.setDescription(task.getDescription());
+
+        // COP-23486
+        //
+        // This is a workaround to migration post-commit delete source volumes. We would like to be able to
+        // mark this Task as one that cannot be rolled back, however at the time there is no framework to
+        // detect the state of not being able to rollback, so we will catch this specific situation from the
+        // message so we can "flip the flag" of allowable operations by the UI.
+
+        if (task.getWorkflow() != null) {
+            Workflow wf = configInstance.getDbClient().queryObject(Workflow.class, task.getWorkflow());
+            if (wf != null && wf.getCompletionMessage().contains("post-migration delete of original source backing volumes")) {
+                task.setAllowedOperations(Task.AllowedOperations.retry_only.name());
+            }
+        }
+        taskResourceRep.setAllowedOperations(task.getAllowedOperations());
         taskResourceRep.setStartTime(task.getStartTime());
         taskResourceRep.setEndTime(task.getEndTime());
         taskResourceRep.setProgress(task.getProgress() != null ? task.getProgress() : 0);

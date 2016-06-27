@@ -39,6 +39,7 @@ public class OpenStackTenants extends AbstractCoreResources<OpenStackTenantParam
     public OpenStackTenants(ViPRCoreClient parent, RestClient client) {
         super(parent, client, OpenStackTenantParam.class, PathConstants.KEYSTONE_URL + "/tenants");
     }
+    public final String OS_TENANTS_URL = PathConstants.KEYSTONE_URL + "/ostenants";
 
     @Override
     public OpenStackTenants withInactive(boolean inactive) {
@@ -81,7 +82,7 @@ public class OpenStackTenants extends AbstractCoreResources<OpenStackTenantParam
      * @return list of OpenStack tenants.
      */
     public CoprhdOsTenantListRestRep getOpenStackTenants() {
-        return client.get(CoprhdOsTenantListRestRep.class, PathConstants.KEYSTONE_URL + "/ostenants");
+        return client.get(CoprhdOsTenantListRestRep.class, OS_TENANTS_URL);
     }
 
     /**
@@ -94,7 +95,7 @@ public class OpenStackTenants extends AbstractCoreResources<OpenStackTenantParam
      * @return list of updated OpenStack tenants.
      */
     public CoprhdOsTenantListRestRep updateOpenStackTenants(CoprhdOsTenantListRestRep list) {
-        return client.put(CoprhdOsTenantListRestRep.class, list, PathConstants.KEYSTONE_URL + "/ostenants");
+        return client.put(CoprhdOsTenantListRestRep.class, list, OS_TENANTS_URL);
     }
 
     @Override

@@ -50,6 +50,8 @@ public class TenantsSynchronization extends ViprResourceController {
     protected static final String SAVED = "LDAPsources.saved";
     protected static final String UPDATED = "keystoneProvider.updated";
     protected static final String INTERVAL_ERROR = "ldapSources.synchronizationInterval.integerRequired";
+    // Minimum interval in seconds.
+    public static final int MIN_INTERVAL_DELAY = 10;
 
     public static void edit() {
         AuthnProviderRestRep authnProvider = AuthnProviderUtils.getKeystoneAuthProvider();
@@ -59,14 +61,14 @@ public class TenantsSynchronization extends ViprResourceController {
         renderArgs.put("tenantsOptions",
                 TenantsSynchronizationOptions.options(TenantsSynchronizationOptions.ADDITION, TenantsSynchronizationOptions.DELETION));
         renderArgs.put("interval", getInterval(authnProvider));
-        renderArgs.put("ostenants", new KeystoneSynchronizationTenantsDataTable());
+        renderArgs.put("osTenants", new KeystoneSynchronizationTenantsDataTable());
         render(keystoneProvider);
     }
 
     @FlashException("edit")
     public static void save(Form keystoneProvider) {
         String interval = keystoneProvider.synchronizationInterval;
-        if (!StringUtils.isNumeric(interval) || (StringUtils.isNumeric(interval) && (Integer.parseInt(interval) < 10))) {
+        if (!StringUtils.isNumeric(interval) || (StringUtils.isNumeric(interval) && (Integer.parseInt(interval) < MIN_INTERVAL_DELAY))) {
             flash.error(MessagesUtils.get(INTERVAL_ERROR, keystoneProvider.synchronizationInterval));
         } else {
             keystoneProvider.update();
@@ -100,7 +102,7 @@ public class TenantsSynchronization extends ViprResourceController {
     }
 
     /**
-     * Gets the list of tenants.
+     * Gets the list of OpenStack tenants.
      */
     public static void tenantsListJson() {
         List<OpenStackTenantsDataTable.OpenStackTenant> tenants = Lists.newArrayList();
@@ -162,8 +164,8 @@ public class TenantsSynchronization extends ViprResourceController {
         String interval = "";
         for (String option : authnProvider.getTenantsSynchronizationOptions()) {
             // There is only ADDITION, DELETION and interval in this StringSet.
-            if (!AuthnProvider.TenantsSynchronizationOptions.ADDITION.toString().equals(option)
-                    && !AuthnProvider.TenantsSynchronizationOptions.DELETION.toString().equals(option)) {
+            if (!AuthnProvider.TenantsSynchronizationOptions.ADDITION.toString().equals(option) &&
+                !AuthnProvider.TenantsSynchronizationOptions.DELETION.toString().equals(option)) {
                 interval = option;
             }
         }
@@ -177,12 +179,11 @@ public class TenantsSynchronization extends ViprResourceController {
     }
 
     public static boolean isKeystoneAuthnProviderCreated() {
-        boolean isKeystoneAuthnProviderCreated = false;
         AuthnProviderRestRep authnProvider = AuthnProviderUtils.getKeystoneAuthProvider();
-        if (authnProvider.getId() != null && authnProvider.getAutoRegCoprHDNImportOSProjects() == true) {
-            isKeystoneAuthnProviderCreated = true;
+        if (authnProvider != null && authnProvider.getAutoRegCoprHDNImportOSProjects() == true) {
+            return true;
         }
-        return isKeystoneAuthnProviderCreated;
+        return false;
     }
 
 }

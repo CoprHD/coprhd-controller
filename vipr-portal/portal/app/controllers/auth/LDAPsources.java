@@ -399,8 +399,8 @@ public class LDAPsources extends ViprResourceController {
             String interval = "";
             for (String option : tenantsSynchronizationOptions) {
                 // There is only ADDITION, DELETION and interval in this StringSet.
-                if (!AuthnProvider.TenantsSynchronizationOptions.ADDITION.toString().equals(option)
-                        && !AuthnProvider.TenantsSynchronizationOptions.DELETION.toString().equals(option)) {
+                if (!AuthnProvider.TenantsSynchronizationOptions.ADDITION.toString().equals(option) &&
+                    !AuthnProvider.TenantsSynchronizationOptions.DELETION.toString().equals(option)) {
                     interval = option;
                 }
             }
@@ -415,7 +415,7 @@ public class LDAPsources extends ViprResourceController {
             } else {
                 newValues = Sets.newHashSet(this.synchronizationInterval);
             }
-            
+
             Set<String> oldValues = provider.getTenantsSynchronizationOptions();
 
             TenantsSynchronizationOptionsChanges changes = new TenantsSynchronizationOptionsChanges();

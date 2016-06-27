@@ -40,7 +40,7 @@ public class OpenStackTenantsDataTable extends DataTable {
         public boolean includedStatus;
 
         public OpenStackTenant(OpenStackTenantParam tenant) {
-            this.id = tenant.getId().toString();
+            this.id = tenant.getOsId();
             this.osId = tenant.getOsId();
             this.name = tenant.getName();
             this.description = tenant.getDescription();

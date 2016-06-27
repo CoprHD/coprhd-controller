@@ -43,8 +43,8 @@ titleKey = 'keystoneProvider.title';
 #{/form}
 
 #{DataTable.header titleKey:'keystoneProvider.addTenants', descriptionKey:'keystoneProvider.addTenants.description', hideAlerts:true/}
-#{DataTable.table id: 'ostenants',
-                  dataTable: ostenants,
+#{DataTable.table id: 'osTenants',
+                  dataTable: osTenants,
                   source: @tenantsListJson(),
                   selectable: true,
                   options:['iDisplayLength': '5']}
@@ -53,7 +53,7 @@ titleKey = 'keystoneProvider.title';
      #{Form.button name:'button.synchronize', class:'success', dropdown:false, submit:'addForm'/}
    #{/DataTable.buttonBar}
 
-   #{DataTable.formAction @synchronizeOSTenants(), id:'addForm', table:'ostenants'/}
+   #{DataTable.formAction @synchronizeOSTenants(), id:'addForm', table:'osTenants'/}
 #{/DataTable.table}
 
 </div>

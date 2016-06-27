@@ -43,19 +43,19 @@
     }
 
     $(document).ready(function() {
-		if (!editMode && !errors) {
-    		setDefaults();
+        if (!editMode && !errors) {
+            setDefaults();
         }
-		var authType = $('#ldapSources_mode').val();
-		if (editMode && authType == '${keyStoneType}') {
-			$('#ldapSources_groupAttribute').prop("disabled", true);
+        var authType = $('#ldapSources_mode').val();
+        if (editMode && authType == '${keyStoneType}') {
+            $('#ldapSources_groupAttribute').prop("disabled", true);
             $('#ldapSources_synchronizationInterval').val('${defaultInterval}');
         }
-    	$('#ldapSources_mode').on('change', setFormByType);
-    	$('#ldapSources_mode').on('change', setDefaults);
+        $('#ldapSources_mode').on('change', setFormByType);
+        $('#ldapSources_mode').on('change', setDefaults);
         $('#ldapSources_autoRegCoprHDNImportOSProjects').on('change', showTenantsSyncOptions);
 
-        setFormByType();       
+        setFormByType();
     });
     
     function setFormByType() {
@@ -100,8 +100,8 @@
         }
     }
 
-  // Shows Tenants Synchronization Options fields when Automatic Registration and Tenant Mapping field is checked on
-  // Create of Auth Provider and hides Tenants Synchronization Options fields if Registration in Keystone
+  // Shows Tenants Synchronization Options fields when "Automatic Registration and Tenant Mapping" field is checked
+  // on Create of Auth Provider and hides Tenants Synchronization Options fields if Registration in Keystone
   // was done earlier.
   function showTenantsSyncOptions() {
       var $ctrlElements = $("fieldset");
@@ -110,7 +110,7 @@
       var isAutoRegOn = '${readOnlyCheckboxForAutomaticRegistration}';
       var isAutoRegOn = (isAutoRegOn === 'true');
 
-      if ((autoRegSet && !editMode) || (editMode && autoRegSet && !isAutoRegOn)) {
+      if ((autoRegSet && !editMode) || (autoRegSet && editMode && !isAutoRegOn)) {
           $('#ldapSources_tenantsSynchronizationOptions').closest($ctrlElements).show();
           $('#ldapSources_synchronizationInterval').closest($ctrlElements).show();
       } else {

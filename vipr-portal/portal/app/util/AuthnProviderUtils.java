@@ -88,6 +88,6 @@ public class AuthnProviderUtils {
             if (authnProvider.getMode().equals(AuthnProvider.ProvidersType.keystone.name())) {
                 return authnProvider;
             }
-        return new AuthnProviderRestRep();
+        return null;
     }
 }

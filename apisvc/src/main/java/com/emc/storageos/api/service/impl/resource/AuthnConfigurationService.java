@@ -369,8 +369,8 @@ public class AuthnConfigurationService extends TaggedResource {
      */
     private boolean isTenantsSynchronizationOptionsChanged(AuthnProvider authnProvider, AuthnUpdateParam param) {
 
-        if (param.getTenantsSynchronizationOptionsChanges().getAdd().isEmpty()
-                && param.getTenantsSynchronizationOptionsChanges().getRemove().isEmpty()) {
+        if (param.getTenantsSynchronizationOptionsChanges().getAdd().isEmpty() &&
+            param.getTenantsSynchronizationOptionsChanges().getRemove().isEmpty()) {
             return false;
         }
 

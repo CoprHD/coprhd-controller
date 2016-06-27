@@ -3091,15 +3091,6 @@ rp_varray_setup()
     run neighborhood allow $RECOVERPOINT_VARRAY4 `tenant root`
 }
 
-rp_network_setup()
-{
-    secho 'RecoverPoint network setup'
-
-    networksystem create $RECOVERPOINT_BROCADE_NETWORK brocade --smisip $RECOVERPOINT_BROCADE_NETWORK_PROVIDER --smisport 5988 --smisuser $RECOVERPOINT_BROCADE_NETWORK_PROVIDER_USERNAME --smispw "$RECOVERPOINT_BROCADE_NETWORK_PROVIDER_PASSWORD" --smisssl false
-    sleep 20
-    transportzone listall
-}
-
 rp_storage_setup()
 {
     secho 'RecoverPoint storage setup'
@@ -4616,7 +4607,6 @@ recoverpoint_common_setup()
 {
     project_setup
     rp_varray_setup
-    rp_network_setup
     rp_storage_setup
     rp_port_setup
     rp_protection_system_setup

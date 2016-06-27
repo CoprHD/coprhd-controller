@@ -5,6 +5,7 @@
 package com.emc.storageos.computesystemcontroller.impl;
 
 import java.net.URI;
+import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -16,16 +17,20 @@ import java.util.Map;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import com.emc.sa.service.vmware.VMwareUtils;
+import com.emc.sa.util.VolumeWWNUtils;
 import com.emc.storageos.Controller;
 import com.emc.storageos.computecontroller.impl.ComputeDeviceController;
 import com.emc.storageos.computesystemcontroller.ComputeSystemController;
 import com.emc.storageos.computesystemcontroller.impl.adapter.ExportGroupState;
 import com.emc.storageos.computesystemcontroller.impl.adapter.HostStateChange;
+import com.emc.storageos.computesystemcontroller.impl.adapter.VcenterDiscoveryAdapter;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
+import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.ComputeElement;
 import com.emc.storageos.db.client.model.ExportGroup;
@@ -36,7 +41,9 @@ import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.IpInterface;
 import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.model.ScopedLabel;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.Vcenter;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
@@ -64,6 +71,21 @@ import com.emc.storageos.workflow.WorkflowStepCompleter;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.iwave.ext.vmware.HostStorageAPI;
+import com.iwave.ext.vmware.VCenterAPI;
+import com.iwave.ext.vmware.VMWareException;
+import com.vmware.vim25.HostConfigFault;
+import com.vmware.vim25.HostFileSystemMountInfo;
+import com.vmware.vim25.HostFileSystemVolume;
+import com.vmware.vim25.HostScsiDisk;
+import com.vmware.vim25.HostVmfsVolume;
+import com.vmware.vim25.InvalidProperty;
+import com.vmware.vim25.InvalidState;
+import com.vmware.vim25.NotFound;
+import com.vmware.vim25.ResourceInUse;
+import com.vmware.vim25.RuntimeFault;
+import com.vmware.vim25.mo.Datastore;
+import com.vmware.vim25.mo.HostSystem;
 
 public class ComputeSystemControllerImpl implements ComputeSystemController {
 
@@ -939,8 +961,9 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     }
 
     @Override
-    public void processHostChanges(List<HostStateChange> changes, List<URI> deletedHosts, List<URI> deletedClusters, String taskId)
-            throws ControllerException {
+    public void processHostChanges(List<HostStateChange> changes, List<URI> deletedHosts, List<URI> deletedClusters, boolean isVCenter,
+            String taskId)
+                    throws ControllerException {
         TaskCompleter completer = null;
         try {
 
@@ -962,6 +985,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             completer = new ProcessHostChangesCompleter(changes, deletedHosts, deletedClusters, taskId);
             Workflow workflow = _workflowService.getNewWorkflow(this, HOST_CHANGES_WF_NAME, true, taskId);
             String waitFor = null;
+            Map<URI, List<URI>> vCenterHostExportMap = Maps.newHashMap();
 
             Map<URI, ExportGroupState> exportGroups = Maps.newHashMap();
             _log.info("There are " + changes.size() + " changes");
@@ -1016,6 +1040,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                                 + hostId + " Remove initiators: " + hostInitiatorIds);
                         egh.removeHost(hostId);
                         egh.removeInitiators(hostInitiatorIds);
+                        addVcenterHost(vCenterHostExportMap, hostId, export.getId());
                     }
                 } else {
 
@@ -1052,6 +1077,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                                     + " Remove initiators: " + hostInitiatorIds);
                             egh.removeHost(hostId);
                             egh.removeInitiators(hostInitiatorIds);
+                            addVcenterHost(vCenterHostExportMap, hostId, export.getId());
                         }
                     }
                 }
@@ -1097,6 +1123,11 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
             _log.info("Number of ExportGroupStates: " + exportGroups.size());
 
+            // Unmount and detach for all vCenter hosts
+            if (isVCenter) {
+                unmountAndDetachVolumes(vCenterHostExportMap);
+            }
+
             // Generate export removes first and then export adds
             for (ExportGroupState export : exportGroups.values()) {
                 if (export.hasRemoves()) {
@@ -1116,6 +1147,103 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(ex);
             completer.error(_dbClient, serviceError);
         }
+    }
+
+    private void unmountAndDetachVolumes(Map<URI, List<URI>> vCenterHostExportMap) {
+        for (URI hostId : vCenterHostExportMap.keySet()) {
+            Host esxHost = _dbClient.queryObject(Host.class, hostId);
+            if (esxHost != null) {
+                URI virtualDataCenter = esxHost.getVcenterDataCenter();
+                VcenterDataCenter vcenterDataCenter = _dbClient.queryObject(VcenterDataCenter.class, virtualDataCenter);
+                URI vCenterId = vcenterDataCenter.getVcenter();
+                Vcenter vCenter = _dbClient.queryObject(Vcenter.class, vCenterId);
+
+                VCenterAPI api = VcenterDiscoveryAdapter.createVCenterAPI(vCenter);
+
+                for (URI export : vCenterHostExportMap.get(hostId)) {
+
+                    ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, export);
+
+                    for (String volume : exportGroup.getVolumes().keySet()) {
+
+                        BlockObject blockObject = BlockObject.fetch(_dbClient, URI.create(volume));
+                        for (ScopedLabel tag : blockObject.getTag()) {
+                            String tagValue = tag.getLabel();
+                            if (tagValue.startsWith("vmfsDatastore")) {
+
+                                String datastoreName = tagValue.split("=")[1];
+
+                                // TODO: what if host moved between datacenters? use old cluster vcenter datacenter instead?
+                                Datastore datastore = api.findDatastore(vcenterDataCenter.getLabel(), datastoreName);
+                                HostSystem hostSystem = api.findHostSystem(vcenterDataCenter.getLabel(), esxHost.getLabel());
+                                unmountDatastore(datastore, hostSystem);
+                                HostScsiDisk disk;
+                                HostStorageAPI storageAPI = new HostStorageAPI(hostSystem);
+                                for (HostScsiDisk entry : storageAPI.listScsiDisks()) {
+                                    if (VolumeWWNUtils.wwnMatches(VMwareUtils.getDiskWwn(entry), blockObject.getWWN())) {
+                                        detachLuns(hostSystem, entry);
+                                    }
+                                }
+
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private void detachLuns(HostSystem host, HostScsiDisk disk) {
+        try {
+            host.getHostStorageSystem().detachScsiLun(disk.getUuid());
+        } catch (NotFound e) {
+            e.printStackTrace();
+        } catch (HostConfigFault e) {
+            e.printStackTrace();
+        } catch (InvalidState e) {
+            e.printStackTrace();
+        } catch (ResourceInUse e) {
+            e.printStackTrace();
+        } catch (RuntimeFault e) {
+            e.printStackTrace();
+        } catch (InvalidProperty e) {
+            e.printStackTrace();
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void unmountDatastore(Datastore datastore, HostSystem host) {
+        final String dataStoreName = datastore.getName();
+        for (HostFileSystemMountInfo mount : new HostStorageAPI(host)
+                .getStorageSystem().getFileSystemVolumeInfo().getMountInfo()) {
+
+            HostFileSystemVolume mountVolume = mount.getVolume();
+
+            if (mountVolume == null) {
+                _log.warn("No volume attached to mount : " + mount.getMountInfo().getPath());
+                continue;
+            }
+
+            if (mount.getVolume() instanceof HostVmfsVolume
+                    && dataStoreName.equals(mount.getVolume().getName())) {
+                HostVmfsVolume volume = (HostVmfsVolume) mountVolume;
+                String vmfsUuid = volume.getUuid();
+                _log.info("Unmounting volume : " + vmfsUuid);
+                try {
+                    new HostStorageAPI(host).getStorageSystem().unmountVmfsVolume(vmfsUuid);
+                } catch (RemoteException e) {
+                    throw new VMWareException(e);
+                }
+            }
+        }
+    }
+
+    private void addVcenterHost(Map<URI, List<URI>> vCenterHostExportMap, URI hostId, URI export) {
+        if (!vCenterHostExportMap.containsKey(hostId)) {
+            vCenterHostExportMap.put(hostId, Lists.newArrayList());
+        }
+        vCenterHostExportMap.get(hostId).add(export);
     }
 
     private String generateSteps(ExportGroupState export, String waitFor, Workflow workflow, boolean add) {

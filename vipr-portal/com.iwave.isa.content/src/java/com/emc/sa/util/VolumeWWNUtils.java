@@ -19,6 +19,10 @@ public class VolumeWWNUtils {
     public static final int HUS_PREFIX_LENGTH = 4;
     public static final int PARTIAL_PREFIX_LENGTH = 5;
 
+    public static boolean wwnMatches(String actualWwn, String wwn) {
+        return partialMatch(actualWwn, wwn);
+    }
+
     public static boolean wwnMatches(String actualWwn, BlockObjectRestRep blockObject) {
         return partialMatch(actualWwn, blockObject.getWwn());
     }

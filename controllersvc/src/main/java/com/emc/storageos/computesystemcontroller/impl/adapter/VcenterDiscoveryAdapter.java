@@ -97,9 +97,8 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
                 processor.setRegistrationStatus(vcenter.getRegistrationStatus());
             }
             save(vcenter);
-            processHostChanges(changes, deletedHosts, deletedClusters);
-        }
-        else {
+            processHostChanges(changes, deletedHosts, deletedClusters, true);
+        } else {
             processor.setCompatibilityStatus(CompatibilityStatus.INCOMPATIBLE.name());
             save(vcenter);
             throw ComputeSystemControllerException.exceptions.incompatibleHostVersion(

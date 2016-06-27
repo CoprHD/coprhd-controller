@@ -2748,7 +2748,7 @@
         reconfigRequired : false,
         rebootRequired : false,
         controlNodeOnly : false,
-        value : "true", 
+        value : "false", 
     },
     {
         key : "workflow_suspend_on_class_method",

@@ -4,11 +4,13 @@
  */
 package com.emc.sa.service.aix.tasks;
 
-import static org.testng.Assert.assertEquals;
+
 
 import org.junit.Test;
 
 import com.iwave.ext.command.CommandException;
+
+import static junit.framework.TestCase.assertEquals;
 
 public class RetryableCommandTaskTest {
 

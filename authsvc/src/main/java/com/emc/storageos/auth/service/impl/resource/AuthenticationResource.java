@@ -24,6 +24,8 @@ import javax.ws.rs.core.*;
 import javax.ws.rs.core.Response.Status;
 import javax.xml.bind.annotation.XmlRootElement;
 
+import com.emc.storageos.auth.saml.SAMLUtil;
+import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.model.password.PasswordChangeParam;
 import com.emc.storageos.security.password.Password;
 import com.emc.storageos.security.password.PasswordUtils;
@@ -852,6 +854,61 @@ public class AuthenticationResource {
             _log.error("Could not generate custom (form) login page");
             return Response.status(Status.INTERNAL_SERVER_ERROR).build();
         }
+    }
+
+
+
+
+    /**
+     * Authenticates a user with SAML artifact in query parameter
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.TEXT_HTML })
+    @Path("samllogin")
+    public Response samllogin(@Context HttpServletRequest request,
+                              @Context HttpServletResponse servletResponse,
+                              @QueryParam("SAMLart") String artifact) throws IOException {
+
+        // get SAML subject information from artifact
+        String updatedService = "https://lglw1102.lss.emc.com/dashboard";
+        _log.info("get SAMLart=" + artifact);
+
+
+        //String username = "demo@emc.com";
+        String username = SAMLUtil.resolveArtifact(artifact);
+
+        StorageOSUserDAO user = new StorageOSUserDAO();
+        user.setUserName(username);
+        TenantOrg rootTenant = _permissionsHelper.getRootTenant();
+        user.setTenantId(rootTenant.getId().toString());
+        user.addGroup("FREDGROUP@SECQE.COM");
+
+        String loginError = null;
+        try {
+
+            if (user != null) {
+                String token = _tokenManager.getToken(user);
+                _log.info("generate token: " + token);
+                if (token == null) {
+                    _log.error("Could not generate token for user: {}", user.getUserName());
+                    return Response.status(Status.INTERNAL_SERVER_ERROR).build();
+                }
+                _log.info("Redirecting to the original service: {}", updatedService);
+
+                // If remember me check box is on, set the expiration time.
+                return buildLoginResponse(updatedService, null, true,
+                        false, new LoginStatus(user.getUserName(), token, true),
+                        request);
+            }
+
+        } catch (Exception e) {
+            loginError = e.getMessage();
+        }
+
+        String formLP = getFormLoginPage(updatedService, null, request.getServerName(),
+            MessageFormat.format(FORM_LOGIN_AUTH_ERROR_ENT, loginError));
+        return Response.ok(formLP).type(MediaType.TEXT_HTML)
+            .cacheControl(_cacheControl).header(HEADER_PRAGMA, HEADER_PRAGMA_VALUE).build();
     }
 
     /**

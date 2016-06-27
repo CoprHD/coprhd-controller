@@ -65,8 +65,9 @@ public interface ComputeSystemController extends Controller {
      */
     public void detachDataCenterStorage(URI datacenter, boolean deactivateOnComplete, String opId) throws InternalException;
 
-    public void processHostChanges(List<HostStateChange> changes, List<URI> deletedHosts, List<URI> deletedClusters, String taskId)
-            throws ControllerException;
+    public void processHostChanges(List<HostStateChange> changes, List<URI> deletedHosts, List<URI> deletedClusters, boolean isVCenter,
+            String taskId)
+                    throws ControllerException;
 
     public void addInitiatorToExport(URI host, URI init, String taskId) throws ControllerException;
 

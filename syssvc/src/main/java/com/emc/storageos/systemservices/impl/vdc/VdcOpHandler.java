@@ -825,14 +825,14 @@ public abstract class VdcOpHandler {
                 
                 flushVdcConfigToLocal();
                 refreshCoordinator();
-                proccessSingleNodeSiteCase();
                 
                 updateSwitchoverSiteState(site, SiteState.ACTIVE, setStateToActiveBarrier);
             } else {
-                isRebootNeeded = false;
-                flushVdcConfigToLocal();
-                proccessSingleNodeSiteCase();
-                refreshCoordinator();
+                isRebootNeeded = true;
+                // The third site just goes ahead to reboot.
+                // we need reconfig/restart zookeeper in order to make it treat new active site as Zk leader nodes. 
+                // Each time we restart coordinatorsvc, we must restart all ZK client. Otherwise ZK error "Xid out of order. Got Xid 21 with err -119 expected Xid 20"
+                // may happen due to inconsistent Zk Xid on different ZK observer node due to async zk replication
             }
         }
 
@@ -1091,8 +1091,8 @@ public abstract class VdcOpHandler {
         
         @Override
         public void execute() throws Exception {
-            //no need to wait any barrier and some nodes may not be up
-            reconfigVdc(false);
+            // Do nothing here since we are going to reboot. All properties will be flushed in VdcManager and
+            // services will be refreshed during reboot
         }
     }
 

@@ -14,7 +14,7 @@ CONFIG_FILE=${1}
 
 Usage()
 {
-    echo 'Usage: sanity <configuration_file> <bourne_ip>|<[bourne_ipv6]> {all | snapvx | isilon | vplex | vplexexport | vplexsnap | vnxblock | ingestblock | vnxblock_flex_varray | netapp | netappc | recoverpoint | xtremio | srdf |
+    echo 'Usage: sanity <configuration_file> <bourne_ip>|<[bourne_ipv6]> {all | snapvx | isilon | vplex | vplexexport | vplexsnap | custvolname | vnxblock | ingestblock | vnxblock_flex_varray | netapp | netappc | recoverpoint | xtremio | srdf |
  vnxfile | datadomainfile | vnxfile_flex_varray | vmaxblock | hds | vmaxblock_flex_varray | combined_block | blocksnapshot | blockmirror | full_copy | blockconsistencygroup | init | quick |
  errorhandling | vnxe | security | syssvc | audit | monitor | vdc | catalog | recovery | backuprestore backupserver-uri username password | dr | ipsec} [local|ldap] [<timeslot>] | sanzoning | application'
     echo 'E.g.:  sanity conf/sanity.conf 137.69.169.21 all'
@@ -156,7 +156,7 @@ done
 
 case $SS in
 
-    all|snapvx|isilon|vplex|vplexexport|vplexsnap|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxfile_flex_varray|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore|sanzoning|dr|ipsec|application|driversystem)
+    all|snapvx|isilon|vplex|vplexexport|vplexsnap|custvolname|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxfile_flex_varray|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore|sanzoning|dr|ipsec|application|driversystem)
     ;;
 
     # These tests are handled by sanity integration tests written with the code
@@ -9558,6 +9558,57 @@ snapvx_single_tests()
     # Delete the snapshot session source volume.
     secho "Deleting the VMAX3 source volume"
     volume delete $PROJECT/$VOLUME_NAME --wait
+}
+
+custvolname_setup()
+{
+    echo "Executing cutsom volume name setup"
+    vplex_setup
+}
+
+custvolname_tests()
+{
+    echo "Executing custom volume name tests"
+
+    hname=$(hostname)
+    if [ $hname = "standalone" ]; then
+        hname=$SHORTENED_HOST
+    fi
+    echo "hostname is $hname"
+
+    localVolume=$hname-${RANDOM}-VPlexLocal1
+    host=$PROJECT.lss.emc.com
+    hostLbl=$PROJECT
+    PWWN1=10:00:00:E0:7E:00:00:0F
+    WWNN1=20:00:00:E0:7E:00:00:0F
+    PWWN2=10:00:00:90:FA:18:0E:99
+    WWNN2=20:00:00:90:FA:18:0E:99
+
+    echo "Enabling custom volume naming"
+    customconfig create VolumeNamingEnabled true systemType vplex --register true
+
+    echo "Setting custom volume name configuration"
+    customconfig create VolumeNamingProvisionNoExport "{volume_label}-{project_name}" systemType vplex --register true
+
+    echo "Setting export custom volume name configuration"
+    customconfig create VolumeNamingProvisionWithExport "{volume_label}-{project_name}-{export_name}" systemType vplex --register true
+
+    echo "Creating VPLEX local volume"
+    volume create $localVolume $PROJECT $NH cosvplexlocal $BLK_SIZE
+
+    echo "Show VPLEX local volume with custom name"
+    customName=$localVolume-$PROJECT
+    volume show $PROJECT/$customName
+
+    echo "Deleting VPLEX local volume"
+    volume delete $PROJECT/$customName --wait
+
+    echo "Disable custom configurations"
+    customconfig delete systemType.vplex.VolumeNamingEnabled systemType vplex False
+    customconfig delete systemType.vplex.VolumeNamingProvisionNoExport systemType vplex False
+    customconfig delete systemType.vplex.VolumeNamingProvisionWithExport systemType vplex False
+
+    echo "Completed custom volume name tests"
 }
 
 ${SS}_setup

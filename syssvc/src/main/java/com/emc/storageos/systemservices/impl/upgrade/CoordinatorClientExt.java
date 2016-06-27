@@ -1601,13 +1601,8 @@ public class CoordinatorClientExt {
                     SiteState.STANDBY_RESUMING.equals(state) ||
                     SiteState.STANDBY_ADDING.equals(state)){
                 localSite.setLastState(state);
-                if (isRolledBack()) { // After rollback succeeded, mark site as paused
-                    _log.info("Updating local site from {} to STANDBY_PAUSED since rollback has been done", state);
-                    localSite.setState(SiteState.STANDBY_PAUSED);
-                } else {
-                    _log.info("Updating local site from {} to STANDBY_ERROR since active is unreachable", localSite.getState());
-                    localSite.setState(SiteState.STANDBY_ERROR);
-                }
+                _log.info("Updating local site from {} to STANDBY_ERROR since active is unreachable", localSite.getState());
+                localSite.setState(SiteState.STANDBY_ERROR);
                 _coordinator.persistServiceConfiguration(localSite.toConfiguration());
                 // Trigger rollback for disrupted standby resuming (manual or automatic)
                 // Do nothing for disrupted standby adding operation
@@ -1630,11 +1625,6 @@ public class CoordinatorClientExt {
                     }
                 }
             }
-        }
-
-        private boolean isRolledBack() {
-            LocalRepository localRepository = LocalRepository.getInstance();
-            return localRepository.getRollbackSourceRevision() != null;
         }
 
         /**

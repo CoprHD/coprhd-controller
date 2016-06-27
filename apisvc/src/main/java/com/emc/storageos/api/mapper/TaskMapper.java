@@ -137,14 +137,13 @@ public class TaskMapper {
         // mark this Task as one that cannot be rolled back, however at the time there is no framework to
         // detect the state of not being able to rollback, so we will catch this specific situation from the
         // message so we can "flip the flag" of allowable operations by the UI.
-
+        taskResourceRep.setAllowedOperations(Task.AllowedOperations.none_specified.name());
         if (task.getWorkflow() != null) {
             Workflow wf = configInstance.getDbClient().queryObject(Workflow.class, task.getWorkflow());
             if (wf != null && wf.getCompletionMessage().contains("post-migration delete of original source backing volumes")) {
-                task.setAllowedOperations(Task.AllowedOperations.retry_only.name());
+                taskResourceRep.setAllowedOperations(Task.AllowedOperations.retry_only.name());
             }
         }
-        taskResourceRep.setAllowedOperations(task.getAllowedOperations());
         taskResourceRep.setStartTime(task.getStartTime());
         taskResourceRep.setEndTime(task.getEndTime());
         taskResourceRep.setProgress(task.getProgress() != null ? task.getProgress() : 0);

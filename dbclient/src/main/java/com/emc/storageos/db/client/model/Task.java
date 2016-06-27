@@ -43,7 +43,6 @@ public class Task extends DataObject {
     private URI workflow;
     private Calendar queuedStartTime;
     private String queueName;
-    private String allowedOperations;
 
     // enumeration of status value
     public enum Status {
@@ -60,7 +59,7 @@ public class Task extends DataObject {
 
     // enumeration of allowed operations
     public enum AllowedOperations {
-        none, retry_rollback, rollback_only, retry_only;
+        none_specified, retry_rollback, rollback_only, retry_only;
 
         public static AllowedOperations toAllowedOperations(String allowedOperations) {
             try {
@@ -114,25 +113,6 @@ public class Task extends DataObject {
 
         this.status = status;
         setChanged("taskStatus");
-    }
-
-    @Name("allowedOperations")
-    public String getAllowedOperations() {
-        // If it's not set, and because this is a field created on upgrade,
-        // check for null here and return none if it is.
-        if (allowedOperations == null) {
-            return AllowedOperations.none.name();
-        }
-        return allowedOperations;
-    }
-
-    public void setAllowedOperations(String allowedOperations) {
-        if (!isValidAllowedOperations(allowedOperations)) {
-            throw new IllegalArgumentException("Operation: " + allowedOperations + " is not a valid operation option");
-        }
-
-        this.allowedOperations = allowedOperations;
-        setChanged("allowedOperations");
     }
 
     @Name("progress")

@@ -378,6 +378,7 @@ public class Workflow implements Serializable {
         _orchControllerName = orchControllerName;
         _orchMethod = methodName;
         _workflowURI = workflowURI;
+        _workflowState = WorkflowState.CREATED;
     }
 
     /**

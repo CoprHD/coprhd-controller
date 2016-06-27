@@ -778,13 +778,38 @@ public class VolumeGroupService extends TaskResourceService {
             if (partial && volumes != null && !volumes.isEmpty()) {
                 partialVolumeList.addAll(volumes);
             }
-        } else if (subGroups != null && !subGroups.isEmpty()) {
-            partial = validateSubGroupsParam(subGroups, application);
-            // get one volume per sub group
-            Map<String, Volume> groupToVolume = groupVolumesByReplicationGroup(ControllerUtils.getVolumeGroupVolumes(_dbClient, application));
-            for (Entry<String, Volume> entry : groupToVolume.entrySet()) {
-                if (subGroups.contains(entry.getKey())) {
-                    partialVolumeList.add(entry.getValue().getId());
+        } else {
+            if (subGroups != null && !subGroups.isEmpty()) {
+                partial = validateSubGroupsParam(subGroups, application);
+            }
+            
+            if (partial) {
+                
+                Map<String, Volume> groupToVolume = groupVolumesByReplicationGroup(ControllerUtils.getVolumeGroupVolumes(_dbClient, application));
+                
+                // get one volume per sub group
+                for (Entry<String, Volume> entry : groupToVolume.entrySet()) {
+                    if (subGroups.contains(entry.getKey())) {
+                        partialVolumeList.add(entry.getValue().getId());
+                    }
+                }
+            
+                // TODO add support for RP sites partial snapshots
+                
+            } else {
+                
+                Map<String, Volume> groupToVolume = groupVolumesByReplicationGroup(ControllerUtils.getVolumeGroupVolumes(_dbClient, application));
+                
+                // if there are RP volumes in the application, treat is as partial
+                if (!groupToVolume.values().isEmpty() && !NullColumnValueGetter.isNullURI(groupToVolume.values().iterator().next().getProtectionController())) {
+                    // TODO add support for target site create snapshots
+                    for (Entry<String, Volume> entry : groupToVolume.entrySet()) {
+                        if (NullColumnValueGetter.isNotNullValue(entry.getValue().getPersonality()) && 
+                                entry.getValue().getPersonality().equals(Volume.PersonalityTypes.SOURCE.toString()) ) {
+                            partialVolumeList.add(entry.getValue().getId());
+                        }
+                    }
+                    partial = true;
                 }
             }
         }
@@ -1990,9 +2015,19 @@ public class VolumeGroupService extends TaskResourceService {
                     }
                 }
             } else {
-                // for non-partial, we only need one snapshot in the snapshot set
-                if (iter.hasNext()) {
-                    snapshotsInRequest.add(iter.next().getId());
+                // for non-partial, we only need one snapshot per sub group
+                Map<String, List<URI>> subGroupSnapshotMap = new HashMap<String, List<URI>>();
+                while (iter.hasNext()) {
+                    BlockSnapshot snapshot = iter.next();
+                    if (NullColumnValueGetter.isNotNullValue(snapshot.getReplicationGroupInstance())) {
+                        if (subGroupSnapshotMap.get(snapshot.getReplicationGroupInstance()) == null) {
+                            subGroupSnapshotMap.put(snapshot.getReplicationGroupInstance(), new ArrayList<URI>());
+                        }
+                        subGroupSnapshotMap.get(snapshot.getReplicationGroupInstance()).add(snapshot.getId());
+                    }
+                }
+                for (Entry<String, List<URI>> entry : subGroupSnapshotMap.entrySet()) {
+                    snapshotsInRequest.add(entry.getValue().get(0));
                 }
             }
         }

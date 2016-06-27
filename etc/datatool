@@ -33,7 +33,6 @@ export PATH=/bin:/bin:/sbin:/usr/bin:/usr/sbin
 _usage() {
     set +Ex
     echo "Usage: $0 --list"             >&2
-    echo "   or: $0 --create-version datadir version"      >&2
     echo "   or: $0 --set-version datadir version"             >&2
     echo "   or: $0 --create-minor-version datadir" >&2
     echo "   or: $0 --revert-minor-version datadir"   >&2
@@ -141,6 +140,7 @@ _get_base_minor_version() {
     echo "${basesn}"
 }
 
+# List all major/minor version for given data dir
 _list() {
     local basedir=$(dirname $1)
     if [ ! -L $1 ] ; then
@@ -164,7 +164,9 @@ _list() {
     done
 }
 
-_create_version() {
+# Link data dir to given version. New dir is created if given version 
+# doesn't exist on disk
+_set_version() {
     local basedir=$(dirname $1)
 
     # check if version matched
@@ -182,7 +184,7 @@ _create_version() {
 
     # create new target revision dir if it does not exist
     local sn=0
-    local basesn=$(_get_base_minor_version $1)    
+    local basesn=$(_get_base_minor_version $1) # get base
     [ "${basesn}" != "" ] && sn="${basesn}"
     local datadir="${basedir}/${2}.${sn}"
     if [ ! -d "${datadir}" ] ; then
@@ -195,6 +197,7 @@ _create_version() {
     chown -h storageos:storageos $1
 }
 
+# Purge unused major/minor version for given data dir
 _purge_unused_versions() {
     local basedir=$(dirname $1)
     if [ ! -L $1 ] ; then
@@ -296,8 +299,7 @@ case ${#} in
             *)                        _usage
         esac;;
     3)  case ${1} in 
-            --create-version)          _x _create_version  "${2}" "${3}" ;;
-            --set-version)             _x _create_version  "${2}" "${3}" ;;
+            --set-version)             _x _set_version  "${2}" "${3}" ;;
             *)                        _usage
         esac;;
     *)  _usage

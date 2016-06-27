@@ -458,9 +458,9 @@ _genconfig_data_versioning() {
            # not start 
            touch "/data/UNCOMMITTED_DATA_REVISION"
        else
-           /etc/datatool --create-version /data/db/1 ${tgt_dataver}
-           /etc/datatool --create-version /data/geodb/1 ${tgt_dataver}
-           /etc/datatool --create-version /data/zk/version-2 ${tgt_dataver}
+           /etc/datatool --set-version /data/db/1 ${tgt_dataver}
+           /etc/datatool --set-version /data/geodb/1 ${tgt_dataver}
+           /etc/datatool --set-version /data/zk/version-2 ${tgt_dataver}
            rm -f /data/zk/myid
            local prev_dataver=${_GENCONFIG_previous_data_revision}
            if [ -z "${prev_dataver}" ]; then

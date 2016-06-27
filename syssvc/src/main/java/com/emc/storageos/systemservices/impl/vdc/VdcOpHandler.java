@@ -259,10 +259,20 @@ public abstract class VdcOpHandler {
     }
 
     /**
-     * Process DR config change for add-standby on newly added site
-     *   flush npt config to local properties, increase data revision and reboot. After reboot, it sync db/zk data from active sites during db/zk startup
+     * Process DR config change for add-standby on newly added site, or resume-standby. 
+     *   flush ntp config to local properties, increase data revision and reboot. After reboot, it sync db/zk data from active sites during db/zk startup
      *   We don't flush vdc properties to local until data revision is changed successfully. The reason is - we don't want to change anything at local
      *   if data revision change fails. 
+     *   
+     * A data revision indicates a point-in-time copy of db, geodb and zk on all nodes in a cluster. Data revision is persisted at a local property file 
+     * at /.volumes/bootfs/etc/datarevision.properties.  It contains the following properties -
+     *   vdc_config_version=1467062122040              Config version which is triggering PIT copy change 
+     *   target_data_revision= 1467062122040           Major version of this PIT copy. See /etc/datatool to know what is major/minor version of a PIT copy
+     *   target_data_revision=true|false               For 2 phase commit. True for successful commit. False means inconsistent commit.  
+     *   previous_data_revision=1467062122039          Previous data revision. We keep previous data revision for rollback if PIT switch fails
+     *   previous_vdc_config_version=1467062122039     Config version associated with previous data revision
+     *   
+     * Genconfig uses those properties to prepare data directories(db, geodb, zk).   
      */
     public static class DrChangeDataRevisionHandler extends VdcOpHandler {
         private DistributedDoubleBarrier barrier;

@@ -72,7 +72,9 @@ public class UnexportVMwareVolumeService extends VMwareHostService {
             String datastoreName = KnownMachineTags.getBlockVolumeVMFSDatastore(hostId, volume);
             if (!StringUtils.isEmpty(datastoreName)) {
                 Datastore datastore = vmware.getDatastore(datacenter.getLabel(), datastoreName);
-                vmware.verifyDatastoreForRemoval(datastore);
+                if (datastore != null) {
+                    vmware.verifyDatastoreForRemoval(datastore);
+                }
             }
         }
     }

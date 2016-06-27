@@ -1610,10 +1610,17 @@ public class CoordinatorClientExt {
                 if (SiteState.STANDBY_SYNCING.equals(state)) {
                     try {
                         LocalRepository localRepository = LocalRepository.getInstance();
-                        long rollbackTargetRevision = Long.parseLong(localRepository.getPreviousDataRevision());
-                        drUtil.updateVdcTargetVersion(drUtil.getLocalSite().getUuid(), SiteInfo.DR_OP_CHANGE_DATA_REVISION,
-                                DrUtil.newVdcConfigVersion(), rollbackTargetRevision);
-                        _log.info("Automatic rollback to {} has been triggered", rollbackTargetRevision);
+                        PropertyInfoExt localDataRevisionProps = localRepository.getDataRevisionPropertyInfo();
+                        String prevRevision = localDataRevisionProps.getProperty(Constants.KEY_PREV_DATA_REVISION);
+                        _log.info("Previous data revision at local {}", prevRevision);
+                        if (prevRevision != null) {
+                            long rollbackTargetRevision = Long.parseLong(prevRevision);
+                            drUtil.updateVdcTargetVersion(drUtil.getLocalSite().getUuid(), SiteInfo.DR_OP_CHANGE_DATA_REVISION,
+                                    DrUtil.newVdcConfigVersion(), rollbackTargetRevision);
+                            _log.info("Automatic rollback to {} has been triggered", rollbackTargetRevision);
+                        } else {
+                            _log.error("No valid previous revision found. Skip rollback");
+                        }
                     } catch (Exception e) {
                         _log.error("Failed to trigger rollback for local site", e);
                     }
@@ -1681,13 +1688,6 @@ public class CoordinatorClientExt {
                 if (allEntered) {
                     try {
                         localRepository.reconfigCoordinator("observer");
-                        // In rollback case, we need to clear the key "rollback_from" in datarevision.properties file
-                        // so that data sync is not blocked any more since active is back now
-                        if (localRepository.clearRollbackSourceRevision()) {
-                            // This is to make sure local version is different from target version after connecting to active
-                            // so that data-resync would definitely be triggered
-                            localRepository.resetVdcConfigVersion();
-                        };
                     } finally {
                         leaveZKDoubleBarrier(switchToZkObserverBarrier, DR_SWITCH_TO_ZK_OBSERVER_BARRIER);
                     }

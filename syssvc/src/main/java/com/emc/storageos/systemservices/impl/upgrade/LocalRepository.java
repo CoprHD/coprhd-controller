@@ -234,12 +234,6 @@ public class LocalRepository {
         }
     }
 
-    public void resetVdcConfigVersion() throws LocalRepositoryException {
-        PropertyInfoExt props = getVdcPropertyInfo();
-        props.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION, String.valueOf(0));
-        setVdcPropertyInfo(props);
-    }
-
     /***
      * Update property
      * 
@@ -511,31 +505,23 @@ public class LocalRepository {
     /***
      * Update data revision property
      *
+     * @param prevRevision
      * @param targetRevision
      * @param committed 
      * @param vdcConfigVersion
      * @throws LocalRepositoryException
      */
-    public void setDataRevision(String localRevision, String targetRevision, boolean committed, long vdcConfigVersion) throws LocalRepositoryException {
+    public void setDataRevision(String prevRevision, String targetRevision, boolean committed, long vdcConfigVersion) throws LocalRepositoryException {
         final String prefix = String.format("setDataRevisionTag(): to=%s committed=%s" , targetRevision, committed);
         _log.debug(prefix);
 
         final Path tmpFilePath = FileSystems.getDefault().getPath(DATA_REVISION_TMP);
         StringBuilder s = new StringBuilder();
-        // If it's a regular data resync case, we record previous data revision
-        // If is's a rollback case, we record the rollback source data revision
-        if (localRevision != null) {
-            if (isRollbackCase(localRevision, targetRevision)) {
-                s.append(KEY_ROLLBACK_FROM);
-                s.append(PropertyInfoExt.ENCODING_EQUAL);
-                s.append(String.valueOf(localRevision));
-                s.append(PropertyInfoExt.ENCODING_NEWLINE);
-            } else {
-                s.append(KEY_PREV_DATA_REVISION);
-                s.append(PropertyInfoExt.ENCODING_EQUAL);
-                s.append(String.valueOf(localRevision));
-                s.append(PropertyInfoExt.ENCODING_NEWLINE);
-            }
+        if (prevRevision != null) {
+            s.append(KEY_PREV_DATA_REVISION);
+            s.append(PropertyInfoExt.ENCODING_EQUAL);
+            s.append(String.valueOf(prevRevision));
+            s.append(PropertyInfoExt.ENCODING_NEWLINE);
         }
         s.append(KEY_DATA_REVISION);
         s.append(PropertyInfoExt.ENCODING_EQUAL);
@@ -560,91 +546,20 @@ public class LocalRepository {
         }
     }
 
-    private boolean isRollbackCase(String localRevision, String targetRevision) {
-        return Long.parseLong(localRevision) > Long.parseLong(targetRevision);
-    }
-
-    /**
-     * 
-     * @return true if KEY_DATA_REVISION existed
-     */
-    public boolean clearRollbackSourceRevision() throws LocalRepositoryException {
-        final String prefix = "clearRollbackSourceRevision(): ";
-        _log.debug(prefix);
-
-        final String[] cmd1 = { _SYSTOOL_CMD, _SYSTOOL_GET_DATA_REVISION };
-        String[] props = exec(prefix, cmd1);
-
-        _log.debug(prefix + "properties={}", Strings.repr(props));
-        Map<String, String> map = PropertyInfoUtil.splitKeyValue(props);
-        String revision = map.get(KEY_ROLLBACK_FROM);
-        if (revision == null) {
-            return false;
-        }
-        setDataRevision(map.get(KEY_DATA_REVISION),
-                Boolean.parseBoolean(map.get(KEY_DATA_REVISION_COMMITTED)),
-                Long.parseLong(map.get(KEY_VDC_CONFIG_VERSION)));
-        _log.info(prefix + " Success");
-        return true;
-    }
-
-    /***
-     * Get rollback source data revision from disk, return null if no rollback happened
-     */
-    public String getRollbackSourceRevision() throws LocalRepositoryException {
-        final String prefix = "getRollbackSourceRevision(): ";
-        _log.debug(prefix);
-
-        final String[] cmd1 = { _SYSTOOL_CMD, _SYSTOOL_GET_DATA_REVISION };
-        String[] props = exec(prefix, cmd1);
-
-        _log.debug(prefix + "properties={}", Strings.repr(props));
-        Map<String, String> map = PropertyInfoUtil.splitKeyValue(props);
-        String revision = map.get(KEY_ROLLBACK_FROM);
-        String committed = map.get(KEY_DATA_REVISION_COMMITTED);
-        if (committed != null && Boolean.valueOf(committed)) {
-            return revision;
-        }
-        return null;
-    }
-
-    public String getPreviousDataRevision() throws LocalRepositoryException {
-        final String prefix = "getPreviousDataRevision(): ";
-        _log.debug(prefix);
-
-        final String[] cmd1 = { _SYSTOOL_CMD, _SYSTOOL_GET_DATA_REVISION };
-        String[] props = exec(prefix, cmd1);
-
-        _log.debug(prefix + "properties={}", Strings.repr(props));
-        Map<String, String> map = PropertyInfoUtil.splitKeyValue(props);
-        String revision = map.get(KEY_PREV_DATA_REVISION);
-        String committed = map.get(KEY_DATA_REVISION_COMMITTED);
-        if (committed != null && Boolean.valueOf(committed)) {
-            return revision;
-        }
-        return SiteInfo.DEFAULT_TARGET_VERSION;
-    }
-
     /***
      * Get data revision from disk
      * 
      * @return DataRevisonTag
      */
-    public String getDataRevision() throws LocalRepositoryException {
-        final String prefix = "getDataRevision(): ";
+    public PropertyInfoExt getDataRevisionPropertyInfo() throws LocalRepositoryException {
+        final String prefix = "getDataRevisionPropertyInfo(): ";
         _log.debug(prefix);
 
         final String[] cmd1 = { _SYSTOOL_CMD, _SYSTOOL_GET_DATA_REVISION };
         String[] props = exec(prefix, cmd1);
 
         _log.debug(prefix + "properties={}", Strings.repr(props));
-        Map<String, String> map = PropertyInfoUtil.splitKeyValue(props);
-        String revision = map.get(KEY_DATA_REVISION);
-        String committed = map.get(KEY_DATA_REVISION_COMMITTED);
-        if (committed != null && Boolean.valueOf(committed)) {
-            return revision;
-        }
-        return SiteInfo.DEFAULT_TARGET_VERSION;
+        return new PropertyInfoExt(props);
     }
 
     /***

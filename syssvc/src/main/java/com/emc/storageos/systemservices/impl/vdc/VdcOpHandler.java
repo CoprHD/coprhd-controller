@@ -277,28 +277,36 @@ public abstract class VdcOpHandler {
         }
         
         private void checkDataRevision() throws Exception {
-            // Step4: change data revision
             try {
                 long targetDataRevision = Long.parseLong(targetSiteInfo.getTargetDataRevision());
-                log.info("check if target data revision is changed - {}", targetDataRevision);
+                long targetVdcConfigVersion = targetSiteInfo.getVdcConfigVersion();
+                log.info("Check if target data revision is changed - data revision {}, vdc config version {}", targetDataRevision, targetVdcConfigVersion);
                 
-                long localRevision = Long.parseLong(localRepository.getDataRevision());
-                log.info("local data revision is {}", localRevision);
-
-                String rollbackSource = localRepository.getRollbackSourceRevision();
-                if (rollbackSource != null && Long.parseLong(rollbackSource) == targetDataRevision) {
-                    log.info("Current revision is rollbacked from {}, no need to change to that data revision again", rollbackSource);
-                    return;
+                long localRevision = 0;
+                long localVdcConfigVersion = 0;
+                PropertyInfoExt localRevisionProps = localRepository.getDataRevisionPropertyInfo();
+                String committed = localRevisionProps.getProperty(Constants.KEY_DATA_REVISION_COMMITTED);
+                if (committed != null && Boolean.valueOf(committed)) {
+                    String revision = localRevisionProps.getProperty(Constants.KEY_DATA_REVISION);
+                    localRevision = Long.parseLong(revision);
+                    String configVersion = localRevisionProps.getProperty(Constants.KEY_VDC_CONFIG_VERSION);
+                    localVdcConfigVersion = Long.parseLong(configVersion);
                 }
-                // In rollback case, target data revision is smaller than local data revision
-                if (targetDataRevision != localRevision) {
-                    updateDataRevision();
+                log.info("Local data revision is {}, vdc config version is {}", localRevision, localVdcConfigVersion);
+
+                if (localVdcConfigVersion != targetVdcConfigVersion) {
+                    String prevRevision = String.valueOf(localRevision);
+                    updateDataRevision(prevRevision);
+                } else {
+                    // TODO - reset target site info
                 }
             } catch (Exception e) {
                 log.error("Failed to update data revision. {}", e);
                 throw e;
             }
         }
+        
+        
         
         /**
          * Check if data revision is same as local one. If not, switch to target revision and reboot the whole cluster
@@ -308,8 +316,7 @@ public abstract class VdcOpHandler {
          * 
          * @throws Exception
          */
-        private void updateDataRevision() throws Exception {
-            String localRevision = localRepository.getDataRevision();
+        private void updateDataRevision(String prevDataRevision) throws Exception {
             String targetDataRevision = targetSiteInfo.getTargetDataRevision();
             long vdcConfigVersion = targetSiteInfo.getVdcConfigVersion();
             log.info("Trying to reach agreement with timeout for data revision change");
@@ -320,16 +327,16 @@ public abstract class VdcOpHandler {
                 if (phase1Agreed) {
                     // reach phase 1 agreement, we can start write to local property file
                     log.info("Reach phase 1 agreement for data revision change");
-                    localRepository.setDataRevision(localRevision, targetDataRevision, false, vdcConfigVersion);
+                    localRepository.setDataRevision(prevDataRevision, targetDataRevision, false, vdcConfigVersion);
                     boolean phase2Agreed = barrier.leave(VDC_OP_BARRIER_TIMEOUT, TimeUnit.SECONDS);
                     if (phase2Agreed) {
                         // phase 2 agreement is received, we can make sure data revision change is written to local property file
                         log.info("Reach phase 2 agreement for data revision change");
-                        localRepository.setDataRevision(localRevision, targetDataRevision, true, vdcConfigVersion);
+                        localRepository.setDataRevision(prevDataRevision, targetDataRevision, true, vdcConfigVersion);
                         setConcurrentRebootNeeded(true);
                     } else {
                         log.info("Failed to reach phase 2 agreement. Rollback revision change");
-                        localRepository.setDataRevision(localRevision, true, vdcConfigVersion);
+                        localRepository.setDataRevision(prevDataRevision, true, vdcConfigVersion);
                         throw new IllegalStateException("Failed to reach phase 2 agreement on data revision change");
                     }
                 } else {

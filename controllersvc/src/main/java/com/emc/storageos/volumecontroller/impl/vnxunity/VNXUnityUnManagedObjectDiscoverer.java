@@ -73,6 +73,7 @@ import com.emc.storageos.volumecontroller.FileControllerConstants;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
 import com.emc.storageos.volumecontroller.impl.utils.UnManagedExportVerificationUtility;
+import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
@@ -1359,7 +1360,7 @@ public class VNXUnityUnManagedObjectDiscoverer {
         List<UnManagedVolume> unManagedExportVolumesToUpdate = new ArrayList<UnManagedVolume>();
         // In Unity, the volumes are exposed through all the storage ports.
         // Get all the storage ports to be added as known ports in the unmanaged export mask
-        // If the host ports are FC, then all add all FC storage ports to the mask
+        // If the host ports are FC, then add all FC storage ports to the mask
         // else add all IP ports
         StringSet knownFCStoragePortUris = new StringSet();
         StringSet knownIPStoragePortUris = new StringSet();
@@ -1392,6 +1393,7 @@ public class VNXUnityUnManagedObjectDiscoverer {
             VNXeHost host = apiClient.getHostById(hostId);
             List<VNXeBase> fcInits = host.getFcHostInitiators();
             List<VNXeBase> iScsiInits = host.getIscsiHostInitiators();
+            boolean isVplexHost = false;
             if (fcInits != null && !fcInits.isEmpty()) {
                 for (VNXeBase init : fcInits) {
                     VNXeHostInitiator initiator = apiClient.getHostInitiator(init.getId());
@@ -1404,6 +1406,12 @@ public class VNXUnityUnManagedObjectDiscoverer {
                         knownInitSet.add(knownInitiator.getId().toString());
                         knownNetworkIdSet.add(portwwn);
                         matchedFCInitiators.add(knownInitiator);
+                    } else {
+                        knownInitiator = new Initiator();
+                        knownInitiator.setInitiatorPort(portwwn);
+                    }
+                    if (!isVplexHost && VPlexControllerUtils.isVplexInitiator(knownInitiator, dbClient)) {
+                        isVplexHost = true;
                     }
                 }
             }
@@ -1435,6 +1443,13 @@ public class VNXUnityUnManagedObjectDiscoverer {
                 hostUnManagedVol.getInitiatorNetworkIds().addAll(knownNetworkIdSet);
                 hostUnManagedVol.getInitiatorUris().addAll(knownInitSet);
                 hostUnManagedVol.getUnmanagedExportMasks().add(mask.getId().toString());
+                if (isVplexHost) {
+                    log.info("marking unmanaged unity volume {} as a VPLEX backend volume",
+                            hostUnManagedVol.getLabel());
+                    hostUnManagedVol.putVolumeCharacterstics(
+                            SupportedVolumeCharacterstics.IS_VPLEX_BACKEND_VOLUME.toString(),
+                            Boolean.TRUE.toString());
+                }
                 mask.getUnmanagedVolumeUris().add(hostUnManagedVol.getId().toString());
                 unManagedExportVolumesToUpdate.add(hostUnManagedVol);
             }

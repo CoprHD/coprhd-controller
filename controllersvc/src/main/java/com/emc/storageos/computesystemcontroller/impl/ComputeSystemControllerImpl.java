@@ -834,6 +834,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     }
 
     public void unmountAndDetach(URI exportGroupId, URI hostId, URI vCenterId, URI vcenterDatacenter, String stepId) {
+        WorkflowStepCompleter.stepExecuting(stepId);
 
         Host esxHost = _dbClient.queryObject(Host.class, hostId);
         Vcenter vCenter = _dbClient.queryObject(Vcenter.class, vCenterId);
@@ -863,7 +864,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 }
             }
         }
-
+        WorkflowStepCompleter.stepSucceded(stepId);
     }
 
     public Workflow.Method deleteExportGroupMethod(URI exportGroupURI) {

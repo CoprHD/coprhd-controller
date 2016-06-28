@@ -9579,7 +9579,7 @@ custvolname_tests()
     customconfig create VolumeNamingProvisionWithExport "{volume_label}-{project_name}-{export_name}" systemType vplex --register true
 
     localVolume1=VPlexLocal1-${RANDOM}
-    echo "Creating VPLEX local volume " + $localVolume1
+    echo "Creating VPLEX local volume $localVolume1"
     volume create $localVolume1 $PROJECT $NH cosvplexlocal $BLK_SIZE
 
     echo "Show VPLEX local volume with custom name"
@@ -9591,15 +9591,15 @@ custvolname_tests()
 
     host=$PROJECT.lss.emc.com
     hostLbl=$PROJECT
-    echo "Creating host with name " + $hostLbl
+    echo "Creating host with name $hostLbl"
     hosts create $hostLbl $TENANT Windows $host --port 8111 --username user --password 'password' --osversion 1.0
 
     echo "Getting host URI"
     hosturi=`hosts list ${TENANT} | grep ${hostLbl} | awk '{print $4}'`
-    echo "Host URI is " + $hosturi
+    echo "Host URI is $hosturi"
 
     localVolume2=VPlexLocal2-${RANDOM}
-    echo "Creating VPLEX local volume " + $localVolume2 + " for host " + $hostLbl
+    echo "Creating VPLEX local volume $localVolume2 for host $hostLbl"
     volume create $localVolume2 $PROJECT $NH cosvplexlocal $BLK_SIZE --computeResource $hosturi
 
     echo "Show VPLEX local volume with custom name"

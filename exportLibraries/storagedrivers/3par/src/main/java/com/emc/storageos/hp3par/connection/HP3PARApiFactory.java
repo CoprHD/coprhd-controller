@@ -206,10 +206,10 @@ public class HP3PARApiFactory {
 //        VirtualLunsList vlunRes = hp3parApi.getAllVlunDetails();
 //        hp3parApi.deleteVlun("One_Thin30", "10", "LGLOE199", "1:1:1");
         ArrayList<String> portIds = new ArrayList<>();
-        portIds.add("1111222233334444");
-        portIds.add("1111222233334445");
-        portIds.add("1111222233334446");
-        hp3parApi.createHost("myhost4", portIds, 4);
+//        portIds.add("1111222233334444");
+//        portIds.add("1111222233334445");
+        portIds.add("1122334455667776");
+        hp3parApi.createHost("myhostot7", portIds, 4);
         
         
         int a=0; a++; System.out.println(a);

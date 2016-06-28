@@ -1012,6 +1012,7 @@ public class HP3PARApi {
         _log.info("3PARDriver:createHost enter");
         ClientResponse clientResp = null;
         String portIdstr = "[";
+        String body = null;
         
         for (String Id:portIds) {
             if (portIdstr.length() > 1 ) {
@@ -1021,8 +1022,14 @@ public class HP3PARApi {
         }
         portIdstr = portIdstr.concat("]");
         
-        String body = "{\"name\":\"" + name + "\", \"FCWWNs\":" + portIdstr + 
-                 ", \"persona\":" + persona.toString() + "}";
+        if (portIds.get(0).startsWith("iqn") == false) {
+            body = "{\"name\":\"" + name + "\", \"FCWWNs\":" + portIdstr + 
+                    ", \"persona\":" + persona.toString() + "}";
+        } else {
+            body = "{\"name\":\"" + name + "\", \"iSCSINames\":" + portIdstr + 
+                    ", \"persona\":" + persona.toString() + "}";            
+        }
+
         try {
             clientResp = post(URI_HOSTS, body);
             if (clientResp == null) {
@@ -1030,7 +1037,13 @@ public class HP3PARApi {
                 throw new HP3PARException("There is no response from 3PAR");
             } else if (clientResp.getStatus() != 201) {
                 String errResp = getResponseDetails(clientResp);
-                throw new HP3PARException(errResp);
+                
+                if (clientResp.getStatus() == 409 && errResp.contains("code: 16") == true) {
+                    // host exists; get existing initiators and modify host
+                    updateHost(name, portIds);
+                } else {
+                    throw new HP3PARException(errResp);
+                }
             } else {
                 String responseString = getHeaderFieldValue(clientResp, "Location");
                 _log.info("3PARDriver:createHost 3PAR response is Location: {}", responseString);
@@ -1043,6 +1056,52 @@ public class HP3PARApi {
             }
             _log.info("3PARDriver:createHost leave");
         } //end try/catch/finally
+    }
+    
+    public void updateHost(String name, ArrayList<String> portIdsNew) throws Exception {
+        _log.info("3PARDriver:updateHost enter");
+        ClientResponse clientResp = null;
+        String portIdstr = "[";
+        String body = null;
+        final String path = MessageFormat.format(URI_HOST_DETAILS, name);
+
+        try {
+            for (String Id:portIdsNew) {
+                if (portIdstr.length() > 1 ) {
+                    portIdstr = portIdstr.concat(",");
+                }
+                portIdstr = portIdstr.concat("\"" + Id + "\"");
+            }
+            portIdstr = portIdstr.concat("]");
+
+            if (portIdsNew.get(0).startsWith("iqn") == false) {
+                body = "{\"FCWWNs\":" + portIdstr + ", \"pathOperation\":1}";
+            } else {
+                body = "{\"iSCSINames\":" + portIdstr + ", \"pathOperation\":1\"}";
+            }
+
+            clientResp = put(path, body);
+            if (clientResp == null) {
+                _log.error("3PARDriver:There is no response from 3PAR");
+                throw new HP3PARException("There is no response from 3PAR");
+            } else if (clientResp.getStatus() != 200) {
+                String errResp = getResponseDetails(clientResp);
+                throw new HP3PARException(errResp);
+            } else {
+                String responseString = getHeaderFieldValue(clientResp, "Location");
+                _log.info("3PARDriver:createHost 3PAR response is Location: {}", responseString);
+            }
+
+        } catch (Exception e) {
+            throw e;
+        } finally {
+            if (clientResp != null) {
+                clientResp.close();
+            }
+            _log.info("3PARDriver:createHost leave");
+        } //end try/catch/finally
+
+        _log.info("3PARDriver:updateHost leave");
     }
 
     private CompleteError getCompleteResponseDetails(ClientResponse clientResp) {

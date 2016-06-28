@@ -1676,19 +1676,19 @@ srdf_setup_once()
     run blockconsistencygroup create $SRDF_PROJECT ${CONSISTENCY_GROUP_SRDF}v3
     
     smisprovider show $SRDF_V3_VMAXA_SMIS_DEV &> /dev/null && return $?
-    smisprovider create $SRDF_V3_VMAXA_SMIS_DEV $SRDF_V3_VMAXA_SMIS_IP $SRDF_V3_VMAXA_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $SRDF_V3_VMAXA_SMIS_SSL
+    run smisprovider create $SRDF_V3_VMAXA_SMIS_DEV $SRDF_V3_VMAXA_SMIS_IP $SRDF_V3_VMAXA_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $SRDF_V3_VMAXA_SMIS_SSL
     smisprovider show $SRDF_V3_VMAXB_SMIS_DEV &> /dev/null && return $?
-    smisprovider create $SRDF_V3_VMAXB_SMIS_DEV $SRDF_V3_VMAXB_SMIS_IP $SRDF_V3_VMAXB_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $SRDF_V3_VMAXB_SMIS_SSL
+    run smisprovider create $SRDF_V3_VMAXB_SMIS_DEV $SRDF_V3_VMAXB_SMIS_IP $SRDF_V3_VMAXB_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $SRDF_V3_VMAXB_SMIS_SSL
 
     # Adding additional array in order to test pool matching.
     # smisprovider show $VMAX_SMIS_DEV &> /dev/null && return $?
     # smisprovider create $VMAX_SMIS_DEV $VMAX_SMIS_IP $VMAX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX_SMIS_SSL
     smisprovider show $VNX_SMIS_DEV &> /dev/null && return $?
-    smisprovider create $VNX_SMIS_DEV $VNX_SMIS_IP $VNX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VNX_SMIS_SSL
+    run smisprovider create $VNX_SMIS_DEV $VNX_SMIS_IP $VNX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VNX_SMIS_SSL
 
-    storagedevice discover_all --ignore_error
-    discoveredsystem show $SRDF_VMAXA_NATIVEGUID &> /dev/null && return $?
-    discoveredsystem show $SRDF_VMAXB_NATIVEGUID &> /dev/null && return $?
+    run storagedevice discover_all --ignore_error
+    #discoveredsystem show $SRDF_VMAXA_NATIVEGUID &> /dev/null && return $?
+    #discoveredsystem show $SRDF_VMAXB_NATIVEGUID &> /dev/null && return $?
     discoveredsystem show $SRDF_V3_VMAXA_NATIVEGUID &> /dev/null && return $?
     discoveredsystem show $SRDF_V3_VMAXB_NATIVEGUID &> /dev/null && return $?
 }

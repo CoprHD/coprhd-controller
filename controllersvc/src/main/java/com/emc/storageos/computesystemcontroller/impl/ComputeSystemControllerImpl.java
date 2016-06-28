@@ -894,7 +894,6 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                     // TODO: what if host moved between datacenters? use old cluster vcenter datacenter instead?
                     Datastore datastore = api.findDatastore(vCenterDataCenter.getLabel(), datastoreName);
                     unmountDatastore(datastore, hostSystem);
-                    storageAPI.detachDatastore(datastore);
                     for (HostScsiDisk entry : storageAPI.listScsiDisks()) {
                         // TODO use VolumeWWNUtils
                         if (VMwareUtils.getDiskWwn(entry).equalsIgnoreCase(blockObject.getWWN())) {

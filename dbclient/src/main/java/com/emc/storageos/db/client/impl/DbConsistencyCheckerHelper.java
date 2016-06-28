@@ -8,8 +8,10 @@ package com.emc.storageos.db.client.impl;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 
 import org.apache.cassandra.serializers.BooleanSerializer;
@@ -26,16 +28,6 @@ import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.ScopedLabel;
 import com.emc.storageos.db.exceptions.DatabaseException;
-import com.netflix.astyanax.Keyspace;
-import com.netflix.astyanax.connectionpool.OperationResult;
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
-import com.netflix.astyanax.model.Column;
-import com.netflix.astyanax.model.ColumnFamily;
-import com.netflix.astyanax.model.ColumnList;
-import com.netflix.astyanax.model.Rows;
-import com.netflix.astyanax.query.ColumnFamilyQuery;
-import com.netflix.astyanax.query.RowQuery;
-import com.netflix.astyanax.util.RangeBuilder;
 
 public class DbConsistencyCheckerHelper {
     private static final Logger _log = LoggerFactory.getLogger(DbConsistencyCheckerHelper.class);
@@ -181,13 +173,13 @@ public class DbConsistencyCheckerHelper {
     protected int checkIndexingCF(IndexAndCf indexAndCf, boolean toConsole) {
         int corruptRowCount = 0;
 
-        String indexCFName = indexAndCf.cf.getName();
-        Map<String, ColumnFamily<String, CompositeColumnName>> objCfs = getDataObjectCFs();
+        String indexCFName = indexAndCf.cf;
+        Map<String, String> objCfs = getDataObjectCFs();
         _log.info("Start checking the index CF {}", indexCFName);
 
-        Map<ColumnFamily<String, CompositeColumnName>, Map<String, List<IndexEntry>>> objsToCheck = new HashMap<>();
+        Map<String, Map<String, List<IndexEntry>>> objsToCheck = new HashMap<>();
         
-        String queryString = String.format("select * from \"%s\"", indexAndCf.cf.getName());
+        String queryString = String.format("select * from \"%s\"", indexAndCf.cf);
         SimpleStatement queryStatement = new SimpleStatement(queryString);
         queryStatement.setFetchSize(100);
         
@@ -195,42 +187,49 @@ public class DbConsistencyCheckerHelper {
 
         for (Row row : resultSet) {
         	String key = row.getString(0);
-            RowQuery<String, IndexColumnName> rowQuery = query.getRow(key)
-                    .autoPaginate(true)
-                    .withColumnRange(new RangeBuilder().setLimit(100).build());
-            ColumnList<IndexColumnName> columns;
-            while (!(columns = rowQuery.execute().getResult()).isEmpty()) {
-                for (Column<IndexColumnName> column : columns) {
-                    ObjectEntry objEntry = extractObjectEntryFromIndex(key,
-                            column.getName(), indexAndCf.indexType, toConsole);
-                    if (objEntry == null) {
-                        continue;
-                    }
-                    ColumnFamily<String, CompositeColumnName> objCf = objCfs
-                            .get(objEntry.getClassName());
-
-                    if (objCf == null) {
-                        logMessage(String.format("DataObject does not exist for %s", key), true, toConsole);
-                        continue;
-                    }
-
-                    Map<String, List<IndexEntry>> objKeysIdxEntryMap = objsToCheck.get(objCf);
-                    if (objKeysIdxEntryMap == null) {
-                        objKeysIdxEntryMap = new HashMap<>();
-                        objsToCheck.put(objCf, objKeysIdxEntryMap);
-                    }
-                    List<IndexEntry> idxEntries = objKeysIdxEntryMap.get(objEntry.getObjectId());
-                    if (idxEntries == null) {
-                        idxEntries = new ArrayList<>();
-                        objKeysIdxEntryMap.put(objEntry.getObjectId(), idxEntries);
-                    }
-                    idxEntries.add(new IndexEntry(key, column.getName()));
-                }
+            
+            queryString += " where key='" + key + "'";
+            queryStatement = new SimpleStatement(queryString);
+            queryStatement.setFetchSize(100);
+            ResultSet resultSetByKey = indexAndCf.dbClientContext.getSession().execute(queryStatement);
+            
+            for (Row indexRow : resultSetByKey) {
+                IndexColumnName indexColumnName = new IndexColumnName(indexRow.getString(1), 
+                        indexRow.getString(2), 
+                        indexRow.getString(3),
+                        indexRow.getString(4),
+                        indexRow.getUUID(5),
+                        indexRow.getBytes(6)); 
                 
-                if (getObjsSize(objsToCheck) >= INDEX_OBJECTS_BATCH_SIZE ) {
-                    corruptRowCount += processBatchIndexObjects(indexAndCf, toConsole, objsToCheck);
+                ObjectEntry objEntry = extractObjectEntryFromIndex(key,
+                        indexColumnName, indexAndCf.indexType, toConsole);
+                if (objEntry == null) {
+                    continue;
                 }
+                String objCfName = objCfs.get(objEntry.getClassName());
+
+                if (objCfName == null) {
+                    logMessage(String.format("DataObject does not exist for %s", key), true, toConsole);
+                    continue;
+                }
+
+                Map<String, List<IndexEntry>> objKeysIdxEntryMap = objsToCheck.get(objCfName);
+                if (objKeysIdxEntryMap == null) {
+                    objKeysIdxEntryMap = new HashMap<>();
+                    objsToCheck.put(objCfName, objKeysIdxEntryMap);
+                }
+                List<IndexEntry> idxEntries = objKeysIdxEntryMap.get(objEntry.getObjectId());
+                if (idxEntries == null) {
+                    idxEntries = new ArrayList<>();
+                    objKeysIdxEntryMap.put(objEntry.getObjectId(), idxEntries);
+                }
+                idxEntries.add(new IndexEntry(key, indexColumnName));
             }
+            
+            if (getObjsSize(objsToCheck) >= INDEX_OBJECTS_BATCH_SIZE ) {
+                corruptRowCount += processBatchIndexObjects(indexAndCf, toConsole, objsToCheck);
+            }
+            
         }
 
         // Detect whether the DataObject CFs have the records
@@ -239,7 +238,7 @@ public class DbConsistencyCheckerHelper {
         return corruptRowCount;
     }
 
-    private int getObjsSize(Map<ColumnFamily<String, CompositeColumnName>, Map<String, List<IndexEntry>>> objsToCheck) {
+    private int getObjsSize(Map<String, Map<String, List<IndexEntry>>> objsToCheck) {
         int size = 0;
         for (Map<String, List<IndexEntry>> objMap : objsToCheck.values()) {
             for (List<IndexEntry> objs : objMap.values()) {
@@ -253,29 +252,35 @@ public class DbConsistencyCheckerHelper {
      * We need to process index objects in batch to avoid occupy too many memory
      * */
     private int processBatchIndexObjects(IndexAndCf indexAndCf, boolean toConsole,
-            Map<ColumnFamily<String, CompositeColumnName>, Map<String, List<IndexEntry>>> objsToCheck) throws ConnectionException {
+            Map<String, Map<String, List<IndexEntry>>> objsToCheck) {
         int corruptRowCount = 0;
-        for (ColumnFamily<String, CompositeColumnName> objCf : objsToCheck.keySet()) {
+        for (String objCf : objsToCheck.keySet()) {
             Map<String, List<IndexEntry>> objKeysIdxEntryMap = objsToCheck.get(objCf);
-
-            OperationResult<Rows<String, CompositeColumnName>> objResult = indexAndCf.keyspace
-                    .prepareQuery(objCf).getRowSlice(objKeysIdxEntryMap.keySet())
-                    .withColumnRange(new RangeBuilder().setLimit(1).build())
-                    .execute();
-            for (Row<String, CompositeColumnName> row : objResult.getResult()) {
-                if (row.getColumns().isEmpty()) { // Only support all the columns have been removed now
-                    List<IndexEntry> idxEntries = objKeysIdxEntryMap.get(row.getKey());
+            
+            String queryString = String.format("select distinct key from \"%s\" where key in ?", objCf);
+            PreparedStatement queryStatement = indexAndCf.dbClientContext.getPreparedStatement(queryString);
+            
+            ResultSet resultSetByKey = indexAndCf.dbClientContext.getSession().execute(queryStatement.bind(objKeysIdxEntryMap.keySet()));
+            
+            Set<String> queryoutKeySet = new HashSet<String>();
+            for (Row row : resultSetByKey) {
+                queryoutKeySet.add(row.getString(0));
+            }
+            
+            for (String key : objKeysIdxEntryMap.keySet()) {
+                if (!queryoutKeySet.contains(key)) { // Only support all the columns have been removed now
+                    List<IndexEntry> idxEntries = objKeysIdxEntryMap.get(key);
                     for (IndexEntry idxEntry : idxEntries) {
                         corruptRowCount++;
                         logMessage(String.format("Inconsistency found: Index(%s, type: %s, id: %s, column: %s) is existing "
                                 + "but the related object record(%s, id: %s) is missing.",
-                                indexAndCf.cf.getName(), indexAndCf.indexType.getSimpleName(),
+                                indexAndCf.cf, indexAndCf.indexType.getSimpleName(),
                                 idxEntry.getIndexKey(), idxEntry.getColumnName(),
-                                objCf.getName(), row.getKey()), true, toConsole);
-                        DbCheckerFileWriter.writeTo(indexAndCf.keyspace.getKeyspaceName(),
+                                objCf, key), true, toConsole);
+                        DbCheckerFileWriter.writeTo(indexAndCf.dbClientContext.getKeyspaceName(),
                                 String.format(
                                         "delete from \"%s\" where key='%s' and column1='%s' and column2='%s' and column3='%s' and column4='%s' and column5=%s;",
-                                        indexAndCf.cf.getName(), idxEntry.getIndexKey(), idxEntry.getColumnName().getOne(),
+                                        indexAndCf.cf, idxEntry.getIndexKey(), idxEntry.getColumnName().getOne(),
                                         idxEntry.getColumnName().getTwo(),
                                         handleNullValue(idxEntry.getColumnName().getThree()),
                                         handleNullValue(idxEntry.getColumnName().getFour()),
@@ -301,11 +306,11 @@ public class DbConsistencyCheckerHelper {
                     continue;
                 }
 
-                IndexAndCf indexAndCf = new IndexAndCf(index.getClass(), field.getIndexCF(), dbClientContext);
+                IndexAndCf indexAndCf = new IndexAndCf(index.getClass(), field.getIndexCF().getName(), dbClientContext);
                 String key = indexAndCf.generateKey();
                 IndexAndCf idxAndCf = idxCfs.get(key);
                 if (idxAndCf == null) {
-                    idxAndCf = new IndexAndCf(index.getClass(), field.getIndexCF(), dbClientContext);
+                    idxAndCf = new IndexAndCf(index.getClass(), field.getIndexCF().getName(), dbClientContext);
                     idxCfs.put(key, idxAndCf);
                 }
             }
@@ -314,13 +319,13 @@ public class DbConsistencyCheckerHelper {
         return idxCfs;
     }
 
-    public Map<String, ColumnFamily<String, CompositeColumnName>> getDataObjectCFs() {
-        Map<String, ColumnFamily<String, CompositeColumnName>> objCfs = new TreeMap<>();
+    public Map<String, String> getDataObjectCFs() {
+        Map<String, String> objCfs = new TreeMap<>();
         for (DataObjectType objType : TypeMap.getAllDoTypes()) {
             String simpleClassName = objType.getDataObjectClass().getSimpleName();
-            ColumnFamily<String, CompositeColumnName> objCf = objCfs.get(simpleClassName);
+            String objCf = objCfs.get(simpleClassName);
             if (objCf == null) {
-                objCfs.put(simpleClassName, objType.getCF());
+                objCfs.put(simpleClassName, objType.getCF().getName());
             }
         }
 
@@ -347,12 +352,12 @@ public class DbConsistencyCheckerHelper {
      * the related DbIndex type and it belongs to which Keyspace.
      */
     protected static class IndexAndCf implements Comparable {
-        private ColumnFamily<String, IndexColumnName> cf;
+        private String cf;
         private Class<? extends DbIndex> indexType;
         private DbClientContext dbClientContext;
 
         IndexAndCf(Class<? extends DbIndex> indexType,
-                ColumnFamily<String, IndexColumnName> cf, DbClientContext dbClientContext) {
+                String cf, DbClientContext dbClientContext) {
             this.indexType = indexType;
             this.cf = cf;
             this.dbClientContext = dbClientContext;
@@ -367,7 +372,7 @@ public class DbConsistencyCheckerHelper {
             StringBuffer buffer = new StringBuffer();
             buffer.append(dbClientContext.getKeyspaceName()).append("/")
                     .append(indexType.getSimpleName()).append("/")
-                    .append(cf.getName());
+                    .append(cf);
             return buffer.toString();
         }
 

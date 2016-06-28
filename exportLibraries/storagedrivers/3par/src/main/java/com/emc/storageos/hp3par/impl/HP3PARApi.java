@@ -93,6 +93,7 @@ public class HP3PARApi {
     // For export
     private static final String URI_CREATE_VLUN = "/api/v1/vluns";
     private static final String URI_HOSTS = "/api/v1/hosts";
+    private static final String URI_HOSTSETS = "/api/v1/hostsets";
     private static final String URI_HOSTSET_DETAILS = "/api/v1/hostsets/{0}";
     private static final String URI_HOST_DETAILS = "/api/v1/hosts/{0}";
     private static final String URI_VLUNS = "/api/v1/vluns";
@@ -875,7 +876,7 @@ public class HP3PARApi {
                 throw new HP3PARException(errResp);
             } else {
                 String responseString = getHeaderFieldValue(clientResp, "Location");
-                _log.info("3PARDriver:createVolume 3PAR response is Location: {}", responseString);
+                _log.info("3PARDriver:createVlun 3PAR response is Location: {}", responseString);
                 String[] resp = responseString.split(",");
                 VlunResult result = new VlunResult();
                 result.setAssignedLun(resp[1]);
@@ -905,10 +906,14 @@ public class HP3PARApi {
                 throw new HP3PARException("There is no response from 3PAR");
             } else if (clientResp.getStatus() != 200) {
                 String errResp = getResponseDetails(clientResp);
-                throw new HP3PARException(errResp);
+                if (clientResp.getStatus() == 404 && errResp.contains("code: 102")) {
+                    return null; //Host set does not exists
+                } else {                        
+                    throw new HP3PARException(errResp);
+                }
             } else {
                 String responseString = clientResp.getEntity(String.class);
-                _log.info("3PARDriver:getVolumeDetails 3PAR response is {}", responseString);
+                _log.info("3PARDriver:getHostSetDetails 3PAR response is {}", responseString);
                 HostSetDetailsCommandResult hostsetResult = new Gson().fromJson(sanitize(responseString),
                         HostSetDetailsCommandResult.class);
                 return hostsetResult;
@@ -922,7 +927,38 @@ public class HP3PARApi {
             _log.info("3PARDriver:getHostSetDetails leave");
         } //end try/catch/finally
     }
-    
+
+    // Request is for creating the cluster with only one host
+    public HostSetDetailsCommandResult createtHostSet(String clustName, String hostName) throws Exception {
+        _log.info("3PARDriver:createtHostSet enter");
+        ClientResponse clientResp = null;
+        String body = "{\"name\": \"" + clustName + "\", \"setmembers\": [\"" + hostName + "\"]}";
+        
+        try {
+            clientResp = post(URI_HOSTSETS, body);
+            if (clientResp == null) {
+                _log.error("3PARDriver:There is no response from 3PAR");
+                throw new HP3PARException("There is no response from 3PAR");
+            } else if (clientResp.getStatus() != 201) {
+                String errResp = getResponseDetails(clientResp);
+                throw new HP3PARException(errResp);
+            } else {
+                String responseString = clientResp.getEntity(String.class);
+                _log.info("3PARDriver:createtHostSet 3PAR response is {}", responseString);
+                HostSetDetailsCommandResult hostsetResult = new Gson().fromJson(sanitize(responseString),
+                        HostSetDetailsCommandResult.class);
+                return hostsetResult;
+            }
+        } catch (Exception e) {
+            throw e;
+        } finally {
+            if (clientResp != null) {
+                clientResp.close();
+            }
+            _log.info("3PARDriver:createtHostSet leave");
+        } //end try/catch/finally
+    }
+
     public HostMember getHostDetails(String name) throws Exception {
         _log.info("3PARDriver:getHostDetails enter");
         ClientResponse clientResp = null;
@@ -938,7 +974,7 @@ public class HP3PARApi {
                 throw new HP3PARException(errResp);
             } else {
                 String responseString = clientResp.getEntity(String.class);
-                _log.info("3PARDriver:getVolumeDetails 3PAR response is {}", responseString);
+                _log.info("3PARDriver:getHostDetails 3PAR response is {}", responseString);
                 HostMember hostResult = new Gson().fromJson(sanitize(responseString),
                         HostMember.class);
                 return hostResult;
@@ -1039,7 +1075,7 @@ public class HP3PARApi {
                 String errResp = getResponseDetails(clientResp);
                 
                 if (clientResp.getStatus() == 409 && errResp.contains("code: 16") == true) {
-                    // host exists; get existing initiators and modify host
+                    // host exists; modify host by adding new initiators
                     updateHost(name, portIds);
                 } else {
                     throw new HP3PARException(errResp);

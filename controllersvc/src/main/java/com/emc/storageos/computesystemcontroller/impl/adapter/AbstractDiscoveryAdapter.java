@@ -489,15 +489,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
     }
 
     public void processHostChanges(HostStateChange changes) {
-        processHostChanges(Collections.singletonList(changes), Collections.<URI> emptyList(), false);
-    }
-
-    public void processHostChanges(List<HostStateChange> changes, List<URI> deletedHosts, boolean isVCenter) {
-        processHostChanges(changes, deletedHosts, Collections.<URI> emptyList(), isVCenter);
-    }
-
-    public void processHostChanges(List<HostStateChange> changes, List<URI> deletedHosts, List<URI> deletedClusters) {
-        processHostChanges(changes, deletedHosts, deletedClusters, false);
+        processHostChanges(Collections.singletonList(changes), Collections.<URI> emptyList(), Collections.<URI> emptyList(), false);
     }
 
     public void processHostChanges(List<HostStateChange> changes, List<URI> deletedHosts, List<URI> deletedClusters, boolean isVCenter) {

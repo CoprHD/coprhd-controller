@@ -44,7 +44,7 @@ import com.emc.storageos.api.service.impl.resource.utils.CinderApiUtils;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.api.service.impl.response.ProjOwnedResRepFilter;
 import com.emc.storageos.api.service.impl.response.ResRepFilter;
-import com.emc.storageos.cinder.CinderConstants.ComponentStatus;
+import com.emc.storageos.cinder.CinderConstants;
 import com.emc.storageos.cinder.model.CinderSnapshot;
 import com.emc.storageos.cinder.model.CinderSnapshotListRestResp;
 import com.emc.storageos.cinder.model.CinderSnapshotMetadata;
@@ -90,6 +90,8 @@ import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
+
+import org.apache.commons.lang.RandomStringUtils;
 
 @Path("/v2/{tenant_id}/snapshots")
 @DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, readAcls = {
@@ -167,7 +169,11 @@ public class SnapshotService extends TaskResourceService {
             snapshotName = param.snapshot.name;
             snapshotDescription = param.snapshot.description;
         }
-
+        //if snapshot name is empty create random name
+        if (snapshotName == null)
+        {
+        	snapshotName = "snapshot-" + RandomStringUtils.random(10);
+        }
         if (snapshotName == null || (snapshotName.length() <= 2))
         {
             throw APIException.badRequests
@@ -296,11 +302,13 @@ public class SnapshotService extends TaskResourceService {
                         .toString();
                 snapCreateResp.snapshot.created_at = date(snap
                         .getCreationTime().getTimeInMillis());
-                snapCreateResp.snapshot.status = ComponentStatus.CREATING.getStatus().toLowerCase(); // "creating";
+                snapCreateResp.snapshot.status = CinderConstants.ComponentStatus.CREATING.getStatus().toLowerCase();
+                // "creating";
+                
                 return snapCreateResp;
             }
         }
-
+        
         return snapCreateResp;
     }
 
@@ -405,7 +413,7 @@ public class SnapshotService extends TaskResourceService {
         }
         _dbClient.updateObject(snap);
         return CinderApiUtils.getCinderResponse(
-                getSnapshotDetail(snap, isV1Call, openstack_tenant_id), header, true);
+                getSnapshotDetail(snap, isV1Call, openstack_tenant_id), header, true,CinderConstants.STATUS_OK);
     }
 
     /**
@@ -523,7 +531,7 @@ public class SnapshotService extends TaskResourceService {
                 }
             }
         }
-        return CinderApiUtils.getCinderResponse(snapshots, header, false);
+        return CinderApiUtils.getCinderResponse(snapshots, header, false,CinderConstants.STATUS_OK);
     }
 
     /**
@@ -558,7 +566,7 @@ public class SnapshotService extends TaskResourceService {
             _log.error("Not Found : Snapshot belongs to a consistency group");
             return CinderApiUtils.createErrorResponse(400, "Invalid snapshot: Snapshot belongs to consistency group");
         }            
-
+        
         URI snapshotURI = snap.getId();
         String task = UUID.randomUUID().toString();
         TaskList response = new TaskList();
@@ -661,12 +669,13 @@ public class SnapshotService extends TaskResourceService {
         BlockSnapshot snapshot = findSnapshot(snapshot_id, openstack_tenant_id);
         
         if(snapshot==null) {
-            throw APIException.badRequests.parameterIsNotValid(snapshot_id);
+        	_log.error("Invalid snapshot ID ={} ",snapshot_id);
+        	return CinderApiUtils.createErrorResponse(400, "Bad Request : Invalid snapshot " + snapshot_id);
         }
 
         response = getSnapshotDetail(snapshot, isV1Call, openstack_tenant_id);            
 
-        return CinderApiUtils.getCinderResponse(response, header, true);
+        return CinderApiUtils.getCinderResponse(response, header, true,CinderConstants.STATUS_OK);
     }
 
     /**
@@ -694,11 +703,12 @@ public class SnapshotService extends TaskResourceService {
             @Context HttpHeaders header) {
         BlockSnapshot snapshot = findSnapshot(snapshot_id, openstack_tenant_id);
         if(snapshot==null) {
-            throw APIException.badRequests.parameterIsNotValid(snapshot_id);
+        	_log.error("Invalid snapshot ID ={} ",snapshot_id);
+        	return CinderApiUtils.createErrorResponse(400, "Bad Request : Invalid snapshot " + snapshot_id);
         }
         
         return CinderApiUtils.getCinderResponse(
-               getSnapshotDetail(snapshot, isV1Call, openstack_tenant_id), header, true);
+               getSnapshotDetail(snapshot, isV1Call, openstack_tenant_id), header, true,CinderConstants.STATUS_OK);
         
     }
 
@@ -732,24 +742,24 @@ public class SnapshotService extends TaskResourceService {
                     if (tsk.getId().toString().equals(taskInProgressId)) {
                         if (tsk.getStatus().equals("ready"))
                         {
-                            detail.status = ComponentStatus.AVAILABLE.getStatus().toLowerCase();
-                            snapshot.getExtensions().put("status", ComponentStatus.AVAILABLE.getStatus().toLowerCase());
+                            detail.status = CinderConstants.ComponentStatus.AVAILABLE.getStatus().toLowerCase();
+                            snapshot.getExtensions().put("status", CinderConstants.ComponentStatus.AVAILABLE.getStatus().toLowerCase());
                             snapshot.getExtensions().remove("taskid");
                             _dbClient.updateObject(snapshot);
                         }
                         else if (tsk.getStatus().equals("pending")) {
                             if (tsk.getDescription().equals(ResourceOperationTypeEnum.CREATE_VOLUME_SNAPSHOT.getDescription()))
                             {
-                                detail.status = ComponentStatus.CREATING.getStatus().toLowerCase();
+                                detail.status = CinderConstants.ComponentStatus.CREATING.getStatus().toLowerCase();
                             } else if (tsk.getDescription().equals(ResourceOperationTypeEnum.DELETE_VOLUME_SNAPSHOT.getDescription()))
                             {
-                                detail.status = ComponentStatus.DELETING.getStatus().toLowerCase();
+                                detail.status = CinderConstants.ComponentStatus.DELETING.getStatus().toLowerCase();
                             }
                         }
                         else if (tsk.getStatus().equals("error"))
                         {
-                            detail.status = ComponentStatus.ERROR.getStatus().toLowerCase();
-                            snapshot.getExtensions().put("status", ComponentStatus.ERROR.getStatus().toLowerCase());
+                            detail.status = CinderConstants.ComponentStatus.ERROR.getStatus().toLowerCase();
+                            snapshot.getExtensions().put("status", CinderConstants.ComponentStatus.ERROR.getStatus().toLowerCase());
                             snapshot.getExtensions().remove("taskid");
                             _dbClient.updateObject(snapshot);
                         }
@@ -763,7 +773,7 @@ public class SnapshotService extends TaskResourceService {
             }
             else
             {
-                detail.status = ComponentStatus.AVAILABLE.getStatus().toLowerCase(); // "available";
+                detail.status = CinderConstants.ComponentStatus.AVAILABLE.getStatus().toLowerCase(); // "available";
             }
 
             for (String mapEntry : extensions.keySet()) {
@@ -786,14 +796,14 @@ public class SnapshotService extends TaskResourceService {
         }
 
         detail.progress = ZERO_PERCENT_COMPLETION;// default
-        if ((detail.status == ComponentStatus.CREATING.getStatus().toLowerCase())
-                || (detail.status == ComponentStatus.DELETING.getStatus().toLowerCase()) ||
-                (detail.status == ComponentStatus.ERROR.getStatus().toLowerCase())
-                || (detail.status == ComponentStatus.ERROR_DELETING.getStatus().toLowerCase()))
+        if ((detail.status == CinderConstants.ComponentStatus.CREATING.getStatus().toLowerCase())
+                || (detail.status == CinderConstants.ComponentStatus.DELETING.getStatus().toLowerCase()) ||
+                (detail.status == CinderConstants.ComponentStatus.ERROR.getStatus().toLowerCase())
+                || (detail.status == CinderConstants.ComponentStatus.ERROR_DELETING.getStatus().toLowerCase()))
         {
             detail.progress = ZERO_PERCENT_COMPLETION;
         }
-        else if (detail.status == ComponentStatus.AVAILABLE.getStatus().toLowerCase())
+        else if (detail.status == CinderConstants.ComponentStatus.AVAILABLE.getStatus().toLowerCase())
         {
             detail.progress = HUNDRED_PERCENT_COMPLETION;
         }

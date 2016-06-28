@@ -320,12 +320,39 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         return createVolumeOptions(null, volumes);
     }
 
+    @Asset("unexportedSourceBlockVolumeWithDeletion")
+    @AssetDependencies({ "project", "deletionType" })
+    public List<AssetOption> getUnexportedSourceVolumesWithDeletion(final AssetOptionsContext ctx, URI project, String deletionType) {
+        debug("getting unexported source block volumes (project=%s)", project);
+        final ViPRCoreClient client = api(ctx);
+        Set<URI> volumeIds = new HashSet<URI>(getExportedVolumeIds(ctx, project));
+        UnexportedBlockResourceFilter<VolumeRestRep> unexportedFilter = new UnexportedBlockResourceFilter<VolumeRestRep>(
+                volumeIds);
+        List<VolumeRestRep> volumes = client.blockVolumes().findByProject(project, unexportedFilter/*.and(sourceTargetVolumesFilter)*/);
+        return createVolumeOptions(null, volumes);
+    }
+
     @Asset("exportedBlockVolume")
     @AssetDependencies("project")
     public List<AssetOption> getExportedVolumes(AssetOptionsContext ctx, URI project) {
         debug("getting source block volumes (project=%s)", project);
         final ViPRCoreClient client = api(ctx);
         // Filter volumes that are not RP Metadata
+        List<URI> volumeIds = getExportedVolumeIds(ctx, project);
+        FilterChain<VolumeRestRep> filter = new FilterChain<VolumeRestRep>(RecoverPointPersonalityFilter.METADATA.not());
+        List<VolumeRestRep> volumes = client.blockVolumes().getByIds(volumeIds, filter);
+        return createVolumeWithVarrayOptions(client, volumes);
+    }
+
+    /**
+     * Return a list of all exported volume ids for a given project id.
+     *
+     * @param ctx asset option content
+     * @param project id
+     * @return list of exported volume ids
+     */
+    private List<URI> getExportedVolumeIds(AssetOptionsContext ctx, URI project) {
+        final ViPRCoreClient client = api(ctx);
         List<URI> volumeIds = Lists.newArrayList();
         for (ExportGroupRestRep export : client.blockExports().findByProject(project)) {
             for (ExportBlockParam resource : export.getVolumes()) {
@@ -334,9 +361,8 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                 }
             }
         }
-        FilterChain<VolumeRestRep> filter = new FilterChain<VolumeRestRep>(RecoverPointPersonalityFilter.METADATA.not());
-        List<VolumeRestRep> volumes = client.blockVolumes().getByIds(volumeIds, filter);
-        return createVolumeWithVarrayOptions(client, volumes);
+        
+        return volumeIds;
     }
 
     @Asset("deletionType")
@@ -416,7 +442,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getTargetVplexVolumeVirtualArrays(AssetOptionsContext ctx, URI projectId) {
         ViPRCoreClient client = api(ctx);
         List<AssetOption> targets = Lists.newArrayList();
-        for (VirtualArrayRestRep varray : client.varrays().getAll()) {
+        for (VirtualArrayRestRep varray : client.varrays().getByTenant(ctx.getTenant())) {
             targets.add(createBaseResourceOption(varray));
         }
         return targets;
@@ -431,7 +457,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     @Asset("mobilityMigrationTargetVirtualPool")
     public List<AssetOption> getMobilityMigrationTargetVirtualPools(AssetOptionsContext ctx) {
-        return this.createBaseResourceOptions(api(ctx).blockVpools().getAll());
+        return this.createBaseResourceOptions(api(ctx).blockVpools().getByTenant(ctx.getTenant()));
     }
 
     @Asset("journalCopyName")
@@ -751,7 +777,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @Asset("blockVirtualPool")
     public List<AssetOption> getBlockVirtualPools(AssetOptionsContext ctx) {
         debug("getting blockVirtualPools");
-        return createBaseResourceOptions(api(ctx).blockVpools().getAll());
+        return createBaseResourceOptions(api(ctx).blockVpools().getByTenant(ctx.getTenant()));
     }
 
     @Asset("blockVirtualPoolFilter")
@@ -772,7 +798,8 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @AssetDependencies({ "virtualArray" })
     public List<AssetOption> getVirtualPoolsForVirtualArray(AssetOptionsContext ctx, URI virtualArray) {
         debug("getting virtualPoolsForVirtualArray(virtualArray=%s)", virtualArray);
-        List<BlockVirtualPoolRestRep> virtualPools = api(ctx).blockVpools().getByVirtualArray(virtualArray);
+        List<BlockVirtualPoolRestRep> virtualPools =
+                api(ctx).blockVpools().getByVirtualArrayAndTenant(virtualArray,ctx.getTenant());
         return createVirtualPoolResourceOptions(virtualPools);
     }
 

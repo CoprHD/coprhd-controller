@@ -936,7 +936,19 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                                 String customVolumeName = CustomVolumeNamingUtils.getCustomName(customConfigHandler,
                                         customConfigName, customNameDataSource, vplex.getSystemType());
                                 vvInfo = CustomVolumeNamingUtils.renameVolumeOnVPlex(vvInfo, customVolumeName, client);
+                                // Update the label to match the custom name.
                                 vplexVolume.setLabel(vvInfo.getName());
+                                
+                                // Also, we update the name portion of the project and tenant URIs
+                                // to reflect the custom name. This is necessary because the API 
+                                // to search for volumes by project, extracts the name portion of the
+                                // project URI to get the volume name.
+                                NamedURI namedURI = vplexVolume.getProject();
+                                namedURI.setName(vvInfo.getName());
+                                vplexVolume.setProject(namedURI);
+                                namedURI = vplexVolume.getTenant();
+                                namedURI.setName(vvInfo.getName());
+                                vplexVolume.setTenant(namedURI);
                             }
                         }
                     } catch (Exception e){
@@ -6452,6 +6464,17 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         vplexVolume.setNativeGuid(virtvinfo.getPath());
                         vplexVolume.setDeviceLabel(virtvinfo.getName());
                         vplexVolume.setLabel(virtvinfo.getName());
+                        
+                        // Also, we update the name portion of the project and tenant URIs
+                        // to reflect the custom name. This is necessary because the API 
+                        // to search for volumes by project, extracts the name portion of the
+                        // project URI to get the volume name.
+                        NamedURI namedURI = vplexVolume.getProject();
+                        namedURI.setName(virtvinfo.getName());
+                        vplexVolume.setProject(namedURI);
+                        namedURI = vplexVolume.getTenant();
+                        namedURI.setName(virtvinfo.getName());
+                        vplexVolume.setTenant(namedURI);
                     }
                 }
             } catch (Exception e) {
@@ -9148,6 +9171,17 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             promoteVolume.setThinVolumePreAllocationSize(vplexMirror.getThinPreAllocationSize());
             // VPLEX volumes created by VIPR have syncActive set to true hence setting same value for promoted vplex volumes
             promoteVolume.setSyncActive(true);
+            
+            // Also, we update the name portion of the project and tenant URIs
+            // to reflect the new name. This is necessary because the API 
+            // to search for volumes by project, extracts the name portion of the
+            // project URI to get the volume name.
+            NamedURI namedURI = promoteVolume.getProject();
+            namedURI.setName(promotedLabel);
+            promoteVolume.setProject(namedURI);
+            namedURI = promoteVolume.getTenant();
+            namedURI.setName(promotedLabel);
+            promoteVolume.setTenant(namedURI);
 
             // Remove mirror from the source VPLEX volume
             sourceVplexVolume.getMirrors().remove(vplexMirror.getId().toString());

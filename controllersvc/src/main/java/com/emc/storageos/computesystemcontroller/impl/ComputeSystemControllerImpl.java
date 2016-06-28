@@ -114,6 +114,8 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     private static final String UNEXPORT_FILESHARE_STEP = "UnexportFileshareStep";
     private static final String UPDATE_INITIATOR_CLUSTER_NAMES_STEP = "UpdateInitiatorClusterNamesStep";
 
+    private static final String UNMOUNT_AND_DETACH_STEP = "UnmountAndDetachStep";
+
     private ComputeDeviceController computeDeviceController;
     private BlockStorageScheduler _blockScheduler;
 
@@ -827,6 +829,43 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         waitForAsyncFileExportTask(fileShareId, stepId);
     }
 
+    public Workflow.Method unmountAndDetachMethod(URI exportGroup, URI hostId, URI vcenter, URI vcenterDatacenter) {
+        return new Workflow.Method("unmountAndDetach", exportGroup, hostId, vcenter, vcenterDatacenter);
+    }
+
+    public void unmountAndDetach(URI exportGroupId, URI hostId, URI vCenterId, URI vcenterDatacenter, String stepId) {
+
+        Host esxHost = _dbClient.queryObject(Host.class, hostId);
+        Vcenter vCenter = _dbClient.queryObject(Vcenter.class, vCenterId);
+        VcenterDataCenter vCenterDataCenter = _dbClient.queryObject(VcenterDataCenter.class, vcenterDatacenter);
+        ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupId);
+        VCenterAPI api = VcenterDiscoveryAdapter.createVCenterAPI(vCenter);
+
+        for (String volume : exportGroup.getVolumes().keySet()) {
+
+            BlockObject blockObject = BlockObject.fetch(_dbClient, URI.create(volume));
+            for (ScopedLabel tag : blockObject.getTag()) {
+                String tagValue = tag.getLabel();
+                if (tagValue != null && tagValue.startsWith("vipr:vmfsDatastore")) {
+                    String datastoreName = tagValue.split("=")[1];
+
+                    // TODO: what if host moved between datacenters? use old cluster vcenter datacenter instead?
+                    Datastore datastore = api.findDatastore(vCenterDataCenter.getLabel(), datastoreName);
+                    HostSystem hostSystem = api.findHostSystem(vCenterDataCenter.getLabel(), esxHost.getLabel());
+                    unmountDatastore(datastore, hostSystem);
+                    HostStorageAPI storageAPI = new HostStorageAPI(hostSystem);
+                    for (HostScsiDisk entry : storageAPI.listScsiDisks()) {
+                        // TODO use VolumeWWNUtils
+                        if (VMwareUtils.getDiskWwn(entry).equalsIgnoreCase(blockObject.getWWN())) {
+                            detachLuns(hostSystem, entry);
+                        }
+                    }
+                }
+            }
+        }
+
+    }
+
     public Workflow.Method deleteExportGroupMethod(URI exportGroupURI) {
         return new Workflow.Method("deleteExportGroup", exportGroupURI);
     }
@@ -1125,7 +1164,8 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             // Unmount and detach for all vCenter hosts
             if (isVCenter) {
                 // TODO generate steps
-                unmountAndDetachVolumes(vCenterHostExportMap);
+                waitFor = unmountAndDetachVolumes(vCenterHostExportMap, waitFor, workflow);
+
             }
 
             // Generate export removes first and then export adds
@@ -1149,48 +1189,26 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         }
     }
 
-    private void unmountAndDetachVolumes(Map<URI, List<URI>> vCenterHostExportMap) {
+    private String unmountAndDetachVolumes(Map<URI, List<URI>> vCenterHostExportMap, String waitFor, Workflow workflow) {
         for (URI hostId : vCenterHostExportMap.keySet()) {
             Host esxHost = _dbClient.queryObject(Host.class, hostId);
             if (esxHost != null) {
                 URI virtualDataCenter = esxHost.getVcenterDataCenter();
                 VcenterDataCenter vcenterDataCenter = _dbClient.queryObject(VcenterDataCenter.class, virtualDataCenter);
                 URI vCenterId = vcenterDataCenter.getVcenter();
-                Vcenter vCenter = _dbClient.queryObject(Vcenter.class, vCenterId);
-
-                VCenterAPI api = VcenterDiscoveryAdapter.createVCenterAPI(vCenter);
 
                 for (URI export : vCenterHostExportMap.get(hostId)) {
-
-                    ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, export);
-
-                    for (String volume : exportGroup.getVolumes().keySet()) {
-
-                        BlockObject blockObject = BlockObject.fetch(_dbClient, URI.create(volume));
-                        for (ScopedLabel tag : blockObject.getTag()) {
-                            String tagValue = tag.getLabel();
-                            if (tagValue.startsWith("vipr:vmfsDatastore")) {
-
-                                String datastoreName = tagValue.split("=")[1];
-
-                                // TODO: what if host moved between datacenters? use old cluster vcenter datacenter instead?
-                                Datastore datastore = api.findDatastore(vcenterDataCenter.getLabel(), datastoreName);
-                                HostSystem hostSystem = api.findHostSystem(vcenterDataCenter.getLabel(), esxHost.getLabel());
-                                unmountDatastore(datastore, hostSystem);
-                                HostStorageAPI storageAPI = new HostStorageAPI(hostSystem);
-                                for (HostScsiDisk entry : storageAPI.listScsiDisks()) {
-                                    // TODO use VolumeWWNUtils
-                                    if (VMwareUtils.getDiskWwn(entry).equalsIgnoreCase(blockObject.getWWN())) {
-                                        detachLuns(hostSystem, entry);
-                                    }
-                                }
-
-                            }
-                        }
-                    }
+                    waitFor = workflow.createStep(UNMOUNT_AND_DETACH_STEP,
+                            String.format("Unmounting and detaching volumes from export group %s", export), waitFor,
+                            export, export.toString(),
+                            this.getClass(),
+                            unmountAndDetachMethod(export, esxHost.getId(), vCenterId,
+                                    vcenterDataCenter.getId()),
+                            null, null);
                 }
             }
         }
+        return waitFor;
     }
 
     private void detachLuns(HostSystem host, HostScsiDisk disk) {

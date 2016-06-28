@@ -9,6 +9,8 @@ import java.util.List;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.model.file.CifsShareACLUpdateParams;
+import com.emc.storageos.model.file.FileExportUpdateParams;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.FileSMBShare;
 import com.emc.storageos.volumecontroller.FileShareExport;
@@ -45,6 +47,32 @@ public class FileOrchestrationControllerImpl implements FileOrchestrationControl
         execOrchestration("createTargetsForExistingSource", sourceFs, fileDescriptors, taskId);
     }
 
+    @Override
+    public void createCIFSShare(URI storageSystem, URI fileSystem, FileSMBShare smbShare, String taskId) throws ControllerException {
+        execOrchestration("createCIFSShare", storageSystem, fileSystem, smbShare, taskId);
+    }
+
+    @Override
+    public void createNFSExport(URI storage, URI fsURI, List<FileShareExport> exports, String opId) throws ControllerException {
+        execOrchestration("createNFSExport", storage, fsURI, exports, opId);
+    }
+
+    @Override
+    public void updateExportRules(URI storage, URI fsURI, FileExportUpdateParams param, String opId) throws ControllerException {
+        execOrchestration("updateExportRules", storage, fsURI, param, opId);
+    }
+
+    @Override
+    public void updateShareACLs(URI storage, URI fsURI, String shareName, CifsShareACLUpdateParams param, String opId)
+            throws ControllerException {
+        execOrchestration("updateShareACLs", storage, fsURI, shareName, param, opId);
+    }
+
+    @Override
+    public void snapshotFS(URI storage, URI snapshot, URI fsURI, String opId) throws ControllerException {
+        execOrchestration("snapshotFS", storage, snapshot, fsURI, opId);
+    }
+
     // getter and setter methods
     public FileOrchestrationController getController() {
         return _controller;
@@ -75,15 +103,4 @@ public class FileOrchestrationControllerImpl implements FileOrchestrationControl
                 getController(), methodName, args);
     }
 
-    @Override
-    public void createCIFSShare(URI storageSystem, URI fileSystem, FileSMBShare smbShare, String taskId) throws ControllerException {
-        execOrchestration("createCIFSShare", storageSystem, fileSystem, smbShare, taskId);
-
-    }
-
-    @Override
-    public void createNFSExport(URI storage, URI fsURI, List<FileShareExport> exports, String opId) throws ControllerException {
-        execOrchestration("createNFSExport", storage, fsURI, exports, opId);
-
-    }
 }

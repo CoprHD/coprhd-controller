@@ -8,6 +8,8 @@ import java.net.URI;
 import java.util.List;
 
 import com.emc.storageos.Controller;
+import com.emc.storageos.model.file.CifsShareACLUpdateParams;
+import com.emc.storageos.model.file.FileExportUpdateParams;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.FileSMBShare;
 import com.emc.storageos.volumecontroller.FileShareExport;
@@ -85,5 +87,46 @@ public interface FileOrchestrationController extends Controller {
      */
 
     public abstract void createNFSExport(URI storage, URI fsURI, List<FileShareExport> exports, String opId)
+            throws ControllerException;
+
+    /**
+     * Update NFS Export Rules for the FileSystem
+     * This method is responsible for creating a Workflow and invoking the FileOrchestrationInterface.addStepsForUpdatingExportRules
+     * 
+     * @param URI storageSystem
+     * @param URI fileSystem
+     * @param FileExportUpdateParams param
+     * @param String opId
+     * @throws ControllerException
+     */
+
+    public abstract void updateExportRules(URI storage, URI fsURI, FileExportUpdateParams param, String opId)
+            throws ControllerException;
+
+    /**
+     * Update File System CIFS Share ACLs
+     * 
+     * @param URI storageSystem
+     * @param URI fileSystem
+     * @param String ShareName
+     * @param CifsShareACLUpdateParams param
+     * @param String opId
+     * @throws ControllerException
+     */
+
+    public abstract void updateShareACLs(URI storage, URI fsURI, String shareName, CifsShareACLUpdateParams param, String opId)
+            throws ControllerException;
+
+    /**
+     * Create File System Snapshot
+     * 
+     * @param URI storageSystem
+     * @param URI snapshot
+     * @param URI fileSystem
+     * @param String opId
+     * @throws ControllerException
+     */
+
+    public abstract void snapshotFS(URI storage, URI snapshot, URI fsURI, String opId)
             throws ControllerException;
 }

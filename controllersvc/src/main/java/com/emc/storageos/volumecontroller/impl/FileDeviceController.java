@@ -106,6 +106,10 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     private static final Logger _log = LoggerFactory.getLogger(FileDeviceController.class);
     private static final String CREATE_FILESYSTEM_EXPORT_METHOD = "export";
     private static final String CREATE_FILESYSTEM_SHARE_METHOD = "share";
+    private static final String UPDATE_FILESYSTEM_SHARE_ACLS_METHOD = "updateShareACLs";
+    private static final String UPDATE_FILESYSTEM_EXPORT_RULES_METHOD = "updateExportRules";
+    private static final String CREATE_FILESYSTEM_SNAPSHOT_METHOD = "snapshotFS";
+
     private Map<String, FileStorageDevice> _devices;
 
     private WorkflowService _workflowService;
@@ -554,7 +558,6 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 StoragePool pool = _dbClient.queryObject(StoragePool.class, fs.getPool());
                 args.addStoragePool(pool);
                 setVirtualNASinArgs(fs.getVirtualNAS(), args);
-                acquireStepLock(storageObj, opId);
             } else {
                 snapshotObj = _dbClient.queryObject(Snapshot.class, uri);
                 fsObj = snapshotObj;
@@ -586,6 +589,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 _log.info("Exports are null");
             }
             // Code to acquire lock on for VNXFILE Storage System
+            acquireStepLock(storageObj, opId);
             WorkflowStepCompleter.stepExecuting(opId);
             BiosCommandResult result = getDevice(storageObj.getSystemType()).doExport(storageObj, args, fileExports);
 
@@ -958,6 +962,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 args.addFileShare(fsObj);
                 args.setFileOperation(false);
                 setVirtualNASinArgs(fsObj.getVirtualNAS(), args);
+                // Code to acquire lock on for VNXFILE Storage System
+                WorkflowStepCompleter.stepExecuting(opId);
+                acquireStepLock(storageObj, opId);
                 BiosCommandResult result = getDevice(storageObj.getSystemType()).doShare(storageObj, args, smbFileShare);
 
                 if (result.getCommandPending()) {
@@ -971,6 +978,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
                 if (result.isCommandSuccess()) {
                     _log.info("File snapshot share created successfully");
+                    WorkflowStepCompleter.stepSucceded(opId);
                     createDefaultACEForSMBShare(uri, smbShare, storageObj.getSystemType());
                 }
 
@@ -1195,6 +1203,10 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             StoragePool storagePool = _dbClient.queryObject(StoragePool.class, fsObj.getPool());
             args.addStoragePool(storagePool);
             args.setOpId(task);
+
+            // Acquire lock on for VNXFILE Storage System
+            acquireStepLock(storageObj, task);
+            WorkflowStepCompleter.stepExecuting(task);
             BiosCommandResult result = getDevice(storageObj.getSystemType()).doSnapshotFS(storageObj, args);
             if (result.getCommandPending()) {
                 return;
@@ -1209,6 +1221,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 _log.error("Snapshot create command is not successfull, so making object to inactive");
                 snapshotObj.setInactive(true);
             }
+            if (result.isCommandSuccess()) {
+                WorkflowStepCompleter.stepSucceded(task);
+            }
             _dbClient.persistObject(snapshotObj);
             _dbClient.persistObject(fsObj);
 
@@ -1220,6 +1235,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             recordFileDeviceOperation(_dbClient, OperationTypeEnum.CREATE_FILE_SYSTEM_SNAPSHOT, result.isCommandSuccess(),
                     eventMsg, "", snapshotObj, fsObj);
         } catch (Exception e) {
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            WorkflowStepCompleter.stepFailed(task, serviceError);
             String[] params = { storage.toString(), fs.toString(), snapshot.toString(), e.getMessage() };
             _log.error("Unable to create file system snapshot: storage {}, FS {}, snapshot {}: {}", params);
             updateTaskStatus(task, fsObj, e);
@@ -1865,10 +1882,14 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             args.setExistingDBExportRules(queryExports(args));
 
             // Do the Operation on device.
+            // Acquire lock on for VNXFILE Storage System
+            acquireStepLock(storageObj, opId);
+            WorkflowStepCompleter.stepExecuting(opId);
             BiosCommandResult result = getDevice(storageObj.getSystemType())
                     .updateExportRules(storageObj, args);
 
             if (result.isCommandSuccess()) {
+                WorkflowStepCompleter.stepSucceded(opId);
                 // Update Database
                 doCRUDExports(param, fs, args);
 
@@ -1911,6 +1932,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             }
             _dbClient.persistObject(fsObj);
         } catch (Exception e) {
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            WorkflowStepCompleter.stepFailed(opId, serviceError);
             String[] params = { storage.toString(), fsURI.toString() };
             _log.error("Unable to export file system or snapshot: storage {}, FS/snapshot URI {}", params, e);
             _log.error("{}, {} ", e.getMessage(), e);
@@ -2571,10 +2594,14 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             args.setExistingShareAcls(queryExistingShareAcls(args));
 
             // Do the Operation on device.
+            // Acquire lock on for VNXFILE Storage System
+            acquireStepLock(storageObj, opId);
+            WorkflowStepCompleter.stepExecuting(opId);
             BiosCommandResult result = getDevice(storageObj.getSystemType())
                     .updateShareACLs(storageObj, args);
 
             if (result.isCommandSuccess()) {
+                WorkflowStepCompleter.stepSucceded(opId);
                 // Update database
                 updateShareACLsInDB(param, fs, args);
             }
@@ -2610,6 +2637,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             }
             _dbClient.persistObject(fsObj);
         } catch (Exception e) {
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            WorkflowStepCompleter.stepFailed(opId, serviceError);
             String[] logParams = { storage.toString(), fsURI.toString() };
             _log.error("Unable to update share ACL for file system or snapshot: storage {}, FS/snapshot URI {}",
                     logParams, e);
@@ -3922,31 +3951,79 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     }
 
     public String addStepsForCreatingCIFSShares(Workflow workflow, URI storageSystem, URI fileSystem, FileSMBShare smbShare,
-            String taskId, String shareStep) {
+            String waitfor, String shareStep, String stepDescription) {
 
         StorageSystem system = _dbClient.queryObject(StorageSystem.class, storageSystem);
         Object[] args = new Object[] { storageSystem, fileSystem, smbShare };
         Workflow.Method shareCreationMethod = new Workflow.Method(CREATE_FILESYSTEM_SHARE_METHOD, args);
 
-        String waitFor = workflow.createStep(null, "Creating FileSystem SMB Share", null, storageSystem, system.getSystemType(), getClass(),
+        String waitForShare = workflow.createStep(null, stepDescription, waitfor, storageSystem, system.getSystemType(), getClass(),
                 shareCreationMethod, null, shareStep);
 
-        return waitFor;
+        return waitForShare;
     }
 
-    public String addStepsForCreatingNFSExport(Workflow workflow, URI storage, URI fsURI, List<FileShareExport> exports, String opId,
-            String exportStep) {
+    public String addStepsForUpdatingCIFSShareACLs(Workflow workflow, URI storageSystem, URI fileSystem, String shareName,
+            CifsShareACLUpdateParams param, String waitfor, String sharACLStep, String stepDescription) {
+
+        StorageSystem system = _dbClient.queryObject(StorageSystem.class, storageSystem);
+        Object[] args = new Object[] { storageSystem, fileSystem, shareName, param };
+        Workflow.Method updateShareACLsMethod = new Workflow.Method(UPDATE_FILESYSTEM_SHARE_ACLS_METHOD, args);
+
+        String waitForShareACL = workflow.createStep(null, stepDescription, waitfor, storageSystem, system.getSystemType(), getClass(),
+                updateShareACLsMethod, null, sharACLStep);
+
+        return waitForShareACL;
+    }
+
+    public String addStepsForCreatingNFSExport(Workflow workflow, URI storage, URI fsURI, List<FileShareExport> exports, String waitFor,
+            String exportStep, String stepDescription) {
 
         StorageSystem system = _dbClient.queryObject(StorageSystem.class, storage);
         Object[] args = new Object[] { storage, fsURI, exports };
         Workflow.Method exportCreationMethod = new Workflow.Method(CREATE_FILESYSTEM_EXPORT_METHOD, args);
 
-        String waitFor = workflow.createStep(null, "Creating FileSystem NFS Export",
-                null, storage, system.getSystemType(), getClass(), exportCreationMethod, null, exportStep);
+        String waitForExport = workflow.createStep(null, stepDescription, waitFor, storage, system.getSystemType(), getClass(),
+                exportCreationMethod, null, exportStep);
 
-        return waitFor;
+        return waitForExport;
     }
 
+    public String addStepsForUpdatingExportRules(Workflow workflow, URI storage, URI fsURI, FileExportUpdateParams param, String waitFor,
+            String exportRuleUpdateStep, String stepDescription) {
+
+        StorageSystem system = _dbClient.queryObject(StorageSystem.class, storage);
+        Object[] args = new Object[] { storage, fsURI, param };
+        Workflow.Method exportRuleUpdateMethod = new Workflow.Method(UPDATE_FILESYSTEM_EXPORT_RULES_METHOD, args);
+
+        String waitForExport = workflow.createStep(null, stepDescription, waitFor, storage, system.getSystemType(), getClass(),
+                exportRuleUpdateMethod, null, exportRuleUpdateStep);
+
+        return waitForExport;
+    }
+
+    public String addStepsForCreatingFileSystemSnapshot(Workflow workflow, URI storage, URI snapshotURI, URI fsURI, String waitFor,
+            String exportRuleUpdateStep, String stepDescription) {
+
+        StorageSystem system = _dbClient.queryObject(StorageSystem.class, storage);
+        Object[] args = new Object[] { storage, snapshotURI, fsURI };
+        Workflow.Method createFSSnapshotMethod = new Workflow.Method(CREATE_FILESYSTEM_SNAPSHOT_METHOD, args);
+
+        String waitForSnapshot = workflow.createStep(null, stepDescription, waitFor, storage, system.getSystemType(), getClass(),
+                createFSSnapshotMethod, null, exportRuleUpdateStep);
+
+        return waitForSnapshot;
+    }
+
+    /**
+     * Acquire Work flow Distributed Owner Lock for a Step.
+     * This method is used to acquire lock at a particular work flow step.Currently we are acquiring lock only for VNXFILE.
+     * This lock would be released after the step completion (either failure or success).
+     * 
+     * @param StorageSystem storageSystem
+     * @param String opId
+     * @throws DeviceControllerException
+     */
     public void acquireStepLock(StorageSystem storageObj, String opId) {
         if (storageObj.deviceIsType(Type.vnxfile)) {
             List<String> lockKeys = new ArrayList<String>();

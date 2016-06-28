@@ -11,6 +11,8 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.model.file.CifsShareACLUpdateParams;
+import com.emc.storageos.model.file.FileExportUpdateParams;
 import com.emc.storageos.model.file.FileSystemParam;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.FileSMBShare;
@@ -48,7 +50,7 @@ public interface FileServiceApi {
             VirtualArray varray, VirtualPool vpool, TenantOrg tenantOrg,
             DataObject.Flag[] flags, List<Recommendation> recommendations,
             TaskList taskList, String task, VirtualPoolCapabilityValuesWrapper vpoolCapabilities)
-            throws InternalException;
+                    throws InternalException;
 
     /**
      * Delete the passed filesystems for the passed system.
@@ -126,5 +128,42 @@ public interface FileServiceApi {
      * @throws InternalException
      */
     public void export(URI storage, URI fsURI, List<FileShareExport> exports, String opId)
+            throws InternalException;
+
+    /**
+     * Update NFS Export Rules for the FileSystem
+     *
+     * @param URI storageSystem
+     * @param URI fileSystem
+     * @param FileExportUpdateParams param
+     * @param String opId
+     * @throws InternalException
+     */
+    public void updateExportRules(URI storage, URI fsURI, FileExportUpdateParams param, String opId)
+            throws InternalException;
+
+    /**
+     * Update CIFS Share ACLs for the FileSystem
+     *
+     * @param URI storageSystem
+     * @param URI fileSystem
+     * @param String shareName
+     * @param CifsShareACLUpdateParams param
+     * @param String opId
+     * @throws InternalException
+     */
+    public void updateShareACLs(URI storage, URI fsURI, String shareName, CifsShareACLUpdateParams param, String opId)
+            throws InternalException;
+
+    /**
+     * Create FileSystem Snapshot
+     *
+     * @param URI storageSystem
+     * @param URI snapshot
+     * @param URI fileSystem
+     * @param String opId
+     * @throws InternalException
+     */
+    public void snapshotFS(URI storage, URI snapshot, URI fsURI, String opId)
             throws InternalException;
 }

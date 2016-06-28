@@ -1006,7 +1006,7 @@ public class HP3PARApi {
             }
             _log.info("3PARDriver:deleteVlun leave");
         } //end try/catch/finally
-    }    
+    }
 
     public void createHost(String name, ArrayList<String> portIds, Integer persona) throws Exception {
         _log.info("3PARDriver:createHost enter");

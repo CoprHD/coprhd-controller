@@ -357,6 +357,50 @@ public class OrderService extends CatalogTaggedResourceService {
     }
 
     @POST
+    @Path("/{id}/pause")
+    @Consumes({ MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML })
+    public Response pauseOrder(@PathParam("id") String id) {
+
+        Order order = queryResource(uri(id));
+        ArgValidator.checkEntity(order, uri(id), true);
+
+        StorageOSUser user = getUserFromContext();
+        verifyAuthorizedInTenantOrg(uri(order.getTenant()), user);
+
+        if (!OrderStatus.valueOf(order.getOrderStatus()).equals(OrderStatus.EXECUTING)) {
+            throw APIException.badRequests.unexpectedValueForProperty("orderStatus", OrderStatus.EXECUTING.toString(),
+                    order.getOrderStatus());
+        }
+
+        orderManager.pauseOrder(order);
+
+        return Response.ok().build();
+
+    }
+
+    @POST
+    @Path("/{id}/resume")
+    @Consumes({ MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML })
+    public Response resumeOrder(@PathParam("id") String id) {
+
+        Order order = queryResource(uri(id));
+        ArgValidator.checkEntity(order, uri(id), true);
+
+        StorageOSUser user = getUserFromContext();
+        verifyAuthorizedInTenantOrg(uri(order.getTenant()), user);
+
+        if (!OrderStatus.valueOf(order.getOrderStatus()).equals(OrderStatus.PAUSED)) {
+            throw APIException.badRequests.unexpectedValueForProperty("orderStatus", OrderStatus.PAUSED.toString(),
+                    order.getOrderStatus());
+        }
+
+        orderManager.resumeOrder(order);
+
+        return Response.ok().build();
+
+    }
+
+    @POST
     @Path("/{id}/cancel")
     @Consumes({ MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML })
     public Response cancelOrder(@PathParam("id") String id) {

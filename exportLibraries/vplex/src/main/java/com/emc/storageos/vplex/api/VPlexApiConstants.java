@@ -11,6 +11,9 @@ import java.net.URI;
  */
 public class VPlexApiConstants {
 
+    // VPLEX firmware version strings for testing availability of certain features
+    public static final String MIN_VERSION_THIN_PROVISIONING = "5.5.1.00.00.00";
+
     // Constants define the headers required when making HTTP requests to the
     // VPlex Management Station using the Element Manager API.
     public static final String USER_NAME_HEADER = "Username";
@@ -243,6 +246,7 @@ public class VPlexApiConstants {
 
     // VPlex API attribute values
     public static final String NULL_ATT_VAL = "null";
+    public static final String ENABLED = "enabled";
     public static final String TRUE = "true";
     public static final String FALSE = "false";
 

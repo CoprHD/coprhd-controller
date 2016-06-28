@@ -246,6 +246,7 @@ public class VPlexApiConstants {
 
     // VPlex API attribute values
     public static final String NULL_ATT_VAL = "null";
+    public static final String ENABLED = "enabled";
     public static final String TRUE = "true";
     public static final String FALSE = "false";
 

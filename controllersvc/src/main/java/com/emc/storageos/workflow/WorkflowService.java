@@ -2523,7 +2523,8 @@ public class WorkflowService implements WorkflowController {
 
     public static void completerStepSuspendedNoError(String stepId)
             throws WorkflowException {
-        _instance.updateStepStatus(stepId, StepState.SUSPENDED_NO_ERROR, null, "Step has been suspended due to configuration or request");
+        _instance.updateStepStatus(stepId, StepState.SUSPENDED_NO_ERROR, null,
+                "Step in workflow has been suspended due to a class/method suspension configuration setting or step ID suspension request");
     }
 
     public static void completerStepSuspendedError(String stepId, ServiceCoded coded)

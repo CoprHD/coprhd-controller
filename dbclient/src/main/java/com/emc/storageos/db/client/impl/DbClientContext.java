@@ -784,6 +784,20 @@ public class DbClientContext {
         log.info("schema versions found: {}", versions);
         return versions;
     }
+    
+    public Map<String, String> getStrategyOptions() {
+        Map<String, String> result = new HashMap<String, String>();
+        
+        KeyspaceMetadata keyspace = cassandraCluster.getMetadata().getKeyspace(this.getKeyspaceName());
+        Map<String, String> replications = keyspace.getReplication();
+        for (Map.Entry<String, String> entry : replications.entrySet()) {
+            if (!entry.getKey().startsWith("class:")) {
+                result.put(entry.getKey(), entry.getValue());
+            }
+        }
+        
+        return result;
+    }
 
     private void checkAndResetConsistencyLevel(DrUtil drUtil, String svcName) {
         

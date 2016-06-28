@@ -4,11 +4,11 @@
  */
 package com.emc.storageos.db.client;
 
-import com.emc.storageos.db.client.constraint.QueryResultList;
-import com.netflix.astyanax.util.TimeUUIDUtils;
-
 import java.net.URI;
 import java.util.UUID;
+
+import com.datastax.driver.core.utils.UUIDs;
+import com.emc.storageos.db.client.constraint.QueryResultList;
 
 public class TimestampedURIQueryResult extends QueryResultList<TimestampedURIQueryResult.TimestampedURI> {
 
@@ -69,6 +69,6 @@ public class TimestampedURIQueryResult extends QueryResultList<TimestampedURIQue
 
     @Override
     public TimestampedURI createQueryHit(URI uri, String name, UUID timestamp) {
-        return new TimestampedURI(uri, name, TimeUUIDUtils.getMicrosTimeFromUUID(timestamp));
+        return new TimestampedURI(uri, name, UUIDs.unixTimestamp(timestamp)*1000);
     }
 }

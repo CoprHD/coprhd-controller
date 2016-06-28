@@ -19,7 +19,6 @@ import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.impl.ColumnField;
 import com.emc.storageos.db.client.impl.IndexColumnName;
 import com.emc.storageos.db.client.model.DataObject;
-import com.netflix.astyanax.model.ColumnFamily;
 
 /**
  * Alternate ID constraint implementation
@@ -27,14 +26,14 @@ import com.netflix.astyanax.model.ColumnFamily;
 public class AlternateIdConstraintImpl extends ConstraintImpl implements AlternateIdConstraint {
     private static final Logger log = LoggerFactory.getLogger(AlternateIdConstraintImpl.class);
 
-    private final ColumnFamily<String, IndexColumnName> _altIdCf;
+    private final String _altIdCf;
     private final String _altId;
     private final Class<? extends DataObject> _entryType;
 
     public AlternateIdConstraintImpl(ColumnField field, String altId) {
         super(field, altId);
 
-        _altIdCf = field.getIndexCF();
+        _altIdCf = field.getIndexCF().getName();
         _altId = altId;
         _entryType = field.getDataObjectType();
     }
@@ -42,7 +41,7 @@ public class AlternateIdConstraintImpl extends ConstraintImpl implements Alterna
     @Override
     protected <T> void queryOnePage(final QueryResult<T> result) throws DriverException {
         StringBuilder queryString = new StringBuilder();
-        queryString.append("select").append(" * from \"").append(_altIdCf.getName()).append("\"");
+        queryString.append("select").append(" * from \"").append(_altIdCf).append("\"");
         queryString.append(" where key=?");
         List<Object> queryParameters = new ArrayList<Object>();
         queryParameters.add(_altId);
@@ -52,7 +51,7 @@ public class AlternateIdConstraintImpl extends ConstraintImpl implements Alterna
 
     @Override
     protected Statement genQueryStatement() {
-        String queryString = String.format("select * from \"%s\" where key=? and column1=?", _altIdCf.getName());
+        String queryString = String.format("select * from \"%s\" where key=? and column1=?", _altIdCf);
         
         PreparedStatement preparedStatement = this.dbClientContext.getPreparedStatement(queryString);
         Statement statement =  preparedStatement.bind(_altId,

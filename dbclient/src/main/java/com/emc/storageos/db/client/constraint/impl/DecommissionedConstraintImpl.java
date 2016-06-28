@@ -19,7 +19,6 @@ import com.emc.storageos.db.client.impl.ColumnField;
 import com.emc.storageos.db.client.impl.IndexColumnName;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.NoInactiveIndex;
-import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.util.TimeUUIDUtils;
 
 /**
@@ -28,7 +27,7 @@ import com.netflix.astyanax.util.TimeUUIDUtils;
 public class DecommissionedConstraintImpl extends ConstraintImpl implements DecommissionedConstraint {
     private static final Logger log = LoggerFactory.getLogger(DecommissionedConstraintImpl.class);
 
-    private final ColumnFamily<String, IndexColumnName> _cf;
+    private final String _cf;
     private final String _rowKey;
     private final long _timeToStartFrom;
     private final Boolean _value;
@@ -43,7 +42,7 @@ public class DecommissionedConstraintImpl extends ConstraintImpl implements Deco
 
         throwIfNoInactiveIndex(field);
 
-        _cf = field.getIndexCF();
+        _cf = field.getIndexCF().getName();
         _rowKey = clazz.getSimpleName();
         _timeToStartFrom = timeStart;
         _value = true;
@@ -59,7 +58,7 @@ public class DecommissionedConstraintImpl extends ConstraintImpl implements Deco
 
         throwIfNoInactiveIndex(field);
 
-        _cf = field.getIndexCF();
+        _cf = field.getIndexCF().getName();
         _rowKey = clazz.getSimpleName();
         _timeToStartFrom = 0;
         _value = value;
@@ -78,7 +77,7 @@ public class DecommissionedConstraintImpl extends ConstraintImpl implements Deco
     protected <T> void queryOnePage(final QueryResult<T> result) throws DriverException {
         if (_value != null) {
             StringBuilder queryString = new StringBuilder();
-            queryString.append("select").append(" * from \"").append(_cf.getName()).append("\"");
+            queryString.append("select").append(" * from \"").append(_cf).append("\"");
             queryString.append(" where key=?");
             
             List<Object> queryParameters = new ArrayList<Object>();
@@ -144,7 +143,7 @@ public class DecommissionedConstraintImpl extends ConstraintImpl implements Deco
         List<Object> queryParameters = new ArrayList<Object>();
         
         StringBuilder queryString = new StringBuilder();
-        queryString.append("select").append(" * from \"").append(_cf.getName()).append("\"");
+        queryString.append("select").append(" * from \"").append(_cf).append("\"");
         queryString.append(" where key=?");
         queryParameters.add(_rowKey);
         

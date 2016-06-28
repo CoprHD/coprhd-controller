@@ -4,8 +4,10 @@
  */
 package com.emc.sa.service.linux.file;
 
+import java.net.URI;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
 
@@ -19,11 +21,14 @@ import com.emc.sa.service.linux.tasks.FindMountPointsForVolumes;
 import com.emc.sa.service.linux.tasks.GetDirectoryContents;
 import com.emc.sa.service.linux.tasks.LinuxExecutionTask;
 import com.emc.sa.service.linux.tasks.ListMountPoints;
-import com.emc.sa.service.linux.tasks.MountNFSPath;
+import com.emc.sa.service.linux.tasks.MountPath;
 import com.emc.sa.service.linux.tasks.RemoveFromFSTab;
 import com.emc.sa.service.linux.tasks.UnmountPath;
 import com.emc.sa.service.linux.tasks.VerifyMountPoint;
 import com.emc.sa.service.vipr.ViPRExecutionUtils;
+import com.emc.sa.service.vipr.file.tasks.GetFileSystemTags;
+import com.emc.sa.service.vipr.file.tasks.RemoveFileSystemTag;
+import com.emc.sa.service.vipr.file.tasks.SetFileSystemTag;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.iwave.ext.linux.LinuxSystemCLI;
 import com.iwave.ext.linux.model.MountPoint;
@@ -98,13 +103,27 @@ public class LinuxFileSupport {
         execute(new RemoveFromFSTab(path));
     }
 
-    public void mountPath(String path, String security, String arg) {
-        execute(new MountNFSPath(path, security, arg));
+    public void mountPath(String path) {
+        execute(new MountPath(path));
         addRollback(new UnmountPath(path));
     }
 
     public void unmountPath(String path) {
         execute(new UnmountPath(path));
+    }
+
+    public Set<String> getFSTags(String fileSystemId) {
+        return ExecutionUtils.execute(new GetFileSystemTags(fileSystemId));
+    }
+
+    public void setFSTag(String fileSystemId, String tag) {
+        ExecutionUtils.execute(new SetFileSystemTag(fileSystemId, tag));
+        ExecutionUtils.addRollback(new RemoveFileSystemTag(fileSystemId, tag));
+    }
+
+    public void removeFSTag(URI fileSystemId, String removeTag) {
+        ExecutionUtils.execute(new RemoveFileSystemTag(fileSystemId, removeTag));
+        ExecutionUtils.addRollback(new SetFileSystemTag(fileSystemId, removeTag));
     }
 
     protected <T> T execute(LinuxExecutionTask<T> task) {

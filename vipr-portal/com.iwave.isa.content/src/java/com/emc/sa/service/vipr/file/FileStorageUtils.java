@@ -52,17 +52,14 @@ import com.emc.sa.service.vipr.file.tasks.FindNfsExport;
 import com.emc.sa.service.vipr.file.tasks.GetActiveSnapshotsForFileSystem;
 import com.emc.sa.service.vipr.file.tasks.GetCifsSharesForFileSystem;
 import com.emc.sa.service.vipr.file.tasks.GetFileSystem;
-import com.emc.sa.service.vipr.file.tasks.GetFileSystemTags;
 import com.emc.sa.service.vipr.file.tasks.GetNfsExportsForFileSnapshot;
 import com.emc.sa.service.vipr.file.tasks.GetNfsExportsForFileSystem;
 import com.emc.sa.service.vipr.file.tasks.GetQuotaDirectory;
 import com.emc.sa.service.vipr.file.tasks.GetSharesForFileSnapshot;
 import com.emc.sa.service.vipr.file.tasks.PauseFileContinuousCopy;
-import com.emc.sa.service.vipr.file.tasks.RemoveFileSystemTag;
 import com.emc.sa.service.vipr.file.tasks.RestoreFileSnapshot;
 import com.emc.sa.service.vipr.file.tasks.SetFileSnapshotShareACL;
 import com.emc.sa.service.vipr.file.tasks.SetFileSystemShareACL;
-import com.emc.sa.service.vipr.file.tasks.SetFileSystemTag;
 import com.emc.sa.service.vipr.file.tasks.UpdateFileSnapshotExport;
 import com.emc.sa.service.vipr.file.tasks.UpdateFileSystemExport;
 import com.emc.sa.util.DiskSizeConversionUtils;
@@ -593,18 +590,6 @@ public class FileStorageUtils {
         }
 
         return fileACLs;
-    }
-
-    public static void setFSTag(String fileSystemId, String tag) {
-        execute(new SetFileSystemTag(fileSystemId, tag));
-    }
-
-    public static Set<String> getFSTags(String fileSystemId) {
-        return execute(new GetFileSystemTags(fileSystemId));
-    }
-
-    public static void removeFSTag(URI fileSystemId, String removeTag) {
-        execute(new RemoveFileSystemTag(fileSystemId, removeTag));
     }
 
     public static class FileSystemACLs {

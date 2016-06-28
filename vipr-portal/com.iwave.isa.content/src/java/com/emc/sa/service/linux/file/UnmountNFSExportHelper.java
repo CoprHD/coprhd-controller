@@ -4,11 +4,12 @@
  */
 package com.emc.sa.service.linux.file;
 
+import static com.emc.sa.service.vipr.ViPRExecutionUtils.logInfo;
+
 import java.util.List;
 
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.BindingUtils;
-import com.emc.sa.service.vipr.file.FileStorageUtils;
 import com.google.common.collect.Lists;
 import com.iwave.ext.linux.LinuxSystemCLI;
 
@@ -35,6 +36,7 @@ public class UnmountNFSExportHelper {
 
     public void unmountExports() {
         for (MountInfo mount : mountList) {
+            logInfo("linux.mount.file.export.unmount", mount.getMountPoint(), linux.getHostName());
             // unmount the Export
             linux.unmountPath(mount.getMountPoint());
             // remove from fstab
@@ -43,8 +45,7 @@ public class UnmountNFSExportHelper {
             if (linux.isDirectoryEmpty(mount.getMountPoint())) {
                 linux.deleteDirectory(mount.getMountPoint());
             }
-            FileStorageUtils.removeFSTag(mount.getFsId(), mount.getTag().substring(0, mount.getTag().lastIndexOf(" ")));
-            ExecutionUtils.addAffectedResource(mount.getFsId().toString());
+            linux.removeFSTag(mount.getFsId(), mount.getTag().substring(0, mount.getTag().lastIndexOf(";")));
         }
     }
 }

@@ -5,16 +5,18 @@
 package com.emc.sa.service.vipr.file.tasks;
 
 import java.net.URI;
-import java.util.HashSet;
-import java.util.Set;
 
+import com.emc.sa.machinetags.MachineTagUtils;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
-import com.emc.storageos.model.file.FileShareRestRep;
 
-public class RemoveFileSystemTag extends ViPRExecutionTask<FileShareRestRep> {
+public class RemoveFileSystemTag extends ViPRExecutionTask<Void> {
 
     private final String removeTag;
     private final URI fileSystemId;
+
+    public RemoveFileSystemTag(String fileSystemId, String removeTag) {
+        this(uri(fileSystemId), removeTag);
+    }
 
     public RemoveFileSystemTag(URI fileSystemId, String removeTag) {
         this.removeTag = removeTag;
@@ -22,11 +24,9 @@ public class RemoveFileSystemTag extends ViPRExecutionTask<FileShareRestRep> {
     }
 
     @Override
-    public FileShareRestRep executeTask() throws Exception {
-        Set<String> removeTags = new HashSet<String>();
-        removeTags.add(removeTag);
+    public Void executeTask() throws Exception {
         setDetail("RemoveFileSystemTag.detail", removeTag, fileSystemId);
-        getClient().fileSystems().removeTags(fileSystemId, removeTags);
+        MachineTagUtils.removeFileSystemTag(getClient(), fileSystemId, removeTag);
         return null;
     }
 }

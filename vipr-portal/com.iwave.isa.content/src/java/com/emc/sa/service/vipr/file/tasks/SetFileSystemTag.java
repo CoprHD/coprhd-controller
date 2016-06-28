@@ -4,28 +4,29 @@
  */
 package com.emc.sa.service.vipr.file.tasks;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.net.URI;
 
+import com.emc.sa.machinetags.MachineTagUtils;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
-import com.emc.storageos.model.file.FileShareRestRep;
 
-public class SetFileSystemTag extends ViPRExecutionTask<FileShareRestRep> {
+public class SetFileSystemTag extends ViPRExecutionTask<Void> {
 
     private final String tag;
-    private final String fileSystemId;
+    private final URI fileSystemId;
 
     public SetFileSystemTag(String fileSystemId, String tag) {
+        this(uri(fileSystemId), tag);
+    }
+
+    public SetFileSystemTag(URI fileSystemId, String tag) {
         this.tag = tag;
         this.fileSystemId = fileSystemId;
     }
 
     @Override
-    public FileShareRestRep executeTask() throws Exception {
-        Set<String> tags = new HashSet<String>();
-        tags.add(tag);
+    public Void executeTask() throws Exception {
         setDetail("SetFileSystemTag.title", tag, fileSystemId);
-        getClient().fileSystems().addTags(uri(fileSystemId), tags);
+        MachineTagUtils.setFileSystemTag(getClient(), fileSystemId, tag);
         return null;
     }
 }

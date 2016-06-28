@@ -7,7 +7,6 @@ package com.emc.sa.asset.providers;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -802,52 +801,20 @@ public class FileProvider extends BaseAssetOptionsProvider {
     }
 
     // for unmount operation
-
     @Asset("mountedNFSExport")
     @AssetDependencies("linuxFileHost")
     public List<AssetOption> getMountedNFSExports(AssetOptionsContext ctx, URI host) {
         List<AssetOption> options = Lists.newArrayList();
-        Map<String, MountInfo> mountTagMap = getMountInfoFromTags(api(ctx));
+        Map<String, MountInfo> mountTagMap = MachineTagUtils.getNFSMountInfoFromTags(api(ctx));
         for (Map.Entry<String, MountInfo> entry : mountTagMap.entrySet()) {
             if (entry.getValue().getHostId().equals(host)) {
-                options.add(new AssetOption(entry.getKey() + " " + entry.getValue().getFsId(),
-                        api(ctx).fileSystems().get(entry.getValue().getFsId()).getName()
+                options.add(new AssetOption(entry.getKey() + ";" + entry.getValue().getFsId(),
+                        entry.getValue().getSecurityType() + ";" + api(ctx).fileSystems().get(entry.getValue().getFsId()).getName()
                                 + (entry.getValue().getSubDirectory().equalsIgnoreCase("!nodir") ? ""
                                         : ("/" + entry.getValue().getSubDirectory()))));
             }
         }
         AssetOptionsUtils.sortOptionsByLabel(options);
         return options;
-    }
-
-    public Map<String, MountInfo> getMountInfoFromTags(ViPRCoreClient client) {
-        List<URI> fsIds = client.fileSystems().listBulkIds();
-        Map<String, MountInfo> results = new HashMap<String, MountInfo>();
-        for (URI fsId : fsIds) {
-            List<String> mountTags = new ArrayList<String>();
-            mountTags.addAll(client.fileSystems().getTags(fsId));
-            for (String tag : mountTags) {
-                if (tag.startsWith("mountNfs")) {
-                    String[] pieces = StringUtils.trim(tag).split("\\s+");
-                    MountInfo mountInfo = new MountInfo();
-                    if (pieces.length > 1) {
-                        mountInfo.setHostId(uri(pieces[1]));
-                    }
-                    if (pieces.length > 2) {
-                        mountInfo.setMountPoint(pieces[2]);
-                    }
-                    if (pieces.length > 3) {
-                        mountInfo.setSubDirectory(pieces[3]);
-                    }
-                    if (pieces.length > 4) {
-                        mountInfo.setSecurityType(pieces[4]);
-                    }
-                    mountInfo.setFsId(fsId);
-                    mountInfo.setTag(tag);
-                    results.put(tag, mountInfo);
-                }
-            }
-        }
-        return results;
     }
 }

@@ -5,18 +5,24 @@
 package com.emc.sa.machinetags;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 
 import com.emc.sa.machinetags.vmware.DatastoreMachineTag;
 import com.emc.sa.machinetags.vmware.VMwareDatastoreTagger;
+import com.emc.sa.service.linux.file.MountInfo;
+import com.emc.sa.service.vipr.ViPRExecutionUtils;
 import com.emc.sa.util.ResourceType;
 import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.block.BlockObjectRestRep;
@@ -176,6 +182,73 @@ public class MachineTagUtils {
 
     private static String machineTag(String name, String value) {
         return name + "=" + value;
+    }
+
+    public static String generateMountTag(URI hostId, String destinationPath, String subDirectory, String securityType) {
+        return "mountNfs;" + hostId.toString() + ";" + destinationPath + ";" + subDirectory + ";" + securityType;
+    }
+
+    public static void setFileSystemTag(ViPRCoreClient client, URI fsId, String tag) {
+        Set<String> tags = new HashSet<String>();
+        tags.add(tag);
+        client.fileSystems().addTags(fsId, tags);
+    }
+
+    public static void removeFileSystemTag(ViPRCoreClient client, URI fsId, String tag) {
+        Set<String> removeTags = new HashSet<String>();
+        removeTags.add(tag);
+        client.fileSystems().removeTags(fsId, removeTags);
+    }
+
+    public static Set<String> getFileSystemTags(ViPRCoreClient client, URI fsId) {
+        return client.fileSystems().getTags(fsId);
+    }
+
+    public static List<MountInfo> convertNFSTagsToMounts(List<String> mountTags) {
+        List<MountInfo> mountList = new ArrayList<MountInfo>();
+        for (String tag : mountTags) {
+            mountList.add(convertNFSTag(tag));
+        }
+        return mountList;
+    }
+
+    public static Map<String, MountInfo> getNFSMountInfoFromTags(ViPRCoreClient client) {
+        List<URI> fsIds = client.fileSystems().listBulkIds();
+        Map<String, MountInfo> results = new HashMap<String, MountInfo>();
+        for (URI fsId : fsIds) {
+            List<String> mountTags = new ArrayList<String>();
+            mountTags.addAll(client.fileSystems().getTags(fsId));
+            for (String tag : mountTags) {
+                MountInfo mountInfo = convertNFSTag(tag);
+                mountInfo.setFsId(fsId);
+                results.put(tag, mountInfo);
+            }
+        }
+        return results;
+    }
+
+    public static MountInfo convertNFSTag(String tag) {
+        MountInfo mountInfo = new MountInfo();
+        if (tag.startsWith("mountNfs")) {
+            String[] pieces = StringUtils.trim(tag).split(";");
+            if (pieces.length > 1) {
+                mountInfo.setHostId(ViPRExecutionUtils.uri(pieces[1]));
+            }
+            if (pieces.length > 2) {
+                mountInfo.setMountPoint(pieces[2]);
+            }
+            if (pieces.length > 3) {
+                mountInfo.setSubDirectory(pieces[3]);
+            }
+            if (pieces.length > 4) {
+                mountInfo.setSecurityType(pieces[4]);
+            }
+            if (pieces.length > 5) {
+                mountInfo.setFsId(ViPRExecutionUtils.uri(pieces[5]));
+            }
+            mountInfo.setTag(tag);
+        }
+        return mountInfo;
     }
 
 }

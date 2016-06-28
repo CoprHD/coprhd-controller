@@ -6,6 +6,7 @@ package com.emc.sa.service.vipr.file.tasks;
 
 import java.util.Set;
 
+import com.emc.sa.machinetags.MachineTagUtils;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
 
 public class GetFileSystemTags extends ViPRExecutionTask<Set<String>> {
@@ -18,6 +19,6 @@ public class GetFileSystemTags extends ViPRExecutionTask<Set<String>> {
 
     @Override
     public Set<String> executeTask() throws Exception {
-        return getClient().fileSystems().getTags(uri(fileSystemId));
+        return MachineTagUtils.getFileSystemTags(getClient(), uri(fileSystemId));
     }
 }

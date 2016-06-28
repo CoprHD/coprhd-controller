@@ -14,6 +14,8 @@ public interface CinderConstants {
     String HYPHEN = "-";
     char CHAR_HYPHEN = '-';
     String DEFAULT = "DEFAULT";
+    public static final int STATUS_ACCEPT = 202;
+    public static final int STATUS_OK = 200;
 
     public static String CINDER_SSH_PORT = "22";
     public static String CINDER_REST_PORT = "8776";

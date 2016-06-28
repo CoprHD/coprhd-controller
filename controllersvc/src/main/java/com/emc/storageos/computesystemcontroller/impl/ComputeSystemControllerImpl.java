@@ -846,7 +846,9 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         VcenterDataCenter vCenterDataCenter = _dbClient.queryObject(VcenterDataCenter.class, vcenterDatacenter);
         ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupId);
         VCenterAPI api = VcenterDiscoveryAdapter.createVCenterAPI(vCenter);
-
+        HostSystem hostSystem = api.findHostSystem(vCenterDataCenter.getLabel(), esxHost.getLabel());
+        HostStorageAPI storageAPI = new HostStorageAPI(hostSystem);
+        storageAPI.refreshStorage();
         for (String volume : exportGroup.getVolumes().keySet()) {
 
             BlockObject blockObject = BlockObject.fetch(_dbClient, URI.create(volume));
@@ -857,8 +859,6 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
                     // TODO: what if host moved between datacenters? use old cluster vcenter datacenter instead?
                     Datastore datastore = api.findDatastore(vCenterDataCenter.getLabel(), datastoreName);
-                    HostSystem hostSystem = api.findHostSystem(vCenterDataCenter.getLabel(), esxHost.getLabel());
-                    HostStorageAPI storageAPI = new HostStorageAPI(hostSystem);
                     for (HostScsiDisk entry : storageAPI.listScsiDisks()) {
                         // TODO use VolumeWWNUtils
                         if (VMwareUtils.getDiskWwn(entry).equalsIgnoreCase(blockObject.getWWN())) {
@@ -880,6 +880,8 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         VcenterDataCenter vCenterDataCenter = _dbClient.queryObject(VcenterDataCenter.class, vcenterDatacenter);
         ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupId);
         VCenterAPI api = VcenterDiscoveryAdapter.createVCenterAPI(vCenter);
+        HostSystem hostSystem = api.findHostSystem(vCenterDataCenter.getLabel(), esxHost.getLabel());
+        HostStorageAPI storageAPI = new HostStorageAPI(hostSystem);
 
         for (String volume : exportGroup.getVolumes().keySet()) {
 
@@ -891,9 +893,8 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
                     // TODO: what if host moved between datacenters? use old cluster vcenter datacenter instead?
                     Datastore datastore = api.findDatastore(vCenterDataCenter.getLabel(), datastoreName);
-                    HostSystem hostSystem = api.findHostSystem(vCenterDataCenter.getLabel(), esxHost.getLabel());
                     unmountDatastore(datastore, hostSystem);
-                    HostStorageAPI storageAPI = new HostStorageAPI(hostSystem);
+                    storageAPI.detachDatastore(datastore);
                     for (HostScsiDisk entry : storageAPI.listScsiDisks()) {
                         // TODO use VolumeWWNUtils
                         if (VMwareUtils.getDiskWwn(entry).equalsIgnoreCase(blockObject.getWWN())) {
@@ -903,6 +904,8 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 }
             }
         }
+        storageAPI.refreshStorage();
+
         WorkflowStepCompleter.stepSucceded(stepId);
     }
 

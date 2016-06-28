@@ -44,9 +44,13 @@ public class Main {
         vplexDBCkr.dbClientStart();
         List<StorageSystem> vplexSystems = vplexDBCkr.getVPlexSystems();
         for (StorageSystem vplexSystem : vplexSystems) {
-            System.out.println("************Processing vplex: " + vplexSystem.getLabel());
-            vplexDBCkr.checkVolumesOnVplex(vplexSystem.getId());
-        }
+            for(int i=0;i<args.length;i++) {
+             if (args[i].equals(vplexSystem.getLabel())) {
+			   System.out.println("************Processing vplex: " + vplexSystem.getLabel());
+               vplexDBCkr.checkVolumesOnVplex(vplexSystem.getId());
+			 }
+            }			
+		}
         System.out.println("vplexdbckr done");
         System.exit(0);
     }

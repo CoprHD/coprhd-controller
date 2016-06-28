@@ -111,11 +111,11 @@
 
         <entry key="time-tolerance" value="600" />
 
-
         <entry key="metering-dump" value="false" />
         <entry key="metering-dump-location" value="/tmp" />
         <entry key="metering-records-partition-size" value="1000" />
         <entry key="sblim-timeout" value="1200000" />
+<<<<<<< HEAD
 
 		<!-- On single node deployments (devkits, standalone, 1+0), default to NO auto-discovery.
 		     This value overrides the three values for "enable-metering", "enable-autodiscovery",
@@ -129,6 +129,8 @@
 		     -->
         <entry key="enable-auto-discovery-metering-scan-single-node-deployments" value="false" />
         
+=======
+>>>>>>> integration-3.0-patch1
         <entry key="enable-metering" value="true" />
         <entry key="enable-autodiscovery" value="true" />
         <entry key="enable-autoscan" value="false" />

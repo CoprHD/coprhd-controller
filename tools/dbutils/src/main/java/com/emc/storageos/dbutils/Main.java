@@ -42,6 +42,7 @@ public class Main {
         CHECK_DB,
         REPAIR_DB,
         REBUILD_INDEX,
+        RUN_MIGRATION_CALLBACK
     };
 
     private static final String TYPE_EVENTS = "events";
@@ -125,6 +126,9 @@ public class Main {
         System.out.printf("\t%s <file_path>%n",
                 Command.REBUILD_INDEX.name().toLowerCase());
         System.out.printf("\t\t Note: use the genereated file to rebuild the index%n");
+        System.out.printf("\t%s <file_path>%n",
+                Command.RUN_MIGRATION_CALLBACK.name().toLowerCase());
+        System.out.printf("\t\t Note: run specified migration callback.%n");
     }
 
     /**
@@ -261,6 +265,10 @@ public class Main {
                     _client.init();
                     handler = new RebuildIndexHandler(args);
                     break;
+                case RUN_MIGRATION_CALLBACK:
+                    _client.init();
+                    handler = new RunMigrationCallback(args);
+                    break;    
                 default:
                     throw new IllegalArgumentException("Invalid command ");
             }

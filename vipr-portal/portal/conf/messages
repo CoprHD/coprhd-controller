@@ -3565,7 +3565,7 @@ resources.filesnapshot.exports=Exports
 resources.filesnapshot.exportRules=Export Rules
 resources.filesnapshot.shares=Shares
 resources.filesnapshot.deleteLink=Delete File Snapshot
-resources.filesnapshot.deleteConfirm=Are you sure you want this file snapshot?
+resources.filesnapshot.deleteConfirm=Are you sure you want to delete this file snapshot?
 
 resources.filesnapshot.export.delete.confirm=Are you sure you want to delete this file snapshot export?
 resources.filesnapshot.export.deactivate=Task created to delete file snapshot export rule.  Please check the task list for an updated status.

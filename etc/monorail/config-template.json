@@ -1,5 +1,5 @@
 {
-    "amqp": "amqp://localhost",
+    "amqp": "amqp://${network_vip}:5673",
     "apiServerAddress": "${network_ipaddr_service}",
     "apiServerPort": 9080,
     "httpEndpoints": [

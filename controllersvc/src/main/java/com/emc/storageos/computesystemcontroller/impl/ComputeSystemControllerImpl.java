@@ -115,6 +115,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     private static final String UPDATE_INITIATOR_CLUSTER_NAMES_STEP = "UpdateInitiatorClusterNamesStep";
 
     private static final String UNMOUNT_AND_DETACH_STEP = "UnmountAndDetachStep";
+    private static final String MOUNT_AND_ATTACH_STEP = "MountAndAttachStep";
 
     private ComputeDeviceController computeDeviceController;
     private BlockStorageScheduler _blockScheduler;
@@ -829,8 +830,46 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         waitForAsyncFileExportTask(fileShareId, stepId);
     }
 
+    public Workflow.Method attachAndMountMethod(URI exportGroup, URI hostId, URI vcenter, URI vcenterDatacenter) {
+        return new Workflow.Method("attachAndMount", exportGroup, hostId, vcenter, vcenterDatacenter);
+    }
+
     public Workflow.Method unmountAndDetachMethod(URI exportGroup, URI hostId, URI vcenter, URI vcenterDatacenter) {
         return new Workflow.Method("unmountAndDetach", exportGroup, hostId, vcenter, vcenterDatacenter);
+    }
+
+    public void attachAndMount(URI exportGroupId, URI hostId, URI vCenterId, URI vcenterDatacenter, String stepId) {
+        WorkflowStepCompleter.stepExecuting(stepId);
+
+        Host esxHost = _dbClient.queryObject(Host.class, hostId);
+        Vcenter vCenter = _dbClient.queryObject(Vcenter.class, vCenterId);
+        VcenterDataCenter vCenterDataCenter = _dbClient.queryObject(VcenterDataCenter.class, vcenterDatacenter);
+        ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupId);
+        VCenterAPI api = VcenterDiscoveryAdapter.createVCenterAPI(vCenter);
+
+        for (String volume : exportGroup.getVolumes().keySet()) {
+
+            BlockObject blockObject = BlockObject.fetch(_dbClient, URI.create(volume));
+            for (ScopedLabel tag : blockObject.getTag()) {
+                String tagValue = tag.getLabel();
+                if (tagValue != null && tagValue.startsWith("vipr:vmfsDatastore")) {
+                    String datastoreName = tagValue.split("=")[1];
+
+                    // TODO: what if host moved between datacenters? use old cluster vcenter datacenter instead?
+                    Datastore datastore = api.findDatastore(vCenterDataCenter.getLabel(), datastoreName);
+                    HostSystem hostSystem = api.findHostSystem(vCenterDataCenter.getLabel(), esxHost.getLabel());
+                    HostStorageAPI storageAPI = new HostStorageAPI(hostSystem);
+                    for (HostScsiDisk entry : storageAPI.listScsiDisks()) {
+                        // TODO use VolumeWWNUtils
+                        if (VMwareUtils.getDiskWwn(entry).equalsIgnoreCase(blockObject.getWWN())) {
+                            attachLuns(hostSystem, entry);
+                        }
+                    }
+                    mountDatastore(datastore, hostSystem);
+                }
+            }
+        }
+        WorkflowStepCompleter.stepSucceded(stepId);
     }
 
     public void unmountAndDetach(URI exportGroupId, URI hostId, URI vCenterId, URI vcenterDatacenter, String stepId) {
@@ -1024,7 +1063,8 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             completer = new ProcessHostChangesCompleter(changes, deletedHosts, deletedClusters, taskId);
             Workflow workflow = _workflowService.getNewWorkflow(this, HOST_CHANGES_WF_NAME, true, taskId);
             String waitFor = null;
-            Map<URI, List<URI>> vCenterHostExportMap = Maps.newHashMap();
+            Map<URI, List<URI>> detachvCenterHostExportMap = Maps.newHashMap();
+            Map<URI, List<URI>> attachvCenterHostExportMap = Maps.newHashMap();
 
             Map<URI, ExportGroupState> exportGroups = Maps.newHashMap();
             _log.info("There are " + changes.size() + " changes");
@@ -1079,7 +1119,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                                 + hostId + " Remove initiators: " + hostInitiatorIds);
                         egh.removeHost(hostId);
                         egh.removeInitiators(hostInitiatorIds);
-                        addVcenterHost(vCenterHostExportMap, hostId, export.getId());
+                        addVcenterHost(detachvCenterHostExportMap, hostId, export.getId());
                     }
                 } else {
 
@@ -1106,6 +1146,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                                     CommonTransformerFunctions.fctnDataObjectToID());
                             egh.addHost(hostId);
                             egh.addInitiators(validInitiatorIds);
+                            addVcenterHost(attachvCenterHostExportMap, hostId, export.getId());
                         }
                     }
 
@@ -1116,7 +1157,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                                     + " Remove initiators: " + hostInitiatorIds);
                             egh.removeHost(hostId);
                             egh.removeInitiators(hostInitiatorIds);
-                            addVcenterHost(vCenterHostExportMap, hostId, export.getId());
+                            addVcenterHost(detachvCenterHostExportMap, hostId, export.getId());
                         }
                     }
                 }
@@ -1162,11 +1203,9 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
             _log.info("Number of ExportGroupStates: " + exportGroups.size());
 
-            // Unmount and detach for all vCenter hosts
             if (isVCenter) {
-                // TODO generate steps
-                waitFor = unmountAndDetachVolumes(vCenterHostExportMap, waitFor, workflow);
-
+                waitFor = unmountAndDetachVolumes(detachvCenterHostExportMap, waitFor, workflow);
+                waitFor = attachAndMountVolumes(attachvCenterHostExportMap, waitFor, workflow);
             }
 
             // Generate export removes first and then export adds
@@ -1212,6 +1251,48 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         return waitFor;
     }
 
+    private String attachAndMountVolumes(Map<URI, List<URI>> vCenterHostExportMap, String waitFor, Workflow workflow) {
+        for (URI hostId : vCenterHostExportMap.keySet()) {
+            Host esxHost = _dbClient.queryObject(Host.class, hostId);
+            if (esxHost != null) {
+                URI virtualDataCenter = esxHost.getVcenterDataCenter();
+                VcenterDataCenter vcenterDataCenter = _dbClient.queryObject(VcenterDataCenter.class, virtualDataCenter);
+                URI vCenterId = vcenterDataCenter.getVcenter();
+
+                for (URI export : vCenterHostExportMap.get(hostId)) {
+                    waitFor = workflow.createStep(MOUNT_AND_ATTACH_STEP,
+                            String.format("Mounting and attaching volumes from export group %s", export), waitFor,
+                            export, export.toString(),
+                            this.getClass(),
+                            attachAndMountMethod(export, esxHost.getId(), vCenterId,
+                                    vcenterDataCenter.getId()),
+                            null, null);
+                }
+            }
+        }
+        return waitFor;
+    }
+
+    private void attachLuns(HostSystem host, HostScsiDisk disk) {
+        try {
+            host.getHostStorageSystem().attachScsiLun(disk.getUuid());
+        } catch (NotFound e) {
+            e.printStackTrace();
+        } catch (HostConfigFault e) {
+            e.printStackTrace();
+        } catch (InvalidState e) {
+            e.printStackTrace();
+        } catch (ResourceInUse e) {
+            e.printStackTrace();
+        } catch (RuntimeFault e) {
+            e.printStackTrace();
+        } catch (InvalidProperty e) {
+            e.printStackTrace();
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
+    }
+
     private void detachLuns(HostSystem host, HostScsiDisk disk) {
         try {
             host.getHostStorageSystem().detachScsiLun(disk.getUuid());
@@ -1229,6 +1310,32 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             e.printStackTrace();
         } catch (RemoteException e) {
             e.printStackTrace();
+        }
+    }
+
+    private void mountDatastore(Datastore datastore, HostSystem host) {
+        final String dataStoreName = datastore.getName();
+        for (HostFileSystemMountInfo mount : new HostStorageAPI(host)
+                .getStorageSystem().getFileSystemVolumeInfo().getMountInfo()) {
+
+            HostFileSystemVolume mountVolume = mount.getVolume();
+
+            if (mountVolume == null) {
+                _log.warn("No volume attached to mount : " + mount.getMountInfo().getPath());
+                continue;
+            }
+
+            if (mount.getVolume() instanceof HostVmfsVolume
+                    && dataStoreName.equals(mount.getVolume().getName())) {
+                HostVmfsVolume volume = (HostVmfsVolume) mountVolume;
+                String vmfsUuid = volume.getUuid();
+                _log.info("Mounting volume : " + vmfsUuid);
+                try {
+                    new HostStorageAPI(host).getStorageSystem().mountVmfsVolume(vmfsUuid);
+                } catch (RemoteException e) {
+                    throw new VMWareException(e);
+                }
+            }
         }
     }
 

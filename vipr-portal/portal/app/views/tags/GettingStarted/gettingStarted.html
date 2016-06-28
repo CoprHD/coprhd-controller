@@ -15,10 +15,10 @@
                 <div class='btn-group'>
                     <span ng-show="currentMode=='side'">
                         <a ng-show="currentStep <= 2" ng-click="toggleMode('full');"><i class="glyphicon glyphicon-fullscreen"></i></a>
-                        <a ng-show="currentStep > completedSteps && currentStep > 2" ng-click="gotoNext('full');"><i class="glyphicon glyphicon-arrow-right"></i></a>
+                        <a ng-show="currentStep > completedSteps && currentStep > 2" ng-click="completeStep();"><i class="glyphicon glyphicon-arrow-right"></i></a>
                         <a ng-show="currentStep <= completedSteps && (currentStep == 6 || currentStep == 8)" ng-click="goToMode(currentStep+2,'full');"><i class="glyphicon glyphicon-arrow-right"></i></a>
+                        <a ng-show="currentStep > 2" ng-click="closeGuide();"><i class="glyphicon glyphicon-remove-circle" ></i></a>
                     </span> &nbsp;
-                    <a ng-click="closeGuide();"><i class="glyphicon glyphicon-remove-circle" ></i></a>
                 </div>
             </div>
             <h4 ng-show="currentMode=='full'" class="">&{'gettingStarted.header.full'}</h4>
@@ -69,19 +69,19 @@
                     </div>
 
                     <div class="landing-text">
-                        <h3 ng-show="completedSteps < 3">&{'gettingStarted.landing.text'}</h3>
-                        <h3 ng-show="completedSteps >= 3 && completedSteps < maxSteps" >&{'gettingStarted.landing.systemPartial'}</h3>
-                        <h3 ng-show="completedSteps == maxSteps" >&{'gettingStarted.landing.systemReady'}</h3>
+                        <h3 ng-show="completedSteps == 2">&{'gettingStarted.landing.text'}</h3>
+                        <h3 ng-show="completedSteps >= 3 && completedSteps < 5" >&{'gettingStarted.landing.systemPartial'}</h3>
+                        <h3 ng-show="completedSteps == 5" >&{'gettingStarted.landing.systemReady'}</h3>
                     </div>
 
                     <div class="center-block ">
                         <div class="action-btn text-center">
                             <!-- Button never links to optional step and has different wording when setup complete -->
-                            <button ng-show="completedSteps < 3" name="singlebutton" class="btn btn-primary" ng-click="goToNextStep();">&{'gettingStarted.landing.initial'}</button>
+                            <button ng-show="completedSteps == 2" name="singlebutton" class="btn btn-primary" ng-click="completeStep();">&{'gettingStarted.landing.initial'}</button>
 
-                            <button ng-show="completedSteps >= 3  && completedSteps < maxSteps" name="singlebutton" class="btn btn-primary" ng-click="goToMode(completedSteps + 1,'full');">&{'gettingStarted.landing.partial'}</button>
+                            <button ng-show="completedSteps >= 3  && completedSteps < 5" name="singlebutton" class="btn btn-primary" ng-click="showStep(completedSteps+1);">&{'gettingStarted.landing.partial'}</button>
 
-                            <button ng-show="completedSteps == maxSteps" name="singlebutton" class="btn btn-primary" ng-click="restartList();">&{'gettingStarted.landing.completed'}</button> <button ng-show="completedSteps == maxSteps" name="singlebutton" class="btn btn-primary" ng-click="initializeSteps();">&{'gettingStarted.loader.recheck'}</button> <!-- <button ng-show="completedSteps == getStepsLength()-1" name="singlebutton" class="btn btn-primary" ng-click="closeGuide();">Close Guide</button> -->
+                            <button ng-show="completedSteps == 5" name="singlebutton" class="btn btn-primary" ng-click="restartList();">&{'gettingStarted.landing.completed'}</button> <button ng-show="completedSteps == maxSteps" name="singlebutton" class="btn btn-primary" ng-click="initializeSteps();">&{'gettingStarted.loader.recheck'}</button> <!-- <button ng-show="completedSteps == getStepsLength()-1" name="singlebutton" class="btn btn-primary" ng-click="closeGuide();">Close Guide</button> -->
                         </div>
                         <p class="dismiss-me" ng-click="closeGuide();">&{'gettingStarted.loader.dismiss'}</p>
                     </div>
@@ -145,6 +145,76 @@
                                 <p >&{'gettingStarted.initialsetup.text'}</p>
                                 <div class="action-btn text-center">
                                     <button ng-show="currentStep > completedSteps" name="singlebutton" class="btn btn-primary" ng-click="runStep();">&{'gettingStarted.initialsetup.button'}</button>
+                                </div>
+                                <div ng-show="currentStep <= completedSteps" class="action-btn text-center">
+                                    <button name="singlebutton" class="btn btn-primary" ng-click="skipStep();">
+                                        &{'button.next'}</button>
+                                </div>
+                            </div>
+                            <!-- end guide-textpanel -->
+                        </div>
+                        <!-- end container -->
+                    </div>
+                    <!-- end col -->
+                </div>
+                <!-- end css-table -->
+            </guidestep>
+            <guidestep class="required-step" name="storagesystemsteup" ng-show="guideDataAvailable && currentStep == 4">
+                <div ng-if="currentMode=='side'">
+                    <!--h4><div ng-show="currentStep <= completedSteps" class="step-circle"><i class="glyphicon glyphicon-ok"></i></div>&{'gettingStarted.storagepools.title'}</h4-->
+                    <step-side><div ng-show="currentStep <= completedSteps" class="step-circle"><i class="glyphicon glyphicon-ok"></i></div>&{'gettingStarted.storagesystem.title'}</step-side>
+                </div>
+                <div id="css-table" ng-if="currentMode=='full'">
+                    <div class="col-1">
+                        <div class="guide-steppanel">
+                            <!--ng-include src="'/views/tags/ecsGuides/gettingStartedPartials/nav-circles.html'"></ng-include-->
+                            #{GettingStarted.gettingStartedPartials.nav-circles/}
+                        </div>
+                        <!-- end guide-steppanel -->
+                    </div>
+                    <!-- end col -->
+                    <div class="col-2">
+                        <div class="container-fluid">
+                            <div class="guide-textpanel">
+                                <h4>&{'gettingStarted.storagesystem.title'}</h4>
+                                <p >&{'gettingStarted.storagesystem.text'}</p>
+                                <div class="action-btn text-center">
+                                    <button ng-show="currentStep > completedSteps" name="singlebutton" class="btn btn-primary" ng-click="runStep();">&{'gettingStarted.storagesystem.button'}</button>
+                                </div>
+                                <div ng-show="currentStep <= completedSteps" class="action-btn text-center">
+                                    <button name="singlebutton" class="btn btn-primary" ng-click="skipStep();">
+                                        &{'button.next'}</button>
+                                </div>
+                            </div>
+                            <!-- end guide-textpanel -->
+                        </div>
+                        <!-- end container -->
+                    </div>
+                    <!-- end col -->
+                </div>
+                <!-- end css-table -->
+            </guidestep>
+            <guidestep class="required-step" name="fabricmanagersetup" ng-show="guideDataAvailable && currentStep == 5">
+                <div ng-if="currentMode=='side'">
+                    <!--h4><div ng-show="currentStep <= completedSteps" class="step-circle"><i class="glyphicon glyphicon-ok"></i></div>&{'gettingStarted.storagepools.title'}</h4-->
+                    <step-side><div ng-show="currentStep <= completedSteps" class="step-circle"><i class="glyphicon glyphicon-ok"></i></div>&{'gettingStarted.fabricmanager.title'}</step-side>
+                </div>
+                <div id="css-table" ng-if="currentMode=='full'">
+                    <div class="col-1">
+                        <div class="guide-steppanel">
+                            <!--ng-include src="'/views/tags/ecsGuides/gettingStartedPartials/nav-circles.html'"></ng-include-->
+                            #{GettingStarted.gettingStartedPartials.nav-circles/}
+                        </div>
+                        <!-- end guide-steppanel -->
+                    </div>
+                    <!-- end col -->
+                    <div class="col-2">
+                        <div class="container-fluid">
+                            <div class="guide-textpanel">
+                                <h4>&{'gettingStarted.fabricmanager.title'}</h4>
+                                <p >&{'gettingStarted.fabricmanager.text'}</p>
+                                <div class="action-btn text-center">
+                                    <button ng-show="currentStep > completedSteps" name="singlebutton" class="btn btn-primary" ng-click="runStep();">&{'gettingStarted.fabricmanager.button'}</button>
                                 </div>
                                 <div ng-show="currentStep <= completedSteps" class="action-btn text-center">
                                     <button name="singlebutton" class="btn btn-primary" ng-click="skipStep();">

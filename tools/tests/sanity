@@ -9569,21 +9569,6 @@ custvolname_setup()
 custvolname_tests()
 {
     echo "Executing custom volume name tests"
-
-    hname=$(hostname)
-    if [ $hname = "standalone" ]; then
-        hname=$SHORTENED_HOST
-    fi
-    echo "hostname is $hname"
-
-    localVolume=$hname-${RANDOM}-VPlexLocal1
-    host=$PROJECT.lss.emc.com
-    hostLbl=$PROJECT
-    PWWN1=10:00:00:E0:7E:00:00:0F
-    WWNN1=20:00:00:E0:7E:00:00:0F
-    PWWN2=10:00:00:90:FA:18:0E:99
-    WWNN2=20:00:00:90:FA:18:0E:99
-
     echo "Enabling custom volume naming"
     customconfig create VolumeNamingEnabled true systemType vplex --register true
 
@@ -9593,15 +9578,39 @@ custvolname_tests()
     echo "Setting export custom volume name configuration"
     customconfig create VolumeNamingProvisionWithExport "{volume_label}-{project_name}-{export_name}" systemType vplex --register true
 
-    echo "Creating VPLEX local volume"
-    volume create $localVolume $PROJECT $NH cosvplexlocal $BLK_SIZE
+    localVolume1=VPlexLocal1-${RANDOM}
+    echo "Creating VPLEX local volume " + $localVolume1
+    volume create $localVolume1 $PROJECT $NH cosvplexlocal $BLK_SIZE
 
     echo "Show VPLEX local volume with custom name"
-    customName=$localVolume-$PROJECT
-    volume show $PROJECT/$customName
+    customName1=$localVolume1-$PROJECT
+    volume show $PROJECT/$customName1
 
     echo "Deleting VPLEX local volume"
-    volume delete $PROJECT/$customName --wait
+    volume delete $PROJECT/$customName1 --wait
+
+    host=$PROJECT.lss.emc.com
+    hostLbl=$PROJECT
+    echo "Creating host with name " + $hostLbl
+    hosts create $hostLbl $TENANT Windows $host --port 8111 --username user --password 'password' --osversion 1.0
+
+    echo "Getting host URI"
+    hosturi=`hosts list ${TENANT} | grep ${hostLbl} | awk '{print $4}'`
+    echo "Host URI is " + $hosturi
+
+    localVolume2=VPlexLocal2-${RANDOM}
+    echo "Creating VPLEX local volume " + $localVolume2 + " for host " + $hostLbl
+    volume create $localVolume2 $PROJECT $NH cosvplexlocal $BLK_SIZE --computeResource $hosturi
+
+    echo "Show VPLEX local volume with custom name"
+    customName2=$localVolume2-$PROJECT-$hostLbl
+    volume show $PROJECT/$customName2
+
+    echo "Deleting VPLEX local volume"
+    volume delete $PROJECT/$customName2 --wait
+
+    echo "Deleting host"
+    hosts delete $hostLbl
 
     echo "Disable custom configurations"
     customconfig delete systemType.vplex.VolumeNamingEnabled systemType vplex False

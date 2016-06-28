@@ -5,11 +5,13 @@
 
 package com.emc.storageos.volumecontroller;
 
-import com.emc.storageos.db.client.model.StorageProtocol;
-import com.emc.storageos.db.client.model.FileExport;
-
 import java.io.Serializable;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
+
+import com.emc.storageos.db.client.model.FileExport;
+import com.emc.storageos.db.client.model.StorageProtocol;
 
 /**
  * Place holder for FS Export information.
@@ -32,7 +34,7 @@ public class FileShareExport implements Serializable {
     }
 
     private List<String> _clients;
-    private SecurityTypes _securityType;
+    private Set<SecurityTypes> _securityType;
     private Permissions _permissions;
     private String _rootUserMapping;
     private String _storagePortName;
@@ -43,6 +45,8 @@ public class FileShareExport implements Serializable {
     private String _mountPath;
     private String _comments;
     private String _isilonId;
+
+    public static String SEC_SEPARATOR = ",";
 
     /**
      * Construction of FileShareExport export
@@ -57,7 +61,10 @@ public class FileShareExport implements Serializable {
     public FileShareExport(List<String> clients, String securityType, String permissions, String rootUserMapping, String protocol,
             String storagePortName, String storagePort) {
         _clients = clients;
-        _securityType = Enum.valueOf(SecurityTypes.class, securityType);
+        for (String secType : securityType.split(SEC_SEPARATOR)) {
+            _securityType.add(Enum.valueOf(SecurityTypes.class, secType.trim()));
+
+        }
         _permissions = Enum.valueOf(Permissions.class, permissions);
         _rootUserMapping = rootUserMapping;
         _storagePortName = storagePortName;
@@ -80,7 +87,10 @@ public class FileShareExport implements Serializable {
     public FileShareExport(List<String> clients, String securityType, String permissions, String rootUserMapping,
             String protocol, String storagePortName, String storagePort, String path) {
         _clients = clients;
-        _securityType = Enum.valueOf(SecurityTypes.class, securityType);
+        for (String secType : securityType.split(SEC_SEPARATOR)) {
+            _securityType.add(Enum.valueOf(SecurityTypes.class, secType.trim()));
+
+        }
         _permissions = Enum.valueOf(Permissions.class, permissions);
         _rootUserMapping = rootUserMapping;
         _storagePortName = storagePortName;
@@ -104,7 +114,10 @@ public class FileShareExport implements Serializable {
     public FileShareExport(List<String> clients, String securityType, String permissions, String rootUserMapping,
             String protocol, String storagePortName, String storagePort, String path, String mountPath, String subDirectory, String comments) {
         _clients = clients;
-        _securityType = Enum.valueOf(SecurityTypes.class, securityType);
+        for (String secType : securityType.split(SEC_SEPARATOR)) {
+            _securityType.add(Enum.valueOf(SecurityTypes.class, secType.trim()));
+
+        }
         _permissions = Enum.valueOf(Permissions.class, permissions);
         _rootUserMapping = rootUserMapping;
         _storagePortName = storagePortName;
@@ -135,7 +148,12 @@ public class FileShareExport implements Serializable {
     public FileShareExport(FileExport fileExport) {
         _clients = fileExport.getClients();
         _permissions = Permissions.valueOf(fileExport.getPermissions());
-        _securityType = SecurityTypes.valueOf(fileExport.getSecurityType());
+        if (fileExport.getSecurityType() != null) {
+            for (String secType : fileExport.getSecurityType().split(SEC_SEPARATOR)) {
+                _securityType.add(Enum.valueOf(SecurityTypes.class, secType.trim()));
+
+            }
+        }
         _rootUserMapping = fileExport.getRootUserMapping();
         _storagePortName = fileExport.getStoragePortName();
         _storagePort = fileExport.getStoragePort();
@@ -188,7 +206,13 @@ public class FileShareExport implements Serializable {
 
     public FileExport getFileExport() {
 
-        FileExport fileExport = new FileExport(_clients, _storagePortName, _mountPath, _securityType.toString(), _permissions.toString(),
+        // Convert the set of security types to a string separated by comma(,).
+        Iterator<SecurityTypes> secIter = _securityType.iterator();
+        String securityTypes = secIter.next().toString();
+        while (secIter.hasNext()) {
+            securityTypes += "," + secIter.next().toString();
+        }
+        FileExport fileExport = new FileExport(_clients, _storagePortName, _mountPath, securityTypes, _permissions.toString(),
                 _rootUserMapping,
                 _protocol.toString(), _storagePort, _path, _mountPath, _subDirectory, _comments);
         fileExport.setIsilonId(_isilonId);

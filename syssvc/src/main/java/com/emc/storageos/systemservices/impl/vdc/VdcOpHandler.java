@@ -8,7 +8,6 @@ package com.emc.storageos.systemservices.impl.vdc;
 import static com.emc.storageos.coordinator.client.model.Constants.KEY_DATA_REVISION;
 import static com.emc.storageos.coordinator.client.model.Constants.KEY_DATA_REVISION_COMMITTED;
 import static com.emc.storageos.coordinator.client.model.Constants.KEY_PREV_DATA_REVISION;
-import static com.emc.storageos.coordinator.client.model.Constants.KEY_PREV_VDC_CONFIG_VERSION;
 import static com.emc.storageos.coordinator.client.model.Constants.KEY_VDC_CONFIG_VERSION;
 import static com.emc.storageos.services.util.FileUtils.readValueFromFile;
 
@@ -270,7 +269,6 @@ public abstract class VdcOpHandler {
      *   target_data_revision= 1467062122040           Major version of this PIT copy. See /etc/datatool to know what is major/minor version of a PIT copy
      *   target_data_revision=true|false               For 2 phase commit. True for successful commit. False means inconsistent commit.  
      *   previous_data_revision=1467062122039          Previous data revision. We keep previous data revision for rollback if PIT switch fails
-     *   previous_vdc_config_version=1467062122039     Config version associated with previous data revision
      *   
      * Genconfig uses those properties to prepare data directories(db, geodb, zk).   
      */
@@ -307,7 +305,7 @@ public abstract class VdcOpHandler {
                 String localRevision = localRevisionProps.getProperty(Constants.KEY_DATA_REVISION);
                 log.info("Local data revision is {}, vdc config version is {}", localRevision, localVdcConfigVersion);
 
-                if (localVdcConfigVersion != targetVdcConfigVersion) {
+                if (localVdcConfigVersion < targetVdcConfigVersion) {
                     updateDataRevision(localRevisionProps);
                 }
             } catch (Exception e) {
@@ -334,21 +332,16 @@ public abstract class VdcOpHandler {
             newPropInfo.addProperty(KEY_DATA_REVISION, targetDataRevision == null ? "" : targetDataRevision);
             newPropInfo.addProperty(KEY_VDC_CONFIG_VERSION, String.valueOf(vdcConfigVersion));
             
-            // if target vdc config version is same as previous vdc config version at local, it means we are doing data revision rollback
-            if (StringUtils.equals(String.valueOf(vdcConfigVersion), localRevisionProps.getProperty(KEY_PREV_VDC_CONFIG_VERSION))) {
+            // if target data revision is same as previous vdc config version at local, it means we are doing data revision rollback
+            if (StringUtils.equals(String.valueOf(targetDataRevision), localRevisionProps.getProperty(KEY_PREV_DATA_REVISION))) {
                 // no need to save data revision pointer any more.
-                log.info("Rollbacking to previous data revision {}. Skip previous data revision pointer", vdcConfigVersion);
+                log.info("Rollbacking to previous data revision {}. Skip previous data revision pointer", targetDataRevision);
                 newPropInfo.removeProperty(KEY_PREV_DATA_REVISION);
-                newPropInfo.removeProperty(KEY_PREV_VDC_CONFIG_VERSION);
             } else {
                 // save previous data revision pointer to local
                 String prevDataRevision = localRevisionProps.getProperty(KEY_DATA_REVISION);
                 if (StringUtils.isNotEmpty(prevDataRevision)) {
                     newPropInfo.addProperty(KEY_PREV_DATA_REVISION, prevDataRevision);
-                }
-                String prevVdcConfigVersion = localRevisionProps.getProperty(KEY_VDC_CONFIG_VERSION);
-                if (StringUtils.isNotEmpty(prevVdcConfigVersion)) {
-                    newPropInfo.addProperty(KEY_PREV_VDC_CONFIG_VERSION, prevVdcConfigVersion);
                 }
             }
             
@@ -418,7 +411,6 @@ public abstract class VdcOpHandler {
                 // purge previous revision from local data revision properties
                 PropertyInfoExt localRevisionProps = localRepository.getDataRevisionPropertyInfo();
                 localRevisionProps.removeProperty(Constants.KEY_PREV_DATA_REVISION);
-                localRevisionProps.removeProperty(Constants.KEY_PREV_VDC_CONFIG_VERSION);
                 localRepository.setDataRevisionPropertyInfo(localRevisionProps);
             }
         }

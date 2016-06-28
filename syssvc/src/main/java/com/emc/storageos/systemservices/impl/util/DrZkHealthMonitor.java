@@ -130,13 +130,11 @@ public class DrZkHealthMonitor extends DrHealthMonitor {
                     LocalRepository localRepository = LocalRepository.getInstance();
                     PropertyInfoExt localDataRevisionProps = localRepository.getDataRevisionPropertyInfo();
                     String prevRevision = localDataRevisionProps.getProperty(Constants.KEY_PREV_DATA_REVISION);
-                    String prevVdcConfigVersion = localDataRevisionProps.getProperty(Constants.KEY_PREV_VDC_CONFIG_VERSION);
-                    log.info("Previous data revision at local {}, vdc config version {}", prevRevision, prevVdcConfigVersion);
-                    if (StringUtils.isNotEmpty(prevRevision) && StringUtils.isNotEmpty(prevVdcConfigVersion)) {
+                    log.info("Previous data revision at local {}", prevRevision);
+                    if (StringUtils.isNotEmpty(prevRevision)) {
                         long rollbackTargetRevision = Long.parseLong(prevRevision);
-                        long rollbackTargetVdcConfigVersion = Long.parseLong(prevVdcConfigVersion);
                         drUtil.updateVdcTargetVersion(drUtil.getLocalSite().getUuid(), SiteInfo.DR_OP_CHANGE_DATA_REVISION,
-                                rollbackTargetVdcConfigVersion, rollbackTargetRevision);
+                                DrUtil.newVdcConfigVersion(), rollbackTargetRevision);
                         log.info("Automatic rollback to {} has been triggered", rollbackTargetRevision);
                     } else {
                         log.error("No valid previous revision found. Skip rollback");

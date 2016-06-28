@@ -34,7 +34,7 @@ def volume_create(args):
    
     start = time.time()
     tr_list = bourne.volume_create(args.label, project_uri, nh_uri, cos_uri, args.size, isThinVolume, volumeCount,
-                                  args.protocols, args.protection, cons_grp_uri)
+                                  args.protocols, args.protection, cons_grp_uri, args.computeResource)
     total = time.time() - start
     print "Volume create took", "{0:.2f}".format(total), "seconds to complete"
     #print 'Volume_create debug : ' + str(s)
@@ -412,6 +412,7 @@ create.add_argument('--protocols',      help = 'volume access storage protocols'
 create.add_argument('--protection',     help = 'data protection level for this volume')
 create.add_argument('--consistencyGroup', help = 'add the volume to the specified consistency group for snapshot operations')
 create.add_argument('--thinVolume', help = 'boolean indication if volume is thin or thick')
+create.add_argument('--computeResource', help = 'The name of a host or cluster to which the volume will be exported')
 
 # volume add_journal
 add_journal = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')

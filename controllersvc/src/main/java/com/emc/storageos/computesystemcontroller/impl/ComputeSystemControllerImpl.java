@@ -1169,7 +1169,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                         BlockObject blockObject = BlockObject.fetch(_dbClient, URI.create(volume));
                         for (ScopedLabel tag : blockObject.getTag()) {
                             String tagValue = tag.getLabel();
-                            if (tagValue.startsWith("vmfsDatastore")) {
+                            if (tagValue.startsWith("vipr:vmfsDatastore")) {
 
                                 String datastoreName = tagValue.split("=")[1];
 

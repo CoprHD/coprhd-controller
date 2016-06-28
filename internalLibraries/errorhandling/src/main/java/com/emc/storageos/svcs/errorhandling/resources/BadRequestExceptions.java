@@ -954,6 +954,9 @@ public interface BadRequestExceptions {
             final String varrayLabel);
 
     @DeclareServiceCode(ServiceCode.API_NO_PLACEMENT_FOUND)
+    public BadRequestException noCandidateStoragePoolsForArrayAffinity();
+
+    @DeclareServiceCode(ServiceCode.API_NO_PLACEMENT_FOUND)
     public BadRequestException noMatchingStoragePoolsForVpoolAndVarrayForClones(final String vpoolLabel,
             final String varrayLabel, final URI volumeId);
 

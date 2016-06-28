@@ -169,6 +169,10 @@ public class StorageScheduler implements Scheduler {
         // protocols. In addition, the pool must have enough capacity
         // to hold at least one resource of the requested size.
         List<StoragePool> candidatePools = getMatchingPools(neighborhood, cos, capabilities);
+        if (candidatePools == null || candidatePools.isEmpty()) {
+            _log.warn("VArray {} does not have storage pools which match VPool {}.", neighborhood.getId(), cos.getId());
+            throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(cos.getLabel(), neighborhood.getLabel());
+        }
 
         // Get the recommendations for the candidate pools.
         recommendations = getRecommendationsForPools(neighborhood.getId().toString(), candidatePools, capabilities);
@@ -617,6 +621,10 @@ public class StorageScheduler implements Scheduler {
         Map<URI, List<StoragePool>> candidatePoolMap = groupPoolsByArray(candidatePools,
                 canUseNonPreferred, arrayToHostWeightMap.keySet());
 
+        if (candidatePoolMap == null || candidatePoolMap.isEmpty()) {
+            throw APIException.badRequests.noCandidateStoragePoolsForArrayAffinity();
+        }
+
         // get all the candidate arrays
         List<StorageSystem> candidateSystems = _dbClient.queryObject(StorageSystem.class, candidatePoolMap.keySet());
 
@@ -681,17 +689,23 @@ public class StorageScheduler implements Scheduler {
 
             // start from preferredPools
             if (!preferredPools.isEmpty()) {
+                _log.info("ArrayAffinity - preferred pools {}", Joiner.on(',').join(preferredPools));
                 List<Recommendation> recommendations = getRecommendedPools(varrayId, preferredPools, capabilities, false);
                 if (!recommendations.isEmpty()) {
                     return recommendations;
+                } else {
+                    _log.info("ArrayAffinity - no recommended pools found from perferred pools");
                 }
             }
 
             // then secondaryPools
             if (!secondaryPools.isEmpty()) {
+                _log.info("ArrayAffinity - secondary pools {}", Joiner.on(',').join(secondaryPools));
                 List<Recommendation> recommendations = getRecommendedPools(varrayId, availablePools, capabilities, false);
                 if (!recommendations.isEmpty()) {
                     return recommendations;
+                } else {
+                    _log.info("ArrayAffinity - no recommended pools found from secondary pools");
                 }
             }
         }

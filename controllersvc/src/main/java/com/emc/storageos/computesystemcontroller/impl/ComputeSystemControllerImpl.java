@@ -1205,7 +1205,6 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
             if (isVCenter) {
                 waitFor = unmountAndDetachVolumes(detachvCenterHostExportMap, waitFor, workflow);
-                waitFor = attachAndMountVolumes(attachvCenterHostExportMap, waitFor, workflow);
             }
 
             // Generate export removes first and then export adds
@@ -1218,6 +1217,10 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 if (export.hasAdds()) {
                     waitFor = generateSteps(export, waitFor, workflow, true);
                 }
+            }
+
+            if (isVCenter) {
+                waitFor = attachAndMountVolumes(attachvCenterHostExportMap, waitFor, workflow);
             }
 
             workflow.executePlan(completer, "Success", null, null, null, null);

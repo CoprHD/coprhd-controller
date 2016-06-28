@@ -3608,7 +3608,7 @@ class Bourne:
     def volume_exports(self, uri):
         return self.api('GET', URI_VOLUMES_EXPORTS.format(uri))
 
-    def volume_create(self, label, project, neighborhood, cos, size, isThinVolume, count, protocols, protection, consistencyGroup):
+    def volume_create(self, label, project, neighborhood, cos, size, isThinVolume, count, protocols, protection, consistencyGroup, computeResource):
         parms = {
             'name'              : label,
             'varray'      : neighborhood,
@@ -3623,6 +3623,9 @@ class Bourne:
 
         if (consistencyGroup != ''):
             parms['consistency_group'] =  consistencyGroup
+
+        if (computeResource):
+            parms['computeResource'] = computeResource
 
         print "VOLUME CREATE Params = ", parms
         resp = self.api('POST', URI_VOLUME_LIST, parms, {})

@@ -166,6 +166,22 @@ public class HostStorageAPI {
     }
 
     /**
+     * Attaches the datastore.
+     */
+    public void mountdatastore(String uuid) {
+        try {
+            HostStorageSystem storageSystem = getStorageSystem();
+            storageSystem.mountVmfsVolume(uuid);
+        } catch (HostConfigFault e) {
+            throw new VMWareException(e);
+        } catch (RuntimeFault e) {
+            throw new VMWareException(e);
+        } catch (RemoteException e) {
+            throw new VMWareException(e);
+        }
+    }
+
+    /**
      * Rescans the HBAs on the host.
      */
     public void rescanHBAs() {

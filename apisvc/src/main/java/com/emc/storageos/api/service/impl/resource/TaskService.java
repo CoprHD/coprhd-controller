@@ -334,7 +334,7 @@ public class TaskService extends TaggedResource {
         String opId = UUID.randomUUID().toString();
 
         // Rollback the workflow
-        WorkflowService.initTaskStatus(_dbClient, workflow, opId), Operation.Status.pending,
+        WorkflowService.initTaskStatus(_dbClient, workflow, opId, Operation.Status.pending,
                 ResourceOperationTypeEnum.WORKFLOW_RESUME);
         getWorkflowController().rollbackWorkflow(workflow.getId(), taskId.toString());
         return Response.ok().build();

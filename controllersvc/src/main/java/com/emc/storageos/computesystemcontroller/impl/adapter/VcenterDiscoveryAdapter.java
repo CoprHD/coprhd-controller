@@ -14,8 +14,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
-import com.emc.storageos.db.client.model.*;
-import com.emc.storageos.security.authorization.BasePermissionsHelper;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
@@ -25,12 +23,20 @@ import com.emc.storageos.computesystemcontroller.exceptions.ComputeSystemControl
 import com.emc.storageos.computesystemcontroller.impl.DiscoveryStatusUtils;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.CompatibilityStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DataCollectionJobStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
+import com.emc.storageos.db.client.model.DiscoveredSystemObject;
+import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Host.HostType;
+import com.emc.storageos.db.client.model.HostInterface;
+import com.emc.storageos.db.client.model.Initiator;
+import com.emc.storageos.db.client.model.Vcenter;
+import com.emc.storageos.db.client.model.VcenterDataCenter;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.security.authorization.BasePermissionsHelper;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -39,7 +45,6 @@ import com.iwave.ext.vmware.VcenterVersion;
 import com.vmware.vim25.AboutInfo;
 import com.vmware.vim25.HostHardwareInfo;
 import com.vmware.vim25.HostSystemConnectionState;
-
 import com.vmware.vim25.InvalidLogin;
 import com.vmware.vim25.mo.ClusterComputeResource;
 import com.vmware.vim25.mo.Datacenter;

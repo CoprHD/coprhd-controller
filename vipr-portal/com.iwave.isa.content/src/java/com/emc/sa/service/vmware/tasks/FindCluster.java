@@ -7,8 +7,8 @@ package com.emc.sa.service.vmware.tasks;
 import javax.inject.Inject;
 
 import com.emc.sa.engine.ExecutionTask;
-import com.emc.sa.service.vmware.VMwareUtils;
 import com.iwave.ext.vmware.VCenterAPI;
+import com.iwave.ext.vmware.VMwareUtils;
 import com.vmware.vim25.HostSystemConnectionState;
 import com.vmware.vim25.mo.ClusterComputeResource;
 import com.vmware.vim25.mo.HostSystem;

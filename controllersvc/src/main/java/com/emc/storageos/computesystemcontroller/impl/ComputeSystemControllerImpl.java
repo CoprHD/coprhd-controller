@@ -17,8 +17,6 @@ import java.util.Map;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-import com.emc.sa.service.vmware.VMwareUtils;
-import com.emc.sa.util.VolumeWWNUtils;
 import com.emc.storageos.Controller;
 import com.emc.storageos.computecontroller.impl.ComputeDeviceController;
 import com.emc.storageos.computesystemcontroller.ComputeSystemController;
@@ -74,6 +72,7 @@ import com.google.common.collect.Maps;
 import com.iwave.ext.vmware.HostStorageAPI;
 import com.iwave.ext.vmware.VCenterAPI;
 import com.iwave.ext.vmware.VMWareException;
+import com.iwave.ext.vmware.VMwareUtils;
 import com.vmware.vim25.HostConfigFault;
 import com.vmware.vim25.HostFileSystemMountInfo;
 import com.vmware.vim25.HostFileSystemVolume;
@@ -1125,6 +1124,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
             // Unmount and detach for all vCenter hosts
             if (isVCenter) {
+                // TODO generate steps
                 unmountAndDetachVolumes(vCenterHostExportMap);
             }
 
@@ -1177,10 +1177,10 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                                 Datastore datastore = api.findDatastore(vcenterDataCenter.getLabel(), datastoreName);
                                 HostSystem hostSystem = api.findHostSystem(vcenterDataCenter.getLabel(), esxHost.getLabel());
                                 unmountDatastore(datastore, hostSystem);
-                                HostScsiDisk disk;
                                 HostStorageAPI storageAPI = new HostStorageAPI(hostSystem);
                                 for (HostScsiDisk entry : storageAPI.listScsiDisks()) {
-                                    if (VolumeWWNUtils.wwnMatches(VMwareUtils.getDiskWwn(entry), blockObject.getWWN())) {
+                                    // TODO use VolumeWWNUtils
+                                    if (VMwareUtils.getDiskWwn(entry).equalsIgnoreCase(blockObject.getWWN())) {
                                         detachLuns(hostSystem, entry);
                                     }
                                 }

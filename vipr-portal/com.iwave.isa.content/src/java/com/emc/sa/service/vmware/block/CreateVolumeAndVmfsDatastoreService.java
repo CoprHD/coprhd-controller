@@ -15,12 +15,13 @@ import com.emc.sa.engine.bind.BindingUtils;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.block.CreateBlockVolumeForHostHelper;
+import com.emc.sa.service.vmware.VMwareBinding;
+import com.emc.sa.service.vmware.VMwareBinding.DatastoreToVolumeParams;
+import com.emc.sa.service.vmware.VMwareBinding.DatastoreToVolumeTable;
 import com.emc.sa.service.vmware.VMwareHostService;
-import com.emc.sa.service.vmware.VMwareUtils;
-import com.emc.sa.service.vmware.VMwareUtils.DatastoreToVolumeParams;
-import com.emc.sa.service.vmware.VMwareUtils.DatastoreToVolumeTable;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.google.common.collect.Lists;
+import com.iwave.ext.vmware.VMwareUtils;
 import com.vmware.vim25.mo.Datastore;
 
 @Service("VMware-CreateVolumeAndVmfsDatastore")
@@ -51,7 +52,7 @@ public class CreateVolumeAndVmfsDatastoreService extends VMwareHostService {
         for (DatastoreToVolumeTable dsToVol : datastoreToVolume) {
             CreateBlockVolumeForHostHelper createBlockVolumeHelper = new CreateBlockVolumeForHostHelper();
             BindingUtils.bind(createBlockVolumeHelper,
-                    VMwareUtils.createDatastoreVolumeParam(dsToVol, datastoreToVolumeParams, hluIncrement));
+                    VMwareBinding.createDatastoreVolumeParam(dsToVol, datastoreToVolumeParams, hluIncrement));
             createBlockVolumeHelpers.add(createBlockVolumeHelper);
             hluIncrement++;
         }
@@ -59,8 +60,8 @@ public class CreateVolumeAndVmfsDatastoreService extends VMwareHostService {
 
     @Override
     public void precheck() throws Exception {
-        datastoreNames = VMwareUtils.getDatastoreNamesFromDatastoreToVolume(datastoreToVolume);
-        volumeNames = VMwareUtils.getVolumeNamesFromDatastoreToVolume(datastoreToVolume);
+        datastoreNames = VMwareBinding.getDatastoreNamesFromDatastoreToVolume(datastoreToVolume);
+        volumeNames = VMwareBinding.getVolumeNamesFromDatastoreToVolume(datastoreToVolume);
 
         if (datastoreNames.isEmpty()) {
             throw new IllegalStateException(

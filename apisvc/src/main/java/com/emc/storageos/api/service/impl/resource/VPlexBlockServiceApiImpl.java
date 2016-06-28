@@ -1374,17 +1374,12 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                                 volume, vpool, taskId, null, null, operationsWrapper));
                     }
 
-                    // TODO DUPP:
-                    // 1. This is not really splitting up the work by CGs but rather by replication groups.
-                    // But the task is by CG, and this will cause an issue when two replication groups exist in the
-                    // same BlockConsistencyGroup. We'll hit the same issue when we try to do a multi-volume creation
-                    // and we don't have a parent object to base the Task resource on.
                     if (rgVolumes != null && !rgVolumes.isEmpty() && rgVolumes.get(0).getConsistencyGroup() != null) {
                         cg = _dbClient.queryObject(BlockConsistencyGroup.class, rgVolumes.get(0).getConsistencyGroup());
                     }
 
                     // Create a task object associated with the CG
-                    taskList.getTaskList().add(createTaskForCG(vpool, cg, volumes, taskId));
+                    taskList.getTaskList().add(createTaskForRG(vpool, rgVolumes, taskId));
 
                     // Orchestrate the vpool changes of all volumes as a single request.
                     orchestrateVPoolChanges(volumesInRGRequest, descriptors, taskId);

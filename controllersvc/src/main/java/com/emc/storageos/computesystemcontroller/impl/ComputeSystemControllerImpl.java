@@ -848,7 +848,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         VCenterAPI api = VcenterDiscoveryAdapter.createVCenterAPI(vCenter);
         HostSystem hostSystem = api.findHostSystem(vCenterDataCenter.getLabel(), esxHost.getLabel());
         HostStorageAPI storageAPI = new HostStorageAPI(hostSystem);
-        storageAPI.refreshStorage();
+
         for (String volume : exportGroup.getVolumes().keySet()) {
 
             BlockObject blockObject = BlockObject.fetch(_dbClient, URI.create(volume));
@@ -865,6 +865,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                             attachLuns(hostSystem, entry);
                         }
                     }
+                    storageAPI.refreshStorage();
                     mountDatastore(datastore, hostSystem);
                 }
             }

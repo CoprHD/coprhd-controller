@@ -19,7 +19,6 @@ dependencies {
             library(httpclient3),
             library(jsch),
 
-
             project(":com.iwave.ext.vmware.vcenter"),
             project(":com.iwave.ext.windows"),
             project(":com.iwave.ext.linux"),

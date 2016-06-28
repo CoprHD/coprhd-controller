@@ -99,7 +99,7 @@ public class CifsClient implements BackupClient{
 
     public void validate() throws AuthenticationException,ConnectException{
         try {
-            getFileSize("");
+            getSmbFileHandler("").length();
         }catch (SmbAuthException e){
             log.info("SmbAuthException when test external server :{}",e);
             throw new AuthenticationException(e.getMessage());

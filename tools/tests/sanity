@@ -1674,13 +1674,7 @@ srdf_setup_once()
     tenant_setup
     run blockconsistencygroup create $SRDF_PROJECT $CONSISTENCY_GROUP_SRDF
     run blockconsistencygroup create $SRDF_PROJECT ${CONSISTENCY_GROUP_SRDF}v3
-    networksystem show $BROCADE_NETWORK &> /dev/null && return $?
-    networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
     
-	# smisprovider show $SRDF_VMAXA_SMIS_DEV &> /dev/null && return $?
-    # smisprovider create $SRDF_VMAXA_SMIS_DEV $SRDF_VMAXA_SMIS_IP $SRDF_VMAXA_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $SRDF_VMAXA_SMIS_SSL
-    # smisprovider show $SRDF_VMAXB_SMIS_DEV &> /dev/null && return $?
-    # smisprovider create $SRDF_VMAXB_SMIS_DEV $SRDF_VMAXB_SMIS_IP $SRDF_VMAXB_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $SRDF_VMAXB_SMIS_SSL
     smisprovider show $SRDF_V3_VMAXA_SMIS_DEV &> /dev/null && return $?
     smisprovider create $SRDF_V3_VMAXA_SMIS_DEV $SRDF_V3_VMAXA_SMIS_IP $SRDF_V3_VMAXA_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $SRDF_V3_VMAXA_SMIS_SSL
     smisprovider show $SRDF_V3_VMAXB_SMIS_DEV &> /dev/null && return $?
@@ -2165,6 +2159,7 @@ consistencygroup_block_cos_setup()
     run cos create block $VNX_COS_GROUP                       \
 	--description 'Consistency-Group-Block-VNX-CoS' true   \
                             --protocols FC iSCSI       \
+							--system_type vnxblock     \
                             --numpaths 1               \
                             --max_snapshots 10         \
                             --provisionType 'Thin'     \
@@ -2178,6 +2173,7 @@ consistencygroup_block_cos_setup()
     run cos create block $VMAX_COS_GROUP                       \
 	--description 'Consistency-Group-Block-VMAX-CoS' true   \
                             --protocols FC iSCSI       \
+							--system_type vmax         \
                             --numpaths 1               \
                             --max_snapshots 10         \
                             --provisionType 'Thin'     \

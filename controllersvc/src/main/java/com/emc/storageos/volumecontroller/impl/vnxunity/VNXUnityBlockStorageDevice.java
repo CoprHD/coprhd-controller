@@ -779,9 +779,26 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
         try {
             List<String> luns = new ArrayList<String>();
             for (URI volume : blockObjects) {
-                luns.add(volume.toString());
+                BlockObject blockObject = BlockObject.fetch(dbClient, volume);
+                if (blockObject instanceof Volume) {
+                    Volume lun = (Volume) blockObject;
+                    luns.add(lun.getNativeId());
+                } else {
+                    String errorStr = String.format("The blockObject %s is not a volume. it is not supported.", volume.toString());
+                    logger.error(errorStr);
+                    handleAddToCGError(blockObjects, taskCompleter, consistencyGroup.getLabel(), replicationGroupName, errorStr);
+                    return;
+                    
+                }
             }
-            apiClient.addLunsToConsistencyGroup(replicationGroupName, luns);
+            String cgNativeId = apiClient.getConsistencyGroupIdByName(replicationGroupName);
+            if (cgNativeId == null || cgNativeId.isEmpty()) {
+                String errorStr = String.format("Could not find the consistency group %s in the error", replicationGroupName);
+                logger.error(errorStr);
+                handleAddToCGError(blockObjects, taskCompleter, consistencyGroup.getLabel(), replicationGroupName, errorStr);
+                return;
+            }
+            apiClient.addLunsToConsistencyGroup(cgNativeId, luns);
             for (URI blockObjectURI : blockObjects) {
                 BlockObject blockObject = BlockObject.fetch(dbClient, blockObjectURI);
                 if (blockObject != null) {
@@ -794,19 +811,34 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
             logger.info("Added volumes to the consistency group successfully");
         } catch (Exception e) {
             logger.error("Exception caught when adding volumes to the consistency group ", e);
-            // Remove any references to the consistency group
-            for (URI blockObjectURI : blockObjects) {
-                BlockObject blockObject = BlockObject.fetch(dbClient, blockObjectURI);
-                if (blockObject != null) {
-                    blockObject.setConsistencyGroup(NullColumnValueGetter.getNullURI());
-                }
-                dbClient.updateObject(blockObject);
-            }
-            taskCompleter.error(dbClient, DeviceControllerException.exceptions
-                    .failedToAddMembersToConsistencyGroup(consistencyGroup.getLabel(),
-                            replicationGroupName, e.getMessage()));
+            handleAddToCGError(blockObjects, taskCompleter, consistencyGroup.getLabel(), replicationGroupName, e.getMessage());
         }
 
+    }
+    
+    /**
+     * Handle the error case when adding volumes to a consistency group
+     * 
+     * @param blockObjects The list of block objects URIs that are adding to the consistency group
+     * @param taskCompleter The task completer instance
+     * @param cgName The consistency group name
+     * @param replicationGroupName The replication group name in the array
+     * @param msg The error message
+     */
+    private void handleAddToCGError(List<URI> blockObjects, TaskCompleter taskCompleter, String cgName, 
+            String replicationGroupName, String msg) {
+        // Remove any references to the consistency group
+        for (URI blockObjectURI : blockObjects) {
+            BlockObject blockObject = BlockObject.fetch(dbClient, blockObjectURI);
+            if (blockObject != null) {
+                blockObject.setConsistencyGroup(NullColumnValueGetter.getNullURI());
+            }
+            dbClient.updateObject(blockObject);
+        }
+        taskCompleter.error(dbClient, DeviceControllerException.exceptions
+                .failedToAddMembersToConsistencyGroup(cgName,
+                        replicationGroupName, msg));
+        
     }
 
     @Override

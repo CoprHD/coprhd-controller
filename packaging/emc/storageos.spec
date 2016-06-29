@@ -205,6 +205,8 @@ fi
 %config /etc/sudoers.d/storageos
 %config /etc/monorail/config-template.json
 %config /etc/monorail/config.json
+%config /etc/monorail/hosts
+%config /etc/monorail/hosts-template
 %config /etc/rabbitmq/rabbitmq-template.config
 %config /etc/rabbitmq/rabbitmq.config
 

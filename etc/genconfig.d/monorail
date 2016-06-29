@@ -10,8 +10,8 @@
 # it is provided by or on behalf of EMC.
 
 _get_monorail_props() {
-    echo "network_ipaddr_service=${_GENCONFIG_network_ipaddr_service}"
+    _get_props network_ipaddr_service network_vip_service
 }
 
 _genconfig_exec _gen_template_cluster    /etc/monorail/config.json  $(_get_monorail_props)
-
+_genconfig_exec _gen_template_cluster    /etc/monorail/hosts $(_get_monorail_props)

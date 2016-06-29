@@ -6,12 +6,12 @@ package com.emc.sa.service.linux.tasks;
 
 import java.util.List;
 
-import com.emc.sa.util.VolumeWWNUtils;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.iwave.ext.linux.command.powerpath.PowerPathInquiry;
 import com.iwave.ext.linux.command.powerpath.PowerPathInvistaInquiry;
 import com.iwave.ext.linux.command.powerpath.PowerPathHDSInquiry;
 import com.iwave.ext.linux.model.PowerPathDevice;
+import com.iwave.ext.linux.util.VolumeWWNUtils;
 
 public class FindPowerPathEntryForVolume extends LinuxExecutionTask<PowerPathDevice> {
 

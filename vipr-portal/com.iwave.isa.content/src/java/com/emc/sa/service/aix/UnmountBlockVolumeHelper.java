@@ -18,13 +18,13 @@ import com.emc.aix.model.MultiPathDevice;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.BindingUtils;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
-import com.emc.sa.util.VolumeWWNUtils;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.iwave.ext.linux.model.PowerPathDevice;
+import com.iwave.ext.linux.util.VolumeWWNUtils;
 
 public class UnmountBlockVolumeHelper {
 

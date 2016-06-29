@@ -8,9 +8,9 @@ import java.util.List;
 
 import com.emc.hpux.command.ListRDisksCommand;
 import com.emc.hpux.model.RDisk;
-import com.emc.sa.util.VolumeWWNUtils;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.iwave.ext.command.CommandException;
+import com.iwave.ext.linux.util.VolumeWWNUtils;
 
 public class FindRDiskForVolume extends RetryableCommandTask<RDisk, CommandException> {
 

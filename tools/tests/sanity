@@ -2402,21 +2402,21 @@ vplex_tests()
 	run blocksnapshot create $PROJECT/$localVolume1 $localSnapshot
 	blocksnapshot list $PROJECT/$localVolume1
 	blocksnapshot show $PROJECT/$localVolume1/$localSnapshot
-    if [ "$VPLEX_INGEST_PARAM" = "ingest" ] ; then
-        # NOTE: disabled until the vplex-simulator can support it, works on hardware
+    # NOTE: disabled until the vplex-simulator can support it, works on hardware
+    #if [ "$VPLEX_INGEST_PARAM" = "ingest" ] ; then
         # VPLEX_LOCAL_SNAP_ARRAY_LABEL=`/opt/storageos/bin/dbutils list BlockSnapshot | grep deviceLabel | awk '{print $3}'`
         # echo "**** VPLEX_LOCAL_SNAP_ARRAY_LABEL is $VPLEX_LOCAL_SNAP_ARRAY_LABEL"
         # run_noundo blocksnapshot delete ${PROJECT}/${localVolume1}/${localSnapshot} --vipronly
-    fi	
+    #fi	
 	run blocksnapshot create $PROJECT/$distVolume1 $distSnapshot
 	blocksnapshot list $PROJECT/$distVolume1
 	blocksnapshot show $PROJECT/$distVolume1/$distSnapshot
-    if [ "$VPLEX_INGEST_PARAM" = "ingest" ] ; then
-        # NOTE: disabled until the vplex-simulator can support it, works on hardware
+    # NOTE: disabled until the vplex-simulator can support it, works on hardware
+    #if [ "$VPLEX_INGEST_PARAM" = "ingest" ] ; then
         # VPLEX_DIST_SNAP_ARRAY_LABEL=`/opt/storageos/bin/dbutils list BlockSnapshot | grep deviceLabel | awk '{print $3}'`
         # echo "**** VPLEX_DIST_SNAP_ARRAY_LABEL is $VPLEX_DIST_SNAP_ARRAY_LABEL"
         # run_noundo blocksnapshot delete ${PROJECT}/${distVolume1}/${distSnapshot} --vipronly
-    fi
+    #fi
 	
     if [ "$VPLEX_INGEST_PARAM" = "ingest" ] ; then
 

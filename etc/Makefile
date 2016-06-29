@@ -74,6 +74,8 @@ ETCFILES_COMMON = \
     $(ETCDIR)/sysconfig/SuSEfirewall2.d/services/storageos \
     $(ETCDIR)/monorail/config-template.json \
     $(ETCDIR)/monorail/config.json \
+    $(ETCDIR)/rabbitmq/rabbitmq-template.config \
+    $(ETCDIR)/rabbitmq/rabbitmq.config \
     $(ETCDIR)/keepalived/keepalived-IPv4-template.conf \
     $(ETCDIR)/keepalived/keepalived-IPv6-template.conf \
     $(ETCDIR)/keepalived/keepalived-dual-template.conf \
@@ -88,6 +90,10 @@ ETCFILES_COMMON = \
     ${ETCDIR}/nginx/orchestration-southbound-server-dual-template.conf \
     ${ETCDIR}/nginx/orchestration-southbound-server-IPv4-template.conf \
     ${ETCDIR}/nginx/orchestration-southbound-server-IPv6-template.conf \
+    ${ETCDIR}/nginx/rabbitmq-server-common.conf \
+    ${ETCDIR}/nginx/rabbitmq-server-dual-template.conf \
+    ${ETCDIR}/nginx/rabbitmq-server-IPv4-template.conf \
+    ${ETCDIR}/nginx/rabbitmq-server-IPv6-template.conf \
     $(ETCDIR)/nginx/nginx.wrapper \
     $(ETCDIR)/nginx/locations.conf \
     $(ETCDIR)/nginx/upstream-template.conf \
@@ -182,6 +188,7 @@ ETCFILES_APPLIANCE = diskresizetool \
     genconfig.d/firewall \
     genconfig.d/network \
     genconfig.d/ntp \
+    genconfig.d/rabbitmq \
     genconfig.d/system \
     genconfig.d/vasa \
     genconfig.d/boot.manifest \
@@ -271,6 +278,13 @@ $(ETCDIR)/logrotate.d/%: logrotate.d/%
 	$(ATSIGN)$(CHMOD) 644 $(@)
 
 $(ETCDIR)/monorail/%: monorail/%
+	@echo "sed etc/$(<)"
+	@$(RM) $(@)
+	@$(MKDIR) $(@D)
+	$(ATSIGN)$(SED_SCRIPT) <$(<) >$(@)
+	$(ATSIGN)$(CHMOD) 644 $(@)
+
+$(ETCDIR)/rabbitmq/%: rabbitmq/%
 	@echo "sed etc/$(<)"
 	@$(RM) $(@)
 	@$(MKDIR) $(@D)

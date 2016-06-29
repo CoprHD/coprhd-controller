@@ -54,8 +54,9 @@ fw_custom_iptables() {
     #
     # NOTE: iptables/ip6tables accepts up to maximun of ports is 15 in the argument list, please do not exceed the limit
     #
-    INGRES_PORTS_PART1="2181,2888,2889,5000,6443,7000,7001,7100,7101,7199,7200,7299,7300,7399,7400"
-    INGRES_PORTS_PART2="7443,8080,8443,8543,9081,9090,9091,9093,9160,9260,9553,9993,10099,10199,40201"
+    INGRES_PORTS_PART1="1572,2181,2888,2889,4369,5000,6443,7000,7001,7100,7101,7199,7200,7299,7300"
+    INGRES_PORTS_PART2="7399,7400,7443,8080,8443,8543,9081,9090,9091,9093,9160,9260,9553,9993,10099"
+    INGRES_PORTS_PART3="10199,25672,27017,40201"
     INGRES_UDP_PORTS="500,4500"
 
     # TODO support multiple nics
@@ -65,6 +66,7 @@ fw_custom_iptables() {
         iptables  -I input_ext -i ${NIC_NAME} -p vrrp -s ${sourceNode} -j ACCEPT
         iptables  -I input_ext -i ${NIC_NAME} -p tcp  -s ${sourceNode} -m multiport --dports ${INGRES_PORTS_PART1} -j ACCEPT
         iptables  -I input_ext -i ${NIC_NAME} -p tcp  -s ${sourceNode} -m multiport --dports ${INGRES_PORTS_PART2} -j ACCEPT
+        iptables  -I input_ext -i ${NIC_NAME} -p tcp  -s ${sourceNode} -m multiport --dports ${INGRES_PORTS_PART3} -j ACCEPT
         iptables  -I input_ext -i ${NIC_NAME} -p udp  -s ${sourceNode} -m multiport --dports ${INGRES_UDP_PORTS} -j ACCEPT
         iptables  -I input_ext -i ${NIC_NAME} -p esp  -s ${sourceNode} -j ACCEPT
     done
@@ -73,6 +75,7 @@ fw_custom_iptables() {
         ip6tables -I input_ext -i ${NIC_NAME} -p igmp -s ${sourceNode} -j ACCEPT
         ip6tables -I input_ext -i ${NIC_NAME} -p vrrp -s ${sourceNode} -j ACCEPT
         ip6tables -I input_ext -i ${NIC_NAME} -p tcp  -s ${sourceNode} -m multiport --dports ${INGRES_PORTS_PART2} -j ACCEPT
+        ip6tables -I input_ext -i ${NIC_NAME} -p tcp  -s ${sourceNode} -m multiport --dports ${INGRES_PORTS_PART3} -j ACCEPT
         ip6tables -I input_ext -i ${NIC_NAME} -p udp  -s ${sourceNode} -m multiport --dports ${INGRES_UDP_PORTS} -j ACCEPT
         ip6tables  -I input_ext -i ${NIC_NAME} -p esp  -s ${sourceNode} -j ACCEPT
     done

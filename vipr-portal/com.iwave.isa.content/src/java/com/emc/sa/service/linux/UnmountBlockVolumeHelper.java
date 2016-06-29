@@ -70,7 +70,7 @@ public class UnmountBlockVolumeHelper {
     /** search through the volumes list to find the {@link VolumeSpec} which has the given wwn. */
     private VolumeSpec getVolumeSpecByWwn(String wwn) {
         for (VolumeSpec volume : volumes) {
-            if (VolumeWWNUtils.wwnMatches(wwn, volume.viprVolume)) {
+            if (VolumeWWNUtils.wwnMatches(wwn, volume.viprVolume.getWwn())) {
                 return volume;
             }
         }

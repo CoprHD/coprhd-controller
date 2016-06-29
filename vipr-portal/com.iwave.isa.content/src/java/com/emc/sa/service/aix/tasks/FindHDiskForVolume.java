@@ -26,14 +26,14 @@ public class FindHDiskForVolume extends RetryableCommandTask<String, CommandExce
     protected String tryExecute() {
         List<PowerPathDevice> devices = executeCommand(new ListHDisksCommand(usePowerPath, false));
         for (PowerPathDevice device : devices) {
-            if (VolumeWWNUtils.wwnMatches(device.getWwn(), volume)) {
+            if (VolumeWWNUtils.wwnMatches(device.getWwn(), volume.getWwn())) {
                 return device.getDevice();
             }
         }
 
         devices = executeCommand(new ListHDisksCommand(usePowerPath, true));
         for (PowerPathDevice device : devices) {
-            if (VolumeWWNUtils.wwnMatches(device.getWwn(), volume)) {
+            if (VolumeWWNUtils.wwnMatches(device.getWwn(), volume.getWwn())) {
                 return device.getDevice();
             }
         }

@@ -26,7 +26,7 @@ public class FindDevicePathForVolume extends RetryableCommandTask<String, Comman
     protected String tryExecute() {
         List<RDisk> devices = executeCommand(new ListRDisksCommand());
         for (RDisk device : devices) {
-            if (VolumeWWNUtils.wwnMatches(device.getWwn(), volume)) {
+            if (VolumeWWNUtils.wwnMatches(device.getWwn(), volume.getWwn())) {
                 return device.getDevicePath();
             }
         }

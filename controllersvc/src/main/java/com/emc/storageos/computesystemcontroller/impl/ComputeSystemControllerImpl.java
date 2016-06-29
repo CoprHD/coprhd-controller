@@ -73,6 +73,7 @@ import com.google.common.collect.Maps;
 import com.iwave.ext.linux.util.VolumeWWNUtils;
 import com.iwave.ext.vmware.HostStorageAPI;
 import com.iwave.ext.vmware.VCenterAPI;
+import com.iwave.ext.vmware.VMWareException;
 import com.iwave.ext.vmware.VMwareUtils;
 import com.vmware.vim25.HostScsiDisk;
 import com.vmware.vim25.StorageIORMConfigSpec;
@@ -856,16 +857,18 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 String tagValue = tag.getLabel();
                 if (tagValue != null && tagValue.startsWith(VMFS_DATASTORE_PREFIX)) {
                     String datastoreName = getDatastoreName(tagValue);
-
-                    // TODO: what if host moved between datacenters? use old cluster vcenter datacenter instead?
-                    Datastore datastore = api.findDatastore(vCenterDataCenter.getLabel(), datastoreName);
-                    for (HostScsiDisk entry : storageAPI.listScsiDisks()) {
-                        if (VolumeWWNUtils.wwnMatches(VMwareUtils.getDiskWwn(entry), blockObject.getWWN())) {
-                            storageAPI.attachScsiLun(entry);
+                    try {
+                        Datastore datastore = api.findDatastore(vCenterDataCenter.getLabel(), datastoreName);
+                        for (HostScsiDisk entry : storageAPI.listScsiDisks()) {
+                            if (VolumeWWNUtils.wwnMatches(VMwareUtils.getDiskWwn(entry), blockObject.getWWN())) {
+                                storageAPI.attachScsiLun(entry);
+                            }
                         }
+                        storageAPI.refreshStorage();
+                        storageAPI.mountDatastore(datastore);
+                    } catch (VMWareException ex) {
+                        _log.error(ex.getMessage(), ex);
                     }
-                    storageAPI.refreshStorage();
-                    storageAPI.mountDatastore(datastore);
                 }
             }
         }
@@ -891,20 +894,24 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 if (tagValue != null && tagValue.startsWith(VMFS_DATASTORE_PREFIX)) {
                     String datastoreName = getDatastoreName(tagValue);
 
-                    // TODO: what if host moved between datacenters? use old cluster vcenter datacenter instead?
-                    Datastore datastore = api.findDatastore(vCenterDataCenter.getLabel(), datastoreName);
-                    boolean storageIOControlEnabled = datastore.getIormConfiguration().isEnabled();
-                    if (storageIOControlEnabled) {
-                        setStorageIOControl(api, datastore, false);
-                    }
-                    storageAPI.unmountVmfsDatastore(datastore);
-                    if (storageIOControlEnabled) {
-                        setStorageIOControl(api, datastore, true);
-                    }
-                    for (HostScsiDisk entry : storageAPI.listScsiDisks()) {
-                        if (VolumeWWNUtils.wwnMatches(VMwareUtils.getDiskWwn(entry), blockObject.getWWN())) {
-                            storageAPI.detachScsiLun(entry);
+                    try {
+                        // TODO: what if host moved between datacenters? use old cluster vcenter datacenter instead?
+                        Datastore datastore = api.findDatastore(vCenterDataCenter.getLabel(), datastoreName);
+                        boolean storageIOControlEnabled = datastore.getIormConfiguration().isEnabled();
+                        if (storageIOControlEnabled) {
+                            setStorageIOControl(api, datastore, false);
                         }
+                        storageAPI.unmountVmfsDatastore(datastore);
+                        if (storageIOControlEnabled) {
+                            setStorageIOControl(api, datastore, true);
+                        }
+                        for (HostScsiDisk entry : storageAPI.listScsiDisks()) {
+                            if (VolumeWWNUtils.wwnMatches(VMwareUtils.getDiskWwn(entry), blockObject.getWWN())) {
+                                storageAPI.detachScsiLun(entry);
+                            }
+                        }
+                    } catch (VMWareException ex) {
+                        _log.error(ex.getMessage(), ex);
                     }
                 }
             }

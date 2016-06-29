@@ -2,7 +2,7 @@
  * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
-package com.emc.sa.util;
+package com.iwave.ext.linux.util;
 
 import com.emc.storageos.model.block.BlockObjectRestRep;
 

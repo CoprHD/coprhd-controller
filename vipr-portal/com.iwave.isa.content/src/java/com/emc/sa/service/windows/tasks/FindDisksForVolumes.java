@@ -11,9 +11,9 @@ import java.util.Map;
 
 import org.apache.commons.lang.text.StrBuilder;
 
-import com.emc.sa.util.VolumeWWNUtils;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.google.common.collect.Maps;
+import com.iwave.ext.linux.util.VolumeWWNUtils;
 import com.iwave.ext.windows.model.wmi.DiskDrive;
 import com.iwave.ext.windows.winrm.WinRMException;
 

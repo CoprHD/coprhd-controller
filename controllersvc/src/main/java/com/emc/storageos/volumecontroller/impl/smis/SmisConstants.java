@@ -415,6 +415,12 @@ public interface SmisConstants {
     static final String EMC_MAX_BANDWIDTH = "EMCMaximumBandwidth";
     static final String EMC_MAX_IO = "EMCMaximumIO";
 
+    // Initiator Alias
+    static final String CP_EXISTING_STORAGEID = "ExistingStorageID";
+    static final String CP_ALIAS_STORAGEID = "AliasStorageID";
+    static final String INITIATOR_ALIAS_SET = "EMCInitiatorAliasSet";
+    static final String INITIATOR_ALIAS_GET = "EMCInitiatorAliasGet";
+
     // Array of Property String (PS) constants
     static final String[] PS_HOST_IO = new String[] {
             SmisConstants.EMC_MAX_BANDWIDTH, SmisConstants.EMC_MAX_IO,

@@ -7341,4 +7341,19 @@ public class SmisCommandHelper implements SmisConstants {
             _log.error("Encountered an error while trying to set the volume name", e);
         } 
     }
+
+    public CIMArgument[] getEMCInitiatorAliasSetArgs(CIMObjectPath shidPath, String initiatorAlias)
+            throws Exception {
+        return new CIMArgument[] {
+                _cimArgument.reference(CP_EXISTING_STORAGEID, shidPath),
+                _cimArgument.string(CP_ALIAS_STORAGEID, initiatorAlias)
+        };
+    }
+
+    public CIMArgument[] getEMCInitiatorAliasGetArgs(CIMObjectPath shidPath)
+            throws Exception {
+        return new CIMArgument[] {
+                _cimArgument.reference(CP_EXISTING_STORAGEID, shidPath)
+        };
+    }
 }

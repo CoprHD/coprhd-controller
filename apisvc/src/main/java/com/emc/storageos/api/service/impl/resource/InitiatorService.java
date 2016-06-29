@@ -43,6 +43,7 @@ import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.util.EndpointUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
@@ -65,6 +66,7 @@ import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.volumecontroller.impl.smis.vmax.VmaxExportOperations;
 
 /**
  * Service providing APIs for host initiators.
@@ -296,6 +298,52 @@ public class InitiatorService extends TaskResourceService {
         return new InitiatorBulkRep(BulkList.wrapping(_dbIterator, MapInitiator.getInstance(), filter));
     }
 
+    /**
+     * Shows the alias/initiator name for an initiator
+     * if set on the Storage System
+     * @param id the URN of a ViPR initiator
+     * @param vmaxSSID the URN of the VMAX Storage System
+     * @prereq none
+     * @return String representing the Initiator Alias if Set.
+     * 
+     * @throws Exception When an error occurs querying the VMAX Storage System.
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/alias")
+    public String getInitiatorAlias(@PathParam("id") URI id, @PathParam("vmax-system") URI vmaxSSID) {
+        Initiator initiator = queryResource(id);
+        // check the user has permissions
+        verifyUserPermisions(initiator);
+        StorageSystem system = _permissionsHelper.getObjectById(vmaxSSID, StorageSystem.class);
+        
+        String initiatorAlias = null; // VmaxExportOperations.getInitiatorAlias(system, initiator);
+        return initiatorAlias;
+    }
+
+    /**
+     * Sets the alias/initiator name for an initiator
+     * on the Storage System
+     * @param id the URN of a ViPR initiator
+     * @param vmaxSSID the URN of the VMAX Storage System
+     * @param initiatorAlias is the alias to be set
+     * @prereq none
+     * @return none
+     * 
+     * @throws Exception When an error occurs setting the alias on a  VMAX Storage System.
+     */
+    @PUT
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/alias")
+    public void setInitiatorAlias(@PathParam("id") URI id, @PathParam("vmax-system") URI vmaxSSID, @PathParam("alias") String initiatorAlias) {
+        Initiator initiator = queryResource(id);
+        // check the user has permissions
+        verifyUserPermisions(initiator);
+        StorageSystem system = _permissionsHelper.getObjectById(vmaxSSID, StorageSystem.class);
+
+        return;// VmaxExportOperations.setInitiatorAlias(system, initiator, initiatorAlias);
+    }
+    
     @Override
     protected Initiator queryResource(URI id) {
         return queryObject(Initiator.class, id, false);

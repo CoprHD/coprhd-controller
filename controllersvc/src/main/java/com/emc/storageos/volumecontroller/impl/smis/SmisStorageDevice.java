@@ -3122,4 +3122,127 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                             cg.getCgNameOnStorageSystem(storageSystem.getId()), e.getMessage()));
         }
     }
+
+    /**
+     * This method will be used to set the Initiator Alias for a given initiator.
+     * The SMI-S version that supports this operation is Version 8.2 onwards.
+     * The initiator must be part of the an Initiator Group for the Value to be set
+     *
+     * @param storage - StorageSystem object
+     * @param initiator - Initiator Object for which the Alias needs to be set
+     * @param initiatorAlias - User Friendly Name
+     * @throws Exception
+     */
+    public void setInitiatorAlias(StorageSystem storage, Initiator initiator, String initiatorAlias)
+            throws Exception {
+
+        if (storage.getUsingSmis80()) {
+            // TODO: Version SMI-S 8.2 onwards for now and later change to version 8.3
+        }
+        // Use the initiator port names to match up with initiators CIMObjectPaths on
+        // the device. We're doing it this way because generating the CIMObjectPaths
+        // based on piecing together the initiator name is treacherous.
+        String normalizedPortName = Initiator.normalizePort(initiator.getInitiatorPort());
+
+        // Multiple arrays can be managed by a single SMI-S instance. The SE_StorageHardwareID is
+        // global to the provider, so we need to get the SE_StorageHardware_ID object that are
+        // associated with a specific array.
+        CIMObjectPath hwManagementIDSvcPath = _cimPath.getStorageHardwareIDManagementService(storage);
+        CloseableIterator<CIMInstance> initiatorInstances = _helper.getAssociatorInstances(storage, hwManagementIDSvcPath, null,
+                SmisConstants.CP_SE_STORAGE_HARDWARE_ID, null, null, SmisConstants.PS_STORAGE_ID);
+
+        CIMObjectPath shidPath = null;
+        while (initiatorInstances.hasNext()) {
+            CIMInstance initiatorInstance = initiatorInstances.next();
+            String storageId = CIMPropertyFactory.getPropertyValue(initiatorInstance,
+                    SmisConstants.CP_STORAGE_ID);
+            if (normalizedPortName.equals(storageId)) {
+                shidPath = initiatorInstance.getObjectPath();
+            }
+        }
+        initiatorInstances.close();
+
+        if (shidPath.toString().isEmpty()) {
+            // TODO : throw exception that the SHID is not available on the Array...
+        }
+        try {
+            CIMArgument[] inArgs = _helper.getEMCInitiatorAliasSetArgs(shidPath, initiatorAlias);
+            CIMArgument[] outArgs = new CIMArgument[5];
+            _helper.invokeMethod(storage, hwManagementIDSvcPath,
+                    SmisConstants.INITIATOR_ALIAS_SET, inArgs, outArgs);
+        } catch (WBEMException e) {
+            _log.error("Problem making SMI-S call: ", e);
+            throw e;
+        } catch (Exception e) {
+            _log.error("Unexpected error: EMCInitiatorAliasSet failed.", e);
+            throw e;
+        }
+
+        return;
+    }
+
+    /**
+     * This method will be used to get the Initiator Alias for a given initiator.
+     * The SMI-S version that supports this operation is Version 8.2 onwards.
+     * The initiator must be part of the an Initiator Group for the Value to be retrieved
+     * If the Alias is not set, an EMPTY string will be returned
+     *
+     * @param storage - StorageSystem object
+     * @param initiator - Initiator Object for which the Alias needs to be set
+     * @return initiatorAlias - User Friendly Name
+     * @throws Exception
+     */
+    public String getInitiatorAlias(StorageSystem storage, Initiator initiator)
+            throws Exception {
+        String initiatorAlias = null;
+
+        if (storage.getUsingSmis80()) {
+            // TODO: Version SMI-S 8.2 onwards for now and later change to version 8.3
+        }
+        // Use the initiator port names to match up with initiators CIMObjectPaths on
+        // the device. We're doing it this way because generating the CIMObjectPaths
+        // based on piecing together the initiator name is treacherous.
+        String normalizedPortName = Initiator.normalizePort(initiator.getInitiatorPort());
+
+        // Multiple arrays can be managed by a single SMI-S instance. The SE_StorageHardwareID is
+        // global to the provider, so we need to get the SE_StorageHardware_ID object that are
+        // associated with a specific array.
+        CIMObjectPath hwManagementIDSvcPath = _cimPath.getStorageHardwareIDManagementService(storage);
+        CloseableIterator<CIMInstance> initiatorInstances = _helper.getAssociatorInstances(storage, hwManagementIDSvcPath, null,
+                SmisConstants.CP_SE_STORAGE_HARDWARE_ID, null, null, SmisConstants.PS_STORAGE_ID);
+
+        CIMObjectPath shidPath = null;
+        while (initiatorInstances.hasNext()) {
+            CIMInstance initiatorInstance = initiatorInstances.next();
+            String storageId = CIMPropertyFactory.getPropertyValue(initiatorInstance,
+                    SmisConstants.CP_STORAGE_ID);
+            if (normalizedPortName.equals(storageId)) {
+                shidPath = initiatorInstance.getObjectPath();
+            }
+        }
+        initiatorInstances.close();
+
+        if (shidPath.toString().isEmpty()) {
+            // TODO : throw exception that the SHID is not available on the Array...
+        }
+        try {
+            CIMArgument[] inArgs = _helper.getEMCInitiatorAliasGetArgs(shidPath);
+            CIMArgument[] outArgs = new CIMArgument[5];
+            _helper.invokeMethod(storage, hwManagementIDSvcPath,
+                    SmisConstants.INITIATOR_ALIAS_GET, inArgs, outArgs);
+            for (CIMArgument arg : outArgs) {
+                if (arg != null && arg.getName().equalsIgnoreCase(SmisConstants.CP_ALIAS_STORAGEID)) {
+                    initiatorAlias = (String) arg.getValue();
+                }
+            }
+        } catch (WBEMException e) {
+            _log.error("Problem making SMI-S call: ", e);
+            throw e;
+        } catch (Exception e) {
+            _log.error("Unexpected error: EMCInitiatorAliasGet failed.", e);
+            throw e;
+        }
+
+        return initiatorAlias;
+    }
 }

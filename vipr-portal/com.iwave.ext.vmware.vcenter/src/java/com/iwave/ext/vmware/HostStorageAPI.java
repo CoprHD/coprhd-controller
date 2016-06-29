@@ -166,6 +166,22 @@ public class HostStorageAPI {
     }
 
     /**
+     * Detaches the lun.
+     */
+    public void detachScsiLun(HostScsiDisk disk) {
+        try {
+            HostStorageSystem storageSystem = getStorageSystem();
+            storageSystem.detachScsiLun(disk.getUuid());
+        } catch (HostConfigFault e) {
+            throw new VMWareException(e);
+        } catch (RuntimeFault e) {
+            throw new VMWareException(e);
+        } catch (RemoteException e) {
+            throw new VMWareException(e);
+        }
+    }
+
+    /**
      * Attaches the datastore.
      */
     public void mountdatastore(String uuid) {

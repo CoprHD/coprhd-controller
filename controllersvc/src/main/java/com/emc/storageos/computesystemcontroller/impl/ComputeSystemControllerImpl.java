@@ -76,16 +76,10 @@ import com.iwave.ext.vmware.HostStorageAPI;
 import com.iwave.ext.vmware.VCenterAPI;
 import com.iwave.ext.vmware.VMWareException;
 import com.iwave.ext.vmware.VMwareUtils;
-import com.vmware.vim25.HostConfigFault;
 import com.vmware.vim25.HostFileSystemMountInfo;
 import com.vmware.vim25.HostFileSystemVolume;
 import com.vmware.vim25.HostScsiDisk;
 import com.vmware.vim25.HostVmfsVolume;
-import com.vmware.vim25.InvalidProperty;
-import com.vmware.vim25.InvalidState;
-import com.vmware.vim25.NotFound;
-import com.vmware.vim25.ResourceInUse;
-import com.vmware.vim25.RuntimeFault;
 import com.vmware.vim25.StorageIORMConfigSpec;
 import com.vmware.vim25.TaskInfo;
 import com.vmware.vim25.TaskInfoState;
@@ -872,7 +866,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                     Datastore datastore = api.findDatastore(vCenterDataCenter.getLabel(), datastoreName);
                     for (HostScsiDisk entry : storageAPI.listScsiDisks()) {
                         if (VolumeWWNUtils.wwnMatches(VMwareUtils.getDiskWwn(entry), blockObject.getWWN())) {
-                            attachLuns(hostSystem, entry);
+                            storageAPI.attachScsiLun(entry);
                         }
                     }
                     storageAPI.refreshStorage();
@@ -908,13 +902,13 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                     if (storageIOControlEnabled) {
                         setStorageIOControl(api, datastore, false);
                     }
-                    unmountDatastore(datastore, hostSystem);
+                    storageAPI.unmountVmfsDatastore(datastore);
                     if (storageIOControlEnabled) {
                         setStorageIOControl(api, datastore, true);
                     }
                     for (HostScsiDisk entry : storageAPI.listScsiDisks()) {
                         if (VolumeWWNUtils.wwnMatches(VMwareUtils.getDiskWwn(entry), blockObject.getWWN())) {
-                            detachLuns(hostSystem, entry);
+                            storageAPI.detachScsiLun(entry);
                         }
                     }
                 }
@@ -1353,46 +1347,6 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         return waitFor;
     }
 
-    private void attachLuns(HostSystem host, HostScsiDisk disk) {
-        try {
-            host.getHostStorageSystem().attachScsiLun(disk.getUuid());
-        } catch (NotFound e) {
-            e.printStackTrace();
-        } catch (HostConfigFault e) {
-            e.printStackTrace();
-        } catch (InvalidState e) {
-            e.printStackTrace();
-        } catch (ResourceInUse e) {
-            e.printStackTrace();
-        } catch (RuntimeFault e) {
-            e.printStackTrace();
-        } catch (InvalidProperty e) {
-            e.printStackTrace();
-        } catch (RemoteException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private void detachLuns(HostSystem host, HostScsiDisk disk) {
-        try {
-            host.getHostStorageSystem().detachScsiLun(disk.getUuid());
-        } catch (NotFound e) {
-            e.printStackTrace();
-        } catch (HostConfigFault e) {
-            e.printStackTrace();
-        } catch (InvalidState e) {
-            e.printStackTrace();
-        } catch (ResourceInUse e) {
-            e.printStackTrace();
-        } catch (RuntimeFault e) {
-            e.printStackTrace();
-        } catch (InvalidProperty e) {
-            e.printStackTrace();
-        } catch (RemoteException e) {
-            e.printStackTrace();
-        }
-    }
-
     private void mountDatastore(Datastore datastore, HostSystem host) {
         final String dataStoreName = datastore.getName();
         for (HostFileSystemMountInfo mount : new HostStorageAPI(host)
@@ -1411,9 +1365,9 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 String vmfsUuid = volume.getUuid();
                 _log.info("Mounting volume : " + vmfsUuid);
                 try {
-                    new HostStorageAPI(host).getStorageSystem().mountVmfsVolume(vmfsUuid);
-                } catch (RemoteException e) {
-                    throw new VMWareException(e);
+                    new HostStorageAPI(host).mountdatastore(vmfsUuid);
+                } catch (VMWareException e) {
+                    _log.error(e.getMessage());
                 }
             }
         }

@@ -792,7 +792,7 @@ public class DbClientContext {
         KeyspaceMetadata keyspace = cassandraCluster.getMetadata().getKeyspace("\""+this.getKeyspaceName()+"\"");
         Map<String, String> replications = keyspace.getReplication();
         for (Map.Entry<String, String> entry : replications.entrySet()) {
-            if (!entry.getKey().startsWith("class:")) {
+            if (!entry.getKey().startsWith("class")) {
                 result.put(entry.getKey(), entry.getValue());
             }
         }

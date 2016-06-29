@@ -565,9 +565,7 @@ public class SchemaUtil {
      * CF's are created on the fly.
      *
      */
-    public void checkCf() throws InterruptedException, ConnectionException {
-        KeyspaceDefinition kd = clientContext.getCluster().describeKeyspace(_keyspaceName);
-
+    public void checkCf() throws InterruptedException {
         // Get default GC grace period for all index CFs in local DB
         Integer indexGcGrace = isGeoDbsvc() ? null : getIntProperty(DbClientImpl.DB_CASSANDRA_INDEX_GC_GRACE_PERIOD, null);
         KeyspaceMetadata keyspaceMetaData = clientContext.getKeyspaceMetaData();

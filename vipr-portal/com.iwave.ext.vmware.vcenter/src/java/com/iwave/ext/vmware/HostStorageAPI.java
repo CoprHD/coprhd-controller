@@ -184,10 +184,11 @@ public class HostStorageAPI {
     /**
      * Attaches the datastore.
      */
-    public void mountdatastore(String uuid) {
+    public void mountDatastore(Datastore datastore) {
         try {
             HostStorageSystem storageSystem = getStorageSystem();
-            storageSystem.mountVmfsVolume(uuid);
+            String vmfsUuid = getVmfsVolumeUuid(datastore);
+            storageSystem.mountVmfsVolume(vmfsUuid);
         } catch (HostConfigFault e) {
             throw new VMWareException(e);
         } catch (RuntimeFault e) {

@@ -5636,21 +5636,24 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     // that means we need to ask the VPLEX to convert it to a thin-enabled volume.
                     // this doesn't happen automatically for thick-to-thin data migrations.
                     boolean isThinEnabled = updatedVirtualVolumeInfo.isThinEnabled();
-                    if (VPlexApiConstants.TRUE.equalsIgnoreCase(updatedVirtualVolumeInfo.getThinCapable())
-                            && !updatedVirtualVolumeInfo.isThinEnabled()) {
-                        URI targetVolumeUri = migration.getTarget();
-                        Volume targetVolume = getDataObject(Volume.class, targetVolumeUri, _dbClient);
-                        if (null != targetVolume) {
-                            _log.info("migration target volume is " + targetVolume.forDisplay());
-                            VirtualPool newVirtualPool = getDataObject(VirtualPool.class, targetVolume.getVirtualPool(), _dbClient);
-                            _log.info("migration target VirtualPool is " + newVirtualPool.forDisplay());
-                            boolean doEnableThin = VirtualPool.ProvisioningType.Thin.toString().equalsIgnoreCase(
-                                    newVirtualPool.getSupportedProvisioningType());
-                            if (doEnableThin) {
-                                _log.info("the new VirtualPool is thin, so ViPR will attempt to thin-enabled to true on {}", 
-                                        updatedVirtualVolumeInfo.getName());
-                                isThinEnabled = client.setVirtualVolumeThinEnabled(updatedVirtualVolumeInfo);
-                                
+                    if (!isThinEnabled && VPlexApiConstants.TRUE.equalsIgnoreCase(updatedVirtualVolumeInfo.getThinCapable())) {
+                        if (verifyVplexSupportsThinProvisioning(vplexSystem)) {
+                            URI targetVolumeUri = migration.getTarget();
+                            Volume targetVolume = getDataObject(Volume.class, targetVolumeUri, _dbClient);
+                            if (null != targetVolume) {
+                                _log.info("migration target Volume is " + targetVolume.forDisplay());
+                                VirtualPool targetVirtualPool = getDataObject(VirtualPool.class, targetVolume.getVirtualPool(), _dbClient);
+                                if (null != targetVirtualPool) {
+                                    _log.info("migration target VirtualPool is " + targetVirtualPool.forDisplay());
+                                    boolean doEnableThin = 
+                                            VirtualPool.ProvisioningType.Thin.toString().equalsIgnoreCase(
+                                                    targetVirtualPool.getSupportedProvisioningType());
+                                    if (doEnableThin) {
+                                        _log.info("the new VirtualPool is thin, requesting VPLEX to enable thin provisioning on {}", 
+                                                updatedVirtualVolumeInfo.getName());
+                                        isThinEnabled = client.setVirtualVolumeThinEnabled(updatedVirtualVolumeInfo);
+                                    }
+                                }
                             }
                         }
                     }

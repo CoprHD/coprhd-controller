@@ -2765,5 +2765,21 @@
         rebootRequired : false,
         controlNodeOnly : true,
         value : "",
-    }   
+    },
+    {
+        key : "artificial_failure",
+        label : "internal failure invoker",
+        description : "Invoke an error in the controller in an automated fashion to promote negative testing.  Internal Option Only.",
+        type : "string",
+        minLen : 1,
+        userConfigurable : false, 
+        userMutable : true,
+        hidden : true,
+        advanced : false,
+        tag : "Controller",
+        reconfigRequired : false,
+        rebootRequired : false,
+        controlNodeOnly : false,
+        value : "", 
+    }
 ]

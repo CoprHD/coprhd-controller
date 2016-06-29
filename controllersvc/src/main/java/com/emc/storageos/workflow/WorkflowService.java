@@ -527,26 +527,21 @@ public class WorkflowService implements WorkflowController {
         ServiceError error = Workflow.getOverallServiceError(statusMap);
 
         // Initiate rollback if needed.
-        if (automaticRollback && workflow.isRollbackState() == false &&
+        if (automaticRollback && !workflow.isRollbackState() &&
                 (state == WorkflowState.ERROR || state == WorkflowState.SUSPENDED_ERROR)) {
-            boolean rollBackStarted = false;
             if (workflow.isSuspendOnError()) {
                 _log.info(String.format("Suspending workflow %s on error, no rollback initiation", workflow.getWorkflowURI()));
-            } else {
-                rollBackStarted = initiateRollback(workflow);
-            }
-            if (rollBackStarted) {
+                state = WorkflowState.SUSPENDED_ERROR;
+            } else if (initiateRollback(workflow)) {
                 // Return now, wait until the rollback completions come here again.
                 workflow.setWorkflowState(WorkflowState.ROLLING_BACK);
                 persistWorkflow(workflow);
                 logWorkflow(workflow, true);
                 _log.info(String.format("Rollback initiated workflow %s", workflow.getWorkflowURI()));
                 return false;
-            } else {
-                // Enter the suspend state on error
-                state = WorkflowState.SUSPENDED_ERROR;
             }
         }
+
         // Save the updated workflow state
         workflow.setWorkflowState(state);
         persistWorkflow(workflow);

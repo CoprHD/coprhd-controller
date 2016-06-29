@@ -4,10 +4,21 @@
  */
 package com.emc.storageos.hp3par.utils;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
+
 public class CompleteError {
     private String errorResp;
     private int httpCode;
     private String hp3parCode;
+    
+    public static String getStackTrace(final Throwable throwable) {
+        final StringWriter sw = new StringWriter();
+        final PrintWriter pw = new PrintWriter(sw, true);
+        throwable.printStackTrace(pw);
+        return sw.getBuffer().toString();
+   }
+
     
     public String getErrorResp() {
         return errorResp;

@@ -1676,10 +1676,11 @@ srdf_setup_once()
     run blockconsistencygroup create $SRDF_PROJECT ${CONSISTENCY_GROUP_SRDF}v3
     networksystem show $BROCADE_NETWORK &> /dev/null && return $?
     networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
-    smisprovider show $SRDF_VMAXA_SMIS_DEV &> /dev/null && return $?
-    smisprovider create $SRDF_VMAXA_SMIS_DEV $SRDF_VMAXA_SMIS_IP $SRDF_VMAXA_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $SRDF_VMAXA_SMIS_SSL
-    smisprovider show $SRDF_VMAXB_SMIS_DEV &> /dev/null && return $?
-    smisprovider create $SRDF_VMAXB_SMIS_DEV $SRDF_VMAXB_SMIS_IP $SRDF_VMAXB_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $SRDF_VMAXB_SMIS_SSL
+    
+	# smisprovider show $SRDF_VMAXA_SMIS_DEV &> /dev/null && return $?
+    # smisprovider create $SRDF_VMAXA_SMIS_DEV $SRDF_VMAXA_SMIS_IP $SRDF_VMAXA_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $SRDF_VMAXA_SMIS_SSL
+    # smisprovider show $SRDF_VMAXB_SMIS_DEV &> /dev/null && return $?
+    # smisprovider create $SRDF_VMAXB_SMIS_DEV $SRDF_VMAXB_SMIS_IP $SRDF_VMAXB_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $SRDF_VMAXB_SMIS_SSL
     smisprovider show $SRDF_V3_VMAXA_SMIS_DEV &> /dev/null && return $?
     smisprovider create $SRDF_V3_VMAXA_SMIS_DEV $SRDF_V3_VMAXA_SMIS_IP $SRDF_V3_VMAXA_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $SRDF_V3_VMAXA_SMIS_SSL
     smisprovider show $SRDF_V3_VMAXB_SMIS_DEV &> /dev/null && return $?
@@ -1723,7 +1724,7 @@ srdf_common_setup() {
     run neighborhood allow $NH $TENANT
 
     srdf_v3_varray_setup
-    srdf_cos_setup
+    # srdf_cos_setup
     srdf_v3_cos_setup
 }
 
@@ -1736,7 +1737,7 @@ srdf_cos_setup()
 			 --protocols FC 		          \
 			 --numpaths 1				  \
 			 --max_snapshots 10 			  \
-			 --provisionType 'Thick'	          \
+			 --provisionType 'Thin'	          \
 			 --neighborhoods $NH                      \
                          --multiVolumeConsistency                  \
                          --system_type vmax			
@@ -1751,7 +1752,7 @@ srdf_cos_setup()
 			 --protocols FC 		        \
 			 --numpaths 1				\
 			 --max_snapshots 10			\
-	                 --provisionType 'Thick'	        \
+	                 --provisionType 'Thin'	        \
                          --system_type vmax                     \
 			 --neighborhoods $NH                    \
 			 --srdf "${NH}:${COS_VMAXBLOCK_SRDF_TARGET}:SYNCHRONOUS"
@@ -1766,7 +1767,7 @@ srdf_cos_setup()
 			 --protocols FC 		        \
 			 --numpaths 1				\
 			 --max_snapshots 10			\
-	                 --provisionType 'Thick'	        \
+	                 --provisionType 'Thin'	        \
                          --system_type vmax                     \
 			 --neighborhoods $NH                    \
                          --multiVolumeConsistency               \
@@ -1828,6 +1829,45 @@ srdf_v3_cos_setup()
     run cos update block ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active --storage ${SRDF_V3_VMAXA_NATIVEGUID}
     run cos update block ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active --storage ${SRDF_V3_VMAXB_NATIVEGUID}
     run cos allow ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active block $TENANT 
+	
+	
+	## ASYNCHRONOUS
+	
+	cos show ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_async block &> /dev/null && return $?
+    run cos create block ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_async                 \
+	--description 'Source-Virtual-Pool-for-Async-SRDF-Protection' true \
+			 --protocols FC 		        \
+			 --numpaths 1				\
+			 --max_snapshots 10			\
+	                 --provisionType 'Thin'	        \
+                         --system_type vmax                     \
+                         --multiVolumeConsistency		\
+			 --neighborhoods $V3_SRDF_VARRAY                    \
+			 --srdf "${V3_SRDF_VARRAY}:${COS_VMAXBLOCK_V3_SRDF_TARGET}:ASYNCHRONOUS"
+
+    run cos update block ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_async --storage ${SRDF_V3_VMAXA_NATIVEGUID}
+    run cos update block ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_async --storage ${SRDF_V3_VMAXB_NATIVEGUID}
+    run cos allow ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_async block $TENANT 
+	
+	## SYNCHRONOUS
+	
+	cos show ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_sync block &> /dev/null && return $?
+    run cos create block ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_sync                 \
+	--description 'Source-Virtual-Pool-for-Sync-SRDF-Protection' true \
+			 --protocols FC 		        \
+			 --numpaths 1				\
+			 --max_snapshots 10			\
+	                 --provisionType 'Thin'	        \
+                         --system_type vmax                     \
+                         --multiVolumeConsistency		\
+			 --neighborhoods $V3_SRDF_VARRAY                    \
+			 --srdf "${V3_SRDF_VARRAY}:${COS_VMAXBLOCK_V3_SRDF_TARGET}:SYNCHRONOUS"
+
+    run cos update block ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_sync --storage ${SRDF_V3_VMAXA_NATIVEGUID}
+    run cos update block ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_sync --storage ${SRDF_V3_VMAXB_NATIVEGUID}
+    run cos allow ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_sync block $TENANT 
+	
+	
 }
 
 srdf_cos_matcher_test()
@@ -1837,10 +1877,10 @@ srdf_cos_matcher_test()
     run cos match block true --protocols FC 		        \
 			 --numpaths 1				\
 			 --max_snapshots 10			\
-	                 --provisionType 'Thick'	        \
+	                 --provisionType 'Thin'	        \
 			 --neighborhoods $NH                    \
                          --multiVolumeConsistency               \
-			 --srdf "${NH}:${COS_VMAXBLOCK_SRDF_TARGET}:ASYNCHRONOUS"
+			 --srdf "${NH}:${COS_VMAXBLOCK_V3_SRDF_TARGET}:ASYNCHRONOUS"
     #expectN=`grep "name" /tmp/file.txt | wc -l`
     #if [ $expectN -eq 3 ]
     #then
@@ -1854,11 +1894,11 @@ srdf_cos_change()
 {
    # Create non-protected volume, then move it to a cos that has protection
    srdfvolumecc="${SRDF_VOLUME}-coschange"
-   run volume create ${srdfvolumecc} $PROJECT $NH $COS_VMAXBLOCK_SRDF_TARGET 1GB
+   run volume create ${srdfvolumecc} $PROJECT $NH $COS_VMAXBLOCK_V3_SRDF_TARGET 1GB
    echo "Created volume, now sleeping..."
    sleep 60
    echo "Changing cos..."
-   run volume change_cos $PROJECT/${srdfvolumecc} ${COS_VMAXBLOCK_SRDF_SOURCE}_sync
+   run volume change_cos $PROJECT/${srdfvolumecc} ${COS_VMAXBLOCK_V3_SRDF_TARGET}_sync
    echo "Changed cos"
    sleep 60
    echo "Deleting volume"
@@ -1900,11 +1940,14 @@ srdf_cos_change_meta()
 srdf_basic_sync_test()
 {
    srdfvolume="${SRDF_VOLUME}_sync"
-   run volume create ${srdfvolume}1 $SRDF_PROJECT $NH ${COS_VMAXBLOCK_SRDF_SOURCE}_sync 1GB
+   run volume create ${srdfvolume}1 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_sync 1GB
    sleep 300
-   #run volume create ${srdfvolume}2 $PROJECT $NH ${COS_VMAXBLOCK_SRDF_SOURCE}_sync 1GB --consistencygroup $CONSISTENCY_GROUP_SRDF
-   #run volume create ${srdfvolume}3 $PROJECT $NH ${COS_VMAXBLOCK_SRDF_SOURCE}_sync 1GB --count 2
+   #run volume create ${srdfvolume}2 $PROJECT $NH ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_sync 1GB --consistencygroup $CONSISTENCY_GROUP_SRDF
+   #run volume create ${srdfvolume}3 $PROJECT $NH ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_sync 1GB --count 2
    #run volume delete $PROJECT/${srdfvolume}2 --wait
+   run volume delete $SRDF_PROJECT/${srdfvolume}1 --wait
+   
+   run volume create ${srdfvolume}1 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_sync 1GB --consistencyGroup ${CONSISTENCY_GROUP_SRDF}
    run volume delete $SRDF_PROJECT/${srdfvolume}1 --wait
    #run volume delete $PROJECT/${srdfvolume}3-1 --wait
    #run volume delete $PROJECT/${srdfvolume}3-2 --wait
@@ -1913,12 +1956,12 @@ srdf_basic_sync_test()
 srdf_basic_async_test()
 {
    srdfvolume="${SRDF_VOLUME}_async"
-   run volume create ${srdfvolume}1 $SRDF_PROJECT $NH ${COS_VMAXBLOCK_SRDF_SOURCE}_async 1GB --consistencyGroup $CONSISTENCY_GROUP_SRDF
-   run volume create ${srdfvolume}2 $SRDF_PROJECT $NH ${COS_VMAXBLOCK_SRDF_SOURCE}_async 1GB --consistencyGroup $CONSISTENCY_GROUP_SRDF
+   run volume create ${srdfvolume}1 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_async 1GB --consistencyGroup ${CONSISTENCY_GROUP_SRDF}
+   run volume create ${srdfvolume}2 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_async 1GB --consistencyGroup ${CONSISTENCY_GROUP_SRDF}
    echo "Created 2 volumes... now going to sleep..."
    sleep 60
    echo "Deleting volumes..."
-   #run volume create ${srdfvolume}3 $PROJECT $NH ${COS_VMAXBLOCK_SRDF_SOURCE}_async 1GB --count 2
+   #run volume create ${srdfvolume}3 $PROJECT $NH ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_async 1GB --count 2
    run volume delete $SRDF_PROJECT/${srdfvolume}2 --wait
    run volume delete $SRDF_PROJECT/${srdfvolume}1 --wait
    #run volume delete $PROJECT/${srdfvolume}3-1 --wait
@@ -1948,24 +1991,27 @@ srdf_tests()
    echo 'Run SRDF tests'
    echo 'About to run cos matcher test'
    srdf_cos_matcher_test
-   echo 'About to run basic SRDF async test'
-   sleep 60
-   srdf_basic_async_test
-   echo 'About to run basic SRDF sync test'
-   sleep 60
-   srdf_basic_sync_test
+   
    echo 'About to run basic SRDF active test'
    sleep 60
    srdf_basic_active_test
    echo 'About to run V3 SRDF cos change test'
    sleep 60
    srdf_v3_cos_change
+   
+   echo 'About to run basic SRDF async test'
+   sleep 60
+   srdf_basic_async_test
+   echo 'About to run basic SRDF sync test'
+   sleep 60
+   srdf_basic_sync_test
+   
    echo 'About to run SRDF cos change test'
    sleep 60
    srdf_cos_change
-   echo 'About to run SRDF cos change test for meta volume'
-   sleep 60
-   srdf_cos_change_meta
+   # echo 'About to run SRDF cos change test for meta volume'
+   # sleep 60
+   # srdf_cos_change_meta
    echo 'Done Running SRDF tests'
 }
 
@@ -1975,7 +2021,7 @@ vmax_cos_setup()
        run cos create block $COS_VMAXBLOCK				\
 	   --description 'Virtual-Pool-for-VMAX-block-FC+iSCSI' true 	\
                          --protocols FC iSCSI 			\
-                         --numpaths 2 \
+                         --numpaths 1 \
                          --max_snapshots 10 \
                          --provisionType 'Thin' \
 	                 --system_type vmax \
@@ -2005,7 +2051,7 @@ vmax_cos_setup()
     run cos create block $COS_VMAXBLOCK_ISCSI			\
 	--description 'Virtual-Pool-for-VMAX-block-iSCSI' true \
                          --protocols iSCSI 			\
-                         --numpaths 2 \
+                         --numpaths 1 \
                          --max_snapshots 10 \
 	                 --system_type vmax \
                          --provisionType 'Thin' \
@@ -2014,7 +2060,7 @@ vmax_cos_setup()
     run cos create block $COS_VMAXBLOCK_THIN 				\
 	--description 'VMAX-thin-storage' true      \
                              --protocols FC iSCSI	    \
-                             --numpaths 2 \
+                             --numpaths 1 \
                              --max_snapshots 10 \
 	                     --system_type vmax \
                              --provisionType 'Thin' \
@@ -2024,7 +2070,7 @@ vmax_cos_setup()
     run cos create block $COS_VMAXBLOCK_THICK 				\
 	--description 'VMAX-thick-storage' true      \
                              --protocols FC iSCSI	    \
-                             --numpaths 2  \
+                             --numpaths 1  \
                              --max_snapshots 10 \
 	                     --system_type vmax \
                              --provisionType 'Thick' \
@@ -2096,7 +2142,7 @@ mirrorblock_cos_setup()
                             --max_snapshots 10         \
                             --max_mirrors 3            \
                             --provisionType 'Thin'     \
-	                    --system_type vmax \
+	                    --system_type vnxblock \
                             --expandable false \
 			    --neighborhoods $NH
 
@@ -3043,15 +3089,6 @@ rp_varray_setup()
     run neighborhood create $RECOVERPOINT_VARRAY4
     run neighborhood allow $RECOVERPOINT_VARRAY4 $TENANT
     run neighborhood allow $RECOVERPOINT_VARRAY4 `tenant root`
-}
-
-rp_network_setup()
-{
-    secho 'RecoverPoint network setup'
-
-    networksystem create $RECOVERPOINT_BROCADE_NETWORK brocade --smisip $RECOVERPOINT_BROCADE_NETWORK_PROVIDER --smisport 5988 --smisuser $RECOVERPOINT_BROCADE_NETWORK_PROVIDER_USERNAME --smispw "$RECOVERPOINT_BROCADE_NETWORK_PROVIDER_PASSWORD" --smisssl false
-    sleep 20
-    transportzone listall
 }
 
 rp_storage_setup()
@@ -4570,7 +4607,6 @@ recoverpoint_common_setup()
 {
     project_setup
     rp_varray_setup
-    rp_network_setup
     rp_storage_setup
     rp_port_setup
     rp_protection_system_setup
@@ -5643,10 +5679,11 @@ vmaxblock_setup_once()
     run storagepool update $VMAX_NATIVEGUID --type block --volume_type THIN_ONLY
     run storagepool update $VMAX_NATIVEGUID --type block --volume_type THICK_ONLY
     run storagepool update $VMAX_NATIVEGUID --nhadd $NH --type block
+    
     if [ $QUICK -eq 0 ]; then
-      
         secho "VMAX Block storageports update"
         if [ $DISCOVER_SAN -eq 0 ]; then
+      
            for porta in ${VMAX_PORTS_A}
            do
 	      run storageport update $VMAX_NATIVEGUID FC --tzone $FCTZ_A --group ${porta}
@@ -5805,6 +5842,13 @@ common_setup()
     tenant_setup
 
     if [ "${RP_INGESTTESTS}" = "0" -o "${RP_INGESTTESTS}" = "" ]; then
+
+        # If we're running physical, DISCOVER_SAN needs to be on for physical configurations.
+	if [ $QUICK -eq 0 ]; then
+	    secho "Turning on DISCOVER_SAN because we are testing physical"
+	    DISCOVER_SAN=1
+	fi
+
 	zone_setup
 	run transportzone add $NH/$IP_ZONE $BLK_CLIENT_iSCSI
     fi
@@ -5922,11 +5966,15 @@ blocksnapshot_single_vmax()
     run blocksnapshot delete ${PROJECT}/${activate_vol}/${snap1_label}
 
     # Snapshot with create_inactive=true
-    inactive_snap_label=inactive-snap-${HOSTNAME}-${RANDOM}
-    run blocksnapshot create ${PROJECT}/${activate_vol} $inactive_snap_label --create_inactive=true
-    run blocksnapshot show ${PROJECT}/${activate_vol}/${inactive_snap_label}
-    run blocksnapshot activate ${PROJECT}/${activate_vol}/${inactive_snap_label}
-    run blocksnapshot delete ${PROJECT}/${activate_vol}/${inactive_snap_label}
+	# ---------------------------------------------------------------------------------------------
+	# Creating inactive snapshot is not applicable for V3 array. hence commenting out this section.
+	# ---------------------------------------------------------------------------------------------
+    # inactive_snap_label=inactive-snap-${HOSTNAME}-${RANDOM}
+    # run blocksnapshot create ${PROJECT}/${activate_vol} $inactive_snap_label --create_inactive=true
+    # run blocksnapshot show ${PROJECT}/${activate_vol}/${inactive_snap_label}
+    # run blocksnapshot activate ${PROJECT}/${activate_vol}/${inactive_snap_label}
+    # run blocksnapshot delete ${PROJECT}/${activate_vol}/${inactive_snap_label}
+	# ---------------------------------------------------------------------------------------------
 
     # Snapshot with create_inactive=false
     active_snap_label=active-snap-${HOSTNAME}-${RANDOM}
@@ -6708,8 +6756,6 @@ vmaxblock_tests()
     block_tests $VMAXEXPORT_GROUP $VMAXEXPORT_GROUP_HOST $VMAX_VOLUME $COS_VMAXBLOCK $VMAX_VOLUME $COS_VMAXBLOCK
     # meta_volume_block_tests $VMAXEXPORT_GROUP $VMAXEXPORT_GROUP_HOST $VMAX_META_VOLUME $COS_VMAXBLOCK $VMAX_META_VOLUME $COS_VMAXBLOCK
     volume_expand_test $VMAX_VOLUME $COS_VMAXBLOCK_THIN   # work only for concatenate, stripe tbd
-    # Tests for thick meta can not be ran on VMAX10K provider.
-    #    volume_expand_test $VMAX_VOLUME $COS_VMAXBLOCK_THICK   # works for concatenate and stripe
 
     if [ "${AUTH}" != "local" -a "${AUTH}" != "ipv6" ]
     then
@@ -6727,7 +6773,6 @@ vmaxblock_tests()
         bulkapi storage-pools $LOCAL_LDAP_SUPERUSER_USERNAME $LOCAL_LDAP_SUPERUSER_PASSWORD $LOCAL_LDAP_USER_PASSWORD_1
         bulkapi transport-zones $LOCAL_LDAP_SUPERUSER_USERNAME $LOCAL_LDAP_SUPERUSER_PASSWORD $LOCAL_LDAP_USER_PASSWORD_1
         bulkapi blockcos $LOCAL_LDAP_SUPERUSER_USERNAME $LOCAL_LDAP_SUPERUSER_PASSWORD $LOCAL_LDAP_USER_PASSWORD_1
-#        bulkapi volumes $LOCAL_LDAP_SUPERUSER_USERNAME $LOCAL_LDAP_SUPERUSER_PASSWORD $LOCAL_LDAP_USER_PASSWORD_1 $NH $COS_VMAXBLOCK $BLK_SIZE
     fi
 
     # ---------------------------------------------------------
@@ -7019,7 +7064,7 @@ export_initiator()
     run export_group show $exp
     run export_group update $exp --addVolspec "$vol2+3" --remVols $vol1
     run export_group show $exp
-    run export_group update $exp --addInits "$hostname/$pwwn2"
+    run export_group update $exp --addInits "$hostname/$pwwn3"
     run export_group show $exp
     run export_group update $exp --remInits "$hostname/$pwwn1"
     run export_group show $exp
@@ -7515,7 +7560,7 @@ vmax_fc_setup()
     # so we make sure to use only assigned pools, which are
     # those for the standard vmax array.
     run cos update block $COS_VMAXBLOCK_FC --use_matched false
-    vmax3_fc_setup_once
+    # vmax3_fc_setup_once
 }
 
 full_copy_setup()
@@ -7680,7 +7725,7 @@ full_copy_tests()
     echo "Started full-copy tests"
     full_copy_single_volume_vmax_inactive
     full_copy_single_volume_vmax
-    full_copy_single_volume_vmax3
+    #full_copy_single_volume_vmax3
     full_copy_single_volume_vnx
     echo "Finished full-copy tests"
 }
@@ -8054,6 +8099,14 @@ blockconsistencygroup_create_snapshot()
     run blockconsistencygroup create_snapshot $1 $2 --createInactive 
 }
 
+blockconsistencygroup_create_active_snapshot ()
+{
+    ### create blockconsistencygroup snapshot
+    echo "Creating consistency group snapshot"
+    run blockconsistencygroup create_snapshot $1 $2
+
+}
+
 blockconsistencygroup_activate_snapshot()
 {
     ### activate blockconsistencygroup snapshot
@@ -8122,6 +8175,8 @@ blockconsistencygroup_snapshot_tests()
     cg_name=$1
     cg_cos=$2
     cg_snapshot=$3
+	
+	
     
     echo "Running Consistency Group Snapshot tests"
     echo "Consistency Group: $cg_name"
@@ -8129,9 +8184,8 @@ blockconsistencygroup_snapshot_tests()
     echo "CG Snapshot: $cg_snapshot" 
     
     blockconsistencygroup_setup_snapshot $cg_name $cg_cos
-    blockconsistencygroup_create_snapshot $cg_name $cg_snapshot
-    blockconsistencygroup_activate_snapshot $cg_name $cg_snapshot
-    blockconsistencygroup_restore_snapshot $cg_name $cg_snapshot
+	blockconsistencygroup_create_active_snapshot $cg_name $cg_snapshot
+	blockconsistencygroup_restore_snapshot $cg_name $cg_snapshot
     blockconsistencygroup_show_snapshot $cg_name $cg_snapshot
     blockconsistencygroup_list_snapshot $cg_name $cg_snapshot
     blockconsistencygroup_deactivate_snapshot $cg_name $cg_snapshot   

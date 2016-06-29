@@ -2015,7 +2015,7 @@ public class NetworkDeviceController implements NetworkController {
                             info.setPortId(port.getId().toString());
                             info.setNetworkId(network.getId().toString());
                             info.setNetworkWwn(NetworkUtil.getNetworkWwn(network));
-                            info.setFabricId(network.getNativeGuid());
+			    info.setFabricId(network.getNativeId());
                             info.setNetworkSystemId(networkSystem.getId().toString());
                             map.put(info.getZoneReferenceKey(), info);
                         }

@@ -25,13 +25,14 @@ public class DiscoveredDataObject extends DataObject {
     private Boolean _isDriverManaged = false;
 
     private static StorageDriverManager storageDriverManager = null;
+
     static {
         // This class can be used in test setups without application context.
         // Ex. DB migration test framework.
         ApplicationContext context = StorageDriverManager.getApplicationContext();
         if (context != null) {
-            storageDriverManager = (StorageDriverManager) StorageDriverManager.
-                    getApplicationContext().getBean(StorageDriverManager.STORAGE_DRIVER_MANAGER);
+            storageDriverManager = (StorageDriverManager) StorageDriverManager.getApplicationContext()
+                    .getBean(StorageDriverManager.STORAGE_DRIVER_MANAGER);
         } else {
             _log.warn("Cannot set storageDriverManager. Application context is null. Assuming not a real deployment.");
         }
@@ -132,8 +133,9 @@ public class DiscoveredDataObject extends DataObject {
                 return storageDriverManager.isFileStorageSystem(storageType);
             } else {
                 Type type = Type.valueOf(storageType);
-                return (type.equals(isilon) || type.equals(vnxfile) || type.equals(netapp) || type.equals(netappc) || type.equals(vnxe) || type
-                        .equals(datadomain));
+                return (type.equals(isilon) || type.equals(vnxfile) || type.equals(netapp) || type.equals(netappc) || type.equals(vnxe)
+                        || type
+                                .equals(datadomain));
             }
         }
 

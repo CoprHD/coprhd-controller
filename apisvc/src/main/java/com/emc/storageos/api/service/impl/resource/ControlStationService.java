@@ -49,8 +49,8 @@ import com.emc.storageos.volumecontroller.ControllerException;
  */
 
 @Path("/compute/controlstation")
-@DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR },
-        writeRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+@DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR }, writeRoles = { Role.SYSTEM_ADMIN,
+        Role.RESTRICTED_SYSTEM_ADMIN })
 public class ControlStationService extends TaskResourceService {
 
     private static final Logger _log = LoggerFactory
@@ -78,7 +78,7 @@ public class ControlStationService extends TaskResourceService {
 
         @Override
         public ResourceOperationTypeEnum getOperation() {
-            return ResourceOperationTypeEnum.DISCOVER_VCENTER;
+            return ResourceOperationTypeEnum.DISCOVER_CONTROL_STATION;
         }
     }
 

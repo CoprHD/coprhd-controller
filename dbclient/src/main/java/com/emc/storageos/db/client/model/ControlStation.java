@@ -11,7 +11,7 @@ package com.emc.storageos.db.client.model;
  *
  */
 @Cf("ControlStation")
-public class ControlStation extends AbstractComputeSystem {
+public class ControlStation extends DiscoveredComputeSystemWithAcls {
     private String _type;
     private String _userName;
     private String _password;

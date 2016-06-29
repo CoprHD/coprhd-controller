@@ -1208,6 +1208,12 @@
         <property name="workflowService" ref="workflowService" />
         <property name="coordinator" ref="coordinator"/>
     </bean>
+    
+     <bean id="controlstationController" class="com.emc.storageos.controlstationcontroller.impl.ControlStationControllerImpl">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="workflowService" ref="workflowService" />
+        <property name="coordinator" ref="coordinator"/>
+    </bean>
 
     <bean id="beacon" class="com.emc.storageos.coordinator.client.beacon.impl.ServiceBeaconImpl" init-method="init" destroy-method="stop" depends-on="controllersvc">
         <property name="zkConnection" ref="zkconn"/>

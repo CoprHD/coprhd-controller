@@ -14,6 +14,7 @@ import com.emc.storageos.db.client.model.dao.ClusterFinder;
 import com.emc.storageos.db.client.model.dao.DataAccessException;
 import com.emc.storageos.db.client.model.dao.DatacenterFinder;
 import com.emc.storageos.db.client.model.dao.ESXHostFinder;
+import com.emc.storageos.db.client.model.dao.HMCControlStatiionFinder;
 import com.emc.storageos.db.client.model.dao.HostFinder;
 import com.emc.storageos.db.client.model.dao.InitiatorFinder;
 import com.emc.storageos.db.client.model.dao.IpInterfaceFinder;
@@ -31,6 +32,7 @@ public abstract class ModelClient {
     private DatacenterFinder datacenterDAO;
     private ESXHostFinder esxHostDAO;
     private VCenterFinder vcenterDAO;
+    private HMCControlStatiionFinder hmcControlStationDAO;
     private HostFinder hostDAO;
     private InitiatorFinder initiatorDAO;
     private IpInterfaceFinder ipInterfaceDAO;
@@ -77,8 +79,7 @@ public abstract class ModelClient {
         Class<T> modelClass = getModelClass(id);
         if (modelClass != null) {
             return of(modelClass).findById(id);
-        }
-        else {
+        } else {
             return null;
         }
     }
@@ -114,6 +115,13 @@ public abstract class ModelClient {
             vcenterDAO = new VCenterFinder(this);
         }
         return vcenterDAO;
+    }
+
+    public HMCControlStatiionFinder hmcControlSations() {
+        if (hmcControlStationDAO == null) {
+            hmcControlStationDAO = new HMCControlStatiionFinder(this);
+        }
+        return hmcControlStationDAO;
     }
 
     public HostFinder hosts() {
@@ -176,8 +184,7 @@ public abstract class ModelClient {
 
         if (isNew) {
             create(model);
-        }
-        else {
+        } else {
             update(model);
         }
     }

@@ -1,0 +1,260 @@
+#{set 'moreScripts'}
+#{get 'moreScripts'/}
+<script type="text/javascript">
+
+    function reverse(s){
+        return s.split("").reverse().join("");
+    }
+
+    $(document).ready(function () {
+        var remoteServersId = "network_syslog_remote_servers_ports";
+        $network_syslog_remote_servers_ports = $("#" + remoteServersId);
+
+        var syslogServices = "system_syslog_application_services";
+        $system_syslog_application_services = $("#" + syslogServices);
+
+
+        var urlValue = '${page.syslogRemoteServersPorts.value}';
+        var servers = urlValue.split(',');
+        for (var i = 0; i < servers.length; i++) {
+            var server = servers[i];
+            var ip = server.substring(0, server.lastIndexOf(":"));
+            var port = server.substring(server.lastIndexOf(":")+1, server.length);
+
+            addServer(ip,port);
+        }
+
+
+        var syslogServicesValue = '${page.syslogServices.value}';
+        var services = syslogServicesValue.split(',');
+        $("select-many .checkbox").each(function() {
+            var input = $(this).find('input');
+            if (jQuery.inArray( input.val(), services ) > -1){
+                input.prop('checked', true);
+            }
+        });
+
+    });
+
+    function addServer(server,port) {
+
+        var ipErrorMessage = "&{'configProperties.syslog.setToZero.ip'}";
+        var portErrorMessage = "&{'configProperties.syslog.setToZero.port'}";
+        var ni = document.getElementById('server-group');
+        var numi = document.getElementById('theValue');
+        var num = (document.getElementById('theValue').value -1)+ 2;
+        numi.value = num;
+        var newdiv = document.createElement('tr');
+        var divIdName = 'server_'+num;
+        newdiv.setAttribute('id',divIdName);
+        newdiv.innerHTML = '<td class="col-xs-8 ng-scope" v-field="config.value" name="serverIp_column">' +
+                '<input type="text" name="serverIp" value="'+server+'" id="serverIp" class="form-control" onchange="verifyServers()">' +
+                '<div class="text-info ng-hide" ng-show="config.focused &amp;&amp; (getSelectedConfigType().type === \'String\' || config.error)">' +
+                    '<small generate-preview="config" class="text-danger">'+ ipErrorMessage +'</small> </div>' +
+                '</div>' +
+            '</td>' +
+            '<td class="col-xs-8 ng-scope" v-field="config.value">' +
+                '<input type="text" name="serverPort" value="'+port+'" id="serverIp" class="form-control" onchange="verifyServers()">' +
+                '<div class="text-info ng-hide" ng-show="config.focused &amp;&amp; (getSelectedConfigType().type === \'String\' || config.error)">' +
+                    '<small generate-preview="config" class="text-danger">'+ portErrorMessage +'</small> </div>' +
+                '</div>' +
+            '</td>' +
+            '<td class="col-xs-1">' +
+                '<button type="button" class="close" ng-hide="config.systemDefault" onClick="removeServer(\''+divIdName+'\')">×</button>' +
+            '</td>';
+        ni.appendChild(newdiv);
+
+    }
+
+    function isBlank(str) {
+        //alert("|"+str+"|")
+        return (!str || /^\s*$/.test(str));
+    }
+
+    function setTableError(object) {
+        object.parent().addClass('has-error');
+        object.siblings().removeClass('ng-hide');
+    }
+
+    function clearTableError(object) {
+        object.parent().removeClass('has-error');
+        object.siblings().addClass('ng-hide');
+    }
+
+    function verifyServers() {
+        var myTableArray = [];
+
+        $("table#server-table tbody tr").each(function() {
+            var serverIp = $(this).find('input[name=serverIp]');
+            var serverPort = $(this).find('input[name=serverPort]');
+            var hasError = false;
+            if (isBlank(serverIp.val())){
+               setTableError(serverIp);
+               hasError = true;
+            }
+            else { clearTableError(serverIp); }
+
+            if (isBlank(serverPort.val())) {
+               setTableError(serverPort);
+               hasError = true;
+            }
+            else { clearTableError(serverPort); }
+
+            if (hasError) {
+                return true;
+            }
+
+            myTableArray.push(serverIp.val()+":"+serverPort.val());
+        });
+        updateServers(myTableArray);
+    }
+
+    function updateServers(myTableArray) {
+        $network_syslog_remote_servers_ports.val(myTableArray);
+        checkForm();
+    }
+
+    function updateServices(myCheckBoxArray) {
+        $system_syslog_application_services.val(myCheckBoxArray);
+        checkForm();
+    }
+
+    function removeServer(id) {
+        var d = document.getElementById('server-group');
+        var checkboxes = document.getElementById(id);
+        d.removeChild(checkboxes);
+        verifyServers()
+    }
+
+    function verifyServices() {
+        var myCheckBoxArray = [];
+
+        $("select-many .checkbox").each(function() {
+            var input = $(this).find('input')
+            if (input.is(':checked')){
+                myCheckBoxArray.push(input.val());
+            }
+        });
+        updateServices(myCheckBoxArray);
+    }
+</script>
+
+#{/set}
+
+<input type="hidden" value="0" id="theValue" />
+<br>
+
+#{ConfigProperties.propertySet titleKey:'configProperties.syslog.settings'}
+
+#{ConfigProperties.property property:page.syslogEnable, disabled:unstable/}
+#{ConfigProperties.property property:page.syslogEnableTls, disabled:unstable/}
+#{ConfigProperties.property property:page.syslogEnableTlsCert, disabled:unstable/}
+
+#{/ConfigProperties.propertySet}
+
+#{ConfigProperties.propertySet titleKey:'configProperties.syslog.servers'}
+
+#{ConfigProperties.property property:page.syslogTransportProtocol, disabled:unstable/}
+
+%{
+    property = page.syslogRemoteServersPorts
+    id = property.name
+    name = property.name
+    label = property.label
+    originalValue = property.value
+    value = flash[name] ?: originalValue
+    rebootRequired = property.rebootRequired
+    description = property.description
+    disabled:unstable;
+}%
+#{set 'error'}#{error name /}#{/set}
+
+<div id="${id}ControlGroup" class="form-group ">
+    <label class="control-label col-sm-3" for="${id}">${label}:</label>
+    <div class="col-sm-6" z="">
+        <div class="dataTables_wrapper">
+            <input id="${id}" type="hidden" name="${name}" value="${originalValue}" data-originalvalue="${originalValue}"/>
+            <table class="table table-hover table-condensed dataTable " id="server-table" >
+                <thead>
+                <tr>
+                    <th style="width: 160px;">Server</th>
+                    <th style="width: 160px;">Port</th>
+                    <th style="width: 25px;"></th>
+                </tr>
+                </thead>
+                <tbody id="server-group">
+
+                </tbody>
+            </table>
+
+        </div>
+        <div class="button-bar">
+            <div>
+                <button type="button" class="btn btn-success" name="button.add" onclick="addServer('','');">
+                    <span class="glyphicon glyphicon-plus "></span> Add
+                </button>
+            </div>
+        </div>
+        <div class="col-sm-12">#{if description}<p class="help-block clear">${description}</p>#{/if}</div>
+    </div>
+
+    <div class="col-sm-3">
+        <span class="help-inline clearfix">${error}</span>
+    </div>
+</div>
+
+#{/ConfigProperties.propertySet}
+
+
+#{ConfigProperties.propertySet titleKey:'configProperties.syslog.logs'}
+
+#{ConfigProperties.property property:page.syslogLogLevel, disabled:unstable/}
+
+#{ConfigProperties.property property:page.syslogFacility, disabled:unstable/}
+
+%{
+    property = page.syslogServices
+    id = property.name
+    name = property.name
+    label = property.label
+    originalValue = property.value
+    value = flash[name] ?: originalValue
+    rebootRequired = property.rebootRequired
+    description = property.description
+    disabled:unstable;
+    allowedValues = property.metadata.allowedValues;
+/*  options = [];
+    for(value in allowedValues){
+        def option;
+        option
+        option['id'] = value;
+
+        option['name'] = value;
+        options.push(option);
+    }
+    test = options.toString();
+*/
+    options = '[';
+    for(value in allowedValues){
+        option = '{id:"'+value+'",name:"'+value+'"},';
+        options = options.concat(option);
+    }
+    options = options.concat(']');
+}%
+
+<div id="${id}ControlGroup" class="form-group ">
+    <input id="${id}" type="hidden" name="${name}" value="${originalValue}" data-originalvalue="${originalValue}"/>
+    <control-group v-field=${label} type="array" >
+        <select-many id="selector_${id}" options="${options}" onClick="verifyServices()"></select-many>
+    </control-group>
+    <div class="col-sm-3"></div>
+    <div class="col-sm-6" z="">
+        <div class="col-sm-12">#{if description}<p class="help-block clear">${description}</p>#{/if}</div>
+    </div>
+
+    <div class="col-sm-3">
+        <span class="help-inline clearfix">${error}</span>
+    </div>
+</div>
+
+#{/ConfigProperties.propertySet}

@@ -554,6 +554,8 @@ _reload() {
             exec /usr/bin/systemctl restart connectemc ;;
         ssl)
             exec /usr/bin/systemctl restart nginx ;;
+        syslog)
+            exec /usr/bin/systemctl restart rsyslog ;;			
         firewall)
             exec /usr/bin/systemctl restart SuSEfirewall2 ;;
         ipsec)

@@ -4,6 +4,9 @@
  */
 package com.emc.storageos.model.property;
 
+import java.util.Arrays;
+import java.util.List;
+
 public class PropertyConstants {
     public static final String IPADDR                          = "ipaddr";
     public static final String IPV6ADDR                        = "ipv6addr";
@@ -25,6 +28,12 @@ public class PropertyConstants {
     // text is for multi-line, whereas string is for single line 
     public static final String TEXT                            = "text";
     public static final String ENCRYPTEDTEXT                   = "encryptedtext";
+    
+    // type added for Syslog Forwarder feature
+    public static final String IPPORTLIST                          = "ipportlist";
+    public static final String SVCSTRLIST                          = "svcstrlist";
+	public static final List<String> ORIGSVCLIST = Arrays.asList("apisvc", "authsvc", "bkutils", "controllersvc", "coordinatorsvc", "dbsvc", "geodbsvc", "geosvc", "portalsvc", "sasvc", "syssvc", "vasasvc");
+	
 
     // node related property key
     public static final String NODE_ID_KEY = "node_id";

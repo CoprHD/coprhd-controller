@@ -52,4 +52,13 @@ public class ConfigProperty {
     public static final String BACKUP_SCHEDULER_INTERVAL = "backup_scheduler_interval";
     public static final String BACKUP_SCHEDULER_COPIES = "backup_scheduler_copies_to_keep";
     public static final String BACKUP_MAX_MANUAL_COPIES = "backup_max_manual_copies";
+
+    public static final String SYSLOG_REMOTE_SERVERS_PORTS = "network_syslog_remote_servers_ports";
+    public static final String SYSLOG_SERVICES = "system_syslog_application_services";
+    public static final String SYSLOG_ENABLE = "system_syslog_enable";
+    public static final String SYSLOG_ENABLE_TLS = "system_syslog_enabletls";
+    public static final String SYSLOG_TRANSPORT_PROTOCOL = "system_syslog_transport_protocol";
+    public static final String SYSLOG_ENABLE_TLS_CERT = "system_syslog_enabletlscert";
+    public static final String SYSLOG_LOG_LEVEL = "system_syslog_loglevel";
+    public static final String SYSLOG_FACILITY = "system_syslog_facility";
 }

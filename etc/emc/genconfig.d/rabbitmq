@@ -22,7 +22,7 @@ _get_rabbitmq_props() {
 }
 
 _erlang_cookie() {
-    echo "${_GENCONFIG_network_vip}" | sha1sum | awk '{print toupper($1)}'
+    echo "${_GENCONFIG_network_vip_effective}" | sha1sum | awk '{print toupper($1)}'
 }
 _gen_erlang_cookie() { 
     _genconfig_write 400 root:root "${1}"     "$(_erlang_cookie)"

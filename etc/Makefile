@@ -74,6 +74,8 @@ ETCFILES_COMMON = \
     $(ETCDIR)/sysconfig/SuSEfirewall2.d/services/storageos \
     $(ETCDIR)/monorail/config-template.json \
     $(ETCDIR)/monorail/config.json \
+    $(ETCDIR)/monorail/hosts \
+    $(ETCDIR)/monorail/hosts-template \
     $(ETCDIR)/rabbitmq/rabbitmq-template.config \
     $(ETCDIR)/rabbitmq/rabbitmq.config \
     $(ETCDIR)/keepalived/keepalived-IPv4-template.conf \

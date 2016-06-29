@@ -9562,13 +9562,21 @@ snapvx_single_tests()
 
 custvolname_setup()
 {
-    echo "Executing cutsom volume name setup"
+    echo "Executing custom volume name setup"
     vplex_setup
 }
 
 custvolname_tests()
 {
     echo "Executing custom volume name tests"
+    custvolname_vplex_tests
+}
+
+custvolname_vplex_tests()
+{
+    echo "Executing VPLEX custom volume name tests"
+
+    # Create the custom volume name custom configurations for VPLEX.
     echo "Enabling custom volume naming"
     customconfig create VolumeNamingEnabled true systemType vplex --register true
 
@@ -9578,40 +9586,96 @@ custvolname_tests()
     echo "Setting export custom volume name configuration"
     customconfig create VolumeNamingProvisionWithExport "{volume_label}-{project_name}-{export_name}" systemType vplex --register true
 
+    # Test the use case where a VPLEX volume is provisioned and no compute
+    # resource is specified in the request.
     localVolume1=VPlexLocal1-${RANDOM}
     echo "Creating VPLEX local volume $localVolume1"
     volume create $localVolume1 $PROJECT $NH cosvplexlocal $BLK_SIZE
 
+    # We should be able to find the volume by its custom name.
     echo "Show VPLEX local volume with custom name"
     customName1=$localVolume1-$PROJECT
     volume show $PROJECT/$customName1
 
+    # Clean up the volume.
     echo "Deleting VPLEX local volume"
     volume delete $PROJECT/$customName1 --wait
 
+    # Create a host and get the URI.
     host=$PROJECT.lss.emc.com
     hostLbl=$PROJECT
     echo "Creating host with name $hostLbl"
     hosts create $hostLbl $TENANT Windows $host --port 8111 --username user --password 'password' --osversion 1.0
-
     echo "Getting host URI"
     hosturi=`hosts list ${TENANT} | grep ${hostLbl} | awk '{print $4}'`
     echo "Host URI is $hosturi"
 
+    # Test the case where a VPLEX volume is prvisioned and a compute
+    # resource is specified in the request.
     localVolume2=VPlexLocal2-${RANDOM}
     echo "Creating VPLEX local volume $localVolume2 for host $hostLbl"
     volume create $localVolume2 $PROJECT $NH cosvplexlocal $BLK_SIZE --computeResource $hosturi
 
+    # Again we should be able to find the volume by its custom name.
     echo "Show VPLEX local volume with custom name"
     customName2=$localVolume2-$PROJECT-$hostLbl
     volume show $PROJECT/$customName2
 
+    # Clean up volume
     echo "Deleting VPLEX local volume"
     volume delete $PROJECT/$customName2 --wait
 
+    # Clean up host
     echo "Deleting host"
     hosts delete $hostLbl
 
+    # Test the case where a VPLEX backend snapshot is exposed as a VPLEX volume.
+    localVolume3=VPlexLocal3-${RANDOM}
+    localVolume3Snap=$localVolume3-Snap
+    echo "Creating VPLEX local volume $localVolume3"
+    volume create $localVolume3 $PROJECT $NH cosvplexlocal $BLK_SIZE
+    customName3=$localVolume3-$PROJECT
+    echo "Creating VPLEX snapshot for $customName3"
+    blocksnapshot create $PROJECT/$customName3 $localVolume3Snap
+    echo "Exposing snapshot as VPLEX volume"
+    blocksnapshot expose $PROJECT/$customName3/$localVolume3Snap
+
+    # We should be able to find the the VPLEX volume built on top
+    # of the snapshot by its custom name.
+    exposedVolumeCustomName=$localVolume3Snap-$PROJECT
+    volume show $PROJECT/$exposedVolumeCustomName
+
+    # Clean up volumes and snapshot.
+    echo "Deleting VPLEX volume built on snapshot"
+    volume delete $PROJECT/$exposedVolumeCustomName --wait
+    echo "Deleting snapshot"
+    blocksnapshot delete $PROJECT/$customName3/$localVolume3Snap
+    echo "Deleting VPLEX local volume"
+    volume delete $PROJECT/$customName3 --wait
+
+    # Test case where a deatched mirror is promoted to a VPLEX volume.
+    localVolume4=Vol4-${RANDOM}
+    localVolume4Mirror=$localVolume4-Mir
+    echo "Creating VPLEX local volume $localVolume4"
+    volume create $localVolume4 $PROJECT $NH cosvplexlocal $BLK_SIZE
+    customName4=$localVolume4-$PROJECT
+    echo "Attaching mirror $localVolume4Mirror to volume $localVolume4"
+    blockmirror attach $PROJECT/$customName4 $localVolume4Mirror 1
+    sleep 30
+    echo "Detaching mirror and promoting to VPLEX volume"
+    blockmirror detach $PROJECT/${customName4}
+
+    # We should be able to find the the promoted VPLEX volume by its custom name.
+    promotedMirrorCustomName=$customName4-$localVolume4Mirror-0-$PROJECT
+    volume show $PROJECT/$promotedMirrorCustomName
+
+    # Clean up volumes.
+    echo "Deleting VPLEX local volume"
+    volume delete $PROJECT/$customName4 --wait
+    echo "Deleting VPLEX local volume"
+    volume delete $PROJECT/$promotedMirrorCustomName --wait
+
+    # Clean up custom configs.
     echo "Disable custom configurations"
     customconfig delete systemType.vplex.VolumeNamingEnabled systemType vplex False
     customconfig delete systemType.vplex.VolumeNamingProvisionNoExport systemType vplex False

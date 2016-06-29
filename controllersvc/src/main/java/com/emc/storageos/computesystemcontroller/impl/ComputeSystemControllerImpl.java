@@ -69,6 +69,7 @@ import com.emc.storageos.workflow.WorkflowStepCompleter;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.iwave.ext.linux.util.VolumeWWNUtils;
 import com.iwave.ext.vmware.HostStorageAPI;
 import com.iwave.ext.vmware.VCenterAPI;
 import com.iwave.ext.vmware.VMWareException;
@@ -865,8 +866,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                     // TODO: what if host moved between datacenters? use old cluster vcenter datacenter instead?
                     Datastore datastore = api.findDatastore(vCenterDataCenter.getLabel(), datastoreName);
                     for (HostScsiDisk entry : storageAPI.listScsiDisks()) {
-                        // TODO use VolumeWWNUtils
-                        if (VMwareUtils.getDiskWwn(entry).equalsIgnoreCase(blockObject.getWWN())) {
+                        if (VolumeWWNUtils.wwnMatches(VMwareUtils.getDiskWwn(entry), blockObject.getWWN())) {
                             attachLuns(hostSystem, entry);
                         }
                     }
@@ -908,8 +908,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                         setStorageIOControl(api, datastore, true);
                     }
                     for (HostScsiDisk entry : storageAPI.listScsiDisks()) {
-                        // TODO use VolumeWWNUtils
-                        if (VMwareUtils.getDiskWwn(entry).equalsIgnoreCase(blockObject.getWWN())) {
+                        if (VolumeWWNUtils.wwnMatches(VMwareUtils.getDiskWwn(entry), blockObject.getWWN())) {
                             detachLuns(hostSystem, entry);
                         }
                     }

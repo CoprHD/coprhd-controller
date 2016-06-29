@@ -11,6 +11,7 @@ import static org.junit.Assert.assertTrue;
 import org.junit.Test;
 
 import com.emc.storageos.model.block.VolumeRestRep;
+import com.iwave.ext.linux.util.VolumeWWNUtils;
 
 public class VolumeWWNUtilsTest {
 

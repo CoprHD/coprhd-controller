@@ -8,8 +8,8 @@ import org.apache.commons.lang.StringUtils;
 
 import com.emc.sa.engine.ExecutionTask;
 import com.emc.sa.engine.ExecutionUtils;
-import com.emc.sa.util.VolumeWWNUtils;
 import com.emc.storageos.model.block.BlockObjectRestRep;
+import com.iwave.ext.linux.util.VolumeWWNUtils;
 import com.iwave.ext.vmware.HostStorageAPI;
 import com.iwave.ext.vmware.VMwareUtils;
 import com.vmware.vim25.HostScsiDisk;

@@ -83,8 +83,13 @@ import com.vmware.vim25.InvalidState;
 import com.vmware.vim25.NotFound;
 import com.vmware.vim25.ResourceInUse;
 import com.vmware.vim25.RuntimeFault;
+import com.vmware.vim25.StorageIORMConfigSpec;
+import com.vmware.vim25.TaskInfo;
+import com.vmware.vim25.TaskInfoState;
 import com.vmware.vim25.mo.Datastore;
 import com.vmware.vim25.mo.HostSystem;
+import com.vmware.vim25.mo.StorageResourceManager;
+import com.vmware.vim25.mo.Task;
 
 public class ComputeSystemControllerImpl implements ComputeSystemController {
 
@@ -894,7 +899,14 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
                     // TODO: what if host moved between datacenters? use old cluster vcenter datacenter instead?
                     Datastore datastore = api.findDatastore(vCenterDataCenter.getLabel(), datastoreName);
+                    boolean storageIOControlEnabled = datastore.getIormConfiguration().isEnabled();
+                    if (storageIOControlEnabled) {
+                        setStorageIOControl(api, datastore, false);
+                    }
                     unmountDatastore(datastore, hostSystem);
+                    if (storageIOControlEnabled) {
+                        setStorageIOControl(api, datastore, true);
+                    }
                     for (HostScsiDisk entry : storageAPI.listScsiDisks()) {
                         // TODO use VolumeWWNUtils
                         if (VMwareUtils.getDiskWwn(entry).equalsIgnoreCase(blockObject.getWWN())) {
@@ -907,6 +919,64 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         storageAPI.refreshStorage();
 
         WorkflowStepCompleter.stepSucceded(stepId);
+    }
+
+    public void setStorageIOControl(VCenterAPI vcenter, Datastore datastore, boolean enabled) {
+        StorageResourceManager manager = vcenter.getStorageResourceManager();
+        StorageIORMConfigSpec spec = new StorageIORMConfigSpec();
+        spec.setEnabled(enabled);
+
+        Task task = null;
+        try {
+            task = manager.configureDatastoreIORM_Task(datastore, spec);
+            boolean cancel = false;
+            long maxTime = System.currentTimeMillis() + (60 * 1000);
+            while (!isComplete(task)) {
+                Thread.sleep(5000);
+
+                if (System.currentTimeMillis() > maxTime) {
+                    cancel = true;
+                    break;
+                }
+            }
+
+            if (cancel) {
+                cancelTask(task);
+            }
+        } catch (Exception e) {
+            _log.error("Error setting storage i/o control");
+            cancelTaskNoException(task);
+        }
+    }
+
+    public void cancelTaskNoException(Task task) {
+        try {
+            cancelTask(task);
+        } catch (Exception e) {
+            _log.error("Error when cancelling VMware task");
+        }
+    }
+
+    public void cancelTask(Task task) throws Exception {
+        if (task == null || task.getTaskInfo() == null) {
+            _log.warn("VMware task is null or has no task info. Unable to cancel it.");
+        } else {
+            TaskInfoState state = task.getTaskInfo().getState();
+            if (state == TaskInfoState.queued || state == TaskInfoState.running) {
+                task.cancelTask();
+            }
+        }
+    }
+
+    private boolean isComplete(Task task) throws Exception {
+        TaskInfo info = task.getTaskInfo();
+        TaskInfoState state = info.getState();
+        if (state == TaskInfoState.success) {
+            return true;
+        } else if (state == TaskInfoState.error) {
+            return true;
+        }
+        return false;
     }
 
     public Workflow.Method deleteExportGroupMethod(URI exportGroupURI) {

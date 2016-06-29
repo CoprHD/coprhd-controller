@@ -5,7 +5,6 @@
 package com.emc.storageos.computesystemcontroller.impl;
 
 import java.net.URI;
-import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -74,12 +73,8 @@ import com.google.common.collect.Maps;
 import com.iwave.ext.linux.util.VolumeWWNUtils;
 import com.iwave.ext.vmware.HostStorageAPI;
 import com.iwave.ext.vmware.VCenterAPI;
-import com.iwave.ext.vmware.VMWareException;
 import com.iwave.ext.vmware.VMwareUtils;
-import com.vmware.vim25.HostFileSystemMountInfo;
-import com.vmware.vim25.HostFileSystemVolume;
 import com.vmware.vim25.HostScsiDisk;
-import com.vmware.vim25.HostVmfsVolume;
 import com.vmware.vim25.StorageIORMConfigSpec;
 import com.vmware.vim25.TaskInfo;
 import com.vmware.vim25.TaskInfoState;
@@ -870,7 +865,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                         }
                     }
                     storageAPI.refreshStorage();
-                    mountDatastore(datastore, hostSystem);
+                    storageAPI.mountDatastore(datastore);
                 }
             }
         }
@@ -1345,58 +1340,6 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             }
         }
         return waitFor;
-    }
-
-    private void mountDatastore(Datastore datastore, HostSystem host) {
-        final String dataStoreName = datastore.getName();
-        for (HostFileSystemMountInfo mount : new HostStorageAPI(host)
-                .getStorageSystem().getFileSystemVolumeInfo().getMountInfo()) {
-
-            HostFileSystemVolume mountVolume = mount.getVolume();
-
-            if (mountVolume == null) {
-                _log.warn("No volume attached to mount : " + mount.getMountInfo().getPath());
-                continue;
-            }
-
-            if (mount.getVolume() instanceof HostVmfsVolume
-                    && dataStoreName.equals(mount.getVolume().getName())) {
-                HostVmfsVolume volume = (HostVmfsVolume) mountVolume;
-                String vmfsUuid = volume.getUuid();
-                _log.info("Mounting volume : " + vmfsUuid);
-                try {
-                    new HostStorageAPI(host).mountdatastore(vmfsUuid);
-                } catch (VMWareException e) {
-                    _log.error(e.getMessage());
-                }
-            }
-        }
-    }
-
-    private void unmountDatastore(Datastore datastore, HostSystem host) {
-        final String dataStoreName = datastore.getName();
-        for (HostFileSystemMountInfo mount : new HostStorageAPI(host)
-                .getStorageSystem().getFileSystemVolumeInfo().getMountInfo()) {
-
-            HostFileSystemVolume mountVolume = mount.getVolume();
-
-            if (mountVolume == null) {
-                _log.warn("No volume attached to mount : " + mount.getMountInfo().getPath());
-                continue;
-            }
-
-            if (mount.getVolume() instanceof HostVmfsVolume
-                    && dataStoreName.equals(mount.getVolume().getName())) {
-                HostVmfsVolume volume = (HostVmfsVolume) mountVolume;
-                String vmfsUuid = volume.getUuid();
-                _log.info("Unmounting volume : " + vmfsUuid);
-                try {
-                    new HostStorageAPI(host).getStorageSystem().unmountVmfsVolume(vmfsUuid);
-                } catch (RemoteException e) {
-                    throw new VMWareException(e);
-                }
-            }
-        }
     }
 
     private void addVcenterHost(Map<URI, List<URI>> vCenterHostExportMap, URI hostId, URI export) {

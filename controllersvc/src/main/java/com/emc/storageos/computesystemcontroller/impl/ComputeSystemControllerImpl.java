@@ -13,6 +13,8 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -122,6 +124,9 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
     private static final String UNMOUNT_AND_DETACH_STEP = "UnmountAndDetachStep";
     private static final String MOUNT_AND_ATTACH_STEP = "MountAndAttachStep";
+
+    private static final String VMFS_DATASTORE_PREFIX = "vipr:vmfsDatastore";
+    private static Pattern MACHINE_TAG_REGEX = Pattern.compile("([^W]*\\:[^W]*)=(.*)");
 
     private ComputeDeviceController computeDeviceController;
     private BlockStorageScheduler _blockScheduler;
@@ -860,8 +865,8 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             BlockObject blockObject = BlockObject.fetch(_dbClient, URI.create(volume));
             for (ScopedLabel tag : blockObject.getTag()) {
                 String tagValue = tag.getLabel();
-                if (tagValue != null && tagValue.startsWith("vipr:vmfsDatastore")) {
-                    String datastoreName = tagValue.split("=")[1];
+                if (tagValue != null && tagValue.startsWith(VMFS_DATASTORE_PREFIX)) {
+                    String datastoreName = getDatastoreName(tagValue);
 
                     // TODO: what if host moved between datacenters? use old cluster vcenter datacenter instead?
                     Datastore datastore = api.findDatastore(vCenterDataCenter.getLabel(), datastoreName);
@@ -894,8 +899,8 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             BlockObject blockObject = BlockObject.fetch(_dbClient, URI.create(volume));
             for (ScopedLabel tag : blockObject.getTag()) {
                 String tagValue = tag.getLabel();
-                if (tagValue != null && tagValue.startsWith("vipr:vmfsDatastore")) {
-                    String datastoreName = tagValue.split("=")[1];
+                if (tagValue != null && tagValue.startsWith(VMFS_DATASTORE_PREFIX)) {
+                    String datastoreName = getDatastoreName(tagValue);
 
                     // TODO: what if host moved between datacenters? use old cluster vcenter datacenter instead?
                     Datastore datastore = api.findDatastore(vCenterDataCenter.getLabel(), datastoreName);
@@ -1483,6 +1488,14 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         }
 
         return waitFor;
+    }
+
+    public static String getDatastoreName(String tag) {
+        Matcher matcher = MACHINE_TAG_REGEX.matcher(tag);
+        if (matcher.matches()) {
+            return matcher.group(2);
+        }
+        return null;
     }
 
     @Override

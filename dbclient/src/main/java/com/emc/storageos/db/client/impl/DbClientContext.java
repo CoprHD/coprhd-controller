@@ -787,8 +787,7 @@ public class DbClientContext {
     
     public Map<String, String> getStrategyOptions() {
         Map<String, String> result = new HashMap<String, String>();
-        
-        KeyspaceMetadata keyspace = cassandraCluster.getMetadata().getKeyspace(this.getKeyspaceName());
+        KeyspaceMetadata keyspace = cassandraCluster.getMetadata().getKeyspace("\""+this.getKeyspaceName()+"\"");
         Map<String, String> replications = keyspace.getReplication();
         for (Map.Entry<String, String> entry : replications.entrySet()) {
             if (!entry.getKey().startsWith("class:")) {

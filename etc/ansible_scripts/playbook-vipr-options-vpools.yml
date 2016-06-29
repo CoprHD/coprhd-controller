@@ -1,0 +1,20 @@
+---
+- hosts: localhost 
+  tasks:
+
+  - name: Getting AssetOptions for Vpools
+    include: playbook-vipr-login.yml
+
+  - set_fact: path="/block/vpools/bulk.json" #API path to get IDs
+  - include: playbook-rest-request.yml 
+    # TODO: check that items in response are restricted to those user can use (i.e.: by tenant)
+
+  - set_fact: path="/block/vpools/bulk.json" # API path to get objects
+  - set_fact: body="{{ restResult.json }}"  #POST IDs from previous request"
+  - include: playbook-rest-request.yml
+
+  - include: playbook-vipr-logout.yml
+
+
+  - set_fact: optionsData="{{restResult.json.block_vpool}}"
+  - include: playbook-vipr-options-write.yml 

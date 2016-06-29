@@ -1,0 +1,29 @@
+
+  - name: Getting ViPR creds from include file
+    include: playbook-vipr-creds.yml
+
+  - name: Login to ViPR
+    uri:
+      url: https://{{ host_address }}:{{ api_port }}/login
+      validate_certs: no
+      user: "{{ login_user }}"
+      password: "{{ login_password }}"
+      return_content: yes
+    ignore_errors: yes 
+    register: loginResults
+
+  - name: Logging REST results if failed
+    debug: var=loginResults
+    when: loginResults.failed is defined
+
+  - name: If login fails, write results out to Ansible results file
+    lineinfile: dest={{ ansibleResultFile }} line="Login to {{ host_address }}:{{ api_port }} failed. {{ loginResults.msg }}" create="yes" 
+    when: loginResults.failed is defined
+
+  - name: Fail workflow if login fails
+    fail: msg="Login to {{ host_address }}:{{ api_port }} failed.  {{ loginResults.msg }}"  #"
+    when: loginResults.failed is defined
+
+  - name: Saving ViPR login token
+    set_fact: loginToken={{ loginResults.x_sds_auth_token }}
+

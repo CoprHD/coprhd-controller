@@ -1,0 +1,7 @@
+  - name: Logout of ScaleIO
+    uri:
+      url: https://{{ host_address }}:{{ api_port }}/api/logout
+      validate_certs: no
+      user: ignored
+      password: "{{ loginToken }}" 
+    register: logoutResults   # get results of last call in this var 

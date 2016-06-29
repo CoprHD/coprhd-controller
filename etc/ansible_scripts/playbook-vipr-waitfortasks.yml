@@ -1,0 +1,88 @@
+  - name: Getting ViPR info from include file
+    include: playbook-vipr-creds.yml
+
+  - fail: msg="Failure waiting for tasks.  No REST results available to get Tasks from."
+    when: restResult is undefined
+
+  - fail: msg="Failure waiting for tasks.  No JSON in results to get Tasks from.  (Does request path end in .json?)  restResult:{{restResult}}"  #"
+    when: restResult.json is undefined
+
+
+
+  - name: Extract ViPR Task IDs from restResults
+    set_fact: id_item="{{ item.id }}"  #" 
+    with_items: "{{ restResult.json.task|default([]) }}" 
+    register: ids_result
+
+  - name: Make a list of ViPR IDs
+    set_fact: ids="{{ ids_result.results |  selectattr('ansible_facts', 'defined') | map(attribute='ansible_facts.id_item') | list }}"  #"
+
+  - name: Or if single task, get ID from single task
+    set_fact: ids=["{{ restResult.json.id }}"]  #"
+    when: restResult.json.task is undefined
+
+
+
+  - name: Make REST Requests for status of ViPR Tasks until done
+    uri:
+      url: https://{{ host_address }}:{{ api_port }}/vdc/tasks/{{item}}.json
+      validate_certs: no  # TODO: enable for production
+      HEADER_X-SDS-AUTH-TOKEN: "{{ loginToken|default(omit) }}"
+      HEADER_Content-Type: "application/json"
+      body_format: json
+      method: "GET" 
+      return_content: yes 
+    with_items: "{{ ids }}"
+    ignore_errors: true
+    register: restResult
+    until: restResult.json.state != 'pending'
+    retries: 60
+    delay: 10
+
+
+
+  - name: Logging REST results if failed
+    debug: var=restResult
+    when: restResult.failed is defined
+
+  - name: If request fails, write results out to Ansible results file
+    lineinfile: dest={{ ansibleResultFile }}
+                line="Request {{ host_address }}:{{ api_port }}{{ path_included|default(path) }} failed. {{ restResult.msg }}"
+                create="yes"
+    when: restResult.failed is defined
+
+  - name: Fail workflow if request fails
+    fail: msg="Request {{ host_address }}:{{ api_port }}{{ path_included|default(path) }} failed. {{ restResult.msg }}"  #"
+    when: restResult.failed is defined
+
+
+
+  - name: Log ViPR Tasks that failed
+    debug: msg="ViPR Task failed {{ item.json.name }} {{ item.json.id }}" #"
+    with_items: "{{ restResult.results }}"
+    when: item.json.state == 'error'
+
+  - name: Log ViPR Tasks that timed out
+    debug: msg="Timed out waiting for ViPR Task {{ item.json.name }} {{ item.json.id }}" #"
+    with_items: "{{ restResult.results }}"
+    when: item.json.state == 'pending'
+
+
+  - name: Write errors to ansible result file
+    lineinfile: dest={{ ansibleResultFile }}
+                line="ViPR Task failed.  {{item.json.name}} {{item.json.id}}.  {{item.json.service_error.description}}  {{item.json.service_error.details}}"
+                create="yes"
+    with_items: "{{ restResult.results }}"
+    when: (item.json.state == 'error') and (item.json.service_error is defined)
+
+  - name: Fail if ViPR Tasks failed
+    fail: msg="Failing workflow due to ViPR Task failure {{ item.json.name }} {{ item.json.id }}" #"
+    with_items: "{{ restResult.results }}"
+    when: item.json.state == 'error'
+
+  - name: Fail if ViPR Tasks timed out
+    fail: msg="Failing workflow due to time out waiting for ViPR Task {{ item.json.name }} {{ item.json.id }}" #"
+    with_items: "{{ restResult.results }}"
+    when: item.json.state == 'pending'
+
+

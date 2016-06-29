@@ -1,0 +1,10 @@
+{
+  "friendlyName": "Get ViPR BlockStorageTypeForExport",
+  "injectableName": "Task.ViPR.BlockStorageTypeForExport.Get",
+  "implementsTask": "Task.Base.Ansible",
+  "options": {
+    "playbook": "/root/ansible-work/playbook-vipr-options-BlockStorageTypeForExport.yml",
+    "limit": "localhost"
+  },
+  "properties": {}
+} 

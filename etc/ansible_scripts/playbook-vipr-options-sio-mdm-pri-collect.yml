@@ -1,0 +1,28 @@
+---
+- hosts: localhost 
+  tasks: 
+  - name: Touch/create file {{ ansibleResultFile }}
+    file: path="{{ ansibleResultFile }}" state=touch mode="u=rw,g=r,o=r" 
+
+  - name: Truncate/empty file {{ ansibleResultFile }}
+    shell: truncate -s 0 "{{ansibleResultFile}}" 
+
+  - name: Write starting '[' to file  {{ ansibleResultFile }}
+    lineinfile: dest="{{ansibleResultFile}}" line="["
+
+  - name: Combine fetched files from all nodes
+    shell: cat {{item}} >> {{ ansibleResultFile }};echo ',' >> {{ ansibleResultFile }}
+    with_fileglob:
+     - /tmp/fetched/*{{ resultFile }}
+
+  - name: Add option for 'None'
+    lineinfile: dest={{ ansibleResultFile }} line=" {\"name\":\"None\",\"id\":\"null\"},"
+
+    # replace last instance of line ending with comma with line, minus the comma
+  - name: Remove last comma
+    lineinfile: dest={{ ansibleResultFile }} regexp="^(.*),$" line="\1" backrefs=yes
+
+
+  - name: Write out end of array ']' to {{ ansibleResultFile }} 
+    lineinfile: dest="{{ ansibleResultFile }}" line="]"
+

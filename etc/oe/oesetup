@@ -1,0 +1,64 @@
+#!/bin/sh
+#TODO
+echo "Docker service strated"
+echo "Loading Docker images"
+docker load </etc/oe/mongo.tar
+echo "mongo loadefd"
+docker load</etc/oe/on-http.tar
+echo "on-http loaded"
+docker load</etc/oe/on-taskgraph.tar
+echo "on-taskgraph loaded"
+docker load</etc/oe/rabbitmq.tar
+echo "Tagging Docker images"
+docker tag 194d37572641 oe-onhttp:latest
+docker tag cc347a0eb08b oe-ontaskgraph:latest
+docker tag 5f8abd26760c rabbitmq:management
+docker tag a55d8a328b43 mongo:latest
+echo "Starting Docker OE containers"
+docker run --privileged=true --net="host" --name docker_mongo_1 -d mongo:latest 
+echo "Started Mongo"
+docker run --privileged=true --net="host" --name docker_rabbitmq_1 -d -v /etc/rabbitmq/rabbitmq.config:/etc/rabbitmq/rabbitmq.config -v /etc/rabbitmq/.erlang.cookie:/var/lib/rabbitmq/.erlang.cookie rabbitmq:management
+echo "Started Rabbitmq" 
+docker run --privileged=true --net="host" --name docker_on-http_1 -d -v /etc/monorail:/opt/monorail oe-onhttp:latest
+echo "started on-http"
+docker run --privileged=true --net="host" --name docker_on-taskgraph_1 -d -v /etc/monorail:/opt/monorail -v /etc/ansible_scripts:/root/ansible-work oe-ontaskgraph:latest 
+echo "OE deployment Done"
+echo "Load the WF"
+cd /etc/ansible_scripts
+curl -X PUT -d @ansibleViPRBlockStorageTypeForExportTask -H "Content-Type: application/json" localhost:9090/api/1.1/workflows/tasks
+curl -X PUT -d @ansibleLocalTask -H "Content-Type: application/json" localhost:9090/api/1.1/workflows/tasks
+curl -X PUT -d @ansibleViPRHostForExportGetTask -H "Content-Type: application/json" localhost:9090/api/1.1/workflows/tasks
+curl -X PUT -d @ansibleViPRHostsGetTask -H "Content-Type: application/json" localhost:9090/api/1.1/workflows/tasks
+curl -X PUT -d @ansibleViPRSioMdmPriCollectTask -H "Content-Type: application/json" localhost:9090/api/1.1/workflows/tasks
+curl -X PUT -d @ansibleViPRSioMdmPriLocateTask -H "Content-Type: application/json" localhost:9090/api/1.1/workflows/tasks
+curl -X PUT -d @ansibleViPRSioMdmPriLocateTask -H "Content-Type: application/json" localhost:9090/api/1.1/workflows/tasks
+curl -X PUT -d @ansibleViPRVolumesForExportGetTask -H "Content-Type: application/json" localhost:9090/api/1.1/workflows/tasks
+curl -X PUT -d @installCentOS7CustomTask -H "Content-Type: application/json" localhost:9090/api/1.1/workflows/tasks
+curl -X PUT -d @ansibleAllTask -H "Content-Type: application/json" localhost:9090/api/1.1/workflows/tasks
+curl -X PUT -d @ansibleRackHdInterfacesTask -H "Content-Type: application/json" localhost:9090/api/1.1/workflows/tasks
+curl -X PUT -d @ansibleViPRVpoolsGetTask -H "Content-Type: application/json" localhost:9090/api/1.1/workflows/tasks
+curl -X PUT -d @ansibleTask -H "Content-Type: application/json" localhost:9090/api/1.1/workflows/tasks
+curl -X PUT -d @ansibleViPRProjectsGetTask -H "Content-Type: application/json" localhost:9090/api/1.1/workflows/tasks
+curl -X PUT -d @ansibleViPRTask -H "Content-Type: application/json" localhost:9090/api/1.1/workflows/tasks
+curl -X PUT -d @ansibleViPRVarraysGetTask -H "Content-Type: application/json" localhost:9090/api/1.1/workflows/tasks
+curl -X PUT -d @ansibleViPRVpoolsGetTask -H "Content-Type: application/json" localhost:9090/api/1.1/workflows/tasks
+curl -X PUT -d @ansibleViPRProjectsGetTask -H "Content-Type: application/json" localhost:9090/api/1.1/workflows/tasks
+curl -X PUT -d @ansibleTask -H "Content-Type: application/json" localhost:9090/api/1.1/workflows/tasks
+curl -X PUT -d @ansibleRackHdInterfacesWF -H "Content-Type: application/json" localhost:9090/api/1.1/workflows
+curl -X PUT -d @ansibleViPRWF -H "Content-Type: application/json" localhost:9090/api/1.1/workflows
+curl -X PUT -d @ansibleWF -H "Content-Type: application/json" localhost:9090/api/1.1/workflows
+curl -X PUT -d @ansibleViPRVarraysGetWF -H "Content-Type: application/json" localhost:9090/api/1.1/workflows
+curl -X PUT -d @ansibleAllWF -H "Content-Type: application/json" localhost:9090/api/1.1/workflows
+curl -X PUT -d @ansibleLocalWF -H "Content-Type: application/json" localhost:9090/api/1.1/workflows
+curl -X PUT -d @ansibleSIOInstallWF -H "Content-Type: application/json" localhost:9090/api/1.1/workflows
+curl -X PUT -d @ansibleSIOInstallWFNotify -H "Content-Type: application/json" localhost:9090/api/1.1/workflows
+curl -X PUT -d @ansibleSIOUnInstallWF -H "Content-Type: application/json" localhost:9090/api/1.1/workflows
+curl -X PUT -d @ansibleViPRBlockStorageTypeForExportWF -H "Content-Type: application/json" localhost:9090/api/1.1/workflows
+curl -X PUT -d @ansibleViPRHostForExportGetWF -H "Content-Type: application/json" localhost:9090/api/1.1/workflows
+curl -X PUT -d @ansibleViPRHostsGetWF -H "Content-Type: application/json" localhost:9090/api/1.1/workflows
+curl -X PUT -d @ansibleViPRProjectGetWF -H "Content-Type: application/json" localhost:9090/api/1.1/workflows
+curl -X PUT -d @ansibleViPRSioMdmPriGetWF -H "Content-Type: application/json" localhost:9090/api/1.1/workflows
+curl -X PUT -d @ansibleViPRVolumesForExportGetWF -H "Content-Type: application/json" localhost:9090/api/1.1/workflows
+curl -X PUT -d @ansibleViPRVpoolsGetWF -H "Content-Type: application/json" localhost:9090/api/1.1/workflows
+curl -X PUT -d @installCentOS7WF -H "Content-Type: application/json" localhost:9090/api/1.1/workflows
+echo "OE loaded all WF"

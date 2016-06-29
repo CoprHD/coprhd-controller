@@ -1,0 +1,6 @@
+---
+- hosts: localhost 
+  tasks:
+
+  - raw: /usr/bin/mail -s "Workflow done" "{{ email_address }}" < /dev/null 
+

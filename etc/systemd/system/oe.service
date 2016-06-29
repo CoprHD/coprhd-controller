@@ -1,0 +1,14 @@
+[Unit]
+Description=OE service
+
+Wants=network.service storageos-installer.service ipchecktool.service 
+After=network.service storageos-installer.service ipchecktool.service ntpd.service
+ConditionPathExists=/var/lib/docker
+
+[Service]
+Type=forking
+ExecStart=/etc/oe/oesetup
+TimeoutSec=0
+
+[Install]
+WantedBy=multi-user.target

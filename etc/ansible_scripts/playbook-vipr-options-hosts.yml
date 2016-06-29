@@ -1,0 +1,18 @@
+---
+- hosts: localhost 
+  tasks:
+
+  - name: Getting AssetOptions for Hosts
+    include: playbook-vipr-login.yml
+
+  - set_fact: path="/compute/hosts/bulk.json" #API path to get IDs
+  - include: playbook-rest-request.yml 
+
+  - set_fact: path="/compute/hosts/bulk.json" # API path to get objects
+  - set_fact: body="{{ restResult.json }}"  #POST IDs from previous request"
+  - include: playbook-rest-request.yml
+
+  - include: playbook-vipr-logout.yml
+
+  - set_fact: optionsData="{{restResult.json.host}}"
+  - include: playbook-vipr-options-write.yml 

@@ -1,0 +1,8 @@
+
+  - name: If no proxy token, login using credentials stored with Ansible
+    include: playbook-vipr-login-direct.yml
+    when: ProxyToken is undefined
+
+  - name: Using proxy token for login 
+    set_fact: loginToken={{ ProxyToken }}
+    when: ProxyToken is defined

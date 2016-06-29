@@ -1,0 +1,38 @@
+---
+- hosts: rackhd
+  tasks:
+
+  - name: Getting AssetOptions for ScaleIO MDMs 
+    command: scli --mdm_ip={{ hostvars[inventory_hostname]['ansible_' + item]['ipv4']['address'] }} --query_cluster 
+    with_items:
+      - "{{ansible_interfaces}}"
+    when: hostvars[inventory_hostname]['ansible_' + item]['ipv4']['address'] is defined 
+    register: response
+
+  - name: Get Node ID for this node from vars pased in by dynamic inventory script
+    set_fact: nodeId={{ hostvars[inventory_hostname][inventory_hostname]['vars']['lookup'][0]['node'] }}
+
+  - name: Log node ID
+    debug: var=nodeId
+
+  - name: Touch result file {{resultFile}}
+    file: path={{resultFile}} state=touch mode="u=rw,g=r,o=r"
+
+  - name: Truncate result file {{resultFile}}
+    command: /usr/bin/truncate -s 0 {{ resultFile }}
+
+  - name: Parse results and write out file {{resultFile}} 
+    lineinfile: dest={{resultFile}} line=" {\"name\":\"{{item.1.split(':')[1]}}\",\"id\":\"{{nodeId}}\"},"
+    with_subelements:
+      - "{{response.results}}"
+      - stdout_lines
+    when: item.0.stdout is defined and
+          item.1 | search("Primary MDM IP\:\ \d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}") #"
+
+    # replace last instance of line ending with comma with line, minus the comma
+  - name: Remove last comma
+    lineinfile: dest={{ resultFile }} regexp="^(.*),$" line="\1" backrefs=yes
+
+  - name: Fetch files back to control machine
+    fetch: src={{ resultFile }} dest=/tmp/fetched
+

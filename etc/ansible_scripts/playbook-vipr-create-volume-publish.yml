@@ -1,0 +1,6 @@
+  - name: Log contents to publish to Ansible result file
+    debug: msg='Writing ansible result to {{ ansibleResultFile }} with contents {{ restResult.content }}' #'
+
+  - name: Publish REST results of volume creation out to Ansible file if available
+    lineinfile: dest='{{ ansibleResultFile }}' line=' {{ restResult.content }}' create='yes'
+    when: restResult.content is defined

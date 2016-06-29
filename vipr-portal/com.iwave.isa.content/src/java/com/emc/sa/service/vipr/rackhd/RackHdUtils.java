@@ -50,7 +50,7 @@ public class RackHdUtils {
 	public static final String PASSWORD = "ChangeMe1!";
 	public static final String RACKHDSCHEME = "http"; // include, else URI.resolve(..) fails
 	public static final String RACKHDSERVER = "localhost";
-	public static final String RACKHDSERVERPORT = "8080";
+	public static final String RACKHDSERVERPORT = "9090";
 
 	public static final String RACKHD_API_NODE = "/api/1.1/nodes";
 

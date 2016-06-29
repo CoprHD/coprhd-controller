@@ -47,6 +47,7 @@ fi
 /usr/bin/systemctl enable connectemc
 /usr/bin/systemctl enable storageos-installer
 /usr/bin/systemctl enable ipchecktool
+/usr/bin/systemctl enable oe
 /etc/storageos/storageos enable
 
 [ -e /usr/sbin/keepalived ] || ln -s /usr/local/keepalived/sbin/keepalived /usr/sbin/keepalived
@@ -94,6 +95,8 @@ fi
 /usr/bin/systemctl stop SuSEfirewall2_init
 /usr/bin/systemctl stop ipchecktool
 /usr/bin/systemctl disable ipchecktool
+/usr/bin/systemctl stop oe
+/usr/bin/systemctl disable oe
 
 %clean
 
@@ -209,5 +212,75 @@ fi
 %config /etc/monorail/hosts-template
 %config /etc/rabbitmq/rabbitmq-template.config
 %config /etc/rabbitmq/rabbitmq.config
-
+ %config /etc/oe/mongo.tar
+ %config /etc/oe/rabbitmq.tar
+ %config /etc/oe/on-http.tar
+ %config /etc/oe/on-taskgraph.tar
+ %config /etc/oe/oesetup
+ %config /etc/ansible_scripts/playbook-vipr-options-sio-mdm-pri-collect.yml
+ %config /etc/ansible_scripts/ansibleAllWF
+ %config /etc/ansible_scripts/ansibleLocalTask
+ %config /etc/ansible_scripts/ansibleLocalWF
+ %config /etc/ansible_scripts/ansibleRackHdInterfacesTask 
+ %config /etc/ansible_scripts/ansibleRackHdInterfacesWF
+ %config /etc/ansible_scripts/ansibleSIOInstallWF
+ %config /etc/ansible_scripts/ansibleSIOInstallWFNotify
+ %config /etc/ansible_scripts/ansibleSIOUnInstallWF
+ %config /etc/ansible_scripts/ansibleTask
+ %config /etc/ansible_scripts/ansibleViPRBlockStorageTypeForExportTask 
+ %config /etc/ansible_scripts/ansibleViPRBlockStorageTypeForExportWF
+ %config /etc/ansible_scripts/ansibleViPRHostForExportGetTask
+ %config /etc/ansible_scripts/ansibleViPRHostForExportGetWF
+ %config /etc/ansible_scripts/ansibleViPRHostsGetTask
+ %config /etc/ansible_scripts/ansibleViPRHostsGetWF
+ %config /etc/ansible_scripts/ansibleViPRProjectForExportGetWF 
+ %config /etc/ansible_scripts/ansibleViPRProjectGetWF
+ %config /etc/ansible_scripts/ansibleViPRProjectsGetTask
+ %config /etc/ansible_scripts/ansibleViPRSioMdmPriCollectTask
+ %config /etc/ansible_scripts/ansibleViPRSioMdmPriGetWF
+ %config /etc/ansible_scripts/ansibleViPRSioMdmPriLocateTask 
+ %config /etc/ansible_scripts/ansibleViPRTask
+ %config /etc/ansible_scripts/ansibleViPRVarraysGetTask 
+ %config /etc/ansible_scripts/ansibleViPRVarraysGetWF
+ %config /etc/ansible_scripts/ansibleViPRVolumesForExportGetTask
+ %config /etc/ansible_scripts/ansibleViPRVolumesForExportGetWF
+ %config /etc/ansible_scripts/ansibleViPRVpoolsGetTask
+ %config /etc/ansible_scripts/ansibleAllTask 
+ %config /etc/ansible_scripts/playbook-vipr-logout.yml 
+ %config /etc/ansible_scripts/playbook-vipr-options-BlockStorageTypeForExport.yml
+ %config /etc/ansible_scripts/playbook-vipr-options-HostForExport.yml 
+ %config /etc/ansible_scripts/playbook-vipr-options-hosts.yml
+ %config /etc/ansible_scripts/playbook-vipr-options-projects.yml
+ %config /etc/ansible_scripts/playbook-vipr-login.yml
+ %config /etc/ansible_scripts/playbook-vipr-login-direct.yml
+ %config /etc/ansible_scripts/playbook-vipr-failover-volume.yml
+ %config /etc/ansible_scripts/playbook-vipr-failover-volume-publish.yml
+ %config /etc/ansible_scripts/playbook-vipr-failover-volume-failover.yml
+ %config /etc/ansible_scripts/playbook-vipr-export-volume.yml
+ %config /etc/ansible_scripts/playbook-vipr-discover-scaleio.yml
+ %config /etc/ansible_scripts/playbook-vipr-creds.yml
+ %config /etc/ansible_scripts/playbook-vipr-create-volume.yml
+ %config /etc/ansible_scripts/playbook-vipr-create-volume-publish.yml
+ %config /etc/ansible_scripts/playbook-vipr-create-volume-create.yml
+ %config /etc/ansible_scripts/playbook-sio-mdm-uninstall.yml
+ %config /etc/ansible_scripts/playbook-sio-mdm-sec-install.yml
+ %config /etc/ansible_scripts/playbook-sio-mdm-pri-install.yml
+ %config /etc/ansible_scripts/playbook-sio-logout.yml
+ %config /etc/ansible_scripts/playbook-sio-login.yml 
+ %config /etc/ansible_scripts/playbook-rest-request.yml
+ %config /etc/ansible_scripts/playbook-mail.yml
+ %config /etc/ansible_scripts/playbook-get-interfaces.yml
+ %config /etc/ansible_scripts/installCentOS7WF
+ %config /etc/ansible_scripts/installCentOS7CustomTask
+ %config /etc/ansible_scripts/ansibleWF
+ %config /etc/ansible_scripts/ansibleViPRWFemail
+ %config /etc/ansible_scripts/ansibleViPRWF
+ %config /etc/ansible_scripts/ansibleViPRVpoolsGetWF
+ %config /etc/ansible_scripts/setIPMICreds
+ %config /etc/ansible_scripts/playbook-vipr-waitfortasks.yml
+ %config /etc/ansible_scripts/playbook-vipr-options-write.yml
+ %config /etc/ansible_scripts/playbook-vipr-options-vpools.yml
+ %config /etc/ansible_scripts/playbook-vipr-options-VolumesForExport.yml
+ %config /etc/ansible_scripts/playbook-vipr-options-varrays.yml
+ %config /etc/ansible_scripts/playbook-vipr-options-sio-mdm-pri-locate.yml
 

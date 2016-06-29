@@ -1,0 +1,10 @@
+{
+ "friendlyName": "Local Ansible Workflow",
+ "injectableName": "Ansible.Workflow.Local", 
+ "tasks": [
+  {
+   "label": "Local Ansible Task",
+   "taskName": "Task.Ansible.Local"
+  }
+ ]
+}

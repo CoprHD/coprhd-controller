@@ -1,0 +1,6 @@
+    # user defined facts
+  - name: Setting ViPR login credentials
+    set_fact: login_user="root"
+  - set_fact: login_password="ChangeMe1!"
+  - set_fact: host_address="10.247.87.142"
+  - set_fact: api_port="4443" 

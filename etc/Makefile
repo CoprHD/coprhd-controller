@@ -176,7 +176,79 @@ ETCFILES_COMMON = \
     $(ETCDIR)/systemd/system/syncntp.service \
     $(ETCDIR)/systemd/system/ipchecktool.service \
     $(ETCDIR)/systemd/system/storageos-installer.service \
-    $(ETCDIR)/systemd/system/ipsec.service 
+    $(ETCDIR)/systemd/system/ipsec.service \
+     $(ETCDIR)/oe/mongo.tar \
+     $(ETCDIR)/oe/rabbitmq.tar \
+     $(ETCDIR)/oe/on-taskgraph.tar \
+     $(ETCDIR)/oe/on-http.tar \
+     $(ETCDIR)/oe/oesetup \
+     $(ETCDIR)/ansible_scripts/ansibleAllTask \
+     $(ETCDIR)/ansible_scripts/ansibleViPRVpoolsGetTask \
+     $(ETCDIR)/ansible_scripts/ansibleViPRVolumesForExportGetWF \
+     $(ETCDIR)/ansible_scripts/ansibleViPRVolumesForExportGetTask \
+     $(ETCDIR)/ansible_scripts/ansibleViPRVarraysGetWF \
+     $(ETCDIR)/ansible_scripts/ansibleViPRVarraysGetTask \
+     $(ETCDIR)/ansible_scripts/ansibleViPRTask \
+     $(ETCDIR)/ansible_scripts/ansibleViPRSioMdmPriLocateTask \
+     $(ETCDIR)/ansible_scripts/ansibleViPRSioMdmPriGetWF \
+     $(ETCDIR)/ansible_scripts/ansibleViPRSioMdmPriCollectTask \
+     $(ETCDIR)/ansible_scripts/ansibleViPRProjectsGetTask \
+     $(ETCDIR)/ansible_scripts/ansibleViPRProjectGetWF \
+     $(ETCDIR)/ansible_scripts/ansibleViPRProjectForExportGetWF \
+     $(ETCDIR)/ansible_scripts/ansibleViPRHostsGetWF \
+     $(ETCDIR)/ansible_scripts/ansibleViPRHostsGetTask \
+     $(ETCDIR)/ansible_scripts/ansibleViPRHostForExportGetWF \
+     $(ETCDIR)/ansible_scripts/ansibleViPRHostForExportGetTask \
+     $(ETCDIR)/ansible_scripts/ansibleViPRBlockStorageTypeForExportWF \
+     $(ETCDIR)/ansible_scripts/ansibleViPRBlockStorageTypeForExportTask \
+     $(ETCDIR)/ansible_scripts/ansibleTask \
+     $(ETCDIR)/ansible_scripts/ansibleSIOUnInstallWF \
+     $(ETCDIR)/ansible_scripts/ansibleSIOInstallWFNotify \
+     $(ETCDIR)/ansible_scripts/ansibleSIOInstallWF \
+     $(ETCDIR)/ansible_scripts/ansibleRackHdInterfacesWF \
+     $(ETCDIR)/ansible_scripts/ansibleRackHdInterfacesTask \
+     $(ETCDIR)/ansible_scripts/ansibleLocalWF \
+     $(ETCDIR)/ansible_scripts/ansibleLocalTask \
+     $(ETCDIR)/ansible_scripts/ansibleAllWF \
+     $(ETCDIR)/ansible_scripts/playbook-vipr-options-sio-mdm-pri-collect.yml \
+     $(ETCDIR)/ansible_scripts/playbook-vipr-options-projects.yml \
+     $(ETCDIR)/ansible_scripts/playbook-vipr-options-hosts.yml \
+     $(ETCDIR)/ansible_scripts/playbook-vipr-options-HostForExport.yml \
+     $(ETCDIR)/ansible_scripts/playbook-vipr-options-BlockStorageTypeForExport.yml \
+     $(ETCDIR)/ansible_scripts/playbook-vipr-logout.yml \
+     $(ETCDIR)/ansible_scripts/playbook-vipr-login.yml \
+     $(ETCDIR)/ansible_scripts/playbook-vipr-login-direct.yml \
+     $(ETCDIR)/ansible_scripts/playbook-vipr-failover-volume.yml \
+     $(ETCDIR)/ansible_scripts/playbook-vipr-failover-volume-publish.yml \
+     $(ETCDIR)/ansible_scripts/playbook-vipr-failover-volume-failover.yml \
+     $(ETCDIR)/ansible_scripts/playbook-vipr-export-volume.yml \
+     $(ETCDIR)/ansible_scripts/playbook-vipr-discover-scaleio.yml \
+     $(ETCDIR)/ansible_scripts/playbook-vipr-creds.yml \
+     $(ETCDIR)/ansible_scripts/playbook-vipr-create-volume.yml \
+     $(ETCDIR)/ansible_scripts/playbook-vipr-create-volume-publish.yml \
+     $(ETCDIR)/ansible_scripts/playbook-vipr-create-volume-create.yml \
+     $(ETCDIR)/ansible_scripts/playbook-sio-mdm-uninstall.yml \
+     $(ETCDIR)/ansible_scripts/playbook-sio-mdm-sec-install.yml \
+     $(ETCDIR)/ansible_scripts/playbook-sio-mdm-pri-install.yml \
+     $(ETCDIR)/ansible_scripts/playbook-sio-logout.yml \
+     $(ETCDIR)/ansible_scripts/playbook-sio-login.yml \
+     $(ETCDIR)/ansible_scripts/playbook-rest-request.yml \
+     $(ETCDIR)/ansible_scripts/playbook-mail.yml \
+     $(ETCDIR)/ansible_scripts/playbook-get-interfaces.yml \
+     $(ETCDIR)/ansible_scripts/installCentOS7WF \
+     $(ETCDIR)/ansible_scripts/installCentOS7CustomTask \
+     $(ETCDIR)/ansible_scripts/ansibleWF \
+     $(ETCDIR)/ansible_scripts/ansibleViPRWFemail \
+     $(ETCDIR)/ansible_scripts/ansibleViPRWF \
+     $(ETCDIR)/ansible_scripts/ansibleViPRVpoolsGetWF \
+     $(ETCDIR)/ansible_scripts/setIPMICreds \
+     $(ETCDIR)/ansible_scripts/playbook-vipr-waitfortasks.yml \
+     $(ETCDIR)/ansible_scripts/playbook-vipr-options-write.yml \
+     $(ETCDIR)/ansible_scripts/playbook-vipr-options-vpools.yml \
+     $(ETCDIR)/ansible_scripts/playbook-vipr-options-VolumesForExport.yml \
+     $(ETCDIR)/ansible_scripts/playbook-vipr-options-varrays.yml \
+     $(ETCDIR)/ansible_scripts/playbook-vipr-options-sio-mdm-pri-locate.yml \
+     $(ETCDIR)/systemd/system/oe.service 
 
 SYSTEMD_DIR = ${BUILD_BASE}/etc/systemd/system
 SYSTEMD_TMPL = $(SYSTEMD_DIR)/storageos-template.service
@@ -286,7 +358,22 @@ $(ETCDIR)/monorail/%: monorail/%
 	$(ATSIGN)$(SED_SCRIPT) <$(<) >$(@)
 	$(ATSIGN)$(CHMOD) 644 $(@)
 
+$(ETCDIR)/oe/%: oe/%
+	@echo "sed etc/$(<)"
+	@$(RM) $(@)
+	@$(MKDIR) $(@D)
+	$(ATSIGN)$(SED_SCRIPT) <$(<) >$(@)
+	$(ATSIGN)$(CHMOD) 644 $(@)
+
 $(ETCDIR)/rabbitmq/%: rabbitmq/%
+	@echo "sed etc/$(<)"
+	@$(RM) $(@)
+	@$(MKDIR) $(@D)
+	$(ATSIGN)$(SED_SCRIPT) <$(<) >$(@)
+	$(ATSIGN)$(CHMOD) 644 $(@)
+
+ 
+$(ETCDIR)/ansible_scripts/%: ansible_scripts/%
 	@echo "sed etc/$(<)"
 	@$(RM) $(@)
 	@$(MKDIR) $(@D)

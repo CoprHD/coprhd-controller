@@ -35,4 +35,8 @@ public interface SmisExceptions {
 
     @DeclareServiceCode(ServiceCode.SMIS_COMMAND_ERROR)
     SmisException unableToFindStoragePoolSetting();
+    
+    @DeclareServiceCode(ServiceCode.SMIS_COMMAND_ERROR)
+    public void hluRetrivalfailed(final String message, final Throwable cause);
+
 }

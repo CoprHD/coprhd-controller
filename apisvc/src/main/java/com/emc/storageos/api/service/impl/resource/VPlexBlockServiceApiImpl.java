@@ -28,7 +28,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
-import org.eclipse.jetty.util.log.Log;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -127,14 +126,11 @@ import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.volumecontroller.impl.xtremio.prov.utils.XtremIOProvUtils;
 import com.emc.storageos.vplexcontroller.VPlexController;
-import com.emc.vipr.client.core.util.VirtualPoolUtils;
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
-
-import javassist.bytecode.Descriptor;
 
 /**
  * Implementation of the {@link BlockServiceApi} when the VirtualPool specifies that created
@@ -504,6 +500,15 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     VolumeDescriptor.Type.VPLEX_VIRT_VOLUME, vplexStorageSystemURI, volumeId,
                     null, consistencyGroup == null ? null : consistencyGroup.getId(),
                     vPoolCapabilities, volume.getCapacity());
+            
+            // Set the compute resource in the descriptor if the volume to be created will be exported
+            // to a host/cluster after it has been created.
+            URI computeResourceURI = param.getComputeResource();
+            if (computeResourceURI != null) {
+                s_logger.info(String.format("Volume %s - will be exported to Host/Cluster: %s", volume.getLabel(),
+                        computeResourceURI.toString()));
+                descriptor.setComputeResource(computeResourceURI);
+            }
             descriptors.add(descriptor);
         }
 

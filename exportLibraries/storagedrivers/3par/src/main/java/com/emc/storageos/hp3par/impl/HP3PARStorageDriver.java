@@ -935,9 +935,8 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 
     @Override
     public DriverTask detachVolumeClone(List<VolumeClone> clones) {
-    	// There is no REST API avaialble for detach clone in HP3PAR
-    	// This is getting called while delete / restore clone
-    	// hence setting this as working by default
+    	// There is no REST API available for detach clone in HP3PAR
+    	// This is getting called while delete clone, hence setting this as working by default
     	_log.info("3PARDriver: detachVolumeClone Running ");
     	DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_RESTORE_CLONE_VOLUMES);
     	task.setStatus(DriverTask.TaskStatus.READY);
@@ -945,8 +944,8 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
     }
 
     /**
-     * restore clone is equivalent to promote physical copy
-     * Here we will be using intermediate snapshot for restore which got generated during clone creation
+     * restore clone or restore physical copy
+     * Intermediate snapshot will be used for restore, this got generated during clone creation
      * NOTE: intermediate snapshot cannot be exported hence offline restore will be used
      */
     @Override
@@ -969,8 +968,8 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
                 clone.setReplicationState(VolumeClone.ReplicationState.RESTORED);
                 
                 task.setStatus(DriverTask.TaskStatus.READY);
-                _log.info("3PARDriver: restoreFromClone for storage system  id {}, volume clone display name {} - end",
-                		clone.getStorageSystemId(), clone.getDisplayName());            
+                _log.info("3PARDriver: restoreFromClone successful for storage system  id {}, volume clone native id {} - end",
+                		clone.getStorageSystemId(), clone.getNativeId());            
             } catch (Exception e) {
                 String msg = String.format(
                         "3PARDriver:restoreFromClone Unable to restore volume display name %s with native id %s for storage system id %s; Error: %s.\n",

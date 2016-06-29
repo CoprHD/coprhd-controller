@@ -67,7 +67,7 @@ public class FindHostScsiDiskForLun extends ExecutionTask<HostScsiDisk> {
 
     private HostScsiDisk getLunDisk() {
         for (HostScsiDisk entry : storageAPI.listScsiDisks()) {
-            if (VolumeWWNUtils.wwnMatches(VMwareUtils.getDiskWwn(entry), volume)) {
+            if (VolumeWWNUtils.wwnMatches(VMwareUtils.getDiskWwn(entry), volume.getWwn())) {
                 return entry;
             }
         }

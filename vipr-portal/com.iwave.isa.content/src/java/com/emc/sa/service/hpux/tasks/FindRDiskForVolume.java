@@ -26,7 +26,7 @@ public class FindRDiskForVolume extends RetryableCommandTask<RDisk, CommandExcep
     protected RDisk tryExecute() {
         List<RDisk> devices = executeCommand(new ListRDisksCommand());
         for (RDisk device : devices) {
-            if (VolumeWWNUtils.wwnMatches(device.getWwn(), volume)) {
+            if (VolumeWWNUtils.wwnMatches(device.getWwn(), volume.getWwn())) {
                 return device;
             }
         }

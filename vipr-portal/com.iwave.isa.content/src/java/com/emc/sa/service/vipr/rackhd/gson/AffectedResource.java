@@ -16,4 +16,7 @@ public class AffectedResource {
     public void setName(String name) {
         this.name = name;
     }
+    public boolean isValid() {
+        return (id != null) && (name != null);
+    }
 }

@@ -38,4 +38,11 @@ public class ViprTask {
     public void setState(String state) {
         this.state = state;
     }
+    public boolean isValid() {
+        return (name != null) &&
+                (id != null) &&
+                (resource != null) &&
+                (state != null) &&
+                (op_id != null);
+    }
 }

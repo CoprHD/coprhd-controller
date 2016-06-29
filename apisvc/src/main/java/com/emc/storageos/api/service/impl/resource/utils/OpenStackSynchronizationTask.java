@@ -140,17 +140,24 @@ public class OpenStackSynchronizationTask extends ResourceService {
     public String getSynchronizationOptionsInterval(AuthnProvider keystoneProvider) {
 
         if (keystoneProvider != null && keystoneProvider.getTenantsSynchronizationOptions() != null) {
-            for (String option : keystoneProvider.getTenantsSynchronizationOptions()) {
-                // There is only ADDITION, DELETION and interval in this StringSet.
-                if (!AuthnProvider.TenantsSynchronizationOptions.ADDITION.toString().equals(option)
-                        && !AuthnProvider.TenantsSynchronizationOptions.DELETION.toString().equals(option)) {
-                    return option;
-                }
-            }
+            return getIntervalFromStringSet(keystoneProvider.getTenantsSynchronizationOptions());
         }
 
         // Return default interval when getTenantsSynchronizationOptions() does not contain interval.
-        return Integer.toString(DEFAULT_INTERVAL_DELAY);
+        return null;
+    }
+
+    public String getIntervalFromStringSet(StringSet tenantsSynchronizationOptions) {
+
+        for (String option : tenantsSynchronizationOptions) {
+            // There is only ADDITION, DELETION and interval in this StringSet.
+            if (!AuthnProvider.TenantsSynchronizationOptions.ADDITION.toString().equals(option)
+                    && !AuthnProvider.TenantsSynchronizationOptions.DELETION.toString().equals(option)) {
+                return option;
+            }
+        }
+
+        return null;
     }
 
     /**

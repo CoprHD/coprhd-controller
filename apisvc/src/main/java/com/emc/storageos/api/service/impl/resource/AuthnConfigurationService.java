@@ -127,7 +127,7 @@ public class AuthnConfigurationService extends TaggedResource {
 
     /**
      * Get detailed information for the authentication provider with the given URN
-     * 
+     *
      * @param id authentication provider URN
      * @brief Show authentication provider
      * @return Provider details
@@ -149,7 +149,7 @@ public class AuthnConfigurationService extends TaggedResource {
 
     /**
      * List authentication providers in the zone.
-     * 
+     *
      * @brief List authentication providers
      * @return List of authentication providers
      */
@@ -198,7 +198,7 @@ public class AuthnConfigurationService extends TaggedResource {
      * The minimal set of parameters include: mode, server_urls, manager_dn, manager_password, domains, search_base, search_filter and
      * group_attribute
      * <p>
-     * 
+     *
      * @param param AuthnCreateParam The provider representation with all necessary elements.
      * @brief Create an authentication provider
      * @return Newly created provider details as AuthnProviderRestRep
@@ -327,7 +327,7 @@ public class AuthnConfigurationService extends TaggedResource {
 
     /**
      * Update the parameters of the target authentication provider. The ID is the URN of the authentication provider.
-     * 
+     *
      * @param param required The representation of the provider parameters to be modified.
      * @param id the URN of a ViPR authentication provider
      * @param allow Set this field to true to allow modification of the group-attribute field
@@ -452,9 +452,10 @@ public class AuthnConfigurationService extends TaggedResource {
             AuthnProvider provider, AuthnProviderParamsToValidate validateP) {
         String oldPassword = provider.getManagerPassword();
         boolean isAutoRegistered = provider.getAutoRegCoprHDNImportOSProjects();
-        int synchronizationInterval = _openStackSynchronizationTask.getTaskInterval();
-        //if the configured domain has tenant then we can't update
-        //that domain.
+        int synchronizationInterval = Integer
+                .parseInt(_openStackSynchronizationTask.getIntervalFromStringSet(provider.getTenantsSynchronizationOptions()));
+        // if the configured domain has tenant then we can't update
+        // that domain.
 
         if (!isTenantsSynchronizationOptionsChanged(provider, param)) {
             checkForActiveTenantsUsingDomains(provider.getDomains());
@@ -464,28 +465,38 @@ public class AuthnConfigurationService extends TaggedResource {
         // Set old password if new one is a blank or null.
         provider.setManagerPassword(getPassword(provider, oldPassword));
 
+        int newSynchronizationInterval = Integer
+                .parseInt(_openStackSynchronizationTask.getIntervalFromStringSet(provider.getTenantsSynchronizationOptions()));
+
+        // Whenever new interval value is below minimum, then set default interval time for keystone auth provider.
+        if (newSynchronizationInterval < OpenStackSynchronizationTask.MIN_INTERVAL_DELAY) {
+            provider.getTenantsSynchronizationOptions().remove(Integer.toString(newSynchronizationInterval));
+            provider.getTenantsSynchronizationOptions().add(Integer.toString(OpenStackSynchronizationTask.DEFAULT_INTERVAL_DELAY));
+        }
+
         if (!provider.getDisable()) {
             _log.debug("Validating provider before modification...");
             validateP.setUrls(new ArrayList<String>(provider.getServerUrls()));
             StringBuilder errorString = new StringBuilder();
             if (!Validator.isUsableAuthenticationProvider(validateP, errorString)) {
-                throw BadRequestException.badRequests.
-                        authnProviderCouldNotBeValidated(errorString.toString());
+                throw BadRequestException.badRequests.authnProviderCouldNotBeValidated(errorString.toString());
             }
         }
-        provider.setKeys(_keystoneUtils.populateKeystoneToken(provider.getServerUrls(), provider.getManagerDN(), getPassword(provider, oldPassword)));
+        provider.setKeys(_keystoneUtils.populateKeystoneToken(provider.getServerUrls(), provider.getManagerDN(),
+                getPassword(provider, oldPassword)));
         _log.debug("Saving to the DB the updated provider: {}", provider.toString());
         persistProfileAndNotifyChange(provider, false);
 
-        int newSynchronizationInterval = _openStackSynchronizationTask.getTaskInterval();
+        int syncInterval = Integer
+                .parseInt(_openStackSynchronizationTask.getIntervalFromStringSet(provider.getTenantsSynchronizationOptions()));
 
         if (provider.getAutoRegCoprHDNImportOSProjects() && !isAutoRegistered) {
             _keystoneUtils.registerCoprhdInKeystone(provider.getManagerDN(), provider.getServerUrls(), provider.getManagerPassword());
             createTenantsAndProjectsForAutomaticKeystoneRegistration();
-            _openStackSynchronizationTask.startSynchronizationTask(newSynchronizationInterval);
+            _openStackSynchronizationTask.startSynchronizationTask(syncInterval);
         }
-         if (isAutoRegistered && synchronizationInterval != newSynchronizationInterval) {
-            _openStackSynchronizationTask.rescheduleTask(newSynchronizationInterval);
+        if (isAutoRegistered && synchronizationInterval != syncInterval) {
+            _openStackSynchronizationTask.rescheduleTask(syncInterval);
         }
         auditOp(OperationTypeEnum.UPDATE_AUTHPROVIDER, true, null,
                 provider.getId().toString(), provider.toString());
@@ -567,10 +578,10 @@ public class AuthnConfigurationService extends TaggedResource {
      * param's attribute is null or not, it will be used to overwrite existingi
      * AuthnConfiguration object's attribute or merge with existing AuthnConfiguration
      * object's attribute, because DbClient#persistObject supports partial writes.
-     * 
+     *
      * @param authn
      *            The existing AuthnConfiguration object
-     * 
+     *
      * @param param
      *            AuthnConfiguration update param to overlay existing AuthnConfiguration
      *            object
@@ -619,7 +630,7 @@ public class AuthnConfigurationService extends TaggedResource {
         if (param.getManagerDn() != null) {
             authn.setManagerDN(param.getManagerDn());
         }
-        
+
         authn.setManagerPassword(param.getManagerPassword());
 
         authn.setSearchBase(param.getSearchBase());
@@ -673,7 +684,7 @@ public class AuthnConfigurationService extends TaggedResource {
         authn.setDescription(param.getDescription());
 
         authn.setDisable(param.getDisable() != null ? param.getDisable() : authn.getDisable());
-        
+
         authn.setAutoRegCoprHDNImportOSProjects(param.getAutoRegCoprHDNImportOSProjects() != null ? param.getAutoRegCoprHDNImportOSProjects()
                 : authn.getAutoRegCoprHDNImportOSProjects());
 
@@ -716,9 +727,9 @@ public class AuthnConfigurationService extends TaggedResource {
 
     /**
      * check if given domains are in use or not,
-     * 
+     *
      * if any of them is in use, throw exception.
-     * 
+     *
      * @param domains
      */
     private void verifyDomainsIsNotInUse(StringSet domains) {
@@ -739,7 +750,7 @@ public class AuthnConfigurationService extends TaggedResource {
      * Queries all tenants in the system for which the passed in domain set
      * has a match in their user mapping. If so, will throw an exception.
      * Else will just return normally.
-     * 
+     *
      * @param domains the domains to check
      */
     private void checkForActiveTenantsUsingDomains(StringSet domains) {
@@ -775,7 +786,7 @@ public class AuthnConfigurationService extends TaggedResource {
      * check local vdc to see if any vdc role assignments belongs to the passed in domain set.
      * if so, throw an exception;
      * else, return silently.
-     * 
+     *
      * @param domains the domains to check
      */
     private void checkForVdcRolesUsingDomains(StringSet domains) {
@@ -795,7 +806,7 @@ public class AuthnConfigurationService extends TaggedResource {
      * check tenants to see if any tenant role assignments belongs to the passed in domain set.
      * if so, throw an exception;
      * else, return silently.
-     * 
+     *
      * @param domains the domains to check
      */
     private void checkForTenantRolesUsingDomains(StringSet domains) {
@@ -817,7 +828,7 @@ public class AuthnConfigurationService extends TaggedResource {
 
     /**
      * compare role assignments against domain(s), return matching users.
-     * 
+     *
      * @param roleAssignments
      * @param domains
      */
@@ -849,7 +860,7 @@ public class AuthnConfigurationService extends TaggedResource {
     /**
      * Delete the provider with the provided id.
      * Authentication services will no longer use this provider for authentication.
-     * 
+     *
      * @param id the URN of a ViPR provider authentication to be deleted
      * @brief Delete authentication provider
      * @return No data returned in response body
@@ -906,7 +917,7 @@ public class AuthnConfigurationService extends TaggedResource {
 
     /**
      * Checks if an authn provider exists for the given domain
-     * 
+     *
      * @param domain
      * @return true if a provider exists, false otherwise
      */
@@ -1154,7 +1165,7 @@ public class AuthnConfigurationService extends TaggedResource {
     /***
      * Make sure all the VDCs in the federation are in the minimum expected version
      * for using the ldap group support.
-     * 
+     *
      * @param createParam set of group object classes.
      */
     private void checkIfCreateLDAPGroupPropertiesSupported(AuthnCreateParam createParam) {
@@ -1179,7 +1190,7 @@ public class AuthnConfigurationService extends TaggedResource {
     /***
      * Make sure all the VDCs in the federation are in the minimum expected version
      * for using the ldap group support.
-     * 
+     *
      * @param updateParam set of group object classes.
      */
     private void checkIfUpdateLDAPGroupPropertiesSupported(AuthnUpdateParam updateParam) {

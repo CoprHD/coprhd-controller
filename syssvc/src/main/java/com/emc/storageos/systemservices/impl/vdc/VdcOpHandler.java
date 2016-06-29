@@ -304,9 +304,19 @@ public abstract class VdcOpHandler {
                 }
                 String localRevision = localRevisionProps.getProperty(Constants.KEY_DATA_REVISION);
                 log.info("Local data revision is {}, vdc config version is {}", localRevision, localVdcConfigVersion);
-
-                if (localVdcConfigVersion < targetVdcConfigVersion) {
-                    updateDataRevision(localRevisionProps);
+                
+                if (localVdcConfigVersion != targetVdcConfigVersion) {
+                    if (isIsolatedStandby()) {
+                        log.info("Skip data revision change on isolated standby");
+                        Site localSite = drUtil.getLocalSite();
+                        if (localSite.getState() == SiteState.STANDBY_RESUMING) {
+                            localSite.setState(SiteState.STANDBY_PAUSED);
+                            coordinator.getCoordinatorClient().persistServiceConfiguration(localSite.toConfiguration());
+                            log.info("Change local site state from RESUMING to PAUSED");
+                        }
+                    } else {
+                        updateDataRevision(localRevisionProps);
+                    }
                 }
             } catch (Exception e) {
                 log.error("Failed to update data revision. {}", e);
@@ -314,7 +324,16 @@ public abstract class VdcOpHandler {
             }
         }
         
-        
+        private boolean isIsolatedStandby() {
+            if (drUtil.isStandby()) {
+                Site localSite = drUtil.getLocalSite();
+                if (coordinator.isZKLeaderAlive(localSite)) {
+                    log.info("Current standby site has ZK leader node. It loses connectivity to active site");
+                    return true;
+                }
+            }
+            return false;
+        }
         
         /**
          * Check if data revision is same as local one. If not, switch to target revision and reboot the whole cluster
@@ -338,7 +357,7 @@ public abstract class VdcOpHandler {
                 log.info("Rollbacking to previous data revision {}. Skip previous data revision pointer", targetDataRevision);
                 newPropInfo.removeProperty(KEY_PREV_DATA_REVISION);
             } else {
-                // save previous data revision pointer to local
+                // as default - save previous data revision pointer to local, so that we may rollback later
                 String prevDataRevision = localRevisionProps.getProperty(KEY_DATA_REVISION);
                 if (StringUtils.isNotEmpty(prevDataRevision)) {
                     newPropInfo.addProperty(KEY_PREV_DATA_REVISION, prevDataRevision);
@@ -603,7 +622,7 @@ public abstract class VdcOpHandler {
             // wait for the coordinator to be blocked on the active site
             int retryCnt = 0;
             Site activeSite = drUtil.getActiveSite();
-            while (coordinator.isActiveSiteZKLeaderAlive(activeSite)) {
+            while (coordinator.isZKLeaderAlive(activeSite)) {
                 if (++retryCnt > MAX_PAUSE_RETRY) {
                     throw new IllegalStateException("timeout waiting for coordinatorsvc to be blocked on active site.");
                 }
@@ -868,7 +887,7 @@ public abstract class VdcOpHandler {
             long start = System.currentTimeMillis();
             while (System.currentTimeMillis() - start < MAX_WAIT_TIME_IN_MIN * 60 * 1000) {
                 try {
-                    if (coordinator.isActiveSiteZKLeaderAlive(oldActiveSite)) {
+                    if (coordinator.isZKLeaderAlive(oldActiveSite)) {
                         log.info("Old active site ZK leader is still alive, wait for another 10 seconds");
                         Thread.sleep(TIME_WAIT_FOR_OLD_ACTIVE_SWITCHOVER_MS);
                     } else {

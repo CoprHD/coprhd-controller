@@ -127,18 +127,7 @@ public class DrZkHealthMonitor extends DrHealthMonitor {
             // Do nothing for disrupted standby adding operation
             if (SiteState.STANDBY_SYNCING.equals(state) && !SiteState.STANDBY_ADDING.equals(localSite.getLastState())) {
                 try {
-                    LocalRepository localRepository = LocalRepository.getInstance();
-                    PropertyInfoExt localDataRevisionProps = localRepository.getDataRevisionPropertyInfo();
-                    String prevRevision = localDataRevisionProps.getProperty(Constants.KEY_PREV_DATA_REVISION);
-                    log.info("Previous data revision at local {}", prevRevision);
-                    if (StringUtils.isNotEmpty(prevRevision)) {
-                        long rollbackTargetRevision = Long.parseLong(prevRevision);
-                        drUtil.updateVdcTargetVersion(drUtil.getLocalSite().getUuid(), SiteInfo.DR_OP_CHANGE_DATA_REVISION,
-                                DrUtil.newVdcConfigVersion(), rollbackTargetRevision);
-                        log.info("Automatic rollback to {} has been triggered", rollbackTargetRevision);
-                    } else {
-                        log.error("No valid previous revision found. Skip rollback");
-                    }
+                    rollbackDataRevision();
                 } catch (Exception e) {
                     log.error("Failed to trigger rollback for local site", e);
                 }
@@ -146,6 +135,21 @@ public class DrZkHealthMonitor extends DrHealthMonitor {
         }
     }
 
+    private void rollbackDataRevision() throws Exception {
+        LocalRepository localRepository = LocalRepository.getInstance();
+        PropertyInfoExt localDataRevisionProps = localRepository.getDataRevisionPropertyInfo();
+        String prevRevision = localDataRevisionProps.getProperty(Constants.KEY_PREV_DATA_REVISION);
+        log.info("Previous data revision at local {}", prevRevision);
+        if (StringUtils.isNotEmpty(prevRevision)) {
+            long rollbackTargetRevision = Long.parseLong(prevRevision);
+            drUtil.updateVdcTargetVersion(drUtil.getLocalSite().getUuid(), SiteInfo.DR_OP_CHANGE_DATA_REVISION,
+                    DrUtil.newVdcConfigVersion(), rollbackTargetRevision);
+            log.info("Automatic rollback to {} has been triggered", rollbackTargetRevision);
+        } else {
+            log.error("No valid previous revision found. Skip rollback");
+        }
+    }
+    
     /**
      * make sure that all local site nodes are in correct zk mode
      */

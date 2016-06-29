@@ -1586,18 +1586,18 @@ public class CoordinatorClientExt {
             _log.info("Can't find active site id or local site is active, set active healthy as false");
         } else {
             Site activeSite = drUtil.getSiteFromLocalVdc(activeSiteId);
-            isActiveSiteLeaderAlive = isActiveSiteZKLeaderAlive(activeSite);
+            isActiveSiteLeaderAlive = isZKLeaderAlive(activeSite);
             isActiveSiteStable =  isActiveSiteStable(activeSite);
             _log.info("Active site ZK is alive: {}, active site stable is :{}", isActiveSiteLeaderAlive, isActiveSiteStable);
         }
         return isActiveSiteLeaderAlive && isActiveSiteStable;
     }
     
-    public boolean isActiveSiteZKLeaderAlive(Site activeSite) {
-        // Check alive coordinatorsvc on active site
-        Collection<String> nodeAddrList = activeSite.getHostIPv4AddressMap().values();
-        if (!activeSite.isUsingIpv4()) {
-            nodeAddrList = activeSite.getHostIPv6AddressMap().values();
+    public boolean isZKLeaderAlive(Site site) {
+        // Check alive coordinatorsvc on given site site
+        Collection<String> nodeAddrList = site.getHostIPv4AddressMap().values();
+        if (!site.isUsingIpv4()) {
+            nodeAddrList = site.getHostIPv6AddressMap().values();
         }
 
         if (nodeAddrList.size() > 1) {

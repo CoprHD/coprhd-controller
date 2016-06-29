@@ -111,12 +111,12 @@ _get_minor_version() {
 
 _get_base_minor_version() {
     local basedir=$(dirname $1)
-    if [ ! -L $1 ] ; then
-        _info "Versioning not supported for $1"
-        return
-    fi
 
     if [ "$2" == "" ] ; then
+	if [ ! -L $1 ] ; then
+            _info "Versioning not supported for $1"
+            return
+	fi
         local curmaj=$(_get_major_version $1)
     else
         local curmaj="$2"
@@ -184,7 +184,7 @@ _set_version() {
 
     # create new target revision dir if it does not exist
     local sn=0
-    local basesn=$(_get_base_minor_version $1) # get base
+    local basesn=$(_get_base_minor_version $1 $2) # get base
     [ "${basesn}" != "" ] && sn="${basesn}"
     local datadir="${basedir}/${2}.${sn}"
     if [ ! -d "${datadir}" ] ; then
@@ -247,7 +247,7 @@ _create_minor_version() {
 _revert_minor_version() {
     local basedir=$(dirname $1)
     local ver=$(_get_major_version $1)
-    local sn=$(_get_minor_minor $1)
+    local sn=$(_get_minor_version $1)
     local basesn=$(_get_base_minor_version $1)
     if [ "${sn}" == "${basesn}" ]; then
         return

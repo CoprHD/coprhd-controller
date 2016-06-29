@@ -786,7 +786,6 @@ CustomConfigs.hds_storage_port_number.description=The HDS storage port number
 CustomConfigs.host_IO_limit_bandwidth.description=The host IO limit bandwidth
 CustomConfigs.host_IO_limit_iops.description=The host IO limit IOPS
 CustomConfigs.volume_label.description=The user supplied volume name
-CustomConfigs.volume_native_id.description=The native identifier for the volume
 CustomConfigs.volume_wwn.description=The WWN for the volume
 CustomConfigs.tenant_name.description=The tenant name
 CustomConfigs.export_name.description=The name of the host or cluster

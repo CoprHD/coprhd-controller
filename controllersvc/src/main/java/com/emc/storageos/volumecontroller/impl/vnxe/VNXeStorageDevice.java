@@ -2625,7 +2625,7 @@ public class VNXeStorageDevice extends VNXeOperations
     }
 
 	@Override
-	public Map<URI, List<String>> doFindHostHLUs(StorageSystem storage, List<URI> hostURIs, TaskCompleter completer)
+	public Map<URI, List<String>> doFindHostHLUs(StorageSystem storage, List<URI> hostURIs)
 			throws DeviceControllerException {
 	    throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
 	}

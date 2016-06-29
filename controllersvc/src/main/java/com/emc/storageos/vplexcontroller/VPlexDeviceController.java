@@ -930,7 +930,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                             Project project = getDataObject(Project.class, vplexVolume.getProject().getURI(), _dbClient);
                             TenantOrg tenant = getDataObject(TenantOrg.class, vplexVolume.getTenant().getURI(), _dbClient);
                             DataSource customNameDataSource = CustomVolumeNamingUtils.getCustomConfigDataSource(
-                                    project, tenant, vplexVolume.getLabel(), vvInfo.getWwn(), null, hostOrClusterName, dataSourceFactory,
+                                    project, tenant, vplexVolume.getLabel(), vvInfo.getWwn(), hostOrClusterName, dataSourceFactory,
                                     customConfigName, _dbClient);
                             if (customNameDataSource != null) {
                                 String customVolumeName = CustomVolumeNamingUtils.getCustomName(customConfigHandler,
@@ -6442,7 +6442,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     Project project = getDataObject(Project.class, vplexVolume.getProject().getURI(), _dbClient);
                     TenantOrg tenant = getDataObject(TenantOrg.class, vplexVolume.getTenant().getURI(), _dbClient);
                     DataSource customNameDataSource = CustomVolumeNamingUtils.getCustomConfigDataSource(project, tenant,
-                            vplexVolume.getLabel(), vplexVolume.getWWN(), null, null, dataSourceFactory, customConfigName,
+                            vplexVolume.getLabel(), vplexVolume.getWWN(), null, dataSourceFactory, customConfigName,
                             _dbClient);
                     if (customNameDataSource != null) {
                         String customVolumeName = CustomVolumeNamingUtils.getCustomName(customConfigHandler,
@@ -9103,7 +9103,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     Project project = _dbClient.queryObject(Project.class, promoteVolume.getProject().getURI());
                     TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, promoteVolume.getTenant().getURI());
                     DataSource customNameDataSource = CustomVolumeNamingUtils.getCustomConfigDataSource(
-                            project, tenant, promotedLabel, vvInfo.getWwn(), null, null, dataSourceFactory, 
+                            project, tenant, promotedLabel, vvInfo.getWwn(), null, dataSourceFactory, 
                             customConfigName, _dbClient);
                     if (customNameDataSource != null) {
                         newVolumeName = CustomVolumeNamingUtils.getCustomName(customConfigHandler,

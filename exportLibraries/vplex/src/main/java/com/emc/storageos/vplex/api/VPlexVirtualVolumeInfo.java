@@ -454,9 +454,9 @@ public class VPlexVirtualVolumeInfo extends VPlexResourceInfo {
      */
     public boolean isThinEnabled() {
         // need to check both thin-capable=true && thin-enabled=true|enabled
-        return VPlexApiConstants.TRUE.equals(getThinCapable()) &&
-                (VPlexApiConstants.TRUE.equals(getThinEnabled()) 
-                        || VPlexApiConstants.ENABLED.equals(getThinEnabled()));
+        return VPlexApiConstants.TRUE.equalsIgnoreCase(getThinCapable()) &&
+                (VPlexApiConstants.TRUE.equalsIgnoreCase(getThinEnabled()) 
+                        || VPlexApiConstants.ENABLED.equalsIgnoreCase(getThinEnabled()));
     }
 
     /**

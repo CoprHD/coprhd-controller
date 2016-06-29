@@ -5638,14 +5638,20 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     virtualVolume.setThinlyProvisioned(updatedVirtualVolumeInfo.isThinEnabled());
                     if (VPlexApiConstants.TRUE.equalsIgnoreCase(updatedVirtualVolumeInfo.getThinCapable())
                             && !updatedVirtualVolumeInfo.isThinEnabled()) {
-                        VirtualPool newVirtualPool = getDataObject(VirtualPool.class, virtualVolume.getVirtualPool(), _dbClient);
-                        boolean doEnableThin = VirtualPool.ProvisioningType.Thin.toString().equalsIgnoreCase(
-                                newVirtualPool.getSupportedProvisioningType());
-                        if (doEnableThin) {
-                            _log.info("the new virtual pool is thin, so ViPR will attempt to thin-enabled to true on {}", 
-                                    updatedVirtualVolumeInfo.getName());
-                            boolean success = client.setVirtualVolumeThinEnabled(updatedVirtualVolumeInfo);
-                            virtualVolume.setThinlyProvisioned(success);
+                        URI targetVolumeUri = migration.getTarget();
+                        Volume targetVolume = getDataObject(Volume.class, targetVolumeUri, _dbClient);
+                        if (null != targetVolume) {
+                            _log.info("migration target volume is " + targetVolume.forDisplay());
+                            VirtualPool newVirtualPool = getDataObject(VirtualPool.class, targetVolume.getVirtualPool(), _dbClient);
+                            _log.info("migration target VirtualPool is " + newVirtualPool.forDisplay());
+                            boolean doEnableThin = VirtualPool.ProvisioningType.Thin.toString().equalsIgnoreCase(
+                                    newVirtualPool.getSupportedProvisioningType());
+                            if (doEnableThin) {
+                                _log.info("the new VirtualPool is thin, so ViPR will attempt to thin-enabled to true on {}", 
+                                        updatedVirtualVolumeInfo.getName());
+                                boolean success = client.setVirtualVolumeThinEnabled(updatedVirtualVolumeInfo);
+                                virtualVolume.setThinlyProvisioned(success);
+                            }
                         }
                     }
 

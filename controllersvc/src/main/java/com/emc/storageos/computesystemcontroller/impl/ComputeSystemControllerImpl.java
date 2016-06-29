@@ -862,10 +862,13 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                         if (datastore != null) {
                             for (HostScsiDisk entry : storageAPI.listScsiDisks()) {
                                 if (VolumeWWNUtils.wwnMatches(VMwareUtils.getDiskWwn(entry), blockObject.getWWN())) {
+                                    _log.info("Attach SCSI Lun " + entry.getCanonicalName() + " on host " + esxHost.getLabel());
                                     storageAPI.attachScsiLun(entry);
                                 }
                             }
+                            _log.info("Refreshing storage");
                             storageAPI.refreshStorage();
+                            _log.info("Mounting datastore " + datastore.getName() + " on host " + esxHost.getLabel());
                             storageAPI.mountDatastore(datastore);
                         }
                     } catch (VMWareException ex) {
@@ -903,12 +906,14 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                             if (storageIOControlEnabled) {
                                 setStorageIOControl(api, datastore, false);
                             }
+                            _log.info("Unmount datastore " + datastore.getName() + " from host " + esxHost.getLabel());
                             storageAPI.unmountVmfsDatastore(datastore);
                             if (storageIOControlEnabled) {
                                 setStorageIOControl(api, datastore, true);
                             }
                             for (HostScsiDisk entry : storageAPI.listScsiDisks()) {
                                 if (VolumeWWNUtils.wwnMatches(VMwareUtils.getDiskWwn(entry), blockObject.getWWN())) {
+                                    _log.info("Detach SCSI Lun " + entry.getCanonicalName() + " from host " + esxHost.getLabel());
                                     storageAPI.detachScsiLun(entry);
                                 }
                             }
@@ -931,6 +936,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
         Task task = null;
         try {
+            _log.info("Setting Storage I/O to " + enabled + " on datastore " + datastore.getName());
             task = manager.configureDatastoreIORM_Task(datastore, spec);
             boolean cancel = false;
             long maxTime = System.currentTimeMillis() + (60 * 1000);

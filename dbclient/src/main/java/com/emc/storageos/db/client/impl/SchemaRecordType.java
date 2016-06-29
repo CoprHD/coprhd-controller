@@ -5,18 +5,19 @@
 
 package com.emc.storageos.db.client.impl;
 
+import org.apache.cassandra.serializers.UTF8Serializer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.datastax.driver.core.Row;
+import com.emc.storageos.db.client.model.Cf;
+import com.emc.storageos.db.client.model.SchemaRecord;
 import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.model.ColumnList;
-import com.netflix.astyanax.model.Row;
 import com.netflix.astyanax.serializers.StringSerializer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.emc.storageos.db.client.model.Cf;
-import com.emc.storageos.db.client.model.SchemaRecord;
 
 /**
  * Encapsulate schema information
@@ -53,20 +54,14 @@ public class SchemaRecordType {
         batch.execute();
     }
 
-    public SchemaRecord deserialize(Row<String, String> row) {
+    public SchemaRecord deserialize(Row row) {
         if (row == null) {
             return null;
         }
-
-        ColumnList<String> columnList = row.getColumns();
-        if (columnList == null || columnList.isEmpty()) {
-            return null;
-        }
-
-        Column<String> column = columnList.getColumnByName(SCHEMA_COLUMN_NAME);
+        
         SchemaRecord record = new SchemaRecord();
-        record.setVersion(row.getKey());
-        record.setSchema(column.getStringValue());
+        record.setVersion(row.getString(0));
+        record.setSchema(UTF8Serializer.instance.deserialize(row.getBytes(2)));
 
         return record;
     }

@@ -51,6 +51,7 @@ deb http://us.archive.ubuntu.com/ubuntu/ trusty main restricted universe
 deb http://security.ubuntu.com/ubuntu trusty-security main
 deb http://ppa.launchpad.net/openjdk-r/ppa/ubuntu trusty main
 deb http://download.virtualbox.org/virtualbox/debian trusty contrib
+deb http://apt.dockerproject.org/repo ubuntu-trusty main
 EOF
 
   LANG=C
@@ -121,6 +122,7 @@ deb file:/tmp/archives /
 #deb http://security.ubuntu.com/ubuntu trusty-security main
 #deb http://ppa.launchpad.net/openjdk-r/ppa/ubuntu trusty main
 #deb http://download.virtualbox.org/virtualbox/debian trusty contrib
+#deb http://apt.dockerproject.org/repo ubuntu-trusty main
 EOF
 
   cat > ${DIR_MOUNT}/etc/apt/preferences <<EOF
@@ -136,6 +138,10 @@ Pin-Priority: 998
 Package: *
 Pin: origin "download.virtualbox.org"
 Pin-Priority: 997
+
+Package: *
+Pin: origin "apt.dockerproject.org"
+Pin-Priority: 996
 EOF
 
   chroot ${DIR_MOUNT} apt-get update

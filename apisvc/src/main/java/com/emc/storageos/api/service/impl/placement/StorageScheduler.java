@@ -612,9 +612,21 @@ public class StorageScheduler implements Scheduler {
     private List<Recommendation> performArrayAffinityPlacement(String varrayId, VirtualPoolCapabilityValuesWrapper capabilities,
             List<StoragePool> candidatePools, boolean inCG) {
         Map<URI, Double> arrayToHostWeightMap = new HashMap<URI, Double>();
-        Map<URI, Set<URI>> preferredPoolMap = getPreferredPoolMap(capabilities.getCompute(), arrayToHostWeightMap);
-        _log.info("ArrayAffinity - preferred arrays for {} - {}", capabilities.getCompute(), arrayToHostWeightMap);
-        boolean canUseNonPreferred = canUseNonPreferredSystem(capabilities.getArrayAffinity(), preferredPoolMap.keySet().size());
+        Map<URI, Set<URI>> preferredPoolMap = null;
+        boolean canUseNonPreferred = false;
+        if (capabilities.getArrayAffinity()) {
+            String computeIdStr = capabilities.getCompute();
+            preferredPoolMap = getPreferredPoolMap(computeIdStr, arrayToHostWeightMap);
+            _log.info("ArrayAffinity - preferred arrays for {} - {}", computeIdStr, arrayToHostWeightMap);
+
+            int limit = Integer.valueOf(_customConfigHandler.getComputedCustomConfigValue(
+                    CustomConfigConstants.HOST_RESOURCE_MAX_NUM_OF_ARRAYS, CustomConfigConstants.GLOBAL_KEY, null));
+            canUseNonPreferred = preferredPoolMap.keySet().size() < limit;
+        } else {
+            preferredPoolMap = new HashMap<URI, Set<URI>>();
+            canUseNonPreferred = true;
+        }
+
         _log.info("ArrayAffinity - allow non preferred arary {}", canUseNonPreferred);
 
         // group pools by array
@@ -889,25 +901,6 @@ public class StorageScheduler implements Scheduler {
         }
 
         return poolMap;
-    }
-
-    /*
-     * Check if non preferred system can be used in placement
-     *
-     * @param numOfPreferredSystems count of preferred systems for a host/cluster
-     * @param isArrayAffinity if array affinity policy is selected
-     * @return true if allowed, false otherwise
-     */
-    private boolean canUseNonPreferredSystem(boolean isArrayAffinity, int numOfPreferredSystems) {
-        // only enforce the limit for array affinity police
-        if (!isArrayAffinity) {
-            return true;
-        }
-
-        int limit = Integer.valueOf(_customConfigHandler.getComputedCustomConfigValue(
-                CustomConfigConstants.HOST_RESOURCE_MAX_NUM_OF_ARRAYS, CustomConfigConstants.GLOBAL_KEY, null));
-
-        return numOfPreferredSystems < limit;
     }
 
     /**

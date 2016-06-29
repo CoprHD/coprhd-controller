@@ -5630,11 +5630,28 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // Will be non-null if the VPLEX volume was manually
                 // renamed after commit.
                 if (updatedVirtualVolumeInfo != null) {
-                    _log.info("New virtual volume native id is {}", updatedVirtualVolumeInfo.getName());
+                    _log.info("New virtual volume is {}", updatedVirtualVolumeInfo.toString());
+
+                    // if the new virtual volume is thin-capable, but thin-enabled is not true,
+                    // that means we need to ask the VPLEX to convert it to a thin-enabled volume.
+                    // this doesn't happen automatically for thick-to-thin data migrations.
+                    virtualVolume.setThinlyProvisioned(updatedVirtualVolumeInfo.isThinEnabled());
+                    if (VPlexApiConstants.TRUE.equalsIgnoreCase(updatedVirtualVolumeInfo.getThinCapable())
+                            && !updatedVirtualVolumeInfo.isThinEnabled()) {
+                        VirtualPool newVirtualPool = getDataObject(VirtualPool.class, virtualVolume.getVirtualPool(), _dbClient);
+                        boolean doEnableThin = VirtualPool.ProvisioningType.Thin.toString().equalsIgnoreCase(
+                                newVirtualPool.getSupportedProvisioningType());
+                        if (doEnableThin) {
+                            _log.info("the new virtual pool is thin, so ViPR will attempt to thin-enabled to true on {}", 
+                                    updatedVirtualVolumeInfo.getName());
+                            boolean success = client.setVirtualVolumeThinEnabled(updatedVirtualVolumeInfo);
+                            virtualVolume.setThinlyProvisioned(success);
+                        }
+                    }
+
                     virtualVolume.setDeviceLabel(updatedVirtualVolumeInfo.getName());
                     virtualVolume.setNativeId(updatedVirtualVolumeInfo.getPath());
                     virtualVolume.setNativeGuid(updatedVirtualVolumeInfo.getPath());
-                    virtualVolume.setThinlyProvisioned(updatedVirtualVolumeInfo.isThinEnabled());
                 }
                 // Note that for ingested volumes, there will be no associated volumes
                 // at first.

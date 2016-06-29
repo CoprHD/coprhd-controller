@@ -4,6 +4,7 @@
  */
 package controllers.security;
 
+import com.emc.storageos.auth.saml.SAMLUtil;
 import com.emc.vipr.client.exceptions.ViPRHttpException;
 import com.google.common.collect.Lists;
 import controllers.deadbolt.Deadbolt;
@@ -293,8 +294,16 @@ public class Security extends Controller {
                 String path = "GET".equalsIgnoreCase(request.method) ? request.url : Play.ctxPath + "/";
                 String service = URLEncoder.encode(base + path, "UTF-8");
                 String authSvcPort = Play.configuration.getProperty("authsvc.port");
-                String url = String.format("https://%s:%s/formlogin?service=%s&src=portal", request.domain, authSvcPort, service);
-                Logger.debug("No cookie detected. Redirecting to login page %s", url);
+                String url = null;
+                // if parameters contain "using-idp", re-direct to Idp
+                if (request.params._contains("using-idp")) {
+                    url = SAMLUtil.generateSAMLRequest();
+                    //url = String.format("http://lglw9040.lss.emc.com:8080/openam/SSORedirect/metaAlias/idp?SAMLRequest=%s", samlrequest);
+                    Logger.info("Redirecting to IDP login page %s", url);
+                } else {
+                    url = String.format("https://%s:%s/formlogin?service=%s&src=portal", request.domain, authSvcPort, service);
+                    Logger.info("No cookie detected. Redirecting to login page %s", url);
+                }
                 redirect(url);
             } catch (Exception e) {
                 throw new RuntimeException(e);

@@ -5635,7 +5635,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     // if the new virtual volume is thin-capable, but thin-enabled is not true,
                     // that means we need to ask the VPLEX to convert it to a thin-enabled volume.
                     // this doesn't happen automatically for thick-to-thin data migrations.
-                    virtualVolume.setThinlyProvisioned(updatedVirtualVolumeInfo.isThinEnabled());
+                    boolean isThinEnabled = updatedVirtualVolumeInfo.isThinEnabled();
                     if (VPlexApiConstants.TRUE.equalsIgnoreCase(updatedVirtualVolumeInfo.getThinCapable())
                             && !updatedVirtualVolumeInfo.isThinEnabled()) {
                         URI targetVolumeUri = migration.getTarget();
@@ -5649,8 +5649,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                             if (doEnableThin) {
                                 _log.info("the new VirtualPool is thin, so ViPR will attempt to thin-enabled to true on {}", 
                                         updatedVirtualVolumeInfo.getName());
-                                boolean success = client.setVirtualVolumeThinEnabled(updatedVirtualVolumeInfo);
-                                virtualVolume.setThinlyProvisioned(success);
+                                isThinEnabled = client.setVirtualVolumeThinEnabled(updatedVirtualVolumeInfo);
+                                
                             }
                         }
                     }
@@ -5658,6 +5658,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     virtualVolume.setDeviceLabel(updatedVirtualVolumeInfo.getName());
                     virtualVolume.setNativeId(updatedVirtualVolumeInfo.getPath());
                     virtualVolume.setNativeGuid(updatedVirtualVolumeInfo.getPath());
+                    virtualVolume.setThinlyProvisioned(isThinEnabled);
                 }
                 // Note that for ingested volumes, there will be no associated volumes
                 // at first.

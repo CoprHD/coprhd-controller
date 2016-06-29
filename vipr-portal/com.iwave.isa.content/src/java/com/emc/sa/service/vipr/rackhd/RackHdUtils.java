@@ -235,18 +235,34 @@ public class RackHdUtils {
 	}
 
 	public static ViprOperation parseViprTasks(String ansibleResult) {
-		try {  // try parsing result as a ViPR Task
-			return gson.fromJson(ansibleResult,ViprOperation.class);
-		} catch(JsonSyntaxException e) {
-			return null;
-		}
+	    try {  // try parsing result as a ViPR Task(s)
+	        // see if result contains array of Tasks
+	        ViprOperation o = gson.fromJson(ansibleResult,ViprOperation.class);
+	        if(o.isValid()) {
+	            return o;
+	        }
+	        // see if response was a single Task
+	        ViprTask t = gson.fromJson(ansibleResult,ViprTask.class);
+	        if(t.isValid()) {
+	            return new ViprOperation(t);
+            }
+	        return null;
+	    } catch(JsonSyntaxException e) {
+	        return null;
+	    }
 	}
 
 	public static AffectedResource[] parseResourceList(String taskResult) {
-		try { 
-			return gson.fromJson(taskResult,AffectedResource[].class);
-		} catch(JsonSyntaxException e) {
-			return null;
+	    try {
+	        AffectedResource[] rArray = gson.fromJson(taskResult,AffectedResource[].class);
+	        for(AffectedResource r : rArray) {
+	            if(!r.isValid()) {
+	                return null;
+	            }
+	        }
+	        return rArray;
+	    } catch(JsonSyntaxException e) {
+	        return null;
 		}
 	}
 

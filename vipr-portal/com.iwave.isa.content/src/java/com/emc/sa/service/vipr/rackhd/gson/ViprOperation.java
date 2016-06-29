@@ -7,6 +7,11 @@ import java.util.List;
 
 public class ViprOperation {
 
+    public ViprOperation(ViprTask t){
+        task = new ViprTask[1];
+        task[0] = t;
+    }
+
     ViprTask[] task;
 
     public ViprTask[] getTask() {
@@ -26,4 +31,9 @@ public class ViprOperation {
         }
         return idList;
     }
+
+    public boolean isValid() {
+        return task != null;
+    }
+
 }

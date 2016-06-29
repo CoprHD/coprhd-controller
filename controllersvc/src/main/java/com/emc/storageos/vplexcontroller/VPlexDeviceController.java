@@ -1049,6 +1049,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             Map<URI, List<VolumeDescriptor>> vplexMap = VolumeDescriptor.getDeviceMap(vplexVolumes);
 
             // For each VPLEX, delete the virtual volumes.
+            String deleteWaitFor = waitFor;
             for (URI vplexURI : vplexMap.keySet()) {
                 StorageSystem vplexSystem = getDataObject(StorageSystem.class, vplexURI, _dbClient);
                 // First validate that the backend volumes for these VPLEX volumes are
@@ -1089,12 +1090,13 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     }
                     
                     createWorkflowStepToValidateVPlexVolume(workflow, vplexSystem, vplexVolumeURI, waitFor);
-                    waitFor = VALIDATE_VPLEX_VOLUME_STEP;
+                    deleteWaitFor = VALIDATE_VPLEX_VOLUME_STEP;
                 }
+
                 workflow.createStep(VPLEX_STEP,
                         String.format("Delete VPlex Virtual Volumes:%n%s",
                                 BlockDeviceController.getVolumesMsg(_dbClient, vplexVolumeURIs)),
-                        waitFor, vplexURI,
+                        deleteWaitFor, vplexURI,
                         DiscoveredDataObject.Type.vplex.name(), this.getClass(),
                         deleteVirtualVolumesMethod(vplexURI, vplexVolumeURIs, doNotFullyDeleteVolumeList),
                         rollbackMethodNullMethod(), null);

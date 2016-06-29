@@ -61,6 +61,8 @@ import com.netflix.astyanax.thrift.ddl.ThriftKeyspaceDefinitionImpl;
 
 public class DbClientContext {
 
+    private static final String CASSANDRA_HOST_STATE_DOWN = "DOWN";
+
     private static final Logger log = LoggerFactory.getLogger(DbClientContext.class);
 
     private static final int DEFAULT_MAX_CONNECTIONS = 64;
@@ -759,7 +761,7 @@ public class DbClientContext {
             
             while (allHosts.hasNext()){
                 com.datastax.driver.core.Host host = allHosts.next();
-                if (host.getState().equals("DOWN")) {
+                if (host.getState().equals(CASSANDRA_HOST_STATE_DOWN)) {
                     allHosts.remove();
                     versions.putIfAbsent(StorageProxy.UNREACHABLE, new LinkedList<String>());
                     versions.get(StorageProxy.UNREACHABLE).add(host.getBroadcastAddress().getHostAddress());

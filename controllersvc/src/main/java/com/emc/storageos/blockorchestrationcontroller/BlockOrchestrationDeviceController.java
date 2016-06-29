@@ -17,6 +17,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.Controller;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -607,6 +608,22 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
     public void restoreFromFullCopy(URI storage, List<URI> fullCopyURIs, String taskId)
             throws InternalException {
         CloneRestoreCompleter completer = new CloneRestoreCompleter(fullCopyURIs, taskId);
+        
+        // add the CG to the completer if this is a CG restore
+        Iterator<Volume> iter = getDbClient().queryIterativeObjects(Volume.class, fullCopyURIs);
+        while (iter.hasNext()) {
+            Volume fc = iter.next();
+            if (!NullColumnValueGetter.isNullURI(fc.getAssociatedSourceVolume())) {
+                BlockObject firstSource = BlockObject.fetch(getDbClient(), fc.getAssociatedSourceVolume());
+                if (firstSource != null) {
+                    if (firstSource instanceof Volume && !NullColumnValueGetter.isNullURI(firstSource.getConsistencyGroup())) {
+                        completer.addConsistencyGroupId(firstSource.getConsistencyGroup());
+                    }
+                    break;
+                }
+            }
+        }
+        
         s_logger.info("Creating steps for restore from full copy.");
         try {
             // Generate the Workflow.
@@ -622,7 +639,7 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
             waitFor = _vplexDeviceController.addStepsForRestoreFromFullcopy(
                     workflow, waitFor, storage, fullCopyURIs, taskId, completer);
 
-            // Call the BlockDeviceController to add its stpes for restore volume from full copy
+            // Call the BlockDeviceController to add its steps for restore volume from full copy
             waitFor = _blockDeviceController.addStepsForRestoreFromFullcopy(workflow, waitFor, storage, fullCopyURIs, taskId, completer);
             
             // Call the RPDeviceController to add its steps for post restore volume from full copy

@@ -2432,27 +2432,31 @@ vplex_tests()
         run_noundo volume delete $PROJECT/$distVolume1 --vipronly --force
         run_noundo volume delete $PROJECT/$distVolume2 --vipronly --force
         
+        /opt/storageos/bin/dbcli list Volume > /tmp/vipr_unexported_vols.txt
+        
         echo "**** Discovering Storage Systems for UnManagedVolumes - this may take a while..."
         run storagedevice discover_namespace $VPLEX_GUID 'UNMANAGED_VOLUMES'
         run storagedevice discover_namespace $VPLEX_VNX1_NATIVEGUID 'UNMANAGED_VOLUMES'
         run storagedevice discover_namespace $VPLEX_VNX2_NATIVEGUID 'UNMANAGED_VOLUMES'
         run storagedevice discover_namespace $VPLEX_VMAX_NATIVEGUID 'UNMANAGED_VOLUMES'
-        
-        echo "**** Ingesting localVolume1 with snap"
-        fail unmanagedvolume ingest_unexport ${NH} cosvplexlocal $PROJECT --volspec "$localVolume1"
-        echo "**** Ingesting distVolume1 with snap"
-        fail unmanagedvolume ingest_unexport ${NH} cosvplexdist $PROJECT --volspec "$distVolume1"
-        echo "**** Ingesting snapshot of localVolume1"
-        run unmanagedvolume ingest_unexport ${NH} cosvplexlocal $PROJECT --volspec "${VPLEX_LOCAL_SNAP_ARRAY_LABEL}"
-        echo "**** Ingesting snapshot of distVolume1"
-        run unmanagedvolume ingest_unexport ${NH} cosvplexdist $PROJECT --volspec "${VPLEX_DIST_SNAP_ARRAY_LABEL}"
 
-        echo "**** Ingesting localVolume2-1"
+        /opt/storageos/bin/dbcli list UnManagedVolume > /tmp/vipr_unexported_umvs.txt
+
+        echo "**** Ingesting $localVolume2-1"
         run unmanagedvolume ingest_unexport ${NH} cosvplexlocal $PROJECT --volspec "$localVolume2-1"
-        echo "**** Ingesting localVolume2-2"
+        echo "**** Ingesting $localVolume2-2"
         run unmanagedvolume ingest_unexport ${NH} cosvplexlocal $PROJECT --volspec "$localVolume2-2"
-        echo "**** Ingesting distVolume2"
+        echo "**** Ingesting $distVolume2"
         run unmanagedvolume ingest_unexport ${NH} cosvplexdist $PROJECT --volspec "$distVolume2"
+        
+        echo "**** Ingesting $localVolume1 with snap"
+        fail unmanagedvolume ingest_unexport ${NH} cosvplexlocal $PROJECT --volspec "$localVolume1"
+        echo "**** Ingesting $distVolume1 with snap"
+        fail unmanagedvolume ingest_unexport ${NH} cosvplexdist $PROJECT --volspec "$distVolume1"
+        echo "**** Ingesting snapshot $VPLEX_LOCAL_SNAP_ARRAY_LABEL of $localVolume1"
+        run unmanagedvolume ingest_unexport ${NH} cosvplexlocal $PROJECT --volspec "${VPLEX_LOCAL_SNAP_ARRAY_LABEL}"
+        echo "**** Ingesting snapshot $VPLEX_DIST_SNAP_ARRAY_LABEL of $distVolume1"
+        run unmanagedvolume ingest_unexport ${NH} cosvplexdist $PROJECT --volspec "${VPLEX_DIST_SNAP_ARRAY_LABEL}"
     fi
 
 	echo "**** Volumes created so far, before export testing starts:"
@@ -2494,20 +2498,25 @@ vplex_tests()
         run_noundo volume delete $PROJECT/$localVolume2-1 --vipronly --force
         run_noundo volume delete $PROJECT/$distVolume1 --vipronly --force
         run_noundo volume delete $PROJECT/$distVolume2 --vipronly --force
-        
+
+        /opt/storageos/bin/dbcli list Volume > /tmp/vipr_exported_vols.txt
+       
         echo "**** Discovering Storage Systems for UnManagedVolumes - this may take a while..."
         run storagedevice discover_namespace $VPLEX_GUID 'UNMANAGED_VOLUMES'
         run storagedevice discover_namespace $VPLEX_VNX1_NATIVEGUID 'UNMANAGED_VOLUMES'
         run storagedevice discover_namespace $VPLEX_VNX2_NATIVEGUID 'UNMANAGED_VOLUMES'
         run storagedevice discover_namespace $VPLEX_VMAX_NATIVEGUID 'UNMANAGED_VOLUMES'
         
-        echo "**** Ingesting Exported localVolume1"
+        /opt/storageos/bin/dbcli list UnManagedVolume > /tmp/vipr_exported_umvs.txt
+        /opt/storageos/bin/dbcli list UnManagedExportMask > /tmp/vipr_exported_uems.txt
+        
+        echo "**** Ingesting Exported $localVolume1"
         run unmanagedvolume ingest_export ${NH} cosvplexlocal $PROJECT --volspec "$localVolume1" --host $hname-1$host
-        echo "**** Ingesting Exported localVolume2-1"
+        echo "**** Ingesting Exported $localVolume2-1"
         run unmanagedvolume ingest_export ${NH} cosvplexlocal $PROJECT --volspec "$localVolume2-1" --host $hname-1$host
-        echo "**** Ingesting Exported distVolume1"
+        echo "**** Ingesting Exported $distVolume1"
         run unmanagedvolume ingest_export ${NH} cosvplexdist $PROJECT --volspec "$distVolume1" --host $hname-1$host
-        echo "**** Ingesting Exported distVolume2"
+        echo "**** Ingesting Exported $distVolume2"
         run unmanagedvolume ingest_export ${NH} cosvplexdist $PROJECT --volspec "$distVolume2" --host $hname-1$host
     fi
 

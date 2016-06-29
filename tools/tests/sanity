@@ -2435,10 +2435,10 @@ vplex_tests()
         /opt/storageos/bin/dbcli list Volume > /tmp/vipr_unexported_vols.txt
         
         echo "**** Discovering Storage Systems for UnManagedVolumes - this may take a while..."
-        run storagedevice discover_namespace $VPLEX_GUID 'UNMANAGED_VOLUMES'
         run storagedevice discover_namespace $VPLEX_VNX1_NATIVEGUID 'UNMANAGED_VOLUMES'
         run storagedevice discover_namespace $VPLEX_VNX2_NATIVEGUID 'UNMANAGED_VOLUMES'
         run storagedevice discover_namespace $VPLEX_VMAX_NATIVEGUID 'UNMANAGED_VOLUMES'
+        run storagedevice discover_namespace $VPLEX_GUID 'UNMANAGED_VOLUMES'
 
         /opt/storageos/bin/dbcli list UnManagedVolume > /tmp/vipr_unexported_umvs.txt
 
@@ -2502,10 +2502,10 @@ vplex_tests()
         /opt/storageos/bin/dbcli list Volume > /tmp/vipr_exported_vols.txt
        
         echo "**** Discovering Storage Systems for UnManagedVolumes - this may take a while..."
-        run storagedevice discover_namespace $VPLEX_GUID 'UNMANAGED_VOLUMES'
         run storagedevice discover_namespace $VPLEX_VNX1_NATIVEGUID 'UNMANAGED_VOLUMES'
         run storagedevice discover_namespace $VPLEX_VNX2_NATIVEGUID 'UNMANAGED_VOLUMES'
         run storagedevice discover_namespace $VPLEX_VMAX_NATIVEGUID 'UNMANAGED_VOLUMES'
+        run storagedevice discover_namespace $VPLEX_GUID 'UNMANAGED_VOLUMES'
         
         /opt/storageos/bin/dbcli list UnManagedVolume > /tmp/vipr_exported_umvs.txt
         /opt/storageos/bin/dbcli list UnManagedExportMask > /tmp/vipr_exported_uems.txt

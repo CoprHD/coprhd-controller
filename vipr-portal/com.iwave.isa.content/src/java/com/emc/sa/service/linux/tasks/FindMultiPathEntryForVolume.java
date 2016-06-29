@@ -46,7 +46,7 @@ public class FindMultiPathEntryForVolume extends LinuxExecutionTask<MultiPathEnt
         for (MultiPathEntry entry : multipathEntries) {
             String entryWwn = stripWwnPrefix(entry.getWwid());
             logDebug("FindMultiPathEntryForVolume.checking", entry.getName(), entryWwn, blockVolume.getWwn());
-            if (VolumeWWNUtils.wwnMatches(entryWwn, volume)) {
+            if (VolumeWWNUtils.wwnMatches(entryWwn, volume.getWwn())) {
                 return entry;
             }
         }

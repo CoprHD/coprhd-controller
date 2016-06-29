@@ -52,7 +52,7 @@ public class FindDisksForVolumes extends WindowsExecutionTask<Map<BlockObjectRes
             String wwid = getTargetSystem().getWwid(disk);
             logDebug("find.disks.volumes.wwid", wwid, disk.getDeviceId());
             for (BlockObjectRestRep volume : volumes) {
-                if (VolumeWWNUtils.wwnMatches(wwid, volume)) {
+                if (VolumeWWNUtils.wwnMatches(wwid, volume.getWwn())) {
                     logInfo("find.disks.volumes.wwid", wwid, disk.getSerialNumber());
                     results.put(volume, disk);
                     break;

@@ -4,8 +4,6 @@
  */
 package com.iwave.ext.linux.util;
 
-import com.emc.storageos.model.block.BlockObjectRestRep;
-
 /**
  * Some array types like HDS do not have a mechanism to get the full actual WWN of volumes.
  * So the ViPR object may contain a partial WWN instead of a full one. This utility will match
@@ -19,15 +17,11 @@ public class VolumeWWNUtils {
     public static final int HUS_PREFIX_LENGTH = 4;
     public static final int PARTIAL_PREFIX_LENGTH = 5;
 
-    public static boolean wwnMatches(String actualWwn, String wwn) {
-        return partialMatch(actualWwn, wwn);
+    public static boolean wwnMatches(String actualWwn, String blockWwn) {
+        return partialMatch(actualWwn, blockWwn);
     }
 
-    public static boolean wwnMatches(String actualWwn, BlockObjectRestRep blockObject) {
-        return partialMatch(actualWwn, blockObject.getWwn());
-    }
-
-    public static boolean wwnHDSMatches(String actualWwn, BlockObjectRestRep blockObject) {
+    public static boolean wwnHDSMatches(String actualWwn, String blockWwn) {
         String convertedWwn = convertAsciiHDSWwn(actualWwn);
 
         if (convertedWwn == null) {
@@ -37,13 +31,13 @@ public class VolumeWWNUtils {
         String useableWwn = convertedWwn;
 
         // check if we need to created HUS compatible wwn
-        if (isHusVmPartialWwn(blockObject.getWwn())) {
+        if (isHusVmPartialWwn(blockWwn)) {
             useableWwn = createHusPartialWwn(convertedWwn); // 12 char long
         } else {
             useableWwn = createPartialWwn(convertedWwn); // 16 char long
         }
 
-        return partialMatch(useableWwn, blockObject.getWwn());
+        return partialMatch(useableWwn, blockWwn);
     }
 
     /**

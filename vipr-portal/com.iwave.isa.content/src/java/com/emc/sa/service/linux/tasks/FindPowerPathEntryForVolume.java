@@ -36,7 +36,7 @@ public class FindPowerPathEntryForVolume extends LinuxExecutionTask<PowerPathDev
         for (PowerPathDevice device : entries) {
             String deviceWwn = device.getWwn();
             logDebug("FindPowerPathEntryForVolume.checking", device.getDevice(), deviceWwn, blockVolume.getWwn());
-            if (VolumeWWNUtils.wwnMatches(deviceWwn, blockVolume)) {
+            if (VolumeWWNUtils.wwnMatches(deviceWwn, blockVolume.getWwn())) {
                 return device;
             }
         }
@@ -45,7 +45,7 @@ public class FindPowerPathEntryForVolume extends LinuxExecutionTask<PowerPathDev
         for (PowerPathDevice device : entries) {
             String deviceWwn = device.getWwn();
             logDebug("FindPowerPathEntryForVolume.checking", device.getDevice(), deviceWwn, blockVolume.getWwn());
-            if (VolumeWWNUtils.wwnMatches(deviceWwn, blockVolume)) {
+            if (VolumeWWNUtils.wwnMatches(deviceWwn, blockVolume.getWwn())) {
                 return device;
             }
         }
@@ -54,7 +54,7 @@ public class FindPowerPathEntryForVolume extends LinuxExecutionTask<PowerPathDev
         for (PowerPathDevice device : entries) {
             String deviceWwn = device.getWwn();
             logDebug("FindPowerPathEntryForVolume.checking", device.getDevice(), deviceWwn, blockVolume.getWwn());
-            if (VolumeWWNUtils.wwnHDSMatches(deviceWwn, blockVolume)) {
+            if (VolumeWWNUtils.wwnHDSMatches(deviceWwn, blockVolume.getWwn())) {
                 return device;
             }
         }

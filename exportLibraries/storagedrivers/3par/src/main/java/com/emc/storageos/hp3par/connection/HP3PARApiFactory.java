@@ -201,15 +201,16 @@ public class HP3PARApiFactory {
 //        hp3parApi.deleteVolume(vol);
         
 //        HostCommandResult hostRes = hp3parApi.getAllHostDetails();
-//        HostSetDetailsCommandResult hostsetRes = hp3parApi.getHostSetDetails("LGLBW015_016");
+//        HostSetDetailsCommandResult hostsetRes = hp3parApi.getHostSetDetails("LGLBW015_01600");
 //        HostMember hostRes = hp3parApi.getHostDetails("LGLBW015");
 //        VirtualLunsList vlunRes = hp3parApi.getAllVlunDetails();
 //        hp3parApi.deleteVlun("One_Thin30", "10", "LGLOE199", "1:1:1");
-        ArrayList<String> portIds = new ArrayList<>();
+//        ArrayList<String> portIds = new ArrayList<>();
 //        portIds.add("1111222233334444");
 //        portIds.add("1111222233334445");
-        portIds.add("1122334455667776");
-        hp3parApi.createHost("myhostot7", portIds, 4);
+//        portIds.add("1122334455667776");
+//        hp3parApi.createHost("myhostot7", portIds, 4);
+        hp3parApi.createtHostSet("mycluster2", "myhost1");
         
         
         int a=0; a++; System.out.println(a);

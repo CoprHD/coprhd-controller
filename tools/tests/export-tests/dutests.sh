@@ -262,6 +262,9 @@ arrayhelper_verify_export() {
     esac
 }
 
+dbupdate() {
+    runcmd dbupdate.sh $*
+}
 
 finish() {
     if [ $VERIFY_EXPORT_FAIL_COUNT -ne 0 ]; then
@@ -866,10 +869,10 @@ test_3() {
     fail task follow $task
 
     # Now remove the volume from the storage group (masking view)
-    array_helper remove_volume_from_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
+    arrayhelper remove_volume_from_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
 
     # Delete the volume we created.
-    array_helper delete_volume ${SERIAL_NUMBER} ${device_id}
+    arrayhelper delete_volume ${SERIAL_NUMBER} ${device_id}
 
     # Verify the mask is back to normal
     verify_export ${expname}1 ${HOST1} 2 1
@@ -950,7 +953,7 @@ test_4() {
     fail task follow $task
 
     # Now remove the initiator from the export mask
-    array_helper remove_initiator_from_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
+    arrayhelper remove_initiator_from_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
 
     # Verify the mask is back to normal
     verify_export ${expname}1 ${HOST1} 2 1
@@ -1031,7 +1034,7 @@ test_5() {
     fail task follow $task
 
     # Now remove the initiator from the export mask
-    array_helper remove_initiator_from_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
+    arrayhelper remove_initiator_from_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
 
     # Verify the mask is back to normal
     verify_export ${expname}1 ${HOST1} 2 2
@@ -1127,10 +1130,10 @@ test_6() {
     fail task follow $task
 
     # Now remove the volume from the storage group (masking view)
-    array_helper remove_volume_from_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
+    arrayhelper remove_volume_from_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
 
     # Delete the volume we created.
-    array_helper delete_volume ${SERIAL_NUMBER} ${device_id}
+    arrayhelper delete_volume ${SERIAL_NUMBER} ${device_id}
 
     # Verify the mask is back to normal
     verify_export ${expname}1 ${HOST1} 2 1
@@ -1514,6 +1517,47 @@ test_11() {
 
     # Make sure it really did kill off the mask
     verify_export ${expname}1 ${HOST1} gone
+}
+
+# DU Prevention Validation Test 12
+#
+# Summary: Create a volume in ViPR.  Delete the volume outside of ViPR and create another one with the same device ID.  Try to delete from ViPR
+#
+# Basic Use Case for single host, single volume
+# 1. ViPR creates a new volume
+# 2. Customer deletes volume outside of ViPR
+# 3. Customer create new volume with same device ID, same size
+# 4. ViPR attempt various operations, fails due to validation
+# 6. ViPR inventory-only delete volume
+# 7. Ingest volume?
+#
+test_12() {
+    echot "Test 12: Volume gets reclaimed outside of ViPR"
+    expname=${EXPORT_GROUP_NAME}t12
+    volname="${HOST}-dutest-oktodelete-t12"
+
+    # Create a new volume that ViPR knows about
+    runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 1
+    device_id=`volume show ${PROJECT}/${volname} | grep native_id | awk '{print $2}' | cut -c2-6`
+    volume_uri=`volume show ${PROJECT}/${volname} | grep ":Volume:" | grep id | awk -F\" '{print $4}'`
+
+    # Now change the WWN in the database of that volume to emulate a delete-and-recreate on the array
+    dbupdate Volume wwn ${volume_uri} 60000970000FFFFFFFF2533030314233
+
+    # Now try to delete the volume, it should fail
+    fail volume delete ${PROJECT}/${volname}
+
+    # Now try to expand the volume, it should fail
+    fail volume expand ${PROJECT}/${volname} 2GB
+
+    # Now try to create a snapshot off of the volume, it should fail
+    fail blocksnapshot create ${PROJECT}/${volname} snap1
+
+    # Inventory-only delete the volume
+    volume delete ${PROJECT}/${volname} --vipronly
+
+    # Delete the volume we created.
+    arrayhelper delete_volume ${SERIAL_NUMBER} ${device_id}
 }
 
 cleanup() {

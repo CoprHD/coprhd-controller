@@ -1800,34 +1800,42 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
                 } /*else if (initiators.get(0).getInitiatorType().equals(Type.CLUSTER) == true)*/ //TEMP CODING
                 else if (initiators.get(0).getInitiatorType().equals(Type.RP) == true) {
 
-                    String exportPath = volume.getStorageSystemId() + volume.getNativeId() + 
-                            "set:" + initiators.get(0).getClusterName();
+                    String clusterName = "set:" + initiators.get(0).getClusterName();
+                    String exportPath = volume.getStorageSystemId() + volume.getNativeId() + clusterName;
                     Map<String, List<String>> attributes = new HashMap<>();
                     List<String> expValue = new ArrayList<>();
                     List<String> lunValue = new ArrayList<>();
                     boolean regPresent = false;
 
+                    String message = String.format("3PARDriver:unexportVolumesFromInitiators for "
+                            + "storage system %s, volume %s Cluster %s", 
+                            volume.getStorageSystemId(), volume.getNativeId(), clusterName);
+                    
                     attributes = this.driverRegistry.getDriverAttributesForKey(HP3PARConstants.DRIVER_NAME, exportPath);
                     
                     if (attributes != null) { 
                         expValue = attributes.get("EXPORT_PATH");
                         if (expValue != null && expValue.get(0).compareTo(exportPath) == 0) {
-                            regPresent = true;
                             lunValue = attributes.get(volume.getNativeId());
+                            regPresent = true;
                             
-                            hp3parApi.deleteVlun(volume.getNativeId(), lunValue.get(0), 
-                                    "set:" + initiators.get(0).getClusterName(), null);
+                            _log.info(message);
+                            /* 
+                             * below operations are assumed to autonomic
+                             */
+                            hp3parApi.deleteVlun(volume.getNativeId(), lunValue.get(0), clusterName, null);
                             
-//                            remove the registry content
+                            // remove the registry content
+                            this.driverRegistry.clearDriverAttributesForKey(HP3PARConstants.DRIVER_NAME, exportPath);
                             totalUnexport++;
                         }
                     }
                     
                     if (regPresent == false) {
-//                        gracefully exit, inc counter
-                        
+                        //gracefully exit, nothing to be done
+                        _log.info("3PARDriver: Already unexported, exiting gracefully" + message);
+                        totalUnexport++;
                     }
-                    
                 } // if cluster
                     
             } catch (Exception e) {

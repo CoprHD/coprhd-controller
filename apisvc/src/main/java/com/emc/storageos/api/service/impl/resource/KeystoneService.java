@@ -160,7 +160,7 @@ public class KeystoneService extends TaskResourceService {
 
         _log.debug("Keystone Service - saveOpenstackTenants");
 
-        if (param.getOpenstackTenants() == null) {
+        if (param.getOpenstackTenants() == null || param.getOpenstackTenants().isEmpty()) {
             throw APIException.internalServerErrors.targetIsNullOrEmpty("Tenant list param");
         }
 
@@ -210,7 +210,7 @@ public class KeystoneService extends TaskResourceService {
 
         _log.debug("Keystone Service - updateOpenstackTenants");
 
-        if (param.getCoprhdOsTenants() == null) {
+        if (param.getCoprhdOsTenants() == null || param.getCoprhdOsTenants().isEmpty()) {
             throw APIException.internalServerErrors.targetIsNullOrEmpty("Tenant list param");
         }
 

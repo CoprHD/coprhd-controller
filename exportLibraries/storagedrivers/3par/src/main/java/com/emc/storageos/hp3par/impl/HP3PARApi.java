@@ -1054,7 +1054,7 @@ public class HP3PARApi {
         ClientResponse clientResp = null;
         String path = MessageFormat.format(URI_DELETE_VLUN, volName, lun, hostName);
         if (pos != null) {
-            path = path.concat(pos);
+            path = path.concat(","+pos);
         }
 
         try {

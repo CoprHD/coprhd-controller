@@ -164,10 +164,8 @@ def consistency_group_failover(args):
     print "Failover Consistency Group " + str(args.group) + " with target virtial array " + str(args.targetVarray)
     if (args.pit):
         print "Failover Consistency Group " + str(args.group) + " to point-in-time " + str(args.pit)
-    if (args.am):
-        print "Failover Consistency Group " + str(args.group) + " in " + str(args.am)
     start = time.time()
-    s = bourne.block_consistency_group_failover(group_uri, args.copyType, tgt_varray_uri, args.am, args.pit)
+    s = bourne.block_consistency_group_failover(group_uri, args.copyType, tgt_varray_uri, args.pit)
     bourne.pretty_print_json(s)         
    
 def consistency_group_accessmode(args):

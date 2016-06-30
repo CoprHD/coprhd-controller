@@ -97,7 +97,7 @@ public class HP3PARApi {
     private static final String URI_HOSTSET_DETAILS = "/api/v1/hostsets/{0}";
     private static final String URI_HOST_DETAILS = "/api/v1/hosts/{0}";
     private static final String URI_VLUNS = "/api/v1/vluns";
-    private static final String URI_DELETE_VLUN = "/api/v1/vluns/{0},{1},{2},{3}";
+    private static final String URI_DELETE_VLUN = "/api/v1/vluns/{0},{1},{2}";
     
     public HP3PARApi(URI endpoint, RESTClient client, String userName, String pass) {
         _baseUrl = endpoint;
@@ -1052,7 +1052,10 @@ public class HP3PARApi {
     public void deleteVlun(String volName, String lun, String hostName, String pos) throws Exception {
         _log.info("3PARDriver:deleteVlun enter");
         ClientResponse clientResp = null;
-        final String path = MessageFormat.format(URI_DELETE_VLUN, volName, lun, hostName, pos);
+        String path = MessageFormat.format(URI_DELETE_VLUN, volName, lun, hostName);
+        if (pos != null) {
+            path = path.concat(pos);
+        }
 
         try {
             clientResp = delete(path);

@@ -16,7 +16,8 @@ Usage()
 {
     echo 'Usage: sanity <configuration_file> <bourne_ip>|<[bourne_ipv6]> {all | snapvx | isilon | vplex | vplexexport | vplexsnap | vnxblock | ingestblock | vnxblock_flex_varray | netapp | netappc | recoverpoint | xtremio | srdf |
  vnxfile | datadomainfile | vnxfile_flex_varray | vmaxblock | hds | vmaxblock_flex_varray | combined_block | blocksnapshot | blockmirror | full_copy | blockconsistencygroup | init | quick |
- errorhandling | vnxe | security | syssvc | audit | monitor | vdc | catalog | recovery | backuprestore backupserver-uri username password | dr | ipsec | ceph} [local|ldap] [<timeslot>] | sanzoning | application | unityblock | unityfile'
+ errorhandling | vnxe | security | syssvc | audit | monitor | vdc | catalog | recovery | backuprestore backupserver-uri username password | dr | ipsec | ceph} [local|ldap] [<timeslot>] | sanzoning | application | unityblock | unityfile |
+ vplexunity '
     echo 'E.g.:  sanity conf/sanity.conf 137.69.169.21 all'
     echo 'E.g.:  sanity ~/.sanity/sanity.conf 137.69.169.21 isilon'
     echo 'Note: IPv6 needs to be square bracket surrounded. E.g.:  sanity [2620:0:170:2842::180] security'
@@ -159,7 +160,7 @@ do
 done
 
 case $SS in
-    all|snapvx|isilon|vplex|vplexexport|vplexsnap|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxfile_flex_varray|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore|sanzoning|dr|ipsec|application|driversystem|ceph|unityblock|unityfile)
+    all|snapvx|isilon|vplex|vplexexport|vplexsnap|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxfile_flex_varray|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore|sanzoning|dr|ipsec|application|driversystem|ceph|unityblock|unityfile|vplexunity)
     ;;
 
     # These tests are handled by sanity integration tests written with the code
@@ -10654,6 +10655,136 @@ unityfile_cos_setup()
     ROOT_TENANT=`tenant root|tail -1`
     run cos allow $COS_UNITY file $ROOT_TENANT
     run cos allow $COS_UNITY file $TENANT
+}
+
+vplexunity_setup()
+{
+    secho "setting vplex minimal port count to 1"
+    run syssvc $CONFIG_FILE $BOURNE_IPADDR set_prop controller_vplex_director_min_port_count 1
+    
+    #Discover the Brocade SAN switch.
+    brocade_setup_once
+    
+    # Discover the storage systems 
+    echo "Discovering Storage Assets"
+    discoveredsystem create $UNITY_DEV unity $UNITY_IP $UNITY_PORT $UNITY_USER $UNITY_PW --serialno=$UNITY_SN
+    run smisprovider create $VPLEX_VNX2_SMIS_DEV_NAME $VPLEX_VNX2_SMIS_IP 5989 $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" true
+    run storageprovider create $VPLEX_DEV_NAME $VPLEX_IP 443 $VPLEX_USER "$VPLEX_PASSWD" vplex
+    
+    run storagedevice discover_all
+    storagedevice list
+    storageport list $UNITY_NATIVEGUID --v
+    storageport list $VPLEX_VNX2_NATIVEGUID --v
+    storageport list $VPLEX_GUID --v
+    sleep 90
+    storageport list $VPLEX_GUID --v
+    
+    # Setup the varrays. $NH contains VPLEX cluster-1 and $NH2 contains VPLEX cluster-2.
+    run storageport update $VPLEX_GUID FC --group director-1-1-A --addvarrays $NH
+    run storageport update $VPLEX_GUID FC --group director-1-1-B --addvarrays $NH
+    run storageport update $VPLEX_GUID FC --group director-2-1-A --addvarrays $NH2
+    run storageport update $VPLEX_GUID FC --group director-2-1-B --addvarrays $NH2
+    storageport list $VPLEX_GUID --v
+    # The arrays are assigned to individual varrays as well.
+    run storageport update $UNITY_NATIVEGUID FC --addvarrays $NH
+    run storageport update $VPLEX_VNX2_NATIVEGUID FC --addvarrays $NH2
+    vplexunity_cos_setup
+    storageport list $VPLEX_GUID --v
+}
+
+vplexunity_cos_setup()
+{
+    run cos create block cosvplexlocal true                   \
+                     --description 'Local-CoS-for-VPlex'      \
+                     --protocols FC                           \
+                     --numpaths 2                             \
+                     --provisionType 'Thin'                   \
+                     --highavailability vplex_local           \
+                     --neighborhoods $NH                  \
+                     --max_snapshots 1                        \
+                     --max_mirrors 1                          \
+                     --expandable false 
+
+    run cos allow cosvplexlocal block $TENANT
+
+    run cos update block cosvplexlocal --storage $UNITY_NATIVEGUID
+
+    run cos create block cosvplexdist true                          \
+                     --description 'Distributed-CoS-for-VPlex'      \
+                     --protocols FC                                 \
+                     --numpaths 2                                   \
+                     --provisionType 'Thin'                         \
+                     --highavailability vplex_distributed           \
+                     --neighborhoods $NH $NH2                       \
+                     --haNeighborhood $NH2                          \
+                     --max_snapshots 1                              \
+                     --max_mirrors 1                                \
+                     --mirror_cos cosvplexlocal                     \
+                     --expandable false
+
+    run cos allow cosvplexdist block $TENANT
+    
+    run cos update block cosvplexdist --storage $UNITY_NATIVEGUID
+    run cos update block cosvplexdist --storage $VPLEX_VNX2_NATIVEGUID
+    
+}
+
+vplexunity_tests()
+{
+    echo "**** Executing VPLEX tests"
+    
+    hname=$(hostname)
+    if [ $hname = "standalone" ]; then
+        hname=$SHORTENED_HOST
+    fi
+    echo "hostname is $hname"
+    	
+    localVolume1=$hname-${RANDOM}-VPlexLocal1
+    localVolume2=$hname-${RANDOM}-VPlexLocal2
+
+    sourceSideSuffix=-0
+    localSnapshot=$hname-${RANDOM}-VPlexLocalSnap
+    distVolume1=$hname-${RANDOM}-VPlexDist1
+    distSnapshot=$hname-${RANDOM}-VPlexDist1Snap
+    distVolume2=$hname-${RANDOM}-VPlexDist2
+    
+    echo "**** Creating VPLEX local volumes"
+    run volume create $localVolume1 $PROJECT $NH cosvplexlocal $BLK_SIZE
+    run volume create $localVolume2 $PROJECT $NH cosvplexlocal $BLK_SIZE --count=2
+    	
+    	
+    echo "**** Creating VPLEX distributed volumes"
+    run volume create $distVolume1 $PROJECT $NH cosvplexdist $BLK_SIZE
+    run volume create $distVolume2 $PROJECT $NH cosvplexdist $BLK_SIZE
+    	
+    echo "**** Volumes created so far"
+    run volume list $PROJECT
+
+    	
+    echo "**** Creating VPLEX volume snapshots"
+    run blocksnapshot create $PROJECT/$localVolume1 $localSnapshot
+    blocksnapshot list $PROJECT/$localVolume1
+    blocksnapshot show $PROJECT/$localVolume1/$localSnapshot
+    run blocksnapshot create $PROJECT/$distVolume1 $distSnapshot
+    blocksnapshot list $PROJECT/$distVolume1
+    blocksnapshot show $PROJECT/$distVolume1/$distSnapshot
+    
+    
+    echo "**** Deleting VPLEX volume snapshots"
+    run blocksnapshot delete $PROJECT/$localVolume1/$localSnapshot
+    run blocksnapshot delete $PROJECT/$distVolume1/$distSnapshot
+    
+    
+    echo "**** Deleting VPLEX volumes"
+    run volume delete $PROJECT/$localVolume1 --wait
+    run volume delete $PROJECT/$localVolume2-1 --wait
+    run volume delete $PROJECT/$localVolume2-2 --wait
+    
+    run volume delete $PROJECT/$distVolume1 --wait
+    run volume delete $PROJECT/$distVolume2 --wait
+    
+    echo "**** Completed VPLEX Tests"
+    
 }
 
 ${SS}_setup

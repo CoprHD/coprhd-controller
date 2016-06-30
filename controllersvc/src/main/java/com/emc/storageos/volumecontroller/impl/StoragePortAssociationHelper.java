@@ -174,8 +174,6 @@ public class StoragePortAssociationHelper {
             if (varraysToRemove != null) {
                 varraysToRemoveIds = varraysToRemove.getVarrays();
             }
-            // ALIK Check no network virtual array
-            boolean noNetwork = isNoNetwork(varraysToAddIds, dbClient);
 
             Set<String> varraysWithOutChangedConnectivity = new HashSet<>(varraysToAddIds);
             varraysWithOutChangedConnectivity.addAll(varraysToRemoveIds);
@@ -203,18 +201,7 @@ public class StoragePortAssociationHelper {
                     }
                 }
             }
-			// ALIK I think I should be here
-			else if (noNetwork) {
-				_log.info("ALIK No Network storage pool associations");
-				Set<URI> poolUris = getStoragePoolIds(pools);
-				List<StoragePool> modifiedPools = StoragePoolAssociationHelper
-						.getStoragePoolsFromPorts(dbClient, ports, null);
-				for (StoragePool pool : modifiedPools) {
-					if (!poolUris.contains(pool.getId())) {
-						pools.add(pool);
-					}
-				}
-			}
+
             if (!varraysWithChangedConnectivity.isEmpty()) {
                 // If there are varrays which changed connectivity to our storage system, we need to process all their vpools to match them to
                 // our system's storage pools.
@@ -576,7 +563,6 @@ public class StoragePortAssociationHelper {
     }
 
 	private static boolean isNoNetwork(Set<String> varraysIds, DbClient dbClient) {
-		_log.info("ALIK Inside no Network checking .....");
 		boolean noNetwork = true;
 		for (String varrayId : varraysIds) {
 			VirtualArray varray = dbClient.queryObject(VirtualArray.class,
@@ -586,7 +572,6 @@ public class StoragePortAssociationHelper {
 				break;
 			}
 		}
-		_log.info("ALIK returning ..... " + noNetwork);
 		return noNetwork;
 	}
 }

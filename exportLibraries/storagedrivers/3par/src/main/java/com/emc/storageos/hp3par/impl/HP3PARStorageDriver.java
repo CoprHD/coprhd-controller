@@ -1359,9 +1359,11 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
                         }
 
                         hp3parApi.createHost(initiators.get(0).getHostName(), portIds, persona);
+                        host = initiators.get(0).getHostName();
+                    } else {
+                        host = hostArray;
                     }
                     // Host available
-                    host = initiators.get(0).getHostName();
 
                     //****TEMP CODE ****************/
                 } else if (initiators.get(0).getInitiatorType().equals(Type.RP) == true) {
@@ -1744,6 +1746,11 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
         int totalUnexport = 0;
 
         try {
+            if (initiators.isEmpty() || volumes.isEmpty()) {
+                _log.error("3PARDriver:unexportVolumesFromInitiators error blank initiator and volumes");
+                throw new HP3PARException("3PARDriver:unexportVolumesFromInitiators error blank initiator and volumes");
+            }
+            
             host = get3parHostname(initiators, volumes.get(0).getStorageSystemId());
             if (host == null) {
                 _log.error("3PARDriver:unexportVolumesFromInitiators error in processing host name");

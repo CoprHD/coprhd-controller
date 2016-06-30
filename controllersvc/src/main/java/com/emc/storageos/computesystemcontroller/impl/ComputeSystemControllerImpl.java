@@ -920,6 +920,8 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
                     } catch (VMWareException ex) {
                         _log.error(ex.getMessage(), ex);
+                        WorkflowStepCompleter.stepFailed(stepId, DeviceControllerException.errors.jobFailed(ex));
+                        throw ex;
                     }
                 }
             }
@@ -932,6 +934,8 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 }
             } catch (VMWareException ex) {
                 _log.error(ex.getMessage(), ex);
+                WorkflowStepCompleter.stepFailed(stepId, DeviceControllerException.errors.jobFailed(ex));
+                throw ex;
             }
         }
         storageAPI.refreshStorage();

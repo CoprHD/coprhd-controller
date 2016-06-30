@@ -1571,7 +1571,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
                                 
                                 //get storage array ports for this host ports
                                 List<StoragePort> clusterStoragePorts = new ArrayList<>();
-                                getCluseterStoragePorts(hostRes, recommendedPorts, vol.getStorageSystemId(), clusterStoragePorts);
+                                getCluseterStoragePorts(hostRes, availablePorts, vol.getStorageSystemId(), clusterStoragePorts);
 
                                 for (StoragePort sp:clusterStoragePorts) {
                                     // assign all these ports as selected ports
@@ -1599,7 +1599,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
                         if (doExport == true) {
                             /*
                              * export volume; for cluster use host set method to export
-                             * We cannot specify port; determine the individual host ports used by cluster export
+                             * We cannot specify port; determine the individual host ports used 
                              */
                             VlunResult vlunRes = hp3parApi.createVlun(vol.getNativeId(), hlu, host, null);
                             if (vlunRes != null && vlunRes.getStatus() == true) {
@@ -1805,20 +1805,29 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
                     Map<String, List<String>> attributes = new HashMap<>();
                     List<String> expValue = new ArrayList<>();
                     List<String> lunValue = new ArrayList<>();
+                    boolean regPresent = false;
 
                     attributes = this.driverRegistry.getDriverAttributesForKey(HP3PARConstants.DRIVER_NAME, exportPath);
                     
-                    if (attributes != null) {
+                    if (attributes != null) { 
                         expValue = attributes.get("EXPORT_PATH");
                         if (expValue != null && expValue.get(0).compareTo(exportPath) == 0) {
+                            regPresent = true;
                             lunValue = attributes.get(volume.getNativeId());
                             
                             hp3parApi.deleteVlun(volume.getNativeId(), lunValue.get(0), 
                                     "set:" + initiators.get(0).getClusterName(), null);
+                            
+//                            remove the registry content
+                            totalUnexport++;
                         }
                     }
                     
-                    totalUnexport++;
+                    if (regPresent == false) {
+//                        gracefully exit, inc counter
+                        
+                    }
+                    
                 } // if cluster
                     
             } catch (Exception e) {

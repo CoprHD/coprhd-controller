@@ -44,6 +44,7 @@ public class PrefixConstraintImpl extends ConstraintImpl implements PrefixConstr
             _label = new ScopedLabel(scope.toString(), label.toLowerCase());
         }
         _field = field;
+        cf = _field.getIndexCF().getName();
     }
 
     @Override

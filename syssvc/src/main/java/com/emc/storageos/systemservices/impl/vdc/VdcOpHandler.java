@@ -306,15 +306,10 @@ public abstract class VdcOpHandler {
                 log.info("Local data revision is {}, vdc config version is {}", localRevision, localVdcConfigVersion);
                 
                 if (localVdcConfigVersion != targetVdcConfigVersion) {
-                    if (isIsolatedStandby()) {
-                        log.info("Skip data revision change on isolated standby");
-                        Site localSite = drUtil.getLocalSite();
-                        if (localSite.getState() == SiteState.STANDBY_RESUMING) {
-                            localSite.setState(SiteState.STANDBY_PAUSED);
-                            coordinator.getCoordinatorClient().persistServiceConfiguration(localSite.toConfiguration());
-                            log.info("Change local site state from RESUMING to PAUSED");
-                        }
+                    if (localVdcConfigVersion > targetVdcConfigVersion) { 
+                        processRollback(localRevisionProps);
                     } else {
+                        // Go ahead to apply the change if data revision increases
                         updateDataRevision(localRevisionProps);
                     }
                 }
@@ -323,21 +318,28 @@ public abstract class VdcOpHandler {
                 throw e;
             }
         }
-        
-        private boolean isIsolatedStandby() {
-            if (drUtil.isStandby()) {
-                Site localSite = drUtil.getLocalSite();
-                if (coordinator.isZKLeaderAlive(localSite)) {
-                    log.info("Current standby site has ZK leader node. It loses connectivity to active site");
-                    return true;
-                }
+ 
+        private void processRollback(PropertyInfoExt localRevisionProps) throws Exception{
+            log.info("Local vdc config version is greater than target revision. Local db revision was rollbacked due to error in middle of previous data syncing");
+            if (!coordinator.isStandby()) {
+                return; 
             }
-            return false;
+
+            Site localSite = drUtil.getLocalSite();
+            // ZK leader node available at local site - means no connectivity to
+            // active site
+            if (coordinator.isZKLeaderAlive(localSite)) {
+                log.info("No ZK connectivity to active site. Skip the data revision change and keep current revision until connected back to active");
+                if (localSite.getState() == SiteState.STANDBY_RESUMING) {
+                    localSite.setState(SiteState.STANDBY_PAUSED);
+                    coordinator.getCoordinatorClient().persistServiceConfiguration(localSite.toConfiguration());
+                    log.info("Change local site state from RESUMING to PAUSED");
+                }
+            } 
         }
-        
+       
         /**
-         * Check if data revision is same as local one. If not, switch to target revision and reboot the whole cluster
-         * simultaneously.
+         * Switch to target revision and reboot the whole cluster simultaneously.
          * 
          * The data revision switch is implemented as 2-phase commit protocol to ensure no partial commit
          * 

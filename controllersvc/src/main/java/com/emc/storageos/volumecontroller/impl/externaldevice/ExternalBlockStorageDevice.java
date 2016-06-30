@@ -56,6 +56,7 @@ import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.VolumeURIHLU;
+import com.emc.storageos.volumecontroller.impl.externaldevice.job.CreateGroupCloneExternalDeviceJob;
 import com.emc.storageos.volumecontroller.impl.externaldevice.job.CreateVolumeCloneExternalDeviceJob;
 import com.emc.storageos.volumecontroller.impl.job.QueueJob;
 import com.emc.storageos.volumecontroller.impl.plugins.ExternalDeviceCommunicationInterface;
@@ -676,22 +677,20 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
             }
             // Call driver to create group snapshot
             DriverTask task = driver.createConsistencyGroupClone(driverCG, Collections.unmodifiableList(driverClones), null);
-            // todo: need to implement support for async case.
-            if (task.getStatus() == DriverTask.TaskStatus.READY) {
+            if (!isTaskInTerminalState(task.getStatus())) {
+                // If the task is not in a terminal state and will be completed asynchronously
+                // create a job to monitor the progress of the request and update the clone 
+                // volume and call the completer as appropriate based on the result of the request.
+                CreateGroupCloneExternalDeviceJob job = new CreateGroupCloneExternalDeviceJob(
+                        storageSystem.getId(), cloneURIs, parentVolume.getConsistencyGroup(),
+                        task.getTaskId(), taskCompleter);
+                ControllerServiceImpl.enqueueJob(new QueueJob(job));
+            } else if (task.getStatus() == DriverTask.TaskStatus.READY) {
                 // Update clone object with driver data
                 List<Volume> cloneObjects = new ArrayList<>();
                 for (VolumeClone driverCloneResult : driverClones) {
                     Volume cloneObject = driverCloneToCloneMap.get(driverCloneResult);
-                    cloneObject.setNativeId(driverCloneResult.getNativeId());
-                    cloneObject.setWWN(driverCloneResult.getWwn());
-                    cloneObject.setDeviceLabel(driverCloneResult.getDeviceLabel());
-                    cloneObject.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(dbClient, cloneObject));
-                    cloneObject.setReplicaState(driverCloneResult.getReplicationState().name());
-                    cloneObject.setReplicationGroupInstance(driverCloneResult.getConsistencyGroup());
-                    cloneObject.setProvisionedCapacity(driverCloneResult.getProvisionedCapacity());
-                    cloneObject.setAllocatedCapacity(driverCloneResult.getAllocatedCapacity());
-                    cloneObject.setInactive(false);
-                    cloneObject.setConsistencyGroup(parentVolume.getConsistencyGroup());
+                    ExternalDeviceUtils.updateGroupVolumeFromClone(cloneObject, driverCloneResult, parentVolume.getConsistencyGroup(), dbClient);
                     cloneObjects.add(cloneObject);
                 }
                 dbClient.updateObject(cloneObjects);

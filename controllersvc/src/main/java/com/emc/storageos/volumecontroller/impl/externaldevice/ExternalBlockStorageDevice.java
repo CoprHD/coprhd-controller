@@ -483,13 +483,28 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
             // Call driver
             BlockStorageDriver driver = getDriver(storageSystem.getSystemType());
             DriverTask task = driver.createVolumeClone(Collections.unmodifiableList(driverClones), null);
-            
-            // Create a job to monitor the progress of the request and update
-            // the clone volume and call the completer as appropriate based on
-            // the result of the request.
-            CreateVolumeCloneExternalDeviceJob job = new CreateVolumeCloneExternalDeviceJob(
-                    storageSystem.getId(), volume, task.getTaskId(), taskCompleter);
-            ControllerServiceImpl.enqueueJob(new QueueJob(job));
+            if (!isTaskInTerminalState(task.getStatus())) {
+                // If the task is not in a terminal state and will be completed asynchronously
+                // create a job to monitor the progress of the request and update the clone 
+                // volume and call the completer as appropriate based on the result of the request.
+                CreateVolumeCloneExternalDeviceJob job = new CreateVolumeCloneExternalDeviceJob(
+                        storageSystem.getId(), volume, task.getTaskId(), taskCompleter);
+                ControllerServiceImpl.enqueueJob(new QueueJob(job));
+            } else if (task.getStatus() == DriverTask.TaskStatus.READY) {
+                // Update clone
+                VolumeClone driverCloneResult = driverClones.get(0);
+                ExternalDeviceUtils.updateVolumeFromClone(cloneObject, driverCloneResult, dbClient);
+                String msg = String.format("doCreateClone -- Created volume clone: %s .", task.getMessage());
+                _log.info(msg);
+                taskCompleter.ready(dbClient);
+            } else {
+                cloneObject.setInactive(true);
+                dbClient.updateObject(cloneObject);
+                String errorMsg = String.format("doCreateClone -- Failed to create volume clone: %s .", task.getMessage());
+                _log.error(errorMsg);
+                ServiceError serviceError = ExternalDeviceException.errors.createVolumeCloneFailed("doCreateClone", errorMsg);
+                taskCompleter.error(dbClient, serviceError);                
+            }
         } catch (Exception e) {
             if (cloneObject != null) {
                 cloneObject.setInactive(true);
@@ -1451,6 +1466,33 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
         _log.info("No support for wait for synchronization for external devices.");
         completer.ready(dbClient);
 
+    }
+    
+    /**
+     * Method determines if the passed task status indicates that the task is completed
+     * and is in a terminal state.
+     * 
+     * Terminal states are:
+     *   READY
+     *   FAILED
+     *   PARTIALLY_FAILED
+     *   WARNING
+     *   ABORTED
+     *   
+     * Non-Terminal states are:
+     *    QUEUED
+     *    PROVISIONING  
+     * 
+     * @param taskStatus A reference to the task status
+     * 
+     * @return true if the state is terminal, false otherwise.
+     */
+    public boolean isTaskInTerminalState(DriverTask.TaskStatus taskStatus) {
+        if (DriverTask.TaskStatus.PROVISIONING == taskStatus || DriverTask.TaskStatus.QUEUED == taskStatus) {
+            return false;
+        } else {
+            return true;
+        }
     }
     
     /**

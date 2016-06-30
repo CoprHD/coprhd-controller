@@ -106,15 +106,14 @@ abstract public class ExternalDeviceJob extends Job implements Serializable {
             
             TaskStatus taskStatus = driverTask.getStatus();
             String taskStatusMsg = driverTask.getMessage();
-            if (TaskStatus.READY == taskStatus || TaskStatus.PARTIALLY_FAILED == taskStatus) {
+            if (isTaskSuccessful(taskStatus)) {
                 // Completed successfully
                 s_logger.info(String.format("Task %s completed successfully with status %s:%s",
                         _driverTaskId, taskStatus, taskStatusMsg));
                 doTaskSucceeded(driverTask, dbClient);
                 _pollResult.setJobPercentComplete(100);
                 _status = JobStatus.SUCCESS;
-            } else if (TaskStatus.FAILED == taskStatus || TaskStatus.ABORTED == taskStatus
-                    || TaskStatus.WARNING == taskStatus) {
+            } else if (isTaskFailed(taskStatus)) {
                 // Failed.
                 s_logger.info(String.format("Task %s failed with status %s:%s", _driverTaskId,
                         taskStatus, taskStatusMsg));
@@ -128,7 +127,11 @@ abstract public class ExternalDeviceJob extends Job implements Serializable {
             s_logger.error(String.format(
                     "Unexpected error getting external driver task status for task %s on storage system %s: s",
                     _driverTaskId, _storageSystemURI.toString(), _errorDescription), e);
-            doTaskFailed(driverTask, dbClient);
+            try {
+                doTaskFailed(driverTask, dbClient);
+            } catch (Exception dtfe) {
+                s_logger.error("Unexpected error handling task failed", e);
+            }
             _status = JobStatus.FAILED;
         } finally {
             updateStatus(dbClient);
@@ -139,6 +142,32 @@ abstract public class ExternalDeviceJob extends Job implements Serializable {
 
         return _pollResult;
     }
+    
+    /**
+     * Determines if the passed status indicates the task was successful.
+     * Override in derived classes as appropriate. 
+     * 
+     * @param taskStatus The task status.
+     * 
+     * @return true if the task is successful, false otherwise.
+     */
+    protected boolean isTaskSuccessful(TaskStatus taskStatus) {
+        return (TaskStatus.READY == taskStatus || TaskStatus.PARTIALLY_FAILED == taskStatus);
+    }
+    
+    /**
+     * Determines if the passed status indicates the task failed.
+     * Override in derived classes as appropriate. 
+     * 
+     * @param taskStatus The task status.
+     * 
+     * @return true if the task failed, false otherwise.
+     */
+    protected boolean isTaskFailed(TaskStatus taskStatus) {
+        return (TaskStatus.FAILED == taskStatus
+                ||TaskStatus.ABORTED == taskStatus
+                || TaskStatus.WARNING == taskStatus);
+    }    
 
     /**
      * If necessary, update the task completer after a poll.
@@ -165,16 +194,20 @@ abstract public class ExternalDeviceJob extends Job implements Serializable {
      * 
      * @param driverTask A reference to the driver task.
      * @param dbClient A reference to a database client.
+     * 
+     * @throws Exception
      */
-    protected abstract void doTaskSucceeded(DriverTask driverTask, DbClient dbClient);
+    protected abstract void doTaskSucceeded(DriverTask driverTask, DbClient dbClient) throws Exception;
 
     /**
      * Job specific actions to be done when a task fails to complete successfully
      * 
      * @param taskStatus A reference to the driver task.
      * @param dbClient A reference to a database client.
+     * 
+     * @throws Exception
      */
-    protected abstract void doTaskFailed(DriverTask driverTask, DbClient dbClient);
+    protected abstract void doTaskFailed(DriverTask driverTask, DbClient dbClient) throws Exception;
 
     /**
      * {@inheritDoc}

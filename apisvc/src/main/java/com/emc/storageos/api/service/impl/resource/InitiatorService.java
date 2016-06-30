@@ -38,6 +38,7 @@ import com.emc.storageos.computesystemcontroller.ComputeSystemController;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.model.Cluster;
+import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.Host;
@@ -66,7 +67,9 @@ import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.volumecontroller.BlockController;
 import com.emc.storageos.volumecontroller.impl.smis.vmax.VmaxExportOperations;
+import com.emc.storageos.vplexcontroller.VPlexController;
 
 /**
  * Service providing APIs for host initiators.
@@ -81,6 +84,8 @@ public class InitiatorService extends TaskResourceService {
     protected final static Logger _log = LoggerFactory.getLogger(InitiatorService.class);
 
     private static final String EVENT_SERVICE_TYPE = "initiator";
+    private static final String ALIAS = "Alias-Operations";
+    private static final String EMPTY_INITIATOR_ALIAS = "//";
 
     @Override
     public String getServiceType() {
@@ -312,12 +317,31 @@ public class InitiatorService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/alias")
     public String getInitiatorAlias(@PathParam("id") URI id, @PathParam("vmax-system") URI vmaxSSID) {
+        _log.info("Retrieving alias for initiator {} on system {}", id, vmaxSSID);
+        //Basic Checks
         Initiator initiator = queryResource(id);
-        // check the user has permissions
         verifyUserPermisions(initiator);
         StorageSystem system = _permissionsHelper.getObjectById(vmaxSSID, StorageSystem.class);
-        
-        String initiatorAlias = null; // VmaxExportOperations.getInitiatorAlias(system, initiator);
+        String initiatorAlias = null;
+        if (system != null && system.getSystemType().equalsIgnoreCase(StorageSystem.Type.vmax.toString())) {
+            BlockController controller = getController(BlockController.class, system.getSystemType());
+            //Actual Control
+            try {
+                initiatorAlias = controller.getInitiatorAlias(vmaxSSID, id);
+            } catch (Exception e) {
+                _log.error("Unexpected error: Getting alias failed.", e);
+                throw APIException.badRequests.unableToProcessRequest(e.getMessage());
+            }
+        } else {
+            throw APIException.badRequests.operationNotSupportedForSystemType(ALIAS, system.getSystemType());
+        }
+        // If the Alias is empty, set it to "/".
+        if ((initiatorAlias == null) || (initiatorAlias != null && initiatorAlias.isEmpty())) {
+            initiatorAlias = EMPTY_INITIATOR_ALIAS;
+        }
+        // Update the initiator
+        initiator.mapInitiatorName(system.getSerialNumber(), initiatorAlias);
+        _dbClient.updateObject(initiator);
         return initiatorAlias;
     }
 
@@ -336,12 +360,32 @@ public class InitiatorService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/alias")
     public void setInitiatorAlias(@PathParam("id") URI id, @PathParam("vmax-system") URI vmaxSSID, @PathParam("alias") String initiatorAlias) {
+        _log.info("Setting alias- {} for initiator {} on system {}", initiatorAlias, id, vmaxSSID);
+        //Basic Checks
         Initiator initiator = queryResource(id);
-        // check the user has permissions
         verifyUserPermisions(initiator);
         StorageSystem system = _permissionsHelper.getObjectById(vmaxSSID, StorageSystem.class);
-
-        return;// VmaxExportOperations.setInitiatorAlias(system, initiator, initiatorAlias);
+        if (system != null && system.getSystemType().equalsIgnoreCase(StorageSystem.Type.vmax.toString())) {
+            BlockController controller = getController(BlockController.class, system.getSystemType());
+            try {
+                //Actual Control
+                controller.setInitiatorAlias(vmaxSSID, id, initiatorAlias);
+            } catch (Exception e) {
+                _log.error("Unexpected error: Setting alias failed.", e);
+                throw APIException.badRequests.unableToProcessRequest(e.getMessage());
+            }
+        } else {
+            throw APIException.badRequests.operationNotSupportedForSystemType(ALIAS, system.getSystemType());
+        }
+        //Update the Initiator here..
+        if (initiatorAlias.contains(EMPTY_INITIATOR_ALIAS)) {// If the Initiator Alias contains the "/" character, the user has supplied
+                                                             // different node and port names.
+            initiator.mapInitiatorName(system.getSerialNumber(), initiatorAlias);
+        } else {// The user has set the same node and port names.
+            initiator.mapInitiatorName(system.getSerialNumber(),
+                    String.format("%s%s%s", initiatorAlias, EMPTY_INITIATOR_ALIAS, initiatorAlias));
+        }
+        _dbClient.updateObject(initiator);
     }
     
     @Override

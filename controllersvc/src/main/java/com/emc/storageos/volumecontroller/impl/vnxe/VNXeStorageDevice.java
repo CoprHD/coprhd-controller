@@ -2623,4 +2623,14 @@ public class VNXeStorageDevice extends VNXeOperations
         return BiosCommandResult.createErrorResult(
                 DeviceControllerErrors.vnxe.operationNotSupported());
     }
+
+    @Override
+    public void doInitiatorAliasSet(StorageSystem storage, Initiator initiator, String initiatorAlias) throws Exception {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public String doInitiatorAliasGet(StorageSystem storage, Initiator initiator) throws Exception {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
 }

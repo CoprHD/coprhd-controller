@@ -1048,4 +1048,21 @@ public interface BlockStorageDevice {
             String replicationGroupName, Boolean keepRGName, Boolean markInactive, 
             String sourceReplicationGroup, TaskCompleter taskCompleter) throws DeviceControllerException;
     
+    /**
+     * Set an Alias for the supplied initiator on a given Storage System
+     * 
+     * @param storage
+     * @param initiator
+     * @param initiatorAlias - User friendly name for the Initiator on the Storage System
+     */
+    public void doInitiatorAliasSet(StorageSystem storage, Initiator initiator, String initiatorAlias) throws Exception;
+
+    /**
+     * Get the Alias for an initiator on the supplied Storage System if Set
+     * 
+     * @param storage
+     * @param initiator
+     */
+    public String doInitiatorAliasGet(StorageSystem storage, Initiator initiator) throws Exception;
+
 }

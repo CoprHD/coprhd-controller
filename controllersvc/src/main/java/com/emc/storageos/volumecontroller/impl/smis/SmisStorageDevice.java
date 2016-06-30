@@ -3133,7 +3133,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
      * @param initiatorAlias - User Friendly Name
      * @throws Exception
      */
-    public void setInitiatorAlias(StorageSystem storage, Initiator initiator, String initiatorAlias)
+    public void doInitiatorAliasSet(StorageSystem storage, Initiator initiator, String initiatorAlias)
             throws Exception {
 
         if (storage.getUsingSmis80()) {
@@ -3163,8 +3163,10 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
         initiatorInstances.close();
 
         if (shidPath.toString().isEmpty()) {
-            // TODO : throw exception that the SHID is not available on the Array...
+            _log.error("Source volume was not found: {}", normalizedPortName);
+            throw DeviceControllerException.exceptions.invalidObjectNull();
         }
+
         try {
             CIMArgument[] inArgs = _helper.getEMCInitiatorAliasSetArgs(shidPath, initiatorAlias);
             CIMArgument[] outArgs = new CIMArgument[5];
@@ -3192,7 +3194,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
      * @return initiatorAlias - User Friendly Name
      * @throws Exception
      */
-    public String getInitiatorAlias(StorageSystem storage, Initiator initiator)
+    public String doInitiatorAliasGet(StorageSystem storage, Initiator initiator)
             throws Exception {
         String initiatorAlias = null;
 
@@ -3223,8 +3225,10 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
         initiatorInstances.close();
 
         if (shidPath.toString().isEmpty()) {
-            // TODO : throw exception that the SHID is not available on the Array...
+            _log.error("Source volume was not found: {}", normalizedPortName);
+            throw DeviceControllerException.exceptions.invalidObjectNull();
         }
+
         try {
             CIMArgument[] inArgs = _helper.getEMCInitiatorAliasGetArgs(shidPath);
             CIMArgument[] outArgs = new CIMArgument[5];

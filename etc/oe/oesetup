@@ -3,7 +3,7 @@
 echo "Docker service strated"
 echo "Loading Docker images"
 docker load </etc/oe/mongo.tar
-echo "mongo loadefd"
+echo "mongo loaded"
 docker load</etc/oe/on-http.tar
 echo "on-http loaded"
 docker load</etc/oe/on-taskgraph.tar
@@ -23,7 +23,8 @@ docker run --privileged=true --net="host" --name docker_on-http_1 -d -v /etc/mon
 echo "started on-http"
 docker run --privileged=true --net="host" --name docker_on-taskgraph_1 -d -v /etc/monorail:/opt/monorail -v /etc/ansible_scripts:/root/ansible-work oe-ontaskgraph:latest 
 echo "OE deployment Done"
-echo "Load the WF"
+echo "Sleep for 1m before loading WF"
+sleep 1m
 cd /etc/ansible_scripts
 curl -X PUT -d @ansibleViPRBlockStorageTypeForExportTask -H "Content-Type: application/json" localhost:9090/api/1.1/workflows/tasks
 curl -X PUT -d @ansibleLocalTask -H "Content-Type: application/json" localhost:9090/api/1.1/workflows/tasks

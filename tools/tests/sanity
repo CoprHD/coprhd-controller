@@ -4479,7 +4479,6 @@ recoverpoint_direct_access_test()
             else
                 secho 'Verifying that the bookmark associated with target copy NOT in direct access mode still exists'
                 run blocksnapshot show ${PROJECT}/${src_volume}/${rp_bookmark}-${tgt_varray}
-                secho 'Removing bookmark after it has been verified'
             fi
         done	 
 
@@ -5141,6 +5140,9 @@ recoverpoint_tests()
                 # Failover Test
                 recoverpoint_failover_test ${rpvplexvolume}${volume_name_modifier} ${rpvplexvolumetarget}${volume_name_modifier}
 
+                # Direct Access Failover Test
+                recoverpoint_direct_access_test ${rpvplexvolume}${volume_name_modifier} ${rpvplex_tgt_varrays} ${rpvplex_src_varray} ${rpvplex_src_vpool} ${RP_VPLEX_CONSISTENCY_GROUP} "vplex"
+
                 # CG Failover/Swap Test
                 recoverpoint_cg_failover_test ${RP_VPLEX_CONSISTENCY_GROUP} ${rpvplexvolume}${volume_name_modifier} ${rpvplex_src_varray} ${rp_vplex_tgt_volumes} ${rp_tgt_varrays}
 
@@ -5168,6 +5170,9 @@ recoverpoint_tests()
 
                 # Failover Test
                 recoverpoint_failover_test ${rpmpvolume}${volume_name_modifier} ${rpmpvolumetarget}${volume_name_modifier}
+
+                # Direct Access Failover Test
+                recoverpoint_direct_access_test ${rpmpvolume}${volume_name_modifier} ${rpmp_tgt_varrays} ${rpmp_src_varray} ${rpmp_src_vpool} ${RP_METROPOINT_CONSISTENCY_GROUP} "mp"
 
                 # CG Failover/Swap Test
                 recoverpoint_cg_failover_test ${RP_METROPOINT_CONSISTENCY_GROUP} ${rpmpvolume}${volume_name_modifier} ${rpmp_src_varray} ${rpmp_tgt_volumes} ${rpmp_tgt_varrays}

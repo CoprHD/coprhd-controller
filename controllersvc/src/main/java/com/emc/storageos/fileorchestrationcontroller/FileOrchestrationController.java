@@ -10,6 +10,7 @@ import java.util.List;
 import com.emc.storageos.Controller;
 import com.emc.storageos.model.file.CifsShareACLUpdateParams;
 import com.emc.storageos.model.file.FileExportUpdateParams;
+import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.FileSMBShare;
 import com.emc.storageos.volumecontroller.FileShareExport;
@@ -66,7 +67,7 @@ public interface FileOrchestrationController extends Controller {
      * This method is responsible for creating a Workflow and invoking the FileOrchestrationInterface.addStepsForCreateFileSystemShare
      * 
      * @param URI storageSystem
-     * @param URI fileSystem
+     * @param URI fileSystem/Snapshot
      * @param FileSMBShare
      * @param String taskId
      * @throws ControllerException
@@ -80,7 +81,7 @@ public interface FileOrchestrationController extends Controller {
      * This method is responsible for creating a Workflow and invoking the FileOrchestrationInterface.addStepsForCreateFileSystemExport
      * 
      * @param URI storageSystem
-     * @param URI fileSystem
+     * @param URI fileSystem/Snapshot
      * @param List<FileShareExport
      * @param String opId
      * @throws ControllerException
@@ -116,6 +117,29 @@ public interface FileOrchestrationController extends Controller {
 
     public abstract void updateShareACLs(URI storage, URI fsURI, String shareName, CifsShareACLUpdateParams param, String opId)
             throws ControllerException;
+
+    /**
+     * Delete FileSystem Share
+     *
+     * @param URI storageSystem
+     * @param URI FileSystem/snapshot
+     * @param FileSMBShare
+     * @param String opId
+     * @throws InternalException
+     */
+    public abstract void deleteShare(URI storage, URI uri, FileSMBShare fileSMBShare, String task) throws ControllerException;
+
+    /**
+     * Delete FileSystem Export Rules
+     *
+     * @param URI storageSystem
+     * @param URI FileSystem/snapshot
+     * @param Boolean allDirs
+     * @param String subDirs
+     * @param String taskId
+     * @throws InternalException
+     */
+    public abstract void deleteExportRules(URI storage, URI uri, boolean allDirs, String subDirs, String taskId) throws ControllerException;
 
     /**
      * Create File System Snapshot

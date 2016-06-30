@@ -1440,14 +1440,14 @@ public class FileService extends TaskResourceService {
         _log.info("Deleteing SMBShare {}", shareName);
 
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
-        FileController controller = getController(FileController.class,
-                device.getSystemType());
+
         Operation op = _dbClient.createTaskOpStatus(FileShare.class, fs.getId(),
                 task, ResourceOperationTypeEnum.DELETE_FILE_SYSTEM_SHARE);
         FileSMBShare fileSMBShare = new FileSMBShare(shareName, smbShare.getDescription(), smbShare.getPermissionType(),
                 smbShare.getPermission(), Integer.toString(smbShare.getMaxUsers()), smbShare.getNativeId(), smbShare.getPath());
         fileSMBShare.setStoragePortGroup(smbShare.getPortGroup());
-        controller.deleteShare(device.getId(), fs.getId(), fileSMBShare, task);
+        FileServiceApi fileServiceApi = getFileShareServiceImpl(fs, _dbClient);
+        fileServiceApi.deleteShare(device.getId(), fs.getId(), fileSMBShare, task);
         auditOp(OperationTypeEnum.DELETE_FILE_SYSTEM_SHARE, true, AuditLogManager.AUDITOP_BEGIN,
                 smbShare.getName(), smbShare.getPermissionType(), smbShare.getPermission(),
                 smbShare.getMaxUsers(), smbShare.getDescription(), fs.getId().toString());
@@ -2121,7 +2121,6 @@ public class FileService extends TaskResourceService {
         ArgValidator.checkEntity(fs, id, isIdEmbeddedInURL(id));
 
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
-        FileController controller = getController(FileController.class, device.getSystemType());
 
         String path = fs.getPath();
         _log.info("Export path found {} ", path);
@@ -2150,8 +2149,8 @@ public class FileService extends TaskResourceService {
         op.setDescription("Filesystem unexport");
 
         try {
-
-            controller.deleteExportRules(device.getId(), fs.getId(), allDirs, subDir, task);
+            FileServiceApi fileServiceApi = getFileShareServiceImpl(fs, _dbClient);
+            fileServiceApi.deleteExportRules(device.getId(), fs.getId(), allDirs, subDir, task);
 
             auditOp(OperationTypeEnum.UNEXPORT_FILE_SYSTEM, true, AuditLogManager.AUDITOP_BEGIN,
                     fs.getId().toString(), device.getId().toString(), allDirs, subDir);

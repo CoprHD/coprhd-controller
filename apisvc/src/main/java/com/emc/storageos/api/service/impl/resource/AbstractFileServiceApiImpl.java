@@ -259,4 +259,18 @@ public abstract class AbstractFileServiceApiImpl<T> implements FileServiceApi {
                 FileOrchestrationController.FILE_ORCHESTRATION_DEVICE);
         controller.snapshotFS(storage, snapshot, fsURI, opId);
     }
+
+    @Override
+    public void deleteShare(URI storage, URI uri, FileSMBShare fileSMBShare, String task) {
+        FileOrchestrationController controller = getController(FileOrchestrationController.class,
+                FileOrchestrationController.FILE_ORCHESTRATION_DEVICE);
+        controller.deleteShare(storage, uri, fileSMBShare, task);
+    }
+
+    @Override
+    public void deleteExportRules(URI storage, URI uri, boolean allDirs, String subDirs, String taskId) {
+        FileOrchestrationController controller = getController(FileOrchestrationController.class,
+                FileOrchestrationController.FILE_ORCHESTRATION_DEVICE);
+        controller.deleteExportRules(storage, uri, allDirs, subDirs, taskId);
+    }
 }

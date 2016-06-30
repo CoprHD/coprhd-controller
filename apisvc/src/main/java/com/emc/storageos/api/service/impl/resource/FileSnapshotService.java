@@ -277,8 +277,6 @@ public class FileSnapshotService extends TaskResourceService {
         FileService.validateIpInterfacesRegistered(param.getEndpoints(), _dbClient);
         FileShare fs = _permissionsHelper.getObjectById(snap.getParent(), FileShare.class);
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
-        FileController controller = getController(FileController.class,
-                device.getSystemType());
 
         // Locate storage port for exporting file snap
         // We use file system in the call since file snap belongs to the same neighbourhood as its parent file system
@@ -321,7 +319,10 @@ public class FileSnapshotService extends TaskResourceService {
 
         Operation op = _dbClient.createTaskOpStatus(Snapshot.class, snap.getId(),
                 task, ResourceOperationTypeEnum.EXPORT_FILE_SNAPSHOT);
-        controller.export(device.getId(), snap.getId(), Arrays.asList(export), task);
+
+        FileServiceApi fileServiceApi = FileService.getFileShareServiceImpl(fs, _dbClient);
+        fileServiceApi.export(device.getId(), snap.getId(), Arrays.asList(export), task);
+
         auditOp(OperationTypeEnum.EXPORT_FILE_SNAPSHOT, true, AuditLogManager.AUDITOP_BEGIN,
                 snap.getId().toString(), device.getId().toString(), export.getClients(), param.getSecurityType(),
                 param.getPermissions(), param.getRootUserMapping(), param.getProtocol());
@@ -532,7 +533,6 @@ public class FileSnapshotService extends TaskResourceService {
         }
 
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, fileShare.getStorageDevice());
-        FileController controller = getController(FileController.class, device.getSystemType());
 
         String path = snapshot.getPath();
         _log.info("Export path found {} ", path);
@@ -541,8 +541,8 @@ public class FileSnapshotService extends TaskResourceService {
                 ResourceOperationTypeEnum.UNEXPORT_FILE_SNAPSHOT);
 
         try {
-
-            controller.deleteExportRules(device.getId(), snapshot.getId(), false, null, task);
+            FileServiceApi fileServiceApi = FileService.getFileShareServiceImpl(fileShare, _dbClient);
+            fileServiceApi.deleteExportRules(device.getId(), snapshot.getId(), false, null, task);
 
             auditOp(OperationTypeEnum.UNEXPORT_FILE_SNAPSHOT, true, AuditLogManager.AUDITOP_BEGIN,
                     snapshot.getId().toString(), device.getId().toString(), false, null);
@@ -718,7 +718,8 @@ public class FileSnapshotService extends TaskResourceService {
         Operation op = _dbClient.createTaskOpStatus(Snapshot.class, snap.getId(), task,
                 ResourceOperationTypeEnum.CREATE_FILE_SNAPSHOT_SHARE);
 
-        controller.share(device.getId(), snap.getId(), smbShare, task);
+        FileServiceApi fileServiceApi = FileService.getFileShareServiceImpl(fs, _dbClient);
+        fileServiceApi.share(device.getId(), snap.getId(), smbShare, task);
         auditOp(OperationTypeEnum.CREATE_FILE_SNAPSHOT_SHARE, true, AuditLogManager.AUDITOP_BEGIN,
                 smbShare.getName(), smbShare.getPermissionType(), smbShare.getPermission(),
                 smbShare.getMaxUsers(), smbShare.getDescription(), snap.getId().toString());
@@ -760,15 +761,15 @@ public class FileSnapshotService extends TaskResourceService {
         SMBFileShare smbShare = snap.getSMBFileShares().get(shareName);
 
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
-        FileController controller = getController(FileController.class,
-                device.getSystemType());
+
         Operation op = _dbClient.createTaskOpStatus(Snapshot.class, snap.getId(),
                 task, ResourceOperationTypeEnum.DELETE_FILE_SNAPSHOT_SHARE);
         FileSMBShare fileSMBShare = new FileSMBShare(shareName, smbShare.getDescription(),
                 smbShare.getPermissionType(), smbShare.getPermission(), Integer.toString(smbShare
                         .getMaxUsers()),
                 smbShare.getNativeId(), smbShare.getPath());
-        controller.deleteShare(device.getId(), snap.getId(), fileSMBShare, task);
+        FileServiceApi fileServiceApi = FileService.getFileShareServiceImpl(fs, _dbClient);
+        fileServiceApi.deleteShare(device.getId(), snap.getId(), fileSMBShare, task);
         auditOp(OperationTypeEnum.DELETE_FILE_SNAPSHOT_SHARE, true, AuditLogManager.AUDITOP_BEGIN,
                 smbShare.getName(), smbShare.getPermissionType(), smbShare.getPermission(),
                 smbShare.getMaxUsers(), smbShare.getDescription(), snap.getId().toString());
@@ -832,12 +833,10 @@ public class FileSnapshotService extends TaskResourceService {
 
         _log.info("Request payload verified. No errors found.");
 
-        FileController controller = getController(FileController.class, device.getSystemType());
-
         Operation op = _dbClient.createTaskOpStatus(Snapshot.class, snapshot.getId(),
                 task, ResourceOperationTypeEnum.UPDATE_FILE_SNAPSHOT_SHARE_ACL);
-
-        controller.updateShareACLs(device.getId(), snapshot.getId(), shareName, param, task);
+        FileServiceApi fileServiceApi = FileService.getFileShareServiceImpl(fs, _dbClient);
+        fileServiceApi.updateShareACLs(device.getId(), snapshot.getId(), shareName, param, task);
 
         auditOp(OperationTypeEnum.UPDATE_FILE_SNAPSHOT_SHARE_ACL, true, AuditLogManager.AUDITOP_BEGIN,
                 snapshot.getId().toString(), device.getId().toString(), param);
@@ -948,8 +947,8 @@ public class FileSnapshotService extends TaskResourceService {
             StorageSystem.Type storageSystemType = StorageSystem.Type.valueOf(device.getSystemType());
 
             if (storageSystemType.equals(DiscoveredDataObject.Type.isilon)) {
-                    _log.error("Invalid Operation. Restore snapshot is not supported by ISILON");
-                    throw APIException.badRequests.isilonSnapshotRestoreNotSupported();
+                _log.error("Invalid Operation. Restore snapshot is not supported by ISILON");
+                throw APIException.badRequests.isilonSnapshotRestoreNotSupported();
             }
             FileController controller = getController(FileController.class,
                     device.getSystemType());
@@ -1209,7 +1208,6 @@ public class FileSnapshotService extends TaskResourceService {
         ArgValidator.checkEntity(snap, id, true);
         FileShare fs = _permissionsHelper.getObjectById(snap.getParent(), FileShare.class);
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
-        FileController controller = getController(FileController.class, device.getSystemType());
 
         String path = snap.getPath();
         _log.info("Snapshot Export path found {} ", path);
@@ -1225,8 +1223,9 @@ public class FileSnapshotService extends TaskResourceService {
 
             _log.info("No Errors found proceeding further {}, {}, {}", new Object[] { _dbClient, fs, param });
 
-            controller.updateExportRules(device.getId(), snap.getId(), param, task);
-            // controller.export(device.getId(), snap.getId(), Arrays.asList(export), task);
+            FileServiceApi fileServiceApi = FileService.getFileShareServiceImpl(fs, _dbClient);
+            fileServiceApi.updateExportRules(device.getId(), snap.getId(), param, task);
+
             auditOp(OperationTypeEnum.UPDATE_EXPORT_RULES_FILE_SNAPSHOT, true, AuditLogManager.AUDITOP_BEGIN,
                     fs.getId().toString(), device.getId().toString(), param);
 

@@ -110,7 +110,7 @@ public interface FileServiceApi {
      * Create CIFS share for the FileSystem
      *
      * @param URI storageSystem
-     * @param URI fileSystem
+     * @param URI fileSystem/Snapshot
      * @param FileSMBShare
      * @param String task
      * @throws InternalException
@@ -122,7 +122,7 @@ public interface FileServiceApi {
      * Create NFS Export for the FileSystem
      *
      * @param URI storageSystem
-     * @param URI fileSystem
+     * @param URI fileSystem/Snapshot
      * @param List FileShareExport
      * @param String opId
      * @throws InternalException
@@ -166,4 +166,28 @@ public interface FileServiceApi {
      */
     public void snapshotFS(URI storage, URI snapshot, URI fsURI, String opId)
             throws InternalException;
+
+    /**
+     * Delete FileSystem Share
+     *
+     * @param URI storageSystem
+     * @param URI FileSystem/snapshot
+     * @param FileSMBShare
+     * @param String opId
+     * @throws InternalException
+     */
+    public void deleteShare(URI storage, URI uri, FileSMBShare fileSMBShare, String task) throws InternalException;
+
+    /**
+     * Delete FileSystem Export Rules
+     *
+     * @param URI storageSystem
+     * @param URI FileSystem/snapshot
+     * @param Boolean allDirs
+     * @param String subDirs
+     * @param String taskId
+     * @throws InternalException
+     */
+    public void deleteExportRules(URI storage, URI uri, boolean allDirs, String subDirs, String taskId) throws InternalException;
+
 }

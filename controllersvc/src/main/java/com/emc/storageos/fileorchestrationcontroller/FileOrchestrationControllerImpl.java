@@ -73,6 +73,16 @@ public class FileOrchestrationControllerImpl implements FileOrchestrationControl
         execOrchestration("snapshotFS", storage, snapshot, fsURI, opId);
     }
 
+    @Override
+    public void deleteShare(URI storage, URI uri, FileSMBShare fileSMBShare, String task) throws ControllerException {
+        execOrchestration("deleteShare", storage, uri, fileSMBShare, task);
+    }
+
+    @Override
+    public void deleteExportRules(URI storage, URI uri, boolean allDirs, String subDirs, String taskId) throws ControllerException {
+        execOrchestration("deleteExportRules", storage, uri, allDirs, subDirs, taskId);
+    }
+
     // getter and setter methods
     public FileOrchestrationController getController() {
         return _controller;
@@ -102,5 +112,4 @@ public class FileOrchestrationControllerImpl implements FileOrchestrationControl
         _dispatcher.queue(NullColumnValueGetter.getNullURI(), FILE_ORCHESTRATION_DEVICE,
                 getController(), methodName, args);
     }
-
 }

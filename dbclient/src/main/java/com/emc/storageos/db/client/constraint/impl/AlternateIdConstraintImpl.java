@@ -26,14 +26,13 @@ import com.emc.storageos.db.client.model.DataObject;
 public class AlternateIdConstraintImpl extends ConstraintImpl implements AlternateIdConstraint {
     private static final Logger log = LoggerFactory.getLogger(AlternateIdConstraintImpl.class);
 
-    private final String _altIdCf;
     private final String _altId;
     private final Class<? extends DataObject> _entryType;
 
     public AlternateIdConstraintImpl(ColumnField field, String altId) {
         super(field, altId);
 
-        _altIdCf = field.getIndexCF().getName();
+        cf = field.getIndexCF().getName();
         _altId = altId;
         _entryType = field.getDataObjectType();
     }
@@ -41,8 +40,7 @@ public class AlternateIdConstraintImpl extends ConstraintImpl implements Alterna
     @Override
     protected <T> void queryOnePage(final QueryResult<T> result) throws DriverException {
         StringBuilder queryString = new StringBuilder();
-        queryString.append("select").append(" * from \"").append(_altIdCf).append("\"");
-        queryString.append(" where key=?");
+        queryString.append("select * from \"").append(cf).append("\" where key=?");
         List<Object> queryParameters = new ArrayList<Object>();
         queryParameters.add(_altId);
         
@@ -51,7 +49,7 @@ public class AlternateIdConstraintImpl extends ConstraintImpl implements Alterna
 
     @Override
     protected Statement genQueryStatement() {
-        String queryString = String.format("select * from \"%s\" where key=? and column1=?", _altIdCf);
+        String queryString = String.format("select * from \"%s\" where key=? and column1=?", cf);
         
         PreparedStatement preparedStatement = this.dbClientContext.getPreparedStatement(queryString);
         Statement statement =  preparedStatement.bind(_altId,

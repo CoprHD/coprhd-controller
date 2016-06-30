@@ -30,7 +30,6 @@ public class TimeConstraintImpl extends ConstraintImpl implements Decommissioned
 	private static final Logger log = LoggerFactory.getLogger(TimeConstraintImpl.class);
     private static final long MILLIS_TO_MICROS = 1000L;
     private static final int DEFAULT_PAGE_SIZE = 100;
-    private final String cf;
     private final String rowKey;
     private final long startTimeMicros;
     private final long endTimeMicros;
@@ -100,7 +99,7 @@ public class TimeConstraintImpl extends ConstraintImpl implements Decommissioned
     @Override
     protected <T> void queryOnePage(final QueryResult<T> result) throws DriverException {
         StringBuilder queryString = new StringBuilder();
-        queryString.append("select").append(" * from \"").append(cf).append("\"");
+        queryString.append("select * from \"").append(cf).append("\"");
         queryString.append(" where key=?");
         
         List<Object> queryParameters = new ArrayList<Object>();
@@ -122,7 +121,7 @@ public class TimeConstraintImpl extends ConstraintImpl implements Decommissioned
     @Override
     protected Statement genQueryStatement() {
         StringBuilder queryString = new StringBuilder();
-        queryString.append("select").append(" * from \"").append(cf).append("\"");
+        queryString.append("select * from \"").append(cf).append("\"");
         queryString.append(" where key=?");
         
         List<Object> queryParameters = new ArrayList<Object>();

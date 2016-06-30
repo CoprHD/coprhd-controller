@@ -23,7 +23,6 @@ import com.emc.storageos.db.client.model.DataObject;
  */
 public class AggregatedConstraintImpl extends ConstraintImpl implements AggregatedConstraint {
 	private static final Logger log = LoggerFactory.getLogger(AggregatedConstraintImpl.class);
-    private final String cf;
     private final ColumnField field;
     private final String fieldName;
     private final String rowKey;

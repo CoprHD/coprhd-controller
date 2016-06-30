@@ -69,6 +69,6 @@ public class TimestampedURIQueryResult extends QueryResultList<TimestampedURIQue
 
     @Override
     public TimestampedURI createQueryHit(URI uri, String name, UUID timestamp) {
-        return new TimestampedURI(uri, name, UUIDs.unixTimestamp(timestamp)*1000);
+        return new TimestampedURI(uri, name, UUIDs.unixTimestamp(timestamp) * 1000);
     }
 }

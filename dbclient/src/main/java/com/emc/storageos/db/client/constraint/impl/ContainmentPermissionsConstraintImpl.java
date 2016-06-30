@@ -38,6 +38,7 @@ public class ContainmentPermissionsConstraintImpl extends ConstraintImpl impleme
         _indexKey = indexKey;
         _prefix = clazz.getSimpleName();
         _field = field;
+        cf = _field.getIndexCF().getName();
     }
 
     @Override
@@ -84,7 +85,7 @@ public class ContainmentPermissionsConstraintImpl extends ConstraintImpl impleme
 	
 	private StringBuilder generateQueryString() {
         StringBuilder queryString = new StringBuilder();
-        queryString.append("select").append(" * from \"").append(_field.getIndexCF().getName()).append("\"");
+        queryString.append("select * from \"").append(cf).append("\"");
         queryString.append(" where key=?");
         return queryString;
     }

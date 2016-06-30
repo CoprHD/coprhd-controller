@@ -755,8 +755,7 @@ public class DbClientContext {
     public Map<String, List<String>> getSchemaVersions() {
         Map<String, List<String>> versions = new HashMap<String, List<String>>();
         try {
-            com.datastax.driver.core.Cluster cluster = getCassandraCluster();
-            Set<com.datastax.driver.core.Host> allHostSet = cluster.getMetadata().getAllHosts();
+            Set<com.datastax.driver.core.Host> allHostSet = cassandraCluster.getMetadata().getAllHosts();
             Iterator<com.datastax.driver.core.Host> allHosts = allHostSet.iterator();
             
             while (allHosts.hasNext()){
@@ -789,8 +788,8 @@ public class DbClientContext {
     
     public Map<String, String> getStrategyOptions() {
         Map<String, String> result = new HashMap<String, String>();
-        KeyspaceMetadata keyspace = cassandraCluster.getMetadata().getKeyspace("\""+this.getKeyspaceName()+"\"");
-        Map<String, String> replications = keyspace.getReplication();
+        KeyspaceMetadata keyspaceMetadata = cassandraCluster.getMetadata().getKeyspace("\""+this.getKeyspaceName()+"\"");
+        Map<String, String> replications = keyspaceMetadata.getReplication();
         for (Map.Entry<String, String> entry : replications.entrySet()) {
             if (!entry.getKey().startsWith("class")) {
                 result.put(entry.getKey(), entry.getValue());
@@ -846,7 +845,6 @@ public class DbClientContext {
             PreparedStatement statement = getSession().prepare(queryString);
             prepareStatementMap.put(queryString, statement);
         }
-        
         return prepareStatementMap.get(queryString);
     }
 }

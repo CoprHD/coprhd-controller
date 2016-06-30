@@ -31,6 +31,7 @@ public class LabelConstraintImpl extends ConstraintImpl implements PrefixConstra
 
         _label = new ScopedLabel(null, label.toLowerCase());
         _field = field;
+        cf = _field.getIndexCF().getName();
     }
 
     public LabelConstraintImpl(URI scope, String label, ColumnField field) {
@@ -61,7 +62,7 @@ public class LabelConstraintImpl extends ConstraintImpl implements PrefixConstra
     
     @Override
     protected Statement genQueryStatement() {
-        String queryString = String.format("select * from \"%s\" where key=? and column1=? and column2=?", _field.getIndexCF().getName());
+        String queryString = String.format("select * from \"%s\" where key=? and column1=? and column2=?", cf);
         
         PreparedStatement preparedStatement = this.dbClientContext.getPreparedStatement(queryString.toString());
         Statement statement =  preparedStatement.bind(_field.getPrefixIndexRowKey(_label),

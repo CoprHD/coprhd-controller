@@ -55,7 +55,7 @@ public class DbConsistencyCheckerHelper {
         try {
             String queryString = String.format("select key from \"%s\"", doType.getCF().getName());
             SimpleStatement queryStatement = new SimpleStatement(queryString);
-            queryStatement.setFetchSize(100);
+            queryStatement.setFetchSize(dbClient.DEFAULT_PAGE_SIZE);
             
             ResultSet resultSet = dbClient.getSession(doType.getDataObjectClass()).execute(queryStatement);
             
@@ -110,19 +110,23 @@ public class DbConsistencyCheckerHelper {
             return dirtyCount;
         }
 
-        String queryString = String.format("select key, inactive from \"%s\" where column1='%s'", doType.getCF().getName(), DataObject.INACTIVE_FIELD_NAME);
+        String queryString = String.format("select key, inactive from \"%s\" where column1='%s'", doType.getCF().getName(),
+                DataObject.INACTIVE_FIELD_NAME);
         SimpleStatement queryStatement = new SimpleStatement(queryString);
         queryStatement.setFetchSize(dbClient.DEFAULT_PAGE_SIZE);
         ResultSet resultSet = dbClient.getSession(doType.getDataObjectClass()).execute(queryStatement);
         
         for (Row row : resultSet) {
             List<URI> ids = new ArrayList<>(1);
+
+            String key = row.getString(0);
+            boolean inactive = row.getBool(1);
             
-            if (row.getBool(1) == true) {
+            if (inactive == true) {
             	continue;
             }
 
-            ids.add(URI.create(row.getString(0)));
+            ids.add(URI.create(key));
             
             for (ColumnField indexedField : indexedFields) {
 				Map<String, List<CompositeColumnName>> result = dbClient
@@ -179,52 +183,45 @@ public class DbConsistencyCheckerHelper {
 
         Map<String, Map<String, List<IndexEntry>>> objsToCheck = new HashMap<>();
         
-        String queryString = String.format("select * from \"%s\"", indexAndCf.cf);
-        SimpleStatement queryStatement = new SimpleStatement(queryString);
-        queryStatement.setFetchSize(100);
+        SimpleStatement queryStatement = new SimpleStatement(String.format("select * from \"%s\"", indexAndCf.cf));
+        queryStatement.setFetchSize(dbClient.DEFAULT_PAGE_SIZE);
         
         ResultSet resultSet = indexAndCf.dbClientContext.getSession().execute(queryStatement);
 
         for (Row row : resultSet) {
         	String key = row.getString(0);
             
-            queryString += " where key='" + key + "'";
-            queryStatement = new SimpleStatement(queryString);
-            queryStatement.setFetchSize(100);
-            ResultSet resultSetByKey = indexAndCf.dbClientContext.getSession().execute(queryStatement);
+            IndexColumnName indexColumnName = new IndexColumnName(row.getString(1), 
+                    row.getString(2), 
+                    row.getString(3),
+                    row.getString(4),
+                    row.getUUID(5),
+                    row.getBytes(6)); 
             
-            for (Row indexRow : resultSetByKey) {
-                IndexColumnName indexColumnName = new IndexColumnName(indexRow.getString(1), 
-                        indexRow.getString(2), 
-                        indexRow.getString(3),
-                        indexRow.getString(4),
-                        indexRow.getUUID(5),
-                        indexRow.getBytes(6)); 
-                
-                ObjectEntry objEntry = extractObjectEntryFromIndex(key,
-                        indexColumnName, indexAndCf.indexType, toConsole);
-                if (objEntry == null) {
-                    continue;
-                }
-                String objCfName = objCfs.get(objEntry.getClassName());
-
-                if (objCfName == null) {
-                    logMessage(String.format("DataObject does not exist for %s", key), true, toConsole);
-                    continue;
-                }
-
-                Map<String, List<IndexEntry>> objKeysIdxEntryMap = objsToCheck.get(objCfName);
-                if (objKeysIdxEntryMap == null) {
-                    objKeysIdxEntryMap = new HashMap<>();
-                    objsToCheck.put(objCfName, objKeysIdxEntryMap);
-                }
-                List<IndexEntry> idxEntries = objKeysIdxEntryMap.get(objEntry.getObjectId());
-                if (idxEntries == null) {
-                    idxEntries = new ArrayList<>();
-                    objKeysIdxEntryMap.put(objEntry.getObjectId(), idxEntries);
-                }
-                idxEntries.add(new IndexEntry(key, indexColumnName));
+            ObjectEntry objEntry = extractObjectEntryFromIndex(key,
+                    indexColumnName, indexAndCf.indexType, toConsole);
+            if (objEntry == null) {
+                continue;
             }
+            String objCfName = objCfs.get(objEntry.getClassName());
+
+            if (objCfName == null) {
+                logMessage(String.format("DataObject does not exist for %s", key), true, toConsole);
+                continue;
+            }
+
+            Map<String, List<IndexEntry>> objKeysIdxEntryMap = objsToCheck.get(objCfName);
+            if (objKeysIdxEntryMap == null) {
+                objKeysIdxEntryMap = new HashMap<>();
+                objsToCheck.put(objCfName, objKeysIdxEntryMap);
+            }
+            List<IndexEntry> idxEntries = objKeysIdxEntryMap.get(objEntry.getObjectId());
+            if (idxEntries == null) {
+                idxEntries = new ArrayList<>();
+                objKeysIdxEntryMap.put(objEntry.getObjectId(), idxEntries);
+            }
+            idxEntries.add(new IndexEntry(key, indexColumnName));
+            
             
             if (getObjsSize(objsToCheck) >= INDEX_OBJECTS_BATCH_SIZE ) {
                 corruptRowCount += processBatchIndexObjects(indexAndCf, toConsole, objsToCheck);
@@ -516,8 +513,9 @@ public class DbConsistencyCheckerHelper {
         }
 
         PreparedStatement preparedStatement = dbClientContext.getPreparedStatement(queryString.toString());
-        ResultSet resultSet = dbClient.getSession(doType.getDataObjectClass()).execute(preparedStatement.bind(parameters.toArray()));
+        _log.info("queryString: {}", preparedStatement.getQueryString());
         
+        ResultSet resultSet = dbClient.getSession(doType.getDataObjectClass()).execute(preparedStatement.bind(parameters.toArray()));
         return resultSet.one() != null;
     }
 

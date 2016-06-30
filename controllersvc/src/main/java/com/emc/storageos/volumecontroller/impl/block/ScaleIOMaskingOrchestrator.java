@@ -270,8 +270,8 @@ public class ScaleIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                         } else {
                             log.info(String.format("Adding step to remove initiators %s from ExportMask %s",
                                     Joiner.on(',').join(removeInitURIs), exportMask.getMaskName()));
-                            generateExportMaskRemoveInitiatorsWorkflow(workflow, null, storage, exportGroup, exportMask, removeInitURIs,
-                                    true);
+                            generateExportMaskRemoveInitiatorsWorkflow(workflow, null, storage, exportGroup, exportMask, null,
+                                    removeInitURIs, true);
                         }
                     }
                 }

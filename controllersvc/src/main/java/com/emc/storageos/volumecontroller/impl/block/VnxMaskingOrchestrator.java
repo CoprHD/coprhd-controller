@@ -800,8 +800,8 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
     @Override
     public String generateDeviceSpecificAddInitiatorWorkFlow(Workflow workflow,
             String previousStep, StorageSystem storage, ExportGroup exportGroup,
-            ExportMask mask, List<URI> initiatorsURIs,
-            Map<URI, List<URI>> maskToInitiatorsMap, String token) throws Exception {
+            ExportMask mask, List<URI> volumeURIs,
+            List<URI> initiatorsURIs, Map<URI, List<URI>> maskToInitiatorsMap, String token) throws Exception {
 
         String maskingStep = generateExportMaskAddInitiatorsWorkflow(workflow, previousStep,
                 storage, exportGroup, mask, initiatorsURIs, null, token);

@@ -831,14 +831,43 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         waitForAsyncFileExportTask(fileShareId, stepId);
     }
 
+    /**
+     * Creates a workflow method to attach disks and mount datastores on a host for all volumes in a given export group
+     * 
+     * @param exportGroup export group that contains volumes
+     * @param hostId host to attach and mount to
+     * @param vcenter vcenter that the host belongs to
+     * @param vcenterDatacenter vcenter datacenter that the host belongs to
+     * @return workflow method for attaching and mounting disks and datastores
+     */
     public Workflow.Method attachAndMountMethod(URI exportGroup, URI hostId, URI vcenter, URI vcenterDatacenter) {
         return new Workflow.Method("attachAndMount", exportGroup, hostId, vcenter, vcenterDatacenter);
     }
 
+    /**
+     * Creates a workflow method to unmount datastores and detach disks from a host for all volumes in a given export group
+     * 
+     * @param exportGroup export group that contains volumes
+     * @param hostId host to unmount and detach from
+     * @param vcenter vcenter that the host belongs to
+     * @param vcenterDatacenter vcenter datacenter that the host belongs to
+     * @return workflow method for unmounting and detaching disks and datastores
+     */
     public Workflow.Method unmountAndDetachMethod(URI exportGroup, URI hostId, URI vcenter, URI vcenterDatacenter) {
         return new Workflow.Method("unmountAndDetach", exportGroup, hostId, vcenter, vcenterDatacenter);
     }
 
+    /**
+     * Attaches and mounts every disk and datastore associated with the volumes in the export group.
+     * For each volume in the export group, the associated disk is attached to the host and any datastores backed by the volume are mounted
+     * to the host.
+     * 
+     * @param exportGroupId export group that contains volumes
+     * @param hostId host to attach and mount to
+     * @param vcenterId vcenter that the host belongs to
+     * @param vcenterDatacenter vcenter datacenter that the host belongs to
+     * @param stepId the id of the workflow step
+     */
     public void attachAndMount(URI exportGroupId, URI hostId, URI vCenterId, URI vcenterDatacenter, String stepId) {
         WorkflowStepCompleter.stepExecuting(stepId);
 
@@ -885,6 +914,16 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         WorkflowStepCompleter.stepSucceded(stepId);
     }
 
+    /**
+     * Unmounts and detaches every datastore and disk associated with the volumes in the export group.
+     * For each volume in the export group, the backed datastore is unmounted and the associated disk is detached from the host.
+     * 
+     * @param exportGroupId export group that contains volumes
+     * @param hostId host to attach and mount to
+     * @param vcenterId vcenter that the host belongs to
+     * @param vcenterDatacenter vcenter datacenter that the host belongs to
+     * @param stepId the id of the workflow step
+     */
     public void unmountAndDetach(URI exportGroupId, URI hostId, URI vCenterId, URI vcenterDatacenter, String stepId) {
         WorkflowStepCompleter.stepExecuting(stepId);
 
@@ -943,6 +982,13 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         WorkflowStepCompleter.stepSucceded(stepId);
     }
 
+    /**
+     * Sets the Storage I/O control on a datastore
+     * 
+     * @param vcenter vcenter API for the vcenter
+     * @param datastore the datastore to set storage I/O control
+     * @param enabled if true, enables storage I/O control, otherwise disables storage I/O control
+     */
     public void setStorageIOControl(VCenterAPI vcenter, Datastore datastore, boolean enabled) {
         StorageResourceManager manager = vcenter.getStorageResourceManager();
         StorageIORMConfigSpec spec = new StorageIORMConfigSpec();
@@ -972,6 +1018,11 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         }
     }
 
+    /**
+     * Cancels the VMWare Task without throwing an exception
+     * 
+     * @param task the task to cancel
+     */
     public void cancelTaskNoException(Task task) {
         try {
             cancelTask(task);
@@ -980,6 +1031,12 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         }
     }
 
+    /**
+     * Cancels a VMWare task
+     * 
+     * @param task the task to cancel
+     * @throws Exception if an error occurs during task cancellation
+     */
     public void cancelTask(Task task) throws Exception {
         if (task == null || task.getTaskInfo() == null) {
             _log.warn("VMware task is null or has no task info. Unable to cancel it.");
@@ -991,6 +1048,13 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         }
     }
 
+    /**
+     * Checks if the VMWare task has completed
+     * 
+     * @param task the task to check
+     * @return true if the task has completed, otherwise returns false
+     * @throws Exception if an error occurs while monitoring the task
+     */
     private boolean isComplete(Task task) throws Exception {
         TaskInfo info = task.getTaskInfo();
         TaskInfoState state = info.getState();
@@ -1328,6 +1392,14 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         }
     }
 
+    /**
+     * Creates workflow steps for unmounting datastores and detaching disks
+     * 
+     * @param vCenterHostExportMap the map of hosts and export groups to operate on
+     * @param waitFor the step to wait on for this workflow step
+     * @param workflow the workflow to create the step
+     * @return the step id
+     */
     private String unmountAndDetachVolumes(Map<URI, List<URI>> vCenterHostExportMap, String waitFor, Workflow workflow) {
         for (URI hostId : vCenterHostExportMap.keySet()) {
             Host esxHost = _dbClient.queryObject(Host.class, hostId);
@@ -1350,6 +1422,14 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         return waitFor;
     }
 
+    /**
+     * Creates workflow steps for attaching disks and mounting datastores
+     * 
+     * @param vCenterHostExportMap the map of hosts and export groups to operate on
+     * @param waitFor the step to wait on for this workflow step
+     * @param workflow the workflow to create the step
+     * @return the step id
+     */
     private String attachAndMountVolumes(Map<URI, List<URI>> vCenterHostExportMap, String waitFor, Workflow workflow) {
         for (URI hostId : vCenterHostExportMap.keySet()) {
             Host esxHost = _dbClient.queryObject(Host.class, hostId);
@@ -1372,6 +1452,13 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         return waitFor;
     }
 
+    /**
+     * Adds the host and export to a map of host -> list of export groups
+     * 
+     * @param vCenterHostExportMap the map to add the host and export
+     * @param hostId the host id
+     * @param export the export group id
+     */
     private void addVcenterHost(Map<URI, List<URI>> vCenterHostExportMap, URI hostId, URI export) {
         if (!vCenterHostExportMap.containsKey(hostId)) {
             vCenterHostExportMap.put(hostId, Lists.newArrayList());
@@ -1417,6 +1504,12 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         return waitFor;
     }
 
+    /**
+     * Gets the datastore name from the tag supplied by the volume
+     * 
+     * @param tag the volume tag
+     * @return the datastore name
+     */
     public static String getDatastoreName(String tag) {
         Matcher matcher = MACHINE_TAG_REGEX.matcher(tag);
         if (matcher.matches()) {

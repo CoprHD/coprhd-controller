@@ -853,19 +853,24 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         for (String volume : exportGroup.getVolumes().keySet()) {
 
             BlockObject blockObject = BlockObject.fetch(_dbClient, URI.create(volume));
+            try {
+                for (HostScsiDisk entry : storageAPI.listScsiDisks()) {
+                    if (VolumeWWNUtils.wwnMatches(VMwareUtils.getDiskWwn(entry), blockObject.getWWN())) {
+                        _log.info("Attach SCSI Lun " + entry.getCanonicalName() + " on host " + esxHost.getLabel());
+                        storageAPI.attachScsiLun(entry);
+                    }
+                }
+            } catch (VMWareException ex) {
+                _log.error(ex.getMessage(), ex);
+            }
+            _log.info("Refreshing storage");
+            storageAPI.refreshStorage();
+
             for (ScopedLabel tag : blockObject.getTag()) {
                 String tagValue = tag.getLabel();
                 if (tagValue != null && tagValue.startsWith(VMFS_DATASTORE_PREFIX)) {
                     String datastoreName = getDatastoreName(tagValue);
                     try {
-                        for (HostScsiDisk entry : storageAPI.listScsiDisks()) {
-                            if (VolumeWWNUtils.wwnMatches(VMwareUtils.getDiskWwn(entry), blockObject.getWWN())) {
-                                _log.info("Attach SCSI Lun " + entry.getCanonicalName() + " on host " + esxHost.getLabel());
-                                storageAPI.attachScsiLun(entry);
-                            }
-                        }
-                        _log.info("Refreshing storage");
-                        storageAPI.refreshStorage();
                         Datastore datastore = api.findDatastore(vCenterDataCenter.getLabel(), datastoreName);
                         if (datastore != null) {
                             _log.info("Mounting datastore " + datastore.getName() + " on host " + esxHost.getLabel());
@@ -912,16 +917,21 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                                 setStorageIOControl(api, datastore, true);
                             }
                         }
-                        for (HostScsiDisk entry : storageAPI.listScsiDisks()) {
-                            if (VolumeWWNUtils.wwnMatches(VMwareUtils.getDiskWwn(entry), blockObject.getWWN())) {
-                                _log.info("Detach SCSI Lun " + entry.getCanonicalName() + " from host " + esxHost.getLabel());
-                                storageAPI.detachScsiLun(entry);
-                            }
-                        }
+
                     } catch (VMWareException ex) {
                         _log.error(ex.getMessage(), ex);
                     }
                 }
+            }
+            try {
+                for (HostScsiDisk entry : storageAPI.listScsiDisks()) {
+                    if (VolumeWWNUtils.wwnMatches(VMwareUtils.getDiskWwn(entry), blockObject.getWWN())) {
+                        _log.info("Detach SCSI Lun " + entry.getCanonicalName() + " from host " + esxHost.getLabel());
+                        storageAPI.detachScsiLun(entry);
+                    }
+                }
+            } catch (VMWareException ex) {
+                _log.error(ex.getMessage(), ex);
             }
         }
         storageAPI.refreshStorage();

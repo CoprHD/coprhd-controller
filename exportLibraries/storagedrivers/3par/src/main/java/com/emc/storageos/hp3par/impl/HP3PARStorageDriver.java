@@ -1259,11 +1259,6 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
     }
 
     /*
-     * All volumes in the list will be exported to all initiators using recommended ports. If a volume can not be exported to 'n' 
-     * initiators the same will be tried with available ports  
-     */
-    
-    /*
       ******USE CASES**********
       
       EXCLUSIVE EXPORT: Will include port number of host
@@ -1298,6 +1293,11 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
       B Cluster name in ViPR and 3PAR has to be identical with case
       C Adding a new host to host-set will automatically export all volumes to the new host(initial export must have been host-set)
      */
+
+    /*
+     * All volumes in the list will be exported to all initiators using recommended ports. If a volume can not be exported to 'n' 
+     * initiators the same will be tried with available ports  
+     */
     
     @Override
     public DriverTask exportVolumesToInitiators(List<Initiator> initiators, List<StorageVolume> volumes, Map<String, String> volumeToHLUMap,
@@ -1314,7 +1314,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
             String clustArray = null;
             try {
                 // all initiators belong to same host
-                initiators.get(0).setInitiatorType(Type.RP); //TEMP CODE for Cluster unit testing
+                initiators.get(0).setInitiatorType(Type.Host); //TEMP CODE for Cluster unit testing
                 if (initiators.get(0).getInitiatorType().equals(Type.Host) == true) {
                     // Exclusive-Host export 
                     // Some code is repeated with cluster for simplicity and readability
@@ -1765,7 +1765,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
                 // get Api client for volume specific array
                 HP3PARApi hp3parApi = getHP3PARDeviceFromNativeId(volume.getStorageSystemId());
 
-                initiators.get(0).setInitiatorType(Type.RP); ////TEMP CODING
+                initiators.get(0).setInitiatorType(Type.Host); ////TEMP CODING
                 if (initiators.get(0).getInitiatorType().equals(Type.Host) == true) {
                     // get vlun and port details on this export
                     Integer lun = -1;

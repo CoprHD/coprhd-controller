@@ -1218,6 +1218,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         TaskCompleter completer = null;
         try {
 
+            // Check all deleted hosts and remove them from the list if auto export is disabled for the cluster
             Iterator<URI> it = deletedHosts.iterator();
             while (it.hasNext()) {
                 URI deletedHost = it.next();
@@ -1236,12 +1237,16 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             completer = new ProcessHostChangesCompleter(changes, deletedHosts, deletedClusters, taskId);
             Workflow workflow = _workflowService.getNewWorkflow(this, HOST_CHANGES_WF_NAME, true, taskId);
             String waitFor = null;
+
+            // Map of host -> export groups for capturing removals from the export groups
             Map<URI, List<URI>> detachvCenterHostExportMap = Maps.newHashMap();
+            // Map of host -> export groups for capturing additions to the export groups
             Map<URI, List<URI>> attachvCenterHostExportMap = Maps.newHashMap();
 
             Map<URI, ExportGroupState> exportGroups = Maps.newHashMap();
             _log.info("There are " + changes.size() + " changes");
 
+            // Iterate through all host state changes and create states for all of the affected export groups
             for (HostStateChange change : changes) {
 
                 _log.info("HostChange: " + change);
@@ -1306,6 +1311,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                             && (ComputeSystemHelper.isClusterInExport(_dbClient, oldCluster)
                             || ComputeSystemHelper.isClusterInExport(_dbClient, currentCluster));
 
+                    // Host is added to a cluster or has moved to a different cluster
                     if ((isAddedToCluster && currentClusterRef.getAutoExportEnabled())
                             || (isMovedToDifferentCluster && (currentClusterRef.getAutoExportEnabled() || oldClusterRef
                                     .getAutoExportEnabled()))) {
@@ -1323,6 +1329,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                         }
                     }
 
+                    // Host has moved to a different cluster. Update export group states for the old cluster's exports.
                     if (isMovedToDifferentCluster && (oldClusterRef.getAutoExportEnabled() || currentClusterRef.getAutoExportEnabled())) {
                         for (ExportGroup export : getSharedExports(oldCluster)) {
                             ExportGroupState egh = getExportGroupState(exportGroups, export);
@@ -1338,12 +1345,15 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
             _log.info("Number of deleted hosts: " + deletedHosts.size());
 
+            // For all deleted hosts, remove their references and their initiator references from all export groups
             for (URI hostId : deletedHosts) {
 
                 Host host = _dbClient.queryObject(Host.class, hostId);
                 List<Initiator> hostInitiators = ComputeSystemHelper.queryInitiators(_dbClient, host.getId());
                 Collection<URI> hostInitiatorIds = Collections2.transform(hostInitiators, CommonTransformerFunctions.fctnDataObjectToID());
 
+                // Iterate over all export groups that contain reference to the host or its initiators. Update the affected export groups
+                // state.
                 for (ExportGroup export : getExportGroups(host.getId(), hostInitiators)) {
                     // do not unexport volumes from exclusive or initiator exports if the host has a boot volume id
                     boolean isBootVolumeExport = (export.forHost() || export.forInitiator())
@@ -1360,6 +1370,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
             _log.info("Number of deleted clusters: " + deletedClusters.size());
 
+            // For all deleted clusters, remove their references from the cluster export groups
             for (URI clusterId : deletedClusters) {
                 Cluster cluster = _dbClient.queryObject(Cluster.class, clusterId);
                 if (!cluster.getAutoExportEnabled()) {
@@ -1376,6 +1387,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
             _log.info("Number of ExportGroupStates: " + exportGroups.size());
 
+            // If vCenter discovery is processing host changes, add steps for unmounting datastores and detaching disks
             if (isVCenter) {
                 waitFor = unmountAndDetachVolumes(detachvCenterHostExportMap, waitFor, workflow);
             }
@@ -1386,12 +1398,14 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                     waitFor = generateSteps(export, waitFor, workflow, false);
                 }
             }
+            // Generate export add steps
             for (ExportGroupState export : exportGroups.values()) {
                 if (export.hasAdds()) {
                     waitFor = generateSteps(export, waitFor, workflow, true);
                 }
             }
 
+            // If vCenter discovery is processing host changes, add steps for attaching disks and mounting datastores
             if (isVCenter) {
                 waitFor = attachAndMountVolumes(attachvCenterHostExportMap, waitFor, workflow);
             }

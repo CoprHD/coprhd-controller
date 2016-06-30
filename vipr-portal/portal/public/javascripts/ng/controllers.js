@@ -1439,7 +1439,8 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
     cookieObject = {};
     cookieKey = "VIPR_START_GUIDE";
     requiredSteps = 2;
-    maxSteps = 5;
+    landingStep = 3;
+    maxSteps = 9;
     currentStep = 0;
     completedSteps = 0;
     guideVisible = false;
@@ -1456,10 +1457,14 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
             $scope.$parent.guideVisible = cookieObject.guideVisible;
             $scope.$parent.maxSteps = maxSteps;
 
+            console.table(cookieObject);
+
             //check if the
             if (maxSteps != cookieObject.completedSteps) {
 		    }
         }
+        $scope.$parent.isMenuPinned = readCookie("isMenuPinned");
+        console.log('cookie:', $scope.$parent.isMenuPinned);
     }
 
     $scope.toggleGuide = function() {
@@ -1509,18 +1514,30 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                 $scope.$parent.completedSteps = 1;
                 $scope.$parent.currentStep = 2;
             }
+            else {
+                return 'done';
+            }
         return $http.get(routes.Setup_initialSetup())
         }).then(function (data) {
+            if (data == 'done') {
+                return data;
+            }
             isSetup = data.data;
             if (isSetup == 'true') {
                 console.log('Setup Complete');
                 $scope.$parent.completedSteps = 2;
                 $scope.$parent.currentStep = 3;
             }
+            else {
+                return 'done';
+            }
         return $http.get(routes.StorageSystems_list())
         }).then(function (data) {
             console.log(data);
             //isSsComplete = data3.data.aaData.length;
+            if (data == 'done') {
+                return data;
+            }
             if (data.data.aaData.length != 0) {
                 console.log('Storage System Complete');
                 $scope.$parent.completedSteps = 4;
@@ -1533,11 +1550,51 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
             console.log(data);
             //isSsComplete = data3.data.aaData.length;
             if (data == 'done') {
+              return data;
+            }
+            else if (data.data.aaData.length != 0) {
+              console.log('Fabric Manager Complete');
+              $scope.$parent.completedSteps = 5;
+            }
+        return $http.get(routes.VirtualArrays_list())
+        }).then(function (data) {
+            console.log(data);
+            //isSsComplete = data3.data.aaData.length;
+            if (data == 'done') {
+                return data;
+            }
+            if (data.data.aaData.length != 0) {
+                console.log('Virtual Arrays Complete');
+                $scope.$parent.completedSteps = 6;
+            }
+            else {
+                return 'done';
+            }
+        return $http.get(routes.BlockVirtualPools_list())
+        }).then(function (data) {
+            console.log(data);
+            //isSsComplete = data3.data.aaData.length;
+            if (data == 'done') {
+                return data;
+            }
+            if (data.data.aaData.length != 0) {
+                console.log('Virtual Pools Complete');
+                $scope.$parent.completedSteps = 7;
+            }
+            else {
+                return 'done';
+            }
+        return $http.get(routes.Projects_list())
+        }).then(function (data) {
+            console.log(data);
+            //isSsComplete = data3.data.aaData.length;
+            if (data == 'done') {
                 return data;
             }
             else if (data.data.aaData.length != 0) {
-                console.log('Fabric Manager Complete');
-                $scope.$parent.completedSteps = 5;
+                console.log('Projects Complete');
+                $scope.$parent.completedSteps = 8;
+                $scope.$parent.completedSteps = 9;
             }
         }, function(error) {
             console.log('error');
@@ -1568,15 +1625,11 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                 });
                 break;
             case 2:
-                $http.get(routes.Setup_initialSetup()).then(function (data) {
-                    isSetup = data.data;
-                    if (isSetup == 'true') {
-                        console.log('Setup Complete');
-                        goToNextStep(true);
-                    }
-                });
+
+                $scope.$parent.completedSteps=2;
+                updateGuideCookies(3,'full');
                 break;
-            case 3:
+            case landingStep:
                 goToNextStep(true);
                 break;
             case 4:
@@ -1597,11 +1650,40 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                     }
                 });
                 break;
+            case 6:
+                $http.get(routes.VirtualArrays_list()).then(function (data) {
+                    if (data.data.aaData.length != 0) {
+
+                        console.log(data);
+                        console.log('Virtual Array Complete');
+                        goToNextStep(true);
+                    }
+                });
+                break;
+            case 7:
+                $http.get(routes.BlockVirtualPools_list()).then(function (data) {
+                    if (data.data.aaData.length != 0) {
+
+                        console.log(data);
+                        console.log('Virtual Pool Complete');
+                        goToNextStep(true);
+                    }
+                });
+                break;
+            case 8:
+                $http.get(routes.Projects_list()).then(function (data) {
+                    if (data.data.aaData.length != 0) {
+
+                        console.log(data);
+                        console.log('Project Complete');
+                        goToNextStep(true);
+                    }
+                });
+                break;
             default:
-                console.log('error');
+                console.log(step);
+                goToNextStep(true);
         }
-        $scope.$parent.currentMode='full';
-        saveGuideCookies();
 
     }
 
@@ -1612,7 +1694,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                 $scope.$parent.currentStep=$scope.$parent.currentStep+1;
             }
             else {
-                $scope.$parent.currentStep=3;
+                $scope.$parent.currentStep=landingStep;
             }
         }
         $scope.$parent.currentMode='full';
@@ -1626,7 +1708,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                $scope.$parent.currentStep=$scope.$parent.currentStep+1;
            }
            else {
-               $scope.$parent.currentStep=3;
+               $scope.$parent.currentStep=landingStep;
            }
        }
        $scope.$parent.currentMode='full';
@@ -1679,7 +1761,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                     $scope.$parent.currentMode='side';
                 }
                 break;
-            case 3:
+            case landingStep:
                 //$scope.completedStepLevel = 5;
                 //$scope.pollingStep = 4;
                 break;
@@ -1711,10 +1793,66 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                     $scope.$parent.currentMode='side';
                 }
                 break;
+            case 6:
+                //$scope.$parent.currentStep = 5;
+                console.log($scope.$parent.currentStep);
+                //$scope.$parent.currentMode = 'side';
+                //saveGuideCookies();
+                updateGuideCookies(6,'side');
+                if ($window.location.pathname != '/virtualarrays/list') {
+                    $window.location.href = '/virtualarrays/list';
+                }
+                else {
+                    $scope.$parent.currentStep=6;
+                    $scope.$parent.currentMode='side';
+                }
+                break;
+            case 7:
+                //$scope.$parent.currentStep = 5;
+                console.log($scope.$parent.currentStep);
+                //$scope.$parent.currentMode = 'side';
+                //saveGuideCookies();
+                updateGuideCookies(7,'side');
+                if ($window.location.pathname != '/blockvirtualpools/list') {
+                    $window.location.href = '/blockvirtualpools/list';
+                }
+                else {
+                    $scope.$parent.currentStep=7;
+                    $scope.$parent.currentMode='side';
+                }
+                break;
+            case 8:
+                //$scope.$parent.currentStep = 5;
+                console.log($scope.$parent.currentStep);
+                //$scope.$parent.currentMode = 'side';
+                //saveGuideCookies();
+                updateGuideCookies(8,'side');
+                if ($window.location.pathname != '/projects/list') {
+                    $window.location.href = '/projects/list';
+                }
+                else {
+                    $scope.$parent.currentStep=8;
+                    $scope.$parent.currentMode='side';
+                }
+                break;
+            case 9:
+                //$scope.$parent.currentStep = 5;
+                console.log($scope.$parent.currentStep);
+                //$scope.$parent.currentMode = 'side';
+                //saveGuideCookies();
+                removeGuideCookies();
+                if ($window.location.pathname != '/Catalog') {
+                    $window.location.href = '/Catalog';
+                }
+                else {
+                    $scope.$parent.guideVisible = false;
+                    $scope.$parent.guideDataAvailable = false;
+                }
+                break;
             default:
-                $scope.completedStepLevel = 2; //set to landing page step by default
-                $scope.pollingStep = 1;
-                $scope.completedOptionalStepLevel = 0;
+                updateGuideCookies(step,'side');
+                $scope.$parent.currentStep=step;
+                $scope.$parent.currentMode='side';
             }
     }
 
@@ -1735,7 +1873,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
 
         }
 
-    $scope.skipStep = function(step) {
+    $scope.nextStep = function(step) {
         //console.log($scope.$parent.currentStep);
 
         //docCookies.setItem("GsGuideStep", level, Infinity);
@@ -1747,37 +1885,53 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
         }
 
         switch (step) {
-            case 1:
-                $scope.$parent.currentStep = 2;
-                console.log($scope.$parent.currentStep);
-                saveGuideCookies();
-                break;
-            case 2:
+            case requiredSteps:
                 $scope.$parent.currentStep = 4;
                 console.log($scope.$parent.currentStep);
                 saveGuideCookies();
                 break;
-            case 3:
-                $scope.$parent.currentStep = 4;
-                console.log($scope.$parent.currentStep);
-                saveGuideCookies();
-                break;
-            case 4:
-                $scope.$parent.currentStep = 5;
-                console.log($scope.$parent.currentStep);
-                saveGuideCookies();
-                break;
-            case 5:
-                $scope.$parent.currentStep = 3;
+            case maxSteps:
+                $scope.$parent.currentStep = landingStep;
                 console.log($scope.$parent.currentStep);
                 saveGuideCookies();
                 break;
             default:
-                $scope.completedStepLevel = 2; //set to landing page step by default
-                $scope.pollingStep = 1;
-                $scope.completedOptionalStepLevel = 0;
+                $scope.$parent.currentStep = step+1;
+                console.log($scope.$parent.currentStep);
+                saveGuideCookies();
+                break;
             }
     }
+
+        $scope.previousStep = function(step) {
+            //console.log($scope.$parent.currentStep);
+
+            //docCookies.setItem("GsGuideStep", level, Infinity);
+            //docCookies.getItem('GsGuideStep');
+            //docCookies.removeItem("GsGuideStep");
+
+            if (!step) {
+                step = $scope.$parent.currentStep;
+            }
+
+            switch (step) {
+                case requiredSteps+2:
+                    $scope.$parent.currentStep = requiredSteps;
+                    console.log($scope.$parent.currentStep);
+                    saveGuideCookies();
+                    break;
+                case 1:
+                    $scope.$parent.currentStep = 3;
+                    console.log($scope.$parent.currentStep);
+                    saveGuideCookies();
+                    break;
+                default:
+                    $scope.$parent.currentStep = step-1;
+                    console.log($scope.$parent.currentStep);
+                    saveGuideCookies();
+                    break;
+                }
+        }
 
     $scope.toggleMode = function(mode) {
         $scope.$parent.currentMode = mode;
@@ -1797,6 +1951,10 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
         createCookie(cookieKey,angular.toJson(cookieObject),'session');
     }
 
+    removeGuideCookies = function() {
+        eraseCookie(cookieKey);
+    }
+
     saveGuideCookies = function() {
         cookieObject = {};
         cookieObject.currentStep=$scope.$parent.currentStep;
@@ -1804,6 +1962,13 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
         cookieObject.currentMode=$scope.$parent.currentMode;
         cookieObject.guideVisible=$scope.$parent.guideVisible;
         createCookie(cookieKey,angular.toJson(cookieObject),'session');
+    }
+
+    $scope.isDashboardOpen = function() {
+
+        console.log($('.navMenu.menu-open'))
+        if ($('.navMenu.menu-open')) {return true;}
+        return false;
     }
 
 });

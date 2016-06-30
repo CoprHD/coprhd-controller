@@ -7,13 +7,33 @@
         <div class="step-circle"><i class="glyphicon" ng-class="{true: 'glyphicon-ok'}[completedSteps >= 2]"></i>
         </div><span class="step-text" ng-click="showStep(2);">&{'gettingStarted.initialsetup.button'}<i ng-show="currentStep == 2" class="glyphicon glyphicon-chevron-right"></i></span>
     </li>
-    <li ng-class="{'step-success':completedSteps >= 4,'step-active':currentStep == 4}" class="subitem">
+    <li ng-class="{'step-success':completedSteps >= 4,'step-active':currentStep == 4}" class="">
         <div class="step-circle"><i class="glyphicon" ng-class="{true: 'glyphicon-ok'}[completedSteps >= 3]"></i>
         </div><span class="step-text" ng-click="showStep(4);">&{'gettingStarted.storagesystem.button'}<i ng-show="currentStep == 4" class="glyphicon glyphicon-chevron-right"></i></span>
     </li>
-    <li ng-class="{'step-success':completedSteps >= 5,'step-active':currentStep == 5}">
+    <!--li ng-class="{'step-success':completedSteps >= 5,'step-active':currentStep == 5}" class="step-optional">
         <div class="step-circle"><i class="glyphicon" ng-class="{true: 'glyphicon-ok'}[completedSteps >= 5]"></i>
         </div><span class="step-text" ng-click="showStep(5);">&{'gettingStarted.fabricmanager.button'}<i ng-show="currentStep == 5" class="glyphicon glyphicon-chevron-right"></i></span>
+    </li-->
+    <li ng-class="{'step-success':completedSteps >= 5,'step-active':currentStep == 5}" class="">
+        <div class="step-circle"><i class="glyphicon" ng-class="{true: 'glyphicon-ok'}[completedSteps >= 5]"></i>
+        </div><span class="step-text" ng-click="showStep(5);">&{'gettingStarted.fabricmanager.button'}<i ng-show="currentStep == 5" class="glyphicon glyphicon-chevron-right"></i></span>
+    </li>
+    <li ng-class="{'step-success':completedSteps >= 6,'step-active':currentStep == 6}" class="">
+        <div class="step-circle"><i class="glyphicon" ng-class="{true: 'glyphicon-ok'}[completedSteps >= 6]"></i>
+        </div><span class="step-text" ng-click="showStep(6);">&{'gettingStarted.virtualarray.button'}<i ng-show="currentStep == 6" class="glyphicon glyphicon-chevron-right"></i></span>
+    </li>
+    <li ng-class="{'step-success':completedSteps >= 7,'step-active':currentStep == 7}">
+        <div class="step-circle"><i class="glyphicon" ng-class="{true: 'glyphicon-ok'}[completedSteps >= 7]"></i>
+        </div><span class="step-text" ng-click="showStep(7);">&{'gettingStarted.virtualpool.button'}<i ng-show="currentStep == 7" class="glyphicon glyphicon-chevron-right"></i></span>
+    </li>
+    <li ng-class="{'step-success':completedSteps >= 8,'step-active':currentStep == 8}">
+        <div class="step-circle"><i class="glyphicon" ng-class="{true: 'glyphicon-ok'}[completedSteps >= 8]"></i>
+        </div><span class="step-text" ng-click="showStep(8);">&{'gettingStarted.project.button'}<i ng-show="currentStep == 8" class="glyphicon glyphicon-chevron-right"></i></span>
+    </li>
+    <li ng-class="{'step-success':completedSteps >= 9,'step-active':currentStep == 9}">
+        <div class="step-circle"><i class="glyphicon" ng-class="{true: 'glyphicon-ok'}[completedSteps >= 9]"></i>
+        </div><span class="step-text" ng-click="showStep(9);">&{'gettingStarted.provision.title'}<i ng-show="currentStep == 9" class="glyphicon glyphicon-chevron-right"></i></span>
     </li>
     <!--li ng-class="{'step-success':completedSteps >= 8,'step-active':currentStep == 8}" class="subitem">
         <div class="step-circle"><i class="glyphicon" ng-class="{true: 'glyphicon-ok'}[completedSteps >= 8]"></i>

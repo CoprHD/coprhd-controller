@@ -86,5 +86,9 @@ var routes = {
   Common_clusterInfoJson: #{jsAction @Common.clusterInfoWithRoleCheckJson() /},
 
   Setup_license: #{jsAction @Setup.isLicensed() /},
-  Setup_initialSetup: #{jsAction @Setup.isInitialSetupComplete() /}
+  Setup_initialSetup: #{jsAction @Setup.isInitialSetupComplete() /},
+  Projects_list: #{jsAction @tenant.Projects.listJson() /},
+  BlockVirtualPools_list: #{jsAction @arrays.BlockVirtualPools.listJson() /},
+  FileVirtualPools_list: #{jsAction @arrays.FileVirtualPools.listJson() /},
+  VirtualArrays_list: #{jsAction @VirtualArrays.listJson() /}
 };

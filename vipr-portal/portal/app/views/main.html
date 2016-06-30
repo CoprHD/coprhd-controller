@@ -330,7 +330,7 @@
 #{/nav.mainMenu}
 #{get 'menu'/}
 <!--------------------------------------------------------------------->
-<div id="wizard" class="wizard-dialog" ng-class="{'wizard-full':currentMode=='full', 'wizard-side':currentMode=='side'}" ng-show="guideVisible">
+<div id="wizard" class="wizard-dialog" ng-class="{'wizard-full':currentMode=='full', 'wizard-side':currentMode=='side', 'guide-menuopen':isMenuPinned=='true'}" ng-show="guideVisible">
   #{GettingStarted.gettingStarted/}
 </div>
 <!--------------------------------------------------------------------->

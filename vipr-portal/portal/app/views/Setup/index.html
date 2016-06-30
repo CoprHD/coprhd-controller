@@ -619,9 +619,9 @@ $(document).ready(function() {
     <div class="form-actions" ng-controller="wizardController" >
       <a id="back"  href="#" class="btn btn-default" onclick="return buttonClicked(this, backClicked, event);">#{icon 'arrow-left'/} &{'button.back'}</a>
       <a id="next" href="#" class="btn btn-default" onclick="return buttonClicked(this, nextClicked, event);">#{icon 'arrow-right'/} &{'button.next'}</a>
-      <button id="finish" ng-click="completeStep();" type="submit" class="btn btn-primary">#{icon 'check'/} &{'button.finish'}</button>
+      <button id="finish" ng-click="completeStep(2);" type="submit" class="btn btn-primary">#{icon 'check'/} &{'button.finish'}</button>
       #{if play.mode.isDev()}
-        <a id="skip" ng-click="goToNextSteps(true);" href="@{Setup.skip()}" class="btn btn-info">#{icon 'share-alt'/} &{'button.skip'}</a>
+        <a id="skip" ng-click="completeStep(2);" href="@{Setup.skip()}" class="btn btn-info">#{icon 'share-alt'/} &{'button.skip'}</a>
       #{/if}
       <a id="testSmtp" href="#" class="btn btn-info" onclick="return buttonClicked(this, showDialog, event);">
         #{icon 'envelope'/} &{'setup.testSmtp'}

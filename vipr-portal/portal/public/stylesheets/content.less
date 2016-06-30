@@ -962,6 +962,39 @@ ul.guide-steps {
 ul.guide-steps ul {
     padding: 0 50px;
 }
+ul.guide-steps > li.step-optional {
+    padding-left: 50px;
+    list-style-type: none;
+}
+ul.guide-steps > li.step-optional > div.step-circle::before {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    bottom: 1px;
+    left: 50%;
+    height: 61px;
+    border-right: 1px solid #9a9b9b;
+
+        top: 6px;
+        /* left bar thickness */
+
+        left: -42px;
+        /* left bar position */
+
+        width: 42px;
+        /* left bar width */
+
+        height: 1px;
+        /* left bar thickness */
+
+        background: #9a9b9b;
+        z-index: -1;
+}
+ul.guide-steps > li.step-optional > div.step-circle::after {
+    display: none;
+}
+
+
 ul.guide-steps,
 ul.guide-steps ul {
     list-style-type: none;
@@ -1061,16 +1094,18 @@ ul.guide-steps > li > ul > li > div.step-circle::before {
     z-index: -1;
 
 }
-ul.guide-steps > li.subitem + li > div.step-circle::before {
+ul.guide-steps > li > div.step-circle::before {
     content: '';
     position: absolute;
     z-index: -1;
     bottom: 1px;
     left: 50%;
-    height: 61px;
+    height: 59px;
     border-right: 1px solid #9a9b9b;
 }
-
+ul.guide-steps > li:first-child > div.step-circle::before {
+    display: none;
+}
 
 #css-table {
   display: table;
@@ -1090,6 +1125,7 @@ ul.guide-steps > li.subitem + li > div.step-circle::before {
   display: table-cell;
   padding: 0 10px;
   vertical-align: top;
+  //width: 80%;
   border-left: 1px solid #9a9b9b;
   /* background:green; */
 }
@@ -1135,15 +1171,19 @@ ul.guide-steps > li.subitem + li > div.step-circle::before {
     bottom: 0px;
     min-height: 900px;
 
-    -webkit-transition: all .3s ease;
-    -moz-transition: all .3s ease;
-    -ms-transition: all .3s ease;
-    -o-transition: all .3s ease;
-    transition: all .3s ease;
+    -webkit-transition: padding .2s ease,opacity .2s ease;
+    -moz-transition: padding .2s ease,opacity .2s ease;
+    -ms-transition: padding .2s ease,opacity .2s ease;
+    -o-transition: padding .2s ease,opacity .2s ease;
+    transition: padding .2s ease,opacity .2s ease;
 }
 
 .guide-menuopen{
     padding-left: 215px;
+}
+
+.wizard-side.guide-menuopen{
+   padding-left: 12px;
 }
 
 .guide-fullpage{
@@ -1225,4 +1265,32 @@ ul.guide-steps > li.subitem + li > div.step-circle::before {
     font-size: 26px;
     text-transform: uppercase;
     color: #428bca;
+}
+
+step-side > div.step-circle {
+    width: 20px;
+    height: 20px;
+    /* w and h should be same for cicle */
+
+    text-align: center;
+    /* line-height: 2em; */
+    /* centers glyph */
+
+    border-radius: 34px;
+    background: #0cbd62;
+    /* margin: 1em 0; */
+    display: inline-block;
+    color: black;
+    position: relative;
+    border: 2px solid #fff;
+    margin-right: 5px;
+  }
+step-side > div.step-circle i{
+  font-size: 12px;
+  vertical-align: 2px;
+  color: #fff;
+}
+
+steps-incomplete {
+    color: yellow;
 }

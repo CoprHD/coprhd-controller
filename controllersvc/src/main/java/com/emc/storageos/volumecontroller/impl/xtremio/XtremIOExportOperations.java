@@ -84,7 +84,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                     .operationFailed("createExportMask", ex.getMessage());
             taskCompleter.error(dbClient, serviceError);
         }
-        _log.info("{} createExportMask END...", storage.getSerialNumber());        
+        _log.info("{} createExportMask END...", storage.getSerialNumber());
     }
 
     @Override
@@ -151,12 +151,8 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
             if (exportMask == null || exportMask.getInactive()) {
                 throw new DeviceControllerException("Invalid ExportMask URI: " + exportMaskURI);
             }
-            Set<String> initiatorUris = exportMask.getInitiators();
-            List<URI> initiatorUriList = new ArrayList<URI>(Collections2.transform(initiatorUris,
-                    CommonTransformerFunctions.FCTN_STRING_TO_URI));
-            List<Initiator> initiators = dbClient.queryObject(Initiator.class, initiatorUriList);
 
-            runLunMapCreationAlgorithm(storage, exportMask, volumeURIHLUs, initiators, null,
+            runLunMapCreationAlgorithm(storage, exportMask, volumeURIHLUs, initiatorList, null,
                     taskCompleter);
         } catch (final Exception ex) {
             _log.error("Problem in addVolumes: ", ex);
@@ -164,7 +160,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                     .operationFailed("addVolumes", ex.getMessage());
             taskCompleter.error(dbClient, serviceError);
         }
-        _log.info("{} addVolumes END...", storage.getSerialNumber());   
+        _log.info("{} addVolumes END...", storage.getSerialNumber());
     }
 
     @Override
@@ -178,10 +174,10 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
             // TODO DUPP:
             // 1. Get initiator list from the caller
             // 2. Verify that the initiators are the ONLY ones impacted by this remove volumes, otherwise fail.
-            // 
-            // This implementation is pulling the initiators directly out of the export mask because the caller to detach 
-            //    the volumes needs this information.  This might be OK to do separately than verifying the initiators that are
-            //    impacted from the orchestrator, although it is likely they will be the same list.
+            //
+            // This implementation is pulling the initiators directly out of the export mask because the caller to detach
+            // the volumes needs this information. This might be OK to do separately than verifying the initiators that are
+            // impacted from the orchestrator, although it is likely they will be the same list.
             //
             if (initiatorList != null) {
                 _log.info("removeVolumes: impacted initiators: {}", Joiner.on(",").join(initiatorList));
@@ -192,18 +188,14 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                 throw new DeviceControllerException("Invalid ExportMask URI: " + exportMaskURI);
             }
 
-            Set<String> initiatorUris = exportMask.getInitiators();
-            List<URI> initiatorUriList = new ArrayList<URI>(Collections2.transform(initiatorUris,
-                    CommonTransformerFunctions.FCTN_STRING_TO_URI));
-            List<Initiator> initiators = dbClient.queryObject(Initiator.class, initiatorUriList);
-            runLunMapDeletionAlgorithm(storage, exportMask, volumeUris, initiators, taskCompleter);
+            runLunMapDeletionAlgorithm(storage, exportMask, volumeUris, initiatorList, taskCompleter);
         } catch (final Exception ex) {
             _log.error("Problem in removeVolumes: ", ex);
             ServiceError serviceError = DeviceControllerErrors.xtremio
                     .operationFailed("removeVolumes", ex.getMessage());
             taskCompleter.error(dbClient, serviceError);
         }
-        _log.info("{} removeVolumes END...", storage.getSerialNumber());   
+        _log.info("{} removeVolumes END...", storage.getSerialNumber());
     }
 
     @Override
@@ -221,7 +213,6 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
             }
             _log.info("addInitiators: initiators : {}", Joiner.on(',').join(initiators));
             _log.info("addInitiators: targets : {}", Joiner.on(",").join(targets));
-
 
             ExportMask exportMask = dbClient.queryObject(ExportMask.class, exportMaskURI);
             if (exportMask == null || exportMask.getInactive()) {
@@ -243,7 +234,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                     .operationFailed("addInitiators", ex.getMessage());
             taskCompleter.error(dbClient, serviceError);
         }
-        _log.info("{} addInitiators END...", storage.getSerialNumber());  
+        _log.info("{} addInitiators END...", storage.getSerialNumber());
 
     }
 
@@ -413,6 +404,11 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                 }
             }
 
+            // DU validation
+            for (String ig : groupInitiatorsByIG.keySet()) {
+                List<Initiator> knownInitiators = getKnownInitiatorsForIG(ig, xioClusterName, client);
+                validateAdditionalInitiatorsInIG(knownInitiators, groupInitiatorsByIG.get(ig), hostName);
+            }
             _log.info("List of reusable IGs found {} with size : {}",
                     Joiner.on(",").join(groupInitiatorsByIG.asMap().entrySet()),
                     groupInitiatorsByIG.size());
@@ -425,11 +421,11 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                 if (URIUtil.isType(volumeUri, Volume.class)) {
                     xtremIOVolume = XtremIOProvUtils.isVolumeAvailableInArray(client,
                             blockObj.getLabel(), xioClusterName);
-                    
+
                     // It could be that the block object is actually a snapshot on the array
                     // because a VPLEX volume was created on top of a snapshot, and when this is
-                    // done, a dummy backend volume is created using the data from the block 
-                    // snapshot because VPLEX volumes need to be built on volumes. So, if the 
+                    // done, a dummy backend volume is created using the data from the block
+                    // snapshot because VPLEX volumes need to be built on volumes. So, if the
                     // returned value is null, check the snapshots.
                     if (xtremIOVolume == null) {
                         xtremIOVolume = XtremIOProvUtils.isSnapAvailableInArray(client,
@@ -626,7 +622,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
 
                         /**
                          * Get list of initiators associated with the IG.
-                         * 
+                         *
                          * a. If there are unknown initiators in IG, fail the operation
                          * b. i) If Cluster export:
                          * - - - If there are additional initiators other than the ones in ExportMask:
@@ -637,7 +633,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                          * - ii) Host export: Check additional initiators belong to same host or different host
                          * - - -- If same host, delete LunMap
                          * - - -- If different host, fail the operation
-                         * 
+                         *
                          * Reason for failing: We do not want to cause DU by choosing an operation when additional initiators
                          * are present in the IG. Better fail the operation explaining the situation instead of resulting in DU.
                          */
@@ -646,9 +642,9 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                             if (!initiatorsOfRP && checkIfIGHasOtherHostInitiatorsOfSameCluster(knownInitiatorsInIG,
                                     groupInitiatorsByIG.get(igName), hostName, clusterName)) {
                                 removeInitiator = true;
-                            } // else deleteLunMap
+                            }        // else deleteLunMap
                         } else {
-                            validateAdditionalInitiatorsInIGBelongToSameHost(knownInitiatorsInIG, groupInitiatorsByIG.get(igName), hostName);
+                            validateAdditionalInitiatorsInIG(knownInitiatorsInIG, groupInitiatorsByIG.get(igName), hostName);
                         }
                         if (!removeInitiator) {
                             // delete LunMap
@@ -1104,7 +1100,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
     /**
      * If there are additional initiators, this method validates that they belong to the same Host.
      */
-    private boolean validateAdditionalInitiatorsInIGBelongToSameHost(List<Initiator> knownInitiatorsInIG,
+    private boolean validateAdditionalInitiatorsInIG(List<Initiator> knownInitiatorsInIG,
             List<Initiator> requestedInitiatorsInIG, String hostName) {
         Collection<String> initiatorsInIG = Collections2.transform(knownInitiatorsInIG,
                 CommonTransformerFunctions.fctnInitiatorToPortName());
@@ -1114,24 +1110,26 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                 initiatorsInIG, requestedInitiators);
         initiatorsInIG.removeAll(requestedInitiators);
         if (!initiatorsInIG.isEmpty()) {
-            _log.info("Host name: {}", hostName);
-            _log.info("There are other initiators present in the IG, checking if they all belong to same host");
-            // check if the other initiators belong to different host
-            List<String> listToIgnore = new ArrayList<String>();
-            for (Initiator ini : knownInitiatorsInIG) {
-                if (ini.getHostName() != null && ini.getHostName().equalsIgnoreCase(hostName)) {
-                    listToIgnore.add(Initiator.normalizePort(ini.getInitiatorPort()));
-                }
-            }
-            initiatorsInIG.removeAll(listToIgnore);
-
-            if (!initiatorsInIG.isEmpty()) {
-                // fail the operation
-                String errMsg = String.format("there are initiators in the Initiator Group on the array "
-                        + "which belong to different host: %s", initiatorsInIG);
-                _log.error(errMsg);
-                throw DeviceControllerException.exceptions.couldNotPerformExportDelete(errMsg);
-            }
+            /*
+             * _log.info("Host name: {}", hostName);
+             * _log.info("There are other initiators present in the IG, checking if they all belong to same host");
+             * // check if the other initiators belong to different host
+             * List<String> listToIgnore = new ArrayList<String>();
+             * for (Initiator ini : knownInitiatorsInIG) {
+             * if (ini.getHostName() != null && ini.getHostName().equalsIgnoreCase(hostName)) {
+             * listToIgnore.add(Initiator.normalizePort(ini.getInitiatorPort()));
+             * }
+             * }
+             * initiatorsInIG.removeAll(listToIgnore);
+             *
+             * if (!initiatorsInIG.isEmpty()) {
+             */
+            // fail the operation
+            String errMsg = String.format("there are initiators in the Initiator Group on the array "
+                    + "which are not part of the request: %s", initiatorsInIG);
+            _log.error(errMsg);
+            throw DeviceControllerException.exceptions.couldNotPerformExportDelete(errMsg);
+            // }
         }
         return true;
     }

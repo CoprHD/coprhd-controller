@@ -5,13 +5,12 @@
 
 package com.emc.storageos.dbcli;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 public class Main {
@@ -137,7 +136,7 @@ public class Main {
         System.out.println(String.format("\t%s <Column Family Name>", Command.SHOW_SCHEMA.name().toLowerCase()));
         System.out.printf("\t -bypassMigrationCheck%n");
         System.out
-                .printf("\t\tNote: it's used with other commands together only when migration fail, dbcli still work even migration fail if you pass this option");
+                .printf("\t\tNote: it's used with other commands together only when migration fail, dbcli still work even migration fail if you pass this option\n");
 
     }
 

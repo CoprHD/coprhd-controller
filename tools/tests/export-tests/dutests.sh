@@ -476,9 +476,9 @@ vmax_setup() {
 xio_setup() {
     # do this only once
     echo "Setting up XtremIO"
-    XTREMIO_NATIVEGUID=$XIO_4X_SIM_NATIVEGUID
+    XTREMIO_NATIVEGUID=XTREMIO+$XTREMIO_3X_SN
     storage_password=$XTREMIO_3X_PASSWD
-    runcmd storageprovider create XIO-PROVIDER $XIO_SIMULATOR_IP $XIO_4X_SIMULATOR_PORT $XTREMIO_3X_USER "$XTREMIO_3X_PASSWD" xtremio
+    runcmd storageprovider create XIO-PROVIDER $XTREMIO_3X_IP 443 $XTREMIO_3X_USER "$XTREMIO_3X_PASSWD" xtremio
     runcmd storagedevice discover_all --ignore_error
 
     runcmd storagepool update $XTREMIO_NATIVEGUID --type block --volume_type THIN_ONLY
@@ -1217,8 +1217,6 @@ test_7() {
     # Make sure it really did kill off the mask
     verify_export ${expname}1 ${HOST1} gone
 
-    # Delete the volume we created
-    runcmd volume delete ${PROJECT}/${volname} --wait
 }
 
 # Validation Test 8

@@ -287,6 +287,7 @@ public class KeystoneService extends TaskResourceService {
     @GET
     @Path("/ostenants")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SECURITY_ADMIN })
     public CoprhdOsTenantListRestRep listCoprhdOsTenants() {
 
         _log.debug("Keystone Service - listCoprhdOsTenants");
@@ -308,6 +309,7 @@ public class KeystoneService extends TaskResourceService {
     @GET
     @Path("/ostenants/{id}")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SECURITY_ADMIN })
     public CoprhdOsTenant getCoprhdOsTenant(@PathParam("id") URI id) {
 
         if (id == null) {

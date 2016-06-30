@@ -118,6 +118,8 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     private static final String VMFS_DATASTORE_PREFIX = "vipr:vmfsDatastore";
     private static Pattern MACHINE_TAG_REGEX = Pattern.compile("([^W]*\\:[^W]*)=(.*)");
 
+    private static final String ROLLBACK_METHOD_NULL = "rollbackMethodNull";
+
     private ComputeDeviceController computeDeviceController;
     private BlockStorageScheduler _blockScheduler;
 
@@ -143,6 +145,15 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
     public void setBlockScheduler(BlockStorageScheduler blockScheduler) {
         _blockScheduler = blockScheduler;
+    }
+
+    /**
+     * Empty rollback method
+     * 
+     * @return workflow method that is empty
+     */
+    private Workflow.Method rollbackMethodNullMethod() {
+        return new Workflow.Method(ROLLBACK_METHOD_NULL);
     }
 
     @Override
@@ -1415,7 +1426,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                             this.getClass(),
                             unmountAndDetachMethod(export, esxHost.getId(), vCenterId,
                                     vcenterDataCenter.getId()),
-                            null, null);
+                            rollbackMethodNullMethod(), null);
                 }
             }
         }
@@ -1445,7 +1456,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                             this.getClass(),
                             attachAndMountMethod(export, esxHost.getId(), vCenterId,
                                     vcenterDataCenter.getId()),
-                            null, null);
+                            rollbackMethodNullMethod(), null);
                 }
             }
         }

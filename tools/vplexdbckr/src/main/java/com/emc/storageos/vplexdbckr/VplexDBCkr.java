@@ -14,6 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import java.util.HashMap;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
@@ -21,17 +22,23 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.vplex.api.VPlexApiClient;
 import com.emc.storageos.vplex.api.VPlexApiConstants;
 import com.emc.storageos.vplex.api.VPlexApiFactory;
 import com.emc.storageos.vplex.api.VPlexResourceInfo;
 import com.emc.storageos.vplex.api.VPlexStorageVolumeInfo;
 import com.emc.storageos.vplex.api.VPlexVirtualVolumeInfo;
+import com.emc.storageos.db.client.model.VplexMirror;
+import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
 import com.emc.storageos.vplex.api.VPlexStorageViewInfo;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
+import com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationController;
+import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 
 /**
  * A single bean instance of this class is started from the Spring configuration.
@@ -48,9 +55,130 @@ public class VplexDBCkr {
     private static DbClient dbClient = null;
     private static VPlexApiFactory vplexApiFactory = null;
     
-    public void checkVolumesOnVplex(URI vplexSystemURI) {
+	 public void cleanupForViPROnlyDelete(List<VolumeDescriptor> volumeDescriptors) {
+        // Remove volumes from ExportGroup(s) and ExportMask(s).
+        List<URI> volumeURIs = VolumeDescriptor.getVolumeURIs(volumeDescriptors);
+        for (URI volumeURI : volumeURIs) {
+            cleanBlockObjectFromExports(volumeURI, true);
+        }
+    }
+	public void cleanBlockObjectFromExports(URI boURI, boolean addToExisting) {
+        //s_logger.info("Cleaning block object {} from exports", boURI);
+        Map<URI, ExportGroup> exportGroupMap = new HashMap<URI, ExportGroup>();
+        Map<URI, ExportGroup> updatedExportGroupMap = new HashMap<URI, ExportGroup>();
+        Map<String, ExportMask> exportMaskMap = new HashMap<String, ExportMask>();
+        Map<String, ExportMask> updatedExportMaskMap = new HashMap<String, ExportMask>();
+        BlockObject bo = BlockObject.fetch(dbClient, boURI);
+        URIQueryResultList exportGroupURIs = new URIQueryResultList();
+        dbClient.queryByConstraint(ContainmentConstraint.Factory.getBlockObjectExportGroupConstraint(boURI), exportGroupURIs);
+        for (URI exportGroupURI : exportGroupURIs) {
+            //s_logger.info("Cleaning block object from export group {}", exportGroupURI);
+            ExportGroup exportGroup = null;
+            if (exportGroupMap.containsKey(exportGroupURI)) {
+                exportGroup = exportGroupMap.get(exportGroupURI);
+            } else {
+                exportGroup = dbClient.queryObject(ExportGroup.class, exportGroupURI);
+                exportGroupMap.put(exportGroupURI, exportGroup);
+            }
+
+            if (exportGroup.hasBlockObject(boURI)) {
+                //s_logger.info("Removing block object from export group");
+                exportGroup.removeVolume(boURI);
+                if (!updatedExportGroupMap.containsKey(exportGroupURI)) {
+                    updatedExportGroupMap.put(exportGroupURI, exportGroup);
+                }
+            }
+
+            StringSet exportMaskIds = exportGroup.getExportMasks();
+            for (String exportMaskId : exportMaskIds) {
+                ExportMask exportMask = null;
+                if (exportMaskMap.containsKey(exportMaskId)) {
+                    exportMask = exportMaskMap.get(exportMaskId);
+                } else {
+                    exportMask = dbClient.queryObject(ExportMask.class, URI.create(exportMaskId));
+                    exportMaskMap.put(exportMaskId, exportMask);
+                }
+                if (exportMask.hasVolume(boURI)) {
+                    //s_logger.info("Cleaning block object from export mask {}", exportMaskId);
+                    StringMap exportMaskVolumeMap = exportMask.getVolumes();
+                    String hluStr = exportMaskVolumeMap.get(boURI.toString());
+                    exportMask.removeVolume(boURI);
+                    exportMask.removeFromUserCreatedVolumes(bo);
+                    // Add this volume to the existing volumes map for the
+                    // mask, so that if the last ViPR created volume goes
+                    // away, the physical mask will not be deleted.
+                    if (addToExisting) {
+                        //s_logger.info("Adding to existing volumes");
+                        exportMask.addToExistingVolumesIfAbsent(bo, hluStr);
+                    }
+                    if (!updatedExportMaskMap.containsKey(exportMaskId)) {
+                        updatedExportMaskMap.put(exportMaskId, exportMask);
+                    }
+                }
+            }
+        }
+        if (!updatedExportGroupMap.isEmpty()) {
+            List<ExportGroup> updatedExportGroups = new ArrayList<ExportGroup>(
+                    updatedExportGroupMap.values());
+            dbClient.updateObject(updatedExportGroups);
+        }
+
+        if (!updatedExportMaskMap.isEmpty()) {
+            List<ExportMask> updatedExportMasks = new ArrayList<ExportMask>(
+                    updatedExportMaskMap.values());
+            dbClient.updateObject(updatedExportMasks);
+        }
+    }
+
+	public List<VolumeDescriptor> getDescriptorsForVolumesToBeDeleted(URI systemURI,
+            List<URI> volumeURIs, String deletionType) {
+        List<VolumeDescriptor> volumeDescriptors = new ArrayList<VolumeDescriptor>();
+        for (URI volumeURI : volumeURIs) {
+            Volume volume = dbClient.queryObject(Volume.class, volumeURI);
+            VolumeDescriptor descriptor = new VolumeDescriptor(VolumeDescriptor.Type.VPLEX_VIRT_VOLUME,
+                    systemURI, volumeURI, null, null);
+            volumeDescriptors.add(descriptor);
+            // Add a descriptor for each of the associated volumes.
+            if (!volume.isIngestedVolume(dbClient)) {
+                for (String assocVolId : volume.getAssociatedVolumes()) {
+                    Volume assocVolume = dbClient.queryObject(Volume.class, URI.create(assocVolId));
+                    if (null != assocVolume && !assocVolume.getInactive() && assocVolume.getNativeId() != null) {
+                        VolumeDescriptor assocDesc = new VolumeDescriptor(VolumeDescriptor.Type.BLOCK_DATA,
+                                assocVolume.getStorageController(), assocVolume.getId(), null, null);
+                        volumeDescriptors.add(assocDesc);
+                    }
+                }
+                // If there were any Vplex Mirrors, add a descriptors for them.
+                addDescriptorsForVplexMirrors(volumeDescriptors, volume);
+            }
+        }
+        return volumeDescriptors;
+    }
+	
+	public void addDescriptorsForVplexMirrors(List<VolumeDescriptor> descriptors, Volume vplexVolume) {
+        if (vplexVolume.getMirrors() != null && vplexVolume.getMirrors().isEmpty() == false) {
+            for (String mirrorId : vplexVolume.getMirrors()) {
+                VplexMirror mirror = dbClient.queryObject(VplexMirror.class, URI.create(mirrorId));
+                if (mirror != null && !mirror.getInactive()) {
+                    if (null != mirror.getAssociatedVolumes()) {
+                        for (String assocVolumeId : mirror.getAssociatedVolumes()) {
+                            Volume volume = dbClient.queryObject(Volume.class, URI.create(assocVolumeId));
+                            if (volume != null && !volume.getInactive()) {
+                                VolumeDescriptor volDesc = new VolumeDescriptor(VolumeDescriptor.Type.BLOCK_DATA,
+                                        volume.getStorageController(), URI.create(assocVolumeId), null, null);
+                                descriptors.add(volDesc);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+	
+	public void checkVolumesOnVplex(URI vplexSystemURI) {
         URIQueryResultList result = new URIQueryResultList();
-        int nerrors = 0;
+        List<URI> deletevirtualvolumeURIs = new ArrayList<URI>();
+		int nerrors = 0;
         dbClient.queryByConstraint(
                 ContainmentConstraint.Factory.getStorageDeviceVolumeConstraint(vplexSystemURI), result);
         Iterator<URI> iter = result.iterator();
@@ -61,7 +189,8 @@ public class VplexDBCkr {
         Map<String, VPlexVirtualVolumeInfo> vvInfoMap = client.getVirtualVolumes(true);
 		List<VPlexStorageViewInfo> storageViews = client.getStorageViews();
         writeLog("... done");
-       try {
+       
+	   try {
 		while(iter.hasNext()) {
             Volume volume = dbClient.queryObject(Volume.class, iter.next());
             if (volume == null || volume.getInactive()) {
@@ -78,7 +207,8 @@ public class VplexDBCkr {
             if (vvInfo == null) {
                 writeLog(String.format("ERROR: Volume %s (%s) had no VirtualVolumeInfo in VPlex", 
                         volume.getLabel(), volume.getDeviceLabel()));
-                nerrors++;
+                deletevirtualvolumeURIs.add(volume.getId());  
+				nerrors++;
                 continue;
             }
 			
@@ -124,6 +254,30 @@ public class VplexDBCkr {
                 }
             }
 		   }
+		   
+		// deleting virtual volumes that no longer exist in vplex
+		List<VolumeDescriptor> volumeDescriptors = getDescriptorsForVolumesToBeDeleted(vplexSystemURI, deletevirtualvolumeURIs, VolumeDeleteTypeEnum.VIPR_ONLY.name());
+		cleanupForViPROnlyDelete(volumeDescriptors);
+		
+		// Mark them inactive. Note that some of the volumes may be mirrors,
+            // which have a different database type.
+            //List<VolumeDescriptor> descriptorsForMirrors = VolumeDescriptor.getDescriptors(
+            //        volumeDescriptors, VolumeDescriptor.Type.BLOCK_MIRROR);
+            //dbClient.markForDeletion(dbClient.queryObject(BlockMirror.class,
+            //        VolumeDescriptor.getVolumeURIs(descriptorsForMirrors)));
+            List<VolumeDescriptor> descriptorsForVolumes = VolumeDescriptor.filterByType(
+                    volumeDescriptors, null, new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_MIRROR });
+            dbClient.markForDeletion(dbClient.queryObject(Volume.class,
+                    VolumeDescriptor.getVolumeURIs(descriptorsForVolumes)));
+
+            // Update the task status for each volume
+            for (URI volumeURI : deletevirtualvolumeURIs) {
+                Volume volume = dbClient.queryObject(Volume.class, volumeURI);
+                //Operation op = volume.getOpStatus().get(task);
+                //op.ready("Volume succesfully deleted from ViPR");
+                //volume.getOpStatus().updateTaskStatus(task, op);
+                dbClient.updateObject(volume);
+            }
 		  } catch (Exception e) {
                     writeLog(String.format("Exception: while verifying virtual volumes", e));
           }

@@ -291,9 +291,18 @@ abstract public class AbstractDefaultMaskingOrchestrator {
         URI exportGroupURI = exportGroup.getId();
         URI storageURI = storage.getId();
 
+        // TODO DUPP:
+        // Make sure the caller to this method (the caller that assembles the steps) adds the initiator list to
+        // send down here. (then remove the log)
+        List<Initiator> initiators = null;
+        if (initiatorURIs != null && !initiatorURIs.isEmpty()) {
+            initiators = _dbClient.queryObject(Initiator.class, initiatorURIs);
+        } else {
+            _log.error("ERROR Poka Yoke: add the initiatorURIs to the call that assembles this step.");
+        }
+
         // Create and initialize the Export Mask. This involves assigning and
         // allocating the Storage Ports (targets).
-        List<Initiator> initiators = _dbClient.queryObject(Initiator.class, initiatorURIs);
         ExportPathParams pathParams = _blockScheduler.calculateExportPathParamForVolumes(
                 volumeMap.keySet(), exportGroup.getNumPaths(), storage.getId(), exportGroup.getId());
         if (exportGroup.getType() != null) {
@@ -614,7 +623,15 @@ abstract public class AbstractDefaultMaskingOrchestrator {
         List<URI> newTargetURIs = new ArrayList<>();
 
         // Only update the ports of a mask that we created.
-        List<Initiator> initiators = _dbClient.queryObject(Initiator.class, initiatorURIs);
+        // TODO DUPP:
+        // Make sure the caller to this method (the caller that assembles the steps) adds the initiator list to
+        // send down here. (then remove the log)
+        List<Initiator> initiators = null;
+        if (initiatorURIs != null && initiatorURIs.isEmpty()) {
+            initiators = _dbClient.queryObject(Initiator.class, initiatorURIs);
+        } else {
+            _log.error("ERROR Poka Yoke: add the initiatorURIs to the call that assembles this step.");
+        }
 
         // Allocate any new ports that are required for the initiators
         // and update the zoning map in the exportMask.

@@ -114,8 +114,15 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         URI storageURI = storage.getId();
         List<URI> newTargetURIs = new ArrayList<>();
 
-        // Only update the ports of a mask that we created.
-        List<Initiator> initiators = _dbClient.queryObject(Initiator.class, initiatorURIs);
+        // TODO DUPP:
+        // Make sure the caller to this method (the caller that assembles the steps) adds the initiator list to
+        // send down here. (then remove the log)
+        List<Initiator> initiators = null;
+        if (initiatorURIs != null && !initiatorURIs.isEmpty()) {
+            initiators = _dbClient.queryObject(Initiator.class, initiatorURIs);
+        } else {
+            _log.error("ERROR Poka Yoke: add the initiatorURIs to the call that assembles this step.");
+        }
         // Allocate any new ports that are required for the initiators
         // and update the zoning map in the exportMask.
         Collection<URI> volumeURIs = (exportMask.getVolumes() == null) ? newVolumeURIs

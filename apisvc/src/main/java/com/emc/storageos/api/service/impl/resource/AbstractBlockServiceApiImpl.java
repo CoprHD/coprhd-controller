@@ -12,6 +12,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -2022,7 +2023,13 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
     }
 
     /**
-     * Create a task for the CG and volumes sent in.
+     * Create a task for the replication group and volumes sent in.
+     * Since replication groups are not a primary resource, we cannot associate a Task to a replication
+     * group. We get around this by associating the task to the first volume in the list, and the other
+     * volumes are associated resources. This is not an ideal approach, so we will pursue a better approach
+     * when we add support for retry/rollback as part of COP-22431 and its subtasks.
+     * 
+     * Also see bugfix-feature-COP-22215-filter-tasks-with-same-workflow for an alternative approach.
      * 
      * @param vPool
      *            virtual pool
@@ -2032,13 +2039,28 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      *            task ID
      * @return a task list
      */
-    protected TaskResourceRep createTaskForCG(VirtualPool vPool, BlockConsistencyGroup cg, List<Volume> volumes, String taskId) {
-        if (volumes == null) {
+    protected TaskResourceRep createTaskForRG(VirtualPool vPool, List<Volume> volumes, String taskId) {
+        if (volumes == null || volumes.isEmpty()) {
             s_logger.info("No volumes were presented to create task objects.  This is a fatal error");
             // TODO DUPP: throw exception;
             return null;
         }
 
+        // Sort the based on label for deterministic primary resource
+        // It's OK if there are duplicate labels.
+        List<String> labelsToSort = new ArrayList<>();
+        Map<String, Volume> labelToVolumeMap = new HashMap<String, Volume>();
+        for (Volume volume : volumes) {
+            labelsToSort.add(volume.getLabel());
+            labelToVolumeMap.put(volume.getLabel(), volume);
+        }
+        Collections.sort(labelsToSort);
+
+        // Grab the primary volume
+        Volume primaryVolume = labelToVolumeMap.get(labelsToSort.get(0));
+
+        // Do not include the primary volume in the associated resources
+        volumes.remove(primaryVolume);
         List<? extends DataObject> associatedResources = new ArrayList<>();
         List<URI> associatedResourcesURIs = new ArrayList<URI>();
         for (Volume volume : volumes) {
@@ -2052,14 +2074,14 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         if (!associatedResourcesURIs.isEmpty()) {
             op.setAssociatedResourcesField(Joiner.on(',').join(associatedResourcesURIs));
         }
-        op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, cg.getId(), taskId, op);
+        op = _dbClient.createTaskOpStatus(Volume.class, primaryVolume.getId(), taskId, op);
 
         TaskResourceRep cgTask = null;
         if (!associatedResources.isEmpty()) {
             // We need the task to reflect that there are associated resources affected by this operation.
-            cgTask = TaskMapper.toTask(cg, associatedResources, taskId, op);
+            cgTask = TaskMapper.toTask(primaryVolume, associatedResources, taskId, op);
         } else {
-            cgTask = TaskMapper.toTask(cg, taskId, op);
+            cgTask = TaskMapper.toTask(primaryVolume, taskId, op);
         }
 
         return cgTask;

@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.UUID;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -74,8 +75,8 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 @Path("/vdc/tasks")
-@DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.TENANT_ADMIN },
-        writeRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN, Role.TENANT_ADMIN })
+@DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, writeRoles = {
+        Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN, Role.TENANT_ADMIN })
 public class TaskService extends TaggedResource {
     private static final String DATE_TIME_FORMAT = "yyyy-MM-dd_HH:mm:ss";
 
@@ -92,7 +93,8 @@ public class TaskService extends TaggedResource {
     /**
      * Returns information about the specified task.
      * 
-     * @param id the URN of a ViPR task
+     * @param id
+     *            the URN of a ViPR task
      * @brief Show Task
      * @return The specified task details
      */
@@ -105,8 +107,7 @@ public class TaskService extends TaggedResource {
         // Permission Check
         if (task.getTenant().equals(TenantOrg.SYSTEM_TENANT)) {
             verifySystemAdmin();
-        }
-        else {
+        } else {
             verifyUserHasAccessToTenants(Lists.newArrayList(task.getTenant()));
         }
 
@@ -118,7 +119,8 @@ public class TaskService extends TaggedResource {
      * 
      * @prereq none
      * 
-     * @param param POST data containing the id list.
+     * @param param
+     *            POST data containing the id list.
      * 
      * @brief List data of volume resources
      * @return list of representations.
@@ -136,7 +138,9 @@ public class TaskService extends TaggedResource {
      * Returns task status count information for the specified Tenant.
      * 
      * @brief Task Status count
-     * @param tenantId Tenant URI of the tenant the count is required for. If not supplied, the logged in users tenant will be used.
+     * @param tenantId
+     *            Tenant URI of the tenant the count is required for. If not supplied, the logged in users tenant will
+     *            be used.
      *            A value of 'system' will return system tasks
      * @return Count of tasks in different statuses
      */
@@ -177,7 +181,9 @@ public class TaskService extends TaggedResource {
      * Returns a list of tasks for the specified tenant
      * 
      * @brief Return a list of tasks for a tenant
-     * @param tenantId Tenant URI of the tenant the count is required for. If not supplied, the logged in users tenant will be used.
+     * @param tenantId
+     *            Tenant URI of the tenant the count is required for. If not supplied, the logged in users tenant will
+     *            be used.
      *            A value of 'system' will provide a list of all the system tasks
      * @return A list of tasks for the tenant
      */
@@ -223,8 +229,7 @@ public class TaskService extends TaggedResource {
 
         if (max_count == null || max_count < 0) {
             max_count = FETCH_ALL;
-        }
-        else {
+        } else {
             max_count = Math.min(max_count, sortedIndexEntries.size());
         }
 
@@ -247,7 +252,8 @@ public class TaskService extends TaggedResource {
      * Deletes the specified task. After this operation has been called, the task will no longer be accessible.
      * 
      * @brief Deletes a task
-     * @param taskId ID of the task to be deleted
+     * @param taskId
+     *            ID of the task to be deleted
      */
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -259,8 +265,7 @@ public class TaskService extends TaggedResource {
         // Permission Check
         if (task.getTenant().equals(TenantOrg.SYSTEM_TENANT)) {
             verifySystemAdmin();
-        }
-        else {
+        } else {
             verifyUserHasAccessToTenants(Lists.newArrayList(task.getTenant()));
         }
 
@@ -271,13 +276,14 @@ public class TaskService extends TaggedResource {
     }
 
     /**
-     * Resumes a task.  This can only be performed on a Task that has status of: suspended_no_error
-     * Retries a task.  This can only be performed on a Task that has status of: suspended_error
+     * Resumes a task. This can only be performed on a Task that has status of: suspended_no_error
+     * Retries a task. This can only be performed on a Task that has status of: suspended_error
      * 
      * In the case of retry, we will retry the controller workflow starting at the failed step.
      * 
      * @brief Resumes a task
-     * @param taskId ID of the task to be resumed
+     * @param taskId
+     *            ID of the task to be resumed
      */
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -289,28 +295,26 @@ public class TaskService extends TaggedResource {
         // Permission Check
         if (task.getTenant().equals(TenantOrg.SYSTEM_TENANT)) {
             verifySystemAdmin();
-        }
-        else {
+        } else {
             verifyUserHasAccessToTenants(Lists.newArrayList(task.getTenant()));
         }
 
         Workflow workflow = validateWorkflow(task);
+        String opId = UUID.randomUUID().toString();
 
         // Resume the workflow
-        /* Operation op = */ WorkflowService.initTaskStatus(_dbClient, workflow, taskId.toString(), Operation.Status.pending, ResourceOperationTypeEnum.WORKFLOW_RESUME);
+        WorkflowService.initTaskStatus(_dbClient, workflow, opId, Operation.Status.pending,
+                ResourceOperationTypeEnum.WORKFLOW_RESUME);
         getWorkflowController().resumeWorkflow(workflow.getId(), taskId.toString());
-        
-        // Should I audit this operation?
-        
-        // Does Trevor expect to see the task object back?
         return Response.ok().build();
     }
 
     /**
-     * Rolls back a task.  This can only be performed on a Task with status: suspended_error
+     * Rolls back a task. This can only be performed on a Task with status: suspended_error
      * 
      * @brief rolls back a task
-     * @param taskId ID of the task to roll back
+     * @param taskId
+     *            ID of the task to roll back
      */
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -322,23 +326,20 @@ public class TaskService extends TaggedResource {
         // Permission Check
         if (task.getTenant().equals(TenantOrg.SYSTEM_TENANT)) {
             verifySystemAdmin();
-        }
-        else {
+        } else {
             verifyUserHasAccessToTenants(Lists.newArrayList(task.getTenant()));
         }
 
         Workflow workflow = validateWorkflow(task);
+        String opId = UUID.randomUUID().toString();
 
         // Rollback the workflow
-        /* Operation op = */ WorkflowService.initTaskStatus(_dbClient, workflow, taskId.toString(), Operation.Status.pending, ResourceOperationTypeEnum.WORKFLOW_RESUME);
+        WorkflowService.initTaskStatus(_dbClient, workflow, opId, Operation.Status.pending,
+                ResourceOperationTypeEnum.WORKFLOW_RESUME);
         getWorkflowController().rollbackWorkflow(workflow.getId(), taskId.toString());
-        
-        // Should I audit this operation?
-        
-        // Does Trevor expect to see the task object back?
         return Response.ok().build();
     }
-    
+
     private WorkflowController getWorkflowController() {
         return getController(WorkflowController.class, WorkflowController.WORKFLOW_CONTROLLER_DEVICE);
     }
@@ -346,15 +347,16 @@ public class TaskService extends TaggedResource {
     /**
      * Validate a task's workflow information for the purpose of restarting the workflow.
      * 
-     * @param task task object
+     * @param task
+     *            task object
      * @return a workflow (as a convenience)
      */
     private Workflow validateWorkflow(Task task) {
         // Validate there is a workflow ID
         if (task.getWorkflow() == null) {
-            throw APIException.badRequests.noWorkflowAssociatedWithTask(task.getId()); 
+            throw APIException.badRequests.noWorkflowAssociatedWithTask(task.getId());
         }
-        
+
         // Validate the workflow exists
         Workflow workflow = _dbClient.queryObject(Workflow.class, task.getWorkflow());
         if (workflow == null) {
@@ -365,7 +367,7 @@ public class TaskService extends TaggedResource {
         if (workflow.getCompletionState() == null) {
             throw APIException.badRequests.workflowCompletionStateNotFound(workflow.getId());
         }
-        
+
         // Validate the workflow is in the right state
         WorkflowState state = WorkflowState.valueOf(WorkflowState.class, workflow.getCompletionState());
         EnumSet<WorkflowState> expected = EnumSet.of(WorkflowState.SUSPENDED_NO_ERROR, WorkflowState.SUSPENDED_ERROR);
@@ -380,8 +382,10 @@ public class TaskService extends TaggedResource {
      * 
      * @prereq none
      * 
-     * @param id the URN of a ViPR resource
-     * @param assignment tag assignments
+     * @param id
+     *            the URN of a ViPR resource
+     * @param assignment
+     *            tag assignments
      * @return No data returned in response body
      */
     @PUT
@@ -401,7 +405,8 @@ public class TaskService extends TaggedResource {
      * 
      * @prereq none
      * 
-     * @param id the URN of a ViPR Resource
+     * @param id
+     *            the URN of a ViPR Resource
      * @return Tags information
      */
     @GET
@@ -500,8 +505,7 @@ public class TaskService extends TaggedResource {
 
         if (!values.isEmpty()) {
             return values.get(0);
-        }
-        else {
+        } else {
             return null;
         }
     }
@@ -522,11 +526,9 @@ public class TaskService extends TaggedResource {
                     tenants.add(URI.create(subTenant.getKey()));
                 }
             }
-        }
-        else if (Objects.equals(requestedTenantId, SYSTEM_TENANT) || Objects.equals(requestedTenantId, TenantOrg.SYSTEM_TENANT)) {
+        } else if (Objects.equals(requestedTenantId, SYSTEM_TENANT) || Objects.equals(requestedTenantId, TenantOrg.SYSTEM_TENANT)) {
             tenants.add(TenantOrg.SYSTEM_TENANT);
-        }
-        else {
+        } else {
             tenants.add(requestedTenantId);
         }
 
@@ -548,8 +550,7 @@ public class TaskService extends TaggedResource {
         for (URI tenantId : tenants) {
             if (tenantId.equals(TenantOrg.SYSTEM_TENANT)) {
                 verifySystemAdmin();
-            }
-            else if (!tenantId.toString().equals(user.getTenantId()) &&
+            } else if (!tenantId.toString().equals(user.getTenantId()) &&
                     !subtenants.contains(tenantId.toString())) {
                 throw APIException.forbidden
                         .insufficientPermissionsForUser(user.getName());

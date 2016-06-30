@@ -27,6 +27,7 @@ import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.TenantOrg;
+import com.emc.storageos.db.client.model.Workflow;
 import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.ResourceTypeEnum;
@@ -129,6 +130,21 @@ public class TaskMapper {
             taskResourceRep.setMessage(task.getMessage());
         }
         taskResourceRep.setDescription(task.getDescription());
+
+        // COP-23486
+        //
+        // This is a workaround to migration post-commit delete source volumes. We would like to be able to
+        // mark this Task as one that cannot be rolled back, however at the time there is no framework to
+        // detect the state of not being able to rollback, so we will catch this specific situation from the
+        // message so we can "flip the flag" of allowable operations by the UI.
+        taskResourceRep.setAllowedOperations(Task.AllowedOperations.none_specified.name());
+        if (task.getWorkflow() != null) {
+            Workflow wf = configInstance.getDbClient().queryObject(Workflow.class, task.getWorkflow());
+            if (wf != null && wf.getCompletionMessage() != null
+                    && wf.getCompletionMessage().contains("post-migration delete of original source backing volumes")) {
+                taskResourceRep.setAllowedOperations(Task.AllowedOperations.retry_only.name());
+            }
+        }
         taskResourceRep.setStartTime(task.getStartTime());
         taskResourceRep.setEndTime(task.getEndTime());
         taskResourceRep.setProgress(task.getProgress() != null ? task.getProgress() : 0);
@@ -142,9 +158,12 @@ public class TaskMapper {
      * Generate a task that is a complete state. This could be used for cases where the operation
      * does not need to go the controller. That is, it's completed within in the API layer.
      * 
-     * @param resource [in] - DataObject, ViPR model object
-     * @param taskId [in] - String task identifier
-     * @param operation [in] - Operation
+     * @param resource
+     *            [in] - DataObject, ViPR model object
+     * @param taskId
+     *            [in] - String task identifier
+     * @param operation
+     *            [in] - Operation
      * @return TaskResourceRep representing a Task that is completed.
      */
     public static TaskResourceRep toCompletedTask(DataObject resource, String taskId, Operation operation) {
@@ -170,7 +189,8 @@ public class TaskMapper {
     }
 
     public static TaskResourceRep toTask(DataObject resource, String taskId, Operation operation) {
-        // If the Operation has been serialized in this request, then it should have the corresponding task embedded in it
+        // If the Operation has been serialized in this request, then it should have the corresponding task embedded in
+        // it
         Task task = operation.getTask(resource.getId());
         if (task != null) {
             return toTask(task);
@@ -179,8 +199,7 @@ public class TaskMapper {
             task = TaskUtils.findTaskForRequestId(getConfig().getDbClient(), resource.getId(), taskId);
             if (task != null) {
                 return toTask(task);
-            }
-            else {
+            } else {
                 throw new IllegalStateException(String.format(
                         "Task not found for resource %s, op %s in either the operation or the database", resource.getId(), taskId));
             }
@@ -192,8 +211,7 @@ public class TaskMapper {
             String taskId,
             Operation operation) {
         TaskResourceRep task = toTask(resource, taskId, operation);
-        List<NamedRelatedResourceRep> associatedReps = new
-                ArrayList<NamedRelatedResourceRep>();
+        List<NamedRelatedResourceRep> associatedReps = new ArrayList<NamedRelatedResourceRep>();
         for (DataObject assoc : assocResources) {
             associatedReps.add(toNamedRelatedResource(assoc));
         }

@@ -900,6 +900,7 @@
         <property name="dbClient" ref="dbclient"/>
         <property name="networkDeviceController" ref="networkDeviceController"/>
         <property name="blockScheduler" ref="blockscheduler"/>
+        <property name="coordinator" ref="coordinator"/>
         <property name="devices">
             <map>
                 <entry key="vmax" value-ref="vmaxSmisDevice"/>

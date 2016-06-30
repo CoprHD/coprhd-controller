@@ -89,6 +89,7 @@ public class OpenStackSynchronizationTask extends ResourceService {
         try {
             _dataCollectionExecutorService.shutdown();
             _dataCollectionExecutorService.awaitTermination(MAX_TERMINATION_TIME, TimeUnit.SECONDS);
+            synchronizationTask = null;
         } catch (Exception e) {
             _log.error("TimeOut occurred after waiting Client Threads to finish");
         }

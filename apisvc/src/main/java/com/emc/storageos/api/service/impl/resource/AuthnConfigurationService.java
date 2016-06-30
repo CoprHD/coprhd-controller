@@ -495,8 +495,6 @@ public class AuthnConfigurationService extends TaggedResource {
 
         if (provider.getAutoRegCoprHDNImportOSProjects() && !isAutoRegistered) {
             _keystoneUtils.registerCoprhdInKeystone(provider.getManagerDN(), provider.getServerUrls(), provider.getManagerPassword());
-            createTenantsAndProjectsForAutomaticKeystoneRegistration();
-            _openStackSynchronizationTask.startSynchronizationTask(syncInterval);
         }
         if (isAutoRegistered && synchronizationInterval != syncInterval) {
             _openStackSynchronizationTask.rescheduleTask(syncInterval);

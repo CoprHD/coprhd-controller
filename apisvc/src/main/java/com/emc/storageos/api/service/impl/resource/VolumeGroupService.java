@@ -623,7 +623,7 @@ public class VolumeGroupService extends TaskResourceService {
         }
         
         List<URI> partialVolumeList = new ArrayList<URI>();
-        boolean partial = getPartialVolumeRequestList(param, volumeGroup, partialVolumeList);
+        boolean partial = isPartialRequest(param, volumeGroup, partialVolumeList);
 
         if (partial) {
             log.info("Full Copy requested for subset of array groups in Application.");
@@ -722,60 +722,60 @@ public class VolumeGroupService extends TaskResourceService {
     }
 
     /**
-     * gets the partial list of volumes for full copy create operation
+     * determines if the full copy create request is partial or full; also gets the partial list of volumes if the request is partial
      * 
-     * @param param
-     * @param application
+     * @param param full copy create parameters
+     * @param application application containing the source volumes
      * @param partialVolumeList output partial list of volumes
      * @return true if partial
      */
-    private boolean getPartialVolumeRequestList(VolumeGroupFullCopyCreateParam param, final VolumeGroup application,
+    private boolean isPartialRequest(VolumeGroupFullCopyCreateParam param, final VolumeGroup application,
             List<URI> partialVolumeList) {
-        return getPartialVolumeRequestList(param.getPartial(), param.getVolumes(), param.getSubGroups(), application, partialVolumeList);
+        return isPartialRequest(param.getPartial(), param.getVolumes(), param.getSubGroups(), application, partialVolumeList);
     }
 
     /**
-     * gets the partial list of volumes for snapshot create operation
+     * determines if the snapshot create request is partial or full; also gets the partial list of volumes if the request is partial
      * 
-     * @param param
-     * @param application
+     * @param param snapshot create parameters
+     * @param application application containing the source volumes
      * @param partialVolumeList output partial list of volumes
      * @return true if partial
      */
-    private boolean getPartialVolumeRequestList(VolumeGroupSnapshotCreateParam param, final VolumeGroup application,
+    private boolean isPartialRequest(VolumeGroupSnapshotCreateParam param, final VolumeGroup application,
             List<URI> partialVolumeList) {
-        return getPartialVolumeRequestList(param.getPartial(), param.getVolumes(), param.getSubGroups(), application, partialVolumeList);
+        return isPartialRequest(param.getPartial(), param.getVolumes(), param.getSubGroups(), application, partialVolumeList);
     }
 
     /**
-     * gets the partial list of volumes for snapshot session create operation
+     * determines if the snapshot session create request is partial or full; also gets the partial list of volumes if the request is partial
      * 
-     * @param param
-     * @param application
+     * @param param snapshot session create parameters
+     * @param application application containing the source volumes
      * @param partialVolumeList output partial list of volumes
      * @return true if partial
      */
-    private boolean getPartialVolumeRequestList(VolumeGroupSnapshotSessionCreateParam param, final VolumeGroup application,
+    private boolean isPartialRequest(VolumeGroupSnapshotSessionCreateParam param, final VolumeGroup application,
             List<URI> partialVolumeList) {
-        return getPartialVolumeRequestList(param.getPartial(), param.getVolumes(), param.getSubGroups(), application, partialVolumeList);
+        return isPartialRequest(param.getPartial(), param.getVolumes(), param.getSubGroups(), application, partialVolumeList);
     }
 
     /**
-     * gets the partial list of volumes for full copy operations
+     * determines if the full copy, snapshot or snapshot session create request is partial or full; also gets the partial list of volumes if the request is partial
      * 
-     * @param partialRequest requet from REST params object
+     * @param partialRequest request from REST params object
      * @param volumes volume URI's from REST params object
      * @param subGroups subgroups from REST params object
-     * @param application
+     * @param application application containing the source volumes
      * @param partialVolumeList output partial list of volumes
      * @return true if partial
      */
-    private boolean getPartialVolumeRequestList(boolean partialRequest, List<URI> volumes, List<String> subGroups, final VolumeGroup application,
+    private boolean isPartialRequest(boolean partialRequest, List<URI> volumes, List<String> subGroups, final VolumeGroup application,
             List<URI> partialVolumeList) {
         boolean partial = false;
         if (partialRequest) {
             partial = true;
-            if (partial && volumes != null && !volumes.isEmpty()) {
+            if (volumes != null && !volumes.isEmpty()) {
                 partialVolumeList.addAll(volumes);
             }
         } else {
@@ -830,10 +830,7 @@ public class VolumeGroupService extends TaskResourceService {
             throw APIException.badRequests.invalidCopySetNamesProvided(StringUtils.join(subGroups.iterator(), ","), ReplicaTypeEnum.FULL_COPY.toString());
         }
         // not partial if all sub groups are listed
-        if (appSubGroups.size() != subGroups.size()) {
-            return true;
-        }
-        return false;
+        return (appSubGroups.size() != subGroups.size());
     }
 
     /**
@@ -1682,7 +1679,7 @@ public class VolumeGroupService extends TaskResourceService {
         // volumes to be processed
         List<Volume> volumes = new ArrayList<Volume>();
         List<URI> partialVolumeList = new ArrayList<URI>();
-        boolean partial = getPartialVolumeRequestList(param, volumeGroup, partialVolumeList);
+        boolean partial = isPartialRequest(param, volumeGroup, partialVolumeList);
 
         if (partial) {
             log.info("Snapshot requested for subset of array groups in Application.");
@@ -2348,7 +2345,7 @@ public class VolumeGroupService extends TaskResourceService {
         // volumes to be processed
         List<Volume> volumes = new ArrayList<Volume>();
         List<URI> partialVolumeList = new ArrayList<URI>();
-        boolean partial = getPartialVolumeRequestList(param, volumeGroup, partialVolumeList);
+        boolean partial = isPartialRequest(param, volumeGroup, partialVolumeList);
 
         if (partial) {
             log.info("Snapshot Session requested for subset of array groups in Application.");

@@ -30,6 +30,7 @@ add_volume_to_mask() {
     fi
 
     # Add it to the storage group ViPR knows about
+    # TODO: I've seen storage groups sneak in over tests...make sure only storage group is found
     sg_short_id=`/opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} list -type storage | grep ${pattern}_${sid}_SG | cut -c1-31`
     sg_long_id=`/opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} list -type storage -detail -v | grep ${sg_short_id} | awk -F: '{print $2}' | awk '{print $1}' | sed -e 's/^[[:space:]]*//'`
 

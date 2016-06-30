@@ -858,16 +858,16 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 if (tagValue != null && tagValue.startsWith(VMFS_DATASTORE_PREFIX)) {
                     String datastoreName = getDatastoreName(tagValue);
                     try {
+                        for (HostScsiDisk entry : storageAPI.listScsiDisks()) {
+                            if (VolumeWWNUtils.wwnMatches(VMwareUtils.getDiskWwn(entry), blockObject.getWWN())) {
+                                _log.info("Attach SCSI Lun " + entry.getCanonicalName() + " on host " + esxHost.getLabel());
+                                storageAPI.attachScsiLun(entry);
+                            }
+                        }
+                        _log.info("Refreshing storage");
+                        storageAPI.refreshStorage();
                         Datastore datastore = api.findDatastore(vCenterDataCenter.getLabel(), datastoreName);
                         if (datastore != null) {
-                            for (HostScsiDisk entry : storageAPI.listScsiDisks()) {
-                                if (VolumeWWNUtils.wwnMatches(VMwareUtils.getDiskWwn(entry), blockObject.getWWN())) {
-                                    _log.info("Attach SCSI Lun " + entry.getCanonicalName() + " on host " + esxHost.getLabel());
-                                    storageAPI.attachScsiLun(entry);
-                                }
-                            }
-                            _log.info("Refreshing storage");
-                            storageAPI.refreshStorage();
                             _log.info("Mounting datastore " + datastore.getName() + " on host " + esxHost.getLabel());
                             storageAPI.mountDatastore(datastore);
                         }
@@ -911,11 +911,11 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                             if (storageIOControlEnabled) {
                                 setStorageIOControl(api, datastore, true);
                             }
-                            for (HostScsiDisk entry : storageAPI.listScsiDisks()) {
-                                if (VolumeWWNUtils.wwnMatches(VMwareUtils.getDiskWwn(entry), blockObject.getWWN())) {
-                                    _log.info("Detach SCSI Lun " + entry.getCanonicalName() + " from host " + esxHost.getLabel());
-                                    storageAPI.detachScsiLun(entry);
-                                }
+                        }
+                        for (HostScsiDisk entry : storageAPI.listScsiDisks()) {
+                            if (VolumeWWNUtils.wwnMatches(VMwareUtils.getDiskWwn(entry), blockObject.getWWN())) {
+                                _log.info("Detach SCSI Lun " + entry.getCanonicalName() + " from host " + esxHost.getLabel());
+                                storageAPI.detachScsiLun(entry);
                             }
                         }
                     } catch (VMWareException ex) {

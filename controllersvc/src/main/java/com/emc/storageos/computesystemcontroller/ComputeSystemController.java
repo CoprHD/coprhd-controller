@@ -65,6 +65,17 @@ public interface ComputeSystemController extends Controller {
      */
     public void detachDataCenterStorage(URI datacenter, boolean deactivateOnComplete, String opId) throws InternalException;
 
+    /**
+     * Performs export group update operations to keep host and cluster export groups in synchronization with the current state of the hosts
+     * and clusters that were discovered
+     * 
+     * @param changes list of state changes for the host
+     * @param deletedHosts list of deleted hosts that were not rediscovered
+     * @param deletedClusters list of deleted clusters that were not rediscovered
+     * @param isVCenter set to true if vCenter discovery has detected these host changes
+     * @param taskId the task id
+     * @throws ControllerException if an error occurs
+     */
     public void processHostChanges(List<HostStateChange> changes, List<URI> deletedHosts, List<URI> deletedClusters, boolean isVCenter,
             String taskId)
                     throws ControllerException;

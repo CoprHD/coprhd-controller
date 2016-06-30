@@ -1414,7 +1414,11 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 waitFor = attachAndMountVolumes(attachvCenterHostExportMap, waitFor, workflow);
             }
 
-            workflow.executePlan(completer, "Success", null, null, null, null);
+            if (workflow.getAllStepStatus() != null && !workflow.getAllStepStatus().isEmpty()) {
+                workflow.executePlan(completer, "Success", null, null, null, null);
+            } else {
+                completer.ready(_dbClient);
+            }
         } catch (Exception ex) {
             String message = "processHostChanges caught an exception.";
             _log.error(message, ex);

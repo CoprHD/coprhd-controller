@@ -907,18 +907,20 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                     _log.error(ex.getMessage(), ex);
                 }
 
-                for (ScopedLabel tag : blockObject.getTag()) {
-                    String tagValue = tag.getLabel();
-                    if (tagValue != null && tagValue.startsWith(VMFS_DATASTORE_PREFIX)) {
-                        String datastoreName = getDatastoreName(tagValue);
-                        try {
-                            Datastore datastore = api.findDatastore(vCenterDataCenter.getLabel(), datastoreName);
-                            if (datastore != null) {
-                                _log.info("Mounting datastore " + datastore.getName() + " on host " + esxHost.getLabel());
-                                storageAPI.mountDatastore(datastore);
+                if (blockObject != null && blockObject.getTag() != null) {
+                    for (ScopedLabel tag : blockObject.getTag()) {
+                        String tagValue = tag.getLabel();
+                        if (tagValue != null && tagValue.startsWith(VMFS_DATASTORE_PREFIX)) {
+                            String datastoreName = getDatastoreName(tagValue);
+                            try {
+                                Datastore datastore = api.findDatastore(vCenterDataCenter.getLabel(), datastoreName);
+                                if (datastore != null) {
+                                    _log.info("Mounting datastore " + datastore.getName() + " on host " + esxHost.getLabel());
+                                    storageAPI.mountDatastore(datastore);
+                                }
+                            } catch (VMWareException ex) {
+                                _log.error(ex.getMessage(), ex);
                             }
-                        } catch (VMWareException ex) {
-                            _log.error(ex.getMessage(), ex);
                         }
                     }
                 }
@@ -951,29 +953,31 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         for (String volume : exportGroup.getVolumes().keySet()) {
 
             BlockObject blockObject = BlockObject.fetch(_dbClient, URI.create(volume));
-            for (ScopedLabel tag : blockObject.getTag()) {
-                String tagValue = tag.getLabel();
-                if (tagValue != null && tagValue.startsWith(VMFS_DATASTORE_PREFIX)) {
-                    String datastoreName = getDatastoreName(tagValue);
+            if (blockObject != null && blockObject.getTag() != null) {
+                for (ScopedLabel tag : blockObject.getTag()) {
+                    String tagValue = tag.getLabel();
+                    if (tagValue != null && tagValue.startsWith(VMFS_DATASTORE_PREFIX)) {
+                        String datastoreName = getDatastoreName(tagValue);
 
-                    try {
-                        Datastore datastore = api.findDatastore(vCenterDataCenter.getLabel(), datastoreName);
-                        if (datastore != null) {
-                            boolean storageIOControlEnabled = datastore.getIormConfiguration().isEnabled();
-                            if (storageIOControlEnabled) {
-                                setStorageIOControl(api, datastore, false);
+                        try {
+                            Datastore datastore = api.findDatastore(vCenterDataCenter.getLabel(), datastoreName);
+                            if (datastore != null) {
+                                boolean storageIOControlEnabled = datastore.getIormConfiguration().isEnabled();
+                                if (storageIOControlEnabled) {
+                                    setStorageIOControl(api, datastore, false);
+                                }
+                                _log.info("Unmount datastore " + datastore.getName() + " from host " + esxHost.getLabel());
+                                storageAPI.unmountVmfsDatastore(datastore);
+                                if (storageIOControlEnabled) {
+                                    setStorageIOControl(api, datastore, true);
+                                }
                             }
-                            _log.info("Unmount datastore " + datastore.getName() + " from host " + esxHost.getLabel());
-                            storageAPI.unmountVmfsDatastore(datastore);
-                            if (storageIOControlEnabled) {
-                                setStorageIOControl(api, datastore, true);
-                            }
+
+                        } catch (VMWareException ex) {
+                            _log.error(ex.getMessage(), ex);
+                            WorkflowStepCompleter.stepFailed(stepId, DeviceControllerException.errors.jobFailed(ex));
+                            throw ex;
                         }
-
-                    } catch (VMWareException ex) {
-                        _log.error(ex.getMessage(), ex);
-                        WorkflowStepCompleter.stepFailed(stepId, DeviceControllerException.errors.jobFailed(ex));
-                        throw ex;
                     }
                 }
             }

@@ -52,9 +52,12 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.volumecontroller.ControllerLockingService;
 import com.emc.storageos.volumecontroller.DefaultBlockStorageDevice;
 import com.emc.storageos.volumecontroller.TaskCompleter;
+import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.VolumeURIHLU;
+import com.emc.storageos.volumecontroller.impl.externaldevice.job.CreateVolumeCloneExternalDeviceJob;
+import com.emc.storageos.volumecontroller.impl.job.QueueJob;
 import com.emc.storageos.volumecontroller.impl.plugins.ExternalDeviceCommunicationInterface;
 import com.emc.storageos.volumecontroller.impl.smis.ExportMaskOperations;
 import com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils;
@@ -480,31 +483,13 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
             // Call driver
             BlockStorageDriver driver = getDriver(storageSystem.getSystemType());
             DriverTask task = driver.createVolumeClone(Collections.unmodifiableList(driverClones), null);
-            // todo: need to implement support for async case.
-            if (task.getStatus() == DriverTask.TaskStatus.READY) {
-                // Update clone
-                VolumeClone driverCloneResult = driverClones.get(0);
-                cloneObject.setNativeId(driverCloneResult.getNativeId());
-                cloneObject.setWWN(driverCloneResult.getWwn());
-                cloneObject.setDeviceLabel(driverCloneResult.getDeviceLabel());
-                cloneObject.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(dbClient, cloneObject));
-                cloneObject.setReplicaState(driverCloneResult.getReplicationState().name());
-                cloneObject.setProvisionedCapacity(driverCloneResult.getProvisionedCapacity());
-                cloneObject.setAllocatedCapacity(driverCloneResult.getAllocatedCapacity());
-                cloneObject.setInactive(false);
-                dbClient.updateObject(cloneObject);
-
-                String msg = String.format("doCreateClone -- Created volume clone: %s .", task.getMessage());
-                _log.info(msg);
-                taskCompleter.ready(dbClient);
-            } else {
-                cloneObject.setInactive(true);
-                dbClient.updateObject(cloneObject);
-                String errorMsg = String.format("doCreateClone -- Failed to create volume clone: %s .", task.getMessage());
-                _log.error(errorMsg);
-                ServiceError serviceError = ExternalDeviceException.errors.createVolumeCloneFailed("doCreateClone", errorMsg);
-                taskCompleter.error(dbClient, serviceError);
-            }
+            
+            // Create a job to monitor the progress of the request and update
+            // the clone volume and call the completer as appropriate based on
+            // the result of the request.
+            CreateVolumeCloneExternalDeviceJob job = new CreateVolumeCloneExternalDeviceJob(
+                    storageSystem.getId(), volume, task.getTaskId(), taskCompleter);
+            ControllerServiceImpl.enqueueJob(new QueueJob(job));
         } catch (Exception e) {
             if (cloneObject != null) {
                 cloneObject.setInactive(true);

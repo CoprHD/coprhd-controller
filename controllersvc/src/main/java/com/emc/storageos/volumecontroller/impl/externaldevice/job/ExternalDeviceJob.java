@@ -26,7 +26,7 @@ import com.emc.storageos.volumecontroller.impl.externaldevice.ExternalDeviceExce
 /**
  * Job checks the progress of an external device driver operation.
  */
-public class ExternalDeviceJob extends Job implements Serializable {
+abstract public class ExternalDeviceJob extends Job implements Serializable {
 
     // For serialization interface.
     private static final long serialVersionUID = 1L;
@@ -71,6 +71,7 @@ public class ExternalDeviceJob extends Job implements Serializable {
     public JobPollResult poll(JobContext jobContext, long trackingPeriodInMillis) {
         s_logger.info("Polled external device job for driver task {} on storage system {}", _driverTaskId, _storageSystemURI);
 
+        DriverTask driverTask = null;
         DbClient dbClient = jobContext.getDbClient();
         try {
             // Update the job info.
@@ -95,7 +96,7 @@ public class ExternalDeviceJob extends Job implements Serializable {
             }
             
             // Get the storage driver task.
-            DriverTask driverTask = driver.getTask(_driverTaskId);
+            driverTask = driver.getTask(_driverTaskId);
             if (driverTask == null) {
                 s_logger.error("Could not find storage driver task {} for storage system {}", 
                         _driverTaskId, _storageSystemURI.toString());
@@ -109,6 +110,7 @@ public class ExternalDeviceJob extends Job implements Serializable {
                 // Completed successfully
                 s_logger.info(String.format("Task %s completed successfully with status %s:%s",
                         _driverTaskId, taskStatus, taskStatusMsg));
+                doTaskSucceeded(driverTask, dbClient);
                 _pollResult.setJobPercentComplete(100);
                 _status = JobStatus.SUCCESS;
             } else if (TaskStatus.FAILED == taskStatus || TaskStatus.ABORTED == taskStatus
@@ -116,6 +118,7 @@ public class ExternalDeviceJob extends Job implements Serializable {
                 // Failed.
                 s_logger.info(String.format("Task %s failed with status %s:%s", _driverTaskId,
                         taskStatus, taskStatusMsg));
+                doTaskFailed(driverTask, dbClient);
                 _pollResult.setJobPercentComplete(100);
                 _errorDescription = taskStatusMsg;
                 _status = JobStatus.FAILED;
@@ -125,6 +128,7 @@ public class ExternalDeviceJob extends Job implements Serializable {
             s_logger.error(String.format(
                     "Unexpected error getting external driver task status for task %s on storage system %s: s",
                     _driverTaskId, _storageSystemURI.toString(), _errorDescription), e);
+            doTaskFailed(driverTask, dbClient);
             _status = JobStatus.FAILED;
         } finally {
             updateStatus(dbClient);
@@ -141,7 +145,7 @@ public class ExternalDeviceJob extends Job implements Serializable {
      * 
      * @param dbClient A reference to a database client.
      */
-    public void updateStatus(DbClient dbClient) {
+    protected void updateStatus(DbClient dbClient) {
         try {
             if (_status == JobStatus.SUCCESS) {
                 _taskCompleter.ready(dbClient);
@@ -155,6 +159,22 @@ public class ExternalDeviceJob extends Job implements Serializable {
                     _driverTaskId, _storageSystemURI.toString()), e);
         }
     }
+    
+    /**
+     * Job specific actions to be done upon successful completion of a task.
+     * 
+     * @param driverTask A reference to the driver task.
+     * @param dbClient A reference to a database client.
+     */
+    protected abstract void doTaskSucceeded(DriverTask driverTask, DbClient dbClient);
+
+    /**
+     * Job specific actions to be done when a task fails to complete successfully
+     * 
+     * @param taskStatus A reference to the driver task.
+     * @param dbClient A reference to a database client.
+     */
+    protected abstract void doTaskFailed(DriverTask driverTask, DbClient dbClient);
 
     /**
      * {@inheritDoc}

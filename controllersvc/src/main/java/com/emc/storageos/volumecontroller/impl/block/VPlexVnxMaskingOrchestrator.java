@@ -378,7 +378,7 @@ public class VPlexVnxMaskingOrchestrator extends VnxMaskingOrchestrator implemen
                 // Make sure the caller to this method (the caller that assembles the steps) adds the initiator list to
                 // send down here. (then remove the log)
                 List<Initiator> initiators = null;
-                if (initiatorURIs != null && initiatorURIs.isEmpty()) {
+                if (initiatorURIs != null && !initiatorURIs.isEmpty()) {
                     initiators = _dbClient.queryObject(Initiator.class, initiatorURIs);
                 } else {
                     _log.error("ERROR Poka Yoke: add the initiatorURIs to the call that assembles this step.");

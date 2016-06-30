@@ -77,7 +77,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
     private ExportMaskOperations exportMaskOperationsHelper;
 
     // Initialized drivers map
-    private Map<String, BlockStorageDriver> blockDrivers  = new HashMap<>();
+    private static Map<String, BlockStorageDriver> blockDrivers  = new HashMap<>();
 
 
     public void setDbClient(DbClient dbClient) {
@@ -1467,5 +1467,15 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
         completer.ready(dbClient);
 
     }
-
+    
+    /**
+     * Static method for getting an initialized block storage driver.
+     * 
+     * @param driverType The driver system type.
+     * 
+     * @return A reference to the initialized block storage driver.
+     */
+    public static synchronized BlockStorageDriver getBlockStorageDriver(String driverType) {
+        return blockDrivers.get(driverType);
+    }
 }

@@ -901,11 +901,11 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                             storageAPI.attachScsiLun(entry);
                         }
                     }
+                    _log.info("Refreshing storage");
+                    storageAPI.refreshStorage();
                 } catch (VMWareException ex) {
                     _log.error(ex.getMessage(), ex);
                 }
-                _log.info("Refreshing storage");
-                storageAPI.refreshStorage();
 
                 for (ScopedLabel tag : blockObject.getTag()) {
                     String tagValue = tag.getLabel();
@@ -984,13 +984,13 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                         storageAPI.detachScsiLun(entry);
                     }
                 }
+                storageAPI.refreshStorage();
             } catch (VMWareException ex) {
                 _log.error(ex.getMessage(), ex);
                 WorkflowStepCompleter.stepFailed(stepId, DeviceControllerException.errors.jobFailed(ex));
                 throw ex;
             }
         }
-        storageAPI.refreshStorage();
 
         WorkflowStepCompleter.stepSucceded(stepId);
     }

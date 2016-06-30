@@ -234,27 +234,27 @@ public class InternalDbClient extends DbClientImpl {
         Iterator<URI> recIt = result.iterator();
         List<URI> batch = getNextBatch(recIt);
         while (!batch.isEmpty()) {
-            Rows<String, CompositeColumnName> rows = queryRowsWithAllColumns(
-                    localContext.getKeyspace(), batch, doType.getCF());
-            Iterator<Row<String, CompositeColumnName>> it = rows.iterator();
-            while (it.hasNext()) {
-                Row<String, CompositeColumnName> row = it.next();
-
+            Map<String, List<CompositeColumnName>> rows = queryRowsWithAllColumns(
+                    localContext, batch, doType.getCF().getName());
+            for (String rowKey : rows.keySet()) {
+                
                 try {
-                    if (row.getColumns().size() == 0) {
+                    List<CompositeColumnName> columnList = rows.get(rowKey);
+                    
+                    if (columnList.size() == 0) {
                         continue;
                     }
                     // can't simply use doType.deserialize(clazz, row, cleanList) below
                     // since the DataObject instance retrieved in this way doesn't have
                     // change tracking information within and nothing gets persisted into
                     // db in the end.
-                    log.info("Migrating record {} to geo db", row.getKey());
-                    DataObject obj = DataObject.createInstance(clazz, URI.create(row.getKey()));
+                    log.info("Migrating record {} to geo db", rowKey);
+                    DataObject obj = DataObject.createInstance(clazz, URI.create(rowKey));
                     obj.trackChanges();
-                    Iterator<Column<CompositeColumnName>> columnIterator = row.getColumns().iterator();
+                    Iterator<CompositeColumnName> columnIterator = columnList.iterator();
                     while (columnIterator.hasNext()) {
-                        Column<CompositeColumnName> column = columnIterator.next();
-                        ColumnField columnField = doType.getColumnField(column.getName().getOne());
+                        CompositeColumnName column = columnIterator.next();
+                        ColumnField columnField = doType.getColumnField(column.getOne());
                         if (columnField.isEncrypted()) {
                             // Decrypt using the local encryption provider and later
                             // encrypt it again using the geo encryption provider

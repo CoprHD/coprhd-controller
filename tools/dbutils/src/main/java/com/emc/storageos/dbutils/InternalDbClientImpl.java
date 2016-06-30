@@ -16,14 +16,7 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Lists;
-import com.netflix.astyanax.Keyspace;
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
-import com.netflix.astyanax.model.Column;
-import com.netflix.astyanax.model.ColumnFamily;
-import com.netflix.astyanax.model.Rows;
-import com.netflix.astyanax.serializers.StringSerializer;
-
+import com.datastax.driver.core.exceptions.ConnectionException;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.constraint.impl.ContainmentConstraintImpl;
@@ -33,6 +26,11 @@ import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.upgrade.InternalDbClient;
 import com.emc.storageos.db.common.DependencyTracker.Dependency;
 import com.emc.storageos.db.exceptions.DatabaseException;
+import com.google.common.collect.Lists;
+import com.netflix.astyanax.Keyspace;
+import com.netflix.astyanax.model.Column;
+import com.netflix.astyanax.model.ColumnFamily;
+import com.netflix.astyanax.model.Rows;
 
 
 public class InternalDbClientImpl extends InternalDbClient {
@@ -63,14 +61,12 @@ public class InternalDbClientImpl extends InternalDbClient {
         String endTimeStr = dateFormat.format(endTime.getTime());
         int recordCount = 0;
         try {
-            Keyspace keyspace = getLocalKeyspace();
-
-            ColumnFamily<String, String> cf = new ColumnFamily<String, String>(
-                    cfName, StringSerializer.get(), StringSerializer.get());
-
+            String queryStringFormat = "select count(*) from \"%s\" where key='%s'";
+            
             List<String> keys = genTimeSeriesKeys(startTime, endTime);
             for (String key : keys) {
-                recordCount += keyspace.prepareQuery(cf).getKey(key).getCount().execute().getResult();
+                String queryString = String.format(queryStringFormat, cfName, key);
+                recordCount += this.getLocalContext().getSession().execute(queryString).one().getInt(0);
             }
             System.out.println(String.format("Column Family %s's record count between %s and %s is: %s",
                     cfName, startTimeStr, endTimeStr, recordCount));

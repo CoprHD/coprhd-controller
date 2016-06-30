@@ -745,12 +745,14 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         // Need to use "unix" instead of "sys" . Isilon requires "unix", not
         // "sys".
 
-        if (secType.equals(FileShareExport.SecurityTypes.sys.name())) {
-            secType = "unix";
-        }
-
         ArrayList<String> secFlavors = new ArrayList<>();
-        secFlavors.add(secType);
+        for (String securityType : expRule.getSecFlavor().split(",")) {
+            securityType = securityType.trim();
+            if (securityType.equals(FileShareExport.SecurityTypes.sys.name())) {
+                securityType = "unix";
+            }
+            secFlavors.add(securityType);
+        }
         newIsilonExport.setSecurityFlavors(secFlavors);
 
         if (roHosts > 0 && rwHosts == 0 && rootHosts == 0) {

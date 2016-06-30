@@ -452,8 +452,11 @@ public class AuthnConfigurationService extends TaggedResource {
             AuthnProvider provider, AuthnProviderParamsToValidate validateP) {
         String oldPassword = provider.getManagerPassword();
         boolean isAutoRegistered = provider.getAutoRegCoprHDNImportOSProjects();
-        int synchronizationInterval = Integer
-                .parseInt(_openStackSynchronizationTask.getIntervalFromStringSet(provider.getTenantsSynchronizationOptions()));
+        int synchronizationInterval = OpenStackSynchronizationTask.DEFAULT_INTERVAL_DELAY;
+        if (isAutoRegistered) {
+            synchronizationInterval = Integer
+                    .parseInt(_openStackSynchronizationTask.getIntervalFromStringSet(provider.getTenantsSynchronizationOptions()));
+        }
         // if the configured domain has tenant then we can't update
         // that domain.
 

@@ -1243,7 +1243,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         String systemAccessZone = "";
         String userAccessZone = "";
         String namespace = "";
-        String noAccessZone = ",";
+        String customLocations = ",";
 
         // get the system access zones
         namespace = customConfigHandler.getComputedCustomConfigValue(CustomConfigConstants.ISILON_SYSTEM_ACCESS_ZONE_NAMESPACE,
@@ -1256,7 +1256,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         DataSource dataSource = dataSourceFactory.createIsilonUnmanagedFileSystemLocationsDataSource(storage);
         dataSource.addProperty(CustomConfigConstants.ISILON_SYSTEM_ACCESS_ZONE, systemAccessZone);
         dataSource.addProperty(CustomConfigConstants.ISILON_USER_ACCESS_ZONE, userAccessZone);
-        dataSource.addProperty(CustomConfigConstants.ISILON_NO_ACCESS_ZONE, noAccessZone);
+        dataSource.addProperty(CustomConfigConstants.ISILON_CUSTOM_DIR_PATH, customLocations);
 
         paths = customConfigHandler.getComputedCustomConfigValue(CustomConfigConstants.ISILON_UNMANAGED_FILE_SYSTEM_LOCATIONS,
                 "isilon",

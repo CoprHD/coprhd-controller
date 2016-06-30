@@ -837,6 +837,7 @@
         <property name="dbClient" ref="dbclient"/>
         <property name="workflowService" ref="workflowService" />
         <property name="blockDeviceController" ref="blockDeviceController" />
+        <property name="coordinator" ref="coordinator"/>
     </bean>
 
     <bean id="srdfDeviceController" class="com.emc.storageos.srdfcontroller.SRDFDeviceController">

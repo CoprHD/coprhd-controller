@@ -5630,7 +5630,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // Will be non-null if the VPLEX volume was manually
                 // renamed after commit.
                 if (updatedVirtualVolumeInfo != null) {
-                    _log.info("New virtual volume is {}", updatedVirtualVolumeInfo.toString());
+                    _log.info(String.format("New virtual volume is %s", updatedVirtualVolumeInfo.toString()));
 
                     // if the new virtual volume is thin-capable, but thin-enabled is not true,
                     // that means we need to ask the VPLEX to convert it to a thin-enabled volume.
@@ -5641,16 +5641,17 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                             URI targetVolumeUri = migration.getTarget();
                             Volume targetVolume = getDataObject(Volume.class, targetVolumeUri, _dbClient);
                             if (null != targetVolume) {
-                                _log.info("migration target Volume is " + targetVolume.forDisplay());
+                                _log.info(String.format("migration target Volume is %s", targetVolume.forDisplay()));
                                 VirtualPool targetVirtualPool = getDataObject(VirtualPool.class, targetVolume.getVirtualPool(), _dbClient);
                                 if (null != targetVirtualPool) {
-                                    _log.info("migration target VirtualPool is " + targetVirtualPool.forDisplay());
+                                    _log.info(String.format("migration target VirtualPool is %s", targetVirtualPool.forDisplay()));
                                     boolean doEnableThin = 
                                             VirtualPool.ProvisioningType.Thin.toString().equalsIgnoreCase(
                                                     targetVirtualPool.getSupportedProvisioningType());
                                     if (doEnableThin) {
-                                        _log.info("the new VirtualPool is thin, requesting VPLEX to enable thin provisioning on {}", 
-                                                updatedVirtualVolumeInfo.getName());
+                                        _log.info(String.format(
+                                                "the new VirtualPool is thin, requesting VPLEX to enable thin provisioning on %s", 
+                                                updatedVirtualVolumeInfo.getName()));
                                         isThinEnabled = client.setVirtualVolumeThinEnabled(updatedVirtualVolumeInfo);
                                     }
                                 }

@@ -705,7 +705,7 @@ public class VPlexApiClient {
      * @return true if the thin-enabled request was a success
      */
     public boolean setVirtualVolumeThinEnabled(VPlexVirtualVolumeInfo virtualVolumeInfo) {
-        s_logger.info("Request to set virtual volume {} to thin-enabled at {}", virtualVolumeInfo.getName(), _baseURI);
+        s_logger.info(String.format("Request to set virtual volume %s to thin-enabled at %s", virtualVolumeInfo.getName(), _baseURI));
         return _virtualVolumeMgr.setVirtualVolumeThinEnabled(virtualVolumeInfo);
     }
 

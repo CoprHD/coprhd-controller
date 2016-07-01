@@ -65,6 +65,7 @@ import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl.Lock;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
 import com.emc.storageos.workflow.Workflow;
+import com.emc.storageos.workflow.WorkflowException;
 import com.emc.storageos.workflow.WorkflowService;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
 import com.google.common.collect.Collections2;
@@ -154,6 +155,20 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
      */
     private Workflow.Method rollbackMethodNullMethod() {
         return new Workflow.Method(ROLLBACK_METHOD_NULL);
+    }
+
+    /**
+     * A rollback workflow method that does nothing, but allows rollback
+     * to continue to prior steps back up the workflow chain. It says the rollback step succeeded,
+     * which will then allow other rollback operations to execute for other
+     * workflow steps executed by the other controller.
+     *
+     * @param stepId The id of the step being rolled back.
+     *
+     * @throws WorkflowException
+     */
+    public void rollbackMethodNull(String stepId) throws WorkflowException {
+        WorkflowStepCompleter.stepSucceded(stepId);
     }
 
     @Override

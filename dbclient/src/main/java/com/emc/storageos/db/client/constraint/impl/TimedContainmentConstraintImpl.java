@@ -41,6 +41,7 @@ public class TimedContainmentConstraintImpl extends ConstraintImpl {
         this.entryType = entryType;
         this.field = field;
         returnOnePage = true;
+        cf = field.getIndexCF().getName();
     }
 
     protected <T> void queryOnePage(final QueryResult<T> result) throws DriverException {
@@ -51,8 +52,7 @@ public class TimedContainmentConstraintImpl extends ConstraintImpl {
     
     @Override
     protected Statement genQueryStatement() {
-        String queryString = String.format("select * from \"%s\" where key=? and column1=?",
-                field.getIndexCF().getName());
+        String queryString = String.format("select * from \"%s\" where key=? and column1=?", cf);
         
         PreparedStatement preparedStatement = this.dbClientContext.getPreparedStatement(queryString);
         Statement statement =  preparedStatement.bind(indexKey.toString(),

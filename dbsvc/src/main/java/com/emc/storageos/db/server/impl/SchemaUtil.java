@@ -17,36 +17,20 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
-import com.datastax.driver.core.ColumnMetadata;
-import com.datastax.driver.core.KeyspaceMetadata;
-import com.datastax.driver.core.TableMetadata;
-import com.datastax.driver.core.TableOptionsMetadata;
-import com.netflix.astyanax.AstyanaxContext;
-import com.netflix.astyanax.CassandraOperationType;
-import com.netflix.astyanax.Cluster;
-import com.netflix.astyanax.KeyspaceTracerFactory;
-import com.netflix.astyanax.connectionpool.ConnectionContext;
-import com.netflix.astyanax.connectionpool.ConnectionPool;
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
-import com.netflix.astyanax.connectionpool.exceptions.OperationException;
-import com.netflix.astyanax.ddl.ColumnFamilyDefinition;
-import com.netflix.astyanax.ddl.KeyspaceDefinition;
-import com.netflix.astyanax.model.ColumnFamily;
-import com.netflix.astyanax.shallows.EmptyKeyspaceTracerFactory;
-import com.netflix.astyanax.thrift.AbstractOperationImpl;
-import com.netflix.astyanax.thrift.ddl.ThriftColumnFamilyDefinitionImpl;
 import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.gms.Gossiper;
 import org.apache.cassandra.locator.IEndpointSnitch;
 import org.apache.cassandra.thrift.Cassandra;
-import org.apache.cassandra.thrift.CfDef;
-import org.apache.cassandra.thrift.KsDef;
 import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import com.datastax.driver.core.ColumnMetadata;
+import com.datastax.driver.core.KeyspaceMetadata;
+import com.datastax.driver.core.TableMetadata;
+import com.datastax.driver.core.TableOptionsMetadata;
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.MigrationStatus;
 import com.emc.storageos.coordinator.client.model.Site;
@@ -82,6 +66,19 @@ import com.emc.storageos.db.common.DbServiceStatusChecker;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.security.password.PasswordUtils;
+import com.netflix.astyanax.AstyanaxContext;
+import com.netflix.astyanax.CassandraOperationType;
+import com.netflix.astyanax.Cluster;
+import com.netflix.astyanax.KeyspaceTracerFactory;
+import com.netflix.astyanax.connectionpool.ConnectionContext;
+import com.netflix.astyanax.connectionpool.ConnectionPool;
+import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
+import com.netflix.astyanax.connectionpool.exceptions.OperationException;
+import com.netflix.astyanax.ddl.ColumnFamilyDefinition;
+import com.netflix.astyanax.ddl.KeyspaceDefinition;
+import com.netflix.astyanax.model.ColumnFamily;
+import com.netflix.astyanax.shallows.EmptyKeyspaceTracerFactory;
+import com.netflix.astyanax.thrift.AbstractOperationImpl;
 
 /**
  * Utility class for initializing DB schema from model classes
@@ -541,8 +538,7 @@ public class SchemaUtil {
      * Check keyspace strategy options for an existing keyspace and update if necessary
      */
     private void checkStrategyOptions() throws ConnectionException {
-        KeyspaceDefinition kd = clientContext.getCluster().describeKeyspace(_keyspaceName);
-        Map<String, String> strategyOptions = kd.getStrategyOptions();
+        Map<String, String> strategyOptions = clientContext.getStrategyOptions();
         _log.info("Current strategyOptions={}", strategyOptions);
 
         boolean changed = false;
@@ -569,9 +565,7 @@ public class SchemaUtil {
      * CF's are created on the fly.
      *
      */
-    public void checkCf() throws InterruptedException, ConnectionException {
-        KeyspaceDefinition kd = clientContext.getCluster().describeKeyspace(_keyspaceName);
-
+    public void checkCf() throws InterruptedException {
         // Get default GC grace period for all index CFs in local DB
         Integer indexGcGrace = isGeoDbsvc() ? null : getIntProperty(DbClientImpl.DB_CASSANDRA_INDEX_GC_GRACE_PERIOD, null);
         KeyspaceMetadata keyspaceMetaData = clientContext.getKeyspaceMetaData();

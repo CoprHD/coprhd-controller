@@ -32,6 +32,7 @@ public class ContainmentLabelConstraintImpl extends ConstraintImpl implements Co
         _indexKey = indexKey;
         _prefix = prefix;
         _field = field;
+        cf = _field.getIndexCF().getName();
     }
 
     protected <T> void queryOnePage(final QueryResult<T> result) throws DriverException {
@@ -50,8 +51,7 @@ public class ContainmentLabelConstraintImpl extends ConstraintImpl implements Co
     
     @Override
     protected Statement genQueryStatement() {
-        String queryString = String.format("select * from \"%s\" where key=? and column1=? and column2=?",
-                _field.getIndexCF().getName());
+        String queryString = String.format("select * from \"%s\" where key=? and column1=? and column2=?", cf);
         
         PreparedStatement preparedStatement = this.dbClientContext.getPreparedStatement(queryString);
         Statement statement =  preparedStatement.bind(_indexKey.toString(),

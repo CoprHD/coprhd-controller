@@ -19,7 +19,6 @@ import com.datastax.driver.core.utils.UUIDs;
 import com.emc.storageos.db.client.constraint.DecommissionedConstraint;
 import com.emc.storageos.db.client.impl.IndexColumnName;
 import com.emc.storageos.db.client.model.DataObject;
-import com.netflix.astyanax.model.ColumnFamily;
 
 /**
  * Constraint to query indexed columns on a start/end time. This uses the same
@@ -31,7 +30,6 @@ public class TimeConstraintImpl extends ConstraintImpl implements Decommissioned
 	private static final Logger log = LoggerFactory.getLogger(TimeConstraintImpl.class);
     private static final long MILLIS_TO_MICROS = 1000L;
     private static final int DEFAULT_PAGE_SIZE = 100;
-    private final ColumnFamily<String, IndexColumnName> cf;
     private final String rowKey;
     private final long startTimeMicros;
     private final long endTimeMicros;
@@ -46,7 +44,7 @@ public class TimeConstraintImpl extends ConstraintImpl implements Decommissioned
      * @param startTimeMillis Start time in milliseconds or -1 for no filtering on start time.
      * @param endTimeMillis End time in milliseconds or -1 for no filtering on end time.
      */
-    public TimeConstraintImpl(Class<? extends DataObject> clazz, ColumnFamily<String, IndexColumnName> cf,
+    public TimeConstraintImpl(Class<? extends DataObject> clazz, String cf,
             Boolean value, long startTimeMillis, long endTimeMillis) {
         this.cf = cf;
         rowKey = clazz.getSimpleName();
@@ -65,7 +63,7 @@ public class TimeConstraintImpl extends ConstraintImpl implements Decommissioned
      * @param endTime End time Date or null for no filtering on end time
      */
     public TimeConstraintImpl(Class<? extends DataObject> clazz, Boolean value,
-            ColumnFamily<String, IndexColumnName> cf, Date startTime, Date endTime) {
+            String cf, Date startTime, Date endTime) {
         this(clazz, cf, value,
                 startTime == null ? -1 : startTime.getTime(),
                 endTime == null ? -1 : endTime.getTime());
@@ -101,7 +99,7 @@ public class TimeConstraintImpl extends ConstraintImpl implements Decommissioned
     @Override
     protected <T> void queryOnePage(final QueryResult<T> result) throws DriverException {
         StringBuilder queryString = new StringBuilder();
-        queryString.append("select").append(" * from \"").append(cf.getName()).append("\"");
+        queryString.append("select * from \"").append(cf).append("\"");
         queryString.append(" where key=?");
         
         List<Object> queryParameters = new ArrayList<Object>();
@@ -123,7 +121,7 @@ public class TimeConstraintImpl extends ConstraintImpl implements Decommissioned
     @Override
     protected Statement genQueryStatement() {
         StringBuilder queryString = new StringBuilder();
-        queryString.append("select").append(" * from \"").append(cf.getName()).append("\"");
+        queryString.append("select * from \"").append(cf).append("\"");
         queryString.append(" where key=?");
         
         List<Object> queryParameters = new ArrayList<Object>();

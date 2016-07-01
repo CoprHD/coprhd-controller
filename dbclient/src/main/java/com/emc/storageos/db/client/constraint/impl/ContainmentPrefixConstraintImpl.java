@@ -33,6 +33,7 @@ public class ContainmentPrefixConstraintImpl extends ConstraintImpl implements C
         _indexKey = indexKey;
         _prefix = prefix;
         _field = field;
+        cf = _field.getIndexCF().getName();
     }
 
     @Override
@@ -42,8 +43,7 @@ public class ContainmentPrefixConstraintImpl extends ConstraintImpl implements C
     
     @Override
     protected Statement genQueryStatement() {
-        String queryString = String.format("select * from \"%s\" where key=? and column1=? and column2>=? and column2<=?",
-                _field.getIndexCF().getName());
+        String queryString = String.format("select * from \"%s\" where key=? and column1=? and column2>=? and column2<=?", cf);
         
         String target = _prefix.toLowerCase();
         

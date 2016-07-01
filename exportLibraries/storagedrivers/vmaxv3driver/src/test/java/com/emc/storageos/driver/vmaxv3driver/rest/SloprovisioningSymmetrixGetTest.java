@@ -13,6 +13,6 @@ public class SloprovisioningSymmetrixGetTest extends BaseRestTest {
 
     @Test
     public void test() {
-        logger.info("Symmetrix = {}", new SloprovisioningSymmetrixGet(this.getDefaultArrayId()).perform(this.getClient()));
+        logger.info("Symmetrix = {}", new SloprovisioningSymmetrixGet(this.getDefaultArray().getArrayId()).perform(this.getClient()));
     }
 }

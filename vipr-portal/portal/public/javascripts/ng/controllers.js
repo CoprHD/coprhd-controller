@@ -1637,6 +1637,8 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
 
                         goToNextStep(true);
                         finishChecking();
+                    } else {
+                        finishChecking();
                     }
                 });
                 break;
@@ -1649,7 +1651,9 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
 
     goToNextStep = function(complete) {
         if(complete) {
-            $scope.$parent.completedSteps=$scope.$parent.currentStep;
+            if ( $scope.$parent.currentStep>$scope.$parent.completedSteps){
+                $scope.$parent.completedSteps=$scope.$parent.currentStep;
+            }
             if ( $scope.$parent.currentStep<maxSteps){
                 $scope.$parent.currentStep=$scope.$parent.currentStep+1;
             }
@@ -1663,7 +1667,10 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
 
     $scope.goToNextSteps = function(complete) {
        if(complete) {
-           $scope.$parent.completedSteps=$scope.$parent.currentStep;
+
+           if ( $scope.$parent.currentStep>completedSteps){
+                $scope.$parent.completedSteps=$scope.$parent.currentStep;
+           }
            if ( $scope.$parent.currentStep<maxSteps){
                $scope.$parent.currentStep=$scope.$parent.currentStep+1;
            }

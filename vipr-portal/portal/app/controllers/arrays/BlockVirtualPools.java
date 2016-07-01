@@ -342,6 +342,28 @@ public class BlockVirtualPools extends ViprResourceController {
         renderJSON(DataTablesSupport.createJSON(items, params));
     }
 
+    public static void listStoragePoolsbyIdJson(String id) {
+        BlockVirtualPoolRestRep virtualPool = VirtualPoolUtils.getBlockVirtualPool(id);
+        if (virtualPool == null) {
+            flash.error(MessagesUtils.get(UNKNOWN, id));
+            backToReferrer();
+        }
+
+        BlockVirtualPoolForm vpool = new BlockVirtualPoolForm();
+        vpool.load(virtualPool);
+        List<StoragePoolInfo> items = Lists.newArrayList();
+        if (vpool != null && vpool.protocols != null && !vpool.protocols.isEmpty()) {
+            vpool.deserialize();
+            Map<URI, String> storageSystemNames = StorageSystemUtils.getStorageSystemNames();
+            List<StoragePoolRestRep> pools = getMatchingStoragePools(vpool);
+            for (StoragePoolRestRep pool : pools) {
+                String storageSystemName = storageSystemNames.get(id(pool.getStorageSystem()));
+                items.add(new StoragePoolInfo(pool, storageSystemName));
+            }
+        }
+        renderJSON(DataTablesSupport.createJSON(items, params));
+    }
+
     private static List<StoragePoolRestRep> getMatchingStoragePools(BlockVirtualPoolForm vpool) {
         try {
             return await(vpool.matchingStoragePools().asPromise());

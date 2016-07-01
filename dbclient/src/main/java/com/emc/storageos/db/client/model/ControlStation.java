@@ -4,6 +4,8 @@
  */
 package com.emc.storageos.db.client.model;
 
+import com.emc.storageos.db.client.util.EndpointUtility;
+
 /**
  * A ControlStation that manage multiple Host/Manage system.
  * 
@@ -13,6 +15,7 @@ package com.emc.storageos.db.client.model;
 @Cf("ControlStation")
 public class ControlStation extends DiscoveredComputeSystemWithAcls {
     private String _type;
+    private String _controlStationName;
     private String _userName;
     private String _password;
     private String _ipAddress;
@@ -47,6 +50,27 @@ public class ControlStation extends DiscoveredComputeSystemWithAcls {
     public void setType(String type) {
         this._type = type;
         setChanged("type");
+    }
+
+    /**
+     * The short or fully qualified host name
+     * 
+     * @return the short or fully qualified host name
+     */
+    @Name("controlStationName")
+    @AlternateId("AltIdIndex")
+    public String getControlStationName() {
+        return _controlStationName;
+    }
+
+    /**
+     * Sets the short or fully qualified host name or an IP address
+     * 
+     * @param hostName the host name
+     */
+    public void setControlStationName(String cs) {
+        this._controlStationName = EndpointUtility.changeCase(cs);
+        setChanged("controlStationName");
     }
 
     /**

@@ -10,6 +10,7 @@ import org.apache.commons.lang.StringUtils;
 import org.springframework.stereotype.Component;
 
 import com.emc.aix.model.AixVersion;
+import com.emc.hmc.model.HMCVersion;
 import com.emc.hpux.model.HpuxVersion;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.util.VersionChecker;
@@ -28,6 +29,7 @@ public class ComputeSystemDiscoveryVersionValidator {
     private static final String AIXVIO_MIN_PROP = "compute_aixvio_version";
     private static final String VMWARE_ESX_MIN_PROP = "compute_vmware_esx_version";
     private static final String HPUX_MIN_PROP = "compute_hpux_version";
+    private static final String HMC_MIN_PROP = "compute_hmc_version";
 
     private CoordinatorClient coordinatorClient;
 
@@ -39,6 +41,7 @@ public class ComputeSystemDiscoveryVersionValidator {
     private AixVersion aixVioVersion;
     private EsxVersion esxVersion;
     private HpuxVersion hpuxVersion;
+    private HMCVersion hmcVersion;
 
     public boolean isValidVersionNumber(String versionNumber) {
         boolean result = false;
@@ -77,8 +80,7 @@ public class ComputeSystemDiscoveryVersionValidator {
             String versionProp = this.getSysProperty(WINDOWS_MIN_PROP);
             if (isValidVersionNumber(versionProp)) {
                 windowsVersion = new WindowsVersion(versionProp, "");
-            }
-            else {
+            } else {
                 windowsVersion = null;
                 throw new IllegalStateException(String.format("System property for Windows Version Number(%s) is invalid - value is '%s'",
                         WINDOWS_MIN_PROP, versionProp));
@@ -93,8 +95,7 @@ public class ComputeSystemDiscoveryVersionValidator {
             String versionProp = this.getSysProperty(HPUX_MIN_PROP);
             if (isValidVersionNumber(versionProp)) {
                 hpuxVersion = new HpuxVersion(versionProp);
-            }
-            else {
+            } else {
                 hpuxVersion = null;
                 throw new IllegalStateException(String.format("System property for HPUX Version Number(%s) is invalid - value is '%s'",
                         HPUX_MIN_PROP, versionProp));
@@ -108,8 +109,7 @@ public class ComputeSystemDiscoveryVersionValidator {
             String versionProp = this.getSysProperty(AIX_MIN_PROP);
             if (isValidVersionNumber(versionProp)) {
                 aixVersion = new AixVersion(versionProp);
-            }
-            else {
+            } else {
                 aixVersion = null;
                 throw new IllegalStateException(String.format("System property for AIX Version Number(%s) is invalid - value is '%s'",
                         AIX_MIN_PROP, versionProp));
@@ -123,8 +123,7 @@ public class ComputeSystemDiscoveryVersionValidator {
             String versionProp = this.getSysProperty(AIXVIO_MIN_PROP);
             if (isValidVersionNumber(versionProp)) {
                 aixVioVersion = new AixVersion(versionProp);
-            }
-            else {
+            } else {
                 aixVioVersion = null;
                 throw new IllegalStateException(String.format("System property for AIX VIO Version Number(%s) is invalid - value is '%s'",
                         AIXVIO_MIN_PROP, versionProp));
@@ -133,13 +132,26 @@ public class ComputeSystemDiscoveryVersionValidator {
         return aixVioVersion;
     }
 
+    public HMCVersion getHMCMinimumVersion(boolean forceLookup) {
+        if (forceLookup || hmcVersion == null) {
+            String versionProp = this.getSysProperty(HMC_MIN_PROP);
+            if (isValidVersionNumber(versionProp)) {
+                hmcVersion = new HMCVersion(versionProp);
+            } else {
+                hmcVersion = null;
+                throw new IllegalStateException(String.format("System property for HMC Version Number(%s) is invalid - value is '%s'",
+                        HMC_MIN_PROP, versionProp));
+            }
+        }
+        return hmcVersion;
+    }
+
     public LinuxVersion getRedhatLinuxMinimumVersion(boolean forceLookup) {
         if (forceLookup || redhatVersion == null) {
             String versionProp = this.getSysProperty(REDHAT_MIN_PROP);
             if (isValidVersionNumber(versionProp)) {
                 redhatVersion = new LinuxVersion(LinuxVersion.LinuxDistribution.REDHAT, versionProp);
-            }
-            else {
+            } else {
                 redhatVersion = null;
                 throw new IllegalStateException(String.format(
                         "System property for Redhat Linux Version Number(%s) is invalid - value is '%s'", REDHAT_MIN_PROP, versionProp));
@@ -154,8 +166,7 @@ public class ComputeSystemDiscoveryVersionValidator {
             String versionProp = this.getSysProperty(SUSE_MIN_PROP);
             if (isValidVersionNumber(versionProp)) {
                 suseVersion = new LinuxVersion(LinuxVersion.LinuxDistribution.SUSE, versionProp);
-            }
-            else {
+            } else {
                 suseVersion = null;
                 throw new IllegalStateException(String.format(
                         "System property for SuSE Enterprise Linux Version Number(%s) is invalid - value is '%s'", SUSE_MIN_PROP,
@@ -171,8 +182,7 @@ public class ComputeSystemDiscoveryVersionValidator {
             String versionProp = this.getSysProperty(VCENTER_MIN_PROP);
             if (isValidVersionNumber(versionProp)) {
                 vcenterVersion = new VcenterVersion(versionProp);
-            }
-            else {
+            } else {
                 vcenterVersion = null;
                 throw new IllegalStateException(String.format(
                         "System property for VMware vCenter Version Number(%s) is invalid - value is '%s'", VCENTER_MIN_PROP, versionProp));
@@ -187,8 +197,7 @@ public class ComputeSystemDiscoveryVersionValidator {
             String versionProp = this.getSysProperty(VMWARE_ESX_MIN_PROP);
             if (isValidVersionNumber(versionProp)) {
                 esxVersion = new EsxVersion(versionProp);
-            }
-            else {
+            } else {
                 esxVersion = null;
                 throw new IllegalStateException(String.format(
                         "System property for VMware ESX Version Number(%s) is invalid - value is '%s'", VMWARE_ESX_MIN_PROP, versionProp));
@@ -216,6 +225,11 @@ public class ComputeSystemDiscoveryVersionValidator {
                 getAixVioMinimumVersion(true).getVersion(), version.getVersion()) >= 0) ? true : false;
     }
 
+    public boolean isValidHMCVersion(HMCVersion version) {
+        return (VersionChecker.verifyVersionDetails(
+                getHMCMinimumVersion(true).getVersion(), version.getVersion()) >= 0) ? true : false;
+    }
+
     public boolean isValidVcenterVersion(VcenterVersion version) {
         return (VersionChecker.verifyVersionDetails(
                 getVcenterMinimumVersion(true).getVersion(), version.getVersion()) >= 0) ? true : false;
@@ -230,12 +244,10 @@ public class ComputeSystemDiscoveryVersionValidator {
         if (LinuxVersion.LinuxDistribution.REDHAT.equals(version.getDistribution())) {
             return (VersionChecker.verifyVersionDetails(
                     getRedhatLinuxMinimumVersion(true).getVersion(), version.getVersion()) >= 0) ? true : false;
-        }
-        else if (LinuxVersion.LinuxDistribution.SUSE.equals(version.getDistribution())) {
+        } else if (LinuxVersion.LinuxDistribution.SUSE.equals(version.getDistribution())) {
             return (VersionChecker.verifyVersionDetails(
                     getSuSELinuxMinimumVersion(true).getVersion(), version.getVersion()) >= 0) ? true : false;
-        }
-        else {
+        } else {
             return false;
         }
     }

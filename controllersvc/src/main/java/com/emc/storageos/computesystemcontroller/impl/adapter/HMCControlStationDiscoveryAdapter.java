@@ -13,11 +13,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import com.emc.aix.AixSystem;
-import com.emc.aix.model.AixVersion;
+import com.emc.hmc.HMCSystem;
+import com.emc.hmc.model.HMCVersion;
 import com.emc.storageos.computesystemcontroller.exceptions.ComputeSystemControllerException;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.model.ControlStation;
 import com.emc.storageos.db.client.model.ControlStation.ControlStationType;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.CompatibilityStatus;
 import com.emc.storageos.db.client.model.Host;
@@ -44,13 +43,24 @@ public class HMCControlStationDiscoveryAdapter extends AbstractHostDiscoveryAdap
         return ControlStationType.HMC.name();
     }
 
+    protected HMCVersion getVersion(Host host) {
+        HMCSystem cli = getCli(host);
+        HMCVersion version = cli.getVersion();
+        if (version == null) {
+            error("Could not determine version of hmc host %s", host.getLabel());
+            return new HMCVersion("");
+        } else {
+            return version;
+        }
+    }
+
     @Override
     protected void discoverHost(Host host, HostStateChange changes) {
         validateHost(host);
-        AixVersion version = getVersion(host);
+        HMCVersion version = getVersion(host);
         host.setOsVersion(version.toString());
 
-        if (getVersionValidator().isValidAixVersion(version)) {
+        if (getVersionValidator().isValidHMCVersion(version)) {
             host.setCompatibilityStatus(CompatibilityStatus.COMPATIBLE.name());
             save(host);
             super.discoverHost(host, changes);
@@ -74,32 +84,21 @@ public class HMCControlStationDiscoveryAdapter extends AbstractHostDiscoveryAdap
         return super.getErrorMessage(t);
     }
 
-    protected void validateHost(ControlStation cs) {
-        getCli(cs).executeCommand("pwd");
+    protected void validateHost(Host host) {
+        getCli(host).executeCommand("pwd");
     }
 
-    protected AixVersion getVersion(Host host) {
-        AixSystem cli = getCli(host);
-        AixVersion version = cli.getVersion();
-        if (version == null) {
-            error("Could not determine version of aix host %s", host.getLabel());
-            return new AixVersion("");
-        } else {
-            return version;
-        }
-    }
-
-    private AixSystem getCli(Host vio) {
-        return new AixSystem(vio.getHostName(), vio.getPortNumber(), vio.getUsername(), vio.getPassword());
+    private HMCSystem getCli(Host host) {
+        return new HMCSystem(host.getHostName(), host.getPortNumber(), host.getUsername(), host.getPassword());
     }
 
     @Override
     protected void discoverInitiators(Host host, List<Initiator> oldInitiators, HostStateChange changes) {
-        AixSystem aix = getCli(host);
+        HMCSystem hmc = getCli(host);
         List<Initiator> addedInitiators = Lists.newArrayList();
 
         try {
-            for (HBAInfo hba : aix.listInitiators()) {
+            for (HBAInfo hba : hmc.listInitiators()) {
                 Initiator initiator;
                 String wwpn = SanUtils.normalizeWWN(hba.getWwpn());
                 if (findInitiatorByPort(oldInitiators, wwpn) == null) {
@@ -115,7 +114,7 @@ public class HMCControlStationDiscoveryAdapter extends AbstractHostDiscoveryAdap
         }
 
         try {
-            for (String iqn : aix.listIQNs()) {
+            for (String iqn : hmc.listIQNs()) {
                 Initiator initiator;
                 if (findInitiatorByPort(oldInitiators, iqn) == null) {
                     initiator = getOrCreateInitiator(oldInitiators, iqn);
@@ -157,9 +156,9 @@ public class HMCControlStationDiscoveryAdapter extends AbstractHostDiscoveryAdap
 
     @Override
     protected void discoverIpInterfaces(Host host, List<IpInterface> oldIpInterfaces) {
-        AixSystem aix = getCli(host);
+        HMCSystem hmc = getCli(host);
 
-        for (IPInterface nic : aix.listIPInterfaces()) {
+        for (IPInterface nic : hmc.listIPInterfaces()) {
             if (StringUtils.isNotBlank(nic.getIpAddress())) {
                 IpInterface ipInterface = getOrCreateIpInterface(oldIpInterfaces, nic.getIpAddress());
                 discoverIp4Interface(host, ipInterface, nic);
@@ -183,9 +182,9 @@ public class HMCControlStationDiscoveryAdapter extends AbstractHostDiscoveryAdap
 
     @Override
     protected void setNativeGuid(Host host) {
-        AixSystem aix = getCli(host);
+        HMCSystem hmc = getCli(host);
         try {
-            String macAddress = aix.getNetworkAdapterMacAddress(ENT0);
+            String macAddress = hmc.getNetworkAdapterMacAddress(ENT0);
             if (macAddress != null && !host.getNativeGuid().equalsIgnoreCase(macAddress)) {
                 checkDuplicateHost(host, macAddress);
                 info("Setting nativeGuid for " + host.getId() + " as " + macAddress);

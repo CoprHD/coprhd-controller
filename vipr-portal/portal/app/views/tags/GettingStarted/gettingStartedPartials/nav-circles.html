@@ -15,8 +15,8 @@
         <div class="step-circle"><i class="glyphicon" ng-class="{true: 'glyphicon-ok'}[completedSteps >= 5]"></i>
         </div><span class="step-text" ng-click="showStep(5);">&{'gettingStarted.fabricmanager.button'}<i ng-show="currentStep == 5" class="glyphicon glyphicon-chevron-right"></i></span>
     </li-->
-    <li ng-class="{'step-success':completedSteps >= 5,'step-active':currentStep == 5}" class="">
-        <div class="step-circle"><i class="glyphicon" ng-class="{true: 'glyphicon-ok'}[completedSteps >= 5]"></i>
+    <li ng-class="{'step-success':completedSteps >= 5 && optionalStepComplete,'step-active':currentStep == 5}" class="step-optional">
+        <div class="step-circle"><i class="glyphicon" ng-class="{true: 'glyphicon-ok'}[completedSteps >= 5 && optionalStepComplete]"></i>
         </div><span class="step-text" ng-click="showStep(5);">&{'gettingStarted.fabricmanager.button'}<i ng-show="currentStep == 5" class="glyphicon glyphicon-chevron-right"></i></span>
     </li>
     <li ng-class="{'step-success':completedSteps >= 6,'step-active':currentStep == 6}" class="">

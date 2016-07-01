@@ -1445,6 +1445,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
     completedSteps = 0;
     guideVisible = false;
     guideDataAvailable = false;
+    optionalStepComplete = false;
     //$scope.$parent.guideMode = 'full';
 
     $scope.checkGuide = function() {
@@ -1455,13 +1456,9 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
             $scope.$parent.currentStep = cookieObject.currentStep;
             $scope.$parent.guideDataAvailable = true;
             $scope.$parent.guideVisible = cookieObject.guideVisible;
+            $scope.$parent.optionalStepComplete=cookieObject.optionalStepComplete;
             $scope.$parent.maxSteps = maxSteps;
 
-            console.table(cookieObject);
-
-            //check if the
-            if (maxSteps != cookieObject.completedSteps) {
-		    }
         }
         $scope.$parent.isMenuPinned = readCookie("isMenuPinned");
         console.log('cookie:', $scope.$parent.isMenuPinned);
@@ -1469,7 +1466,6 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
 
     $scope.toggleGuide = function() {
 
-        console.log($scope.$parent.currentStep,$scope.$parent.completedSteps,$window.location.pathname);
         if ($scope.$parent.guideVisible) {
 		    $scope.closeGuide();
                 console.log('close toggle');
@@ -1503,6 +1499,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
         $scope.$parent.completedSteps = 0;
         $scope.$parent.maxSteps = maxSteps;
         $scope.$parent.guideDataAvailable = false;
+        $scope.$parent.optionalStepComplete = false;
 
         checkStep(1);
 
@@ -1588,6 +1585,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                                 if (!finished && s.discoveryStatus == "COMPLETE"){
                                     finished=true;
                                     console.log('Fabric Manager Complete');
+                                    $scope.$parent.optionalStepComplete = true;
                                     goToNextStep(true);
                                     finishChecking();
                                 }
@@ -1595,6 +1593,8 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                             $q.all(promises).then(function () {
                                 if(!finished) {
                                     console.log(step,'failed');
+                                    $scope.$parent.optionalStepComplete = false;
+                                    goToNextStep(true);
                                     finishChecking();
                                 }
                             });
@@ -1602,6 +1602,8 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                         return testId(data.data.aaData);
                     } else {
                         console.log(step,'failed');
+                        $scope.$parent.optionalStepComplete = false;
+                        goToNextStep(true);
                         finishChecking();
                     }
                 });
@@ -1933,6 +1935,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
         cookieObject.completedSteps=$scope.$parent.completedSteps;
         cookieObject.guideMode=guideMode;
         cookieObject.guideVisible=$scope.$parent.guideVisible;
+        cookieObject.optionalStepComplete=$scope.$parent.optionalStepComplete;
         console.log('cookie2',cookieObject);
         createCookie(cookieKey,angular.toJson(cookieObject),'session');
     }
@@ -1943,6 +1946,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
         cookieObject.completedSteps=completedSteps;
         cookieObject.guideMode=guideMode;
         cookieObject.guideVisible=$scope.$parent.guideVisible;
+        cookieObject.optionalStepComplete=$scope.$parent.optionalStepComplete;
         console.log('cookie3',cookieObject);
         createCookie(cookieKey,angular.toJson(cookieObject),'session');
     }
@@ -1957,12 +1961,17 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
         cookieObject.completedSteps=$scope.$parent.completedSteps;
         cookieObject.guideMode=$scope.$parent.guideMode;
         cookieObject.guideVisible=$scope.$parent.guideVisible;
+        cookieObject.optionalStepComplete=$scope.$parent.optionalStepComplete;
         console.log('cookie1',cookieObject);
         createCookie(cookieKey,angular.toJson(cookieObject),'session');
     }
 
     testFunc = function() {
         console.log('done');
+    }
+
+    $scope.checkStep = function() {
+        checkStep($scope.$parent.currentStep);
     }
 
     checkStep = function(step) {
@@ -2041,20 +2050,23 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                                     finished=true;
                                     console.log('Fabric Manager Complete');
                                     $scope.$parent.completedSteps = 5;
+                                    $scope.$parent.optionalStepComplete = true;
                                     return checkStep(6);
                                 }
                             });
                             $q.all(promises).then(function () {
                                 if(!finished) {
                                     console.log(step,'failed');
-                                    finishChecking();
+                                    $scope.$parent.optionalStepComplete = false;
+                                    return checkStep(6);
                                 }
                             });
                         };
                         return testId(data.data.aaData);
                     } else {
                         console.log(step,'failed');
-                        finishChecking();
+                        $scope.$parent.optionalStepComplete = false;
+                        return checkStep(6);
                     }
                 });
                 break;

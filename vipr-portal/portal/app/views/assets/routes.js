@@ -90,7 +90,7 @@ var routes = {
   Setup_initialSetup: #{jsAction @Setup.isInitialSetupComplete() /},
   Projects_list: #{jsAction @tenant.Projects.listJson() /},
   BlockVirtualPools_list: #{jsAction @arrays.BlockVirtualPools.listJson() /},
-  BlockVirtualPools_pools: #{jsAction @arrays.BlockVirtualPools.listStoragePoolsJson(':id') /},
+  BlockVirtualPools_pools: #{jsAction @arrays.BlockVirtualPools.listStoragePoolsbyIdJson(':id') /},
   FileVirtualPools_list: #{jsAction @arrays.FileVirtualPools.listJson() /},
   VirtualArrays_list: #{jsAction @VirtualArrays.listJson() /},
   VirtualArrays_pools: #{jsAction @VirtualArrays.storagePoolsJson(':id') /}

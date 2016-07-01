@@ -57,7 +57,7 @@
                     </div>
 
                     <div class="center-block  landing-image">
-                        <img src="/public/img/guideScreengrab_en.PNG" width="600">
+                        <img src="/public/img/guideScreengrab_en2.PNG" width="600">
                     </div>
 
                     <div class="landing-text">
@@ -144,9 +144,9 @@
                                 </h4>
                                 <p class="step-text">&{'gettingStarted.initialsetup.text'}</p>
                                 <div class="action-btn text-center">
-                                    <button ng-disabled="currentStep > completedSteps + 1" name="singlebutton" class="btn btn-primary" ng-click="runStep();">&{'gettingStarted.initialsetup.button'}</button>
+                                    <button ng-show="completedSteps == currentStep-1" name="singlebutton" class="btn btn-primary" ng-click="runStep();">&{'gettingStarted.initialsetup.button'}</button>
                                     <div class="steps-incomplete" ng-show="currentStep > completedSteps + 1">
-                                        <p class="guide-info">&{'gettingStarted.incompletesteps.text'}</p>
+                                        <p class="guide-warning">&{'gettingStarted.incompletesteps.text'}</p>
                                     </div>
                                 </div>
                             </div>
@@ -200,7 +200,7 @@
             <guidestep class="required-step" name="fabricmanagersetup" ng-show="guideDataAvailable && currentStep == 5">
                 <div ng-if="guideMode=='side'">
                     <!--h4><div ng-show="currentStep <= completedSteps" class="step-circle"><i class="glyphicon glyphicon-ok"></i></div>&{'gettingStarted.storagepools.title'}</h4-->
-                    <step-side><div ng-show="currentStep <= completedSteps" class="step-circle"><i class="glyphicon glyphicon-ok"></i></div>&{'gettingStarted.fabricmanager.title'}</step-side>
+                    <step-side><div ng-show="optionalStepComplete" class="step-circle"><i class="glyphicon glyphicon-ok"></i></div>&{'gettingStarted.fabricmanager.title'}</step-side>
                 </div>
                 <div id="css-table" ng-if="guideMode=='full'">
                     <div class="col-1">

@@ -110,7 +110,7 @@ public class DbConsistencyCheckerHelper {
             return dirtyCount;
         }
 
-        String queryString = String.format("select key, inactive from \"%s\" where column1='%s'", doType.getCF().getName(),
+        String queryString = String.format("select key, value from \"%s\" where column1='%s' ALLOW FILTERING", doType.getCF().getName(),
                 DataObject.INACTIVE_FIELD_NAME);
         SimpleStatement queryStatement = new SimpleStatement(queryString);
         queryStatement.setFetchSize(dbClient.DEFAULT_PAGE_SIZE);
@@ -120,7 +120,7 @@ public class DbConsistencyCheckerHelper {
             List<URI> ids = new ArrayList<>(1);
 
             String key = row.getString(0);
-            boolean inactive = row.getBool(1);
+            boolean inactive = BooleanSerializer.instance.deserialize(row.getBytes(1));
             
             if (inactive == true) {
             	continue;
@@ -257,7 +257,7 @@ public class DbConsistencyCheckerHelper {
             String queryString = String.format("select distinct key from \"%s\" where key in ?", objCf);
             PreparedStatement queryStatement = indexAndCf.dbClientContext.getPreparedStatement(queryString);
             
-            ResultSet resultSetByKey = indexAndCf.dbClientContext.getSession().execute(queryStatement.bind(objKeysIdxEntryMap.keySet()));
+            ResultSet resultSetByKey = indexAndCf.dbClientContext.getSession().execute(queryStatement.bind(new ArrayList<String>(objKeysIdxEntryMap.keySet())));
             
             Set<String> queryoutKeySet = new HashSet<String>();
             for (Row row : resultSetByKey) {
@@ -500,11 +500,11 @@ public class DbConsistencyCheckerHelper {
 
     private boolean isColumnInIndex(DataObjectType doType, String indexCfName, String indexKey, String[] indexColumns) {
     	DbClientContext dbClientContext = dbClient.getDbClientContext(doType.getDataObjectClass());
-    	StringBuilder queryString = new StringBuilder("select * from ");
+    	StringBuilder queryString = new StringBuilder("select * from \"");
     	List<Object> parameters = new ArrayList<Object>();
     	
     	queryString.append(indexCfName);
-    	queryString.append(" where key=?");
+    	queryString.append("\" where key=?");
     	parameters.add(indexKey);
     	
         for (int i = 0; i < indexColumns.length; i++) {
@@ -513,7 +513,7 @@ public class DbConsistencyCheckerHelper {
         }
 
         PreparedStatement preparedStatement = dbClientContext.getPreparedStatement(queryString.toString());
-        _log.info("queryString: {}", preparedStatement.getQueryString());
+        _log.info("queryString: {}", queryString.toString());
         
         ResultSet resultSet = dbClient.getSession(doType.getDataObjectClass()).execute(preparedStatement.bind(parameters.toArray()));
         return resultSet.one() != null;

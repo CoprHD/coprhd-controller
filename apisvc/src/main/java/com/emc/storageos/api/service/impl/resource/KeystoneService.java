@@ -41,9 +41,11 @@ import org.slf4j.LoggerFactory;
 
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -292,10 +294,16 @@ public class KeystoneService extends TaskResourceService {
 
         _log.debug("Keystone Service - listCoprhdOsTenants");
 
-        List<URI> osTenantURIs = _dbClient.queryByType(OSTenant.class, true);
-        List<OSTenant> tenants = _dbClient.queryObject(OSTenant.class, osTenantURIs);
+        List<OSTenant> tenants = getOsTenantsFromCoprhdDb();
 
         return map(tenants);
+    }
+
+    private List<OSTenant> getOsTenantsFromCoprhdDb() {
+
+        List<URI> osTenantURIs = _dbClient.queryByType(OSTenant.class, true);
+
+        return _dbClient.queryObject(OSTenant.class, osTenantURIs);
     }
 
     /**
@@ -325,6 +333,51 @@ public class KeystoneService extends TaskResourceService {
         }
 
         throw APIException.notFound.unableToFindEntityInURL(id);
+    }
+
+    /**
+     * Synchronize CoprHD and OpenStack Tenants in CoprHD database.
+     *
+     * @brief Updates CoprHD OSTenant objects.
+     * @return Response code 200
+     * @see OSTenant
+     */
+    @PUT
+    @Path("/ostenants/sync")
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SECURITY_ADMIN })
+    public Response synchronizeOpenstackTenants() {
+
+        List<TenantV2> openstackTenantsList = listOpenstackTenants().getOpenstackTenants();
+        List<OSTenant> coprhdOsTenantsList = getOsTenantsFromCoprhdDb();
+
+        for (Iterator<TenantV2> i = openstackTenantsList.iterator(); i.hasNext();) {
+
+            TenantV2 tenant = i.next();
+            for (Iterator<OSTenant> j = coprhdOsTenantsList.iterator(); j.hasNext();) {
+
+                OSTenant osTenant = j.next();
+                // Remove Tenant from both list once match is found.
+                if (osTenant.getOsId().equals(tenant.getId())) {
+                    j.remove();
+                    i.remove();
+                }
+            }
+        }
+
+        // Remove OSTenant from CoprHD when related Tenant was removed in OpenStack.
+        for (OSTenant osTenant : coprhdOsTenantsList) {
+            _dbClient.removeObject(osTenant);
+        }
+
+        // Create OOSTenant in CoprHD for every new Tenant in OpenStack.
+        for (TenantV2 tenantV2 : openstackTenantsList) {
+            OSTenant tenant = _keystoneUtils.mapToOsTenant(tenantV2);
+            tenant.setId(URIUtil.createId(OSTenant.class));
+            _dbClient.createObject(tenant);
+        }
+
+        return Response.ok().build();
     }
 
     private OSTenant prepareOpenstackTenant(OpenStackTenantParam param) {

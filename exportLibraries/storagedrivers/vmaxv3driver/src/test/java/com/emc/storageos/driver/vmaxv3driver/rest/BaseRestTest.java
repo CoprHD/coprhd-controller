@@ -19,20 +19,20 @@ public abstract class BaseRestTest {
         return new RestClient("https", "lglw7150.lss.emc.com", 8443, "smc", "smc");
     }
 
-    protected String getDefaultArrayId() {
+    protected ArrayInfo getDefaultArray() {
         // "000196801468";
-        return "000196801612";
+        return new ArrayInfo("000196801612", "SRP_1", "DF-1C", "12");
     }
 
-    protected String getDefaultSrpId() {
-        return "SRP_1";
+    protected ArrayInfo getArrayWithFcPort() {
+        return new ArrayInfo("000196701343", null, "FA-1D", "24");
     }
 
-    protected String getDefaultDirectorId() {
-        return "DF-1C";
+    protected ArrayInfo getArrayWithIscsiPort() {
+        return new ArrayInfo("000196701343", null, "SE-4F", "11");
     }
 
-    protected String getDefaultPortId() {
-        return "12";
+    protected ArrayInfo getArrayWithRdfPort() {
+        return new ArrayInfo("000196701343", null, "RF-2G", "26");
     }
 }

@@ -18,7 +18,7 @@ public class RestClientTest extends BaseRestTest {
     private static Logger logger = LoggerFactory.getLogger(RestClientTest.class);
 
     RestClient client = this.getClient();
-    String symId = this.getDefaultArrayId();
+    String symId = this.getDefaultArray().getArrayId();
 
     @Test
     public void testGetVersion() {

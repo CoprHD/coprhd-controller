@@ -13,6 +13,6 @@ public class SloprovisioningSymmetrixSrpListTest extends BaseRestTest {
 
     @Test
     public void test() {
-        logger.info("SRP list = {}", new SloprovisioningSymmetrixSrpList(this.getDefaultArrayId()).perform(this.getClient()));
+        logger.info("SRP list = {}", new SloprovisioningSymmetrixSrpList(this.getDefaultArray().getArrayId()).perform(this.getClient()));
     }
 }

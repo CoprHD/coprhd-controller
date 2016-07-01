@@ -13,6 +13,6 @@ public class SloprovisioningSymmetrixDirectorListTest extends BaseRestTest {
 
     @Test
     public void test() {
-        logger.info("Director list = {}", new SloprovisioningSymmetrixDirectorList(this.getDefaultArrayId()).perform(this.getClient()));
+        logger.info("Director list = {}", new SloprovisioningSymmetrixDirectorList(this.getDefaultArray().getArrayId()).perform(this.getClient()));
     }
 }

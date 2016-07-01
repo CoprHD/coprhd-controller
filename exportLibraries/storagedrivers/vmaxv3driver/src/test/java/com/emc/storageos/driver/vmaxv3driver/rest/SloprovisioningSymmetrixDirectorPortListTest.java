@@ -13,6 +13,7 @@ public class SloprovisioningSymmetrixDirectorPortListTest extends BaseRestTest {
 
     @Test
     public void test() {
-        logger.info("Port list = {}", new SloprovisioningSymmetrixDirectorPortList(this.getDefaultArrayId(), this.getDefaultDirectorId()).perform(this.getClient()));
+        logger.info("Port list = {}", new SloprovisioningSymmetrixDirectorPortList(this.getDefaultArray().getArrayId(),
+            this.getDefaultArray().getDirectorId()).perform(this.getClient()));
     }
 }

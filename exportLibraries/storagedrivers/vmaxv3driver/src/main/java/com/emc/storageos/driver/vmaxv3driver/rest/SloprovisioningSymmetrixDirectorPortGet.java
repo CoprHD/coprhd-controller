@@ -9,11 +9,17 @@ import com.emc.storageos.driver.vmaxv3driver.Vmaxv3Constants;
 import com.emc.storageos.driver.vmaxv3driver.base.RestActionImpl;
 import com.emc.storageos.driver.vmaxv3driver.exception.Vmaxv3RestCallException;
 import com.emc.storageos.driver.vmaxv3driver.rest.bean.SymmetrixPort;
+import com.emc.storageos.driver.vmaxv3driver.rest.bean.SymmetrixPortFc;
+import com.emc.storageos.driver.vmaxv3driver.rest.bean.SymmetrixPortIscsi;
+import com.emc.storageos.driver.vmaxv3driver.rest.bean.SymmetrixPortRdf;
 import com.emc.storageos.driver.vmaxv3driver.util.rest.RestClient;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * REST API call to get given port information.
@@ -23,6 +29,15 @@ import org.slf4j.LoggerFactory;
 public class SloprovisioningSymmetrixDirectorPortGet extends RestActionImpl {
 
     private static final Logger logger = LoggerFactory.getLogger(SloprovisioningSymmetrixDirectorPortGet.class);
+
+    private static Map<String, Class<? extends SymmetrixPort>> typeClassMap = new HashMap<>();
+
+    static {
+        typeClassMap.put("FibreChannel (563)", SymmetrixPortFc.class);
+        typeClassMap.put("GigE", SymmetrixPortIscsi.class);
+        typeClassMap.put("RDF-BI-DIR", SymmetrixPortRdf.class);
+    }
+
 
     private String symmetrixId;
     private String directorId;
@@ -44,28 +59,12 @@ public class SloprovisioningSymmetrixDirectorPortGet extends RestActionImpl {
     }
 
     /**
-     * Parse the REST response below and return the Symmetrix instance:
+     * Parse the REST response below and return the Symmetrix instance. Note that current 3 type storage ports
+     * is needed by SBSDK: "FC", "iSCSI" and "RDF". For other types, this method returns null for outer invoker
+     * to ignore.
      *
-     * {
-     * "success": true,
-     * "symmetrixPort": [
-     * {
-     * "port_interface": "C",
-     * "director_status": "Online",
-     * "num_of_cores": 8,
-     * "symmetrixPortKey": {
-     * "directorId": "DF-1C",
-     * "portId": "12"
-     * },
-     * "port_status": "ON",
-     * "type": "DISK",
-     * "num_of_hypers": 1136
-     * }
-     * ]
-     * }
-     *
-     * @param responseBody
-     * @return
+     * @param responseBody The given response body in JSON format.
+     * @return The storage port instance or null if it's not the required port type.
      */
     private SymmetrixPort parseRestResult(String responseBody) {
         logger.debug("Response body = {}", responseBody);
@@ -74,8 +73,13 @@ public class SloprovisioningSymmetrixDirectorPortGet extends RestActionImpl {
         if (!success) {
             throw new Vmaxv3RestCallException(root.get("message").getAsString());
         }
-        SymmetrixPort bean = new Gson().fromJson(root.getAsJsonArray("symmetrixPort").get(0), SymmetrixPort.class);
-        logger.debug("Parsed bean = {}", bean);
+        String type = root.getAsJsonArray("symmetrixPort").get(0).getAsJsonObject().get("type").getAsString();
+        SymmetrixPort bean = null;
+        if (typeClassMap.get(type) != null) {
+            bean = new Gson().fromJson(root.getAsJsonArray("symmetrixPort").get(0), typeClassMap.get(type));
+        } else {
+            logger.debug("The type of this bean is unsupported: {}.", type);
+        }
         return bean;
     }
 }

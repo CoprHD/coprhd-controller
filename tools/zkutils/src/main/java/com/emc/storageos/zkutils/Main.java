@@ -101,7 +101,7 @@ public class Main {
                 Command.GEN_SSH_AUTH_KEYS.name().toLowerCase()));
         System.out.println("\n\tMiscellaneous Operations:");
         System.out.println(String.format("\t%s <key> <value>\t\tAdd \"key=value\" line to DR configuration", Command.TUNE_DR_CONFIG.name().toLowerCase()));
-        System.out.println(String.format("\t%s \t\t\tRoll back data including zk/db/geodb to previous viable version", Command.ROLL_BACK));
+        System.out.println(String.format("\t%s \t\t\tRoll back data including zk/db/geodb to previous viable version", Command.ROLL_BACK.name().toLowerCase()));
     }
 
     /**
@@ -153,6 +153,7 @@ public class Main {
                     if (args.length > 1) {
                         throw new IllegalArgumentException("Invalid paramerters");
                     }
+                    initZkCmdHandler(host, port, withData);
                     zkCmdHandler.rollbackDataRevision();
                     break;
                 case TUNE_DR_CONFIG:

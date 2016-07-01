@@ -85,7 +85,6 @@ public class ZkCmdHandler implements Watcher {
     }
 
     public void rollbackDataRevision() throws Exception {
-        // TODO may need to do some pre-check here
         DrUtil drUtil = new DrUtil(ZKUtil.getCoordinatorClient());
         LocalRepository localRepository = LocalRepository.getInstance();
         PropertyInfoExt localDataRevisionProps = localRepository.getDataRevisionPropertyInfo();

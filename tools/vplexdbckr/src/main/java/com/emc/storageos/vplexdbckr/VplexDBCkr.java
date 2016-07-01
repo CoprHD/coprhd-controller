@@ -39,6 +39,8 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationController;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.db.client.model.BlockMirror;
 
 /**
  * A single bean instance of this class is started from the Spring configuration.
@@ -61,10 +63,37 @@ public class VplexDBCkr {
         for (URI volumeURI : volumeURIs) {
             cleanBlockObjectFromExports(volumeURI, true);
         }
+		
+		// Clean up the relationship between vplex volumes that are full
+        // copies and and their source vplex volumes.
+        List<VolumeDescriptor> vplexVolumeDescriptors = VolumeDescriptor
+                .getDescriptors(volumeDescriptors, VolumeDescriptor.Type.VPLEX_VIRT_VOLUME);
+        List<URI> vplexvolumeURIs = VolumeDescriptor.getVolumeURIs(volumeDescriptors);
+        for (URI volumeURI : vplexvolumeURIs) {
+            Volume volume = dbClient.queryObject(Volume.class, volumeURI);
+            URI sourceVolumeURI = volume.getAssociatedSourceVolume();
+            if (!NullColumnValueGetter.isNullURI(sourceVolumeURI)) {
+                // The volume being removed is a full copy. Make sure the copies
+                // list of the source no longer references this volume. Note
+                // that it is possible that the source was already deleted but
+                // we left the source URI set in the copy, so one could always
+                // know the source of the copy. So, check for a null source
+                // volume.
+                Volume sourceVolume = dbClient.queryObject(Volume.class,
+                        sourceVolumeURI);
+                if (sourceVolume != null) {
+                    StringSet fullCopyIds = sourceVolume.getFullCopies();
+                    if (fullCopyIds.contains(volumeURI.toString())) {
+                        fullCopyIds.remove(volumeURI.toString());
+                        dbClient.updateObject(sourceVolume);
+                    }
+                }
+            }
+        }
     }
 	public void cleanBlockObjectFromExports(URI boURI, boolean addToExisting) {
-        //s_logger.info("Cleaning block object {} from exports", boURI);
-        Map<URI, ExportGroup> exportGroupMap = new HashMap<URI, ExportGroup>();
+        writeLog(String.format("Cleaning block object from exports %s", boURI));
+		Map<URI, ExportGroup> exportGroupMap = new HashMap<URI, ExportGroup>();
         Map<URI, ExportGroup> updatedExportGroupMap = new HashMap<URI, ExportGroup>();
         Map<String, ExportMask> exportMaskMap = new HashMap<String, ExportMask>();
         Map<String, ExportMask> updatedExportMaskMap = new HashMap<String, ExportMask>();
@@ -72,8 +101,8 @@ public class VplexDBCkr {
         URIQueryResultList exportGroupURIs = new URIQueryResultList();
         dbClient.queryByConstraint(ContainmentConstraint.Factory.getBlockObjectExportGroupConstraint(boURI), exportGroupURIs);
         for (URI exportGroupURI : exportGroupURIs) {
-            //s_logger.info("Cleaning block object from export group {}", exportGroupURI);
-            ExportGroup exportGroup = null;
+            writeLog(String.format("Cleaning block object from export group %s",exportGroupURI));
+			ExportGroup exportGroup = null;
             if (exportGroupMap.containsKey(exportGroupURI)) {
                 exportGroup = exportGroupMap.get(exportGroupURI);
             } else {
@@ -82,8 +111,8 @@ public class VplexDBCkr {
             }
 
             if (exportGroup.hasBlockObject(boURI)) {
-                //s_logger.info("Removing block object from export group");
-                exportGroup.removeVolume(boURI);
+                writeLog(String.format("Removing block object from export group"));
+				exportGroup.removeVolume(boURI);
                 if (!updatedExportGroupMap.containsKey(exportGroupURI)) {
                     updatedExportGroupMap.put(exportGroupURI, exportGroup);
                 }
@@ -99,8 +128,8 @@ public class VplexDBCkr {
                     exportMaskMap.put(exportMaskId, exportMask);
                 }
                 if (exportMask.hasVolume(boURI)) {
-                    //s_logger.info("Cleaning block object from export mask {}", exportMaskId);
-                    StringMap exportMaskVolumeMap = exportMask.getVolumes();
+                    writeLog(String.format("Cleaning block object from export mask %s", exportMaskId));
+					StringMap exportMaskVolumeMap = exportMask.getVolumes();
                     String hluStr = exportMaskVolumeMap.get(boURI.toString());
                     exportMask.removeVolume(boURI);
                     exportMask.removeFromUserCreatedVolumes(bo);
@@ -108,8 +137,8 @@ public class VplexDBCkr {
                     // mask, so that if the last ViPR created volume goes
                     // away, the physical mask will not be deleted.
                     if (addToExisting) {
-                        //s_logger.info("Adding to existing volumes");
-                        exportMask.addToExistingVolumesIfAbsent(bo, hluStr);
+                        writeLog(String.format("Adding to existing volumes"));
+						exportMask.addToExistingVolumesIfAbsent(bo, hluStr);
                     }
                     if (!updatedExportMaskMap.containsKey(exportMaskId)) {
                         updatedExportMaskMap.put(exportMaskId, exportMask);
@@ -175,10 +204,11 @@ public class VplexDBCkr {
         }
     }
 	
-	public void checkVolumesOnVplex(URI vplexSystemURI) {
+	public void checkVolumesOnVplex(URI vplexSystemURI, boolean deleteInvalidVolumes) {
         URIQueryResultList result = new URIQueryResultList();
         List<URI> deletevirtualvolumeURIs = new ArrayList<URI>();
 		int nerrors = 0;
+		int invalidVolumeCount = 0;
         dbClient.queryByConstraint(
                 ContainmentConstraint.Factory.getStorageDeviceVolumeConstraint(vplexSystemURI), result);
         Iterator<URI> iter = result.iterator();
@@ -196,7 +226,7 @@ public class VplexDBCkr {
             if (volume == null || volume.getInactive()) {
                 continue;
             }
-            writeLog(String.format("\nChecking volume %s (%s)", volume.getLabel(), volume.getDeviceLabel()));
+            writeLog(String.format("Checking volume %s (%s)", volume.getLabel(), volume.getDeviceLabel()));
             if (volume.getAssociatedVolumes() == null || volume.getAssociatedVolumes().isEmpty()) {
                 writeLog(String.format("Volume %s (%s) has no associated volumes... skipping", 
                         volume.getLabel(), volume.getDeviceLabel()));
@@ -209,18 +239,20 @@ public class VplexDBCkr {
                         volume.getLabel(), volume.getDeviceLabel()));
                 deletevirtualvolumeURIs.add(volume.getId());  
 				nerrors++;
+				invalidVolumeCount++;
                 continue;
             }
 			
-			//writeLog(String.format("checking %s wwn %s ",vvInfo.getName(), vvInfo.getWwn()));
 			if ((null != vvInfo.getWwn()) && (null != volume.getWWN())) {
 			 if (vvInfo.getName().equals(volume.getDeviceLabel())) {
 			  if (vvInfo.getWwn().toUpperCase().equals(volume.getWWN().toUpperCase())) {
 			    writeLog(String.format("Virtual Volume %s wwn %s matches VPLEX", vvInfo.getName(), vvInfo.getWwn()));
 			  }  else {
-                    writeLog(String.format("ERROR: Virtual Volume %s wwn %s is not present in VPLEX", 
-                            vvInfo.getName(), vvInfo.getWwn()));
-                    nerrors++;
+                    writeLog(String.format("ERROR: Virtual Volume %s wwn %s in VPLEX mismatch with viprdb %s", 
+                            vvInfo.getName(), vvInfo.getWwn(), volume.getWWN()));
+                    deletevirtualvolumeURIs.add(volume.getId());  
+					invalidVolumeCount++;
+					nerrors++;
                }
 			}
 			}
@@ -255,16 +287,19 @@ public class VplexDBCkr {
             }
 		   }
 		   
-		// deleting virtual volumes that no longer exist in vplex
-		List<VolumeDescriptor> volumeDescriptors = getDescriptorsForVolumesToBeDeleted(vplexSystemURI, deletevirtualvolumeURIs, VolumeDeleteTypeEnum.VIPR_ONLY.name());
-		cleanupForViPROnlyDelete(volumeDescriptors);
+		if (deleteInvalidVolumes)
+		{
+		  writeLog("deleting invalid volumes");
+		  // deleting virtual volumes that no longer exist in vplex
+		  List<VolumeDescriptor> volumeDescriptors = getDescriptorsForVolumesToBeDeleted(vplexSystemURI, deletevirtualvolumeURIs, VolumeDeleteTypeEnum.VIPR_ONLY.name());
+		  cleanupForViPROnlyDelete(volumeDescriptors);
 		
-		// Mark them inactive. Note that some of the volumes may be mirrors,
+		    // Mark them inactive. Note that some of the volumes may be mirrors,
             // which have a different database type.
-            //List<VolumeDescriptor> descriptorsForMirrors = VolumeDescriptor.getDescriptors(
-            //        volumeDescriptors, VolumeDescriptor.Type.BLOCK_MIRROR);
-            //dbClient.markForDeletion(dbClient.queryObject(BlockMirror.class,
-            //        VolumeDescriptor.getVolumeURIs(descriptorsForMirrors)));
+            List<VolumeDescriptor> descriptorsForMirrors = VolumeDescriptor.getDescriptors(
+                    volumeDescriptors, VolumeDescriptor.Type.BLOCK_MIRROR);
+            dbClient.markForDeletion(dbClient.queryObject(BlockMirror.class,
+                    VolumeDescriptor.getVolumeURIs(descriptorsForMirrors)));
             List<VolumeDescriptor> descriptorsForVolumes = VolumeDescriptor.filterByType(
                     volumeDescriptors, null, new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_MIRROR });
             dbClient.markForDeletion(dbClient.queryObject(Volume.class,
@@ -273,17 +308,15 @@ public class VplexDBCkr {
             // Update the task status for each volume
             for (URI volumeURI : deletevirtualvolumeURIs) {
                 Volume volume = dbClient.queryObject(Volume.class, volumeURI);
-                //Operation op = volume.getOpStatus().get(task);
-                //op.ready("Volume succesfully deleted from ViPR");
-                //volume.getOpStatus().updateTaskStatus(task, op);
                 dbClient.updateObject(volume);
             }
+		  }
 		  } catch (Exception e) {
                     writeLog(String.format("Exception: while verifying virtual volumes", e));
           }
 		  
 		
-	    
+	      /*
 		  for (VPlexStorageViewInfo storageView : storageViews) {
             try {
 			 List<URI> maskUris = dbClient.queryByConstraint(AlternateIdConstraint.Factory.getExportMaskByNameConstraint(storageView.getName()));
@@ -317,6 +350,8 @@ public class VplexDBCkr {
                     writeLog(String.format("ERROR: verifying storage view %s %s", storageView.getName(), e));
             }
 		  }
+		  */
+		  
 		writeLog("Total errors for this VPLEX: " + nerrors);
     }
     

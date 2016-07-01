@@ -33,7 +33,7 @@
   </header>
   #{get 'navBarLeft'/}
   <!--------------------------------------------------------------------->
-  <div id="wizard" class="wizard-dialog" ng-class="{'wizard-full guide-fullpage':currentMode=='full', 'wizard-side':currentMode=='side'}" ng-show="guideVisible">
+  <div id="wizard" class="wizard-dialog" ng-class="{'wizard-full guide-fullpage':guideMode=='full', 'wizard-side':guideMode=='side'}" ng-show="guideVisible">
     #{GettingStarted.gettingStarted/}
   </div>
   <!--------------------------------------------------------------------->

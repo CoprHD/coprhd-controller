@@ -1125,7 +1125,9 @@ ul.guide-steps > li:first-child > div.step-circle::before {
   display: table-cell;
   padding: 0 10px;
   vertical-align: top;
-  //width: 80%;
+  //width: 60%;
+  width:600px;
+  min-width: 300px;
   border-left: 1px solid #9a9b9b;
   /* background:green; */
 }
@@ -1203,7 +1205,7 @@ ul.guide-steps > li:first-child > div.step-circle::before {
 }
 
 .wizard-dialog .action-btn {
-    padding-top: 50px;
+    padding-top: 10px;
     text-align: center;
 }
 
@@ -1216,6 +1218,20 @@ ul.guide-steps > li:first-child > div.step-circle::before {
     text-transform: uppercase;
     font-size: 18px;
     color: white;
+}
+
+.wizard-dialog .guide-textpanel .step-text {
+    min-width: 300px;
+    min-height: 200px;
+}
+
+.wizard-dialog .guide-textpanel .guide-warning {
+    color: yellow;
+}
+
+.wizard-dialog .guide-textpanel .guide-info {
+    margin-top: 10px;
+    color: #666;
 }
 
 .wizard-dialog p {
@@ -1244,7 +1260,7 @@ ul.guide-steps > li:first-child > div.step-circle::before {
 }
 
 .wizard-dialog .dismiss-me{
-    margin-top: 25px;
+    margin-top: 50px;
     font-size: 14px;
     cursor: pointer;
     color: #666;
@@ -1252,7 +1268,6 @@ ul.guide-steps > li:first-child > div.step-circle::before {
 
 .wizard-dialog .landing-text{
     margin-top: 25px;
-    margin-bottom: 25px;
 }
 
 .wizard-dialog .landing-image img{

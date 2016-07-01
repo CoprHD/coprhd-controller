@@ -45,6 +45,7 @@ var routes = {
   HostClusters_edit: #{jsAction @compute.HostClusters.edit(':id')/},
   StorageSystems_edit: #{jsAction @arrays.StorageSystems.edit(':id')/},
   StorageSystems_list: #{jsAction @arrays.StorageSystems.listJson()/},
+  StorageSystems_itemDetails: #{jsAction @arrays.StorageSystems.arrayPoolsJson(':id')/},
   StorageSystems_getProjectsForNas: #{jsAction @arrays.StorageSystems.getProjectsForNas()/},
   SanSwitches_edit: #{jsAction @arrays.SanSwitches.edit(':id')/},
   SanSwitches_list: #{jsAction @arrays.SanSwitches.listJson()/},
@@ -89,6 +90,9 @@ var routes = {
   Setup_initialSetup: #{jsAction @Setup.isInitialSetupComplete() /},
   Projects_list: #{jsAction @tenant.Projects.listJson() /},
   BlockVirtualPools_list: #{jsAction @arrays.BlockVirtualPools.listJson() /},
+  BlockVirtualPools_pools: #{jsAction @arrays.BlockVirtualPools.listStoragePoolsJson(':id') /},
   FileVirtualPools_list: #{jsAction @arrays.FileVirtualPools.listJson() /},
-  VirtualArrays_list: #{jsAction @VirtualArrays.listJson() /}
+  VirtualArrays_list: #{jsAction @VirtualArrays.listJson() /},
+  VirtualArrays_pools: #{jsAction @VirtualArrays.storagePoolsJson(':id') /}
+
 };

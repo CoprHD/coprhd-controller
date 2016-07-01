@@ -342,6 +342,18 @@ public class BlockVirtualPools extends ViprResourceController {
         renderJSON(DataTablesSupport.createJSON(items, params));
     }
 
+    public static void listStoragePoolsJson(String id) {
+        BlockVirtualPoolRestRep virtualPool = VirtualPoolUtils.getBlockVirtualPool(id);
+        if (virtualPool == null) {
+            flash.error(MessagesUtils.get(UNKNOWN, id));
+            backToReferrer();
+        }
+
+        BlockVirtualPoolForm vpool = new BlockVirtualPoolForm();
+        vpool.load(virtualPool);
+        listStoragePoolsJson(vpool);
+    }
+
     private static List<StoragePoolRestRep> getMatchingStoragePools(BlockVirtualPoolForm vpool) {
         try {
             return await(vpool.matchingStoragePools().asPromise());

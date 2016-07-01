@@ -1461,14 +1461,12 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
 
         }
         $scope.$parent.isMenuPinned = readCookie("isMenuPinned");
-        console.log('cookie:', $scope.$parent.isMenuPinned);
     }
 
     $scope.toggleGuide = function() {
 
         if ($scope.$parent.guideVisible) {
 		    $scope.closeGuide();
-                console.log('close toggle');
         }
         else {
 		    $scope.$parent.guideVisible = true;
@@ -1488,7 +1486,6 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
     $scope.closeGuide = function() {
         $scope.$parent.guideVisible = false;
         $scope.$parent.guideDataAvailable = false;
-        console.log('close');
         saveGuideCookies();
         //stopHttpRequests
     }
@@ -1506,7 +1503,6 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
         /*for (step = 0; step <= maxSteps; step++) {
             result=false;
             if (result == true) {
-                console.log('here1');
                 if (step < landingStep) {
                     $scope.$parent.currentStep = step+1;
                 }
@@ -1516,7 +1512,6 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                 $scope.$parent.completedSteps = step;
             }
             else {
-                console.log('here2');
                 break;
             }
         }*/
@@ -1556,7 +1551,6 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                         testId = function (ss) {
                             var promises = ss.map( function (s) {
                                 if (!finished && s.discoveryStatus == "COMPLETE"){
-                                    console.log('Storage System Complete');
                                     finished=true;
                                     goToNextStep(true);
                                     finishChecking();
@@ -1564,14 +1558,12 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                             });
                             $q.all(promises).then(function () {
                                 if(!finished) {
-                                    console.log(step,'failed');
                                     finishChecking();
                                 }
                             });
                         };
                         return testId(data.data.aaData);
                     } else {
-                        console.log(step,'failed');
                         finishChecking();
                     }
                 });
@@ -1584,7 +1576,6 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                             var promises = sanswitches.map( function (s) {
                                 if (!finished && s.discoveryStatus == "COMPLETE"){
                                     finished=true;
-                                    console.log('Fabric Manager Complete');
                                     $scope.$parent.optionalStepComplete = true;
                                     goToNextStep(true);
                                     finishChecking();
@@ -1592,7 +1583,6 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                             });
                             $q.all(promises).then(function () {
                                 if(!finished) {
-                                    console.log(step,'failed');
                                     $scope.$parent.optionalStepComplete = false;
                                     goToNextStep(true);
                                     finishChecking();
@@ -1601,7 +1591,6 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                         };
                         return testId(data.data.aaData);
                     } else {
-                        console.log(step,'failed');
                         $scope.$parent.optionalStepComplete = false;
                         goToNextStep(true);
                         finishChecking();
@@ -1616,7 +1605,6 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                             var promises = vArrays.map( function(vArray) {
                             return $http.get(routes.VirtualArrays_pools({'id':vArray.id})).then(function (data,$q) {
                                     if (!finished && data.data.aaData.length != 0){
-                                        console.log('Virtual Array Complete');
                                         finished=true;
                                         goToNextStep(true);
                                         finishChecking();
@@ -1625,14 +1613,12 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                             });
                             $q.all(promises).then(function () {
                                 if(!finished) {
-                                    console.log(step,'failed');
                                     finishChecking();
                                 }
                             });
                         };
                         return testId(data.data.aaData);
                     } else {
-                        console.log(step,'failed');
                         finishChecking();
                     }
                 });
@@ -1645,10 +1631,8 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                             var promises = vPools.map( function(vPool) {
                             return $http.get(routes.BlockVirtualPools_pools({'id':vPool.id})).then(function (data,$q) {
 
-                                    console.log(data);
                                     if (!finished && data.data.aaData.length != 0){
                                         finished=true;
-                                        console.log('Virtual Pool Complete');
                                         goToNextStep(true);
                                         finishChecking();
                                     }
@@ -1656,14 +1640,12 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                             });
                             $q.all(promises).then(function () {
                                 if(!finished) {
-                                    console.log(step,'failed');
                                     finishChecking();
                                 }
                             });
                         };
                         return testId(data.data.aaData);
                     } else {
-                        console.log(step,'failed');
                         finishChecking();
                     }
                 });
@@ -1672,15 +1654,12 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                 $http.get(routes.Projects_list()).then(function (data) {
                     if (data.data.aaData.length != 0) {
 
-                        console.log(data);
-                        console.log('Project Complete');
                         goToNextStep(true);
                         finishChecking();
                     }
                 });
                 break;
             default:
-                console.log(step);
                 goToNextStep(true);
                 finishChecking();
         }
@@ -1716,7 +1695,6 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
    }
 
     $scope.runStep = function(step) {
-        //console.log($scope.$parent.currentStep);
 
         //docCookies.setItem("GsGuideStep", level, Infinity);
         //docCookies.getItem('GsGuideStep');
@@ -1729,7 +1707,6 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
         switch (step) {
             case 1:
                 $scope.$parent.currentStep = 1;
-                console.log($scope.$parent.currentStep);
                 $scope.$parent.guideMode = 'side';
                 saveGuideCookies();
                 if ($window.location.pathname != '/setup/license') {
@@ -1742,7 +1719,6 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                 break;
             case 2:
                 $scope.$parent.currentStep = 2;
-                console.log($scope.$parent.currentStep);
                 $scope.$parent.guideMode = 'side';
                 saveGuideCookies();
                 if ($window.location.pathname != '/setup/index') {
@@ -1759,7 +1735,6 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                 break;
             case 4:
                 //$scope.$parent.currentStep = 4;
-                console.log($scope.$parent.currentStep);
                 //$scope.$parent.guideMode = 'side';
                 updateGuideCookies(4,'side');
                 //saveGuideCookies();
@@ -1773,7 +1748,6 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                 break;
             case 5:
                 //$scope.$parent.currentStep = 5;
-                console.log($scope.$parent.currentStep);
                 //$scope.$parent.guideMode = 'side';
                 //saveGuideCookies();
                 updateGuideCookies(5,'side');
@@ -1787,7 +1761,6 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                 break;
             case 6:
                 //$scope.$parent.currentStep = 5;
-                console.log($scope.$parent.currentStep);
                 //$scope.$parent.guideMode = 'side';
                 //saveGuideCookies();
                 updateGuideCookies(6,'side');
@@ -1801,7 +1774,6 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                 break;
             case 7:
                 //$scope.$parent.currentStep = 5;
-                console.log($scope.$parent.currentStep);
                 //$scope.$parent.guideMode = 'side';
                 //saveGuideCookies();
                 updateGuideCookies(7,'side');
@@ -1815,7 +1787,6 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                 break;
             case 8:
                 //$scope.$parent.currentStep = 5;
-                console.log($scope.$parent.currentStep);
                 //$scope.$parent.guideMode = 'side';
                 //saveGuideCookies();
                 updateGuideCookies(8,'side');
@@ -1829,7 +1800,6 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                 break;
             case 9:
                 //$scope.$parent.currentStep = 5;
-                console.log($scope.$parent.currentStep);
                 //$scope.$parent.guideMode = 'side';
                 //saveGuideCookies();
                 removeGuideCookies();
@@ -1849,7 +1819,6 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
     }
 
     $scope.showStep = function(step) {
-            //console.log($scope.$parent.currentStep);
 
             //docCookies.setItem("GsGuideStep", level, Infinity);
             //docCookies.getItem('GsGuideStep');
@@ -1860,13 +1829,11 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
             }
 
             $scope.$parent.currentStep = step;
-            console.log($scope.$parent.currentStep);
             saveGuideCookies();
 
         }
 
     $scope.nextStep = function(step) {
-        //console.log($scope.$parent.currentStep);
 
         //docCookies.setItem("GsGuideStep", level, Infinity);
         //docCookies.getItem('GsGuideStep');
@@ -1879,24 +1846,20 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
         switch (step) {
             case requiredSteps:
                 $scope.$parent.currentStep = 4;
-                console.log($scope.$parent.currentStep);
                 saveGuideCookies();
                 break;
             case maxSteps:
                 $scope.$parent.currentStep = landingStep;
-                console.log($scope.$parent.currentStep);
                 saveGuideCookies();
                 break;
             default:
                 $scope.$parent.currentStep = step+1;
-                console.log($scope.$parent.currentStep);
                 saveGuideCookies();
                 break;
             }
     }
 
         $scope.previousStep = function(step) {
-            //console.log($scope.$parent.currentStep);
 
             //docCookies.setItem("GsGuideStep", level, Infinity);
             //docCookies.getItem('GsGuideStep');
@@ -1909,17 +1872,14 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
             switch (step) {
                 case requiredSteps+2:
                     $scope.$parent.currentStep = requiredSteps;
-                    console.log($scope.$parent.currentStep);
                     saveGuideCookies();
                     break;
                 case 1:
                     $scope.$parent.currentStep = 3;
-                    console.log($scope.$parent.currentStep);
                     saveGuideCookies();
                     break;
                 default:
                     $scope.$parent.currentStep = step-1;
-                    console.log($scope.$parent.currentStep);
                     saveGuideCookies();
                     break;
                 }
@@ -1936,7 +1896,6 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
         cookieObject.guideMode=guideMode;
         cookieObject.guideVisible=$scope.$parent.guideVisible;
         cookieObject.optionalStepComplete=$scope.$parent.optionalStepComplete;
-        console.log('cookie2',cookieObject);
         createCookie(cookieKey,angular.toJson(cookieObject),'session');
     }
 
@@ -1947,7 +1906,6 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
         cookieObject.guideMode=guideMode;
         cookieObject.guideVisible=$scope.$parent.guideVisible;
         cookieObject.optionalStepComplete=$scope.$parent.optionalStepComplete;
-        console.log('cookie3',cookieObject);
         createCookie(cookieKey,angular.toJson(cookieObject),'session');
     }
 
@@ -1962,12 +1920,10 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
         cookieObject.guideMode=$scope.$parent.guideMode;
         cookieObject.guideVisible=$scope.$parent.guideVisible;
         cookieObject.optionalStepComplete=$scope.$parent.optionalStepComplete;
-        console.log('cookie1',cookieObject);
         createCookie(cookieKey,angular.toJson(cookieObject),'session');
     }
 
     testFunc = function() {
-        console.log('done');
     }
 
     $scope.checkStep = function() {
@@ -1986,12 +1942,10 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                 $http.get(routes.Setup_license()).then(function (data) {
                     isLicensed = data.data;
                     if (isLicensed == 'true') {
-                        console.log('Licensed');
                         $scope.$parent.completedSteps = 1;
                         $scope.$parent.currentStep = 2;
                         return checkStep(2);
                     }  else {
-                        console.log(step,'failed')
                         finishChecking();
                     }
                 });
@@ -2000,12 +1954,10 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                 $http.get(routes.Setup_initialSetup()).then(function (data) {
                     isSetup = data.data;
                     if (isSetup == 'true') {
-                        console.log('Setup Complete');
                         $scope.$parent.completedSteps = 2;
                         $scope.$parent.currentStep = 3;
                         return checkStep(4);
                     } else {
-                        console.log(step,'failed')
                         finishChecking();
                     }
                 });
@@ -2020,7 +1972,6 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                         testId = function (ss) {
                             var promises = ss.map( function (s) {
                                 if (!finished && s.discoveryStatus == "COMPLETE"){
-                                    console.log('Storage System Complete');
                                     finished=true;
                                     $scope.$parent.completedSteps = 4;
                                     return checkStep(5);
@@ -2028,14 +1979,12 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                             });
                             $q.all(promises).then(function () {
                                 if(!finished) {
-                                    console.log(step,'failed');
                                     finishChecking();
                                 }
                             });
                         };
                         return testId(data.data.aaData);
                     } else {
-                        console.log(step,'failed');
                         finishChecking();
                     }
                 });
@@ -2048,7 +1997,6 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                             var promises = sanswitches.map( function (s) {
                                 if (!finished && s.discoveryStatus == "COMPLETE"){
                                     finished=true;
-                                    console.log('Fabric Manager Complete');
                                     $scope.$parent.completedSteps = 5;
                                     $scope.$parent.optionalStepComplete = true;
                                     return checkStep(6);
@@ -2056,7 +2004,6 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                             });
                             $q.all(promises).then(function () {
                                 if(!finished) {
-                                    console.log(step,'failed');
                                     $scope.$parent.optionalStepComplete = false;
                                     return checkStep(6);
                                 }
@@ -2064,7 +2011,6 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                         };
                         return testId(data.data.aaData);
                     } else {
-                        console.log(step,'failed');
                         $scope.$parent.optionalStepComplete = false;
                         return checkStep(6);
                     }
@@ -2078,7 +2024,6 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                             var promises = vArrays.map( function(vArray) {
                             return $http.get(routes.VirtualArrays_pools({'id':vArray.id})).then(function (data,$q) {
                                     if (!finished && data.data.aaData.length != 0){
-                                        console.log('Virtual Array Complete');
                                         finished=true;
                                         $scope.$parent.completedSteps = 6;
                                         return checkStep(7);
@@ -2087,14 +2032,12 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                             });
                             $q.all(promises).then(function () {
                                 if(!finished) {
-                                    console.log(step,'failed');
                                     finishChecking();
                                 }
                             });
                         };
                         return testId(data.data.aaData);
                     } else {
-                        console.log(step,'failed');
                         finishChecking();
                     }
                 });
@@ -2107,10 +2050,8 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                             var promises = vPools.map( function(vPool) {
                             return $http.get(routes.BlockVirtualPools_pools({'id':vPool.id})).then(function (data,$q) {
 
-                                    console.log(data);
                                     if (!finished && data.data.aaData.length != 0){
                                         finished=true;
-                                        console.log('Virtual Pool Complete');
                                         $scope.$parent.completedSteps = 7;
                                         return checkStep(8);
                                     }
@@ -2118,14 +2059,12 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                             });
                             $q.all(promises).then(function () {
                                 if(!finished) {
-                                    console.log(step,'failed')
                                     finishChecking();
                                 }
                             });
                         };
                         return testId(data.data.aaData);
                     } else {
-                        console.log(step,'failed')
                         finishChecking();
                     }
                 });
@@ -2133,11 +2072,9 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
             case 8:
                 $http.get(routes.Projects_list()).then(function (data) {
                     if (data.data.aaData.length != 0) {
-                        console.log('Project Complete');
                         $scope.$parent.completedSteps = 8;
                         return checkStep(9);
                     } else {
-                        console.log(step,'failed')
                         finishChecking();
                     }
                 });

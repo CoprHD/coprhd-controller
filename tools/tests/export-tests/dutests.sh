@@ -1749,6 +1749,103 @@ test_14() {
     verify_export ${expname}1 ${HOST1} gone
 }
 
+# Validation Test 15
+#
+# Summary: Add Initiator: Initiator added outside of ViPR, then inside ViPR, but fail after addInitiator, rollback shouldn't remove initiator we didn't really add.
+#
+# Basic Use Case for single host, single volume
+# 1. ViPR creates 1 volume, 1 host export.
+# 2. ViPR creates a new initiator, doesn't not export it.
+# 3. Set export_group update to suspend after orchestration, but before adding initiator to mask
+# 4. Set a failure to occur after initiator add passively succeeded (because initiator was already in the mask)
+# 5. ViPR update export group to add initiator, suspends
+# 6. add initiator to mask outside of ViPR
+# 7. Resume workflow, it should passively succeed the initiator add step, then fail a future step, then rollback (and not remove the initiator)
+# 8. Verify initiator still exists in mask
+# 9. Remove suspensions/error injections
+# 10. Rerun export_group update, verify the mask is still the same.
+# 11. Delete export group
+# 12. Verify we were able to delete the mask
+#
+test_15() {
+    echot "Test 15: Add initiator: Make sure rollback doesn't remove initiator it didn't add"
+    expname=${EXPORT_GROUP_NAME}t15
+
+    # Make sure we start clean; no masking view on the array
+    verify_export ${expname}1 ${HOST1} gone
+
+    # Turn on suspend of export after orchestration
+    set_suspend_on_class_method "none"
+    set_suspend_on_error false
+    set_artificial_failure none
+
+    # Create the mask with the 1 volume
+    runcmd export_group create $PROJECT ${expname}1 $NH --type Exclusive --volspec ${PROJECT}/${VOLNAME}-1 --inits "${HOST1}/${H1PI1}"
+
+    # Verify the mask has been created
+    verify_export ${expname}1 ${HOST1} 1 1
+
+    # Turn on suspend of export after orchestration
+    set_suspend_on_class_method MaskingWorkflowEntryPoints.doExportGroupAddInitiators
+    set_artificial_failure failure_003_late_in_add_initiator_to_mask
+
+    # Run the export group command TODO: Do this more elegantly
+    echo === export_group update $PROJECT/${expname}1 --addInits ${HOST1}/${H1PI1}
+    resultcmd=`export_group update $PROJECT/${expname}1 --addInits ${HOST1}/${H1PI1}`
+
+    if [ $? -ne 0 ]; then
+	echo "export group command failed outright"
+	exit;
+    fi
+
+    # Show the result of the export group command for now (show the task and WF IDs)
+    echo $resultcmd
+
+    # Parse results (add checks here!  encapsulate!)
+    taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
+    answersarray=($taskworkflow)
+    task=${answersarray[0]}
+    workflow=${answersarray[1]}
+
+    # Strip out colons for array helper command
+    h1pi2=`echo ${H1PI2} | sed 's/://g'`
+
+    # Add another initiator to the mask (done differently per array type)
+    arrayhelper add_initiator_to_mask ${SERIAL_NUMBER} ${h1pi2} ${HOST1}
+    
+    # Verify the mask has the new initiator in it
+    verify_export ${expname}1 ${HOST1} 2 1
+
+    # Resume the workflow
+    runcmd workflow resume $workflow
+
+    # Follow the task.  It should fail because of a failure invocation.
+    echo "*** Following the export_group delete task to verify it FAILS because of the additional volume"
+    fail task follow $task
+
+    # Verify the mask still has the new initiator in it (this will fail if rollback removed it)
+    verify_export ${expname}1 ${HOST1} 2 1
+
+    # shut off suspensions/failures
+    set_suspend_on_class_method "none"
+    set_artificial_failure none
+
+    # Now add that initiator into the mask, this time it should pass
+    runcmd export_group update $PROJECT/${expname}1 --addInits ${HOST1}/${H1PI2}
+
+    # Verify the mask is "normal" after that command
+    verify_export ${expname}1 ${HOST1} 2 1
+
+    # Delete the export group
+    runcmd export_group delete $PROJECT/${expname}1
+
+    # Make sure it really did kill off the mask
+    verify_export ${expname}1 ${HOST1} gone
+
+    # Delete the volume we created
+    runcmd volume delete ${PROJECT}/${volname} --wait
+}
+
 cleanup() {
    for id in `export_group list $PROJECT | grep YES | awk '{print $5}'`
    do

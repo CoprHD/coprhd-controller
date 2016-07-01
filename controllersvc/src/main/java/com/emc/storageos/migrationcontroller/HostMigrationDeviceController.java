@@ -51,7 +51,7 @@ public class HostMigrationDeviceController implements MigrationOrchestrationInte
     // private List<URI> migrateInitiatorsURIs = new ArrayList<URI>();
     private static volatile HostMigrationDeviceController _instance;
     private WorkflowService _workflowService;
-    private MigrationControllerWorkFlowUtil _migrationControllerWorkFlowUtil;
+    private MigrationControllerWorkflowUtil _migrationControllerWorkflowUtil;
 
     // Constants used for creating a migration name.
     private static final String MIGRATION_NAME_PREFIX = "M_";
@@ -72,12 +72,20 @@ public class HostMigrationDeviceController implements MigrationOrchestrationInte
         return _instance;
     }
 
+    public void setDbClient(DbClient _dbClient) {
+        this._dbClient = _dbClient;
+    }
+
+    public void setHostExportManager(HostExportManager _hostExportMgr) {
+        this._hostExportMgr = _hostExportMgr;
+    }
+
     public void setWorkflowService(WorkflowService workflowService) {
         this._workflowService = workflowService;
     }
 
-    public void setMigrationControllerWrokFlowUtil(MigrationControllerWorkFlowUtil migrationControllerWorkFlowUtil) {
-        this._migrationControllerWorkFlowUtil = migrationControllerWorkFlowUtil;
+    public void setMigrationControllerWorkflowUtil(MigrationControllerWorkflowUtil migrationControllerWorkflowUtil) {
+        this._migrationControllerWorkflowUtil = migrationControllerWorkflowUtil;
 
     }
 
@@ -168,7 +176,7 @@ public class HostMigrationDeviceController implements MigrationOrchestrationInte
                         }
                     }
                     // export source volumes
-                    waitFor = _migrationControllerWorkFlowUtil.createWorkflowStepsForBlockVolumeExport(workflow, waitFor,
+                    waitFor = _migrationControllerWorkflowUtil.createWorkflowStepsForBlockVolumeExport(workflow, waitFor,
                             Arrays.asList(generalVolumeURI), _hostURI, taskId);
                     _log.info("Created workflow steps for volume export.");
                     // Note that the last step here is a step group associated
@@ -189,7 +197,7 @@ public class HostMigrationDeviceController implements MigrationOrchestrationInte
                 cgURI = getDataObject(Volume.class, changeVpoolGeneralVolumeURIs.get(0), _dbClient).getConsistencyGroup();
                 if (!NullColumnValueGetter.isNullURI(cgURI)) {
                     _log.info("Vpool change volumes are in CG {}", cgURI);
-                    lastStep = _migrationControllerWorkFlowUtil.createWorkflowStepsForDeleteConsistencyGroup(workflow, cgURI,
+                    lastStep = _migrationControllerWorkflowUtil.createWorkflowStepsForDeleteConsistencyGroup(workflow, cgURI,
                             localSystemsToRemoveCG, lastStep);
                 }
             }
@@ -210,20 +218,20 @@ public class HostMigrationDeviceController implements MigrationOrchestrationInte
             _log.info("migration controller migrate volume {} by host{}",
                     generalVolumeURI, _hostURI);
 
-            waitFor = _migrationControllerWorkFlowUtil.createWorkflowStepsForBlockVolumeExport(workflow, waitFor,
+            waitFor = _migrationControllerWorkflowUtil.createWorkflowStepsForBlockVolumeExport(workflow, waitFor,
                     targetVolumeURIs, _hostURI, opId);
             _log.info("Created workflow steps for volume export.");
 
-            waitFor = _migrationControllerWorkFlowUtil.createWorkflowStepsForMigrateGeneralVolumes(workflow, _hostURI,
+            waitFor = _migrationControllerWorkflowUtil.createWorkflowStepsForMigrateGeneralVolumes(workflow, _hostURI,
                     generalVolumeURI, targetVolumeURIs, newVpoolURI, newVarrayURI, migrationsMap, waitFor);
             _log.info("Created workflow steps for volume migration.");
 
             String waitForStep = waitFor;
-            waitForStep = _migrationControllerWorkFlowUtil.createWorkflowStepsForCommitMigration(workflow, _hostURI,
+            waitForStep = _migrationControllerWorkflowUtil.createWorkflowStepsForCommitMigration(workflow, _hostURI,
                     generalVolumeURI, migrationsMap, waitForStep);
             _log.info("Created workflow steps for commit migration.");
 
-            _migrationControllerWorkFlowUtil.createWorkflowStepsForDeleteMigrationSource(workflow, _hostURI,
+            _migrationControllerWorkflowUtil.createWorkflowStepsForDeleteMigrationSource(workflow, _hostURI,
                     generalVolumeURI, newVpoolURI, newVarrayURI, migrationsMap, waitForStep);
             _log.info("Created workflow steps for delete migration source.");
             return DELETE_MIGRATION_SOURCES_STEP;
@@ -316,7 +324,7 @@ public class HostMigrationDeviceController implements MigrationOrchestrationInte
                         }
                     }
                    // export source volumes
-                   waitFor = _migrationControllerWorkFlowUtil.createWorkflowStepsForBlockVolumeExport(workflow, waitFor,
+                   waitFor = _migrationControllerWorkflowUtil.createWorkflowStepsForBlockVolumeExport(workflow, waitFor,
                             Arrays.asList(generalVolumeURI), _hostURI, taskId);
                     _log.info("Created workflow steps for volume export.");
 
@@ -334,7 +342,7 @@ public class HostMigrationDeviceController implements MigrationOrchestrationInte
                 cgURI = getDataObject(Volume.class, generalVolumeURIs.get(0), _dbClient).getConsistencyGroup();
                 if (!NullColumnValueGetter.isNullURI(cgURI)) {
                     _log.info("Vpool change volumes are in CG {}", cgURI);
-                    lastStep = _migrationControllerWorkFlowUtil.createWorkflowStepsForDeleteConsistencyGroup(workflow, cgURI,
+                    lastStep = _migrationControllerWorkflowUtil.createWorkflowStepsForDeleteConsistencyGroup(workflow, cgURI,
                             localSystemsToRemoveCG, lastStep);
                 }
 

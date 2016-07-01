@@ -41,7 +41,7 @@ public class NativeMigrationDeviceController implements MigrationOrchestrationIn
 
     private static volatile NativeMigrationDeviceController _instance;
     private WorkflowService _workflowService;
-    private MigrationControllerWorkFlowUtil _migrationControllerWorkFlowUtil;
+    private MigrationControllerWorkflowUtil _migrationControllerWorkflowUtil;
 
     private static final String MIGRATION_NAME_PREFIX = "M_";
     private static final String MIGRATION_NAME_DATE_FORMAT = "yyMMdd-HHmmss-SSS";
@@ -60,8 +60,12 @@ public class NativeMigrationDeviceController implements MigrationOrchestrationIn
         this._workflowService = workflowService;
     }
 
-    public void setMigrationControllerWrokFlowUtil(MigrationControllerWorkFlowUtil migrationControllerWorkFlowUtil) {
-        this._migrationControllerWorkFlowUtil = migrationControllerWorkFlowUtil;
+    public void setDbClient(DbClient _dbClient) {
+        this._dbClient = _dbClient;
+    }
+
+    public void setMigrationControllerWrokFlowUtil(MigrationControllerWorkflowUtil migrationControllerWorkflowUtil) {
+        this._migrationControllerWorkflowUtil = migrationControllerWorkflowUtil;
 
     }
     @Override
@@ -172,15 +176,15 @@ public class NativeMigrationDeviceController implements MigrationOrchestrationIn
                         _log.info("migration controller migrate volume {} on storage system{}",
                                 generalVolumeURI, storageURI);
 
-                        waitForStep = _migrationControllerWorkFlowUtil.createWorkflowStepsForMigrateGeneralVolumes(workflow, storageURI,
+                        waitForStep = _migrationControllerWorkflowUtil.createWorkflowStepsForMigrateGeneralVolumes(workflow, storageURI,
                                 generalVolumeURI, newVolumes, newVpoolURI, null, migrationMap, waitFor);
                         _log.info("Created workflow steps for volume migration.");
 
-                        waitForStep = _migrationControllerWorkFlowUtil.createWorkflowStepsForCommitMigration(workflow, storageURI,
+                        waitForStep = _migrationControllerWorkflowUtil.createWorkflowStepsForCommitMigration(workflow, storageURI,
                                 generalVolumeURI, migrationMap, waitForStep);
                         _log.info("Created workflow steps for commit migration.");
 
-                        lastStep = _migrationControllerWorkFlowUtil.createWorkflowStepsForDeleteMigrationSource(workflow, storageURI,
+                        lastStep = _migrationControllerWorkflowUtil.createWorkflowStepsForDeleteMigrationSource(workflow, storageURI,
                                 generalVolumeURI, newVpoolURI, null, migrationMap, waitForStep);
                         _log.info("Created workflow steps for commit migration.");
                     } catch (Exception e) {
@@ -194,7 +198,7 @@ public class NativeMigrationDeviceController implements MigrationOrchestrationIn
                 // systemConsistencyGroup specified for the group.
                 if (!NullColumnValueGetter.isNullURI(cgURI)) {
                     _log.info("Vpool change volumes are in CG {}", cgURI);
-                    lastStep = _migrationControllerWorkFlowUtil.createWorkflowStepsForDeleteConsistencyGroup(workflow, cgURI,
+                    lastStep = _migrationControllerWorkflowUtil.createWorkflowStepsForDeleteConsistencyGroup(workflow, cgURI,
                             localSystemsToRemoveCG, lastStep);
                 }
             }

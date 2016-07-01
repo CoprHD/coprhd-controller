@@ -772,7 +772,7 @@
         <property name="dbClient" ref="dbclient"/>
         <property name="workflowService" ref="workflowService" />
         <property name="hostExportManager" ref="hostExportMgr" />
-        <property name="migrationControllerWorkFlowUtil" ref="migrationControllerWorkFlowUtil" />
+        <property name="migrationControllerWorkflowUtil" ref="migrationControllerWorkflowUtil" />
     </bean>
     
     <bean id="hostExportMgr" class="com.emc.storageos.migrationcontroller.HostExportManager">
@@ -781,8 +781,12 @@
         <property name="workflowService" ref="workflowService" />
         <property name="locker" ref="locker"/> 
     </bean>
-    
-    <bean id="migrationControllerWorkFlowUtil" class="com.emc.storageos.migrationcontroller.MigrationControllerWorkFlowUtil">
+
+    <bean id="migrationControllerWorkflowUtil" class="com.emc.storageos.migrationcontroller.MigrationControllerWorkflowUtil">
+        <property name="dbClient" ref="dbclient"/>
+    </bean>
+
+    <bean id="hostMigrationCLI" class="com.emc.storageos.migrationcontroller.HostMigrationCLI">
         <property name="dbClient" ref="dbclient"/>
     </bean>
     

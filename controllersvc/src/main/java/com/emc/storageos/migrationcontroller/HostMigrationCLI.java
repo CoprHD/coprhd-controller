@@ -50,6 +50,10 @@ public class HostMigrationCLI {
 
     private static DbClient _dbClient;
 
+    public void setDbClient(DbClient _dbClient) {
+        this._dbClient = _dbClient;
+    }
+
     private HostMigrationCLI() {
 
     }

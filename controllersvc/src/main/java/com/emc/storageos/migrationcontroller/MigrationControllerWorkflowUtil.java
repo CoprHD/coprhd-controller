@@ -22,8 +22,8 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.impl.block.BlockDeviceController;
 import com.emc.storageos.workflow.Workflow;
 
-public class MigrationControllerWorkFlowUtil {
-    private static final Logger _log = LoggerFactory.getLogger(MigrationControllerWorkFlowUtil.class);
+public class MigrationControllerWorkflowUtil {
+    private static final Logger _log = LoggerFactory.getLogger(MigrationControllerWorkflowUtil.class);
     private DbClient _dbClient;
     // Workflow controller method names.
     private static final String MIGRATE_GENERAL_VOLUME_METHOD_NAME = "migrateGeneralVolume";
@@ -42,7 +42,11 @@ public class MigrationControllerWorkFlowUtil {
     private static final String HOST_MIGRATION_VOLUME_EXPORT_STEP = "hostExportVolume";
     private static final String DELETE_MIGRATION_SOURCES_STEP = "deleteSources";
 
-    public MigrationControllerWorkFlowUtil() {
+    public void setDbClient(DbClient _dbClient) {
+        this._dbClient = _dbClient;
+    }
+
+    public MigrationControllerWorkflowUtil() {
 
     }
     public String createWorkflowStepsForBlockVolumeExport(Workflow workflow, String waitFor,

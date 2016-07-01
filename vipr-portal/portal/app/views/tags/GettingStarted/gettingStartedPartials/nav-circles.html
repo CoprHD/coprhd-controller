@@ -11,10 +11,6 @@
         <div class="step-circle"><i class="glyphicon" ng-class="{true: 'glyphicon-ok'}[completedSteps >= 3]"></i>
         </div><span class="step-text" ng-click="showStep(4);">&{'gettingStarted.storagesystem.button'}<i ng-show="currentStep == 4" class="glyphicon glyphicon-chevron-right"></i></span>
     </li>
-    <!--li ng-class="{'step-success':completedSteps >= 5,'step-active':currentStep == 5}" class="step-optional">
-        <div class="step-circle"><i class="glyphicon" ng-class="{true: 'glyphicon-ok'}[completedSteps >= 5]"></i>
-        </div><span class="step-text" ng-click="showStep(5);">&{'gettingStarted.fabricmanager.button'}<i ng-show="currentStep == 5" class="glyphicon glyphicon-chevron-right"></i></span>
-    </li-->
     <li ng-class="{'step-success':completedSteps >= 5 && optionalStepComplete,'step-active':currentStep == 5}" class="step-optional">
         <div class="step-circle"><i class="glyphicon" ng-class="{true: 'glyphicon-ok'}[completedSteps >= 5 && optionalStepComplete]"></i>
         </div><span class="step-text" ng-click="showStep(5);">&{'gettingStarted.fabricmanager.button'}<i ng-show="currentStep == 5" class="glyphicon glyphicon-chevron-right"></i></span>
@@ -35,14 +31,4 @@
         <div class="step-circle"><i class="glyphicon" ng-class="{true: 'glyphicon-ok'}[completedSteps >= 9]"></i>
         </div><span class="step-text" ng-click="showStep(9);">&{'gettingStarted.provision.title'}<i ng-show="currentStep == 9" class="glyphicon glyphicon-chevron-right"></i></span>
     </li>
-    <!--li ng-class="{'step-success':completedSteps >= 8,'step-active':currentStep == 8}" class="subitem">
-        <div class="step-circle"><i class="glyphicon" ng-class="{true: 'glyphicon-ok'}[completedSteps >= 8]"></i>
-        </div><span class="step-text" ng-click="gogo(8);">&{'gettingStarted.namespace.button'}<i ng-show="currentStep == 8" class="glyphicon glyphicon-chevron-right"></i></span>
-        <ul>
-            <li class="step-info" ng-class="{'step-active':currentStep == 9}">
-                <div class="step-circle"><i class="glyphicon  "></i>
-                </div><span class="step-text" ng-click="gogo(9);">&{'gettingStarted.users.button'}<i ng-show="currentStep == 9" class="glyphicon glyphicon-chevron-right"></i></span>
-            </li>
-        </ul>
-    </li-->
 </ul>

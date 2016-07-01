@@ -52,14 +52,12 @@
             </a>
           #{/else}
         </li>
-<!--------------------------------------------------------------------->
         <li ng-controller="wizardController" id="colWiz">
           <a href ng-init="checkGuide()" ng-click="toggleGuide()">
             #{icon 'glyphicon-list-alt'/} &{'nav.wizard'}
           </a>
 
         </li>
-<!--------------------------------------------------------------------->
 
         <li class="dropdown">
           <a href="#" class="dropdown-toggle" data-toggle="dropdown">#{icon 'user'/} ${currentUser?.tenantName} -  ${currentUser?.commonName} <b class="caret"></b></a>
@@ -329,11 +327,9 @@
 
 #{/nav.mainMenu}
 #{get 'menu'/}
-<!--------------------------------------------------------------------->
 <div id="wizard" class="wizard-dialog" ng-class="{'wizard-full':guideMode=='full', 'wizard-side':guideMode=='side', 'guide-menuopen':isMenuPinned=='true'}" ng-show="guideVisible">
   #{GettingStarted.gettingStarted/}
 </div>
-<!--------------------------------------------------------------------->
 #{nav.contentArea}
   #{get 'breadcrumbs'/}
   #{doLayout /}

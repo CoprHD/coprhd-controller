@@ -9,14 +9,12 @@
       <div class="collapse navbar-collapse" id="navbar-collapse-1">
         <ul class="nav navbar-nav navbar-right">
           #{get 'navBarRight' /}
-          <!--------------------------------------------------------------------->
           <li ng-controller="wizardController" id="colWiz">
             <div href ng-init="toggleGuide()">
               <!--#{icon 'glyphicon-list-alt'/} &{'nav.wizard'}-->
             </div>
 
           </li>
-          <!--------------------------------------------------------------------->
           <li id="nav_help">
             #{if customDocLink}
               #{get 'customDocLink'/}
@@ -32,11 +30,9 @@
     </nav>
   </header>
   #{get 'navBarLeft'/}
-  <!--------------------------------------------------------------------->
   <div id="wizard" class="wizard-dialog" ng-class="{'wizard-full guide-fullpage':guideMode=='full', 'wizard-side':guideMode=='side'}" ng-show="guideVisible">
     #{GettingStarted.gettingStarted/}
   </div>
-  <!--------------------------------------------------------------------->
 
   <div class="container">
     #{get 'breadcrumbs'/}

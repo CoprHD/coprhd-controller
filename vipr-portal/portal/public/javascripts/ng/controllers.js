@@ -1446,7 +1446,6 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
     guideVisible = false;
     guideDataAvailable = false;
     optionalStepComplete = false;
-    //$scope.$parent.guideMode = 'full';
 
     $scope.checkGuide = function() {
         cookieObject = angular.fromJson(readCookie(cookieKey));
@@ -1487,7 +1486,6 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
         $scope.$parent.guideVisible = false;
         $scope.$parent.guideDataAvailable = false;
         saveGuideCookies();
-        //stopHttpRequests
     }
 
     $scope.initializeSteps = function() {
@@ -1499,22 +1497,6 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
         $scope.$parent.optionalStepComplete = false;
 
         checkStep(1);
-
-        /*for (step = 0; step <= maxSteps; step++) {
-            result=false;
-            if (result == true) {
-                if (step < landingStep) {
-                    $scope.$parent.currentStep = step+1;
-                }
-                else if (step == landingStep) {
-                    continue;
-                }
-                $scope.$parent.completedSteps = step;
-            }
-            else {
-                break;
-            }
-        }*/
 
     }
 
@@ -1536,7 +1518,6 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                 break;
             case 2:
 
-                //$scope.$parent.completedSteps=2;
                 updateGuideCookies3(2, 3,'full');
                 return;
                 break;
@@ -1680,7 +1661,6 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
         saveGuideCookies();
     }
 
-    $scope.goToNextSteps = function(complete) { //external - RENAME
        if(complete) {
            $scope.$parent.completedSteps=$scope.$parent.currentStep;
            if ( $scope.$parent.currentStep<maxSteps){
@@ -1696,9 +1676,6 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
 
     $scope.runStep = function(step) {
 
-        //docCookies.setItem("GsGuideStep", level, Infinity);
-        //docCookies.getItem('GsGuideStep');
-        //docCookies.removeItem("GsGuideStep");
 
         if (!step) {
             step = $scope.$parent.currentStep;
@@ -1730,14 +1707,9 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                 }
                 break;
             case landingStep:
-                //$scope.completedStepLevel = 5;
-                //$scope.pollingStep = 4;
                 break;
             case 4:
-                //$scope.$parent.currentStep = 4;
-                //$scope.$parent.guideMode = 'side';
                 updateGuideCookies(4,'side');
-                //saveGuideCookies();
                 if ($window.location.pathname != '/storagesystems/list') {
                     $window.location.href = '/storagesystems/list';
                 }
@@ -1747,9 +1719,6 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                 }
                 break;
             case 5:
-                //$scope.$parent.currentStep = 5;
-                //$scope.$parent.guideMode = 'side';
-                //saveGuideCookies();
                 updateGuideCookies(5,'side');
                 if ($window.location.pathname != '/sanswitches/list') {
                     $window.location.href = '/sanswitches/list';
@@ -1760,9 +1729,6 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                 }
                 break;
             case 6:
-                //$scope.$parent.currentStep = 5;
-                //$scope.$parent.guideMode = 'side';
-                //saveGuideCookies();
                 updateGuideCookies(6,'side');
                 if ($window.location.pathname != '/virtualarrays/list') {
                     $window.location.href = '/virtualarrays/list';
@@ -1773,9 +1739,6 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                 }
                 break;
             case 7:
-                //$scope.$parent.currentStep = 5;
-                //$scope.$parent.guideMode = 'side';
-                //saveGuideCookies();
                 updateGuideCookies(7,'side');
                 if ($window.location.pathname != '/blockvirtualpools/list') {
                     $window.location.href = '/blockvirtualpools/list';
@@ -1786,9 +1749,6 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                 }
                 break;
             case 8:
-                //$scope.$parent.currentStep = 5;
-                //$scope.$parent.guideMode = 'side';
-                //saveGuideCookies();
                 updateGuideCookies(8,'side');
                 if ($window.location.pathname != '/projects/list') {
                     $window.location.href = '/projects/list';
@@ -1799,9 +1759,6 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                 }
                 break;
             case 9:
-                //$scope.$parent.currentStep = 5;
-                //$scope.$parent.guideMode = 'side';
-                //saveGuideCookies();
                 removeGuideCookies();
                 if ($window.location.pathname != '/Catalog') {
                     $window.location.href = '/Catalog';
@@ -1820,10 +1777,6 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
 
     $scope.showStep = function(step) {
 
-            //docCookies.setItem("GsGuideStep", level, Infinity);
-            //docCookies.getItem('GsGuideStep');
-            //docCookies.removeItem("GsGuideStep");
-
             if (!step) {
                 step = $scope.$parent.currentStep;
             }
@@ -1834,10 +1787,6 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
         }
 
     $scope.nextStep = function(step) {
-
-        //docCookies.setItem("GsGuideStep", level, Infinity);
-        //docCookies.getItem('GsGuideStep');
-        //docCookies.removeItem("GsGuideStep");
 
         if (!step) {
             step = $scope.$parent.currentStep;
@@ -1861,10 +1810,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
 
         $scope.previousStep = function(step) {
 
-            //docCookies.setItem("GsGuideStep", level, Infinity);
-            //docCookies.getItem('GsGuideStep');
-            //docCookies.removeItem("GsGuideStep");
-
+        }
             if (!step) {
                 step = $scope.$parent.currentStep;
             }

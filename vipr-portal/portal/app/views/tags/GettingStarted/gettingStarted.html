@@ -22,25 +22,18 @@
             <guidestep class="loadingstep" name="loading" ng-hide="guideDataAvailable">
                 <div class="container2">
                     <div class="center-block ">
-                        <!-- <h1>&{'gettingStarted.loader.welcome'}</h1> -->
                         <h1>&{'gettingStarted.landing.header'}</h1>
                     </div>
                     <div class="center-block ">
                         <ecs-mini-loader show="isLoading"></ecs-mini-loader>
                     </div>
-                    <!--div class="center-block " ng-hide="isError">
-                        <p>Step {{ pollingStep }} of 6</p>
-                        <p>{{ statusMsg }}</p>
-                    </div-->
                     <div class="" ng-hide="guideDataAvailable">
                         <i class="glyphicon glyphicon-refresh rotate"></i>&nbsp;&nbsp;&nbsp;Loading...
                     </div>
                     <div class="center-block " ng-show="isError">
                         <p class="error-oops"><i class="text-danger glyphicon glyphicon-remove-circle"></i> &{'gettingStarted.loader.oops'}</p>
                         <p class="error-text" translate="&{'gettingStarted.loader.error'}"></p>
-                        <!-- <p class="text-danger">{{ errorMsg }}</p> -->
                         <button name="singlebutton" class="btn btn-primary" ng-click="initializeGuide();">&{'gettingStarted.loader.recheck'}</button>
-                        <!-- <button name="singlebutton2" class="btn btn-primary" ng-click="closeGuide();">&{'gettingStarted.loader.close'}</button> -->
                         <p ng-show="canDismiss" class="dismiss-me" ng-click="closeGuide();">&{'gettingStarted.loader.dismiss'}</p>
                     </div>
                 </div>
@@ -62,14 +55,12 @@
 
                     <div class="landing-text">
                         <h3 ng-show="completedSteps == 2">&{'gettingStarted.landing.text'}</h3>
-                        <!--h5 ng-show="completedSteps == 2">&{'gettingStarted.landing.systemNew'}</h5-->
                         <h3 ng-show="completedSteps >= 3 && completedSteps < maxSteps" >&{'gettingStarted.landing.systemPartial'}</h3>
                         <h3 ng-show="completedSteps == maxSteps" >&{'gettingStarted.landing.systemReady'}</h3>
                     </div>
 
                     <div class="center-block ">
                         <div class="action-btn text-center">
-                            <!-- Button never links to optional step and has different wording when setup complete -->
                             <button ng-show="completedSteps == 2" name="singlebutton" class="btn btn-primary" ng-click="completeStep();">&{'gettingStarted.landing.initial'}</button>
 
                             <button ng-show="completedSteps >= 3  && completedSteps < maxSteps" name="singlebutton" class="btn btn-primary" ng-click="showStep(completedSteps+1);">&{'gettingStarted.landing.partial'}</button>
@@ -83,13 +74,11 @@
 
             <guidestep class="required-step" name="license" ng-show="guideDataAvailable && currentStep == 1">
                 <div ng-if="guideMode=='side'">
-                    <!--h4><div ng-show="currentStep <= completedSteps" class="step-circle"><i class="glyphicon glyphicon-ok"></i></div>&{'gettingStarted.storagepools.title'}</h4-->
                     <step-side><div ng-show="currentStep <= completedSteps" class="step-circle"><i class="glyphicon glyphicon-ok"></i></div>&{'gettingStarted.licenses.title'}</step-side>
                 </div>
                 <div id="css-table" ng-if="guideMode=='full'">
                     <div class="col-1">
                         <div class="guide-steppanel">
-                            <!--ng-include src="'/views/tags/ecsGuides/gettingStartedPartials/nav-circles.html'"></ng-include-->
                             #{GettingStarted.gettingStartedPartials.nav-circles/}
                         </div>
                         <!-- end guide-steppanel -->
@@ -121,13 +110,11 @@
 
             <guidestep class="required-step" name="initialSetup" ng-show="guideDataAvailable && currentStep == 2">
                 <div ng-if="guideMode=='side'">
-                    <!--h4><div ng-show="currentStep <= completedSteps" class="step-circle"><i class="glyphicon glyphicon-ok"></i></div>&{'gettingStarted.storagepools.title'}</h4-->
                     <step-side><div ng-show="currentStep <= completedSteps" class="step-circle"><i class="glyphicon glyphicon-ok"></i></div>&{'gettingStarted.initialsetup.title'}</step-side>
                 </div>
                 <div id="css-table" ng-if="guideMode=='full'">
                     <div class="col-1">
                         <div class="guide-steppanel">
-                            <!--ng-include src="'/views/tags/ecsGuides/gettingStartedPartials/nav-circles.html'"></ng-include-->
                             #{GettingStarted.gettingStartedPartials.nav-circles/}
                         </div>
                         <!-- end guide-steppanel -->
@@ -160,13 +147,11 @@
             </guidestep>
             <guidestep class="required-step" name="storagesystemsteup" ng-show="guideDataAvailable && currentStep == 4">
                 <div ng-if="guideMode=='side'">
-                    <!--h4><div ng-show="currentStep <= completedSteps" class="step-circle"><i class="glyphicon glyphicon-ok"></i></div>&{'gettingStarted.storagepools.title'}</h4-->
                     <step-side><div ng-show="currentStep <= completedSteps" class="step-circle"><i class="glyphicon glyphicon-ok"></i></div>&{'gettingStarted.storagesystem.title'}</step-side>
                 </div>
                 <div id="css-table" ng-if="guideMode=='full'">
                     <div class="col-1">
                         <div class="guide-steppanel">
-                            <!--ng-include src="'/views/tags/ecsGuides/gettingStartedPartials/nav-circles.html'"></ng-include-->
                             #{GettingStarted.gettingStartedPartials.nav-circles/}
                         </div>
                         <!-- end guide-steppanel -->
@@ -199,13 +184,11 @@
             </guidestep>
             <guidestep class="required-step" name="fabricmanagersetup" ng-show="guideDataAvailable && currentStep == 5">
                 <div ng-if="guideMode=='side'">
-                    <!--h4><div ng-show="currentStep <= completedSteps" class="step-circle"><i class="glyphicon glyphicon-ok"></i></div>&{'gettingStarted.storagepools.title'}</h4-->
                     <step-side><div ng-show="optionalStepComplete" class="step-circle"><i class="glyphicon glyphicon-ok"></i></div>&{'gettingStarted.fabricmanager.title'}</step-side>
                 </div>
                 <div id="css-table" ng-if="guideMode=='full'">
                     <div class="col-1">
                         <div class="guide-steppanel">
-                            <!--ng-include src="'/views/tags/ecsGuides/gettingStartedPartials/nav-circles.html'"></ng-include-->
                             #{GettingStarted.gettingStartedPartials.nav-circles/}
                         </div>
                         <!-- end guide-steppanel -->
@@ -238,13 +221,11 @@
             </guidestep>
             <guidestep class="required-step" name="virtualarraysetup" ng-show="guideDataAvailable && currentStep == 6">
                 <div ng-if="guideMode=='side'">
-                    <!--h4><div ng-show="currentStep <= completedSteps" class="step-circle"><i class="glyphicon glyphicon-ok"></i></div>&{'gettingStarted.storagepools.title'}</h4-->
                     <step-side><div ng-show="currentStep <= completedSteps" class="step-circle"><i class="glyphicon glyphicon-ok"></i></div>&{'gettingStarted.virtualarray.title'}</step-side>
                 </div>
                 <div id="css-table" ng-if="guideMode=='full'">
                     <div class="col-1">
                         <div class="guide-steppanel">
-                            <!--ng-include src="'/views/tags/ecsGuides/gettingStartedPartials/nav-circles.html'"></ng-include-->
                             #{GettingStarted.gettingStartedPartials.nav-circles/}
                         </div>
                         <!-- end guide-steppanel -->
@@ -277,13 +258,11 @@
             </guidestep>
             <guidestep class="required-step" name="virtualpoolsetup" ng-show="guideDataAvailable && currentStep == 7">
                 <div ng-if="guideMode=='side'">
-                    <!--h4><div ng-show="currentStep <= completedSteps" class="step-circle"><i class="glyphicon glyphicon-ok"></i></div>&{'gettingStarted.storagepools.title'}</h4-->
                     <step-side><div ng-show="currentStep <= completedSteps" class="step-circle"><i class="glyphicon glyphicon-ok"></i></div>&{'gettingStarted.virtualpool.title'}</step-side>
                 </div>
                 <div id="css-table" ng-if="guideMode=='full'">
                     <div class="col-1">
                         <div class="guide-steppanel">
-                            <!--ng-include src="'/views/tags/ecsGuides/gettingStartedPartials/nav-circles.html'"></ng-include-->
                             #{GettingStarted.gettingStartedPartials.nav-circles/}
                         </div>
                         <!-- end guide-steppanel -->
@@ -316,13 +295,11 @@
             </guidestep>
             <guidestep class="required-step" name="projectsetup" ng-show="guideDataAvailable && currentStep == 8">
                 <div ng-if="guideMode=='side'">
-                    <!--h4><div ng-show="currentStep <= completedSteps" class="step-circle"><i class="glyphicon glyphicon-ok"></i></div>&{'gettingStarted.storagepools.title'}</h4-->
                     <step-side><div ng-show="currentStep <= completedSteps" class="step-circle"><i class="glyphicon glyphicon-ok"></i></div>&{'gettingStarted.project.title'}</step-side>
                 </div>
                 <div id="css-table" ng-if="guideMode=='full'">
                     <div class="col-1">
                         <div class="guide-steppanel">
-                            <!--ng-include src="'/views/tags/ecsGuides/gettingStartedPartials/nav-circles.html'"></ng-include-->
                             #{GettingStarted.gettingStartedPartials.nav-circles/}
                         </div>
                         <!-- end guide-steppanel -->
@@ -355,13 +332,11 @@
             </guidestep>
             <guidestep class="required-step" name="provisionstep" ng-show="guideDataAvailable && currentStep == 9">
                 <div ng-if="guideMode=='side'">
-                    <!--h4><div ng-show="currentStep <= completedSteps" class="step-circle"><i class="glyphicon glyphicon-ok"></i></div>&{'gettingStarted.storagepools.title'}</h4-->
                     <step-side><div ng-show="currentStep <= completedSteps" class="step-circle"><i class="glyphicon glyphicon-ok"></i></div>&{'gettingStarted.provision.title'}</step-side>
                 </div>
                 <div id="css-table" ng-if="guideMode=='full'">
                     <div class="col-1">
                         <div class="guide-steppanel">
-                            <!--ng-include src="'/views/tags/ecsGuides/gettingStartedPartials/nav-circles.html'"></ng-include-->
                             #{GettingStarted.gettingStartedPartials.nav-circles/}
                         </div>
                         <!-- end guide-steppanel -->

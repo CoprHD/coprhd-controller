@@ -81,7 +81,6 @@ import com.emc.storageos.security.geo.exceptions.GeoException;
 import com.emc.storageos.security.keystore.impl.KeystoreEngine;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.vipr.model.sys.ClusterInfo;
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
 /**
  * Unit test for VdcControllerImpl with mock object
@@ -697,7 +696,7 @@ public class VdcControllerTest {
         }
 
         @Override
-        public Map<String, String> getGeoStrategyOptions() throws ConnectionException {
+        public Map<String, String> getGeoStrategyOptions() {
             return this.geoStrategyOptions;
         }
 

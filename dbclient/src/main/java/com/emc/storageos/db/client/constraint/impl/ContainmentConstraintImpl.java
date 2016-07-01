@@ -34,18 +34,18 @@ public class ContainmentConstraintImpl extends ConstraintImpl implements Contain
 
     public ContainmentConstraintImpl(URI indexKey, Class<? extends DataObject> entryType, ColumnField field) {
         super(indexKey, entryType, field);
-
+        
         _indexKey = indexKey;
         _entryType = entryType;
         _field = field;
+        cf = _field.getIndexCF().getName();
     }
     
     @Override
     protected Statement genQueryStatement() {
         StringBuilder queryString = new StringBuilder();
-        queryString.append("select").append(" * from \"").append(_field.getIndexCF().getName()).append("\"");
-        queryString.append(" where key=?");
-        queryString.append(" and column1=?");
+        queryString.append("select * from \"").append(cf).append("\"");
+        queryString.append(" where key=? and column1=?");
         
         PreparedStatement preparedStatement = this.dbClientContext.getPreparedStatement(queryString.toString());
         Statement statement =  preparedStatement.bind(_indexKey.toString(),
@@ -59,7 +59,7 @@ public class ContainmentConstraintImpl extends ConstraintImpl implements Contain
     @Override
     protected <T> void queryOnePage(final QueryResult<T> result) throws DriverException {
         StringBuilder queryString = new StringBuilder();
-        queryString.append("select").append(" * from \"").append(_field.getIndexCF().getName()).append("\"");
+        queryString.append("select * from \"").append(cf).append("\"");
         queryString.append(" where key=?");
         
         if (startId != null && _field.getIndex() instanceof RelationDbIndex) {

@@ -37,6 +37,7 @@ public abstract class ConstraintImpl implements Constraint {
     protected int pageCount = DEFAULT_PAGE_SIZE;
     protected boolean returnOnePage;
     protected DbClientContext dbClientContext;
+    protected String cf;
 
     public ConstraintImpl(Object... arguments) {
         ColumnField field = null;

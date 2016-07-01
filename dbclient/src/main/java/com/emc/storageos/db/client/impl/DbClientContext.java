@@ -8,8 +8,11 @@ package com.emc.storageos.db.client.impl;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -22,6 +25,8 @@ import org.slf4j.LoggerFactory;
 
 import com.datastax.driver.core.KeyspaceMetadata;
 import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.TableMetadata;
@@ -55,6 +60,8 @@ import com.netflix.astyanax.thrift.ThriftFamilyFactory;
 import com.netflix.astyanax.thrift.ddl.ThriftKeyspaceDefinitionImpl;
 
 public class DbClientContext {
+
+    private static final String CASSANDRA_HOST_STATE_DOWN = "DOWN";
 
     private static final Logger log = LoggerFactory.getLogger(DbClientContext.class);
 
@@ -150,6 +157,13 @@ public class DbClientContext {
             initClusterContext();
         }
         return cluster;
+    }
+    
+    public com.datastax.driver.core.Cluster getCassandraCluster() {
+        if (cassandraCluster == null) {
+            initClusterContext();
+        }
+        return cassandraCluster;
     }
 
     public void setHosts(Collection<Host> hosts) {
@@ -476,6 +490,7 @@ public class DbClientContext {
         String[] contactPoints = {LOCAL_HOST};
         cassandraCluster = initConnection(contactPoints);
         cassandraSession = cassandraCluster.connect();
+        prepareStatementMap = new HashMap<String, PreparedStatement>();
     }
 
     /**
@@ -738,15 +753,50 @@ public class DbClientContext {
      * @return
      */
     public Map<String, List<String>> getSchemaVersions() {
-        Map<String, List<String>> versions;
+        Map<String, List<String>> versions = new HashMap<String, List<String>>();
         try {
-            versions = getCluster().describeSchemaVersions();
-        } catch (final ConnectionException e) {
+            Set<com.datastax.driver.core.Host> allHostSet = cassandraCluster.getMetadata().getAllHosts();
+            Iterator<com.datastax.driver.core.Host> allHosts = allHostSet.iterator();
+            
+            while (allHosts.hasNext()){
+                com.datastax.driver.core.Host host = allHosts.next();
+                if (host.getState().equals(CASSANDRA_HOST_STATE_DOWN)) {
+                    allHosts.remove();
+                    versions.putIfAbsent(StorageProxy.UNREACHABLE, new LinkedList<String>());
+                    versions.get(StorageProxy.UNREACHABLE).add(host.getBroadcastAddress().getHostAddress());
+                }
+            }
+
+            ResultSet result = cassandraSession.execute("select * from system.peers");
+            for (Row row : result) {
+                versions.putIfAbsent(row.getUUID("schema_version").toString(), new LinkedList<String>());
+                versions.get(row.getUUID("schema_version").toString()).add(row.getInet("rpc_address").getHostAddress());
+            }
+            
+            result = cassandraSession.execute("select * from system.local");
+            Row localNode = result.one();
+            versions.putIfAbsent(localNode.getUUID("schema_version").toString(), new LinkedList<String>());
+            versions.get(localNode.getUUID("schema_version").toString()).add(localNode.getInet("broadcast_address").getHostAddress());
+            
+        } catch (com.datastax.driver.core.exceptions.ConnectionException e) {
             throw DatabaseException.retryables.connectionFailed(e);
         }
 
         log.info("schema versions found: {}", versions);
         return versions;
+    }
+    
+    public Map<String, String> getStrategyOptions() {
+        Map<String, String> result = new HashMap<String, String>();
+        KeyspaceMetadata keyspaceMetadata = cassandraCluster.getMetadata().getKeyspace("\""+this.getKeyspaceName()+"\"");
+        Map<String, String> replications = keyspaceMetadata.getReplication();
+        for (Map.Entry<String, String> entry : replications.entrySet()) {
+            if (!entry.getKey().startsWith("class")) {
+                result.put(entry.getKey(), entry.getValue());
+            }
+        }
+        
+        return result;
     }
 
     private void checkAndResetConsistencyLevel(DrUtil drUtil, String svcName) {

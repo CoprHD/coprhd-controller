@@ -17,14 +17,12 @@ import com.emc.storageos.db.client.impl.ColumnField;
 import com.emc.storageos.db.client.impl.ColumnValue;
 import com.emc.storageos.db.client.impl.IndexColumnName;
 import com.emc.storageos.db.client.model.DataObject;
-import com.netflix.astyanax.model.ColumnFamily;
 
 /**
  * Constrained query to get list of decommissioned object URIs of a given type
  */
 public class AggregatedConstraintImpl extends ConstraintImpl implements AggregatedConstraint {
 	private static final Logger log = LoggerFactory.getLogger(AggregatedConstraintImpl.class);
-    private final ColumnFamily<String, IndexColumnName> cf;
     private final ColumnField field;
     private final String fieldName;
     private final String rowKey;
@@ -38,7 +36,7 @@ public class AggregatedConstraintImpl extends ConstraintImpl implements Aggregat
 
         super(clazz, field, groupByField.getName(), groupByValue);
 
-        cf = field.getIndexCF();
+        cf = field.getIndexCF().getName();
         entryType = clazz;
         this.field = field;
         fieldName = field.getName();
@@ -50,7 +48,7 @@ public class AggregatedConstraintImpl extends ConstraintImpl implements Aggregat
 
         super(clazz, field);
 
-        cf = field.getIndexCF();
+        cf = field.getIndexCF().getName();
         entryType = clazz;
         this.field = field;
         fieldName = field.getName();
@@ -76,7 +74,7 @@ public class AggregatedConstraintImpl extends ConstraintImpl implements Aggregat
     
     @Override
     protected Statement genQueryStatement() {
-        String queryString = String.format("select * from \"%s\" where key=? and column1=?", cf.getName());
+        String queryString = String.format("select * from \"%s\" where key=? and column1=?", cf);
         
         PreparedStatement preparedStatement = this.dbClientContext.getPreparedStatement(queryString);
         Statement statement =  preparedStatement.bind(rowKey,

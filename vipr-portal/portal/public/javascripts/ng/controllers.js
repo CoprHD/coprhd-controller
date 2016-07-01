@@ -1388,3 +1388,647 @@ angular.module("portalApp").controller("ConfigBackupCtrl", function($scope) {
         return 0;
     }
 });
+
+angular.module("portalApp").factory('GuideCookies', function($rootScope, $http, $state, $translate, DateTimeUtil) {
+    //angular ngCookie, and cookieStore pre 1.4 do not allow setting expiration or retrieving persistent cookies.
+    //This is mozilla cookie getter/setter https://developer.mozilla.org/en-US/docs/Web/API/Document/cookie
+    return  {
+        getItem: function (sKey) {
+            if (!sKey) { return null; }
+            return decodeURIComponent(document.cookie.replace(new RegExp("(?:(?:^|.*;)\\s*" + encodeURIComponent(sKey).replace(/[\-\.\+\*]/g, "\\$&") + "\\s*\\=\\s*([^;]*).*$)|^.*$"), "$1")) || null;
+        },
+        setItem: function (sKey, sValue, vEnd, sPath, sDomain, bSecure) {
+            if (!sKey || /^(?:expires|max\-age|path|domain|secure)$/i.test(sKey)) { return false; }
+            var sExpires = "";
+            if (vEnd) {
+                switch (vEnd.constructor) {
+                    case Number:
+                        sExpires = vEnd === Infinity ? "; expires=Fri, 31 Dec 9999 23:59:59 GMT" : "; max-age=" + vEnd;
+                        break;
+                    case String:
+                        sExpires = "; expires=" + vEnd;
+                        break;
+                    case Date:
+                        sExpires = "; expires=" + vEnd.toUTCString();
+                        break;
+                }
+            }
+            document.cookie = encodeURIComponent(sKey) + "=" + encodeURIComponent(sValue) + sExpires + (sDomain ? "; domain=" + sDomain : "") + (sPath ? "; path=" + sPath : "") + (bSecure ? "; secure" : "");
+            return true;
+        },
+        removeItem: function (sKey, sPath, sDomain) {
+            if (!this.hasItem(sKey)) { return false; }
+            document.cookie = encodeURIComponent(sKey) + "=; expires=Thu, 01 Jan 1970 00:00:00 GMT" + (sDomain ? "; domain=" + sDomain : "") + (sPath ? "; path=" + sPath : "");
+            return true;
+        },
+        hasItem: function (sKey) {
+            if (!sKey) { return false; }
+            return (new RegExp("(?:^|;\\s*)" + encodeURIComponent(sKey).replace(/[\-\.\+\*()]/g, "\\$&") + "\\s*\\=")).test(document.cookie);
+        },
+        keys: function () {
+            var aKeys = document.cookie.replace(/((?:^|\s*;)[^\=]+)(?=;|$)|^\s*|\s*(?:\=[^;]*)?(?:\1|$)/g, "").split(/\s*(?:\=[^;]*)?;\s*/);
+            for (var nLen = aKeys.length, nIdx = 0; nIdx < nLen; nIdx++) { aKeys[nIdx] = decodeURIComponent(aKeys[nIdx]); }
+            return aKeys;
+        }
+    };
+});
+
+angular.module("portalApp").controller('wizardController', function($rootScope, $scope, $timeout, $document, $http, $q, $window) {
+
+
+    cookieObject = {};
+    cookieKey = "VIPR_START_GUIDE";
+    requiredSteps = 2;
+    landingStep = 3;
+    maxSteps = 9;
+    currentStep = 0;
+    completedSteps = 0;
+    guideVisible = false;
+    guideDataAvailable = false;
+    optionalStepComplete = false;
+
+    $scope.checkGuide = function() {
+        cookieObject = angular.fromJson(readCookie(cookieKey));
+        if (cookieObject) {
+            $scope.$parent.completedSteps = cookieObject.completedSteps;
+            $scope.$parent.guideMode = cookieObject.guideMode;
+            $scope.$parent.currentStep = cookieObject.currentStep;
+            $scope.$parent.guideDataAvailable = true;
+            $scope.$parent.guideVisible = cookieObject.guideVisible;
+            $scope.$parent.optionalStepComplete=cookieObject.optionalStepComplete;
+            $scope.$parent.maxSteps = maxSteps;
+
+        }
+        $scope.$parent.isMenuPinned = readCookie("isMenuPinned");
+    }
+
+    $scope.toggleGuide = function() {
+
+        if ($scope.$parent.guideVisible) {
+		    $scope.closeGuide();
+        }
+        else {
+		    $scope.$parent.guideVisible = true;
+		    $scope.$parent.guideMode='full';
+            if ($scope.$parent.completedSteps <= requiredSteps || !completedSteps){
+                if ($window.location.pathname == '/setup/license') {
+                    if ($scope.$parent.currentStep == 1) {return;};
+                }
+                if ($window.location.pathname == '/setup/index') {
+                    if ($scope.$parent.currentStep == 2) {return;};
+                }
+            }
+		    $scope.initializeSteps();
+        }
+    }
+
+    $scope.closeGuide = function() {
+        $scope.$parent.guideVisible = false;
+        $scope.$parent.guideDataAvailable = false;
+        saveGuideCookies();
+    }
+
+    $scope.initializeSteps = function() {
+
+        $scope.$parent.currentStep = 1;
+        $scope.$parent.completedSteps = 0;
+        $scope.$parent.maxSteps = maxSteps;
+        $scope.$parent.guideDataAvailable = false;
+        $scope.$parent.optionalStepComplete = false;
+
+        checkStep(1);
+
+    }
+
+    $scope.completeStep = function(step) {
+
+        finishChecking = function(){
+            $scope.$parent.guideMode='full';
+            saveGuideCookies();
+        }
+
+		if (!step) {
+            step = $scope.$parent.currentStep;
+        }
+
+        switch (step) {
+            case 1:
+                updateGuideCookies3(1, 2,'full');
+                return;
+                break;
+            case 2:
+
+                updateGuideCookies3(2, 3,'full');
+                return;
+                break;
+            case landingStep:
+                goToNextStep(true);
+                finishChecking();
+                break;
+            case 4:
+                $http.get(routes.StorageSystems_list()).then(function (data) {
+                    finished=false;
+                    if (data.data.aaData.length != 0) {
+                        testId = function (ss) {
+                            var promises = ss.map( function (s) {
+                                if (!finished && s.discoveryStatus == "COMPLETE"){
+                                    finished=true;
+                                    goToNextStep(true);
+                                    finishChecking();
+                                }
+                            });
+                            $q.all(promises).then(function () {
+                                if(!finished) {
+                                    finishChecking();
+                                }
+                            });
+                        };
+                        return testId(data.data.aaData);
+                    } else {
+                        finishChecking();
+                    }
+                });
+                break;
+            case 5:
+                $http.get(routes.SanSwitches_list()).then(function (data) {
+                    finished=false;
+                    if (data.data.aaData.length != 0) {
+                        testId = function (sanswitches) {
+                            var promises = sanswitches.map( function (s) {
+                                if (!finished && s.discoveryStatus == "COMPLETE"){
+                                    finished=true;
+                                    $scope.$parent.optionalStepComplete = true;
+                                    goToNextStep(true);
+                                    finishChecking();
+                                }
+                            });
+                            $q.all(promises).then(function () {
+                                if(!finished) {
+                                    $scope.$parent.optionalStepComplete = false;
+                                    goToNextStep(true);
+                                    finishChecking();
+                                }
+                            });
+                        };
+                        return testId(data.data.aaData);
+                    } else {
+                        $scope.$parent.optionalStepComplete = false;
+                        goToNextStep(true);
+                        finishChecking();
+                    }
+                });
+                break;
+            case 6:
+                $http.get(routes.VirtualArrays_list()).then(function (data) {
+                    finished=false;
+                    if (data.data.aaData.length != 0) {
+                        testId = function (vArrays) {
+                            var promises = vArrays.map( function(vArray) {
+                            return $http.get(routes.VirtualArrays_pools({'id':vArray.id})).then(function (data,$q) {
+                                    if (!finished && data.data.aaData.length != 0){
+                                        finished=true;
+                                        goToNextStep(true);
+                                        finishChecking();
+                                    }
+                                });
+                            });
+                            $q.all(promises).then(function () {
+                                if(!finished) {
+                                    finishChecking();
+                                }
+                            });
+                        };
+                        return testId(data.data.aaData);
+                    } else {
+                        finishChecking();
+                    }
+                });
+                break;
+            case 7:
+                $http.get(routes.BlockVirtualPools_list()).then(function (data) {
+                    finished=false;
+                    if (data.data.aaData.length != 0) {
+                        testId = function (vPools) {
+                            var promises = vPools.map( function(vPool) {
+                            return $http.get(routes.BlockVirtualPools_pools({'id':vPool.id})).then(function (data,$q) {
+
+                                    if (!finished && data.data.aaData.length != 0){
+                                        finished=true;
+                                        goToNextStep(true);
+                                        finishChecking();
+                                    }
+                                });
+                            });
+                            $q.all(promises).then(function () {
+                                if(!finished) {
+                                    finishChecking();
+                                }
+                            });
+                        };
+                        return testId(data.data.aaData);
+                    } else {
+                        finishChecking();
+                    }
+                });
+                break;
+            case 8:
+                $http.get(routes.Projects_list()).then(function (data) {
+                    if (data.data.aaData.length != 0) {
+
+                        goToNextStep(true);
+                        finishChecking();
+                    }
+                });
+                break;
+            default:
+                goToNextStep(true);
+                finishChecking();
+        }
+
+    }
+
+    goToNextStep = function(complete) {
+        if(complete) {
+            $scope.$parent.completedSteps=$scope.$parent.currentStep;
+            if ( $scope.$parent.currentStep<maxSteps){
+                $scope.$parent.currentStep=$scope.$parent.currentStep+1;
+            }
+            else {
+                $scope.$parent.currentStep=landingStep;
+            }
+        }
+        $scope.$parent.guideMode='full';
+        saveGuideCookies();
+    }
+
+    $scope.goToNextSteps = function(complete) {
+       if(complete) {
+           $scope.$parent.completedSteps=$scope.$parent.currentStep;
+           if ( $scope.$parent.currentStep<maxSteps){
+               $scope.$parent.currentStep=$scope.$parent.currentStep+1;
+           }
+           else {
+               $scope.$parent.currentStep=landingStep;
+           }
+       }
+       $scope.$parent.guideMode='full';
+       saveGuideCookies();
+   }
+
+    $scope.runStep = function(step) {
+
+
+        if (!step) {
+            step = $scope.$parent.currentStep;
+        }
+
+        switch (step) {
+            case 1:
+                $scope.$parent.currentStep = 1;
+                $scope.$parent.guideMode = 'side';
+                saveGuideCookies();
+                if ($window.location.pathname != '/setup/license') {
+                    $window.location.href = '/setup/license';
+                }
+                else {
+                    $scope.$parent.currentStep=1;
+                    $scope.$parent.guideMode='side';
+                }
+                break;
+            case 2:
+                $scope.$parent.currentStep = 2;
+                $scope.$parent.guideMode = 'side';
+                saveGuideCookies();
+                if ($window.location.pathname != '/setup/index') {
+                    $window.location.href = '/setup/index';
+                }
+                else {
+                    $scope.$parent.currentStep=2;
+                    $scope.$parent.guideMode='side';
+                }
+                break;
+            case landingStep:
+                break;
+            case 4:
+                updateGuideCookies(4,'side');
+                if ($window.location.pathname != '/storagesystems/list') {
+                    $window.location.href = '/storagesystems/list';
+                }
+                else {
+                    $scope.$parent.currentStep=4;
+                    $scope.$parent.guideMode='side';
+                }
+                break;
+            case 5:
+                updateGuideCookies(5,'side');
+                if ($window.location.pathname != '/sanswitches/list') {
+                    $window.location.href = '/sanswitches/list';
+                }
+                else {
+                    $scope.$parent.currentStep=5;
+                    $scope.$parent.guideMode='side';
+                }
+                break;
+            case 6:
+                updateGuideCookies(6,'side');
+                if ($window.location.pathname != '/virtualarrays/list') {
+                    $window.location.href = '/virtualarrays/list';
+                }
+                else {
+                    $scope.$parent.currentStep=6;
+                    $scope.$parent.guideMode='side';
+                }
+                break;
+            case 7:
+                updateGuideCookies(7,'side');
+                if ($window.location.pathname != '/blockvirtualpools/list') {
+                    $window.location.href = '/blockvirtualpools/list';
+                }
+                else {
+                    $scope.$parent.currentStep=7;
+                    $scope.$parent.guideMode='side';
+                }
+                break;
+            case 8:
+                updateGuideCookies(8,'side');
+                if ($window.location.pathname != '/projects/list') {
+                    $window.location.href = '/projects/list';
+                }
+                else {
+                    $scope.$parent.currentStep=8;
+                    $scope.$parent.guideMode='side';
+                }
+                break;
+            case 9:
+                removeGuideCookies();
+                if ($window.location.pathname != '/Catalog') {
+                    $window.location.href = '/Catalog';
+                }
+                else {
+                    $scope.$parent.guideVisible = false;
+                    $scope.$parent.guideDataAvailable = false;
+                }
+                break;
+            default:
+                updateGuideCookies(step,'side');
+                $scope.$parent.currentStep=step;
+                $scope.$parent.guideMode='side';
+            }
+    }
+
+    $scope.showStep = function(step) {
+
+            if (!step) {
+                step = $scope.$parent.currentStep;
+            }
+
+            $scope.$parent.currentStep = step;
+            saveGuideCookies();
+
+        }
+
+    $scope.nextStep = function(step) {
+
+        if (!step) {
+            step = $scope.$parent.currentStep;
+        }
+
+        switch (step) {
+            case requiredSteps:
+                $scope.$parent.currentStep = 4;
+                saveGuideCookies();
+                break;
+            case maxSteps:
+                $scope.$parent.currentStep = landingStep;
+                saveGuideCookies();
+                break;
+            default:
+                $scope.$parent.currentStep = step+1;
+                saveGuideCookies();
+                break;
+            }
+    }
+
+        $scope.previousStep = function(step) {
+            if (!step) {
+                step = $scope.$parent.currentStep;
+            }
+
+            switch (step) {
+                case requiredSteps+2:
+                    $scope.$parent.currentStep = requiredSteps;
+                    saveGuideCookies();
+                    break;
+                case 1:
+                    $scope.$parent.currentStep = 3;
+                    saveGuideCookies();
+                    break;
+                default:
+                    $scope.$parent.currentStep = step-1;
+                    saveGuideCookies();
+                    break;
+                }
+        }
+
+    $scope.toggleMode = function(mode) {
+        $scope.$parent.guideMode = mode;
+    }
+
+    updateGuideCookies = function(currentStep,guideMode) {
+        cookieObject = {};
+        cookieObject.currentStep=currentStep;
+        cookieObject.completedSteps=$scope.$parent.completedSteps;
+        cookieObject.guideMode=guideMode;
+        cookieObject.guideVisible=$scope.$parent.guideVisible;
+        cookieObject.optionalStepComplete=$scope.$parent.optionalStepComplete;
+        createCookie(cookieKey,angular.toJson(cookieObject),'session');
+    }
+
+    updateGuideCookies3 = function(completedSteps,currentStep,guideMode) {
+        cookieObject = {};
+        cookieObject.currentStep=currentStep;
+        cookieObject.completedSteps=completedSteps;
+        cookieObject.guideMode=guideMode;
+        cookieObject.guideVisible=$scope.$parent.guideVisible;
+        cookieObject.optionalStepComplete=$scope.$parent.optionalStepComplete;
+        createCookie(cookieKey,angular.toJson(cookieObject),'session');
+    }
+
+    removeGuideCookies = function() {
+        eraseCookie(cookieKey);
+    }
+
+    saveGuideCookies = function() {
+        cookieObject = {};
+        cookieObject.currentStep=$scope.$parent.currentStep;
+        cookieObject.completedSteps=$scope.$parent.completedSteps;
+        cookieObject.guideMode=$scope.$parent.guideMode;
+        cookieObject.guideVisible=$scope.$parent.guideVisible;
+        cookieObject.optionalStepComplete=$scope.$parent.optionalStepComplete;
+        createCookie(cookieKey,angular.toJson(cookieObject),'session');
+    }
+
+    testFunc = function() {
+    }
+
+    $scope.checkStep = function() {
+        checkStep($scope.$parent.currentStep);
+    }
+
+    checkStep = function(step) {
+
+        finishChecking = function(){
+            $scope.$parent.guideDataAvailable = true;
+            saveGuideCookies();
+        }
+
+        switch (step) {
+            case 1:
+                $http.get(routes.Setup_license()).then(function (data) {
+                    isLicensed = data.data;
+                    if (isLicensed == 'true') {
+                        $scope.$parent.completedSteps = 1;
+                        $scope.$parent.currentStep = 2;
+                        return checkStep(2);
+                    }  else {
+                        finishChecking();
+                    }
+                });
+                break;
+            case 2:
+                $http.get(routes.Setup_initialSetup()).then(function (data) {
+                    isSetup = data.data;
+                    if (isSetup == 'true') {
+                        $scope.$parent.completedSteps = 2;
+                        $scope.$parent.currentStep = 3;
+                        return checkStep(4);
+                    } else {
+                        finishChecking();
+                    }
+                });
+                break;
+            case landingStep:
+                return true;
+                break;
+            case 4:
+                $http.get(routes.StorageSystems_list()).then(function (data) {
+                    finished=false;
+                    if (data.data.aaData.length != 0) {
+                        testId = function (ss) {
+                            var promises = ss.map( function (s) {
+                                if (!finished && s.discoveryStatus == "COMPLETE"){
+                                    finished=true;
+                                    $scope.$parent.completedSteps = 4;
+                                    return checkStep(5);
+                                }
+                            });
+                            $q.all(promises).then(function () {
+                                if(!finished) {
+                                    finishChecking();
+                                }
+                            });
+                        };
+                        return testId(data.data.aaData);
+                    } else {
+                        finishChecking();
+                    }
+                });
+                break;
+            case 5:
+                $http.get(routes.SanSwitches_list()).then(function (data) {
+                    finished=false;
+                    if (data.data.aaData.length != 0) {
+                        testId = function (sanswitches) {
+                            var promises = sanswitches.map( function (s) {
+                                if (!finished && s.discoveryStatus == "COMPLETE"){
+                                    finished=true;
+                                    $scope.$parent.completedSteps = 5;
+                                    $scope.$parent.optionalStepComplete = true;
+                                    return checkStep(6);
+                                }
+                            });
+                            $q.all(promises).then(function () {
+                                if(!finished) {
+                                    $scope.$parent.optionalStepComplete = false;
+                                    return checkStep(6);
+                                }
+                            });
+                        };
+                        return testId(data.data.aaData);
+                    } else {
+                        $scope.$parent.optionalStepComplete = false;
+                        return checkStep(6);
+                    }
+                });
+                break;
+            case 6:
+                $http.get(routes.VirtualArrays_list()).then(function (data) {
+                    finished=false;
+                    if (data.data.aaData.length != 0) {
+                        testId = function (vArrays) {
+                            var promises = vArrays.map( function(vArray) {
+                            return $http.get(routes.VirtualArrays_pools({'id':vArray.id})).then(function (data,$q) {
+                                    if (!finished && data.data.aaData.length != 0){
+                                        finished=true;
+                                        $scope.$parent.completedSteps = 6;
+                                        return checkStep(7);
+                                    }
+                                });
+                            });
+                            $q.all(promises).then(function () {
+                                if(!finished) {
+                                    finishChecking();
+                                }
+                            });
+                        };
+                        return testId(data.data.aaData);
+                    } else {
+                        finishChecking();
+                    }
+                });
+                break;
+            case 7:
+                $http.get(routes.BlockVirtualPools_list()).then(function (data) {
+                    finished=false;
+                    if (data.data.aaData.length != 0) {
+                        testId = function (vPools) {
+                            var promises = vPools.map( function(vPool) {
+                            return $http.get(routes.BlockVirtualPools_pools({'id':vPool.id})).then(function (data,$q) {
+
+                                    if (!finished && data.data.aaData.length != 0){
+                                        finished=true;
+                                        $scope.$parent.completedSteps = 7;
+                                        return checkStep(8);
+                                    }
+                                });
+                            });
+                            $q.all(promises).then(function () {
+                                if(!finished) {
+                                    finishChecking();
+                                }
+                            });
+                        };
+                        return testId(data.data.aaData);
+                    } else {
+                        finishChecking();
+                    }
+                });
+                break;
+            case 8:
+                $http.get(routes.Projects_list()).then(function (data) {
+                    if (data.data.aaData.length != 0) {
+                        $scope.$parent.completedSteps = 8;
+                        return checkStep(9);
+                    } else {
+                        finishChecking();
+                    }
+                });
+                break;
+            case maxSteps:
+                $scope.$parent.completedSteps = maxSteps;
+                finishChecking();
+                break;
+        }
+
+    }
+});

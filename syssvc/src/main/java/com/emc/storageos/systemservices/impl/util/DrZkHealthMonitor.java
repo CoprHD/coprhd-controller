@@ -123,33 +123,9 @@ public class DrZkHealthMonitor extends DrHealthMonitor {
             localSite.setLastState(state);
             localSite.setState(SiteState.STANDBY_ERROR);
             coordinatorExt.getCoordinatorClient().persistServiceConfiguration(localSite.toConfiguration());
-            // Trigger rollback for disrupted standby resuming (manual or automatic)
-            // Do nothing for disrupted standby adding operation
-            if (SiteState.STANDBY_SYNCING.equals(state) && !SiteState.STANDBY_ADDING.equals(localSite.getLastState())) {
-                try {
-                    rollbackDataRevision();
-                } catch (Exception e) {
-                    log.error("Failed to trigger rollback for local site", e);
-                }
-            }
         }
     }
 
-    private void rollbackDataRevision() throws Exception {
-        LocalRepository localRepository = LocalRepository.getInstance();
-        PropertyInfoExt localDataRevisionProps = localRepository.getDataRevisionPropertyInfo();
-        String prevRevision = localDataRevisionProps.getProperty(Constants.KEY_PREV_DATA_REVISION);
-        log.info("Previous data revision at local {}", prevRevision);
-        if (StringUtils.isNotEmpty(prevRevision)) {
-            long rollbackTargetRevision = Long.parseLong(prevRevision);
-            drUtil.updateVdcTargetVersion(drUtil.getLocalSite().getUuid(), SiteInfo.DR_OP_CHANGE_DATA_REVISION,
-                    DrUtil.newVdcConfigVersion(), rollbackTargetRevision);
-            log.info("Automatic rollback to {} has been triggered", rollbackTargetRevision);
-        } else {
-            log.error("No valid previous revision found. Skip rollback");
-        }
-    }
-    
     /**
      * make sure that all local site nodes are in correct zk mode
      */

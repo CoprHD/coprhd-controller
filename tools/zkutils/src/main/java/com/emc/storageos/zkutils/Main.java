@@ -43,7 +43,7 @@ public class Main {
 
     private enum Command {
         LOCK, HOLD, RELEASE, INFO, PATH, EPHEMERAL, RESET, GETLASTVALIDZXID, TRUNCATETXNLOG, GETKEYANDCERT, EXPORTKEYSTORE, SAVE_SSH_KEYS,
-        GEN_SSH_AUTH_KEYS, SET, TUNE_DR_CONFIG
+        GEN_SSH_AUTH_KEYS, SET, TUNE_DR_CONFIG, ROLL_BACK
     }
 
     /**
@@ -68,8 +68,6 @@ public class Main {
         System.out.println(String.format("\t%s \t\tTruncate to the last valid txnlog.", Command.TRUNCATETXNLOG.name().toLowerCase()));
         System.out.println(String.format("\t%s <arg>(in hex)\t\tTruncate to the specific txn log.", Command.TRUNCATETXNLOG.name()
                 .toLowerCase()));
-        System.out.println(String.format("\t%s <key> <value>\t\tAdd \"key=value\" line to DR configuration",
-                Command.TUNE_DR_CONFIG.name().toLowerCase()));
 
         System.out.println("\n\tHandle Lock Process:");
         System.out.println(String.format("\t%s <arg>\t\tLock to prevent starting <arg> process",
@@ -101,6 +99,9 @@ public class Main {
         System.out.println(String.format(
                 "\t%s \t\t\tGenerate AuthorizedKeys2 for each user.",
                 Command.GEN_SSH_AUTH_KEYS.name().toLowerCase()));
+        System.out.println("\n\tMiscellaneous Operations:");
+        System.out.println(String.format("\t%s <key> <value>\t\tAdd \"key=value\" line to DR configuration", Command.TUNE_DR_CONFIG.name().toLowerCase()));
+        System.out.println(String.format("\t%s \t\t\tRoll back data including zk/db/geodb to previous viable version", Command.ROLL_BACK));
     }
 
     /**
@@ -147,6 +148,12 @@ public class Main {
                     processZkCmdArgs(args);
                     initZkCmdHandler(host, port, withData);
                     zkCmdHandler.printEphemeralNodes();
+                    break;
+                case ROLL_BACK:
+                    if (args.length > 1) {
+                        throw new IllegalArgumentException("Invalid paramerters");
+                    }
+                    zkCmdHandler.rollbackDataRevision();
                     break;
                 case TUNE_DR_CONFIG:
                     if (args.length != 3) {

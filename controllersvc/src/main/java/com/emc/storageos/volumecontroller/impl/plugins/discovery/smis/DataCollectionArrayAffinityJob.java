@@ -13,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
@@ -92,14 +93,8 @@ public class DataCollectionArrayAffinityJob extends DataCollectionJob implements
     }
 
     public boolean isActiveJob(DbClient dbClient) {
-        Iterator<StorageSystem> systems = dbClient.queryIterativeObjects(StorageSystem.class, _systemIds);
-        while (systems.hasNext()) {
-            StorageSystem system = systems.next();
-            if (system != null && !system.getInactive()) {
-                return true;
-            }
-        }
-        return false;
+        DataObject dbObject = dbClient.queryObject(_completer.getType(), _completer.getId());
+        return (dbObject != null && !dbObject.getInactive()) ? true : false;
     }
 
     public String getNamespace() {

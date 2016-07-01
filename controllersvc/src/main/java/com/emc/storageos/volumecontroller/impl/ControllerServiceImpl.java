@@ -92,7 +92,7 @@ public class ControllerServiceImpl implements ControllerService {
     public static final String COMPUTE_DISCOVERY = "Compute_Discovery";
     public static final String CS_DISCOVERY = "CS_Discovery";
     private static final String DISCOVERY_COREPOOLSIZE = "discovery-core-pool-size";
-    private static final String ARRAYAFFINITY_DISCOVERY_COREPOOLSIZE = "arrayaffinity-discovery-core-pool-size";
+    private static final int ARRAYAFFINITY_DISCOVERY_COREPOOLSIZE = 3;
     private static final String COMPUTE_DISCOVERY_COREPOOLSIZE = "compute-discovery-core-pool-size";
     private static final String METERING_COREPOOLSIZE = "metering-core-pool-size";
     private static final int DEFAULT_MAX_THREADS = 100;
@@ -492,7 +492,7 @@ public class ControllerServiceImpl implements ControllerService {
         _discoverJobQueue = _coordinator.getQueue(DISCOVER_JOB_QUEUE_NAME, _discoverJobConsumer,
                 new DataCollectionJobSerializer(), Integer.parseInt(_configInfo.get(DISCOVERY_COREPOOLSIZE)), 200);
         _arrayAffinityDiscoverJobQueue = _coordinator.getQueue(ARRAYAFFINITY_DISCOVER_JOB_QUEUE_NAME, _arrayAffinityDiscoverJobConsumer,
-                new DataCollectionJobSerializer(), Integer.parseInt(_configInfo.get(ARRAYAFFINITY_DISCOVERY_COREPOOLSIZE)), 200);
+                new DataCollectionJobSerializer(), ARRAYAFFINITY_DISCOVERY_COREPOOLSIZE, 200);
         _computeDiscoverJobQueue = _coordinator.getQueue(COMPUTE_DISCOVER_JOB_QUEUE_NAME, _computeDiscoverJobConsumer,
                 new DataCollectionJobSerializer(), Integer.parseInt(_configInfo.get(COMPUTE_DISCOVERY_COREPOOLSIZE)), 50000);
         _meteringJobQueue = _coordinator.getQueue(METERING_JOB_QUEUE_NAME, _meteringJobConsumer,

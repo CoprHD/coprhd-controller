@@ -121,9 +121,11 @@ public class ArrayAffinityProcessor {
 
                 List<CIMObjectPath> volumePaths = DiscoveryUtils.getAssociatorNames(cimClient, path, null, SmisConstants.CIM_STORAGE_VOLUME, null, null);
                 for (CIMObjectPath volumePath : volumePaths) {
-                    URI poolURI = ArrayAffinityDiscoveryUtils.getStoragePool(volumePath, cimClient, dbClient);
-                    if (!NullColumnValueGetter.isNullURI(poolURI)) {
-                        ArrayAffinityDiscoveryUtils.addPoolToPreferredPoolMap(preferredPoolMap, poolURI.toString(), maskType);
+                    if (ArrayAffinityDiscoveryUtils.isUnmanagedVolume(volumePath, dbClient)) {
+                        URI poolURI = ArrayAffinityDiscoveryUtils.getStoragePool(volumePath, cimClient, dbClient);
+                        if (!NullColumnValueGetter.isNullURI(poolURI)) {
+                            ArrayAffinityDiscoveryUtils.addPoolToPreferredPoolMap(preferredPoolMap, poolURI.toString(), maskType);
+                        }
                     }
                 }
             }

@@ -30,9 +30,6 @@ import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
-import com.emc.storageos.db.client.model.StoragePort;
-import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.WWNUtility;
 import com.emc.storageos.db.client.util.iSCSIUtility;
@@ -109,28 +106,20 @@ public class ArrayAffinityExportProcessor extends Processor {
         initialize(operation, resultObj, keyMap);
         CloseableIterator<CIMInstance> it = null;
         EnumerateResponse<CIMInstance> response = null;
-        List<Initiator> matchedInitiators = new ArrayList<Initiator>();
-        List<StoragePort> matchedPorts = new ArrayList<StoragePort>();
         WBEMClient client = SMICommunicationInterface.getCIMClient(keyMap);
-        StringSet knownIniSet = new StringSet();
-        StringSet knownNetworkIdSet = new StringSet();
-        StringSet knownPortSet = new StringSet();
-        StringSet knownVolumeSet = new StringSet();
 
         try {
             // get lun masking view CIM path
             CIMObjectPath path = getObjectPathfromCIMArgument(_args, keyMap);
             _logger.info("looking at lun masking view: " + path.toString());
             response = (EnumerateResponse<CIMInstance>) resultObj;
-            processVolumesAndInitiatorsPaths(response.getResponses(), path.toString(), matchedInitiators, matchedPorts, knownIniSet,
-                    knownNetworkIdSet, knownPortSet, knownVolumeSet, client);
+            processVolumesAndInitiatorsPaths(response.getResponses(), path.toString(), client);
 
             while (!response.isEnd()) {
                 _logger.info("Processing next Chunk");
                 response = client.getInstancesWithPath(Constants.MASKING_PATH, response.getContext(),
                         new UnsignedInteger32(MAX_OBJECT_COUNT));
-                processVolumesAndInitiatorsPaths(response.getResponses(), path.toString(), matchedInitiators, matchedPorts, knownIniSet,
-                        knownNetworkIdSet, knownPortSet, knownVolumeSet, client);
+                processVolumesAndInitiatorsPaths(response.getResponses(), path.toString(), client);
             }
         } catch (Exception e) {
             _logger.error("Processing lun maksing view failed", e);
@@ -206,8 +195,8 @@ public class ArrayAffinityExportProcessor extends Processor {
 
         Integer currentCommandIndex = this.getCurrentCommandIndex(_args);
         List maskingViews = (List) _keyMap.get(Constants.MASKING_VIEWS);
-        _logger.info("ExportProcessor current index is " + currentCommandIndex);
-        _logger.info("ExportProcessor maskingViews size is " + maskingViews.size());
+        _logger.info("ArrayAffinityExportProcessor current index is " + currentCommandIndex);
+        _logger.info("ArrayAffinityExportProcessor maskingViews size is " + maskingViews.size());
         if ((maskingViews != null) && (maskingViews.size() == (currentCommandIndex + 1))) {
             _logger.info("this is the last time ArrayAffinityExportProcessor will be called, cleaning up...");
             updatePreferredPoolIds();
@@ -216,19 +205,17 @@ public class ArrayAffinityExportProcessor extends Processor {
         }
     }
 
-    private void processVolumesAndInitiatorsPaths(CloseableIterator<CIMInstance> it, String maskingViewPath,
-            List<Initiator> matchedInitiators, List<StoragePort> matchedPorts, Set<String> knownIniSet,
-            Set<String> knownNetworkIdSet, Set<String> knownPortSet, Set<String> knownVolumeSet, WBEMClient client) {
+    private void processVolumesAndInitiatorsPaths(CloseableIterator<CIMInstance> it, String maskingViewPath, WBEMClient client) {
         while (it.hasNext()) {
-            CIMInstance cimi = it.next();
+            CIMInstance instance = it.next();
 
-            _logger.info("looking at classname: " + cimi.getClassName());
-            switch (cimi.getClassName()) {
+            _logger.info("looking at classname: " + instance.getClassName());
+            switch (instance.getClassName()) {
 
                 // process initiators
                 case SmisConstants.CP_SE_STORAGE_HARDWARE_ID:
 
-                    String initiatorNetworkId = this.getCIMPropertyValue(cimi, SmisConstants.CP_STORAGE_ID);
+                    String initiatorNetworkId = this.getCIMPropertyValue(instance, SmisConstants.CP_STORAGE_ID);
                     _logger.info("looking at initiator network id " + initiatorNetworkId);
                     if (WWNUtility.isValidNoColonWWN(initiatorNetworkId)) {
                         initiatorNetworkId = WWNUtility.getWWNWithColons(initiatorNetworkId);
@@ -274,55 +261,25 @@ public class ArrayAffinityExportProcessor extends Processor {
 
                     break;
 
-                // process FC and ISCSI target ports
-                case SmisConstants.CP_SYMM_FCSCSI_PROTOCOL_ENDPOINT:
-                case SmisConstants.CP_SYMM_ISCSI_PROTOCOL_ENDPOINT:
-                case SmisConstants.CP_CLAR_FCSCSI_PROTOCOL_ENDPOINT:
-                case SmisConstants.CP_CLAR_ISCSI_PROTOCOL_ENDPOINT:
-                case SmisConstants.CP_CLAR_FRONTEND_FC_PORT:
-                    break;
-
                 // process storage volumes
                 case _symmvolume:
                 case _clarvolume:
 
-                    CIMObjectPath volumePath = cimi.getObjectPath();
+                    CIMObjectPath volumePath = instance.getObjectPath();
                     _logger.info("volumePath is " + volumePath.toString());
-
-                    String systemName = volumePath.getKey(SmisConstants.CP_SYSTEM_NAME).getValue().toString();
-                    systemName = systemName.replaceAll(Constants.SMIS80_DELIMITER_REGEX, Constants.PLUS);
-                    String id = volumePath.getKey(SmisConstants.CP_DEVICE_ID).getValue().toString();
-                    _logger.info("systemName is " + systemName);
-                    _logger.info("id is " + id);
-                    String nativeGuid = NativeGUIDGenerator.generateNativeGuidForVolumeOrBlockSnapShot(systemName.toUpperCase(), id);
-                    _logger.info("nativeGuid for looking up ViPR volumes is " + nativeGuid);
-
-                    URIQueryResultList result = new URIQueryResultList();
-                    _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getVolumeNativeGuidConstraint(nativeGuid), result);
-
                     URI poolURI = null;
-                    Volume volume = null;
-                    Iterator<URI> volumes = result.iterator();
-                    if (volumes.hasNext()) {
-                        volume = _dbClient.queryObject(Volume.class, volumes.next());
-                        if (null != volume) {
-                            knownVolumeSet.add(volume.getId().toString());
-                            poolURI = volume.getPool();
-                        }
-                    }
-
-                    if (volume == null) {
+                    if (ArrayAffinityDiscoveryUtils.isUnmanagedVolume(volumePath, _dbClient)) {
                         poolURI = ArrayAffinityDiscoveryUtils.getStoragePool(volumePath, client, _dbClient);
-                    }
 
-                    if (!NullColumnValueGetter.isNullURI(poolURI)) {
-                        Set<URI> pools = getMaskToStoragePoolsMap().get(maskingViewPath);
-                        if (pools == null) {
-                            pools = new HashSet<URI>();
-                            _logger.info("Creating pool set for mask {}" + maskingViewPath);
-                            getMaskToStoragePoolsMap().put(maskingViewPath, pools);
+                        if (!NullColumnValueGetter.isNullURI(poolURI)) {
+                            Set<URI> pools = getMaskToStoragePoolsMap().get(maskingViewPath);
+                            if (pools == null) {
+                                pools = new HashSet<URI>();
+                                _logger.info("Creating pool set for mask {}" + maskingViewPath);
+                                getMaskToStoragePoolsMap().put(maskingViewPath, pools);
+                            }
+                            pools.add(poolURI);
                         }
-                        pools.add(poolURI);
                     }
 
                     break;
@@ -351,8 +308,6 @@ public class ArrayAffinityExportProcessor extends Processor {
         String systemIdsStr = _profile.getProps().get(Constants.SYSTEM_IDS);
         String[] systemIds = systemIdsStr.split(Constants.ID_DELIMITER);
         Set<String> systemIdSet = new HashSet<String>(Arrays.asList(systemIds));
-
-        URI systemId = (URI) _keyMap.get(Constants.SYSTEMID);
         List<Host> hostsToUpdate = new ArrayList<Host>();
 
         try {

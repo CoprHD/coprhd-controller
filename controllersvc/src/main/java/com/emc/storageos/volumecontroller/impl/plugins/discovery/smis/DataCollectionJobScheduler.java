@@ -539,14 +539,13 @@ public class DataCollectionJobScheduler {
                     job.schedule(_dbClient);
                     if (job instanceof DataCollectionArrayAffinityJob) {
                         ((ArrayAffinityDataCollectionTaskCompleter) completer).setLastStatusMessage(_dbClient, "");
-                        completer.setNextRunTime(_dbClient,
-                                System.currentTimeMillis() + JobIntervals.get(job.getType()).getInterval() * 1000);
                     } else {
                         system.setLastDiscoveryStatusMessage("");
-                        completer.setNextRunTime(_dbClient,
-                                System.currentTimeMillis() + JobIntervals.get(job.getType()).getInterval() * 1000);
                         _dbClient.updateObject(system);
                     }
+
+                    completer.setNextRunTime(_dbClient,
+                            System.currentTimeMillis() + JobIntervals.get(job.getType()).getInterval() * 1000);
                     ControllerServiceImpl.enqueueDataCollectionJob(job);
                 }
                 else {
@@ -778,6 +777,8 @@ public class DataCollectionJobScheduler {
             T storageSystem, String type) {
         if (ControllerServiceImpl.METERING.equalsIgnoreCase(type)) {
             return storageSystem.getLastMeteringRunTime();
+        } else if (ControllerServiceImpl.ARRAYAFFINITY_DISCOVERY.equalsIgnoreCase(type)) {
+            return ((StorageSystem) storageSystem).getLastArrayAffinityRunTime();
         } else {
             return storageSystem.getLastDiscoveryRunTime();
         }
@@ -787,6 +788,8 @@ public class DataCollectionJobScheduler {
             T storageSystem, String type) {
         if (ControllerServiceImpl.METERING.equalsIgnoreCase(type)) {
             return storageSystem.getNextMeteringRunTime();
+        } else if (ControllerServiceImpl.ARRAYAFFINITY_DISCOVERY.equalsIgnoreCase(type)) {
+            return ((StorageSystem) storageSystem).getNextArrayAffinityRunTime();
         } else {
             return storageSystem.getNextDiscoveryRunTime();
         }
@@ -803,6 +806,8 @@ public class DataCollectionJobScheduler {
     private <T extends DiscoveredSystemObject> String getStatus(T system, String type) {
         if (ControllerServiceImpl.METERING.equalsIgnoreCase(type)) {
             return system.getMeteringStatus();
+        } else if (ControllerServiceImpl.ARRAYAFFINITY_DISCOVERY.equalsIgnoreCase(type)) {
+            return ((StorageSystem) system).getArrayAffinityStatus();
         } else {
             return system.getDiscoveryStatus();
         }

@@ -465,18 +465,17 @@ public class XIVRestClient extends StandardRestClient {
      * @param hostName Host name where the port exists
      * @param hostPort Host port name
      * @param hostPortType Host port type
+     * @param forceDelete Force delete a Host Port
      * @return True if it is deleted. Else false.
      * @throws Exception Throws Exception If error occurs during execution
      */
-    public boolean deleteHostPort(final String xivSystem, final String hostName, final String hostPort, final String hostPortType)
+    public boolean deleteHostPort(final String xivSystem, final String hostName, final String hostPort, final String hostPortType, final Boolean forceDelete)
             throws Exception {
         final String instanceURL = MessageFormat.format(HOST_PORT_INSTANCE_URL, xivSystem, hostPortType, hostName, hostPort);
         boolean deleteSuccessful = false;
         if (findAvailability(instanceURL)) {
             // Validate if there are any volumes mapped before deleting.
-            boolean isVolumeExportAvailable = findAvailability(
-                    MessageFormat.format(EXPORT_VOLUME_URL + SEARCH_URL, xivSystem, HOST, hostName));
-            if (!isVolumeExportAvailable) {
+            if (forceDelete || !findAvailability(MessageFormat.format(EXPORT_VOLUME_URL + SEARCH_URL, xivSystem, HOST, hostName))) {
                 // Now go ahead and delete HostPort.
                 ResponseValidator failureStatus = executePOSTRequest(xivSystem, instanceURL, DELETE_BODY);
                 deleteSuccessful = true;
@@ -702,22 +701,59 @@ public class XIVRestClient extends StandardRestClient {
      * 
      * @param xivSystem XIV Storage System name
      * @param portName Port name for which the details to be found
-     * @return JSONArray of Port details
+     * @return Container (HOST) name.
      * @throws Exception If error occurs during execution.
      */
-    public JSONArray getPortDetails(final String xivSystem, final String portName) throws Exception {
-        JSONArray result = new JSONArray();
+    public Set<String> getHostPortContainer(final String xivSystem, final String portName) throws Exception {
+        Set<String> containerNames = new HashSet<String>();
         String hostPortSearchURL = MessageFormat.format(HOST_PORT_URL + SEARCH_URL, xivSystem, PORT, portName);
         JSONObject hostPortInstances = getInstance(hostPortSearchURL);
+
         if (findAvailability(hostPortInstances)) {
             JSONObject response = hostPortInstances.optJSONObject(RESPONSE);
             if (null != response) {
                 JSONObject data = response.optJSONObject(DATA);
                 if (null != data) {
-                    result = data.optJSONArray(HOSTPORT);
+                    JSONArray portResult = data.optJSONArray(HOSTPORT);
+                    if (null != portResult) {
+                        for (int i = 0; i < portResult.length(); i++) {
+                            JSONObject resultObj = portResult.getJSONObject(i);
+                            final String hostName = resultObj.getString("host");
+                            if (null != hostName && !hostName.isEmpty()) {
+                                containerNames.add(hostName);
+                            }
+                        }
+                    }
                 }
             }
         }
-        return result;
+        return containerNames;
     }
+
+    /**
+     * Returns Host details for a name specified if exist on Array
+     * 
+     * @param xivSystem XIV Storage System name
+     * @param hostName Host name for which the details to be found
+     * @return Container (CLUSTER) name.
+     * @throws Exception If error occurs during execution.
+     */
+
+    public Set<String> getHostContainer(final String xivSystem, final String hostName) throws Exception {
+        Set<String> containerNames = new HashSet<String>();
+        final String hostURI = MessageFormat.format(HOST_INSTANCE_URL, xivSystem, hostName);
+        JSONObject hostInstance = getInstance(hostURI);
+
+        if (findAvailability(hostInstance)) {
+            JSONObject response = hostInstance.getJSONObject(RESPONSE);
+            JSONObject data = response.getJSONObject(DATA);
+            JSONObject host = data.getJSONObject(HOST);
+            final String hostCluster = host.getString(CLUSTER);
+            if (null != hostCluster && !hostCluster.isEmpty()) {
+                containerNames.add(hostCluster);
+            }
+        }
+        return containerNames;
+    }
+
 }

@@ -970,10 +970,10 @@ public class VolumeService extends TaskResourceService {
     		if(AuthnProvider.ProvidersType.keystone.toString().equalsIgnoreCase(provider.getMode()))
     		{
     			keystoneAuthProvider = provider;
-    			break; //Getting keystone provider only
+    			break; //Getting keystone Authentication provider only
     		}
     	}
-    	_log.info("RAG Provider verified ");
+
     	URI glanceBaseUri = null;
     	if(null!=keystoneAuthProvider)
     	{
@@ -982,19 +982,16 @@ public class VolumeService extends TaskResourceService {
         	{
         		glanceBaseUri = URI.create(uri);
         		//Single URI will be present
-            	_log.info("RAG Auth Provider Keystone  {}",glanceBaseUri.toString());
+            	_log.info("Auth Provider Keystone  {}",glanceBaseUri.toString());
         		break;
         	}
     	}
     	
     	
     	String restBaseUri1 = glanceBaseUri.toString()+ GlanceConstants.IMAGE_NAME + imageId;
-    	_log.info("RAG glanceBaseUri  {}",restBaseUri1);
+    	_log.info("glanceBaseUri  {}",restBaseUri1);
     	
-    	
-    	//
-    	
-    	
+    	//time being hardcoded for testing,  has to be generic from authprovider
 		GlanceEndPointInfo ep = new GlanceEndPointInfo("10.247.39.185","ranjith", "ChangeMe", "raga");
     	
     	StorageOSUser user = getUserFromContext();
@@ -1003,6 +1000,7 @@ public class VolumeService extends TaskResourceService {
 		Client jerseyClient = Client.create(config);
 		GlanceApi glanceApi = new GlanceApi(ep, jerseyClient);
 		
+		//time being hardcoded for testing,  has to be generic from keystone serviec list
 		String restBaseUri = "http://10.247.39.185:9292/v1/images/bac0e68b-0736-4b18-b4dc-198b8077520f";
 		_log.info("RAG Auth token {}", user.getToken()); 
 		_log.info("RAG Auth TenantId {}", user.getTenantId()); 
@@ -1019,16 +1017,16 @@ public class VolumeService extends TaskResourceService {
         	ep.setGlanceBaseUriHttps(restBaseUri); // for HTTPS
         }
         
-		ep.setGlanceToken(user.getToken()); 
-		
-    	
-    	//GlanceApi apiClient = (GlanceApi) _glanceApiFactory.GlanceRESTClient(jerseyClient, user.getToken());
+		ep.setGlanceToken(user.getToken()); // resusing token for glance
 
    
-	    /*private GlanceApiFactory _glanceApiFactory;
+	    /*.From keystone service list get glance service id. Using that glance service id from keystone endpoint list,
+	     * find the global public URL for glance service
+	     * private GlanceApiFactory _glanceApiFactory;
 	    private GlanceEndPointInfo glanceEndPointInfo = null;
         if(null == glanceEndPointInfo)
         {
+            //extract hostName, restuserName, restPassword, tenantName from Auth provider
         	glanceEndPointInfo = new GlanceEndPointInfo(hostName, restuserName, restPassword, tenantName);
             if(restBaseUri.startsWith(GlanceConstants.HTTP_URL)) 
             {
@@ -1040,71 +1038,42 @@ public class VolumeService extends TaskResourceService {
             }
             
             //Always set the token and tenant id, when new instance is created
-            glanceEndPointInfo.setGlanceToken(oldToken);
-            glanceEndPointInfo.setGlanceTenantId(tenantId);
+            glanceEndPointInfo.setGlanceToken(user.getToken());
+            glanceEndPointInfo.setGlanceTenantId(user.getTenantId());
         }          
         
-        GlanceApi api = _glanceApiFactory.getApi(providerUri, glanceEndPointInfo);
+        GlanceApi glanceApi = _glanceApiFactory.getApi(providerUri, glanceEndPointInfo);
         _logger.debug("discover : Got the glance api factory for provider with id: {}", providerUri); */
-    	
-    	
-    	
-    	
-    	
-    	/*SnapshotListResponse listRes = null;
-    	String listSnapshotsUri = endPoint.getBaseUri()  +
-    									  String.format(CinderConstants.URI_LIST_SNAPSHOTS, 
-    									  new Object[]{endPoint.getCinderTenantId()}); */
-    	//String glanceServiceUri =  "http://10.247.39.185:9292/v1/images/bd61339a-0bb4-441d-a900-2266b8fa58e1";
-    			
-    	//GlanceApi.getClient().setAuthTokenHeader(token);
-    	//ClientResponse js_response = objGlanceApiFactory.getApi().get(URI.create(glanceServiceUri));
     	
 		ClientResponse js_response =  glanceApi.getGlanceImage(restBaseUri, user.getToken());
     	_log.info("uri {} : Response status {}", restBaseUri, String.valueOf(js_response.getStatus()));
     	if(js_response.getStatus() == ClientResponse.Status.OK.getStatusCode())
     	{
-    		//String jsonString = js_response.getEntity(String.class);
-    		//listRes = new Gson().fromJson(jsonString, SnapshotListResponse.class);
-    	 	_log.info("RAG CinderApi - Get status OK ");
-    	 	//_log.info("RAG CinderApi Response String Length  {}",jsonString.length());
-    		File file = new File("/opt/storageos/image2.txt");
-    	 	//FileOutputStream  file = new FileOutputStream("/opt/storageos/image.txt");
+    		
+    	 	_log.info(" CinderApi - Get status OK ");
+    	 	//now image file is hard coded , but we have to take from config file
+    		File file = new File("/opt/storageos/image2.txt"); 
     	 	InputStream image_data = js_response.getEntity(InputStream.class);
-    	 	//Files.copy(image_data, image_files);
     	 	
-    	 	
-    	 	_log.info("RAG CinderApi Iamge length {}",js_response.getLength());
-    	 	
+    	 	_log.info(" CinderApi Iamge length {}",js_response.getLength());
     	 	
     		try (FileOutputStream fop = new FileOutputStream(file)) {
-        	 	//byte[] imageByteArray = IOUtils.toByteArray(image_data);  
     			// if file doesn't exists, then create it
     			if (!file.exists()) {
     				file.createNewFile();
     			}
-/*
-    			// get the content in bytes
-    			byte[] contentInBytes = image_data.toString().getBytes();
 
-    			fop.write(contentInBytes);
-    			fop.flush();
-    			fop.close(); 
-*/
     			 IOUtils.copyLarge(image_data,fop);
     			 fop.close(); 
-    			_log.info("RAG CinderApi Image file copied length {}",image_data.toString().length());
+    			_log.info("CinderApi Image file copied length {}",image_data.toString().length());
 
     		} catch (IOException e) {
     			e.printStackTrace();
     		}
-    	 	
-    	 	
   
     	}
     	
     	_log.info("CinderApi - end volumeFromImage ");
-    	//return listRes;
 		return null;
 	}
 

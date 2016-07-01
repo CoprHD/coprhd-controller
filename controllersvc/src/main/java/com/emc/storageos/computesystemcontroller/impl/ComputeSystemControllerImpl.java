@@ -1031,6 +1031,9 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             }
         } catch (Exception e) {
             _log.error("Error setting storage i/o control");
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
             cancelTaskNoException(task);
         }
     }

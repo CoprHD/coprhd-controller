@@ -363,7 +363,7 @@ $(ETCDIR)/oe/%: oe/%
 	@$(RM) $(@)
 	@$(MKDIR) $(@D)
 	$(ATSIGN)$(SED_SCRIPT) <$(<) >$(@)
-	$(ATSIGN)$(CHMOD) 644 $(@)
+	$(ATSIGN)$(CHMOD) 755 $(@)
 
 $(ETCDIR)/rabbitmq/%: rabbitmq/%
 	@echo "sed etc/$(<)"
@@ -378,7 +378,7 @@ $(ETCDIR)/ansible_scripts/%: ansible_scripts/%
 	@$(RM) $(@)
 	@$(MKDIR) $(@D)
 	$(ATSIGN)$(SED_SCRIPT) <$(<) >$(@)
-	$(ATSIGN)$(CHMOD) 644 $(@)
+	$(ATSIGN)$(CHMOD) 755 $(@)
 
 $(SYSTEMD_STORAGEOS): $(SYSTEMD_TMPL)
 	@echo  "sed systemd service storageos-$(@)"

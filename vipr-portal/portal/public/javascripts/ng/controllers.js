@@ -1661,6 +1661,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
         saveGuideCookies();
     }
 
+    $scope.goToNextSteps = function(complete) {
        if(complete) {
            $scope.$parent.completedSteps=$scope.$parent.currentStep;
            if ( $scope.$parent.currentStep<maxSteps){
@@ -1809,8 +1810,6 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
     }
 
         $scope.previousStep = function(step) {
-
-        }
             if (!step) {
                 step = $scope.$parent.currentStep;
             }

@@ -882,49 +882,54 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     public void attachAndMount(URI exportGroupId, URI hostId, URI vCenterId, URI vcenterDatacenter, String stepId) {
         WorkflowStepCompleter.stepExecuting(stepId);
 
-        Host esxHost = _dbClient.queryObject(Host.class, hostId);
-        Vcenter vCenter = _dbClient.queryObject(Vcenter.class, vCenterId);
-        VcenterDataCenter vCenterDataCenter = _dbClient.queryObject(VcenterDataCenter.class, vcenterDatacenter);
-        ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupId);
-        VCenterAPI api = VcenterDiscoveryAdapter.createVCenterAPI(vCenter);
-        HostSystem hostSystem = api.findHostSystem(vCenterDataCenter.getLabel(), esxHost.getLabel());
-        HostStorageAPI storageAPI = new HostStorageAPI(hostSystem);
+        try {
+            Host esxHost = _dbClient.queryObject(Host.class, hostId);
+            Vcenter vCenter = _dbClient.queryObject(Vcenter.class, vCenterId);
+            VcenterDataCenter vCenterDataCenter = _dbClient.queryObject(VcenterDataCenter.class, vcenterDatacenter);
+            ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupId);
+            VCenterAPI api = VcenterDiscoveryAdapter.createVCenterAPI(vCenter);
+            HostSystem hostSystem = api.findHostSystem(vCenterDataCenter.getLabel(), esxHost.getLabel());
+            HostStorageAPI storageAPI = new HostStorageAPI(hostSystem);
 
-        if (exportGroup != null) {
-            for (String volume : exportGroup.getVolumes().keySet()) {
+            if (exportGroup != null) {
+                for (String volume : exportGroup.getVolumes().keySet()) {
 
-                BlockObject blockObject = BlockObject.fetch(_dbClient, URI.create(volume));
-                try {
-                    for (HostScsiDisk entry : storageAPI.listScsiDisks()) {
-                        if (VolumeWWNUtils.wwnMatches(VMwareUtils.getDiskWwn(entry), blockObject.getWWN())) {
-                            _log.info("Attach SCSI Lun " + entry.getCanonicalName() + " on host " + esxHost.getLabel());
-                            storageAPI.attachScsiLun(entry);
+                    BlockObject blockObject = BlockObject.fetch(_dbClient, URI.create(volume));
+                    try {
+                        for (HostScsiDisk entry : storageAPI.listScsiDisks()) {
+                            if (VolumeWWNUtils.wwnMatches(VMwareUtils.getDiskWwn(entry), blockObject.getWWN())) {
+                                _log.info("Attach SCSI Lun " + entry.getCanonicalName() + " on host " + esxHost.getLabel());
+                                storageAPI.attachScsiLun(entry);
+                            }
                         }
+                        _log.info("Refreshing storage");
+                        storageAPI.refreshStorage();
+                    } catch (VMWareException ex) {
+                        _log.error(ex.getMessage(), ex);
                     }
-                    _log.info("Refreshing storage");
-                    storageAPI.refreshStorage();
-                } catch (VMWareException ex) {
-                    _log.error(ex.getMessage(), ex);
-                }
 
-                if (blockObject != null && blockObject.getTag() != null) {
-                    for (ScopedLabel tag : blockObject.getTag()) {
-                        String tagValue = tag.getLabel();
-                        if (tagValue != null && tagValue.startsWith(VMFS_DATASTORE_PREFIX)) {
-                            String datastoreName = getDatastoreName(tagValue);
-                            try {
-                                Datastore datastore = api.findDatastore(vCenterDataCenter.getLabel(), datastoreName);
-                                if (datastore != null) {
-                                    _log.info("Mounting datastore " + datastore.getName() + " on host " + esxHost.getLabel());
-                                    storageAPI.mountDatastore(datastore);
+                    if (blockObject != null && blockObject.getTag() != null) {
+                        for (ScopedLabel tag : blockObject.getTag()) {
+                            String tagValue = tag.getLabel();
+                            if (tagValue != null && tagValue.startsWith(VMFS_DATASTORE_PREFIX)) {
+                                String datastoreName = getDatastoreName(tagValue);
+                                try {
+                                    Datastore datastore = api.findDatastore(vCenterDataCenter.getLabel(), datastoreName);
+                                    if (datastore != null) {
+                                        _log.info("Mounting datastore " + datastore.getName() + " on host " + esxHost.getLabel());
+                                        storageAPI.mountDatastore(datastore);
+                                    }
+                                } catch (VMWareException ex) {
+                                    _log.error(ex.getMessage(), ex);
                                 }
-                            } catch (VMWareException ex) {
-                                _log.error(ex.getMessage(), ex);
                             }
                         }
                     }
                 }
             }
+        } catch (Exception ex) {
+            _log.error(ex.getMessage(), ex);
+            WorkflowStepCompleter.stepFailed(stepId, DeviceControllerException.errors.jobFailed(ex));
         }
         WorkflowStepCompleter.stepSucceded(stepId);
     }
@@ -942,24 +947,24 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     public void unmountAndDetach(URI exportGroupId, URI hostId, URI vCenterId, URI vcenterDatacenter, String stepId) {
         WorkflowStepCompleter.stepExecuting(stepId);
 
-        Host esxHost = _dbClient.queryObject(Host.class, hostId);
-        Vcenter vCenter = _dbClient.queryObject(Vcenter.class, vCenterId);
-        VcenterDataCenter vCenterDataCenter = _dbClient.queryObject(VcenterDataCenter.class, vcenterDatacenter);
-        ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupId);
-        VCenterAPI api = VcenterDiscoveryAdapter.createVCenterAPI(vCenter);
-        HostSystem hostSystem = api.findHostSystem(vCenterDataCenter.getLabel(), esxHost.getLabel());
-        HostStorageAPI storageAPI = new HostStorageAPI(hostSystem);
+        try {
+            Host esxHost = _dbClient.queryObject(Host.class, hostId);
+            Vcenter vCenter = _dbClient.queryObject(Vcenter.class, vCenterId);
+            VcenterDataCenter vCenterDataCenter = _dbClient.queryObject(VcenterDataCenter.class, vcenterDatacenter);
+            ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupId);
+            VCenterAPI api = VcenterDiscoveryAdapter.createVCenterAPI(vCenter);
+            HostSystem hostSystem = api.findHostSystem(vCenterDataCenter.getLabel(), esxHost.getLabel());
+            HostStorageAPI storageAPI = new HostStorageAPI(hostSystem);
 
-        for (String volume : exportGroup.getVolumes().keySet()) {
+            for (String volume : exportGroup.getVolumes().keySet()) {
 
-            BlockObject blockObject = BlockObject.fetch(_dbClient, URI.create(volume));
-            if (blockObject != null && blockObject.getTag() != null) {
-                for (ScopedLabel tag : blockObject.getTag()) {
-                    String tagValue = tag.getLabel();
-                    if (tagValue != null && tagValue.startsWith(VMFS_DATASTORE_PREFIX)) {
-                        String datastoreName = getDatastoreName(tagValue);
+                BlockObject blockObject = BlockObject.fetch(_dbClient, URI.create(volume));
+                if (blockObject != null && blockObject.getTag() != null) {
+                    for (ScopedLabel tag : blockObject.getTag()) {
+                        String tagValue = tag.getLabel();
+                        if (tagValue != null && tagValue.startsWith(VMFS_DATASTORE_PREFIX)) {
+                            String datastoreName = getDatastoreName(tagValue);
 
-                        try {
                             Datastore datastore = api.findDatastore(vCenterDataCenter.getLabel(), datastoreName);
                             if (datastore != null) {
                                 boolean storageIOControlEnabled = datastore.getIormConfiguration().isEnabled();
@@ -972,16 +977,9 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                                     setStorageIOControl(api, datastore, true);
                                 }
                             }
-
-                        } catch (VMWareException ex) {
-                            _log.error(ex.getMessage(), ex);
-                            WorkflowStepCompleter.stepFailed(stepId, DeviceControllerException.errors.jobFailed(ex));
-                            throw ex;
                         }
                     }
                 }
-            }
-            try {
                 for (HostScsiDisk entry : storageAPI.listScsiDisks()) {
                     if (VolumeWWNUtils.wwnMatches(VMwareUtils.getDiskWwn(entry), blockObject.getWWN())) {
                         _log.info("Detach SCSI Lun " + entry.getCanonicalName() + " from host " + esxHost.getLabel());
@@ -989,11 +987,11 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                     }
                 }
                 storageAPI.refreshStorage();
-            } catch (VMWareException ex) {
-                _log.error(ex.getMessage(), ex);
-                WorkflowStepCompleter.stepFailed(stepId, DeviceControllerException.errors.jobFailed(ex));
-                throw ex;
+
             }
+        } catch (Exception ex) {
+            _log.error(ex.getMessage(), ex);
+            WorkflowStepCompleter.stepFailed(stepId, DeviceControllerException.errors.jobFailed(ex));
         }
 
         WorkflowStepCompleter.stepSucceded(stepId);

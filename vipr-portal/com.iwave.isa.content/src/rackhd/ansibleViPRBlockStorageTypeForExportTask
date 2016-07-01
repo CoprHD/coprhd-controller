@@ -4,7 +4,8 @@
   "implementsTask": "Task.Base.Ansible",
   "options": {
     "playbook": "/root/ansible-work/playbook-vipr-options-BlockStorageTypeForExport.yml",
-    "limit": "localhost"
+    "limit": "localhost",
+    "vars": {}
   },
   "properties": {}
 } 

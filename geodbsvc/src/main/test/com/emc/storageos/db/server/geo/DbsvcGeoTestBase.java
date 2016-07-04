@@ -13,6 +13,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -35,12 +36,6 @@ import com.emc.storageos.db.client.model.DbKeyspace.Keyspaces;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.services.util.LoggingUtils;
-import com.netflix.astyanax.Keyspace;
-import com.netflix.astyanax.connectionpool.OperationResult;
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
-import com.netflix.astyanax.model.ColumnFamily;
-import com.netflix.astyanax.model.Row;
-import com.netflix.astyanax.model.Rows;
 
 //Suppress Sonar violation of Lazy initialization of static fields should be synchronized
 //Junit test will be called in single thread by default, it's safe to ignore this violation
@@ -149,71 +144,44 @@ public class DbsvcGeoTestBase {
                     dbObj.getClass().getAnnotation(DbKeyspace.class).value()).contains(Keyspaces.LOCAL))) {
                 // it's hybrid, check the id
                 if (dbObj.isGlobal()) {
-                    return (queryObject(geoContext.getKeyspace(), dbObj.getClass(), dbObj.getId()) != null);
+                    return (queryObject(geoContext, dbObj.getClass(), dbObj.getId()) != null);
                 } else {
-                    return (queryObject(localContext.getKeyspace(), dbObj.getClass(), dbObj.getId()) != null);
+                    return (queryObject(localContext, dbObj.getClass(), dbObj.getId()) != null);
                 }
             } else if (dbObj.getClass().isAnnotationPresent(DbKeyspace.class) &&
                     Arrays.asList(dbObj.getClass().getAnnotation(DbKeyspace.class).value()).contains(Keyspaces.GLOBAL)) {
-                return (queryObject(geoContext.getKeyspace(), dbObj.getClass(), dbObj.getId()) != null);
+                return (queryObject(geoContext, dbObj.getClass(), dbObj.getId()) != null);
             } else {
-                return (queryObject(localContext.getKeyspace(), dbObj.getClass(), dbObj.getId()) != null);
+                return (queryObject(localContext, dbObj.getClass(), dbObj.getId()) != null);
             }
         }
 
-        private <T extends DataObject> T queryObject(Keyspace ks, Class<T> clazz, URI id)
+        private <T extends DataObject> T queryObject(DbClientContext dbContext, Class<T> clazz, URI id)
                 throws DatabaseException {
             DataObjectType doType = TypeMap.getDoType(clazz);
             if (doType == null) {
                 throw new IllegalArgumentException();
             }
-            Row<String, CompositeColumnName> row = queryRowWithAllColumns(ks, clazz, id, doType.getCF());
+            Map<String, List<CompositeColumnName>> row = queryRowWithAllColumns(dbContext, clazz, id, doType.getCF().getName());
             if (row == null) {
                 return null;
             }
             IndexCleanupList cleanList = new IndexCleanupList();
-            T dataObject = doType.deserialize(clazz, row, cleanList);
+            T dataObject = doType.deserialize(clazz, id.toString(), row.get(id.toString()), cleanList, null);
             return dataObject;
         }
 
-        private <T> Row<String, CompositeColumnName> queryRowWithAllColumns(Keyspace ks, Class<T> clazz, URI id,
-                ColumnFamily<String, CompositeColumnName> cf) throws DatabaseException {
+        private <T extends DataObject> Map<String, List<CompositeColumnName>> queryRowWithAllColumns(DbClientContext dbContext, Class<T> clazz, URI id,
+                String cf) throws DatabaseException {
             List<URI> collection = new ArrayList<URI>(1);
             collection.add(id);
-            Rows<String, CompositeColumnName> result = queryRowsWithAllColumns(ks, clazz, collection, cf);
-            Row<String, CompositeColumnName> row = result.iterator().next();
-            if (row.getColumns().size() == 0) {
+            Map<String, List<CompositeColumnName>> result = queryRowsWithAllColumns(dbContext, collection, cf);
+            if (result == null || result.get(id.toString()) == null) {
                 return null;
             }
-            return row;
+            return result;
         }
 
-        private <T> Rows<String, CompositeColumnName> queryRowsWithAllColumns(Keyspace ks, Class<T> clazz,
-                Collection<URI> id, ColumnFamily<String, CompositeColumnName> cf)
-                throws DatabaseException {
-            try {
-                OperationResult<Rows<String, CompositeColumnName>> result =
-                        ks.prepareQuery(cf)
-                                .getKeySlice(convertUriCollection(id))
-                                .execute();
-                return result.getResult();
-            } catch (ConnectionException e) {
-                throw DatabaseException.retryables.connectionFailed(e);
-            }
-        }
-
-        private Collection<String> convertUriCollection(Collection<URI> uriList) {
-            List<String> idList = new ArrayList<String>();
-            Iterator<URI> it = uriList.iterator();
-            while (it.hasNext()) {
-                idList.add(it.next().toString());
-                if (idList.size() > DEFAULT_PAGE_SIZE) {
-                    log.warn("Unbounded database query, request size is over allowed limit({}), " +
-                            "please use corresponding iterative API.", DEFAULT_PAGE_SIZE);
-                }
-            }
-            return idList;
-        }
     }
 
     protected boolean isItWhereItShouldBe(DataObject dbObj) {

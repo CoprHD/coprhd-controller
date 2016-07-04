@@ -4504,14 +4504,18 @@ recoverpoint_direct_access_test()
             done
         fi
 
-        secho 'Creating local array snapshot of source volume when one target copy is in direct access mode'
-        run blocksnapshot create ${PROJECT}/${src_volume} ${array_snapshot} --type native
-        secho 'Verifying the local array snapshot of the source volume was created'
-        run blocksnapshot show ${PROJECT}/${src_volume}/${array_snapshot}-1
+        if [ "$rp_type" = "" || "$RP_VOLUME_COUNT" = "1" ]; then
+            # Only run these tests for single volume tests or non-VPlex.  RP+VPlex with multiple volumes creates unpredicable
+            # local array snapshot names so it's hard to match up the source volume name with the snapshot name
+            secho 'Creating local array snapshot of source volume when one target copy is in direct access mode'
+            run blocksnapshot create ${PROJECT}/${src_volume} ${array_snapshot} --type native
+            secho 'Verifying the local array snapshot of the source volume was created'
+            run blocksnapshot show ${PROJECT}/${src_volume}/${array_snapshot}-1
+        fi
 
         for tgt_varray in ${rp_tgt_varrays[@]}
         do
-            if [ "$tgt_varray" = "$direct_access_mode_varray" ]; then
+            if [ "$tgt_varray" == "$direct_access_mode_varray" ]; then
                 secho 'Attempt to create an array snapshot of target volume whose copy is in direct access mode - expected failure'
                 fail blocksnapshot create ${PROJECT}/${src_volume}-target-${tgt_varray} ${array_snapshot} --type native
             else

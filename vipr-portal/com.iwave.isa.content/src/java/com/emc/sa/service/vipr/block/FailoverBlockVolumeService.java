@@ -4,6 +4,7 @@
  */
 package com.emc.sa.service.vipr.block;
 
+import static com.emc.sa.service.ServiceParams.DIRECT_ACCESS;
 import static com.emc.sa.service.ServiceParams.FAILOVER_TARGET;
 import static com.emc.sa.service.ServiceParams.IMAGE_TO_ACCESS;
 import static com.emc.sa.service.ServiceParams.POINT_IN_TIME;
@@ -20,9 +21,12 @@ import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.block.tasks.FailoverBlockConsistencyGroup;
 import com.emc.sa.service.vipr.block.tasks.FailoverBlockVolume;
+import com.emc.sa.service.vipr.block.tasks.UpdateBlockConsistencyGroupAccessMode;
+import com.emc.sa.service.vipr.block.tasks.UpdateBlockVolumeAccessMode;
 import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.block.BlockConsistencyGroupRestRep;
 import com.emc.storageos.model.block.BlockObjectRestRep;
+import com.emc.storageos.model.block.Copy;
 import com.emc.storageos.model.varray.VirtualArrayRestRep;
 import com.emc.vipr.client.Tasks;
 
@@ -45,6 +49,9 @@ public class FailoverBlockVolumeService extends ViPRService {
 
     @Param(value = POINT_IN_TIME, required = false)
     protected String pointInTime;
+
+    @Param(value = DIRECT_ACCESS, required = false)
+    protected String directAccess;
 
     private String type;
 
@@ -89,7 +96,8 @@ public class FailoverBlockVolumeService extends ViPRService {
 
     @Override
     public void execute() {
-        Tasks<? extends DataObjectRestRep> tasks;
+        Tasks<? extends DataObjectRestRep> failoverTasks = null;
+        Tasks<? extends DataObjectRestRep> updateAccessModeTasks = null;
 
         if (ConsistencyUtils.isVolumeStorageType(storageType)) {
             // The type selected is volume
@@ -99,9 +107,9 @@ public class FailoverBlockVolumeService extends ViPRService {
                 // the default case) but a specific snapshot or point in time.
                 setImageToAccessForRP();
 
-                tasks = execute(new FailoverBlockVolume(protectionSource, protectionTarget, type, pointInTime));
+                failoverTasks = execute(new FailoverBlockVolume(protectionSource, protectionTarget, type, pointInTime));
             } else {
-                tasks = execute(new FailoverBlockVolume(protectionSource, protectionTarget, type));
+                failoverTasks = execute(new FailoverBlockVolume(protectionSource, protectionTarget, type));
             }
         } else {
             // The type selected is consistency group
@@ -111,13 +119,31 @@ public class FailoverBlockVolumeService extends ViPRService {
                 // the default case) but a specific snapshot or point in time.
                 setImageToAccessForRP();
 
-                tasks = execute(new FailoverBlockConsistencyGroup(protectionSource, protectionTarget, type, pointInTime));
+                failoverTasks = execute(new FailoverBlockConsistencyGroup(protectionSource, protectionTarget, type, pointInTime));
             } else {
-                tasks = execute(new FailoverBlockConsistencyGroup(protectionSource, protectionTarget, type));
+                failoverTasks = execute(new FailoverBlockConsistencyGroup(protectionSource, protectionTarget, type));
             }
         }
-        if (tasks != null) {
-            addAffectedResources(tasks);
+
+        // Only call update access mode to direct access for RecoverPoint
+        if (Boolean.TRUE.equals(directAccess) && type != null && type.equals(RECOVER_POINT)) {
+            if (ConsistencyUtils.isVolumeStorageType(storageType)) {
+                // Update the access mode on the target copy to direct access
+                updateAccessModeTasks = execute(new UpdateBlockVolumeAccessMode(protectionSource, protectionTarget, type,
+                        Copy.ImageAccessMode.DIRECT_ACCESS.name()));
+            } else {
+                // Update the access mode on the target copy to direct access
+                updateAccessModeTasks = execute(new UpdateBlockConsistencyGroupAccessMode(protectionSource, protectionTarget, type,
+                        Copy.ImageAccessMode.DIRECT_ACCESS.name()));
+            }
+        }
+
+        if (failoverTasks != null) {
+            addAffectedResources(failoverTasks);
+        }
+
+        if (updateAccessModeTasks != null) {
+            addAffectedResources(updateAccessModeTasks);
         }
     }
 

@@ -92,7 +92,7 @@ public class BlockVolumes extends BulkExportResources<VolumeRestRep> implements 
      * Finds a volume by its WWN.
      * <p>
      * API Call: <tt>GET /block/volumes/search?wwn={wwn}</tt>
-     * 
+     *
      * @param wwn
      *            the volume WWN.
      * @return the list of matching volumes.
@@ -105,7 +105,7 @@ public class BlockVolumes extends BulkExportResources<VolumeRestRep> implements 
      * Finds a volume by its name.
      * <p>
      * API Call: <tt>GET /block/volumes/search?name={name}</tt>
-     * 
+     *
      * @param name
      *            the volume name.
      * @return the list of matching volumes.
@@ -118,7 +118,7 @@ public class BlockVolumes extends BulkExportResources<VolumeRestRep> implements 
      * Begins creating one or more block volumes.
      * <p>
      * API Call: <tt>POST /block/volumes</tt>
-     * 
+     *
      * @param create
      *            the block volume create configuration.
      * @return tasks for monitoring the progress of the operation(s).
@@ -129,7 +129,7 @@ public class BlockVolumes extends BulkExportResources<VolumeRestRep> implements 
 
     /**
      * Adds journal capacity
-     * 
+     *
      * @param create
      *            the block volume create configuration for journal volumes.
      * @return tasks for monitoring the progress of the operation(s).
@@ -142,11 +142,11 @@ public class BlockVolumes extends BulkExportResources<VolumeRestRep> implements 
      * Begins deactivating a block volume by ID.
      * <p>
      * API Call: <tt>POST /block/volumes/{id}/deactivate?type=FULL</tt>
-     * 
+     *
      * @param id
      *            the ID of the block volume to deactivate.
      * @return a task for monitoring the progress of the operation.
-     * 
+     *
      * @see #deactivate(List, VolumeDeleteTypeEnum)
      */
     public Task<VolumeRestRep> deactivate(URI id) {
@@ -157,13 +157,13 @@ public class BlockVolumes extends BulkExportResources<VolumeRestRep> implements 
      * Begins deactivating a block volume by ID.
      * <p>
      * API Call: <tt>POST /block/volumes/{id}/deactivate?type={deletionType}</tt>
-     * 
+     *
      * @param id
      *            the ID of the block volume to deactivate.
      * @param deletionType
      *            {@code FULL} or {@code VIPR_ONLY}
      * @return a task for monitoring the progress of the operation.
-     * 
+     *
      * @see com.emc.storageos.model.block.VolumeDeleteTypeEnum
      */
     public Task<VolumeRestRep> deactivate(URI id, VolumeDeleteTypeEnum deletionType) {
@@ -176,7 +176,7 @@ public class BlockVolumes extends BulkExportResources<VolumeRestRep> implements 
      * Begins deactivating multiple block volumes by their IDs.
      * <p>
      * API Call: <tt>POST /block/volumes/deactivate?type=FULL</tt>
-     * 
+     *
      * @param ids
      *            The IDs of the block volumes to deactivate.
      * @return tasks for monitoring the progress of the operations.
@@ -189,13 +189,13 @@ public class BlockVolumes extends BulkExportResources<VolumeRestRep> implements 
      * Begins deactivating multiple block volumes by their IDs.
      * <p>
      * API Call: <tt>POST /block/volumes/deactivate?type={deletionType}</tt>
-     * 
+     *
      * @param ids
      *            The IDs of the block volumes to deactivate.
      * @param deletionType
      *            {@code FULL} or {@code VIPR_ONLY}
      * @return tasks for monitoring the progress of the operations.
-     * 
+     *
      * @see com.emc.storageos.model.block.VolumeDeleteTypeEnum
      */
     public Tasks<VolumeRestRep> deactivate(List<URI> ids, VolumeDeleteTypeEnum deletionType) {
@@ -208,7 +208,7 @@ public class BlockVolumes extends BulkExportResources<VolumeRestRep> implements 
      * Begins expanding a block volume by ID.
      * <p>
      * API Call: <tt>POST /block/volumes/{id}/expand</tt>
-     * 
+     *
      * @param id
      *            the ID of the block volume to expand.
      * @param input
@@ -221,7 +221,7 @@ public class BlockVolumes extends BulkExportResources<VolumeRestRep> implements 
 
     /**
      * Gets the list of volumes for the given export groups.
-     * 
+     *
      * @param exportGroups
      *            the export groups.
      * @return the list of volumes in the given export groups.
@@ -232,13 +232,13 @@ public class BlockVolumes extends BulkExportResources<VolumeRestRep> implements 
 
     /**
      * Gets the list of volumes for the given export groups, optionally filtering the results.
-     * 
+     *
      * @param exportGroups
      *            the export groups.
      * @param filter
      *            the resource filter to apply to the results as they are returned (optional).
      * @return the list of block volumes.
-     * 
+     *
      * @see ExportGroupRestRep#getVolumes()
      */
     public List<VolumeRestRep> getByExportGroups(Collection<? extends ExportGroupRestRep> exportGroups,
@@ -258,7 +258,7 @@ public class BlockVolumes extends BulkExportResources<VolumeRestRep> implements 
      * Gets the list of exports for a given block volume.
      * <p>
      * API Call: <tt>GET /block/volumes/{id}/exports</tt>
-     * 
+     *
      * @param id
      *            the ID of the block volume.
      * @return the list of exports.
@@ -272,10 +272,10 @@ public class BlockVolumes extends BulkExportResources<VolumeRestRep> implements 
      * Gets the exports for a list of volumes.
      * <p>
      * API Call: <tt>POST /block/volumes/exports/bulk</tt>
-     * 
+     *
      * @param ids
      *            the IDs of the block volumes.
-     * 
+     *
      * @return the list of exports.
      */
     public ITLBulkRep getExports(BulkIdParam ids) {
@@ -284,7 +284,7 @@ public class BlockVolumes extends BulkExportResources<VolumeRestRep> implements 
 
     /**
      * Gets the base URL for volume continuous copies: <tt>/block/volumes/{id}/protection/continuous-copies</tt>
-     * 
+     *
      * @return the URL for continuous copies.
      */
     protected String getContinuousCopiesUrl() {
@@ -295,7 +295,7 @@ public class BlockVolumes extends BulkExportResources<VolumeRestRep> implements 
      * Begins creating a number of continuous copies for the given block volume.
      * <p>
      * API Call: <tt>POST /block/volumes/{id}/protection/continuous-copies/start</tt>
-     * 
+     *
      * @param id
      *            the ID of the block volume.
      * @param input
@@ -311,7 +311,7 @@ public class BlockVolumes extends BulkExportResources<VolumeRestRep> implements 
      * Begins stopping a number of continuous copies for the given block volume.
      * <p>
      * API Call: <tt>POST /block/volumes/{id}/protection/continuous-copies/stop</tt>
-     * 
+     *
      * @param id
      *            the ID of the block volume.
      * @param input
@@ -327,7 +327,7 @@ public class BlockVolumes extends BulkExportResources<VolumeRestRep> implements 
      * Begins pausing a number of continuous copies for a given block volume.
      * <p>
      * API Call: <tt>POST /block/volumes/{id}/protection/continuous-copies/pause</tt>
-     * 
+     *
      * @param id
      *            the ID of the block volume.
      * @param input
@@ -343,7 +343,7 @@ public class BlockVolumes extends BulkExportResources<VolumeRestRep> implements 
      * Begins resuming a number of continuous copies for the given block volume.
      * <p>
      * API Call: <tt>POST /block/volumes/{id}/protection/continuous-copies/resume</tt>
-     * 
+     *
      * @param id
      *            the ID of the block volume.
      * @param input
@@ -359,7 +359,7 @@ public class BlockVolumes extends BulkExportResources<VolumeRestRep> implements 
      * Request to reverse the replication direction, i.e. R1 and R2 are interchanged for the given block volume.
      * <p>
      * API Call: <tt>POST /block/volumes/{id}/protection/continuous-copies/swap</tt>
-     * 
+     *
      * @param id
      *            the ID of the block volume.
      * @param input
@@ -375,7 +375,7 @@ public class BlockVolumes extends BulkExportResources<VolumeRestRep> implements 
      * Lists the continuous copies for the given volume.
      * <p>
      * API Call: <tt>GET /block/volumes/{id}/protection/continuous-copies</tt>
-     * 
+     *
      * @param id
      *            the ID of the block volume.
      * @return the list of continuous copy references.
@@ -387,7 +387,7 @@ public class BlockVolumes extends BulkExportResources<VolumeRestRep> implements 
 
     /**
      * Gets the base URL for a single continuous copy by ID: <tt>/block/volumes/{id}/protection/continuous-copies/{copyId}</tt>
-     * 
+     *
      * @return the continuous copy URL.
      */
     protected String getContinuousCopiesIdUrl() {
@@ -398,7 +398,7 @@ public class BlockVolumes extends BulkExportResources<VolumeRestRep> implements 
      * Gets a continuous copy for the given block volume.
      * <p>
      * API Call: <tt>GET /block/volumes/{id}/protection/continuous-copies/{copyId}</tt>
-     * 
+     *
      * @param id
      *            the ID of the block volume.
      * @param copyId
@@ -411,7 +411,7 @@ public class BlockVolumes extends BulkExportResources<VolumeRestRep> implements 
 
     /**
      * Gets the list of continuous copies for the given block volume.
-     * 
+     *
      * @param id
      *            the ID of the block volume.
      * @return the list of continuous copies.
@@ -422,7 +422,7 @@ public class BlockVolumes extends BulkExportResources<VolumeRestRep> implements 
 
     /**
      * Gets the list of continuous copies for the given block volume, optionally filtering the results.
-     * 
+     *
      * @param id
      *            the ID of the block volume.
      * @param filter
@@ -446,12 +446,12 @@ public class BlockVolumes extends BulkExportResources<VolumeRestRep> implements 
      * Begins deactivating a number of continuous copies for the given block volume.
      * <p>
      * API Call: <tt>POST /block/volumes/{id}/protection/continuous-copies/deactivate</tt>
-     * 
+     *
      * @param id
      *            the ID of the block volume.
      * @param input
      *            the copy configurations.
-     * 
+     *
      * @return tasks for monitoring the progress of the operation.
      */
     public Tasks<VolumeRestRep> deactivateContinuousCopies(URI id, CopiesParam input) {
@@ -462,14 +462,14 @@ public class BlockVolumes extends BulkExportResources<VolumeRestRep> implements 
      * Begins deactivating a number of continuous copies for the given block volume.
      * <p>
      * API Call: <tt>POST /block/volumes/{id}/protection/continuous-copies/deactivate</tt>
-     * 
+     *
      * @param id
      *            the ID of the block volume.
      * @param input
      *            the copy configurations.
      * @param type
      *            {@code FULL} or {@code VIPR_ONLY}
-     * 
+     *
      * @return tasks for monitoring the progress of the operation.
      */
     public Tasks<VolumeRestRep> deactivateContinuousCopies(URI id, CopiesParam input, VolumeDeleteTypeEnum type) {
@@ -480,7 +480,7 @@ public class BlockVolumes extends BulkExportResources<VolumeRestRep> implements 
 
     /**
      * Gets the base URL for full copies for a single block volume: <tt>/block/volumes/{id}/protection/full-copies</tt>
-     * 
+     *
      * @return the base full copy URL.
      */
     protected String getFullCopyUrl() {
@@ -491,7 +491,7 @@ public class BlockVolumes extends BulkExportResources<VolumeRestRep> implements 
      * List the full copies associated with the given block volume.
      * <p>
      * API Call: <tt>GET /block/volumes/{id}/protection/full-copies</tt>
-     * 
+     *
      * @param id
      *            the ID of the block volume.
      * @return the list of full copy IDs.
@@ -503,11 +503,11 @@ public class BlockVolumes extends BulkExportResources<VolumeRestRep> implements 
 
     /**
      * Gets the full copies associated with the given block volume. This is a convenience method for: <tt>getByRefs(listFullCopies(id))</tt>
-     * 
+     *
      * @param id
      *            the ID of the block volume.
      * @return the full copy volumes.
-     * 
+     *
      * @see #listFullCopies(URI)
      * @see #getByRefs(Collection)
      */
@@ -518,13 +518,13 @@ public class BlockVolumes extends BulkExportResources<VolumeRestRep> implements 
     /**
      * Gets the full copies associated with the given block volume, with filtering support. This is a convenience method
      * for: <tt>getByRefs(listFullCopies(id), filter)</tt>
-     * 
+     *
      * @param id
      *            the ID of the block volume.
      * @param filter
      *            the resource filter to apply (optional).
      * @return the full copy volumes.
-     * 
+     *
      * @see #listFullCopies(URI)
      * @see #getByRefs(Collection, ResourceFilter)
      */
@@ -536,7 +536,7 @@ public class BlockVolumes extends BulkExportResources<VolumeRestRep> implements 
      * Begins creating a full copy of the given block volume.
      * <p>
      * API Call: <tt>POST /block/volumes/{id}/protection/full-copies</tt>
-     * 
+     *
      * @param id
      *            the ID of the block volume.
      * @param input
@@ -551,7 +551,7 @@ public class BlockVolumes extends BulkExportResources<VolumeRestRep> implements 
      * Begins activating a full copy of the given block volume.
      * <p>
      * API Call: <tt>POST /block/volumes/{id}/protection/full-copies/{copyId}/activate</tt>
-     * 
+     *
      * @param id
      *            the ID of the block volume.
      * @param copyId
@@ -567,7 +567,7 @@ public class BlockVolumes extends BulkExportResources<VolumeRestRep> implements 
      * Begins detaching a full copy of the given block volume.
      * <p>
      * API Call: <tt>POST /block/volumes/{id}/protection/full-copies/{copyId}/detach</tt>
-     * 
+     *
      * @param id
      *            the ID of the block volume.
      * @param copyId
@@ -584,13 +584,13 @@ public class BlockVolumes extends BulkExportResources<VolumeRestRep> implements 
      * from: <tt>volume.getProtection().getFullCopy().getPercentSynced()</tt>
      * <p>
      * API Call: <tt>POST /block/volumes/{id}/protection/full-copies/{copyId}/check-progress</tt>
-     * 
+     *
      * @param id
      *            the ID of the block volume.
      * @param copyId
      *            the ID of the full copy.
      * @return the full copy volume.
-     * 
+     *
      * @see VolumeRestRep.FullCopyRestRep#getPercentSynced()
      */
     @Deprecated
@@ -602,7 +602,7 @@ public class BlockVolumes extends BulkExportResources<VolumeRestRep> implements 
      * Begins initiating failover for a given block volume.
      * <p>
      * API Call: <tt>POST /block/volumes/{id}/protection/continuous-copies/failover</tt>
-     * 
+     *
      * @param id
      *            the ID of the block volume.
      * @param input
@@ -617,13 +617,13 @@ public class BlockVolumes extends BulkExportResources<VolumeRestRep> implements 
      * Begins initiating a failover test for the given block volume.
      * <p>
      * API Call: <tt>POST /block/volumes/{id}/protection/continuous-copies/failover-test</tt>
-     * 
+     *
      * @param id
      *            the ID of the block volume.
      * @param input
      *            the input configuration.
      * @return a task for monitoring the progress of the operation.
-     * 
+     *
      * @deprecated failover-test is being replaced by failover.
      */
     @Deprecated
@@ -635,15 +635,15 @@ public class BlockVolumes extends BulkExportResources<VolumeRestRep> implements 
      * Begins canceling a previously initiated failover test for the given block volume.
      * <p>
      * API Call: <tt>POST /block/volumes/{id}/protection/continuous-copies/failover-test-cancel</tt>
-     * 
+     *
      * @param id
      *            the ID of the block volume.
      * @param input
      *            the input configuration.
      * @return a task for monitoring the progress of the operation.
-     * 
+     *
      * @see #failoverTest(URI, CopiesParam)
-     * 
+     *
      * @deprecated failover-test-cancel needs to be replaced by failover-cancel.
      *             TO-DO: Add client support for failover-cancel.
      */
@@ -656,25 +656,40 @@ public class BlockVolumes extends BulkExportResources<VolumeRestRep> implements 
      * Begins canceling a previously initiated failover for the given block volume.
      * <p>
      * API Call: <tt>POST /block/volumes/{id}/protection/continuous-copies/failover-cancel</tt>
-     * 
+     *
      * @param id
      *            the ID of the block volume.
      * @param input
      *            the input configuration.
      * @return a task for monitoring the progress of the operation.
-     * 
+     *
      * @see #failoverTest(URI, CopiesParam)
-     * 
+     *
      */
     public Tasks<VolumeRestRep> failoverCancel(URI id, CopiesParam input) {
         return postTasks(input, getContinuousCopiesUrl() + "/failover-cancel", id);
     }
 
     /**
+     * Begins initiating access mode update for a given block volume.
+     * <p>
+     * API Call: <tt>POST /block/volumes/{id}/protection/continuous-copies/accessmode</tt>
+     *
+     * @param id
+     *            the ID of the block volume.
+     * @param input
+     *            the input configuration.
+     * @return a task for monitoring the progress of the operation.
+     */
+    public Tasks<VolumeRestRep> updateCopyAccessMode(URI id, CopiesParam input) {
+        return postTasks(input, getContinuousCopiesUrl() + "/accessmode", id);
+    }
+
+    /**
      * Sync continuous copies.
      * <p>
      * API Call: <tt>POST /block/volumes/{id}/protection/continuous-copies/sync</tt>
-     * 
+     *
      * @param id
      *            the ID of the block volume.
      * @param input
@@ -689,7 +704,7 @@ public class BlockVolumes extends BulkExportResources<VolumeRestRep> implements 
      * Gets a protection set for the given block volume.
      * <p>
      * API Call: <tt>GET /block/volumes/{volumeId}/protection/protection-sets/{protectionSetId}</tt>
-     * 
+     *
      * @param volumeId
      *            the ID of the block volume.
      * @param protectionSetId
@@ -705,7 +720,7 @@ public class BlockVolumes extends BulkExportResources<VolumeRestRep> implements 
      * Begin migrating a block volume.
      * <p>
      * API Call: <tt>POST /block/migrations</tt>
-     * 
+     *
      * @param input
      *            the migration configuration.
      * @return a task for monitoring the operation progress.
@@ -720,7 +735,7 @@ public class BlockVolumes extends BulkExportResources<VolumeRestRep> implements 
      * Lists migrations for the given block volume.
      * <p>
      * API Call: <tt>GET /block/volumes/{id}/migrations</tt>
-     * 
+     *
      * @param id
      *            the ID of the block volume.
      * @return the list of migration references.
@@ -734,7 +749,7 @@ public class BlockVolumes extends BulkExportResources<VolumeRestRep> implements 
      * Lists virtual pool change candidates for the given block volume.
      * <p>
      * API Call: <tt>GET /block/volumes/{id}/vpool-change/vpool</tt>
-     * 
+     *
      * @param id
      *            the ID of the block volume.
      * @return the list of virtual pool candidates.
@@ -747,7 +762,7 @@ public class BlockVolumes extends BulkExportResources<VolumeRestRep> implements 
 
     /**
      * Lists volumes in the given project that can potentially be moved to the given virtual array.
-     * 
+     *
      * @param projectId
      *            the ID of the project to search for potential virtual array change volumes
      * @param varrayId
@@ -765,7 +780,7 @@ public class BlockVolumes extends BulkExportResources<VolumeRestRep> implements 
      * Changes the virtual pool for the given block volume.
      * <p>
      * API Call: <tt>POST /block/volumes/vpool-change</tt>
-     * 
+     *
      * @param input
      *            the virtual pool change configuration.
      * @return a task for monitoring the progress of the operation.
@@ -778,7 +793,7 @@ public class BlockVolumes extends BulkExportResources<VolumeRestRep> implements 
      * Changes the virtual array for the given block volume.
      * <p>
      * API Call: <tt>PUT /block/volumes/{id}/varray</tt>
-     * 
+     *
      * @param id
      *            the id of the block volume.
      * @param input
@@ -794,7 +809,7 @@ public class BlockVolumes extends BulkExportResources<VolumeRestRep> implements 
      * Changes the virtual array for the given block volumes.
      * <p>
      * API Call; <tt>POST /block/volumes/change-varray</tt>
-     * 
+     *
      * @param input
      *            the VolumeVirtualArrayChangeParam
      * @return
@@ -806,7 +821,7 @@ public class BlockVolumes extends BulkExportResources<VolumeRestRep> implements 
 
     /**
      * Creates a search builder specifically for creating volume search queries.
-     * 
+     *
      * @return a volume search builder.
      */
     @Override

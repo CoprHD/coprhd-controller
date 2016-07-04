@@ -18,7 +18,6 @@ import com.emc.storageos.model.block.BlockConsistencyGroupRestRep;
 import com.emc.storageos.model.block.BlockConsistencyGroupSnapshotCreate;
 import com.emc.storageos.model.block.BlockConsistencyGroupUpdate;
 import com.emc.storageos.model.block.BlockSnapshotSessionList;
-import com.emc.storageos.model.block.BlockSnapshotSessionRestRep;
 import com.emc.storageos.model.block.CopiesParam;
 import com.emc.storageos.model.block.NamedVolumesList;
 import com.emc.storageos.model.block.SnapshotSessionCreateParam;
@@ -26,7 +25,6 @@ import com.emc.storageos.model.block.VolumeFullCopyCreateParam;
 import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
 import com.emc.vipr.client.ViPRCoreClient;
-import com.emc.vipr.client.core.filters.ResourceFilter;
 import com.emc.vipr.client.core.impl.PathConstants;
 import com.emc.vipr.client.impl.RestClient;
 
@@ -73,7 +71,7 @@ public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGro
      * Begins creating a full copy of the given block volume.
      * <p>
      * API Call: <tt>POST /block/consistency-groups/{id}/protection/full-copies</tt>
-     * 
+     *
      * @param consistencyGroupId
      *            the ID of the consistency group.
      * @param input
@@ -258,7 +256,7 @@ public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGro
         final String url = getIdUrl() + "/protection/snapshots/{fcid}/restore";
         return postTask(url, consistencyGroupId, snapshotId);
     }
-    
+
     /**
      * Resynchronize consistency group snapshot
      * <p>
@@ -304,6 +302,22 @@ public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGro
      */
     public Tasks<BlockConsistencyGroupRestRep> failoverCancel(URI consistencyGroupId, CopiesParam input) {
         final String url = getIdUrl() + "/protection/continuous-copies/failover-cancel";
+        return postTasks(input, url, consistencyGroupId);
+    }
+
+    /**
+     * Begins updating the access mode for a given consistency group copy.
+     * <p>
+     * API Call: <tt>POST /block/consistency-groups/{id}/protection/continuous-copies/accessmode</tt>
+     *
+     * @param consistencyGroupId
+     *            the ID of the consistency group.
+     * @param input
+     *            the input configuration.
+     * @return a task for monitoring the progress of the operation.
+     */
+    public Tasks<BlockConsistencyGroupRestRep> updateCopyAccessMode(URI consistencyGroupId, CopiesParam input) {
+        final String url = getIdUrl() + "/protection/continuous-copies/accessmode";
         return postTasks(input, url, consistencyGroupId);
     }
 
@@ -365,7 +379,7 @@ public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGro
     public Task<BlockConsistencyGroupRestRep> deactivate(URI id) {
         return doDeactivateWithTask(id);
     }
-    
+
     /**
      * List snapshot sessions in the consistency group
      * <p>
@@ -379,8 +393,8 @@ public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGro
         final String url = getIdUrl() + "/protection/snapshot-sessions";
         BlockSnapshotSessionList response = client.get(BlockSnapshotSessionList.class, url, consistencyGroupId);
         return response.getSnapSessionRelatedResourceList();
-    } 
- 
+    }
+
     /**
      * Create consistency group snapshot session
      * <p>
@@ -396,7 +410,7 @@ public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGro
         final String url = getIdUrl() + "/protection/snapshot-sessions";
         return postTasks(input, url, consistencyGroupId);
     }
-    
+
     /**
      * Deactivate consistency group snapshot session
      * <p>
@@ -412,7 +426,7 @@ public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGro
         final String url = getIdUrl() + "/protection/snapshot-sessions/{fcid}/deactivate";
         return postTasks(url, consistencyGroupId, snapshotSessionId);
     }
-    
+
     /**
      * Restore consistency group snapshot session
      * <p>

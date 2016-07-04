@@ -22,18 +22,30 @@
       type: "assetType.vipr.failoverTarget"
     },
     
-    imageToAccess:{
-      type: "assetType.vipr.imageToAccess",
-      required: "false",
-      initialValue: "latest",
-      lockable: true
-    }, 
-    
-    pointInTime:{
-      type: "dateTime",
-      required: "false",
-      lockable: true
-    }
+    advanced:{
+      type:"group",
+      lockable: true,
+      collapsed:true,
+      items:{
+        imageToAccess:{
+          type: "assetType.vipr.imageToAccess",
+          required: "false",
+          initialValue: "latest",
+          lockable: true
+        },     
+        pointInTime:{
+          type: "dateTime",
+          required: "false",
+          lockable: true
+        },
+        directAccess: {
+          type: "boolean",
+          initialValue: "false",
+          required: "false",
+          lockable: true
+        },
+      }  
+    }    
 
   }
 }

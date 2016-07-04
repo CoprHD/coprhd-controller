@@ -9,6 +9,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -20,6 +21,7 @@ import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.datastax.driver.core.utils.UUIDs;
 import com.emc.storageos.api.service.impl.resource.utils.MarshallingExcetion;
 import com.emc.storageos.db.client.DbAggregatorItf;
 import com.emc.storageos.db.client.DbClient;
@@ -40,8 +42,6 @@ import com.emc.storageos.db.client.model.TimeSeriesSerializer.DataPoint;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
-import com.netflix.astyanax.clock.MicrosecondsClock;
-import com.netflix.astyanax.util.TimeUUIDUtils;
 
 /**
  * Implemation of StatRetriever to retrieve stats locally instead of getting
@@ -322,8 +322,7 @@ public class DummyDBClient implements DbClient {
             ExecutorService workerThreads) throws DatabaseException {
         if (timeBucket != null) {
 
-            MicrosecondsClock clock = new MicrosecondsClock();
-            UUID uuid = TimeUUIDUtils.getTimeUUID(clock);
+            UUID uuid = UUIDs.timeBased();
 
             // For timeBucket 2012-01-01T00:00 we retirn 10 stats
             // For timeBucket 2012-01-02T00:00 we return I/O exception
@@ -341,7 +340,7 @@ public class DummyDBClient implements DbClient {
                         st.setUser(new URI("http://u." + i));
                         st.setVirtualPool(new URI("http://vpool.gold" + i));
                         callback.data((T) st,
-                                TimeUUIDUtils.getTimeFromUUID(uuid));
+                                UUIDs.unixTimestamp(uuid) * 1000);
                     }
                 } catch (URISyntaxException e) {
                     _logger.error(e.getMessage(), e);
@@ -364,7 +363,7 @@ public class DummyDBClient implements DbClient {
                         evt.setUserId(new URI("http://u." + i));
                         evt.setVirtualPool(new URI("http://vpool.gold" + i));
                         callback.data((T) evt,
-                                TimeUUIDUtils.getTimeFromUUID(uuid));
+                                UUIDs.unixTimestamp(uuid) * 1000);
                     }
                 } catch (URISyntaxException e) {
                     _logger.error(e.getMessage(), e);
@@ -391,7 +390,7 @@ public class DummyDBClient implements DbClient {
                         log.setAuditType("auditType" + i);
                         log.setDescription("description" + i);
                         callback.data((T) log,
-                                TimeUUIDUtils.getTimeFromUUID(uuid));
+                                UUIDs.unixTimestamp(uuid) * 1000);
                     }
                 } catch (URISyntaxException e) {
                     _logger.error(e.getMessage(), e);

@@ -17,6 +17,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import com.datastax.driver.core.utils.UUIDs;
 import com.emc.storageos.auth.TokenManager;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.DecommissionedConstraint;
@@ -35,7 +36,7 @@ import com.emc.storageos.security.exceptions.SecurityException;
 import com.emc.storageos.security.geo.TokenResponseBuilder;
 import com.emc.storageos.security.geo.TokenResponseBuilder.TokenResponseArtifacts;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
-import com.netflix.astyanax.util.TimeUUIDUtils;
+
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 
 /**
@@ -133,7 +134,7 @@ public class CassandraTokenManager extends CassandraTokenValidator implements To
         // get tokens older than idle time from index
         private URIQueryResultList getOldTokens() {
             URIQueryResultList list = new URIQueryResultList();
-            long timeStartMarker = TimeUUIDUtils.getMicrosTimeFromUUID(TimeUUIDUtils.getUniqueTimeUUIDinMicros())
+            long timeStartMarker = UUIDs.unixTimestamp(UUIDs.timeBased()) * 1000
                     - (_maxLifeValuesHolder.getMaxTokenIdleTimeInMins() * MIN_TO_MICROSECS);
             _dbClient.queryByConstraint(
                     DecommissionedConstraint.Factory.getDecommissionedObjectsConstraint(

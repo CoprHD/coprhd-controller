@@ -15,12 +15,12 @@ import java.net.URI;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Response;
 
+import com.datastax.driver.core.exceptions.DriverException;
 import com.emc.storageos.coordinator.exceptions.FatalCoordinatorException;
 import com.emc.storageos.coordinator.exceptions.RetryableCoordinatorException;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCodeException;
-import com.netflix.astyanax.connectionpool.exceptions.UnknownException;
 
 @Path("/")
 public class ErrorHandlingTestResource {
@@ -75,7 +75,7 @@ public class ErrorHandlingTestResource {
     @GET
     @Path("connectionException")
     public Response connectionException() {
-        throw DatabaseException.retryables.connectionFailed(new UnknownException(EXCEPTION_MESSAGE));
+        throw DatabaseException.retryables.connectionFailed(new DriverException(EXCEPTION_MESSAGE));
     }
 
     @GET

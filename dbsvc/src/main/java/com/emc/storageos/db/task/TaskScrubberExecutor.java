@@ -4,22 +4,19 @@
  */
 package com.emc.storageos.db.task;
 
+import com.datastax.driver.core.utils.UUIDs;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.constraint.Constraint;
-import com.emc.storageos.db.client.constraint.DecommissionedConstraint;
-import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.services.util.NamedScheduledThreadPoolExecutor;
 import com.google.common.collect.Lists;
-import com.netflix.astyanax.util.TimeUUIDUtils;
+
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 import java.util.Calendar;
-import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
@@ -71,7 +68,7 @@ public class TaskScrubberExecutor {
         log.info("Looking for completed tasks older than {} minutes", getConfigProperty(TASK_TTL_MINS_PROPERTY, MINIMUM_PERIOD_MINS));
 
         long taskLifetimeMicroSeconds = getConfigProperty(TASK_TTL_MINS_PROPERTY, MINIMUM_PERIOD_MINS) * MIN_TO_MICROSECS;
-        long currentTimeMicroseconds = TimeUUIDUtils.getMicrosTimeFromUUID(TimeUUIDUtils.getUniqueTimeUUIDinMicros());
+        long currentTimeMicroseconds = UUIDs.unixTimestamp(UUIDs.timeBased()) * 1000;
         long startTimeMicroSec = currentTimeMicroseconds - taskLifetimeMicroSeconds;
         Calendar startTimeMarker = Calendar.getInstance();
         startTimeMarker.setTimeInMillis(startTimeMicroSec/MINI_TO_MICROSECS);

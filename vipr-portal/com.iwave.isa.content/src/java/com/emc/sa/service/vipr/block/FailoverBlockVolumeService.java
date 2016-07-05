@@ -51,7 +51,7 @@ public class FailoverBlockVolumeService extends ViPRService {
     protected String pointInTime;
 
     @Param(value = DIRECT_ACCESS, required = false)
-    protected String directAccess;
+    protected Boolean directAccess;
 
     private String type;
 

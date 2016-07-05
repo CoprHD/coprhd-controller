@@ -89,6 +89,7 @@ public class HP3PARApi {
     
     // For ingestion
 	private static final String URI_VLUNS_OF_VOLUME = "/api/v1/vluns?query=%22volumeWWN=={0}%22";
+	private static final String URI_SNAPSHOTS_OF_VOLUME = "/api/v1/volumes?query=%22copyOf=={0}%22";
     
     // For export
     private static final String URI_CREATE_VLUN = "/api/v1/vluns";
@@ -1402,7 +1403,51 @@ public class HP3PARApi {
         } //end try/catch/finally
     
 	}
+
 	
+	/**
+	 * Get all vluns, which are associated with a volume, snapshot or a clone. 
+	 * 
+	 * @param displayName
+	 * @return
+	 * @throws Exception
+	 */
+	public VolumesCommandResult getSnapshotsOfVolume(String volumeName) throws Exception {
+
+        _log.info("3PARDriver: getVLunsOfVolume enter");
+        ClientResponse clientResp = null;
+        final String path = MessageFormat.format(URI_SNAPSHOTS_OF_VOLUME, volumeName);
+        _log.info("getVLunsOfVolume path is {}", path);
+        
+        try {
+	    _log.info("BEFORE GET CALL");
+            clientResp = get(path);
+            if (clientResp == null) {
+                _log.error("3PARDriver: getVLunsOfVolume There is no response from 3PAR");
+                throw new HP3PARException("There is no response from 3PAR");
+            } else if (clientResp.getStatus() != 200) {
+                String errResp = getResponseDetails(clientResp);
+                _log.error("3PARDriver: getVLunsOfVolume There is error response from 3PAR = {}" , errResp);
+                throw new HP3PARException(errResp);
+            } else {
+                String responseString = clientResp.getEntity(String.class);
+                _log.info("3PARDriver: getVLunsOfVolume 3PAR response is {}", responseString);
+                VolumesCommandResult volumesResult = new Gson().fromJson(sanitize(responseString),
+                		VolumesCommandResult.class);
+                return volumesResult;
+            }
+        } catch (Exception e) {
+	    _log.info("getVLunsOfVolume exception is {}", e.getMessage());
+            throw e;
+        } finally {
+            if (clientResp != null) {
+                clientResp.close();
+            }
+            _log.info("3PARDriver: getVLunsOfVolume leave");
+        } //end try/catch/finally
+    
+	}
+
 
 	public void createVVsetVirtualCopy(String nativeId, String snapshotName, Boolean readOnly) throws Exception {
 

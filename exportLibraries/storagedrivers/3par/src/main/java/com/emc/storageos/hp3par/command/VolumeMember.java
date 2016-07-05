@@ -9,18 +9,15 @@ import java.util.ArrayList;
 public class VolumeMember {
 	private String id;
 	private String name;
-	private int provisioningType;
-	private String copyType;
-	private long baseId;
+	private Integer provisioningType;
+	private Integer copyType;
+	private Long baseId;
 	private boolean readOnly;
 	private String userCPG;
-	
-	public String getUserCPG() {
-		return userCPG;
-	}
-	public void setUserCPG(String userCPG) {
-		this.userCPG = userCPG;
-	}
+	private String copyOf;	
+	private Integer state;
+	private Long sizeMiB;
+	private String wwn;
 	public String getId() {
 		return id;
 	}
@@ -39,13 +36,13 @@ public class VolumeMember {
 	public void setProvisioningType(int provisioningType) {
 		this.provisioningType = provisioningType;
 	}
-	public String getCopyType() {
+	public int getCopyType() {
 		return copyType;
 	}
-	public void setCopyType(String copyType) {
+	public void setCopyType(int copyType) {
 		this.copyType = copyType;
 	}
-	public Long getBaseId() {
+	public long getBaseId() {
 		return baseId;
 	}
 	public void setBaseId(long baseId) {
@@ -56,6 +53,18 @@ public class VolumeMember {
 	}
 	public void setReadOnly(boolean readOnly) {
 		this.readOnly = readOnly;
+	}
+	public String getUserCPG() {
+		return userCPG;
+	}
+	public void setUserCPG(String userCPG) {
+		this.userCPG = userCPG;
+	}
+	public String getCopyOf() {
+		return copyOf;
+	}
+	public void setCopyOf(String copyOf) {
+		this.copyOf = copyOf;
 	}
 	public Integer getState() {
 		return state;
@@ -75,7 +84,6 @@ public class VolumeMember {
 	public void setWwn(String wwn) {
 		this.wwn = wwn;
 	}
-	private Integer state;
-	private Long sizeMiB;
-	private String wwn;
+		
+	
 }

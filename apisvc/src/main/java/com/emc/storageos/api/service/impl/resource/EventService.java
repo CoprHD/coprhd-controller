@@ -101,7 +101,7 @@ public class EventService extends TaskResourceService {
 
             Controller controller = getController(controllerClass, null);
 
-            Method m = controllerClass.getDeclaredMethod(event.getOrchestrationMethod(), URI.class, Boolean.class, Boolean.class,
+            Method m = controllerClass.getDeclaredMethod(event.getOrchestrationMethod(), URI.class, boolean.class, boolean.class,
                     String.class);
             m.invoke(controller, hostId, true, false, taskId);
 

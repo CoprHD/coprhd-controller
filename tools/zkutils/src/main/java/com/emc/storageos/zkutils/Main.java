@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
+import java.util.Scanner;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,6 +31,20 @@ public class Main {
     private static final String LOCK_UPGRADE = "-upgrade";
     private static final String RESET_MIFAIL = "-migrationfail";
     private static final String REGEX_IP = "(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)";
+
+    private static String rollbackWarnMessage = "\n"
+            + "******************** WARN ********************\n"
+            + "1. Don't use rollback operation unless you know what you are doing, it will erase all current data on local site\n"
+            + "2. Please consider to recover active site first, use rollback operation only when active site is forever lost\n"
+            + "3. Don't use rollback operation unless you're handling below cases:\n"
+            + "   \ta) Resume operation is manually triggered on GUI, data-sync is started but disrupted before it's done\n"
+            + "   \tb) Resume operation is automatially triggered by active site, data-sync is started but disrupted before it's done\n"
+            + "4. Rollback operation will roll data (including zk, db and geodb) back to previous data revision\n"
+            + "5. Make sure all syssvcs are running before proceeding with rollback operation\n"
+            + "6. All nodes will reboot if rollback is successfully triggered, data will be switched to old revision after rebooting\n"
+            + "7. If rollback is not successfully triggered or finished, please check zkutils.log and syssvc.log for details\n"
+            + "8. After rollback is successfully done, make sure active site not come back again for it can pollute data of standby site\n"
+            + "**********************************************\n";
 
     private static LockCmdHandler lockCmdHandler;
     private static ZkCmdHandler zkCmdHandler;
@@ -153,8 +168,17 @@ public class Main {
                     if (args.length > 1) {
                         throw new IllegalArgumentException("Invalid paramerters");
                     }
+                    System.out.println(rollbackWarnMessage);
+                    System.out.print("Do you still want to rollback [y/n]:");
+                    Scanner userInput = new Scanner(System.in);
+                    String answer = userInput.nextLine();
+                    if (answer == null || !answer.equals("y")) {
+                        System.out.println("You have aborted rollback operation");
+                        System.exit(1);
+                    }
                     initZkCmdHandler(host, port, withData);
                     zkCmdHandler.rollbackDataRevision();
+                    System.out.println("Rollback signal has been successfully set in ZK, nodes will reboot in a few seconds");
                     break;
                 case TUNE_DR_CONFIG:
                     if (args.length != 3) {

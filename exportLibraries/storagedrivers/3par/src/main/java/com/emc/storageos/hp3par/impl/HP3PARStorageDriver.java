@@ -1271,8 +1271,9 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
       
       A 1-5 can be done with single/multiple volumes,initiators as applicable
       B Does not depend on host name
-      C Adding an initiator to 3PAR host will not do anything further. All volumes have to be exported
-          to new initiator explicitly
+      C Adding an initiator in matched-set will not do anything further. 
+        All volumes have to be exported to new initiator explicitly. 
+        In host-sees 3PAR will automatically export the volumes to newly added initiator.
       -------------------------------------------
       SHARED EXPORT: Will not include port number, exported to all ports, the cluster can see
       
@@ -1317,7 +1318,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
                 initiators.get(0).setInitiatorType(Type.Host); //TEMP CODE for Cluster unit testing
                 if (initiators.get(0).getInitiatorType().equals(Type.Host) == true) {
                     // Exclusive-Host export 
-                    // Some code is repeated with cluster for simplicity and readability
+                    // Some code is repeated with cluster for simplicity
                     hostArray = get3parHostname(initiators, vol.getStorageSystemId());
                     if (hostArray == null) {
                         // create a new host or add initiator to existing host
@@ -1471,7 +1472,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 
                 /*
                  * export for INDIVIDUAL HOST=exclusive
-                 * Some code is repeated with cluster for simplicity and readability
+                 * Some code is repeated with cluster for simplicity
                  */
                 if (host.startsWith("set:") == false) {
                     // try with recommended ports
@@ -1534,7 +1535,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
                 } else {
                     /*
                      * export for CLUSTER=shared
-                     * Some code is repeated with cluster for simplicity and readability
+                     * Some code is repeated with cluster for simplicity
                      * 
                      * Cluster export will be done as host-set in 3APR for entire cluster in one go
                      * Hence requests coming for rest of the individual host exports should gracefully exit
@@ -1747,8 +1748,8 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 
         try {
             if (initiators.isEmpty() || volumes.isEmpty()) {
-                _log.error("3PARDriver:unexportVolumesFromInitiators error blank initiator and volumes");
-                throw new HP3PARException("3PARDriver:unexportVolumesFromInitiators error blank initiator and volumes");
+                _log.error("3PARDriver:unexportVolumesFromInitiators error blank initiator or volumes");
+                throw new HP3PARException("3PARDriver:unexportVolumesFromInitiators error blank initiator or volumes");
             }
             
             host = get3parHostname(initiators, volumes.get(0).getStorageSystemId());

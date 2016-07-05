@@ -18,17 +18,17 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.model.FCEndpoint;
 import com.emc.storageos.networkcontroller.SSHSession;
 import com.emc.storageos.networkcontroller.exceptions.NetworkDeviceControllerException;
-import com.emc.storageos.services.util.EnvConfig;
 import com.emc.storageos.volumecontroller.ControllerException;
 
 public class MDSDialogTest {
 
     private static final String UNIT_TEST_CONFIG_FILE = "sanity";
-    private static final String ipaddress = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "brocade.host.ipaddress");
-    private static final String username = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "brocade.host.username");
-    private static final String password = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "brocade.host.password");
+    private static final String ipaddress = "10.247.96.81" ; //EnvConfig.get(UNIT_TEST_CONFIG_FILE, "brocade.host.ipaddress");
+    private static final String username = "admin"; //EnvConfig.get(UNIT_TEST_CONFIG_FILE, "brocade.host.username");
+    private static final String password = "Bourn3!!" ; //EnvConfig.get(UNIT_TEST_CONFIG_FILE, "brocade.host.password");
+    static String vsanId = "55";
     static Integer sshport = 22;
-    static String vsanId = "3178";
+    
 
     private static final Logger _log = LoggerFactory.getLogger(MDSDialogTest.class);
 
@@ -110,7 +110,7 @@ public class MDSDialogTest {
             String wwn = vsanToWwns.get(vsan);
             _log.info("Vsan {} WWN {}", vsan, wwn);
         }
-        boolean isSessionInProgress = dialog.isSessionInProgress(3172);
+        boolean isSessionInProgress = dialog.isSessionInProgress(3178);
         isSessionInProgress = dialog.isSessionInProgress(new Integer(vsanId));
         if (isSessionInProgress) {
             throw new Exception("Session in progress vsan: " + vsanId);
@@ -129,9 +129,10 @@ public class MDSDialogTest {
         // Print vsans, zonesets, zones, zone members
         for (String key : Vsan.vsanIdToVsan.keySet()) {
             Vsan v = Vsan.vsanIdToVsan.get(key);
+            System.out.println("VSAN: " + v.vsanName);
             v.print();
         }
-
+       
         testZoning(dialog, new Integer(vsanId));
 
     }

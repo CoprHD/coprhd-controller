@@ -4,10 +4,14 @@
  */
 package com.emc.storageos.networkcontroller.impl.mds;
 
+import java.text.DateFormat;
 import java.text.MessageFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -25,6 +29,7 @@ import com.emc.storageos.networkcontroller.SSHPrompt;
 import com.emc.storageos.networkcontroller.SSHSession;
 import com.emc.storageos.networkcontroller.exceptions.NetworkDeviceControllerException;
 import com.google.common.collect.Sets;
+
 
 /**
  * This file contains all the SSH dialogs to/from the MDS (or Nexus) Cisco switches.
@@ -1390,6 +1395,45 @@ public class MDSDialog extends SSHDialog {
         _log.info(MessageFormat.format("Host: {0}, Port: {1} -END copyRunningConfigToStartup",
                 new Object[] { getSession().getSession().getHost(), getSession().getSession().getPort() }));
 
+    }
+    
+    //Bharath
+    /**
+     * Does a zoneset clone of the existing zoneset in vsan 
+     * 
+     * @throws NetworkDeviceControllerException
+     */
+    public void zonesetClone(Integer vsanId, String zonesetToClone) throws NetworkDeviceControllerException {
+        _log.info(MessageFormat.format("Host: {0}, Port: {1} -BEGIN zonesetClone",
+                new Object[] { getSession().getSession().getHost(), getSession().getSession().getPort() }));
+
+        if (!inConfigMode) {
+            throw NetworkDeviceControllerException.exceptions.mdsDeviceNotInConfigMode();
+        }
+        if (lastPrompt != SSHPrompt.MDS_CONFIG) {
+            throw NetworkDeviceControllerException.exceptions.mdsUnexpectedLastPrompt(lastPrompt.toString(),
+                    SSHPrompt.MDS_CONFIG.toString());
+        }
+        SSHPrompt[] prompts = { SSHPrompt.MDS_CONFIG };
+        StringBuilder buf = new StringBuilder();
+        String newZoneset = getZonesetCloneName(zonesetToClone);
+        String payload = MessageFormat.format(MDSDialogProperties.getString("MDSDialog.zonesetClone.cmd"), zonesetToClone, newZoneset, vsanId); // copy running-config startup-config\n
+        lastPrompt = sendWaitFor(payload, defaultTimeout, prompts, buf);
+        String[] lines = getLines(buf);
+
+        _log.info(MessageFormat.format("Host: {0}, Port: {1} -END zonesetClone",
+                new Object[] { getSession().getSession().getHost(), getSession().getSession().getPort() }));
+
+    }
+    
+    
+    private String getZonesetCloneName(String zonesetToClone) {
+    	//get current date time with Calendar()
+ 	   Calendar cal = Calendar.getInstance();
+ 	   DateFormat dateFormat = new SimpleDateFormat("MM-dd-yy_HH-mm");
+
+ 	   String dateString = dateFormat.format(cal.getTime());
+    	return "ViPR-" + zonesetToClone + "_" + dateString;    	
     }
 
     /**

@@ -82,4 +82,17 @@ public class VolumeDetailsCommandResult {
     public void setUuid(String uuid) {
         this.uuid = uuid;
     }
+    
+    public String getAllValues() {
+    	String allValues = "name " + name +
+    					   "\n copyOf " + copyOf + 
+    					   "\n uuid " + uuid +
+    					   "\n wwn" + wwn +
+    					   "\n sizeMiB " + sizeMiB +
+    					   "\n provisioningType " + provisioningType +
+    					   "\n copyType " + copyType +
+    					   "\n snapCPG " + snapCPG +
+    					   "\n userCPG " + userCPG;
+        return allValues;
+    }
 }

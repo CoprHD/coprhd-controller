@@ -1877,7 +1877,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * @param volumeDescriptors list of volumes
      * @return URI of the vpool change vpool
      */
-    private URI getVirtualPoolChangeNewVirtualPool(List<VolumeDescriptor> volumeDescriptors) {
+    public URI getVirtualPoolChangeNewVirtualPool(List<VolumeDescriptor> volumeDescriptors) {
         if (volumeDescriptors != null) {
             for (VolumeDescriptor volumeDescriptor : volumeDescriptors) {
                 if (volumeDescriptor.getParameters() != null) {

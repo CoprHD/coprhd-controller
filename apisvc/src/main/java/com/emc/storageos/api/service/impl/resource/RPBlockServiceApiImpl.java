@@ -3894,13 +3894,17 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         
         Map<URI, URI> sourceMigrations = validMigrations.get(Volume.PersonalityTypes.SOURCE);
         Map<URI, URI> targetMigrations = validMigrations.get(Volume.PersonalityTypes.TARGET);
+        Map<URI, URI> journalMigrations = validMigrations.get(Volume.PersonalityTypes.METADATA);
         
         Set<URI> sourceFromVpools = sourceMigrations.keySet();
         Set<URI> targetFromVpools = targetMigrations.keySet();
+        Set<URI> journalFromVpools = journalMigrations.keySet();
         
         boolean sourceMigrationsExist = (sourceMigrations != null && !sourceMigrations.isEmpty());
         boolean targetMigrationsExist = (targetMigrations != null && !targetMigrations.isEmpty());
+        boolean journalMigrationsExist = (journalMigrations != null && !journalMigrations.isEmpty());
         
+        StringBuffer logMigrations = new StringBuffer();
   
         // Step 1
         // Let's find out if there are any Source volumes to migrate.
@@ -3916,9 +3920,9 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             for (Volume volume : volumes) {
                 // Check Source            
                 srcVolumesForMigrate.add(volume);
-                _log.info(String.format("RP+VPLEX Migration being prepared for Source volume [%s](%s) - new vpool will be [%s](%s)",
+                logMigrations.append(String.format("\tRP+VPLEX Migration SOURCE [%s](%s) to vpool [%s](%s)\n",
                         volume.getLabel(), volume.getId(),
-                        newVpool.getLabel(), newVpool.getId()));                
+                        newVpool.getLabel(), newVpool.getId()));
             }
         }
         
@@ -3945,14 +3949,15 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                     if (volumesNotInRG.contains(volume)) {
                         allMigrations.put(volume, newVpool);
                         
-                        _log.info(String.format("RP+VPLEX Migration being prepared for Source volume [%s](%s) - new vpool will be [%s](%s)",
-                                volume.getLabel(), volume.getId(),
-                                newVpool.getLabel(), newVpool.getId()));
-                    } else {
-                        _log.info(String.format("Skipping Source volume [%s](%s) - already would have been migrated to vpool [%s](%s)",
-                                volume.getLabel(), volume.getId(),
-                                newVpool.getLabel(), newVpool.getId()));
-                    }
+//                        _log.info(String.format("RP+VPLEX Migration being prepared for Source volume [%s](%s) - new vpool will be [%s](%s)",
+//                                volume.getLabel(), volume.getId(),
+//                                newVpool.getLabel(), newVpool.getId()));
+                    } 
+//                    else {
+//                        _log.info(String.format("Skipping Source volume [%s](%s) - already would have been migrated to vpool [%s](%s)",
+//                                volume.getLabel(), volume.getId(),
+//                                newVpool.getLabel(), newVpool.getId()));
+//                    }
                // }
             }
             // Check Targets
@@ -3974,23 +3979,52 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                         URI migrateToVpoolURI = targetMigrations.get(rpTargetVolume.getVirtualPool());
                         VirtualPool migrateToVpool = _dbClient.queryObject(VirtualPool.class, migrateToVpoolURI);
                         allMigrations.put(rpTargetVolume, migrateToVpool);
-                        _log.info(String.format("RP+VPLEX Migration being prepared for Target volume [%s](%s) - new vpool will be [%s](%s)",
+                        
+                        logMigrations.append(String.format("\tRP+VPLEX Migration TARGET [%s](%s) to vpool [%s](%s)\n",
                                 rpTargetVolume.getLabel(), rpTargetVolume.getId(),
                                 migrateToVpool.getLabel(), migrateToVpool.getId()));
                     }
                 }
             }
         }
+        
+        if (journalMigrationsExist) {
+            Volume vol = volumes.get(0);
+            
+            List<Volume> journalVolumes = RPHelper.getCgVolumes(_dbClient, vol.getConsistencyGroup(), Volume.PersonalityTypes.METADATA.name());
+            for (Volume journalVolume : journalVolumes) {
+
+                if (journalFromVpools.contains(journalVolume.getVirtualPool())) {
+                    
+                    //String subTaskId = UUID.randomUUID().toString();
+                    _log.info("Creating new task for journal migration: " + journalVolume.getLabel());
+                    Operation op = new Operation();
+                    op.setResourceType(ResourceOperationTypeEnum.CHANGE_BLOCK_VOLUME_VPOOL);
+                    op.setDescription("Change vpool operation");
+                    op = _dbClient.createTaskOpStatus(Volume.class, journalVolume.getId(), taskId, op);
+                    taskList.addTask(toTask(journalVolume, taskId, op));
+                    
+                    
+                    URI migrateToVpoolURI = journalMigrations.get(journalVolume.getVirtualPool());
+                    VirtualPool migrateToVpool = _dbClient.queryObject(VirtualPool.class, migrateToVpoolURI);
+                    allMigrations.put(journalVolume, migrateToVpool);
+                    
+                    logMigrations.append(String.format("\tRP+VPLEX Migration JOURNAL [%s](%s) to vpool [%s](%s)\n",
+                            journalVolume.getLabel(), journalVolume.getId(),
+                            migrateToVpool.getLabel(), migrateToVpool.getId()));
+                }
+            }
+        }
+        
+        _log.info("\nMigrations:\n");
+        _log.info(logMigrations.toString());
   
         // Step 4
         // Assuming we have single migrations
         for (Map.Entry<Volume, VirtualPool> entry : allMigrations.entrySet()) {
             Volume migrateVolume = entry.getKey();
             VirtualPool migrateToVpool = entry.getValue();
-            
-            _log.info(String.format("Request to Migrate Data for RP protected VPLEX Volume [%s] (%s) and move it to Virtual Pool [%s](%s)",
-                    migrateVolume.getLabel(), migrateVolume.getId(), migrateToVpool.getLabel(), migrateToVpool.getId()));
-            
+                        
             StorageSystem vplexStorageSystem = _dbClient.queryObject(StorageSystem.class, migrateVolume.getStorageController());
             migrateVolumeDescriptors.addAll(vplexBlockServiceApiImpl
                                       .createChangeVirtualPoolDescriptors(vplexStorageSystem, migrateVolume, migrateToVpool, taskId,
@@ -4038,10 +4072,12 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 }
             }
             
+            // BBB how to I get around this?!
+            
             // If the were no direct Source volumes involved in migration but there were Target or
             // Journal migrations then we implicitly need to update the passed in Source volumes
             // with the new vpool we have moved to (including their backing volume vpools).
-            if (!sourceMigrationsExist && targetMigrationsExist) {
+            if (!sourceMigrationsExist && (targetMigrationsExist || journalMigrationsExist)) {
                 for (Volume volume : volumes) {                              
                     if (volume.checkPersonality(Volume.PersonalityTypes.SOURCE)) {                       
                         volume.setVirtualPool(newVpool.getId());
@@ -4054,6 +4090,8 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                     }
                 }
             }
+            
+            
         } else {
             _log.info(String.format("No extra migrations needed."));
         }

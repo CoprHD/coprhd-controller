@@ -32,6 +32,7 @@ public class VolumeVpoolChangeTaskCompleter extends VolumeWorkflowCompleter {
 
     private URI oldVpool;
     private Map<URI, URI> oldVpools;
+    private Map<URI, URI> newVpools;
     private final List<URI> migrationURIs = new ArrayList<URI>();
 
     public VolumeVpoolChangeTaskCompleter(URI volume, URI oldVpool, String task) {
@@ -55,15 +56,23 @@ public class VolumeVpoolChangeTaskCompleter extends VolumeWorkflowCompleter {
         this.oldVpools = oldVpools;
     }
 
+    public VolumeVpoolChangeTaskCompleter(List<URI> volumeURIs, List<URI> migrationURIs, Map<URI, URI> oldVpools, Map<URI, URI> newVpools,
+            String task) {        
+        super(volumeURIs, task);
+        this.oldVpools = oldVpools;
+        this.migrationURIs.addAll(migrationURIs);
+        this.newVpools = newVpools;
+    }
+
     @Override
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded serviceCoded) {
         boolean useOldVpoolMap = (oldVpool == null);
+        List<Volume> volumesToUpdate = new ArrayList<Volume>();
         try {
             switch (status) {
                 case error:
                     _log.error("An error occurred during virtual pool change " + "- restore the old virtual pool to the volume(s): {}",
-                            serviceCoded.getMessage());
-                    List<Volume> volumesToUpdate = new ArrayList<Volume>();
+                            serviceCoded.getMessage());                    
                     boolean isReplicationModeChange = false;
                     // We either are using a single old Vpool URI or a map of Volume URI to old Vpool URI
                     for (URI id : getIds()) {
@@ -114,8 +123,6 @@ public class VolumeVpoolChangeTaskCompleter extends VolumeWorkflowCompleter {
 
                     break;
                 case ready:
-                    // The new Vpool has already been stored in the volume in BlockDeviceExportController.
-
                     // record event.
                     OperationTypeEnum opType = OperationTypeEnum.CHANGE_VOLUME_VPOOL;
                     try {
@@ -126,6 +133,22 @@ public class VolumeVpoolChangeTaskCompleter extends VolumeWorkflowCompleter {
                             if ((useOldVpoolMap) && (!oldVpools.containsKey(id))) {
                                 continue;
                             }
+                            
+                            // Regardless if this has already been done, if we are in the 
+                            // "ready" or "success" state then one of the last
+                            // steps we need to take for the volume is to update the
+                            // vpool reference to the new vpool.
+                            if(newVpools != null && !newVpools.isEmpty()) {
+                                URI newVpoolId = newVpools.get(id);
+                                if (newVpoolId != null) {
+                                    Volume volume = dbClient.queryObject(Volume.class, id);
+                                    volume.setVirtualPool(newVpoolId);
+                                    // No effect if this not a VPLEX volume
+                                    VPlexUtil.updateVPlexBackingVolumeVpools(volume, newVpoolId, dbClient);
+                                    volumesToUpdate.add(volume);
+                                }
+                            }
+                            
                             recordBourneVolumeEvent(dbClient, id, evType, status, evDesc);
                         }
                     } catch (Exception ex) {

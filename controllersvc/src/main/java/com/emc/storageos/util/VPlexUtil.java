@@ -1556,51 +1556,52 @@ public class VPlexUtil {
     }
     
     /**
-     * Update the backing volume virtual pool reference, needed for change vpool
+     * Update the backing volume virtual pool reference(s), needed for change vpool
      * operations.
      *
      * @param volume
      *            The source volume.
-     * @param srcVpoolURI
+     * @param newVpoolURI
      *            The new vpool.
      * @param dbClient 
      *            A reference to a database client.            
      */
-    public static void updateVPlexBackingVolumeVpools(Volume volume, URI srcVpoolURI, DbClient dbClient) {
+    public static void updateVPlexBackingVolumeVpools(Volume volume, URI newVpoolURI, DbClient dbClient) {
         // Check to see if this is a VPLEX virtual volume
         if (isVplexVolume(volume, dbClient)) {
             _log.info(String.format("Update the virtual pool on backing volume(s) for virtual volume [%s] (%s).",
                     volume.getLabel(), volume.getId()));
-            VirtualPool srcVpool = dbClient.queryObject(VirtualPool.class, srcVpoolURI);
-            String srcVpoolName = srcVpool.getLabel();
-            URI haVpoolURI = null;
-            String haVpoolName = null;
+            VirtualPool newVpool = dbClient.queryObject(VirtualPool.class, newVpoolURI);
+            String newVpoolName = newVpool.getLabel();
+            URI newHaVpoolURI = null;
+            String newHaVpoolName = null;
 
-            // We only have to get the HA vpool URI if there are more than 1 associated backing volumes.
+            // Get the new HA vpool if this is a distributed volume
             if (volume.getAssociatedVolumes().size() > 1) {
-                // Find the HA vpool from the source vpool
-                VirtualPool haVpool = VirtualPool.getHAVPool(srcVpool, dbClient);
+                // Find the new HA vpool from the new vpool
+                VirtualPool haVpool = VirtualPool.getHAVPool(newVpool, dbClient);
 
-                // If the HA vpool is null, it means the src vpool is the HA vpool
-                haVpool = (haVpool == null) ? srcVpool : haVpool;
+                // If the HA vpool is null, it means the source vpool is the HA vpool
+                haVpool = (haVpool == null) ? newVpool : haVpool;
 
-                haVpoolURI = haVpool.getId();
-                haVpoolName = haVpool.getLabel();
+                newHaVpoolURI = haVpool.getId();
+                newHaVpoolName = haVpool.getLabel();
             }
 
             // Check each backing volume, if the varray is the same as the virtual volume passed in
-            // then the source backing volume would have the same varray
+            // then the source backing volume should be updated, otherwise is the HA backing volume that
+            // needs updating.
             for (String associatedVolId : volume.getAssociatedVolumes()) {
                 Volume associatedVol = dbClient.queryObject(Volume.class, URI.create(associatedVolId));
 
-                URI vpoolURI = srcVpoolURI;
-                String vpoolName = srcVpoolName;
+                URI vpoolURI = newVpoolURI;
+                String vpoolName = newVpoolName;
 
                 // If the backing volume does not have the same varray as the source virtual
                 // volume, then we must be looking at the HA backing volume.
                 if (!associatedVol.getVirtualArray().equals(volume.getVirtualArray())) {
-                    vpoolURI = haVpoolURI;
-                    vpoolName = haVpoolName;
+                    vpoolURI = newHaVpoolURI;
+                    vpoolName = newHaVpoolName;
                 }
 
                 VirtualPool oldVpool = dbClient.queryObject(VirtualPool.class, associatedVol.getVirtualPool());

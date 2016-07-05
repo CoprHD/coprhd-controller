@@ -302,7 +302,9 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
     @Override
     public void changeVirtualPool(List<VolumeDescriptor> volumes, String taskId)
             throws ControllerException {
-        Map<URI, URI> changeVpoolVolsMap = VolumeDescriptor.getAllVirtualPoolChangeSourceVolumes(volumes);
+        Map<URI, URI> volumeToOldVpoolsMap = VolumeDescriptor.createVolumeToOldVpoolMap(volumes);
+        Map<URI, URI> volumeToNewVpoolsMap = VolumeDescriptor.createVolumeToNewVpoolMap(volumes);
+        
         List<URI> volURIs = VolumeDescriptor.getVolumeURIs(volumes);
         List<URI> migrationURIs = new ArrayList<URI>();
         for (VolumeDescriptor desc : volumes) {
@@ -313,7 +315,7 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
         }
 
         VolumeVpoolChangeTaskCompleter completer = new VolumeVpoolChangeTaskCompleter(
-                volURIs, migrationURIs, changeVpoolVolsMap, taskId);
+                volURIs, migrationURIs, volumeToOldVpoolsMap, volumeToNewVpoolsMap, taskId);
 
         try {
             // Generate the Workflow.

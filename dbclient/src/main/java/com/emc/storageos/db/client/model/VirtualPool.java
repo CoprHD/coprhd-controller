@@ -935,7 +935,7 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     }
 
     /**
-     * Returns whether or not the passed VirtualPool specifies VPlex high availability.
+     * Returns whether or not the passed VirtualPool specifies VPlex Distributed high availability.
      * 
      * @param virtualPool
      *            A reference to the VirtualPool.
@@ -945,6 +945,19 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
         String highAvailability = virtualPool.getHighAvailability();
         return NullColumnValueGetter.isNotNullValue(highAvailability)
                 && (VirtualPool.HighAvailabilityType.vplex_distributed.name().equals(highAvailability));
+    }
+    
+    /**
+     * Returns whether or not the passed VirtualPool specifies VPlex Local high availability.
+     * 
+     * @param virtualPool
+     *            A reference to the VirtualPool.
+     * @return true if the VirtualPool specifies VPlex high availability, false otherwise.
+     */
+    public static boolean vPoolSpecifiesHighAvailabilityLocal(final VirtualPool virtualPool) {
+        String highAvailability = virtualPool.getHighAvailability();
+        return NullColumnValueGetter.isNotNullValue(highAvailability)
+                && (VirtualPool.HighAvailabilityType.vplex_local.name().equals(highAvailability));
     }
 
     /**

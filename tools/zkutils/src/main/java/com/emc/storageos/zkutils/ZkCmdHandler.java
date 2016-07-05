@@ -97,8 +97,8 @@ public class ZkCmdHandler implements Watcher {
             log.info("Manual rollback to {} has been triggered", rollbackTargetRevision);
             System.out.println(String.format("Rollback to %s has been initiated successfully", prevRevision));
         } else {
-            log.error("No valid previous revision found. Skip rollback");
-            System.out.println("Can't find viable previous data copy, rollback oparation has been aborted");
+            log.warn("No valid previous revision found. Skip rollback");
+            System.out.println("Can't find viable previous data revision. Rollback oparation has been aborted");
         }
     }
 

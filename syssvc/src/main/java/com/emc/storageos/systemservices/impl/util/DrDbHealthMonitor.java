@@ -70,7 +70,7 @@ public class DrDbHealthMonitor extends DrHealthMonitor {
                 checkIncrementalSyncingSite(standbySite, sitesToDegrade);
             }
             
-            if (siteState.equals(SiteState.STANDBY_SYNCED) || siteState.equals(SiteState.STANDBY_SYNCING)) {
+            if (siteState.equals(SiteState.STANDBY_SYNCED)) {
                 SiteMonitorResult monitorResult = updateSiteMonitorResult(standbySite);
                 if (monitorResult.getDbQuorumLostSince() == 0) {
                     log.info("Standby site {} is connected now", standbySite.getUuid());

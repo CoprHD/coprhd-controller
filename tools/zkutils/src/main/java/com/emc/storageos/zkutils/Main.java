@@ -33,18 +33,27 @@ public class Main {
     private static final String REGEX_IP = "(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)";
 
     private static String rollbackWarnMessage = "\n"
-            + "******************** WARN ********************\n"
-            + "1. Don't use rollback operation unless you know what you are doing, it will erase all current data on local site\n"
-            + "2. Please consider to recover active site first, use rollback operation only when active site is forever lost\n"
-            + "3. Don't use rollback operation unless you're handling below cases:\n"
-            + "   \ta) Resume operation was manually triggered on GUI, data-sync was started but disrupted before it's done\n"
-            + "   \tb) Resume operation was automatially triggered by active site, data-sync was started but disrupted before it's done\n"
-            + "4. Rollback operation will roll data (including zk, db and geodb) back to previous data revision\n"
-            + "5. Make sure all syssvcs are running before proceeding with rollback operation\n"
-            + "6. All nodes will reboot if rollback is successfully triggered, data will be switched to old revision after rebooting\n"
-            + "7. If rollback is not successfully triggered or finished, please check zkutils.log and syssvc.log for details\n"
-            + "8. After rollback is successfully done, make sure active site not come back again for it can pollute data of standby site\n"
-            + "**********************************************\n";
+            + "********************************* WARNINGS *********************************\n"
+            + "1. It applies for DR Standby only. Read the following notes before moving \n" 
+            + "   ahead. It will erase current data in zk/db/geodb.\n\n"
+            + "2. Try to recover DR Active first when disaster happens. Use rollback as last\n"
+            + "   resort when Active is lost and current data on Standby is incomplete\n\n"
+            + "3. Do rollback for the following cases:\n"
+            + "   \ta) Resume operation was manually triggered on GUI, data-syncing was\n"
+            + "   \t   started but disrupted before it's done.\n"
+            + "   \tb) Resume operation was automatially triggered by active site,\n"
+            + "   \t   data-syncing was started but disrupted before it's done.\n\n"
+            + "4. Rollback operation will change data (including zk, db and geodb) back to\n"
+            + "   previous data revision before resuming.\n\n"
+            + "5. Make sure all nodes are up and running before proceeding with rollback\n"
+            + "   operation on DR Standby.\n\n"
+            + "6. All nodes will reboot if rollback is successfully triggered, data will\n"
+            + "   be switched to previous revision after rebooting.\n\n"
+            + "7. If rollback is not successfully triggered or finished, check zkutils.log\n"
+            + "   and syssvc.log for troubleshooting.\n\n"
+            + "8. After rollback is successfully done, trigger failover immediately on this\n"
+            + "   DR Standby. Original Active should not come back again.\n"
+            + "****************************************************************************\n";
 
     private static LockCmdHandler lockCmdHandler;
     private static ZkCmdHandler zkCmdHandler;
@@ -58,7 +67,7 @@ public class Main {
 
     private enum Command {
         LOCK, HOLD, RELEASE, INFO, PATH, EPHEMERAL, RESET, GETLASTVALIDZXID, TRUNCATETXNLOG, GETKEYANDCERT, EXPORTKEYSTORE, SAVE_SSH_KEYS,
-        GEN_SSH_AUTH_KEYS, SET, TUNE_DR_CONFIG, ROLLBACK
+        GEN_SSH_AUTH_KEYS, SET, TUNE_DR_CONFIG, ROLLBACK_DATA_REVISION
     }
 
     /**
@@ -114,9 +123,9 @@ public class Main {
         System.out.println(String.format(
                 "\t%s \t\t\tGenerate AuthorizedKeys2 for each user.",
                 Command.GEN_SSH_AUTH_KEYS.name().toLowerCase()));
-        System.out.println("\n\tMiscellaneous Operations:");
+        System.out.println("\n\tDisaster Recovery Operations:");
         System.out.println(String.format("\t%s <key> <value>\t\tAdd \"key=value\" line to DR configuration", Command.TUNE_DR_CONFIG.name().toLowerCase()));
-        System.out.println(String.format("\t%s \t\t\tRoll back data including zk/db/geodb to previous viable version", Command.ROLLBACK.name().toLowerCase()));
+        System.out.println(String.format("\t%s \t\t\tRollback DR Standby to previous viable data revision", Command.ROLLBACK_DATA_REVISION.name().toLowerCase()));
     }
 
     /**
@@ -164,12 +173,12 @@ public class Main {
                     initZkCmdHandler(host, port, withData);
                     zkCmdHandler.printEphemeralNodes();
                     break;
-                case ROLLBACK:
+                case ROLLBACK_DATA_REVISION:
                     if (args.length > 1) {
                         throw new IllegalArgumentException("Invalid paramerters");
                     }
                     System.out.println(rollbackWarnMessage);
-                    System.out.print("Do you still want to rollback [y/n]:");
+                    System.out.print("Do you still want to continue [y/n]:");
                     Scanner userInput = new Scanner(System.in);
                     String answer = userInput.nextLine();
                     if (answer == null || !answer.equals("y")) {

@@ -157,9 +157,9 @@ _list() {
         [ -z "${ver}" ] && continue;
         local sn=$(echo ${i} | cut -d. -f2)
         if [ "${curmaj}" == "${ver}" ] ; then
-            _info "ACTIVE - Version(${ver}), Snapshot number(${sn})"
+            _info "ACTIVE - Major version(${ver}), minor (${sn})"
         else
-            _info "UNUSED - Version(${ver}), Snapshot number(${sn})"
+            _info "UNUSED - Major version(${ver}), minor (${sn})"
         fi
     done
 }
@@ -253,7 +253,7 @@ _revert_minor_version() {
         return
     fi
     if [ ! -d ${basedir}/${ver}.${basesn} ]; then
-        _fatal "Failed to revert snapshot for $1: base snapshot ${basesn} missing"
+        _fatal "Failed to revert minor for $1: base ${basesn} missing"
     fi    
 
     unlink $1

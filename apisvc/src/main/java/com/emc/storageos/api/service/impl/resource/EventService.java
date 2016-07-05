@@ -7,6 +7,7 @@ package com.emc.storageos.api.service.impl.resource;
 import static com.emc.storageos.api.mapper.DbObjectMapper.toRelatedResource;
 
 import java.net.URI;
+import java.util.UUID;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -23,12 +24,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.mapper.DbObjectMapper;
+import com.emc.storageos.computesystemcontroller.ComputeSystemController;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.ActionableEvent;
 import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.Host;
+import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.exceptions.DatabaseException;
+import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.event.EventCreateParam;
 import com.emc.storageos.model.event.EventList;
@@ -70,6 +75,41 @@ public class EventService extends TaskResourceService {
         ActionableEvent event = queryObject(ActionableEvent.class, id, false);
         // check the user permissions
         verifyAuthorizedInTenantOrg(event.getTenant(), getUserFromContext());
+        _dbClient.markForDeletion(event);
+        return Response.ok().build();
+    }
+
+    @POST
+    @Path("/{id}/approve")
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    public Response approveEvent(@PathParam("id") URI id) throws DatabaseException {
+        ActionableEvent event = queryObject(ActionableEvent.class, id, false);
+        // check the user permissions
+        verifyAuthorizedInTenantOrg(event.getTenant(), getUserFromContext());
+
+        // TODO testing calling controller workflow
+        URI hostId = URI.create(event.getMessage());
+        String taskId = UUID.randomUUID().toString();
+        Operation op = _dbClient.createTaskOpStatus(Host.class, hostId, taskId,
+                ResourceOperationTypeEnum.DELETE_HOST);
+
+        ComputeSystemController controller = getController(ComputeSystemController.class, null);
+        controller.detachHostStorage(hostId, true, false, taskId);
+        //
+
+        _dbClient.markForDeletion(event);
+        return Response.ok().build();
+    }
+
+    @POST
+    @Path("/{id}/decline")
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    public Response declineEvent(@PathParam("id") URI id) throws DatabaseException {
+        ActionableEvent event = queryObject(ActionableEvent.class, id, false);
+        // check the user permissions
+        verifyAuthorizedInTenantOrg(event.getTenant(), getUserFromContext());
+        // this.getController(clazz, hw);
+        // TODO decline the event
         _dbClient.markForDeletion(event);
         return Response.ok().build();
     }

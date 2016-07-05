@@ -494,7 +494,7 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                         entry.getKey(),
                         generateDeviceSpecificAddVolumeWorkFlow(workflow,
                                 attachGroupSnapshot, storage, exportGroup, mask,
-                                volumesToAdd, volumeURIs));
+                                volumesToAdd, volumeURIs, null));
                 anyOperationsToDo = true;
             }
 
@@ -517,8 +517,8 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 maskToInitiatorsMap.put(mask.getId(), initiatorURIs);
 
                 generateDeviceSpecificAddInitiatorWorkFlow(workflow, previousStep,
-                        storage, exportGroup, mask, initiatorsURIs, maskToInitiatorsMap,
-                        token);
+                        storage, exportGroup, mask, null, initiatorsURIs,
+                        maskToInitiatorsMap, token);
 
                 anyOperationsToDo = true;
             }
@@ -566,7 +566,7 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                             zoneMasksToInitiatorsURIs.put(maskURI, newInitiators);
 
                             generateDeviceSpecificExportMaskAddInitiatorsWorkflow(workflow, EXPORT_GROUP_ZONING_TASK, storage,
-                                    exportGroup, mask, newInitiators, token);
+                                    exportGroup, mask, null, newInitiators, token);
                             foundASystemCreatedMask = true;
                             anyOperationsToDo = true;
                         }

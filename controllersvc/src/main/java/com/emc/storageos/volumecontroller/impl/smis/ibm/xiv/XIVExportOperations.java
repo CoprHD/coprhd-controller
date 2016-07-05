@@ -675,7 +675,7 @@ public class XIVExportOperations implements ExportMaskOperations {
                                     exportMask.getExistingVolumes().keySet())));
                     if (foundMaskInDb) {
                         ExportMaskUtils.sanitizeExportMaskContainers(_dbClient, exportMask);
-                        _dbClient.updateAndReindexObject(exportMask);
+                        _dbClient.updateObject(exportMask);
                     } else {
                         _dbClient.createObject(exportMask);
                     }

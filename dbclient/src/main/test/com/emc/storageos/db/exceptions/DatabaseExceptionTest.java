@@ -17,8 +17,8 @@ import java.net.URI;
 
 import org.junit.Test;
 
+import com.datastax.driver.core.exceptions.DriverException;
 import com.emc.storageos.svcs.errorhandling.mappers.BaseServiceCodeExceptionTest;
-import com.netflix.astyanax.connectionpool.exceptions.UnknownException;
 
 public class DatabaseExceptionTest extends BaseServiceCodeExceptionTest {
 
@@ -38,7 +38,7 @@ public class DatabaseExceptionTest extends BaseServiceCodeExceptionTest {
 
     @Test
     public void connectionException() {
-        final DatabaseException exception = DatabaseException.retryables.connectionFailed(new UnknownException(EXCEPTION_MESSAGE));
+        final DatabaseException exception = DatabaseException.retryables.connectionFailed(new DriverException(EXCEPTION_MESSAGE));
         assertInternalException(SERVICE_UNAVAILABLE, DBSVC_CONNECTION_ERROR, "Database connection failed. Please check the database services and network connectivity on all nodes", exception);
     }
 

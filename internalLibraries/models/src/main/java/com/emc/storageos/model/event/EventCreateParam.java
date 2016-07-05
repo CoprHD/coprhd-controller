@@ -16,6 +16,8 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class EventCreateParam {
 
     private String message;
+    private String controllerClass;
+    private String orchestrationMethod;
     private URI tenant;
 
     public EventCreateParam() {
@@ -32,6 +34,24 @@ public class EventCreateParam {
 
     public void setMessage(String message) {
         this.message = message;
+    }
+
+    @XmlElement(required = true)
+    public String getControllerClass() {
+        return controllerClass;
+    }
+
+    public void setControllerClass(String controllerClass) {
+        this.controllerClass = controllerClass;
+    }
+
+    @XmlElement(required = true)
+    public String getOrchestrationMethod() {
+        return orchestrationMethod;
+    }
+
+    public void setOrchestrationMethod(String orchestrationMethod) {
+        this.orchestrationMethod = orchestrationMethod;
     }
 
     @XmlElement(required = true)

@@ -10,6 +10,8 @@ import java.net.URI;
 public class ActionableEvent extends DataObject implements TenantResource {
 
     private String _message;
+    private String _controllerClass;
+    private String _orchestrationMethod;
     private URI _tenant;
 
     @Name("message")
@@ -20,6 +22,26 @@ public class ActionableEvent extends DataObject implements TenantResource {
     public void setMessage(String message) {
         this._message = message;
         setChanged("message");
+    }
+
+    @Name("controllerClass")
+    public String getControllerClass() {
+        return _controllerClass;
+    }
+
+    public void setControllerClass(String controllerClass) {
+        this._controllerClass = controllerClass;
+        setChanged("controllerClass");
+    }
+
+    @Name("orchestrationMethod")
+    public String getOrchestrationMethod() {
+        return _orchestrationMethod;
+    }
+
+    public void setOrchestrationMethod(String orchestrationMethod) {
+        this._orchestrationMethod = orchestrationMethod;
+        setChanged("orchestrationMethod");
     }
 
     /*

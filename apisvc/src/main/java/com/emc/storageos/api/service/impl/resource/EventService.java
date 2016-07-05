@@ -6,6 +6,8 @@ package com.emc.storageos.api.service.impl.resource;
 
 import static com.emc.storageos.api.mapper.DbObjectMapper.toRelatedResource;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.URI;
 import java.util.UUID;
 
@@ -23,8 +25,8 @@ import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.Controller;
 import com.emc.storageos.api.mapper.DbObjectMapper;
-import com.emc.storageos.computesystemcontroller.ComputeSystemController;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.ActionableEvent;
@@ -43,6 +45,7 @@ import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 @DefaultPermissions(readRoles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN }, writeRoles = {
         Role.TENANT_ADMIN }, readAcls = { ACL.ANY })
@@ -93,11 +96,31 @@ public class EventService extends TaskResourceService {
         Operation op = _dbClient.createTaskOpStatus(Host.class, hostId, taskId,
                 ResourceOperationTypeEnum.DELETE_HOST);
 
-        ComputeSystemController controller = getController(ComputeSystemController.class, null);
-        controller.detachHostStorage(hostId, true, false, taskId);
+        try {
+            Class controllerClass = Class.forName(event.getControllerClass());
+
+            Controller controller = getController(controllerClass, null);
+
+            Method m = controllerClass.getDeclaredMethod(event.getOrchestrationMethod(), URI.class, Boolean.class, Boolean.class,
+                    String.class);
+            m.invoke(controller, hostId, true, false, taskId);
+
+        } catch (ClassNotFoundException e) {
+            _log.error(e.getMessage());
+            throw APIException.badRequests.parameterIsNotValid("controllerClass");
+        } catch (NoSuchMethodException e) {
+            _log.error(e.getMessage());
+        } catch (SecurityException e) {
+            _log.error(e.getMessage());
+        } catch (IllegalAccessException e) {
+            _log.error(e.getMessage());
+        } catch (IllegalArgumentException e) {
+            _log.error(e.getMessage());
+        } catch (InvocationTargetException e) {
+            _log.error(e.getMessage());
+        }
         //
 
-        _dbClient.markForDeletion(event);
         return Response.ok().build();
     }
 

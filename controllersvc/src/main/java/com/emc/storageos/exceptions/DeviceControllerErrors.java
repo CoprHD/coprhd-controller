@@ -215,4 +215,10 @@ public interface DeviceControllerErrors {
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
     public ServiceError createFileSystemSnapshotFailed(final String fsUris, final String operationName, final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
+    public ServiceError deleteExportRuleFailed(final String fsUris, final String operationName, final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
+    public ServiceError deleteShareFailed(final String fsUris, final String operationName, final Throwable cause);
 }

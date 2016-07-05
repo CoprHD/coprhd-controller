@@ -375,7 +375,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             workflow.executePlan(completer, successMessage);
         } catch (Exception ex) {
             s_logger.error("Could not create NFS Export for filesystem/Snapshot: " + uri + fileObj.getLabel(), ex);
-            ServiceError serviceError = DeviceControllerException.errors.createFileSharesFailed(
+            ServiceError serviceError = DeviceControllerException.errors.exportFileShareFailed(
                     fileObj.toString(), opName, ex);
             completer.error(s_dbClient, _locker, serviceError);
         }
@@ -412,7 +412,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
 
         } catch (Exception ex) {
             s_logger.error("Could not update NFS Export Rules for filesystem/Snapshot: " + uri + fileObj.getLabel(), ex);
-            ServiceError serviceError = DeviceControllerException.errors.createFileSharesFailed(
+            ServiceError serviceError = DeviceControllerException.errors.updateFileShareExportRulesFailed(
                     fileObj.toString(), opName, ex);
             completer.error(s_dbClient, _locker, serviceError);
         }
@@ -450,7 +450,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             workflow.executePlan(completer, successMessage);
         } catch (Exception ex) {
             s_logger.error("Could not update CIFS Share ACLs for filesystem/Snapshot: " + uri + fileObj.getLabel(), ex);
-            ServiceError serviceError = DeviceControllerException.errors.createFileSharesFailed(
+            ServiceError serviceError = DeviceControllerException.errors.updateFileShareCIFSACLsFailed(
                     fileObj.toString(), opName, ex);
             completer.error(s_dbClient, _locker, serviceError);
         }
@@ -508,8 +508,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             workflow.executePlan(completer, successMessage);
         } catch (Exception ex) {
             s_logger.error("Could not delete CIFS Share for filesystem/Snapshot: " + uri + fileObj.getLabel(), ex);
-            ServiceError serviceError = DeviceControllerException.errors.createFileSharesFailed(
-                    fileObj.toString(), opName, ex);
+            ServiceError serviceError = DeviceControllerException.errors.deleteFileSharesFailed(fileObj.toString(), opName, ex);
             completer.error(s_dbClient, _locker, serviceError);
         }
     }
@@ -544,8 +543,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             workflow.executePlan(completer, successMessage);
         } catch (Exception ex) {
             s_logger.error("Could not delete export rules for filesystem/Snapshot: " + uri + fileObj.getLabel(), ex);
-            ServiceError serviceError = DeviceControllerException.errors.createFileSharesFailed(
-                    fileObj.toString(), opName, ex);
+            ServiceError serviceError = DeviceControllerException.errors.deleteExportRuleFailed(fileObj.toString(), opName, ex);
             completer.error(s_dbClient, _locker, serviceError);
         }
 

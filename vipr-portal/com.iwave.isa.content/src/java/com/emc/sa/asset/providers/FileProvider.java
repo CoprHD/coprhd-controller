@@ -445,6 +445,32 @@ public class FileProvider extends BaseAssetOptionsProvider {
         return Lists.newArrayList();
     }
     
+    @Asset("failbackFileTarget")
+    @AssetDependencies("protectedRemoteFileSystem")
+    public List<AssetOption> getFailbackFileTarget(AssetOptionsContext ctx, URI protectedFileSystem) {
+        if (protectedFileSystem != null) {
+            ViPRCoreClient client = api(ctx);
+            List<AssetOption> options = Lists.newArrayList();
+
+            debug("getting failbackFileTargets (protectedFileSystem=%s)", protectedFileSystem);
+            FileShareRestRep file = client.fileSystems().get(protectedFileSystem);
+            
+            FileProtectionRestRep protection = file.getProtection();
+            if (protection != null) {
+                List<VirtualArrayRelatedResourceRep> targets = protection.getTargetFileSystems();
+                for (VirtualArrayRelatedResourceRep target : targets) {
+                    FileShareRestRep fileshare = client.fileSystems().get(target.getId());
+                    options.add(new AssetOption(fileshare.getId(), fileshare.getName()));
+                }
+            }
+            
+            AssetOptionsUtils.sortOptionsByLabel(options);
+            return options;
+        }
+
+        return Lists.newArrayList();
+    }
+    
     @Asset("unprotectedFilesystem")
     @AssetDependencies({ "project" })
     public List<AssetOption> getUnprotectedFileSystems(AssetOptionsContext ctx, URI project) {

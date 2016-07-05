@@ -37,8 +37,8 @@ public class Main {
             + "1. Don't use rollback operation unless you know what you are doing, it will erase all current data on local site\n"
             + "2. Please consider to recover active site first, use rollback operation only when active site is forever lost\n"
             + "3. Don't use rollback operation unless you're handling below cases:\n"
-            + "   \ta) Resume operation is manually triggered on GUI, data-sync is started but disrupted before it's done\n"
-            + "   \tb) Resume operation is automatially triggered by active site, data-sync is started but disrupted before it's done\n"
+            + "   \ta) Resume operation was manually triggered on GUI, data-sync was started but disrupted before it's done\n"
+            + "   \tb) Resume operation was automatially triggered by active site, data-sync was started but disrupted before it's done\n"
             + "4. Rollback operation will roll data (including zk, db and geodb) back to previous data revision\n"
             + "5. Make sure all syssvcs are running before proceeding with rollback operation\n"
             + "6. All nodes will reboot if rollback is successfully triggered, data will be switched to old revision after rebooting\n"
@@ -58,7 +58,7 @@ public class Main {
 
     private enum Command {
         LOCK, HOLD, RELEASE, INFO, PATH, EPHEMERAL, RESET, GETLASTVALIDZXID, TRUNCATETXNLOG, GETKEYANDCERT, EXPORTKEYSTORE, SAVE_SSH_KEYS,
-        GEN_SSH_AUTH_KEYS, SET, TUNE_DR_CONFIG, ROLL_BACK
+        GEN_SSH_AUTH_KEYS, SET, TUNE_DR_CONFIG, ROLLBACK
     }
 
     /**
@@ -116,7 +116,7 @@ public class Main {
                 Command.GEN_SSH_AUTH_KEYS.name().toLowerCase()));
         System.out.println("\n\tMiscellaneous Operations:");
         System.out.println(String.format("\t%s <key> <value>\t\tAdd \"key=value\" line to DR configuration", Command.TUNE_DR_CONFIG.name().toLowerCase()));
-        System.out.println(String.format("\t%s \t\t\tRoll back data including zk/db/geodb to previous viable version", Command.ROLL_BACK.name().toLowerCase()));
+        System.out.println(String.format("\t%s \t\t\tRoll back data including zk/db/geodb to previous viable version", Command.ROLLBACK.name().toLowerCase()));
     }
 
     /**
@@ -164,7 +164,7 @@ public class Main {
                     initZkCmdHandler(host, port, withData);
                     zkCmdHandler.printEphemeralNodes();
                     break;
-                case ROLL_BACK:
+                case ROLLBACK:
                     if (args.length > 1) {
                         throw new IllegalArgumentException("Invalid paramerters");
                     }
@@ -178,7 +178,6 @@ public class Main {
                     }
                     initZkCmdHandler(host, port, withData);
                     zkCmdHandler.rollbackDataRevision();
-                    System.out.println("Rollback signal has been successfully set in ZK, nodes will reboot in a few seconds");
                     break;
                 case TUNE_DR_CONFIG:
                     if (args.length != 3) {

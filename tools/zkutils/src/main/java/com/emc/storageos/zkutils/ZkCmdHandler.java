@@ -95,8 +95,10 @@ public class ZkCmdHandler implements Watcher {
             drUtil.updateVdcTargetVersion(drUtil.getLocalSite().getUuid(), SiteInfo.DR_OP_CHANGE_DATA_REVISION,
                     DrUtil.newVdcConfigVersion(), rollbackTargetRevision);
             log.info("Manual rollback to {} has been triggered", rollbackTargetRevision);
+            System.out.println(String.format("Rollback to %s has been initiated successfully", prevRevision));
         } else {
             log.error("No valid previous revision found. Skip rollback");
+            System.out.println("Can't find viable previous data copy, rollback oparation has been aborted");
         }
     }
 

@@ -704,8 +704,8 @@ public class XIVRestClient extends StandardRestClient {
      * @return Container (HOST) name.
      * @throws Exception If error occurs during execution.
      */
-    public Set<String> getHostPortContainer(final String xivSystem, final String portName) throws Exception {
-        Set<String> containerNames = new HashSet<String>();
+    public String getHostPortContainer(final String xivSystem, final String portName) throws Exception {
+        String containerName = null;
         String hostPortSearchURL = MessageFormat.format(HOST_PORT_URL + SEARCH_URL, xivSystem, PORT, portName);
         JSONObject hostPortInstances = getInstance(hostPortSearchURL);
 
@@ -720,14 +720,14 @@ public class XIVRestClient extends StandardRestClient {
                             JSONObject resultObj = portResult.getJSONObject(i);
                             final String hostName = resultObj.getString("host");
                             if (null != hostName && !hostName.isEmpty()) {
-                                containerNames.add(hostName);
+                                containerName = hostName;
                             }
                         }
                     }
                 }
             }
         }
-        return containerNames;
+        return containerName;
     }
 
     /**
@@ -739,8 +739,8 @@ public class XIVRestClient extends StandardRestClient {
      * @throws Exception If error occurs during execution.
      */
 
-    public Set<String> getHostContainer(final String xivSystem, final String hostName) throws Exception {
-        Set<String> containerNames = new HashSet<String>();
+    public String getHostContainer(final String xivSystem, final String hostName) throws Exception {
+        String containerName = null;
         final String hostURI = MessageFormat.format(HOST_INSTANCE_URL, xivSystem, hostName);
         JSONObject hostInstance = getInstance(hostURI);
 
@@ -750,10 +750,10 @@ public class XIVRestClient extends StandardRestClient {
             JSONObject host = data.getJSONObject(HOST);
             final String hostCluster = host.getString(CLUSTER);
             if (null != hostCluster && !hostCluster.isEmpty()) {
-                containerNames.add(hostCluster);
+                containerName = hostCluster;
             }
         }
-        return containerNames;
+        return containerName;
     }
 
 }

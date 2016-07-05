@@ -535,11 +535,14 @@ public class XIVRestOperationsHelper {
             StringBuilder builder = new StringBuilder();
             
             for (String initiatorName : initiatorNames) {
-                Set<String> hosts = restExportOpr.getHostPortContainer(storageIP, initiatorName);
+                final String hostName = restExportOpr.getHostPortContainer(storageIP, initiatorName);
                 Set<String> exportMaskNames = new HashSet<String>();
-                exportMaskNames.addAll(hosts);
-                for(String hostName : hosts) {
-                	exportMaskNames.addAll(restExportOpr.getHostContainer(storageIP, hostName));
+                if(null != hostName){
+                	exportMaskNames.add(hostName);
+                	final String clusterNames = restExportOpr.getHostContainer(storageIP, hostName);
+                	if(null != clusterNames){
+                		exportMaskNames.add(clusterNames);	
+                	}
                 }
                 
                 // Find the existing masks

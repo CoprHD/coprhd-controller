@@ -92,6 +92,7 @@ public class HP3PARApi {
     
     // For ingestion
 	private static final String URI_VLUNS_OF_VOLUME = "/api/v1/vluns?query=%22volumeWWN=={0}%22";
+	private static final String URI_SNAPSHOTS_OF_VOLUME = "/api/v1/volumes?query=%22copyOf=={0}%22";
     
     // For export
     private static final String URI_CREATE_VLUN = "/api/v1/vluns";
@@ -100,7 +101,7 @@ public class HP3PARApi {
     private static final String URI_HOSTSET_DETAILS = "/api/v1/hostsets/{0}";
     private static final String URI_HOST_DETAILS = "/api/v1/hosts/{0}";
     private static final String URI_VLUNS = "/api/v1/vluns";
-    private static final String URI_DELETE_VLUN = "/api/v1/vluns/{0},{1},{2},{3}";
+    private static final String URI_DELETE_VLUN = "/api/v1/vluns/{0},{1},{2}";
     
     public HP3PARApi(URI endpoint, RESTClient client, String userName, String pass) {
         _baseUrl = endpoint;
@@ -933,8 +934,8 @@ public class HP3PARApi {
     }
 
     // Request is for creating the cluster with only one host
-    public HostSetDetailsCommandResult createtHostSet(String clustName, String hostName) throws Exception {
-        _log.info("3PARDriver:createtHostSet enter");
+    public HostSetDetailsCommandResult createHostSet(String clustName, String hostName) throws Exception {
+        _log.info("3PARDriver:createHostSet enter");
         ClientResponse clientResp = null;
         String body = "{\"name\": \"" + clustName + "\", \"setmembers\": [\"" + hostName + "\"]}";
         
@@ -948,7 +949,7 @@ public class HP3PARApi {
                 throw new HP3PARException(errResp);
             } else {
                 String responseString = clientResp.getEntity(String.class);
-                _log.info("3PARDriver:createtHostSet 3PAR response is {}", responseString);
+                _log.info("3PARDriver:createHostSet 3PAR response is {}", responseString);
                 HostSetDetailsCommandResult hostsetResult = new Gson().fromJson(sanitize(responseString),
                         HostSetDetailsCommandResult.class);
                 return hostsetResult;
@@ -959,10 +960,41 @@ public class HP3PARApi {
             if (clientResp != null) {
                 clientResp.close();
             }
-            _log.info("3PARDriver:createtHostSet leave");
+            _log.info("3PARDriver:createHostSet leave");
         } //end try/catch/finally
     }
 
+    public HostSetDetailsCommandResult updateHostSet(String clustName, String hostName) throws Exception {
+        _log.info("3PARDriver:updateHostSet enter");
+        ClientResponse clientResp = null;
+        String body = "{\"action\": 1, \"setmembers\": [\"" + hostName + "\"]}";
+        final String path = MessageFormat.format(URI_HOSTSET_DETAILS, clustName);
+        
+        try {
+            clientResp = put(path, body);
+            if (clientResp == null) {
+                _log.error("3PARDriver:There is no response from 3PAR");
+                throw new HP3PARException("There is no response from 3PAR");
+            } else if (clientResp.getStatus() != 200) {
+                String errResp = getResponseDetails(clientResp);
+                throw new HP3PARException(errResp);
+            } else {
+                String responseString = clientResp.getEntity(String.class);
+                _log.info("3PARDriver:updateHostSet 3PAR response is {}", responseString);
+                HostSetDetailsCommandResult hostsetResult = new Gson().fromJson(sanitize(responseString),
+                        HostSetDetailsCommandResult.class);
+                return hostsetResult;
+            }
+        } catch (Exception e) {
+            throw e;
+        } finally {
+            if (clientResp != null) {
+                clientResp.close();
+            }
+            _log.info("3PARDriver:updateHostSet leave");
+        } //end try/catch/finally
+    }
+        
     public HostMember getHostDetails(String name) throws Exception {
         _log.info("3PARDriver:getHostDetails enter");
         ClientResponse clientResp = null;
@@ -1025,7 +1057,10 @@ public class HP3PARApi {
     public void deleteVlun(String volName, String lun, String hostName, String pos) throws Exception {
         _log.info("3PARDriver:deleteVlun enter");
         ClientResponse clientResp = null;
-        final String path = MessageFormat.format(URI_DELETE_VLUN, volName, lun, hostName, pos);
+        String path = MessageFormat.format(URI_DELETE_VLUN, volName, lun, hostName);
+        if (pos != null) {
+            path = path.concat(","+pos);
+        }
 
         try {
             clientResp = delete(path);
@@ -1501,7 +1536,51 @@ public class HP3PARApi {
         } //end try/catch/finally
     
 	}
+
 	
+	/**
+	 * Get all vluns, which are associated with a volume, snapshot or a clone. 
+	 * 
+	 * @param displayName
+	 * @return
+	 * @throws Exception
+	 */
+	public VolumesCommandResult getSnapshotsOfVolume(String volumeName) throws Exception {
+
+        _log.info("3PARDriver: getVLunsOfVolume enter");
+        ClientResponse clientResp = null;
+        final String path = MessageFormat.format(URI_SNAPSHOTS_OF_VOLUME, volumeName);
+        _log.info("getVLunsOfVolume path is {}", path);
+        
+        try {
+	    _log.info("BEFORE GET CALL");
+            clientResp = get(path);
+            if (clientResp == null) {
+                _log.error("3PARDriver: getVLunsOfVolume There is no response from 3PAR");
+                throw new HP3PARException("There is no response from 3PAR");
+            } else if (clientResp.getStatus() != 200) {
+                String errResp = getResponseDetails(clientResp);
+                _log.error("3PARDriver: getVLunsOfVolume There is error response from 3PAR = {}" , errResp);
+                throw new HP3PARException(errResp);
+            } else {
+                String responseString = clientResp.getEntity(String.class);
+                _log.info("3PARDriver: getVLunsOfVolume 3PAR response is {}", responseString);
+                VolumesCommandResult volumesResult = new Gson().fromJson(sanitize(responseString),
+                		VolumesCommandResult.class);
+                return volumesResult;
+            }
+        } catch (Exception e) {
+	    _log.info("getVLunsOfVolume exception is {}", e.getMessage());
+            throw e;
+        } finally {
+            if (clientResp != null) {
+                clientResp.close();
+            }
+            _log.info("3PARDriver: getVLunsOfVolume leave");
+        } //end try/catch/finally
+    
+	}
+
 
 	public void createVVsetVirtualCopy(String nativeId, String snapshotName, Boolean readOnly) throws Exception {
 

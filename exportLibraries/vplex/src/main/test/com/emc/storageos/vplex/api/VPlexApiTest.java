@@ -895,7 +895,7 @@ public class VPlexApiTest {
             String volumeNativeId = tokenizer.nextToken();
             String transferSize = "8M";
             newVolumeInfo = new VolumeInfo(storageSystemGuid, "vmax", volumeId, volumeNativeId, false, Collections.<String> emptyList());
-            distVolInfo = _client.upgradeVirtualVolumeToDistributed(vvInfo, newVolumeInfo, true, true, "1", transferSize);
+            distVolInfo = _client.upgradeVirtualVolumeToDistributed(vvInfo, newVolumeInfo, true, "1", transferSize);
             Assert.assertNotNull(distVolInfo);
             WaitOnRebuildResult goodRebuild = _client.waitOnRebuildCompletion(distVolInfo.getName());
             Assert.assertEquals(WaitOnRebuildResult.SUCCESS, goodRebuild);

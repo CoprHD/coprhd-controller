@@ -88,6 +88,9 @@ QUICK=0
 SS=${3}
 if [ ${SS} = "vplex" ]; then
     VPLEX_QUICK_PARAM=${4:-'normal'}
+    if [ $VPLEX_QUICK_PARAM = 'quick' ]; then
+        QUICK=1
+    fi
     VPLEX_INGEST_PARAM=${5:-'noingest'}
     AUTH=${6:-ldap}
     EXTRA_PARAM=${7}
@@ -790,23 +793,22 @@ cisco_mds_quick_setup_once()
     # Do once - Discover Cisco MDS simulator switch
     secho "Discover Cisco MDS simulator switch"
     run networksystem create CiscoMdsSimulator  mds --devip $SIMULATOR_CISCO_MDS --devport 22 --username $SIMULATOR_CISCO_MDS_USER --password $SIMULATOR_CISCO_MDS_PW
-   
-#    VPLEX_TZ1=$NH/FABRIC_losam082-fabric
-#    VPLEX_TZ2=$NH2/FABRIC_vplex154nbr2
-    FC_ZONE_A=VSAN_11
-    FC_ZONE_B=VSAN_12
-    FCTZ_A=$NH/$FC_ZONE_A
-    FCTZ_B=$NH2/$FC_ZONE_B
+    
+    if [ ${SS} != "vplex" ]; then
+        FC_ZONE_A=VSAN_11
+        FC_ZONE_B=VSAN_12
+        FCTZ_A=$NH/$FC_ZONE_A
+        FCTZ_B=$NH2/$FC_ZONE_B
 
+        run transportzone assign VSAN_11 $NH
+        run transportzone assign VSAN_12 $NH
 
-    run transportzone assign VSAN_11 $NH
-    run transportzone assign VSAN_12 $NH
-
-#   add ports to VSAN_11
-    run transportzone add $FCTZ_A 51:00:50:56:9F:01:3B:A1
-    run transportzone add $FCTZ_A 51:00:50:56:9F:01:3B:A2
-    run transportzone add $FCTZ_A 51:00:50:56:9F:01:3B:A3
-    run transportzone add $FCTZ_A 51:00:50:56:9F:01:3B:A4
+        # add ports to VSAN_11
+        run transportzone add $FCTZ_A 51:00:50:56:9F:01:3B:A1
+        run transportzone add $FCTZ_A 51:00:50:56:9F:01:3B:A2
+        run transportzone add $FCTZ_A 51:00:50:56:9F:01:3B:A3
+        run transportzone add $FCTZ_A 51:00:50:56:9F:01:3B:A4
+    fi
 }
 
 
@@ -2257,93 +2259,94 @@ vplex_setup()
 vplex_setup_once()
 {
     if [ "$AUTH" == 'ipv6' ] ; then
-	echo "Setting up VPLEX environment for IPv6"
-	# Discover the storage systems 
-	smisprovider create $VPLEX_VMAX_SMIS_DEV_NAME $VPLEX_VMAX_SMIS_IP $VPLEX_VMAX_SMIS_PORT $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" $VPLEX_VMAX_SMIS_SSL
-	storageprovider create $VPLEX_DEV_NAME $VPLEX_IP 443 $VPLEX_USER "$VPLEX_PASSWD" vplex
-	storagedevice discover_all
-	storagedevice list
-	storageport list $VPLEX_VNX1_NATIVEGUID
-	storageport list $VPLEX_VMAX_NATIVEGUID
-	storageport list $VPLEX_GUID
+	    echo "Setting up VPLEX environment for IPv6"
+        # Discover the storage systems 
+        smisprovider create $VPLEX_VMAX_SMIS_DEV_NAME $VPLEX_VMAX_SMIS_IP $VPLEX_VMAX_SMIS_PORT $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" $VPLEX_VMAX_SMIS_SSL
+        storageprovider create $VPLEX_DEV_NAME $VPLEX_IP 443 $VPLEX_USER "$VPLEX_PASSWD" vplex
+        storagedevice discover_all
+        storagedevice list
+        storageport list $VPLEX_VNX1_NATIVEGUID
+        storageport list $VPLEX_VMAX_NATIVEGUID
+        storageport list $VPLEX_GUID
 
-	# Setup the varrays. $NH contains VPLEX cluster-1 and $NH2 contains VPLEX cluster-2.
-	storageport update $VPLEX_GUID FC --group director-1-1-A --addvarrays $NH
-	storageport update $VPLEX_GUID FC --group director-1-1-B --addvarrays $NH
-	storageport update $VPLEX_GUID FC --group director-2-1-A --addvarrays $NH2
-	storageport update $VPLEX_GUID FC --group director-2-1-B --addvarrays $NH2
-	# The arrays are assigned to individual varrays as well.
-	storageport update $VPLEX_VNX1_NATIVEGUID FC --addvarrays $NH
-	storageport update $VPLEX_VMAX_NATIVEGUID FC --addvarrays $NH2        
+        # Setup the varrays. $NH contains VPLEX cluster-1 and $NH2 contains VPLEX cluster-2.
+        storageport update $VPLEX_GUID FC --group director-1-1-A --addvarrays $NH
+        storageport update $VPLEX_GUID FC --group director-1-1-B --addvarrays $NH
+        storageport update $VPLEX_GUID FC --group director-2-1-A --addvarrays $NH2
+        storageport update $VPLEX_GUID FC --group director-2-1-B --addvarrays $NH2
+        # The arrays are assigned to individual varrays as well.
+        storageport update $VPLEX_VNX1_NATIVEGUID FC --addvarrays $NH
+        storageport update $VPLEX_VMAX_NATIVEGUID FC --addvarrays $NH2        
     elif [ "${VPLEX_QUICK_PARAM}" = "quick" ]; then
-	echo "Setting up VPLEX environment connected to simulators on: ${VPLEX_SIM_IP}"
+        echo "Setting up VPLEX environment connected to simulators on: ${VPLEX_SIM_IP}"
 
-	# Discover the Brocade SAN switch.
-	echo "Configuring MDS/Cisco Simulator using SSH on: $VPLEX_SIM_MDS_IP"
-	run networksystem create $FABRIC_SIMULATOR  mds --devip $VPLEX_SIM_MDS_IP --devport 22 --username $VPLEX_SIM_MDS_USER --password $VPLEX_SIM_MDS_PW
-	transportzone listall
+        # Discover the Brocade SAN switch.
+        #echo "Configuring MDS/Cisco Simulator using SSH on: $VPLEX_SIM_MDS_IP"
+        #run networksystem create $FABRIC_SIMULATOR  mds --devip $VPLEX_SIM_MDS_IP --devport 22 --username $VPLEX_SIM_MDS_USER --password $VPLEX_SIM_MDS_PW
+        echo "Transport zones currently configured:"
+        transportzone listall
 
-	# Discover the storage systems 
-	echo "Discovering back-end storage arrays using ECOM/SMIS simulator on: $VPLEX_SIM_SMIS_IP..."
-	smisprovider show $VPLEX_SIM_SMIS_DEV_NAME &> /dev/null && return $?
-	run smisprovider create $VPLEX_SIM_SMIS_DEV_NAME $VPLEX_SIM_SMIS_IP $VPLEX_VMAX_SMIS_SIM_PORT $VPLEX_SIM_SMIS_USER "$VPLEX_SIM_SMIS_PASSWD" false
+        # Discover the storage systems 
+        echo "Discovering back-end storage arrays using ECOM/SMIS simulator on: $VPLEX_SIM_SMIS_IP..."
+        smisprovider show $VPLEX_SIM_SMIS_DEV_NAME &> /dev/null && return $?
+        run smisprovider create $VPLEX_SIM_SMIS_DEV_NAME $VPLEX_SIM_SMIS_IP $VPLEX_VMAX_SMIS_SIM_PORT $VPLEX_SIM_SMIS_USER "$VPLEX_SIM_SMIS_PASSWD" false
 
-	echo "Discovering VPLEX using simulator on: ${VPLEX_SIM_IP}..."
-	storageprovider show $VPLEX_SIM_DEV_NAME &> /dev/null && return $?
-	run storageprovider create $VPLEX_SIM_DEV_NAME $VPLEX_SIM_IP 443 $VPLEX_SIM_USER "$VPLEX_SIM_PASSWD" vplex
-	run storagedevice discover_all
+        echo "Discovering VPLEX using simulator on: ${VPLEX_SIM_IP}..."
+        storageprovider show $VPLEX_SIM_DEV_NAME &> /dev/null && return $?
+        run storageprovider create $VPLEX_SIM_DEV_NAME $VPLEX_SIM_IP 443 $VPLEX_SIM_USER "$VPLEX_SIM_PASSWD" vplex
+        run storagedevice discover_all
 
-	# Setup the varrays. $NH contains VPLEX cluster-1 and $NH2 contains VPLEX cluster-2.
-	run storageport update $VPLEX_SIM_VPLEX_GUID FC --group director-1-1-A --addvarrays $NH
-	run storageport update $VPLEX_SIM_VPLEX_GUID FC --group director-1-1-B --addvarrays $NH
-	run storageport update $VPLEX_SIM_VPLEX_GUID FC --group director-2-1-A --addvarrays $NH2
-	run storageport update $VPLEX_SIM_VPLEX_GUID FC --group director-2-1-B --addvarrays $NH2
-	# The arrays are assigned to individual varrays as well.
-	run storageport update $VPLEX_SIM_VMAX1_NATIVEGUID FC --addvarrays $NH
-	run storageport update $VPLEX_SIM_VMAX3_NATIVEGUID FC --addvarrays $NH
-	run storageport update $VPLEX_SIM_VMAX2_NATIVEGUID FC --addvarrays $NH2
-	vplex_cos_setup
-	VPLEX_GUID=$VPLEX_SIM_VPLEX_GUID
-	VPLEX_VNX1_NATIVEGUID=$VPLEX_SIM_VMAX1_NATIVEGUID
-	VPLEX_VNX2_NATIVEGUID=$VPLEX_SIM_VMAX3_NATIVEGUID
-	VPLEX_VMAX_NATIVEGUID=$VPLEX_SIM_VMAX2_NATIVEGUID
-	CLUSTER1NET_NAME=$CLUSTER1NET_SIM_NAME
+        # Setup the varrays. $NH contains VPLEX cluster-1 and $NH2 contains VPLEX cluster-2.
+        run storageport update $VPLEX_SIM_VPLEX_GUID FC --group director-1-1-A --addvarrays $NH
+        run storageport update $VPLEX_SIM_VPLEX_GUID FC --group director-1-1-B --addvarrays $NH
+        run storageport update $VPLEX_SIM_VPLEX_GUID FC --group director-2-1-A --addvarrays $NH2
+        run storageport update $VPLEX_SIM_VPLEX_GUID FC --group director-2-1-B --addvarrays $NH2
+        # The arrays are assigned to individual varrays as well.
+        run storageport update $VPLEX_SIM_VMAX1_NATIVEGUID FC --addvarrays $NH
+        run storageport update $VPLEX_SIM_VMAX3_NATIVEGUID FC --addvarrays $NH
+        run storageport update $VPLEX_SIM_VMAX2_NATIVEGUID FC --addvarrays $NH2
+        vplex_cos_setup
+        VPLEX_GUID=$VPLEX_SIM_VPLEX_GUID
+        VPLEX_VNX1_NATIVEGUID=$VPLEX_SIM_VMAX1_NATIVEGUID
+        VPLEX_VNX2_NATIVEGUID=$VPLEX_SIM_VMAX3_NATIVEGUID
+        VPLEX_VMAX_NATIVEGUID=$VPLEX_SIM_VMAX2_NATIVEGUID
+        CLUSTER1NET_NAME=$CLUSTER1NET_SIM_NAME
         echo "Done setting up VPLEX environment..."
     else
-	echo "Setting up VPLEX environment for IPv4"
+        echo "Setting up VPLEX environment for IPv4"
 
-	#Discover the Brocade SAN switch.
-	brocade_setup_once
+        #Discover the Brocade SAN switch.
+        brocade_setup_once
 
-	# Discover the storage systems 
-	echo "Discovering Storage Assets"
-	smisprovider show $VPLEX_VMAX_SMIS_DEV_NAME &> /dev/null && return $?
-	run smisprovider create $VPLEX_VMAX_SMIS_DEV_NAME $VPLEX_VMAX_SMIS_IP $VPLEX_VMAX_SMIS_PORT $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" $VPLEX_VMAX_SMIS_SSL
-	run smisprovider create $VPLEX_VNX1_SMIS_DEV_NAME $VPLEX_VNX1_SMIS_IP $VPLEX_VNX1_SMIS_PORT $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" $VPLEX_VNX1_SMIS_SSL
-	run smisprovider create $VPLEX_VNX2_SMIS_DEV_NAME $VPLEX_VNX2_SMIS_IP $VPLEX_VNX2_SMIS_PORT $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" $VPLEX_VNX2_SMIS_SSL
-	storageprovider show $VPLEX_DEV_NAME &> /dev/null && return $?
-	run storageprovider create $VPLEX_DEV_NAME $VPLEX_IP 443 $VPLEX_USER "$VPLEX_PASSWD" vplex
-	run storagedevice discover_all
-	storagedevice list
-	storageport list $VPLEX_VNX1_NATIVEGUID --v
-	storageport list $VPLEX_VMAX_NATIVEGUID --v
-	storageport list $VPLEX_VNX2_NATIVEGUID --v
-	storageport list $VPLEX_GUID --v
-	sleep 90
-	storageport list $VPLEX_GUID --v
+        # Discover the storage systems 
+        echo "Discovering Storage Assets"
+        smisprovider show $VPLEX_VMAX_SMIS_DEV_NAME &> /dev/null && return $?
+        run smisprovider create $VPLEX_VMAX_SMIS_DEV_NAME $VPLEX_VMAX_SMIS_IP $VPLEX_VMAX_SMIS_PORT $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" $VPLEX_VMAX_SMIS_SSL
+        run smisprovider create $VPLEX_VNX1_SMIS_DEV_NAME $VPLEX_VNX1_SMIS_IP $VPLEX_VNX1_SMIS_PORT $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" $VPLEX_VNX1_SMIS_SSL
+        run smisprovider create $VPLEX_VNX2_SMIS_DEV_NAME $VPLEX_VNX2_SMIS_IP $VPLEX_VNX2_SMIS_PORT $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" $VPLEX_VNX2_SMIS_SSL
+        storageprovider show $VPLEX_DEV_NAME &> /dev/null && return $?
+        run storageprovider create $VPLEX_DEV_NAME $VPLEX_IP 443 $VPLEX_USER "$VPLEX_PASSWD" vplex
+        run storagedevice discover_all
+        storagedevice list
+        storageport list $VPLEX_VNX1_NATIVEGUID --v
+        storageport list $VPLEX_VMAX_NATIVEGUID --v
+        storageport list $VPLEX_VNX2_NATIVEGUID --v
+        storageport list $VPLEX_GUID --v
+        sleep 90
+        storageport list $VPLEX_GUID --v
 
-	# Setup the varrays. $NH contains VPLEX cluster-1 and $NH2 contains VPLEX cluster-2.
-	run storageport update $VPLEX_GUID FC --group director-1-1-A --addvarrays $NH
-	run storageport update $VPLEX_GUID FC --group director-1-1-B --addvarrays $NH
-	run storageport update $VPLEX_GUID FC --group director-2-1-A --addvarrays $NH2
-	run storageport update $VPLEX_GUID FC --group director-2-1-B --addvarrays $NH2
-	storageport list $VPLEX_GUID --v
-	# The arrays are assigned to individual varrays as well.
-	run storageport update $VPLEX_VNX1_NATIVEGUID FC --addvarrays $NH
-	run storageport update $VPLEX_VNX2_NATIVEGUID FC --addvarrays $NH
-	run storageport update $VPLEX_VMAX_NATIVEGUID FC --addvarrays $NH2
-	vplex_cos_setup
-	storageport list $VPLEX_GUID --v
+        # Setup the varrays. $NH contains VPLEX cluster-1 and $NH2 contains VPLEX cluster-2.
+        run storageport update $VPLEX_GUID FC --group director-1-1-A --addvarrays $NH
+        run storageport update $VPLEX_GUID FC --group director-1-1-B --addvarrays $NH
+        run storageport update $VPLEX_GUID FC --group director-2-1-A --addvarrays $NH2
+        run storageport update $VPLEX_GUID FC --group director-2-1-B --addvarrays $NH2
+        storageport list $VPLEX_GUID --v
+        # The arrays are assigned to individual varrays as well.
+        run storageport update $VPLEX_VNX1_NATIVEGUID FC --addvarrays $NH
+        run storageport update $VPLEX_VNX2_NATIVEGUID FC --addvarrays $NH
+        run storageport update $VPLEX_VMAX_NATIVEGUID FC --addvarrays $NH2
+        vplex_cos_setup
+        storageport list $VPLEX_GUID --v
     fi
 }
 

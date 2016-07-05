@@ -32,6 +32,7 @@ import com.emc.storageos.hp3par.command.VirtualLunsList;
 import com.emc.storageos.hp3par.command.VolumeDetailsCommandResult;
 import com.emc.storageos.hp3par.impl.HP3PARApi;
 import com.emc.storageos.hp3par.impl.HP3PARException;
+import com.emc.storageos.hp3par.utils.CompleteError;
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.filter.HTTPBasicAuthFilter;
 import com.sun.jersey.client.apache.ApacheHttpClient;
@@ -201,21 +202,36 @@ public class HP3PARApiFactory {
 //        hp3parApi.deleteVolume(vol);
         
 //        HostCommandResult hostRes = hp3parApi.getAllHostDetails();
-//        HostSetDetailsCommandResult hostsetRes = hp3parApi.getHostSetDetails("LGLBW015_016");
+        HostSetDetailsCommandResult hostsetRes = hp3parApi.getHostSetDetails("MyCluster333");
+        boolean present = false;
+        for (int index = 0; index < hostsetRes.getSetmembers().size(); index++) {
+            if ("myhost1".compareTo(hostsetRes.getSetmembers().get(index)) == 0) {
+                present = true;
+                break;
+            }
+        }
+        
+        if (present == false) {
+            // update cluster with this host
+            hp3parApi.updateHostSet("MyCluster333", "myhost1");
+        }
+        
 //        HostMember hostRes = hp3parApi.getHostDetails("LGLBW015");
 //        VirtualLunsList vlunRes = hp3parApi.getAllVlunDetails();
 //        hp3parApi.deleteVlun("One_Thin30", "10", "LGLOE199", "1:1:1");
-        ArrayList<String> portIds = new ArrayList<>();
-        portIds.add("1111222233334444");
-        portIds.add("1111222233334445");
-        portIds.add("1111222233334446");
-        hp3parApi.createHost("myhost4", portIds, 4);
+//        ArrayList<String> portIds = new ArrayList<>();
+//        portIds.add("1111222233334444");
+//        portIds.add("1111222233334445");
+//        portIds.add("1122334455667776");
+//        hp3parApi.createHost("myhostot7", portIds, 4);
+//        hp3parApi.createtHostSet("mycluster2", "myhost1");
         
         
         int a=0; a++; System.out.println(a);
         } catch (Exception e) {
             System.out.println("ERRRRRRROR");
-            System.out.println(e.getMessage());
+            System.out.println(e);
+            System.out.println(CompleteError.getStackTrace(e));
             e.printStackTrace();
         }
    } //end main

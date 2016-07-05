@@ -94,10 +94,11 @@ public class HP3PARApi {
     // For export
     private static final String URI_CREATE_VLUN = "/api/v1/vluns";
     private static final String URI_HOSTS = "/api/v1/hosts";
+    private static final String URI_HOSTSETS = "/api/v1/hostsets";
     private static final String URI_HOSTSET_DETAILS = "/api/v1/hostsets/{0}";
     private static final String URI_HOST_DETAILS = "/api/v1/hosts/{0}";
     private static final String URI_VLUNS = "/api/v1/vluns";
-    private static final String URI_DELETE_VLUN = "/api/v1/vluns/{0},{1},{2},{3}";
+    private static final String URI_DELETE_VLUN = "/api/v1/vluns/{0},{1},{2}";
     
     public HP3PARApi(URI endpoint, RESTClient client, String userName, String pass) {
         _baseUrl = endpoint;
@@ -876,7 +877,7 @@ public class HP3PARApi {
                 throw new HP3PARException(errResp);
             } else {
                 String responseString = getHeaderFieldValue(clientResp, "Location");
-                _log.info("3PARDriver:createVolume 3PAR response is Location: {}", responseString);
+                _log.info("3PARDriver:createVlun 3PAR response is Location: {}", responseString);
                 String[] resp = responseString.split(",");
                 VlunResult result = new VlunResult();
                 result.setAssignedLun(resp[1]);
@@ -906,10 +907,14 @@ public class HP3PARApi {
                 throw new HP3PARException("There is no response from 3PAR");
             } else if (clientResp.getStatus() != 200) {
                 String errResp = getResponseDetails(clientResp);
-                throw new HP3PARException(errResp);
+                if (clientResp.getStatus() == 404 && errResp.contains("code: 102")) {
+                    return null; //Host set does not exists
+                } else {                        
+                    throw new HP3PARException(errResp);
+                }
             } else {
                 String responseString = clientResp.getEntity(String.class);
-                _log.info("3PARDriver:getVolumeDetails 3PAR response is {}", responseString);
+                _log.info("3PARDriver:getHostSetDetails 3PAR response is {}", responseString);
                 HostSetDetailsCommandResult hostsetResult = new Gson().fromJson(sanitize(responseString),
                         HostSetDetailsCommandResult.class);
                 return hostsetResult;
@@ -923,7 +928,69 @@ public class HP3PARApi {
             _log.info("3PARDriver:getHostSetDetails leave");
         } //end try/catch/finally
     }
-    
+
+    // Request is for creating the cluster with only one host
+    public HostSetDetailsCommandResult createHostSet(String clustName, String hostName) throws Exception {
+        _log.info("3PARDriver:createHostSet enter");
+        ClientResponse clientResp = null;
+        String body = "{\"name\": \"" + clustName + "\", \"setmembers\": [\"" + hostName + "\"]}";
+        
+        try {
+            clientResp = post(URI_HOSTSETS, body);
+            if (clientResp == null) {
+                _log.error("3PARDriver:There is no response from 3PAR");
+                throw new HP3PARException("There is no response from 3PAR");
+            } else if (clientResp.getStatus() != 201) {
+                String errResp = getResponseDetails(clientResp);
+                throw new HP3PARException(errResp);
+            } else {
+                String responseString = clientResp.getEntity(String.class);
+                _log.info("3PARDriver:createHostSet 3PAR response is {}", responseString);
+                HostSetDetailsCommandResult hostsetResult = new Gson().fromJson(sanitize(responseString),
+                        HostSetDetailsCommandResult.class);
+                return hostsetResult;
+            }
+        } catch (Exception e) {
+            throw e;
+        } finally {
+            if (clientResp != null) {
+                clientResp.close();
+            }
+            _log.info("3PARDriver:createHostSet leave");
+        } //end try/catch/finally
+    }
+
+    public HostSetDetailsCommandResult updateHostSet(String clustName, String hostName) throws Exception {
+        _log.info("3PARDriver:updateHostSet enter");
+        ClientResponse clientResp = null;
+        String body = "{\"action\": 1, \"setmembers\": [\"" + hostName + "\"]}";
+        final String path = MessageFormat.format(URI_HOSTSET_DETAILS, clustName);
+        
+        try {
+            clientResp = put(path, body);
+            if (clientResp == null) {
+                _log.error("3PARDriver:There is no response from 3PAR");
+                throw new HP3PARException("There is no response from 3PAR");
+            } else if (clientResp.getStatus() != 200) {
+                String errResp = getResponseDetails(clientResp);
+                throw new HP3PARException(errResp);
+            } else {
+                String responseString = clientResp.getEntity(String.class);
+                _log.info("3PARDriver:updateHostSet 3PAR response is {}", responseString);
+                HostSetDetailsCommandResult hostsetResult = new Gson().fromJson(sanitize(responseString),
+                        HostSetDetailsCommandResult.class);
+                return hostsetResult;
+            }
+        } catch (Exception e) {
+            throw e;
+        } finally {
+            if (clientResp != null) {
+                clientResp.close();
+            }
+            _log.info("3PARDriver:updateHostSet leave");
+        } //end try/catch/finally
+    }
+        
     public HostMember getHostDetails(String name) throws Exception {
         _log.info("3PARDriver:getHostDetails enter");
         ClientResponse clientResp = null;
@@ -939,7 +1006,7 @@ public class HP3PARApi {
                 throw new HP3PARException(errResp);
             } else {
                 String responseString = clientResp.getEntity(String.class);
-                _log.info("3PARDriver:getVolumeDetails 3PAR response is {}", responseString);
+                _log.info("3PARDriver:getHostDetails 3PAR response is {}", responseString);
                 HostMember hostResult = new Gson().fromJson(sanitize(responseString),
                         HostMember.class);
                 return hostResult;
@@ -986,7 +1053,10 @@ public class HP3PARApi {
     public void deleteVlun(String volName, String lun, String hostName, String pos) throws Exception {
         _log.info("3PARDriver:deleteVlun enter");
         ClientResponse clientResp = null;
-        final String path = MessageFormat.format(URI_DELETE_VLUN, volName, lun, hostName, pos);
+        String path = MessageFormat.format(URI_DELETE_VLUN, volName, lun, hostName);
+        if (pos != null) {
+            path = path.concat(","+pos);
+        }
 
         try {
             clientResp = delete(path);
@@ -1007,12 +1077,13 @@ public class HP3PARApi {
             }
             _log.info("3PARDriver:deleteVlun leave");
         } //end try/catch/finally
-    }    
+    }
 
     public void createHost(String name, ArrayList<String> portIds, Integer persona) throws Exception {
         _log.info("3PARDriver:createHost enter");
         ClientResponse clientResp = null;
         String portIdstr = "[";
+        String body = null;
         
         for (String Id:portIds) {
             if (portIdstr.length() > 1 ) {
@@ -1022,8 +1093,14 @@ public class HP3PARApi {
         }
         portIdstr = portIdstr.concat("]");
         
-        String body = "{\"name\":\"" + name + "\", \"FCWWNs\":" + portIdstr + 
-                 ", \"persona\":" + persona.toString() + "}";
+        if (portIds.get(0).startsWith("iqn") == false) {
+            body = "{\"name\":\"" + name + "\", \"FCWWNs\":" + portIdstr + 
+                    ", \"persona\":" + persona.toString() + "}";
+        } else {
+            body = "{\"name\":\"" + name + "\", \"iSCSINames\":" + portIdstr + 
+                    ", \"persona\":" + persona.toString() + "}";            
+        }
+
         try {
             clientResp = post(URI_HOSTS, body);
             if (clientResp == null) {
@@ -1031,7 +1108,13 @@ public class HP3PARApi {
                 throw new HP3PARException("There is no response from 3PAR");
             } else if (clientResp.getStatus() != 201) {
                 String errResp = getResponseDetails(clientResp);
-                throw new HP3PARException(errResp);
+                
+                if (clientResp.getStatus() == 409 && errResp.contains("code: 16") == true) {
+                    // host exists; modify host by adding new initiators
+                    updateHost(name, portIds);
+                } else {
+                    throw new HP3PARException(errResp);
+                }
             } else {
                 String responseString = getHeaderFieldValue(clientResp, "Location");
                 _log.info("3PARDriver:createHost 3PAR response is Location: {}", responseString);
@@ -1044,6 +1127,52 @@ public class HP3PARApi {
             }
             _log.info("3PARDriver:createHost leave");
         } //end try/catch/finally
+    }
+    
+    public void updateHost(String name, ArrayList<String> portIdsNew) throws Exception {
+        _log.info("3PARDriver:updateHost enter");
+        ClientResponse clientResp = null;
+        String portIdstr = "[";
+        String body = null;
+        final String path = MessageFormat.format(URI_HOST_DETAILS, name);
+
+        try {
+            for (String Id:portIdsNew) {
+                if (portIdstr.length() > 1 ) {
+                    portIdstr = portIdstr.concat(",");
+                }
+                portIdstr = portIdstr.concat("\"" + Id + "\"");
+            }
+            portIdstr = portIdstr.concat("]");
+
+            if (portIdsNew.get(0).startsWith("iqn") == false) {
+                body = "{\"FCWWNs\":" + portIdstr + ", \"pathOperation\":1}";
+            } else {
+                body = "{\"iSCSINames\":" + portIdstr + ", \"pathOperation\":1\"}";
+            }
+
+            clientResp = put(path, body);
+            if (clientResp == null) {
+                _log.error("3PARDriver:There is no response from 3PAR");
+                throw new HP3PARException("There is no response from 3PAR");
+            } else if (clientResp.getStatus() != 200) {
+                String errResp = getResponseDetails(clientResp);
+                throw new HP3PARException(errResp);
+            } else {
+                String responseString = getHeaderFieldValue(clientResp, "Location");
+                _log.info("3PARDriver:createHost 3PAR response is Location: {}", responseString);
+            }
+
+        } catch (Exception e) {
+            throw e;
+        } finally {
+            if (clientResp != null) {
+                clientResp.close();
+            }
+            _log.info("3PARDriver:createHost leave");
+        } //end try/catch/finally
+
+        _log.info("3PARDriver:updateHost leave");
     }
 
     private CompleteError getCompleteResponseDetails(ClientResponse clientResp) {

@@ -75,7 +75,7 @@ public class XIVRestClient extends StandardRestClient {
     private static String HOST_CREATE_ON_CLUSTER_BODY = "'{'\"request\":['{'\"action\":\"create\",\"params\":'{'\"name\":\"{0}\",\"cluster\":\"{1}\"'}}']'}'";
     private static String HOST_PORT_CREATE_BODY = "'{'\"request\":['{'\"action\":\"create\",\"params\":'{'\"port\":\"{1}\",\"host\":\"{0}\",\"type\":\"{2}\"'}}']'}'";
     private static String EXPORT_VOLUME_TO_CLUSTER_BODY = "'{'\"request\":['{'\"action\":\"create\",\"params\":'{'\"volume\":\"{1}\",\"host_cluster_name\":\"{0}\",\"map_type\":\"cluster\",\"lun\":\"{2}\"}}]}";
-    private static String EXPORT_VOLUME_TO_HOST_BODY = "'{'\"request\":['{'\"action\":\"create\",\"params\":'{'\"volume\":\"{1}\",\"host_name\":\"{0}\",\"map_type\":\"host\",\"lun\":\"{2}\"}}]}";
+    private static String EXPORT_VOLUME_TO_HOST_BODY = "'{'\"request\":['{'\"action\":\"create\",\"params\":'{'\"volume\":\"{1}\",\"host_cluster_name\":\"{0}\",\"map_type\":\"host\",\"lun\":\"{2}\"}}]}";
 
     /**
      * Host Status on XIV
@@ -505,9 +505,9 @@ public class XIVRestClient extends StandardRestClient {
      */
     public boolean exportVolume(final String xivSystem, final String exportType, final String exportName, final String volumeName,
             final String lunID)
-                    throws Exception {
+            throws Exception {
         boolean isAvailable = findAvailability(
-                MessageFormat.format(EXPORT_VOLUME_INSTANCE_URL, xivSystem, exportType, exportName, volumeName));
+                MessageFormat.format(EXPORT_VOLUME_INSTANCE_URL, xivSystem, exportType.toLowerCase(), exportName, volumeName));
         if (isAvailable) {
             _log.info("Volume {} already already exported to {} {} on XIV {}. Skipping Export!", volumeName, exportType, exportName,
                     xivSystem);
@@ -612,26 +612,75 @@ public class XIVRestClient extends StandardRestClient {
      * Gets Volumes mapped on the XIV
      * 
      * @param xivSystem XIV system
+     * @param clusterName Cluster name
      * @param hostName Host name
      * @return Map of Volume and LUN id
      * @throws Exception Throws Exception If error occurs during execution
      */
-    public Map<String, Integer> getVolumesMappedToHost(final String xivSystem, final String hostName) throws Exception {
-        String hostPortSearchURL = MessageFormat.format(EXPORT_VOLUME_URL + SEARCH_URL, xivSystem, HOST, hostName);
-        JSONObject volsMappedToHostInstance = getInstance(hostPortSearchURL);
+    public Map<String, Integer> getVolumesMappedToHost(final String xivSystem, final String clusterName, final String hostName)
+            throws Exception {
+        Map<String, Integer> discVolsMappedToCluster = new HashMap<String, Integer>();
         Map<String, Integer> discVolsMappedToHost = new HashMap<String, Integer>();
         Map<String, Integer> discVolWWNMappedToHost = new HashMap<String, Integer>();
 
-        if (findAvailability(volsMappedToHostInstance)) {
-            JSONObject response = volsMappedToHostInstance.getJSONObject(RESPONSE);
-            JSONObject data = response.getJSONObject(DATA);
-            JSONArray mappedVolumes = data.getJSONArray(VOLMAP);
-            int mappedVolumessize = mappedVolumes.length();
-            for (int i = 0; i < mappedVolumessize; i++) {
-                JSONObject mappedVolume = mappedVolumes.getJSONObject(i);
-                discVolsMappedToHost.put(mappedVolume.getString(VOLUME), new Integer(mappedVolume.getString(LUN)));
+        if (null != clusterName && !clusterName.isEmpty()) {
+            String clusterVolsSearchURL = MessageFormat.format(EXPORT_VOLUME_URL + SEARCH_URL, xivSystem, CLUSTER, clusterName);
+            JSONObject volsMappedToClusterInstance = getInstance(clusterVolsSearchURL);
+            if (findAvailability(volsMappedToClusterInstance)) {
+                JSONObject cluResponse = volsMappedToClusterInstance.getJSONObject(RESPONSE);
+                JSONObject cluData = cluResponse.getJSONObject(DATA);
+                JSONArray mappedVolumes = cluData.getJSONArray(VOLMAP);
+                int mappedVolumessize = mappedVolumes.length();
+                for (int i = 0; i < mappedVolumessize; i++) {
+                    JSONObject mappedVolume = mappedVolumes.getJSONObject(i);
+                    discVolsMappedToHost.put(mappedVolume.getString(VOLUME), new Integer(mappedVolume.getString(LUN)));
+                }
+            }
+        } else if (null != hostName && !hostName.isEmpty()) {
+            final String hostURL = MessageFormat.format(HOST_INSTANCE_URL, xivSystem, hostName);
+            JSONObject hostInstance = getInstance(hostURL);
+            if (findAvailability(hostInstance)) {
+                JSONObject response = hostInstance.getJSONObject(RESPONSE);
+                JSONObject data = response.getJSONObject(DATA);
+                JSONObject host = data.getJSONObject(HOST);
+                final String hostCluster = host.getString(CLUSTER);
+                if (null != hostCluster && !hostCluster.isEmpty()) {
+                    String clusterVolsSearchURL = MessageFormat.format(EXPORT_VOLUME_URL + SEARCH_URL, xivSystem, CLUSTER, hostCluster);
+                    JSONObject volsMappedToClusterInstance = getInstance(clusterVolsSearchURL);
+                    if (findAvailability(volsMappedToClusterInstance)) {
+                        JSONObject cluResponse = volsMappedToClusterInstance.getJSONObject(RESPONSE);
+                        JSONObject cluData = cluResponse.getJSONObject(DATA);
+                        JSONArray mappedVolumes = cluData.getJSONArray(VOLMAP);
+                        int mappedVolumessize = mappedVolumes.length();
+                        for (int i = 0; i < mappedVolumessize; i++) {
+                            JSONObject mappedVolume = mappedVolumes.getJSONObject(i);
+                            discVolsMappedToCluster.put(mappedVolume.getString(VOLUME), new Integer(mappedVolume.getString(LUN)));
+                        }
+                    }
+                }
+            }
+
+            String hostPortSearchURL = MessageFormat.format(EXPORT_VOLUME_URL + SEARCH_URL, xivSystem, HOST, hostName);
+            JSONObject volsMappedToHostInstance = getInstance(hostPortSearchURL);
+            if (findAvailability(volsMappedToHostInstance)) {
+                JSONObject response = volsMappedToHostInstance.getJSONObject(RESPONSE);
+                JSONObject data = response.getJSONObject(DATA);
+                JSONArray mappedVolumes = data.getJSONArray(VOLMAP);
+                int mappedVolumessize = mappedVolumes.length();
+                for (int i = 0; i < mappedVolumessize; i++) {
+                    JSONObject mappedVolume = mappedVolumes.getJSONObject(i);
+                    discVolsMappedToHost.put(mappedVolume.getString(VOLUME), new Integer(mappedVolume.getString(LUN)));
+                }
+            }
+
+            // Remove the Cluster Volumes as it belongs to Cluster Mask.
+            if (!discVolsMappedToHost.isEmpty() && !discVolsMappedToCluster.isEmpty()) {
+                for (String key : discVolsMappedToCluster.keySet()) {
+                    discVolsMappedToHost.remove(key);
+                }
             }
         }
+
         if (!discVolsMappedToHost.isEmpty()) {
             Set<Entry<String, Integer>> discVolsMappedToHostSet = discVolsMappedToHost.entrySet();
             for (Entry<String, Integer> volMapping : discVolsMappedToHostSet) {
@@ -648,6 +697,14 @@ public class XIVRestClient extends StandardRestClient {
         return discVolWWNMappedToHost;
     }
 
+    /**
+     * Returns Port details for a port name specified if exist on Array
+     * 
+     * @param xivSystem XIV Storage System name
+     * @param portName Port name for which the details to be found
+     * @return JSONArray of Port details
+     * @throws Exception If error occurs during execution.
+     */
     public JSONArray getPortDetails(final String xivSystem, final String portName) throws Exception {
         JSONArray result = new JSONArray();
         String hostPortSearchURL = MessageFormat.format(HOST_PORT_URL + SEARCH_URL, xivSystem, PORT, portName);

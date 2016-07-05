@@ -19,7 +19,7 @@ public interface XIVRestExceptions {
     public Exception notAVolumeOrBlocksnapshotUri(URI uri);
 
     @DeclareServiceCode(ServiceCode.XIV_COMMAND_FAILURE)
-    public ServiceError methodFailed(final String methodName, final String cause);
+    public ServiceError methodFailed(final String methodName, final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.XIV_REST_REQUEST_FAILURE)
     public Exception xivRestRequestFailure(String uri, int status);

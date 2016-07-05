@@ -17,7 +17,7 @@ public class FcPath {
     public Position getPortPos() {
         return portPos;
     }
-    public void setPortPos(Position postPos) {
-        this.portPos = postPos;
+    public void setPortPos(Position portPos) {
+        this.portPos = portPos;
     }
 }

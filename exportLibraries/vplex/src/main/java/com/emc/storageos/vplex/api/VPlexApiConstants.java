@@ -11,6 +11,9 @@ import java.net.URI;
  */
 public class VPlexApiConstants {
 
+    // VPLEX firmware version strings for testing availability of certain features
+    public static final String MIN_VERSION_THIN_PROVISIONING = "5.5.1.00.00.00";
+
     // Constants define the headers required when making HTTP requests to the
     // VPlex Management Station using the Element Manager API.
     public static final String USER_NAME_HEADER = "Username";
@@ -76,6 +79,7 @@ public class VPlexApiConstants {
     public static final URI URI_CREATE_LOCAL_DEVICE = URI.create("/vplex/local-device+create");
     public static final URI URI_CREATE_VIRTUAL_VOLUME = URI.create("/vplex/virtual-volume+create");
     public static final URI URI_DESTROY_VIRTUAL_VOLUME = URI.create("/vplex/virtual-volume+destroy");
+    public static final URI URI_SET_THIN_ENABLED_VIRTUAL_VOLUME = URI.create("/vplex/virtual-volume+set-thin-enabled");
     public static final URI URI_CREATE_DIST_DEVICE = URI.create("/vplex/ds+dd+create");
     public static final URI URI_REDISCOVER_ARRAY = URI.create("/vplex/array+re-discover");
     public static final URI URI_DISMANTLE = URI.create("/vplex/advadm+dismantle");
@@ -173,6 +177,7 @@ public class VPlexApiConstants {
     public static final String ARG_THIN_REBUILD = "--thin-rebuild";
     public static final String ARG_TRANSFER_SIZE = "--transfer-size";
     public static final String ARG_DEVICES = "--devices";
+    public static final String ARG_VIRTUAL_VOLUMES = "--virtual-volumes";
 
     // Constants related to claimed storage volumes.
     public static final String VOLUME_NAME_PREFIX = "V";
@@ -243,6 +248,7 @@ public class VPlexApiConstants {
 
     // VPlex API attribute values
     public static final String NULL_ATT_VAL = "null";
+    public static final String ENABLED = "enabled";
     public static final String TRUE = "true";
     public static final String FALSE = "false";
 

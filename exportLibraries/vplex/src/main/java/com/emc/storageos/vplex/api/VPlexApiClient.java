@@ -697,6 +697,19 @@ public class VPlexApiClient {
     }
 
     /**
+     * Sends a request to the VPLEX to turn on thin provisioning for the given
+     * virtual volume. Will return a boolean value indicating whether or not
+     * the request was a success.
+     * 
+     * @param virtualVolumeInfo the virtual volume to update
+     * @return true if the thin-enabled request was a success
+     */
+    public boolean setVirtualVolumeThinEnabled(VPlexVirtualVolumeInfo virtualVolumeInfo) {
+        s_logger.info(String.format("Request to set virtual volume %s to thin-enabled at %s", virtualVolumeInfo.getName(), _baseURI));
+        return _virtualVolumeMgr.setVirtualVolumeThinEnabled(virtualVolumeInfo);
+    }
+
+    /**
      * Creates a VPlex storage view so that the passed initiators have access to
      * the passed virtual volumes, via the passed target ports (i.e., the VPlex
      * front-end ports). Note that target ports are required to create a storage

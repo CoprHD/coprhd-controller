@@ -1785,16 +1785,6 @@ public class DisasterRecoveryService {
                     "Please wait for this site to recognize the Active site is down and automatically switch to a Paused state before failing over.");
         }
 
-        // Need to check every site state via HMAC way when failing over to ACTIVE_DEGRADED site
-        if (standby.getState() == SiteState.ACTIVE_DEGRADED) {
-            for (Site site : drUtil.listSites()) {
-                if (!site.getUuid().equals(drUtil.getLocalSite().getUuid()) && isSiteAvailable(site)) {
-                    throw APIException.internalServerErrors.failoverPrecheckFailed(standby.getName(),
-                            String.format("Site %s is available, so it's not allowed to failover to an ACTIVE_DEGRADED site", site.getName()));
-                }
-            }
-        }
-
         precheckForFailover();
     }
 

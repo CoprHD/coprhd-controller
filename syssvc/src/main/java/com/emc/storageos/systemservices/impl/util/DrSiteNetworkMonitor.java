@@ -26,7 +26,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  * If latency is less than 150ms then Network health is "Good", if it is greater then Network Health is "Slow"
  * If the testPing times out or fails to connect then pin is -1 and NetworkHealth is "Broken""
  */
-public class DrSiteNetworkMonitor implements Runnable {
+public class DrSiteNetworkMonitor extends DrHealthMonitor {
 
     private static final Logger _log = LoggerFactory.getLogger(DrSiteNetworkMonitor.class);
     private AlertsLogger _alertLog = AlertsLogger.getAlertsLogger();
@@ -40,9 +40,6 @@ public class DrSiteNetworkMonitor implements Runnable {
     @Autowired
     private CoordinatorClient coordinatorClient;
 
-    private final Waiter waiter = new Waiter();
-
-    private static final int NETWORK_MONITORING_INTERVAL = 60; // in seconds
     private static final int SOCKET_TEST_PORT = 443;
     private static final int NETWORK_SLOW_THRESHOLD = 150;
     private static final int NETWORK_TIMEOUT = 10 * 1000;
@@ -50,24 +47,11 @@ public class DrSiteNetworkMonitor implements Runnable {
     public DrSiteNetworkMonitor() {
     }
 
-    public void run() {
-        _log.info("Starting DrSiteNetworkMonitor");
-        while (true) {
-            try {
-                if (shouldStartOnCurrentSite() && drUtil.isLeaderNode()) {
-                    checkPing();
-                }
-            } catch (Exception e) {
-                //try catch exception to make sure next scheduled run can be launched.
-                _log.error("Error occurs when monitor standby network", e);
-            }
-
-            waiter.sleep(TimeUnit.MILLISECONDS.convert(NETWORK_MONITORING_INTERVAL, TimeUnit.SECONDS));
+    @Override
+    public void tick() {
+        if (shouldStartOnCurrentSite() && drUtil.isLeaderNode()) {
+            checkPing();
         }
-    }
-
-    public void wakeup() {
-        waiter.wakeup();
     }
 
     /**

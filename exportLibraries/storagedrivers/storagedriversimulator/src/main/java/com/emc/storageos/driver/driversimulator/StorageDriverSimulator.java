@@ -382,6 +382,38 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
                 volumes.get(0).getStorageSystemId(), volumes.toString());
         return task;
     }
+    
+    @Override
+    public DriverTask addVolumesToConsistencyGroup (List<StorageVolume> volumes, StorageCapabilities capabilities){
+    	_log.info("Adding {} Volumes to Consistency Group {}", volumes.toString(), volumes.get(0).getConsistencyGroup());
+        String taskType = "add-volumes-to-consistency-groupd";
+        String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
+        DriverTask task = new DriverSimulatorTask(taskId);
+        task.setStatus(DriverTask.TaskStatus.READY);
+        
+        String msg = String.format("StorageDriver: addVolumesToConsistencyGroup information for storage system %s, volume nativeIds %s, Consistency Group - end",
+        		volumes.get(0).getStorageSystemId(), volumes.toString());
+        _log.info(msg);
+        task.setMessage(msg);
+        
+        return task;
+    }
+    
+    @Override
+    public DriverTask removeVolumesFromConsistencyGroup(List<StorageVolume> volumes, StorageCapabilities capabilities){
+    	_log.info("Remove {} Volumes from Consistency Group {}", volumes.toString(), volumes.get(0).getConsistencyGroup());
+        String taskType = "remove-volumes-to-consistency-groupd";
+        String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
+        DriverTask task = new DriverSimulatorTask(taskId);
+        task.setStatus(DriverTask.TaskStatus.READY);
+        
+        String msg = String.format("StorageDriver: removeVolumesFromConsistencyGroup information for storage system %s, volume nativeIds %s, Consistency Group - end",
+                volumes.get(0).getStorageSystemId(), volumes.toString());
+        _log.info(msg);
+        task.setMessage(msg);
+        
+        return task;
+    }
 
     @Override
     public DriverTask createVolumeSnapshot(List<VolumeSnapshot> snapshots, StorageCapabilities capabilities) {
@@ -581,7 +613,8 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
         String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
         DriverTask task = new DriverSimulatorTask(taskId);
         task.setStatus(DriverTask.TaskStatus.READY);
-        String msg = String.format("StorageDriver: exportVolumesToInitiators - end");
+        String msg = String.format("StorageDriver: exportVolumesToInitiators: export type %s, initiators %s .",
+                initiators.get(0).getInitiatorType(), initiators.toString());
         _log.info(msg);
         task.setMessage(msg);
         return task;
@@ -593,7 +626,8 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
         String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
         DriverTask task = new DriverSimulatorTask(taskId);
         task.setStatus(DriverTask.TaskStatus.READY);
-        String msg = String.format("StorageDriver: unexportVolumesFromInitiators - end");
+        String msg = String.format("StorageDriver: unexportVolumesFromInitiators: export type %s, initiators %s .",
+                initiators.get(0).getInitiatorType(), initiators.toString());
         _log.info(msg);
         task.setMessage(msg);
         return task;

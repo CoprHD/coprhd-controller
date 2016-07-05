@@ -800,4 +800,8 @@ public interface VPlexApiExceptions {
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException vplexVolumeExpansionBlockCountNotUpdated(final String volumeName);
+
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException failedSettingThinEnabled(final String volumeName, final Throwable cause);
+
 }

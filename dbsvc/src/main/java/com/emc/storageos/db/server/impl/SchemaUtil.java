@@ -20,17 +20,18 @@ import java.util.Set;
 import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.gms.Gossiper;
 import org.apache.cassandra.locator.IEndpointSnitch;
-import org.apache.cassandra.thrift.Cassandra;
 import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.ColumnMetadata;
 import com.datastax.driver.core.KeyspaceMetadata;
 import com.datastax.driver.core.TableMetadata;
 import com.datastax.driver.core.TableOptionsMetadata;
+import com.datastax.driver.core.exceptions.DriverException;
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.MigrationStatus;
 import com.emc.storageos.coordinator.client.model.Site;
@@ -66,19 +67,7 @@ import com.emc.storageos.db.common.DbServiceStatusChecker;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.security.password.PasswordUtils;
-import com.netflix.astyanax.AstyanaxContext;
-import com.netflix.astyanax.CassandraOperationType;
-import com.netflix.astyanax.Cluster;
-import com.netflix.astyanax.KeyspaceTracerFactory;
-import com.netflix.astyanax.connectionpool.ConnectionContext;
-import com.netflix.astyanax.connectionpool.ConnectionPool;
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
-import com.netflix.astyanax.connectionpool.exceptions.OperationException;
-import com.netflix.astyanax.ddl.ColumnFamilyDefinition;
-import com.netflix.astyanax.ddl.KeyspaceDefinition;
 import com.netflix.astyanax.model.ColumnFamily;
-import com.netflix.astyanax.shallows.EmptyKeyspaceTracerFactory;
-import com.netflix.astyanax.thrift.AbstractOperationImpl;
 
 /**
  * Utility class for initializing DB schema from model classes
@@ -281,7 +270,7 @@ public class SchemaUtil {
                     return;
                 }
 
-            }catch (ConnectionException e) {
+            }catch (DriverException e) {
                 _log.warn("Unable to verify DB keyspace, will retry in {} secs", retryIntervalSecs, e);
             } catch (InterruptedException e) {
                 _log.warn("DB keyspace verification interrupted, will retry in {} secs", retryIntervalSecs, e);
@@ -302,7 +291,7 @@ public class SchemaUtil {
         }
     }
 
-    private boolean checkAndInitSchemaOnActive(KeyspaceMetadata kd, boolean waitForSchema) throws InterruptedException, ConnectionException {
+    private boolean checkAndInitSchemaOnActive(KeyspaceMetadata kd, boolean waitForSchema) throws InterruptedException {
         _log.info("try scan and setup db ...");
         if (kd == null) {
             _log.info("keyspace not exist yet");
@@ -345,7 +334,7 @@ public class SchemaUtil {
         return false;
     }
 
-    private boolean checkAndInitSchemaOnStandby(KeyspaceMetadata kd) throws ConnectionException{
+    private boolean checkAndInitSchemaOnStandby(KeyspaceMetadata kd) {
         _log.info("try scan and setup db on standby site ...");
         if (kd == null) {
             _log.info("keyspace not exist yet. Wait {} seconds for schema from active site", DBINIT_RETRY_INTERVAL);
@@ -537,7 +526,7 @@ public class SchemaUtil {
     /**
      * Check keyspace strategy options for an existing keyspace and update if necessary
      */
-    private void checkStrategyOptions() throws ConnectionException {
+    private void checkStrategyOptions() {
         Map<String, String> strategyOptions = clientContext.getStrategyOptions();
         _log.info("Current strategyOptions={}", strategyOptions);
 
@@ -980,35 +969,6 @@ public class SchemaUtil {
     }
 
     /**
-     * Drop CF
-     * 
-     * @param cfName column family name
-     * @param context
-     * @return
-     */
-    @SuppressWarnings("unchecked")
-    public String dropColumnFamily(final String cfName, AstyanaxContext<Cluster> context) {
-        final KeyspaceTracerFactory ks = EmptyKeyspaceTracerFactory.getInstance();
-        ConnectionPool<Cassandra.Client> pool = (ConnectionPool<Cassandra.Client>) context.getConnectionPool();
-        _log.info("Dropping CF: {}", cfName);
-        try {
-            return pool.executeWithFailover(
-                    new AbstractOperationImpl<String>(
-                            ks.newTracer(CassandraOperationType.UPDATE_COLUMN_FAMILY)) {
-                        @Override
-                        public String internalExecute(Cassandra.Client client, ConnectionContext context) throws Exception {
-                            client.set_keyspace(_keyspaceName);
-                            return client.system_drop_column_family(cfName);
-                        }
-                    }, context.getAstyanaxConfiguration().getRetryPolicy().duplicate()).getResult();
-        } catch (final OperationException e) {
-            throw DatabaseException.retryables.operationFailed(e);
-        } catch (final ConnectionException e) {
-            throw DatabaseException.retryables.connectionFailed(e);
-        }
-    }
-
-    /**
      * Get replication factor. By default, 5 is the maximum replication factor we will use.
      * If there are less than 5 nodes (where N is the number of nodes), we set replication
      * factor to N
@@ -1069,21 +1029,19 @@ public class SchemaUtil {
     }
 
     public boolean dropUnusedCfsIfExists() {
-        AstyanaxContext<Cluster> context = clientContext.getClusterContext();
+        Cluster cluster = clientContext.getCassandraCluster();
         try {
-            KeyspaceDefinition kd = context.getClient().describeKeyspace(_clusterName);
-            if (kd == null) {
+            KeyspaceMetadata keyspace = cluster.getMetadata().getKeyspace(String.format("\"%s\"", _clusterName));
+            if (keyspace == null) {
                 String errMsg = "Fatal error: Keyspace not exist when drop cf";
                 _log.error(errMsg);
                 throw new IllegalStateException(errMsg);
             }
             for (String cfName : DbSchemaInterceptorImpl.getIgnoreCfList()) {
-                ColumnFamilyDefinition cfd = kd.getColumnFamily(cfName);
-                if (cfd != null) {
-            	    _log.info("drop cf {} from db", cfName);
-            	    String schemaVersion = dropColumnFamily(cfName, context);
-                    clientContext.waitForSchemaAgreement(schemaVersion);
-                }
+                String dropString = String.format("DROP TABLE IF EXISTS \"%s\"", cfName);
+                _log.info("drop cf {} from db", cfName);
+            	clientContext.getSession().execute(dropString);
+                clientContext.waitForSchemaAgreement();
             }
         } catch (Exception e){
             _log.error("drop Cf error ", e);

@@ -1,0 +1,45 @@
+/*
+ * Copyright (c) 2016 EMC Corporation
+ * All Rights Reserved
+ */
+package com.emc.storageos.model.event;
+
+import java.net.URI;
+
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlRootElement;
+
+/**
+ * Request POST parameter for event creation.
+ */
+@XmlRootElement(name = "event_create")
+public class EventCreateParam {
+
+    private String message;
+    private URI tenant;
+
+    public EventCreateParam() {
+    }
+
+    public EventCreateParam(String message) {
+        this.message = message;
+    }
+
+    @XmlElement(required = true)
+    public String getMessage() {
+        return message;
+    }
+
+    public void setMessage(String message) {
+        this.message = message;
+    }
+
+    @XmlElement(required = true)
+    public URI getTenant() {
+        return tenant;
+    }
+
+    public void setTenant(URI tenant) {
+        this.tenant = tenant;
+    }
+}

@@ -38,7 +38,7 @@
           required: "false",
           lockable: true
         },
-        directAccess: {
+        directAccess:{
           type: "boolean",
           initialValue: "false",
           required: "false",
@@ -46,6 +46,5 @@
         }
       }  
     }    
-
   }
 }

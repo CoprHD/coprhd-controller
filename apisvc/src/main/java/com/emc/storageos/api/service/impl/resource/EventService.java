@@ -72,6 +72,7 @@ public class EventService extends TaskResourceService {
         event.setId(URIUtil.createId(ActionableEvent.class));
         event.setTenant(tenant.getId());
         event.setMessage(createParam.getMessage());
+        event.setLabel("Label[" + createParam.getMessage() + "]");
         _dbClient.createObject(event);
         return map(event);
     }

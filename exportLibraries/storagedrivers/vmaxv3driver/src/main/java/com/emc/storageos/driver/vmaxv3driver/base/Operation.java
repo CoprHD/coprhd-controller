@@ -19,11 +19,11 @@ public interface Operation {
 
     /**
      * Check if the current operation instance is matched to the given
-     * operation perform.
+     * operation request.
      *
      * @param name Requested operation name.
      * @param parameters Request operation arguments.
-     * @return True/False.
+     * @return true/false.
      */
     public boolean isMatch(String name, Object... parameters);
 

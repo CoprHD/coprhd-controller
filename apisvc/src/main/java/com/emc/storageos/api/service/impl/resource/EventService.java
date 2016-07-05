@@ -14,8 +14,10 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,7 +30,9 @@ import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.event.EventCreateParam;
+import com.emc.storageos.model.event.EventList;
 import com.emc.storageos.model.host.EventRestRep;
+import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
@@ -70,6 +74,28 @@ public class EventService extends TaskResourceService {
         event.setMessage(createParam.getMessage());
         _dbClient.createObject(event);
         return map(event);
+    }
+
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    public EventList listEvents(@QueryParam("tenant") final URI tid) throws DatabaseException {
+        URI tenantId;
+        StorageOSUser user = getUserFromContext();
+        if (tid == null || StringUtils.isBlank(tid.toString())) {
+            tenantId = URI.create(user.getTenantId());
+        } else {
+            tenantId = tid;
+        }
+        // this call validates the tenant id
+        TenantOrg tenant = _permissionsHelper.getObjectById(tenantId, TenantOrg.class);
+        ArgValidator.checkEntity(tenant, tenantId, isIdEmbeddedInURL(tenantId), true);
+
+        // check the user permissions for this tenant org
+        verifyAuthorizedInTenantOrg(tenantId, user);
+        // get all host children
+        EventList list = new EventList();
+        list.setEvents(DbObjectMapper.map(ResourceTypeEnum.EVENT, listChildren(tenantId, ActionableEvent.class, "label", "tenant")));
+        return list;
     }
 
     public static EventRestRep map(ActionableEvent from) {

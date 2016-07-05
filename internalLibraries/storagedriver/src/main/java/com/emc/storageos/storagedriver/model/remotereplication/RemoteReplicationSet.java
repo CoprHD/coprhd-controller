@@ -4,8 +4,11 @@
  */
 package com.emc.storageos.storagedriver.model.remotereplication;
 
+import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
+
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -17,7 +20,10 @@ import java.util.Set;
  */
 public class RemoteReplicationSet {
 
+    // Device native id of the replication set. Type: Output.
     private String nativeId;
+
+    // Display name of the replication set. Type: Output.
     private String displayName;
 
     public enum ReplicationRole {
@@ -31,21 +37,39 @@ public class RemoteReplicationSet {
      */
     private Map<String, Set<ReplicationRole>> systemMap = new HashMap<>();
 
-    public enum ReplicationGranularity {
+    /**
+     * Defines replication set elements for which link
+     * management operations can be done.
+     */
+    public enum ReplicationLinkGranularity {
         SET,
         GROUP,
         PAIR
     }
 
-    private Set<ReplicationGranularity> supportedReplicationGranularity = new HashSet<>();
+    /**
+     * Replication link granularity supported by this set.
+     */
+    private Set<ReplicationLinkGranularity> supportedReplicationLinkGranularity = new HashSet<>();
 
+    /**
+     * Defines replication modes.
+     */
     public enum ReplicationMode {
         SYNC,
-        ASYNC
+        ASYNC,
+        PERIODIC,
+        ASYNC_WRITE_ORDER_CONSISTENT
     }
 
-    private ReplicationMode replicationMode;
+    /**
+     * Defines replication modes supported for elements of this set.
+     */
+    private Set<ReplicationMode> supportedReplicationMode;
 
+    /**
+     * State of replication link.
+     */
     public enum ReplicationState {
         ACTIVE,
         SYNCHRONIZING,
@@ -55,14 +79,23 @@ public class RemoteReplicationSet {
         STOPPED
     }
 
+    /**
+     * When replication link granularity is SET, defines replication link state of this set.
+     */
     private ReplicationState replicationState;
 
-    public enum SupportedElementType {
+    /**
+     * Replication element type
+     */
+    public enum ElementType {
         REPLICATION_GROUP,
         REPLICATION_PAIR
     }
 
-    private Set<SupportedElementType> elementTypes;
+    /**
+     * Element types supported by this replication set.
+     */
+    private Set<ElementType> supportedElementTypes;
 
     /*
      * Set of replication groups in this replication set.
@@ -70,6 +103,11 @@ public class RemoteReplicationSet {
      * If elementTypes has only REPLICATIOM_PAIR, driver should leave this element empty.
      */
     private Set<RemoteReplicationGroup> replicationGroups;
+
+    /**
+     * Device specific capabilities.
+     */
+    private List<CapabilityInstance> capabilities;
 
 
 

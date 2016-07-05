@@ -10,6 +10,8 @@ import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
 
+import java.util.Set;
+
 @Cf("RemoteReplicationSet")
 public class RemoteReplicationSet extends DataObject {
 
@@ -26,13 +28,13 @@ public class RemoteReplicationSet extends DataObject {
 
     private StringSetMap systemToRolesMap = new StringSetMap();
 
-    public enum ReplicationGranularity {
+    public enum ReplicationLinkGranularity {
         SET,
         GROUP,
         PAIR
     }
 
-    private StringSet supportedReplicationGranularity = new StringSet();
+    private StringSet supportedReplicationLinkGranularity = new StringSet();
 
     public enum ReplicationMode {
         SYNC,
@@ -52,12 +54,15 @@ public class RemoteReplicationSet extends DataObject {
 
     private ReplicationState replicationState;
 
-    public enum ContainedElementType {
+    public enum ElementType {
         REPLICATION_GROUP,
         REPLICATION_PAIR
     }
 
-    private ContainedElementType elementType;
+    /**
+     * Element types supported by this replication set.
+     */
+    private Set<ElementType> supportedElementTypes;
 
     /*
      * Set of replication groups in this replication set.

@@ -1469,47 +1469,47 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
     }
 
     @Override
-    public void start(List<RemoteReplicationTarget> replicationTargetList, TaskCompleter taskCompleter) {
+    public void start(List<RemoteReplicationArgument> replicationTargetList, TaskCompleter taskCompleter) {
 
     }
 
     @Override
-    public void stop(RemoteReplicationTarget replicationTarget, TaskCompleter taskCompleter) {
+    public void stop(RemoteReplicationArgument replicationTarget, TaskCompleter taskCompleter) {
 
     }
 
     @Override
-    public void suspend(RemoteReplicationTarget replicationTarget, TaskCompleter taskCompleter) {
+    public void suspend(RemoteReplicationArgument replicationTarget, TaskCompleter taskCompleter) {
 
     }
 
     @Override
-    public void resume(RemoteReplicationTarget replicationTarget, TaskCompleter taskCompleter) {
+    public void resume(RemoteReplicationArgument replicationTarget, TaskCompleter taskCompleter) {
 
     }
 
     @Override
-    public void failover(RemoteReplicationTarget replicationTarget, TaskCompleter taskCompleter) {
+    public void failover(RemoteReplicationArgument replicationTarget, TaskCompleter taskCompleter) {
 
     }
 
     @Override
-    public void failback(RemoteReplicationTarget replicationTarget, TaskCompleter taskCompleter) {
+    public void failback(RemoteReplicationArgument replicationTarget, TaskCompleter taskCompleter) {
 
     }
 
     @Override
-    public void swap(RemoteReplicationTarget replicationTarget, TaskCompleter taskCompleter) {
+    public void swap(RemoteReplicationArgument replicationTarget, TaskCompleter taskCompleter) {
 
     }
 
     @Override
-    public void split(RemoteReplicationTarget replicationTarget, TaskCompleter taskCompleter) {
+    public void split(RemoteReplicationArgument replicationTarget, TaskCompleter taskCompleter) {
 
     }
 
     @Override
-    public void synchronize(RemoteReplicationTarget replicationTarget, TaskCompleter taskCompleter) {
+    public void synchronize(RemoteReplicationArgument replicationTarget, TaskCompleter taskCompleter) {
 
     }
 }

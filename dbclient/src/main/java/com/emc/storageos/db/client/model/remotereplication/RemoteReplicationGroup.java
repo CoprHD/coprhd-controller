@@ -15,9 +15,12 @@ import com.emc.storageos.db.client.model.RelationIndex;
 @Cf("RemoteReplicationSet")
 public class RemoteReplicationGroup extends DataObject {
 
-    String nativeId;
+    private String nativeId;
 
-    String displayName;
+    private String displayName;
+
+    private URI sourceSystem;
+    private URI targetSystem;
 
     URI replicationSet;
 

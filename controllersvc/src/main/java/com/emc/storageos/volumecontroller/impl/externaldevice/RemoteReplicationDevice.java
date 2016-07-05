@@ -5,21 +5,26 @@
 package com.emc.storageos.volumecontroller.impl.externaldevice;
 
 
-import com.emc.storageos.volumecontroller.TaskCompleter;
-
+import java.net.URI;
 import java.util.List;
+
+import com.emc.storageos.volumecontroller.TaskCompleter;
 
 public interface RemoteReplicationDevice {
 
-    // replication link (target) operations
-    public void start(List<RemoteReplicationTarget> replicationTargetList, TaskCompleter taskCompleter);
-    public void stop(RemoteReplicationTarget replicationTarget, TaskCompleter taskCompleter);
-    public void suspend(RemoteReplicationTarget replicationTarget, TaskCompleter taskCompleter);
-    public void resume(RemoteReplicationTarget replicationTarget, TaskCompleter taskCompleter);
-    public void split(RemoteReplicationTarget replicationTarget, TaskCompleter taskCompleter);
-    public void synchronize(RemoteReplicationTarget replicationTarget, TaskCompleter taskCompleter);
-    public void failover(RemoteReplicationTarget replicationTarget, TaskCompleter taskCompleter);
-    public void failback(RemoteReplicationTarget replicationTarget, TaskCompleter taskCompleter);
-    public void swap(RemoteReplicationTarget replicationTarget, TaskCompleter taskCompleter);
+    public void createGroupReplicationPairs(List<URI> replicationPairs, boolean createActive);
+    public void createSetReplicationPairs(List<URI> replicationPairs, boolean createActive);
+    public void deleteReplicationPairs(List<URI> replicationPairs);
+
+    // replication link operations
+    public void start(RemoteReplicationArgument replicationArgument, TaskCompleter taskCompleter);
+    public void stop(RemoteReplicationArgument replicationArgument, TaskCompleter taskCompleter);
+    public void suspend(RemoteReplicationArgument replicationArgument, TaskCompleter taskCompleter);
+    public void resume(RemoteReplicationArgument replicationArgument, TaskCompleter taskCompleter);
+    public void split(RemoteReplicationArgument replicationArgument, TaskCompleter taskCompleter);
+    public void synchronize(RemoteReplicationArgument replicationArgument, TaskCompleter taskCompleter);
+    public void failover(RemoteReplicationArgument replicationArgument, TaskCompleter taskCompleter);
+    public void failback(RemoteReplicationArgument replicationArgument, TaskCompleter taskCompleter);
+    public void swap(RemoteReplicationArgument replicationArgument, TaskCompleter taskCompleter);
 
 }

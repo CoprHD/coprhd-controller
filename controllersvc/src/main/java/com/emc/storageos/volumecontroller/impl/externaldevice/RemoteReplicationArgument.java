@@ -7,18 +7,18 @@ package com.emc.storageos.volumecontroller.impl.externaldevice;
 
 import java.net.URI;
 
-public class RemoteReplicationTarget {
+public class RemoteReplicationArgument {
 
-    public static enum ReplicationTargetType {
+    public static enum ReplicationArgumentType {
         REPLICATION_SET,
         REPLICATION_GROUP,
         REPLICATION_PAIR
     }
 
     // Replication target type. Type: Input.
-    private ReplicationTargetType targetType;
+    private ReplicationArgumentType type;
 
-    // Uri of the backing object of the target instance. Depending on target type, this can be Uri of
+    // Uri of the backing object of the argument instance. Depending on argument type, this can be Uri of
     // replication set, replication group or replication pair. Type: Input.
     private URI targetUri;
 }

@@ -6,6 +6,8 @@ package controllers.tenant;
 
 import com.emc.storageos.model.auth.AuthnProviderRestRep;
 import com.emc.storageos.model.auth.RoleAssignmentEntry;
+import com.emc.storageos.model.keystone.CoprhdOsTenant;
+import com.emc.storageos.model.keystone.CoprhdOsTenantListRestRep;
 import com.emc.storageos.model.quota.QuotaInfo;
 import com.emc.storageos.model.tenant.*;
 import com.emc.vipr.client.core.util.ResourceUtils;
@@ -20,6 +22,7 @@ import controllers.util.ViprResourceController;
 import controllers.util.FlashException;
 import models.RoleAssignmentType;
 import models.Roles;
+import models.datatable.OpenStackTenantsDataTable;
 import models.datatable.TenantRoleAssignmentDataTable;
 import models.datatable.TenantsDataTable;
 import models.security.UserInfo;
@@ -51,9 +54,11 @@ import static util.RoleAssignmentUtils.putTenantRoleAssignmentChanges;
 @Restrictions({ @Restrict("ROOT_TENANT_ADMIN"), @Restrict("HOME_TENANT_ADMIN"), @Restrict("TENANT_ADMIN"), @Restrict("SECURITY_ADMIN") })
 public class Tenants extends ViprResourceController {
     protected static final String UNKNOWN = "tenants.unknown";
+    protected static final String UPDATED = "keystoneProvider.updated";
 
     public static void list() {
         TenantsDataTable dataTable = new TenantsDataTable();
+        renderArgs.put("osTenants", new TenantsSynchronization.KeystoneSynchronizationTenantsDataTable());
         render(dataTable);
     }
 
@@ -82,6 +87,49 @@ public class Tenants extends ViprResourceController {
         }
 
         renderJSON(DataTablesSupport.createJSON(tenants, params));
+    }
+
+    public static void synchronizeOSTenants(@As(",") String[] ids) {
+        List<CoprhdOsTenant> tenants = OpenStackTenantsUtils.getOpenStackTenantsFromDataBase();
+        if (ids != null) {
+            List<String> idList = Arrays.asList(ids);
+            for (CoprhdOsTenant tenant : tenants) {
+                if (idList.contains(tenant.getId().toString())) {
+                    if (tenant.getExcluded()) {
+                        tenant.setExcluded(false);
+                    } else {
+                        tenant.setExcluded(true);
+                    }
+                }
+            }
+        }
+
+        CoprhdOsTenantListRestRep params = new CoprhdOsTenantListRestRep();
+        params.setCoprhdOsTenants(tenants);
+
+        OpenStackTenantsUtils.updateOpenStackTenants(params);
+
+        flash.success(MessagesUtils.get(UPDATED));
+        list();
+    }
+
+    /**
+     * Gets the list of OpenStack tenants.
+     */
+    public static void tenantsListJson() {
+        List<OpenStackTenantsDataTable.OpenStackTenant> tenants = Lists.newArrayList();
+        for (CoprhdOsTenant tenant : OpenStackTenantsUtils.getOpenStackTenantsFromDataBase()) {
+            tenants.add(new OpenStackTenantsDataTable.OpenStackTenant(tenant));
+        }
+        renderJSON(DataTablesSupport.createJSON(tenants, params));
+    }
+
+    public static boolean isKeystoneAuthnProviderCreated() {
+        AuthnProviderRestRep authnProvider = AuthnProviderUtils.getKeystoneAuthProvider();
+        if (authnProvider != null && authnProvider.getAutoRegCoprHDNImportOSProjects() == true) {
+            return true;
+        }
+        return false;
     }
 
     @FlashException("list")

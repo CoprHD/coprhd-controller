@@ -1,0 +1,35 @@
+#{DataTable.formAction @synchronizeOSTenants(), id:'synchronizeForm', table:'osTenants'/}
+#{Modal.dialog id:'synchronizeOSTenants'}
+  #{form @synchronizeOSTenants(), id:'synchronizeForm', class:'form form-horizontal'}
+    #{Modal.body}
+      #{DataTable.header titleKey:'keystoneProvider.addTenants', descriptionKey:'keystoneProvider.addTenants.description', hideAlerts:true/}
+      #{DataTable.table id: 'osTenants',
+                        dataTable: osTenants,
+                        source: @tenantsListJson(),
+                        selectable: true,
+                        options:['iDisplayLength': '5']/}
+    #{/Modal.body}
+      #{Modal.buttonBar}
+        #{Form.button name:'button.synchronize', class:'success', dropdown:false, submit:'synchronizeForm',
+                      data:['enabled':'selected', 'table':'osTenants']/}
+      #{/Modal.buttonBar}
+  #{/form}
+#{/Modal.dialog}
+
+<script type="text/javascript">
+$(document).ready(function() {
+    $('#synchronizeOSTenants').on('shown.bs.modal', function(e) {
+        $('#name').focus();
+    });
+    $('#synchronizeOSTenants').on('show.bs.modal', function(e) {
+        $('#name').val('').trigger('change');
+    });
+    $('#name').on('change keydown keyup', function(e) {
+        if (e.which != 10 && e.which != 13) {
+          var value = $(this).val();
+          $('#synchronizeOSTenants button.btn-primary').prop('disabled',
+                (value == null) || (value == '') || (value.trim() == ''));
+        }
+    });
+});
+</script>

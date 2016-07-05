@@ -330,7 +330,7 @@ public enum OperationTypeEnum {
     DELETE_VCENTER("DELETE VCENTER", "", "operation to delete a vcenter."),
     DETACH_VCENTER_STORAGE("DELETE VCENTER", "", "operation to detach storage from a vcenter."),
 
-    CREATE_CONTROL_STATION("CREATE CONTROL STATION", "", "operation to create a control Station."),
+    CREATE_MANAGEMENT_STATION("CREATE MANAGEMENT STATION", "", "operation to create a management station."),
 
     CREATE_VCENTER_DATACENTER("CREATE VCENTER DATACENTER", "", "operation to create a vcenter data center."),
     UPDATE_VCENTER_DATACENTER("UPDATE VCENTER DATACENTER", "", "operation to update a vcenter data center."),

@@ -12,17 +12,17 @@ import org.codehaus.jackson.annotate.JsonProperty;
 import com.emc.storageos.model.valid.Endpoint;
 
 /**
- * Request POST parameter for control station creation.
+ * Request POST parameter for Management station creation.
  */
-@XmlRootElement(name = "control_station_create")
-public class ControlStationCreateParam extends ControlStationParam {
+@XmlRootElement(name = "management_station_create")
+public class ManagementStationCreateParam extends ManagementStationParam {
 
     private String ipAddress;
 
-    public ControlStationCreateParam() {
+    public ManagementStationCreateParam() {
     }
 
-    public ControlStationCreateParam(String ipAddress) {
+    public ManagementStationCreateParam(String ipAddress) {
         this.ipAddress = ipAddress;
     }
 

@@ -9,13 +9,13 @@ import java.util.List;
 
 import com.emc.storageos.db.client.ModelClient;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
-import com.emc.storageos.db.client.model.ControlStation;
 import com.emc.storageos.db.client.model.Host;
+import com.emc.storageos.db.client.model.ManagementStation;
 
-public class HMCControlStatiionFinder extends HostFinder {
-    private static final String CONTROL_STATION_COLUMN_NAME = "controlstation";
+public class HMCManagementStatiionFinder extends HostFinder {
+    private static final String MANAGEMENT_STATION_COLUMN_NAME = "controlstation";
 
-    public HMCControlStatiionFinder(ModelClient client) {
+    public HMCManagementStatiionFinder(ModelClient client) {
         super(client);
     }
 
@@ -25,6 +25,6 @@ public class HMCControlStatiionFinder extends HostFinder {
     }
 
     public List<NamedElement> findIdsByDatacenter(URI datacenterId) {
-        return client.findBy(ControlStation.class, CONTROL_STATION_COLUMN_NAME, datacenterId);
+        return client.findBy(ManagementStation.class, MANAGEMENT_STATION_COLUMN_NAME, datacenterId);
     }
 }

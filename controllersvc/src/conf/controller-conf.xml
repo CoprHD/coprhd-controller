@@ -1049,6 +1049,7 @@
                 <ref bean="imageservercontroller"/>
                 <ref bean="ucsDevice"/>
                 <ref bean="vcenterController"/>
+                <ref bean="managementStationController"/>
                 <ref bean="objectDeviceController"/>
             </set>
         </property>
@@ -1210,7 +1211,7 @@
         <property name="coordinator" ref="coordinator"/>
     </bean>
     
-     <bean id="controlstationController" class="com.emc.storageos.controlstationcontroller.impl.ControlStationControllerImpl">
+     <bean id="managementStationController" class="com.emc.storageos.controlstationcontroller.impl.ManagementStationControllerImpl">
         <property name="dbClient" ref="dbclient"/>
         <property name="workflowService" ref="workflowService" />
         <property name="coordinator" ref="coordinator"/>
@@ -1317,6 +1318,14 @@
         <property name="serviceName" value="SRDFController"/>
         <property name="service" ref="srdfController"/>
         <property name="serviceInterface" value="com.emc.storageos.srdfcontroller.SRDFController"/>
+        <property name="registryPort" value="10099"/>
+        <property name="servicePort" value="40201"/>
+    </bean>
+    
+    <bean class="org.springframework.remoting.rmi.RmiServiceExporter" depends-on="beacon">
+        <property name="serviceName" value="ManagementStationController"/>
+        <property name="service" ref="managementStationController"/>
+        <property name="serviceInterface" value="com.emc.storageos.managementstation.ManagementStationController"/>
         <property name="registryPort" value="10099"/>
         <property name="servicePort" value="40201"/>
     </bean>

@@ -14,7 +14,7 @@ import com.emc.storageos.db.client.model.dao.ClusterFinder;
 import com.emc.storageos.db.client.model.dao.DataAccessException;
 import com.emc.storageos.db.client.model.dao.DatacenterFinder;
 import com.emc.storageos.db.client.model.dao.ESXHostFinder;
-import com.emc.storageos.db.client.model.dao.HMCControlStatiionFinder;
+import com.emc.storageos.db.client.model.dao.HMCManagementStatiionFinder;
 import com.emc.storageos.db.client.model.dao.HostFinder;
 import com.emc.storageos.db.client.model.dao.InitiatorFinder;
 import com.emc.storageos.db.client.model.dao.IpInterfaceFinder;
@@ -32,7 +32,7 @@ public abstract class ModelClient {
     private DatacenterFinder datacenterDAO;
     private ESXHostFinder esxHostDAO;
     private VCenterFinder vcenterDAO;
-    private HMCControlStatiionFinder hmcControlStationDAO;
+    private HMCManagementStatiionFinder hmcControlStationDAO;
     private HostFinder hostDAO;
     private InitiatorFinder initiatorDAO;
     private IpInterfaceFinder ipInterfaceDAO;
@@ -117,9 +117,9 @@ public abstract class ModelClient {
         return vcenterDAO;
     }
 
-    public HMCControlStatiionFinder hmcControlSations() {
+    public HMCManagementStatiionFinder hmcControlSations() {
         if (hmcControlStationDAO == null) {
-            hmcControlStationDAO = new HMCControlStatiionFinder(this);
+            hmcControlStationDAO = new HMCManagementStatiionFinder(this);
         }
         return hmcControlStationDAO;
     }

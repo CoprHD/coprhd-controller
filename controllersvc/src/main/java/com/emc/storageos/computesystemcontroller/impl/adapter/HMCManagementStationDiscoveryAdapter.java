@@ -17,7 +17,7 @@ import com.emc.hmc.HMCSystem;
 import com.emc.hmc.model.HMCVersion;
 import com.emc.storageos.computesystemcontroller.exceptions.ComputeSystemControllerException;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.model.ControlStation.ControlStationType;
+import com.emc.storageos.db.client.model.ManagementStation.ManagementStationType;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.CompatibilityStatus;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.HostInterface.Protocol;
@@ -33,14 +33,14 @@ import com.iwave.ext.linux.model.IPInterface;
 import com.jcraft.jsch.JSchException;
 
 @Component
-public class HMCControlStationDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
-    private static final Logger LOG = LoggerFactory.getLogger(HMCControlStationDiscoveryAdapter.class);
+public class HMCManagementStationDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
+    private static final Logger LOG = LoggerFactory.getLogger(HMCManagementStationDiscoveryAdapter.class);
 
     private static final String ENT0 = "ent0";
 
     @Override
     protected String getSupportedType() {
-        return ControlStationType.HMC.name();
+        return ManagementStationType.HMC.name();
     }
 
     protected HMCVersion getVersion(Host host) {

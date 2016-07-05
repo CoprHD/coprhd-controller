@@ -21,7 +21,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.ComputeSystem;
-import com.emc.storageos.db.client.model.ControlStation;
+import com.emc.storageos.db.client.model.ManagementStation;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DecommissionedResource;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
@@ -128,8 +128,8 @@ public class DataCollectionJobUtil {
             populateAccessProfile(profile, (Host) taskObject);
         } else if (clazz == Vcenter.class) {
             populateAccessProfile(profile, (Vcenter) taskObject);
-        } else if (clazz == ControlStation.class) {
-            populateAccessProfile(profile, (ControlStation) taskObject);
+        } else if (clazz == ManagementStation.class) {
+            populateAccessProfile(profile, (ManagementStation) taskObject);
         } else {
             throw new RuntimeException("getAccessProfile: profile is unknown for objects of type : "
                     + taskObject.getClass());
@@ -195,7 +195,7 @@ public class DataCollectionJobUtil {
         profile.setPassword(vcenter.getPassword());
     }
 
-    private void populateAccessProfile(AccessProfile profile, ControlStation cs) {
+    private void populateAccessProfile(AccessProfile profile, ManagementStation cs) {
         profile.setSystemId(cs.getId());
         profile.setSystemClazz(cs.getClass());
         profile.setSystemType(Type.controlstation.toString());

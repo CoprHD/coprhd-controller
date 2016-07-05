@@ -7,15 +7,15 @@ package com.emc.storageos.db.client.model;
 import com.emc.storageos.db.client.util.EndpointUtility;
 
 /**
- * A ControlStation that manage multiple Host/Manage system.
+ * A ManagementStation that manage multiple Host/Manage system.
  * 
  * @author sauraa
  *
  */
-@Cf("ControlStation")
-public class ControlStation extends DiscoveredComputeSystemWithAcls {
+@Cf("ManagementStation")
+public class ManagementStation extends DiscoveredComputeSystemWithAcls {
     private String _type;
-    private String _controlStationName;
+    private String _managementStationName;
     private String _userName;
     private String _password;
     private String _ipAddress;
@@ -27,14 +27,14 @@ public class ControlStation extends DiscoveredComputeSystemWithAcls {
      * The expected list of host OS types
      * 
      */
-    public enum ControlStationType {
+    public enum ManagementStationType {
         HMC, Other
     }
 
     /**
-     * Gets the ControlStation type which is an instance of {@link ControlStationType}
+     * Gets the ManagementStation type which is an instance of {@link ManagementStationType}
      * 
-     * @return The type of ControlStation.
+     * @return The type of ManagementStation.
      */
     @Name("type")
     public String getType() {
@@ -42,10 +42,10 @@ public class ControlStation extends DiscoveredComputeSystemWithAcls {
     }
 
     /**
-     * Sets the type of ControlStation
+     * Sets the type of ManagementStation
      * 
-     * @see ControlStationType
-     * @param type the ControlStation type
+     * @see ManagementStationType
+     * @param type the ManagementStation type
      */
     public void setType(String type) {
         this._type = type;
@@ -57,10 +57,10 @@ public class ControlStation extends DiscoveredComputeSystemWithAcls {
      * 
      * @return the short or fully qualified host name
      */
-    @Name("controlStationName")
+    @Name("managementStationName")
     @AlternateId("AltIdIndex")
-    public String getControlStationName() {
-        return _controlStationName;
+    public String getManagementStationName() {
+        return _managementStationName;
     }
 
     /**
@@ -68,9 +68,9 @@ public class ControlStation extends DiscoveredComputeSystemWithAcls {
      * 
      * @param hostName the host name
      */
-    public void setControlStationName(String cs) {
-        this._controlStationName = EndpointUtility.changeCase(cs);
-        setChanged("controlStationName");
+    public void setManagementStationName(String cs) {
+        this._managementStationName = EndpointUtility.changeCase(cs);
+        setChanged("managementStationName");
     }
 
     /**
@@ -115,9 +115,9 @@ public class ControlStation extends DiscoveredComputeSystemWithAcls {
     }
 
     /**
-     * Gets the ControlStation management IP address
+     * Gets the ManagementStation management IP address
      * 
-     * @return the ControlStation management IP address
+     * @return the ManagementStation management IP address
      */
     @AlternateId("AltIdIndex")
     @Name("ipAddress")
@@ -126,7 +126,7 @@ public class ControlStation extends DiscoveredComputeSystemWithAcls {
     }
 
     /**
-     * Sets the ControlStation management IP address
+     * Sets the ManagementStation management IP address
      * 
      * @param ipAddress the management IP address
      */
@@ -136,9 +136,9 @@ public class ControlStation extends DiscoveredComputeSystemWithAcls {
     }
 
     /**
-     * Gets the ControlStation management port number
+     * Gets the ManagementStation management port number
      * 
-     * @return the ControlStation management port number
+     * @return the ManagementStation management port number
      */
     @Name("portNumber")
     public Integer getPortNumber() {
@@ -146,9 +146,9 @@ public class ControlStation extends DiscoveredComputeSystemWithAcls {
     }
 
     /**
-     * Sets the ControlStation management port number
+     * Sets the ManagementStation management port number
      * 
-     * @return the ControlStation management port number
+     * @return the ManagementStation management port number
      */
     public void setPortNumber(Integer portNumber) {
         this._portNumber = portNumber;
@@ -156,9 +156,9 @@ public class ControlStation extends DiscoveredComputeSystemWithAcls {
     }
 
     /**
-     * Gets the OS version of the ControlStation instance
+     * Gets the OS version of the ManagementStation instance
      * 
-     * @return the OS version of the ControlStation instance
+     * @return the OS version of the ManagementStation instance
      */
     @Name("osVersion")
     public String getOsVersion() {
@@ -166,7 +166,7 @@ public class ControlStation extends DiscoveredComputeSystemWithAcls {
     }
 
     /**
-     * Sets the OS version of the ControlStation
+     * Sets the OS version of the ManagementStation
      * 
      * @param osVersion the OS version
      */
@@ -176,9 +176,9 @@ public class ControlStation extends DiscoveredComputeSystemWithAcls {
     }
 
     /**
-     * Get whether SSL should be used when communicating with the ControlStation
+     * Get whether SSL should be used when communicating with the ManagementStation
      * 
-     * @return whether SSL should be used when communicating with the ControlStation
+     * @return whether SSL should be used when communicating with the ManagementStation
      */
     @Name("useSSL")
     public Boolean getUseSSL() {
@@ -186,7 +186,7 @@ public class ControlStation extends DiscoveredComputeSystemWithAcls {
     }
 
     /**
-     * Sets the flag that indicates if SSL should be used when communicating with the ControlStation
+     * Sets the flag that indicates if SSL should be used when communicating with the ManagementStation
      * 
      * @param useSsl true or false to indicate if SSL should be used
      */

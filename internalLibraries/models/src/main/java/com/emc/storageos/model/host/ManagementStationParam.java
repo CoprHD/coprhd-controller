@@ -7,7 +7,7 @@ import org.codehaus.jackson.annotate.JsonProperty;
 import com.emc.storageos.model.valid.Length;
 import com.emc.storageos.model.valid.Range;
 
-public abstract class ControlStationParam {
+public abstract class ManagementStationParam {
     private String type;
     private String osVersion;
     private String name;
@@ -17,7 +17,7 @@ public abstract class ControlStationParam {
     private Boolean useSsl;
     private Boolean discoverable;
 
-    public ControlStationParam() {
+    public ManagementStationParam() {
     }
 
     @XmlElement(required = false)
@@ -125,7 +125,7 @@ public abstract class ControlStationParam {
         this.discoverable = discoverable;
     }
 
-    /** Gets the Control Station IP address */
+    /** Gets the management Station IP address */
     public abstract String findIpAddress();
 
 }

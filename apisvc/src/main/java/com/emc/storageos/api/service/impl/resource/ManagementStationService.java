@@ -24,17 +24,17 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.service.impl.resource.utils.AsyncTaskExecutorIntf;
 import com.emc.storageos.api.service.impl.resource.utils.DiscoveredObjectTaskScheduler;
-import com.emc.storageos.computesystemcontroller.ComputeSystemController;
 import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.model.ControlStation;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.db.client.model.ManagementStation;
 import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.managementstation.ManagementStationController;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
-import com.emc.storageos.model.host.ControlStationCreateParam;
+import com.emc.storageos.model.host.ManagementStationCreateParam;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
@@ -48,15 +48,15 @@ import com.emc.storageos.volumecontroller.ControllerException;
  *
  */
 
-@Path("/compute/controlstation")
+@Path("/compute/managementstation")
 @DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR }, writeRoles = { Role.SYSTEM_ADMIN,
         Role.RESTRICTED_SYSTEM_ADMIN })
-public class ControlStationService extends TaskResourceService {
+public class ManagementStationService extends TaskResourceService {
 
     private static final Logger _log = LoggerFactory
-            .getLogger(ControlStationService.class);
+            .getLogger(ManagementStationService.class);
 
-    private static final String EVENT_SERVICE_TYPE = "controlstation";
+    private static final String EVENT_SERVICE_TYPE = "managementstation";
 
     @Override
     public String getServiceType() {
@@ -65,9 +65,9 @@ public class ControlStationService extends TaskResourceService {
 
     private static class DiscoverJobExec implements AsyncTaskExecutorIntf {
 
-        private final ComputeSystemController _controller;
+        private final ManagementStationController _controller;
 
-        DiscoverJobExec(ComputeSystemController controller) {
+        DiscoverJobExec(ManagementStationController controller) {
             _controller = controller;
         }
 
@@ -83,85 +83,85 @@ public class ControlStationService extends TaskResourceService {
     }
 
     /**
-     * Creates a new Control Station for the tenant organization. Discovery is initiated
-     * after the Control Station is created.
+     * Creates a new Management Station for the tenant organization. Discovery is initiated
+     * after the Management Station is created.
      *
      * @param createParam
      *            the parameter that has the type and attribute of the host to
      *            be created.
      * @prereq none
-     * @brief Create Control Station
-     * @return the Control Station discovery async task representation.
+     * @brief Create Management Station
+     * @return the Management Station discovery async task representation.
      */
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.TENANT_ADMIN })
-    public TaskResourceRep createControlStation(ControlStationCreateParam createParam,
+    public TaskResourceRep createManagementStation(ManagementStationCreateParam createParam,
             @QueryParam("validate_connection") @DefaultValue("false") final Boolean validateConnection,
-            @QueryParam("discover_controlstation") @DefaultValue("true") final Boolean discoverControlStation) {
-        ControlStation controlStation = createNewControlStation(createParam, validateConnection);
+            @QueryParam("discover_managementstation") @DefaultValue("true") final Boolean discoverManagementStation) {
+        ManagementStation managementStation = createNewManagementStation(createParam, validateConnection);
 
-        controlStation.setRegistrationStatus(DiscoveredDataObject.RegistrationStatus.REGISTERED.toString());
-        _dbClient.createObject(controlStation);
-        auditOp(OperationTypeEnum.CREATE_CONTROL_STATION, true, null,
-                controlStation.auditParameters());
+        managementStation.setRegistrationStatus(DiscoveredDataObject.RegistrationStatus.REGISTERED.toString());
+        _dbClient.createObject(managementStation);
+        auditOp(OperationTypeEnum.CREATE_MANAGEMENT_STATION, true, null,
+                managementStation.auditParameters());
 
-        if (discoverControlStation) {
-            return doDiscoverControlStation(queryObject(ControlStation.class, controlStation.getId(), true));
+        if (discoverManagementStation) {
+            return doDiscoverManagementStation(queryObject(ManagementStation.class, managementStation.getId(), true));
         } else {
-            return createManualReadyTask(controlStation);
+            return createManualReadyTask(managementStation);
 
         }
     }
 
     /**
-     * Gets the id, name, and self link for all registered control station .
+     * Gets the id, name, and self link for all registered management station .
      * 
-     * @brief List control station
-     * @return A reference to control station List.
+     * @brief List management station
+     * @return A reference to management station List.
      */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
-    public ControlStationCreateParam testRestcall() {
-        ControlStationCreateParam cs = new ControlStationCreateParam();
+    public ManagementStationCreateParam testRestcall() {
+        ManagementStationCreateParam cs = new ManagementStationCreateParam();
         cs.setName("test");
         return cs;
     }
 
     /**
-     * Creates a manual (fake) controlStation discover task, so that
-     * there wont be any controlStation discovery happening because of
+     * Creates a manual (fake) managementStation discover task, so that
+     * there wont be any managementStation discovery happening because of
      * this task.
      *
-     * @param vcenter controlStation to create its manual/fake discovery task.
+     * @param vcenter managementStation to create its manual/fake discovery task.
      *
-     * @return returns fake/manual controlStation discovery task.
+     * @return returns fake/manual managementStation discovery task.
      */
-    private TaskResourceRep createManualReadyTask(ControlStation controlStation) {
+    private TaskResourceRep createManualReadyTask(ManagementStation managementStation) {
         // if not discoverable, manually create a ready task
         Operation op = new Operation();
         op.setResourceType(ResourceOperationTypeEnum.DISCOVER_CONTROL_STATION);
-        op.ready("controlStation not discoverable.");
+        op.ready("managementStation not discoverable.");
 
         String taskId = UUID.randomUUID().toString();
-        _dbClient.createTaskOpStatus(ControlStation.class, controlStation.getId(), taskId, op);
+        _dbClient.createTaskOpStatus(ManagementStation.class, managementStation.getId(), taskId, op);
 
-        return toTask(controlStation, taskId, op);
+        return toTask(managementStation, taskId, op);
     }
 
-    private ControlStation createNewControlStation(ControlStationCreateParam createParam, Boolean validateConnection) {
-        validateControlSationData(createParam, validateConnection);
+    private ManagementStation createNewManagementStation(ManagementStationCreateParam createParam, Boolean validateConnection) {
+        validateManagementSationData(createParam, validateConnection);
 
-        ControlStation cs = new ControlStation();
-        cs.setId(URIUtil.createId(ControlStation.class));
+        ManagementStation cs = new ManagementStation();
+        cs.setId(URIUtil.createId(ManagementStation.class));
 
-        populateControlStation(cs, createParam);
+        populateManagementStation(cs, createParam);
         return cs;
     }
 
-    private void populateControlStation(ControlStation cs, ControlStationCreateParam param) {
+    private void populateManagementStation(ManagementStation cs, ManagementStationCreateParam param) {
         cs.setLabel(param.getName());
         cs.setType(param.getType());
         cs.setOsVersion(param.getOsVersion());
@@ -173,13 +173,13 @@ public class ControlStationService extends TaskResourceService {
 
     }
 
-    private void validateControlSationData(ControlStationCreateParam param, Boolean validateConnection) {
+    private void validateManagementSationData(ManagementStationCreateParam param, Boolean validateConnection) {
         if (param.findIpAddress() != null) {
-            checkDuplicateAltId(ControlStation.class, "ipAddress", param.findIpAddress(), "controlstation");
+            checkDuplicateAltId(ManagementStation.class, "ipAddress", param.findIpAddress(), "managementstation");
         }
 
         if (param.getName() != null) {
-            checkDuplicateLabel(ControlStation.class, param.getName());
+            checkDuplicateLabel(ManagementStation.class, param.getName());
         }
 
         ArgValidator.checkFieldNotNull(param.getUserName(), "username");
@@ -187,28 +187,28 @@ public class ControlStationService extends TaskResourceService {
 
         // TODO check for connection validation
         if (validateConnection != null && validateConnection == true) {
-            // String errorMessage = ControlStationConnectionValidator.isConnectionValid(param);
+            // String errorMessage = ManagementStationConnectionValidator.isConnectionValid(param);
             // if (StringUtils.isNotBlank(errorMessage)) {
-            // throw APIException.badRequests.invalidControlStationConnection(errorMessage);
+            // throw APIException.badRequests.invalidManagementStationConnection(errorMessage);
             // }
         }
 
     }
 
     /**
-     * Control Station Discovery
+     * Management Station Discovery
      *
-     * @param the ControlStation to be discovered.
+     * @param the ManagementStation to be discovered.
      *            provided, a new taskId is generated.
      * @return the task used to track the discovery job
      */
-    private TaskResourceRep doDiscoverControlStation(ControlStation cs) {
-        ComputeSystemController controller = getController(ComputeSystemController.class, "controlstation");
+    private TaskResourceRep doDiscoverManagementStation(ManagementStation cs) {
+        ManagementStationController controller = getController(ManagementStationController.class, "managementstation");
         DiscoveredObjectTaskScheduler scheduler = new DiscoveredObjectTaskScheduler(
                 _dbClient, new DiscoverJobExec(controller));
         String taskId = UUID.randomUUID().toString();
         ArrayList<AsyncTask> tasks = new ArrayList<AsyncTask>(1);
-        tasks.add(new AsyncTask(ControlStation.class, cs.getId(), taskId));
+        tasks.add(new AsyncTask(ManagementStation.class, cs.getId(), taskId));
 
         TaskList taskList = scheduler.scheduleAsyncTasks(tasks);
 

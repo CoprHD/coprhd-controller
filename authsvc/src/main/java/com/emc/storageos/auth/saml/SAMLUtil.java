@@ -4,7 +4,6 @@ package com.emc.storageos.auth.saml;
 import org.joda.time.DateTime;
 import org.opensaml.Configuration;
 import org.opensaml.DefaultBootstrap;
-import org.opensaml.common.SAMLObjectBuilder;
 import org.opensaml.common.SAMLVersion;
 import org.opensaml.common.impl.SecureRandomIdentifierGenerator;
 import org.opensaml.saml2.core.*;
@@ -25,7 +24,6 @@ import org.opensaml.xml.util.Base64;
 import org.opensaml.xml.util.XMLHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.security.saml.SAMLEntryPoint;
 
 import javax.xml.namespace.QName;
 import java.io.ByteArrayOutputStream;
@@ -39,7 +37,10 @@ import java.util.zip.DeflaterOutputStream;
 
 public class SAMLUtil {
 
-    static String arsUrl = "http://lglw9040.lss.emc.com:8080/openam/ArtifactResolver/metaAlias/idp";
+    //private static String IDP = "lglw9040.lss.emc.com";
+    private static String IDP = "lglou242.lss.emc.com";
+
+    static String arsUrl = "http://" + IDP + ":8080/openam/ArtifactResolver/metaAlias/idp";
     private static final Logger _log = LoggerFactory.getLogger(SAMLUtil.class);
 
     public static <T> T buildSAMLObjectWithDefaultName(Class<T> clazz) throws Exception {
@@ -95,7 +96,6 @@ public class SAMLUtil {
 
         Issuer issuer = SAMLUtil.buildSAMLObjectWithDefaultName(Issuer.class);
         issuer.setValue("http://lglw1102.lss.emc.com"); // todo configurable
-        //     issuer.setValue("http://lglw9040.lss.emc.com:8080/openam"); // todo configurable
         artifactResolve.setIssuer(issuer);
         artifactResolve.setIssueInstant(new DateTime());
 
@@ -159,7 +159,10 @@ public class SAMLUtil {
             //Create NameIDPolicy
             NameIDPolicyBuilder nameIdPolicyBuilder = new NameIDPolicyBuilder();
             NameIDPolicy nameIdPolicy = nameIdPolicyBuilder.buildObject();
-            nameIdPolicy.setFormat("urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress");
+            //nameIdPolicy.setFormat("urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress");
+            //nameIdPolicy.setFormat("urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified");
+            nameIdPolicy.setFormat("urn:oasis:names:tc:SAML:2.0:nameid-format:transient");
+            //nameIdPolicy.setFormat("urn:oasis:names:tc:SAML:2.0:nameid-format:persistent");
             nameIdPolicy.setSPNameQualifier("http://lglw1102.lss.emc.com");
             nameIdPolicy.setAllowCreate(true);
 
@@ -212,7 +215,7 @@ public class SAMLUtil {
             String samlResponse = Base64.encodeBytes(byteArrayOutputStream.toByteArray(), Base64.DONT_BREAK_LINES);
             samlResponse = URLEncoder.encode(samlResponse);
 
-            String actionURL = "http://lglw9040.lss.emc.com:8080/openam/SSORedirect/metaAlias/idp";
+            String actionURL = "http://" + IDP + ":8080/openam/SSORedirect/metaAlias/idp";
             String url = actionURL + "?SAMLRequest=" + samlResponse;
             System.out.println(url);
             return url;

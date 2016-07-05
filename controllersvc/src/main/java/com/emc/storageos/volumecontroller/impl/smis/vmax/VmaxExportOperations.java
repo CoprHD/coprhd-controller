@@ -63,6 +63,7 @@ import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.util.ExportUtils;
+import com.emc.storageos.util.InvokeTestFailure;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
@@ -1039,6 +1040,10 @@ public class VmaxExportOperations implements ExportMaskOperations {
                             childGroupName, parentGroupName);
                 }
             }
+
+            // Test mechanism to invoke a failure. No-op on production systems.
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_002);
+
             taskCompleter.ready(_dbClient);
         } catch (Exception e) {
             _log.error(String.format("addVolumes failed - maskName: %s", exportMaskURI.toString()), e);
@@ -1478,6 +1483,10 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 _dbClient.updateObject(exportMask);
             }
             _log.info(String.format("addInitiators succeeded - maskName: %s", exportMaskURI.toString()));
+
+            // Test mechanism to invoke a failure. No-op on production systems.
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_003);
+
             taskCompleter.ready(_dbClient);
         } catch (Exception e) {
             _log.error(String.format("addInitiators failed - maskName: %s", exportMaskURI.toString()), e);

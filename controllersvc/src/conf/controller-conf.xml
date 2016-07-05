@@ -900,7 +900,6 @@
         <property name="dbClient" ref="dbclient"/>
         <property name="networkDeviceController" ref="networkDeviceController"/>
         <property name="blockScheduler" ref="blockscheduler"/>
-        <property name="coordinator" ref="coordinator"/>
         <property name="devices">
             <map>
                 <entry key="vmax" value-ref="vmaxSmisDevice"/>
@@ -914,6 +913,11 @@
                 <entry key="externaldevice" value-ref="externalBlockStorageDevice"/>
             </map>
         </property>
+    </bean>
+
+    <bean id="invokeTestFailure" class="com.emc.storageos.util.InvokeTestFailure">
+        <property name="name" value="invokeTestFailure"/>
+        <property name="coordinator" ref="coordinator"/>
     </bean>
 
     <bean id="snapshotWorkflowEntryPoints" class=

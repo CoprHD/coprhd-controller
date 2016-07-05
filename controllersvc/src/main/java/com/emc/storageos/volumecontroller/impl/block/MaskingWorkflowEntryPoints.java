@@ -15,7 +15,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.Controller;
-import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.ExportGroup;
@@ -28,6 +27,7 @@ import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
+import com.emc.storageos.util.InvokeTestFailure;
 import com.emc.storageos.volumecontroller.BlockStorageDevice;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.TaskCompleter;
@@ -49,14 +49,11 @@ import com.google.common.base.Joiner;
  */
 public class MaskingWorkflowEntryPoints implements Controller {
     private static final Logger _log = LoggerFactory.getLogger(MaskingWorkflowEntryPoints.class);
-    private static final String ARTIFICIAL_FAILURE = "artificial_failure";
-    private static final String ARTIFICIAL_FAILURE_001 = "failure_001_early_in_add_volume_to_mask";
     private static volatile String _beanName;
     private NetworkDeviceController _networkDeviceController;
     private Map<String, BlockStorageDevice> _devices;
     private DbClient _dbClient;
     private BlockStorageScheduler _blockScheduler;
-    private CoordinatorClient _coordinator;
 
     public MaskingWorkflowEntryPoints() {
 
@@ -81,10 +78,6 @@ public class MaskingWorkflowEntryPoints implements Controller {
             }
         }
         return storageDevice;
-    }
-
-    public void setCoordinator(CoordinatorClient coordinator) {
-        this._coordinator = coordinator;
     }
 
     public void setDbClient(DbClient dbc) {
@@ -268,7 +261,7 @@ public class MaskingWorkflowEntryPoints implements Controller {
 
             // Test mechanism to invoke a failure. No-op on production systems.
             // TODO DUPP: Explore other mechanisms of failure injection such as annotation, etc.
-            internalOnlyInvokeTestFailure();
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_001);
 
             getDevice(storage).doExportAddVolumes(storage, exportMask, initiators,
                     volumeMap, taskCompleter);
@@ -281,19 +274,6 @@ public class MaskingWorkflowEntryPoints implements Controller {
             _log.info(call + " Encountered an exception", e);
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
             taskCompleter.error(_dbClient, serviceError);
-        }
-    }
-
-    /**
-     * Invoke a failure if the artificial_failure variable is set.
-     * This is an internal-only setting that allows testers and automated suites to inject a failure
-     * into a workflow step at key locations to test rollback and Task states.
-     */
-    private void internalOnlyInvokeTestFailure() {
-        // Invoke an artificial failure, if set (experimental, testing only)
-        String invokeArtificialFailure = _coordinator.getPropertyInfo().getProperty(ARTIFICIAL_FAILURE);
-        if (invokeArtificialFailure != null && invokeArtificialFailure.equalsIgnoreCase(ARTIFICIAL_FAILURE_001)) {
-            throw new NullPointerException("Artificially Thrown Exception");
         }
     }
 

@@ -26,6 +26,7 @@ public class CompositeColumnName {
     UUID _timeUUID;
     
     private ByteBuffer value;
+    private long writeTimeStamp; // unit is MS
 
     public CompositeColumnName() {
     }
@@ -66,6 +67,11 @@ public class CompositeColumnName {
         _timeUUID = timeUUID;
         this.value = value;
     }
+    
+    public CompositeColumnName(String rowKey, String one, String two, String three, UUID timeUUID, ByteBuffer value, long writeTimeStamp) {
+        this(rowKey, one, two, three, timeUUID, value);
+        this.writeTimeStamp = writeTimeStamp;
+    }
 
     public String getOne() {
         return _one;
@@ -89,6 +95,10 @@ public class CompositeColumnName {
 
     public ByteBuffer getValue() {
         return value;
+    }
+
+    public long getWriteTimeStamp() {
+        return writeTimeStamp;
     }
 
     @Override

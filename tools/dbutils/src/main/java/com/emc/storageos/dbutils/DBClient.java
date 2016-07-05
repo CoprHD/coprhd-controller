@@ -104,7 +104,6 @@ import com.emc.storageos.geo.service.impl.util.VdcConfigHelper;
 import com.emc.storageos.geo.vdccontroller.impl.InternalDbClient;
 import com.emc.storageos.geomodel.VdcConfig;
 import com.emc.storageos.security.SerializerUtils;
-import com.netflix.astyanax.model.Column;
 import com.sun.jersey.core.spi.scanning.PackageNamesScanner;
 import com.sun.jersey.spi.scanning.AnnotationScannerListener;
 
@@ -361,13 +360,12 @@ public class DBClient {
         }
         
         if (this.showModificationTime) {
-            Column<CompositeColumnName> latestField = _dbClient.getLatestModifiedField(
+            CompositeColumnName latestField = _dbClient.getLatestModifiedField(
                     TypeMap.getDoType(clazz), object.getId(), ignoreList);
             if (latestField != null) {
                 record.append(String.format(
                         "The latest modified time is %s on Field(%s).\n", new Date(
-                                latestField.getTimestamp() / 1000), latestField.getName()
-                                .getOne()));
+                                latestField.getWriteTimeStamp() / 1000), latestField.getOne()));
             }
         }
         

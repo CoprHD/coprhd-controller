@@ -9,6 +9,7 @@ import java.net.URI;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -16,22 +17,20 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.Row;
 import com.datastax.driver.core.exceptions.ConnectionException;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.constraint.impl.ContainmentConstraintImpl;
 import com.emc.storageos.db.client.impl.CompositeColumnName;
 import com.emc.storageos.db.client.impl.DataObjectType;
+import com.emc.storageos.db.client.impl.DbClientContext;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.upgrade.InternalDbClient;
 import com.emc.storageos.db.common.DependencyTracker.Dependency;
 import com.emc.storageos.db.exceptions.DatabaseException;
-import com.google.common.collect.Lists;
-import com.netflix.astyanax.Keyspace;
-import com.netflix.astyanax.model.Column;
-import com.netflix.astyanax.model.ColumnFamily;
-import com.netflix.astyanax.model.Rows;
-
 
 public class InternalDbClientImpl extends InternalDbClient {
     private static final Logger log = LoggerFactory.getLogger(InternalDbClientImpl.class);
@@ -78,30 +77,46 @@ public class InternalDbClientImpl extends InternalDbClient {
         }
     }
 
-    public Column<CompositeColumnName> getLatestModifiedField(DataObjectType type, URI id, Set<String> ignoreList) {
-        Column<CompositeColumnName> latestField = null;
-        ColumnFamily<String, CompositeColumnName> cf = type.getCF();
-        Keyspace ks = this.getKeyspace(type.getDataObjectClass());
-        Rows<String, CompositeColumnName> rows = this.queryRowsWithAllColumns(ks,
-                Lists.newArrayList(id), cf);
-        if (rows.isEmpty()) {
+    public CompositeColumnName getLatestModifiedField(DataObjectType type, URI id, Set<String> ignoreList) {
+        
+        StringBuilder queryString = new StringBuilder("select key, column1, column2, column3, column4, value, WRITETIME(value) as timestamp from \"");
+        queryString.append(type.getCF().getName());
+        queryString.append("\" where key=?");
+        
+        DbClientContext dbClientContext = this.getDbClientContext(type.getDataObjectClass());
+        
+        PreparedStatement preparedStatement = dbClientContext.getSession().prepare(queryString.toString());
+        
+        log.info("QueryString: {}", preparedStatement.getQueryString());
+        ResultSet resultSet = dbClientContext.getSession().execute(preparedStatement.bind(id.toString()));
+        
+        if (resultSet == null || resultSet.one() == null) {
             log.warn("Can not find the latest modified field of {}", id);
-            return latestField;
+            return null;
         }
         
-        long latestTimeStampe = 0;
-        for (Column<CompositeColumnName> column : rows.iterator().next().getColumns()) {
-            if (ignoreList != null && ignoreList.contains(column.getName().getOne())) {
+        long latestTimeStamp = 0;
+        Row resultRow = null;
+        for (Row row : resultSet) {
+            if (ignoreList != null && ignoreList.contains(row.getString(1))) {
                 continue;
             }
             
-            if (column.getTimestamp() > latestTimeStampe) {
-                latestTimeStampe = column.getTimestamp();
-                latestField = column;
+            long timeStamp = row.getLong("timestamp");
+            if (timeStamp > latestTimeStamp) {
+                latestTimeStamp = timeStamp;
+                resultRow = row;
             }
         }
 
-        return latestField;
+        return new CompositeColumnName(
+                resultRow.getString(0),
+                resultRow.getString(1),
+                resultRow.getString(2),
+                resultRow.getString(3),
+                resultRow.getUUID(4),
+                resultRow.getBytes(5),
+                latestTimeStamp);
     }
     
     public List<URI> getReferUris(URI targetUri, Class<? extends DataObject> type, Dependency dependency) {

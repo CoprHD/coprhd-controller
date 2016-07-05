@@ -176,7 +176,7 @@ public class DrDbHealthMonitor extends DrHealthMonitor {
 
                 standbySite.setState(SiteState.STANDBY_RESUMING);
                 coordinatorClient.persistServiceConfiguration(standbySite.toConfiguration());
-                long dataRevision = System.currentTimeMillis();
+                long dataRevision = vdcVersion;
                 drUtil.updateVdcTargetVersion(standbySite.getUuid(), SiteInfo.DR_OP_CHANGE_DATA_REVISION, vdcVersion, dataRevision);
 
                 // Update version on other connected standby sites if any

@@ -28,7 +28,7 @@
                 <value>currentEpoch</value>
             </list>
         </property>
-        <property name="maxEnrolledFileCount" value="3"/>
+        <property name="maxEnrolledFileCount" value="1"/>
     </bean>
 
     <bean id="backupType" class="com.emc.storageos.management.backup.BackupType" factory-method="valueOf">

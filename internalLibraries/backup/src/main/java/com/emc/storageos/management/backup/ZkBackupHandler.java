@@ -99,7 +99,7 @@ public class ZkBackupHandler extends BackupHandler {
      * @param maxEnrolledFileCount
      *            The max file count of each type enrolled by backup
      */
-    public void setMaxEnrollFileCount(int maxEnrolledFileCount) {
+    public void setMaxEnrolledFileCount(int maxEnrolledFileCount) {
         this.maxEnrolledFileCount = maxEnrolledFileCount;
     }
 

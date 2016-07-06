@@ -419,7 +419,7 @@ public class HostService extends TaskResourceService {
                 continue;
             }
 
-            if (!systemObj.deviceIsType(Type.vmax)) {
+            if (!systemObj.deviceIsType(Type.vmax) && !systemObj.deviceIsType(Type.vnxblock) && !systemObj.deviceIsType(Type.xtremio)) {
                 _log.info("Skip unsupported system {}", systemObj.getLabel());
                 continue;
             }

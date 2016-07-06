@@ -113,19 +113,17 @@ public class ArrayAffinityProcessor {
         }
 
         for (CIMObjectPath path : maskPaths) {
-            if (StringUtils.contains(path.getKeyValue(SmisConstants.CP_SYSTEM_NAME).toString(), profile.getserialID())) {
-                List<CIMObjectPath> hardwareIdsInMask = DiscoveryUtils.getAssociatorNames(cimClient, path, null, SmisConstants.CIM_STORAGE_HARDWARE_ID, null, null);
-                // check if the mask is shared or exclusive
-                String maskType = hardwareIdPaths.containsAll(hardwareIdsInMask) ? ExportGroup.ExportGroupType.Host.name() :
-                    ExportGroup.ExportGroupType.Cluster.name();
+            List<CIMObjectPath> hardwareIdsInMask = DiscoveryUtils.getAssociatorNames(cimClient, path, null, SmisConstants.CIM_STORAGE_HARDWARE_ID, null, null);
+            // check if the mask is shared or exclusive
+            String maskType = hardwareIdPaths.containsAll(hardwareIdsInMask) ? ExportGroup.ExportGroupType.Host.name() :
+                ExportGroup.ExportGroupType.Cluster.name();
 
-                List<CIMObjectPath> volumePaths = DiscoveryUtils.getAssociatorNames(cimClient, path, null, SmisConstants.CIM_STORAGE_VOLUME, null, null);
-                for (CIMObjectPath volumePath : volumePaths) {
-                    if (ArrayAffinityDiscoveryUtils.isUnmanagedVolume(volumePath, dbClient)) {
-                        URI poolURI = ArrayAffinityDiscoveryUtils.getStoragePool(volumePath, cimClient, dbClient);
-                        if (!NullColumnValueGetter.isNullURI(poolURI)) {
-                            ArrayAffinityDiscoveryUtils.addPoolToPreferredPoolMap(preferredPoolMap, poolURI.toString(), maskType);
-                        }
+            List<CIMObjectPath> volumePaths = DiscoveryUtils.getAssociatorNames(cimClient, path, null, SmisConstants.CIM_STORAGE_VOLUME, null, null);
+            for (CIMObjectPath volumePath : volumePaths) {
+                if (ArrayAffinityDiscoveryUtils.isUnmanagedVolume(volumePath, dbClient)) {
+                    URI poolURI = ArrayAffinityDiscoveryUtils.getStoragePool(volumePath, cimClient, dbClient);
+                    if (!NullColumnValueGetter.isNullURI(poolURI)) {
+                        ArrayAffinityDiscoveryUtils.addPoolToPreferredPoolMap(preferredPoolMap, poolURI.toString(), maskType);
                     }
                 }
             }

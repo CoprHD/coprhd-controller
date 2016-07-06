@@ -380,7 +380,7 @@ public class DataCollectionJobScheduler {
             Iterator<StorageSystem> storageSystems = _dbClient.queryIterativeObjects(StorageSystem.class, systemURIs);
             while (storageSystems.hasNext()) {
                 StorageSystem systemObj = storageSystems.next();
-                if (systemObj.deviceIsType(Type.vmax)) {
+                if (systemObj.deviceIsType(Type.vmax) || systemObj.deviceIsType(Type.vnxblock) || systemObj.deviceIsType(Type.xtremio)) {
                     StorageProvider provider = _dbClient.queryObject(StorageProvider.class,
                             systemObj.getActiveProviderURI());
                     if (provider != null && !provider.getInactive()) {

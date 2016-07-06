@@ -131,7 +131,7 @@
                                 </h4>
                                 <p class="step-text">&{'gettingStarted.initialsetup.text'}</p>
                                 <div class="action-btn text-center">
-                                    <button ng-disabled="currentStep > completedSteps + 1" name="singlebutton" class="btn btn-primary" ng-click="runStep();">&{'gettingStarted.initialsetup.button'}</button>
+                                    <button ng-show="completedSteps == currentStep-1"  ng-disabled="currentStep > completedSteps + 1" name="singlebutton" class="btn btn-primary" ng-click="runStep();">&{'gettingStarted.initialsetup.button'}</button>
                                     <div class="steps-incomplete" ng-show="currentStep > completedSteps + 1">
                                         <p class="guide-info">&{'gettingStarted.incompletesteps.text'}</p>
                                     </div>

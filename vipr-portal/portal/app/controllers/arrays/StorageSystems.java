@@ -117,6 +117,22 @@ public class StorageSystems extends ViprResourceController {
         renderArgs.put("cephStorageSystemType", StorageSystemTypes.CEPH);
     }
 
+    private static void addReferenceDataAllFlash() {
+        renderArgs.put("storageArrayTypeList", Arrays.asList(StorageSystemTypes.ALL_FLASH_OPTIONS));
+        renderArgs.put("smisStorageSystemTypeList", Arrays.asList(StorageSystemTypes.SMIS_OPTIONS));
+        renderArgs.put("nonSmisStorageSystemTypeList", Arrays.asList(StorageSystemTypes.NON_SMIS_OPTIONS));
+        renderArgs.put("sslDefaultStorageSystemList", Arrays.asList(StorageSystemTypes.SSL_DEFAULT_OPTIONS));
+        renderArgs.put("nonSSLStorageSystemList", Arrays.asList(StorageSystemTypes.NON_SSL_OPTIONS));
+        List<EnumOption> defaultStorageArrayPortMap = Arrays.asList(EnumOption.options(DefaultStorageArrayPortMap.values()));
+        renderArgs.put("defaultStorageArrayPortMap", defaultStorageArrayPortMap);
+
+        renderArgs.put("vnxfileStorageSystemType", StorageSystemTypes.VNX_FILE);
+        renderArgs.put("scaleIOStorageSystemType", StorageSystemTypes.SCALEIO);
+        renderArgs.put("scaleIOApiStorageSystemType", StorageSystemTypes.SCALEIOAPI);
+        renderArgs.put("cephStorageSystemType", StorageSystemTypes.CEPH);
+
+    }
+
     public static void list() {
         renderArgs.put("dataTable", new StorageSystemsDataTable());
         render();
@@ -154,6 +170,17 @@ public class StorageSystems extends ViprResourceController {
 
     public static void create() {
         addReferenceData();
+        StorageSystemForm storageArray = new StorageSystemForm();
+        // put all "initial create only" defaults here rather than field initializers
+        storageArray.type = StorageSystemTypes.VMAX;
+        storageArray.useSSL = true;
+        storageArray.userName = "";
+        storageArray.smisProviderUseSSL = true;
+        render("@edit", storageArray);
+    }
+
+    public static void createAllFlash() {
+        addReferenceDataAllFlash();
         StorageSystemForm storageArray = new StorageSystemForm();
         // put all "initial create only" defaults here rather than field initializers
         storageArray.type = StorageSystemTypes.VMAX;

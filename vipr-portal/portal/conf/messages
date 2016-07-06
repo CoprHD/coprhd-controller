@@ -299,6 +299,7 @@ StorageSystemType.datadomain=Data Domain
 StorageSystemType.ceph=Ceph Block Device
 StorageSystemType.ecs=EMC Elastic Cloud Storage
 StorageSystemType.STORAGE_PROVIDER.vmax=Storage Provider for EMC VMAX, VNX Block
+StorageSystemType.STORAGE_PROVIDER.vmaxonly=Storage Provider for EMC VMAX
 StorageSystemType.STORAGE_PROVIDER.scaleioapi=ScaleIO Gateway
 StorageSystemType.STORAGE_PROVIDER.hds=Storage Provider for Hitachi storage systems
 StorageSystemType.STORAGE_PROVIDER.vplex=Storage Provider for EMC VPLEX

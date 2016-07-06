@@ -302,7 +302,9 @@ BOURNE_IP=localhost
 # Zone configuration
 #
 NH=nh
+NH2=nh2
 FC_ZONE_A=fctz_a
+FC_ZONE_B=fctz_b
 
 if [ "$BOURNE_IP" = "localhost" ]; then
     SHORTENED_HOST="ip-$ipaddr"
@@ -506,6 +508,100 @@ vmax_setup() {
     runcmd storageport update ${VMAX_NATIVEGUID} FC --tzone $NH/$FC_ZONE_A
     
     runcmd cos update block $VPOOL_BASE --storage ${VMAX_NATIVEGUID}
+}
+
+brocade_setup_once() 
+{
+    # Do once
+    nsys=`networksystem list | wc -l`
+    [ "$nsys" -gt 0 ] && return;
+
+    #Discover the Brocade SAN switch.
+    secho "Discovering brocade ..."
+    runcmd networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
+    sleep 30
+
+    runcmd transportzone assign FABRIC_losam082-fabric $NH
+    runcmd transportzone assign FABRIC_vplex154nbr2 $NH2
+    FC_ZONE_A=FABRIC_losam082-fabric
+    FC_ZONE_B=FABRIC_vplex154nbr2
+    FCTZ_A=$NH/$FC_ZONE_A
+    FCTZ_B=$NH2/$FC_ZONE_B
+}
+
+vplex_setup() {
+	#Discover the Brocade SAN switch.
+	brocade_setup_once
+
+	# Discover the storage systems 
+	echo "Discovering VPLEX Storage Assets"
+	smisprovider show $VPLEX_VMAX_SMIS_DEV_NAME &> /dev/null && return $?
+	runcmd smisprovider create $VPLEX_VMAX_SMIS_DEV_NAME $VPLEX_VMAX_SMIS_IP 5989 $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" true
+	runcmd smisprovider create $VPLEX_VNX1_SMIS_DEV_NAME $VPLEX_VNX1_SMIS_IP 5989 $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" true
+	runcmd smisprovider create $VPLEX_VNX2_SMIS_DEV_NAME $VPLEX_VNX2_SMIS_IP 5989 $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" true
+	
+	storageprovider show $VPLEX_DEV_NAME &> /dev/null && return $?
+	runcmd storageprovider create $VPLEX_DEV_NAME $VPLEX_IP 443 $VPLEX_USER "$VPLEX_PASSWD" vplex
+	
+	runcmd storagedevice discover_all
+
+	# Setup the varrays. $VPLEX_VARRAY1 contains VPLEX cluster-1 and $VPLEX_VARRAY2 contains VPLEX cluster-2.
+	echo "Setting up the VPLEX virtual arrays"
+    VPLEX_VARRAY1=$NH
+    VPLEX_VARRAY2=$NH2
+    runcmd neighborhood create $VPLEX_VARRAY1
+    runcmd transportzone create $FC_ZONE_A $VPLEX_VARRAY1 --type FC
+    runcmd neighborhood create $VPLEX_VARRAY2
+    runcmd transportzone create $FC_ZONE_B $VPLEX_VARRAY2 --type FC
+
+	runcmd storageport update $VPLEX_GUID FC --group director-1-1-A --addvarrays $VPLEX_VARRAY1
+	runcmd storageport update $VPLEX_GUID FC --group director-1-1-B --addvarrays $VPLEX_VARRAY1
+	runcmd storageport update $VPLEX_GUID FC --group director-2-1-A --addvarrays $VPLEX_VARRAY2
+	runcmd storageport update $VPLEX_GUID FC --group director-2-1-B --addvarrays $VPLEX_VARRAY2
+	
+	# The arrays are assigned to individual varrays as well.
+	runcmd storageport update $VPLEX_VNX1_NATIVEGUID FC --addvarrays $VPLEX_VARRAY1
+	runcmd storageport update $VPLEX_VNX2_NATIVEGUID FC --addvarrays $VPLEX_VARRAY1
+	runcmd storageport update $VPLEX_VMAX_NATIVEGUID FC --addvarrays $VPLEX_VARRAY2
+
+	echo "Setting up the VPLEX virtual pools"
+    VPLEX_VPOOL_LOCAL=${VPOOL_BASE}-vplex-local
+    VPLEX_VPOOL_DIST=${VPOOL_BASE}-vplex-distributed
+    
+    # Set up the virtual pools
+    runcmd cos create block $VPLEX_VPOOL_LOCAL true                   \
+                     --description 'vpool-for-vplex-local-volumes'      \
+                     --protocols FC                           \
+                     --numpaths 2                             \
+                     --provisionType 'Thin'                   \
+                     --highavailability vplex_local           \
+                     --neighborhoods $VPLEX_VARRAY1 $VPLEX_VARRAY2                 \
+                     --max_snapshots 1                        \
+                     --max_mirrors 1                          \
+                     --expandable false 
+
+    runcmd cos allow $VPLEX_VPOOL_LOCAL block $TENANT
+    
+	runcmd cos update block $VPLEX_VPOOL_LOCAL --storage $VPLEX_VNX1_NATIVEGUID
+    runcmd cos update block $VPLEX_VPOOL_LOCAL --storage $VPLEX_VNX2_NATIVEGUID
+	runcmd cos update block $VPLEX_VPOOL_LOCAL --storage $VPLEX_VMAX_NATIVEGUID
+
+    runcmd cos create block $VPLEX_VPOOL_DIST true                          \
+                     --description 'vpool-for-vplex-distributed-volumes'      \
+                     --protocols FC                                 \
+                     --numpaths 2                                   \
+                     --provisionType 'Thin'                         \
+                     --highavailability vplex_distributed           \
+                     --neighborhoods $VPLEX_VARRAY1 $VPLEX_VARRAY2  \
+                     --haNeighborhood $VPLEX_VARRAY2                          \
+                     --max_snapshots 1                              \
+                     --max_mirrors 1                                \
+                     --mirror_cos $VPLEX_VPOOL_LOCAL                     \
+                     --expandable false
+
+    runcmd cos allow $VPLEX_VPOOL_DIST block $TENANT
+	runcmd cos update block $VPLEX_VPOOL_DIST --storage $VPLEX_VNX1_NATIVEGUID
+	runcmd cos update block $VPLEX_VPOOL_DIST --storage $VPLEX_VMAX_NATIVEGUID
 }
 
 xio_setup() {

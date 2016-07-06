@@ -683,10 +683,6 @@
           "baseService": "RemoveBlockStorage"
         },
         {
-          "image": "icon_db_remove.png",
-          "baseService": "RemoveUnexportedBlockStorage"
-        },
-        {
           "image": "icon_db_expand.png",
           "baseService": "ExpandBlockStorage"
         },

@@ -4,6 +4,7 @@ import com.datastax.driver.core.BatchStatement;
 import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.querybuilder.Delete;
 import com.datastax.driver.core.utils.UUIDs;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.ScopedLabel;
@@ -25,6 +26,8 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.UUID;
 
+import static com.datastax.driver.core.querybuilder.QueryBuilder.*;
+
 /**
  * Will rename to RowMutator same as previous after the Astyanax is removed.
  */
@@ -32,9 +35,9 @@ public class RowMutatorDS {
     private static final Logger log = LoggerFactory.getLogger(RowMutatorDS.class);
 
     private DbClientContext context;
-    private BatchStatement recordAndIndexBatch;
+    private BatchStatement atomicBatch;
 
-    private ConsistencyLevel writeCL = ConsistencyLevel.LOCAL_QUORUM; // default
+    private ConsistencyLevel writeCL = ConsistencyLevel.EACH_QUORUM; // default
 
     private UUID timeUUID;
 
@@ -43,7 +46,7 @@ public class RowMutatorDS {
 
     public RowMutatorDS(DbClientContext context) {
         this.context = context;
-        this.recordAndIndexBatch = new BatchStatement();
+        this.atomicBatch = new BatchStatement();
         this.timeUUID = UUIDs.timeBased();
 
         /*
@@ -67,7 +70,7 @@ public class RowMutatorDS {
         insert.setUUID("column4", column.getTimeUUID() == null ? UUIDs.timeBased() : column.getTimeUUID());
         ByteBuffer blobVal = getByteBufferFromPrimitiveValue(val);
         insert.setBytes("value", blobVal);
-        recordAndIndexBatch.add(insert);
+        atomicBatch.add(insert);
     }
 
     public void insertIndexColumn(String tableName, String indexRowKey, IndexColumnName column, Object val) {
@@ -81,11 +84,22 @@ public class RowMutatorDS {
         insert.setUUID("column5", column.getTimeUUID() == null ? UUIDs.timeBased() : column.getTimeUUID());
         ByteBuffer blobVal = getByteBufferFromPrimitiveValue(val);
         insert.setBytes("value", blobVal);
-        recordAndIndexBatch.add(insert);
+        atomicBatch.add(insert);
+    }
+
+    public void deleteRecordColumn(String tableName, String recordKey) {
+        Delete deleteRecord = delete().from(String.format("\"%s\"", tableName)).where(eq("key", recordKey)).ifExists();
+        atomicBatch.add(deleteRecord);
+    }
+
+    public void deleteIndexColumn(String tableName, String indexRowKey, IndexColumnName column) {
+        Delete deleteIndex = delete().from(String.format("\"%s\"", tableName)).where(eq("key", indexRowKey)).ifExists();
+        atomicBatch.add(deleteIndex);
     }
 
     public void execute() {
-        context.getSession().execute(recordAndIndexBatch.setConsistencyLevel(writeCL));
+        context.getSession().execute(atomicBatch.setConsistencyLevel(writeCL));
+        //todo executeWithRetry
     }
 
     public static ByteBuffer getByteBufferFromPrimitiveValue(Object val) {

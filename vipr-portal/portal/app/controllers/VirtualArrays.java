@@ -13,6 +13,7 @@ import static controllers.Common.getUserMessage;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -54,6 +55,7 @@ import util.VirtualArrayUtils;
 import util.VirtualPoolUtils;
 import util.builders.ACLUpdateBuilder;
 import util.datatable.DataTablesSupport;
+
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.auth.ACLEntry;
 import com.emc.storageos.model.pools.StoragePoolRestRep;
@@ -99,7 +101,7 @@ public class VirtualArrays extends ViprResourceController {
     private static final String VMAX = "vmax";
     private static final String XTREMIO = "xtremio";
 
-    private static final String ALL_FLASH_VARRAY = "All-Flash-Varray";
+    private static final String ALL_FLASH_VARRAY = "all-flash-varray";
     private static final String VMAX_FLASH_VARRAY = "vmax-all-flash";
     private static final String XTREMIO_FLASH_VARRAY = "xio-all-flash";
     private static final String UNITY_FLASH_VARRAY = "unity-all-flash";
@@ -125,7 +127,6 @@ public class VirtualArrays extends ViprResourceController {
         edit(virtualArray.id);
     }
 
-
 	/**
 	 * Create default virtual array for checklist
 	 */
@@ -134,92 +135,131 @@ public class VirtualArrays extends ViprResourceController {
 
 		if (StringUtils.equals(defaultVarrayType, SIMPLE)) {
 			// Check if virtual array is already created
+			String existVarrayId = null;
 			List<VirtualArrayRestRep> availVarrays = VirtualArrayUtils.getVirtualArrays();
 			for (VirtualArrayRestRep availVarray : availVarrays) {
 				if (StringUtils.equals(availVarray.getName(), ALL_FLASH_VARRAY)) {
+					existVarrayId = availVarray.getId().toString();
 					isVarrayAvail = true;
 					break;
 				}
 			}
-			if (isVarrayAvail) { // Virtual Array already created, just list it
-				list();
-			}
-			VirtualArrayForm virtualArray = new VirtualArrayForm();
-			virtualArray.name = ALL_FLASH_VARRAY;
-			virtualArray.validate("virtualArray");
-			if (Validation.hasErrors()) {
-				flash.error(MessagesUtils.get(SAVED_ERROR, virtualArray.name));
-				list();
-			}
-
-			VirtualArrayRestRep varray = virtualArray.save();
-			virtualArray.load(varray);
-
-			// Read all storage systems
 			List<String> ids = Lists.newArrayList();
+			if (isVarrayAvail && existVarrayId != null) { // Virtual Array already created, add rest of storage
+				//List Storages already attached to this virtual array
+				HashMap <String, String > attachedStorageMaps = new HashMap<String, String>();
+				for(StorageSystemRestRep storageSystem : StorageSystemUtils.getStorageSystemsByVirtualArray(existVarrayId)) {
+					attachedStorageMaps.put(storageSystem.getId().toString(), storageSystem.getId().toString());
+				}
 
-			for (StorageSystemRestRep storageSystem : StorageSystemUtils
-					.getStorageSystems()) {
-				ids.add(storageSystem.getId().toString());
+				for (StorageSystemRestRep storageSystem : StorageSystemUtils.getStorageSystems()) {
+					if(attachedStorageMaps.isEmpty()) {
+						ids.add(storageSystem.getId().toString());
+					}
+					else {
+						if(null == attachedStorageMaps.get(storageSystem.getId().toString())) {
+							ids.add(storageSystem.getId().toString());
+						}
+					}
+				}
+				addStorageSysVarray(existVarrayId, ids);
+			} 
+			else { //First time adding virtual array
+				VirtualArrayForm virtualArray = new VirtualArrayForm();
+				virtualArray.name = ALL_FLASH_VARRAY;
+				virtualArray.validate("virtualArray");
+				if (Validation.hasErrors()) {
+					flash.error(MessagesUtils.get(SAVED_ERROR,
+							virtualArray.name));
+					list();
+				}
+
+				VirtualArrayRestRep varray = virtualArray.save();
+				virtualArray.load(varray);
+				response.setCookie("guide_varray", virtualArray.name );
+				// Read all storage systems
+				for (StorageSystemRestRep storageSystem : StorageSystemUtils.getStorageSystems()) {
+					ids.add(storageSystem.getId().toString());
+				}
+
+				addStorageSysVarray(virtualArray.id, ids);
 			}
 
-			addStorageSysVarray(virtualArray.id, ids);
 		} else if (StringUtils.equals(defaultVarrayType, MAPPING1X1)) {
-			// Support three type of varray for one-to-one mapping VMAX, UNITY, XtremIO
-			List <String> vmaxids = Lists.newArrayList();
-			List <String> unityids = Lists.newArrayList();
-			List <String> xioids = Lists.newArrayList();
-
-			// Read all discovered storage in system
+			// Create a storage system map that have virtual arrays attached
+			HashMap <String, String> storageSysVarrayMap = new HashMap <String, String>();
+			for(VirtualArrayRestRep availVarray : VirtualArrayUtils.getVirtualArrays()) {
+				for(StorageSystemRestRep storageSystem : StorageSystemUtils.getStorageSystemsByVirtualArray(availVarray.getId().toString())) {
+					storageSysVarrayMap.put(storageSystem.getId().toString(), storageSystem.getId().toString());
+				}
+			}
+			// Get all storage systems, and create varrays for those storage system that do not have varray
 			for (StorageSystemRestRep storageSystem : StorageSystemUtils.getStorageSystems()) {
-				if(StringUtils.equals(storageSystem.getSystemType(), VMAX)) {
-					vmaxids.add(storageSystem.getId().toString());
+				if(storageSysVarrayMap.get(storageSystem.getId().toString()) == null ) {
+					VirtualArrayForm virtualArray = new VirtualArrayForm();
+					virtualArray.name = storageSystem.getName() + "-all-flash-varray" ;
+					VirtualArrayRestRep varray = virtualArray.save();
+					virtualArray.load(varray);
+					response.setCookie("guide_varray", virtualArray.name );
+					addVarrayStorageSystem(virtualArray.id, storageSystem.getId().toString());
 				}
-				else if(StringUtils.equals(storageSystem.getSystemType(), XTREMIO)) {
-					xioids.add(storageSystem.getId().toString());
-				}
-				else if(StringUtils.equals(storageSystem.getSystemType(), UNITY))
-				unityids.add(storageSystem.getId().toString());
 			}
-			if(!vmaxids.isEmpty()) {
-				VirtualArrayForm virtualArray = new VirtualArrayForm();
-				virtualArray.name = VMAX_FLASH_VARRAY;
-				virtualArray.validate("virtualArray");
-				if (Validation.hasErrors()) {
-					flash.error(MessagesUtils.get(SAVED_ERROR, virtualArray.name));
-					list();
-				}
-
-				VirtualArrayRestRep varray = virtualArray.save();
-				virtualArray.load(varray);
-				addStorageSysVarray(virtualArray.id, vmaxids);
-			}
-			if(!unityids.isEmpty()) {
-				VirtualArrayForm virtualArray = new VirtualArrayForm();
-				virtualArray.name = UNITY_FLASH_VARRAY;
-				virtualArray.validate("virtualArray");
-				if (Validation.hasErrors()) {
-					flash.error(MessagesUtils.get(SAVED_ERROR, virtualArray.name));
-					list();
-				}
-
-				VirtualArrayRestRep varray = virtualArray.save();
-				virtualArray.load(varray);
-				addStorageSysVarray(virtualArray.id, unityids);
-			}
-			if(!xioids.isEmpty()) {
-				VirtualArrayForm virtualArray = new VirtualArrayForm();
-				virtualArray.name = XTREMIO_FLASH_VARRAY;
-				virtualArray.validate("virtualArray");
-				if (Validation.hasErrors()) {
-					flash.error(MessagesUtils.get(SAVED_ERROR, virtualArray.name));
-					list();
-				}
-
-				VirtualArrayRestRep varray = virtualArray.save();
-				virtualArray.load(varray);
-				addStorageSysVarray(virtualArray.id, xioids);
-			}
+			list();
+//			// Support three type of varray for mapping VMAX, UNITY, XtremIO
+//			List <String> vmaxids = Lists.newArrayList();
+//			List <String> unityids = Lists.newArrayList();
+//			List <String> xioids = Lists.newArrayList();
+//
+//			// Read all discovered storage in system
+//			for (StorageSystemRestRep storageSystem : StorageSystemUtils.getStorageSystems()) {
+//				if(StringUtils.equals(storageSystem.getSystemType(), VMAX)) {
+//					vmaxids.add(storageSystem.getId().toString());
+//				}
+//				else if(StringUtils.equals(storageSystem.getSystemType(), XTREMIO)) {
+//					xioids.add(storageSystem.getId().toString());
+//				}
+//				else if(StringUtils.equals(storageSystem.getSystemType(), UNITY))
+//				unityids.add(storageSystem.getId().toString());
+//			}
+//			if(!vmaxids.isEmpty()) {
+//				VirtualArrayForm virtualArray = new VirtualArrayForm();
+//				virtualArray.name = VMAX_FLASH_VARRAY;
+//				virtualArray.validate("virtualArray");
+//				if (Validation.hasErrors()) {
+//					flash.error(MessagesUtils.get(SAVED_ERROR, virtualArray.name));
+//					list();
+//				}
+//
+//				VirtualArrayRestRep varray = virtualArray.save();
+//				virtualArray.load(varray);
+//				addStorageSysVarray(virtualArray.id, vmaxids);
+//			}
+//			if(!unityids.isEmpty()) {
+//				VirtualArrayForm virtualArray = new VirtualArrayForm();
+//				virtualArray.name = UNITY_FLASH_VARRAY;
+//				virtualArray.validate("virtualArray");
+//				if (Validation.hasErrors()) {
+//					flash.error(MessagesUtils.get(SAVED_ERROR, virtualArray.name));
+//					list();
+//				}
+//
+//				VirtualArrayRestRep varray = virtualArray.save();
+//				virtualArray.load(varray);
+//				addStorageSysVarray(virtualArray.id, unityids);
+//			}
+//			if(!xioids.isEmpty()) {
+//				VirtualArrayForm virtualArray = new VirtualArrayForm();
+//				virtualArray.name = XTREMIO_FLASH_VARRAY;
+//				virtualArray.validate("virtualArray");
+//				if (Validation.hasErrors()) {
+//					flash.error(MessagesUtils.get(SAVED_ERROR, virtualArray.name));
+//					list();
+//				}
+//
+//				VirtualArrayRestRep varray = virtualArray.save();
+//				virtualArray.load(varray);
+//				addStorageSysVarray(virtualArray.id, xioids);
+//			}
 		}
 		// List page so that user can add virtual array them self
 		else {
@@ -855,8 +895,7 @@ public class VirtualArrays extends ViprResourceController {
 	 * @param ids
 	 *            the storage system IDs.
 	 */
-	private static void addStorageSysVarray(String virtualArrayId,
-			List<String> ids) {
+	private static void addStorageSysVarray(String virtualArrayId, List<String> ids) {
 		List<URI> storagePorts = Lists.newArrayList();
 		for (URI storageSystemId : uris(ids)) {
 			List<StoragePortRestRep> ports = StoragePortUtils
@@ -868,6 +907,27 @@ public class VirtualArrays extends ViprResourceController {
 			updateStoragePorts(storagePorts, addVirtualArray(virtualArray));
 		}
 		list();
+	}
+
+	/**
+	 * Adds all ports of the given storage systems to a virtual array.
+	 *
+	 * @param virtualArrayId
+	 *            the virtual array ID.
+	 * @param ids
+	 *            the storage system IDs.
+	 */
+	private static void addVarrayStorageSystem(String virtualArrayId, String id) {
+
+		List<URI> storagePorts = Lists.newArrayList();
+		URI storageSystemId = uri(id);
+		List<StoragePortRestRep> ports = StoragePortUtils.getStoragePortsByStorageSystem(storageSystemId);
+		storagePorts.addAll(ResourceUtils.ids(ports));
+
+		if (!storagePorts.isEmpty()) {
+			VirtualArrayRestRep virtualArray = getVirtualArray(virtualArrayId);
+			updateStoragePorts(storagePorts, addVirtualArray(virtualArray));
+		}
 	}
 
     /**

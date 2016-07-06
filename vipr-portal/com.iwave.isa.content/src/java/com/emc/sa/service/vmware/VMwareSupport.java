@@ -740,7 +740,6 @@ public class VMwareSupport {
      */
     public void unmountVmfsDatastore(HostSystem host, ClusterComputeResource cluster,
             final Datastore datastore) {
-        enterMaintenanceMode(datastore);
         setStorageIOControl(datastore, false);
         List<HostSystem> hosts = cluster == null ? Lists.newArrayList(host) : Lists.newArrayList(cluster.getHosts());
 

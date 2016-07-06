@@ -348,7 +348,7 @@ echot() {
 # General echo output
 secho()
 {
-    echo "*** $*"
+    echo -e "*** $*"
 }
 
 # Place to put command output in case of failure
@@ -380,12 +380,12 @@ fail(){
     status=$?
     if [ $status -eq 0 ] ; then
         echo '**********************************************************************'
-        echo $cmd succeeded, which should not have happened
+        echo -e "$cmd succeeded, which \e[91mshould not have happened\e[0m"
 	cat ${CMD_OUTPUT}
         echo '**********************************************************************'
         exit 1
     fi
-    secho "$cmd failed, which is the expected ouput"
+    secho "$cmd failed, which \e[32mis the expected ouput\e[0m"
 }
 
 pwwn()

@@ -40,6 +40,6 @@ public class UpdateBlockVolumeAccessMode extends WaitForTasks<VolumeRestRep> {
 
         CopiesParam param = new CopiesParam();
         param.getCopies().add(copy);
-        return getClient().blockVolumes().failover(volumeId, param);
+        return getClient().blockVolumes().updateCopyAccessMode(volumeId, param);
     }
 }

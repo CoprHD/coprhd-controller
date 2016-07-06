@@ -693,7 +693,7 @@
         {
           "image": "Service_Change_Virtual_Array.png",
           "baseService": "ChangeVolumeVirtualArray"
-        },
+        }
       ]
     }
   ]

@@ -480,6 +480,9 @@ public class DbClientContext {
 
         String[] contactPoints = {LOCAL_HOST};
         cassandraCluster = initConnection(contactPoints);
+        if (cassandraSession == null) {
+            cassandraSession = cassandraCluster.connect();
+        }
         prepareStatementMap = new HashMap<String, PreparedStatement>();
     }
 
@@ -587,7 +590,7 @@ public class DbClientContext {
 
         String createKeySpace=String.format("%s KEYSPACE \"%s\" WITH replication = { 'class': '%s', %s };",
                 action, keyspaceName, KEYSPACE_NETWORK_TOPOLOGY_STRATEGY, replications.toString());
-        log.info("create keyspace using the cql statement:{}", createKeySpace);
+        log.info("update keyspace using the cql statement:{}", createKeySpace);
         cassandraSession.execute(createKeySpace);
     }
 

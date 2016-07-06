@@ -3,7 +3,7 @@
  * All Rights Reserved
  */
 
-package com.emc.storageos.systemservices.impl.vdc;
+package com.emc.storageos.systemservices.impl.util;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -34,8 +34,8 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
  * If a STANDBY_SYNCED site has lost db quorum for more than STANDBY_DEGRADED_THRESHOLD, it will be degraded.
  * If a STANDBY_DEGRADED site has all db instances running, it will be rejoined.
  */
-public class DbsvcQuorumMonitor implements Runnable {
-    private static final Logger log = LoggerFactory.getLogger(DbsvcQuorumMonitor.class);
+public class DrDbHealthMonitor extends DrHealthMonitor {
+    private static final Logger log = LoggerFactory.getLogger(DrDbHealthMonitor.class);
 
     private static final int STANDBY_DEGRADED_THRESHOLD = 1000 * 60 * 15; // 15 minutes, in milliseconds
 
@@ -46,13 +46,11 @@ public class DbsvcQuorumMonitor implements Runnable {
     private DrUtil drUtil;
     private CoordinatorClient coordinatorClient;
 
-    public DbsvcQuorumMonitor(CoordinatorClient coordinatorClient) {
-        this.drUtil = new DrUtil(coordinatorClient);
-        this.coordinatorClient = coordinatorClient;
+    public DrDbHealthMonitor() {
     }
 
     @Override
-    public void run() {
+    public void tick() {
         if (!drUtil.isLeaderNode()) {
             log.info("Current node is not ZK leader. Do nothing");
             return;
@@ -178,7 +176,7 @@ public class DbsvcQuorumMonitor implements Runnable {
 
                 standbySite.setState(SiteState.STANDBY_RESUMING);
                 coordinatorClient.persistServiceConfiguration(standbySite.toConfiguration());
-                long dataRevision = System.currentTimeMillis();
+                long dataRevision = vdcVersion;
                 drUtil.updateVdcTargetVersion(standbySite.getUuid(), SiteInfo.DR_OP_CHANGE_DATA_REVISION, vdcVersion, dataRevision);
 
                 // Update version on other connected standby sites if any
@@ -314,4 +312,21 @@ public class DbsvcQuorumMonitor implements Runnable {
                 monitorResult.getDbQuorumLostSince(), monitorResult.getDbQuorumLastActive(), siteId));
         return monitorResult;
     }
+
+    public DrUtil getDrUtil() {
+        return drUtil;
+    }
+
+    public void setDrUtil(DrUtil drUtil) {
+        this.drUtil = drUtil;
+    }
+
+    public CoordinatorClient getCoordinatorClient() {
+        return coordinatorClient;
+    }
+
+    public void setCoordinatorClient(CoordinatorClient coordinatorClient) {
+        this.coordinatorClient = coordinatorClient;
+    }
+    
 }

@@ -72,6 +72,8 @@ public class VPlexVirtualVolumeInfo extends VPlexResourceInfo {
         EXPANSION_STATUS("expansion-status"),
         SUPPORTING_DEVICE("supporting-device"),
         SERVICE_STATUS("service-status"),
+        THIN_CAPABLE("thin-capable"),
+        THIN_ENABLED("thin-enabled"),
         LOCALITY("locality"),
         VPD_ID("vpd-id"),
         EXPANDABLE_CAPACITY("expandable-capacity");
@@ -137,6 +139,12 @@ public class VPlexVirtualVolumeInfo extends VPlexResourceInfo {
 
     // The service status
     private String serviceStatus;
+
+    // The thin-capable status
+    private String thinCapable;
+
+    // The thin-enabled status
+    private String thinEnabled;
 
     // The locality of the virtual volume.
     private String locality;
@@ -257,6 +265,42 @@ public class VPlexVirtualVolumeInfo extends VPlexResourceInfo {
      */
     public void setServiceStatus(String strVal) {
         serviceStatus = strVal;
+    }
+
+    /**
+     * Getter for the volume thin-capable status.
+     * 
+     * @return The volume thin-capable status.
+     */
+    public String getThinCapable() {
+        return thinCapable;
+    }
+
+    /**
+     * Setter for the volume thin-capable status.
+     * 
+     * @param strVal The volume thin-capable status.
+     */
+    public void setThinCapable(String strVal) {
+        thinCapable = strVal;
+    }
+
+    /**
+     * Getter for the volume thin-enabled status.
+     * 
+     * @return The volume thin-enabled status.
+     */
+    public String getThinEnabled() {
+        return thinEnabled;
+    }
+
+    /**
+     * Setter for the volume thin-enabled status.
+     * 
+     * @param strVal The volume thin-enabled status.
+     */
+    public void setThinEnabled(String strVal) {
+        thinEnabled = strVal;
     }
 
     /**
@@ -394,13 +438,25 @@ public class VPlexVirtualVolumeInfo extends VPlexResourceInfo {
         setName(updatedName);
     }
 
-    /*
+    /**
      * Returns whether or not the volume is exported.
      * 
      * @return true if the volume is exported, false otherwise.
      */
     public boolean isExported() {
         return (!ServiceStatus.unexported.name().equals(serviceStatus));
+    }
+
+    /**
+     * Returns whether or not the volume is thin-enabled.
+     * 
+     * @return true if the volume is thin enabled, false otherwise.
+     */
+    public boolean isThinEnabled() {
+        // need to check both thin-capable=true && thin-enabled=true|enabled
+        return VPlexApiConstants.TRUE.equalsIgnoreCase(getThinCapable()) &&
+                (VPlexApiConstants.TRUE.equalsIgnoreCase(getThinEnabled()) 
+                        || VPlexApiConstants.ENABLED.equalsIgnoreCase(getThinEnabled()));
     }
 
     /**
@@ -431,6 +487,8 @@ public class VPlexVirtualVolumeInfo extends VPlexResourceInfo {
             str.append(", supportingDeviceInfo: ").append(supportingDeviceInfo.toString());
         }
         str.append(", serviceStatus: ").append(serviceStatus);
+        str.append(", thinCapable: ").append(thinCapable);
+        str.append(", thinEnabled: ").append(thinEnabled);
         str.append(", locality: ").append(locality);
         str.append(", clusters: ").append(clusters);
         str.append(", vpdId: ").append(vpdId);

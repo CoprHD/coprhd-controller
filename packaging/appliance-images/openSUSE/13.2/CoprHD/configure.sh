@@ -68,6 +68,11 @@ function installJava
 
   update-alternatives --set java /usr/lib64/jvm/jre-1.${java}.0-openjdk/bin/java
   update-alternatives --set javac /usr/lib64/jvm/java-1.${java}.0-openjdk/bin/javac
+  if [ -f /usr/lib64/jvm/jre-1.${java}.0-openjdk/lib/security/java.security ] ; then
+    cp -p /usr/lib64/jvm/jre-1.${java}.0-openjdk/lib/security/java.security /usr/lib64/jvm/jre-1.${java}.0-openjdk/lib/security/java.security.orig
+    sed -i 's/^jdk.tls.disabledAlgorithms=SSLv3/\#jdk.tls.disabledAlgorithms=SSLv3/' /usr/lib64/jvm/jre-1.${java}.0-openjdk/lib/security/java.security
+    sed -i 's/^jdk.certpath.disabledAlgorithms=.*/jdk.certpath.disabledAlgorithms=MD2/' /usr/lib64/jvm/jre-1.${java}.0-openjdk/lib/security/java.security
+  fi
 }
 
 function installNginx

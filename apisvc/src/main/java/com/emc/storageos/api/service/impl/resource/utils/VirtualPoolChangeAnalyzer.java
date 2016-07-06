@@ -1170,9 +1170,11 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
                 && VirtualPool.vPoolSpecifiesHighAvailability(newVpool)) {
             // check backend volume's pool with new vPool's pools
             Volume backendSrcVolume = VPlexUtil.getVPLEXBackendVolume(volume, true, dbClient, false);
-            s_logger.info("VPLEX backend Source Volume {}, new vPool {}", backendSrcVolume.getId(), newVpool.getId());
             if (backendSrcVolume != null) {
+                s_logger.info("VPLEX backend Source Volume {}, new vPool {}", backendSrcVolume.getId(), newVpool.getId());
                 vPoolHasVolumePool = doesNewVpoolContainsVolumePool(backendSrcVolume.getPool(), newVpool);
+            } else {
+                s_logger.warn("backend source volume could not be found for VPLEX volume " + volume.forDisplay());
             }
             // check backend distributed volume's pool with new HA vPool's pools
             if (VirtualPool.vPoolSpecifiesHighAvailabilityDistributed(currentVpool)

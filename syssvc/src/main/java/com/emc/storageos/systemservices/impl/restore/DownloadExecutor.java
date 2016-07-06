@@ -19,7 +19,10 @@ import java.util.zip.ZipInputStream;
 import javax.ws.rs.core.MediaType;
 
 
+import com.emc.storageos.management.backup.ExternalServerType;
 import com.emc.storageos.management.backup.exceptions.BackupException;
+import com.emc.storageos.management.backup.util.CifsClient;
+import com.emc.storageos.management.backup.util.BackupClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,13 +33,12 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.management.backup.BackupConstants;
 import com.emc.storageos.management.backup.util.FtpClient;
 import com.emc.storageos.management.backup.BackupOps;
-import com.emc.storageos.systemservices.impl.jobs.backupscheduler.SchedulerConfig;
 import com.emc.storageos.systemservices.impl.client.SysClientFactory;
 
 public final class DownloadExecutor implements  Runnable {
     private static final Logger log = LoggerFactory.getLogger(DownloadExecutor.class);
 
-    private FtpClient client;
+    private BackupClient client;
     private String remoteBackupFileName;
     private BackupOps backupOps;
     private DownloadListener downloadListener;
@@ -45,8 +47,9 @@ public final class DownloadExecutor implements  Runnable {
     private boolean isGeo = false; // true if the backupset is from GEO env
     private volatile  boolean isCanceled = false;
 
-    public DownloadExecutor(SchedulerConfig cfg, String backupZipFileName, BackupOps backupOps) {
-        client = new FtpClient(cfg.uploadUrl, cfg.uploadUserName, cfg.getExternalServerPassword());
+    public DownloadExecutor(BackupClient client, String backupZipFileName, BackupOps backupOps) {
+
+        this.client = client;
         remoteBackupFileName = backupZipFileName;
         this.backupOps = backupOps;
         fromRemoteServer = true;
@@ -206,7 +209,7 @@ public final class DownloadExecutor implements  Runnable {
         }
     }
 
-    private void pullBackupFilesFromRemoteServer() throws IOException, InterruptedException {
+    private void pullBackupFilesFromRemoteServer() throws Exception {
         log.info("pull backup files in {} from remote server start", remoteBackupFileName);
 
         backupOps.persistCurrentBackupInfo(remoteBackupFileName, false);
@@ -225,7 +228,6 @@ public final class DownloadExecutor implements  Runnable {
 
         byte[] buf = new byte[BackupConstants.DOWNLOAD_BUFFER_SIZE];
         InputStream in = client.download(remoteBackupFileName);
-
 
 
         //Step1: download the zip file

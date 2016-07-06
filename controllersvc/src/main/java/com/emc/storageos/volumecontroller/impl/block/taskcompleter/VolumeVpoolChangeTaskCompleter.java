@@ -140,8 +140,9 @@ public class VolumeVpoolChangeTaskCompleter extends VolumeWorkflowCompleter {
                             // vpool reference to the new vpool.
                             if(newVpools != null && !newVpools.isEmpty()) {
                                 URI newVpoolId = newVpools.get(id);
-                                if (newVpoolId != null) {
+                                if (newVpoolId != null) {                                    
                                     Volume volume = dbClient.queryObject(Volume.class, id);
+                                    _log.info("Change vpool task complete, updating vpool references for " + volume.getLabel());
                                     volume.setVirtualPool(newVpoolId);
                                     // No effect if this not a VPLEX volume
                                     VPlexUtil.updateVPlexBackingVolumeVpools(volume, newVpoolId, dbClient);

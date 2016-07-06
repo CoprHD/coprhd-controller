@@ -1551,56 +1551,54 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
             DbClient dbClient, StringBuffer notSuppReasonBuff, Map<Volume.PersonalityTypes, Map<URI, URI>> validMigrations) {
         s_logger.info(String.format("Checking isSupportedRPVPlexMigrationVirtualPoolChange from [%s] to [%s]...",
                 currentVpool.getLabel(), newVpool.getLabel()));
+        
         // Make sure the VirtualPool's are not the same instance.
         if (isSameVirtualPool(currentVpool, newVpool, notSuppReasonBuff)) {
             return false;
         }
-        
+
         // Flag to indicate that at least one valid migration has been found
         boolean validMigrationsFound = false;
-        
+
         if (volume.checkForRp()
                 && VirtualPool.vPoolSpecifiesRPVPlex(currentVpool)
                 && VirtualPool.vPoolSpecifiesRPVPlex(newVpool)) {
-            
+
             // Number of targets can not be different between the current and new vpool.
             if (currentVpool.getProtectionVarraySettings().size() != newVpool.getProtectionVarraySettings().size()) {
                 notSuppReasonBuff.append("Target virtual arrays do not match.");
                 return false;
             }
-            
-            // If validMigrations is passed in and is not null, initialize the structure.
-            // This will be used to store any valid migrations for SOURCE and TARGET.
-            //
-            // If the caller passes in null it indicates that it does not care what migrations
-            // were found.
+
+            // If validMigrations is not null, initialize the structure.
+            // This will be used to keep track of valid migrations for SOURCE, TARGET,
+            // and METADATA.
             if (validMigrations != null) {
                 validMigrations.put(Volume.PersonalityTypes.SOURCE, new HashMap<URI, URI>());
                 validMigrations.put(Volume.PersonalityTypes.TARGET, new HashMap<URI, URI>());
                 validMigrations.put(Volume.PersonalityTypes.METADATA, new HashMap<URI, URI>());
             }
-            
+
             // Keep track of the potential Source migrations
             Map<VirtualPool, VirtualPool> sourceMigrations = new HashMap<VirtualPool, VirtualPool>();
             // Keep track of the potential Target migrations
             Map<VirtualPool, VirtualPool> targetMigrations = new HashMap<VirtualPool, VirtualPool>();
             // Keep track of the potential Journal migrations
             Map<VirtualPool, VirtualPool> journalMigrations = new HashMap<VirtualPool, VirtualPool>();
-                        
+
             // Store all the potential candidates for migrations
             Map<Volume.PersonalityTypes, Map<VirtualPool, VirtualPool>> candidatesForMigration 
-                = new HashMap<Volume.PersonalityTypes, Map<VirtualPool, VirtualPool>>();
+                                                    = new HashMap<Volume.PersonalityTypes, Map<VirtualPool, VirtualPool>>();
             candidatesForMigration.put(Volume.PersonalityTypes.SOURCE, sourceMigrations);
             candidatesForMigration.put(Volume.PersonalityTypes.TARGET, targetMigrations);
             candidatesForMigration.put(Volume.PersonalityTypes.METADATA, journalMigrations);
-            
+
             // The Source is always a potential candidate for migration
             sourceMigrations.put(currentVpool, newVpool);
-            
-            // Source Journal
+
             // Current Source Journal varray/vpool
             String currentSourceJournalVarrayId = NullColumnValueGetter.getStringValue(currentVpool
-                    .getJournalVarray());                        
+                    .getJournalVarray());
             String currentSourceJournalVpoolId = NullColumnValueGetter.getStringValue(currentVpool
                     .getJournalVpool());
             // New Source Journal varray/vpool
@@ -1608,175 +1606,160 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
                     .getJournalVarray());
             String newSourceJournalVpoolId = NullColumnValueGetter.getStringValue(newVpool
                     .getJournalVpool());
-            
+
             // If the current Source Journal varray/vpool are not set, default them to known values.
-            if (currentSourceJournalVarrayId.equals("null")) {                
+            if (currentSourceJournalVarrayId.equals("null")) {
                 currentSourceJournalVarrayId = volume.getVirtualArray().toString();
             }
-            if (currentSourceJournalVpoolId.equals("null")) {                
+            if (currentSourceJournalVpoolId.equals("null")) {
                 currentSourceJournalVpoolId = currentVpool.getId().toString();
             }
-            
+
             // If the current Source Journal vpool is not set, default it to the known value.
             // NOTE: If the new Source Journal varray is not set, we have no way of knowing
             // what it will be, so we can not assume it.
-            if (newSourceJournalVpoolId.equals("null")) {                
+            if (newSourceJournalVpoolId.equals("null")) {
                 newSourceJournalVpoolId = newVpool.getId().toString();
             }
-                        
+
+            // Only consider the Source Journal migration if the varrays are the same and the vpools
+            // are different.
             if (currentSourceJournalVarrayId.equals(newSourceJournalVarrayId)
                     && !currentSourceJournalVpoolId.equals(newSourceJournalVpoolId)) {
-                
-                VirtualPool currentSourceJournalVpool = dbClient.queryObject(VirtualPool.class, URI.create(currentSourceJournalVpoolId));                                          
+                VirtualPool currentSourceJournalVpool = dbClient.queryObject(VirtualPool.class, URI.create(currentSourceJournalVpoolId));
                 VirtualPool newSourceJournalVpool = dbClient.queryObject(VirtualPool.class, URI.create(newSourceJournalVpoolId));
                 
-                
-                if (newSourceJournalVpool.getVirtualArrays().contains(currentSourceJournalVarrayId)) {
-                    journalMigrations.put(currentSourceJournalVpool, newSourceJournalVpool);
-                }
-            }            
-            
+                journalMigrations.put(currentSourceJournalVpool, newSourceJournalVpool);                
+            }
+
             // Check the Targets for potential candidates for migration
             for (Map.Entry<String, String> entry : currentVpool.getProtectionVarraySettings().entrySet()) {
                 String targetVarrayId = entry.getKey();
-                // Make sure we find the same varray in the new vpool, otherwise fail the operation
-                if (newVpool.getProtectionVarraySettings().containsKey(targetVarrayId)) {                                       
+                // Make sure we find the same varray in the new vpool, otherwise we can immediately
+                // exclude the migration operation.
+                if (newVpool.getProtectionVarraySettings().containsKey(targetVarrayId)) {
                     String currentProtectionVarraySettingsId = entry.getValue();
-                    String newProtectionVarraySettingsId = newVpool.getProtectionVarraySettings().get(entry.getKey());
+                    String newProtectionVarraySettingsId = newVpool.getProtectionVarraySettings().get(targetVarrayId);
 
-                    // Grab the current protection varray settings
-                    VpoolProtectionVarraySettings currentProtectionVarraySetting =
-                            dbClient.queryObject(VpoolProtectionVarraySettings.class,
-                                    URI.create(currentProtectionVarraySettingsId));
+                    // Get the current protection varray settings
+                    VpoolProtectionVarraySettings currentProtectionVarraySetting = dbClient.queryObject(VpoolProtectionVarraySettings.class,
+                            URI.create(currentProtectionVarraySettingsId));
 
-                    // Grab the new protection varray settings
-                    VpoolProtectionVarraySettings newProtectionVarraySetting =
-                            dbClient.queryObject(VpoolProtectionVarraySettings.class,
-                                    URI.create(newProtectionVarraySettingsId));
+                    // Get the new protection varray settings
+                    VpoolProtectionVarraySettings newProtectionVarraySetting = dbClient.queryObject(VpoolProtectionVarraySettings.class,
+                            URI.create(newProtectionVarraySettingsId));
 
-                    // Target
+                    // Current Target Journal vpool
                     String currentTargetVpoolId = NullColumnValueGetter.getStringValue(currentProtectionVarraySetting
                             .getVirtualPool());
                     VirtualPool currentTargetVpool = dbClient.queryObject(VirtualPool.class, URI.create(currentTargetVpoolId));
-                    
+
+                    // New Target Journal vpool
                     String newTargetVpoolId = NullColumnValueGetter.getStringValue(newProtectionVarraySetting.getVirtualPool());
                     VirtualPool newTargetVpool = dbClient.queryObject(VirtualPool.class, URI.create(newTargetVpoolId));
-                    
-//                    if (VirtualPool.vPoolSpecifiesHighAvailability(currentTargetVpool)
-//                            && VirtualPool.vPoolSpecifiesHighAvailability(newTargetVpool)) {
-                        targetMigrations.put(currentTargetVpool, newTargetVpool);
-//                    } else {                        
-//                    }
-                    
-//                    // Target Journal
-//                    String currentTargetJournalVarrayId = NullColumnValueGetter.getStringValue(currentProtectionVarraySetting
-//                            .getJournalVarray());
-//                    String currentTargetJournalVpoolId = NullColumnValueGetter.getStringValue(currentProtectionVarraySetting
-//                            .getJournalVpool());
-//                    VirtualPool currentTargetJournalVpool = dbClient.queryObject(VirtualPool.class, URI.create(currentTargetJournalVpoolId));
-//                                       
-//                    String newTargetJournalVarrayId = NullColumnValueGetter.getStringValue(newProtectionVarraySetting
-//                            .getJournalVarray());
-//                    String newTargetJournalVpoolId = NullColumnValueGetter.getStringValue(newProtectionVarraySetting
-//                            .getJournalVpool());
-//                    VirtualPool newTargetJournalVpool = dbClient.queryObject(VirtualPool.class, URI.create(newTargetJournalVpoolId));
-//                    
-//                    if (currentTargetJournalVarrayId.equals(newTargetJournalVarrayId)
-//                            && !currentTargetJournalVpoolId.equals(newTargetJournalVpoolId)) {
-//                        journalMigrations.put(currentTargetJournalVpool, newTargetJournalVpool);
-//                    }
+
+                    // Add Target for potential migration
+                    targetMigrations.put(currentTargetVpool, newTargetVpool);
+
+                    // Current Target Journal varray/vpool
+                    String currentTargetJournalVarrayId = NullColumnValueGetter.getStringValue(currentProtectionVarraySetting
+                            .getJournalVarray());
+                    String currentTargetJournalVpoolId = NullColumnValueGetter.getStringValue(currentProtectionVarraySetting
+                            .getJournalVpool());
+
+                    // New Target Journal varray/vpool
+                    String newTargetJournalVarrayId = NullColumnValueGetter.getStringValue(newProtectionVarraySetting
+                            .getJournalVarray());
+                    String newTargetJournalVpoolId = NullColumnValueGetter.getStringValue(newProtectionVarraySetting
+                            .getJournalVpool());
+
+                    // If the current Target Journal varray/vpool are not set, default them to known values.
+                    if (currentTargetJournalVarrayId.equals("null")) {
+                        currentTargetJournalVarrayId = targetVarrayId;
+                    }
+                    if (currentTargetJournalVpoolId.equals("null")) {
+                        currentTargetJournalVpoolId = currentTargetVpool.getId().toString();
+                    }
+
+                    // If the current Target Journal vpool is not set, default it to the known value.
+                    // NOTE: If the new Target Journal varray is not set, we have no way of knowing
+                    // what it will be, so we can not assume it.
+                    if (newTargetJournalVpoolId.equals("null")) {
+                        newTargetJournalVpoolId = newTargetVpool.getId().toString();
+                    }
+
+                    // Only consider the Target Journal migration if the varrays are the same and the vpools
+                    // are different.
+                    if (currentTargetJournalVarrayId.equals(newTargetJournalVarrayId)
+                            && !currentTargetJournalVpoolId.equals(newTargetJournalVpoolId)) {
+                        VirtualPool currentTargetJournalVpool = dbClient.queryObject(VirtualPool.class, URI.create(currentTargetJournalVpoolId));
+                        VirtualPool newTargetJournalVpool = dbClient.queryObject(VirtualPool.class, URI.create(newTargetJournalVpoolId));
+
+                        
+                        journalMigrations.put(currentTargetJournalVpool, newTargetJournalVpool);
+                    }
+
                 } else {
                     notSuppReasonBuff.append("Target virtual arrays do not match.");
                     return false;
                 }
             }
-                        
-            // Targets are OK if we reach here so on to the next check for Source/HA journals...
-            //
-            // The current RP+VPLEX vpool is either protecting the Source site or HA site.
-            // This will make a difference in checking which journal side should be added when
-            // upgrading to MetroPoint.
-            // If we were protecting the Source site, then the HA journal changes are OK and we need to check the Source Journal
-            // settings for changes.
-            // If we were protecting the HA site, then the Source journal changes are OK and we need to check the HA Journal
-            // settings for changes.
-//            String currentJournalVarray = null;
-//            String currentJournalVpool = null;
-//            String newJournalVarray = null;
-//            String newJournalVpool = null;
-//
-//            if (VirtualPool.isRPVPlexProtectHASide(currentVpool)) {
-//                currentJournalVarray = NullColumnValueGetter.getStringValue(currentVpool.getStandbyJournalVarray());
-//                currentJournalVpool = NullColumnValueGetter.getStringValue(currentVpool.getStandbyJournalVpool());
-//                newJournalVarray = NullColumnValueGetter.getStringValue(newVpool.getStandbyJournalVarray());
-//                newJournalVpool = NullColumnValueGetter.getStringValue(newVpool.getStandbyJournalVpool());
-//            }
-//            else {
-//                currentJournalVarray = NullColumnValueGetter.getStringValue(currentVpool.getJournalVarray());
-//                currentJournalVpool = NullColumnValueGetter.getStringValue(currentVpool.getJournalVpool());
-//                newJournalVarray = NullColumnValueGetter.getStringValue(newVpool.getJournalVarray());
-//                newJournalVpool = NullColumnValueGetter.getStringValue(newVpool.getJournalVpool());
-//            }
-//
-//            // Source journals need to match up
-//            if (!currentJournalVarray.equals(newJournalVarray)) {
-//                notSuppReasonBuff.append("Source journal virtual arrays do not match.");
-//                return false;
-//            }
-//
-//            if (!currentJournalVpool.equals(newJournalVpool)) {
-//                notSuppReasonBuff.append("Source journal virtual pools do not match.");
-//                return false;
-//            }
-        
-    
-    
-            // Labeling the for loop as "personalityloop", will use this label to break if
-            // we find migrations.
-            personalityloop:
+
+            // Iterate over all the candidates for migration sub-looped by personality (SOURCE, TARGET, METADATA).
             for (Volume.PersonalityTypes personality : candidatesForMigration.keySet()) {
-                
-                
                 for (Map.Entry<VirtualPool, VirtualPool> entry : candidatesForMigration.get(personality).entrySet()) {
-                
                     VirtualPool candidateCurrentVpool = entry.getKey();
                     VirtualPool candidateNewVpool = entry.getValue();
-                    String[] include = null;
                     
-                    if (personality.equals(Volume.PersonalityTypes.METADATA)) {
-                       
-                        if (VirtualPool.vPoolSpecifiesHighAvailability(candidateCurrentVpool)
-                                && VirtualPool.vPoolSpecifiesHighAvailabilityLocal(candidateNewVpool)) {
-                            include = new String[] { TYPE, VARRAYS,
-                                    REF_VPOOL, MIRROR_VPOOL, FAST_EXPANSION, ACLS, INACTIVE, NUM_PATHS }; 
-                        } else {
-                            continue;
-                        }
+                    // Same vpool automatically excludes this entry 
+                    if (isSameVirtualPool(candidateCurrentVpool, candidateNewVpool, notSuppReasonBuff)) {
+                        continue;
                     }
-                    else {
+                    
+                    String[] include = null;
+
+                    if (personality.equals(Volume.PersonalityTypes.SOURCE)
+                            || personality.equals(Volume.PersonalityTypes.TARGET)) {                        
                         // Ensure these values have NOT changed between ANY of the candidate vpools. If they have,
                         // do not allow the RP+VPLEX migration operation to occur.
                         include = new String[] { TYPE, VARRAYS,
-                                REF_VPOOL, MIRROR_VPOOL, FAST_EXPANSION, ACLS, INACTIVE, NUM_PATHS, 
-                                METROPOINT, HIGH_AVAILABILITY, RP_RPO_TYPE, RP_RPO_VALUE, RP_COPY_MODE };                                                
+                                REF_VPOOL, MIRROR_VPOOL, FAST_EXPANSION, ACLS, INACTIVE, NUM_PATHS,
+                                METROPOINT, HIGH_AVAILABILITY, RP_RPO_TYPE, RP_RPO_VALUE, RP_COPY_MODE };
+                    } else {
+                        // Journals could be using the Source/Target vpool as their vpool 
+                        // and the user could be looking to migrate to another vpool which is valid
+                        // but may have different a HA type because RP+VPLEX Journals are always forced to 
+                        // VPLEX Local. 
+                        if (VirtualPool.vPoolSpecifiesHighAvailability(candidateCurrentVpool)
+                                && VirtualPool.vPoolSpecifiesHighAvailability(candidateNewVpool)) {
+                            include = new String[] { TYPE, VARRAYS,
+                                    REF_VPOOL, MIRROR_VPOOL, FAST_EXPANSION, ACLS, INACTIVE, NUM_PATHS };
+                        } else {
+                            // Can not consider this journal migration if the current and new journal vpool
+                            // does not specify HA.
+                            s_logger.info(String.format("Vpool [%s](%s) is not valid for RP METADATA migrations", 
+                                    candidateNewVpool.getLabel(),
+                                    candidateNewVpool.getId()));        
+                            continue;
+                        }
                     }
-                    
+
+                    // Ensure no unwanted changes are present.
                     Map<String, Change> changes = analyzeChanges(candidateCurrentVpool, candidateNewVpool, include, null, null);
                     if (!changes.isEmpty()) {
-                        notSuppReasonBuff.append(String.format("Changes in the following %s virtual pool are not permitted: ", personality.name()));
+                        notSuppReasonBuff
+                                .append(String.format("Changes in the following %s virtual pool are not permitted: ", personality.name()));
                         fillInNotSupportedReasons(changes, notSuppReasonBuff);
                         return false;
                     }
-                
-        
-                                                           
-                    // Determine if source side will be migrated.
+
+                    // Determine if VPLEX source side will be migrated.
                     boolean migrateSourceVolume = VirtualPoolChangeAnalyzer
                             .vpoolChangeRequiresMigration(candidateCurrentVpool, candidateNewVpool);
-        
-                    // Determine if HA side will be migrated.
+
+                    // Determine if VPLEX HA side will be migrated.
                     boolean migrateHAVolume = false;
-                    // Ignore HA Journal - there will not be any - ViPR provisioned RP+VPLEX Journals are always forced to VPLEX Local.
+                    // Ignore HA for Journals as ViPR provisioned RP+VPLEX Journals are always forced to VPLEX Local.
                     if (!personality.equals(Volume.PersonalityTypes.METADATA)) {
                         VirtualPool candidateCurrentHaVpool = VirtualPoolChangeAnalyzer
                                 .getHaVpool(candidateCurrentVpool, dbClient);
@@ -1787,26 +1770,28 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
                                     .vpoolChangeRequiresMigration(candidateCurrentHaVpool, candidateNewHaVpool);
                         }
                     }
-                    
-                    if (migrateSourceVolume || migrateHAVolume) {                
-                        
+
+                    if (migrateSourceVolume || migrateHAVolume) {
                         // There is at least one migration candidate, so we can proceed.
                         validMigrationsFound = true;
-                       
+
                         // If the validMigrations param is not null then keep track of the valid
                         // migrations found.
-                        if (validMigrations != null) {                                
+                        if (validMigrations != null) {
                             validMigrations.get(personality).put(candidateCurrentVpool.getId(), candidateNewVpool.getId());
-                        } else {
-                            // If we're not keeping track of valid migrations we can exit the loops
-                            break personalityloop;
+                        } else {                            
+                            s_logger.info(String.format("Vpool [%s](%s) is valid for RP %s migrations", 
+                                    candidateNewVpool.getLabel(),
+                                    candidateNewVpool.getId(), 
+                                    personality.name()));                            
+                            break;
                         }
                     }
-                }                
+                }
             }
         }
 
-        s_logger.info(String.format("RP+VPLEX migration operation is%s supported.", 
+        s_logger.info(String.format("RP+VPLEX migration operation is%s supported.",
                 validMigrationsFound ? "" : " NOT"));
         return validMigrationsFound;
     }

@@ -385,7 +385,7 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
             // if there were normal zones created, commit them
             if (hasResult(addedZoneNames, SUCCESS)) {
                 // Now add all the zones to the active zoneset.
-                dialog.zonesetNameVsan(activeZoneset.getName(), vsanId);
+                dialog.zonesetNameVsan(activeZoneset.getName(), vsanId, false);
                 for (String zoneName : addedZoneNames.keySet()) {
                     if (SUCCESS.equals(addedZoneNames.get(zoneName))) {
                         dialog.zonesetMember(zoneName);
@@ -447,7 +447,7 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
         _log.info("Attempting to create zoneset: " + zonesetName + " vsan: " + vsanId);
         try {
             dialog.config();
-            dialog.zonesetNameVsan(zonesetName, vsanId);
+            dialog.zonesetNameVsan(zonesetName, vsanId, false);
             dialog.exitToConfig();
             if (dialog.isInSession()) {
                 dialog.zoneCommit(vsanId);

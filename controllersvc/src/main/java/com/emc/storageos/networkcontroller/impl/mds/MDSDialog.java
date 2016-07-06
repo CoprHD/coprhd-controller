@@ -1168,7 +1168,7 @@ public class MDSDialog extends SSHDialog {
      * @param vsanId
      * @throws NetworkDeviceControllerException
      */
-    public void zonesetNameVsan(String zonesetName, Integer vsanId) throws NetworkDeviceControllerException {
+    public void zonesetNameVsan(String zonesetName, Integer vsanId, boolean no) throws NetworkDeviceControllerException {
         if (!inConfigMode) {
             throw NetworkDeviceControllerException.exceptions.mdsDeviceNotInConfigMode();
         }
@@ -1176,17 +1176,18 @@ public class MDSDialog extends SSHDialog {
             throw NetworkDeviceControllerException.exceptions.mdsUnexpectedLastPrompt(lastPrompt.toString(),
                     SSHPrompt.MDS_CONFIG.toString());
         }
+        String noString = no ? MDSDialogProperties.getString("MDSDialog.zonesetNameVsan.no.cmd") : ""; // no
         SSHPrompt[] prompts = { SSHPrompt.MDS_CONFIG_ZONESET, SSHPrompt.MDS_CONFIG };
         StringBuilder buf = new StringBuilder();
         boolean retryNeeded = true;
         for (int retryCount = 0; retryCount < sessionLockRetryMax && retryNeeded; retryCount++) {
             String payload = MessageFormat.format(MDSDialogProperties.getString("MDSDialog.zonesetNameVsan.cmd"), zonesetName,
-                    vsanId.toString()); // zoneset name {0} vsan {1}\n
+                    vsanId.toString(), noString); // zoneset name {0} vsan {1}\n
             lastPrompt = sendWaitFor(payload, defaultTimeout, prompts, buf);
             String[] lines = getLines(buf);
             retryNeeded = checkForEnhancedZoneSession(lines, retryCount);
         }
-        if (lastPrompt != SSHPrompt.MDS_CONFIG_ZONESET) {
+        if (no == false && lastPrompt != SSHPrompt.MDS_CONFIG_ZONESET) {
             throw NetworkDeviceControllerException.exceptions.mdsUnexpectedLastPrompt(lastPrompt.toString(),
                     SSHPrompt.MDS_CONFIG_ZONESET.toString());
         }
@@ -1417,6 +1418,7 @@ public class MDSDialog extends SSHDialog {
         SSHPrompt[] prompts = { SSHPrompt.MDS_CONFIG };
         StringBuilder buf = new StringBuilder();
         String newZoneset = generateZonesetCloneName(zonesetToClone);
+        manageZonesetClone(vsanId, newZoneset);
         String payload = MessageFormat.format(MDSDialogProperties.getString("MDSDialog.zonesetClone.cmd"), zonesetToClone, newZoneset, vsanId); // copy running-config startup-config\n
         lastPrompt = sendWaitFor(payload, defaultTimeout, prompts, buf);
         String[] lines = getLines(buf);
@@ -1424,16 +1426,31 @@ public class MDSDialog extends SSHDialog {
         _log.info(MessageFormat.format("Host: {0}, Port: {1} - END zonesetClone",
                 new Object[] { getSession().getSession().getHost(), getSession().getSession().getPort() }));
     }
+    
+    private void manageZonesetClone(Integer vsanId, String zonesetName) {
+    	List<Zoneset> zonesets = showZoneset(vsanId, false, null, false, false);
+    	    	
+    	Calendar cal = Calendar.getInstance();
+  	   	DateFormat dateFormat = new SimpleDateFormat("MM_dd_yy");
+  	    String dateStr = dateFormat.format(cal.getTime()); 
+    	for (Zoneset zoneset : zonesets) {
+    		if (zoneset.getName().contains(dateStr)) {
+    			_log.info("Bharath - removing zoneset ", zoneset.getName());
+    			System.out.println("Bharath - removing zoneset " + zoneset.getName());
+    			for (Zone zone : zoneset.getZones()) {
+    				System.out.println("Zone " + zone.getName());
+    			}
+    			zonesetNameVsan(zoneset.getName(), vsanId, true);
+    		}
+    	}    	
+    }
         
     private String generateZonesetCloneName(String zonesetToClone) {
     	//get current date time with Calendar()
  	   Calendar cal = Calendar.getInstance();
- 	   DateFormat dateFormat = new SimpleDateFormat("MM-dd-yy_HH-mm");
- 	   String dateString = dateFormat.format(cal.getTime());
- 	   
- 	   
- 	   
-       return "ViPR-" + zonesetToClone + "_" + dateString;    	
+ 	   DateFormat dateFormat = new SimpleDateFormat("MM_dd_yy-HH_mm");
+ 	   String dateString = dateFormat.format(cal.getTime()); 	    	 
+       return "ViPR-" + zonesetToClone + "-" + dateString;    	
     }
 
     /**

@@ -11,6 +11,23 @@
         $maxManualCopies.on('change', function () {
             checkIsZero(this.value, 'manual');
         });
+        $externalServerType = $("#${util.ConfigProperty.BACKUP_EXTERNAL_TYPE}");
+        $externalServerType.on('change', function () {
+            checkIsCIFS(this.value);
+        });
+        var validateButton = $('#validateButtonExternal');
+        $externalServerUrl = $("#${util.ConfigProperty.BACKUP_EXTERNAL_URL}");
+        var validationButtonHandler = function () {
+        if (isNotBlank($externalServerUrl.val())) {
+            validateButton.prop('disabled', false);
+            validateButton.removeClass('disabled');
+        } else {
+            validateButton.prop('disabled', true);
+            validateButton.addClass('disabled');
+        }
+    };
+        validationButtonHandler();
+        $externalServerUrl.on('change keyup',validationButtonHandler);
 
         var intervalId = "backup_scheduler_interval";
         $backup_interval = $("#" + intervalId);
@@ -39,14 +56,19 @@
             $('#alerts_error .message').html("&{'configProperties.backup.interval.invalid'}");
             $('#alerts_error').slideDown('fast');
         }
-    });
 
+        $('#validateButtonExternal').on('click', function(e) {
+        e.preventDefault();
+        this.disabled = 'true';
+        validateExternalServerSettings();
+        });
+
+    });
     function setBackupSchedulerInterval() {
         var value = $intervals[$selector_interval.val()];
         $backup_interval.val(value);
         checkForm();
     }
-
     function checkIsZero(value, type) {
         if (value === '0') {
             if (type === 'manual') {
@@ -56,6 +78,67 @@
             }
         }
     }
+    function checkIsCIFS(value) {
+       var displayControl = $("#${util.ConfigProperty.BACKUP_EXTERNAL_DOMAIN}ControlGroup");
+       var control = $("#${util.ConfigProperty.BACKUP_EXTERNAL_DOMAIN}");
+       if (value === 'CIFS') {
+           displayControl.show();
+           control.removeClass('disabled');
+           control.prop('disabled', false);
+       } else {
+           displayControl.hide();
+           control.addClass('disabled');
+           control.prop('disabled', true);
+       }
+    }
+    function validateExternalServerSettings() {
+       var serverType = $("#${util.ConfigProperty.BACKUP_EXTERNAL_TYPE}").val();
+       var serverUrl =  $("#${util.ConfigProperty.BACKUP_EXTERNAL_URL}").val();
+       var serverDomain =  $("#${util.ConfigProperty.BACKUP_EXTERNAL_DOMAIN}").val();
+       var serverUser =  $("#${util.ConfigProperty.BACKUP_EXTERNAL_USERNAME}").val();
+       var serverPwd =  $("#${util.ConfigProperty.BACKUP_EXTERNAL_PWD}").val();
+
+       $('#alerts_success').hide();
+       $('#alerts_error').hide();
+       var data = {
+            authenticityToken: '${session.authenticityToken}',
+            serverType: serverType,
+            serverUrl: serverUrl,
+            serverDomain: serverDomain,
+            user: serverUser,
+            password: serverPwd
+                }
+       var url = #{jsAction @infra.ConfigProperties.validateExternalSettings()/}();
+       $.post(url, data, function(result) {
+               showValidationResult(result);
+               });
+
+    }
+    function showValidationResult(result) {
+        var success = false;
+        var message = "";
+        if ($.isArray(result)) {
+            for (var i = 0; i < result.length; i++) {
+                if (i > 0) {
+                    message += "<br>";
+                }
+            message += result[i].message;
+            success = success || result[i].success;
+            }
+        }else {
+            message = result.message;
+            success = result.success;
+        }
+        if (success) {
+            $('#alerts_success .message').html(message);
+            $('#alerts_success').slideDown('fast');
+        }else {
+            $('#alerts_error .message').html(message);
+            $('#alerts_error').slideDown('fast');
+        }
+        $('#validateButtonExternal').prop('disabled',false);
+    }
+
 </script>
 #{/set}
 <br/>
@@ -124,11 +207,49 @@ disabled:unstable;
 #{ConfigProperties.property property:page.maxManualCopies, disabled:unstable/}
 #{/ConfigProperties.propertySet}
 #{ConfigProperties.propertySet titleKey:'configProperties.backup.server'}
+#{ConfigProperties.property property:page.externalLocationType, disabled:unstable/}
 #{ConfigProperties.property property:page.externalLocationUrl, disabled:unstable/}
+
+%{
+property = page.externalLocationDomain
+id = property.name
+name = property.name
+originalValue = property.value
+value = flash[name] ?: originalValue
+label = property.label
+description = property.description
+textArea = property.largeField
+maxLength = property.maxLength
+
+typeProperty = page.externalLocationType
+type = typeProperty.value
+}%
+#{if type == 'CIFS'}<div id="${id}ControlGroup" class="form-group" >#{/if}#{else}
+    <div id="${id}ControlGroup" class="form-group" hidden>#{/else}
+        <label class="control-label col-sm-3" for="${id}">${label}:</label>
+        <div class="col-sm-6 controls">
+            <input type="text" class="form-control" id="${id}" name="${name}" value="${value}" #{if maxLength}maxlength="${maxLength}"#{/if} data-originalvalue="${originalValue}" data-reboot="false" autocomplete="off">
+            <p class="help-block clear">${description}#{if rebootRequired} <span class="text-danger">&{'configProperties.rebootRequired'}</span>#{/if}</p>
+        </div>
+        <div class="col-sm-3">
+            <span class="help-inline clearfix">${error}</span>
+        </div>
+    </div>
+
 #{ConfigProperties.property property:page.externalLocationUsername, disabled:unstable/}
 #{ConfigProperties.property property:page.externalLocationPassword, disabled:unstable/}
 #{/ConfigProperties.propertySet}
 
+<div id="ValidationControlGroup" class="form-group">
+    <div class="col-sm-3">
+        &nbsp;
+     </div>
+    <div class="col-sm-6">
+        <button id="validateButtonExternal" type="button" class="btn btn-info">
+            #{icon 'envelope'/} &{'configProperties.backup.validate'}
+        </button>
+    </div>
+</div>
 <style type="text/css">
     #backup-time .timepicker input[readonly]{
         background-color: #fff;

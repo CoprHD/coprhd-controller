@@ -10,8 +10,12 @@ import com.emc.storageos.driver.vmaxv3driver.rest.SloprovisioningSymmetrixDirect
 import com.emc.storageos.driver.vmaxv3driver.rest.SloprovisioningSymmetrixDirectorPortGet;
 import com.emc.storageos.driver.vmaxv3driver.rest.SloprovisioningSymmetrixDirectorPortList;
 import com.emc.storageos.driver.vmaxv3driver.rest.bean.SymmetrixPort;
+import com.emc.storageos.driver.vmaxv3driver.rest.bean.SymmetrixPortFc;
+import com.emc.storageos.driver.vmaxv3driver.rest.bean.SymmetrixPortIscsi;
+import com.emc.storageos.driver.vmaxv3driver.util.DriverUtil;
 import com.emc.storageos.storagedriver.model.StoragePort;
 import com.emc.storageos.storagedriver.model.StorageSystem;
+import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -73,19 +77,33 @@ public class DiscoverStoragePortsOperation extends OperationImpl {
                         this.storageSystem.getNativeId(), directorId, portId).perform(this.getClient());
                     StoragePort storagePort = new StoragePort();
                     storagePort.setStorageSystemId(this.storageSystem.getNativeId());
-                    storagePort.setNativeId(portId);
-                    storagePort.setDeviceLabel(portId);
-                    storagePort.setDisplayName(portId);
+                    String portName = getPortName(directorId, portId);
+                    storagePort.setNativeId(portName);
+                    storagePort.setDeviceLabel(portName);
+                    storagePort.setDisplayName(portName);
                     // Need to confirm: 1. Required fields to be set, 2. How to get the values of the required fields.
-
-
-
-
-
-
-
-
-
+                    storagePort.setPortName(portName);
+                    storagePort.setTransportType(getTransportType(item));
+                    if(item instanceof SymmetrixPortFc) {
+                        storagePort.setTransportType(StoragePort.TransportType.FC);
+                        storagePort.setPortNetworkId(DriverUtil.formatWwn(((SymmetrixPortFc) item).getIdentifier()));
+                    } else if(item instanceof SymmetrixPortIscsi) {
+                        storagePort.setTransportType(StoragePort.TransportType.IP);
+                        storagePort.setPortNetworkId(((SymmetrixPortIscsi) item).getIdentifier());
+                    }
+                    storagePort.setNetworkId(null); // Keep blank since no API to get. HP3PAR driver doesn't set either.
+                    storagePort.setPortGroup(directorId);
+                    // Keep blank since no API to get.
+                    storagePort.setPortSubGroup(null); // Keep blank since no API to get.
+                    storagePort.setPortHAZone(String.format("Group-%s", directorId));
+                    storagePort.setAvgBandwidth(null); // Keep blank since no API to get.
+                    storagePort.setUtilizationMetric(null); // Keep blank since no API to get. HP3PAR driver doesn't set either.
+                    storagePort.setTcpPortNumber(null); // Keep blank since no API to get.
+                    storagePort.setIpAddress(null); // Keep blank since no API to get.
+                    storagePort.setEndPointID(storagePort.getPortNetworkId());
+                    // Keep blank since no API to get according to Evgeny's reply.
+                    storagePort.setCapabilities(new ArrayList<CapabilityInstance>());
+                    // Add the bean into result list.
                     this.storagePorts.add(storagePort);
                 }
             }
@@ -114,5 +132,33 @@ public class DiscoverStoragePortsOperation extends OperationImpl {
         List<String> result = directorIds.stream().filter(
             i -> Arrays.asList(NEEDED_DIRECTOR_ID_PREFIX).contains(i.substring(0, 2))).collect(Collectors.toList());
         return result;
+    }
+
+    /**
+     * Generate port name "Port:FA-1D:24" according to the director ID and port ID.
+     *
+     * @param directorId Director ID.
+     * @param portId Port ID.
+     * @return Port name.
+     */
+    protected String getPortName(String directorId, String portId) {
+        return String.format("Port:%s:%s", directorId, portId);
+    }
+
+    /**
+     * Return "StoragePort.TransportType" according to the port information returned by UniSphere REST API.
+     *
+     * @param port The port information returned by UniSphere REST API.
+     * @return Port transport type needed by SBSDK.
+     */
+    protected StoragePort.TransportType getTransportType(SymmetrixPort port) {
+        if (port instanceof SymmetrixPortFc) {
+            return StoragePort.TransportType.FC;
+        } else if(port instanceof SymmetrixPortIscsi) {
+            return StoragePort.TransportType.IP;
+        } else {
+            throw new IllegalArgumentException("The Given port type '" +
+                port.getClass().getName() + "' is unsupported.");
+        }
     }
 }

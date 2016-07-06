@@ -91,6 +91,12 @@ public class VirtualArrays extends ViprResourceController {
     protected static final String DELETED_ERROR = "VirtualArrays.delete.error";
     protected static final String UNKNOWN = "VirtualArrays.unknown";
 
+    private static final String SIMPLE  ="SIMPLE";
+    private static final String MAPPING1X1 ="1X1MAPPING";
+    private static final String CUSTOM = "CUSTOM";
+    private static final String ALL_FLASH_VARRAY = "All-Flash-Varray";
+
+
     /**
      * Simple create and save operation that takes only the name.
      * 
@@ -112,6 +118,55 @@ public class VirtualArrays extends ViprResourceController {
         virtualArray.load(varray);
         edit(virtualArray.id);
     }
+
+
+	/**
+	 * Create default virtual array for checklist
+	 */
+	public static void createDefaultVarray(String defaultVarrayType) {
+		boolean isVarrayAvail = false;
+		if (StringUtils.equals(defaultVarrayType, SIMPLE)) {
+			// Check if virtual array is already created
+			List<VirtualArrayRestRep> availVarrays = VirtualArrayUtils
+					.getVirtualArrays();
+			for (VirtualArrayRestRep availVarray : availVarrays) {
+				if (StringUtils.equals(availVarray.getName(), ALL_FLASH_VARRAY)) {
+					isVarrayAvail = true;
+					break;
+				}
+			}
+			if (isVarrayAvail) { // Virtual Array already created, just list it
+				list();
+			}
+			VirtualArrayForm virtualArray = new VirtualArrayForm();
+			virtualArray.name = ALL_FLASH_VARRAY;
+			virtualArray.validate("virtualArray");
+			if (Validation.hasErrors()) {
+				flash.error(MessagesUtils.get(SAVED_ERROR, virtualArray.name));
+				list();
+			}
+
+			VirtualArrayRestRep varray = virtualArray.save();
+			virtualArray.load(varray);
+
+			// Read all storage systems
+			List<String> ids = Lists.newArrayList();
+
+			for (StorageSystemRestRep storageSystem : StorageSystemUtils
+					.getStorageSystems()) {
+				ids.add(storageSystem.getId().toString());
+			}
+
+			addStorageSysVarray(virtualArray.id, ids);
+		} else if (StringUtils.equals(defaultVarrayType, MAPPING1X1)) {
+			// TODO
+		}
+		// List page so that user can add virtual array them self
+		else {
+			list();
+		}
+	}
+
 
     /**
      * Displays the page for editing an existing virtual array.
@@ -242,9 +297,17 @@ public class VirtualArrays extends ViprResourceController {
         render(dataTable);
     }
 
-    /**
-     * Lists the virtual arrays and renders the result using JSON.
-     */
+	/**
+	 * Add default virtual array for All flash VMAX
+	 */
+
+	public static void defaultvarray() {
+		render();
+	}
+
+	/**
+	 * Lists the virtual arrays and renders the result using JSON.
+	 */
     public static void listJson() {
         try {
             performListJson(VirtualArrayUtils.getVirtualArrays(), new JsonItemOperation());
@@ -724,6 +787,29 @@ public class VirtualArrays extends ViprResourceController {
         edit(virtualArrayId);
     }
 
+	/**
+	 * Adds all ports of the given storage systems to the virtual array.
+	 * 
+	 * @param virtualArrayId
+	 *            the virtual array ID.
+	 * @param ids
+	 *            the storage system IDs.
+	 */
+	private static void addStorageSysVarray(String virtualArrayId,
+			List<String> ids) {
+		List<URI> storagePorts = Lists.newArrayList();
+		for (URI storageSystemId : uris(ids)) {
+			List<StoragePortRestRep> ports = StoragePortUtils
+					.getStoragePortsByStorageSystem(storageSystemId);
+			storagePorts.addAll(ResourceUtils.ids(ports));
+		}
+		if (!storagePorts.isEmpty()) {
+			VirtualArrayRestRep virtualArray = getVirtualArray(virtualArrayId);
+			updateStoragePorts(storagePorts, addVirtualArray(virtualArray));
+		}
+		list();
+	}
+
     /**
      * Gets the list of storage systems that may be associated to a virtual array.
      * 
@@ -774,6 +860,7 @@ public class VirtualArrays extends ViprResourceController {
         public Boolean noNetwork = Boolean.FALSE;
         public Boolean enableTenants = Boolean.FALSE;
         public List<String> tenants = new ArrayList<String>();
+        public String defaultvarraytype;
 
         public boolean isNew() {
             return StringUtils.isBlank(id);

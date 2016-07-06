@@ -133,6 +133,7 @@ nav.SANSwitches=Fabric Managers
 nav.storageProviders=Storage Providers
 nav.virtualPools=Virtual Pools
 nav.virtualArrays=Virtual Arrays
+nav.virtualArrays.auto=Virtual Arrays Default
 nav.networks=Networks
 nav.LDAPsources=Authentication Providers
 nav.computeSystems=Vblock Compute Systems
@@ -2361,6 +2362,7 @@ virtualArrays.connectivity=Connectivity
 VirtualArray.edit.title=Edit Virtual Array
 VirtualArray.edit.description=Enter the information needed to change the Virtual Array.
 VirtualArray.create.title=Create Virtual Array
+VirtualArray.create.title.auto=Automatically Create Virtual Arrays
 VirtualArray.create.description=Enter the name for the new Virtual Array. After the virtual array is created, connections can be made to the desired storage
 virtualArray.name=Name
 virtualArray.autoSanZoning=SAN Zoning
@@ -2389,6 +2391,10 @@ virtualArray.raidLevels=Raid Levels
 virtualArray.systemTypes=System Types
 virtualArray.storageSystems=List of Storage Systems associated with the Virtual Array through Networks, Storage Ports or Storage Pools
 virtualArray.virtualPools=List of Virtual Pools associated with the Virtual Array. This is configured on the individual Virtual Pools
+defaultVarrayType=Create Virtual Arrays
+virtualArray.defaultvarray.simple=SIMPLE: all storaage systems in one Virtual Arrays
+virtualArray.defaultvarray.1x1mapping=1X1 MAPPING: every storage system in a virtual Arrays
+virtualArray.defaultvarray.custom= CUSTOM: assign manually storage systems to Virtual Arrays
 
 # Virtual Array Commodity Nodes
 VirtualArray.nodes.title=Commodity Nodes

@@ -1738,8 +1738,8 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                 break;
             case 6:
                 updateGuideCookies(6,'side');
-                if ($window.location.pathname != '/virtualarrays/list') {
-                    $window.location.href = '/virtualarrays/list';
+                if ($window.location.pathname != '/virtualarrays/defaultvarray') {
+                    $window.location.href = '/virtualarrays/defaultvarray';
                 }
                 else {
                     $scope.$parent.currentStep=6;

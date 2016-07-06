@@ -1,0 +1,38 @@
+%{
+  titleKey = 'VirtualArray.create.title.auto';
+}%
+
+#{extends 'main.html' /}
+#{set navSelected: ['nav.virtualStorage', 'nav.virtualArrays.auto'] /}
+#{set 'title'}&{titleKey}#{/set}
+
+#{breadcrumb.container}
+  #{breadcrumb.item @VirtualArrays.defaultvarray()}&{'VirtualArrays.list.title'}#{/breadcrumb.item}
+  #{breadcrumb.item active:true}#{get 'title'/}#{/breadcrumb.item}
+#{/breadcrumb.container}
+
+<div class="container">
+#{Form.header titleKey:titleKey, descriptionKey:descriptionKey, image:image /}
+
+#{alerts/}
+
+#{form @createDefaultVarray(), class:'form form-horizontal', autocomplete:"off"}
+    #{field 'defaultVarrayType'}
+      %{
+        field.cssClass = "bla";
+        field.cssClassLabel = 'inline'
+      }%
+      #{Form.controlGroup field:field, noLabel:noLabel}
+        %{
+          field.disabled = false
+        }%
+        <div class="span6" style="margin-left:0px;">
+          #{Form.radio field:field, value: "SIMPLE", label: messages.get("virtualArray.defaultvarray.simple")/}
+          #{Form.radio field:field, value: "1X1MAPPING", label: messages.get("virtualArray.defaultvarray.1x1mapping")/}
+          #{Form.radio field:field, value: "CUSTOM", label: messages.get("virtualArray.defaultvarray.custom")/}
+        </div>
+      #{/Form.controlGroup}
+    #{/field}
+  #{Form.saveCancelButtonBar size:'large', cancelHref:@list() /}
+#{/form}
+</div>

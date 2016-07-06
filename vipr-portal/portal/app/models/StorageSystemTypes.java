@@ -32,6 +32,7 @@ public class StorageSystemTypes {
     public static final String ECS = "ecs";
     public static final String CEPH = "ceph";
     public static final String STORAGE_PROVIDER_VMAX = "STORAGE_PROVIDER.vmax";
+    public static final String STORAGE_PROVIDER_VMAX_ONLY = "STORAGE_PROVIDER.vmaxonly";
     public static final String STORAGE_PROVIDER_HITACHI = "STORAGE_PROVIDER.hds";
     public static final String STORAGE_PROVIDER_VPLEX = "STORAGE_PROVIDER.vplex";
     public static final String STORAGE_PROVIDER_OPENSTACK = "STORAGE_PROVIDER.cinder";
@@ -64,6 +65,12 @@ public class StorageSystemTypes {
             new StringOption(IBMXIV, getDisplayValue(STORAGE_PROVIDER_IBMXIV)),
             new StringOption(XTREMIO, getDisplayValue(STORAGE_PROVIDER_XTREMIO)),
             new StringOption(CEPH, getDisplayValue(STORAGE_PROVIDER_CEPH))
+    };
+
+    public static final StringOption[] ALL_FLASH_OPTIONS = {
+            option(UNITY),
+            new StringOption(VMAX, getDisplayValue(STORAGE_PROVIDER_VMAX_ONLY)),
+            new StringOption(XTREMIO, getDisplayValue(STORAGE_PROVIDER_XTREMIO))
     };
 
     public static final StringOption[] SMIS_OPTIONS = StringOption.options(STORAGE_PROVIDER_TYPES, OPTION_PREFIX);

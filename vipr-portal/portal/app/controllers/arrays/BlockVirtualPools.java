@@ -4,7 +4,10 @@
  */
 package controllers.arrays;
 
+import com.emc.storageos.model.systems.StorageSystemRestRep;
+import com.emc.vipr.client.core.VirtualArrays;
 import static com.emc.vipr.client.core.util.ResourceUtils.id;
+import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 import static com.emc.vipr.client.core.util.ResourceUtils.uris;
 import static controllers.Common.angularRenderArgs;
 import static controllers.Common.copyRenderArgsToAngular;
@@ -13,6 +16,7 @@ import static controllers.Common.getReferrer;
 
 import java.lang.reflect.InvocationTargetException;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -137,6 +141,58 @@ public class BlockVirtualPools extends ViprResourceController {
         vpool.enableAutoCrossConnExport = true;
 
         edit(vpool);
+    }
+
+    public static void createAllFlash() {
+        List<VirtualArrayRestRep> virtualArrays = VirtualArrayUtils.getVirtualArrays();
+        for (VirtualArrayRestRep va : virtualArrays) {
+            List<VirtualPoolCommonRestRep> vpools = VirtualPoolUtils.getVirtualPoolsForVirtualArray(va.getId());
+            if(vpools.isEmpty()) {
+                List<StorageSystemRestRep> storageSystems = StorageSystemUtils.getStorageSystemsByVirtualArray(va.getId().toString());
+                for (StorageSystemRestRep storagesystem:storageSystems) {
+                    String type = storagesystem.getSystemType();
+                    if (null != type && !type.isEmpty()) {
+                        renderArgs.put("varray", va);
+                        renderArgs.put("type", type);
+                        render();
+                    }
+                }
+            }
+        }
+
+        list();
+
+    }
+
+    public static void createAllFlashAuto(String id,String type) {
+        BlockVirtualPoolForm vpool = new BlockVirtualPoolForm();
+
+        //defaults
+        vpool.provisioningType = ProvisioningTypes.THIN;
+        vpool.protocols = Sets.newHashSet(BlockProtocols.FC);
+        vpool.minPaths = 1;
+        vpool.maxPaths = 2;
+        vpool.initiatorPaths = 1;
+        vpool.expandable = true;
+        vpool.rpJournalSizeUnit = SizeUnit.x;
+        vpool.rpJournalSize = RPCopyForm.JOURNAL_DEFAULT_MULTIPLIER;
+        vpool.rpRpoValue = Long.valueOf(25);
+        vpool.rpRpoType = RpoType.SECONDS;
+        vpool.protectSourceSite = true;
+        vpool.enableAutoCrossConnExport = true;
+        vpool.poolAssignment = PoolAssignmentTypes.AUTOMATIC;
+
+        //custom
+        List<String> vaIds = new ArrayList<String>();
+        vaIds.add(id);
+        vpool.virtualArrays = vaIds;
+        String name = (StorageSystemTypes.getDisplayValue(type) + " Diamond");
+        vpool.name = name.replace(' ','-');
+        vpool.systemType = type;
+        vpool.description = "Virtual Pool for " + name + " Storage";
+
+        vpool.save();
+        list();
     }
 
     public static void edit(String id) {

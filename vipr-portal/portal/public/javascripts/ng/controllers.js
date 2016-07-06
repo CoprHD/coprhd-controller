@@ -1718,8 +1718,8 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                 break;
             case 4:
                 updateGuideCookies(4,'side');
-                if ($window.location.pathname != '/storagesystems/list') {
-                    $window.location.href = '/storagesystems/list';
+                if ($window.location.pathname != '/storagesystems/createAllFlash') {
+                    $window.location.href = '/storagesystems/createAllFlash';
                 }
                 else {
                     $scope.$parent.currentStep=4;
@@ -1748,8 +1748,8 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                 break;
             case 7:
                 updateGuideCookies(7,'side');
-                if ($window.location.pathname != '/blockvirtualpools/list') {
-                    $window.location.href = '/blockvirtualpools/list';
+                if ($window.location.pathname != '/blockvirtualpools/createAllFlash') {
+                    $window.location.href = '/blockvirtualpools/createAllFlash';
                 }
                 else {
                     $scope.$parent.currentStep=7;

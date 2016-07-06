@@ -19,6 +19,8 @@ MAC := $(shell printf "00%02X%02X%02X%02X%02X" $$[RANDOM%256] $$[RANDOM%256] $$[
 ##################################################
 #  Target files/folders
 ##################################################
+USE_CACHE_BUILD := $(shell wget --no-check-certificate --quiet -O - https://build.coprhd.org/jenkins/job/CH-coprhd-controller-coprhd-repo/lastSuccessfulBuild/buildNumber)
+USE_CACHE := false
 IMAGE_DIR := $(WORKSPACE)/image/$(JOB)
 OUTPUT_DIR := $(WORKSPACE)/output/$(JOB)
 BUILD_DIR := $(WORKSPACE)/build/$(NAME)-$(VERSION).$(JOB)
@@ -58,6 +60,7 @@ downloadISO:
 
 downloadRPM:
 	$(call targetLog,+)
+ifeq ($(USE_CACHE),false)
 	rm -fr $(WORKSPACE)/zypper/reposd
 	mkdir -p $(WORKSPACE)/zypper/{reposd,cache,solv,pkg}
 	zypper $(ZYPPER_PARAMS) addrepo --name suse-13.2-oss --no-gpgcheck http://download.opensuse.org/distribution/13.2/repo/oss/suse suse-13.2-oss
@@ -80,13 +83,16 @@ downloadRPM:
 	zypper $(ZYPPER_PARAMS) modifyrepo --priority  1 suse-13.2-oss-update
 	zypper $(ZYPPER_PARAMS) refresh
 	zypper $(ZYPPER_PARAMS) download libudev1 lvm2 udev grub2 grub2-x86_64-efi grub2-i386-pc kernel-default kernel-default-devel kernel-devel kernel-source kernel-macros virtualbox virtualbox-guest-tools virtualbox-guest-kmp-default virtualbox-host-kmp-default
+endif
 	$(call targetLog,-)
 
 downloadTGZ:
 	$(call targetLog,+)
+ifeq ($(USE_CACHE),false)
 	wget http://nginx.org/download/nginx-1.6.2.tar.gz --continue --progress=bar --output-document=$(WORKSPACE)/templates/nginx-1.6.2.tar.gz
 	wget --no-check-certificate https://github.com/yaoweibin/nginx_upstream_check_module/archive/v0.3.0.tar.gz --continue --progress=bar --output-document=$(WORKSPACE)/templates/v0.3.0.tar.gz
 	wget --no-check-certificate https://github.com/openresty/headers-more-nginx-module/archive/v0.25.tar.gz --continue --progress=bar --output-document=$(WORKSPACE)/templates/v0.25.tar.gz
+endif
 	$(call targetLog,-)
 
 createREPO: | downloadRPM downloadTGZ
@@ -95,7 +101,9 @@ createREPO: | downloadRPM downloadTGZ
 	mkdir -p $(WORKSPACE)/zypper/repo
 	make --directory=$(WORKSPACE)/../configure-network
 	cp -f $(WORKSPACE)/../configure-network/RPMS/noarch/* $(WORKSPACE)/zypper/repo/
+ifeq ($(USE_CACHE),false)
 	find $(WORKSPACE)/zypper/pkg -iname \*.rpm -exec cp -f {} $(WORKSPACE)/zypper/repo/ \;
+endif
 	createrepo $(WORKSPACE)/zypper/repo
 	$(call targetLog,-)
 
@@ -167,6 +175,13 @@ $(VMDK): | downloadISO createREPO
 	bash $(WORKSPACE)/patch.sh
 	mkdir -p $(WORKSPACE)/templates/root/opt/ADG/conf
 	cp -f $(WORKSPACE)/templates/config.orig.xml $(WORKSPACE)/templates/config.xml
+ifeq ($(USE_CACHE),true)
+	sed -i /installNginx/d $(WORKSPACE)/templates/config.sh
+	sed -i "/__REPO__/ i\        <source path=\"__CACHEBUILD__\"/>\n    </repository>\n    <repository type=\"rpm-md\" priority=\"1\">" $(WORKSPACE)/templates/config.xml
+	sed -i s/"__CACHEBUILD__"/"https:\/\/build.coprhd.org\/jenkins\/job\/CH-coprhd-controller-coprhd-repo\/ws\/repo\/$(USE_CACHE_BUILD)"/g $(WORKSPACE)/templates/config.xml
+	sed -i s/"<archive name=\"nginx.*\"\/>"/"<package name=\"nginx\"\/>"/g $(WORKSPACE)/templates/config.xml
+	sed -i /"<archive name=.*>"/d $(WORKSPACE)/templates/config.xml
+endif
 	cp -f $(WORKSPACE)/configure.sh $(WORKSPACE)/templates/root/opt/ADG/conf/
 	chmod u+x $(WORKSPACE)/templates/root/opt/ADG/conf/configure.sh
 	sed -i "s|__NAME__|$(NAME)|g" $(WORKSPACE)/templates/config.xml

@@ -23,10 +23,10 @@ import com.emc.storageos.volumecontroller.ControllerException;
 public class MDSDialogTest {
 
     private static final String UNIT_TEST_CONFIG_FILE = "sanity";
-    private static final String ipaddress = "10.247.96.81" ; //EnvConfig.get(UNIT_TEST_CONFIG_FILE, "brocade.host.ipaddress");
-    private static final String username = "admin"; //EnvConfig.get(UNIT_TEST_CONFIG_FILE, "brocade.host.username");
-    private static final String password = "Bourn3!!" ; //EnvConfig.get(UNIT_TEST_CONFIG_FILE, "brocade.host.password");
-    static String vsanId = "55";
+    private static final String ipaddress = "10.247.102.138" ; //EnvConfig.get(UNIT_TEST_CONFIG_FILE, "brocade.host.ipaddress");
+    private static final String username = "root"; //EnvConfig.get(UNIT_TEST_CONFIG_FILE, "brocade.host.username");
+    private static final String password = "ChangeMe" ; //EnvConfig.get(UNIT_TEST_CONFIG_FILE, "brocade.host.password");
+    static String vsanId = "13";
     static Integer sshport = 22;
     
 

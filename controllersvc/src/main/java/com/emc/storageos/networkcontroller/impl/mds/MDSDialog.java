@@ -1404,7 +1404,7 @@ public class MDSDialog extends SSHDialog {
      * @throws NetworkDeviceControllerException
      */
     public void zonesetClone(Integer vsanId, String zonesetToClone) throws NetworkDeviceControllerException {
-        _log.info(MessageFormat.format("Host: {0}, Port: {1} -BEGIN zonesetClone",
+        _log.info(MessageFormat.format("Host: {0}, Port: {1} - BEGIN zonesetClone",
                 new Object[] { getSession().getSession().getHost(), getSession().getSession().getPort() }));
 
         if (!inConfigMode) {
@@ -1416,24 +1416,24 @@ public class MDSDialog extends SSHDialog {
         }
         SSHPrompt[] prompts = { SSHPrompt.MDS_CONFIG };
         StringBuilder buf = new StringBuilder();
-        String newZoneset = getZonesetCloneName(zonesetToClone);
+        String newZoneset = generateZonesetCloneName(zonesetToClone);
         String payload = MessageFormat.format(MDSDialogProperties.getString("MDSDialog.zonesetClone.cmd"), zonesetToClone, newZoneset, vsanId); // copy running-config startup-config\n
         lastPrompt = sendWaitFor(payload, defaultTimeout, prompts, buf);
         String[] lines = getLines(buf);
 
-        _log.info(MessageFormat.format("Host: {0}, Port: {1} -END zonesetClone",
+        _log.info(MessageFormat.format("Host: {0}, Port: {1} - END zonesetClone",
                 new Object[] { getSession().getSession().getHost(), getSession().getSession().getPort() }));
-
     }
-    
-    
-    private String getZonesetCloneName(String zonesetToClone) {
+        
+    private String generateZonesetCloneName(String zonesetToClone) {
     	//get current date time with Calendar()
  	   Calendar cal = Calendar.getInstance();
  	   DateFormat dateFormat = new SimpleDateFormat("MM-dd-yy_HH-mm");
-
  	   String dateString = dateFormat.format(cal.getTime());
-    	return "ViPR-" + zonesetToClone + "_" + dateString;    	
+ 	   
+ 	   
+ 	   
+       return "ViPR-" + zonesetToClone + "_" + dateString;    	
     }
 
     /**

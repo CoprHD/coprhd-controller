@@ -2715,7 +2715,21 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             if (exportMasks.isEmpty()) {
                 throw VPlexApiException.exceptions.exportGroupDeleteFailedNull(vplex.toString());
             }
-
+            
+            // If none of the export group volumes are contained in any of the
+            // export groups mask, simply remove the export masks from the export
+            // group. This will cause the export group to be deleted by the 
+            // completer. This could happen in a rollback scenario where we are rolling
+            // back a failed export group creation.
+            if (!exportGroupMasksContainExportGroupVolume(exportGroup, exportMasks)) {
+                for (ExportMask exportMask : exportMasks) {
+                    exportGroup.removeExportMask(exportMask.getId());
+                }
+                _dbClient.updateObject(exportGroup);
+                completer.ready(_dbClient);
+                return;
+            }
+            
             // Add a steps to remove exports on the VPlex.
             List<URI> exportMaskUris = new ArrayList<URI>();
             List<URI> volumeUris = new ArrayList<URI>();
@@ -2846,6 +2860,36 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 completer.error(_dbClient, serviceError);
             }
         }
+    }
+    
+    /**
+     * Checks to see if any of the volumes in the passed export group are in any of the 
+     * passed export masks.
+     * 
+     * @param exportGroup A reference to the export group
+     * @param exportMasks A list of export group's export masks.
+     * 
+     * @return true if any volume in the export group is in any o fth epassed masks, false otherwise.
+     */
+    private boolean exportGroupMasksContainExportGroupVolume(ExportGroup exportGroup, List<ExportMask> exportMasks) {
+        boolean maskContainsVolume = false;
+        StringMap egVolumes = exportGroup.getVolumes();
+        if (egVolumes != null && !egVolumes.isEmpty()) {
+            for (ExportMask exportMask : exportMasks) {
+                StringMap emVolumes = exportMask.getVolumes();
+                if (emVolumes != null && !emVolumes.isEmpty()) {
+                    Set<String> emVolumeIds = new HashSet<>();
+                    emVolumeIds.addAll(emVolumes.keySet());
+                    emVolumeIds.retainAll(egVolumes.keySet());
+                    if (!emVolumeIds.isEmpty()) {
+                        maskContainsVolume = true;
+                        break;
+                    }
+                }
+            }
+        }
+        
+        return maskContainsVolume;
     }
 
     /**
@@ -5586,11 +5630,39 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // Will be non-null if the VPLEX volume was manually
                 // renamed after commit.
                 if (updatedVirtualVolumeInfo != null) {
-                    _log.info("New virtual volume native id is {}", updatedVirtualVolumeInfo.getName());
+                    _log.info(String.format("New virtual volume is %s", updatedVirtualVolumeInfo.toString()));
+
+                    // if the new virtual volume is thin-capable, but thin-enabled is not true,
+                    // that means we need to ask the VPLEX to convert it to a thin-enabled volume.
+                    // this doesn't happen automatically for thick-to-thin data migrations.
+                    boolean isThinEnabled = updatedVirtualVolumeInfo.isThinEnabled();
+                    if (!isThinEnabled && VPlexApiConstants.TRUE.equalsIgnoreCase(updatedVirtualVolumeInfo.getThinCapable())) {
+                        if (verifyVplexSupportsThinProvisioning(vplexSystem)) {
+                            URI targetVolumeUri = migration.getTarget();
+                            Volume targetVolume = getDataObject(Volume.class, targetVolumeUri, _dbClient);
+                            if (null != targetVolume) {
+                                _log.info(String.format("migration target Volume is %s", targetVolume.forDisplay()));
+                                VirtualPool targetVirtualPool = getDataObject(VirtualPool.class, targetVolume.getVirtualPool(), _dbClient);
+                                if (null != targetVirtualPool) {
+                                    _log.info(String.format("migration target VirtualPool is %s", targetVirtualPool.forDisplay()));
+                                    boolean doEnableThin = 
+                                            VirtualPool.ProvisioningType.Thin.toString().equalsIgnoreCase(
+                                                    targetVirtualPool.getSupportedProvisioningType());
+                                    if (doEnableThin) {
+                                        _log.info(String.format(
+                                                "the new VirtualPool is thin, requesting VPLEX to enable thin provisioning on %s", 
+                                                updatedVirtualVolumeInfo.getName()));
+                                        isThinEnabled = client.setVirtualVolumeThinEnabled(updatedVirtualVolumeInfo);
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     virtualVolume.setDeviceLabel(updatedVirtualVolumeInfo.getName());
                     virtualVolume.setNativeId(updatedVirtualVolumeInfo.getPath());
                     virtualVolume.setNativeGuid(updatedVirtualVolumeInfo.getPath());
-                    virtualVolume.setThinlyProvisioned(updatedVirtualVolumeInfo.isThinEnabled());
+                    virtualVolume.setThinlyProvisioned(isThinEnabled);
                 }
                 // Note that for ingested volumes, there will be no associated volumes
                 // at first.
@@ -6323,7 +6395,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 StorageSystem array = getDataObject(StorageSystem.class, existingVolume.getStorageController(), _dbClient);
                 List<String> itls = VPlexControllerUtils.getVolumeITLs(existingVolume);
                 List<VolumeInfo> vinfos = new ArrayList<VolumeInfo>();
-                boolean thinEnabled = existingVolume.getThinlyProvisioned().booleanValue();
+                VirtualPool newVirtualPool = getDataObject(VirtualPool.class, newCosURI, _dbClient);
+                boolean thinEnabled = VirtualPool.ProvisioningType.Thin.toString().equalsIgnoreCase(
+                                newVirtualPool.getSupportedProvisioningType());
                 vinfo = new VolumeInfo(array.getNativeGuid(), array.getSystemType(),
                         existingVolume.getWWN().toUpperCase().replaceAll(":", ""),
                         existingVolume.getNativeId(), thinEnabled, itls);
@@ -6336,8 +6410,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     WorkflowStepCompleter.stepFailed(stepId, serviceError);
                     return;
                 }
-                _log.info(String.format("Created virtual volume: %s path: %s",
-                        virtvinfo.getName(), virtvinfo.getPath()));
+                _log.info(String.format("Created virtual volume: %s path: %s thinEnabled: %b",
+                        virtvinfo.getName(), virtvinfo.getPath(), virtvinfo.isThinEnabled()));
 
                 checkThinEnabledResult(virtvinfo, thinEnabled, _workflowService.getWorkflowFromStepId(stepId).getOrchTaskId());
 

@@ -2496,4 +2496,48 @@ public class VPlexApiVirtualVolumeManager {
         }
     }
 
+    /**
+     * Sends a request to the VPLEX to turn on thin provisioning for the given
+     * virtual volume. Will return a boolean value indicating whether or not
+     * the request was a success.
+     * 
+     * @param virtualVolumeInfo the virtual volume to update
+     * @return true if the thin-enabled request was a success
+     */
+    public boolean setVirtualVolumeThinEnabled(VPlexVirtualVolumeInfo virtualVolumeInfo) {
+        ClientResponse response = null;
+        try {
+            s_logger.info("Requesting thin-enabled flag set to true on virtual volume " + virtualVolumeInfo.getName());
+            URI requestURI = _vplexApiClient.getBaseURI().resolve(VPlexApiConstants.URI_SET_THIN_ENABLED_VIRTUAL_VOLUME);
+            s_logger.info("Set thin-enabled virtual-volume URI is " + requestURI.toString());
+            Map<String, String> argsMap = new HashMap<String, String>();
+            argsMap.put(VPlexApiConstants.TRUE.toString(), "");
+            argsMap.put(VPlexApiConstants.ARG_VIRTUAL_VOLUMES, virtualVolumeInfo.getPath());
+
+            JSONObject postDataObject = VPlexApiUtils.createPostData(argsMap, false);
+            s_logger.info("Set thin-enabled virtual-volume POST data is " + postDataObject.toString());
+            response = _vplexApiClient.post(requestURI, postDataObject.toString());
+            String responseStr = response.getEntity(String.class);
+            s_logger.info("Set thin-enabled virtual-volume response is " + responseStr);
+            if (response.getStatus() != VPlexApiConstants.SUCCESS_STATUS) {
+                if (response.getStatus() == VPlexApiConstants.ASYNC_STATUS) {
+                    s_logger.info("Set thin-enabled virtual-volume command completing asynchronously");
+                    _vplexApiClient.waitForCompletion(response);
+                } else {
+                    s_logger.info("set-thin-enabled command was not successful on virtual volume " + virtualVolumeInfo.getName());
+                    return false;
+                }
+            }
+            s_logger.info("Successfully executed set-thin-enabled command");
+            return true;
+        } catch (VPlexApiException vae) {
+            throw vae;
+        } catch (Exception e) {
+            throw VPlexApiException.exceptions.failedSettingThinEnabled(virtualVolumeInfo.getName(), e);
+        } finally {
+            if (response != null) {
+                response.close();
+            }
+        }
+    }
 }

@@ -461,7 +461,7 @@ class ConsistencyGroup(object):
         elif op == 'swap':
             uri = self.URI_BLOCK_CONSISTENCY_GROUP_SWAP.format(
                      group_uri)
-        elif op == 'accessmode':
+        elif op == 'update-access-mode':
             uri = self.URI_BLOCK_CONSISTENCY_GROUP_ACCESS_MODE.format(
                      group_uri)
         (s, h) = common.service_json_request(
@@ -1094,15 +1094,15 @@ def swap_parser(subcommand_parsers, common_parser):
                                   
     swap_parser.set_defaults(func=swap)
 
-def accessmode_parser(subcommand_parsers, common_parser):
+def update_access_mode_parser(subcommand_parsers, common_parser):
     # change access mode on a consistency group copy
-    accessmode_parser = subcommand_parsers.add_parser(
-        'accessmode',
+    update_access_mode_parser = subcommand_parsers.add_parser(
+        'update-access-mode',
         description='ViPR consistency roup update access mode CLI usage.',
         parents=[common_parser],
         conflict_handler='resolve',
         help='update access mode')
-    mandatory_args = swap_parser.add_argument_group('mandatory arguments')
+    mandatory_args = update_access_mode_parser.add_argument_group('mandatory arguments')
     mandatory_args.add_argument('-name', '-n',
                                 metavar='<consistencygroupname>',
                                 dest='name',
@@ -1113,7 +1113,7 @@ def accessmode_parser(subcommand_parsers, common_parser):
                                 dest='project',
                                 help='name of Project',
                                 required=True)
-    swap_parser.add_argument('-tenant', '-tn',
+    update_access_mode_parser.add_argument('-tenant', '-tn',
                                metavar='<tenantname>',
                                dest='tenant',
                                help='container tenant name')
@@ -1125,22 +1125,24 @@ def accessmode_parser(subcommand_parsers, common_parser):
     mandatory_args.add_argument('-accessmode', '-am',
                                metavar='<accessmode>',
                                dest='accessmode',
-                               help='access mode',
+                               help='access mode - DIRECT_ACCESS',
                                required=True)
-    swap_parser.add_argument('-type', '-t',
+    update_access_mode_parser.add_argument('-type', '-t',
                                metavar='<type>',
                                dest='type',
                                help='type of protection - native, rp, srdf')
 
-    swap_parser.set_defaults(func=swap)
-    
+    update_access_mode_parser.set_defaults(func=update_access_mode)
+
 def failover(args):
     obj = ConsistencyGroup(args.ip, args.port)
     try:
         if(not args.tenant):
             args.tenant = ""
+        if(not args.pit):
+            args.pit = ""
         res = obj.consitencygroup_protection_failover_ops(args.name, args.project, args.tenant,
-                                   args.copyvarray, args.pit, args.type, "failover")
+                                   args.copyvarray, args.pit, "", args.type, "failover")
     except SOSError as e:
         raise e
         
@@ -1150,7 +1152,7 @@ def failover_cancel(args):
         if(not args.tenant):
             args.tenant = ""
         res = obj.consitencygroup_protection_failover_ops(args.name, args.project, args.tenant,
-                                   args.copyvarray, "", args.type, "failover_cancel")
+                                   args.copyvarray, "", "", args.type, "failover_cancel")
     except SOSError as e:
         raise e   
         
@@ -1160,17 +1162,19 @@ def swap(args):
         if(not args.tenant):
             args.tenant = ""
         res = obj.consitencygroup_protection_failover_ops(args.name, args.project, args.tenant,
-                                   args.copyvarray, "", args.type, "swap")
+                                   args.copyvarray, "", "", args.type, "swap")
     except SOSError as e:
         raise e                    
 
-def accessmode(args):
+def update_access_mode(args):
     obj = ConsistencyGroup(args.ip, args.port)
     try:
         if(not args.tenant):
             args.tenant = ""
+        if(not args.accessmode):
+            args.accessmode = ""
         res = obj.consitencygroup_protection_failover_ops(args.name, args.project, args.tenant,
-                                   args.copyvarray, "", args.accessmode, args.type, "accessmode")
+                                   args.copyvarray, "", args.accessmode, args.type, "update-access-mode")
     except SOSError as e:
         raise e
 
@@ -1215,7 +1219,7 @@ def consistencygroup_parser(parent_subparser, common_parser):
     swap_parser(subcommand_parsers, common_parser)
 
     # access mode parser
-    accessmode_parser(subcommand_parsers, common_parser)
+    update_access_mode_parser(subcommand_parsers, common_parser)
 
     # snapshot command parser
     #snapshot_parser(subcommand_parsers, common_parser)

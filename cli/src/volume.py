@@ -155,6 +155,10 @@ class Volume(object):
     VOLUME_PROTECTION_HELP_EX_SRDF = \
         'type of protection(rp or native) - default:native'
 
+    ACCESS_MODES = ['DIRECT_ACCESS']
+    ACCESS_MODE_HELP = \
+        'access mode of copy'
+
     VOLUMES = 'volumes'
     CG = 'consistency-groups'
     BLOCK = 'block'
@@ -451,7 +455,7 @@ class Volume(object):
             result of the action.
         '''
         vol_uri = self.volume_query(volume)
-        body = self.mirror_protection_copyparam(volume, mirrorvol, "", type, sync)
+        body = self.mirror_protection_copyparam(volume, mirrorvol, "", "", type, sync)
 
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port,
@@ -471,7 +475,7 @@ class Volume(object):
             result of the action.
         '''
         vol_uri = self.volume_query(volume)
-        body = self.mirror_protection_copyparam(volume, mirrorvol, "", type)
+        body = self.mirror_protection_copyparam(volume, mirrorvol, "", "", type)
 
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port,
@@ -491,7 +495,7 @@ class Volume(object):
             result of the action.
         '''
         vol_uri = self.volume_query(volume)
-        body = self.mirror_protection_copyparam(volume, mirrorvol, "", type)
+        body = self.mirror_protection_copyparam(volume, mirrorvol, "", "", type)
 
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port,
@@ -511,7 +515,7 @@ class Volume(object):
             result of the action.
         '''
         vol_uri = self.volume_query(volume)
-        body = self.mirror_protection_copyparam(volume, mirrorvol, "", type)
+        body = self.mirror_protection_copyparam(volume, mirrorvol, "", "", type)
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port,
             "POST",
@@ -520,7 +524,7 @@ class Volume(object):
 
         return common.json_decode(s)
 
-    def mirror_protection_failover_ops(self, volume, mirrorvol, pit, accessmode
+    def mirror_protection_failover_ops(self, volume, mirrorvol, pit, accessmode,
                                 type="native", op="failover"):
         '''
         Failover the volume protection
@@ -547,7 +551,7 @@ class Volume(object):
         elif op == 'swap':
             uri = Volume.URI_VOLUME_PROTECTION_MIRROR_FAILOVER_SWAP.format(
                   vol_uri)
-        elif op == 'accessmode':
+        elif op == 'update-access-mode':
             uri = Volume.URI_VOLUME_PROTECTION_MIRROR_FAILOVER_ACCESS_MODE.format(
                   vol_uri)
         (s, h) = common.service_json_request(
@@ -568,7 +572,7 @@ class Volume(object):
             result of the action.
         '''
         vol_uri = self.volume_query(volume)
-        body = self.mirror_protection_copyparam(volume, mirrorvol, "", type)
+        body = self.mirror_protection_copyparam(volume, mirrorvol, "", "", type)
 
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port,
@@ -589,7 +593,7 @@ class Volume(object):
             result of the action.
         '''
         vol_uri = self.volume_query(volume)
-        body = self.mirror_protection_copyparam(volume, mirrorvol, "", type)
+        body = self.mirror_protection_copyparam(volume, mirrorvol, "", "", type)
 
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port,
@@ -3263,6 +3267,11 @@ def add_protection_common_parser(cc_common_parser):
                                metavar='<pit>',
                                dest='pit',
                                help='any UTC point-in-time formatted as "yyyy-MM-dd_HH:mm:ss" or datetime in milliseconds')
+    cc_common_parser.add_argument('-accessmode', '-am',
+                               metavar='<accessmode>',
+                               dest='am',
+                               help=Volume.ACCESS_MODE_HELP,
+                               choices=Volume.ACCESS_MODES)
 
 # Common parameters for contineous copies parser.
 
@@ -3278,6 +3287,7 @@ def add_protection_common_parser_nosrdf(cc_common_parser):
 
 
 # Volume protection routines
+
 def mirror_protect_parser(subcommand_parsers, common_parser):
     mirror_protect_parser = subcommand_parsers.add_parser(
         'continuous_copies',
@@ -3405,16 +3415,16 @@ def mirror_protect_parser(subcommand_parsers, common_parser):
     mpswap_parser.set_defaults(func=volume_mirror_protect_failover_ops)
 
     # update access mode
-    mpaccessmode_parser = subcommand_parsers.add_parser(
-        'accessmode',
+    mpupdateaccessmode_parser = subcommand_parsers.add_parser(   
+        'update-access-mode',
         parents=[common_parser],
         conflict_handler='resolve',
         description='ViPR continuous_copies update access mode CLI usage.',
         help='Update access mode for volume continuous_copies')
     # Add parameter from common protection parser.
-    add_protection_common_parser(mpaccessmode_parser)
-    mpaccessmode_parser.set_defaults(op='accessmode')
-    mpaccessmode_parser.set_defaults(func=volume_mirror_protect_failover_ops)
+    add_protection_common_parser(mpupdateaccessmode_parser)
+    mpupdateaccessmode_parser.set_defaults(op='update-access-mode')
+    mpupdateaccessmode_parser.set_defaults(func=volume_mirror_protect_failover_ops)
 
     # mirror protection list
     mptlist_parser = subcommand_parsers.add_parser(
@@ -3557,10 +3567,14 @@ def volume_mirror_protect_failover_ops(args):
             args.tenant = ""
         fullpathvol = args.tenant + "/" + args.project + "/" + args.name
 
+        if(not args.am):
+            args.am = "" 
+
         obj.mirror_protection_failover_ops(
             fullpathvol,
             args.continuouscopyname,
             args.pit,
+            args.am,
             args.type,
             args.op)
 

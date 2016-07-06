@@ -23,6 +23,18 @@ public class XtremIOInitiatorGroup {
     @JsonProperty(value = "name")
     private String name;
 
+    @SerializedName("index")
+    @JsonProperty(value = "index")
+    private String index;
+
+    public String getIndex() {
+        return index;
+    }
+
+    public void setIndex(String index) {
+        this.index = index;
+    }
+
     public String getName() {
         return name;
     }

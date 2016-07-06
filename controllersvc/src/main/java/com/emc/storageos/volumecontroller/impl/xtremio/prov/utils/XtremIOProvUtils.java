@@ -27,6 +27,8 @@ import com.emc.storageos.xtremio.restapi.XtremIOConstants;
 import com.emc.storageos.xtremio.restapi.XtremIOConstants.XTREMIO_ENTITY_TYPE;
 import com.emc.storageos.xtremio.restapi.errorhandling.XtremIOApiException;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOConsistencyGroup;
+import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiatorGroup;
+import com.emc.storageos.xtremio.restapi.model.response.XtremIOObjectInfo;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOSystem;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOTag;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolume;
@@ -414,7 +416,7 @@ public class XtremIOProvUtils {
         }
         return version;
     }
-    
+
     /**
      * Refresh the XIO Providers & its client connections.
      *
@@ -488,5 +490,32 @@ public class XtremIOProvUtils {
             osType = host.getType().toLowerCase();
         }
         return osType;
+    }
+
+    public static List<XtremIOVolume> getInitiatorGroupVolumes(String igName, String clusterName, XtremIOClient client) throws Exception {
+        List<XtremIOVolume> igVolumes = new ArrayList<XtremIOVolume>();
+        List<XtremIOObjectInfo> igLunMaps = new ArrayList<XtremIOObjectInfo>();
+        if (client.isVersion2()) {
+            igLunMaps = client.getLunMapsForInitiatorGroup(igName, clusterName);
+        } else {
+            XtremIOInitiatorGroup ig = client.getInitiatorGroup(igName, clusterName);
+            List<XtremIOObjectInfo> lunMaps = client.getLunMaps(clusterName);
+            if (ig == null) {
+                return igVolumes;
+            }
+            String igIndex = ig.getIndex();
+            for (XtremIOObjectInfo lunMap : lunMaps) {
+                String[] lunInfo = lunMap.getName().split(XtremIOConstants.UNDERSCORE);
+                if (igIndex.equals(lunInfo[1])) {
+                    igLunMaps.add(lunMap);
+                }
+            }
+        }
+
+        for (XtremIOObjectInfo igLunMap : igLunMaps) {
+            String[] igLunInfo = igLunMap.getName().split(XtremIOConstants.UNDERSCORE);
+            igVolumes.add(client.getVolumeByIndex(igLunInfo[0], clusterName));
+        }
+        return igVolumes;
     }
 }

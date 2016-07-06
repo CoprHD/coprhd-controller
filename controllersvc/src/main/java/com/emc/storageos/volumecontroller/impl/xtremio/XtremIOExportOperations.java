@@ -293,6 +293,13 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
             _log.info("List of  IGs found {} with size : {}",
                     Joiner.on(",").join(groupInitiatorsByIG.asMap().entrySet()), groupInitiatorsByIG.size());
 
+            // get the volumes in the IGs and validate against passed impacted volumes
+            List<Volume> impactedVolumes = dbClient.queryObject(Volume.class, volumeURIList);
+            List<XtremIOVolume> igVolumes = new ArrayList<XtremIOVolume>();
+            for (String igName : groupInitiatorsByIG.keySet()) {
+                igVolumes.addAll(XtremIOProvUtils.getInitiatorGroupVolumes(igName, xioClusterName, client));
+            }
+            validateAdditionalVolumesInIG(impactedVolumes, igVolumes);
             // Deleting the initiator automatically removes the initiator from
             // lun map
             for (Initiator initiator : initiators) {
@@ -642,7 +649,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                             if (!initiatorsOfRP && checkIfIGHasOtherHostInitiatorsOfSameCluster(knownInitiatorsInIG,
                                     groupInitiatorsByIG.get(igName), hostName, clusterName)) {
                                 removeInitiator = true;
-                            }        // else deleteLunMap
+                            }            // else deleteLunMap
                         } else {
                             validateAdditionalInitiatorsInIG(knownInitiatorsInIG, groupInitiatorsByIG.get(igName), hostName);
                         }
@@ -1127,6 +1134,45 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
             // fail the operation
             String errMsg = String.format("there are initiators in the Initiator Group on the array "
                     + "which are not part of the request: %s", initiatorsInIG);
+            _log.error(errMsg);
+            throw DeviceControllerException.exceptions.couldNotPerformExportDelete(errMsg);
+            // }
+        }
+        return true;
+    }
+
+    private boolean validateAdditionalVolumesInIG(List<Volume> knownVolumesInIG, List<XtremIOVolume> igVolumes) {
+        Set<String> knownVolumes = new HashSet<String>();
+        Set<String> igVols = new HashSet<String>();
+        for (Volume knownVolumeInIG : knownVolumesInIG) {
+            knownVolumes.add(knownVolumeInIG.getDeviceLabel());
+        }
+
+        for (XtremIOVolume igVolume : igVolumes) {
+            igVols.add(igVolume.getVolInfo().get(1));
+        }
+
+        _log.info("ViPR known volumes present in IG: {}, volumes in IG: {}",
+                knownVolumes, igVols);
+        igVols.removeAll(knownVolumes);
+        if (!igVols.isEmpty()) {
+            /*
+             * _log.info("Host name: {}", hostName);
+             * _log.info("There are other initiators present in the IG, checking if they all belong to same host");
+             * // check if the other initiators belong to different host
+             * List<String> listToIgnore = new ArrayList<String>();
+             * for (Initiator ini : knownInitiatorsInIG) {
+             * if (ini.getHostName() != null && ini.getHostName().equalsIgnoreCase(hostName)) {
+             * listToIgnore.add(Initiator.normalizePort(ini.getInitiatorPort()));
+             * }
+             * }
+             * initiatorsInIG.removeAll(listToIgnore);
+             *
+             * if (!initiatorsInIG.isEmpty()) {
+             */
+            // fail the operation
+            String errMsg = String.format("there are volumes in the Initiator Group on the array "
+                    + "which are not part of the request: %s", igVols);
             _log.error(errMsg);
             throw DeviceControllerException.exceptions.couldNotPerformExportDelete(errMsg);
             // }

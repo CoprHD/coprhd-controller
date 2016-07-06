@@ -20,7 +20,7 @@ public interface XtremIODiscoveryClient {
 
     /**
      * Get information on all the clusters configured.
-     * 
+     *
      * @return
      * @throws Exception
      */
@@ -28,7 +28,7 @@ public interface XtremIODiscoveryClient {
 
     /**
      * Get the XMS version
-     * 
+     *
      * @return XMS version
      * @throws Exception
      */
@@ -37,7 +37,7 @@ public interface XtremIODiscoveryClient {
 
     /**
      * Get the targets associated with the cluster
-     * 
+     *
      * @param clusterName
      * @return
      * @throws Exception
@@ -46,7 +46,7 @@ public interface XtremIODiscoveryClient {
 
     /**
      * Get the initiators of the cluster
-     * 
+     *
      * @param clusterName
      * @return
      * @throws Exception
@@ -55,7 +55,7 @@ public interface XtremIODiscoveryClient {
 
     /**
      * Get all the volume and their details for the given cluster
-     * 
+     *
      * @param clusterName
      * @return
      * @throws Exception
@@ -64,7 +64,7 @@ public interface XtremIODiscoveryClient {
 
     /**
      * Get the volume details for the passed volume links
-     * 
+     *
      * @param volumeLinks
      * @param clusterName
      * @return
@@ -75,33 +75,35 @@ public interface XtremIODiscoveryClient {
 
     /**
      * Get all the volume links for the given cluster
-     * 
+     *
      * @param clusterName
      * @return
      * @throws Exception
      */
     public List<XtremIOObjectInfo> getXtremIOVolumeLinks(String clusterName) throws Exception;
-    
+
     /**
      * Get all the Consistency groups for a given cluster
+     *
      * @param clusterName
      * @return
      * @throws Exception
      */
     public List<XtremIOObjectInfo> getXtremIOConsistencyGroups(String clusterName) throws Exception;
-    
+
     /**
      * Get all the Consistency groups for a given cluster
+     *
      * @param cgVolume
      * @param clusterName
      * @return
      * @throws Exception
      */
-    public XtremIOConsistencyGroupVolInfo getXtremIOConsistencyGroupInfo(XtremIOObjectInfo cgVolume, String clusterName) throws Exception; 
+    public XtremIOConsistencyGroupVolInfo getXtremIOConsistencyGroupInfo(XtremIOObjectInfo cgVolume, String clusterName) throws Exception;
 
     /**
      * Get all the volume folder names of the given cluster. This is relevant only for version 1 REST API
-     * 
+     *
      * @return
      * @throws Exception
      */
@@ -109,7 +111,7 @@ public interface XtremIODiscoveryClient {
 
     /**
      * Get the tag names created in the given cluster. This is relevant only for version 2 REST API.
-     * 
+     *
      * @param clusterName
      * @return
      * @throws Exception
@@ -118,7 +120,7 @@ public interface XtremIODiscoveryClient {
 
     /**
      * Get the initiator details for the given initiator name and cluster
-     * 
+     *
      * @param initiatorName
      * @param clusterName
      * @return
@@ -128,7 +130,7 @@ public interface XtremIODiscoveryClient {
 
     /**
      * Get the initiator group details given the initiator group name and cluster
-     * 
+     *
      * @param initiatorGroupName
      * @param clusterName
      * @return
@@ -138,7 +140,7 @@ public interface XtremIODiscoveryClient {
 
     /**
      * Get the volume details for the given name and cluster
-     * 
+     *
      * @param volumeName
      * @param clusterName
      * @return
@@ -148,7 +150,7 @@ public interface XtremIODiscoveryClient {
 
     /**
      * Get the snapshot details for the given name and cluster
-     * 
+     *
      * @param snapName
      * @param clusterName
      * @return
@@ -158,7 +160,7 @@ public interface XtremIODiscoveryClient {
 
     /**
      * Get the consistency group details for the given name and cluster
-     * 
+     *
      * @param cgName
      * @param clusterName
      * @return
@@ -168,7 +170,7 @@ public interface XtremIODiscoveryClient {
 
     /**
      * Get the cluster details for the given serial number
-     * 
+     *
      * @param clusterSerialNumber
      * @return
      * @throws Exception
@@ -177,7 +179,7 @@ public interface XtremIODiscoveryClient {
 
     /**
      * Get the tag details for the given name and cluster
-     * 
+     *
      * @param tagName
      * @param tagEntityType
      * @param clusterName
@@ -188,12 +190,38 @@ public interface XtremIODiscoveryClient {
 
     /**
      * Get the snapshot set details for the given name and cluster
-     * 
+     *
      * @param snapshotSetName
      * @param clusterName
      * @return
      * @throws Exception
      */
     public XtremIOConsistencyGroup getSnapshotSetDetails(String snapshotSetName, String clusterName) throws Exception;
+
+    /**
+     *
+     * @param clusterName
+     * @return
+     * @throws Exception
+     */
+    public List<XtremIOObjectInfo> getLunMaps(String clusterName) throws Exception;
+
+    /**
+     *
+     * @param igName
+     * @param clusterName
+     * @return
+     * @throws Exception
+     */
+    public List<XtremIOObjectInfo> getLunMapsForInitiatorGroup(String igName, String clusterName) throws Exception;
+
+    /**
+     *
+     * @param index
+     * @param clusterName
+     * @return
+     * @throws Exception
+     */
+    public XtremIOVolume getVolumeByIndex(String index, String clusterName) throws Exception;
 
 }

@@ -37,6 +37,7 @@ import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiatorGroup;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiatorGroups;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiators;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiatorsInfo;
+import com.emc.storageos.xtremio.restapi.model.response.XtremIOLunMapsInfo;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOObjectInfo;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOPort;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOPorts;
@@ -662,6 +663,37 @@ public class XtremIOV2Client extends XtremIOClient {
         XtremIOCGResponse cgResponse = getResponseObject(XtremIOCGResponse.class, response);
 
         return cgResponse.getContent();
+    }
+
+    @Override
+    public List<XtremIOObjectInfo> getLunMaps(String clusterName) throws Exception {
+        String uriString = XtremIOConstants.XTREMIO_V2_LUNMAPS_STR.concat(XtremIOConstants.getInputClusterString(clusterName));
+        ClientResponse response = get(URI.create(uriString));
+        log.info(response.toString());
+        XtremIOLunMapsInfo lunMapLinks = getResponseObject(XtremIOLunMapsInfo.class, response);
+
+        return Arrays.asList(lunMapLinks.getLunMapsInfo());
+    }
+
+    @Override
+    public List<XtremIOObjectInfo> getLunMapsForInitiatorGroup(String igName, String clusterName) throws Exception {
+        String filterString = String.format(XtremIOConstants.XTREMIO_LUNMAP_IG_FILTER_STR, igName, clusterName);
+        String uriString = XtremIOConstants.XTREMIO_V2_LUNMAPS_STR.concat(filterString);
+        ClientResponse response = get(URI.create(uriString));
+        log.info(response.toString());
+        XtremIOLunMapsInfo lunMapLinks = getResponseObject(XtremIOLunMapsInfo.class, response);
+
+        return Arrays.asList(lunMapLinks.getLunMapsInfo());
+    }
+
+    @Override
+    public XtremIOVolume getVolumeByIndex(String index, String clusterName) throws Exception {
+        String uriString = XtremIOConstants.XTREMIO_V2_VOLUMES_STR.concat(XtremIOConstants.SLASH).concat(index)
+                .concat(XtremIOConstants.getInputClusterString(clusterName));
+        ClientResponse response = get(URI.create(uriString));
+        log.info(response.toString());
+        XtremIOVolumes volumesResponse = getResponseObject(XtremIOVolumes.class, response);
+        return volumesResponse.getContent();
     }
 
 }

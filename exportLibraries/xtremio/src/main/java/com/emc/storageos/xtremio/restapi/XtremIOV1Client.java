@@ -36,6 +36,7 @@ import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiatorGroup;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiatorGroups;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiators;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiatorsInfo;
+import com.emc.storageos.xtremio.restapi.model.response.XtremIOLunMapsInfo;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOObjectInfo;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOPort;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOPorts;
@@ -554,5 +555,28 @@ public class XtremIOV1Client extends XtremIOClient {
     public XtremIOConsistencyGroupVolInfo getXtremIOConsistencyGroupInfo(
             XtremIOObjectInfo cgVolume, String clusterName) throws Exception {
         throw XtremIOApiException.exceptions.operationNotSupportedForVersion("getXtremIOConsistencyGroupInfo");
+    }
+
+    @Override
+    public List<XtremIOObjectInfo> getLunMaps(String clusterName) throws Exception {
+        ClientResponse response = get(XtremIOConstants.XTREMIO_LUNMAPS_URI);
+        log.info(response.toString());
+        XtremIOLunMapsInfo lunMapLinks = getResponseObject(XtremIOLunMapsInfo.class, response);
+
+        return Arrays.asList(lunMapLinks.getLunMapsInfo());
+    }
+
+    @Override
+    public List<XtremIOObjectInfo> getLunMapsForInitiatorGroup(String igName, String clusterName) throws Exception {
+        throw XtremIOApiException.exceptions.operationNotSupportedForVersion("getLunMapsForInitiatorGroup");
+    }
+
+    @Override
+    public XtremIOVolume getVolumeByIndex(String index, String clusterName) throws Exception {
+        String uriString = XtremIOConstants.XTREMIO_VOLUMES_STR.concat(XtremIOConstants.SLASH).concat(index);
+        ClientResponse response = get(URI.create(uriString));
+        log.info(response.toString());
+        XtremIOVolumes volumesResponse = getResponseObject(XtremIOVolumes.class, response);
+        return volumesResponse.getContent();
     }
 }

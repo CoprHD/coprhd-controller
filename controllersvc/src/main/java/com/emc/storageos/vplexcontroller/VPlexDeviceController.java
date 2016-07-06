@@ -5630,11 +5630,39 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // Will be non-null if the VPLEX volume was manually
                 // renamed after commit.
                 if (updatedVirtualVolumeInfo != null) {
-                    _log.info("New virtual volume native id is {}", updatedVirtualVolumeInfo.getName());
+                    _log.info(String.format("New virtual volume is %s", updatedVirtualVolumeInfo.toString()));
+
+                    // if the new virtual volume is thin-capable, but thin-enabled is not true,
+                    // that means we need to ask the VPLEX to convert it to a thin-enabled volume.
+                    // this doesn't happen automatically for thick-to-thin data migrations.
+                    boolean isThinEnabled = updatedVirtualVolumeInfo.isThinEnabled();
+                    if (!isThinEnabled && VPlexApiConstants.TRUE.equalsIgnoreCase(updatedVirtualVolumeInfo.getThinCapable())) {
+                        if (verifyVplexSupportsThinProvisioning(vplexSystem)) {
+                            URI targetVolumeUri = migration.getTarget();
+                            Volume targetVolume = getDataObject(Volume.class, targetVolumeUri, _dbClient);
+                            if (null != targetVolume) {
+                                _log.info(String.format("migration target Volume is %s", targetVolume.forDisplay()));
+                                VirtualPool targetVirtualPool = getDataObject(VirtualPool.class, targetVolume.getVirtualPool(), _dbClient);
+                                if (null != targetVirtualPool) {
+                                    _log.info(String.format("migration target VirtualPool is %s", targetVirtualPool.forDisplay()));
+                                    boolean doEnableThin = 
+                                            VirtualPool.ProvisioningType.Thin.toString().equalsIgnoreCase(
+                                                    targetVirtualPool.getSupportedProvisioningType());
+                                    if (doEnableThin) {
+                                        _log.info(String.format(
+                                                "the new VirtualPool is thin, requesting VPLEX to enable thin provisioning on %s", 
+                                                updatedVirtualVolumeInfo.getName()));
+                                        isThinEnabled = client.setVirtualVolumeThinEnabled(updatedVirtualVolumeInfo);
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     virtualVolume.setDeviceLabel(updatedVirtualVolumeInfo.getName());
                     virtualVolume.setNativeId(updatedVirtualVolumeInfo.getPath());
                     virtualVolume.setNativeGuid(updatedVirtualVolumeInfo.getPath());
-                    virtualVolume.setThinlyProvisioned(updatedVirtualVolumeInfo.isThinEnabled());
+                    virtualVolume.setThinlyProvisioned(isThinEnabled);
                 }
                 // Note that for ingested volumes, there will be no associated volumes
                 // at first.
@@ -6367,7 +6395,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 StorageSystem array = getDataObject(StorageSystem.class, existingVolume.getStorageController(), _dbClient);
                 List<String> itls = VPlexControllerUtils.getVolumeITLs(existingVolume);
                 List<VolumeInfo> vinfos = new ArrayList<VolumeInfo>();
-                boolean thinEnabled = existingVolume.getThinlyProvisioned().booleanValue();
+                VirtualPool newVirtualPool = getDataObject(VirtualPool.class, newCosURI, _dbClient);
+                boolean thinEnabled = VirtualPool.ProvisioningType.Thin.toString().equalsIgnoreCase(
+                                newVirtualPool.getSupportedProvisioningType());
                 vinfo = new VolumeInfo(array.getNativeGuid(), array.getSystemType(),
                         existingVolume.getWWN().toUpperCase().replaceAll(":", ""),
                         existingVolume.getNativeId(), thinEnabled, itls);
@@ -6380,8 +6410,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     WorkflowStepCompleter.stepFailed(stepId, serviceError);
                     return;
                 }
-                _log.info(String.format("Created virtual volume: %s path: %s",
-                        virtvinfo.getName(), virtvinfo.getPath()));
+                _log.info(String.format("Created virtual volume: %s path: %s thinEnabled: %b",
+                        virtvinfo.getName(), virtvinfo.getPath(), virtvinfo.isThinEnabled()));
 
                 checkThinEnabledResult(virtvinfo, thinEnabled, _workflowService.getWorkflowFromStepId(stepId).getOrchTaskId());
 

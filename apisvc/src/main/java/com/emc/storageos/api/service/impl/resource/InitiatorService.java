@@ -54,6 +54,8 @@ import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.export.ITLRestRepList;
+import com.emc.storageos.model.host.InitiatorAliasGetParam;
+import com.emc.storageos.model.host.InitiatorAliasSetParam;
 import com.emc.storageos.model.host.InitiatorBulkRep;
 import com.emc.storageos.model.host.InitiatorRestRep;
 import com.emc.storageos.model.host.InitiatorUpdateParam;
@@ -313,21 +315,27 @@ public class InitiatorService extends TaskResourceService {
      * 
      * @throws Exception When an error occurs querying the VMAX Storage System.
      */
-    @GET
+    @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/{id}/alias")
-    public String getInitiatorAlias(@PathParam("id") URI id, @PathParam("vmax-system") URI vmaxSSID) {
-        _log.info("Retrieving alias for initiator {} on system {}", id, vmaxSSID);
-        //Basic Checks
+    @Path("/{id}/alias-get")
+    public String getInitiatorAlias(@PathParam("id") URI id, InitiatorAliasGetParam aliasGetParam) {
+        // Basic Checks
         Initiator initiator = queryResource(id);
         verifyUserPermisions(initiator);
-        StorageSystem system = _permissionsHelper.getObjectById(vmaxSSID, StorageSystem.class);
+
+        URI systemURI = aliasGetParam.getSystemURI();
+        ArgValidator.checkFieldUriType(systemURI, StorageSystem.class, "id");
+        StorageSystem system = _permissionsHelper.getObjectById(systemURI, StorageSystem.class);
+        ArgValidator.checkEntity(system, systemURI, isIdEmbeddedInURL(systemURI));
+
+        _log.info("Retrieving alias for initiator {} on system {}", id, systemURI);
+
         String initiatorAlias = null;
         if (system != null && system.getSystemType().equalsIgnoreCase(StorageSystem.Type.vmax.toString())) {
             BlockController controller = getController(BlockController.class, system.getSystemType());
             //Actual Control
             try {
-                initiatorAlias = controller.getInitiatorAlias(vmaxSSID, id);
+                initiatorAlias = controller.getInitiatorAlias(systemURI, id);
             } catch (Exception e) {
                 _log.error("Unexpected error: Getting alias failed.", e);
                 throw APIException.badRequests.unableToProcessRequest(e.getMessage());
@@ -356,20 +364,29 @@ public class InitiatorService extends TaskResourceService {
      * 
      * @throws Exception When an error occurs setting the alias on a  VMAX Storage System.
      */
-    @PUT
+    @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/{id}/alias")
-    public void setInitiatorAlias(@PathParam("id") URI id, @PathParam("vmax-system") URI vmaxSSID, @PathParam("alias") String initiatorAlias) {
-        _log.info("Setting alias- {} for initiator {} on system {}", initiatorAlias, id, vmaxSSID);
+    @Path("/{id}/alias-set")
+    public void setInitiatorAlias(@PathParam("id") URI id, InitiatorAliasSetParam aliasSetParam) {
         //Basic Checks
         Initiator initiator = queryResource(id);
         verifyUserPermisions(initiator);
-        StorageSystem system = _permissionsHelper.getObjectById(vmaxSSID, StorageSystem.class);
+
+        URI systemURI = aliasSetParam.getSystemURI();
+        ArgValidator.checkFieldUriType(systemURI, StorageSystem.class, "id");
+        StorageSystem system = _permissionsHelper.getObjectById(systemURI, StorageSystem.class);
+        ArgValidator.checkEntity(system, systemURI, isIdEmbeddedInURL(systemURI));
+
+        String initiatorAlias = aliasSetParam.getInitiatorAlias();
+        ArgValidator.checkFieldNotNull(initiatorAlias, "alias");
+
+        _log.info("Setting alias- {} for initiator {} on system {}", initiatorAlias, id, systemURI);
+
         if (system != null && system.getSystemType().equalsIgnoreCase(StorageSystem.Type.vmax.toString())) {
             BlockController controller = getController(BlockController.class, system.getSystemType());
             try {
                 //Actual Control
-                controller.setInitiatorAlias(vmaxSSID, id, initiatorAlias);
+                controller.setInitiatorAlias(systemURI, id, initiatorAlias);
             } catch (Exception e) {
                 _log.error("Unexpected error: Setting alias failed.", e);
                 throw APIException.badRequests.unableToProcessRequest(e.getMessage());

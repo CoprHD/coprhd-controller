@@ -27,6 +27,8 @@ import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.srdfcontroller.SRDFDeviceController;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
+import com.emc.storageos.validation.ValCk;
+import com.emc.storageos.validation.Validator;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.ControllerLockingService;
 import com.emc.storageos.volumecontroller.impl.block.BlockDeviceController;
@@ -52,6 +54,7 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
     private static SRDFDeviceController _srdfDeviceController;
     private static ReplicaDeviceController _replicaDeviceController;
     private ControllerLockingService _locker;
+    private static Validator validator;
 
     static final String CREATE_VOLUMES_WF_NAME = "CREATE_VOLUMES_WORKFLOW";
     static final String DELETE_VOLUMES_WF_NAME = "DELETE_VOLUMES_WORKFLOW";
@@ -143,6 +146,11 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
         List<URI> volUris = VolumeDescriptor.getVolumeURIs(volumes);
         VolumeWorkflowCompleter completer = new VolumeWorkflowCompleter(volUris, taskId);
         Workflow workflow = null;
+        StringBuilder msgs = new StringBuilder();
+        validator.volumeURIs(volUris, true, true, msgs, ValCk.ID, ValCk.VPLEX);
+        if (msgs.length() > 0) {
+            throw DeviceControllerException.exceptions.invalidSystemType(msgs.toString());
+        }
 
         try {
             // Generate the Workflow.
@@ -649,5 +657,13 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(ex);
             completer.error(s_dbClient, _locker, serviceError);
         }
+    }
+
+    public static Validator getValidator() {
+        return validator;
+    }
+
+    public static void setValidator(Validator validator) {
+        BlockOrchestrationDeviceController.validator = validator;
     }
 }

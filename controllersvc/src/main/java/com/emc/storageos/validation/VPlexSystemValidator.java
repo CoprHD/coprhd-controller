@@ -1,16 +1,17 @@
 package com.emc.storageos.validation;
 
-import java.net.URI;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
-import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.util.VPlexDrillDownParser;
+import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.vplex.api.VPlexApiClient;
 import com.emc.storageos.vplex.api.VPlexApiConstants;
 import com.emc.storageos.vplex.api.VPlexApiFactory;
@@ -49,23 +50,24 @@ public class VPlexSystemValidator extends AbstractSystemValidator {
 		return remediatedVolumes;
 	}
 	
-	private void validateVolume(Volume volume, boolean delete, boolean remediate, StringBuilder msgs, ValCk... checks) {
+	private void validateVolume(Volume virtualVolume, boolean delete, boolean remediate, StringBuilder msgs, ValCk... checks) {
 		List<ValCk> checkList = Arrays.asList(checks);
-		String volumeId = String.format("%s (%s)(%s)", volume.getLabel(), volume.getNativeGuid(), volume.getId());
-		VPlexVirtualVolumeInfo vvinfo = client.getVirtualVolumeStructure(volume.getNativeId());
+		String volumeId = String.format("%s (%s)(%s)", virtualVolume.getLabel(), virtualVolume.getNativeGuid(), virtualVolume.getId());
+		VPlexVirtualVolumeInfo vvinfo = client.findVirtualVolumeAndUpdateInfo(virtualVolume.getDeviceLabel());
+		
 		if (checkList.contains(ValCk.ID)) {
-			if (!volume.getNativeId().equals(vvinfo.getName())) {
-				logDiff(volumeId, "native-id", volume.getNativeId(), vvinfo.getName());
+			if (!virtualVolume.getNativeId().equals(vvinfo.getName())) {
+				logDiff(volumeId, "native-id", virtualVolume.getNativeId(), vvinfo.getName());
 			}
-			if (!NullColumnValueGetter.isNullValue(volume.getWWN()) && vvinfo.getWwn() != null
-					&& !volume.getWWN().equalsIgnoreCase(vvinfo.getWwn())) {
-				logDiff(volumeId, "wwn", volume.getWWN(), vvinfo.getWwn());
+			if (!NullColumnValueGetter.isNullValue(virtualVolume.getWWN()) && vvinfo.getWwn() != null
+					&& !virtualVolume.getWWN().equalsIgnoreCase(vvinfo.getWwn())) {
+				logDiff(volumeId, "wwn", virtualVolume.getWWN(), vvinfo.getWwn());
 			}
-			if (volume.getAllocatedCapacity() != vvinfo.getCapacityBytes()) {
-				logDiff(volumeId, "capacity", volume.getAllocatedCapacity().toString(), vvinfo.getCapacityBytes().toString());
+			if (virtualVolume.getAllocatedCapacity() != vvinfo.getCapacityBytes()) {
+				logDiff(volumeId, "capacity", virtualVolume.getAllocatedCapacity().toString(), vvinfo.getCapacityBytes().toString());
 			}
-			if (!volume.getAssociatedVolumes().isEmpty()) {
-				String locality = volume.getAssociatedVolumes().size() > 1 ? 
+			if (!virtualVolume.getAssociatedVolumes().isEmpty()) {
+				String locality = virtualVolume.getAssociatedVolumes().size() > 1 ? 
 						VPlexApiConstants.DISTRIBUTED_VIRTUAL_VOLUME : VPlexApiConstants.LOCAL_VIRTUAL_VOLUME;
 				if (!locality.equalsIgnoreCase(vvinfo.getLocality())) {
 					logDiff(volumeId, "locality", locality, vvinfo.getLocality());
@@ -74,19 +76,53 @@ public class VPlexSystemValidator extends AbstractSystemValidator {
 		}
 
 		if (checkList.contains(ValCk.VPLEX)) {
-			VPlexDistributedDeviceInfo ddInfo = (VPlexDistributedDeviceInfo) vvinfo
-                    .getSupportingDeviceInfo();
-            List<VPlexDeviceInfo> localDeviceInfoList = ddInfo.getLocalDeviceInfo();
-			if (volume.getAssociatedVolumes() != null) {
-				for (String assocVolume : volume.getAssociatedVolumes()) {
-					Volume associatedVolume = dbClient.queryObject(Volume.class, URI.create(assocVolume));
-					if (associatedVolume != null && !associatedVolume.getInactive()) {
-					}
-					
-				}
-			}
+		    try {
+		    String drillDownInfo = client.getDrillDownInfoForDevice(vvinfo.getSupportingDevice());
+		    VPlexDrillDownParser parser = new VPlexDrillDownParser(drillDownInfo);
+		    VPlexDrillDownParser.Node root = parser.parse();
+		    boolean distributed = (root.getType() == VPlexDrillDownParser.NodeType.DIST) ? true : false;
+		    if (distributed) {
+		        String clusterName = VPlexControllerUtils.getVPlexClusterName( dbClient, virtualVolume);
+		        for (VPlexDrillDownParser.Node child : root.getChildren()) {
+		           if (child.getArg2().equals(clusterName)) {
+		               validateStorageVolumes(virtualVolume, volumeId, true,child);
+		           } else {
+		               validateStorageVolumes(virtualVolume, volumeId, false, child);
+		           }
+		        }
+		        
+		    } else {
+		        validateStorageVolumes(virtualVolume, volumeId, true, root);
+		    }
+		    } catch (Exception ex) {
+		        logDiff(volumeId, "exception trying to validate storage volumes", virtualVolume.getDeviceLabel(), "");
+		    }
+		    
 		}
 		
+	}
+	
+	/**
+	 * Validates either storage volumes in the local or remote side of a virtual volume.
+	 * @param virtualVolume -- Vplex virtual volume
+	 * @param volumeId -- identification for log
+	 * @param local -- if true the local side, else remote
+	 * @param node - drill down Node from parser containing hardware info, should be
+	 * type LOCAL or type DISTCOMP
+	 */
+	private void validateStorageVolumes(Volume virtualVolume, String volumeId, 
+	        boolean local, VPlexDrillDownParser.Node node) {
+	    boolean hasMirror = false;
+        Map<String, VPlexStorageVolumeInfo> wwnToStorageVolumeInfos = 
+            client.getStorageVolumeInfoForDevice(
+                node.getArg1(), VPlexApiConstants.LOCAL_VIRTUAL_VOLUME, node.getArg2(), hasMirror);
+        Volume assocVolume = VPlexUtil.getVPLEXBackendVolume(virtualVolume, true, dbClient);
+        if (wwnToStorageVolumeInfos.size() != 1 || 
+                !wwnToStorageVolumeInfos.keySet().contains(assocVolume.getWWN())) {
+            logDiff(volumeId, "local volume WWN",assocVolume.getWWN(), 
+                    wwnToStorageVolumeInfos.keySet().toString());
+        }
+	    
 	}
 	
 	/**

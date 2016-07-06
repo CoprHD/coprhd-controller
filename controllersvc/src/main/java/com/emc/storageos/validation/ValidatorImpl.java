@@ -47,5 +47,13 @@ public class ValidatorImpl implements Validator {
 		}
 		return null;
 	}
+
+    public DbClient getDbClient() {
+        return dbClient;
+    }
+
+    public void setDbClient(DbClient dbClient) {
+        this.dbClient = dbClient;
+    }
 		
 }

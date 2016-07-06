@@ -1470,6 +1470,7 @@
         <property name="srdfDeviceController" ref="srdfDeviceController" />
         <property name="replicaDeviceController" ref="replicaDeviceController" />
         <property name="locker" ref="locker"/>
+        <property name="validator" ref="validator"/>
     </bean>
 
     <bean id="blockOrchestrationController" class="com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationControllerImpl">
@@ -1484,6 +1485,10 @@
         <property name="serviceInterface" value="com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationController"/>
         <property name="registryPort" value="10099"/>
         <property name="servicePort" value="40201"/>
+    </bean>
+
+    <bean id="validator" class="com.emc.storageos.validation.ValidatorImpl">
+        <property name="dbClient" ref="dbclient"/>
     </bean>
     
     <!-- tbd fileorchestrationdevice controller exporter -->

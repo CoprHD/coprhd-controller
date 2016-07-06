@@ -24,9 +24,13 @@ titleKey = "BlockVirtualPools.create.title"
     <h5>
         We have detected the following storage systems
     </h5>
-    <p>
-        &{'StorageSystemType.'+type}
-    </p>
+        %{
+        for(type in types) {
+        }%
+        <p>&{'StorageSystemType.'+type}</p>
+        %{
+        }
+        }%
     <h5 style="padding-top:40px">
         Do you want the system to create Virtual Pools automatically?<br>
         <!--a>Learn more how...</a-->
@@ -36,7 +40,7 @@ titleKey = "BlockVirtualPools.create.title"
 </div>
 <div class="form-group button-bar" style="padding-top:10px">
     <div class="col-sm-offset-3 col-sm-9">
-        <button type="submit" class="btn btn-primary btn-large " name="button.create" onclick="window.location = &quot;@{arrays.BlockVirtualPools.createAllFlashAuto(varray.id,type)}&quot;">
+        <button type="submit" class="btn btn-primary btn-large " name="button.create" onclick="window.location = &quot;@{arrays.BlockVirtualPools.createAllFlashAuto(varray.id,types)}&quot;">
             Create
         </button>
         <button type="button" class="btn btn-default btn-large " name="button.cancel" onclick="window.location = &quot;/blockvirtualpools/list&quot;">

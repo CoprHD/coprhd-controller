@@ -4,11 +4,14 @@
  */
 package controllers.arrays;
 
+import com.emc.storageos.db.client.model.VirtualArray;
+import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.systems.StorageSystemRestRep;
 import com.emc.vipr.client.core.VirtualArrays;
 import static com.emc.vipr.client.core.util.ResourceUtils.id;
 import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 import static com.emc.vipr.client.core.util.ResourceUtils.uris;
+import com.sun.org.apache.xpath.internal.operations.Bool;
 import static controllers.Common.angularRenderArgs;
 import static controllers.Common.copyRenderArgsToAngular;
 import static controllers.Common.flashException;
@@ -58,6 +61,7 @@ import play.mvc.Http;
 import play.mvc.With;
 import util.EnumOption;
 import util.MessagesUtils;
+import util.StoragePoolUtils;
 import util.StorageSystemUtils;
 import util.StringOption;
 import util.TenantUtils;
@@ -144,7 +148,7 @@ public class BlockVirtualPools extends ViprResourceController {
     }
 
     public static void createAllFlash() {
-        List<VirtualArrayRestRep> virtualArrays = VirtualArrayUtils.getVirtualArrays();
+/*        List<VirtualArrayRestRep> virtualArrays = VirtualArrayUtils.getVirtualArrays();
         for (VirtualArrayRestRep va : virtualArrays) {
             List<VirtualPoolCommonRestRep> vpools = VirtualPoolUtils.getVirtualPoolsForVirtualArray(va.getId());
             if(vpools.isEmpty()) {
@@ -158,13 +162,74 @@ public class BlockVirtualPools extends ViprResourceController {
                     }
                 }
             }
+        }*/
+        List<VirtualArrayRestRep> virtualArrays = VirtualArrayUtils.getVirtualArrays();
+        for (VirtualArrayRestRep va : virtualArrays) {
+            List<VirtualPoolCommonRestRep> vpools = VirtualPoolUtils.getVirtualPoolsForVirtualArray(va.getId());
+            List<StoragePoolRestRep> spools = StoragePoolUtils.getStoragePoolsAssignedToVirtualArray(va.getId().toString());
+            if(vpools.isEmpty()) {
+                List<StorageSystemRestRep> storageSystems = StorageSystemUtils.getStorageSystemsByVirtualArray(va.getId().toString());
+                List<String> typesList = new ArrayList<String>();
+
+                boolean same = true;
+                String firstType = storageSystems.get(0).getSystemType();
+                typesList.add(firstType);
+                for(int i = 1; i < storageSystems.size() && same; i++)
+                {
+                    if (!storageSystems.get(i).getSystemType().equals(firstType)) {
+                        typesList.add(storageSystems.get(i).getSystemType());
+                        same = false;
+                    }
+                }
+                if (same) {
+                    renderArgs.put("varray", va);
+                    renderArgs.put("types", typesList);
+                    render();
+                } else {
+                    renderArgs.put("varray", va);
+                    renderArgs.put("types", typesList);
+                    render();
+                }
+            } else {
+                for (StoragePoolRestRep sp: spools) {
+                    Boolean spfound = false;
+                    for (VirtualPoolCommonRestRep vp: vpools){
+                        Logger.info(vp.getMatchedStoragePools().toString());
+                        for (RelatedResourceRep matchedSp:vp.getMatchedStoragePools()){
+                            Logger.info("-----------"+matchedSp.getId());
+                            Logger.info("-----------"+sp.getId());
+                            if (matchedSp.getId().equals(sp.getId())) {
+                                spfound = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (!spfound) {
+                        URI id = sp.getStorageSystem().getId();
+                        if (null != id) {
+                            StorageSystemRestRep storageSystem = StorageSystemUtils.getStorageSystem(id);
+                            if (null != storageSystem) {
+                                String type = storageSystem.getSystemType();
+                                if (null != type && !type.isEmpty()) {
+                                    List<String> typesList = new ArrayList<String>();
+                                    typesList.add(type);
+                                    renderArgs.put("varray", va);
+                                    renderArgs.put("types", typesList);
+                                    render();
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         list();
 
     }
 
-    public static void createAllFlashAuto(String id,String type) {
+    public static void createAllFlashAuto(String id,List<String> types) {
+
         BlockVirtualPoolForm vpool = new BlockVirtualPoolForm();
 
         //defaults
@@ -186,12 +251,25 @@ public class BlockVirtualPools extends ViprResourceController {
         List<String> vaIds = new ArrayList<String>();
         vaIds.add(id);
         vpool.virtualArrays = vaIds;
-        String name = (StorageSystemTypes.getDisplayValue(type) + " Diamond");
-        vpool.name = name.replace(' ','-');
-        vpool.systemType = type;
-        vpool.description = "Virtual Pool for " + name + " Storage";
+        VirtualArrayRestRep va = VirtualArrayUtils.getVirtualArray(id);
 
-        vpool.save();
+        if(types.size()>1) {
+            String name = "all-flash-diamond";
+            vpool.name = name;
+            vpool.systemType = StorageSystemTypes.NONE;
+            vpool.description = "Virtual Pool for All Flash Storage";
+        }
+        else if (types.size()==1) {
+            String type = types.get(0);
+            String name = (StorageSystemTypes.getDisplayValue(type) + " diamond");
+            vpool.name = name.replace(' ', '-').toLowerCase();
+            vpool.systemType = type;
+            vpool.description = "Virtual Pool for " + name + " Storage";
+        }
+
+        if(vpool.save() != null) {
+            response.setCookie("guide_vpool", vpool.name);
+        }
         list();
     }
 
@@ -476,7 +554,7 @@ public class BlockVirtualPools extends ViprResourceController {
         try {
             BlockVirtualPoolRestRep virtualPool = vpool.save();
             flash.success(MessagesUtils.get(SAVED_SUCCESS, virtualPool.getName()));
-            backToReferrer();
+            list();
         } catch (ViPRException e) {
             exception(vpool, e);
         }

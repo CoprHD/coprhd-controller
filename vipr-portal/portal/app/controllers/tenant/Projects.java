@@ -137,6 +137,7 @@ public class Projects extends ViprResourceController {
         }
 
         flash.success(MessagesUtils.get("projects.saved", project.name));
+        response.setCookie("guide_project", project.name);
         if (StringUtils.isNotBlank(project.referrerUrl)) {
             redirect(project.referrerUrl);
         }

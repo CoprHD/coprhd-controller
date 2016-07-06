@@ -94,9 +94,15 @@ public class VirtualArrays extends ViprResourceController {
     private static final String SIMPLE  ="SIMPLE";
     private static final String MAPPING1X1 ="1X1MAPPING";
     private static final String CUSTOM = "CUSTOM";
+
+    private static final String UNITY = "unity";
+    private static final String VMAX = "vmax";
+    private static final String XTREMIO = "xtremio";
+
     private static final String ALL_FLASH_VARRAY = "All-Flash-Varray";
-
-
+    private static final String VMAX_FLASH_VARRAY = "vmax-all-flash";
+    private static final String XTREMIO_FLASH_VARRAY = "xio-all-flash";
+    private static final String UNITY_FLASH_VARRAY = "unity-all-flash";
     /**
      * Simple create and save operation that takes only the name.
      * 
@@ -125,10 +131,10 @@ public class VirtualArrays extends ViprResourceController {
 	 */
 	public static void createDefaultVarray(String defaultVarrayType) {
 		boolean isVarrayAvail = false;
+
 		if (StringUtils.equals(defaultVarrayType, SIMPLE)) {
 			// Check if virtual array is already created
-			List<VirtualArrayRestRep> availVarrays = VirtualArrayUtils
-					.getVirtualArrays();
+			List<VirtualArrayRestRep> availVarrays = VirtualArrayUtils.getVirtualArrays();
 			for (VirtualArrayRestRep availVarray : availVarrays) {
 				if (StringUtils.equals(availVarray.getName(), ALL_FLASH_VARRAY)) {
 					isVarrayAvail = true;
@@ -159,7 +165,61 @@ public class VirtualArrays extends ViprResourceController {
 
 			addStorageSysVarray(virtualArray.id, ids);
 		} else if (StringUtils.equals(defaultVarrayType, MAPPING1X1)) {
-			// TODO
+			// Support three type of varray for one-to-one mapping VMAX, UNITY, XtremIO
+			List <String> vmaxids = Lists.newArrayList();
+			List <String> unityids = Lists.newArrayList();
+			List <String> xioids = Lists.newArrayList();
+
+			// Read all discovered storage in system
+			for (StorageSystemRestRep storageSystem : StorageSystemUtils.getStorageSystems()) {
+				if(StringUtils.equals(storageSystem.getSystemType(), VMAX)) {
+					vmaxids.add(storageSystem.getId().toString());
+				}
+				else if(StringUtils.equals(storageSystem.getSystemType(), XTREMIO)) {
+					xioids.add(storageSystem.getId().toString());
+				}
+				else if(StringUtils.equals(storageSystem.getSystemType(), UNITY))
+				unityids.add(storageSystem.getId().toString());
+			}
+			if(!vmaxids.isEmpty()) {
+				VirtualArrayForm virtualArray = new VirtualArrayForm();
+				virtualArray.name = VMAX_FLASH_VARRAY;
+				virtualArray.validate("virtualArray");
+				if (Validation.hasErrors()) {
+					flash.error(MessagesUtils.get(SAVED_ERROR, virtualArray.name));
+					list();
+				}
+
+				VirtualArrayRestRep varray = virtualArray.save();
+				virtualArray.load(varray);
+				addStorageSysVarray(virtualArray.id, vmaxids);
+			}
+			if(!unityids.isEmpty()) {
+				VirtualArrayForm virtualArray = new VirtualArrayForm();
+				virtualArray.name = UNITY_FLASH_VARRAY;
+				virtualArray.validate("virtualArray");
+				if (Validation.hasErrors()) {
+					flash.error(MessagesUtils.get(SAVED_ERROR, virtualArray.name));
+					list();
+				}
+
+				VirtualArrayRestRep varray = virtualArray.save();
+				virtualArray.load(varray);
+				addStorageSysVarray(virtualArray.id, unityids);
+			}
+			if(!xioids.isEmpty()) {
+				VirtualArrayForm virtualArray = new VirtualArrayForm();
+				virtualArray.name = XTREMIO_FLASH_VARRAY;
+				virtualArray.validate("virtualArray");
+				if (Validation.hasErrors()) {
+					flash.error(MessagesUtils.get(SAVED_ERROR, virtualArray.name));
+					list();
+				}
+
+				VirtualArrayRestRep varray = virtualArray.save();
+				virtualArray.load(varray);
+				addStorageSysVarray(virtualArray.id, xioids);
+			}
 		}
 		// List page so that user can add virtual array them self
 		else {

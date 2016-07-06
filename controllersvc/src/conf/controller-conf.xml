@@ -550,6 +550,7 @@
         <property name="smisCommandHelper" ref="vmaxSmisCommandHelper"/>
         <property name="dbClient" ref="dbclient"/>
         <property name="cimObjectPathFactory" ref="vmaxCIMObjectPathFactoryAdapter"/>
+        <property name="validators" ref="dupValidationFactoryProvider"/>
     </bean>
 
     <bean id="vnxExportMaskOperationsHelper" class="com.emc.storageos.volumecontroller.impl.smis.vnx.VnxExportOperations">
@@ -900,7 +901,6 @@
         <property name="dbClient" ref="dbclient"/>
         <property name="networkDeviceController" ref="networkDeviceController"/>
         <property name="blockScheduler" ref="blockscheduler"/>
-        <property name="coordinator" ref="coordinator"/>
         <property name="devices">
             <map>
                 <entry key="vmax" value-ref="vmaxSmisDevice"/>
@@ -914,6 +914,11 @@
                 <entry key="externaldevice" value-ref="externalBlockStorageDevice"/>
             </map>
         </property>
+    </bean>
+
+    <bean id="invokeTestFailure" class="com.emc.storageos.util.InvokeTestFailure">
+        <property name="name" value="invokeTestFailure"/>
+        <property name="coordinator" ref="coordinator"/>
     </bean>
 
     <bean id="snapshotWorkflowEntryPoints" class=
@@ -1553,5 +1558,25 @@
 	<bean id="auditLogManagerFactory" class="com.emc.storageos.security.audit.AuditLogManagerFactory">
         <property name="coordinator" ref="coordinator"/>
         <property name="dbClient" ref="dbclient"/>
+    </bean>
+
+    <bean id="vmaxDUPValidationFactory" class="com.emc.storageos.volumecontroller.impl.validators.vmax.VmaxDUPValidationFactory">
+        <property name="helper" ref="vmaxSmisCommandHelper"/>
+        <property name="dbClient" ref="dbclient"/>
+        <property name="cimPath" ref="vmaxCIMObjectPathFactoryAdapter"/>
+    </bean>
+
+    <bean id="xtremIODUPValidationFactory" class="com.emc.storageos.volumecontroller.impl.validators.xtremio.XtremIODUPValidationFactory">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="clientFactory" ref="xtremioRestClientFactory"/>
+    </bean>
+
+    <bean id="dupValidationFactoryProvider" class="com.emc.storageos.volumecontroller.impl.validators.DUPValidationFactoryProvider">
+        <property name="factories">
+            <map>
+                <entry key="vmax" value-ref="vmaxDUPValidationFactory"/>
+                <entry key="xtremio" value-ref="xtremIODUPValidationFactory"/>
+            </map>
+        </property>
     </bean>
 </beans>

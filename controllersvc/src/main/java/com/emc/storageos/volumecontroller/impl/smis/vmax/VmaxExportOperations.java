@@ -28,6 +28,8 @@ import javax.wbem.CloseableIterator;
 import javax.wbem.WBEMException;
 import javax.wbem.client.WBEMClient;
 
+import com.emc.storageos.volumecontroller.impl.validators.DUPValidationFactoryProvider;
+import com.emc.storageos.volumecontroller.impl.validators.DUPreventionValidator;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -63,6 +65,7 @@ import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.util.ExportUtils;
+import com.emc.storageos.util.InvokeTestFailure;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
@@ -105,6 +108,8 @@ public class VmaxExportOperations implements ExportMaskOperations {
 
     private CIMObjectPathFactory _cimPath;
 
+    private DUPValidationFactoryProvider validators;
+
     public static final String VIPR_NO_CLUSTER_SPECIFIED_NULL_VALUE = "VIPR-NO-CLUSTER-SPECIFIED-NULL-VALUE";
 
     // Max retries for remove RP volumes from export group
@@ -133,6 +138,10 @@ public class VmaxExportOperations implements ExportMaskOperations {
 
     public void setDbClient(DbClient dbClient) {
         _dbClient = dbClient;
+    }
+
+    public void setValidators(DUPValidationFactoryProvider validators) {
+        this.validators = validators;
     }
 
     /*
@@ -382,15 +391,18 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     exportMaskRollback(storage, context, taskCompleter);
                 }
             } else {
+                ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
+                List<URI> volumeURIs = ExportMaskUtils.getVolumeURIs(exportMask);
+
+                DUPreventionValidator validator =
+                        validators.vmax().exportMaskDelete(storage, exportMask,  volumeURIList, initiatorList);
+                validator.validate();
+
                 if (!deleteMaskingView(storage, exportMaskURI, childGroupsByFast, taskCompleter)) {
                     // Could not delete the MaskingView. Error should be stuffed by the
                     // deleteMaskingView call. Simply return from here.
                     return;
                 }
-
-                // Need Mask's volume list for removing volumes from phantom storage group.
-                ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
-                List<URI> volumeURIs = ExportMaskUtils.getVolumeURIs(exportMask);
 
                 for (Map.Entry<StorageGroupPolicyLimitsParam, List<String>> entry : childGroupsByFast.entrySet()) {
                     _log.info(String.format("Mask %s FAST Policy %s associated with %d Storage Group(s)", maskingViewName, entry.getKey(),
@@ -1039,6 +1051,10 @@ public class VmaxExportOperations implements ExportMaskOperations {
                             childGroupName, parentGroupName);
                 }
             }
+
+            // Test mechanism to invoke a failure. No-op on production systems.
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_002);
+
             taskCompleter.ready(_dbClient);
         } catch (Exception e) {
             _log.error(String.format("addVolumes failed - maskName: %s", exportMaskURI.toString()), e);
@@ -1117,6 +1133,9 @@ public class VmaxExportOperations implements ExportMaskOperations {
                             .vmaxStorageGroupNameNotFound(maskingViewName));
                     return;
                 }
+
+                // TODO Check if this is necessary
+                _helper.callRefreshSystem(storage, null, true);
 
                 Map<String, List<URI>> volumesByGroup = _helper.groupVolumesBasedOnExistingGroups(storage, parentGroupName, volumeURIList);
                 _log.info("Group Volumes by Storage Group size : {}", volumesByGroup.size());
@@ -1478,6 +1497,10 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 _dbClient.updateObject(exportMask);
             }
             _log.info(String.format("addInitiators succeeded - maskName: %s", exportMaskURI.toString()));
+
+            // Test mechanism to invoke a failure. No-op on production systems.
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_003);
+
             taskCompleter.ready(_dbClient);
         } catch (Exception e) {
             _log.error(String.format("addInitiators failed - maskName: %s", exportMaskURI.toString()), e);

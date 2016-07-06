@@ -18,8 +18,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.cassandra.service.StorageProxy;
-import org.apache.cassandra.thrift.Cassandra;
-import org.apache.cassandra.thrift.KsDef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,12 +35,8 @@ import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.netflix.astyanax.AstyanaxContext;
-import com.netflix.astyanax.CassandraOperationType;
 import com.netflix.astyanax.Cluster;
 import com.netflix.astyanax.Keyspace;
-import com.netflix.astyanax.KeyspaceTracerFactory;
-import com.netflix.astyanax.connectionpool.ConnectionContext;
-import com.netflix.astyanax.connectionpool.ConnectionPool;
 import com.netflix.astyanax.connectionpool.Host;
 import com.netflix.astyanax.connectionpool.SSLConnectionContext;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
@@ -54,10 +48,7 @@ import com.netflix.astyanax.model.ConsistencyLevel;
 import com.netflix.astyanax.partitioner.Murmur3Partitioner;
 import com.netflix.astyanax.partitioner.Partitioner;
 import com.netflix.astyanax.retry.RetryPolicy;
-import com.netflix.astyanax.shallows.EmptyKeyspaceTracerFactory;
-import com.netflix.astyanax.thrift.AbstractOperationImpl;
 import com.netflix.astyanax.thrift.ThriftFamilyFactory;
-import com.netflix.astyanax.thrift.ddl.ThriftKeyspaceDefinitionImpl;
 
 public class DbClientContext {
 
@@ -489,7 +480,6 @@ public class DbClientContext {
 
         String[] contactPoints = {LOCAL_HOST};
         cassandraCluster = initConnection(contactPoints);
-        cassandraSession = cassandraCluster.connect();
         prepareStatementMap = new HashMap<String, PreparedStatement>();
     }
 
@@ -559,13 +549,10 @@ public class DbClientContext {
             // or else it's destined to fail due to SchemaDisagreementException
             boolean hasUnreachableNodes = ensureSchemaAgreement();
 
-            String schemaVersion;
-            if (hasUnreachableNodes) {
-                schemaVersion = alterKeyspaceWithThrift(kd, update);
-            } else if (kd != null) {
-                schemaVersion = cluster.updateKeyspace(update).getResult().getSchemaId();
+            if (kd != null) {
+                updateKeySpace(strategyOptions, "alter");
             } else {
-                createKeySpace(strategyOptions);
+                updateKeySpace(strategyOptions, "create");
                 if (wait && !hasUnreachableNodes) {
                     waitForSchemaAgreement();
                 }
@@ -573,7 +560,7 @@ public class DbClientContext {
             }
     
             if (wait && !hasUnreachableNodes) {
-                waitForSchemaAgreement(schemaVersion);
+                waitForSchemaAgreement();
             }
         } catch (ConnectionException ex) {
             log.error("Fail to update strategy option", ex);
@@ -581,7 +568,7 @@ public class DbClientContext {
         }
     }
 
-    private void createKeySpace(Map<String, String> strategyOptions) {
+    private void updateKeySpace(Map<String, String> strategyOptions, String action) {
         StringBuilder replications = new StringBuilder();
         boolean appendComma = false;
 
@@ -598,8 +585,8 @@ public class DbClientContext {
                     .append(option.getValue());
         }
 
-        String createKeySpace=String.format("CREATE KEYSPACE \"%s\" WITH replication = { 'class': '%s', %s };",
-                keyspaceName, KEYSPACE_NETWORK_TOPOLOGY_STRATEGY, replications.toString());
+        String createKeySpace=String.format("%s KEYSPACE \"%s\" WITH replication = { 'class': '%s', %s };",
+                action, keyspaceName, KEYSPACE_NETWORK_TOPOLOGY_STRATEGY, replications.toString());
         log.info("create keyspace using the cql statement:{}", createKeySpace);
         cassandraSession.execute(createKeySpace);
     }
@@ -622,38 +609,6 @@ public class DbClientContext {
    }
 
     /**
-     * Update the keyspace definition using low-level thrift API
-     * This is to bypass the precheck logic in Astyanax that throws SchemaDisagreementException when there are
-     * unreachable nodes in the cluster. Refer to https://github.com/Netflix/astyanax/issues/443 for details.
-     *
-     * @param kd existing keyspace definition, could be null
-     * @param update new keyspace definition
-     * @return new schema version after the update
-     */
-    private String alterKeyspaceWithThrift(KeyspaceDefinition kd, KeyspaceDefinition update) throws ConnectionException {
-        final KeyspaceTracerFactory ks = EmptyKeyspaceTracerFactory.getInstance();
-        ConnectionPool<Cassandra.Client> pool = (ConnectionPool<Cassandra.Client>) clusterContext.getConnectionPool();
-        final KsDef def = ((ThriftKeyspaceDefinitionImpl) update).getThriftKeyspaceDefinition();
-        if (kd != null) {
-            return pool.executeWithFailover(
-                    new AbstractOperationImpl<String>(ks.newTracer(CassandraOperationType.UPDATE_KEYSPACE)) {
-                        @Override
-                        public String internalExecute(Cassandra.Client client, ConnectionContext context) throws Exception {
-                            return client.system_update_keyspace(def);
-                        }
-                    }, clusterContext.getAstyanaxConfiguration().getRetryPolicy().duplicate()).getResult();
-        } else {
-            return pool.executeWithFailover(
-                    new AbstractOperationImpl<String>(ks.newTracer(CassandraOperationType.ADD_KEYSPACE)) {
-                        @Override
-                        public String internalExecute(Cassandra.Client client, ConnectionContext context) throws Exception {
-                            return client.system_add_keyspace(def);
-                        }
-                    }, clusterContext.getAstyanaxConfiguration().getRetryPolicy().duplicate()).getResult();
-        }
-    }
-
-    /**
      * Remove a specific dc from strategy options, and wait till the new schema reaches all sites.
      * If the dc doesn't exist in the current strategy options, nothing changes.
      *
@@ -663,8 +618,8 @@ public class DbClientContext {
     public void removeDcFromStrategyOptions(String dcId)  {
         Map<String, String> strategyOptions;
         try {
-            strategyOptions = getKeyspace().describeKeyspace().getStrategyOptions();
-        } catch (ConnectionException ex) {
+            strategyOptions = this.getStrategyOptions();
+        } catch (DriverException ex) {
             log.error("Unexpected errors to describe keyspace", ex);
             throw DatabaseException.fatals.failedToChangeStrategyOption(ex.getMessage());
         }
@@ -714,37 +669,6 @@ public class DbClientContext {
         }
         log.error("Unable to converge schema versions {}", schemas);
         throw new IllegalStateException("Unable to converge schema versions");
-    }
-
-    /**
-     * Waits for schema change to propagate through cluster
-     *
-     * @param targetSchemaVersion version we are waiting for
-     * @throws InterruptedException
-     */
-    public void waitForSchemaAgreement(String targetSchemaVersion) {
-        long start = System.currentTimeMillis();
-        Map<String, List<String>> versions = null;
-        while (System.currentTimeMillis() - start < MAX_SCHEMA_WAIT_MS) {
-            log.info("schema version to sync to: {}", targetSchemaVersion);
-            versions = getSchemaVersions();
-
-            if (versions.size() == 1) {
-                if (!versions.containsKey(targetSchemaVersion)) {
-                    log.warn("Unable to converge to target version. Schema versions:{}, target version:{}",
-                            versions, targetSchemaVersion);
-                    return;
-                }
-                log.info("schema versions converged to target version {}", targetSchemaVersion);
-                return;
-            }
-
-            log.info("waiting for schema change ...");
-            try {
-                Thread.sleep(SCHEMA_RETRY_SLEEP_MILLIS);
-            } catch (InterruptedException ex) {}
-        }
-        log.warn("Unable to converge schema versions: {}", versions);
     }
 
     /**

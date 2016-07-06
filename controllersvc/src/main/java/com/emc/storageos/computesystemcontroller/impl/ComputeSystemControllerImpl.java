@@ -906,7 +906,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             HostSystem hostSystem = api.findHostSystem(vCenterDataCenter.getLabel(), esxHost.getLabel());
             HostStorageAPI storageAPI = new HostStorageAPI(hostSystem);
 
-            if (exportGroup != null) {
+            if (exportGroup != null && exportGroup.getVolumes() != null) {
                 for (String volume : exportGroup.getVolumes().keySet()) {
 
                     BlockObject blockObject = BlockObject.fetch(_dbClient, URI.create(volume));
@@ -971,38 +971,40 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             HostSystem hostSystem = api.findHostSystem(vCenterDataCenter.getLabel(), esxHost.getLabel());
             HostStorageAPI storageAPI = new HostStorageAPI(hostSystem);
 
-            for (String volume : exportGroup.getVolumes().keySet()) {
+            if (exportGroup != null && exportGroup.getVolumes() != null) {
+                for (String volume : exportGroup.getVolumes().keySet()) {
 
-                BlockObject blockObject = BlockObject.fetch(_dbClient, URI.create(volume));
-                if (blockObject != null && blockObject.getTag() != null) {
-                    for (ScopedLabel tag : blockObject.getTag()) {
-                        String tagValue = tag.getLabel();
-                        if (tagValue != null && tagValue.startsWith(VMFS_DATASTORE_PREFIX)) {
-                            String datastoreName = getDatastoreName(tagValue);
+                    BlockObject blockObject = BlockObject.fetch(_dbClient, URI.create(volume));
+                    if (blockObject != null && blockObject.getTag() != null) {
+                        for (ScopedLabel tag : blockObject.getTag()) {
+                            String tagValue = tag.getLabel();
+                            if (tagValue != null && tagValue.startsWith(VMFS_DATASTORE_PREFIX)) {
+                                String datastoreName = getDatastoreName(tagValue);
 
-                            Datastore datastore = api.findDatastore(vCenterDataCenter.getLabel(), datastoreName);
-                            if (datastore != null) {
-                                boolean storageIOControlEnabled = datastore.getIormConfiguration().isEnabled();
-                                if (storageIOControlEnabled) {
-                                    setStorageIOControl(api, datastore, false);
-                                }
-                                _log.info("Unmount datastore " + datastore.getName() + " from host " + esxHost.getLabel());
-                                storageAPI.unmountVmfsDatastore(datastore);
-                                if (storageIOControlEnabled) {
-                                    setStorageIOControl(api, datastore, true);
+                                Datastore datastore = api.findDatastore(vCenterDataCenter.getLabel(), datastoreName);
+                                if (datastore != null) {
+                                    boolean storageIOControlEnabled = datastore.getIormConfiguration().isEnabled();
+                                    if (storageIOControlEnabled) {
+                                        setStorageIOControl(api, datastore, false);
+                                    }
+                                    _log.info("Unmount datastore " + datastore.getName() + " from host " + esxHost.getLabel());
+                                    storageAPI.unmountVmfsDatastore(datastore);
+                                    if (storageIOControlEnabled) {
+                                        setStorageIOControl(api, datastore, true);
+                                    }
                                 }
                             }
                         }
                     }
-                }
-                for (HostScsiDisk entry : storageAPI.listScsiDisks()) {
-                    if (VolumeWWNUtils.wwnMatches(VMwareUtils.getDiskWwn(entry), blockObject.getWWN())) {
-                        _log.info("Detach SCSI Lun " + entry.getCanonicalName() + " from host " + esxHost.getLabel());
-                        storageAPI.detachScsiLun(entry);
+                    for (HostScsiDisk entry : storageAPI.listScsiDisks()) {
+                        if (VolumeWWNUtils.wwnMatches(VMwareUtils.getDiskWwn(entry), blockObject.getWWN())) {
+                            _log.info("Detach SCSI Lun " + entry.getCanonicalName() + " from host " + esxHost.getLabel());
+                            storageAPI.detachScsiLun(entry);
+                        }
                     }
-                }
-                storageAPI.refreshStorage();
+                    storageAPI.refreshStorage();
 
+                }
             }
         } catch (Exception ex) {
             _log.error(ex.getMessage(), ex);

@@ -7,6 +7,7 @@ package com.emc.storageos.db.client.impl;
 
 import com.netflix.astyanax.annotations.Component;
 
+import java.nio.ByteBuffer;
 import java.util.UUID;
 
 /**
@@ -23,6 +24,8 @@ public class IndexColumnName {
     String _four;
     private @Component(ordinal = 4)
     UUID _timeUUID;
+    
+    private ByteBuffer value;
 
     public IndexColumnName() {
     }
@@ -52,6 +55,15 @@ public class IndexColumnName {
         _four = four;
         _timeUUID = timeUUID;
     }
+    
+    public IndexColumnName(String one, String two, String three, String four, UUID timeUUID, ByteBuffer value) {
+        _one = one;
+        _two = two;
+        _three = three;
+        _four = four;
+        _timeUUID = timeUUID;
+        this.value = value;
+    }
 
     public String getOne() {
         return _one;
@@ -71,6 +83,10 @@ public class IndexColumnName {
 
     public UUID getTimeUUID() {
         return _timeUUID;
+    }
+    
+    public ByteBuffer getValue() {
+        return value;
     }
 
     @Override

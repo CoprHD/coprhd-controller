@@ -4,27 +4,25 @@
  */
 package com.emc.storageos.db.client.constraint.impl;
 
+import java.net.URI;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.Statement;
+import com.datastax.driver.core.exceptions.DriverException;
 import com.emc.storageos.db.client.constraint.AggregatedConstraint;
 import com.emc.storageos.db.client.impl.ColumnField;
 import com.emc.storageos.db.client.impl.ColumnValue;
-import com.emc.storageos.db.client.impl.CompositeColumnNameSerializer;
 import com.emc.storageos.db.client.impl.IndexColumnName;
 import com.emc.storageos.db.client.model.DataObject;
-import com.netflix.astyanax.Keyspace;
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
-import com.netflix.astyanax.model.Column;
-import com.netflix.astyanax.model.ColumnFamily;
-import com.netflix.astyanax.query.RowQuery;
-
-import java.net.URI;
 
 /**
  * Constrained query to get list of decommissioned object URIs of a given type
  */
 public class AggregatedConstraintImpl extends ConstraintImpl implements AggregatedConstraint {
-
-    private Keyspace keyspace;
-    private final ColumnFamily<String, IndexColumnName> cf;
+	private static final Logger log = LoggerFactory.getLogger(AggregatedConstraintImpl.class);
     private final ColumnField field;
     private final String fieldName;
     private final String rowKey;
@@ -38,7 +36,7 @@ public class AggregatedConstraintImpl extends ConstraintImpl implements Aggregat
 
         super(clazz, field, groupByField.getName(), groupByValue);
 
-        cf = field.getIndexCF();
+        cf = field.getIndexCF().getName();
         entryType = clazz;
         this.field = field;
         fieldName = field.getName();
@@ -50,7 +48,7 @@ public class AggregatedConstraintImpl extends ConstraintImpl implements Aggregat
 
         super(clazz, field);
 
-        cf = field.getIndexCF();
+        cf = field.getIndexCF().getName();
         entryType = clazz;
         this.field = field;
         fieldName = field.getName();
@@ -59,36 +57,32 @@ public class AggregatedConstraintImpl extends ConstraintImpl implements Aggregat
     }
 
     @Override
-    public void setKeyspace(Keyspace keyspace) {
-        this.keyspace = keyspace;
+    protected <T> void queryOnePage(final QueryResult<T> result) throws DriverException {
+        queryOnePageWithAutoPaginate(genQueryStatement(), result);
     }
 
     @Override
-    protected <T> void queryOnePage(final QueryResult<T> result) throws ConnectionException {
-        queryOnePageWithAutoPaginate(genQuery(), fieldName, result);
+    protected URI getURI(IndexColumnName col) {
+        return URI.create(col.getTwo());
     }
 
     @Override
-    protected URI getURI(Column<IndexColumnName> col) {
-        return URI.create(col.getName().getTwo());
+    protected <T> T createQueryHit(final QueryResult<T> result, IndexColumnName column) {
+        return result.createQueryHit(URI.create(column.getTwo()),
+                ColumnValue.getPrimitiveColumnValue(column.getValue(), field.getPropertyDescriptor()));
     }
-
+    
     @Override
-    protected <T> T createQueryHit(final QueryResult<T> result, Column<IndexColumnName> column) {
-        return result.createQueryHit(URI.create(column.getName().getTwo()),
-                ColumnValue.getPrimitiveColumnValue(column, field.getPropertyDescriptor()));
-    }
-
-    @Override
-    protected RowQuery<String, IndexColumnName> genQuery() {
-        return keyspace.prepareQuery(cf).getKey(rowKey)
-                .withColumnRange(
-                        CompositeColumnNameSerializer.get().buildRange()
-                                .greaterThanEquals(fieldName)
-                                .lessThanEquals(fieldName)
-                                .limit(pageCount)
-                );
-
+    protected Statement genQueryStatement() {
+        String queryString = String.format("select * from \"%s\" where key=? and column1=?", cf);
+        
+        PreparedStatement preparedStatement = this.dbClientContext.getPreparedStatement(queryString);
+        Statement statement =  preparedStatement.bind(rowKey,
+                fieldName);
+        statement.setFetchSize(pageCount);
+        
+        log.info("query string: {}", preparedStatement.getQueryString());
+        return statement;
     }
 
     @Override

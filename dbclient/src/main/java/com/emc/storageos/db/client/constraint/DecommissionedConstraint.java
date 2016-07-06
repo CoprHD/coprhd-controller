@@ -88,7 +88,7 @@ public interface DecommissionedConstraint extends Constraint {
                 Class<? extends DataObject> clazz, Boolean value, String columnName, Date startTime, Date endTime) {
             DataObjectType doType = TypeMap.getDoType(clazz);
             return new TimeConstraintImpl(clazz, value,
-                    doType.getColumnField(columnName).getIndexCF(), startTime, endTime);
+                    doType.getColumnField(columnName).getIndexCF().getName(), startTime, endTime);
         }
     }
 }

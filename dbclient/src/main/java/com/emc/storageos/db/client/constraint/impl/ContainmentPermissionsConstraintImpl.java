@@ -5,12 +5,15 @@
 package com.emc.storageos.db.client.constraint.impl;
 
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import com.netflix.astyanax.Keyspace;
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
-import com.netflix.astyanax.model.Column;
-import com.netflix.astyanax.query.RowQuery;
+
+import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.Statement;
+import com.datastax.driver.core.exceptions.DriverException;
 import com.emc.storageos.db.client.constraint.ContainmentPermissionsConstraint;
 import com.emc.storageos.db.client.impl.ColumnField;
 import com.emc.storageos.db.client.impl.IndexColumnName;
@@ -26,7 +29,6 @@ public class ContainmentPermissionsConstraintImpl extends ConstraintImpl impleme
 
     private String _indexKey;
     private String _prefix;
-    private Keyspace _keyspace;
     private ColumnField _field;
 
     public ContainmentPermissionsConstraintImpl(String indexKey, ColumnField field,
@@ -36,34 +38,39 @@ public class ContainmentPermissionsConstraintImpl extends ConstraintImpl impleme
         _indexKey = indexKey;
         _prefix = clazz.getSimpleName();
         _field = field;
+        cf = _field.getIndexCF().getName();
     }
 
     @Override
-    public void setKeyspace(Keyspace keyspace) {
-        _keyspace = keyspace;
+    protected <T> void queryOnePage(final QueryResult<T> result) throws DriverException {
+        StringBuilder queryString = generateQueryString();
+        
+        List<Object> queryParameters = new ArrayList<Object>();
+        queryParameters.add(_indexKey.toString());
+        
+        queryOnePageWithoutAutoPaginate(queryString, _prefix, result, queryParameters);
     }
 
     @Override
-    protected <T> void queryOnePage(final QueryResult<T> result) throws ConnectionException {
-        queryOnePageWithoutAutoPaginate(genQuery(), _prefix, result);
+    protected URI getURI(IndexColumnName col) {
+        return URI.create(col.getTwo());
     }
 
     @Override
-    protected URI getURI(Column<IndexColumnName> col) {
-        return URI.create(col.getName().getTwo());
+    protected <T> T createQueryHit(final QueryResult<T> result, IndexColumnName column) {
+        return result.createQueryHit(getURI(column), column.getThree(), column.getTimeUUID());
     }
-
+    
     @Override
-    protected <T> T createQueryHit(final QueryResult<T> result, Column<IndexColumnName> column) {
-        return result.createQueryHit(getURI(column), column.getName().getThree(), column.getName().getTimeUUID());
-    }
-
-    @Override
-    protected RowQuery<String, IndexColumnName> genQuery() {
-        RowQuery<String, IndexColumnName> query =
-                _keyspace.prepareQuery(_field.getIndexCF()).getKey(_indexKey);
-
-        return query;
+    protected Statement genQueryStatement() {
+        StringBuilder queryString = generateQueryString();
+        
+        PreparedStatement preparedStatement = this.dbClientContext.getPreparedStatement(queryString.toString());
+        Statement statement =  preparedStatement.bind(_indexKey.toString());
+        statement.setFetchSize(pageCount);
+        
+        log.info("query string: {}", preparedStatement.getQueryString());
+        return statement;
     }
 
     @Override
@@ -75,5 +82,11 @@ public class ContainmentPermissionsConstraintImpl extends ConstraintImpl impleme
 	public boolean isValid() {
         return this._indexKey!=null && !this._indexKey.isEmpty();
 	}
-
+	
+	private StringBuilder generateQueryString() {
+        StringBuilder queryString = new StringBuilder();
+        queryString.append("select * from \"").append(cf).append("\"");
+        queryString.append(" where key=?");
+        return queryString;
+    }
 }

@@ -6,18 +6,18 @@ package com.emc.storageos.db.client.constraint.impl;
 
 import java.util.NoSuchElementException;
 
+import com.datastax.driver.core.Statement;
+import com.emc.storageos.db.client.impl.DbClientContext;
 import com.emc.storageos.db.client.impl.IndexColumnName;
-import com.netflix.astyanax.model.Column;
-import com.netflix.astyanax.query.RowQuery;
 
 /**
  * QueryHitIterator with a filter based on column name
  */
 public abstract class FilteredQueryHitIterator<T> extends QueryHitIterator<T> {
-    private Column<IndexColumnName> _current;
-
-    public FilteredQueryHitIterator(RowQuery<String, IndexColumnName> query) {
-        super(query);
+    private IndexColumnName _current;
+    
+    public FilteredQueryHitIterator(DbClientContext dbClientContext, Statement queryStatement) {
+        super(dbClientContext, queryStatement);
     }
 
     @Override
@@ -30,8 +30,8 @@ public abstract class FilteredQueryHitIterator<T> extends QueryHitIterator<T> {
      * move current to the next valid entry per filter
      */
     private void skipToNext() {
-        while (_currentIt.hasNext()) {
-            _current = _currentIt.next();
+        while (resultIterator.hasNext()) {
+            _current = toIndexColumnName(resultIterator.next());
             if (filter(_current)) {
                 break;
             } else {
@@ -45,12 +45,9 @@ public abstract class FilteredQueryHitIterator<T> extends QueryHitIterator<T> {
      */
     private void moveNext() {
         _current = null;
-        while (_currentIt != null) {
-            skipToNext();
-            if (_current != null) {
-                return;
-            }
-            super.runQuery();
+        skipToNext();
+        if (_current != null) {
+        	return;
         }
     }
 
@@ -75,5 +72,5 @@ public abstract class FilteredQueryHitIterator<T> extends QueryHitIterator<T> {
      * @param column
      * @return true if filter likes column, false otherwise
      */
-    public abstract boolean filter(Column<IndexColumnName> column);
+    public abstract boolean filter(IndexColumnName column);
 }

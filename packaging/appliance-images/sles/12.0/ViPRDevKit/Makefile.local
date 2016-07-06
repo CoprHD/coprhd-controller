@@ -25,7 +25,6 @@ bless:
 	${CREATE_APPLIANCE_TOOL} -b ${CONF} ${JOB}
 
 clean:
-	git checkout LISTS/${NAME}.list
 	rm -rf config.sh
 	rm -rf ${JOB_DIR}
 

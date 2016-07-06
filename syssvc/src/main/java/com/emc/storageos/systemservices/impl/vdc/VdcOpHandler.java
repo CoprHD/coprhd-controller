@@ -56,6 +56,8 @@ public abstract class VdcOpHandler {
     private static final int VDC_OP_BARRIER_TIMEOUT = 360; 
     private static final int SWITCHOVER_ZK_WRITALE_WAIT_INTERVAL = 1000 * 5;
     private static final int FAILOVER_ZK_WRITALE_WAIT_INTERVAL = 1000 * 15;
+    private static final int MAX_ZK_WAIT_RETRY_TIMES = 12;
+    
     private static final int MAX_PAUSE_RETRY = 20;
     private static final int IPSEC_RESTART_DELAY = 1000 * 60; // 1 min
     
@@ -323,7 +325,6 @@ public abstract class VdcOpHandler {
                         throw new IllegalStateException("Failed to reach phase 2 agreement on data revision change");
                     }
                 } else {
-                    barrier.leave(VDC_OP_BARRIER_TIMEOUT, TimeUnit.SECONDS);
                     log.warn("Failed to reach agreement among all the nodes. Delay data revision change until next run");
                     throw new IllegalStateException("Failed to reach phase 1 agreement on data revision change");
                 }
@@ -777,14 +778,14 @@ public abstract class VdcOpHandler {
                 
                 flushVdcConfigToLocal();
                 refreshCoordinator();
-                proccessSingleNodeSiteCase();
                 
                 updateSwitchoverSiteState(site, SiteState.ACTIVE, setStateToActiveBarrier);
             } else {
-                isRebootNeeded = false;
-                flushVdcConfigToLocal();
-                proccessSingleNodeSiteCase();
-                refreshCoordinator();
+                isRebootNeeded = true;
+                // The third site just goes ahead to reboot.
+                // we need reconfig/restart zookeeper in order to make it treat new active site as Zk leader nodes. 
+                // Each time we restart coordinatorsvc, we must restart all ZK client. Otherwise ZK error "Xid out of order. Got Xid 21 with err -119 expected Xid 20"
+                // may happen due to inconsistent Zk Xid on different ZK observer node due to async zk replication
             }
         }
 
@@ -892,7 +893,7 @@ public abstract class VdcOpHandler {
                 return;
             }
             
-            coordinator.blockUntilZookeeperIsWritableConnected(SWITCHOVER_ZK_WRITALE_WAIT_INTERVAL);
+            coordinator.blockUntilZookeeperIsWritableConnected(SWITCHOVER_ZK_WRITALE_WAIT_INTERVAL, MAX_ZK_WAIT_RETRY_TIMES);
             
             barrier.enter();
             try {
@@ -949,7 +950,7 @@ public abstract class VdcOpHandler {
                 setConcurrentRebootNeeded(true);
                 coordinator.stopCoordinatorSvcMonitor();
                 reconfigVdc(false);
-                coordinator.blockUntilZookeeperIsWritableConnected(FAILOVER_ZK_WRITALE_WAIT_INTERVAL);
+                coordinator.blockUntilZookeeperIsWritableConnected(FAILOVER_ZK_WRITALE_WAIT_INTERVAL, MAX_ZK_WAIT_RETRY_TIMES);
                 processFailover();
                 localRepository.rebaseZkSnapshot();
                 waitForAllNodesAndReboot(site);
@@ -1019,7 +1020,7 @@ public abstract class VdcOpHandler {
         }
         
         private void waitForAllNodesAndReboot(Site site) throws Exception {
-            coordinator.blockUntilZookeeperIsWritableConnected(FAILOVER_ZK_WRITALE_WAIT_INTERVAL);
+            coordinator.blockUntilZookeeperIsWritableConnected(FAILOVER_ZK_WRITALE_WAIT_INTERVAL, MAX_ZK_WAIT_RETRY_TIMES);
             
             log.info("Wait for barrier to reboot cluster");
             
@@ -1043,8 +1044,8 @@ public abstract class VdcOpHandler {
         
         @Override
         public void execute() throws Exception {
-            //no need to wait any barrier and some nodes may not be up
-            reconfigVdc(false);
+            // Do nothing here since we are going to reboot. All properties will be flushed in VdcManager and
+            // services will be refreshed during reboot
         }
     }
 
@@ -1332,8 +1333,6 @@ public abstract class VdcOpHandler {
                 log.info("All nodes entered VdcPropBarrier at path {}", barrierPath);
             } else {
                 log.warn("Only Part of nodes entered within {} seconds at path {}", timeout, barrierPath);
-                // we need clean our double barrier if not all nodes enter it, but not need to wait for all nodes to leave since error occurs
-                barrier.leave(timeout, TimeUnit.SECONDS); 
                 throw new IllegalStateException("Only Part of nodes entered within timeout");
             }
         }

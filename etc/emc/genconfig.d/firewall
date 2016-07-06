@@ -109,7 +109,7 @@ _get_firewall_props() {
     fi
     echo "dr_dual_coordinator=${dual_coordinator}"
 
-    _get_props network_vip network_vip6 network_nodes_ipv4 network_nodes_ipv6 back_compat_preyoda
+    _get_props network_vip network_vip6 network_nodes_ipv4 network_nodes_ipv6 back_compat_preyoda site_is_standby
 }
 
 # Modify firewall custom rules if the OVF property for firewall is set to yes

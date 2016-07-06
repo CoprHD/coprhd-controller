@@ -9,8 +9,8 @@ import java.net.URI;
 import java.util.Iterator;
 import java.util.UUID;
 
+import com.emc.storageos.db.client.impl.DbClientContext;
 import com.emc.storageos.db.client.model.DataObject;
-import com.netflix.astyanax.Keyspace;
 
 /**
  * Top level marker for constraints
@@ -57,13 +57,8 @@ public interface Constraint {
         T createQueryHit(URI uri, Object entry);
 
     }
-
-    /**
-     * Sets keyspace for this constraint based query
-     * 
-     * @param keyspace
-     */
-    void setKeyspace(Keyspace keyspace);
+    
+    void setDbClientContext(DbClientContext dbClientContext);
 
     /**
      * Execute this query

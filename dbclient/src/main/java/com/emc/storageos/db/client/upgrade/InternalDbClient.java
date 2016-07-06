@@ -173,7 +173,7 @@ public class InternalDbClient extends DbClientImpl {
 
         URIQueryResultList inactiveResult = new URIQueryResultList();
         DecommissionedConstraint constraint = DecommissionedConstraint.Factory.getAllObjectsConstraint(clazz, true);
-        constraint.setKeyspace(getKeyspace(clazz));
+        constraint.setDbClientContext(getDbClientContext(clazz));
         constraint.execute(inactiveResult);
 
         int count = 0;
@@ -186,7 +186,7 @@ public class InternalDbClient extends DbClientImpl {
 
         URIQueryResultList activeResult = new URIQueryResultList();
         constraint = DecommissionedConstraint.Factory.getAllObjectsConstraint(clazz, false);
-        constraint.setKeyspace(getKeyspace(clazz));
+        constraint.setDbClientContext(getLocalContext());
         constraint.execute(activeResult);
 
         count = 0;
@@ -218,7 +218,7 @@ public class InternalDbClient extends DbClientImpl {
         URIQueryResultList result = new URIQueryResultList();
         DecommissionedConstraint constraint =
                 DecommissionedConstraint.Factory.getAllObjectsConstraint(clazz, null);
-        constraint.setKeyspace(localContext.getKeyspace());
+        constraint.setDbClientContext(getLocalContext());
         constraint.execute(result);
 
         Iterator<URI> recIt = result.iterator();

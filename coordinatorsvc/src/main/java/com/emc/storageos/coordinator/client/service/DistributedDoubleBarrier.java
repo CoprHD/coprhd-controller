@@ -110,7 +110,7 @@ public class DistributedDoubleBarrier
 
     /**
      * Enter the barrier and block until all members have entered or the timeout has
-     * elapsed
+     * elapsed. Its znode is cleaned up before return in case of timeout.
      *
      * @param maxWait max time to block
      * @param unit time unit
@@ -124,8 +124,16 @@ public class DistributedDoubleBarrier
         long            maxWaitMs = hasMaxWait ? TimeUnit.MILLISECONDS.convert(maxWait, unit) : Long.MAX_VALUE;
 
         boolean         readyPathExists = (client.checkExists().usingWatcher(watcher).forPath(readyPath) != null);
-        client.create().creatingParentContainersIfNeeded().withMode(CreateMode.EPHEMERAL).forPath(ourPath);
-
+ 
+        try {
+            // COPRHD FIX - if current node has been created, just go ahead
+            client.create().creatingParentContainersIfNeeded().withMode(CreateMode.EPHEMERAL).forPath(ourPath);
+        } 
+        catch ( KeeperException.NodeExistsException ignore )
+        {
+            // ignore if current node has been there
+        }
+        
         boolean         result = (readyPathExists || internalEnter(startMs, hasMaxWait, maxWaitMs));
         if ( connectionLost.get() )
         {
@@ -147,7 +155,11 @@ public class DistributedDoubleBarrier
 
     /**
      * Leave the barrier and block until all members have left or the timeout has
-     * elapsed
+     * elapsed.
+     * 
+     * If timeout happens for one member, all other members are going to leave with timeout
+     * and the return values are false for all members. Znode is left over under the barrier
+     * until the zookeeper client session terminates.
      *
      * @param maxWait max time to block
      * @param unit time unit
@@ -205,7 +217,7 @@ public class DistributedDoubleBarrier
             {
                 throw new KeeperException.ConnectionLossException();
             }
-
+            
             List<String> children;
             try
             {
@@ -263,9 +275,25 @@ public class DistributedDoubleBarrier
             {
                 if ( hasMaxWait )
                 {
+                    // COPRHD FIX - reset the notified flag before waiting again.  
+                    // BUGFIX - If it has been notified once before, timedWait() doesn't sleep anymore and return value is always true even
+                    // it fails with timeout
+                    hasBeenNotifiedLeave.set(false);
+                    
                     result = timedWait(startMs, maxWaitMs, hasBeenNotifiedLeave);
                     if ( !result )
                     {
+                        // COPRHD FIX - if it is leaving due to time out, keep our node there so that other watchers can notice 
+                        // this unsuccessful leave. In this case, leave() on other nodes should time out and return false as well
+                        if (!ourNodeShouldExist && ourIndex > 0) {
+                            try {    
+                                client.create().creatingParentContainersIfNeeded().withMode(CreateMode.EPHEMERAL).forPath(ourPath);
+                            } 
+                            catch ( KeeperException.NodeExistsException ignore )
+                            {
+                                // ignore if current node has been there
+                            }
+                        }
                         break;
                     }
                 }
@@ -319,6 +347,11 @@ public class DistributedDoubleBarrier
             if ( hasMaxWait )
             {
                 result = timedWait(startMs, maxWaitMs, hasBeenNotifiedEnter);
+                // COPRHD FIX - if we fail to enter due to timeout, we should remove our node. Otherwise another member
+                // may count the leftover and enter into barrier wrongly
+                if ( !result ) {
+                    checkDeleteOurPath(true);
+                }
             }
             else
             {

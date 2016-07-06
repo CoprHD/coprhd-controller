@@ -401,6 +401,7 @@ public class VPlexApiClient {
      * @param clusterInfoList A list of VPlexClusterInfo specifying the info for the VPlex
      *            clusters.
      * @param findVirtualVolume If true findVirtualVolume method is called after virtual volume is created.
+     * @param thinEnabled If true, the virtual volume should be created as a thin-enabled virtual volume.
      * 
      * @return The information for the created virtual volume.
      * 
@@ -410,11 +411,11 @@ public class VPlexApiClient {
     public VPlexVirtualVolumeInfo createVirtualVolume(
             List<VolumeInfo> nativeVolumeInfoList, boolean isDistributed,
             boolean discoveryRequired, boolean preserveData, String winningClusterId, List<VPlexClusterInfo> clusterInfoList,
-            boolean findVirtualVolume)
+            boolean findVirtualVolume, boolean thinEnabled)
                     throws VPlexApiException {
         s_logger.info("Request for virtual volume creation on VPlex at {}", _baseURI);
         return _virtualVolumeMgr.createVirtualVolume(nativeVolumeInfoList, isDistributed,
-                discoveryRequired, preserveData, winningClusterId, clusterInfoList, findVirtualVolume);
+                discoveryRequired, preserveData, winningClusterId, clusterInfoList, findVirtualVolume, thinEnabled);
     }
 
     /**
@@ -693,6 +694,19 @@ public class VPlexApiClient {
     public void removeMigrations(List<String> migrationNames) throws VPlexApiException {
         s_logger.info("Request to remove migrations on VPlex at {}", _baseURI);
         _migrationMgr.removeMigrations(migrationNames);
+    }
+
+    /**
+     * Sends a request to the VPLEX to turn on thin provisioning for the given
+     * virtual volume. Will return a boolean value indicating whether or not
+     * the request was a success.
+     * 
+     * @param virtualVolumeInfo the virtual volume to update
+     * @return true if the thin-enabled request was a success
+     */
+    public boolean setVirtualVolumeThinEnabled(VPlexVirtualVolumeInfo virtualVolumeInfo) {
+        s_logger.info(String.format("Request to set virtual volume %s to thin-enabled at %s", virtualVolumeInfo.getName(), _baseURI));
+        return _virtualVolumeMgr.setVirtualVolumeThinEnabled(virtualVolumeInfo);
     }
 
     /**

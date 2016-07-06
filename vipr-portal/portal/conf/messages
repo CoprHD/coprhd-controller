@@ -2572,10 +2572,15 @@ configProperties.password.state=state
 configProperties.backup.scheduled=Scheduled Backup
 configProperties.backup.manual=Manual Backup
 configProperties.backup.server=External Server
+configProperties.backup.server.invalid=External server cannot be reached
+configProperties.backup.serverType.invalid=External Server Type does not match External Server URL
+configProperties.backup.validate=Test External Server Settings
 configProperties.backup.setToZero.scheduler=WARNING: Setting the value as zero would cause all scheduled backup sets being reclaimed without any guarantee that they have been successfully uploaded to external server.
 configProperties.backup.setToZero.manual=WARNING: Setting the value as zero would disable manual backup creation.
 configProperties.backup.interval.invalid=WARNING: Invalid backup interval, please set it to a correct value.
 configProperties.backup.interval.invalid.inline=Please select an option value
+configProperties.backup.testSuccessful=Test external server settings successful
+configProperties.backup.credential.invalid=Bad user credential to access external server
 
 #Upgrade
 upgrade.title=Software Upgrade
@@ -3016,6 +3021,11 @@ currency.format=$%.2f
 order.submitSuccess=Your order has been successfully received and is being processed. You may leave this page and return at any time through your Orders.
 order.submitFailed=Your order was unable to be submitted due to an internal error.
 order.processingFailed=Error processing order
+order.pausedFailed=Your order was unable to be paused due to an internal error.
+order.resumeFailed=Your order was unable to be resumed due to an internal error.
+
+service.order.pause=Pausing...
+service.order.resume=Resuming...
 
 OrderStatus.PENDING=Preparing Order
 OrderStatus.EXECUTING=Executing...

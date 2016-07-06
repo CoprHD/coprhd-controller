@@ -21,6 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.Controller;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.ExportMask;
@@ -65,6 +66,7 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
     private boolean simulation = false;
     BlockDeviceController _blockController = null;
     WorkflowService _workflowService = null;
+    private CoordinatorClient _coordinator;
 
     public VplexCinderMaskingOrchestrator() {
 
@@ -90,6 +92,10 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
     @Override
     public void setWorkflowService(WorkflowService _workflowService) {
         this._workflowService = _workflowService;
+    }
+
+    public void setCoordinator(CoordinatorClient locator) {
+        _coordinator = locator;
     }
 
     @Override
@@ -229,8 +235,9 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
             // First step would be to update the zoning map based on the connectivity
             updateZoningMap(initiatorPortMap, directorToInitiatorIds,exportMask);
             
-            boolean passed = VPlexBackEndOrchestratorUtil.validateExportMask(varrayURI, initiatorPortMap, exportMask, null, directorToInitiatorIds,
-                    idToInitiatorMap, _dbClient, portWwnToClusterMap);
+            boolean passed = VPlexBackEndOrchestratorUtil.validateExportMask(
+                    varrayURI, initiatorPortMap, exportMask, null, directorToInitiatorIds,
+                    idToInitiatorMap, _dbClient, _coordinator, portWwnToClusterMap);
             
             if(!passed) {
                 // Mark this mask as inactive, so that we dont pick it in the next iteration

@@ -18,7 +18,6 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.DbConsistencyStatus;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.emc.storageos.db.client.impl.DbConsistencyCheckerHelper.IndexAndCf;
 
 public class DbConsistencyChecker {
@@ -37,7 +36,7 @@ public class DbConsistencyChecker {
         this.toConsole = toConsole;
     }
 
-    public int check() throws ConnectionException {
+    public int check() {
         init();
         int corruptedCount = 0;
         CheckType checkType = getCheckTypeFromZK();
@@ -133,9 +132,8 @@ public class DbConsistencyChecker {
      *
      * @param toConsole whether print out in the console
      * @return True, when no corrupted data found
-     * @throws ConnectionException
      */
-    private int checkObjectIndices() throws ConnectionException {
+    private int checkObjectIndices() {
         CheckType checkType = CheckType.OBJECT_INDICES;
         helper.logMessage("\nStart to check DataObject records that the related index is missing.\n", false, toConsole);
 
@@ -172,9 +170,8 @@ public class DbConsistencyChecker {
      *
      * @param toConsole whether print out in the console
      * @return the number of the corrupted rows in the index CFs
-     * @throws ConnectionException
      */
-    private int checkIndexObjects() throws ConnectionException {
+    private int checkIndexObjects() {
         CheckType checkType = CheckType.INDEX_OBJECTS;
         helper.logMessage("\nStart to check INDEX data that the related object records are missing.\n", false, toConsole);
 

@@ -4,20 +4,21 @@
  */
 package com.emc.storageos.db.client.constraint.impl;
 
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.Statement;
+import com.datastax.driver.core.exceptions.DriverException;
+import com.datastax.driver.core.utils.UUIDs;
 import com.emc.storageos.db.client.constraint.DecommissionedConstraint;
-import com.emc.storageos.db.client.impl.CompositeColumnNameSerializer;
 import com.emc.storageos.db.client.impl.IndexColumnName;
 import com.emc.storageos.db.client.model.DataObject;
-import com.netflix.astyanax.Keyspace;
-import com.netflix.astyanax.model.Column;
-import com.netflix.astyanax.model.ColumnFamily;
-import com.netflix.astyanax.query.RowQuery;
-import com.netflix.astyanax.util.RangeBuilder;
-import com.netflix.astyanax.util.TimeUUIDUtils;
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
-
-import java.net.URI;
-import java.util.Date;
 
 /**
  * Constraint to query indexed columns on a start/end time. This uses the same
@@ -26,10 +27,9 @@ import java.util.Date;
  * between this time period.
  */
 public class TimeConstraintImpl extends ConstraintImpl implements DecommissionedConstraint {
+	private static final Logger log = LoggerFactory.getLogger(TimeConstraintImpl.class);
     private static final long MILLIS_TO_MICROS = 1000L;
     private static final int DEFAULT_PAGE_SIZE = 100;
-    private Keyspace keyspace;
-    private final ColumnFamily<String, IndexColumnName> cf;
     private final String rowKey;
     private final long startTimeMicros;
     private final long endTimeMicros;
@@ -44,7 +44,7 @@ public class TimeConstraintImpl extends ConstraintImpl implements Decommissioned
      * @param startTimeMillis Start time in milliseconds or -1 for no filtering on start time.
      * @param endTimeMillis End time in milliseconds or -1 for no filtering on end time.
      */
-    public TimeConstraintImpl(Class<? extends DataObject> clazz, ColumnFamily<String, IndexColumnName> cf,
+    public TimeConstraintImpl(Class<? extends DataObject> clazz, String cf,
             Boolean value, long startTimeMillis, long endTimeMillis) {
         this.cf = cf;
         rowKey = clazz.getSimpleName();
@@ -63,44 +63,23 @@ public class TimeConstraintImpl extends ConstraintImpl implements Decommissioned
      * @param endTime End time Date or null for no filtering on end time
      */
     public TimeConstraintImpl(Class<? extends DataObject> clazz, Boolean value,
-            ColumnFamily<String, IndexColumnName> cf, Date startTime, Date endTime) {
+            String cf, Date startTime, Date endTime) {
         this(clazz, cf, value,
                 startTime == null ? -1 : startTime.getTime(),
                 endTime == null ? -1 : endTime.getTime());
     }
-
-    @Override
-    public void setKeyspace(Keyspace keyspace) {
-        this.keyspace = keyspace;
-    }
-
+    
     @Override
     public <T> void execute(final QueryResult<T> result) {
-        RowQuery<String, IndexColumnName> query;
-        if (value == null) {
-            query = keyspace.prepareQuery(cf).getKey(rowKey)
-                    .autoPaginate(true)
-                    .withColumnRange(new RangeBuilder().setLimit(DEFAULT_PAGE_SIZE).build());
-        }
-        else {
-            query = keyspace.prepareQuery(cf).getKey(rowKey)
-                    .autoPaginate(true)
-                    .withColumnRange(
-                            CompositeColumnNameSerializer.get().buildRange()
-                                    .greaterThanEquals(value.toString())
-                                    .lessThanEquals(value.toString())
-                                    .limit(DEFAULT_PAGE_SIZE));
-        }
-
-        FilteredQueryHitIterator<T> it = new FilteredQueryHitIterator<T>(query) {
+        FilteredQueryHitIterator<T> it = new FilteredQueryHitIterator<T>(dbClientContext, genQueryStatement()) {
             @Override
-            protected T createQueryHit(Column<IndexColumnName> column) {
-                return result.createQueryHit(URI.create(column.getName().getTwo()));
+            protected T createQueryHit(IndexColumnName column) {
+                return result.createQueryHit(URI.create(column.getTwo()));
             }
 
             @Override
-            public boolean filter(Column<IndexColumnName> column) {
-                long timeMarked = TimeUUIDUtils.getMicrosTimeFromUUID(column.getName().getTimeUUID());
+            public boolean filter(IndexColumnName column) {
+                long timeMarked = UUIDs.unixTimestamp(column.getTimeUUID())*1000;
                 // Filtering on startTime, startTime = -1 for no filtering
                 if (startTimeMicros > 0 && timeMarked < startTimeMicros) {
                     return false;
@@ -118,36 +97,48 @@ public class TimeConstraintImpl extends ConstraintImpl implements Decommissioned
     }
 
     @Override
-    protected <T> void queryOnePage(final QueryResult<T> result) throws ConnectionException {
-        queryOnePageWithoutAutoPaginate(genQuery(), Boolean.toString(value), result);
+    protected <T> void queryOnePage(final QueryResult<T> result) throws DriverException {
+        StringBuilder queryString = new StringBuilder();
+        queryString.append("select * from \"").append(cf).append("\"");
+        queryString.append(" where key=?");
+        
+        List<Object> queryParameters = new ArrayList<Object>();
+        queryParameters.add(rowKey);
+        
+        queryOnePageWithoutAutoPaginate(queryString, Boolean.toString(value), result, queryParameters);
     }
 
     @Override
-    protected URI getURI(Column<IndexColumnName> col) {
-        return URI.create(col.getName().getTwo());
+    protected URI getURI(IndexColumnName col) {
+        return URI.create(col.getTwo());
     }
 
     @Override
-    protected <T> T createQueryHit(final QueryResult<T> result, Column<IndexColumnName> column) {
-        return result.createQueryHit(URI.create(column.getName().getTwo()));
+    protected <T> T createQueryHit(final QueryResult<T> result, IndexColumnName column) {
+        return result.createQueryHit(URI.create(column.getTwo()));
     }
-
+    
     @Override
-    protected RowQuery<String, IndexColumnName> genQuery() {
-        RowQuery<String, IndexColumnName> query;
-        if (value == null) {
-            query = keyspace.prepareQuery(cf).getKey(rowKey)
-                    .withColumnRange(new RangeBuilder().setLimit(pageCount).build());
-        } else {
-            query = keyspace.prepareQuery(cf).getKey(rowKey)
-                    .withColumnRange(
-                            CompositeColumnNameSerializer.get().buildRange()
-                                    .greaterThanEquals(value.toString())
-                                    .lessThanEquals(value.toString())
-                                    .limit(pageCount));
+    protected Statement genQueryStatement() {
+        StringBuilder queryString = new StringBuilder();
+        queryString.append("select * from \"").append(cf).append("\"");
+        queryString.append(" where key=?");
+        
+        List<Object> queryParameters = new ArrayList<Object>();
+        queryParameters.add(rowKey);
+        
+        if (value != null) {
+            queryString.append(" and column1=?");
+            queryParameters.add(value.toString());
         }
-
-        return query;
+        
+        
+        PreparedStatement preparedStatement = this.dbClientContext.getPreparedStatement(queryString.toString());
+        Statement statement =  preparedStatement.bind(queryParameters.toArray(new Object[]{0}));
+        statement.setFetchSize(DEFAULT_PAGE_SIZE);
+        
+        log.info("query string: {}", preparedStatement.getQueryString());
+        return statement;
     }
 
     @Override

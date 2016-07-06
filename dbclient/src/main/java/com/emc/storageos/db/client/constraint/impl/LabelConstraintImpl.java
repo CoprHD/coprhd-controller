@@ -5,12 +5,13 @@
 package com.emc.storageos.db.client.constraint.impl;
 
 import java.net.URI;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import com.netflix.astyanax.Keyspace;
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
-import com.netflix.astyanax.model.Column;
-import com.netflix.astyanax.query.RowQuery;
+
+import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.Statement;
+import com.datastax.driver.core.exceptions.DriverException;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.impl.ColumnField;
 import com.emc.storageos.db.client.impl.IndexColumnName;
@@ -21,17 +22,16 @@ import com.emc.storageos.db.client.model.ScopedLabel;
  * find resources matching label
  */
 public class LabelConstraintImpl extends ConstraintImpl implements PrefixConstraint {
-    private static final Logger log = LoggerFactory.getLogger(LabelConstraintImpl.class);
-
+	private static final Logger log = LoggerFactory.getLogger(LabelConstraintImpl.class);
     private ScopedLabel _label;
     private ColumnField _field;
-    private Keyspace _keyspace;
 
     public LabelConstraintImpl(String label, ColumnField field) {
         super(label, field);
 
         _label = new ScopedLabel(null, label.toLowerCase());
         _field = field;
+        cf = _field.getIndexCF().getName();
     }
 
     public LabelConstraintImpl(URI scope, String label, ColumnField field) {
@@ -43,35 +43,36 @@ public class LabelConstraintImpl extends ConstraintImpl implements PrefixConstra
             _label = new ScopedLabel(scope.toString(), label.toLowerCase());
         }
         _field = field;
+        cf = _field.getIndexCF().getName();
     }
 
     @Override
-    public void setKeyspace(Keyspace keyspace) {
-        _keyspace = keyspace;
+    protected <T> void queryOnePage(final QueryResult<T> result) throws DriverException {
+        queryOnePageWithAutoPaginate(genQueryStatement(), result);
     }
 
     @Override
-    protected <T> void queryOnePage(final QueryResult<T> result) throws ConnectionException {
-        queryOnePageWithAutoPaginate(genQuery(), result);
+    protected URI getURI(IndexColumnName col) {
+        return URI.create(col.getFour());
     }
 
     @Override
-    protected URI getURI(Column<IndexColumnName> col) {
-        return URI.create(col.getName().getFour());
+    protected <T> T createQueryHit(final QueryResult<T> result, IndexColumnName column) {
+        return result.createQueryHit(getURI(column), column.getThree(), column.getTimeUUID());
     }
-
+    
     @Override
-    protected <T> T createQueryHit(final QueryResult<T> result, Column<IndexColumnName> column) {
-        return result.createQueryHit(getURI(column), column.getName().getThree(), column.getName().getTimeUUID());
-    }
-
-    @Override
-    protected RowQuery<String, IndexColumnName> genQuery() {
-        RowQuery<String, IndexColumnName> query = _keyspace.prepareQuery(_field.getIndexCF())
-                .getKey(_field.getPrefixIndexRowKey(_label))
-                .withColumnRange(_field.buildMatchRange(_label.getLabel(), pageCount));
-
-        return query;
+    protected Statement genQueryStatement() {
+        String queryString = String.format("select * from \"%s\" where key=? and column1=? and column2=?", cf);
+        
+        PreparedStatement preparedStatement = this.dbClientContext.getPreparedStatement(queryString.toString());
+        Statement statement =  preparedStatement.bind(_field.getPrefixIndexRowKey(_label),
+                _field.getDataObjectType().getSimpleName(),
+                _label.getLabel());
+        statement.setFetchSize(pageCount);
+        
+        log.info("query string: {}", preparedStatement.getQueryString());
+        return statement;
     }
 
     @Override

@@ -142,6 +142,20 @@ public class DefaultStorageDriver extends AbstractStorageDriver implements Block
         task.setMessage(msg);
         return task;
     }
+    
+    @Override
+    public DriverTask stopManagement(StorageSystem driverStorageSystem){
+    	_log.info("Stopping management for StorageSystem {}", driverStorageSystem.getNativeId());
+    	String driverName = this.getClass().getSimpleName();
+        String taskId = String.format("%s+%s+%s", driverName, "stopManagement", UUID.randomUUID().toString());
+        DriverTask task = new DefaultDriverTask(taskId);
+        task.setStatus(DriverTask.TaskStatus.FAILED);
+        
+        String msg = String.format("%s: %s --- operation is not supported.", driverName, "stopManagement");
+        _log.warn(msg);
+        task.setMessage(msg);
+        return task;
+    }
 
     @Override
     public DriverTask deleteVolumeSnapshot(List<VolumeSnapshot> snapshots) {
@@ -257,6 +271,38 @@ public class DefaultStorageDriver extends AbstractStorageDriver implements Block
         String msg = String.format("%s: %s --- operation is not supported.", driverName, "deleteConsistencyGroupMirror");
         _log.warn(msg);
         task.setMessage(msg);
+        return task;
+    }
+    
+    @Override
+    public DriverTask addVolumesToConsistencyGroup (List<StorageVolume> volumes, StorageCapabilities capabilities){
+    	_log.info("addVolumesToConsistencyGroup : unsupported operation.");
+    	String driverName = this.getClass().getSimpleName();
+        String taskType = "add-volumes-to-consistency-groupd";
+        String taskId = String.format("%s+%s+%s", driverName, taskType, UUID.randomUUID().toString());
+        DriverTask task = new DefaultDriverTask(taskId);
+        task.setStatus(DriverTask.TaskStatus.FAILED);
+        
+        String msg = String.format("addVolumesToConsistencyGroup: unsupported operation");
+        _log.info(msg);
+        task.setMessage(msg);
+        
+        return task;
+    }
+    
+    @Override
+    public DriverTask removeVolumesFromConsistencyGroup(List<StorageVolume> volumes,  StorageCapabilities capabilities){
+    	_log.info("removeVolumesFromConsistencyGroup : unsupported operation.");
+        String taskType = "remove-volumes-to-consistency-groupd";
+        String driverName = this.getClass().getSimpleName();
+        String taskId = String.format("%s+%s+%s", driverName, taskType, UUID.randomUUID().toString());
+        DriverTask task = new DefaultDriverTask(taskId);
+        task.setStatus(DriverTask.TaskStatus.FAILED);
+        
+        String msg = String.format("removeVolumesFromConsistencyGroup: unsupported operation");
+        _log.info(msg);
+        task.setMessage(msg);
+        
         return task;
     }
 

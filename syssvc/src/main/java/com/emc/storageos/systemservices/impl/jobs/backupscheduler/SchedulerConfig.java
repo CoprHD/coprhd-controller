@@ -19,10 +19,10 @@ import com.emc.storageos.db.client.model.EncryptionProvider;
 import com.emc.storageos.db.client.model.UserPreferences;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.management.backup.BackupConstants;
+import com.emc.storageos.management.backup.ExternalServerType;
 import com.emc.storageos.model.property.PropertyInfo;
 import com.emc.storageos.security.mail.MailHelper;
 import com.emc.storageos.coordinator.client.service.InterProcessLockHolder;
-import com.emc.storageos.services.util.Strings;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
 import com.emc.vipr.model.sys.ClusterInfo.ClusterState;
 import com.emc.vipr.model.sys.backup.BackupUploadStatus;
@@ -36,9 +36,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
 import java.net.URI;
-import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
@@ -75,6 +73,8 @@ public class SchedulerConfig {
     public int intervalMultiple;
     public Integer startOffsetMinutes;
     public int copiesToKeep;
+    private ExternalServerType uploadServerType;
+    private String uploadDomain;
     public String uploadUrl;
     public String uploadUserName;
     private byte[] uploadPassword;
@@ -96,6 +96,16 @@ public class SchedulerConfig {
         return getExternalServerUrl(propInfo);
     }
 
+    public ExternalServerType getExternalServerType() {
+        PropertyInfo propInfo = coordinator.getCoordinatorClient().getPropertyInfo();
+        return getExternalServerType(propInfo);
+    }
+
+    public String getExternalDomain() {
+        PropertyInfo propInfo = coordinator.getCoordinatorClient().getPropertyInfo();
+        return getExternalDomain(propInfo);
+    }
+
     public String getExternalServerUserName() {
         PropertyInfo propInfo = coordinator.getCoordinatorClient().getPropertyInfo();
         return getExternalServerUserName(propInfo);
@@ -108,6 +118,21 @@ public class SchedulerConfig {
             return "";
         }
         return this.encryptionProvider.decrypt(Base64.decodeBase64(password));
+    }
+    public ExternalServerType getUploadServerType() {
+        return this.uploadServerType;
+    }
+
+    public void setUploadServerType(ExternalServerType uploadServerType) {
+        this.uploadServerType = uploadServerType;
+    }
+
+    public String getUploadDomain() {
+        return this.uploadDomain;
+    }
+
+    public void setUploadDomain(String uploadDomain){
+        this.uploadDomain = uploadDomain;
     }
 
     public Calendar now() {
@@ -125,11 +150,14 @@ public class SchedulerConfig {
 
         initBackupInterval(propInfo);
         this.schedulerEnabled = isSchedulerEnabled(propInfo);
-        this.startOffsetMinutes = getStartOffsetMinutes(propInfo);
-        this.copiesToKeep = getCopiesToKeep(propInfo);
+        this.startOffsetMinutes = fetchStartOffsetMinutes(propInfo);
+        this.copiesToKeep = fetchCopiesToKeep(propInfo);
+        this.uploadServerType = getExternalServerType();
         this.uploadUrl = getExternalServerUrl(propInfo);
+        this.uploadDomain = getExternalDomain();
         this.uploadUserName = getExternalServerUserName(propInfo);
         this.uploadPassword = getExternalServerPassword(propInfo);
+
 
         initRetainedAndUploadedBackups();
     }
@@ -158,7 +186,7 @@ public class SchedulerConfig {
         return (enableStr == null || enableStr.length() == 0) ? false : Boolean.parseBoolean(enableStr);
     }
 
-    private int getStartOffsetMinutes(PropertyInfo propInfo) {
+    private int fetchStartOffsetMinutes(PropertyInfo propInfo) {
         int startOffset = 0;
         String startTimeStr = propInfo.getProperty(BackupConstants.SCHEDULE_TIME);
         if (startTimeStr != null && startTimeStr.length() > 0) {
@@ -174,7 +202,7 @@ public class SchedulerConfig {
         return startOffset;
     }
 
-    private int getCopiesToKeep(PropertyInfo propInfo) {
+    private int fetchCopiesToKeep(PropertyInfo propInfo) {
         int retentionNumber = BackupConstants.DEFAULT_BACKUP_COPIES_TO_KEEP;
         String copiesStr = propInfo.getProperty(BackupConstants.COPIES_TO_KEEP);
         if (copiesStr != null && copiesStr.length() > 0) {
@@ -194,6 +222,15 @@ public class SchedulerConfig {
             url = urlStr + "/";
         }
         return url;
+    }
+
+    private ExternalServerType getExternalServerType(PropertyInfo propInfo) {
+        String serverType = propInfo.getProperty(BackupConstants.UPLOAD_SERVER_TYPE);
+        return ExternalServerType.valueOf(serverType);
+    }
+
+    private String getExternalDomain(PropertyInfo propInfo) {
+        return propInfo.getProperty(BackupConstants.UPLOAD_SERVER_DOMAIN);
     }
 
     private String getExternalServerUserName(PropertyInfo propInfo) {

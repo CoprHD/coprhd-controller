@@ -679,20 +679,28 @@
           "baseService": "CreateVolume"
         },
         {
+          "image": "icon_db_unexport_remove.png",
+          "baseService": "RemoveBlockStorage"
+        },
+        {
           "image": "icon_db_remove.png",
           "baseService": "RemoveUnexportedBlockStorage"
         },
         {
-          "image": "Service_Discover_Unmanaged_Volumes.png",
-          "baseService": "DiscoverUnmanagedVolumes"
+          "image": "icon_db_expand.png",
+          "baseService": "ExpandBlockStorage"
         },
         {
-          "image": "Service_Ingest_Unmanaged_Volumes.png",
-          "baseService": "IngestUnexportedUnmanagedVolumes"
+          "image": "Service_Create_Block_Snapshot.png",
+          "baseService": "CreateBlockSnapshot"
         },
-        {
-          "image": "Service_Change_Virtual_Array.png",
-          "baseService": "ChangeVolumeVirtualArray"
+		{
+          "image": "Service_Restore_Block_Snapshot.png",
+          "baseService": "RestoreBlockSnapshot"
+        },
+		{
+          "image": "Service_Remove_Block_Snapshot.png",
+          "baseService": "RemoveBlockSnapshot"
         }
       ]
     }

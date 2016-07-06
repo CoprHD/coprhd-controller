@@ -52,6 +52,7 @@ import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup;
 import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.TenantOrg;
@@ -3136,8 +3137,10 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     public void doInitiatorAliasSet(StorageSystem storage, Initiator initiator, String initiatorAlias)
             throws Exception {
 
-        if (storage.getUsingSmis80()) {
-            // TODO: Version SMI-S 8.2 onwards for now and later change to version 8.3
+        if (!checkIfProviderSupportsInitiatorAlias(storage)) {
+            _log.error("SMI-S Provider associated with Storage System {} does not support Initiator Alias operations",
+                    storage.getSerialNumber());
+            throw DeviceControllerException.exceptions.operationNotSupported();
         }
         // Use the initiator port names to match up with initiators CIMObjectPaths on
         // the device. We're doing it this way because generating the CIMObjectPaths
@@ -3198,9 +3201,12 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             throws Exception {
         String initiatorAlias = null;
 
-        if (storage.getUsingSmis80()) {
-            // TODO: Version SMI-S 8.2 onwards for now and later change to version 8.3
+        if (!checkIfProviderSupportsInitiatorAlias(storage)) {
+            _log.error("SMI-S Provider associated with Storage System {} does not support Initiator Alias operations",
+                    storage.getSerialNumber());
+            throw DeviceControllerException.exceptions.operationNotSupported();
         }
+
         // Use the initiator port names to match up with initiators CIMObjectPaths on
         // the device. We're doing it this way because generating the CIMObjectPaths
         // based on piecing together the initiator name is treacherous.
@@ -3248,5 +3254,22 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
         }
 
         return initiatorAlias;
+    }
+
+    private boolean checkIfProviderSupportsInitiatorAlias(StorageSystem storageSystem) {
+        if (storageSystem.checkIfVmax3() && storageSystem.getUsingSmis80()) {
+            try {
+                StorageProvider storageProvider = _dbClient.queryObject(StorageProvider.class, storageSystem.getActiveProviderURI());
+                String providerVersion = storageProvider.getVersionString();
+                String versionSubstring = providerVersion.split("\\.")[1];
+                return (Integer.parseInt(versionSubstring) >= 2);
+            } catch (Exception e) {
+                _log.error("Exception get provider version for the storage system {} {}.", storageSystem.getLabel(),
+                        storageSystem.getId());
+                return false;
+            }
+        } else {
+            return false;
+        }
     }
 }

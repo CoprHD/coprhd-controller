@@ -20,22 +20,14 @@
   var editMode = #{get 'editMode'/};
   var errors = #{get 'errors'/};
 
-    function addTenants() {
-        if ($('#ldapSources_mode').val() == 'keystone' && $('#ldapSources_autoRegCoprHDNImportOSProjects').is(':checked') == true) {
-             $('#ldapSourceForm').submit(function(){
-                $.post($(this).attr('action'), $(this).serialize(), function(response){
-                     table.tenants.dataTable.create();
-                     table.tenants.dataTable.updateSelectedFooter();
-                     table.tenants.dataTable.reset();
-                     $('#addTenants').modal({
-                         backdrop: 'static',
-                         keyboard: false
-                     });
-                 },'xml');
-                 return false;
-             });
-        }
-        submitForm();
+  function showTenantsDialog() {
+      table.tenants.dataTable.create();
+      table.tenants.dataTable.updateSelectedFooter();
+      table.tenants.dataTable.reset();
+      $('#addTenants').modal({
+          backdrop: 'static',
+          keyboard: false
+      });
   }
 
     function submitForm(){
@@ -56,6 +48,16 @@
         $('#ldapSources_autoRegCoprHDNImportOSProjects').on('change', showTenantsSyncOptions);
 
         setFormByType();
+    });
+
+    $(window).load(function(){
+        var showDialog = '${showDialog}';
+        if (showDialog === 'true' && editMode) {
+            showTenantsDialog();
+            setTimeout(function () {
+                table.tenants.dataTable.selectAll();
+            }, 3000);
+        }
     });
     
     function setFormByType() {
@@ -344,7 +346,7 @@
 
   </fieldset>
     #{Form.buttonBar}
-    #{Form.button name:'button.save', class:'primary', icon:'ok-sign', size:'large', action:'addTenants();'/}
+    #{Form.button name:'button.save', class:'primary', icon:'ok-sign', size:'large', action:'submitForm();'/}
     #{Form.button name:'button.cancel', icon:'trash', size:'large', href:@list()/}
     #{/Form.buttonBar}
 #{/form}

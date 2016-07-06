@@ -88,7 +88,7 @@ public class LDAPsources extends ViprResourceController {
             + CinderConstants.OS_ADMIN_PORT
             + CinderConstants.REST_API_VERSION_2;
     private static final String DEFAULT_INTERVAL = "900";
-    
+
     //
     // Add reference data so that they can be reference in html template
     //
@@ -111,7 +111,7 @@ public class LDAPsources extends ViprResourceController {
 
     /**
      * if it was not redirect from another page, clean flash
-     * 
+     *
      * @param redirect
      */
     public static void list() {
@@ -226,13 +226,17 @@ public class LDAPsources extends ViprResourceController {
             Common.handleError();
         }
 
-        ldapSources.save();
+        AuthnProviderRestRep authnProvider = ldapSources.save();
         authnProviderName = ldapSources.name;
 
-        if (!ldapSources.autoRegCoprHDNImportOSProjects) {
-            flash.success(MessagesUtils.get(SAVED, ldapSources.name));
-            list();
+        flash.success(MessagesUtils.get(SAVED, ldapSources.name));
+
+        if (ldapSources.autoRegCoprHDNImportOSProjects) {
+            renderArgs.put("showDialog", "true");
+            edit(new LDAPsourcesForm(authnProvider));
         }
+
+        list();
     }
 
     public static void delete(@As(",") String[] ids) {
@@ -259,7 +263,7 @@ public class LDAPsources extends ViprResourceController {
         public String description;
 
         public Boolean disable;
-        
+
         public Boolean autoRegCoprHDNImportOSProjects;
 
         public List<String> tenantsSynchronizationOptions;
@@ -282,13 +286,13 @@ public class LDAPsources extends ViprResourceController {
 
         public String managerPassword;
 
-       
+
         public String searchBase;
 
-        
+
         public String searchFilter;
 
-       
+
         public String searchScope;
 
         @Required

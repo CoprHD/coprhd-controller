@@ -19,7 +19,7 @@ public class InitiatorAliasGetParam {
         this.systemURI = systemURI;
     }
 
-    @XmlElement(required = true, name = "system")
+    @XmlElement(required = true, name = "system_uri")
     public URI getSystemURI() {
         return systemURI;
     }

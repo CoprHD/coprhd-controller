@@ -87,7 +87,7 @@ public class InitiatorService extends TaskResourceService {
 
     private static final String EVENT_SERVICE_TYPE = "initiator";
     private static final String ALIAS = "Alias-Operations";
-    private static final String EMPTY_INITIATOR_ALIAS = "//";
+    private static final String EMPTY_INITIATOR_ALIAS = "/";
 
     @Override
     public String getServiceType() {
@@ -317,6 +317,7 @@ public class InitiatorService extends TaskResourceService {
      */
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/alias-get")
     public String getInitiatorAlias(@PathParam("id") URI id, InitiatorAliasGetParam aliasGetParam) {
         // Basic Checks
@@ -366,6 +367,7 @@ public class InitiatorService extends TaskResourceService {
      */
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/alias-set")
     public void setInitiatorAlias(@PathParam("id") URI id, InitiatorAliasSetParam aliasSetParam) {
         //Basic Checks

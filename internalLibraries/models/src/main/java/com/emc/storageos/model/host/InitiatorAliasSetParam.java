@@ -31,16 +31,16 @@ public class InitiatorAliasSetParam {
         this.initiatorAlias = initiatorAlias;
     }
 
-    @XmlElement(required = true, name = "system")
+    @XmlElement(required = true, name = "system_uri")
     public URI getSystemURI() {
         return systemURI;
     }
 
     public void setSystemURI(URI systemURI) {
-        systemURI = systemURI;
+        this.systemURI = systemURI;
     }
 
-    @XmlElement(required = true, name = "alias")
+    @XmlElement(required = true, name = "initiator_alias")
     public String getInitiatorAlias() {
         return initiatorAlias;
     }

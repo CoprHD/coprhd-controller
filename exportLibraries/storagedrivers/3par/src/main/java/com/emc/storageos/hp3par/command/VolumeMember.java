@@ -12,12 +12,14 @@ public class VolumeMember {
 	private Integer provisioningType;
 	private Integer copyType;
 	private Long baseId;
+	private Long physParentId;
 	private boolean readOnly;
 	private String userCPG;
 	private String copyOf;	
 	private Integer state;
 	private Long sizeMiB;
 	private String wwn;
+	
 	public String getId() {
 		return id;
 	}
@@ -84,6 +86,11 @@ public class VolumeMember {
 	public void setWwn(String wwn) {
 		this.wwn = wwn;
 	}
-		
+	public Long getPhysParentId() {
+		return physParentId;
+	}
+	public void setPhysParentId(Long physParentId) {
+		this.physParentId = physParentId;
+	}
 	
 }

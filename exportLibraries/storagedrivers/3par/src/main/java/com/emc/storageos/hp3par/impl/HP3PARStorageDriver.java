@@ -440,7 +440,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 				driverVolume.setDeviceLabel(objVolMember.getName());
 
 				// if the volumesToVolSetsMap contains the volume name entry. It  means 
-				//that volume belongs to consistencygroup(volume set in hp3par teminology)
+				//that volume belongs to consistency group(volume set in hp3par terminology)
 				if (volumesToVolSetsMap.containsKey(objVolMember.getName())) {
 					driverVolume.setConsistencyGroup(volumesToVolSetsMap.get(objVolMember.getName()).get(0));
 				} else {
@@ -894,12 +894,87 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 		return null;
     }
 
+    /**
+     * Identifying clones of the given parent base volume.
+     * NOTE: Intermediate physical copies of 3PAR generated from other snapshots/clone are shown as clone of base volume itself
+     * Need to check this behavior ?
+     */
     @Override
-    public List<VolumeClone> getVolumeClones(StorageVolume volume) {
-    	_log.info("3PARDriver: getVolumeClones Running ");
-        // TODO Auto-generated method stub
-        return null;
-    }
+	public List<VolumeClone> getVolumeClones(StorageVolume volume) {
+		_log.info("3PARDriver: getVolumeClones Running ");
+		List<VolumeClone> clones = new ArrayList<>();
+
+		try {
+			_log.info("vvolToVvolsMap is {}", vvolToVvolsMap.toString());
+
+			HP3PARApi hp3parApi = getHP3PARDeviceFromNativeId(volume.getStorageSystemId());
+			// VolumesCommandResult snapsResult =
+			// hp3parApi.getClonesOfVolume(volume.getNativeId());
+
+			HashMap<String, ArrayList<VolumeMember>> volMappings = null;
+			ArrayList listOfChildVols = null;
+
+			if (vvolToVvolsMap.containsKey(volume.getStorageSystemId())) {
+				volMappings = vvolToVvolsMap.get(volume.getStorageSystemId());
+				listOfChildVols = volMappings.get(volume.getNativeId());
+			} else {
+				return clones;
+			}
+
+			_log.info("listOfChildVols.size()  is {}", listOfChildVols.size());
+
+			// for (int i = 0; i < snapsResult.getTotal(); i++) {
+			for (int i = 0; i < listOfChildVols.size(); i++) {
+				// VolumeMember is the data structure used for representation of
+				// the HP3PAR virtual volume
+				VolumeMember objClone = (VolumeMember) listOfChildVols.get(i);
+				if (objClone.getCopyType() == copyType.PHYSICAL_COPY.getValue()) {
+					// VolumeClone is the CoprHD southbound freamework's data
+					// structure
+					VolumeClone driverClone = new VolumeClone();
+
+					driverClone.setParentId(volume.getNativeId());
+					driverClone.setNativeId(objClone.getName());
+					driverClone.setDeviceLabel(objClone.getName());
+					driverClone.setStorageSystemId(volume.getStorageSystemId());
+					driverClone.setStoragePoolId(volume.getStoragePoolId());
+					driverClone.setAccessStatus(StorageObject.AccessStatus.READ_ONLY);
+
+					if (volume.getConsistencyGroup() != null) {
+						driverClone.setConsistencyGroup(volume.getConsistencyGroup());
+					}
+
+					driverClone.setWwn(objClone.getWwn());
+					driverClone.setThinlyProvisioned(volume.getThinlyProvisioned());
+
+					// TODO: We need to have more clarity on provisioned and
+					// allocated sizes
+					driverClone.setAllocatedCapacity(objClone.getSizeMiB() * HP3PARConstants.MEGA_BYTE);
+					driverClone.setProvisionedCapacity(objClone.getSizeMiB() * HP3PARConstants.MEGA_BYTE);
+					driverClone.setReplicationState(VolumeClone.ReplicationState.SYNCHRONIZED);
+					clones.add(driverClone);
+
+					/*
+					 * Attached clones in HP3PAR cannot be exported, and
+					 * detached clone will not be shown as physical copy, it
+					 * becomes a base volume. 
+					 * 
+					 * if (GENERATE_EXPORT_DATA) { //generate export data for this clone --- the same export
+					 * 								data as for its parent volume
+					 * generateExportDataForVolumeReplica(volume, clone); }
+					 */
+				}
+			}
+			return clones;
+		} catch (Exception e) {
+			String msg = String.format(
+					"3PARDriver: Unable to get clone of volume with storage system %s and volume native id %s; Error: %s.\n",
+					volume.getStorageSystemId(), volume.getNativeId(), e.getMessage());
+			e.printStackTrace();
+		}
+
+		return null;
+	}
 
     @Override
     public List<VolumeMirror> getVolumeMirrors(StorageVolume volume) {
@@ -1249,7 +1324,6 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
     @Override
     public Map<String, HostExportInfo> getCloneExportInfoForHosts(VolumeClone clone) {
     	_log.info("3PARDriver: getCloneExportInfoForHosts Running ");
-    	_log.info("3PARDriver: getSnapshotExportInfoForHosts Running ");       
     	_log.info("volume.getdisplay name is {}",clone.getNativeId());
 		_log.info("volume.getstoragesysid  is {}",clone.getStorageSystemId());		
 		return getBlockObjectExportInfoForHosts(clone.getStorageSystemId(), clone.getWwn() , clone.getNativeId(), clone);

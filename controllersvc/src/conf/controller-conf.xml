@@ -772,7 +772,6 @@
         <property name="dbClient" ref="dbclient"/>
         <property name="workflowService" ref="workflowService" />
         <property name="hostExportManager" ref="hostExportMgr" />
-        <property name="migrationControllerWorkflowUtil" ref="migrationControllerWorkflowUtil" />
     </bean>
     
     <bean id="hostExportMgr" class="com.emc.storageos.migrationcontroller.HostExportManager">

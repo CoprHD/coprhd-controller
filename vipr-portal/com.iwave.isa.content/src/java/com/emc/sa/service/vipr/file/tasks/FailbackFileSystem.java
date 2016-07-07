@@ -34,7 +34,7 @@ public class FailbackFileSystem extends WaitForTasks<FileShareRestRep> {
 
         FileReplicationParam param = new FileReplicationParam();
         param.getCopies().add(copy);
-        return getClient().fileSystems().failback(failbackSource, param);
+        return getClient().fileSystems().failBackContinousCopies(failbackSource, param);
     }
 
 }

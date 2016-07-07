@@ -11,9 +11,7 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.netflix.astyanax.ColumnListMutation;
 import com.netflix.astyanax.model.ColumnFamily;
-import com.netflix.astyanax.model.Column;
 
 import com.emc.storageos.db.client.model.*;
 
@@ -56,31 +54,25 @@ public class ScopedLabelDbIndex extends DbIndex {
         return true;
     }
 
-    boolean removeColumn(String recordKey, Column<CompositeColumnName> column,
-            String className, RowMutator mutator,
-            Map<String, List<Column<CompositeColumnName>>> fieldColumnMap) {
-        UUID uuid = column.getName().getTimeUUID();
+    @Override
+    boolean removeColumn(String recordKey, CompositeColumnName column, String className,
+                         RowMutatorDS mutator, Map<String, List<CompositeColumnName>> fieldColumnMap) {
+        UUID uuid = column.getTimeUUID();
 
         String text = column.getStringValue();
         String label = ScopedLabel.fromString(text).getLabel();
 
         // delete scoped row
         String scopedRowKey = getRowKey(column);
-        ColumnListMutation<IndexColumnName> indexColList =
-                mutator.getIndexColumnList(indexCF, scopedRowKey);
+        IndexColumnName indexEntry = new IndexColumnName(className, label.toLowerCase(), label, recordKey, uuid);
 
-        IndexColumnName indexEntry =
-                new IndexColumnName(className, label.toLowerCase(), label, recordKey, uuid);
-
-        indexColList.deleteColumn(indexEntry);
+        mutator.deleteIndexColumn(indexCF.getName(), scopedRowKey, indexEntry);
 
         // delete global row
         String rowKey = getRowKey(label);
-        indexColList = mutator.getIndexColumnList(indexCF, rowKey);
-
         indexEntry = new IndexColumnName(className, label.toLowerCase(), label, recordKey, uuid);
 
-        indexColList.deleteColumn(indexEntry);
+        mutator.deleteIndexColumn(indexCF.getName(), rowKey, indexEntry);
 
         return true;
     }
@@ -99,7 +91,7 @@ public class ScopedLabelDbIndex extends DbIndex {
         return getRowKey(val);
     }
 
-    String getRowKey(Column<CompositeColumnName> column) {
+    String getRowKey(CompositeColumnName column) {
         String text = column.getStringValue();
         ScopedLabel label = ScopedLabel.fromString(text);
 

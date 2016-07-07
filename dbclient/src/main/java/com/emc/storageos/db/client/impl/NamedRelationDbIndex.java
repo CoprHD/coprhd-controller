@@ -36,21 +36,15 @@ public class NamedRelationDbIndex extends DbIndex {
     }
 
     @Override
-    boolean removeColumn(String recordKey, Column<CompositeColumnName> column,
-            String className, RowMutator mutator,
-            Map<String, List<Column<CompositeColumnName>>> fieldColumnMap) {
-        ColumnListMutation<IndexColumnName> indexColList =
-                mutator.getIndexColumnList(indexCF, getRowKey(column));
-
-        UUID uuid = column.getName().getTimeUUID();
+    boolean removeColumn(String recordKey, CompositeColumnName column, String className,
+                         RowMutatorDS mutator, Map<String, List<CompositeColumnName>> fieldColumnMap) {
+        String rowKey = getRowKey(column);
+        UUID uuid = column.getTimeUUID();
         NamedURI namedURI = NamedURI.fromString(column.getStringValue());
         String name = namedURI.getName();
+        IndexColumnName indexEntry = new IndexColumnName(className, name.toLowerCase(), name, recordKey, uuid);
 
-        IndexColumnName indexEntry =
-                new IndexColumnName(className, name.toLowerCase(), name, recordKey, uuid);
-
-        indexColList.deleteColumn(indexEntry);
-
+        mutator.deleteIndexColumn(indexCF.getName(), rowKey, indexEntry);
         return true;
     }
 
@@ -58,7 +52,7 @@ public class NamedRelationDbIndex extends DbIndex {
         return ((NamedURI) value).getURI().toString();
     }
 
-    String getRowKey(Column<CompositeColumnName> column) {
+    String getRowKey(CompositeColumnName column) {
         NamedURI namedURI = NamedURI.fromString(column.getStringValue());
         return namedURI.getURI().toString();
     }

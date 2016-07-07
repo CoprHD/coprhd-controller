@@ -76,25 +76,23 @@ public class AggregateDbIndex extends DbIndex {
     }
 
     @Override
-    boolean removeColumn(String recordKey, Column<CompositeColumnName> column,
-            String className, RowMutator mutator,
-            Map<String, List<Column<CompositeColumnName>>> fieldColumnMap) {
+    boolean removeColumn(String recordKey, CompositeColumnName column, String className,
+                         RowMutatorDS mutator, Map<String, List<CompositeColumnName>> fieldColumnMap) {
 
-        IndexColumnName indexField = new IndexColumnName(fieldName, recordKey, column.getName().getTimeUUID());
+        IndexColumnName indexField = new IndexColumnName(fieldName, recordKey, column.getTimeUUID());
 
         if (groupGlobal) {
-            mutator.getIndexColumnList(indexCF, className).deleteColumn(indexField);
+            mutator.deleteIndexColumn(indexCF.getName(), className, indexField);
         }
 
         for (String group : groupBy) {
             ColumnField field = groupByFields.get(group);
-            List<Column<CompositeColumnName>> groupByColumns = fieldColumnMap.get(field.getName());
+            List<CompositeColumnName> groupByColumns = fieldColumnMap.get(field.getName());
             if (groupByColumns != null) {
-                for (Column<CompositeColumnName> groupByCol : groupByColumns) {
-                    Object groupValue = ColumnValue.getPrimitiveColumnValue(groupByCol, field.getPropertyDescriptor());
+                for (CompositeColumnName groupByCol : groupByColumns) {
+                    Object groupValue = ColumnValue.getPrimitiveColumnValue(groupByCol.getValue(), field.getPropertyDescriptor());
                     if (groupValue != null) {
-                        mutator.getIndexColumnList(indexCF, getRowKey(className, groupValue)).
-                                deleteColumn(indexField);
+                        mutator.deleteIndexColumn(indexCF.getName(), getRowKey(className, groupValue), indexField);
                     }
                 }
             }
@@ -103,26 +101,24 @@ public class AggregateDbIndex extends DbIndex {
     }
 
     @Override
-    boolean removeColumn(String recordKey, Column<CompositeColumnName> column,
-            String className, RowMutator mutator,
-            Map<String, List<Column<CompositeColumnName>>> fieldColumnMap,
-            DataObject obj) {
+    boolean removeColumn(String recordKey, CompositeColumnName column, String className,
+                         RowMutatorDS mutator, Map<String, List<CompositeColumnName>> fieldColumnMap,
+                         DataObject obj) {
 
         IndexColumnName indexField = new IndexColumnName(fieldName, recordKey, (UUID) null);
 
         for (String group : groupBy) {
             ColumnField field = groupByFields.get(group);
-            List<Column<CompositeColumnName>> groupByColumns = fieldColumnMap.get(field.getName());
+            List<CompositeColumnName> groupByColumns = fieldColumnMap.get(field.getName());
             if (groupByColumns != null) {
                 Object latestValue = null;
                 if (obj != null) {
                     latestValue = ColumnField.getFieldValue(field, obj);
                 }
-                for (Column<CompositeColumnName> groupByCol : groupByColumns) {
-                    Object groupValue = ColumnValue.getPrimitiveColumnValue(groupByCol, field.getPropertyDescriptor());
+                for (CompositeColumnName groupByCol : groupByColumns) {
+                    Object groupValue = ColumnValue.getPrimitiveColumnValue(groupByCol.getValue(), field.getPropertyDescriptor());
                     if (groupValue != null && !groupValue.equals(latestValue)) {
-                        mutator.getIndexColumnList(indexCF, getRowKey(className, groupValue)).
-                                deleteColumn(indexField);
+                        mutator.deleteIndexColumn(indexCF.getName(), getRowKey(className, groupValue), indexField);
                     }
                 }
             }

@@ -7,9 +7,7 @@ package com.emc.storageos.db.client.impl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.netflix.astyanax.ColumnListMutation;
 import com.netflix.astyanax.model.ColumnFamily;
-import com.netflix.astyanax.model.Column;
 
 import com.emc.storageos.db.client.model.*;
 
@@ -44,9 +42,8 @@ public class PrefixDbIndex extends DbIndex {
     }
 
     @Override
-    boolean removeColumn(String recordKey, Column<CompositeColumnName> column,
-            String className, RowMutator mutator,
-            Map<String, List<Column<CompositeColumnName>>> fieldColumnMap) {
+    boolean removeColumn(String recordKey, CompositeColumnName column, String className,
+                         RowMutatorDS mutator, Map<String, List<CompositeColumnName>> fieldColumnMap) {
         String text = column.getStringValue();
         if (text.isEmpty() || text.length() < minPrefixChars) {
             _log.warn("String too short in prefix index field: {}, value: {}", fieldName, text);
@@ -54,16 +51,9 @@ public class PrefixDbIndex extends DbIndex {
         }
 
         String indexRowKey = getRowKey(column);
+        IndexColumnName indexEntry = new IndexColumnName(className, text.toLowerCase(), text, recordKey, column.getTimeUUID());
 
-        ColumnListMutation<IndexColumnName> indexColList = mutator.getIndexColumnList(indexCF, indexRowKey);
-
-        CompositeColumnName columnName = column.getName();
-
-        IndexColumnName indexEntry =
-                new IndexColumnName(className, text.toLowerCase(), text, recordKey, columnName.getTimeUUID());
-
-        indexColList.deleteColumn(indexEntry);
-
+        mutator.deleteIndexColumn(indexCF.getName(), indexRowKey, indexEntry);
         return true;
     }
 
@@ -81,7 +71,7 @@ public class PrefixDbIndex extends DbIndex {
         return getRowKey(value);
     }
 
-    String getRowKey(Column<CompositeColumnName> column) {
+    String getRowKey(CompositeColumnName column) {
         return getRowKey(column.getStringValue());
     }
 

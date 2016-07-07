@@ -12,9 +12,7 @@ import java.net.URI;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.netflix.astyanax.ColumnListMutation;
 import com.netflix.astyanax.model.ColumnFamily;
-import com.netflix.astyanax.model.Column;
 
 import com.emc.storageos.db.client.model.*;
 
@@ -36,18 +34,12 @@ public class RelationDbIndex extends DbIndex {
     }
 
     @Override
-    boolean removeColumn(String recordKey, Column<CompositeColumnName> column,
-            String className, RowMutator mutator,
-            Map<String, List<Column<CompositeColumnName>>> fieldColumnMap) {
+    boolean removeColumn(String recordKey, CompositeColumnName column, String className,
+                         RowMutatorDS mutator, Map<String, List<CompositeColumnName>> fieldColumnMap) {
         String rowKey = getRowKey(column);
+        UUID uuid = column.getTimeUUID();
 
-        ColumnListMutation<IndexColumnName> indexColList =
-                mutator.getIndexColumnList(indexCF, rowKey);
-
-        UUID uuid = column.getName().getTimeUUID();
-
-        indexColList.deleteColumn(new IndexColumnName(className, recordKey, uuid));
-
+        mutator.deleteIndexColumn(indexCF.getName(), rowKey, new IndexColumnName(className, recordKey, uuid));
         return true;
     }
 
@@ -59,9 +51,9 @@ public class RelationDbIndex extends DbIndex {
         return ((URI) value).toString();
     }
 
-    String getRowKey(Column<CompositeColumnName> column) {
+    String getRowKey(CompositeColumnName column) {
         if (indexByKey) {
-            return column.getName().getTwo();
+            return column.getTwo();
         }
 
         return column.getStringValue();

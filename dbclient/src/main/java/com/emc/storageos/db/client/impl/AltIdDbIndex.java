@@ -41,17 +41,12 @@ public class AltIdDbIndex extends DbIndex {
     }
 
     @Override
-    boolean removeColumn(String recordKey, Column<CompositeColumnName> column,
-            String className, RowMutator mutator,
-            Map<String, List<Column<CompositeColumnName>>> fieldColumnMap) {
-        UUID uuid = column.getName().getTimeUUID();
-
+    boolean removeColumn(String recordKey, CompositeColumnName column, String className,
+                         RowMutatorDS mutator, Map<String, List<CompositeColumnName>> fieldColumnMap) {
+        UUID uuid = column.getTimeUUID();
         String rowKey = getRowKey(column);
 
-        ColumnListMutation<IndexColumnName> indexColList = mutator.getIndexColumnList(indexCF, rowKey);
-
-        indexColList.deleteColumn(new IndexColumnName(className, recordKey, uuid));
-
+        mutator.deleteIndexColumn(indexCF.getName(), rowKey, new IndexColumnName(className, recordKey, uuid));
         return true;
     }
 
@@ -63,9 +58,9 @@ public class AltIdDbIndex extends DbIndex {
         return value.toString();
     }
 
-    String getRowKey(Column<CompositeColumnName> column) {
+    String getRowKey(CompositeColumnName column) {
         if (indexByKey) {
-            return column.getName().getTwo();
+            return column.getTwo();
         }
 
         return column.getStringValue();

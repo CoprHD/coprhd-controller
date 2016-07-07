@@ -9,6 +9,7 @@ import java.nio.ByteBuffer;
 import java.util.UUID;
 
 import com.netflix.astyanax.annotations.Component;
+import org.apache.cassandra.serializers.UTF8Serializer;
 
 /**
  * Composite column name for all data object fields
@@ -89,6 +90,10 @@ public class CompositeColumnName {
 
     public ByteBuffer getValue() {
         return value;
+    }
+    
+    public String getStringValue() {
+        return UTF8Serializer.instance.deserialize(value);
     }
 
     @Override

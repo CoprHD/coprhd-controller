@@ -7,6 +7,8 @@ package com.emc.storageos.db.client.impl;
 import java.util.Map;
 import java.util.List;
 import java.util.UUID;
+
+import org.apache.cassandra.serializers.BooleanSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,16 +37,13 @@ public class DecommissionedDbIndex extends DbIndex {
     }
 
     @Override
-    boolean removeColumn(String recordKey, Column<CompositeColumnName> column,
-            String className, RowMutator mutator,
-            Map<String, List<Column<CompositeColumnName>>> fieldColumnMap) {
-        ColumnListMutation<IndexColumnName> indexColList = mutator.getIndexColumnList(indexCF, className);
+    boolean removeColumn(String recordKey, CompositeColumnName column, String className,
+                         RowMutatorDS mutator, Map<String, List<CompositeColumnName>> fieldColumnMap) {
+        String rowKey = className;
+        UUID uuid = column.getTimeUUID();
+        Boolean val = BooleanSerializer.instance.deserialize(column.getValue());
 
-        UUID uuid = column.getName().getTimeUUID();
-        Boolean val = column.getBooleanValue();
-
-        indexColList.deleteColumn(new IndexColumnName(val.toString(), recordKey, uuid));
-
+        mutator.deleteIndexColumn(indexCF.getName(), rowKey, new IndexColumnName(val.toString(), recordKey, uuid));
         return true;
     }
 

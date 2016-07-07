@@ -98,6 +98,7 @@ import com.netflix.astyanax.model.ConsistencyLevel;
 import com.netflix.astyanax.model.Row;
 import com.netflix.astyanax.model.Rows;
 import com.netflix.astyanax.util.TimeUUIDUtils;
+import org.springframework.util.CollectionUtils;
 
 /**
  * Default database client implementation
@@ -2000,6 +2001,11 @@ public class DbClientImpl implements DbClient {
         if (lastKey != null) {
             result.put(lastKey, rows);
         }
+        return result;
+    }
+    
+    private Map<String, List<CompositeColumnName>> queryRowWithAllColumns(DbClientContext context, URI id, String tableName) {
+        Map<String, List<CompositeColumnName>> result = queryRowsWithAllColumns(context, Arrays.asList(id), tableName);
         return result;
     }
     

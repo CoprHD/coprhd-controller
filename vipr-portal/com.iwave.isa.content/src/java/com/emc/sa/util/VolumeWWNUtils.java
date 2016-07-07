@@ -116,11 +116,11 @@ public class VolumeWWNUtils {
     }
 
     /**
-     * Partial match of two WWNs. The partial string may match the end characters of the full WWN.
+     * Partial match of two WWNs. The partial string may match the end or middle characters of the full WWN.
      * 
      * @param actual The actual WWN of a volume. Always 32 characters.
-     * @param partial The partial WWN which must match the end part of the actual.
-     * @return True if the strings are equal or the partial string is at the end of the actual.
+     * @param partial The partial WWN which must match the end or middle part of the actual.
+     * @return True if the strings are equal or the partial string is at the end or middle of the actual.
      */
     private static boolean partialMatch(String actual, String partial) {
         if (actual == null || partial == null) {
@@ -130,9 +130,13 @@ public class VolumeWWNUtils {
         int partialLength = partial.length();
         if (actualLength == partialLength) {
             return actual.equalsIgnoreCase(partial);
-        }
-        else if (actualLength > partialLength) {
-            return actual.toLowerCase().endsWith(partial.toLowerCase());
+        } else if (actualLength > partialLength) {
+            if (actual.toLowerCase().endsWith(partial.toLowerCase())) {
+                return true;
+            } else if (partialLength == PARTIAL_WWN_LENGTH &&
+                    actual.toLowerCase().contains(partial.toLowerCase())) {
+                return true;
+            }
         }
         // This would only happen is for some reason the partial string was longer
         return false;

@@ -4526,12 +4526,15 @@ recoverpoint_direct_access_test()
             fi 
         done 
 
-        #if [ "${#rp_tgt_varrays[@]}" -gt "1" ]; then
-        #    secho 'Add replication set to consistency group while a copy is in direct access mode'
-        #    run volume create ${new_volume} $PROJECT ${rp_src_varray} ${rp_src_vpool} $RP_VOLUME_SIZE --consistencyGroup ${consistency_group} --count=1
-        #    secho 'Remove replication set from consistency group while a copy is in direct access mode'		
-        #    volume delete $PROJECT/${new_volume} --wait
-        #fi
+        if [ "${#rp_tgt_varrays[@]}" -gt "1" ]; then
+            secho 'Add replication set to consistency group while a copy is in direct access mode'
+            run volume create ${new_volume} $PROJECT ${rp_src_varray} ${rp_src_vpool} $RP_VOLUME_SIZE --consistencyGroup ${consistency_group} --count=1
+            secho 'Ensure the target volume on the direct access RP copy has the appropriate access state and link status'
+            run volume verify ${PROJECT}/${new_volume}-target-${direct_access_mode_varray} access_state READWRITE
+            run volume verify ${PROJECT}/${new_volume}-target-${direct_access_mode_varray} link_status FAILED_OVER
+            secho 'Remove replication set from consistency group while a copy is in direct access mode (failover) - expected failure'		
+            fail volume delete $PROJECT/${new_volume} --wait
+        fi
 
         secho 'Expand source volume when one of the RP target copies is in direct access mode'
         run volume expand ${PROJECT}/${src_volume} ${RP_SIZE_EXPAND}

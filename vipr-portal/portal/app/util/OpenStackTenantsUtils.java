@@ -47,4 +47,8 @@ public class OpenStackTenantsUtils {
         getViprClient().openStackTenants().registerOpenStackTenants(list);
     }
 
+    public static void synchronizeOpenStackTenants() {
+        getViprClient().openStackTenants().synchronizeOpenStackTenants();
+    }
+
 }

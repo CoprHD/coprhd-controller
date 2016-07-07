@@ -1,0 +1,45 @@
+#{Modal.dialog id:'syncOptions'}
+  #{Modal.header}
+    <h4 class="modal-title">&{'keystoneProvider.title'}</h4>
+  #{/Modal.header}
+  #{form @syncOptions(), id:'keystoneProviderForm', class:'form form-horizontal'}
+        #{field 'keystoneProvider.tenantsSynchronizationOptions'}
+          %{
+          }%
+          #{Form.selectManyControlGroup field:field, options:tenantsOptions/}
+        #{/field}
+
+        #{field 'keystoneProvider.synchronizationInterval'}
+          %{
+            field.helpTextKey = field.name + '.description'
+            field.required = true
+          }%
+          #{Form.inputTextControlGroup field:field /}
+        #{/field}
+    #{Modal.footer}
+      #{Modal.buttonBar}
+        #{Form.button 'button.syncOptions', class:'primary', icon:'ok-sign', type:'submit'/}
+      #{/Modal.buttonBar}
+    #{/Modal.footer}
+  #{/form}
+#{/Modal.dialog}
+
+<script type="text/javascript">
+    $(document).ready(function() {
+        var interval = $('#keystoneProvider_synchronizationInterval');
+        interval.val('${interval}');
+        $('#syncOptions').on('shown.bs.modal', function(e) {
+            $('#name').focus();
+        });
+        $('#syncOptions').on('show.bs.modal', function(e) {
+            $('#name').val('').trigger('change');
+        });
+        $('#name').on('change keydown keyup', function(e) {
+            if (e.which != 10 && e.which != 13) {
+                var value = $(this).val();
+                $('#syncOptions button.btn-primary').prop('disabled',
+                        (value == null) || (value == '') || (value.trim() == ''));
+            }
+        });
+    });
+</script>

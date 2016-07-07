@@ -3867,6 +3867,7 @@ button.dissociate=Dissociate Project
 button.failover=Failover
 button.ipsec.rotate.keys=Rotate IPsec Key
 button.synchronize=Synchronize
+button.syncOptions=Sync Options
 selectOne.chooseOption=-- Please Choose --
 
 button.mirroring.start=Start

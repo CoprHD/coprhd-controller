@@ -10,7 +10,8 @@
                         actions: ['Tenants.roleAssignments': @listRoles(':id')],
                         deleteConfirm:messages.get('tenants.deleteConfirm')}
     #{if isKeystoneAuthnProviderCreated}
-         #{Form.button name:'button.synchronize', class:'success', action:'$("#synchronizeOSTenants").modal()'/}
+         #{Form.button name:'button.synchronize', class:'info', action:'$("#synchronizeOSTenants").modal()'/}
+         #{Form.button name:'button.syncOptions', class:'info', action:'$("#syncOptions").modal()'/}
     #{/if}
   #{/DataTable.crudTable}
 #{/deadbolt.restrict}
@@ -22,4 +23,7 @@
     disableSelectable:true/}
 #{/deadbolt.restrict}
 
-#{include 'tenant/Tenants/synchronizeOSTenants.html'/}
+#{if isKeystoneAuthnProviderCreated}
+    #{include 'tenant/Tenants/synchronizeOSTenants.html'/}
+    #{include 'tenant/Tenants/syncOptions.html'/}
+#{/if}

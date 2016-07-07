@@ -4,7 +4,9 @@
  */
 package controllers.tenant;
 
+import com.emc.storageos.db.client.model.AuthnProvider;
 import com.emc.storageos.model.auth.AuthnProviderRestRep;
+import com.emc.storageos.model.auth.AuthnUpdateParam;
 import com.emc.storageos.model.auth.RoleAssignmentEntry;
 import com.emc.storageos.model.keystone.CoprhdOsTenant;
 import com.emc.storageos.model.keystone.CoprhdOsTenantListRestRep;
@@ -12,6 +14,7 @@ import com.emc.storageos.model.quota.QuotaInfo;
 import com.emc.storageos.model.tenant.*;
 import com.emc.vipr.client.core.util.ResourceUtils;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import com.google.gson.Gson;
 
 import controllers.Common;
@@ -22,6 +25,7 @@ import controllers.util.ViprResourceController;
 import controllers.util.FlashException;
 import models.RoleAssignmentType;
 import models.Roles;
+import models.TenantsSynchronizationOptions;
 import models.datatable.OpenStackTenantsDataTable;
 import models.datatable.TenantRoleAssignmentDataTable;
 import models.datatable.TenantsDataTable;
@@ -55,10 +59,25 @@ import static util.RoleAssignmentUtils.putTenantRoleAssignmentChanges;
 public class Tenants extends ViprResourceController {
     protected static final String UNKNOWN = "tenants.unknown";
     protected static final String UPDATED = "keystoneProvider.updated";
+    protected static final String SAVED = "LDAPsources.saved";
+    protected static final String INTERVAL_ERROR = "ldapSources.synchronizationInterval.integerRequired";
+    private static String authnProviderName = "";
+    // Minimum interval in seconds.
+    public static final int MIN_INTERVAL_DELAY = 10;
 
     public static void list() {
         TenantsDataTable dataTable = new TenantsDataTable();
-        renderArgs.put("osTenants", new TenantsSynchronization.KeystoneSynchronizationTenantsDataTable());
+        if (isKeystoneAuthnProviderCreated()) {
+            AuthnProviderRestRep authnProvider = AuthnProviderUtils.getKeystoneAuthProvider();
+            authnProviderName = authnProvider.getName();
+            TenantsSyncOptionsForm keystoneProvider = new TenantsSyncOptionsForm();
+            keystoneProvider.readFrom(authnProvider);
+            renderArgs.put("tenantsOptions",
+                    TenantsSynchronizationOptions.options(TenantsSynchronizationOptions.ADDITION, TenantsSynchronizationOptions.DELETION));
+            renderArgs.put("interval", getInterval(authnProvider));
+            renderArgs.put("osTenants", new TenantsSynchronization.KeystoneSynchronizationTenantsDataTable());
+            render(dataTable, keystoneProvider);
+        }
         render(dataTable);
     }
 
@@ -117,6 +136,7 @@ public class Tenants extends ViprResourceController {
      * Gets the list of OpenStack tenants.
      */
     public static void tenantsListJson() {
+        OpenStackTenantsUtils.synchronizeOpenStackTenants();
         List<OpenStackTenantsDataTable.OpenStackTenant> tenants = Lists.newArrayList();
         for (CoprhdOsTenant tenant : OpenStackTenantsUtils.getOpenStackTenantsFromDataBase()) {
             tenants.add(new OpenStackTenantsDataTable.OpenStackTenant(tenant));
@@ -130,6 +150,36 @@ public class Tenants extends ViprResourceController {
             return true;
         }
         return false;
+    }
+
+    public static String getInterval(AuthnProviderRestRep authnProvider) {
+        String interval = "";
+        for (String option : authnProvider.getTenantsSynchronizationOptions()) {
+            // There is only ADDITION, DELETION and interval in this StringSet.
+            if (!AuthnProvider.TenantsSynchronizationOptions.ADDITION.toString().equals(option) &&
+                    !AuthnProvider.TenantsSynchronizationOptions.DELETION.toString().equals(option)) {
+                interval = option;
+            }
+        }
+        return interval;
+    }
+
+    public static class KeystoneSynchronizationTenantsDataTable extends OpenStackTenantsDataTable {
+        public KeystoneSynchronizationTenantsDataTable() {
+            alterColumn("name").setRenderFunction(null);
+        }
+    }
+
+    @FlashException("edit")
+    public static void syncOptions(TenantsSyncOptionsForm keystoneProvider) {
+        String interval = keystoneProvider.synchronizationInterval;
+        if (!StringUtils.isNumeric(interval) || (StringUtils.isNumeric(interval) && (Integer.parseInt(interval) < MIN_INTERVAL_DELAY))) {
+            flash.error(MessagesUtils.get(INTERVAL_ERROR, keystoneProvider.synchronizationInterval));
+        } else {
+            keystoneProvider.update();
+            flash.success(MessagesUtils.get(SAVED, authnProviderName));
+        }
+        list();
     }
 
     @FlashException("list")
@@ -382,6 +432,54 @@ public class Tenants extends ViprResourceController {
             if (deletedRoleAssignment) {
                 flash.success(MessagesUtils.get("roleAssignments.deleted"));
             }
+        }
+    }
+
+    public static class TenantsSyncOptionsForm {
+        public String id;
+        public String name;
+        public List<String> tenantsSynchronizationOptions;
+        public String synchronizationInterval;
+
+        public void readFrom(AuthnProviderRestRep keystoneProvider) {
+            this.id = stringId(keystoneProvider);
+            this.name = keystoneProvider.getName();
+            this.tenantsSynchronizationOptions = Lists.newArrayList(keystoneProvider.getTenantsSynchronizationOptions());
+        }
+
+        private void update() {
+            AuthnUpdateParam param = new AuthnUpdateParam();
+            AuthnProviderRestRep provider = AuthnProviderUtils.getKeystoneAuthProvider();
+
+            AuthnUpdateParam.TenantsSynchronizationOptionsChanges tenantsSynchronizationOptionsChanges = getTenantsSynchronizationOptionsChanges(
+                    provider);
+            if (!(tenantsSynchronizationOptionsChanges.getAdd().isEmpty() && tenantsSynchronizationOptionsChanges.getRemove().isEmpty())) {
+                param.setTenantsSynchronizationOptionsChanges(tenantsSynchronizationOptionsChanges);
+                param.setLabel(this.name);
+                AuthnProviderUtils.update(provider.getId().toString(), param);
+            }
+        }
+
+        private AuthnUpdateParam.TenantsSynchronizationOptionsChanges
+        getTenantsSynchronizationOptionsChanges(AuthnProviderRestRep provider) {
+
+            Set<String> newValues;
+            if (this.tenantsSynchronizationOptions != null) {
+                newValues = Sets.newHashSet(tenantsSynchronizationOptions);
+                newValues.add(synchronizationInterval);
+            } else {
+                newValues = Sets.newHashSet(synchronizationInterval);
+            }
+
+            Set<String> oldValues = provider.getTenantsSynchronizationOptions();
+
+            AuthnUpdateParam.TenantsSynchronizationOptionsChanges changes = new AuthnUpdateParam.TenantsSynchronizationOptionsChanges();
+            changes.getAdd().addAll(newValues);
+            changes.getAdd().removeAll(oldValues);
+            changes.getRemove().addAll(oldValues);
+            changes.getRemove().removeAll(newValues);
+
+            return changes;
         }
     }
 

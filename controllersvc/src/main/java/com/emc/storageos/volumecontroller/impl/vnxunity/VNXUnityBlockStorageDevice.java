@@ -138,7 +138,8 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
         try {
             boolean isCG = false;
             Volume vol = volumes.get(0);
-            if (vol.getConsistencyGroup() != null) {
+            String cgName = vol.getReplicationGroupInstance();
+            if (vol.getConsistencyGroup() != null && NullColumnValueGetter.isNotNullValue(cgName)) {
                 isCG = true;
             }
             List<String> volNames = new ArrayList<String>();
@@ -171,7 +172,6 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
 
             }
             if (isCG) {
-                String cgName = vol.getReplicationGroupInstance();
                 logger.info(String.format("cg %s for the volume", cgName));
                 String cgId = apiClient.getConsistencyGroupIdByName(cgName);
                 VNXeCommandJob job = apiClient.createLunsInConsistencyGroup(volNames, storagePool.getNativeId(), vol.getCapacity(),

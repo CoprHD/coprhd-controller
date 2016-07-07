@@ -7751,6 +7751,12 @@ blockmirror_single_mirror()
 
     echo "Listing active mirrors"
     run blockmirror list $PROJECT/${mirrortest_vol}
+	
+	echo "Pause a sigle mirror" 
+	run blockmirror pause $PROJECT/${mirrortest_vol}
+	
+	echo "Deactivating a sigle mirror" 
+	run blockmirror deactivate $PROJECT/${mirrortest_vol} "foo"
 
     echo "Deactivating source volume"
     run volume delete $PROJECT/${mirrortest_vol} --wait
@@ -7768,6 +7774,12 @@ blockmirror_attach_mirror_with_optional()
 
     echo "Listing active mirrors"
     run blockmirror list $PROJECT/${mirrortest_vol}
+	
+	echo "Pause a active mirror" 
+	run blockmirror pause $PROJECT/${mirrortest_vol}
+	
+	echo "Deactivating a active mirror" 
+	run blockmirror deactivate $PROJECT/${mirrortest_vol} "foo"
     
     echo "Deactivating source volume"
     run volume delete $PROJECT/${mirrortest_vol} --wait
@@ -7785,6 +7797,13 @@ blockmirror_attach_2mirrors()
 
     echo "Listing active mirrors"
     run blockmirror list $PROJECT/${mirrortest_vol}
+	
+	echo "Pause a active mirror" 
+	run blockmirror pause $PROJECT/${mirrortest_vol}
+	
+	echo "Deactivating a active mirror" 
+	run blockmirror deactivate $PROJECT/${mirrortest_vol} "foo-1"
+	run blockmirror deactivate $PROJECT/${mirrortest_vol} "foo-2"
     
     echo "Deactivating source volume and all mirrors"
     run volume delete $PROJECT/${mirrortest_vol} --wait
@@ -7803,11 +7822,15 @@ blockmirror_detach_mirror_all()
     echo "Attaching first mirror"
     run blockmirror attach $PROJECT/${mirrortest_vol} "foo" 1 
 
-    echo "Attaching second mirror"
-    run blockmirror attach $PROJECT/${mirrortest_vol} "bar" 1 
+    # COP-23516 
+    #echo "Attaching second mirror"
+    #run blockmirror attach $PROJECT/${mirrortest_vol} "bar" 1 
 
     echo "Listing active mirrors"
     run blockmirror list $PROJECT/${mirrortest_vol}
+	
+	echo "Pause a active mirror" 
+	run blockmirror pause $PROJECT/${mirrortest_vol}
 
     echo "Detaching all mirrors"
     run blockmirror detach $PROJECT/${mirrortest_vol}
@@ -7837,6 +7860,12 @@ blockmirror_pause_resume_all()
 
     echo "Listing resumed mirrors"
     run blockmirror list $PROJECT/${mirrortest_vol}
+	
+	echo "Pause a active mirror" 
+	run blockmirror pause $PROJECT/${mirrortest_vol}
+
+    echo "Detaching all mirrors"
+    run blockmirror detach $PROJECT/${mirrortest_vol}
 
     echo "Deactivating source volume and all mirrors"
     run volume delete $PROJECT/${mirrortest_vol} --wait
@@ -7857,6 +7886,12 @@ blockmirror_vpool_change()
 
     echo "Listing mirrors"
     run blockmirror list $PROJECT/${mirrortest_vol}
+	
+	echo "Pause a active mirror" 
+	run blockmirror pause $PROJECT/${mirrortest_vol}
+
+    echo "Detaching active mirror"
+    run blockmirror detach $PROJECT/${mirrortest_vol}
 
     echo "Deactivating source volume and all mirrors"
     run volume delete $PROJECT/${mirrortest_vol} --wait

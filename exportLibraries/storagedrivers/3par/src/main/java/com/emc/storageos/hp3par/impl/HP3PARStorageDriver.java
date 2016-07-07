@@ -2212,23 +2212,25 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 
     /**
      * Creating physical copy for VVset or CG clone 
-     * Here there are 2 ways for implementation
+     * Rest API expects created VVset with its corresponding volumes types for clone destination 
+     * So, There are many ways for implementation
      * 1. Customer will provide the VVSet name which already exist in Array with its corresponding similar volumes for cloning
-     * 
-     * 
+     *  
      * 2. Customer will not provide any existing and matching VV set with corresponding volumes for CG clone 
-     * Then we need to follow below steps to successfully complete the task
-     * Create new VV Set / CG if No VV set exists.
+     * 
+     * 3. Customer will provide VVset name which is created but volumes are not of matching for clone creation.
+     * 
+     * Create new VV Set / CG .
      * Create new volumes similar to parent VVSet volumes
      * Use this newly created VV set for CG clone 
-     * Above option is implemented
+     * option 2 is implemented, need to handle negative / error cases of option 3  
      */
 
 	@Override
 	public DriverTask createConsistencyGroupClone(VolumeConsistencyGroup consistencyGroup, List<VolumeClone> clones,
 			List<CapabilityInstance> capabilities) {
-    	
-	    	DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_CLONE_CONSISTENCY_GROUP);
+
+		DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_CLONE_CONSISTENCY_GROUP);
 	    	
 	    	_log.info("3PARDriver: createConsistencyGroupClone for storage system  id {}, Base CG name {} , Base CG native id {} - start",
 	    			consistencyGroup.getStorageSystemId(), consistencyGroup.getDisplayName(), consistencyGroup.getNativeId());
@@ -2272,7 +2274,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 				 * find corresponding clone object and set its value and commit it
 				 */
 				//ArrayList<VVSetVolumeClone> createdClones = result.getClonesInfo();
-				
+
 			//	for (VVSetVolumeClone cloneCreated : createdClones) {
 					for (VVSetVolumeClone cloneCreated : result) {	
 					VolumeClone clone = clonesMap.get(cloneCreated.getParent());
@@ -2285,7 +2287,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 					clone.setWwn(volResult.getWwn());
 					clone.setNativeId(volResult.getName());
 					clone.setDeviceLabel(volResult.getName());
-					//clone.setLabel(volResult.getName());
+					clone.setLabel(volResult.getName());
 					// snap.setAccessStatus(volResult.getAccessStatus());
 					clone.setDisplayName(volResult.getName());
 
@@ -2312,6 +2314,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 			}
 	        
 	        return task;
+	        
 	    }
 	   
 

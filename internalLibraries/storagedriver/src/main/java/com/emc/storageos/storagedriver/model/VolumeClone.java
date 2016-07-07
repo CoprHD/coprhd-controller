@@ -19,6 +19,7 @@ public class VolumeClone extends StorageVolume {
     // sourcetype of the clone.
     SourceType sourceType = SourceType.UNKNOWN;
     
+    // clone display name
     private String label;
 
     public static enum ReplicationState {

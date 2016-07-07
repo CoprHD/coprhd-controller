@@ -252,6 +252,8 @@ public class VPlexApiVirtualVolumeManager {
             List<VPlexDeviceInfo> localDevices = discoveryMgr.findLocalDevices(extentInfoList);
 
             VPlexVirtualVolumeInfo vplexVolumeInfo = findVirtualVolumeAndUpdateInfo(virtualVolume.getName(), discoveryMgr);
+            virtualVolume.setThinCapable(vplexVolumeInfo.getThinCapable());
+            virtualVolume.setThinEnabled(vplexVolumeInfo.getThinEnabled());
 
             String sourceDeviceName = vplexVolumeInfo.getSupportingDevice();
 

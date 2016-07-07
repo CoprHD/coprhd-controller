@@ -2017,7 +2017,9 @@ public class StorageSystemService extends TaskResourceService {
         }
 
         if (Discovery_Namespaces.ARRAY_AFFINITY.name().equalsIgnoreCase(nameSpace)) {
-            if (Type.vmax.name().equalsIgnoreCase(storageSystem.getSystemType())) {
+            if (Type.vmax.name().equalsIgnoreCase(storageSystem.getSystemType()) ||
+                    Type.vnxblock.name().equalsIgnoreCase(storageSystem.getSystemType()) ||
+                    Type.xtremio.name().equalsIgnoreCase(storageSystem.getSystemType())) {
                 return true;
             }
 

@@ -221,7 +221,7 @@ public class DataObjectType {
 
     /**
      * Deserializes row into data object instance
-     * 
+     * @deprecated
      * @param clazz data object class
      * @param row row
      * @param cleanupList old columns that need to be deleted
@@ -233,6 +233,9 @@ public class DataObjectType {
         return deserialize(clazz, row, cleanupList, null);
     }
 
+    /**
+     * @deprecated
+     */
     public <T extends DataObject> T deserialize(Class<T> clazz, Row<String, CompositeColumnName> row, IndexCleanupList cleanupList,
             LazyLoader lazyLoader) {
         if (!_clazz.isAssignableFrom(clazz)) {
@@ -245,7 +248,7 @@ public class DataObjectType {
             Iterator<Column<CompositeColumnName>> it = row.getColumns().iterator();
             while (it.hasNext()) {
                 Column<CompositeColumnName> column = it.next();
-                cleanupList.add(key, column);
+                cleanupList.add(key, column.getName());
                 ColumnField columnField = _columnFieldMap.get(column.getName().getOne());
                 if (columnField != null) {
                     columnField.deserialize(column, obj);
@@ -334,6 +337,9 @@ public class DataObjectType {
         }
     }
 
+    /**
+     * @deprecated
+     */
     <T extends DataObject> void
             deserializeColumns(T object, Row<String, CompositeColumnName> row, List<ColumnField> columns, boolean clear) {
 

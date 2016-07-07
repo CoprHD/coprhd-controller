@@ -55,37 +55,20 @@ public class InternalDbClient extends DbClientImpl {
         }
 
         List<URI> allrecs = queryByType(clazz, false);
-        Keyspace ks = getKeyspace(clazz);
+        DbClientContext context = getDbClientContext(clazz);
         Iterator<URI> recIt = allrecs.iterator();
         List<URI> batch = getNextBatch(recIt);
         while (!batch.isEmpty()) {
-            Rows<String, CompositeColumnName> rows = queryRowsWithAColumn(ks, batch, doType.getCF(),
-                    columnField);
-            Iterator<Row<String, CompositeColumnName>> it = rows.iterator();
-            Map<String, List<Column<CompositeColumnName>>> removeList = new HashMap<String, List<Column<CompositeColumnName>>>();
-            while (it.hasNext()) {
-                Row<String, CompositeColumnName> row = it.next();
-                if (row.getColumns().size() == 0) {
-                    continue;
-                }
-                Iterator<Column<CompositeColumnName>> columnIterator = row.getColumns().iterator();
-                while (columnIterator.hasNext()) {
-                    Column<CompositeColumnName> column = columnIterator.next();
-                    if (removeList.get(row.getKey()) == null) {
-                        removeList.put(row.getKey(), new ArrayList<Column<CompositeColumnName>>());
-                    }
-                    removeList.get(row.getKey()).add(column);
-                }
-            }
+            Map<String, List<CompositeColumnName>> removeList = queryRowsWithAColumn(context, batch, doType.getCF().getName(), columnField);
             boolean retryFailedWriteWithLocalQuorum = shouldRetryFailedWriteWithLocalQuorum(clazz);
-            RowMutator mutator = new RowMutator(ks, retryFailedWriteWithLocalQuorum);
+            //todo retry
+            RowMutatorDS mutator = new RowMutatorDS(context);
             _indexCleaner.removeOldIndex(mutator, doType, removeList, indexCf);
             batch = getNextBatch(recIt);
         }
     }
 
     // TODO geo : migration only works for local keyspace; need to expand to use local or global
-
     public <T extends DataObject> void generateFieldIndex(Class<T> clazz, String fieldName) {
         DataObjectType doType = TypeMap.getDoType(clazz);
         if (doType == null) {
@@ -97,25 +80,17 @@ public class InternalDbClient extends DbClientImpl {
         }
 
         List<URI> allrecs = queryByType(clazz, false);
-        Keyspace ks = getKeyspace(clazz);
+        DbClientContext context = getDbClientContext(clazz);
         Iterator<URI> recIt = allrecs.iterator();
         List<URI> batch = getNextBatch(recIt);
         while (!batch.isEmpty()) {
-            Rows<String, CompositeColumnName> rows = queryRowsWithAColumn(ks, batch, doType.getCF(),
-                    columnField);
-            List<T> objects = new ArrayList<T>(rows.size());
-            Iterator<Row<String, CompositeColumnName>> it = rows.iterator();
-            while (it.hasNext()) {
-                Row<String, CompositeColumnName> row = it.next();
+            Map<String, List<CompositeColumnName>> result = queryRowsWithAColumn(context, batch, doType.getCF().getName(), columnField);
+            List<T> objects = new ArrayList<T>(result.size());
+            for (String rowKey : result.keySet()) {
                 try {
-                    if (row.getColumns().size() == 0) {
-                        continue;
-                    }
-                    DataObject obj = DataObject.createInstance(clazz, URI.create(row.getKey()));
+                    DataObject obj = DataObject.createInstance(clazz, URI.create(rowKey));
                     obj.trackChanges();
-                    Iterator<Column<CompositeColumnName>> columnIterator = row.getColumns().iterator();
-                    while (columnIterator.hasNext()) {
-                        Column<CompositeColumnName> column = columnIterator.next();
+                    for (CompositeColumnName column : result.get(rowKey)) {
                         columnField.deserialize(column, obj);
                     }
                     // set changed for ChangeTracking structures
@@ -127,7 +102,7 @@ public class InternalDbClient extends DbClientImpl {
                     throw DatabaseException.fatals.queryFailed(e);
                 }
             }
-            updateAndReindexObject(objects);
+            updateObject(objects);
             batch = getNextBatch(recIt);
         }
     }
@@ -261,9 +236,10 @@ public class InternalDbClient extends DbClientImpl {
                     // only that we need to specify the keyspace explicitly here
                     // also we shouldn't overwrite the creation time
                     boolean retryFailedWriteWithLocalQuorum = shouldRetryFailedWriteWithLocalQuorum(clazz);
-                    RowMutator mutator = new RowMutator(geoContext.getKeyspace(), retryFailedWriteWithLocalQuorum);
+                    //todo retry
+                    RowMutatorDS mutator = new RowMutatorDS(geoContext);
                     doType.serialize(mutator, obj);
-                    mutator.executeRecordFirst();
+                    mutator.execute();
                 } catch (final InstantiationException e) {
                     throw DatabaseException.fatals.queryFailed(e);
                 } catch (final IllegalAccessException e) {
@@ -316,6 +292,7 @@ public class InternalDbClient extends DbClientImpl {
         }
         try {
             Keyspace ks = getKeyspace(clazz);
+            DbClientContext context = getDbClientContext(clazz);
             OperationResult<Rows<String, CompositeColumnName>> result =
                     ks.prepareQuery(doType.getCF()).getAllRows().setRowLimit(DEFAULT_PAGE_SIZE).execute();
             Iterator<Row<String, CompositeColumnName>> it = result.getResult().iterator();
@@ -340,15 +317,15 @@ public class InternalDbClient extends DbClientImpl {
                         ColumnField columnField = setFields.get(column.getName().getOne());
                         if (columnField != null) {
                             columnField.deserialize(column, obj);
-                            removedList.add(key, column);
+                            removedList.add(key, column.getName());
                         }
                     }
 
                     if (objects.size() == DEFAULT_PAGE_SIZE) {
                         boolean retryFailedWriteWithLocalQuorum = shouldRetryFailedWriteWithLocalQuorum(clazz);
-                        RowMutator mutator = new RowMutator(ks, retryFailedWriteWithLocalQuorum);
+                        RowMutatorDS mutator = new RowMutatorDS(context);
                         _indexCleaner.removeColumnAndIndex(mutator, doType, removedList);
-                        persistObject(objects);
+                        updateObject(objects);
                         objects.clear();
                         removedList.clear();
                     }
@@ -373,9 +350,9 @@ public class InternalDbClient extends DbClientImpl {
 
             if (!objects.isEmpty()) {
                 boolean retryFailedWriteWithLocalQuorum = shouldRetryFailedWriteWithLocalQuorum(clazz);
-                RowMutator mutator = new RowMutator(ks, retryFailedWriteWithLocalQuorum);
+                RowMutatorDS mutator = new RowMutatorDS(context);
                 _indexCleaner.removeColumnAndIndex(mutator, doType, removedList);
-                persistObject(objects);
+                updateObject(objects);
             }
         } catch (ConnectionException e) {
             throw DatabaseException.retryables.connectionFailed(e);

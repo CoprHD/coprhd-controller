@@ -1123,16 +1123,14 @@ public class DbClientImpl implements DbClient {
                 throw new IllegalArgumentException();
             }
             if (doType.needPreprocessing()) {
-                // todo replace below method
-                // preprocessTypeIndexes(ks, doType, object);
+                preprocessTypeIndexes(context.getKeyspace(), doType, object);
             }
             if (doType.serialize(mutator, object, new LazyLoader(this))) {
                 objectsToCleanup.add(object.getId());
             }
 
             if (!(object instanceof Task)) {
-                // todo serializeTasks
-                // serializeTasks(object, mutator, objectsToCleanup);
+                serializeTasks(object, mutator, objectsToCleanup);
             }
         }
         mutator.execute();
@@ -1168,8 +1166,8 @@ public class DbClientImpl implements DbClient {
     }
 
     private <T extends DataObject> void preprocessTypeIndexes(Keyspace ks, DataObjectType doType, T object) {
-
-        boolean queried = false;
+        //todo replace Row/Keyspace in this methods
+        boolean queried = false;//todo seems 'queried' is useless?
         Row<String, CompositeColumnName> row = null;
 
         // Before serializing an object, we might need to set referenced fields.
@@ -1470,7 +1468,7 @@ public class DbClientImpl implements DbClient {
 
     /**
      * Convenience helper that queries for a single row with given id
-     * 
+     * @deprecated
      * @param id row key
      * @param cf column family
      * @return matching row.
@@ -1489,7 +1487,7 @@ public class DbClientImpl implements DbClient {
     /**
      * Convenience helper that queries for multiple rows for collection of row
      * keys
-     * 
+     * @deprecated
      * @param keyspace keyspace to query rows against
      * @param ids row keys
      * @param cf column family
@@ -1512,7 +1510,7 @@ public class DbClientImpl implements DbClient {
     /**
      * Convenience helper that queries for multiple rows for collection of row
      * keys for a single column
-     * 
+     * @deprecated
      * @param ids row keys.
      * @param cf column family
      * @param column column field for the column to query

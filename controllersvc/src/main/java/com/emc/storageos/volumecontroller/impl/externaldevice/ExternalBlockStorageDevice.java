@@ -1470,7 +1470,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
 
     @Override
     public void createGroupReplicationPairs(List<URI> replicationPairs, boolean createActive) {
-        
+
     }
 
     @Override

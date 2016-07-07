@@ -1054,7 +1054,6 @@
                 <ref bean="exportWorkflowEntryPoints"/>
                 <ref bean="blockOrchestrationDeviceController"/>
                 <ref bean="protectionOrchestrationDeviceController"/>
-                <ref bean="protectionOrchestrationDeviceController"/>
                 <ref bean="migrationOrchestrationDeviceController"/>
                 <ref bean="fileOrchestrationDeviceController"/>
                 <ref bean="fileReplicationDeviceController" />
@@ -1556,7 +1555,15 @@
         <property name="controller" ref="blockOrchestrationDeviceController" />
         <property name="dbClient" ref="dbclient"/>
     </bean>
-    
+
+    <bean class="org.springframework.remoting.rmi.RmiServiceExporter" depends-on="beacon">
+        <property name="serviceName" value="BlockOrchestrationController"/>
+        <property name="service" ref="blockOrchestrationController"/>
+        <property name="serviceInterface" value="com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationController"/>
+        <property name="registryPort" value="10099"/>
+        <property name="servicePort" value="40201"/>
+    </bean>
+
     <bean id="migrationOrchestrationDeviceController" class="com.emc.storageos.migrationorchestrationcontroller.MigrationOrchestrationDeviceController">
         <property name="dbClient" ref="dbclient"/>
         <property name="workflowService" ref="workflowService"/>
@@ -1572,9 +1579,9 @@
     </bean>
 
     <bean class="org.springframework.remoting.rmi.RmiServiceExporter" depends-on="beacon">
-        <property name="serviceName" value="BlockOrchestrationController"/>
-        <property name="service" ref="blockOrchestrationController"/>
-        <property name="serviceInterface" value="com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationController"/>
+        <property name="serviceName" value="MigrationOrchestrationController"/>
+        <property name="service" ref="migrationOrchestrationController"/>
+        <property name="serviceInterface" value="com.emc.storageos.migrationorchestrationcontroller.MigrationOrchestrationController"/>
         <property name="registryPort" value="10099"/>
         <property name="servicePort" value="40201"/>
     </bean>

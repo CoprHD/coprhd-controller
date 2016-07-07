@@ -37,8 +37,6 @@ import com.emc.storageos.hp3par.command.PortStatMembers;
 import com.emc.storageos.hp3par.command.PortStatisticsCommandResult;
 import com.emc.storageos.hp3par.command.Position;
 import com.emc.storageos.hp3par.command.SystemCommandResult;
-import com.emc.storageos.hp3par.command.VVSetCloneList;
-import com.emc.storageos.hp3par.command.VVSetCloneList.VVSetVolumeClone;
 import com.emc.storageos.hp3par.command.VirtualLun;
 import com.emc.storageos.hp3par.command.VirtualLunsList;
 

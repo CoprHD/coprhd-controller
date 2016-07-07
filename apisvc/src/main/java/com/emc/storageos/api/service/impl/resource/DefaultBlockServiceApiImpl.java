@@ -90,11 +90,11 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
     public TaskList createVolumes(VolumeCreate param, Project project, VirtualArray neighborhood,
             VirtualPool cos, Map<VpoolUse, List<Recommendation>> recommendationMap, TaskList taskList,
             String task, VirtualPoolCapabilityValuesWrapper cosCapabilities) throws InternalException {
-        
+
         Long size = SizeUtil.translateSize(param.getSize());
         List<VolumeDescriptor> existingDescriptors = new ArrayList<VolumeDescriptor>();
         List<VolumeDescriptor> volumeDescriptors = createVolumesAndDescriptors(
-                existingDescriptors, param.getName(), size, 
+                existingDescriptors, param.getName(), size,
                 project, neighborhood, cos, recommendationMap.get(VpoolUse.ROOT), taskList, task, cosCapabilities);
         List<Volume> preparedVolumes = getPreparedVolumes(volumeDescriptors);
 
@@ -118,7 +118,8 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
     }
 
     @Override
-    public List<VolumeDescriptor> createVolumesAndDescriptors(List<VolumeDescriptor> descriptors, String volumeLabel, Long size, Project project,
+    public List<VolumeDescriptor> createVolumesAndDescriptors(List<VolumeDescriptor> descriptors, String volumeLabel, Long size,
+            Project project,
             VirtualArray varray, VirtualPool vpool, List<Recommendation> recommendations, TaskList taskList, String task,
             VirtualPoolCapabilityValuesWrapper vpoolCapabilities) {
         // Prepare the Bourne Volumes to be created and associated
@@ -141,12 +142,13 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
 
         // Log volume descriptor information
         logVolumeDescriptorPrecreateInfo(volumeDescriptors, task);
-        
+
         return volumeDescriptors;
     }
-    
+
     /**
      * Retrieves the preparedVolumes from the volume descriptors.
+     * 
      * @param descriptors
      * @return List<Volume>
      */
@@ -205,8 +207,7 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
         Map<String, AbstractBlockServiceApiImpl> apiMap = AbstractBlockServiceApiImpl.getProtectionImplementations();
         StorageSystemConnectivityList result = new StorageSystemConnectivityList();
         for (AbstractBlockServiceApiImpl impl : apiMap.values()) {
-            if (impl == this)
-            {
+            if (impl == this) {
                 continue;     // no infinite recursion
             }
             StorageSystemConnectivityList list = impl.getStorageSystemConnectivity(storageSystem);
@@ -230,7 +231,8 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
         if (!DiscoveredDataObject.Type.vmax.name().equals(systemType)
                 && !DiscoveredDataObject.Type.vnxblock.name().equals(systemType)
                 && !DiscoveredDataObject.Type.hds.name().equals(systemType)
-                && !DiscoveredDataObject.Type.xtremio.name().equals(systemType)) {
+                && !DiscoveredDataObject.Type.xtremio.name().equals(systemType)
+                && !DiscoveredDataObject.Type.ibmxiv.name().equals(systemType)) {
             throw APIException.badRequests.changesNotSupportedFor("VirtualPool",
                     format("volumes on storage systems of type {0}", systemType));
         }
@@ -298,7 +300,7 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
     public TaskResourceRep updateConsistencyGroup(StorageSystem device,
             List<Volume> cgVolumes, BlockConsistencyGroup consistencyGroup,
             List<URI> addVolumesList, List<URI> removeVolumesList, String task)
-            throws ControllerException {
+                    throws ControllerException {
 
         Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class,
                 consistencyGroup.getId(), task,
@@ -381,15 +383,15 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
 
         return toTask(snapshot, taskId, op);
     }
-    
+
     /**
      * {@inheritDoc}
      */
     @Override
-    public void updateVolumesInVolumeGroup(VolumeGroupVolumeList addVolumes, 
-                                           List<Volume> removeVolumes,
-                                           URI volumeGroupId,
-                                           String taskId) {
+    public void updateVolumesInVolumeGroup(VolumeGroupVolumeList addVolumes,
+            List<Volume> removeVolumes,
+            URI volumeGroupId,
+            String taskId) {
         VolumeGroup volumeGroup = _dbClient.queryObject(VolumeGroup.class, volumeGroupId);
         ApplicationAddVolumeList addVolumeList = null;
         if (addVolumes != null && addVolumes.getVolumes() != null && !addVolumes.getVolumes().isEmpty()) {
@@ -427,7 +429,7 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
      * @return ApplicationVolumeList The volumes that are not application ready (in real VNX CG with array replication group)
      */
     private ApplicationAddVolumeList addVolumesToApplication(VolumeGroupVolumeList volumeList, VolumeGroup application, String taskId) {
-        ApplicationAddVolumeList addVolumeList = new ApplicationAddVolumeList() ;
+        ApplicationAddVolumeList addVolumeList = new ApplicationAddVolumeList();
 
         Map<URI, List<URI>> addCGVolsMap = new HashMap<URI, List<URI>>();
         String newRGName = volumeList.getReplicationGroupName();
@@ -455,7 +457,8 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
             String rgName = volume.getReplicationGroupInstance();
             if (NullColumnValueGetter.isNotNullValue(rgName) && !rgName.equals(newRGName)) {
                 throw APIException.badRequests.volumeGroupCantBeUpdated(application.getLabel(),
-                        String.format("The volume %s is already in an array replication group, only the existing group name is allowed.", volume.getLabel()));
+                        String.format("The volume %s is already in an array replication group, only the existing group name is allowed.",
+                                volume.getLabel()));
             }
         }
 
@@ -547,12 +550,13 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
 
         addVolumeList.getVolumes().addAll(nonAppReadyCGVolUris);
 
-        _log.info("Added volumes in CG to the application" );
+        _log.info("Added volumes in CG to the application");
         return addVolumeList;
     }
 
     /**
      * Remove volumes from application
+     * 
      * @param removeVolumes Volumes to be removed
      * @param taskId
      * @param application The application that the volumes are removed from
@@ -631,7 +635,7 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
             _dbClient.updateObject(cg);
         }
 
-        _log.info("Removed volumes in CG from the application" );
+        _log.info("Removed volumes in CG from the application");
     }
 
     /**
@@ -650,7 +654,7 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
                 operationTypeEnum);
         taskList.getTaskList().add(TaskMapper.toTask(group, taskId, op));
     }
-    
+
     /**
      * Creates tasks against consistency groups associated with a request and adds them to the given task list.
      *
@@ -667,8 +671,11 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
         taskList.getTaskList().add(TaskMapper.toTask(volume, taskId, op));
     }
 
-    /* (non-Javadoc)
-     * @see com.emc.storageos.api.service.impl.resource.BlockServiceApi#getReplicationGroupNames(com.emc.storageos.db.client.model.VolumeGroup)
+    /*
+     * (non-Javadoc)
+     * 
+     * @see
+     * com.emc.storageos.api.service.impl.resource.BlockServiceApi#getReplicationGroupNames(com.emc.storageos.db.client.model.VolumeGroup)
      */
     @Override
     public Collection<? extends String> getReplicationGroupNames(VolumeGroup group) {
@@ -683,5 +690,5 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
         }
         return groupNames;
     }
-    
+
 }

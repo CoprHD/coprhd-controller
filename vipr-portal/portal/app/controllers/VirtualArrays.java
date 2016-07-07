@@ -141,6 +141,7 @@ public class VirtualArrays extends ViprResourceController {
 				if (StringUtils.equals(availVarray.getName(), ALL_FLASH_VARRAY)) {
 					existVarrayId = availVarray.getId().toString();
 					isVarrayAvail = true;
+                    response.setCookie("guide_varray", availVarray.getName() );
 					break;
 				}
 			}

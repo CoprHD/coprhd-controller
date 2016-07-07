@@ -198,8 +198,6 @@ public class BlockVirtualPools extends ViprResourceController {
                     for (VirtualPoolCommonRestRep vp: vpools){
                         Logger.info(vp.getMatchedStoragePools().toString());
                         for (RelatedResourceRep matchedSp:vp.getMatchedStoragePools()){
-                            Logger.info("-----------"+matchedSp.getId());
-                            Logger.info("-----------"+sp.getId());
                             if (matchedSp.getId().equals(sp.getId())) {
                                 spfound = true;
                                 break;

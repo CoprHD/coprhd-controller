@@ -1617,11 +1617,9 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                             return $http.get(routes.BlockVirtualPools_pools({'id':vPool.id})).then(function (data,$q) {
 
                                     if (!finished && data.data.aaData.length != 0){
-                                        if(checkCookie("guide_vpool")){
-                                            finished=true;
-                                            goToNextStep(true);
-                                            finishChecking();
-                                        } else {finishChecking();}
+                                        finished=true;
+                                        goToNextStep(true);
+                                        finishChecking();
                                     }
                                 });
                             });
@@ -1774,13 +1772,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                 break;
             case 9:
                 updateGuideCookies4(9,9,'side',false);
-                if ($window.location.pathname != '/Catalog') {
-                    $window.location.href = '/Catalog';
-                }
-                else {
-                    $scope.$parent.guideVisible = false;
-                    $scope.$parent.guideDataAvailable = false;
-                }
+                $window.location.href = '/Catalog#ServiceCatalog/AllFlashservices';
                 break;
             default:
                 updateGuideCookies(step,'side');
@@ -1878,7 +1870,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
     }
 
     $scope.restartGuide = function () {
-        $scope.guideDataAvailable = false;
+        $scope.$parent.guideDataAvailable = false;
         removeGuideCookies();
         $scope.initializeSteps();
     }
@@ -2036,11 +2028,9 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                             return $http.get(routes.BlockVirtualPools_pools({'id':vPool.id})).then(function (data,$q) {
 
                                     if (!finished && data.data.aaData.length != 0){
-                                        if(checkCookie("guide_vpool")){
-                                            finished=true;
-                                            $scope.$parent.completedSteps = 7;
-                                            return checkStep(8);
-                                        } else {finishChecking();}
+                                        finished=true;
+                                        $scope.$parent.completedSteps = 7;
+                                        return checkStep(8);
                                     }
                                 });
                             });

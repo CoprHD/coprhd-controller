@@ -1846,8 +1846,15 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                         isilonExport.setReadOnly();
                     }
 
-                    isilonExport.setMapAll(null);
-                    isilonExport.setMapRoot(root_user);
+                    // Do not set root_user. Isilon api allows only one of
+                    // map_root or map_all to be set.
+                    if (hasrootClients) {
+                        isilonExport.setMapRoot(null);
+                        isilonExport.setMapAll("root");
+                    } else {
+                        isilonExport.setMapAll(null);
+                        isilonExport.setMapRoot(root_user);
+                    }
 
                     // There is export in Isilon with the given id.
                     // Overwrite this export with a new set of clients.

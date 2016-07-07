@@ -6,6 +6,7 @@
 package com.emc.storageos.volumecontroller;
 
 import java.io.Serializable;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -62,6 +63,9 @@ public class FileShareExport implements Serializable {
             String storagePortName, String storagePort) {
         _clients = clients;
         for (String secType : securityType.split(SEC_SEPARATOR)) {
+            if (_securityType == null) {
+                _securityType = new HashSet<SecurityTypes>();
+            }
             _securityType.add(Enum.valueOf(SecurityTypes.class, secType.trim()));
 
         }
@@ -88,6 +92,9 @@ public class FileShareExport implements Serializable {
             String protocol, String storagePortName, String storagePort, String path) {
         _clients = clients;
         for (String secType : securityType.split(SEC_SEPARATOR)) {
+            if (_securityType == null) {
+                _securityType = new HashSet<SecurityTypes>();
+            }
             _securityType.add(Enum.valueOf(SecurityTypes.class, secType.trim()));
 
         }
@@ -115,6 +122,9 @@ public class FileShareExport implements Serializable {
             String protocol, String storagePortName, String storagePort, String path, String mountPath, String subDirectory, String comments) {
         _clients = clients;
         for (String secType : securityType.split(SEC_SEPARATOR)) {
+            if (_securityType == null) {
+                _securityType = new HashSet<SecurityTypes>();
+            }
             _securityType.add(Enum.valueOf(SecurityTypes.class, secType.trim()));
 
         }
@@ -150,6 +160,9 @@ public class FileShareExport implements Serializable {
         _permissions = Permissions.valueOf(fileExport.getPermissions());
         if (fileExport.getSecurityType() != null) {
             for (String secType : fileExport.getSecurityType().split(SEC_SEPARATOR)) {
+                if (_securityType == null) {
+                    _securityType = new HashSet<SecurityTypes>();
+                }
                 _securityType.add(Enum.valueOf(SecurityTypes.class, secType.trim()));
 
             }

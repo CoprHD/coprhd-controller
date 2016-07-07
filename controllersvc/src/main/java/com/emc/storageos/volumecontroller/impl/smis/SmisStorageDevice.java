@@ -28,6 +28,7 @@ import javax.cim.UnsignedInteger16;
 import javax.wbem.CloseableIterator;
 import javax.wbem.WBEMException;
 
+import com.google.common.collect.Lists;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -784,9 +785,14 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     public void doExportDelete(final StorageSystem storage, final ExportMask exportMask,
             List<URI> volumeURIs, List<URI> initiatorURIs, final TaskCompleter taskCompleter) throws DeviceControllerException {
         _log.info("{} doExportDelete START ...", storage.getSerialNumber());
+
+        List<Initiator> initiators = Lists.newArrayList();
+        if (initiatorURIs != null) {
+            initiators.addAll(_dbClient.queryObject(Initiator.class, initiatorURIs));
+        }
+
         _exportMaskOperationsHelper.deleteExportMask(storage, exportMask.getId(),
-                new ArrayList<URI>(), new ArrayList<URI>(), new ArrayList<Initiator>(),
-                taskCompleter);
+                volumeURIs, new ArrayList<URI>(), initiators, taskCompleter);
         _log.info("{} doExportDelete END ...", storage.getSerialNumber());
     }
 

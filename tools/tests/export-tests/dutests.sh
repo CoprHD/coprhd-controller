@@ -80,13 +80,17 @@ verify_export() {
         fi
     fi
 
-    masking_view_name="${cluster_name_if_any}${host_name}${VMAX_ID_3DIGITS}"
+    if [ "$SS" = "vmax" -o "$SS" = "vnx" ]; then
+	masking_view_name="${cluster_name_if_any}${host_name}_${SERIAL_NUMBER: -3}"
+    elif [ "$SS" = "xio" ]; then
+        masking_view_name=$host_name
+    fi
+
     if [ "$host_name" = "-exact-" ]; then
         masking_view_name=$export_name
     fi
-    if [ "$SS" = "xio" ]; then
-        masking_view_name=$host_name
-    fi
+
+    # Why is this sleep here?  Please explain.  If it's specific to SMIS, please put in SMIS-specific block
     sleep 10
     arrayhelper verify_export ${SERIAL_NUMBER} $masking_view_name $*
     if [ $? -ne "0" ]; then
@@ -163,7 +167,7 @@ arrayhelper_volume_mask_operation() {
          runcmd symhelper.sh $operation $serial_number $device_id $pattern
 	 ;;
     vnx)
-         runcmd navihelper.sh $operation $serial_number $device_id $pattern
+         runcmd navihelper.sh $operation $array_ip $device_id $pattern
 	 ;;
     xio)
          runcmd xiohelper.sh $operation $serial_number $device_id $pattern
@@ -192,7 +196,7 @@ arrayhelper_initiator_mask_operation() {
          runcmd symhelper.sh $operation $serial_number $pwwn $pattern
 	 ;;
     vnx)
-         runcmd navihelper.sh $operation $serial_number $pwwn $pattern
+         runcmd navihelper.sh $operation $array_ip $pwwn $pattern
 	 ;;
     xio)
          runcmd xiohelper.sh $operation $serial_number $pwwn $pattern
@@ -220,7 +224,7 @@ arrayhelper_delete_volume() {
          runcmd symhelper.sh $operation $serial_number $device_id
 	 ;;
     vnx)
-         runcmd navihelper.sh $operation $serial_number $device_id
+         runcmd navihelper.sh $operation $array_ip $device_id
 	 ;;
     xio)
          runcmd xiohelper.sh $operation $serial_number $device_id
@@ -247,7 +251,7 @@ arrayhelper_verify_export() {
          runcmd symhelper.sh $serial_number $masking_view_name $*
 	 ;;
     vnx)
-         runcmd navihelper.sh $serial_number $masking_view_name $*
+         runcmd navihelper.sh $array_ip $macaddr $masking_view_name $*
 	 ;;
     xio)
          runcmd xiohelper.sh $serial_number $masking_view_name $*
@@ -349,7 +353,7 @@ echot() {
 # General echo output
 secho()
 {
-    echo "*** $*"
+    echo -e "*** $*"
 }
 
 # Place to put command output in case of failure
@@ -381,12 +385,12 @@ fail(){
     status=$?
     if [ $status -eq 0 ] ; then
         echo '**********************************************************************'
-        echo $cmd succeeded, which should not have happened
+        echo -e "$cmd succeeded, which \e[91mshould not have happened\e[0m"
 	cat ${CMD_OUTPUT}
         echo '**********************************************************************'
         exit 1
     fi
-    secho "$cmd failed, which is the expected ouput"
+    secho "$cmd failed, which \e[32mis the expected ouput\e[0m"
 }
 
 pwwn()
@@ -445,15 +449,46 @@ login() {
        if [ "${storage_type}" = "xtremio" ]
        then
 	    storage_password=${XTREMIO_3X_PASSWD}
-        fi
+       fi
+
     fi
+}
+
+prerun_setup() {
+    if [ "${SS}" = "vnx" ]
+    then
+	array_ip=${VNXB_IP}
+    fi
+}
+
+vnx_setup() {
+    SMISPASS=0
+    # do this only once
+    echo "Setting up SMIS for VNX"
+
+    runcmd smisprovider create VNX-PROVIDER $VNX_SMIS_IP $VNX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VNX_SMIS_SSL
+    runcmd storagedevice discover_all --ignore_error
+
+    runcmd storagepool update $VNXB_NATIVEGUID --type block --volume_type THIN_ONLY
+    runcmd storagepool update $VNXB_NATIVEGUID --type block --volume_type THICK_ONLY
+
+    setup_varray
+
+    runcmd storagepool update $VNXB_NATIVEGUID --nhadd $NH --type block
+    runcmd storageport update $VNXB_NATIVEGUID FC --tzone $NH/$FC_ZONE_A
+
+    common_setup
+
+    seed=`date "+%H%M%S%N"`
+    runcmd storageport update ${VNXB_NATIVEGUID} FC --tzone $NH/$FC_ZONE_A
     
+    runcmd cos update block $VPOOL_BASE --storage ${VNXB_NATIVEGUID}
 }
 
 vmax_setup() {
     SMISPASS=0
     # do this only once
-    echo "Setting up SMIS"
+    echo "Setting up SMIS for VMAX3"
 
     runcmd smisprovider create VMAX-PROVIDER $VMAX_SMIS_IP $VMAX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX_SMIS_SSL
     runcmd storagedevice discover_all --ignore_error
@@ -650,11 +685,12 @@ setup() {
     security add_authn_provider ldap ldap://${LOCAL_LDAP_SERVER_IP} cn=manager,dc=viprsanity,dc=com secret ou=ViPR,dc=viprsanity,dc=com uid=%U CN Local_Ldap_Provider VIPRSANITY.COM ldapViPR* SUBTREE --group_object_classes groupOfNames,groupOfUniqueNames,posixGroup,organizationalRole --group_member_attributes member,uniqueMember,memberUid,roleOccupant
     tenant create $TENANT VIPRSANITY.COM OU VIPRSANITY.COM
     echo "Tenant $TENANT created."
-    sleep 120
+    # Why is this sleep here?  can we do a retry loop instead?  I don't have 2 minutes to spare.  :)
+    # sleep 120
     # Increase allocation percentage
     syssvc $SANITY_CONFIG_FILE localhost set_prop controller_max_thin_pool_subscription_percentage 600
 
-    if [ "${SS}" != "xio" ]; then
+    if [ "${SS}" = "vmax" ]; then
         which symhelper.sh
         if [ $? -ne 0 ]; then
             echo Could not find symhelper.sh path. Please add the directory where the script exists to the path
@@ -720,15 +756,15 @@ test_0() {
     expname=${EXPORT_GROUP_NAME}t0
     set_suspend_on_class_method "none"
     verify_export ${expname}1 ${HOST1} gone
-    verify_export ${expname}2 ${HOST2} gone
+    #verify_export ${expname}2 ${HOST2} gone
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
-    runcmd export_group create $PROJECT ${expname}2 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-2 --hosts "${HOST2}"
+    #runcmd export_group create $PROJECT ${expname}2 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-2 --hosts "${HOST2}"
     verify_export ${expname}1 ${HOST1} 2 1
-    verify_export ${expname}2 ${HOST2} 2 1
+    #verify_export ${expname}2 ${HOST2} 2 1
     runcmd export_group delete $PROJECT/${expname}1
-    runcmd export_group delete $PROJECT/${expname}2
+    #runcmd export_group delete $PROJECT/${expname}2
     verify_export ${expname}1 ${HOST1} gone
-    verify_export ${expname}2 ${HOST2} gone
+    #verify_export ${expname}2 ${HOST2} gone
 }
 
 set_suspend_on_error() {
@@ -1937,6 +1973,104 @@ test_15() {
     runcmd volume delete ${PROJECT}/${volname} --wait
 }
 
+# Validation Test 16
+#
+# Summary: VNX Only: Make sure we cannot steal host/initiators from other storage groups
+#
+# Basic Use Case for single host, single volume
+# 0. Test for VNX, do not run otherwise
+# 1. Set suspend on creating export mask
+# 2. Export group create of one volume to the host, it will suspend
+# 3. Create a volume and inventory-only delete it
+# 4. Create the storage group (different name) with the unmanaged volume with host
+# 5. Resume export group create and follow
+# 6. Task should fail because it would steal the host from the storage group that exists
+# 7. Remove the manually-created storage group
+# 8. Delete the unmanaged volume
+# 9. Remove the suspend of the creating export mask
+# 10. Run export group create, verify mask outside of ViPR
+# 11. Run export group delete, verify mask is gone outside of ViPR
+#
+test_16() {
+    echot "Test 16: VNX Only: Make sure we cannot steal host/initiators from other storage groups"
+    expname=${EXPORT_GROUP_NAME}t16
+
+    # Check to make sure we're running VNX only
+    if [ "${SS}" != "vnx" ]; then
+	echo "test_16 only runs on VNX.  Bypassing for ${SS}."
+	return
+    fi
+
+    # Make sure we start clean; no masking view on the array
+    verify_export ${expname}1 ${HOST1} gone
+
+    # Turn on suspend of export after orchestration
+    set_suspend_on_class_method ExportWorkflowEntryPoints.exportGroupCreate
+    set_suspend_on_error false
+    set_artificial_failure none
+
+    # Run the export group command TODO: Do this more elegantly
+    echo === export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
+    resultcmd=`export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"`
+
+    if [ $? -ne 0 ]; then
+	echo "export group command failed outright"
+	exit;
+    fi
+
+    # Show the result of the export group command for now (show the task and WF IDs)
+    echo $resultcmd
+
+    # Parse results (add checks here!  encapsulate!)
+    taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
+    answersarray=($taskworkflow)
+    task=${answersarray[0]}
+    workflow=${answersarray[1]}
+
+    # Strip out colons for array helper command
+    h1pi2=`echo ${H1PI2} | sed 's/://g'`
+
+    # Create another volume that we will inventory-only delete
+    runcmd volume create du-hijack-volume ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 1
+    device_id=`volume show ${PROJECT}/du-hijack-volume | grep native_id | awk '{print $2}' | cut -c2-6`
+
+    if [ "$SS" = "xio" ]; then
+        device_id=`volume show ${PROJECT}/du-hijack-volume | grep device_label | awk '{print $2}' | cut -d '"' -f2`
+    fi
+
+    runcmd volume delete ${PROJECT}/du-hijack-volume --vipronly
+
+    # 4. Create the storage group (different name) with the unmanaged volume with host
+    arrayhelper create_export_mask ${SERIAL_NUMBER} ${device_id} ${H1PI1}
+
+    # Verify the mask has the new initiator in it
+    verify_export ${expname}1 ${HOST1} 2 1
+
+    # Resume the workflow
+    runcmd workflow resume $workflow
+
+    # Follow the task.  It should fail because the storage group will be there with that init already
+    echo "*** Following the export_group delete task to verify it FAILS because of the additional volume"
+    fail task follow $task
+
+    # Verify the mask still has the new initiator in it (this will fail if rollback removed it)
+    verify_export ${expname}1 ${HOST1} 2 1
+
+    # shut off suspensions/failures
+    set_suspend_on_class_method "none"
+    set_artificial_failure none
+
+    # Delete the export group
+    runcmd export_group delete $PROJECT/${expname}1
+
+    # Make sure it really did kill off the mask
+    verify_export ${expname}1 ${HOST1} gone
+
+    # TODO: Delete the mask we created
+
+    # TODO: Delete the volume we created
+}
+
 cleanup() {
    for id in `export_group list $PROJECT | grep YES | awk '{print $5}'`
    do
@@ -2045,6 +2179,9 @@ fi
 if [ "$SS" = "xio" -o "$SS" = "vplex" ]; then
     setup_yaml;
 fi
+
+# setup required by all runs, even ones where setup was already done.
+prerun_setup;
 
 # If there's a last parameter, take that
 # as the name of the test to run

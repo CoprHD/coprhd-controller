@@ -335,7 +335,7 @@ public class MaskingWorkflowEntryPoints implements Controller {
 
             if (exportGroup == null || exportGroup.getInactive()) {
                 taskCompleter.ready(_dbClient);
-                _log.info("Export Group {} lready deleted", exportGroupURI);
+                _log.info("Export Group {} already deleted", exportGroupURI);
                 return;
             }
 

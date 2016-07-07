@@ -33,7 +33,7 @@
 
 Usage()
 {
-    echo 'Usage: dutests.sh <sanity conf file path> [setup|delete] [vmax | vnx | vplex | xtremio]  [test1 test2 ...]'
+    echo 'Usage: dutests.sh <sanity conf file path> [setup|delete] [vmax | vnx | vplex [local | distributed] | xtremio]  [test1 test2 ...]'
     echo ' [setup]: Run on a new ViPR database, creates SMIS, host, initiators, vpools, varray, volumes'
     echo ' [delete]: Will exports and volumes'
     exit 2
@@ -302,6 +302,7 @@ BOURNE_IP=localhost
 # Zone configuration
 #
 NH=nh
+NH2=nh2
 FC_ZONE_A=fctz_a
 
 if [ "$BOURNE_IP" = "localhost" ]; then
@@ -504,8 +505,99 @@ vmax_setup() {
 
     seed=`date "+%H%M%S%N"`
     runcmd storageport update ${VMAX_NATIVEGUID} FC --tzone $NH/$FC_ZONE_A
-    
+        
+    runcmd cos create block ${VPOOL_BASE}	\
+	--description Base true                 \
+	--protocols FC 			                \
+	--numpaths 1				            \
+	--provisionType 'Thin'			        \
+	--max_snapshots 10                      \
+	--neighborhoods $NH                    
+
     runcmd cos update block $VPOOL_BASE --storage ${VMAX_NATIVEGUID}
+}
+
+vplex_setup() {
+
+    secho "Discovering Brocade SAN Switch ..."
+    runcmd networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
+    sleep 30
+
+	secho "Discovering VPLEX Storage Assets"
+	storageprovider show $VPLEX_DEV_NAME &> /dev/null && return $?
+	runcmd storageprovider create $VPLEX_DEV_NAME $VPLEX_IP 443 $VPLEX_USER "$VPLEX_PASSWD" vplex
+	runcmd smisprovider create $VPLEX_VNX1_SMIS_DEV_NAME $VPLEX_VNX1_SMIS_IP 5989 $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" true
+	runcmd smisprovider create $VPLEX_VNX2_SMIS_DEV_NAME $VPLEX_VNX2_SMIS_IP 5989 $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" true
+	if [[ "$VPLEX_MODE" = "distributed" ]]; then
+	runcmd smisprovider create $VPLEX_VMAX_SMIS_DEV_NAME $VPLEX_VMAX_SMIS_IP 5989 $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" true
+	fi
+	
+	runcmd storagedevice discover_all
+
+    VPLEX_VARRAY1=$NH
+	secho "Setting up the VPLEX cluster-1 virtual array $VPLEX_VARRAY1"
+    runcmd neighborhood create $VPLEX_VARRAY1
+    runcmd transportzone assign FABRIC_losam082-fabric $VPLEX_VARRAY1
+    FC_ZONE_A=FABRIC_losam082-fabric
+    runcmd transportzone create $FC_ZONE_A $VPLEX_VARRAY1 --type FC
+	runcmd storageport update $VPLEX_GUID FC --group director-1-1-A --addvarrays $VPLEX_VARRAY1
+	runcmd storageport update $VPLEX_GUID FC --group director-1-1-B --addvarrays $VPLEX_VARRAY1
+	runcmd storageport update $VPLEX_VNX1_NATIVEGUID FC --addvarrays $VPLEX_VARRAY1
+	runcmd storageport update $VPLEX_VNX2_NATIVEGUID FC --addvarrays $VPLEX_VARRAY1
+	
+    VPLEX_VARRAY2=$NH2
+    secho "Setting up the VPLEX cluster-2 virtual array $VPLEX_VARRAY2"
+    runcmd neighborhood create $VPLEX_VARRAY2
+    runcmd transportzone assign FABRIC_vplex154nbr2 $VPLEX_VARRAY2
+    FC_ZONE_B=FABRIC_vplex154nbr2
+    runcmd transportzone create $FC_ZONE_B $VPLEX_VARRAY2 --type FC
+    runcmd storageport update $VPLEX_GUID FC --group director-2-1-A --addvarrays $VPLEX_VARRAY2
+    runcmd storageport update $VPLEX_GUID FC --group director-2-1-B --addvarrays $VPLEX_VARRAY2
+	if [[ "$VPLEX_MODE" = "distributed" ]]; then
+    runcmd storageport update $VPLEX_VMAX_NATIVEGUID FC --addvarrays $VPLEX_VARRAY2
+    fi
+    
+    common_setup
+
+    case "$VPLEX_MODE" in 
+        local)
+            secho "Setting up the virtual pool for local VPLEX provisioning"
+            runcmd cos create block $VPOOL_BASE true                            \
+                             --description 'vpool-for-vplex-local-volumes'      \
+                             --protocols FC                                     \
+                             --numpaths 2                                       \
+                             --provisionType 'Thin'                             \
+                             --highavailability vplex_local                     \
+                             --neighborhoods $VPLEX_VARRAY1                     \
+                             --max_snapshots 1                                  \
+                             --max_mirrors 0                                    \
+                             --expandable false 
+
+            runcmd cos update block $VPOOL_BASE --storage $VPLEX_VNX1_NATIVEGUID
+            runcmd cos update block $VPOOL_BASE --storage $VPLEX_VNX2_NATIVEGUID
+        ;;
+        distributed)
+            secho "Setting up the virtual pool for distributed VPLEX provisioning"
+            runcmd cos create block $VPOOL_BASE true                                \
+                             --description 'vpool-for-vplex-distributed-volumes'    \
+                             --protocols FC                                         \
+                             --numpaths 2                                           \
+                             --provisionType 'Thin'                                 \
+                             --highavailability vplex_distributed                   \
+                             --neighborhoods $VPLEX_VARRAY1 $VPLEX_VARRAY2          \
+                             --haNeighborhood $VPLEX_VARRAY2                        \
+                             --max_snapshots 1                                      \
+                             --max_mirrors 0                                        \
+                             --expandable false
+
+            runcmd cos update block $VPOOL_BASE --storage $VPLEX_VNX1_NATIVEGUID
+            runcmd cos update block $VPOOL_BASE --storage $VPLEX_VMAX_NATIVEGUID
+        ;;
+        *)
+            secho "Invalid VPLEX_MODE: $VPLEX_MODE (should be 'local' or 'distributed')"
+            Usage
+        ;;
+    esac
 }
 
 xio_setup() {
@@ -528,6 +620,14 @@ xio_setup() {
     seed=`date "+%H%M%S%N"`
     runcmd storageport update ${XTREMIO_NATIVEGUID} FC --tzone $NH/$FC_ZONE_A
     
+    runcmd cos create block ${VPOOL_BASE}	\
+	--description Base true                 \
+	--protocols FC 			                \
+	--numpaths 1				            \
+	--provisionType 'Thin'			        \
+	--max_snapshots 10                      \
+	--neighborhoods $NH                    
+
     runcmd cos update block $VPOOL_BASE --storage ${XTREMIO_NATIVEGUID}
 }
 
@@ -571,15 +671,6 @@ common_setup() {
         runcmd initiator create ${HOST3} FC $H3PI1 --node $H3NI1
         runcmd initiator create ${HOST3} FC $H3PI2 --node $H3NI2
     fi
-
-    # make a base cos for protected volumes
-    runcmd cos create block ${VPOOL_BASE}					\
-	--description Base true \
-	--protocols FC 			\
-	--numpaths 1				\
-	--provisionType 'Thin'			\
-	--max_snapshots 10                     \
-	--neighborhoods $NH                    
 }
 
 setup_varray() {
@@ -2060,7 +2151,14 @@ SS=${1}
 shift
 
 case $SS in
-    vmax|vnx|vplex|xio)
+    vmax|vnx|xio)
+    ;;
+    vplex)
+        # set local or distributed mode
+        VPLEX_MODE=${1}
+        shift
+        echo "VPLEX_MODE is $VPLEX_MODE"
+        [[ ! "local distributed" =~ "$VPLEX_MODE" ]] && Usage
     ;;
     *)
     Usage

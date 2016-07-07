@@ -5,7 +5,6 @@
 package com.emc.storageos.db.client.impl;
 
 import com.netflix.astyanax.model.ColumnFamily;
-import com.netflix.astyanax.model.Column;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

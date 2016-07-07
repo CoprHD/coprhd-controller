@@ -4,16 +4,18 @@
  */
 package com.emc.storageos.db.client.impl;
 
-import com.netflix.astyanax.model.Column;
-
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  *
  */
 public class RemovedColumnsList implements IndexColumnList {
-    private Map<String, List<Column<CompositeColumnName>>> _cleanupList;
-    private Map<String, Map<String, List<Column<CompositeColumnName>>>> _allColMap;
+    private Map<String, List<CompositeColumnName>> _cleanupList;
+    private Map<String, Map<String, List<CompositeColumnName>>> _allColMap;
 
     public RemovedColumnsList() {
         _cleanupList = new HashMap<>();
@@ -21,9 +23,9 @@ public class RemovedColumnsList implements IndexColumnList {
     }
 
     @Override
-    public void add(String key, Column<CompositeColumnName> column) {
-        List<Column<CompositeColumnName>> cleanList = _cleanupList.get(key);
-        Map<String, List<Column<CompositeColumnName>>> keyColumns = _allColMap.get(key);
+    public void add(String key, CompositeColumnName column) {
+        List<CompositeColumnName> cleanList = _cleanupList.get(key);
+        Map<String, List<CompositeColumnName>> keyColumns = _allColMap.get(key);
         if (cleanList == null) {
             cleanList = new ArrayList<>();
             _cleanupList.put(key, cleanList);
@@ -32,8 +34,8 @@ public class RemovedColumnsList implements IndexColumnList {
         }
         cleanList.add(column);
 
-        String colName = column.getName().getOne();
-        List<Column<CompositeColumnName>> columns = keyColumns.get(colName);
+        String colName = column.getOne();
+        List<CompositeColumnName> columns = keyColumns.get(colName);
         if (columns == null) {
             columns = new ArrayList<>();
             keyColumns.put(colName, columns);
@@ -42,12 +44,12 @@ public class RemovedColumnsList implements IndexColumnList {
     }
 
     @Override
-    public Map<String, List<Column<CompositeColumnName>>> getColumnsToClean() {
+    public Map<String, List<CompositeColumnName>> getColumnsToClean() {
         return Collections.unmodifiableMap(_cleanupList);
     }
 
     @Override
-    public Map<String, List<Column<CompositeColumnName>>> getAllColumns(String key) {
+    public Map<String, List<CompositeColumnName>> getAllColumns(String key) {
         return Collections.unmodifiableMap(_allColMap.get(key));
     }
 

@@ -18,7 +18,6 @@ import java.util.concurrent.Executors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.serializers.StringSerializer;
 
@@ -56,17 +55,17 @@ public class IndexCleaner {
             return;
         }
 
-        Map<String, List<Column<CompositeColumnName>>> cleanList = listToClean.getColumnsToClean();
-        Iterator<Map.Entry<String, List<Column<CompositeColumnName>>>> entryIt = cleanList.entrySet().iterator();
+        Map<String, List<CompositeColumnName>> cleanList = listToClean.getColumnsToClean();
+        Iterator<Map.Entry<String, List<CompositeColumnName>>> entryIt = cleanList.entrySet().iterator();
         Map<String, ColumnField> dependentFields = new HashMap<>();
         while (entryIt.hasNext()) {
-            Map.Entry<String, List<Column<CompositeColumnName>>> entry = entryIt.next();
+            Map.Entry<String, List<CompositeColumnName>> entry = entryIt.next();
 
             String rowKey = entry.getKey();
-            List<Column<CompositeColumnName>> cols = entry.getValue();
+            List<CompositeColumnName> cols = entry.getValue();
             for (int i = 0; i < cols.size(); i++) {
-                Column<CompositeColumnName> column = cols.get(i);
-                ColumnField field = doType.getColumnField(column.getName().getOne());
+                CompositeColumnName column = cols.get(i);
+                ColumnField field = doType.getColumnField(column.getOne());
                 field.removeColumn(rowKey, column, mutator, listToClean.getAllColumns(rowKey));
                 for (ColumnField depField : field.getDependentFields()) {
                     dependentFields.put(depField.getName(), depField);
@@ -79,45 +78,45 @@ public class IndexCleaner {
         }
         // If this is an IndexCleanupList, means we're called because someone changed the object fields
         // We need to check if .inactive is changed to true, if so, we need to hide (remove) related index entries from index CFs
-        removeIndexOfInactiveObjects(mutator, doType, (IndexCleanupList) listToClean, true);
+        removeIndexOfInactiveObjects(mutator, doType, listToClean, true);
 
-        mutator.executeIndexFirst();
+        mutator.execute();
     }
 
-    public void removeColumnAndIndex(RowMutator mutator, DataObjectType doType, RemovedColumnsList listToClean) {
+    public void removeColumnAndIndex(RowMutatorDS mutator, DataObjectType doType, RemovedColumnsList listToClean) {
 
-        Map<String, List<Column<CompositeColumnName>>> cleanList = listToClean.getColumnsToClean();
-        Iterator<Map.Entry<String, List<Column<CompositeColumnName>>>> entryIt = cleanList.entrySet().iterator();
+        Map<String, List<CompositeColumnName>> cleanList = listToClean.getColumnsToClean();
+        Iterator<Map.Entry<String, List<CompositeColumnName>>> entryIt = cleanList.entrySet().iterator();
         while (entryIt.hasNext()) {
-            Map.Entry<String, List<Column<CompositeColumnName>>> entry = entryIt.next();
+            Map.Entry<String, List<CompositeColumnName>> entry = entryIt.next();
 
             String rowKey = entry.getKey();
-            List<Column<CompositeColumnName>> cols = entry.getValue();
+            List<CompositeColumnName> cols = entry.getValue();
             for (int i = 0; i < cols.size(); i++) {
-                Column<CompositeColumnName> column = cols.get(i);
-                ColumnField field = doType.getColumnField(column.getName().getOne());
+                CompositeColumnName column = cols.get(i);
+                ColumnField field = doType.getColumnField(column.getOne());
                 field.removeColumn(rowKey, column, mutator, listToClean.getAllColumns(rowKey));
             }
         }
 
-        mutator.executeIndexFirst();
+        mutator.execute();
     }
 
-    public void removeIndexOfInactiveObjects(RowMutator mutator, DataObjectType doType, IndexCleanupList indexCleanList,
+    public void removeIndexOfInactiveObjects(RowMutatorDS mutator, DataObjectType doType, IndexCleanupList indexCleanList,
             boolean forChangedObjectsOnly) {
         // Get list of columns to cleanup for objects has changes on their indexed fields
-        Map<String, List<Column<CompositeColumnName>>> indexesToClean = indexCleanList.getIndexesToClean(forChangedObjectsOnly);
+        Map<String, List<CompositeColumnName>> indexesToClean = indexCleanList.getIndexesToClean(forChangedObjectsOnly);
 
         // See if there's index entries need us to hide (remove), this list is non-empty if any object's .inactive is true
         // and the object has at least one indexed field (except .inactive itself)
         if (indexesToClean != null && !indexesToClean.isEmpty()) { // Have at least one object's one indexed field to hide
             // Hide each object's indexed fields
-            for (Map.Entry<String, List<Column<CompositeColumnName>>> entry : indexesToClean.entrySet()) {
+            for (Map.Entry<String, List<CompositeColumnName>> entry : indexesToClean.entrySet()) {
                 String rowKey = entry.getKey();
                 // Hide each column of this object
-                for (Column<CompositeColumnName> col : entry.getValue()) {
+                for (CompositeColumnName col : entry.getValue()) {
                     // Column -> ColumnField -> DbIndex -> .remove
-                    ColumnField field = doType.getColumnField(col.getName().getOne());
+                    ColumnField field = doType.getColumnField(col.getOne());
                     DbIndex index = field.getIndex();
 
                     if (index != null) {
@@ -137,17 +136,17 @@ public class IndexCleaner {
      * @param cleanList
      * @param oldIndexCf
      */
-    public void removeOldIndex(RowMutator mutator, DataObjectType doType, Map<String, List<Column<CompositeColumnName>>> cleanList,
+    public void removeOldIndex(RowMutatorDS mutator, DataObjectType doType, Map<String, List<CompositeColumnName>> cleanList,
             String oldIndexCf) {
-        Iterator<Map.Entry<String, List<Column<CompositeColumnName>>>> entryIt = cleanList.entrySet().iterator();
+        Iterator<Map.Entry<String, List<CompositeColumnName>>> entryIt = cleanList.entrySet().iterator();
         while (entryIt.hasNext()) {
-            Map.Entry<String, List<Column<CompositeColumnName>>> entry = entryIt.next();
+            Map.Entry<String, List<CompositeColumnName>> entry = entryIt.next();
 
             String rowKey = entry.getKey();
-            List<Column<CompositeColumnName>> cols = entry.getValue();
-            Map<String, List<Column<CompositeColumnName>>> fieldColumnMap = buildFieldMapFromColumnList(cols);
-            for (Column<CompositeColumnName> column : cols) {
-                ColumnField field = doType.getColumnField(column.getName().getOne());
+            List<CompositeColumnName> cols = entry.getValue();
+            Map<String, List<CompositeColumnName>> fieldColumnMap = buildFieldMapFromColumnList(cols);
+            for (CompositeColumnName column : cols) {
+                ColumnField field = doType.getColumnField(column.getOne());
                 ColumnFamily<String, IndexColumnName> currentIndexCF = field.getIndex().getIndexCF();
                 ColumnFamily<String, IndexColumnName> oldIndexCF = new ColumnFamily<String, IndexColumnName>(
                         oldIndexCf, StringSerializer.get(), IndexColumnNameSerializer.get());
@@ -156,7 +155,7 @@ public class IndexCleaner {
                 field.getIndex().setIndexCF(currentIndexCF);
             }
         }
-        mutator.executeIndexFirst();
+        mutator.execute();
     }
 
     /**
@@ -166,7 +165,7 @@ public class IndexCleaner {
      * @param doType
      * @param listToClean
      */
-    public void cleanIndexAsync(final RowMutator mutator,
+    public void cleanIndexAsync(final RowMutatorDS mutator,
             final DataObjectType doType,
             final SoftReference<IndexCleanupList> listToCleanRef) {
         _indexCleanerExe.submit(new Callable<Object>() {
@@ -178,11 +177,11 @@ public class IndexCleaner {
         });
     }
 
-    private static Map<String, List<Column<CompositeColumnName>>> buildFieldMapFromColumnList(List<Column<CompositeColumnName>> columns) {
-        Map<String, List<Column<CompositeColumnName>>> columnMap = new HashMap<>();
-        for (Column<CompositeColumnName> column : columns) {
-            String fieldName = column.getName().getOne();
-            List<Column<CompositeColumnName>> fieldList = columnMap.get(fieldName);
+    private static Map<String, List<CompositeColumnName>> buildFieldMapFromColumnList(List<CompositeColumnName> columns) {
+        Map<String, List<CompositeColumnName>> columnMap = new HashMap<>();
+        for (CompositeColumnName column : columns) {
+            String fieldName = column.getOne();
+            List<CompositeColumnName> fieldList = columnMap.get(fieldName);
             if (fieldList == null) {
                 fieldList = new ArrayList<>();
                 columnMap.put(fieldName, fieldList);

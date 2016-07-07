@@ -26,7 +26,8 @@ public class IndexCleanupList implements IndexColumnList {
     public static final CompositeColumnName INACTIVE_COLUMN = new CompositeColumnName(DataObject.INACTIVE_FIELD_NAME);
 
     private Map<String, List<CompositeColumnName>> _cleanupList;
-    private Map<String, Map<CompositeColumnName, Column>> _currentMap;
+    //CompositeColumnName regards fields(_one, _two, _three) as keys to compare
+    private Map<String, Map<CompositeColumnName, CompositeColumnName>> _currentMap;
     // _allColMap is a union of _cleanupList and _currentMap. It might be a redundant structure
     // but it easier to operate.
     private Map<String, Map<String, List<CompositeColumnName>>> _allColMap;
@@ -41,18 +42,18 @@ public class IndexCleanupList implements IndexColumnList {
 
     @Override
     public void add(String key, CompositeColumnName column) {
-        Map<CompositeColumnName, Column> colMap = _currentMap.get(key);
-        Map<String, List<Column<CompositeColumnName>>> keyColumns = _allColMap.get(key);
+        Map<CompositeColumnName, CompositeColumnName> colMap = _currentMap.get(key);
+        Map<String, List<CompositeColumnName>> keyColumns = _allColMap.get(key);
         if (colMap == null) {
             colMap = new HashMap<>();
             _currentMap.put(key, colMap);
             keyColumns = new HashMap<>();
             _allColMap.put(key, keyColumns);
         }
-        Column previousCol = colMap.put(column.getName(), column);
+        CompositeColumnName previousCol = colMap.put(column, column);
         if (previousCol != null) {
             // If .inactive is already true, it's not allowed to be set back to false
-            if (column.getName().getOne().equals(INACTIVE_COLUMN.getOne())) {
+            if (column.getOne().equals(INACTIVE_COLUMN.getOne())) {
                 if (previousCol.getBooleanValue() && !column.getBooleanValue()) {
                     // Switching from true (inactive) to false (active), which is not allowed.
                     // throw new
@@ -62,7 +63,7 @@ public class IndexCleanupList implements IndexColumnList {
                 }
             }
 
-            List<Column<CompositeColumnName>> cleanList = _cleanupList.get(key);
+            List<CompositeColumnName> cleanList = _cleanupList.get(key);
             if (cleanList == null) {
                 cleanList = new ArrayList<>();
                 _cleanupList.put(key, cleanList);
@@ -72,8 +73,8 @@ public class IndexCleanupList implements IndexColumnList {
                 cleanList.add(column);
             }
         }
-        String colName = column.getName().getOne();
-        List<Column<CompositeColumnName>> columns = keyColumns.get(colName);
+        String colName = column.getOne();
+        List<CompositeColumnName> columns = keyColumns.get(colName);
         if (columns == null) {
             columns = new ArrayList<>();
             keyColumns.put(colName, columns);
@@ -104,22 +105,22 @@ public class IndexCleanupList implements IndexColumnList {
         Map<String, List<CompositeColumnName>> mapIndexes = new HashMap<>();
 
         // For each object we have touched
-        for (Map.Entry<String, Map<CompositeColumnName, Column>> entry : _currentMap.entrySet()) {
+        for (Map.Entry<String, Map<CompositeColumnName, CompositeColumnName>> entry : _currentMap.entrySet()) {
             String rowKey = entry.getKey();
-            Map<CompositeColumnName, Column> colMap = entry.getValue();
+            Map<CompositeColumnName, CompositeColumnName> colMap = entry.getValue();
 
             if (changedOnly && !_cleanupList.containsKey(rowKey)) {
                 continue;
             }
 
             // Check if this row's final "inactive" column is "true"
-            Column inactiveColumn = colMap.get(INACTIVE_COLUMN);
+            CompositeColumnName inactiveColumn = colMap.get(INACTIVE_COLUMN);
             if (inactiveColumn != null && inactiveColumn.getBooleanValue()) {
-                ArrayList<Column<CompositeColumnName>> cols = new ArrayList<Column<CompositeColumnName>>();
+                List<CompositeColumnName> cols = new ArrayList<>();
 
-                for (Column<CompositeColumnName> col : colMap.values()) {
+                for (CompositeColumnName col : colMap.values()) {
                     // All indexed fields except "inactive" itself need to be removed
-                    if (!col.getName().getOne().equals("inactive")
+                    if (!col.getOne().equals("inactive")
                             && !ColumnField.isDeletionMark(col)) {
                         cols.add(col);
                     }

@@ -27,6 +27,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import com.emc.storageos.db.client.impl.RowMutatorDS;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.junit.After;
@@ -2166,7 +2167,7 @@ public class DbClientTest extends DbsvcTestBase {
 
     private static class NoBgIndexCleaner extends IndexCleaner {
         @Override
-        public void cleanIndexAsync(final RowMutator mutator,
+        public void cleanIndexAsync(final RowMutatorDS mutator,
                 final DataObjectType doType,
                 final SoftReference<IndexCleanupList> listToCleanRef) {
             // Do nothing
@@ -2240,6 +2241,7 @@ public class DbClientTest extends DbsvcTestBase {
             this._indexCleaner = new NoBgIndexCleaner();
         }
 
+        /*This method is never used and superclass hasn't method with same signature
         @Override
         protected <T extends DataObject> List<URI> insertNewColumns(Keyspace ks, Collection<T> dataobjects)
                 throws DatabaseException {
@@ -2255,7 +2257,7 @@ public class DbClientTest extends DbsvcTestBase {
                     stepLock.ackStep(StepLock.Step.InsertNewColumns);
                 }
             }
-        }
+        }*/
 
         @Override
         protected <T extends DataObject> Rows<String, CompositeColumnName> fetchNewest(Class<? extends T> clazz, Keyspace ks,

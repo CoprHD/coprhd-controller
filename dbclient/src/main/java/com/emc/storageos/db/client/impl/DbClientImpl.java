@@ -444,7 +444,7 @@ public class DbClientImpl implements DbClient {
             return new ArrayList<T>();
         }
 
-        Keyspace ks = getKeyspace(clazz);
+        DbClientContext context = getDbClientContext(clazz);
         Map<String, List<CompositeColumnName>> result = queryRowsWithAllColumns(getDbClientContext(clazz), ids, doType.getCF().getName());
         List<T> objects = new ArrayList<T>(result.size());
         IndexCleanupList cleanList = new IndexCleanupList();
@@ -467,10 +467,10 @@ public class DbClientImpl implements DbClient {
             }
         } 
         
-        // TODO Java driver: need to handle clean list for queryObject
         if (!cleanList.isEmpty()) {
             boolean retryFailedWriteWithLocalQuorum = shouldRetryFailedWriteWithLocalQuorum(clazz);
-            RowMutator mutator = new RowMutator(ks, retryFailedWriteWithLocalQuorum);
+            //todo retryFailedWriteWithLocalQuorum
+            RowMutatorDS mutator = new RowMutatorDS(context);
             SoftReference<IndexCleanupList> indexCleanUpRef = new SoftReference<IndexCleanupList>(cleanList);
             _indexCleaner.cleanIndexAsync(mutator, doType, indexCleanUpRef);
         }
@@ -1106,9 +1106,8 @@ public class DbClientImpl implements DbClient {
 
         List<URI> objectsToCleanup = insertNewColumns(context, dataobjects);
         if (updateIndex && !objectsToCleanup.isEmpty()) {
-            /*todo cleanup list
-            Rows<String, CompositeColumnName> rows = fetchNewest(clazz, ks, objectsToCleanup);
-            cleanupOldColumns(clazz, ks, rows);*/
+            Rows<String, CompositeColumnName> rows = fetchNewest(clazz, getKeyspace(clazz), objectsToCleanup);
+            cleanupOldColumns(clazz, rows);
         }
     }
 
@@ -1147,7 +1146,7 @@ public class DbClientImpl implements DbClient {
         return queryRowsWithAllColumns(ks, objectsToCleanup, doType.getCF());
     }
 
-    protected <T extends DataObject> void cleanupOldColumns(Class<? extends T> clazz, Keyspace ks, Rows<String, CompositeColumnName> rows) {
+    protected <T extends DataObject> void cleanupOldColumns(Class<? extends T> clazz, Rows<String, CompositeColumnName> rows) {
         // cleanup old entries for indexed columns
         // CHECK - persist is called only with same object types for now
         // not sure, if this is an assumption we can make
@@ -1161,7 +1160,8 @@ public class DbClientImpl implements DbClient {
         }
         if (!cleanList.isEmpty()) {
             boolean retryFailedWriteWithLocalQuorum = shouldRetryFailedWriteWithLocalQuorum(clazz);
-            RowMutator cleanupMutator = new RowMutator(ks, retryFailedWriteWithLocalQuorum);
+            //todo retry
+            RowMutatorDS cleanupMutator = new RowMutatorDS(getDbClientContext(clazz));
             SoftReference<IndexCleanupList> indexCleanUpRef = new SoftReference<IndexCleanupList>(cleanList);
             _indexCleaner.cleanIndex(cleanupMutator, doType, indexCleanUpRef);
         }
@@ -1316,7 +1316,7 @@ public class DbClientImpl implements DbClient {
     public void removeObject(Class<? extends DataObject> clazz, DataObject... object) {
 
         List<DataObject> allObjects = Arrays.asList(object);
-        Keyspace ks = getKeyspace(clazz);
+        DbClientContext context = getDbClientContext(clazz);
 
         DataObjectType doType = null;
         RemovedColumnsList removedList = new RemovedColumnsList();
@@ -1327,19 +1327,17 @@ public class DbClientImpl implements DbClient {
             if (doType == null) {
                 throw new IllegalArgumentException();
             }
-            Row<String, CompositeColumnName> row = queryRowWithAllColumns(ks, dataObject.getId(), doType.getCF());
-            if (row != null) {
-                Iterator<Column<CompositeColumnName>> it = row.getColumns().iterator();
-                String key = row.getKey();
-                while (it.hasNext()) {
-                    Column<CompositeColumnName> column = it.next();
-                    removedList.add(key, column);
+            Map<String, List<CompositeColumnName>> result = queryRowWithAllColumns(context, dataObject.getId(), doType.getCF().getName());
+            for (String rowKey : result.keySet()) {
+                for (CompositeColumnName row : result.get(rowKey)) {
+                    removedList.add(rowKey, row);
                 }
-            }
+            }       
         }
         if (!removedList.isEmpty()) {
             boolean retryFailedWriteWithLocalQuorum = shouldRetryFailedWriteWithLocalQuorum(clazz);
-            RowMutator mutator = new RowMutator(ks, retryFailedWriteWithLocalQuorum);
+            //todo retry
+            RowMutatorDS mutator = new RowMutatorDS(context);
             _indexCleaner.removeColumnAndIndex(mutator, doType, removedList);
         }
     }

@@ -2242,6 +2242,7 @@ public class DbClientTest extends DbsvcTestBase {
         }
 
         /*This method is never used and superclass hasn't method with same signature
+        TODO will remove when this test passed
         @Override
         protected <T extends DataObject> List<URI> insertNewColumns(Keyspace ks, Collection<T> dataobjects)
                 throws DatabaseException {

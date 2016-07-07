@@ -138,7 +138,7 @@ public class VolumeVpoolChangeTaskCompleter extends VolumeWorkflowCompleter {
                             // "ready" or "success" state then one of the last
                             // steps we need to take for the volume is to update the
                             // vpool reference to the new vpool.
-                            if(newVpools != null && !newVpools.isEmpty()) {
+                            if (newVpools != null && !newVpools.isEmpty()) {
                                 URI newVpoolId = newVpools.get(id);
                                 if (newVpoolId != null) {                                    
                                     Volume volume = dbClient.queryObject(Volume.class, id);
@@ -148,10 +148,11 @@ public class VolumeVpoolChangeTaskCompleter extends VolumeWorkflowCompleter {
                                     VPlexUtil.updateVPlexBackingVolumeVpools(volume, newVpoolId, dbClient);
                                     volumesToUpdate.add(volume);
                                 }
-                            }
-                            
+                            }                            
                             recordBourneVolumeEvent(dbClient, id, evType, status, evDesc);
-                        }
+                        }                        
+                        dbClient.updateObject(volumesToUpdate);
+                        
                     } catch (Exception ex) {
                         _logger.error("Failed to record block volume operation {}, err: {}", opType.toString(), ex);
                     }

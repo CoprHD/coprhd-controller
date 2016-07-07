@@ -4030,45 +4030,37 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         //
         // Invoke the block orchestration with the migration volume descriptors
         if (!migrateVolumeDescriptors.isEmpty()) {
+            // If there are migrations but there were no Source volumes involved then we implicitly 
+            // need to update the passed in Source volumes with the new vpool (including their backing 
+            // volume vpools).
+            // The best way to do this is to create a DUMMY_MIGRATE volume descriptor that will
+            // be entered into the workflow but will never be consumed by any WF steps. This will
+            // however ensure the task is completed correctly and the vpools updated by the completer.
+            if (!sourceMigrationsExist && (targetMigrationsExist || journalMigrationsExist)) {
+                _log.info("No RP+VPLEX Source migrations detected, creating DUMMY_MIGRATE volume descriptors for the Source volumes.");
+                for (Volume volume : volumes) {                              
+                    if (volume.checkPersonality(Volume.PersonalityTypes.SOURCE)) {                       
+                        // Add the VPLEX Virtual Volume Descriptor for change vpool
+                        VolumeDescriptor dummyMigrate = new VolumeDescriptor(VolumeDescriptor.Type.DUMMY_MIGRATE,
+                                volume.getStorageController(),
+                                volume.getId(),
+                                volume.getPool(), null);
+
+                        Map<String, Object> volumeParams = new HashMap<String, Object>();
+                        volumeParams.put(VolumeDescriptor.PARAM_VPOOL_CHANGE_EXISTING_VOLUME_ID, volume.getId());
+                        volumeParams.put(VolumeDescriptor.PARAM_VPOOL_CHANGE_NEW_VPOOL_ID, newVpool.getId());
+                        volumeParams.put(VolumeDescriptor.PARAM_VPOOL_CHANGE_OLD_VPOOL_ID, volume.getVirtualPool());
+                        dummyMigrate.setParameters(volumeParams);
+                        migrateVolumeDescriptors.add(dummyMigrate);
+                    }
+                }
+            }                     
+            
+            // Invoke the block orchestrator for the change vpool operation
             BlockOrchestrationController controller = getController(
                     BlockOrchestrationController.class,
                     BlockOrchestrationController.BLOCK_ORCHESTRATION_DEVICE);
-            controller.changeVirtualPool(migrateVolumeDescriptors, taskId);
-
-            // No source migrations? Clean up the tasks for them otherwise they will 
-            // be left as pending.
-            if (!sourceMigrationsExist) {
-                for (Volume volume : volumes) {
-                    List<Task> newTasks = TaskUtils.findResourceTasks(_dbClient, volume.getId());
-                    for (Task newTask : newTasks) {
-                        if (newTask.isPending()) {
-                            Operation opStatus = new Operation(Operation.Status.ready.name());
-                            _dbClient.updateTaskOpStatus(Volume.class, volume.getId(), 
-                                    taskId, opStatus);
-                            
-                            _log.info(String.format("Removed task for Source volume [%s](%s)",
-                                    volume.getLabel(), volume.getId()));
-                        }
-                    }
-                }
-            }
-         
-            // If the were no direct Source volumes involved in migration but there were Target or
-            // Journal migrations then we implicitly need to update the passed in Source volumes
-            // with the new vpool we have moved to (including their backing volume vpools).
-            if (!sourceMigrationsExist && (targetMigrationsExist || journalMigrationsExist)) {
-                for (Volume volume : volumes) {                              
-                    if (volume.checkPersonality(Volume.PersonalityTypes.SOURCE)) {                       
-                        volume.setVirtualPool(newVpool.getId());
-                        _dbClient.updateObject(volume);
-                        VPlexUtil.updateVPlexBackingVolumeVpools(volume, newVpool.getId(), _dbClient);
-                        
-                        _log.info(String.format("Updated Source volume [%s](%s) to new vpool [%s](%s)",
-                                volume.getLabel(), volume.getId(),
-                                newVpool.getLabel(), newVpool.getId())); 
-                    }
-                }
-            }                        
+            controller.changeVirtualPool(migrateVolumeDescriptors, taskId);  
         } else {
             _log.info(String.format("No extra migrations needed."));
         }

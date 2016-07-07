@@ -1468,17 +1468,19 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
 		    $scope.closeGuide();
         }
         else {
-		    $scope.$parent.guideVisible = true;
-		    $scope.$parent.guideMode='full';
-            if ($scope.$parent.completedSteps <= requiredSteps || !completedSteps){
-                if ($window.location.pathname == '/setup/license') {
-                    if ($scope.$parent.currentStep == 1) {return;};
+            if (window.location.pathname != '/security/logout') {
+                $scope.$parent.guideVisible = true;
+                $scope.$parent.guideMode='full';
+                if ($scope.$parent.completedSteps <= requiredSteps || !completedSteps){
+                    if ($window.location.pathname == '/setup/license') {
+                        if ($scope.$parent.currentStep == 1) {return;};
+                    }
+                    if ($window.location.pathname == '/setup/index') {
+                        if ($scope.$parent.currentStep == 2) {return;};
+                    }
                 }
-                if ($window.location.pathname == '/setup/index') {
-                    if ($scope.$parent.currentStep == 2) {return;};
-                }
-            }
-		    $scope.initializeSteps();
+                $scope.initializeSteps();
+		    }
         }
     }
 
@@ -1532,9 +1534,11 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                         testId = function (ss) {
                             var promises = ss.map( function (s) {
                                 if (!finished && s.discoveryStatus == "COMPLETE"){
-                                    finished=true;
-                                    goToNextStep(true);
-                                    finishChecking();
+                                    if(checkCookie("guide_storageArray")){
+                                        finished=true;
+                                        goToNextStep(true);
+                                        finishChecking();
+                                    } else {finishChecking();}
                                 }
                             });
                             $q.all(promises).then(function () {
@@ -1564,16 +1568,16 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                             });
                             $q.all(promises).then(function () {
                                 if(!finished) {
-                                    $scope.$parent.optionalStepComplete = false;
-                                    goToNextStep(true);
+                                    //$scope.$parent.optionalStepComplete = false;
+                                    //goToNextStep(true);
                                     finishChecking();
                                 }
                             });
                         };
                         return testId(data.data.aaData);
                     } else {
-                        $scope.$parent.optionalStepComplete = false;
-                        goToNextStep(true);
+                        //$scope.$parent.optionalStepComplete = false;
+                        //goToNextStep(true);
                         finishChecking();
                     }
                 });
@@ -1586,9 +1590,11 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                             var promises = vArrays.map( function(vArray) {
                             return $http.get(routes.VirtualArrays_pools({'id':vArray.id})).then(function (data,$q) {
                                     if (!finished && data.data.aaData.length != 0){
-                                        finished=true;
-                                        goToNextStep(true);
-                                        finishChecking();
+                                        if(checkCookie("guide_varray")){
+                                            finished=true;
+                                            goToNextStep(true);
+                                            finishChecking();
+                                        } else {finishChecking();}
                                     }
                                 });
                             });
@@ -1767,14 +1773,8 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                 }
                 break;
             case 9:
-                removeGuideCookies();
-                if ($window.location.pathname != '/Catalog') {
-                    $window.location.href = '/Catalog';
-                }
-                else {
-                    $scope.$parent.guideVisible = false;
-                    $scope.$parent.guideDataAvailable = false;
-                }
+                updateGuideCookies4(9,9,'side',false);
+                $window.location.href = '/Catalog#ServiceCatalog/AllFlashservices';
                 break;
             default:
                 updateGuideCookies(step,'side');
@@ -1861,8 +1861,29 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
         createCookie(cookieKey,angular.toJson(cookieObject),'session');
     }
 
+    updateGuideCookies4 = function(completedSteps,currentStep,guideMode,guideVisible) {
+        cookieObject = {};
+        cookieObject.currentStep=currentStep;
+        cookieObject.completedSteps=completedSteps;
+        cookieObject.guideMode=guideMode;
+        cookieObject.guideVisible=guideVisible;
+        cookieObject.optionalStepComplete=$scope.$parent.optionalStepComplete;
+        createCookie(cookieKey,angular.toJson(cookieObject),'session');
+    }
+
+    $scope.restartGuide = function () {
+        $scope.$parent.guideDataAvailable = false;
+        removeGuideCookies();
+        $scope.initializeSteps();
+    }
+
     removeGuideCookies = function() {
         eraseCookie(cookieKey);
+        eraseCookie("guide_storageArray");
+        eraseCookie("guide_fabric");
+        eraseCookie("guide_vpool");
+        eraseCookie("guide_varray");
+        eraseCookie("guide_project");
     }
 
     saveGuideCookies = function() {
@@ -1924,9 +1945,11 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                         testId = function (ss) {
                             var promises = ss.map( function (s) {
                                 if (!finished && s.discoveryStatus == "COMPLETE"){
-                                    finished=true;
-                                    $scope.$parent.completedSteps = 4;
-                                    return checkStep(5);
+                                    if(checkCookie("guide_storageArray")){
+                                        finished=true;
+                                        $scope.$parent.completedSteps = 4;
+                                        return checkStep(5);
+                                    } else {finishChecking();}
                                 }
                             });
                             $q.all(promises).then(function () {
@@ -1956,15 +1979,17 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                             });
                             $q.all(promises).then(function () {
                                 if(!finished) {
-                                    $scope.$parent.optionalStepComplete = false;
-                                    return checkStep(6);
+                                    //$scope.$parent.optionalStepComplete = false;
+                                    //return checkStep(6);
+                                    finishChecking();
                                 }
                             });
                         };
                         return testId(data.data.aaData);
                     } else {
-                        $scope.$parent.optionalStepComplete = false;
-                        return checkStep(6);
+                        //$scope.$parent.optionalStepComplete = false;
+                        //return checkStep(6);
+                        finishChecking();
                     }
                 });
                 break;
@@ -1976,9 +2001,11 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                             var promises = vArrays.map( function(vArray) {
                             return $http.get(routes.VirtualArrays_pools({'id':vArray.id})).then(function (data,$q) {
                                     if (!finished && data.data.aaData.length != 0){
-                                        finished=true;
-                                        $scope.$parent.completedSteps = 6;
-                                        return checkStep(7);
+                                        if(checkCookie("guide_varray")){
+                                            finished=true;
+                                            $scope.$parent.completedSteps = 6;
+                                            return checkStep(7);
+                                        } else {finishChecking();}
                                     }
                                 });
                             });
@@ -2037,5 +2064,58 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                 break;
         }
 
+    }
+    $scope.getSummary = function() {
+
+        $scope.guide_storageArray = "Not Complete";
+        $scope.guide_varray = "Not Complete";
+        $scope.guide_vpool = "Not Complete";
+        $scope.guide_fabric = "Not Complete";
+        $scope.guide_project = "Not Complete";
+
+        arrayCookie = readCookie("guide_storageArray");
+        if (arrayCookie) {
+            $scope.guide_storageArray = arrayCookie.replace(/\"/g,'');
+        }
+        else if ($scope.completedSteps > 3){
+            $scope.guide_storageArray = "Skipped";
+        }
+        varrayCookie = readCookie("guide_varray");
+        if (varrayCookie) {
+            $scope.guide_varray = varrayCookie;
+        }
+        else if ($scope.completedSteps > 5){
+            $scope.guide_varray = "Skipped";
+        }
+        vpoolCookie = readCookie("guide_vpool");
+        if (vpoolCookie) {
+            $scope.guide_vpool = vpoolCookie;
+        }
+        else if ($scope.completedSteps > 6){
+            $scope.guide_varray = "Skipped";
+        }
+        fabricCookie = readCookie("guide_fabric");
+        if (fabricCookie) {
+            $scope.guide_fabric = fabricCookie.replace(/\"/g,'');;
+        }
+        else if ($scope.completedSteps > 4){
+            $scope.guide_fabric = "Skipped";
+        }
+        projectCookie = readCookie("guide_project");
+        if (projectCookie) {
+            $scope.guide_project = projectCookie;
+        }
+        else if ($scope.completedSteps > 7){
+            $scope.guide_project = "Skipped";
+        }
+    }
+
+    checkCookie = function(cookie) {
+        cookieObject = readCookie(cookie);
+
+        if (cookieObject) {
+            return true;
+        }
+        return false;
     }
 });

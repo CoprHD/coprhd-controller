@@ -125,6 +125,8 @@ public class SanSwitches extends ViprResourceController {
 
         sanSwitch.save();
         flash.success(MessagesUtils.get(SAVED, sanSwitch.name));
+        response.setCookie("guide_fabric", sanSwitch.name);
+
         list();
     }
 

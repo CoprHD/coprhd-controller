@@ -233,8 +233,11 @@ public class StorageSystems extends ViprResourceController {
         flash.success(message);
 
         // TODO: cleanup referrer
-        if (StringUtils.isNotEmpty(storageArray.referrerUrl)) {
-            redirect(storageArray.referrerUrl);
+        //if (StringUtils.isNotEmpty(storageArray.referrerUrl)) {
+        //    redirect(storageArray.referrerUrl);
+        //}
+        if(storageArray != null) {
+            response.setCookie("guide_storageArray", storageArray.name);
         }
         list();
     }

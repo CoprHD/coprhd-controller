@@ -41,6 +41,16 @@ public class RemoveBlockVolumeService extends VMwareHostService {
     public void precheck() throws Exception {
         super.precheck();
         volumes = BlockStorageUtils.getBlockResources(uris(volumeIds));
+
+        for (BlockObjectRestRep volume : volumes) {
+            String datastoreName = KnownMachineTags.getBlockVolumeVMFSDatastore(hostId, volume);
+            if (!StringUtils.isEmpty(datastoreName)) {
+                Datastore datastore = vmware.getDatastore(datacenter.getLabel(), datastoreName);
+                if (datastore != null) {
+                    vmware.verifyDatastoreForRemoval(datastore);
+                }
+            }
+        }
     }
 
     @Override

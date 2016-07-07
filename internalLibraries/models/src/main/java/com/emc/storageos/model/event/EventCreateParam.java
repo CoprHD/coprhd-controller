@@ -5,6 +5,7 @@
 package com.emc.storageos.model.event;
 
 import java.net.URI;
+import java.util.List;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -19,6 +20,7 @@ public class EventCreateParam {
     private String controllerClass;
     private String orchestrationMethod;
     private URI tenant;
+    private List<Object> parameters;
 
     public EventCreateParam() {
     }
@@ -61,5 +63,14 @@ public class EventCreateParam {
 
     public void setTenant(URI tenant) {
         this.tenant = tenant;
+    }
+
+    @XmlElement(required = true)
+    public List<Object> getParameters() {
+        return parameters;
+    }
+
+    public void setParameters(List<Object> parameters) {
+        this.parameters = parameters;
     }
 }

@@ -4,15 +4,26 @@
  */
 package com.emc.storageos.db.client.model;
 
+import java.io.Serializable;
 import java.net.URI;
 
 @Cf("Event")
 public class ActionableEvent extends DataObject implements TenantResource {
 
+    public class Method implements Serializable {
+        public String _orchestrationMethod;
+        public Object[] _args;
+
+        public Method(String orchestrationMethod, Object... args) {
+            this._orchestrationMethod = orchestrationMethod;
+            this._args = args;
+        }
+    }
+
     private String _message;
     private String _controllerClass;
-    private String _orchestrationMethod;
     private URI _tenant;
+    private Method _method;
 
     @Name("message")
     public String getMessage() {
@@ -34,14 +45,14 @@ public class ActionableEvent extends DataObject implements TenantResource {
         setChanged("controllerClass");
     }
 
-    @Name("orchestrationMethod")
-    public String getOrchestrationMethod() {
-        return _orchestrationMethod;
+    @Name("method")
+    public Method getMethod() {
+        return _method;
     }
 
-    public void setOrchestrationMethod(String orchestrationMethod) {
-        this._orchestrationMethod = orchestrationMethod;
-        setChanged("orchestrationMethod");
+    public void setMethod(Method method) {
+        this._method = method;
+        setChanged("method");
     }
 
     /*
@@ -86,4 +97,5 @@ public class ActionableEvent extends DataObject implements TenantResource {
     public DataObject findDataObject() {
         return this;
     }
+
 }

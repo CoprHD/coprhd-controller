@@ -101,9 +101,8 @@ public class EventService extends TaskResourceService {
 
             Controller controller = getController(controllerClass, null);
 
-            Method m = controllerClass.getDeclaredMethod(event.getOrchestrationMethod(), URI.class, boolean.class, boolean.class,
-                    String.class);
-            m.invoke(controller, hostId, true, false, taskId);
+            Method m = controllerClass.getMethod(event.getMethod()._orchestrationMethod);
+            m.invoke(controller, event.getMethod()._args);
 
         } catch (ClassNotFoundException e) {
             _log.error(e.getMessage());
@@ -122,6 +121,15 @@ public class EventService extends TaskResourceService {
         //
 
         return Response.ok().build();
+    }
+
+    private Method getMethod(Class clazz, String name) {
+        for (Method method : clazz.getMethods()) {
+            if (method.getName().equalsIgnoreCase(name)) {
+                return method;
+            }
+        }
+        return null;
     }
 
     @POST
@@ -148,7 +156,7 @@ public class EventService extends TaskResourceService {
         event.setTenant(tenant.getId());
         event.setMessage(createParam.getMessage());
         event.setControllerClass(createParam.getControllerClass());
-        event.setOrchestrationMethod(createParam.getOrchestrationMethod());
+        event.setMethod(new ActionableEvent().new Method(createParam.getOrchestrationMethod(), createParam.getParameters().toArray()));
         event.setLabel("Label[" + createParam.getMessage() + "]");
         _dbClient.createObject(event);
         return map(event);

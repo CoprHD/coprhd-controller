@@ -9588,9 +9588,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 if (vplexVolumeInfo.isThinEnabled() != sourceVplexVolume.getThinlyProvisioned()) {
                     _log.info("Thin provisioned setting changed after mirror operation to " + vplexVolumeInfo.isThinEnabled());
                     sourceVplexVolume.setThinlyProvisioned(vplexVolumeInfo.isThinEnabled());
-                    vplexMirror.setThinlyProvisioned(vplexVolumeInfo.isThinEnabled());
                     _dbClient.updateObject(sourceVplexVolume);
                 }
+                vplexMirror.setThinlyProvisioned(vplexVolumeInfo.isThinEnabled());
                 _dbClient.updateObject(vplexMirror);
 
                 // Record VPLEX volume created event.

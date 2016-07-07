@@ -55,6 +55,7 @@ import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.export.ITLRestRepList;
 import com.emc.storageos.model.host.InitiatorAliasGetParam;
+import com.emc.storageos.model.host.InitiatorAliasRestRep;
 import com.emc.storageos.model.host.InitiatorAliasSetParam;
 import com.emc.storageos.model.host.InitiatorBulkRep;
 import com.emc.storageos.model.host.InitiatorRestRep;
@@ -319,7 +320,7 @@ public class InitiatorService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/alias-get")
-    public String getInitiatorAlias(@PathParam("id") URI id, InitiatorAliasGetParam aliasGetParam) {
+    public InitiatorAliasRestRep getInitiatorAlias(@PathParam("id") URI id, InitiatorAliasGetParam aliasGetParam) {
         // Basic Checks
         Initiator initiator = queryResource(id);
         verifyUserPermisions(initiator);
@@ -351,7 +352,8 @@ public class InitiatorService extends TaskResourceService {
         // Update the initiator
         initiator.mapInitiatorName(system.getSerialNumber(), initiatorAlias);
         _dbClient.updateObject(initiator);
-        return initiatorAlias;
+
+        return new InitiatorAliasRestRep(system.getSerialNumber(), initiatorAlias);
     }
 
     /**
@@ -369,7 +371,7 @@ public class InitiatorService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/alias-set")
-    public void setInitiatorAlias(@PathParam("id") URI id, InitiatorAliasSetParam aliasSetParam) {
+    public InitiatorAliasRestRep setInitiatorAlias(@PathParam("id") URI id, InitiatorAliasSetParam aliasSetParam) {
         //Basic Checks
         Initiator initiator = queryResource(id);
         verifyUserPermisions(initiator);
@@ -401,10 +403,11 @@ public class InitiatorService extends TaskResourceService {
                                                              // different node and port names.
             initiator.mapInitiatorName(system.getSerialNumber(), initiatorAlias);
         } else {// The user has set the same node and port names.
-            initiator.mapInitiatorName(system.getSerialNumber(),
-                    String.format("%s%s%s", initiatorAlias, EMPTY_INITIATOR_ALIAS, initiatorAlias));
+            initiatorAlias = String.format("%s%s%s", initiatorAlias, EMPTY_INITIATOR_ALIAS, initiatorAlias);
+            initiator.mapInitiatorName(system.getSerialNumber(), initiatorAlias);
         }
         _dbClient.updateObject(initiator);
+        return new InitiatorAliasRestRep(system.getSerialNumber(), initiatorAlias);
     }
     
     @Override

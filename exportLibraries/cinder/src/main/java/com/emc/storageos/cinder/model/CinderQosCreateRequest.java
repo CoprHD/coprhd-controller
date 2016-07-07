@@ -28,6 +28,13 @@ import java.util.Map;
 public class CinderQosCreateRequest {
 
     @XmlElement(name = "qos_specs")
-    public Map<String, String> qosSpecs;
+    private Map<String, String> qosSpecs;
 
+    public Map<String, String> getQosSpecs() {
+        return qosSpecs;
+    }
+
+    public void setQosSpecs(Map<String, String> qosSpecs) {
+        this.qosSpecs = qosSpecs;
+    }
 }

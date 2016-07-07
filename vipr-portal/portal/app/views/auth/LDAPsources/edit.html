@@ -30,6 +30,10 @@
       });
   }
 
+  function selectAllTenants() {
+      table.tenants.dataTable.selectAll();
+  }
+
     function submitForm(){
         $('#ldapSourceForm').submit();
     }
@@ -54,9 +58,6 @@
         var showDialog = '${showDialog}';
         if (showDialog === 'true' && editMode) {
             showTenantsDialog();
-            setTimeout(function () {
-                table.tenants.dataTable.selectAll();
-            }, 3000);
         }
     });
     
@@ -355,12 +356,18 @@
 #{Modal.dialog id:'addTenants'}
   #{Modal.body}
     #{DataTable.header titleKey:'ldapSources.addTenants', hideAlerts:true/}
+    %{
+        options = [
+            'fnInitComplete': 'selectAllTenants',
+            'iDisplayLength': '8'
+        ]
+    }%
     #{DataTable.table id: 'tenants',
                       dataTable: tenants,
                       source: @tenantsListJson(),
                       selectable: true,
                       delayCreate: true,
-                      options: ['iDisplayLength': '8'] /}
+                      options:options /}
   #{/Modal.body}
     #{Modal.footer}
         #{Form.button 'button.save', class:'success', icon:'ok-sign', submit:'addTenantsForm',

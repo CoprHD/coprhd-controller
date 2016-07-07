@@ -101,10 +101,11 @@ public class VirtualArrays extends ViprResourceController {
     private static final String VMAX = "vmax";
     private static final String XTREMIO = "xtremio";
 
-    private static final String ALL_FLASH_VARRAY = "all-flash-varray";
+    private static final String ALL_FLASH_VARRAY = "va-all-flash";
     private static final String VMAX_FLASH_VARRAY = "vmax-all-flash";
     private static final String XTREMIO_FLASH_VARRAY = "xio-all-flash";
     private static final String UNITY_FLASH_VARRAY = "unity-all-flash";
+    private static final String VARRAY_PREFIX = "va-";
     /**
      * Simple create and save operation that takes only the name.
      * 
@@ -197,7 +198,7 @@ public class VirtualArrays extends ViprResourceController {
 			for (StorageSystemRestRep storageSystem : StorageSystemUtils.getStorageSystems()) {
 				if(storageSysVarrayMap.get(storageSystem.getId().toString()) == null ) {
 					VirtualArrayForm virtualArray = new VirtualArrayForm();
-					virtualArray.name = storageSystem.getName() + "-all-flash-varray" ;
+					virtualArray.name = VARRAY_PREFIX + storageSystem.getName();
 					VirtualArrayRestRep varray = virtualArray.save();
 					virtualArray.load(varray);
 					response.setCookie("guide_varray", virtualArray.name );

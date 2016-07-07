@@ -16,6 +16,7 @@ import com.emc.storageos.storagedriver.model.VolumeClone;
 import com.emc.storageos.storagedriver.model.VolumeConsistencyGroup;
 import com.emc.storageos.storagedriver.model.VolumeMirror;
 import com.emc.storageos.storagedriver.model.VolumeSnapshot;
+import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet;
 import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
 import org.apache.commons.lang.mutable.MutableBoolean;
@@ -555,5 +556,17 @@ public class DefaultStorageDriver extends AbstractStorageDriver implements Block
         String msg = String.format("%s: %s --- operation is not supported.", driverName, "getStorageObject");
         _log.warn(msg);
         throw new UnsupportedOperationException(msg);
+    }
+
+    public DriverTask discoverRemoteReplicationSets(List<RemoteReplicationSet> remoteReplicationSets) {
+        String driverName = this.getClass().getSimpleName();
+        String taskId = String.format("%s+%s+%s", driverName, "discoverRemoteReplicationSets", UUID.randomUUID().toString());
+        DriverTask task = new DefaultDriverTask(taskId);
+        task.setStatus(DriverTask.TaskStatus.FAILED);
+
+        String msg = String.format("%s: %s --- operation is not supported.", driverName, "discoverRemoteReplicationSets");
+        _log.warn(msg);
+        task.setMessage(msg);
+        return task;
     }
 }

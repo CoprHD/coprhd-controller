@@ -18,7 +18,7 @@ public interface RemoteReplicationDriver {
     public DriverTask createSetReplicationPairs(List<RemoteReplicationPair> replicationPairs, boolean createActive);
     public DriverTask deleteReplicationPairs(List<RemoteReplicationPair> replicationPairs);
 
-    // replication link (target) operations
+    // replication link operations
     public DriverTask start(RemoteReplicationArgument replicationArgument);
     public DriverTask stop(RemoteReplicationArgument replicationArgument);
     public DriverTask suspend(RemoteReplicationArgument replicationArgument);

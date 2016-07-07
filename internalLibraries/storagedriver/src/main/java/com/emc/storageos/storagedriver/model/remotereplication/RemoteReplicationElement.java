@@ -9,7 +9,7 @@ public class RemoteReplicationElement {
 
     public enum ElementType {
         VOLUME,
-        CONSISTENCY_GROUP
+        FILE_SYSTEM
     }
 
     private String nativeId;

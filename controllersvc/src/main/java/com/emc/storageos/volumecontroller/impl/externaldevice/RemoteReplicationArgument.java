@@ -20,5 +20,5 @@ public class RemoteReplicationArgument {
 
     // Uri of the backing object of the argument instance. Depending on argument type, this can be Uri of
     // replication set, replication group or replication pair. Type: Input.
-    private URI targetUri;
+    private URI argumentUri;
 }

@@ -9,6 +9,7 @@ import java.util.List;
 
 import com.emc.storageos.storagedriver.model.StorageHostComponent;
 import com.emc.storageos.storagedriver.model.StorageProvider;
+import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet;
 import org.apache.commons.lang.mutable.MutableInt;
 
 import com.emc.storageos.storagedriver.model.StoragePool;
@@ -74,4 +75,7 @@ public interface DiscoveryDriver extends StorageDriver {
      * @return driver task
      */
     public DriverTask discoverStorageProvider(StorageProvider storageProvider, List<StorageSystem> storageSystems);
+
+    public DriverTask discoverRemoteReplicationSets(List<RemoteReplicationSet> remoteReplicationSets);
+
 }

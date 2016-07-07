@@ -15,7 +15,7 @@ public class RemoteReplicationElement extends DataObject {
 
     public enum ElementType {
         VOLUME,
-        CONSISTENCY_GROUP
+        FILE_SYSTEM
     }
 
     // uri of backing data object

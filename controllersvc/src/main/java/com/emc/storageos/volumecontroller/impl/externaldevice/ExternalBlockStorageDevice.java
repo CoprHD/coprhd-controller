@@ -1469,47 +1469,62 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
     }
 
     @Override
-    public void start(List<RemoteReplicationArgument> replicationTargetList, TaskCompleter taskCompleter) {
+    public void createGroupReplicationPairs(List<URI> replicationPairs, boolean createActive) {
+        
+    }
+
+    @Override
+    public void createSetReplicationPairs(List<URI> replicationPairs, boolean createActive) {
 
     }
 
     @Override
-    public void stop(RemoteReplicationArgument replicationTarget, TaskCompleter taskCompleter) {
+    public void deleteReplicationPairs(List<URI> replicationPairs) {
 
     }
 
     @Override
-    public void suspend(RemoteReplicationArgument replicationTarget, TaskCompleter taskCompleter) {
+    public void start(RemoteReplicationArgument replicationArgument, TaskCompleter taskCompleter) {
 
     }
 
     @Override
-    public void resume(RemoteReplicationArgument replicationTarget, TaskCompleter taskCompleter) {
+    public void stop(RemoteReplicationArgument replicationArgument, TaskCompleter taskCompleter) {
 
     }
 
     @Override
-    public void failover(RemoteReplicationArgument replicationTarget, TaskCompleter taskCompleter) {
+    public void suspend(RemoteReplicationArgument replicationArgument, TaskCompleter taskCompleter) {
 
     }
 
     @Override
-    public void failback(RemoteReplicationArgument replicationTarget, TaskCompleter taskCompleter) {
+    public void resume(RemoteReplicationArgument replicationArgument, TaskCompleter taskCompleter) {
 
     }
 
     @Override
-    public void swap(RemoteReplicationArgument replicationTarget, TaskCompleter taskCompleter) {
+    public void failover(RemoteReplicationArgument replicationArgument, TaskCompleter taskCompleter) {
 
     }
 
     @Override
-    public void split(RemoteReplicationArgument replicationTarget, TaskCompleter taskCompleter) {
+    public void failback(RemoteReplicationArgument replicationArgument, TaskCompleter taskCompleter) {
 
     }
 
     @Override
-    public void synchronize(RemoteReplicationArgument replicationTarget, TaskCompleter taskCompleter) {
+    public void swap(RemoteReplicationArgument replicationArgument, TaskCompleter taskCompleter) {
+
+    }
+
+    @Override
+    public void split(RemoteReplicationArgument replicationArgument, TaskCompleter taskCompleter) {
+
+    }
+
+    @Override
+    public void synchronize(RemoteReplicationArgument replicationArgument, TaskCompleter taskCompleter) {
 
     }
 }

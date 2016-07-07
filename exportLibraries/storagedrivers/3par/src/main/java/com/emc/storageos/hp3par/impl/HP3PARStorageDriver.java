@@ -74,6 +74,8 @@ import com.emc.storageos.storagedriver.model.StorageSystem;
 import com.emc.storageos.storagedriver.model.StorageSystem.SupportedProvisioningType;
 import com.emc.storageos.storagedriver.model.StorageVolume;
 import com.emc.storageos.storagedriver.model.VolumeClone;
+import com.emc.storageos.hp3par.command.VVSetCloneList;
+import com.emc.storageos.hp3par.command.VVSetCloneList.VVSetVolumeClone;
 import com.emc.storageos.storagedriver.model.VolumeConsistencyGroup;
 import com.emc.storageos.storagedriver.model.VolumeMirror;
 import com.emc.storageos.storagedriver.model.VolumeSnapshot;

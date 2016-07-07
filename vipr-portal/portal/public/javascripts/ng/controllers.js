@@ -1468,17 +1468,19 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
 		    $scope.closeGuide();
         }
         else {
-		    $scope.$parent.guideVisible = true;
-		    $scope.$parent.guideMode='full';
-            if ($scope.$parent.completedSteps <= requiredSteps || !completedSteps){
-                if ($window.location.pathname == '/setup/license') {
-                    if ($scope.$parent.currentStep == 1) {return;};
+            if (window.location.pathname != '/security/logout') {
+                $scope.$parent.guideVisible = true;
+                $scope.$parent.guideMode='full';
+                if ($scope.$parent.completedSteps <= requiredSteps || !completedSteps){
+                    if ($window.location.pathname == '/setup/license') {
+                        if ($scope.$parent.currentStep == 1) {return;};
+                    }
+                    if ($window.location.pathname == '/setup/index') {
+                        if ($scope.$parent.currentStep == 2) {return;};
+                    }
                 }
-                if ($window.location.pathname == '/setup/index') {
-                    if ($scope.$parent.currentStep == 2) {return;};
-                }
-            }
-		    $scope.initializeSteps();
+                $scope.initializeSteps();
+		    }
         }
     }
 
@@ -2075,21 +2077,36 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
         if (arrayCookie) {
             $scope.guide_storageArray = arrayCookie.replace(/\"/g,'');
         }
+        else if ($scope.completedSteps > 3){
+            $scope.guide_storageArray = "Skipped";
+        }
         varrayCookie = readCookie("guide_varray");
         if (varrayCookie) {
             $scope.guide_varray = varrayCookie;
+        }
+        else if ($scope.completedSteps > 5){
+            $scope.guide_varray = "Skipped";
         }
         vpoolCookie = readCookie("guide_vpool");
         if (vpoolCookie) {
             $scope.guide_vpool = vpoolCookie;
         }
+        else if ($scope.completedSteps > 6){
+            $scope.guide_varray = "Skipped";
+        }
         fabricCookie = readCookie("guide_fabric");
         if (fabricCookie) {
             $scope.guide_fabric = fabricCookie.replace(/\"/g,'');;
         }
+        else if ($scope.completedSteps > 4){
+            $scope.guide_fabric = "Skipped";
+        }
         projectCookie = readCookie("guide_project");
         if (projectCookie) {
             $scope.guide_project = projectCookie;
+        }
+        else if ($scope.completedSteps > 7){
+            $scope.guide_project = "Skipped";
         }
     }
 

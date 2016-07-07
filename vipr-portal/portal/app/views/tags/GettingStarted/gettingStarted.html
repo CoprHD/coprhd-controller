@@ -354,17 +354,17 @@
                                     <p>&{'gettingStarted.provision.text'}</p>
                                     <div class="summary-box"  ng-if="guideDataAvailable && currentStep == 9" ng-init="getSummary()">
                                         <span class="summary-item">Discovered Storage: </span>
-                                            <span ng-class="{'summary-success':guide_storageArray!='Not Complete'}" class="summary-value">{{guide_storageArray}}</span><br>
+                                            <span ng-class="{'summary-success':guide_storageArray!='Not Complete'&&guide_storageArray!='Skipped'}" class="summary-value">{{guide_storageArray}}</span><br>
                                         <span class="summary-item">Discovered Fabric: </span>
-                                            <span ng-class="{'summary-success':guide_fabric!='Not Complete'}" class="summary-value">{{guide_fabric}}</span><br>
+                                            <span ng-class="{'summary-success':guide_fabric!='Not Complete'&&guide_fabric!='Skipped'}" class="summary-value">{{guide_fabric}}</span><br>
                                         <span class="summary-item">Created Virtual Array: </span>
-                                            <span ng-class="{'summary-success':guide_varray!='Not Complete'}" class="summary-value">{{guide_varray}}</span><br>
+                                            <span ng-class="{'summary-success':guide_varray!='Not Complete'&&guide_varray!='Skipped'}" class="summary-value">{{guide_varray}}</span><br>
                                         <span class="summary-item">Created Virtual Pool: </span>
-                                            <span ng-class="{'summary-success':guide_vpool!='Not Complete'}" class="summary-value">{{guide_vpool}}</span><br>
+                                            <span ng-class="{'summary-success':guide_vpool!='Not Complete'&&guide_vpool!='Skipped'}" class="summary-value">{{guide_vpool}}</span><br>
                                         <span class="summary-item">Created Project: </span>
-                                            <span ng-class="{'summary-success':guide_project!='Not Complete'}" class="summary-value">{{guide_project}}</span><br>
+                                            <span ng-class="{'summary-success':guide_project!='Not Complete'&&guide_project!='Skipped'}" class="summary-value">{{guide_project}}</span><br>
                                     </div>
-                                    <div class="action-btn text-center" ng-show="completedStep > 7">
+                                    <div class="action-btn text-center" ng-show="completedSteps > 7">
                                         <p>&{'gettingStarted.provision.text2'}</p>
                                     </div>
                                 </div>

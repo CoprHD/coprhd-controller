@@ -104,14 +104,6 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     private static final String EVENT_SERVICE_TYPE = "file";
     private static final String EVENT_SERVICE_SOURCE = "FileController";
     private static final Logger _log = LoggerFactory.getLogger(FileDeviceController.class);
-    private static final String CREATE_FILESYSTEM_EXPORT_METHOD = "export";
-    private static final String CREATE_FILESYSTEM_SHARE_METHOD = "share";
-    private static final String UPDATE_FILESYSTEM_SHARE_ACLS_METHOD = "updateShareACLs";
-    private static final String UPDATE_FILESYSTEM_EXPORT_RULES_METHOD = "updateExportRules";
-    private static final String CREATE_FILESYSTEM_SNAPSHOT_METHOD = "snapshotFS";
-    private static final String DELETE_FILESYSTEM_SHARE_METHOD = "deleteShare";
-    private static final String DELETE_FILESYSTEM_EXPORT_RULES = "deleteExportRules";
-
     private Map<String, FileStorageDevice> _devices;
 
     private WorkflowService _workflowService;
@@ -270,7 +262,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         try {
             ControllerUtils.setThreadLocalLogData(fs, opId);
             storageObj = _dbClient.queryObject(StorageSystem.class, storage);
-            Object[] params = { storage.toString(), pool.toString(), fs.toString() };
+            String[] params = { storage.toString(), pool.toString(), fs.toString() };
             _log.info("Create FS: {}, {}, {}", params);
             StoragePool poolObj = _dbClient.queryObject(StoragePool.class, pool);
             fsObj = _dbClient.queryObject(FileShare.class, fs);
@@ -316,7 +308,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 recordFileDeviceOperation(_dbClient, OperationTypeEnum.CREATE_FILE_SYSTEM, result.isCommandSuccess(), "", "", fsObj);
             }
         } catch (Exception e) {
-            Object[] params = { storage.toString(), pool.toString(), fs.toString(), e.getMessage() };
+            String[] params = { storage.toString(), pool.toString(), fs.toString(), e.getMessage() };
             _log.error("Unable to create file system: storage {}, pool {}, FS {}: {}", params);
 
             // work flow fail
@@ -341,7 +333,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         Snapshot snapshotObj = null;
         try {
             storageObj = _dbClient.queryObject(StorageSystem.class, storage);
-            Object[] params = { storage.toString(), uri.toString(), String.valueOf(forceDelete), deleteType };
+            String[] params = { storage.toString(), uri.toString(), String.valueOf(forceDelete), deleteType };
             _log.info("Delete : storage : {}, URI : {}, forceDelete : {}, delete_type : {} ", params);
             FileDeviceInputOutput args = new FileDeviceInputOutput();
             boolean isFile = false;
@@ -457,7 +449,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                         snapshotObj, fsObj, storageObj);
             }
         } catch (Exception e) {
-            Object[] params = { storage.toString(), uri.toString(), String.valueOf(forceDelete),
+            String[] params = { storage.toString(), uri.toString(), String.valueOf(forceDelete),
                     e.getMessage().toString() };
             _log.error("Unable to delete file system or snapshot: storage {}, FS/snapshot {}, forceDelete {}: {}", params);
             updateTaskStatus(opId, fileObject, e);
@@ -597,7 +589,11 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
             if (result.getCommandPending()) {
                 return;
-            }                                                         // Set Mount path info for the exports
+            }
+            if (!result.isCommandSuccess() && !result.getCommandPending()) {
+                WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
+            }
+            // Set Mount path info for the exports
             FSExportMap fsExports = fsObj.getFsExports();
 
             // Per New model get the rules and see if any rules that are already saved and available.
@@ -663,7 +659,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         } catch (Exception e) {
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
             WorkflowStepCompleter.stepFailed(opId, serviceError);
-            Object[] params = { storage.toString(), uri.toString(), e.getMessage() };
+            String[] params = { storage.toString(), uri.toString(), e.getMessage() };
             _log.error("Unable to export file system or snapshot: storage {}, FS/snapshot URI {}: {}", params);
             for (FileShareExport fsExport : exports) {
                 _log.error("{}", fsExport);
@@ -838,7 +834,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             _dbClient.updateObject(fsObj);
 
         } catch (Exception e) {
-            Object[] params = { storage.toString(), fileUri.toString(), e.getMessage() };
+            String[] params = { storage.toString(), fileUri.toString(), e.getMessage() };
             _log.error("Unable to unexport file system or snapshot: storage {}, FS/snapshot URI {}: {}", params);
             for (FileShareExport fsExport : exports) {
                 _log.error("{}  ", fsExport);
@@ -887,6 +883,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             } else if (!result.getCommandPending()) {
                 WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
             }
+            if (!result.isCommandSuccess() && !result.getCommandPending()) {
+                WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
+            }
             // Set status
             fs.getOpStatus().updateTaskStatus(opId, result.toOperation());
             _dbClient.updateObject(fs);
@@ -895,7 +894,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             recordFileDeviceOperation(_dbClient, OperationTypeEnum.EXPAND_FILE_SYSTEM,
                     result.isCommandSuccess(), eventMsg, "", fs, String.valueOf(newFSsize));
         } catch (Exception e) {
-            Object[] params = { storage.toString(), uri.toString(), String.valueOf(newFSsize), e.getMessage() };
+            String[] params = { storage.toString(), uri.toString(), String.valueOf(newFSsize), e.getMessage() };
             _log.error("Unable to expand file system: storage {}, FS URI {}, size {}: {}", params);
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
             WorkflowStepCompleter.stepFailed(opId, serviceError);
@@ -941,6 +940,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 if (result.getCommandPending()) {
                     return;
                 }
+                if (!result.isCommandSuccess() && !result.getCommandPending()) {
+                    WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
+                }
                 fsObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
 
                 _dbClient.updateObject(fsObj);
@@ -972,6 +974,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 if (result.getCommandPending()) {
                     return;
                 }
+                if (!result.isCommandSuccess() && !result.getCommandPending()) {
+                    WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
+                }
                 snapshotObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
 
                 _dbClient.updateObject(snapshotObj);
@@ -989,7 +994,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                         eventMsg, getShareNameExtensions(shares), snapshotObj, fsObj, smbShare);
             }
         } catch (Exception e) {
-            Object[] params = { storage.toString(), uri.toString(), smbShare.getName(), e.getMessage() };
+            String[] params = { storage.toString(), uri.toString(), smbShare.getName(), e.getMessage() };
             _log.error("Unable to create file system or snapshot share: storage {}, FS/snapshot URI {}, SMB share {}: {}", params);
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
             WorkflowStepCompleter.stepFailed(opId, serviceError);
@@ -1041,6 +1046,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 if (result.getCommandPending()) {
                     return;
                 }
+                if (!result.isCommandSuccess() && !result.getCommandPending()) {
+                    WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
+                }
                 fsObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
 
                 _dbClient.updateObject(fsObj);
@@ -1071,6 +1079,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 if (result.getCommandPending()) {
                     return;
                 }
+                if (!result.isCommandSuccess() && !result.getCommandPending()) {
+                    WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
+                }
                 snapshotObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
 
                 _dbClient.updateObject(snapshotObj);
@@ -1093,7 +1104,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         } catch (Exception e) {
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
             WorkflowStepCompleter.stepFailed(opId, serviceError);
-            Object[] params = { storage.toString(), uri.toString(), smbShare.getName(), e.getMessage() };
+            String[] params = { storage.toString(), uri.toString(), smbShare.getName(), e.getMessage() };
             _log.error("Unable to delete file system or snapshot share: storage {}, FS/snapshot URI {}, SMB share {}: {}", params);
             updateTaskStatus(opId, fileObject, e);
             if (URIUtil.isType(uri, FileShare.class)) {
@@ -1204,7 +1215,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         FileShare fsObj = null;
         Snapshot snapshotObj = null;
         try {
-            Object[] params = { storage.toString(), snapshot.toString(), fs.toString() };
+            String[] params = { storage.toString(), snapshot.toString(), fs.toString() };
             _log.info("Snapshot FS: storage : {}, snapshot : {}, fs : {}", params);
             FileDeviceInputOutput args = new FileDeviceInputOutput();
             StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
@@ -1222,6 +1233,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             BiosCommandResult result = getDevice(storageObj.getSystemType()).doSnapshotFS(storageObj, args);
             if (result.getCommandPending()) {
                 return;
+            }
+            if (!result.isCommandSuccess() && !result.getCommandPending()) {
+                WorkflowStepCompleter.stepFailed(task, result.getServiceCoded());
             }
             snapshotObj.setCreationTime(Calendar.getInstance());
             fsObj.getOpStatus().updateTaskStatus(task, result.toOperation());
@@ -1247,7 +1261,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         } catch (Exception e) {
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
             WorkflowStepCompleter.stepFailed(task, serviceError);
-            Object[] params = { storage.toString(), fs.toString(), snapshot.toString(), e.getMessage() };
+            String[] params = { storage.toString(), fs.toString(), snapshot.toString(), e.getMessage() };
             _log.error("Unable to create file system snapshot: storage {}, FS {}, snapshot {}: {}", params);
             updateTaskStatus(task, fsObj, e);
             updateTaskStatus(task, snapshotObj, e);
@@ -1268,7 +1282,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         FileDeviceInputOutput args = new FileDeviceInputOutput();
         Operation op = null;
         try {
-            Object[] params = { storage.toString(), snapshot.toString(), fs.toString() };
+            String[] params = { storage.toString(), snapshot.toString(), fs.toString() };
             _log.info("Restore FS: {} {} {}", params);
 
             storageObj = _dbClient.queryObject(StorageSystem.class, storage);
@@ -1292,7 +1306,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             recordFileDeviceOperation(_dbClient, OperationTypeEnum.RESTORE_FILE_SNAPSHOT,
                     result.isCommandSuccess(), eventMsg, "", fsObj, snapshot);
         } catch (Exception e) {
-            Object[] params = { storage.toString(), fs.toString(), snapshot.toString(), e.getMessage() };
+            String[] params = { storage.toString(), fs.toString(), snapshot.toString(), e.getMessage() };
             _log.error("Unable to restore file system from snapshot: storage {}, FS {}, snapshot {}: {}", params);
             updateTaskStatus(opId, snapshotObj, e);
             if ((fsObj != null) && (snapshotObj != null)) {
@@ -1306,7 +1320,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 // Synchronize snapshot list in DB with the list on the device
                 syncSnapshotList(storageObj, fsObj, args);
             } catch (Exception ex) {
-                Object[] params = { storage.toString(), fs.toString(), snapshot.toString() };
+                String[] params = { storage.toString(), fs.toString(), snapshot.toString() };
                 _log.warn(
                         "Restore succeeded but failed to sync snapshot list in DB with list on the device: storage {}, FS {}, snapshot {}",
                         params);
@@ -1620,7 +1634,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         FileShare fsObj = null;
         QuotaDirectory quotaDirObj = null;
         try {
-            Object[] params = { storage.toString(), fs.toString(), quotaDir.toString() };
+            String[] params = { storage.toString(), fs.toString(), quotaDir.toString() };
             _log.info("FileDeviceController::createQtree: create QuotaDirectory: storage : {}, quotaDir : {}, fs : {}", params);
 
             StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
@@ -1664,7 +1678,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             recordFileDeviceOperation(_dbClient, OperationTypeEnum.CREATE_FILE_SYSTEM_QUOTA_DIR, result.isCommandSuccess(),
                     eventMsg, "", quotaDirObj, fsObj);
         } catch (Exception e) {
-            Object[] params = { storage.toString(), fs.toString(), quotaDir.toString(), e.getMessage() };
+            String[] params = { storage.toString(), fs.toString(), quotaDir.toString(), e.getMessage() };
             _log.error("FileDeviceController::createQtree: Unable to create file system quotaDir: storage {}, FS {}, snapshot {}: {}",
                     params);
             updateTaskStatus(task, fsObj, e);
@@ -1682,7 +1696,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         FileShare fsObj = null;
         QuotaDirectory quotaDirObj = null;
         try {
-            Object[] params = { storage.toString(), fs.toString(), quotaDir.toString() };
+            String[] params = { storage.toString(), fs.toString(), quotaDir.toString() };
             _log.info("FileDeviceController::updateQtree:  storage : {}, fs : {}, quotaDir : {}", params);
 
             StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
@@ -1726,7 +1740,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             recordFileDeviceOperation(_dbClient, OperationTypeEnum.UPDATE_FILE_SYSTEM_QUOTA_DIR, result.isCommandSuccess(),
                     eventMsg, "", quotaDirObj, fsObj);
         } catch (Exception e) {
-            Object[] params = { storage.toString(), fs.toString(), quotaDir.toString(), e.getMessage() };
+            String[] params = { storage.toString(), fs.toString(), quotaDir.toString(), e.getMessage() };
             _log.error("FileDeviceController::updateQtree: Unable to update file system quotaDir: storage {}, FS {}, snapshot {}: {}",
                     params);
             updateTaskStatus(task, fsObj, e);
@@ -1743,7 +1757,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         FileShare fsObj = null;
         QuotaDirectory quotaDirObj = null;
         try {
-            Object[] params = { storage.toString(), quotaDir.toString(), fs.toString() };
+            String[] params = { storage.toString(), quotaDir.toString(), fs.toString() };
             _log.info("FileDeviceController::deleteQuotaDirectory: storage : {}, quotadir : {}, fs : {}", params);
 
             StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
@@ -1828,7 +1842,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             recordFileDeviceOperation(_dbClient, OperationTypeEnum.DELETE_FILE_SYSTEM_QUOTA_DIR, result.isCommandSuccess(),
                     eventMsg, "", quotaDirObj, fsObj);
         } catch (Exception e) {
-            Object[] params = { storage.toString(), fs.toString(), quotaDir.toString(), e.getMessage() };
+            String[] params = { storage.toString(), fs.toString(), quotaDir.toString(), e.getMessage() };
             _log.error(
                     "FileDeviceController::deleteQuotaDirectory: Unable to create file system quota dir: storage {}, FS {}, quotadir {}: {}",
                     params);
@@ -1910,6 +1924,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             }
             if (result.getCommandPending()) {
                 return;
+            }
+            if (!result.isCommandSuccess() && !result.getCommandPending()) {
+                WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
             }
             // Audit & Update the task status
             OperationTypeEnum auditType = null;
@@ -2407,6 +2424,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 doDeleteExportsFromFSObjMap(allDirs, subDir, args);
                 WorkflowStepCompleter.stepSucceded(opId);
             }
+            if (!result.isCommandSuccess() && !result.getCommandPending()) {
+                WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
+            }
             // Audit & Update the task status
             String eventMsg = result.isCommandSuccess() ? "" : result.getMessage();
             fsObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
@@ -2422,7 +2442,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
         } catch (Exception e) {
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
             WorkflowStepCompleter.stepFailed(opId, serviceError);
-            Object[] params = { storage.toString(), fileUri.toString() };
+            String[] params = { storage.toString(), fileUri.toString() };
             _log.error("Unable to export file system or snapshot: storage {}, FS/snapshot URI {}", params);
             if ((fsObj != null) && (storageObj != null)) {
                 if (URIUtil.isType(fileUri, FileShare.class)) {
@@ -2609,6 +2629,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
             if (result.getCommandPending()) {
                 return;
+            }
+            if (!result.isCommandSuccess() && !result.getCommandPending()) {
+                WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
             }
             // Audit & Update the task status
             OperationTypeEnum auditType = null;
@@ -3798,7 +3821,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 throw DeviceControllerException.exceptions.invalidObjectNull();
             }
         } catch (Exception e) {
-            Object[] params = { storage.toString(), fsURI.toString(), e.getMessage() };
+            String[] params = { storage.toString(), fsURI.toString(), e.getMessage() };
             _log.error("Unable to assign policy : storage {}, FS URI {},: Error {}", params);
 
             updateTaskStatus(opId, fs, e);
@@ -3876,7 +3899,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 throw DeviceControllerException.exceptions.invalidObjectNull();
             }
         } catch (Exception e) {
-            Object[] params = { storage.toString(), fsURI.toString(), e.getMessage() };
+            String[] params = { storage.toString(), fsURI.toString(), e.getMessage() };
             _log.error("Unable to Unassign policy : storage {}, FS URI {},: Error {}", params);
 
             updateTaskStatus(opId, fs, e);
@@ -3943,7 +3966,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 throw DeviceControllerException.exceptions.invalidObjectNull();
             }
         } catch (Exception e) {
-            Object[] params = { storage.toString(), fsURI.toString(), e.getMessage() };
+            String[] params = { storage.toString(), fsURI.toString(), e.getMessage() };
             _log.error("Unable to get schedule snapshots : storage {}, FS URI {},: Error {}", params);
 
             updateTaskStatus(opId, fs, e);
@@ -3951,95 +3974,12 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
     }
 
-    public String addStepsForCreatingCIFSShares(Workflow workflow, URI storageSystem, URI fileSystem, FileSMBShare smbShare,
-            String waitfor, String shareStep, String stepDescription) {
-
-        StorageSystem system = _dbClient.queryObject(StorageSystem.class, storageSystem);
-        Object[] args = new Object[] { storageSystem, fileSystem, smbShare };
-        Workflow.Method shareCreationMethod = new Workflow.Method(CREATE_FILESYSTEM_SHARE_METHOD, args);
-
-        String waitForShare = workflow.createStep(null, stepDescription, waitfor, storageSystem, system.getSystemType(), getClass(),
-                shareCreationMethod, null, shareStep);
-
-        return waitForShare;
-    }
-
-    public String addStepsForUpdatingCIFSShareACLs(Workflow workflow, URI storageSystem, URI fileSystem, String shareName,
-            CifsShareACLUpdateParams param, String waitfor, String sharACLStep, String stepDescription) {
-
-        StorageSystem system = _dbClient.queryObject(StorageSystem.class, storageSystem);
-        Object[] args = new Object[] { storageSystem, fileSystem, shareName, param };
-        Workflow.Method updateShareACLsMethod = new Workflow.Method(UPDATE_FILESYSTEM_SHARE_ACLS_METHOD, args);
-
-        String waitForShareACL = workflow.createStep(null, stepDescription, waitfor, storageSystem, system.getSystemType(), getClass(),
-                updateShareACLsMethod, null, sharACLStep);
-
-        return waitForShareACL;
-    }
-
-    public String addStepsForCreatingNFSExport(Workflow workflow, URI storage, URI fsURI, List<FileShareExport> exports, String waitFor,
-            String exportStep, String stepDescription) {
-
+    public String createMethod(Workflow workflow, String waitFor, String methodName, String stepId, String stepDescription, URI storage,
+            Object[] args) {
         StorageSystem system = _dbClient.queryObject(StorageSystem.class, storage);
-        Object[] args = new Object[] { storage, fsURI, exports };
-        Workflow.Method exportCreationMethod = new Workflow.Method(CREATE_FILESYSTEM_EXPORT_METHOD, args);
-
-        String waitForExport = workflow.createStep(null, stepDescription, waitFor, storage, system.getSystemType(), getClass(),
-                exportCreationMethod, null, exportStep);
-
-        return waitForExport;
-    }
-
-    public String addStepsForUpdatingExportRules(Workflow workflow, URI storage, URI fsURI, FileExportUpdateParams param, String waitFor,
-            String exportRuleUpdateStep, String stepDescription) {
-
-        StorageSystem system = _dbClient.queryObject(StorageSystem.class, storage);
-        Object[] args = new Object[] { storage, fsURI, param };
-        Workflow.Method exportRuleUpdateMethod = new Workflow.Method(UPDATE_FILESYSTEM_EXPORT_RULES_METHOD, args);
-
-        String waitForExport = workflow.createStep(null, stepDescription, waitFor, storage, system.getSystemType(), getClass(),
-                exportRuleUpdateMethod, null, exportRuleUpdateStep);
-
-        return waitForExport;
-    }
-
-    public String addStepsForCreatingFSSnapshot(Workflow workflow, URI storage, URI snapshotURI, URI fsURI, String waitFor,
-            String snapshotFSStep, String stepDescription) {
-
-        StorageSystem system = _dbClient.queryObject(StorageSystem.class, storage);
-        Object[] args = new Object[] { storage, snapshotURI, fsURI };
-        Workflow.Method createFSSnapshotMethod = new Workflow.Method(CREATE_FILESYSTEM_SNAPSHOT_METHOD, args);
-
-        String waitForSnapshot = workflow.createStep(null, stepDescription, waitFor, storage, system.getSystemType(), getClass(),
-                createFSSnapshotMethod, null, snapshotFSStep);
-
-        return waitForSnapshot;
-    }
-
-    public String addStepsForDeletingFSShare(Workflow workflow, URI storage, URI uri, FileSMBShare filesmbShare, String waitFor,
-            String deleteFSShareStep, String stepDescription) {
-
-        StorageSystem system = _dbClient.queryObject(StorageSystem.class, storage);
-        Object[] args = new Object[] { storage, uri, filesmbShare };
-        Workflow.Method deleteFSShareMethod = new Workflow.Method(DELETE_FILESYSTEM_SHARE_METHOD, args);
-
-        String waitForShareDeletion = workflow.createStep(null, stepDescription, waitFor, storage, system.getSystemType(), getClass(),
-                deleteFSShareMethod, null, deleteFSShareStep);
-
-        return waitForShareDeletion;
-    }
-
-    public String addStepsForDeletingFSExportRules(Workflow workflow, URI storage, URI uri, boolean allDirs, String subDir, String waitFor,
-            String exportdeleteStep, String stepDescription) {
-
-        StorageSystem system = _dbClient.queryObject(StorageSystem.class, storage);
-        Object[] args = new Object[] { storage, uri, allDirs, subDir };
-        Workflow.Method deleteExportRulesMethod = new Workflow.Method(DELETE_FILESYSTEM_EXPORT_RULES, args);
-
-        String waitForExportDeletion = workflow.createStep(null, stepDescription, waitFor, storage, system.getSystemType(), getClass(),
-                deleteExportRulesMethod, null, exportdeleteStep);
-
-        return waitForExportDeletion;
+        Workflow.Method method = new Workflow.Method(methodName, args);
+        waitFor = workflow.createStep(null, stepDescription, waitFor, storage, system.getSystemType(), getClass(), method, null, stepId);
+        return waitFor;
     }
 
     /**
@@ -4056,7 +3996,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             List<String> lockKeys = new ArrayList<String>();
             lockKeys.add(storageObj.getNativeGuid());
             boolean lockAcquired = _workflowService.acquireWorkflowStepLocks(opId, lockKeys,
-                    LockTimeoutValue.get(LockType.VNX_FILE_PROVISIONING));
+                    LockTimeoutValue.get(LockType.FILE_OPERATIONS));
             if (!lockAcquired) {
                 throw DeviceControllerException.exceptions.failedToAcquireWorkflowLock(lockKeys.toString(), "Timeout in Acquiring Lock");
             }

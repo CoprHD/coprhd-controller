@@ -37,7 +37,8 @@ import com.emc.storageos.hp3par.command.PortStatMembers;
 import com.emc.storageos.hp3par.command.PortStatisticsCommandResult;
 import com.emc.storageos.hp3par.command.Position;
 import com.emc.storageos.hp3par.command.SystemCommandResult;
-
+import com.emc.storageos.hp3par.command.VVSetCloneList;
+import com.emc.storageos.hp3par.command.VVSetCloneList.VVSetVolumeClone;
 import com.emc.storageos.hp3par.command.VirtualLun;
 import com.emc.storageos.hp3par.command.VirtualLunsList;
 
@@ -2245,6 +2246,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 						"3PARDriver: deleteConsistencyGroupSnapshot for storage system native id {}, volume name {} , native id {} - start",
 						snap.getStorageSystemId(), snap.getDisplayName(), snap.getNativeId());
 
+
 				// get Api client
 				HP3PARApi hp3parApi = getHP3PARDeviceFromNativeId(snap.getStorageSystemId());
 
@@ -2269,17 +2271,110 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 		return task;
 	}
 
+    /**
+     * Creating physical copy for VVset or CG clone 
+     * Here there are 2 ways for implementation
+     * 1. Customer will provide the VVSet name which already exist in Array with its corresponding similar volumes for cloning
+     * 
+     * 
+     * 2. Customer will not provide any existing and matching VV set with corresponding volumes for CG clone 
+     * Then we need to follow below steps to successfully complete the task
+     * Create new VV Set / CG if No VV set exists.
+     * Create new volumes similar to parent VVSet volumes
+     * Use this newly created VV set for CG clone 
+     * Above option is implemented
+     */
+
 	@Override
 	public DriverTask createConsistencyGroupClone(VolumeConsistencyGroup consistencyGroup, List<VolumeClone> clones,
 			List<CapabilityInstance> capabilities) {
-		_log.info(
-				"3PARDriver: createConsistencyGroupClone for storage system  id {}, display name {} , native id {} - start",
-				consistencyGroup.getStorageSystemId(), consistencyGroup.getDisplayName(),
-				consistencyGroup.getNativeId());
+    	
+	    	DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_CLONE_CONSISTENCY_GROUP);
+	    	
+	    	_log.info("3PARDriver: createConsistencyGroupClone for storage system  id {}, Base CG name {} , Base CG native id {} - start",
+	    			consistencyGroup.getStorageSystemId(), consistencyGroup.getDisplayName(), consistencyGroup.getNativeId());
+	    	String  VVsetNameForClone = consistencyGroup.getDisplayName();
+			
+			VolumeDetailsCommandResult volResult = null;
+			HashMap<String,VolumeClone> clonesMap = new HashMap<String,VolumeClone>();
+			
+			try {
 
-		// TODO Auto-generated method stub
-		return null;
-	}
+				Boolean saveSnapshot = true;
+
+				// get Vipr generated clone name
+			   	for (VolumeClone clone : clones) {
+		            
+		            	//native id = null , 
+		                _log.info("3PARDriver: createConsistencyGroupClone generated clone parent id {}, display name {} - start",
+		                		clone.getParentId(), clone.getDisplayName());  
+		            
+		                String generatedCloneName = clone.getDisplayName();
+		                VVsetNameForClone = generatedCloneName.substring(0, generatedCloneName.lastIndexOf("-"));
+		                _log.info("3PARDriver: createConsistencyGroupClone CG name {} to be used in cloning ",VVsetNameForClone);
+		                clonesMap.put(clone.getParentId(), clone);
+
+			   	}
+			    _log.info("3PARDriver: createConsistencyGroupClone  clonesMap {}",clonesMap.toString());
+			    
+				// get Api client
+				HP3PARApi hp3parApi = getHP3PARDeviceFromNativeId(consistencyGroup.getStorageSystemId());
+			   	
+				// Create vvset clone
+				VVSetVolumeClone[] result = hp3parApi.createVVsetPhysicalCopy(consistencyGroup.getNativeId(), VVsetNameForClone, clones, saveSnapshot);
+				
+				_log.info("3PARDriver: createConsistencyGroupClone outPut of CG clone result  {} ",result.toString());
+				
+				int volumeNumber = 0;
+				int cloneVolumeCount  = result.length;
+				
+				/**
+				 * for each volume clone result returned  
+				 * find corresponding clone object and set its value and commit it
+				 */
+				//ArrayList<VVSetVolumeClone> createdClones = result.getClonesInfo();
+				
+			//	for (VVSetVolumeClone cloneCreated : createdClones) {
+					for (VVSetVolumeClone cloneCreated : result) {	
+					VolumeClone clone = clonesMap.get(cloneCreated.getParent());
+					
+					_log.info("createConsistencyGroupClone cloneCreated {} and local clone obj nativeid = {} , parent id = {}",cloneCreated.getValues(),clone.getNativeId(),clone.getParentId());
+					volResult = hp3parApi.getVolumeDetails(cloneCreated.getChild());
+					
+					_log.info("createConsistencyGroupClone cloneCreated All values {} ",volResult.getAllValues());
+					
+					clone.setWwn(volResult.getWwn());
+					clone.setNativeId(volResult.getName());
+					clone.setDeviceLabel(volResult.getName());
+					//clone.setLabel(volResult.getName());
+					// snap.setAccessStatus(volResult.getAccessStatus());
+					clone.setDisplayName(volResult.getName());
+
+					clone.setReplicationState(VolumeClone.ReplicationState.SYNCHRONIZED);
+
+					clone.setProvisionedCapacity(clone.getRequestedCapacity());
+					clone.setAllocatedCapacity(clone.getRequestedCapacity());
+					
+				}
+				
+				task.setStatus(DriverTask.TaskStatus.READY);
+				_log.info(
+						"createConsistencyGroupClone for storage system native id {}, CG display Name {}, CG native id {} - end",
+						consistencyGroup.getStorageSystemId(), consistencyGroup.getDisplayName(),
+						consistencyGroup.getNativeId());
+			} catch (Exception e) {
+				String msg = String.format(
+						"3PARDriver: createConsistencyGroupClone Unable to create vv set snap name %s and its native id %s whose storage system  id is %s; Error: %s.\n",
+						VVsetNameForClone, consistencyGroup.getNativeId(), consistencyGroup.getStorageSystemId(), e.getMessage());
+				_log.error(msg);
+				task.setMessage(msg);
+				task.setStatus(DriverTask.TaskStatus.PARTIALLY_FAILED);
+				e.printStackTrace();
+			}
+	        
+	        return task;
+	    }
+	   
 
 	/*
 	 * Internal methods in the driver

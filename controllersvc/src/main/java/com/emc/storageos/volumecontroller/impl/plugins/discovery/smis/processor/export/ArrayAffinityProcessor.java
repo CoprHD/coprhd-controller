@@ -45,6 +45,7 @@ public class ArrayAffinityProcessor {
      *
      * @param profile AccessProfile
      * @param cimClient WBEMClient
+     * @param dbClient DbClient
      * @return true if there is mapped volume
      */
     public void updatePreferredPoolIds(AccessProfile profile, WBEMClient cimClient, DbClient dbClient) {
@@ -92,6 +93,8 @@ public class ArrayAffinityProcessor {
                                         Initiator.class, Constants.HOST));
         Set<CIMObjectPath> hardwareIdPaths = new HashSet<CIMObjectPath>();
         for (Initiator initiator : allInitiators) {
+            _logger.info("Processing initiator {}", initiator.getLabel());
+
             String normalizedPortName = Initiator.normalizePort(initiator
                     .getInitiatorPort());
             String query = String
@@ -113,6 +116,8 @@ public class ArrayAffinityProcessor {
         }
 
         for (CIMObjectPath path : maskPaths) {
+            _logger.info("Processing masking view {}", path.toString());
+
             List<CIMObjectPath> hardwareIdsInMask = DiscoveryUtils.getAssociatorNames(cimClient, path, null, SmisConstants.CIM_STORAGE_HARDWARE_ID, null, null);
             // check if the mask is shared or exclusive
             String maskType = hardwareIdPaths.containsAll(hardwareIdsInMask) ? ExportGroup.ExportGroupType.Host.name() :

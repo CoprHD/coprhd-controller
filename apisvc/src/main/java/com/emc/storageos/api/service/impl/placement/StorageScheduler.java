@@ -857,7 +857,7 @@ public class StorageScheduler implements Scheduler {
                         weight = AFFINITY_FACTOR;
                     }
                 } else { // cluster
-                    if (!!hasCluster) {
+                    if (!hasCluster) {
                         weight = AFFINITY_FACTOR;
                     }
                 }

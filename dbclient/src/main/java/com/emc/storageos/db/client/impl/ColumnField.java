@@ -20,6 +20,7 @@ import java.util.Map;
 
 import com.emc.storageos.db.client.model.NoInactiveIndex;
 
+import org.apache.cassandra.serializers.UTF8Serializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -356,14 +357,12 @@ public class ColumnField {
      * @param mutator row mutator that holds remove queries
      * @param fieldColumnMap column map for the record. it might need to remove indexes for dependent fields
      */
-    public boolean removeColumn(String recordKey, Column<CompositeColumnName> column, RowMutator mutator,
-            Map<String, List<Column<CompositeColumnName>>> fieldColumnMap) {
-        CompositeColumnName columnName = column.getName();
-
+    public boolean removeColumn(String recordKey, CompositeColumnName column, RowMutatorDS mutator,
+            Map<String, List<CompositeColumnName>> fieldColumnMap) {
         // remove record
-        mutator.getRecordColumnList(_parentType.getCF(), recordKey).deleteColumn(columnName);
+        mutator.deleteRecordColumn(_parentType.getCF().getName(), recordKey);
 
-        if (_index == null || column instanceof ColumnWrapper || isDeletionMark(column)) {
+        if (_index == null || column.isNoIndex() || isDeletionMark(column)) {
             return false;
         }
 
@@ -376,24 +375,24 @@ public class ColumnField {
         addColumn(tableName, recordKey, colName, null, mutator);
     }
 
-    public static boolean isDeletionMark(Column<CompositeColumnName> column) {
-        return !column.getByteBufferValue().hasRemaining();
+    public static boolean isDeletionMark(CompositeColumnName column) {
+        return !column.getValue().hasRemaining();
     }
 
-    private boolean removeColumn(String recordKey, Column<CompositeColumnName> column, RowMutator mutator) {
+    private boolean removeColumn(String recordKey, CompositeColumnName column, RowMutatorDS mutator) {
         return removeColumn(recordKey, column, mutator, null);
     }
 
-    public boolean removeIndex(String recordKey, Column<CompositeColumnName> column, RowMutator mutator,
-            Map<String, List<Column<CompositeColumnName>>> fieldColumnMap,
+    public boolean removeIndex(String recordKey, CompositeColumnName column, RowMutatorDS mutator,
+            Map<String, List<CompositeColumnName>> fieldColumnMap,
             DataObject obj) {
 
         // remove index
         return _index.removeColumn(recordKey, column, _parentType.getDataObjectClass().getSimpleName(), mutator, fieldColumnMap, obj);
     }
 
-    public boolean removeIndex(String recordKey, Column<CompositeColumnName> column, RowMutator mutator,
-            Map<String, List<Column<CompositeColumnName>>> fieldColumnMap) {
+    public boolean removeIndex(String recordKey, CompositeColumnName column, RowMutatorDS mutator,
+            Map<String, List<CompositeColumnName>> fieldColumnMap) {
 
         // remove index
         return _index.removeColumn(recordKey, column, _parentType.getDataObjectClass().getSimpleName(), mutator, fieldColumnMap);
@@ -471,7 +470,7 @@ public class ColumnField {
                         while (removedIt.hasNext()) {
                             String targetVal = valueSet.valToString(removedIt.next());
                             if (_index == null) {
-                                changed |= removeColumn(id, new ColumnWrapper(getColumnName(targetVal, mutator), targetVal), mutator);
+                                changed |= removeColumn(id, getColumnName(getColumnName(targetVal, mutator), targetVal, true), mutator);
                             } else {
                                 addDeletionMark(tableName, id, getColumnName(targetVal, mutator), mutator);
                                 changed = true;
@@ -512,7 +511,7 @@ public class ColumnField {
                             }
 
                             if (_index == null) {
-                                changed |= removeColumn(id, new ColumnWrapper(colName, null), mutator);
+                                changed |= removeColumn(id, getColumnName(colName, null, true), mutator);
                             } else {
                                 addDeletionMark(tableName, id, colName, mutator);
                                 changed = true;
@@ -546,7 +545,7 @@ public class ColumnField {
                                     String targetVal = valueSet.valToString(removedIt.next());
                                     if (_index == null) {
                                         changed |= removeColumn(id,
-                                                new ColumnWrapper(getColumnName(key, targetVal, mutator), targetVal), mutator);
+                                                getColumnName(getColumnName(key, targetVal, mutator), targetVal, true), mutator);
                                     } else {
                                         addDeletionMark(tableName, id, getColumnName(key, targetVal, mutator), mutator);
                                         changed = true;
@@ -642,6 +641,12 @@ public class ColumnField {
      */
     private CompositeColumnName getColumnName(String two, RowMutatorDS mutator) {
         return getColumnName(two, null, mutator);
+    }
+
+    private CompositeColumnName getColumnName(CompositeColumnName column, String value, boolean noIndex) {
+        column.setValue(UTF8Serializer.instance.serialize(value));
+        column.setNoIndex(noIndex);
+        return column;
     }
 
     /**

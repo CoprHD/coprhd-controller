@@ -25,8 +25,10 @@ public class CompositeColumnName {
     String _three;
     private @Component(ordinal = 3)
     UUID _timeUUID;
-    
+
     private ByteBuffer value;
+
+    private boolean noIndex = false;
 
     public CompositeColumnName() {
     }
@@ -88,12 +90,24 @@ public class CompositeColumnName {
         return rowKey;
     }
 
+    public void setValue(ByteBuffer value) {
+        this.value = value;
+    }
+
     public ByteBuffer getValue() {
         return value;
     }
     
     public String getStringValue() {
         return UTF8Serializer.instance.deserialize(value);
+    }
+
+    public boolean isNoIndex() {
+        return noIndex;
+    }
+
+    public void setNoIndex(boolean noIndex) {
+        this.noIndex = noIndex;
     }
 
     @Override

@@ -15,7 +15,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.model.DataObject;
-import com.netflix.astyanax.model.Column;
 
 /**
  * Utility class for accumulating obsolete columns during deserialization
@@ -26,11 +25,11 @@ public class IndexCleanupList implements IndexColumnList {
 
     public static final CompositeColumnName INACTIVE_COLUMN = new CompositeColumnName(DataObject.INACTIVE_FIELD_NAME);
 
-    private Map<String, List<Column<CompositeColumnName>>> _cleanupList;
+    private Map<String, List<CompositeColumnName>> _cleanupList;
     private Map<String, Map<CompositeColumnName, Column>> _currentMap;
     // _allColMap is a union of _cleanupList and _currentMap. It might be a redundant structure
     // but it easier to operate.
-    private Map<String, Map<String, List<Column<CompositeColumnName>>>> _allColMap;
+    private Map<String, Map<String, List<CompositeColumnName>>> _allColMap;
     private Map<String, DataObject> _cleanedObjects;
 
     public IndexCleanupList() {
@@ -41,7 +40,7 @@ public class IndexCleanupList implements IndexColumnList {
     }
 
     @Override
-    public void add(String key, Column<CompositeColumnName> column) {
+    public void add(String key, CompositeColumnName column) {
         Map<CompositeColumnName, Column> colMap = _currentMap.get(key);
         Map<String, List<Column<CompositeColumnName>>> keyColumns = _allColMap.get(key);
         if (colMap == null) {
@@ -83,12 +82,12 @@ public class IndexCleanupList implements IndexColumnList {
     }
 
     @Override
-    public Map<String, List<Column<CompositeColumnName>>> getColumnsToClean() {
+    public Map<String, List<CompositeColumnName>> getColumnsToClean() {
         return Collections.unmodifiableMap(_cleanupList);
     }
 
     @Override
-    public Map<String, List<Column<CompositeColumnName>>> getAllColumns(String key) {
+    public Map<String, List<CompositeColumnName>> getAllColumns(String key) {
         return Collections.unmodifiableMap(_allColMap.get(key));
     }
 
@@ -100,9 +99,9 @@ public class IndexCleanupList implements IndexColumnList {
     // Returns a map contains <RowKey, Columns need to remove their index entries because .inactive is true>
     // If changedOnly is true, we only returns rows those have indexed fields changed
     // If changedOnly is false, we returns all touched rows with .inactive = true, even no field is actually changed
-    public Map<String, List<Column<CompositeColumnName>>> getIndexesToClean(boolean changedOnly) {
+    public Map<String, List<CompositeColumnName>> getIndexesToClean(boolean changedOnly) {
 
-        Map<String, List<Column<CompositeColumnName>>> mapIndexes = new HashMap<>();
+        Map<String, List<CompositeColumnName>> mapIndexes = new HashMap<>();
 
         // For each object we have touched
         for (Map.Entry<String, Map<CompositeColumnName, Column>> entry : _currentMap.entrySet()) {

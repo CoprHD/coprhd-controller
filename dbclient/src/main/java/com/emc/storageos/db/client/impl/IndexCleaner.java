@@ -45,7 +45,7 @@ public class IndexCleaner {
      * @param doType
      * @param listToClean
      */
-    public void cleanIndex(RowMutator mutator, DataObjectType doType, SoftReference<IndexCleanupList> listToCleanRef) {
+    public void cleanIndex(RowMutatorDS mutator, DataObjectType doType, SoftReference<IndexCleanupList> listToCleanRef) {
         /*
          * We use SoftReference here instead of Strong Reference to avoid OOM in huge concurrent requests,
          * Objects hold by SoftReference will be cleared if low memory. refer to:CTRL-10228 for detail.

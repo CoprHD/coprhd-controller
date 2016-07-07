@@ -9,6 +9,7 @@ import java.nio.ByteBuffer;
 import java.util.UUID;
 
 import com.netflix.astyanax.annotations.Component;
+import org.apache.cassandra.serializers.BooleanSerializer;
 import org.apache.cassandra.serializers.UTF8Serializer;
 
 /**
@@ -100,6 +101,10 @@ public class CompositeColumnName {
     
     public String getStringValue() {
         return UTF8Serializer.instance.deserialize(value);
+    }
+
+    public boolean getBooleanValue() {
+        return BooleanSerializer.instance.deserialize(value);
     }
 
     public boolean isNoIndex() {

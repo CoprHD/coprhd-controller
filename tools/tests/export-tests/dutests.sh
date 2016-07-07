@@ -485,22 +485,6 @@ vnx_setup() {
     runcmd cos update block $VPOOL_BASE --storage ${VNXB_NATIVEGUID}
 }
 
-brocade_setup() 
-{
-    # Do once
-    nsys=`networksystem list | wc -l`
-    [ "$nsys" -gt 0 ] && return;
-
-    secho "Discovering Brocade SAN Switch ..."
-    runcmd networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
-    sleep 30
-
-    runcmd transportzone assign FABRIC_losam082-fabric $NH
-    runcmd transportzone assign FABRIC_vplex154nbr2 $NH2
-    FC_ZONE_A=FABRIC_losam082-fabric
-    FC_ZONE_B=FABRIC_vplex154nbr2
-}
-
 vmax_setup() {
     SMISPASS=0
     # do this only once
@@ -535,10 +519,10 @@ vmax_setup() {
 
 vplex_setup() {
 
-	# Discover the Brocade SAN switch.
-	brocade_setup
+    secho "Discovering Brocade SAN Switch ..."
+    runcmd networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
+    sleep 30
 
-	# Discover the storage systems 
 	secho "Discovering VPLEX Storage Assets"
 	storageprovider show $VPLEX_DEV_NAME &> /dev/null && return $?
 	runcmd storageprovider create $VPLEX_DEV_NAME $VPLEX_IP 443 $VPLEX_USER "$VPLEX_PASSWD" vplex
@@ -553,15 +537,31 @@ vplex_setup() {
     VPLEX_VARRAY1=$NH
 	secho "Setting up the VPLEX cluster-1 virtual array $VPLEX_VARRAY1"
     runcmd neighborhood create $VPLEX_VARRAY1
+    runcmd transportzone assign FABRIC_losam082-fabric $VPLEX_VARRAY1
+    FC_ZONE_A=FABRIC_losam082-fabric
     runcmd transportzone create $FC_ZONE_A $VPLEX_VARRAY1 --type FC
 	runcmd storageport update $VPLEX_GUID FC --group director-1-1-A --addvarrays $VPLEX_VARRAY1
 	runcmd storageport update $VPLEX_GUID FC --group director-1-1-B --addvarrays $VPLEX_VARRAY1
 	runcmd storageport update $VPLEX_VNX1_NATIVEGUID FC --addvarrays $VPLEX_VARRAY1
 	runcmd storageport update $VPLEX_VNX2_NATIVEGUID FC --addvarrays $VPLEX_VARRAY1
+	
+    VPLEX_VARRAY2=$NH2
+    secho "Setting up the VPLEX cluster-2 virtual array $VPLEX_VARRAY2"
+    runcmd neighborhood create $VPLEX_VARRAY2
+    runcmd transportzone assign FABRIC_vplex154nbr2 $VPLEX_VARRAY2
+    FC_ZONE_B=FABRIC_vplex154nbr2
+    runcmd transportzone create $FC_ZONE_B $VPLEX_VARRAY2 --type FC
+    runcmd storageport update $VPLEX_GUID FC --group director-2-1-A --addvarrays $VPLEX_VARRAY2
+    runcmd storageport update $VPLEX_GUID FC --group director-2-1-B --addvarrays $VPLEX_VARRAY2
+	if [[ "$VPLEX_MODE" = "distributed" ]]; then
+    runcmd storageport update $VPLEX_VMAX_NATIVEGUID FC --addvarrays $VPLEX_VARRAY2
+    fi
+    
+    common_setup
 
     case "$VPLEX_MODE" in 
         local)
-            secho "Setting up the virtual pool as for local VPLEX provisioning"
+            secho "Setting up the virtual pool for local VPLEX provisioning"
             runcmd cos create block $VPOOL_BASE true                            \
                              --description 'vpool-for-vplex-local-volumes'      \
                              --protocols FC                                     \
@@ -570,22 +570,14 @@ vplex_setup() {
                              --highavailability vplex_local                     \
                              --neighborhoods $VPLEX_VARRAY1                     \
                              --max_snapshots 1                                  \
-                             --max_mirrors 1                                    \
+                             --max_mirrors 0                                    \
                              --expandable false 
 
             runcmd cos update block $VPOOL_BASE --storage $VPLEX_VNX1_NATIVEGUID
             runcmd cos update block $VPOOL_BASE --storage $VPLEX_VNX2_NATIVEGUID
         ;;
         distributed)
-            VPLEX_VARRAY2=$NH2
-        	secho "Setting up the VPLEX cluster-2 virtual array $VPLEX_VARRAY2"
-            runcmd neighborhood create $VPLEX_VARRAY2
-            runcmd transportzone create $FC_ZONE_B $VPLEX_VARRAY2 --type FC
-            runcmd storageport update $VPLEX_GUID FC --group director-2-1-A --addvarrays $VPLEX_VARRAY2
-            runcmd storageport update $VPLEX_GUID FC --group director-2-1-B --addvarrays $VPLEX_VARRAY2
-            runcmd storageport update $VPLEX_VMAX_NATIVEGUID FC --addvarrays $VPLEX_VARRAY2
-
-            secho "Setting up the virtual pool as for distributed VPLEX provisioning"
+            secho "Setting up the virtual pool for distributed VPLEX provisioning"
             runcmd cos create block $VPOOL_BASE true                                \
                              --description 'vpool-for-vplex-distributed-volumes'    \
                              --protocols FC                                         \
@@ -595,7 +587,7 @@ vplex_setup() {
                              --neighborhoods $VPLEX_VARRAY1 $VPLEX_VARRAY2          \
                              --haNeighborhood $VPLEX_VARRAY2                        \
                              --max_snapshots 1                                      \
-                             --max_mirrors 1                                        \
+                             --max_mirrors 0                                        \
                              --expandable false
 
             runcmd cos update block $VPOOL_BASE --storage $VPLEX_VNX1_NATIVEGUID

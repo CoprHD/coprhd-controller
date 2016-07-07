@@ -219,12 +219,17 @@ public class DataCollectionJobScheduler {
                     intervals.getInitialDelay(),
                     intervals.getInterval());
         }
+
         if (enableArrayAffinityDiscovery) {
             JobIntervals intervals = JobIntervals.get(ControllerServiceImpl.ARRAYAFFINITY_DISCOVERY);
             schedulingProcessor.addScheduledTask(new DiscoveryScheduler(ControllerServiceImpl.ARRAYAFFINITY_DISCOVERY),
                     intervals.getInitialDelay(),
                     intervals.getInterval());
+            _logger.info("Array Affinity discovery is enabled with interval {}", intervals.getInterval());
+        } else {
+            _logger.info("Array Affinity discovery is disabled");
         }
+
         if (enableAutoMetering) {
             JobIntervals intervals = JobIntervals.get(ControllerServiceImpl.METERING);
             schedulingProcessor.addScheduledTask(new DiscoveryScheduler(ControllerServiceImpl.METERING),

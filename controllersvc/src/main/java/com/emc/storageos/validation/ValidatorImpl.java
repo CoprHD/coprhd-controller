@@ -29,6 +29,8 @@ public class ValidatorImpl implements Validator {
 	@Override
 	public List<Volume> volumes(List<Volume> volumes, boolean delete,
 			boolean remediate, StringBuilder msgs, ValCk... checks) {
+	    // Collect remediated volumes
+	    List<Volume> remediatedVolumes = new ArrayList<Volume>();
 		// Partition volumes by StorageSystem
 		Map<URI, List<Volume>> systemUriToVolumeList = new HashMap<URI, List<Volume>>();
 		for (Volume volume : volumes) {
@@ -45,7 +47,7 @@ public class ValidatorImpl implements Validator {
 				validator.volumes(system, entry.getValue(), delete, remediate, msgs, checks);
 			}
 		}
-		return null;
+		return remediatedVolumes;
 	}
 
     public DbClient getDbClient() {

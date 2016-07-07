@@ -18,6 +18,15 @@ import java.util.List;
    local-device: device_VAPM00144755987-c50c5200cd2 (cluster-1)
       extent: extent_VAPM00144755987-c50c5200cd2_1
          storage-volume: VAPM00144755987-c50c5200cd2 (blocks: 0 - 262399)
+ * virtual-volume: device_VAPM00140801303-00218_vol (cluster-1)
+   local-device: device_VAPM00140801303-00218 (cluster-1)
+      local-device-component: device_VAPM00140801303-002182016Jul07_163513
+         extent: extent_VAPM00140801303-00218_1
+            storage-volume: VAPM00140801303-00218 (blocks: 0 - 262143)
+      local-device-component: device_VAPM00140844981-00512
+         extent: extent_VAPM00140844981-00512_1
+            storage-volume: VAPM00140844981-00512 (blocks: 0 - 262143)
+
  */
 public class VPlexDrillDownParser {
     
@@ -26,6 +35,7 @@ public class VPlexDrillDownParser {
         DIST("distributed-device:"),
         DISTCOMP("distributed-device-component:"),
         LOCAL("local-device:"),
+        LOCALCOMP("local-device-component"),
         EXT("extent:"),
         SVOL("storage-volume:");
         
@@ -138,7 +148,7 @@ public class VPlexDrillDownParser {
     
     /**
      * Parses a distributed node. arg1 is the device name, arg2 is the cluster.
-     * @return Node of type DIST
+     * @return Node of type DIST; line pointer at next line
      */
     private Node dist() {
         Node node = new Node(NodeType.DIST, lineargs);
@@ -152,7 +162,7 @@ public class VPlexDrillDownParser {
     /**
      * Parses a distributed component. Used only for telling which cluster the
      * subtree will be for. arg1 is device name, arg2 is cluster
-     * @return Node of type DISTCOMP
+     * @return Node of type DISTCOMP; currentLine at next line
      */
     private Node distcomp() {
         Node node = new Node(NodeType.DISTCOMP, lineargs);
@@ -164,11 +174,16 @@ public class VPlexDrillDownParser {
     
     /**
      * Parses a local node. arg1 is device name, arg2 is cluster.
-     * @return Node of type LOCAL
+     * @return Node of type LOCAL; currentLine at next line
      */
     private Node local() {
         Node node = new Node(NodeType.LOCAL, lineargs);
-        while (next() != null && line().startsWith(NodeType.EXT.getMatch())) {
+        while (next() != null && 
+            (line().startsWith(NodeType.LOCALCOMP.getMatch()) || line().startsWith(NodeType.EXT.getMatch()) ) ) {
+            if (line().startsWith(NodeType.LOCALCOMP.getMatch())) {
+                // We ignore local device components for now as they have no additional information
+                next();
+            }
             node.getChildren().add(extent());
         }
         return node;
@@ -176,7 +191,7 @@ public class VPlexDrillDownParser {
     
     /**
      * We don't care to receive EXTENT nodes.. pass through the underling SVOLS.
-     * @return Node of type SVOL, or null
+     * @return Node of type SVOL, or null; currentLine at returned node
      */
     private Node extent() {
         if (next() != null && line().startsWith(NodeType.SVOL.getMatch())) {
@@ -187,7 +202,7 @@ public class VPlexDrillDownParser {
     
     /**
      * Parses StorageVolume node. arg1 is volume name, arg2 is cluster.
-     * @return Node of type SVOL
+     * @return Node of type SVOL; currentLine at returned node
      */
     private Node svol() {
         Node node = new Node(NodeType.SVOL, lineargs);

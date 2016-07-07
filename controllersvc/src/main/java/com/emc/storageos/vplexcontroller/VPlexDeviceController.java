@@ -1337,7 +1337,13 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private List<VolumeInfo> getNativeVolumeInfo(List<URI> volumeURIs) {
         List<VolumeInfo> nativeVolumeInfoList = new ArrayList<>();
         for (URI volumeURI : volumeURIs) {
-            Volume volume = getDataObject(Volume.class, volumeURI, _dbClient);
+            Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
+            if (volume == null || volume.getInactive() || 
+                NullColumnValueGetter.isNullValue(volume.getNativeGuid()) ||
+                NullColumnValueGetter.isNullValue(volume.getDeviceLabel())) {
+                // Volume not fully formed (skip it) 
+                continue;
+            }
             StorageSystem volumeSystem = getDataObject(StorageSystem.class, volume.getStorageController(), _dbClient);
             List<String> itls = VPlexControllerUtils.getVolumeITLs(volume);
             VolumeInfo vInfo = new VolumeInfo(volumeSystem.getNativeGuid(), volumeSystem.getSystemType(),

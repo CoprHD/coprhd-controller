@@ -113,8 +113,11 @@ public class XIVRestOperationsHelper {
         Set<Boolean> result = new HashSet<Boolean>();
         if (null != initiators) {
             for (Initiator initiator : initiators) {
-                Host host = _dbClient.queryObject(Host.class, initiator.getHost());
-                result.add(isClusteredHostOnArray(storage, host.getLabel()));
+            	URI hostURI = initiator.getHost();
+            	if(null != hostURI) {
+            		Host host = _dbClient.queryObject(Host.class, hostURI);
+                    result.add(isClusteredHostOnArray(storage, host.getLabel()));	
+            	}
             }
         }
         return result.size() == 1 ? result.iterator().next() : false;

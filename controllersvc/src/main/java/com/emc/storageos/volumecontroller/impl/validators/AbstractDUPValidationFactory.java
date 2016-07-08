@@ -24,4 +24,16 @@ public abstract class AbstractDUPValidationFactory {
     public abstract DUPreventionValidator exportMaskDelete(StorageSystem storage, ExportMask exportMask,
                                                            Collection<URI> volumeURIList,
                                                            Collection<Initiator> initiatorList);
+
+    /**
+     * Create an {@link DUPreventionValidator} instance for validating removal of a volume from an
+     * export group.
+     *
+     * @param storage
+     * @param exportMaskURI
+     * @param initiators
+     * @return
+     */
+    public abstract DUPreventionValidator removeVolumes(StorageSystem storage, URI exportMaskURI,
+                                                        Collection<Initiator> initiators);
 }

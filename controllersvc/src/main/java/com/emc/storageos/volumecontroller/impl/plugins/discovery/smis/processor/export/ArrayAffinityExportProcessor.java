@@ -25,14 +25,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
-import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
-import com.emc.storageos.db.client.model.StoragePort;
-import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.WWNUtility;
 import com.emc.storageos.db.client.util.iSCSIUtility;
@@ -43,7 +38,6 @@ import com.emc.storageos.plugins.common.PartitionManager;
 import com.emc.storageos.plugins.common.Processor;
 import com.emc.storageos.plugins.common.domainmodel.Operation;
 import com.emc.storageos.util.NetworkUtil;
-import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.plugins.SMICommunicationInterface;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 
@@ -65,7 +59,7 @@ public class ArrayAffinityExportProcessor extends Processor {
     private static final int BATCH_SIZE = 100;
 
     private Map<URI, Set<String>> _hostToExportMasksMap = null;
-    private Map<String, Integer> _exportMaskToHostCountMap = null;
+    private Map<String, Set<URI>> _exportMaskToHostsMap = null;
     private Map<String, Set<URI>> _maskToStoragePoolsMap = null;
 
     private PartitionManager _partitionManager;
@@ -109,28 +103,20 @@ public class ArrayAffinityExportProcessor extends Processor {
         initialize(operation, resultObj, keyMap);
         CloseableIterator<CIMInstance> it = null;
         EnumerateResponse<CIMInstance> response = null;
-        List<Initiator> matchedInitiators = new ArrayList<Initiator>();
-        List<StoragePort> matchedPorts = new ArrayList<StoragePort>();
         WBEMClient client = SMICommunicationInterface.getCIMClient(keyMap);
-        StringSet knownIniSet = new StringSet();
-        StringSet knownNetworkIdSet = new StringSet();
-        StringSet knownPortSet = new StringSet();
-        StringSet knownVolumeSet = new StringSet();
 
         try {
             // get lun masking view CIM path
             CIMObjectPath path = getObjectPathfromCIMArgument(_args, keyMap);
             _logger.info("looking at lun masking view: " + path.toString());
             response = (EnumerateResponse<CIMInstance>) resultObj;
-            processVolumesAndInitiatorsPaths(response.getResponses(), path.toString(), matchedInitiators, matchedPorts, knownIniSet,
-                    knownNetworkIdSet, knownPortSet, knownVolumeSet, client);
+            processVolumesAndInitiatorsPaths(response.getResponses(), path.toString(), client);
 
             while (!response.isEnd()) {
                 _logger.info("Processing next Chunk");
                 response = client.getInstancesWithPath(Constants.MASKING_PATH, response.getContext(),
                         new UnsignedInteger32(MAX_OBJECT_COUNT));
-                processVolumesAndInitiatorsPaths(response.getResponses(), path.toString(), matchedInitiators, matchedPorts, knownIniSet,
-                        knownNetworkIdSet, knownPortSet, knownVolumeSet, client);
+                processVolumesAndInitiatorsPaths(response.getResponses(), path.toString(), client);
             }
         } catch (Exception e) {
             _logger.error("Processing lun maksing view failed", e);
@@ -168,19 +154,19 @@ public class ArrayAffinityExportProcessor extends Processor {
     }
 
     /**
-     * Gets the Map of maskingViewPath to host count that is being tracked in the keyMap.
+     * Gets the Map of maskingViewPath to hosts that is being tracked in the keyMap.
      *
-     * @return a Map of maskingViewPath to host count
+     * @return a Map of maskingViewPath to hosts
      */
-    private Map<String, Integer> getExportMaskToHostCountMap() {
-        // find or create the maskingViewPath -> host count tracking data structure in the key map
-        _exportMaskToHostCountMap = (Map<String, Integer>) _keyMap.get(Constants.HOST_EXPORT_MASKS_MAP);
-        if (_exportMaskToHostCountMap == null) {
-            _exportMaskToHostCountMap = new HashMap<String, Integer>();
-            _keyMap.put(Constants.HOST_EXPORT_MASKS_MAP, _exportMaskToHostCountMap);
+    private Map<String, Set<URI>> getExportMaskToHostsMap() {
+        // find or create the maskingViewPath -> hosts tracking data structure in the key map
+        _exportMaskToHostsMap = (Map<String, Set<URI>>) _keyMap.get(Constants.EXPORT_MASK_HOSTS_MAP);
+        if (_exportMaskToHostsMap == null) {
+            _exportMaskToHostsMap = new HashMap<String, Set<URI>>();
+            _keyMap.put(Constants.EXPORT_MASK_HOSTS_MAP, _exportMaskToHostsMap);
         }
 
-        return _exportMaskToHostCountMap;
+        return _exportMaskToHostsMap;
     }
 
     /**
@@ -206,8 +192,8 @@ public class ArrayAffinityExportProcessor extends Processor {
 
         Integer currentCommandIndex = this.getCurrentCommandIndex(_args);
         List maskingViews = (List) _keyMap.get(Constants.MASKING_VIEWS);
-        _logger.info("ExportProcessor current index is " + currentCommandIndex);
-        _logger.info("ExportProcessor maskingViews size is " + maskingViews.size());
+        _logger.info("ArrayAffinityExportProcessor current index is " + currentCommandIndex);
+        _logger.info("ArrayAffinityExportProcessor maskingViews size is " + maskingViews.size());
         if ((maskingViews != null) && (maskingViews.size() == (currentCommandIndex + 1))) {
             _logger.info("this is the last time ArrayAffinityExportProcessor will be called, cleaning up...");
             updatePreferredPoolIds();
@@ -216,19 +202,17 @@ public class ArrayAffinityExportProcessor extends Processor {
         }
     }
 
-    private void processVolumesAndInitiatorsPaths(CloseableIterator<CIMInstance> it, String maskingViewPath,
-            List<Initiator> matchedInitiators, List<StoragePort> matchedPorts, Set<String> knownIniSet,
-            Set<String> knownNetworkIdSet, Set<String> knownPortSet, Set<String> knownVolumeSet, WBEMClient client) {
+    private void processVolumesAndInitiatorsPaths(CloseableIterator<CIMInstance> it, String maskingViewPath, WBEMClient client) {
         while (it.hasNext()) {
-            CIMInstance cimi = it.next();
+            CIMInstance instance = it.next();
 
-            _logger.info("looking at classname: " + cimi.getClassName());
-            switch (cimi.getClassName()) {
+            _logger.info("looking at classname: " + instance.getClassName());
+            switch (instance.getClassName()) {
 
                 // process initiators
                 case SmisConstants.CP_SE_STORAGE_HARDWARE_ID:
 
-                    String initiatorNetworkId = this.getCIMPropertyValue(cimi, SmisConstants.CP_STORAGE_ID);
+                    String initiatorNetworkId = this.getCIMPropertyValue(instance, SmisConstants.CP_STORAGE_ID);
                     _logger.info("looking at initiator network id " + initiatorNetworkId);
                     if (WWNUtility.isValidNoColonWWN(initiatorNetworkId)) {
                         initiatorNetworkId = WWNUtility.getWWNWithColons(initiatorNetworkId);
@@ -261,12 +245,14 @@ public class ArrayAffinityExportProcessor extends Processor {
                             }
                             maskingViewPaths.add(maskingViewPath);
 
-                            Integer hostCount = getExportMaskToHostCountMap().get(maskingViewPath);
-                            if (hostCount == null) {
-                                hostCount = 0;
-                                _logger.info("Initial host count for mask {}" + maskingViewPath);
+                            Set<URI> hosts = getExportMaskToHostsMap().get(maskingViewPath);
+                            if (hosts == null) {
+                                 _logger.info("Initial host count for mask {}" + maskingViewPath);
+                                 hosts = new HashSet<URI>();
+                                 getExportMaskToHostsMap().put(maskingViewPath, hosts);
                             }
-                            getExportMaskToHostCountMap().put(maskingViewPath, hostCount++);
+
+                            hosts.add(hostId);
                         }
                     } else {
                         _logger.info("No hosts in ViPR found configured for initiator " + initiatorNetworkId);
@@ -274,55 +260,25 @@ public class ArrayAffinityExportProcessor extends Processor {
 
                     break;
 
-                // process FC and ISCSI target ports
-                case SmisConstants.CP_SYMM_FCSCSI_PROTOCOL_ENDPOINT:
-                case SmisConstants.CP_SYMM_ISCSI_PROTOCOL_ENDPOINT:
-                case SmisConstants.CP_CLAR_FCSCSI_PROTOCOL_ENDPOINT:
-                case SmisConstants.CP_CLAR_ISCSI_PROTOCOL_ENDPOINT:
-                case SmisConstants.CP_CLAR_FRONTEND_FC_PORT:
-                    break;
-
                 // process storage volumes
                 case _symmvolume:
                 case _clarvolume:
 
-                    CIMObjectPath volumePath = cimi.getObjectPath();
+                    CIMObjectPath volumePath = instance.getObjectPath();
                     _logger.info("volumePath is " + volumePath.toString());
-
-                    String systemName = volumePath.getKey(SmisConstants.CP_SYSTEM_NAME).getValue().toString();
-                    systemName = systemName.replaceAll(Constants.SMIS80_DELIMITER_REGEX, Constants.PLUS);
-                    String id = volumePath.getKey(SmisConstants.CP_DEVICE_ID).getValue().toString();
-                    _logger.info("systemName is " + systemName);
-                    _logger.info("id is " + id);
-                    String nativeGuid = NativeGUIDGenerator.generateNativeGuidForVolumeOrBlockSnapShot(systemName.toUpperCase(), id);
-                    _logger.info("nativeGuid for looking up ViPR volumes is " + nativeGuid);
-
-                    URIQueryResultList result = new URIQueryResultList();
-                    _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getVolumeNativeGuidConstraint(nativeGuid), result);
-
                     URI poolURI = null;
-                    Volume volume = null;
-                    Iterator<URI> volumes = result.iterator();
-                    if (volumes.hasNext()) {
-                        volume = _dbClient.queryObject(Volume.class, volumes.next());
-                        if (null != volume) {
-                            knownVolumeSet.add(volume.getId().toString());
-                            poolURI = volume.getPool();
-                        }
-                    }
-
-                    if (volume == null) {
+                    if (ArrayAffinityDiscoveryUtils.isUnmanagedVolume(volumePath, _dbClient)) {
                         poolURI = ArrayAffinityDiscoveryUtils.getStoragePool(volumePath, client, _dbClient);
-                    }
 
-                    if (!NullColumnValueGetter.isNullURI(poolURI)) {
-                        Set<URI> pools = getMaskToStoragePoolsMap().get(maskingViewPath);
-                        if (pools == null) {
-                            pools = new HashSet<URI>();
-                            _logger.info("Creating pool set for mask {}" + maskingViewPath);
-                            getMaskToStoragePoolsMap().put(maskingViewPath, pools);
+                        if (!NullColumnValueGetter.isNullURI(poolURI)) {
+                            Set<URI> pools = getMaskToStoragePoolsMap().get(maskingViewPath);
+                            if (pools == null) {
+                                pools = new HashSet<URI>();
+                                _logger.info("Creating pool set for mask {}" + maskingViewPath);
+                                getMaskToStoragePoolsMap().put(maskingViewPath, pools);
+                            }
+                            pools.add(poolURI);
                         }
-                        pools.add(poolURI);
                     }
 
                     break;
@@ -346,13 +302,11 @@ public class ArrayAffinityExportProcessor extends Processor {
 
     private void updatePreferredPoolIds() {
         Map<URI, Set<String>> hostExportMasks = getHostToExportMasksMap();
-        Map<String, Integer> exportMaskHostCount = getExportMaskToHostCountMap();
+        Map<String, Set<URI>> exportMaskHostCount = getExportMaskToHostsMap();
         Map<String, Set<URI>> maskStroagePools = getMaskToStoragePoolsMap();
         String systemIdsStr = _profile.getProps().get(Constants.SYSTEM_IDS);
         String[] systemIds = systemIdsStr.split(Constants.ID_DELIMITER);
         Set<String> systemIdSet = new HashSet<String>(Arrays.asList(systemIds));
-
-        URI systemId = (URI) _keyMap.get(Constants.SYSTEMID);
         List<Host> hostsToUpdate = new ArrayList<Host>();
 
         try {
@@ -367,7 +321,7 @@ public class ArrayAffinityExportProcessor extends Processor {
                     if (masks != null && !masks.isEmpty()) {
                         for (String mask : masks) {
                             Set<URI> pools = maskStroagePools.get(mask);
-                            String exportType = exportMaskHostCount.get(mask) > 1 ? ExportGroup.ExportGroupType.Cluster.name()
+                            String exportType = exportMaskHostCount.get(mask).size() > 1 ? ExportGroup.ExportGroupType.Cluster.name()
                                     : ExportGroup.ExportGroupType.Host.name();
                             if (pools != null && !pools.isEmpty()) {
                                 for (URI pool : pools) {

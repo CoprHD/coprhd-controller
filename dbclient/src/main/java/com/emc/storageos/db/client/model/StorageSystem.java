@@ -704,8 +704,8 @@ public class StorageSystem extends DiscoveredSystemObject {
         setChanged("nativeId");
     }
 
-    @Name("lastArrayAffinitySStatusMessage")
-    public String getLastArrayAffinitySStatusMessage() {
+    @Name("lastArrayAffinityStatusMessage")
+    public String getLastArrayAffinityStatusMessage() {
         return _lastArrayAffinityStatusMessage;
     }
 

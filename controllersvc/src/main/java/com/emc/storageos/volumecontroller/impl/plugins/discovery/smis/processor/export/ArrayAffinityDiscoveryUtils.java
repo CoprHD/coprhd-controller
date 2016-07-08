@@ -20,12 +20,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
+import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.google.common.collect.Collections2;
@@ -128,5 +131,27 @@ public class ArrayAffinityDiscoveryUtils {
         if (oldType == null || (!oldType.equals(type) && type.equals(ExportGroupType.Cluster.name()))) {
             preferredPoolToExportTypeMap.put(pool, type);
         }
+    }
+
+    /**
+     * Check if volume with given path is an unmanaged volume
+     *
+     * @param voumePath path of the volume
+     * @param dbClinet DbClient
+     * @return boolean true if it is an unmanaged volume
+     */
+    public static boolean isUnmanagedVolume(CIMObjectPath volumePath, DbClient dbClient) {
+        String systemName = volumePath.getKey(SmisConstants.CP_SYSTEM_NAME).getValue().toString();
+        systemName = systemName.replaceAll(Constants.SMIS80_DELIMITER_REGEX, Constants.PLUS);
+        String id = volumePath.getKey(SmisConstants.CP_DEVICE_ID).getValue().toString();
+        String nativeGuid = NativeGUIDGenerator.generateNativeGuidForVolumeOrBlockSnapShot(systemName.toUpperCase(), id);
+
+        URIQueryResultList result = new URIQueryResultList();
+        dbClient.queryByConstraint(AlternateIdConstraint.Factory.getVolumeNativeGuidConstraint(nativeGuid), result);
+        if (result.iterator().hasNext()) {
+            return false;
+        }
+
+        return true;
     }
 }

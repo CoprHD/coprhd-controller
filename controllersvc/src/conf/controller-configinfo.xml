@@ -101,7 +101,6 @@
         <!-- used in restricting the number of Arrays simultaneously running data
                   Collection Jobs -->
         <entry key="discovery-core-pool-size" value="3" />
-        <entry key="arrayaffinity-discovery-core-pool-size" value="3" />
         <entry key="compute-discovery-core-pool-size" value="3" />
         <entry key="metering-core-pool-size" value="1" />
 

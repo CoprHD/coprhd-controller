@@ -956,6 +956,9 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_NO_PLACEMENT_FOUND)
     public BadRequestException noCandidateStoragePoolsForArrayAffinity();
 
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException arrayAffinityTaskNotExecutedWithUnfinishedHostDiscovery(int waitedMinutes);
+
     @DeclareServiceCode(ServiceCode.API_NO_PLACEMENT_FOUND)
     public BadRequestException noMatchingStoragePoolsForVpoolAndVarrayForClones(final String vpoolLabel,
             final String varrayLabel, final URI volumeId);

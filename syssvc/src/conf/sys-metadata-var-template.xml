@@ -1058,20 +1058,6 @@
 		<property name="value" value="3" />
 		<property name="controlNodeOnly" value="true" />
 	</bean>
-	<bean id="controller_arrayaffinity_discovery_core_pool_size" class="com.emc.storageos.model.property.PropertyMetadata">
-		<property name="label" value="Array Affinity Discovery Threads" />
-		<property name="description" value="Number of threads each node uses for array affinity discovery." />
-		<property name="type" value="uint16" />
-		<property name="allowedValues" value="1,2,3" />
-		<property name="tag" value="Discovery" />
-		<property name="advanced" value="true" />
-		<property name="userMutable" value="true" />
-		<property name="userConfigurable" value="true" />
-		<property name="reconfigRequired" value="true" />
-		<property name="rebootRequired" value="true" />
-		<property name="value" value="3" />
-		<property name="controlNodeOnly" value="true" />
-	</bean>
 	<bean id="controller_scan_interval" class="com.emc.storageos.model.property.PropertyMetadata">
 		<property name="label" value="Scan Interval" />
 		<property name="description" value="Number of seconds between scan operations of SMI-S providers." />
@@ -2821,7 +2807,6 @@
 				<entry key="controller_discovery_interval" value-ref="controller_discovery_interval" />
 				<entry key="controller_arrayaffinity_discovery_interval" value-ref="controller_arrayaffinity_discovery_interval" />
 				<entry key="controller_discovery_core_pool_size" value-ref="controller_discovery_core_pool_size" />
-				<entry key="controller_arrayaffinity_discovery_core_pool_size" value-ref="controller_arrayaffinity_discovery_core_pool_size" />
 				<entry key="controller_scan_interval" value-ref="controller_scan_interval" />
 				<entry key="controller_ns_discovery_interval" value-ref="controller_ns_discovery_interval" />
 				<entry key="controller_compute_discovery_interval" value-ref="controller_compute_discovery_interval" />

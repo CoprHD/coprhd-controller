@@ -575,7 +575,7 @@ public class SMICommunicationInterface extends ExtendedCommunicationInterfaceImp
             }
             releaseResources();
             long totalTime = System.currentTimeMillis() - startTime;
-            _logger.info(String.format("Discovery of Storage System %s took %f seconds", storageSystemURI.toString(), (double) totalTime
+            _logger.info(String.format("Array Affinity discovery of Storage System %s took %f seconds", storageSystemURI.toString(), (double) totalTime
                     / (double) 1000));
         }
     }

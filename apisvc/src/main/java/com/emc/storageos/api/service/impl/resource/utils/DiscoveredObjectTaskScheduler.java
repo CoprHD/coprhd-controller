@@ -13,6 +13,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.model.TaskList;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.ControllerException;
 
@@ -44,7 +45,7 @@ public class DiscoveredObjectTaskScheduler {
         }
         try {
             _taskExecutor.executeTasks(tasks.toArray(new AsyncTask[tasks.size()]));
-        } catch (ControllerException ex) {
+        } catch (ControllerException | APIException ex) {
             for (AsyncTask task : tasks) {
                 DataObject discoveredObject =
                         (DataObject) _dbClient.queryObject(task._clazz, task._id);

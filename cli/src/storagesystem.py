@@ -45,6 +45,8 @@ class StorageSystem(object):
         '/vdc/storage-systems/{0}/unmanaged/filesystems'
     URI_STORAGESYSTEM_DISCOVER_UNMANAGED_VOLUMES = \
         '/vdc/storage-systems/{0}/discover?namespace=UNMANAGED_VOLUMES'
+    URI_STORAGESYSTEM_DISCOVER_ARRAY_AFFINITY = \
+        '/vdc/storage-systems/{0}/discover?namespace=ARRAY_AFFINITY'
     URI_STORAGESYSTEM_DISCOVER_UNMANAGED_FILESHARE = \
         '/vdc/storage-systems/{0}/discover?namespace=UNMANAGED_FILESYSTEMS'
     URI_UM_EXPORT_MASK = "/vdc/unmanaged/export-masks/{0}"
@@ -76,6 +78,11 @@ class StorageSystem(object):
         'xtremio',
         'ibmxiv',
         'vnxe']
+
+    ARRAY_AFFINITY_SYSTEM_LIST = [
+        'vmax',
+        'vnxblock',
+        'xtremio']
 
     FILE_SYSTEM_LIST = [
         'isilon',
@@ -699,6 +706,29 @@ class StorageSystem(object):
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port, "POST",
             StorageSystem.URI_STORAGESYSTEM_DISCOVER_UNMANAGED_VOLUMES.format(
+                ssid), None)
+        o = common.json_decode(s)
+        return o
+
+    def discover_array_affinity(self, serialnum, name, systype):
+        '''
+        Discover array affinity based on storage system's name or UUID
+        Parameters:
+            name: name of storage system
+            serialnum : serial number of storage system
+            systype: type of storage system
+        Returns:
+            Success or failure exception
+        '''
+
+        if(serialnum):
+            ssid = self.query_by_serial_number_and_type(serialnum, systype)
+        else:
+            ssid = self.query_by_name_and_type(name, systype)
+
+        (s, h) = common.service_json_request(
+            self.__ipAddr, self.__port, "POST",
+            StorageSystem.URI_STORAGESYSTEM_DISCOVER_ARRAY_AFFINITY.format(
                 ssid), None)
         o = common.json_decode(s)
         return o
@@ -1510,6 +1540,50 @@ def discover_unmanaged_volumes(args):
             e.err_text,
             e.err_code)
 
+# discover array affinity command parser
+def array_affinity_discover_parser(subcommand_parsers, common_parser):
+    array_affinity_discover_parser = subcommand_parsers.add_parser(
+        'discover_arrayaffinity',
+        description='ViPR array affinity discover CLI usage',
+        parents=[
+            common_parser],
+        conflict_handler='resolve',
+        help='Discover array affinity')
+    mutex_group = array_affinity_discover_parser.add_mutually_exclusive_group(
+        required=True)
+    mandatory_args = array_affinity_discover_parser.add_argument_group(
+        'mandatory arguments')
+    mandatory_args.add_argument('-t', '-type',
+                                dest='type',
+                                help='Type of storage system',
+                                choices=StorageSystem.ARRAY_AFFINITY_SYSTEM_LIST,
+                                required=True)
+    mutex_group.add_argument('-n', '-name',
+                             metavar='<name>',
+                             dest='name',
+                             help='Name of storage system')
+    mutex_group.add_argument('-sn', '-serialnumber',
+                             dest='serialnum',
+                             metavar='<serialnumber>',
+                             help='Serial number of the storage system')
+
+    array_affinity_discover_parser.set_defaults(func=discover_array_affinity)
+
+
+def discover_array_affinity(args):
+    obj = StorageSystem(args.ip, args.port)
+    try:
+        res = obj.discover_array_affinity(
+            args.serialnum,
+            args.name,
+            args.type)
+    except SOSError as e:
+        common.format_err_msg_and_raise(
+            "discover array affinity",
+            "storagesystem",
+            e.err_text,
+            e.err_code)
+
 # discover unmanaged fileshares  command parser
 
 
@@ -1925,6 +1999,9 @@ def storagesystem_parser(parent_subparser, common_parser):
 
     # unmanaged volume discover  command parser
     um_volume_discover_parser(subcommand_parsers, common_parser)
+
+    # array affinity discover command parser
+    array_affinity_discover_parser(subcommand_parsers, common_parser)
 
     # unmanaged fileshare discover  command parser
     um_fileshare_discover_parser(subcommand_parsers, common_parser)

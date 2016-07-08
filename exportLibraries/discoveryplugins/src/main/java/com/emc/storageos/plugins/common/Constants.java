@@ -255,6 +255,7 @@ public class Constants {
     public static final String SYSTEM_IDS = "systemIds";
     public static final String ID_DELIMITER = ",";
     public static final String HOST_EXPORT_MASKS_MAP = "hostExportMasksMap";
+    public static final String EXPORT_MASK_HOSTS_MAP = "exportMaskHostsMap";
     public static final String EXPORT_MASK_STORAGE_POOLS_MAP = "exportMaskStoragePoolsMap";
     public static final String UNMANAGED_EXPORT_MASKS_CREATE_LIST = "unManagedExportMasksCreateList";
     public static final String UNMANAGED_EXPORT_MASKS_UPDATE_LIST = "unManagedExportMasksUpdateList";

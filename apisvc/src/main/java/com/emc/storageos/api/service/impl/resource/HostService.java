@@ -385,7 +385,7 @@ public class HostService extends TaskResourceService {
             boolean runArrayAffinity = Boolean.valueOf(_customConfigHandler.getComputedCustomConfigValue(
                     CustomConfigConstants.HOST_RESOURCE_RUN_ARRAY_AFFINITY_DISCOVERY, CustomConfigConstants.GLOBAL_KEY, null));
             if (runArrayAffinity) {
-                discoverHostArrayAffinity(host);
+                discoverHostArrayAffinity(host, taskId);
             }
             return taskList.getTaskList().iterator().next();
         } else {
@@ -402,9 +402,10 @@ public class HostService extends TaskResourceService {
      * Create tasks to discover array affinity for the host
      *
      * @param host the host whose preferred systems need to be discovered
+     * @param hostDiscoveryTaskId task Id of host discovery
      * @return a list of TaskResourceRep instances
      */
-    private List<TaskResourceRep> discoverHostArrayAffinity(Host host) {
+    private List<TaskResourceRep> discoverHostArrayAffinity(Host host, String hostDiscoveryTaskId) {
         List<TaskResourceRep> taskResList = new ArrayList<TaskResourceRep>();
         String jobType = "";
         Map<URI, List<URI>> providerToSystemsMap = new HashMap<URI, List<URI>>();
@@ -419,7 +420,7 @@ public class HostService extends TaskResourceService {
                 continue;
             }
 
-            if (!systemObj.deviceIsType(Type.vmax)) {
+            if (!systemObj.deviceIsType(Type.vmax) && !systemObj.deviceIsType(Type.vnxblock) && !systemObj.deviceIsType(Type.xtremio)) {
                 _log.info("Skip unsupported system {}", systemObj.getLabel());
                 continue;
             }
@@ -452,7 +453,8 @@ public class HostService extends TaskResourceService {
             List<URI> systemIds = entry.getValue();
             Collections.shuffle(systemIds);
             BlockController controller = getController(BlockController.class, providerToSystemTypeMap.get(entry.getKey()));
-            DiscoveredObjectTaskScheduler scheduler = new DiscoveredObjectTaskScheduler(_dbClient, new StorageSystemService.ArrayAffinityJobExec(controller));
+            DiscoveredObjectTaskScheduler scheduler = new DiscoveredObjectTaskScheduler(_dbClient,
+                    new StorageSystemService.ArrayAffinityJobExec(controller, host.getId(), hostDiscoveryTaskId, _dbClient));
             ArrayList<AsyncTask> tasks = new ArrayList<AsyncTask>();
             String taskId = UUID.randomUUID().toString();
             tasks.add(new ArrayAffinityAsyncTask(StorageSystem.class, systemIds.get(0), systemIds, host.getId(), taskId));

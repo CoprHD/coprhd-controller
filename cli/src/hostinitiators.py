@@ -37,7 +37,7 @@ class HostInitiator(object):
     URI_INITIATOR_DETAILS_BULK = "/compute/initiators/bulk"
     URI_HOST_LIST_INITIATORS = "/compute/hosts/{0}/initiators"
     URI_INITIATOR_DEACTIVATE = "/compute/initiators/{0}/deactivate"
-    URI_INITIATOR_ALIASGET = "/compute/initiators/{0}/alias-get"
+    URI_INITIATOR_ALIASGET = "/compute/initiators/{0}/alias-get/{1}"
     URI_INITIATOR_ALIASSET = "/compute/initiators/{0}/alias-set"
 
     INITIATOR_PROTOCOL_LIST = ['FC', 'iSCSI']
@@ -430,14 +430,10 @@ class HostInitiator(object):
         device_detail = obj.show(name=device_name, type=device_type)
         system_uri = device_detail['id']
 
-        request = {'system_uri': system_uri
-                   }
-        body = json.dumps(request)
-
         (s, h) = common.service_json_request(
-            self.__ipAddr, self.__port, "POST",
-            HostInitiator.URI_INITIATOR_ALIASGET.format(initiator_uri),
-            body)
+            self.__ipAddr, self.__port, "GET",
+            HostInitiator.URI_INITIATOR_ALIASGET.format(initiator_uri, system_uri),
+            None)
         o = common.json_decode(s)
         return o
 
@@ -462,7 +458,7 @@ class HostInitiator(object):
         body = json.dumps(request)
 
         (s, h) = common.service_json_request(
-            self.__ipAddr, self.__port, "POST",
+            self.__ipAddr, self.__port, "PUT",
             HostInitiator.URI_INITIATOR_ALIASSET.format(initiator_uri),
             body)
         o = common.json_decode(s)

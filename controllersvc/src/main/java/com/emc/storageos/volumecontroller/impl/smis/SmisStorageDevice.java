@@ -3138,9 +3138,10 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             throws Exception {
 
         if (!checkIfProviderSupportsInitiatorAlias(storage)) {
-            _log.error("SMI-S Provider associated with Storage System {} does not support Initiator Alias operations",
+            String errMsg = String.format("SMI-S Provider associated with Storage System %s does not support Initiator Alias operations",
                     storage.getSerialNumber());
-            throw DeviceControllerException.exceptions.operationNotSupported();
+            _log.error(errMsg);
+            throw DeviceControllerException.exceptions.couldNotPerformAliasOperation(errMsg);
         }
         // Use the initiator port names to match up with initiators CIMObjectPaths on
         // the device. We're doing it this way because generating the CIMObjectPaths
@@ -3165,9 +3166,11 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
         }
         initiatorInstances.close();
 
-        if (shidPath.toString().isEmpty()) {
-            _log.error("Source volume was not found: {}", normalizedPortName);
-            throw DeviceControllerException.exceptions.invalidObjectNull();
+        if ((shidPath == null) || shidPath.toString().isEmpty()) {
+            String errMsg = String.format("Supplied initiator: %s was not found on the Storage System: %s", normalizedPortName,
+                    storage.getSerialNumber());
+            _log.error(errMsg);
+            throw DeviceControllerException.exceptions.couldNotPerformAliasOperation(errMsg);
         }
 
         try {
@@ -3202,9 +3205,10 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
         String initiatorAlias = null;
 
         if (!checkIfProviderSupportsInitiatorAlias(storage)) {
-            _log.error("SMI-S Provider associated with Storage System {} does not support Initiator Alias operations",
+            String errMsg = String.format("SMI-S Provider associated with Storage System %s does not support Initiator Alias operations",
                     storage.getSerialNumber());
-            throw DeviceControllerException.exceptions.operationNotSupported();
+            _log.error(errMsg);
+            throw DeviceControllerException.exceptions.couldNotPerformAliasOperation(errMsg);
         }
 
         // Use the initiator port names to match up with initiators CIMObjectPaths on
@@ -3230,9 +3234,11 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
         }
         initiatorInstances.close();
 
-        if (shidPath.toString().isEmpty()) {
-            _log.error("Source volume was not found: {}", normalizedPortName);
-            throw DeviceControllerException.exceptions.invalidObjectNull();
+        if ((shidPath == null) || shidPath.toString().isEmpty()) {
+            String errMsg = String.format("Supplied initiator: %s was not found on the Storage System: %s", normalizedPortName,
+                    storage.getSerialNumber());
+            _log.error(errMsg);
+            throw DeviceControllerException.exceptions.couldNotPerformAliasOperation(errMsg);
         }
 
         try {

@@ -54,7 +54,6 @@ import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.export.ITLRestRepList;
-import com.emc.storageos.model.host.InitiatorAliasGetParam;
 import com.emc.storageos.model.host.InitiatorAliasRestRep;
 import com.emc.storageos.model.host.InitiatorAliasSetParam;
 import com.emc.storageos.model.host.InitiatorBulkRep;
@@ -311,21 +310,19 @@ public class InitiatorService extends TaskResourceService {
      * if set on the Storage System
      * 
      * @param id the URN of a ViPR initiator
-     * @param aliasGetParam the parameter containing the storage system attributes
+     * @param sid the pstorage system uri
      * @prereq none
      * @return A reference to an InitiatorRestRep representing the Initiator Alias if Set..
      * @throws Exception When an error occurs querying the VMAX Storage System.
      */
-    @POST
+    @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/{id}/alias-get")
-    public InitiatorAliasRestRep getInitiatorAlias(@PathParam("id") URI id, InitiatorAliasGetParam aliasGetParam) {
+    @Path("/{id}/alias-get/{sid}")
+    public InitiatorAliasRestRep getInitiatorAlias(@PathParam("id") URI id, @PathParam("sid") URI systemURI) {
         // Basic Checks
         Initiator initiator = queryResource(id);
         verifyUserPermisions(initiator);
-
-        URI systemURI = aliasGetParam.getSystemURI();
         ArgValidator.checkFieldUriType(systemURI, StorageSystem.class, "id");
         StorageSystem system = _permissionsHelper.getObjectById(systemURI, StorageSystem.class);
         ArgValidator.checkEntity(system, systemURI, isIdEmbeddedInURL(systemURI));
@@ -333,7 +330,7 @@ public class InitiatorService extends TaskResourceService {
         _log.info("Retrieving alias for initiator {} on system {}", id, systemURI);
 
         String initiatorAlias = null;
-        if (system != null && system.getSystemType().equalsIgnoreCase(StorageSystem.Type.vmax.toString())) {
+        if (system != null && StorageSystem.Type.vmax.toString().equalsIgnoreCase(system.getSystemType())) {
             BlockController controller = getController(BlockController.class, system.getSystemType());
             //Actual Control
             try {
@@ -346,7 +343,7 @@ public class InitiatorService extends TaskResourceService {
             throw APIException.badRequests.operationNotSupportedForSystemType(ALIAS, system.getSystemType());
         }
         // If the Alias is empty, set it to "/".
-        if ((initiatorAlias == null) || (initiatorAlias != null && initiatorAlias.isEmpty())) {
+        if ((initiatorAlias == null) || (initiatorAlias.isEmpty())) {
             initiatorAlias = EMPTY_INITIATOR_ALIAS;
         }
         // Update the initiator
@@ -366,7 +363,7 @@ public class InitiatorService extends TaskResourceService {
      * @return A reference to an InitiatorRestRep representing the Initiator Alias after Set..
      * @throws Exception When an error occurs setting the alias on a VMAX Storage System.
      */
-    @POST
+    @PUT
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/alias-set")
@@ -385,7 +382,7 @@ public class InitiatorService extends TaskResourceService {
 
         _log.info("Setting alias- {} for initiator {} on system {}", initiatorAlias, id, systemURI);
 
-        if (system != null && system.getSystemType().equalsIgnoreCase(StorageSystem.Type.vmax.toString())) {
+        if (system != null && StorageSystem.Type.vmax.toString().equalsIgnoreCase(system.getSystemType())) {
             BlockController controller = getController(BlockController.class, system.getSystemType());
             try {
                 //Actual Control

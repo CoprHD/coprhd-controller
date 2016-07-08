@@ -2280,8 +2280,7 @@ public class DbClientTest extends DbsvcTestBase {
 
         // Override default implementation to
         @Override
-        protected <T extends DataObject> void cleanupOldColumns(Class<? extends T> clazz, Keyspace ks,
-                Rows<String, CompositeColumnName> rows)
+        protected <T extends DataObject> void cleanupOldColumns(Class<? extends T> clazz, Rows<String, CompositeColumnName> rows)
                 throws DatabaseException {
             StepLock stepLock = this.threadStepLock == null ? null : this.threadStepLock.get();
             if (stepLock != null) {
@@ -2289,7 +2288,7 @@ public class DbClientTest extends DbsvcTestBase {
             }
 
             try {
-                super.cleanupOldColumns(clazz, ks, rows);
+                super.cleanupOldColumns(clazz, rows);
             } finally {
                 if (stepLock != null) {
                     stepLock.ackStep(StepLock.Step.CleanupOldColumns);

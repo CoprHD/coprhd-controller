@@ -976,7 +976,7 @@ def initiator_aliasget(args):
             e.err_text,
             e.err_code)
 
-    return alias['initiatoralias']
+    return alias['initiator_alias']
 
 #
 # initiator alias set parser

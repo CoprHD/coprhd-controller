@@ -31,7 +31,7 @@ public class InitiatorAliasRestRep {
      * 
      * @return The serial number.
      */
-    @XmlElement(name = "serialnumber")
+    @XmlElement(name = "serial_number")
     public String getSerialNumber() {
         return serialNumber;
     }
@@ -45,7 +45,7 @@ public class InitiatorAliasRestRep {
      * 
      * @return The alias.
      */
-    @XmlElement(name = "initiatoralias")
+    @XmlElement(name = "initiator_alias")
     public String getInitiatorAlias() {
         return initiatorAlias;
     }

@@ -3137,43 +3137,10 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     public void doInitiatorAliasSet(StorageSystem storage, Initiator initiator, String initiatorAlias)
             throws Exception {
 
-        if (!checkIfProviderSupportsInitiatorAlias(storage)) {
-            String errMsg = String.format("SMI-S Provider associated with Storage System %s does not support Initiator Alias operations",
-                    storage.getSerialNumber());
-            _log.error(errMsg);
-            throw DeviceControllerException.exceptions.couldNotPerformAliasOperation(errMsg);
-        }
-        // Use the initiator port names to match up with initiators CIMObjectPaths on
-        // the device. We're doing it this way because generating the CIMObjectPaths
-        // based on piecing together the initiator name is treacherous.
-        String normalizedPortName = Initiator.normalizePort(initiator.getInitiatorPort());
-
-        // Multiple arrays can be managed by a single SMI-S instance. The SE_StorageHardwareID is
-        // global to the provider, so we need to get the SE_StorageHardware_ID object that are
-        // associated with a specific array.
-        CIMObjectPath hwManagementIDSvcPath = _cimPath.getStorageHardwareIDManagementService(storage);
-        CloseableIterator<CIMInstance> initiatorInstances = _helper.getAssociatorInstances(storage, hwManagementIDSvcPath, null,
-                SmisConstants.CP_SE_STORAGE_HARDWARE_ID, null, null, SmisConstants.PS_STORAGE_ID);
-
-        CIMObjectPath shidPath = null;
-        while (initiatorInstances.hasNext()) {
-            CIMInstance initiatorInstance = initiatorInstances.next();
-            String storageId = CIMPropertyFactory.getPropertyValue(initiatorInstance,
-                    SmisConstants.CP_STORAGE_ID);
-            if (normalizedPortName.equals(storageId)) {
-                shidPath = initiatorInstance.getObjectPath();
-            }
-        }
-        initiatorInstances.close();
-
-        if ((shidPath == null) || shidPath.toString().isEmpty()) {
-            String errMsg = String.format("Supplied initiator: %s was not found on the Storage System: %s", normalizedPortName,
-                    storage.getSerialNumber());
-            _log.error(errMsg);
-            throw DeviceControllerException.exceptions.couldNotPerformAliasOperation(errMsg);
-        }
-
         try {
+            checkIfProviderSupportsAliasOperations(storage);
+            CIMObjectPath hwManagementIDSvcPath = _cimPath.getStorageHardwareIDManagementService(storage);
+            CIMObjectPath shidPath = getSHIDPathForAliasOperation(storage, hwManagementIDSvcPath, initiator);
             CIMArgument[] inArgs = _helper.getEMCInitiatorAliasSetArgs(shidPath, initiatorAlias);
             CIMArgument[] outArgs = new CIMArgument[5];
             _helper.invokeMethod(storage, hwManagementIDSvcPath,
@@ -3185,8 +3152,6 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             _log.error("Unexpected error: EMCInitiatorAliasSet failed.", e);
             throw e;
         }
-
-        return;
     }
 
     /**
@@ -3204,44 +3169,10 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             throws Exception {
         String initiatorAlias = null;
 
-        if (!checkIfProviderSupportsInitiatorAlias(storage)) {
-            String errMsg = String.format("SMI-S Provider associated with Storage System %s does not support Initiator Alias operations",
-                    storage.getSerialNumber());
-            _log.error(errMsg);
-            throw DeviceControllerException.exceptions.couldNotPerformAliasOperation(errMsg);
-        }
-
-        // Use the initiator port names to match up with initiators CIMObjectPaths on
-        // the device. We're doing it this way because generating the CIMObjectPaths
-        // based on piecing together the initiator name is treacherous.
-        String normalizedPortName = Initiator.normalizePort(initiator.getInitiatorPort());
-
-        // Multiple arrays can be managed by a single SMI-S instance. The SE_StorageHardwareID is
-        // global to the provider, so we need to get the SE_StorageHardware_ID object that are
-        // associated with a specific array.
-        CIMObjectPath hwManagementIDSvcPath = _cimPath.getStorageHardwareIDManagementService(storage);
-        CloseableIterator<CIMInstance> initiatorInstances = _helper.getAssociatorInstances(storage, hwManagementIDSvcPath, null,
-                SmisConstants.CP_SE_STORAGE_HARDWARE_ID, null, null, SmisConstants.PS_STORAGE_ID);
-
-        CIMObjectPath shidPath = null;
-        while (initiatorInstances.hasNext()) {
-            CIMInstance initiatorInstance = initiatorInstances.next();
-            String storageId = CIMPropertyFactory.getPropertyValue(initiatorInstance,
-                    SmisConstants.CP_STORAGE_ID);
-            if (normalizedPortName.equals(storageId)) {
-                shidPath = initiatorInstance.getObjectPath();
-            }
-        }
-        initiatorInstances.close();
-
-        if ((shidPath == null) || shidPath.toString().isEmpty()) {
-            String errMsg = String.format("Supplied initiator: %s was not found on the Storage System: %s", normalizedPortName,
-                    storage.getSerialNumber());
-            _log.error(errMsg);
-            throw DeviceControllerException.exceptions.couldNotPerformAliasOperation(errMsg);
-        }
-
         try {
+            checkIfProviderSupportsAliasOperations(storage);
+            CIMObjectPath hwManagementIDSvcPath = _cimPath.getStorageHardwareIDManagementService(storage);
+            CIMObjectPath shidPath = getSHIDPathForAliasOperation(storage, hwManagementIDSvcPath, initiator);
             CIMArgument[] inArgs = _helper.getEMCInitiatorAliasGetArgs(shidPath);
             CIMArgument[] outArgs = new CIMArgument[5];
             _helper.invokeMethod(storage, hwManagementIDSvcPath,
@@ -3263,25 +3194,82 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     }
 
     /**
-     * This method return true if the SMI-S provider supports initiator alias operations.
+     * Get the StorageHardwareID CIM path when found on the Storage System
+     * Throw an exception if it is not found.
      * 
-     * @param storage - StorageSystem object
-     * @return boolean
+     * @param storage
+     *            storage system
+     * @param hwManagementIDSvcPath
+     * @param initiator
+     *            initiator Object
+     * @return CIMObjectPath corresponding to that StorageHardwareID
+     * @throws Exception
      */
-    private boolean checkIfProviderSupportsInitiatorAlias(StorageSystem storageSystem) {
+    private CIMObjectPath getSHIDPathForAliasOperation(StorageSystem storage, CIMObjectPath hwManagementIDSvcPath, Initiator initiator)
+            throws Exception {
+
+        // Multiple arrays can be managed by a single SMI-S instance. The SE_StorageHardwareID is
+        // global to the provider, so we need to get the SE_StorageHardware_ID object that are
+        // associated with a specific array.
+
+        CIMObjectPath shidPath = null;
+        String normalizedPortName = Initiator.normalizePort(initiator.getInitiatorPort());
+
+        CloseableIterator<CIMInstance> initiatorInstances = null;
+        try {
+            initiatorInstances = _helper.getAssociatorInstances(storage, hwManagementIDSvcPath, null,
+                    SmisConstants.CP_SE_STORAGE_HARDWARE_ID, null, null, SmisConstants.PS_STORAGE_ID);
+            while (initiatorInstances.hasNext()) {
+                CIMInstance initiatorInstance = initiatorInstances.next();
+                String storageId = CIMPropertyFactory.getPropertyValue(initiatorInstance,
+                        SmisConstants.CP_STORAGE_ID);
+                if (normalizedPortName.equals(storageId)) {
+                    shidPath = initiatorInstance.getObjectPath();
+                    break;
+                }
+            }
+        } catch (WBEMException we) {
+            _log.error("Caught an error will attempting to execute query and process query result. Query: ", we);
+        } finally {
+            initiatorInstances.close();
+        }
+
+        if ((shidPath == null) || shidPath.toString().isEmpty()) {
+            String errMsg = String.format("Supplied initiator: %s was not found on the Storage System: %s", normalizedPortName,
+                    storage.getSerialNumber());
+            _log.error(errMsg);
+            throw DeviceControllerException.exceptions.couldNotPerformAliasOperation(errMsg);
+        }
+
+        return shidPath;
+
+    }
+
+    /**
+     * This method return true if the SMI-S provider supports initiator alias operations.
+     * If not, it will throw an exception
+     * @param storage - StorageSystem object
+     * @throws Exception
+     */
+    private void checkIfProviderSupportsAliasOperations(StorageSystem storageSystem) throws Exception {
+        String versionSubstring = null;
         if (storageSystem.checkIfVmax3() && storageSystem.getUsingSmis80()) {
             try {
                 StorageProvider storageProvider = _dbClient.queryObject(StorageProvider.class, storageSystem.getActiveProviderURI());
                 String providerVersion = storageProvider.getVersionString();
-                String versionSubstring = providerVersion.split("\\.")[1];
-                return (Integer.parseInt(versionSubstring) >= 2);
+                versionSubstring = providerVersion.split("\\.")[1];
             } catch (Exception e) {
                 _log.error("Exception get provider version for the storage system {} {}.", storageSystem.getLabel(),
                         storageSystem.getId());
-                return false;
+                throw e;
             }
-        } else {
-            return false;
+        }
+        if ((versionSubstring == null) || !(Integer.parseInt(versionSubstring) >= 2)) {
+            String errMsg = String.format(
+                    "SMI-S Provider associated with Storage System %s does not support Initiator Alias operations",
+                    storageSystem.getSerialNumber());
+            _log.error(errMsg);
+            throw DeviceControllerException.exceptions.couldNotPerformAliasOperation(errMsg);
         }
     }
 }

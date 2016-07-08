@@ -35,13 +35,14 @@ public class ExportCreateParam {
     private List<URI> initiators;
     private List<URI> hosts;
     private List<URI> clusters;
+    private List<URI> virtualMachines;
 
     public ExportCreateParam() {
     }
 
     public ExportCreateParam(URI project, URI varray, String name, String type,
             List<VolumeParam> volumes, List<URI> initiators, List<URI> hosts,
-            List<URI> clusters) {
+            List<URI> clusters, List<URI> virtualMachines) {
         this.project = project;
         this.varray = varray;
         this.name = name;
@@ -50,6 +51,7 @@ public class ExportCreateParam {
         this.initiators = initiators;
         this.hosts = hosts;
         this.clusters = clusters;
+        this.virtualMachines = virtualMachines;
     }
 
     @XmlElementWrapper(required = false)
@@ -82,6 +84,18 @@ public class ExportCreateParam {
 
     public void setHosts(List<URI> hosts) {
         this.hosts = hosts;
+    }
+
+    @XmlElement(name = "virtual_machine")
+    public List<URI> getVirtualMachines() {
+        if (virtualMachines == null) {
+            virtualMachines = new ArrayList<URI>();
+        }
+        return virtualMachines;
+    }
+
+    public void setVirtualMachines(List<URI> virtualMachines) {
+        this.virtualMachines = virtualMachines;
     }
 
     @XmlElementWrapper(required = false)
@@ -187,7 +201,7 @@ public class ExportCreateParam {
         getClusters().add(clusterId);
     }
 
-    @XmlElement(name="path_parameters", required=false)
+    @XmlElement(name = "path_parameters", required = false)
     /**
      * Optional path parameters that will over-ride the Vpool path parameters.
      * @return ExportPathParameters

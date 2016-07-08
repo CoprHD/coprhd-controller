@@ -424,7 +424,7 @@ public class ExportGroup extends DataObject implements ProjectResource {
      * 
      */
     public enum ExportGroupType {
-        Initiator, Host, Cluster, Exclusive
+        Initiator, Host, Cluster, Exclusive, VirtualMachine
     }
 
     /**
@@ -442,6 +442,11 @@ public class ExportGroup extends DataObject implements ProjectResource {
     public boolean forHost() {
         return _exportGroupType != null &&
                 _exportGroupType.equals(ExportGroupType.Host.name());
+    }
+
+    public boolean forVirtualMachine() {
+        return _exportGroupType != null &&
+                _exportGroupType.equals(ExportGroupType.VirtualMachine.name());
     }
 
     public boolean forInitiator() {
@@ -521,16 +526,16 @@ public class ExportGroup extends DataObject implements ProjectResource {
         this._pathParameters = pathParameters;
         setChanged("pathParam");
     }
-    
+
     public void addToPathParameters(URI key, URI value) {
         if (_pathParameters == null) {
             setPathParameters(new StringMap());
         }
         getPathParameters().put(key.toString(), value.toString());
     }
-    
+
     public void removeFromPathParameters(URI key) {
         getPathParameters().remove(key.toString());
     }
-    
+
 }

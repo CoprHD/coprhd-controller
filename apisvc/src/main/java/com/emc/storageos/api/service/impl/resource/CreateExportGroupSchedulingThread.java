@@ -19,9 +19,7 @@ import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.export.ExportPathParameters;
-import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
-import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.emc.storageos.volumecontroller.BlockExportController;
 
@@ -42,13 +40,16 @@ class CreateExportGroupSchedulingThread implements Runnable {
     private List<URI> hosts;
     private List<URI> clusters;
     private List<URI> initiators;
+    private List<URI> virtualMachines;
     private Map<URI, Integer> volumeMap;
     private String task;
     private TaskResourceRep taskRes;
     private ExportPathParameters pathParam;
 
-    public CreateExportGroupSchedulingThread(ExportGroupService exportGroupService, VirtualArray virtualArray, Project project, ExportGroup exportGroup,
-            Map<URI, Map<URI, Integer>> storageMap, List<URI> clusters, List<URI> hosts, List<URI> initiators, Map<URI, Integer> volumeMap,
+    public CreateExportGroupSchedulingThread(ExportGroupService exportGroupService, VirtualArray virtualArray, Project project,
+            ExportGroup exportGroup,
+            Map<URI, Map<URI, Integer>> storageMap, List<URI> clusters, List<URI> hosts, List<URI> virtualMachines, List<URI> initiators,
+            Map<URI, Integer> volumeMap,
             ExportPathParameters pathParam, String task, TaskResourceRep taskRes) {
         this.exportGroupService = exportGroupService;
         this.virtualArray = virtualArray;
@@ -58,6 +59,7 @@ class CreateExportGroupSchedulingThread implements Runnable {
         this.clusters = clusters;
         this.hosts = hosts;
         this.initiators = initiators;
+        this.virtualMachines = virtualMachines;
         this.volumeMap = volumeMap;
         this.task = task;
         this.taskRes = taskRes;
@@ -73,14 +75,14 @@ class CreateExportGroupSchedulingThread implements Runnable {
             // This call may take a long time.
             List<URI> affectedInitiators = this.exportGroupService.validateClientsAndPopulate(exportGroup,
                     project, virtualArray, storageMap.keySet(),
-                    clusters, hosts, initiators,
+                    clusters, hosts, virtualMachines, initiators,
                     volumeMap.keySet(), pathParam);
             _log.info("Initiators {} will be used.", affectedInitiators);
-            
+
             // If ExportPathParameter block is present, and volumes are present, capture those arguments.
-            if (pathParam!= null && !volumeMap.keySet().isEmpty()) {
-                ExportPathParams exportPathParam = exportGroupService.validateAndCreateExportPathParam(pathParam, 
-                                    exportGroup, volumeMap.keySet());
+            if (pathParam != null && !volumeMap.keySet().isEmpty()) {
+                ExportPathParams exportPathParam = exportGroupService.validateAndCreateExportPathParam(pathParam,
+                        exportGroup, volumeMap.keySet());
                 exportGroupService.addBlockObjectsToPathParamMap(volumeMap.keySet(), exportPathParam.getId(), exportGroup);
                 exportGroupService._dbClient.createObject(exportPathParam);
             }
@@ -127,18 +129,19 @@ class CreateExportGroupSchedulingThread implements Runnable {
      * @param hosts hosts
      * @param initiators initiators
      * @param volumeMap volume map
-     * @param pathParam ExportPathParameters from 
+     * @param pathParam ExportPathParameters from
      * @param task task
      * @param taskRes task resource object
      */
     public static void executeApiTask(ExportGroupService exportGroupService, ExecutorService executorService, DbClient dbClient,
             VirtualArray virtualArray, Project project,
             ExportGroup exportGroup,
-            Map<URI, Map<URI, Integer>> storageMap, List<URI> clusters, List<URI> hosts, List<URI> initiators, Map<URI, Integer> volumeMap,
+            Map<URI, Map<URI, Integer>> storageMap, List<URI> clusters, List<URI> hosts, List<URI> virtualMachines, List<URI> initiators,
+            Map<URI, Integer> volumeMap,
             ExportPathParameters pathParam, String task, TaskResourceRep taskRes) {
 
         CreateExportGroupSchedulingThread schedulingThread = new CreateExportGroupSchedulingThread(exportGroupService, virtualArray,
-                project, exportGroup, storageMap, clusters, hosts, initiators, volumeMap, pathParam, task, taskRes);
+                project, exportGroup, storageMap, clusters, hosts, virtualMachines, initiators, volumeMap, pathParam, task, taskRes);
         try {
             executorService.execute(schedulingThread);
         } catch (Exception e) {

@@ -331,7 +331,7 @@ public class ExportGroupService extends TaskResourceService {
 
         // call thread that does the work.
         CreateExportGroupSchedulingThread.executeApiTask(this, _asyncTaskService.getExecutorService(), _dbClient, neighborhood, project,
-                exportGroup, storageMap, param.getClusters(), param.getHosts(),
+                exportGroup, storageMap, param.getClusters(), param.getHosts(), param.getVirtualMachines(),
                 param.getInitiators(), volumeMap, param.getExportPathParameters(), task, taskRes);
 
         _log.info("Kicked off thread to perform export create scheduling. Returning task: " + taskRes.getId());
@@ -346,6 +346,7 @@ public class ExportGroupService extends TaskResourceService {
      * <li>{@link ExportGroup.ExportGroupType#Initiator}: only initiators can be supplied.</li>
      * <li>{@link ExportGroup.ExportGroupType#Host}: only hosts can be supplied.</li>
      * <li>{@link ExportGroup.ExportGroupType#Cluster}: only clusters can be supplied.</li>
+     * <li>{@link ExportGroup.ExportGroupType#VirtualMachine}: only virtual machines can be supplied.</li>
      * </ol>
      *
      * @param param
@@ -355,16 +356,20 @@ public class ExportGroupService extends TaskResourceService {
         // check null and OLD_INITIATOR_TYPE_NAME for backward compatibility
         // TODO - remove the checking in 2.0
         if (type == null || type.equals(OLD_INITIATOR_TYPE_NAME) || type.equals(ExportGroupType.Initiator.name())) {
-            if (hasItems(param.getHosts()) || hasItems(param.getClusters())) {
+            if (hasItems(param.getHosts()) || hasItems(param.getClusters()) || hasItems(param.getVirtualMachines())) {
                 throw APIException.badRequests.invalidParameterOnlyInitiatorsForExportType(type);
             }
         } else if (type.equals(ExportGroupType.Host.name())) {
-            if (hasItems(param.getInitiators()) || hasItems(param.getClusters())) {
+            if (hasItems(param.getInitiators()) || hasItems(param.getClusters()) || hasItems(param.getVirtualMachines())) {
                 throw APIException.badRequests.invalidParameterOnlyHostsForExportType(type);
             }
         } else if (type.equals(ExportGroupType.Cluster.name())) {
-            if (hasItems(param.getInitiators()) || hasItems(param.getHosts())) {
+            if (hasItems(param.getInitiators()) || hasItems(param.getHosts()) || hasItems(param.getVirtualMachines())) {
                 throw APIException.badRequests.invalidParameterOnlyClustersForExportType(type);
+            }
+        } else if (type.equals(ExportGroupType.VirtualMachine.name())) {
+            if (hasItems(param.getInitiators()) || hasItems(param.getClusters()) || hasItems(param.getHosts())) {
+                throw APIException.badRequests.invalidParameterOnlyVirtualMachinesForExportType(type);
             }
         } else {
             throw APIException.badRequests.invalidParameterValueWithExpected("type", type,
@@ -963,7 +968,7 @@ public class ExportGroupService extends TaskResourceService {
     }
 
     /**
-     * Validate the input data for clusters, hosts and initiators for {@link #createExportGroup(ExportCreateParam)}
+     * Validate the input data for clusters, hosts, virtual machines and initiators for {@link #createExportGroup(ExportCreateParam)}
      *
      * @param exportGroup the export group to populate
      * @param project the export group project
@@ -971,6 +976,7 @@ public class ExportGroupService extends TaskResourceService {
      * @param storageSystems the storage systems the export group has block object in
      * @param clusters the list of clusters to validate
      * @param hosts the list of hosts to validate
+     * @param hosts the list of virtual machines to validate
      * @param initiators the list of initiators to validate
      * @param volumes The list of volumes being exported (used to calculate numPaths)
      * @param pathParam Optional ExportPathParameters block (ignored if null)
@@ -978,7 +984,7 @@ public class ExportGroupService extends TaskResourceService {
      */
     List<URI> validateClientsAndPopulate(ExportGroup exportGroup,
             Project project, VirtualArray varray, Collection<URI> storageSystems,
-            List<URI> clusters, List<URI> hosts,
+            List<URI> clusters, List<URI> hosts, List<URI> virtualMachines,
             List<URI> initiators, Collection<URI> volumes, ExportPathParameters pathParam) {
         List<URI> allInitiators = new ArrayList<URI>();
         List<URI> allHosts = new ArrayList<URI>();

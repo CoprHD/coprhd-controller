@@ -1596,8 +1596,7 @@ approvalConfig.approverEmail.help=The email addresses for approvers (comma separ
 approvalConfig.approvalUrl=Approval Service URL
 approvalConfig.approvalUrl.help=URL to an external service to receive approval notifications
 
-nav.keystoneProvider=OpenStack Synchronization Settings
-keystoneProvider.title=OpenStack Synchronization Settings
+keystoneProvider.title=OpenStack Synchronization Options
 keystoneProvider.addTenants=Synchronize Tenants
 keystoneProvider.addTenants.description=Select Tenants to synchronize with OpenStack
 keystoneProvider.synchronizationInterval=Synchronization interval

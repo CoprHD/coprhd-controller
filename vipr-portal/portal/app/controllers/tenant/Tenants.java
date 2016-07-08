@@ -75,7 +75,7 @@ public class Tenants extends ViprResourceController {
             renderArgs.put("tenantsOptions",
                     TenantsSynchronizationOptions.options(TenantsSynchronizationOptions.ADDITION, TenantsSynchronizationOptions.DELETION));
             renderArgs.put("interval", getInterval(authnProvider));
-            renderArgs.put("osTenants", new TenantsSynchronization.KeystoneSynchronizationTenantsDataTable());
+            renderArgs.put("osTenants", new KeystoneSynchronizationTenantsDataTable());
             render(dataTable, keystoneProvider);
         }
         render(dataTable);

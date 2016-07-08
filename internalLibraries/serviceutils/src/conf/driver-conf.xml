@@ -9,6 +9,7 @@
               <map>
                  <entry key="Simulator" value="driversystem"/>
                  <entry key="ScaleioDriver" value="scaleiosystem"/>
+				 <entry key="IBMSVCDriver" value="IBM-SVC"/>
               </map>
            </property>
 
@@ -17,6 +18,7 @@
                <set>
                    <value>driversystem</value> <!-- simulator -->
                    <value>scaleiosystem</value>
+				   <value>IBM-SVC</value>
                </set>
            </property>
 
@@ -40,6 +42,7 @@
                <set>
                    <value>driversystem</value> <!-- simulator -->
                    <value>scaleiosystem</value>
+				   <value>IBM-SVC</value>
                </set>
            </property>
 

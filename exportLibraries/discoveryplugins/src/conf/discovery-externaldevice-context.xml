@@ -3,12 +3,12 @@
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:util="http://www.springframework.org/schema/util"
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
 
-
-
     <!-- <bean id="scaleioDriver" class="com.emc.storageos.driver.scaleio.ScaleIOStorageDriver">
      </bean> -->
      <bean id="storageDriverSimulator" class="com.emc.storageos.driver.driversimulator.StorageDriverSimulator">
      </bean>
+     <bean id="ibmsvcStorageDriver" class="com.emc.storageos.driver.ibmsvcdriver.impl.IBMSVCStorageDriver">
+     </bean>	 
 
     <bean id="unManagedVolumeDiscoverer" class="com.emc.storageos.volumecontroller.impl.externaldevice.ExternalDeviceUnManagedVolumeDiscoverer">
         <property name="networkDeviceController" ref="networkDeviceController"/>
@@ -25,6 +25,7 @@
              <map>
                 <!-- <entry key="scaleiosystem" value-ref="scaleioDriver"/> -->
                 <entry key="driversystem" value-ref="storageDriverSimulator"/>
+				<entry key="IBM-SVC" value-ref="ibmsvcStorageDriver"/>
             </map>
         </property>
     </bean>

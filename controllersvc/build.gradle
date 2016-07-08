@@ -49,6 +49,7 @@ dependencies {
             project(":storagedriver"),
     // temp. here, to get simulator to controllersvc classpath
             project(":storagedriversimulator")
+			project(":ibmsvcdriver")
             
     testCompile library(easymock)
 }

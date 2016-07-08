@@ -35,6 +35,7 @@ import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.google.common.collect.Sets;
+import com.sun.xml.internal.ws.policy.privateutil.PolicyUtils.Collections;
 
 public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements NetworkSystemDevice {
     private static final Logger _log = LoggerFactory.getLogger(MdsNetworkSystemDevice.class);
@@ -1900,6 +1901,8 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
             for (String endpointWwn : endpointsWwn) {
                 Collection<String> zoneNames = dialog.showZoneNamesForPwwn(endpointWwn, vsanId, true);
                 List<Zone> zones = dialog.showZones(zoneNames, true);
+                List<Zone> ivrZones = this.getIvrZonesForPwwn(dialog, endpointWwn);
+                zones.addAll(ivrZones);
                 zoneMap.put(endpointWwn, zones);
             }
             return zoneMap;
@@ -1909,5 +1912,36 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
         } finally {
             disconnect(dialog);
         }
+    }
+    
+    private List<Zone> getIvrZonesForPwwn(MDSDialog dialog, String pwwn) {
+    	List<Zone> zones = new ArrayList<Zone>();
+    	List<IvrZone> allIvrZones = dialog.showIvrZones(false);
+    	for (IvrZone ivrZone : allIvrZones) {
+    		if (containPwwn(ivrZone, pwwn)) {
+    			zones.add(convert2Zone(ivrZone));
+    		}
+    	}
+    	return zones;
+    }
+    
+    private Zone convert2Zone(IvrZone ivrZone) {
+    	ZoneMember member = null;
+    	Zone zone = new Zone(ivrZone.getName());
+    	for (IvrZoneMember ivrZoneMember : ivrZone.getMembers()) {
+    		member = new ZoneMember(ZoneMember.ConnectivityMemberType.WWPN);
+    		member.setAddress(ivrZoneMember.getPwwn());
+    		zone.getMembers().add(member);
+    	}
+    	return zone;
+	}
+
+	private boolean containPwwn(IvrZone ivrZone, String pwwn) {
+    	for (IvrZoneMember member : ivrZone.getMembers()) {
+    		if (member.getPwwn().equals(pwwn)) {
+    			return true;
+    		}
+    	}
+    	return false;
     }
 }

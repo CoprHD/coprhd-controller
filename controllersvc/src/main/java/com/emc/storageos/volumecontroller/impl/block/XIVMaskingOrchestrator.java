@@ -908,6 +908,11 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         return true;
     }
 
+    /**
+     * Filters and retails only those export mask that are related to the ExportGroup
+     * @param exportGroup ExportGroup instance to be matched
+     * @param matchingExportMaskURIs List of ExportMask URIs for a port.
+     */
     private void filterExportMaskForGroup(ExportGroup exportGroup, Map<String, Set<URI>> matchingExportMaskURIs) {
         if (null != matchingExportMaskURIs && !matchingExportMaskURIs.isEmpty()) {
             
@@ -920,11 +925,14 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 for (URI uri : uris) {
                     List<ExportGroup> exportGroups = ExportUtils.getExportGroupsForMask(uri, _dbClient);
                     for(ExportGroup eg : exportGroups){
+                    	//Add the ExportMask URI if it matches with the ExportGroup
                     	if(eg.getId().equals(exportGroup.getId())){
                     		matchedExportMask.add(uri);
+                    		break;
                     	}
                     }
                 }
+                //If Matched ExportMask list is not empty clear All URIs and add matched exportmask. Else remove the key from matchingExportMask
                 if(!matchedExportMask.isEmpty()){
                 	uris.clear();
                     uris.addAll(matchedExportMask);	
@@ -932,9 +940,7 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 	exportKeysToRemove.add(exprotMaskURI.getKey());
                 }
             }
-            for(String removeKey : exportKeysToRemove){
-            	matchingExportMaskURIs.remove(removeKey);
-            }
+            matchingExportMaskURIs.keySet().removeAll(exportKeysToRemove);
         }
     }
 

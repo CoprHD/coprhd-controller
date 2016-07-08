@@ -24,6 +24,16 @@ public class SiteRestRep extends DataObjectRestRep {
     private long createTime;
     private Boolean runningState;
     private long lastStateUpdateTime;
+    private long lastFailoverTime;
+
+    @XmlElement(name = "last_failover_time")
+    public long getLastFailoverTime() {
+        return lastFailoverTime;
+    }
+
+    public void setLastFailoverTime(long lastFailoverTime) {
+        this.lastFailoverTime = lastFailoverTime;
+    }
 
     @XmlElement(name = "last_state_update_time")
     public long getLastStateUpdateTime() {

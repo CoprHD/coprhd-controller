@@ -85,6 +85,7 @@ public abstract class DrPostFailoverHandler {
                 if (isAllHandlersCompleted()) {
                     log.info("All handlers successfully completed. Change site state to ACTIVE");
                     site.setState(SiteState.ACTIVE);
+                    site.setLastFailoverTime(System.currentTimeMillis());
                     coordinator.persistServiceConfiguration(site.toConfiguration());
                 }
             } finally {

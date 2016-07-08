@@ -2174,15 +2174,15 @@ public class DisasterRecoveryService {
                         if (Enum.valueOf(SiteState.class, site.getState()) != SiteState.ACTIVE || !site.getUuid().equals(remoteSite.getUuid())) {
                             continue;
                         }
-                        long remoteSiteUpdateTime = site.getLastStateUpdateTime();
-                        long localSiteUpdateTime = localSite.getLastStateUpdateTime();
-                        if (remoteSiteUpdateTime <= localSiteUpdateTime) {
+                        long remoteSiteFailoverTime = site.getLastFailoverTime();
+                        long localSiteFailoverTime = localSite.getLastFailoverTime();
+                        if (remoteSiteFailoverTime <= localSiteFailoverTime) {
                             continue;
                         }
                         newActiveSite = drUtil.getSiteFromLocalVdc(site.getUuid());
                         newActiveSite.setState(SiteState.ACTIVE);
-                        newActiveSite.setLastStateUpdateTime(remoteSiteUpdateTime);
-                        log.info("New active site {} is found, it became Active at {}, newer than local {}", newActiveSite.toBriefString(), remoteSiteUpdateTime, localSiteUpdateTime);
+                        newActiveSite.setLastFailoverTime(remoteSiteFailoverTime);
+                        log.info("New active site {} is found, it became Active at {}, newer than local {}", newActiveSite.toBriefString(), remoteSiteFailoverTime, localSiteFailoverTime);
                         return true;
                     }
                 } catch (Exception e) {

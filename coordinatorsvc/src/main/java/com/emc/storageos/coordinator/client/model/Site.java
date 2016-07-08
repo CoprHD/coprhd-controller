@@ -50,6 +50,7 @@ public class Site {
     private long creationTime;
     private long lastStateUpdateTime;
     private long lastLostQuorumTime;
+    private long lastFailoverTime;
 
     private SiteState state = SiteState.ACTIVE;
     private SiteState lastState;
@@ -174,6 +175,14 @@ public class Site {
 
     public void setLastStateUpdateTime(long lastStateUpdateTime) {
         this.lastStateUpdateTime = lastStateUpdateTime;
+    }
+
+    public long getLastFailoverTime() {
+        return lastFailoverTime;
+    }
+
+    public void setLastFailoverTime(long lastFailoverTime) {
+        this.lastFailoverTime = lastFailoverTime;
     }
 
     public SiteState getState() {

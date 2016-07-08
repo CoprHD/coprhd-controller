@@ -20,22 +20,18 @@
   var editMode = #{get 'editMode'/};
   var errors = #{get 'errors'/};
 
-    function addTenants() {
-        if ($('#ldapSources_mode').val() == 'keystone' && $('#ldapSources_autoRegCoprHDNImportOSProjects').is(':checked') == true) {
-             $('#ldapSourceForm').submit(function(){
-                $.post($(this).attr('action'), $(this).serialize(), function(response){
-                     table.tenants.dataTable.create();
-                     table.tenants.dataTable.updateSelectedFooter();
-                     table.tenants.dataTable.reset();
-                     $('#addTenants').modal({
-                         backdrop: 'static',
-                         keyboard: false
-                     });
-                 },'xml');
-                 return false;
-             });
-        }
-        submitForm();
+  function showTenantsDialog() {
+      table.tenants.dataTable.create();
+      table.tenants.dataTable.updateSelectedFooter();
+      table.tenants.dataTable.reset();
+      $('#addTenants').modal({
+          backdrop: 'static',
+          keyboard: false
+      });
+  }
+
+  function selectAllTenants() {
+      table.tenants.dataTable.selectAll();
   }
 
     function submitForm(){
@@ -56,6 +52,13 @@
         $('#ldapSources_autoRegCoprHDNImportOSProjects').on('change', showTenantsSyncOptions);
 
         setFormByType();
+    });
+
+    $(window).load(function(){
+        var showDialog = '${showDialog}';
+        if (showDialog === 'true' && editMode) {
+            showTenantsDialog();
+        }
     });
     
     function setFormByType() {
@@ -344,7 +347,7 @@
 
   </fieldset>
     #{Form.buttonBar}
-    #{Form.button name:'button.save', class:'primary', icon:'ok-sign', size:'large', action:'addTenants();'/}
+    #{Form.button name:'button.save', class:'primary', icon:'ok-sign', size:'large', action:'submitForm();'/}
     #{Form.button name:'button.cancel', icon:'trash', size:'large', href:@list()/}
     #{/Form.buttonBar}
 #{/form}
@@ -353,12 +356,18 @@
 #{Modal.dialog id:'addTenants'}
   #{Modal.body}
     #{DataTable.header titleKey:'ldapSources.addTenants', hideAlerts:true/}
+    %{
+        options = [
+            'fnInitComplete': 'selectAllTenants',
+            'iDisplayLength': '8'
+        ]
+    }%
     #{DataTable.table id: 'tenants',
                       dataTable: tenants,
                       source: @tenantsListJson(),
                       selectable: true,
                       delayCreate: true,
-                      options: ['iDisplayLength': '8'] /}
+                      options:options /}
   #{/Modal.body}
     #{Modal.footer}
         #{Form.button 'button.save', class:'success', icon:'ok-sign', submit:'addTenantsForm',

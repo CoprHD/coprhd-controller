@@ -24,6 +24,7 @@ public class StorageProviderCreateParam {
     private String sioCLI;
     private String secondaryUsername;
     private String secondaryPassword;
+    private String secondaryURL;
     private String elementManagerURL;
 
     public StorageProviderCreateParam() {
@@ -171,6 +172,15 @@ public class StorageProviderCreateParam {
 
     public void setSecondaryPassword(String secondaryPassword) {
         this.secondaryPassword = secondaryPassword;
+    }
+    
+    @XmlElement(required = false, name = "secondary_url")
+    public String getSecondaryURL() {
+        return secondaryURL;
+    }
+
+    public void setSecondaryURL(String secondaryURL) {
+        this.secondaryURL = secondaryURL;
     }
 
     /**

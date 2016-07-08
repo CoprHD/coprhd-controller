@@ -247,6 +247,7 @@ public class StorageProviderService extends TaskResourceService {
         provider.setConnectionStatus(ConnectionStatus.INITIALIZING.name());
         provider.setSecondaryUsername(param.getSecondaryUsername());
         provider.setSecondaryPassword(param.getSecondaryPassword());
+        provider.setSecondaryURL(param.getSecondaryURL());
         provider.setElementManagerURL(param.getElementManagerURL());
         if (param.getSioCLI() != null) {
             // TODO: Validate the input?
@@ -255,6 +256,10 @@ public class StorageProviderService extends TaskResourceService {
 
         if (StorageProvider.InterfaceType.ibmxiv.name().equalsIgnoreCase(provider.getInterfaceType())) {
             provider.setManufacturer("IBM");
+            //For XIV, Secondary manager URL would hold HSM URL and it is expected that these values are provided during create
+            ArgValidator.checkFieldNotEmpty(param.getSecondaryUsername(), "secondary_name");
+            ArgValidator.checkFieldNotEmpty(param.getSecondaryPassword(), "secondary_password");
+            ArgValidator.checkFieldNotEmpty(param.getSecondaryURL(), "secondary_url");
         }
 
         _dbClient.createObject(provider);
@@ -459,6 +464,9 @@ public class StorageProviderService extends TaskResourceService {
             }
             if (param.getSecondaryPassword() != null) {
                 storageProvider.setSecondaryPassword(param.getSecondaryPassword());
+            }
+            if (param.getSecondaryURL() != null) {
+                storageProvider.setSecondaryURL(param.getSecondaryURL());
             }
             if (param.getElementManagerURL() != null) {
                 storageProvider.setElementManagerURL(param.getElementManagerURL());

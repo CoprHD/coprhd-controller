@@ -93,7 +93,7 @@ public class XIVRestOperationsHelper {
         StorageProvider provider = _dbClient.queryObject(StorageProvider.class, storage.getActiveProviderURI());
         String providerUser = provider.getSecondaryUsername();
         String providerPassword = provider.getSecondaryPassword();
-        String providerURL = provider.getElementManagerURL();
+        String providerURL = provider.getSecondaryURL();
 
         if (StringUtils.isNotEmpty(providerURL) && StringUtils.isNotEmpty(providerPassword) && StringUtils.isNotEmpty(providerUser)) {
             restClient = (XIVRestClient) _restClientFactory.getRESTClient(URI.create(providerURL), providerUser, providerPassword);

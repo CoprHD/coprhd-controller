@@ -35,6 +35,7 @@ public class StorageProviderRestRep extends DataObjectRestRep {
     private String registrationStatus;
     private String interface_type;
     private String secondaryUsername;
+    private String secondaryURL;
     private String elementManagerURL;
 
     public StorageProviderRestRep() {
@@ -304,6 +305,19 @@ public class StorageProviderRestRep extends DataObjectRestRep {
 
     public void setSecondaryUsername(String secondaryUsername) {
         this.secondaryUsername = secondaryUsername;
+    }
+    
+    /**
+     * URL of the Management system that is associated with the Provider.
+     * 
+     */
+    @XmlElement(name = "secondary_url")
+    public String getSecondaryURL() {
+        return secondaryURL;
+    }
+
+    public void setSecondaryURL(String secondaryURL) {
+        this.secondaryURL = secondaryURL;
     }
 
     /**

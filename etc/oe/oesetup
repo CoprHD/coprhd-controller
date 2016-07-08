@@ -43,7 +43,6 @@ curl -X PUT -d @ansibleViPRProjectsGetTask -H "Content-Type: application/json" l
 curl -X PUT -d @ansibleViPRTask -H "Content-Type: application/json" localhost:9090/api/1.1/workflows/tasks
 curl -X PUT -d @ansibleViPRVarraysGetTask -H "Content-Type: application/json" localhost:9090/api/1.1/workflows/tasks
 curl -X PUT -d @ansibleViPRVpoolsGetTask -H "Content-Type: application/json" localhost:9090/api/1.1/workflows/tasks
-curl -X PUT -d @ansibleViPRProjectsGetTask -H "Content-Type: application/json" localhost:9090/api/1.1/workflows/tasks
 curl -X PUT -d @ansibleTask -H "Content-Type: application/json" localhost:9090/api/1.1/workflows/tasks
 curl -X PUT -d @ansibleRackHdInterfacesWF -H "Content-Type: application/json" localhost:9090/api/1.1/workflows
 curl -X PUT -d @ansibleViPRWF -H "Content-Type: application/json" localhost:9090/api/1.1/workflows
@@ -62,4 +61,5 @@ curl -X PUT -d @ansibleViPRSioMdmPriGetWF -H "Content-Type: application/json" lo
 curl -X PUT -d @ansibleViPRVolumesForExportGetWF -H "Content-Type: application/json" localhost:9090/api/1.1/workflows
 curl -X PUT -d @ansibleViPRVpoolsGetWF -H "Content-Type: application/json" localhost:9090/api/1.1/workflows
 curl -X PUT -d @installCentOS7WF -H "Content-Type: application/json" localhost:9090/api/1.1/workflows
+curl -X PUT -d @ansibleViPRProjectForExportGetWF -H "Content-Type: application/json" localhost:9090/api/1.1/workflows
 echo "OE loaded all WF"

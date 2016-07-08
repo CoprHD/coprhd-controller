@@ -92,6 +92,7 @@
         <entry key="compute-discovery-interval" value="${controller_compute_discovery_interval}" />
         <entry key="cs-discovery-interval" value="${controller_cs_discovery_interval}" />
         <entry key="scan-interval" value="${controller_scan_interval}" />
+        <entry key="remote-replication-config-discovery-interval" value="3600" />
 
         <!-- in seconds -->
         <!-- intervals to guard against refresh requests from the user -->
@@ -101,6 +102,7 @@
         <entry key="compute-discovery-refresh-interval" value="${controller_compute_discovery_refresh_interval}" />
         <entry key="cs-discovery-refresh-interval" value="${controller_cs_discovery_refresh_interval}" />
         <entry key="scan-refresh-interval" value="${controller_scan_refresh_interval}" />
+        <entry key="remote-replication-config-discovery-refresh-interval" value="600" />
 
         <!-- in seconds -->
         <!-- intervals after which discovery/metering jobs are allowed to be rescheduled even when "IN_PROGRESS" -->
@@ -126,6 +128,7 @@
         <entry key="enable-metering" value="${controller_enable_metering}" />
         <entry key="enable-autodiscovery" value="${controller_enable_autodiscovery}" />
         <entry key="enable-autoscan" value="${controller_enable_autoscan}" />
+        <entry key="enable-remote-replication-config-autodiscovery" value="true" />
         <entry key="cim-connection-max-inactive-time" value="${cim_connection_max_inactive_time}" />
     </util:map>
 

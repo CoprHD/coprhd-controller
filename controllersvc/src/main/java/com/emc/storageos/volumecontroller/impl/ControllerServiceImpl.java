@@ -88,6 +88,7 @@ public class ControllerServiceImpl implements ControllerService {
     public static final String NS_DISCOVERY = "NS_Discovery";
     public static final String COMPUTE_DISCOVERY = "Compute_Discovery";
     public static final String CS_DISCOVERY = "CS_Discovery";
+    public static final String RR_DISCOVERY = "RemoteReplicationConfig_Discovery";
     private static final String DISCOVERY_COREPOOLSIZE = "discovery-core-pool-size";
     private static final String COMPUTE_DISCOVERY_COREPOOLSIZE = "compute-discovery-core-pool-size";
     private static final String METERING_COREPOOLSIZE = "metering-core-pool-size";
@@ -155,7 +156,8 @@ public class ControllerServiceImpl implements ControllerService {
         COMPUTE_DATA_COLLECTION_LOCK("lock-compute-datacollectionjob-"),
         CS_DATA_COLLECTION_LOCK("lock-cs-datacollectionjob-"),
         POOL_MATCHER_LOCK("lock-implicitpoolmatcherjob-"),
-        DISCOVER_RECONCILE_TZ_LOCK("lock-discoverreconciletz-");
+        DISCOVER_RECONCILE_TZ_LOCK("lock-discoverreconciletz-"),
+        DISCOVER_RR_CONFIG_LOCK("lock-discover-rr-config-");
 
         private final String _lockName;
         private InterProcessLock _processLock;
@@ -178,6 +180,8 @@ public class ControllerServiceImpl implements ControllerService {
                 _timeout = Constants.DISCOVER_LOCK_ACQUIRE_TIME;
             } else if (_lockName.equals("lock-implicitpoolmatcherjob-")) {
                 _timeout = Constants.DEFAULT_LOCK_ACQUIRE_TIME;
+            } else if (_lockName.equals("lock-implicitpoolmatcherjob-")) {
+                _timeout = Constants.DISCOVER_LOCK_ACQUIRE_TIME;;
             } else {
                 _timeout = 0;
             }
@@ -256,6 +260,8 @@ public class ControllerServiceImpl implements ControllerService {
                 return POOL_MATCHER_LOCK;
             } else if (type.equals(DISCOVERY_RECONCILE_TZ)) {
                 return DISCOVER_RECONCILE_TZ_LOCK;
+            } else if (type.equals(RR_DISCOVERY)) {
+                return DISCOVER_RR_CONFIG_LOCK;
             } else {
                 // impossible
                 return null;

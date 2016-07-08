@@ -7,14 +7,17 @@ package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import com.emc.storageos.services.util.StorageDriverManager;
 import org.apache.curator.framework.recipes.leader.LeaderSelector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -71,6 +74,7 @@ public class DataCollectionJobScheduler {
     private static final String ENABLE_METERING = "enable-metering";
     private static final String ENABLE_AUTODISCOVER = "enable-autodiscovery";
     private static final String ENABLE_AUTOSCAN = "enable-autoscan";
+    private static final String ENABLE_RR_CONFIG_AUTODISCOVERY = "enable-remote-replication-config-autodiscovery";
     private static final String ENABLE_AUTO_OPS_SINGLENODE = "enable-auto-discovery-metering-scan-single-node-deployments";
     private static final String TOLERANCE = "time-tolerance";
     private static final String PROP_HEADER_CONTROLLER = "controller_";
@@ -100,7 +104,8 @@ public class DataCollectionJobScheduler {
         CS_DISCOVER_INTERVALS("cs-discovery-interval", "cs-discovery-refresh-interval", initialDiscoveryDelay),
         NS_DISCOVER_INTERVALS("ns-discovery-interval", "ns-discovery-refresh-interval", initialDiscoveryDelay),
         COMPUTE_DISCOVER_INTERVALS("compute-discovery-interval", "compute-discovery-refresh-interval", initialDiscoveryDelay),
-        METERING_INTERVALS("metering-interval", "metering-refresh-interval", initialMeteringDelay);
+        METERING_INTERVALS("metering-interval", "metering-refresh-interval", initialMeteringDelay),
+        REMOTE_REPLICATION_CONFIG_DISCOVER_INTERVALS("remote-replication-config-discovery-interval", "remote-replication-config-discovery-refresh-interval", initialDiscoveryDelay);
 
         private final String _interval;
         private volatile long _intervalValue;
@@ -152,6 +157,9 @@ public class DataCollectionJobScheduler {
             }
             if (ControllerServiceImpl.COMPUTE_DISCOVERY.equalsIgnoreCase(jobType)) {
                 return COMPUTE_DISCOVER_INTERVALS;
+            }
+            if (ControllerServiceImpl.RR_DISCOVERY.equalsIgnoreCase(jobType)) {
+                return REMOTE_REPLICATION_CONFIG_DISCOVER_INTERVALS;
             } else {
                 return null;
             }
@@ -183,6 +191,8 @@ public class DataCollectionJobScheduler {
         boolean enableAutoScan = Boolean.parseBoolean(_configInfo.get(ENABLE_AUTOSCAN));
         boolean enableAutoDiscovery = Boolean.parseBoolean(_configInfo.get(ENABLE_AUTODISCOVER));
         boolean enableAutoMetering = Boolean.parseBoolean(_configInfo.get(ENABLE_METERING));
+        boolean enableRemoteReplicationConfigAutoDiscovery = Boolean.parseBoolean(_configInfo.get(ENABLE_RR_CONFIG_AUTODISCOVERY));
+
 
         // Override auto discovery, scan, and metering if this is one node deployment, such as devkit,
         // standalone, or 1+0.  CoprHD are single-node deployments typically, so ignore this variable in CoprHD.
@@ -247,6 +257,15 @@ public class DataCollectionJobScheduler {
             _logger.info("Metering is disabled.");
         }
 
+        if (enableRemoteReplicationConfigAutoDiscovery) {
+            JobIntervals intervals = JobIntervals.get(ControllerServiceImpl.RR_DISCOVERY);
+            schedulingProcessor.addScheduledTask(new DiscoveryScheduler(ControllerServiceImpl.RR_DISCOVERY),
+                    intervals.getInitialDelay(),
+                    intervals.getInterval());
+        } else {
+            _logger.info("Auto discovery of remote replication configuration is disabled.");
+        }
+
         discoverySchedulingSelector = _coordinator.getLeaderSelector(leaderSelectorPath,
                 schedulingProcessor);
         discoverySchedulingSelector.autoRequeue();
@@ -302,6 +321,8 @@ public class DataCollectionJobScheduler {
             try {
                 if (ControllerServiceImpl.SCANNER.equalsIgnoreCase(jobType)) {
                     scheduleScannerJobs();
+                } else if (ControllerServiceImpl.RR_DISCOVERY.equalsIgnoreCase(jobType)) {
+                    scheduleRemoteReplicationConfigDiscoveryJobs();
                 } else {
                     loadSystemfromDB(jobType);
                 }
@@ -459,6 +480,51 @@ public class DataCollectionJobScheduler {
             scheduleMultipleJobs(jobs, ControllerServiceImpl.Lock.getLock(jobType));
         } else {
             _logger.info("No systems found in db to schedule jobs.");
+        }
+    }
+
+    /**
+     * Schedules jobs to discover remote replication configuration.
+     *
+     * @throws Exception
+     */
+    private void scheduleRemoteReplicationConfigDiscoveryJobs() throws Exception {
+        StorageDriverManager driverManager = (StorageDriverManager) ControllerServiceImpl.getBean(StorageDriverManager.STORAGE_DRIVER_MANAGER);
+
+        _logger.info("Started scheduling discovery jobs for remote replication configuration.");
+        ArrayList<DataCollectionJob> jobs = new ArrayList<>();
+        List<URI> driverManagedStorageSystemTypeUris = new ArrayList<>();
+        Set<String> driverManagedStorageSystemTypes = new HashSet<>();
+
+        // todo change to read "StorageSystemType" table (waiting for 3.2 merge) and all other references to array type change to storage system type
+        List<URI> storageSystemTypes = _dbClient.queryByType(StorageSystem.class, true);
+        for (URI storageSystemTypeUri : storageSystemTypes) {
+            StorageSystem storageSystemType = _dbClient.queryObject(StorageSystem.class, storageSystemTypeUri);
+            if (driverManager.isDriverManaged(storageSystemType.getSystemType())) {
+                // todo temp waiting for merge 3.2 -> master
+                if (!driverManagedStorageSystemTypes.contains(storageSystemType.getSystemType())) {
+                    driverManagedStorageSystemTypeUris.add(storageSystemTypeUri);
+                    driverManagedStorageSystemTypes.add(storageSystemType.getSystemType());
+                }
+            }
+        }
+
+        _logger.info("Driver managed storage system types in database: {} .", driverManagedStorageSystemTypes);
+
+        String jobType = ControllerServiceImpl.RR_DISCOVERY;
+        if (!driverManagedStorageSystemTypeUris.isEmpty()) {
+            Iterator<URI> storageSystemTypeUris = driverManagedStorageSystemTypeUris.iterator();
+            while (storageSystemTypeUris.hasNext()) {
+                URI storageSystemTypeUri = storageSystemTypeUris.next();
+                String taskId = UUID.randomUUID().toString();
+                DiscoverTaskCompleter completer = new DiscoverTaskCompleter(StorageSystem.class, storageSystemTypeUri, taskId, jobType);
+                DataCollectionJob job = new DataCollectionDiscoverJob(completer, DataCollectionJob.JobOrigin.SCHEDULER,
+                        Discovery_Namespaces.REMOTE_REPLICATION_CONFIGURATION.toString());
+                jobs.add(job);
+            }
+            scheduleMultipleJobs(jobs, ControllerServiceImpl.Lock.getLock(jobType));
+        } else {
+            _logger.info("No driver managed storage system types were found in database.");
         }
     }
 

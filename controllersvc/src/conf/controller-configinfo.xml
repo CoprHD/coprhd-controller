@@ -88,6 +88,7 @@
         <entry key="ns-discovery-interval" value="3600" />
         <entry key="cs-discovery-interval" value="86400" />
         <entry key="scan-interval" value="600" />
+        <entry key="remote-replication-config-discovery-interval" value="3600" />
 
         <!-- in seconds -->
         <!-- intervals to guard against refresh requests from the user -->
@@ -98,6 +99,7 @@
         <entry key="ns-discovery-refresh-interval" value="60" />
         <entry key="compute-discovery-refresh-interval" value="60" />
         <entry key="cs-discovery-refresh-interval" value="60" />
+        <entry key="remote-replication-config-discovery-refresh-interval" value="600" />
         <!-- in seconds -->
         <!-- intervals after which scheduled discovery/metering jobs are allowed to be rescheduled even when "IN_PROGRESS" -->
         <!--  60 * 60 * 24 = 4200 -->
@@ -132,6 +134,7 @@
         <entry key="enable-metering" value="true" />
         <entry key="enable-autodiscovery" value="true" />
         <entry key="enable-autoscan" value="false" />
+        <entry key="enable-remote-replication-config-autodiscovery" value="true" />
 
         <entry key="capacity-compute-delay" value="5"/>
         <entry key="capacity-compute-interval" value="3600" />

@@ -19,9 +19,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import com.emc.storageos.coordinator.exceptions.RetryableCoordinatorException;
-import com.emc.storageos.plugins.common.Constants;
-import com.emc.storageos.services.util.StorageDriverManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,6 +29,7 @@ import com.emc.storageos.api.service.impl.placement.Scheduler;
 import com.emc.storageos.api.service.impl.resource.BlockServiceApi;
 import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.coordinator.exceptions.RetryableCoordinatorException;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
@@ -54,6 +52,8 @@ import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.VolumeRestRep;
+import com.emc.storageos.plugins.common.Constants;
+import com.emc.storageos.services.util.StorageDriverManager;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.BlockController;
@@ -725,5 +725,52 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
                     operationTypeEnum);
             taskList.getTaskList().add(TaskMapper.toTask(group, taskId, op));
         }
+    }
+    
+    /**
+     * returns the list of tasks required for create the full copy volumes.
+     * 
+     * @param fcSourceObj
+     *            A reference to a full copy source.
+     * @param fullCopyVolumes
+     *            A list of the prepared full copy volumes.
+     * @param taskId
+     *            The unique task identifier
+     * 
+     * @return TaskList
+     */
+    protected TaskList getTasksForCreateFullCopy(BlockObject fcSourceObj, List<Volume> fullCopyVolumes, String taskId) {
+        
+        if (fcSourceObj == null) {
+            throw APIException.badRequests.fullCopyInternalError("create");
+        }
+
+        TaskList taskList = new TaskList();
+
+        for (Volume volume : fullCopyVolumes) {
+            Operation op = _dbClient.createTaskOpStatus(Volume.class, volume.getId(), taskId,
+                    ResourceOperationTypeEnum.CREATE_VOLUME_FULL_COPY);
+            volume.getOpStatus().put(taskId, op);
+            TaskResourceRep volumeTask = TaskMapper.toTask(volume, taskId, op);
+            taskList.getTaskList().add(volumeTask);
+        }
+
+        // if Volume is part of Application (COPY type VolumeGroup)
+        VolumeGroup volumeGroup = (fcSourceObj instanceof Volume) ? ((Volume) fcSourceObj).getApplication(_dbClient) : null;
+        if (volumeGroup != null && !ControllerUtils.checkVolumeForVolumeGroupPartialRequest(_dbClient, (Volume) fcSourceObj)) {
+
+            Operation op = _dbClient.createTaskOpStatus(VolumeGroup.class, volumeGroup.getId(), taskId,
+                    ResourceOperationTypeEnum.CREATE_VOLUME_GROUP_FULL_COPY);
+            taskList.getTaskList().add(TaskMapper.toTask(volumeGroup, taskId, op));
+
+            // get all volumes to create tasks for all CGs involved
+            List<Volume> volumes = ControllerUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
+            addConsistencyGroupTasks(volumes, taskList, taskId, ResourceOperationTypeEnum.CREATE_CONSISTENCY_GROUP_FULL_COPY);
+        } else {
+            addConsistencyGroupTasks(Arrays.asList(fcSourceObj), taskList, taskId,
+                    ResourceOperationTypeEnum.CREATE_CONSISTENCY_GROUP_FULL_COPY);
+        }
+
+        return taskList;
     }
 }

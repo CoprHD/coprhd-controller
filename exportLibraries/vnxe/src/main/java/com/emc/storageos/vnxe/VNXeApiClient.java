@@ -38,6 +38,7 @@ import com.emc.storageos.vnxe.models.FileSystemQuotaModifyParam;
 import com.emc.storageos.vnxe.models.FileSystemSnapCreateParam;
 import com.emc.storageos.vnxe.models.HostCreateParam;
 import com.emc.storageos.vnxe.models.HostInitiatorCreateParam;
+import com.emc.storageos.vnxe.models.HostInitiatorModifyParam;
 import com.emc.storageos.vnxe.models.HostIpPortCreateParam;
 import com.emc.storageos.vnxe.models.HostLun;
 import com.emc.storageos.vnxe.models.HostLunModifyParam;
@@ -2003,6 +2004,7 @@ public class VNXeApiClient {
 
         String hostId = null;
         Set<VNXeHostInitiator> notExistingInits = new HashSet<VNXeHostInitiator>();
+        Set<VNXeHostInitiator> existingNoHostInits = new HashSet<VNXeHostInitiator>();
         String hostOsType = null;
         for (VNXeHostInitiator init : hostInitiators) {
             VNXeHostInitiator existingInit = null;
@@ -2013,6 +2015,8 @@ public class VNXeApiClient {
             if (existingInit != null && existingInit.getParentHost() != null) {
                 hostId = existingInit.getParentHost().getId();
 
+            } else if (existingInit != null)  {
+                existingNoHostInits.add(existingInit);
             } else {
                 notExistingInits.add(init);
             }
@@ -2049,6 +2053,14 @@ public class VNXeApiClient {
             HostInitiatorRequest req = new HostInitiatorRequest(_khClient);
             req.createHostInitiator(initCreateParam);
 
+        }
+        
+        for (VNXeHostInitiator exitInit : existingNoHostInits) {
+            HostInitiatorModifyParam initModifyParam = new HostInitiatorModifyParam();
+            VNXeBase host = new VNXeBase(hostId);
+            initModifyParam.setHost(host);
+            HostInitiatorRequest req = new HostInitiatorRequest(_khClient);
+            req.modifyHostInitiator(initModifyParam, exitInit.getId());
         }
 
         return new VNXeBase(hostId);

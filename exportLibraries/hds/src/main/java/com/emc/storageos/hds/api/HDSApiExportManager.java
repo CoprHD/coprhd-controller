@@ -45,6 +45,8 @@ public class HDSApiExportManager {
      * Logger instance to log messages.
      */
     private static final Logger log = LoggerFactory.getLogger(HDSApiExportManager.class);
+    
+    private static final int MAX_RETRIES = 10;
 
     private HDSApiClient hdsApiClient;
 
@@ -970,22 +972,56 @@ public class HDSApiExportManager {
     public void deleteLunPathsFromSystem(String systemObjectId, List<String> pathObjectIdList, String model) throws Exception {
         InputStream responseStream = null;
         try {
-            String deleteLunPathsQuery = constructDeleteLunPathsQuery(systemObjectId, pathObjectIdList, model);
-            log.info("Query to delete Lun paths: {}", deleteLunPathsQuery);
-            URI endpointURI = hdsApiClient.getBaseURI();
-            ClientResponse response = hdsApiClient.post(endpointURI,
-                    deleteLunPathsQuery);
-            if (HttpStatus.SC_OK == response.getStatus()) {
-                responseStream = response.getEntityInputStream();
-                JavaResult javaResult = SmooksUtil.getParsedXMLJavaResult(responseStream,
-                        HDSConstants.SMOOKS_CONFIG_FILE);
-                verifyErrorPayload(javaResult);
-                log.info("Deleted LUN paths {} from system {}", pathObjectIdList, systemObjectId);
-            } else {
+            boolean operationSucceeds = false;
+            int retryCount = 0;
+            StringBuilder errorDescriptionBuilder = new StringBuilder();
+            while (!operationSucceeds && retryCount < MAX_RETRIES) {
+                retryCount++;
+                String deleteLUNsQuery = constructDeleteLunPathsQuery(systemObjectId,
+                        pathObjectIdList, model);
+                log.info("Batch query to deleteLUNs Query: {}", deleteLUNsQuery);
+                URI endpointURI = hdsApiClient.getBaseURI();
+                ClientResponse response = hdsApiClient.post(endpointURI,
+                        deleteLUNsQuery);
+                if (HttpStatus.SC_OK == response.getStatus()) {
+                    responseStream = response.getEntityInputStream();
+                    JavaResult javaResult = SmooksUtil.getParsedXMLJavaResult(
+                            responseStream, HDSConstants.SMOOKS_CONFIG_FILE);
+                    try {
+                        verifyErrorPayload(javaResult);
+                        operationSucceeds = true; // If no exception then operation succeeds
+                    } catch (HDSException hdsException) {
+                        Error error = javaResult.getBean(Error.class);
+                        if (error != null && (error.getDescription().contains("2010")
+                                || error.getDescription().contains("5132") || error.getDescription().contains("7473"))) {
+                            log.error("Error response recieved from HiCommandManger: {}", error.getDescription());
+                            log.info("Exception from HICommand Manager recieved during delete operation, retrying operation {} time",
+                                    retryCount);
+                            errorDescriptionBuilder.append("error ").append(retryCount).append(" : ").append(error.getDescription())
+                                    .append("-#####-");
+                            Thread.sleep(60000); // Wait for a minute before retry
+                            continue; // Retry the operation again if retry count not exceeded
+                        } else {
+                            throw HDSException.exceptions
+                                    .invalidResponseFromHDS(String
+                                            .format("Not able to delete LunPaths due to invalid response %1$s from server",
+                                                    response.getStatus()));
+                        }
+                    }
+                    log.info("Deleted {} LUN paths from system:{}",
+                            pathObjectIdList.size(), systemObjectId);
+                } else {
+                    throw HDSException.exceptions
+                            .invalidResponseFromHDS(String
+                                    .format("Not able to delete Volume from HostGroups due to invalid response %1$s from server",
+                                            response.getStatus()));
+                }
+            }
+            if (!operationSucceeds) {// Delete operation failed ever after repeated retries
                 throw HDSException.exceptions
                         .invalidResponseFromHDS(String
-                                .format("Not able to delete LUN paths for system:%1$s due to invalid response %2$s from server",
-                                        systemObjectId, response.getStatus()));
+                                .format("Not able to delete LunPaths due to repeated errors from HiCommand server, errors description are as %s",
+                                        errorDescriptionBuilder.toString()));
             }
         } finally {
             if (null != responseStream) {

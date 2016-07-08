@@ -2373,6 +2373,9 @@ public interface BadRequestExceptions {
     public BadRequestException cannotDeleteAuthnProviderWithUserGroup(final int numResources, final Set<URI> resourceIDs);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException fullCopyInternalError(final String operation);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException invalidFullCopySource(final String copySourceId);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)

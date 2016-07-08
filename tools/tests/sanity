@@ -1805,7 +1805,7 @@ srdf_v3_cos_setup()
                          --system_type vmax			
     
     run cos update block $COS_VMAXBLOCK_V3_SRDF_TARGET --storage ${SRDF_V3_VMAXB_NATIVEGUID}
-    run cos update block $COS_VMAXBLOCK_V3_SRDF_TARGET --storage ${SRDF_V3_VMAXA_NATIVEGUID}
+    #run cos update block $COS_VMAXBLOCK_V3_SRDF_TARGET --storage ${SRDF_V3_VMAXA_NATIVEGUID}
     run cos allow $COS_VMAXBLOCK_V3_SRDF_TARGET block $TENANT
     
     cos show ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active block &> /dev/null && return $?
@@ -1821,7 +1821,7 @@ srdf_v3_cos_setup()
 			 --srdf "${V3_SRDF_VARRAY}:${COS_VMAXBLOCK_V3_SRDF_TARGET}:ACTIVE"
 
     run cos update block ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active --storage ${SRDF_V3_VMAXA_NATIVEGUID}
-    run cos update block ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active --storage ${SRDF_V3_VMAXB_NATIVEGUID}
+    #run cos update block ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active --storage ${SRDF_V3_VMAXB_NATIVEGUID}
     run cos allow ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active block $TENANT 
 	
 	
@@ -1840,7 +1840,7 @@ srdf_v3_cos_setup()
 			 --srdf "${V3_SRDF_VARRAY}:${COS_VMAXBLOCK_V3_SRDF_TARGET}:ASYNCHRONOUS"
 
     run cos update block ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_async --storage ${SRDF_V3_VMAXA_NATIVEGUID}
-    run cos update block ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_async --storage ${SRDF_V3_VMAXB_NATIVEGUID}
+    #run cos update block ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_async --storage ${SRDF_V3_VMAXB_NATIVEGUID}
     run cos allow ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_async block $TENANT 
 	
 	## SYNCHRONOUS
@@ -1858,7 +1858,7 @@ srdf_v3_cos_setup()
 			 --srdf "${V3_SRDF_VARRAY}:${COS_VMAXBLOCK_V3_SRDF_TARGET}:SYNCHRONOUS"
 
     run cos update block ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_sync --storage ${SRDF_V3_VMAXA_NATIVEGUID}
-    run cos update block ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_sync --storage ${SRDF_V3_VMAXB_NATIVEGUID}
+    #run cos update block ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_sync --storage ${SRDF_V3_VMAXB_NATIVEGUID}
     run cos allow ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_sync block $TENANT 
 	
 	
@@ -7757,9 +7757,8 @@ blockmirror_single_mirror()
 	
 	echo "Deactivating a sigle mirror" 
 	run blockmirror deactivate $PROJECT/${mirrortest_vol} "foo"
-
-    echo "Deactivating source volume"
-    run volume delete $PROJECT/${mirrortest_vol} --wait
+    echo "Deleting all volumes in project"
+    run volume delete $PROJECT --project --wait
 }
 
 blockmirror_attach_mirror_with_optional()
@@ -7781,8 +7780,8 @@ blockmirror_attach_mirror_with_optional()
 	echo "Deactivating a active mirror" 
 	run blockmirror deactivate $PROJECT/${mirrortest_vol} "foo"
     
-    echo "Deactivating source volume"
-    run volume delete $PROJECT/${mirrortest_vol} --wait
+    echo "Deleting all volumes in project"
+    run volume delete $PROJECT --project --wait
 }
 
 blockmirror_attach_2mirrors()
@@ -7805,8 +7804,8 @@ blockmirror_attach_2mirrors()
 	run blockmirror deactivate $PROJECT/${mirrortest_vol} "foo-1"
 	run blockmirror deactivate $PROJECT/${mirrortest_vol} "foo-2"
     
-    echo "Deactivating source volume and all mirrors"
-    run volume delete $PROJECT/${mirrortest_vol} --wait
+    echo "Deleting all volumes in project"
+    run volume delete $PROJECT --project --wait
 }
 
 blockmirror_detach_mirror_all()
@@ -7834,9 +7833,9 @@ blockmirror_detach_mirror_all()
 
     echo "Detaching all mirrors"
     run blockmirror detach $PROJECT/${mirrortest_vol}
-    
-    echo "Deactivating source volume and all mirrors"
-    run volume delete $PROJECT/${mirrortest_vol} --wait
+	
+    echo "Deleting all volumes in project"
+    run volume delete $PROJECT --project --wait
 }
 
 blockmirror_pause_resume_all()
@@ -7866,9 +7865,9 @@ blockmirror_pause_resume_all()
 
     echo "Detaching all mirrors"
     run blockmirror detach $PROJECT/${mirrortest_vol}
-
-    echo "Deactivating source volume and all mirrors"
-    run volume delete $PROJECT/${mirrortest_vol} --wait
+	
+    echo "Deleting all volumes in project"
+    run volume delete $PROJECT --project --wait
 }
 
 blockmirror_vpool_change()
@@ -7892,9 +7891,9 @@ blockmirror_vpool_change()
 
     echo "Detaching active mirror"
     run blockmirror detach $PROJECT/${mirrortest_vol}
-
-    echo "Deactivating source volume and all mirrors"
-    run volume delete $PROJECT/${mirrortest_vol} --wait
+	
+	echo "Deleting all volumes in project"
+    run volume delete $PROJECT --project --wait
 }
 
 blockmirror_vnx()
@@ -7958,10 +7957,13 @@ blockmirror_group_mirrors()
     echo "Listing group mirrors"
     run blockmirror list $PROJECT/${mirrortest_vol}1
     run blockmirror list $PROJECT/${mirrortest_vol}2
+	
+	echo "Pausing group mirrors"
+    run blockmirror pause $PROJECT/${mirrortest_vol}1
 
     echo "Deactivating group mirrors"
     run blockmirror deactivate $PROJECT/${mirrortest_vol}1 ${mirrortest_vol}1-${group_mirror}
-
+	
     echo "Listing group mirrors"
     run blockmirror list $PROJECT/${mirrortest_vol}1
     run blockmirror list $PROJECT/${mirrortest_vol}2
@@ -7975,19 +7977,14 @@ blockmirror_group_mirrors()
 
     echo "Detaching group mirrors"
     run blockmirror detach $PROJECT/${mirrortest_vol}1
+	
 
     echo "Listing group mirrors"
     run blockmirror list $PROJECT/${mirrortest_vol}1
     run blockmirror list $PROJECT/${mirrortest_vol}2
 
-    echo "Deleting promoted volumes"
-    run volume delete $PROJECT/${mirrortest_vol}1-${group_mirror}1 --wait
-    run volume delete $PROJECT/${mirrortest_vol}2-${group_mirror}1 --wait
-
-    echo "Deactivating source volumes"
-    run volume delete $PROJECT/${mirrortest_vol}1 --wait
-    echo "delete $PROJECT/${mirrortest_vol}2"
-    run volume delete $PROJECT/${mirrortest_vol}2 --wait
+    echo "Deleting all volumes in project"
+    run volume delete $PROJECT --project --wait
 }
 
 blockmirror_tests()
@@ -7997,7 +7994,7 @@ blockmirror_tests()
     # quick_block_tests $VNXEXPORT_GROUP $VNXEXPORT_GROUP_HOST $VNX_VOLUME $COS_VNXBLOCK
     blockmirror_single_mirror
     blockmirror_attach_mirror_with_optional
-    blockmirror_attach_2mirrors
+    # blockmirror_attach_2mirrors
     blockmirror_detach_mirror_all
     blockmirror_pause_resume_all
     blockmirror_vpool_change

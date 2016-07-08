@@ -28,6 +28,7 @@ import com.emc.storageos.networkcontroller.SSHDialog;
 import com.emc.storageos.networkcontroller.SSHPrompt;
 import com.emc.storageos.networkcontroller.SSHSession;
 import com.emc.storageos.networkcontroller.exceptions.NetworkDeviceControllerException;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.google.common.collect.Sets;
 
 
@@ -1162,10 +1163,11 @@ public class MDSDialog extends SSHDialog {
     }
 
     /**
-     * zoneset name {zonesetName} vsan {vsanId}
+     * (no) zoneset name {zonesetName} vsan {vsanId}
      * 
      * @param zonesetName
      * @param vsanId
+     * @paran no - true for removing zoneset, false otherwise
      * @throws NetworkDeviceControllerException
      */
     public void zonesetNameVsan(String zonesetName, Integer vsanId, boolean no) throws NetworkDeviceControllerException {
@@ -1416,12 +1418,22 @@ public class MDSDialog extends SSHDialog {
                     SSHPrompt.MDS_CONFIG.toString());
         }
         SSHPrompt[] prompts = { SSHPrompt.MDS_CONFIG };
+        String errorString = MDSDialogProperties.getString("MDSDialog.zonesetClone.invalidname.cmd");
         StringBuilder buf = new StringBuilder();
         String newZoneset = generateZonesetCloneName(zonesetToClone);
         manageZonesetClone(vsanId, newZoneset);
-        String payload = MessageFormat.format(MDSDialogProperties.getString("MDSDialog.zonesetClone.cmd"), zonesetToClone, newZoneset, vsanId); // copy running-config startup-config\n
+        _log.info("zone clone name : " + newZoneset	);
+        String payload = MessageFormat.format(MDSDialogProperties.getString("MDSDialog.zonesetClone.cmd"), zonesetToClone, newZoneset, vsanId); //zoneset clone {0} {1} vsan {2}\n
         lastPrompt = sendWaitFor(payload, defaultTimeout, prompts, buf);
         String[] lines = getLines(buf);
+        
+        for(String line : lines ){
+        	if (line.indexOf(errorString) >= 0) {
+        		_log.info("Zoneset clone operation failed");
+        		//TODO: Bharath - fix the exception type
+        		throw NetworkDeviceControllerException.exceptions.zonesetCloneFailed(newZoneset, line);
+        	}
+        }
 
         _log.info(MessageFormat.format("Host: {0}, Port: {1} - END zonesetClone",
                 new Object[] { getSession().getSession().getHost(), getSession().getSession().getPort() }));
@@ -1434,12 +1446,8 @@ public class MDSDialog extends SSHDialog {
   	   	DateFormat dateFormat = new SimpleDateFormat("MM_dd_yy");
   	    String dateStr = dateFormat.format(cal.getTime()); 
     	for (Zoneset zoneset : zonesets) {
-    		if (zoneset.getName().contains(dateStr)) {
-    			_log.info("Bharath - removing zoneset ", zoneset.getName());
-    			System.out.println("Bharath - removing zoneset " + zoneset.getName());
-    			for (Zone zone : zoneset.getZones()) {
-    				System.out.println("Zone " + zone.getName());
-    			}
+    		if (zoneset.getName().contains(dateStr) && zoneset.getName().contains("ViPR")) {
+    			_log.info(String.format("Bharath - removing zoneset %s", zoneset.getName()));    			    		
     			zonesetNameVsan(zoneset.getName(), vsanId, true);
     		}
     	}    	
@@ -1449,7 +1457,11 @@ public class MDSDialog extends SSHDialog {
     	//get current date time with Calendar()
  	   Calendar cal = Calendar.getInstance();
  	   DateFormat dateFormat = new SimpleDateFormat("MM_dd_yy-HH_mm");
- 	   String dateString = dateFormat.format(cal.getTime()); 	    	 
+ 	   String dateString = dateFormat.format(cal.getTime()); 	
+ 	   String longName = MDSDialogProperties.getString("MDSDialog.zonesetCloneLongName.cmd");
+ 	   if (!longName.contains("!MDSDialog.zonesetCloneLongName.cmd!")) {
+ 		   return longName;
+ 	   }
        return "ViPR-" + zonesetToClone + "-" + dateString;    	
     }
 

@@ -303,4 +303,7 @@ public interface NetworkDeviceControllerExceptions {
     @DeclareServiceCode(ServiceCode.CONTROLLER_NETWORK_ERROR)
     public NetworkDeviceControllerException failedToFindNetworkSystem(final Collection<String> endpoints, final String network);
 
+    @DeclareServiceCode(ServiceCode.CONTROLLER_NETWORK_ERROR)
+    public NetworkDeviceControllerException zonesetCloneFailed(final String zonesetClone, final String zoneset);
+
 }

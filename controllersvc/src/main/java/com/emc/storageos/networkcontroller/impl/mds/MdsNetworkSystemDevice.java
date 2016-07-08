@@ -36,6 +36,10 @@ import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.google.common.collect.Sets;
 
+/**
+ * @author sreekb
+ *
+ */
 public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements NetworkSystemDevice {
     private static final Logger _log = LoggerFactory.getLogger(MdsNetworkSystemDevice.class);
     private static final String MDS_ROUTED_INDICATOR = "Virtual Device";
@@ -369,6 +373,7 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
         try {
             // Go into config mode. This allows us to change the configuration.
             dialog.config();
+            zonesetClone(dialog, vsanId, activeZoneset);
             for (Zone zone : zones) {
                 try {
                     if (createZone(dialog, zone, vsanId, fabricZones, activeZoneset)) {
@@ -584,6 +589,7 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
 
         try {
             dialog.config();
+            zonesetClone(dialog, vsanId, activeZoneset);
             for (Zone zone : zonesToBeDeleted) {
                 String zoneName = zone.getName();
                 _log.info("Removing zone: " + zoneName + " vsan: " + vsanId);
@@ -824,7 +830,6 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
      * @param activeZoneset
      */
     private void commitZones(MDSDialog dialog, Integer vsanId, Zoneset activeZoneset) {
-
         // Activate the active zoneset.
         if (activeZoneset != null) {
             dialog.zonesetActivate(activeZoneset.getName(), vsanId, false);
@@ -832,9 +837,6 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
         	 activeZoneset = getActiveZoneset(dialog, vsanId);
         }
         
-        //Bharath - add code to call the zoneset clone here.
-         dialog.zonesetClone(vsanId, activeZoneset.getName());
-
         // dialog.exitToConfig(); -- no need for exitToConfig, because activate zoneset would exit
         // If enhanced zoning is enabled, we will be in a session, and we must commit.
         if (dialog.isInSession()) {
@@ -842,6 +844,34 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
             dialog.waitForZoneCommit(vsanId);
         }
     }
+
+	/**
+	 * Perform a "zoneset clone" of the zoneset in the zoning operation
+	 * @param dialog
+	 * @param vsanId
+	 * @param activeZoneset
+	 */
+	private void zonesetClone(MDSDialog dialog, Integer vsanId, Zoneset activeZoneset) {
+		//Bharath - add code to call the zoneset clone here
+        boolean doZonesetClone = Boolean.valueOf(ControllerUtils.getPropertyValueFromCoordinator(_coordinator,
+                "controller_mds_clone_zoneset")) ;
+        boolean allowZonesIfZonesetCloneFails = Boolean.valueOf(ControllerUtils.getPropertyValueFromCoordinator(_coordinator,
+                "controller_mds_allow_zoneset_commit")) ;
+        
+        if (doZonesetClone) {
+        	_log.info(String.format("Cloning zoneset %s", activeZoneset.getName()));
+        	try {
+        		dialog.zonesetClone(vsanId, activeZoneset.getName());
+        	} catch (NetworkDeviceControllerException nde) {
+        		if (!allowZonesIfZonesetCloneFails) {
+        			//TODO: Bharath - fix the exception type.
+        			throw nde;
+        		}
+        	}        	
+        } else {
+        	_log.info(String.format("controller_mds_clone_zoneset is false, NOT Cloning zoneset %s", activeZoneset.getName()));
+        }
+	}
 
     /**
      * Ivr zones were previously added to fabric, add them to active zone set, then activate it.
@@ -1302,6 +1332,7 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
         try {
             // Go into config mode. This allows us to change the configuration.
             dialog.config();
+            zonesetClone(dialog, vsanId, activeZoneset);
             for (ZoneUpdate zone : updateZones) {
                 try {
                     if (updateZone(dialog, zone, vsanId, fabricZones, activateZones)) {
@@ -1449,6 +1480,8 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
         try {
             // Go into config mode. This allows us to change the configuration.
             dialog.config();
+            //Bharath: check if this is the correct place for the zone clone call
+            zonesetClone(dialog, vsanId, activeZoneset);
             commitZones(dialog, vsanId, activeZoneset);
             dialog.copyRunningConfigToStartupFabric();
             dialog.endConfig();

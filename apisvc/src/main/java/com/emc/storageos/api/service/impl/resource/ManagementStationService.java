@@ -78,7 +78,7 @@ public class ManagementStationService extends TaskResourceService {
 
         @Override
         public ResourceOperationTypeEnum getOperation() {
-            return ResourceOperationTypeEnum.DISCOVER_CONTROL_STATION;
+            return ResourceOperationTypeEnum.DISCOVER_MANAGEMENT_STATION;
         }
     }
 
@@ -142,7 +142,7 @@ public class ManagementStationService extends TaskResourceService {
     private TaskResourceRep createManualReadyTask(ManagementStation managementStation) {
         // if not discoverable, manually create a ready task
         Operation op = new Operation();
-        op.setResourceType(ResourceOperationTypeEnum.DISCOVER_CONTROL_STATION);
+        op.setResourceType(ResourceOperationTypeEnum.DISCOVER_MANAGEMENT_STATION);
         op.ready("managementStation not discoverable.");
 
         String taskId = UUID.randomUUID().toString();

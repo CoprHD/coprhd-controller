@@ -12,6 +12,7 @@ import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredSystemObject;
 import com.emc.storageos.db.client.model.Host;
+import com.emc.storageos.db.client.model.ManagementStation;
 import com.emc.storageos.db.client.model.NetworkSystem;
 import com.emc.storageos.db.client.model.ProtectionSet;
 import com.emc.storageos.db.client.model.Vcenter;
@@ -35,10 +36,12 @@ public class DiscoverTaskCompleter extends DataCollectionTaskCompleter {
         _jobType = jobType;
     }
 
+    @Override
     public String getJobType() {
         return _jobType;
     }
 
+    @Override
     protected void updateObjectState(DbClient dbClient,
             DiscoveredDataObject.DataCollectionJobStatus jobStatus) {
         Class type = getType();
@@ -136,8 +139,9 @@ public class DiscoverTaskCompleter extends DataCollectionTaskCompleter {
             opType = ResourceOperationTypeEnum.DISCOVER_NETWORK_SYSTEM;
         } else if (ProtectionSet.class.equals(type)) {
             opType = ResourceOperationTypeEnum.DISCOVER_PROTECTION_SET;
+        } else if (ManagementStation.class.equals(type)) {
+            opType = ResourceOperationTypeEnum.DISCOVER_MANAGEMENT_STATION;
         }
-
         dbClient.createTaskOpStatus(getType(), getId(), getOpId(),
                 opType);
     }

@@ -333,7 +333,7 @@ public class VirtualMachine extends AbstractComputeSystem {
 
     @Override
     public Object[] auditParameters() {
-        return new Object[] { getHostName(),
+        return new Object[] { getVMName(),
                 getVcenterDataCenter(), getCluster(), getTenant(), getId() };
     }
 

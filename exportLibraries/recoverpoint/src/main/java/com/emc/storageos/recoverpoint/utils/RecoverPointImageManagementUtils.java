@@ -437,33 +437,6 @@ public class RecoverPointImageManagementUtils {
             boolean isCopySetAsProduction = RecoverPointUtils.containsCopy(prodCopiesUIDs, cgCopyUID);
 
             if (!isCopySetAsProduction) {
-                // look at all CG copies, ignoring the copy we want to make prod and all existing
-                // production copies. Of those remaining copies (new target copies), are any
-                // of them in direct access mode? if so, we cannot set our copy as production. The
-                // target copies in direct access are invalid targets (target RPA cluster is not distributing).
-                // In this case we DO NOT set our copy as production and leave it in a failover state.
-                // Go through the existing production copies
-
-                List<ConsistencyGroupCopySettings> copySettings = groupSettings.getGroupCopiesSettings();
-
-                for (ConsistencyGroupCopySettings copySetting : copySettings) {
-                    // If this isn't the copy we want to set as production and it's not an existing production copy,
-                    // we know this is a potential target copy. We need to make sure it is not in direct
-                    // access mode.
-                    if (!RecoverPointUtils.containsCopy(prodCopiesUIDs, copySetting.getCopyUID()) &&
-                            !RecoverPointUtils.copiesEqual(copySetting.getCopyUID(), cgCopyUID)) {
-                        String copyName = impl.getGroupCopyName(copySetting.getCopyUID());
-                        ConsistencyGroupCopyState copyState = getCopyState(impl, copySetting.getCopyUID());
-
-                        if (copyState != null && StorageAccessState.DIRECT_ACCESS.equals(copyState.getStorageAccessState())) {
-                            logger.info(String
-                                    .format("Existing target copy %s is in direct access mode.  Since this target RPA cluster is not distributing, copy %s cannot be set as production.",
-                                            copyName, cgCopyName));
-                            return;
-                        }
-                    }
-                }
-
                 logger.info(String.format("Setting copy %s as the new production copy.", cgCopyName));
                 impl.setProductionCopy(cgCopyUID, true);
             } else {

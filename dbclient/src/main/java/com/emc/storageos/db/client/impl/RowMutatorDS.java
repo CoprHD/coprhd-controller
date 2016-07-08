@@ -41,8 +41,8 @@ public class RowMutatorDS {
 
     private UUID timeUUID;
 
-    private static final String insertRecordFormat = "INSERT INTO \"%s\" (key, column1, column2, column3, column4, value) VALUES (?, ?, ?, ?, ?)";
-    private static final String insertIndexFormat = "INSERT INTO \"%s\" (key, column1, column2, column3, column4, column5, value) VALUES (?, ?, ?, ?, ?, ?)";
+    private static final String insertRecordFormat = "INSERT INTO \"%s\" (key, column1, column2, column3, column4, value) VALUES (?, ?, ?, ?, ?, ?)";
+    private static final String insertIndexFormat = "INSERT INTO \"%s\" (key, column1, column2, column3, column4, column5, value) VALUES (?, ?, ?, ?, ?, ?, ?)";
 
     public RowMutatorDS(DbClientContext context) {
         this.context = context;

@@ -78,7 +78,7 @@ public class ManagementStationService extends TaskResourceService {
 
         @Override
         public ResourceOperationTypeEnum getOperation() {
-            return ResourceOperationTypeEnum.DISCOVER_VCENTER;
+            return ResourceOperationTypeEnum.DISCOVER_CONTROL_STATION;
         }
     }
 

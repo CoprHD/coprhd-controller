@@ -745,13 +745,13 @@ zone_setup()
     #
     # set up zone for cisco switch simulator
     #
-    if [ $QUICK -eq 1 ]; then
+    if [ $QUICK -eq 1  -o $VPLEX_QUICK_PARAM = "quick" ]; then
         cisco_mds_quick_setup_once
     elif [ $DISCOVER_SAN -eq 1 ]; then
         brocade_setup_once
     else
         run transportzone create $FC_ZONE_A $NH --type FC
-        run transportzone create $FC_ZONE_B $NH --type FC
+        run transportzone create $FC_ZONE_B $NH2 --type FC
         run transportzone add    $NH/$FC_ZONE_A $BLK_CLIENT_FC
     fi
 
@@ -806,7 +806,7 @@ cisco_mds_quick_setup_once()
 
 
     run transportzone assign VSAN_11 $NH
-    run transportzone assign VSAN_12 $NH
+    run transportzone assign VSAN_12 $NH2
 
 #   add ports to VSAN_11
     run transportzone add $FCTZ_A 51:00:50:56:9F:01:3B:A1
@@ -2219,6 +2219,16 @@ vplex_cos_setup()
 	run cos update block cosvplexlocal --storage $VPLEX_SIM_VMAX1_NATIVEGUID
 	run cos update block cosvplexlocal --storage $VPLEX_SIM_VMAX2_NATIVEGUID
 	run cos update block cosvplexlocal --storage $VPLEX_SIM_VMAX3_NATIVEGUID
+	run cos update block cosvplexlocal --storage $VPLEX_SIM_VMAX4_NATIVEGUID
+
+	run cos create block vplexdistbackingvpool true                   \
+                     --description 'Local-backing-vpool-for-VPlex'      \
+                     --protocols FC                           \
+                     --numpaths 2                             \
+                     --provisionType 'Thin'                   \
+                     --neighborhoods $NH2                     \
+                     --expandable false 
+
     else
 	run cos update block cosvplexlocal --storage $VPLEX_VNX1_NATIVEGUID
 	if [ "$AUTH" != 'ipv6' ] ; then
@@ -2227,7 +2237,35 @@ vplex_cos_setup()
 	run cos update block cosvplexlocal --storage $VPLEX_VMAX_NATIVEGUID
     fi
 
-    run cos create block cosvplexdist true                          \
+    run cos allow cosvplexlocal block $TENANT
+    if [ "${VPLEX_QUICK_PARAM}" = "quick" ]; then
+	run cos update block vplexdistbackingvpool --storage $VPLEX_SIM_VMAX5_NATIVEGUID
+	run cos update block vplexdistbackingvpool --storage $VPLEX_SIM_VMAX6_NATIVEGUID
+	run cos update block vplexdistbackingvpool --storage $VPLEX_SIM_VMAX7_NATIVEGUID
+
+	run cos allow vplexdistbackingvpool block $TENANT
+
+	run cos create block cosvplexdist true                          \
+                     --description 'Distributed-CoS-for-VPlex'      \
+                     --protocols FC                                 \
+                     --numpaths 2                                   \
+                     --provisionType 'Thin'                         \
+                     --highavailability vplex_distributed           \
+                     --neighborhoods $NH $NH2                       \
+                     --haNeighborhood $NH2                          \
+	             --haCos vplexdistbackingvpool                  \
+                     --max_snapshots 1                              \
+                     --max_mirrors 1                                \
+                     --mirror_cos cosvplexlocal                     \
+                     --expandable false
+
+	run cos update block cosvplexdist --storage $VPLEX_SIM_VMAX1_NATIVEGUID
+	run cos update block cosvplexdist --storage $VPLEX_SIM_VMAX2_NATIVEGUID
+	run cos update block cosvplexdist --storage $VPLEX_SIM_VMAX3_NATIVEGUID
+	run cos update block cosvplexdist --storage $VPLEX_SIM_VMAX4_NATIVEGUID
+
+    else
+	run cos create block cosvplexdist true                          \
                      --description 'Distributed-CoS-for-VPlex'      \
                      --protocols FC                                 \
                      --numpaths 2                                   \
@@ -2240,12 +2278,7 @@ vplex_cos_setup()
                      --mirror_cos cosvplexlocal                     \
                      --expandable false
 
-    run cos allow cosvplexdist block $TENANT
-    if [ "${VPLEX_QUICK_PARAM}" = "quick" ]; then
-	run cos update block cosvplexdist --storage $VPLEX_SIM_VMAX1_NATIVEGUID
-	run cos update block cosvplexdist --storage $VPLEX_SIM_VMAX2_NATIVEGUID
-	run cos update block cosvplexdist --storage $VPLEX_SIM_VMAX3_NATIVEGUID
-    else
+	run cos allow cosvplexdist block $TENANT
 	run cos update block cosvplexdist --storage $VPLEX_VNX1_NATIVEGUID
 	run cos update block cosvplexdist --storage $VPLEX_VMAX_NATIVEGUID
     fi
@@ -2300,10 +2333,17 @@ vplex_setup_once()
 	run storageport update $VPLEX_SIM_VPLEX_GUID FC --group director-1-1-B --addvarrays $NH
 	run storageport update $VPLEX_SIM_VPLEX_GUID FC --group director-2-1-A --addvarrays $NH2
 	run storageport update $VPLEX_SIM_VPLEX_GUID FC --group director-2-1-B --addvarrays $NH2
+
 	# The arrays are assigned to individual varrays as well.
 	run storageport update $VPLEX_SIM_VMAX1_NATIVEGUID FC --addvarrays $NH
+	run storageport update $VPLEX_SIM_VMAX2_NATIVEGUID FC --addvarrays $NH
 	run storageport update $VPLEX_SIM_VMAX3_NATIVEGUID FC --addvarrays $NH
-	run storageport update $VPLEX_SIM_VMAX2_NATIVEGUID FC --addvarrays $NH2
+	run storageport update $VPLEX_SIM_VMAX4_NATIVEGUID FC --addvarrays $NH
+
+	run storageport update $VPLEX_SIM_VMAX5_NATIVEGUID FC --addvarrays $NH2
+	run storageport update $VPLEX_SIM_VMAX6_NATIVEGUID FC --addvarrays $NH2
+	run storageport update $VPLEX_SIM_VMAX7_NATIVEGUID FC --addvarrays $NH2
+
 	vplex_cos_setup
 	VPLEX_GUID=$VPLEX_SIM_VPLEX_GUID
 	CLUSTER1NET_NAME=$CLUSTER1NET_SIM_NAME
@@ -5847,7 +5887,7 @@ common_setup()
     if [ "${RP_INGESTTESTS}" = "0" -o "${RP_INGESTTESTS}" = "" ]; then
 
         # If we're running physical, DISCOVER_SAN needs to be on for physical configurations.
-	if [ $QUICK -eq 0 ]; then
+	if [ $QUICK -eq 0  -o $VPLEX_QUICK_PARAM = "quick" ]; then
 	    secho "Turning on DISCOVER_SAN because we are testing physical"
 	    DISCOVER_SAN=1
 	fi

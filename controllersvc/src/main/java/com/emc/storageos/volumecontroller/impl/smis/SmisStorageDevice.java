@@ -3262,6 +3262,12 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
         return initiatorAlias;
     }
 
+    /**
+     * This method return true if the SMI-S provider supports initiator alias operations.
+     * 
+     * @param storage - StorageSystem object
+     * @return boolean
+     */
     private boolean checkIfProviderSupportsInitiatorAlias(StorageSystem storageSystem) {
         if (storageSystem.checkIfVmax3() && storageSystem.getUsingSmis80()) {
             try {

@@ -4565,7 +4565,7 @@ recoverpoint_direct_access_test()
                     
                     sleep 10
 
-                    secho 'Swap/swap-back while all target copies are in direct access mode'
+                    secho 'Swap/swap-back while each target copies are in direct access mode'
                     run volume change_link ${PROJECT}/${src_volume} swap ${PROJECT}/${target_vol} rp
                     run volume change_link ${PROJECT}/${target_vol} swap ${PROJECT}/${src_volume} rp
                 fi

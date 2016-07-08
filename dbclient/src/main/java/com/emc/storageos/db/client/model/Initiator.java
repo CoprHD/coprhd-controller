@@ -4,6 +4,8 @@
  */
 package com.emc.storageos.db.client.model;
 
+import java.net.URI;
+
 import com.emc.storageos.db.client.util.EndpointUtility;
 import com.emc.storageos.db.client.util.WWNUtility;
 import com.emc.storageos.db.client.util.iSCSIUtility;
@@ -24,6 +26,8 @@ public class Initiator extends HostInterface implements Comparable<Initiator> {
     private volatile int hashCode;
     // COP-18937: Initiator may be registered to multiple storage systems using different names.
     private StringMap initiatorNames;
+
+    private URI pairedInitiator;
 
     /**
      * Default Constructor. This is the constructor used by the API.
@@ -155,6 +159,16 @@ public class Initiator extends HostInterface implements Comparable<Initiator> {
     public void setClusterName(String clusterName) {
         _clusterName = clusterName;
         setChanged("clustername");
+    }
+
+    @Name("pairedInitiator")
+    public URI getPairedInitiator() {
+        return pairedInitiator;
+    }
+
+    public void setPairedInitiator(URI pairedInitiator) {
+        this.pairedInitiator = pairedInitiator;
+        setChanged("pairedInitiator");
     }
 
     /**

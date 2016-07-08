@@ -19,6 +19,7 @@ import com.emc.storageos.model.valid.EnumType;
 public abstract class HostInterface extends DataObject {
     private String _protocol;
     private URI _host;
+    private URI _virtualMachine;
     private String _registrationStatus = RegistrationStatus.REGISTERED.toString();
 
     // to do - This is temporary until initiator IpInterface service are remove
@@ -78,6 +79,17 @@ public abstract class HostInterface extends DataObject {
     public void setHost(URI host) {
         _host = host;
         setChanged("host");
+    }
+
+    @RelationIndex(cf = "RelationIndex", type = VirtualMachine.class)
+    @Name("virtualMachine")
+    public URI getVirtualMachine() {
+        return _virtualMachine;
+    }
+
+    public void setVirtualMachine(URI _virtualMachine) {
+        this._virtualMachine = _virtualMachine;
+        setChanged("virtualMachine");
     }
 
     @EnumType(RegistrationStatus.class)

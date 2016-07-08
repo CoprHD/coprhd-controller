@@ -40,6 +40,6 @@ public interface VNXeErrors {
     public ServiceError cannotRestoreAttachedSnapshot(final String snapshotId);
 
     @DeclareServiceCode(ServiceCode.VNXE_COMMAND_ERROR)
-    public ServiceError operationNotSupported();
+    public ServiceError operationNotSupported(final String operation, final String deviceType);
 
 }

@@ -49,7 +49,6 @@ import com.emc.storageos.model.tenant.UserMappingAttributeParam;
 import com.emc.storageos.model.tenant.UserMappingParam;
 import com.emc.storageos.security.authorization.*;
 import com.emc.storageos.security.authorization.Role;
-import com.emc.vipr.model.sys.ipreconfig.ClusterIpv4Setting;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,7 +65,6 @@ import com.emc.storageos.db.client.model.AuthnProvider.ProvidersType;
 import com.emc.storageos.db.client.model.AuthnProvider.SearchScope;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
-import com.emc.storageos.keystone.KeystoneConstants;
 import com.emc.storageos.keystone.restapi.KeystoneApiClient;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.auth.AuthnCreateParam;
@@ -105,8 +103,6 @@ public class AuthnConfigurationService extends TaggedResource {
 
     private KeystoneUtils _keystoneUtils;
 
-    private Properties _ovfProperties;
-
     private static final String EVENT_SERVICE_TYPE = "authconfig";
 
     @Override
@@ -120,10 +116,6 @@ public class AuthnConfigurationService extends TaggedResource {
 
     public void setKeystoneUtils(KeystoneUtils keystoneUtils) {
         this._keystoneUtils = keystoneUtils;
-    }
-
-    public void setOvfProperties(Properties ovfProps) {
-        _ovfProperties = ovfProps;
     }
 
     /**
@@ -228,11 +220,11 @@ public class AuthnConfigurationService extends TaggedResource {
 
         String mode = provider.getMode();
         if (null != mode && AuthnProvider.ProvidersType.keystone.toString().equalsIgnoreCase(mode)) {
-            populateKeystoneToken(provider, null);
+           provider.setKeys(_keystoneUtils.populateKeystoneToken(provider.getServerUrls(), provider.getManagerDN(), getPassword(provider, null)));
 
             // If the checkbox is checked, then register CoprHD.
             if(provider.getAutoRegCoprHDNImportOSProjects()){
-                registerCoprhdInKeystone(provider);
+                _keystoneUtils.registerCoprhdInKeystone(provider.getManagerDN(), provider.getServerUrls(), provider.getManagerPassword());
             }
         } else {
             // Now validate the authn provider to make sure
@@ -265,164 +257,6 @@ public class AuthnConfigurationService extends TaggedResource {
     }
 
     /**
-     * Register CoprHD in Keystone.
-     * Creates an endpoint pointing to CoprHd instead to Cinder.
-     *
-     * @param provider AuthnProvider
-     */
-    private void registerCoprhdInKeystone(AuthnProvider provider){
-        _log.debug("START - register CoprHD in Keystone");
-
-        // Create a new KeystoneAPI.
-        KeystoneApiClient keystoneApi = getKeystoneApi(provider);
-        // Find Id of cinderv2 service.
-        String cinderv2ServiceId = _keystoneUtils.findServiceId(keystoneApi, KeystoneUtils.OPENSTACK_CINDER_V2_NAME);
-        // Find Id of cinderv1 service.
-        String cinderServiceId = _keystoneUtils.findServiceId(keystoneApi, KeystoneUtils.OPENSTACK_CINDER_V1_NAME);
-
-        // Create service when cinderv2 service is missing.
-        if (cinderv2ServiceId == null) {
-            ServiceV2 service = prepareNewCinderService(true);
-            CreateServiceResponse response = keystoneApi.createKeystoneService(service);
-            cinderv2ServiceId = response.getService().getId();
-        } else {
-            // Delete old endpoint for cinderv2 service.
-            _keystoneUtils.deleteKeystoneEndpoint(keystoneApi, cinderv2ServiceId);
-        }
-
-        // Create service when cinder service is missing.
-        if (cinderServiceId == null) {
-            ServiceV2 service = prepareNewCinderService(false);
-            CreateServiceResponse response = keystoneApi.createKeystoneService(service);
-            cinderServiceId = response.getService().getId();
-        } else {
-            // Delete old endpoint for cinderv1 service.
-            _keystoneUtils.deleteKeystoneEndpoint(keystoneApi, cinderServiceId);
-        }
-
-        // Get region name for a cinderv2 service.
-        String region = _keystoneUtils.getRegionForService(keystoneApi, cinderv2ServiceId);
-
-        // Set default region in case when endpoint is not present.
-        if (region == null) {
-            region = KeystoneUtils.OPENSTACK_DEFAULT_REGION;
-        }
-
-        // Prepare new endpoint for cinderv2 service.
-        EndpointV2 newEndpointV2 = prepareNewCinderEndpoint(region, cinderv2ServiceId, true);
-        // Prepare new endpoint for cinderv1 service.
-        EndpointV2 newEndpointV1 = prepareNewCinderEndpoint(region, cinderServiceId, false);
-        // Create a new endpoint pointing to CoprHD for cinderv2 using Keystone API.
-        keystoneApi.createKeystoneEndpoint(newEndpointV2);
-        // Create a new endpoint pointing to CoprHD for cinderv1 using Keystone API.
-        keystoneApi.createKeystoneEndpoint(newEndpointV1);
-
-        _log.debug("END - register CoprHD in Keystone");
-    }
-
-    /**
-     * Retrieves username and tenantname from the AuthnProvider.
-     *
-     * @param provider AuthnProvider filled with data.
-     * @return StringMap containing username and tenantname keys with values.
-     */
-    private StringMap getUsernameAndTenant(AuthnProvider provider){
-
-        String managerDN = provider.getManagerDN();
-        String username = managerDN.split(",")[0].split("=")[1];
-        String tenantName = managerDN.split(",")[1].split("=")[1];
-        StringMap map = new StringMap();
-        map.put(CinderConstants.USERNAME, username);
-        map.put(CinderConstants.TENANTNAME, tenantName);
-
-        return map;
-    }
-
-    /**
-     * Get Keystone API client.
-     *
-     * @param provider AuthnProvider filled with data.
-     * @return keystoneApi KeystoneApiClient.
-     */
-    private KeystoneApiClient getKeystoneApi(AuthnProvider provider){
-
-        URI authUri = _keystoneUtils.retrieveUriFromServerUrls(provider.getServerUrls());
-
-        StringMap map = getUsernameAndTenant(provider);
-
-        String username = map.get(CinderConstants.USERNAME);
-        String tenantName = map.get(CinderConstants.TENANTNAME);
-
-        // Get Keystone API Client.
-        return _keystoneUtils.getKeystoneApi(authUri, username, provider.getManagerPassword(), tenantName);
-    }
-
-    /**
-     * Prepare a new endpoint for cinder or cinderv2 service.
-     *
-     * @param region Region assigned to the endpoint.
-     * @param serviceId Cinder service ID.
-     * @param isCinderv2 Boolean that holds information about version of a service.
-     * @return Endpoint filled with necessary information.
-     */
-    private EndpointV2 prepareNewCinderEndpoint(String region, String serviceId, Boolean isCinderv2) {
-
-        String url = "";
-
-        // Get cluster Virtual IP.
-        Map<String, String> ovfprops = (Map) _ovfProperties;
-        ClusterIpv4Setting ipv4Setting = new ClusterIpv4Setting();
-        ipv4Setting.loadFromPropertyMap(ovfprops);
-        String clusterVIP = ipv4Setting.getNetworkVip();
-
-        if (clusterVIP == null) {
-            _log.error("Could not retrieve cluster Virtual IP");
-            throw APIException.internalServerErrors.targetIsNullOrEmpty("Virtual IP");
-        }
-
-        _log.debug("Cluster VIP: {}", clusterVIP);
-
-        // Checks whether url should point to cinderv2 or to cinder service.
-        if(isCinderv2){
-            url = CinderConstants.HTTPS_URL + clusterVIP + CinderConstants.COPRHD_URL_V2;
-        }else{
-            url = CinderConstants.HTTPS_URL + clusterVIP + CinderConstants.COPRHD_URL_V1;
-        }
-
-        EndpointV2 endpoint = new EndpointV2();
-        endpoint.setRegion(region);
-        endpoint.setServiceId(serviceId);
-        endpoint.setPublicURL(url);
-        endpoint.setAdminURL(url);
-        endpoint.setInternalURL(url);
-
-        return endpoint;
-    }
-
-    /**
-     * Prepare a new service (cinder or cinderv2).
-     *
-     * @param isCinderv2 Boolean that holds information about version of a service.
-     * @return Service filled with necessary information.
-     */
-    private ServiceV2 prepareNewCinderService(Boolean isCinderv2) {
-
-        ServiceV2 service = new ServiceV2();
-
-        if (isCinderv2) {
-            service.setName(KeystoneUtils.OPENSTACK_CINDER_V2_NAME);
-            service.setType(CinderConstants.SERVICE_TYPE_VOLUMEV2);
-        } else {
-            service.setName(KeystoneUtils.OPENSTACK_CINDER_V1_NAME);
-            service.setType(CinderConstants.SERVICE_TYPE_VOLUME);
-        }
-
-        service.setDescription(CinderConstants.SERVICE_DESCRIPTION);
-
-        return service;
-    }
-
-    /**
      * Returns new password when old password is different from new one. Otherwise returns old password.
      *
      * @param provider AuthnProvider with new password.
@@ -445,33 +279,9 @@ public class AuthnConfigurationService extends TaggedResource {
         return password;
     }
 
-    /**
-     * Populate or Modify the keystone token
-     * in authentication provider.
-     *
-     * @param provider
-     */
-    private void populateKeystoneToken(AuthnProvider provider, String oldPassword) {
-        Set<String> uris = provider.getServerUrls();
-
-        URI authUri = _keystoneUtils.retrieveUriFromServerUrls(uris);
-
-        String password = getPassword(provider, oldPassword);
-
-        StringMap map = getUsernameAndTenant(provider);
-
-        String username = map.get(CinderConstants.USERNAME);
-        String tenantName = map.get(CinderConstants.TENANTNAME);
-        KeystoneApiClient keystoneApi = _keystoneUtils.getKeystoneApi(authUri, username, password, tenantName);
-        keystoneApi.authenticate_keystone();
-        StringMap keystoneAuthKeys = new StringMap();
-        keystoneAuthKeys.put(KeystoneConstants.AUTH_TOKEN, keystoneApi.getAuthToken());
-        provider.setKeys(keystoneAuthKeys);
-    }
-
     private void createTenantsAndProjectsForAutomaticKeystoneRegistration(AuthnProvider provider) {
         // Create a new KeystoneAPI.
-        KeystoneApiClient keystoneApi = getKeystoneApi(provider);
+        KeystoneApiClient keystoneApi = _keystoneUtils.getKeystoneApi(provider.getManagerDN(), provider.getServerUrls(), provider.getManagerPassword());
 
         // Retrieve tenants from OpenStack via Keystone API.
         TenantResponse tenantResponse = keystoneApi.getKeystoneTenants();
@@ -566,12 +376,12 @@ public class AuthnConfigurationService extends TaggedResource {
                         authnProviderCouldNotBeValidated(errorString.toString());
             }
         }
-        populateKeystoneToken(provider, oldPassword);
+        provider.setKeys(_keystoneUtils.populateKeystoneToken(provider.getServerUrls(), provider.getManagerDN(), getPassword(provider, oldPassword)));
         _log.debug("Saving to the DB the updated provider: {}", provider.toString());
         persistProfileAndNotifyChange(provider, false);
 
         if (provider.getAutoRegCoprHDNImportOSProjects() && !isAutoRegistered) {
-            registerCoprhdInKeystone(provider);
+            _keystoneUtils.registerCoprhdInKeystone(provider.getManagerDN(), provider.getServerUrls(), provider.getManagerPassword());
             createTenantsAndProjectsForAutomaticKeystoneRegistration(provider);
         }
         auditOp(OperationTypeEnum.UPDATE_AUTHPROVIDER, true, null,
@@ -934,28 +744,9 @@ public class AuthnConfigurationService extends TaggedResource {
             checkForVdcRolesUsingDomains(provider.getDomains());
             checkForUserGroupsUsingDomains(provider.getDomains());
             verifyDomainsIsNotInUse(provider.getDomains());
-        }else{
-            // Create a new KeystoneAPI.
-            KeystoneApiClient keystoneApi = getKeystoneApi(provider);
-            // Get a cinderv2 service id.
-            String serviceIdV2 = _keystoneUtils.findServiceId(keystoneApi, KeystoneUtils.OPENSTACK_CINDER_V2_NAME);
-            // Get a cinderv1 service id.
-            String serviceIdV1 = _keystoneUtils.findServiceId(keystoneApi, KeystoneUtils.OPENSTACK_CINDER_V1_NAME);
-
-            // Delete endpoint when cinderv2 service exist.
-            if (serviceIdV2 != null) {
-
-                // Delete endpoint for cinderv2 service.
-                _keystoneUtils.deleteKeystoneEndpoint(keystoneApi, serviceIdV2);
-            }
-
-            // Delete endpoint when cinder service exist.
-            if (serviceIdV1 != null) {
-
-                // Delete endpoint for cinder service.
-                _keystoneUtils.deleteKeystoneEndpoint(keystoneApi, serviceIdV1);
-            }
-
+        } else {
+            // Delete Cinder endpoints.
+            _keystoneUtils.deleteCinderEndpoints(provider.getManagerDN(), provider.getServerUrls(), provider.getManagerPassword());
         }
         _dbClient.removeObject(provider);
         notifyChange();
@@ -1138,12 +929,12 @@ public class AuthnConfigurationService extends TaggedResource {
 
     /**
      * Ensures that there exists a single keystone provider always.
-     * 
+     *
      * Requests for keystone authentication provider will be coming from OpenStack
      * environment, since it is not possible to figure out which keystone provider to
      * use for which request, hence only single keystone authentication provider is
      * supported.
-     * 
+     *
      * @param param
      */
     private void ensureSingleKeystoneProvider(AuthnCreateParam param) {

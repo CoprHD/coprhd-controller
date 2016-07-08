@@ -7,6 +7,7 @@ package com.emc.storageos.volumecontroller.impl.vnxe.job;
 
 import java.io.IOException;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 
@@ -63,7 +64,12 @@ public class VNXeCreateVolumesJob extends VNXeJob {
 
             // If terminal state update storage pool capacity
             if (_status == JobStatus.SUCCESS || _status == JobStatus.FAILED) {
-                VNXeJob.updateStoragePoolCapacity(dbClient, vnxeApiClient, storagePool);
+                List<URI> volUris = getTaskCompleter().getIds();
+                List<String> volsInPool = new ArrayList<String>();
+                for (URI voluri : volUris) {
+                    volsInPool.add(voluri.toString());
+                }
+                VNXeJob.updateStoragePoolCapacity(dbClient, vnxeApiClient, storagePool, volsInPool);
             }
             Calendar now = Calendar.getInstance();
             int volumeCount = 0;

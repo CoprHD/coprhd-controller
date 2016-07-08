@@ -96,7 +96,11 @@
       </control-group>      
       
 
-      <control-group v-field="smisProvider.hyperScaleURL" ng-show="smisProvider.interfaceType ==='ibmxiv'">
+      <control-group v-field="smisProvider.hyperScaleHost" ng-show="smisProvider.interfaceType ==='ibmxiv'">
+        <input-text></input-text>
+      </control-group>
+      
+      <control-group v-field="smisProvider.hyperScalePort" ng-show="smisProvider.interfaceType ==='ibmxiv'">
         <input-text></input-text>
       </control-group>
       

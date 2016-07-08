@@ -235,6 +235,10 @@ public class StorageProviders extends ViprResourceController {
         public String hyperScaleConfPasswd = "";
 
         public String hyperScaleURL;
+        
+        public String hyperScaleHost;
+        
+        public String hyperScalePort;
 
         public StorageProviderForm() {
         }
@@ -261,7 +265,7 @@ public class StorageProviders extends ViprResourceController {
             if (StringUtils.isNotEmpty(this.hyperScaleConfPasswd)) {
                 this.secondaryPasswordConfirm = this.hyperScaleConfPasswd;
             }
-            if (StringUtils.isNotEmpty(this.hyperScaleURL)) {
+            if (StringUtils.isNotEmpty(this.hyperScaleHost)&&StringUtils.isNotEmpty(this.hyperScalePort)) {
                 this.elementManagerURL = this.hyperScaleURL;
             }
         }

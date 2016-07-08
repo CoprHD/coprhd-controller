@@ -18,8 +18,8 @@ public class ArrayAffinityAsyncTask extends AsyncTask {
     private URI _hostId;
     private List<URI> _systemIds;
 
-    public ArrayAffinityAsyncTask(Class clazz, URI id, List<URI> systemIds, URI hostId, String opId) {
-        super(clazz, id, opId, Discovery_Namespaces.ARRAY_AFFINITY.name());
+    public ArrayAffinityAsyncTask(Class clazz, List<URI> systemIds, URI hostId, String opId) {
+        super(clazz, systemIds.get(0), opId, Discovery_Namespaces.ARRAY_AFFINITY.name());
         _hostId = hostId;
         _systemIds = systemIds;
     }

@@ -451,13 +451,12 @@ public class HostService extends TaskResourceService {
 
         for (Map.Entry<URI, List<URI>> entry : providerToSystemsMap.entrySet()) {
             List<URI> systemIds = entry.getValue();
-            Collections.shuffle(systemIds);
             BlockController controller = getController(BlockController.class, providerToSystemTypeMap.get(entry.getKey()));
             DiscoveredObjectTaskScheduler scheduler = new DiscoveredObjectTaskScheduler(_dbClient,
                     new StorageSystemService.ArrayAffinityJobExec(controller, host.getId(), hostDiscoveryTaskId, _dbClient));
             ArrayList<AsyncTask> tasks = new ArrayList<AsyncTask>();
             String taskId = UUID.randomUUID().toString();
-            tasks.add(new ArrayAffinityAsyncTask(StorageSystem.class, systemIds.get(0), systemIds, host.getId(), taskId));
+            tasks.add(new ArrayAffinityAsyncTask(StorageSystem.class, systemIds, host.getId(), taskId));
             TaskList taskList = scheduler.scheduleAsyncTasks(tasks);
             taskResList.addAll(taskList.getTaskList());
         }

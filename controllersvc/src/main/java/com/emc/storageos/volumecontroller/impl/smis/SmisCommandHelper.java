@@ -7342,6 +7342,12 @@ public class SmisCommandHelper implements SmisConstants {
         } 
     }
 
+    /**
+     * Get the SMI-S input arguments for setting the Initiator Alias.
+     * @param shidPath A reference to the HardwareID.
+     * @param initiatorAlias The alias that needs to be set
+     * @return An array of CIMArgument
+     */
     public CIMArgument[] getEMCInitiatorAliasSetArgs(CIMObjectPath shidPath, String initiatorAlias)
             throws Exception {
         return new CIMArgument[] {
@@ -7350,6 +7356,11 @@ public class SmisCommandHelper implements SmisConstants {
         };
     }
 
+    /**
+     * Get the SMI-S input arguments for getting the Initiator Alias.
+     * @param shidPath A reference to the existing HardwareID.
+     * @return An array of CIMArgument
+     */
     public CIMArgument[] getEMCInitiatorAliasGetArgs(CIMObjectPath shidPath)
             throws Exception {
         return new CIMArgument[] {

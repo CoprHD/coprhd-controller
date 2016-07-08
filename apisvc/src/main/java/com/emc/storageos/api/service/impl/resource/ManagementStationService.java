@@ -24,12 +24,12 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.service.impl.resource.utils.AsyncTaskExecutorIntf;
 import com.emc.storageos.api.service.impl.resource.utils.DiscoveredObjectTaskScheduler;
+import com.emc.storageos.computesystemcontroller.ComputeSystemController;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.ManagementStation;
 import com.emc.storageos.db.client.model.Operation;
-import com.emc.storageos.managementstation.ManagementStationController;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskList;
@@ -65,9 +65,9 @@ public class ManagementStationService extends TaskResourceService {
 
     private static class DiscoverJobExec implements AsyncTaskExecutorIntf {
 
-        private final ManagementStationController _controller;
+        private final ComputeSystemController _controller;
 
-        DiscoverJobExec(ManagementStationController controller) {
+        DiscoverJobExec(ComputeSystemController controller) {
             _controller = controller;
         }
 
@@ -78,7 +78,7 @@ public class ManagementStationService extends TaskResourceService {
 
         @Override
         public ResourceOperationTypeEnum getOperation() {
-            return ResourceOperationTypeEnum.DISCOVER_CONTROL_STATION;
+            return ResourceOperationTypeEnum.DISCOVER_VCENTER;
         }
     }
 
@@ -203,7 +203,7 @@ public class ManagementStationService extends TaskResourceService {
      * @return the task used to track the discovery job
      */
     private TaskResourceRep doDiscoverManagementStation(ManagementStation cs) {
-        ManagementStationController controller = getController(ManagementStationController.class, "managementstation");
+        ComputeSystemController controller = getController(ComputeSystemController.class, "managementstation");
         DiscoveredObjectTaskScheduler scheduler = new DiscoveredObjectTaskScheduler(
                 _dbClient, new DiscoverJobExec(controller));
         String taskId = UUID.randomUUID().toString();

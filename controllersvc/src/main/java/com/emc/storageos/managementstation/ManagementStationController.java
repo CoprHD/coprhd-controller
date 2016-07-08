@@ -31,10 +31,4 @@ public interface ManagementStationController extends Controller {
 
     public void removeVcenterCluster(URI datacenterUri, URI clusterUri) throws InternalException;
 
-    /**
-     * 
-     * @param tasks
-     * @throws InternalException
-     */
-    public void discover(AsyncTask[] tasks) throws InternalException;
 }

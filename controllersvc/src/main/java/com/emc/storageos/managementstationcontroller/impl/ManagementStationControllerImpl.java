@@ -1,4 +1,4 @@
-package com.emc.storageos.controlstationcontroller.impl;
+package com.emc.storageos.managementstationcontroller.impl;
 
 import java.net.URI;
 import java.util.List;
@@ -6,14 +6,30 @@ import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-import com.emc.storageos.exceptions.ClientControllerException;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.managementstation.ManagementStationController;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.AsyncTask;
-import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
-import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl.Lock;
+import com.emc.storageos.workflow.WorkflowService;
 
 public class ManagementStationControllerImpl implements ManagementStationController {
+
+    private DbClient _dbClient;
+    private WorkflowService _workflowService;
+    private CoordinatorClient _coordinator;
+
+    public void setDbClient(DbClient dbClient) {
+        _dbClient = dbClient;
+    }
+
+    public void setWorkflowService(WorkflowService workflowService) {
+        this._workflowService = workflowService;
+    }
+
+    public void setCoordinator(CoordinatorClient coordinatorClient) {
+        this._coordinator = coordinatorClient;
+    }
 
     private static final Log _log = LogFactory.getLog(ManagementStationControllerImpl.class);
 
@@ -70,16 +86,6 @@ public class ManagementStationControllerImpl implements ManagementStationControl
     public void removeVcenterCluster(URI datacenterUri, URI clusterUri) throws InternalException {
         // TODO Auto-generated method stub
 
-    }
-
-    @Override
-    public void discover(AsyncTask[] tasks) throws InternalException {
-        try {
-            ControllerServiceImpl.scheduleDiscoverJobs(tasks, Lock.CS_DATA_COLLECTION_LOCK, ControllerServiceImpl.CS_DISCOVERY);
-        } catch (Exception e) {
-            _log.error(String.format("Failed to schedule discovery job due to %s ", e.getMessage()));
-            throw ClientControllerException.fatals.unableToScheduleDiscoverJobs(tasks, e);
-        }
     }
 
 }

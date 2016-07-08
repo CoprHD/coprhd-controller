@@ -1211,7 +1211,7 @@
         <property name="coordinator" ref="coordinator"/>
     </bean>
     
-     <bean id="managementStationController" class="com.emc.storageos.controlstationcontroller.impl.ManagementStationControllerImpl">
+     <bean id="managementStationController" class="com.emc.storageos.managementstationcontroller.impl.ManagementStationControllerImpl">
         <property name="dbClient" ref="dbclient"/>
         <property name="workflowService" ref="workflowService" />
         <property name="coordinator" ref="coordinator"/>

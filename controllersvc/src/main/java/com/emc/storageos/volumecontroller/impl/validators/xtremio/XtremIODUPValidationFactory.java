@@ -41,4 +41,10 @@ public class XtremIODUPValidationFactory extends AbstractDUPValidationFactory {
         // TODO
         return null;
     }
+
+    @Override
+    public DUPreventionValidator removeVolumes(StorageSystem storage, URI exportMaskURI, Collection<Initiator> initiators) {
+        // TODO
+        return null;
+    }
 }

@@ -1,7 +1,6 @@
 package com.emc.storageos.volumecontroller.impl.validators.vmax;
 
 import com.emc.storageos.db.client.model.ExportMask;
-import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
 import com.google.common.base.Joiner;
@@ -18,30 +17,25 @@ import java.util.List;
 
 import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnBlockObjectToNativeID;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CP_DEVICE_ID;
-import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CP_INSTANCE_ID;
-import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CP_SE_STORAGE_HARDWARE_ID;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.STORAGE_VOLUME_CLASS;
 import static com.google.common.collect.Collections2.transform;
 
 /**
- * Validator class for VMAX export mask delete operations.
+ * TODO
  */
-class ExportMaskDeleteValidator extends AbstractVmaxDUPValidator {
+public class ExportMaskVolumesValidator extends AbstractVmaxDUPValidator {
 
-    private static final Logger log = LoggerFactory.getLogger(ExportMaskDeleteValidator.class);
+    private static final Logger log = LoggerFactory.getLogger(ExportMaskVolumesValidator.class);
 
     private StorageSystem storage;
     private ExportMask exportMask;
     private Collection<URI> volumeURIs;
-    private Collection<Initiator> initiators;
 
-    ExportMaskDeleteValidator(StorageSystem storage, ExportMask exportMask,
-                              Collection<URI> volumeURIList,
-                              Collection<Initiator> initiatorList) {
+    public ExportMaskVolumesValidator(StorageSystem storage, ExportMask exportMask,
+                                      Collection<URI> volumeURIList) {
         this.storage = storage;
         this.exportMask = exportMask;
         this.volumeURIs = volumeURIList;
-        this.initiators = initiatorList;
     }
 
     @Override
@@ -51,19 +45,7 @@ class ExportMaskDeleteValidator extends AbstractVmaxDUPValidator {
         List<String> failureReasons = Lists.newArrayList();
 
         getHelper().callRefreshSystem(storage, null, true);
-        validateExpectedVolumes(maskingViewPath, failureReasons);
-        validateExpectedInitiators(maskingViewPath, failureReasons);
 
-        if (!failureReasons.isEmpty()) {
-            String msgFmt = "Preventing deletion of export mask %s: %s.";
-            String msg = String.format(msgFmt, exportMask.getMaskName(), Joiner.on(", ").join(failureReasons));
-            throw new RuntimeException(msg); // TODO Create DUP-specific exception
-        }
-
-        return true;
-    }
-
-    private void validateExpectedVolumes(CIMObjectPath maskingViewPath, List<String> failureReasons) throws WBEMException {
         List<Volume> volumes = getDbClient().queryObject(Volume.class, volumeURIs);
         Collection<String> viprIds = transform(volumes, fctnBlockObjectToNativeID());
         log.info("ViPR has volumes: {}", Joiner.on(",").join(viprIds));
@@ -95,37 +77,13 @@ class ExportMaskDeleteValidator extends AbstractVmaxDUPValidator {
                 }
             }
         }
-    }
 
-    private void validateExpectedInitiators(CIMObjectPath maskingViewPath, List<String> failureReasons) throws WBEMException {
-        log.info("ViPR has initiators: {}", Joiner.on(',').join(initiators));
-        CloseableIterator<CIMObjectPath> assocInitiators = null;
-
-        try {
-            assocInitiators = getHelper().getAssociatorNames(storage, maskingViewPath, null, CP_SE_STORAGE_HARDWARE_ID, null, null);
-
-            List<String> smisInitiators = Lists.newArrayList();
-            while (assocInitiators.hasNext()) {
-                CIMObjectPath assocInitiator = assocInitiators.next();
-                String id = (String) assocInitiator.getKeyValue(CP_INSTANCE_ID);
-                smisInitiators.add(id);
-            }
-
-            log.info("{} has initiators: {}", storage.getSerialNumber(), Joiner.on(',').join(smisInitiators));
-            if (smisInitiators.size() > initiators.size()) {
-                failureReasons.add("unknown additional initiators were found");
-            }
-        } catch (WBEMException e) {
-            log.error("Failure occurred whilst validating initiators for export mask {}", exportMask.getMaskName(), e);
-            throw e;
-        } finally {
-            if (assocInitiators != null) {
-                try {
-                    assocInitiators.close();
-                } catch (Exception e) {
-                    // ignore
-                }
-            }
+        if (!failureReasons.isEmpty()) {
+            String msgFmt = "Preventing deletion of export mask %s: %s.";
+            String msg = String.format(msgFmt, exportMask.getMaskName(), Joiner.on(", ").join(failureReasons));
+            throw new RuntimeException(msg); // TODO Create DUP-specific exception
         }
+
+        return true;
     }
 }

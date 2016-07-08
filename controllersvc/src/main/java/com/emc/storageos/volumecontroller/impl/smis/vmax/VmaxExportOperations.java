@@ -1111,6 +1111,9 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 _log.info("removeVolumes: impacted initiators: {}", Joiner.on(",").join(initiatorList));
             }
 
+            DUPreventionValidator validator = validators.vmax().removeVolumes(storage, exportMaskURI, initiatorList);
+            validator.validate();
+
             boolean isVmax3 = storage.checkIfVmax3();
             WBEMClient client = _helper.getConnection(storage).getCimClient();
             // Get the context from the task completer, in case this is a rollback.

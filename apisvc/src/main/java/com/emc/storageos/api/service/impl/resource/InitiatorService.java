@@ -309,11 +309,11 @@ public class InitiatorService extends TaskResourceService {
     /**
      * Shows the alias/initiator name for an initiator
      * if set on the Storage System
-     * @param id the URN of a ViPR initiator
-     * @param vmaxSSID the URN of the VMAX Storage System
-     * @prereq none
-     * @return String representing the Initiator Alias if Set.
      * 
+     * @param id the URN of a ViPR initiator
+     * @param aliasGetParam the parameter containing the storage system attributes
+     * @prereq none
+     * @return A reference to an InitiatorRestRep representing the Initiator Alias if Set..
      * @throws Exception When an error occurs querying the VMAX Storage System.
      */
     @POST
@@ -359,13 +359,12 @@ public class InitiatorService extends TaskResourceService {
     /**
      * Sets the alias/initiator name for an initiator
      * on the Storage System
-     * @param id the URN of a ViPR initiator
-     * @param vmaxSSID the URN of the VMAX Storage System
-     * @param initiatorAlias is the alias to be set
-     * @prereq none
-     * @return none
      * 
-     * @throws Exception When an error occurs setting the alias on a  VMAX Storage System.
+     * @param id the URN of a ViPR initiator
+     * @param aliasSetParam the parameter containing the storage system and alias attributes
+     * @prereq none
+     * @return A reference to an InitiatorRestRep representing the Initiator Alias after Set..
+     * @throws Exception When an error occurs setting the alias on a VMAX Storage System.
      */
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })

@@ -908,26 +908,39 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         return true;
     }
 
+    /**
+     * Filters and retails only those export mask that are related to the ExportGroup
+     * @param exportGroup ExportGroup instance to be matched
+     * @param matchingExportMaskURIs List of ExportMask URIs for a port.
+     */
     private void filterExportMaskForGroup(ExportGroup exportGroup, Map<String, Set<URI>> matchingExportMaskURIs) {
         if (null != matchingExportMaskURIs && !matchingExportMaskURIs.isEmpty()) {
-            Set<String> portNames = new HashSet<String>();
+            
+        	Set<String> exportKeysToRemove = new HashSet<String>();
             Iterator<Entry<String, Set<URI>>> emITR = matchingExportMaskURIs.entrySet().iterator();
             while (emITR.hasNext()) {
-                Entry<String, Set<URI>> exprotMaskURI = emITR.next();
+            	Set<URI> matchedExportMask = new HashSet<URI>();
+            	Entry<String, Set<URI>> exprotMaskURI = emITR.next();
                 Set<URI> uris = exprotMaskURI.getValue();
                 for (URI uri : uris) {
                     List<ExportGroup> exportGroups = ExportUtils.getExportGroupsForMask(uri, _dbClient);
-                    if (!exportGroups.contains(exportGroup)) {
-                        uris.remove(uri);
+                    for(ExportGroup eg : exportGroups){
+                    	//Add the ExportMask URI if it matches with the ExportGroup
+                    	if(eg.getId().equals(exportGroup.getId())){
+                    		matchedExportMask.add(uri);
+                    		break;
+                    	}
                     }
                 }
-                if (uris.isEmpty()) {
-                    portNames.add(exprotMaskURI.getKey());
+                //If Matched ExportMask list is not empty clear All URIs and add matched exportmask. Else remove the key from matchingExportMask
+                if(!matchedExportMask.isEmpty()){
+                	uris.clear();
+                    uris.addAll(matchedExportMask);	
+                } else {
+                	exportKeysToRemove.add(exprotMaskURI.getKey());
                 }
             }
-            for (String portName : portNames) {
-                matchingExportMaskURIs.remove(portName);
-            }
+            matchingExportMaskURIs.keySet().removeAll(exportKeysToRemove);
         }
     }
 
@@ -1057,8 +1070,7 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
      * @param volumeMap
      *            Volume and HLU mapping.
      */
-    private void updateVolumeHLU(StorageSystem system, Collection<URI> initiatorURIs, ExportGroup exportGroup,
-            Map<URI, Integer> volumeMap) {
+    private void updateVolumeHLU(StorageSystem system, Collection<URI> initiatorURIs, ExportGroup exportGroup, Map<URI, Integer> volumeMap) {
         boolean findHLU = false;
         Map<String, List<URI>> computeResourceToInitiators = mapInitiatorsToComputeResource(exportGroup, initiatorURIs);
         Set<String> hostURISet = computeResourceToInitiators.keySet();
@@ -1076,24 +1088,24 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         // If auto HLU then start finding out the next HLU
         if (findHLU) {
             BlockStorageDevice device = getDevice();
-            Map<URI, List<String>> hostToHLUsMap = device.doFindHostHLUs(system, hostURIs);
-            Iterator<Entry<URI, List<String>>> hostToHLUsItr = hostToHLUsMap.entrySet().iterator();
-            Set<String> usedHLUs = new HashSet<String>();
+            Map<URI, List<Integer>> hostToHLUsMap = device.doFindHostHLUs(system, hostURIs);
+            Iterator<Entry<URI, List<Integer>>> hostToHLUsItr = hostToHLUsMap.entrySet().iterator();
+            Set<Integer> usedHLUs = new HashSet<Integer>();
             // Get the list of available HLU on array and then add that to the Set of common used HLUs
             while (hostToHLUsItr.hasNext()) {
-                Entry<URI, List<String>> hostHLUs = hostToHLUsItr.next();
+                Entry<URI, List<Integer>> hostHLUs = hostToHLUsItr.next();
                 usedHLUs.addAll(hostHLUs.getValue());
             }
             // Update Volume Map to the next available HLU.
             int nextHLU = 1;
             for (Entry<URI, Integer> volumeMapEntry : volumeMap.entrySet()) {
-                while (usedHLUs.contains(String.valueOf(nextHLU))) {
+                while (usedHLUs.contains(nextHLU)) {
                     nextHLU++;
                 }
                 // Max allowed HLU number for XIV is 511. Restricting it to that number.
                 if (nextHLU < MAX_HLU) {
                     _log.debug("Updating HLU of Volume {} from {} to " + nextHLU, volumeMapEntry.getKey(), volumeMapEntry.getValue());
-                    volumeMap.put(volumeMapEntry.getKey(), Integer.valueOf(nextHLU));
+                    volumeMap.put(volumeMapEntry.getKey(), nextHLU);
                     nextHLU++;
                 } else {
                     DeviceControllerException.errors.volumeReachedMaxExports(volumeMapEntry.getKey().toString(), nextHLU, new Throwable());

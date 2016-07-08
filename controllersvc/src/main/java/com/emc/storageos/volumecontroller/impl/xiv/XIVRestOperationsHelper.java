@@ -113,8 +113,11 @@ public class XIVRestOperationsHelper {
         Set<Boolean> result = new HashSet<Boolean>();
         if (null != initiators) {
             for (Initiator initiator : initiators) {
-                Host host = _dbClient.queryObject(Host.class, initiator.getHost());
-                result.add(isClusteredHostOnArray(storage, host.getLabel()));
+            	URI hostURI = initiator.getHost();
+            	if(null != hostURI) {
+            		Host host = _dbClient.queryObject(Host.class, hostURI);
+                    result.add(isClusteredHostOnArray(storage, host.getLabel()));	
+            	}
             }
         }
         return result.size() == 1 ? result.iterator().next() : false;
@@ -236,7 +239,7 @@ public class XIVRestOperationsHelper {
             }
 
             // Update Masking information
-            exportMask.setCreatedBySystem(false);
+            exportMask.setCreatedBySystem(true);
             exportMask.addToUserCreatedInitiators(userAddedInitiator);
             exportMask.addToUserCreatedVolumes(userAddedVolumes);
             exportMask.setMaskName(exportName);
@@ -435,7 +438,7 @@ public class XIVRestOperationsHelper {
                     Host host = _dbClient.queryObject(Host.class, initiator.getHost());
                     hostURIs.add(host.getId());
                     String normalizedPort = Initiator.normalizePort(initiator.getInitiatorPort());
-                    restExportOpr.deleteHostPort(storageIP, host.getLabel(), normalizedPort, initiator.getProtocol().toLowerCase());
+                    restExportOpr.deleteHostPort(storageIP, host.getLabel(), normalizedPort, initiator.getProtocol().toLowerCase(), false);
                 }
             }
 
@@ -532,80 +535,50 @@ public class XIVRestOperationsHelper {
         try {
             final String storageIP = storage.getSmisProviderIP();
             XIVRestClient restExportOpr = getRestClient(storage);
-            Set<String> hostSet = new HashSet<String>();
-            List<String> hostPortSet = new ArrayList<String>();
-
-            for (String initiatorName : initiatorNames) {
-                JSONArray portResult = restExportOpr.getPortDetails(storageIP, initiatorName);
-                for (int i = 0; i < portResult.length(); i++) {
-                    JSONObject resultObj = portResult.getJSONObject(i);
-                    hostSet.add(resultObj.getString("host"));
-                    hostPortSet.add(initiatorName);
-                }
-            }
-
             StringBuilder builder = new StringBuilder();
-
-            for (String host : hostSet) {
-                Map<String, Integer> volMapResult = restExportOpr.getVolumesMappedToHost(storageIP, null, host);
-                if (null != volMapResult && volMapResult.size() > 0) {
+            
+            for (String initiatorName : initiatorNames) {
+                final String hostName = restExportOpr.getHostPortContainer(storageIP, initiatorName);
+                Set<String> exportMaskNames = new HashSet<String>();
+                if(null != hostName){
+                	exportMaskNames.add(hostName);
+                	final String clusterNames = restExportOpr.getHostContainer(storageIP, hostName);
+                	if(null != clusterNames){
+                		exportMaskNames.add(clusterNames);	
+                	}
+                }
+                
+                // Find the existing masks
+                for(String exportMaskName : exportMaskNames) {
                     URIQueryResultList uriQueryList = new URIQueryResultList();
-                    _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getExportMaskByNameConstraint(host), uriQueryList);
+                    _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getExportMaskByNameConstraint(exportMaskName), uriQueryList);
                     ExportMask exportMask = null;
-                    boolean foundMaskInDb = false;
                     while (uriQueryList.iterator().hasNext()) {
                         URI uri = uriQueryList.iterator().next();
                         exportMask = _dbClient.queryObject(ExportMask.class, uri);
                         if (exportMask != null && !exportMask.getInactive() && exportMask.getStorageDevice().equals(storage.getId())) {
-                            foundMaskInDb = true;
+                            ExportMaskUtils.sanitizeExportMaskContainers(_dbClient, exportMask);
+                            _dbClient.updateAndReindexObject(exportMask);
+                            Set<URI> maskURIs = matchingMasks.get(initiatorName);
+                            if (maskURIs == null) {
+                                maskURIs = new HashSet<URI>();
+                                matchingMasks.put(initiatorName, maskURIs);
+                            }
+                            maskURIs.add(exportMask.getId());
                             break;
                         }
                     }
 
-                    // If there was no export mask found in the database, then create a new one
-                    if (!foundMaskInDb) {
-                        exportMask = new ExportMask();
-                        exportMask.setLabel(host);
-                        exportMask.setMaskName(host);
-                        exportMask.setNativeId(host);
-                        exportMask.setStorageDevice(storage.getId());
-                        exportMask.setId(URIUtil.createId(ExportMask.class));
-                        exportMask.setCreatedBySystem(false);
-                    }
-
-                    exportMask.addToExistingVolumesIfAbsent(volMapResult);
-                    exportMask.addToExistingInitiatorsIfAbsent(hostPortSet);
-
-                    builder.append(String.format("XM %s is matching. " + "EI: { %s }, EV: { %s }%n", host,
-                            Joiner.on(',').join(exportMask.getExistingInitiators()),
-                            Joiner.on(',').join(exportMask.getExistingVolumes().keySet())));
-
-                    if (foundMaskInDb) {
-                        ExportMaskUtils.sanitizeExportMaskContainers(_dbClient, exportMask);
-                        _dbClient.updateAndReindexObject(exportMask);
-                    } else {
-                        _dbClient.createObject(exportMask);
-                    }
-
                     // update hosts
-                    Initiator initiator = ExportUtils.getInitiator(Initiator.toPortNetworkId(hostPortSet.get(0)), _dbClient);
+                    Initiator initiator = ExportUtils.getInitiator(Initiator.toPortNetworkId(initiatorName), _dbClient);
                     if (null != initiator && null != initiator.getHost()) {
                         Host hostIns = _dbClient.queryObject(Host.class, initiator.getHost());
                         String label = hostIns.getLabel();
-                        if (label.equals(host)) {
+                        if (label.equals(exportMaskName)) {
                             unsetTag(hostIns, storage.getSerialNumber());
                         } else {
-                            setTag(hostIns, storage.getSerialNumber(), host);
+                            setTag(hostIns, storage.getSerialNumber(), exportMaskName);
                         }
-                    }
-
-                    for (String it : hostPortSet) {
-                        Set<URI> maskURIs = matchingMasks.get(it);
-                        if (maskURIs == null) {
-                            maskURIs = new HashSet<URI>();
-                            matchingMasks.put(it, maskURIs);
-                        }
-                        maskURIs.add(exportMask.getId());
                     }
                 }
             }
@@ -740,4 +713,78 @@ public class XIVRestOperationsHelper {
         }
 
     }
+
+    /**
+     * Add Initiator to a existing Export Mask.
+     * @param storage StorageSystem instance
+     * @param exportMaskURI Export mask URI where the initiator needs to be added
+     * @param initiatorList List of initiators need to be added
+     * @param taskCompleter Task Completer instance
+     */
+	public void addInitiatorUsingREST(StorageSystem storage, URI exportMaskURI, List<Initiator> initiatorList, TaskCompleter taskCompleter) {
+		
+		try {
+
+            ExportMask mask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
+            XIVRestClient restExportOpr = getRestClient(storage);
+
+            final String storageIP = storage.getSmisProviderIP();
+            
+	        List<Initiator> userAddedInitiators = new ArrayList<Initiator>();
+	        for (Initiator initiator : initiatorList) {
+	            final Host host = _dbClient.queryObject(Host.class, initiator.getHost());
+	
+	            // Add Initiators to Host.
+	            if (!restExportOpr.createHostPort(storageIP, host.getLabel(), Initiator.normalizePort(initiator.getInitiatorPort()),
+	                    initiator.getProtocol().toLowerCase())) {
+	            	userAddedInitiators.add(initiator);
+	            }
+	        }
+	        mask.addToUserCreatedInitiators(userAddedInitiators);
+            ExportMaskUtils.sanitizeExportMaskContainers(_dbClient, mask);
+            _dbClient.updateObject(mask);
+	        taskCompleter.ready(_dbClient);
+		} catch (Exception e) {
+			_log.error("Unexpected error: addInitiator failed.", e);
+            ServiceError error = XIVRestException.exceptions.methodFailed("addInitiator", e);
+            taskCompleter.error(_dbClient, error);
+		}
+	}
+	
+	/**
+	 * Removes a initiator from ExportMask
+	 * @param storage StorageSystem instance
+	 * @param exportMaskURI ExportMask URI where Initiator needs to be removed
+	 * @param initiatorList List of Initiators to be removed
+	 * @param taskCompleter Task Completer instance
+	 */
+	public void removeInitiatorUsingREST(StorageSystem storage, URI exportMaskURI, List<Initiator> initiatorList, TaskCompleter taskCompleter) {
+		
+		try {
+
+            ExportMask mask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
+            XIVRestClient restExportOpr = getRestClient(storage);
+
+            final String storageIP = storage.getSmisProviderIP();
+            
+            List<URI> userRemovedInitiators = new ArrayList<URI>();
+            if (null != initiatorList) {
+                for (Initiator initiator : initiatorList) {
+                    final Host host = _dbClient.queryObject(Host.class, initiator.getHost());
+                    final String normalizedPort = Initiator.normalizePort(initiator.getInitiatorPort());
+                    if(restExportOpr.deleteHostPort(storageIP, host.getLabel(), normalizedPort, initiator.getProtocol().toLowerCase(), true)) {
+                    	userRemovedInitiators.add(initiator.getId());
+                    }
+                }
+            }
+	        mask.removeFromUserAddedInitiatorsByURI(userRemovedInitiators);
+            ExportMaskUtils.sanitizeExportMaskContainers(_dbClient, mask);
+            _dbClient.updateObject(mask);
+	        taskCompleter.ready(_dbClient);
+		} catch (Exception e) {
+			_log.error("Unexpected error: addInitiator failed.", e);
+            ServiceError error = XIVRestException.exceptions.methodFailed("addInitiator", e);
+            taskCompleter.error(_dbClient, error);
+		}
+	}
 }

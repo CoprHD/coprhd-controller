@@ -62,6 +62,7 @@ public class SiteMapper {
         to.setState(from.getState().toString());
         to.setCreateTime(from.getCreationTime());
         to.setLastStateUpdateTime(from.getLastStateUpdateTime());
+        to.setLastFailoverTime(from.getLastFailoverTime());
     }
 
     public void map(Site from, SiteParam to) {

@@ -27,6 +27,7 @@ public class Site {
     private static final String KEY_CREATIONTIME = "creationTime";
     private static final String KEY_LASTSTATEUPDATETIME = "lastStateUpdateTime";
     private static final String KEY_LAST_LOST_QUORUM_TIME = "lastLostQuorumTime";
+    private static final String KEY_LAST_FAILOVER_TIME = "lastFailoverTime";
     private static final String KEY_LASTSTATE = "lastState";
     private static final String KEY_SITE_STATE = "state";
     private static final String KEY_NODESADDR = "nodesAddr";
@@ -252,6 +253,10 @@ public class Site {
             config.setConfig(KEY_LAST_LOST_QUORUM_TIME, String.valueOf(lastLostQuorumTime));
         }
 
+        if (lastFailoverTime != 0L) {
+            config.setConfig(KEY_LAST_FAILOVER_TIME, String.valueOf(lastFailoverTime));
+        }
+
         if (lastState != null) {
             config.setConfig(KEY_LASTSTATE, String.valueOf(lastState));
         }
@@ -298,6 +303,11 @@ public class Site {
             s = config.getConfig(KEY_LAST_LOST_QUORUM_TIME);
             if (s != null) {
                 lastLostQuorumTime = Long.valueOf(s);
+            }
+
+            s = config.getConfig(KEY_LAST_FAILOVER_TIME);
+            if (s!= null) {
+                lastFailoverTime = Long.valueOf(s);
             }
 
             s = config.getConfig(KEY_LASTSTATE);

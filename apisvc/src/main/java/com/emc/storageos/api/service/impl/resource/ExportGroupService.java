@@ -983,9 +983,9 @@ public class ExportGroupService extends TaskResourceService {
      * @return the aggregate list of initiators needed to export all the hosts and clusters and initiators
      */
     List<URI> validateClientsAndPopulate(ExportGroup exportGroup,
-            Project project, VirtualArray varray, Collection<URI> storageSystems,
+            Project project, VirtualArray varray, Set<URI> storageSystems,
             List<URI> clusters, List<URI> hosts, List<URI> virtualMachines,
-            List<URI> initiators, Collection<URI> volumes, ExportPathParameters pathParam) {
+            List<URI> initiators, Set<URI> volumes, ExportPathParameters pathParam) {
         List<URI> allInitiators = new ArrayList<URI>();
         List<URI> allHosts = new ArrayList<URI>();
         if (initiators != null && !initiators.isEmpty()) {

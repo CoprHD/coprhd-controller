@@ -961,11 +961,13 @@ public class StoragePortsAllocator {
                                 .getPortNetworkId()), uriList);
         for (URI uri : uriList) {
             FCEndpoint endpoint = dbClient.queryObject(FCEndpoint.class, uri);
-            if (endpoint.getSwitchName() != null) {
-                // Return the switch name if it is known.
-                if (endpoint.getAwolCount() == 0) {
-                    return endpoint.getSwitchName();
-                }
+            if (endpoint != null) {           
+	            if (endpoint.getSwitchName() != null) {
+	                // Return the switch name if it is known.
+	                if (endpoint.getAwolCount() == 0) {
+	                    return endpoint.getSwitchName();
+	                }
+	            }
             }
         }
         return null;

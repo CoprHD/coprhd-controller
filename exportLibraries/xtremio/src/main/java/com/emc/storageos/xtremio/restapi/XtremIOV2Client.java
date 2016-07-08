@@ -37,6 +37,9 @@ import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiatorGroup;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiatorGroups;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiators;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiatorsInfo;
+import com.emc.storageos.xtremio.restapi.model.response.XtremIOLunMap;
+import com.emc.storageos.xtremio.restapi.model.response.XtremIOLunMaps;
+import com.emc.storageos.xtremio.restapi.model.response.XtremIOLunMapsInfo;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOObjectInfo;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOPort;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOPorts;
@@ -153,6 +156,47 @@ public class XtremIOV2Client extends XtremIOClient {
         }
 
         return volumeList;
+    }
+
+    @Override
+    public List<XtremIOLunMap> getXtremIOLunMaps(String clusterName) throws Exception {
+        String uriString = XtremIOConstants.XTREMIO_V2_LUNMAPS_STR.concat(XtremIOConstants.getInputClusterString(clusterName));
+        ClientResponse response = get(URI.create(uriString));
+        XtremIOLunMapsInfo lunMapLinks = getResponseObject(XtremIOLunMapsInfo.class, response);
+        log.info("Returned LunMaps Links size : {}", lunMapLinks.getLunMapInfo().length);
+        List<XtremIOLunMap> lunMapList = getXtremIOLunMapsForLinks(Arrays.asList(lunMapLinks.getLunMapInfo()), clusterName);
+
+        return lunMapList;
+    }
+
+    @Override
+    public List<XtremIOObjectInfo> getXtremIOLunMapLinks(String clusterName) throws Exception {
+        String uriString = XtremIOConstants.XTREMIO_V2_LUNMAPS_STR.concat(XtremIOConstants.getInputClusterString(clusterName));
+        ClientResponse response = get(URI.create(uriString));
+        XtremIOLunMapsInfo lunMapLinks = getResponseObject(XtremIOLunMapsInfo.class, response);
+
+        return Arrays.asList(lunMapLinks.getLunMapInfo());
+    }
+
+    @Override
+    public List<XtremIOLunMap> getXtremIOLunMapsForLinks(List<XtremIOObjectInfo> lunMapLinks, String clusterName) throws Exception {
+        List<XtremIOLunMap> lunMapList = new ArrayList<XtremIOLunMap>();
+        for (XtremIOObjectInfo lunMapInfo : lunMapLinks) {
+            try {
+                URI lunMapURI = URI.create(URIUtil.getFromPath(lunMapInfo.getHref().concat(
+                        XtremIOConstants.getInputClusterString(clusterName))));
+                log.debug("Trying to get LunMap details for {}", lunMapURI.toString());
+                ClientResponse response = get(lunMapURI);
+                XtremIOLunMaps lunMaps = getResponseObject(XtremIOLunMaps.class, response);
+                log.info("LunMap {}", lunMaps.getContent().getMappingInfo().get(1) + "-"
+                        + lunMaps.getContent().getMappingInfo().get(2));
+                lunMapList.add(lunMaps.getContent());
+            } catch (InternalException ex) {
+                log.warn("Exception while trying to retrieve XtremIO LunMap link {}", lunMapInfo.getHref());
+            }
+        }
+
+        return lunMapList;
     }
 
     @Override

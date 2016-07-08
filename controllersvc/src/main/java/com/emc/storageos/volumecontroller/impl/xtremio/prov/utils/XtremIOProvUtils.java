@@ -8,6 +8,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -16,6 +17,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageProvider;
@@ -75,6 +78,30 @@ public class XtremIOProvUtils {
         } catch (Exception e) {
             _log.warn("Problem when updating pool capacity for pool {}", storagePool.getNativeGuid());
         }
+    }
+
+    /**
+     * Gets the storage pool for the given storage system.
+     *
+     * @param systemId the system id
+     * @param dbClient the db client
+     * @return the xtremio storage pool
+     */
+    public static StoragePool getXtremIOStoragePool(URI systemId, DbClient dbClient) {
+        StoragePool storagePool = null;
+        URIQueryResultList storagePoolURIs = new URIQueryResultList();
+        dbClient.queryByConstraint(ContainmentConstraint.Factory
+                .getStorageDeviceStoragePoolConstraint(systemId),
+                storagePoolURIs);
+        Iterator<URI> poolsItr = storagePoolURIs.iterator();
+        while (poolsItr.hasNext()) {
+            URI storagePoolURI = poolsItr.next();
+            StoragePool pool = dbClient.queryObject(StoragePool.class, storagePoolURI);
+            if (pool != null && !pool.getInactive()) {
+                storagePool = pool;
+            }
+        }
+        return storagePool;
     }
 
     /**

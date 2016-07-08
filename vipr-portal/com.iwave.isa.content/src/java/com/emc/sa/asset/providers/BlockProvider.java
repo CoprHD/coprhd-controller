@@ -46,6 +46,7 @@ import com.emc.sa.util.StringComparator;
 import com.emc.sa.util.TextUtils;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.model.BulkIdParam;
@@ -2199,8 +2200,23 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
                 @Override
                 public boolean accept(VolumeRestRep item) {
-                    return (item.getVolumeGroups() == null || !contains(item, mobilityGroupId))
-                            && vplexFilter.accept(item);
+                    boolean accept = (item.getVolumeGroups() == null || !contains(item, mobilityGroupId))
+                                        && vplexFilter.accept(item);
+                    if (accept) {
+                        boolean rpProtection = (item.getProtection() != null 
+                                                       && item.getProtection().getRpRep() != null
+                                                       && item.getProtection().getRpRep().getPersonality() != null);
+                        if (rpProtection) {
+                            // If RP+VPLEX protection specified, only allow RP SOURCE volumes to be listed
+                            // as candidates for mobility groups. Exclude TARGETs and JOURNALs.
+                            String personality = item.getProtection().getRpRep().getPersonality();
+                            if (Volume.PersonalityTypes.TARGET.name().equals(personality)
+                                    || Volume.PersonalityTypes.METADATA.name().equals(personality)) {
+                                accept = false;
+                            }
+                        }
+                    }                    
+                    return accept;
                 }
 
                 private boolean contains(VolumeRestRep item, URI mobilityGroup) {

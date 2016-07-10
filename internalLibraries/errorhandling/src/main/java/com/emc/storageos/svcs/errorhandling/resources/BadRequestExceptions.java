@@ -941,10 +941,6 @@ public interface BadRequestExceptions {
     public BadRequestException noIntiatorsConnectedToVolumes();
 
     @DeclareServiceCode(ServiceCode.API_NO_PLACEMENT_FOUND)
-    public BadRequestException noMatchingRecoverPointProtectionPools(final String varrayLabel,
-            final String vPoolLabel, final Set<String> varrayLabels);
-
-    @DeclareServiceCode(ServiceCode.API_NO_PLACEMENT_FOUND)
     public BadRequestException noMatchingRecoverPointStoragePoolsForVpoolAndVarrays(
             final String vpoolLabel, final Set<String> varrayLabels);
 
@@ -967,10 +963,6 @@ public interface BadRequestExceptions {
     public BadRequestException noMatchingStoragePoolsForRemoteFileReplication(
             final String vpoolLabel, final Set<String> varrayLabels);
 
-    @DeclareServiceCode(ServiceCode.API_NO_PLACEMENT_FOUND)
-    public BadRequestException noMatchingStoragePoolsForVpoolAndVarrays(
-            final String vpoolLabel, final Set<String> varrayLabel);
-    
     @DeclareServiceCode(ServiceCode.API_NO_PLACEMENT_FOUND)
     public BadRequestException noMatchingHighAvailabilityStoragePools(final String vpool, final String varray);
     

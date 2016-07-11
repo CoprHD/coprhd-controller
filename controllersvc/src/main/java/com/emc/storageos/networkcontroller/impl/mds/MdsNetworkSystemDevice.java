@@ -589,10 +589,9 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
 
         try {
             dialog.config();
-            zonesetClone(dialog, vsanId, activeZoneset);
-            dialog.zonesetNameVsan(activeZoneset.getName(), vsanId, false);
-
+            zonesetClone(dialog, vsanId, activeZoneset);                       
             for (Zone zone : zonesToBeDeleted) {
+            	dialog.zonesetNameVsan(activeZoneset.getName(), vsanId, false);
                 String zoneName = zone.getName();
                 _log.info("Removing zone: " + zoneName + " vsan: " + vsanId);
                 try {

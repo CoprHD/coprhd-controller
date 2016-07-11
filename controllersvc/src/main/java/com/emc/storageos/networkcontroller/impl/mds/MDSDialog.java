@@ -1444,7 +1444,7 @@ public class MDSDialog extends SSHDialog {
      * @throws NetworkDeviceControllerException
      */
     public void removeZoneMemberForZoneset(Integer vsanId, String zoneset) throws NetworkDeviceControllerException {
-        _log.info(MessageFormat.format("Host: {0}, Port: {1} - BEGIN zonesetClone",
+        _log.info(MessageFormat.format("Host: {0}, Port: {1} - BEGIN removeZoneMemberForZoneset",
                 new Object[] { getSession().getSession().getHost(), getSession().getSession().getPort() }));
 
         if (!inConfigMode) {
@@ -1460,7 +1460,7 @@ public class MDSDialog extends SSHDialog {
         lastPrompt = sendWaitFor(payload, defaultTimeout, prompts, buf);
         String[] lines = getLines(buf);
      
-        _log.info(MessageFormat.format("Host: {0}, Port: {1} - END zonesetClone",
+        _log.info(MessageFormat.format("Host: {0}, Port: {1} - END removeZoneMemberForZoneset",
                 new Object[] { getSession().getSession().getHost(), getSession().getSession().getPort() }));
     }
     

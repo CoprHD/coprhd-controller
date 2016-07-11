@@ -48,6 +48,7 @@ public class RowMutatorDS {
         this.context = context;
         this.atomicBatch = new BatchStatement();
         this.timeUUID = UUIDs.timeBased();
+        atomicBatch.setConsistencyLevel(writeCL);
 
         /*
          * will consider codeRegistry later.
@@ -76,6 +77,7 @@ public class RowMutatorDS {
     public void insertIndexColumn(String tableName, String indexRowKey, IndexColumnName column, Object val) {
         PreparedStatement insertPrepared = context.getPreparedStatement(String.format(insertIndexFormat, tableName));
         BoundStatement insert = insertPrepared.bind();
+        insert.setString("key", indexRowKey);
         // For PRIMARY KEY (key, column1, column2, column3, column4, column5), the primary key cannot be null
         insert.setString("column1", column.getOne() == null ? StringUtils.EMPTY : column.getOne());
         insert.setString("column2", column.getTwo() == null ? StringUtils.EMPTY : column.getTwo());
@@ -93,12 +95,14 @@ public class RowMutatorDS {
     }
 
     public void deleteIndexColumn(String tableName, String indexRowKey, IndexColumnName column) {
-        Delete deleteIndex = delete().from(String.format("\"%s\"", tableName)).where(eq("key", indexRowKey)).ifExists();
+        Delete deleteIndex = delete().from(String.format("\"%s\"", tableName)).where(eq("key", indexRowKey))
+                .and(eq("column1", column.getOne())).and(eq("column2", column.getTwo())).and(eq("column3", column.getThree()))
+                .and(eq("column4", column.getFour())).and(eq("column5", column.getTimeUUID())).ifExists();
         atomicBatch.add(deleteIndex);
     }
 
     public void execute() {
-        context.getSession().execute(atomicBatch.setConsistencyLevel(writeCL));
+        context.getSession().execute(atomicBatch);
         //todo executeWithRetry
     }
 

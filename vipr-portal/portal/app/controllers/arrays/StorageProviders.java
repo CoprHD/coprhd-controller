@@ -56,17 +56,6 @@ public class StorageProviders extends ViprResourceController {
     private static final int SAVE_WAIT_MILLIS = 300000;
 
     private static void addReferenceData() {
-<<<<<<< HEAD
-        renderArgs.put("interfaceTypeOptions", StorageProviderTypes.OPTIONS);
-        renderArgs.put("optionsSIO", StorageProviderTypes.optionSIO);
-        renderArgs.put("sslDefaultStorageProviderList", Arrays.asList(StorageProviderTypes.SSL_DEFAULT_OPTIONS));
-        renderArgs.put("nonSSLStorageSystemList", Arrays.asList(StorageSystemTypes.NON_SSL_OPTIONS));
-        renderArgs.put("mdmDefaultStorageProviderList", Arrays.asList(StorageSystemTypes.MDM_DEFAULT_OPTIONS));
-        renderArgs.put("mdmonlyProviderList", Arrays.asList(StorageSystemTypes.MDM_ONLY_OPTIONS));
-        renderArgs.put("secretKeyProviderList", Arrays.asList(StorageSystemTypes.SECRET_KEY_OPTIONS));
-        renderArgs.put("elementManagerStorageProviderList", Arrays.asList(StorageSystemTypes.ELEMENT_MANAGER_OPTIONS));
-        List<EnumOption> defaultStorageProviderPortMap = Arrays.asList(EnumOption.options(DefaultStorageProviderPortMap.values()));
-=======
         renderArgs.put("interfaceTypeOptions", StorageProviderTypes.getProviderOption());
         renderArgs.put("optionsSIO", StorageProviderTypes.getScaleIoOption());
         renderArgs.put("sslDefaultStorageProviderList", StorageProviderTypes.getProvidersWithSSL());
@@ -76,7 +65,6 @@ public class StorageProviders extends ViprResourceController {
         renderArgs.put("elementManagerStorageProviderList", StorageProviderTypes.getProvidersWithEMS());
 
         List<EnumOption> defaultStorageProviderPortMap = StorageProviderTypes.getStoragePortMap();
->>>>>>> origin/integration-3.2
         renderArgs.put("defaultStorageProviderPortMap", defaultStorageProviderPortMap);
     }
 
@@ -236,11 +224,8 @@ public class StorageProviders extends ViprResourceController {
         public String secondaryPasswordConfirm = "";
 
         public String elementManagerURL;
-<<<<<<< HEAD
         
         public String secretKey;
-=======
->>>>>>> origin/integration-3.2
 
         @MaxSize(2048)
         public String hyperScaleUser;
@@ -268,10 +253,10 @@ public class StorageProviders extends ViprResourceController {
             return StorageProviderTypes.isScaleIOApi(interfaceType);
         }
 
-<<<<<<< HEAD
         public boolean isCeph() {
             return StorageProviderTypes.isCeph(interfaceType);
-=======
+        }
+
         public void setXIVParameters() {
             if (StringUtils.isNotEmpty(this.hyperScaleUser)) {
                 this.secondaryUsername = this.hyperScaleUser;
@@ -285,7 +270,6 @@ public class StorageProviders extends ViprResourceController {
             if (StringUtils.isNotEmpty(this.hyperScaleURL)) {
                 this.elementManagerURL = this.hyperScaleURL;
             }
->>>>>>> origin/integration-3.2
         }
 
         public void readFrom(StorageProviderRestRep storageProvider) {
@@ -301,13 +285,7 @@ public class StorageProviders extends ViprResourceController {
             this.secondaryUsername = storageProvider.getSecondaryUsername();
             this.secondaryPassword = ""; // the platform will never return the real password
             this.elementManagerURL = storageProvider.getElementManagerURL();
-<<<<<<< HEAD
             this.secretKey = ""; // the platform will never return the real key
-            if(isScaleIOApi()) {
-            	this.secondaryUsername = this.userName;
-            	this.secondaryPassword = this.password;
-            	this.secondaryPasswordConfirm = this.confirmPassword;
-=======
             this.hyperScaleUser = storageProvider.getSecondaryUsername();
             this.hyperScalePassword = ""; // the platform will never return the real password
             this.hyperScaleURL = storageProvider.getElementManagerURL();
@@ -315,7 +293,6 @@ public class StorageProviders extends ViprResourceController {
                 this.secondaryUsername = this.userName;
                 this.secondaryPassword = this.password;
                 this.secondaryPasswordConfirm = this.confirmPassword;
->>>>>>> origin/integration-3.2
             }
             setXIVParameters();
 
@@ -330,16 +307,6 @@ public class StorageProviders extends ViprResourceController {
             }
         }
 
-<<<<<<< HEAD
-        public StorageProviderRestRep update() {        	
-            return StorageProviderUtils.update(uri(id), name, ipAddress, portNumber, userName,
-                    password, useSSL, interfaceType, secondaryUsername, secondaryPassword, elementManagerURL, secretKey);
-        }
-
-        public Task<StorageProviderRestRep> create() {        	
-        	Task<StorageProviderRestRep> task = StorageProviderUtils.create(name, ipAddress, portNumber, userName, password,
-                    useSSL, interfaceType, secondaryUsername, secondaryPassword, elementManagerURL, secretKey);
-=======
         public StorageProviderRestRep update() {
             return StorageProviderUtils.update(uri(id), name, ipAddress,
                     portNumber, userName, password, useSSL, interfaceType,
@@ -351,15 +318,12 @@ public class StorageProviders extends ViprResourceController {
                     name, ipAddress, portNumber, userName, password, useSSL,
                     interfaceType, secondaryUsername, secondaryPassword,
                     elementManagerURL);
->>>>>>> origin/integration-3.2
             new SaveWaitJob(getViprClient(), task).now();
             return task;
         }
 
         public void validate(String fieldName) {
             Validation.valid(fieldName, this);
-<<<<<<< HEAD
-            
             if (isScaleIOApi() ) {
             	Validation.required(fieldName + ".secondaryPassword", this.secondaryPassword);
             	Validation.required(fieldName + ".secondaryPasswordConfirm", this.secondaryPasswordConfirm);
@@ -373,25 +337,6 @@ public class StorageProviders extends ViprResourceController {
             }
             
             if (!StringUtils.equals(StringUtils.trim(password), StringUtils.trim(confirmPassword))) {
-=======
-
-            if (isScaleIOApi()) {
-                Validation.required(fieldName + ".secondaryPassword",
-                        this.secondaryPassword);
-                Validation.required(fieldName + ".secondaryPasswordConfirm",
-                        this.secondaryPasswordConfirm);
-            }
-
-            if (isNew() && !isScaleIOApi()) {
-                Validation.required(fieldName + ".userName", this.userName);
-                Validation.required(fieldName + ".password", this.password);
-                Validation.required(fieldName + ".confirmPassword",
-                        this.confirmPassword);
-            }
-
-            if (!StringUtils.equals(StringUtils.trim(password),
-                    StringUtils.trim(confirmPassword))) {
->>>>>>> origin/integration-3.2
                 Validation.addError(fieldName + ".confirmPassword",
                         MessagesUtils
                                 .get("smisProvider.confirmPassword.not.match"));

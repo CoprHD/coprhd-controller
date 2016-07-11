@@ -88,7 +88,12 @@ public class UnexportVMwareVolumeService extends VMwareHostService {
             if (!StringUtils.isEmpty(datastoreName)) {
                 Datastore datastore = vmware.getDatastore(datacenter.getLabel(), datastoreName);
                 if (datastore != null) {
+                    boolean storageIOControlEnabled = datastore.getIormConfiguration().isEnabled();
                     vmware.unmountVmfsDatastore(host, cluster, datastore);
+                    datastore = vmware.getDatastore(datacenter.getLabel(), datastoreName);
+                    if (datastore != null && storageIOControlEnabled) {
+                        vmware.setStorageIOControl(datastore, true);
+                    }
                 }
             }
         }

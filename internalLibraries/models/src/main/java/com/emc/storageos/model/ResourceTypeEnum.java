@@ -68,6 +68,7 @@ public enum ResourceTypeEnum {
     APPROVAL("approval", "/catalog/approvals"),
     EXECUTION_WINDOW("execution_window", "/catalog/execution-windows"),
     ORDER("order", "/catalog/orders"),
+    SCHEDULED_EVENT("scheduled_event", "/catalog/events"),
     TASK("task", "/vdc/tasks"),
     QUOTA_DIR("quota_dir", "/file/quotadirectories"),
     CUSTOM_CONFIG("controller_config", "/config/controller"),

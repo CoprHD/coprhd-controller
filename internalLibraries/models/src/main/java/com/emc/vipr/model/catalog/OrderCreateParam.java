@@ -14,6 +14,8 @@ public class OrderCreateParam extends OrderCommonParam {
 
     private URI tenantId;
 
+    private URI scheduledEventId;
+
     @XmlElement(name = "tenantId")
     public URI getTenantId() {
         return tenantId;
@@ -22,4 +24,14 @@ public class OrderCreateParam extends OrderCommonParam {
     public void setTenantId(URI tenantId) {
         this.tenantId = tenantId;
     }
+
+    @XmlElement(name = "scheduledEventId")
+    public URI getScheduledEventId() {
+        return scheduledEventId;
+    }
+
+    public void setScheduledEventId(URI scheduledEventId) {
+        this.scheduledEventId = scheduledEventId;
+    }
+
 }

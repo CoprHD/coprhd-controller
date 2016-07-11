@@ -25,6 +25,7 @@ public class Order extends ModelObject implements TenantDataObject {
     public static final String EXECUTION_WINDOW_ID = "executionWindowId";
     public static final String TENANT = TenantDataObject.TENANT_COLUMN_NAME;
     public static final String ORDER_NUMBER = "orderNumber";
+    public static final String SCHEDULED_EVENT_ID = "scheduledEventId";
 
     /** User friendly Order number */
     private String orderNumber;
@@ -48,6 +49,8 @@ public class Order extends ModelObject implements TenantDataObject {
     private String orderStatus;
 
     private String tenant;
+
+    private URI scheduledEventId;
 
     /**
      * Field used for indexing updated time
@@ -156,6 +159,16 @@ public class Order extends ModelObject implements TenantDataObject {
     public void setTenant(String tenant) {
         this.tenant = tenant;
         setChanged(TENANT);
+    }
+
+    @Name(SCHEDULED_EVENT_ID)
+    public URI getScheduledEventId() {
+        return scheduledEventId;
+    }
+
+    public void setScheduledEventId(URI scheduledEventId) {
+        this.scheduledEventId = scheduledEventId;
+        setChanged(SCHEDULED_EVENT_ID);
     }
 
     @Override

@@ -42,7 +42,7 @@ public class ComputeProvider extends BaseAssetOptionsProvider {
     }
 
     @Asset("computeVirtualPool")
-    @AssetDependencies({ "virtualArray" })
+    @AssetDependencies({ "blockVirtualArray" })
     public List<AssetOption> getComputeVirtualPoolForVirtualArray(AssetOptionsContext ctx, URI virtualArray) {
         debug("getting compute virtual pools");
 

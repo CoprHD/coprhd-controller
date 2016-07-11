@@ -81,24 +81,19 @@ public class ComputeVirtualPools extends AbstractCoreBulkResources<ComputeVirtua
     /**
      * Lists all virtual pools of specific tenant
      * <p>
-     * API Call: <tt>GET /block/vpools</tt>
+     * API Call: <tt>GET /compute/vpools</tt>
      *
      * @return the list of virtual pool references of specific tenant
      */
-    public List<NamedRelatedVirtualPoolRep> listByTenant(URI tenantId) {
+    public List<NamedRelatedResourceRep> listByTenant(URI tenantId) {
         UriBuilder builder = client.uriBuilder(baseUrl);
         builder.queryParam(SearchConstants.TENANT_ID_PARAM, tenantId);
-        VirtualPoolList response = client.getURI(VirtualPoolList.class, builder.build());
-        return ResourceUtils.defaultList(response.getVirtualPool());
+        ComputeVirtualPoolList response = client.getURI(ComputeVirtualPoolList.class, builder.build());
+        return ResourceUtils.defaultList(response.getComputeVirtualPool());
     }
 
-    public List<ComputeVirtualPoolRestRep> getByTenant(URI tenantId) {
-        return getByTenant(tenantId, null);
-    }
-
-    public List<ComputeVirtualPoolRestRep> getByTenant(URI tenantId, ResourceFilter<ComputeVirtualPoolRestRep> filter) {
-        List<NamedRelatedVirtualPoolRep> refs = listByTenant(tenantId);
-        return getByRefs(refs, filter);
+    public List<NamedRelatedResourceRep> getByTenant(URI tenantId) {
+        return getByTenant(tenantId);
     }
 
 

@@ -330,7 +330,6 @@ public class RackHdUtils {
 				}
 			}
 		}
-		assetOptionList.add(new AssetOption("null","None"));
 		return assetOptionList;
 	}
 

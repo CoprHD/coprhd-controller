@@ -95,15 +95,14 @@ public class RackHdService extends ViPRService {
 			}
 		}
 
-		// ignore params with value 'null' 
-		//   TODO: find better way to pass in null params
-		for(Iterator<Map.Entry<String, Object>> it = params.entrySet().iterator(); it.hasNext();){
+		// ignore params with no value
+		for(Iterator<Map.Entry<String, Object>> it =
+                      params.entrySet().iterator(); it.hasNext();){
 			Map.Entry<String, Object> entry = it.next(); 
 			if( (entry.getValue() == null) ||
-					entry.getValue().toString().equals("") ||
-					entry.getValue().toString().equalsIgnoreCase("null") ) {
+                              entry.getValue().toString().equals("")) {
 				warn("Ignoring parameter: " + entry.getKey() + "=" + 
-						entry.getValue());
+                                  entry.getValue());
 				it.remove();
 			}
 		}

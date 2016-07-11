@@ -276,7 +276,7 @@ angular.module("portalApp").controller({
         		if (window.location.pathname.indexOf("resources.filesnapshots") > -1) {
         			$http.get(routes.FileSnapshots_fileSnapshotExportsJson(), data).success(setData);
         		} else {
-        			$http.get(routes.FileSystems_fileSystemExportsJson(), data).success(setData);
+        			$http.get(routes.FileSystems_fileSystemExportsJson(), data).success(setData).error.("Error");
         		}
     		} else {
     			$scope.rule.security = "sys";

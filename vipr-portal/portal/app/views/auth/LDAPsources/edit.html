@@ -119,7 +119,7 @@
       } else {
           $('#ldapSources_tenantsSynchronizationOptions').closest($ctrlElements).hide();
           $('#ldapSources_synchronizationInterval').closest($ctrlElements).hide();
-        }
+      }
     }
 
     function setDefaults() {
@@ -246,9 +246,6 @@
     <fieldset>
     #{field 'ldapSources.tenantsSynchronizationOptions'}
         %{
-         if (readOnlyCheckboxForAutomaticRegistration) {
-            field.disabled = true
-         }
         }%
       #{Form.selectManyControlGroup field:field, options:tenantsOptions/}
     #{/field}
@@ -258,9 +255,8 @@
             field.helpTextKey = field.name + '.description'
             field.required = true
          if (readOnlyCheckboxForAutomaticRegistration) {
-            field.disabled = true
             field.value = readOnlySynchronizationInterval
-        }
+         }
         }%
       #{Form.inputTextControlGroup field:field /}
     #{/field}

@@ -1633,7 +1633,6 @@ ldapSources.addTenants.description=Check which OpenStack Tenants to add.
 ldapSources.synchronizationInterval=Synchronization interval
 ldapSources.synchronizationInterval.description=Synchronization interval provided in seconds. The value should be greater than 10 seconds. Default value is 900 seconds.
 ldapSources.synchronizationInterval.integerRequired=Integer value greater than 10 required.
-ldapSources.synchronizationInterval.greaterValueRequired=Integer value required.
 ldapSources.domains=Domains
 ldapSources.domains.description=List all Domains, one per line
 ldapSources.groupAttribute=Group Attribute

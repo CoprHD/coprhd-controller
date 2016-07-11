@@ -84,11 +84,22 @@ verify_export() {
 	masking_view_name="${cluster_name_if_any}${host_name}_${SERIAL_NUMBER: -3}"
     elif [ "$SS" = "xio" ]; then
         masking_view_name=$host_name
+    elif [ "$SS" = "vplex" ]; then
+        # TODO figure out how to account for vplex cluster (V1_ or V2_)
+        # also, the 3-char serial number suffix needs to be based on actual vplex cluster id,
+        # not just splitting the string and praying...
+        echo "serialNumSplitOnColon: "
+        serialNumSplitOnColon=(${SERIAL_NUMBER//:/ })
+        echo $serialNumSplitOnColon
+        echo "host name: ${host_name}"
+        masking_view_name="V1_${CLUSTER}_${host_name}_${serialNumSplitOnColon[0]: -3}"
     fi
 
     if [ "$host_name" = "-exact-" ]; then
         masking_view_name=$export_name
     fi
+
+    echo "masking view name: $masking_view_name"
 
     # Why is this sleep here?  Please explain.  If it's specific to SMIS, please put in SMIS-specific block
     sleep 10
@@ -481,7 +492,17 @@ vnx_setup() {
 
     seed=`date "+%H%M%S%N"`
     runcmd storageport update ${VNXB_NATIVEGUID} FC --tzone $NH/$FC_ZONE_A
+            
+    SERIAL_NUMBER=`storagedevice list | grep COMPLETE | awk '{print $2}' | awk -F+ '{print $2}'`
     
+    runcmd cos create block ${VPOOL_BASE}	\
+	--description Base true                 \
+	--protocols FC 			                \
+	--numpaths 1				            \
+	--provisionType 'Thin'			        \
+	--max_snapshots 10                      \
+	--neighborhoods $NH                    
+
     runcmd cos update block $VPOOL_BASE --storage ${VNXB_NATIVEGUID}
 }
 
@@ -506,6 +527,8 @@ vmax_setup() {
     seed=`date "+%H%M%S%N"`
     runcmd storageport update ${VMAX_NATIVEGUID} FC --tzone $NH/$FC_ZONE_A
         
+    SERIAL_NUMBER=`storagedevice list | grep COMPLETE | awk '{print $2}' | awk -F+ '{print $2}'`
+    
     runcmd cos create block ${VPOOL_BASE}	\
 	--description Base true                 \
 	--protocols FC 			                \
@@ -558,6 +581,8 @@ vplex_setup() {
     fi
     
     common_setup
+
+    SERIAL_NUMBER=$VPLEX_GUID
 
     case "$VPLEX_MODE" in 
         local)
@@ -619,6 +644,8 @@ xio_setup() {
 
     seed=`date "+%H%M%S%N"`
     runcmd storageport update ${XTREMIO_NATIVEGUID} FC --tzone $NH/$FC_ZONE_A
+
+    SERIAL_NUMBER=`storagedevice list | grep COMPLETE | awk '{print $2}' | awk -F+ '{print $2}'`
     
     runcmd cos create block ${VPOOL_BASE}	\
 	--description Base true                 \
@@ -723,11 +750,8 @@ setup() {
         echo $result
     fi
 
-
     ${SS}_setup
 
-    SERIAL_NUMBER=`storagedevice list | grep COMPLETE | awk '{print $2}' | awk -F+ '{print $2}'`
-    
     runcmd cos allow $VPOOL_BASE block $TENANT
     sleep 30
     runcmd volume create ${VOLNAME} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 2
@@ -2159,6 +2183,8 @@ case $SS in
         shift
         echo "VPLEX_MODE is $VPLEX_MODE"
         [[ ! "local distributed" =~ "$VPLEX_MODE" ]] && Usage
+        export VPLEX_MODE
+        SERIAL_NUMBER=$VPLEX_GUID
     ;;
     *)
     Usage

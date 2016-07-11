@@ -212,9 +212,9 @@ public class StorageSystemTypesInitUtils {
                 continue;
             }
             StorageSystemType ssType = new StorageSystemType();
-            URI ssTyeUri = URIUtil.createId(StorageSystemType.class);
-            ssType.setId(ssTyeUri);
-            ssType.setStorageTypeId(ssTyeUri.toString());
+            URI ssTypeUri = URIUtil.createId(StorageSystemType.class);
+            ssType.setId(ssTypeUri);
+            ssType.setStorageTypeId(ssTypeUri.toString());
             ssType.setStorageTypeName(file);
             ssType.setStorageTypeDispName(nameDisplayNameMap.get(file));
             ssType.setStorageTypeType("file");

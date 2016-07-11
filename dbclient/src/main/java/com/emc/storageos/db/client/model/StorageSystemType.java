@@ -34,6 +34,8 @@ public class StorageSystemType extends DataObject {
 	// Connect to storage array only thru element manager
 	private Boolean isElementMgr = false;
 
+	private Boolean isSecretKey = false;
+	
 	private String sslPort;
 	private String nonSslPort;
 	private String driverClassName;
@@ -122,15 +124,25 @@ public class StorageSystemType extends DataObject {
 		setChanged("isOnlyMDM");
 	}
 
-	@Name("isElementMgr")
-	public Boolean getIsElementMgr() {
-		return isElementMgr;
-	}
+    @Name("isElementMgr")
+    public Boolean getIsElementMgr() {
+        return isElementMgr;
+    }
 
-	public void setIsElementMgr(Boolean isElementMgr) {
-		this.isElementMgr = isElementMgr;
-		setChanged("isElementMgr");
-	}
+    public void setIsElementMgr(Boolean isElementMgr) {
+        this.isElementMgr = isElementMgr;
+        setChanged("isElementMgr");
+    }
+
+    @Name("isSecretKey")
+    public Boolean getIsSecretKey() {
+        return isSecretKey;
+    }
+
+    public void setIsSecretKey(Boolean isSecretKey) {
+        this.isSecretKey = isSecretKey;
+        setChanged("isSecretKey");
+    }
 
 	@Name("sslPort")
 	public String getSslPort() {
@@ -161,4 +173,5 @@ public class StorageSystemType extends DataObject {
 		this.driverClassName = driverClassName;
 		setChanged("driverClassName");
 	}
+
 }

@@ -10,14 +10,13 @@ import java.util.List;
 
 import org.apache.commons.lang.StringUtils;
 
-import util.EnumOption;
-import util.StorageSystemTypeUtils;
-import util.StringOption;
-
 import com.emc.storageos.db.server.impl.StorageSystemTypesInitUtils;
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeList;
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeRestRep;
 import com.google.common.collect.Lists;
+
+import util.StorageSystemTypeUtils;
+import util.StringOption;
 
 public class StorageSystemTypes {
     private static final String OPTION_PREFIX = "StorageSystemType";
@@ -330,4 +329,20 @@ public class StorageSystemTypes {
         return allproviders;
     }
 
+    public static List<StringOption> getProvidersWithSecretKey() {
+        String alltypes = "all";
+        List<StringOption> allproviders = new ArrayList<StringOption>();
+        StorageSystemTypeList storagetypelist = StorageSystemTypeUtils
+                .getAllStorageSystemTypes(alltypes);
+        for (StorageSystemTypeRestRep storagetypeRest : storagetypelist
+                .getStorageSystemTypes()) {
+            if (storagetypeRest.getIsSecretKey()) {
+                allproviders.add(new StringOption(storagetypeRest
+                        .getStorageTypeName(), storagetypeRest
+                        .getStorageTypeDispName()));
+            }
+        }
+
+        return allproviders;
+    }
 }

@@ -127,6 +127,9 @@ public class DataCollectionJobUtil {
             populateAccessProfile(profile, (Host) taskObject);
         } else if (clazz == Vcenter.class) {
             populateAccessProfile(profile, (Vcenter) taskObject);
+            // todo: change once StorageSystemType is merged.
+        } else if (clazz == NetworkSystem.class /* StorageSystemType.class */){
+           // populateAccessProfile(profile, (StorageSystemType) taskObject);
         } else {
             throw new RuntimeException("getAccessProfile: profile is unknown for objects of type : "
                     + taskObject.getClass());
@@ -590,6 +593,9 @@ public class DataCollectionJobUtil {
             accessProfile.setserialID(storageDevice.getSerialNumber());
             accessProfile.setPassword(storageDevice.getSmisPassword());
             accessProfile.setLastSampleTime(0L);
+            // todo: temp before StorageSystemType table is merged
+        } else if (nameSpace != null && nameSpace.equals(StorageSystem.Discovery_Namespaces.REMOTE_REPLICATION_CONFIGURATION.toString())) {
+            accessProfile.setSystemType(storageDevice.getSystemType());
         } else if (StorageSystem.Type.isDriverManagedStorageSystem(storageDevice.getSystemType())) {
             accessProfile.setSystemType(storageDevice.getSystemType());
             accessProfile.setIpAddress(storageDevice.getIpAddress());

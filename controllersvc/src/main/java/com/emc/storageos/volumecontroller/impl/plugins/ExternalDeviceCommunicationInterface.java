@@ -146,6 +146,9 @@ public class ExternalDeviceCommunicationInterface extends
             } else if (null != accessProfile.getnamespace()
                     && (accessProfile.getnamespace().equals(com.emc.storageos.db.client.model.StorageSystem.Discovery_Namespaces.UNMANAGED_FILESYSTEMS.toString()))){
                _log.warn("Discovery of unmanaged file systems is not supported for external storage system of type {}", accessProfile.getSystemType());
+            } else if (null != accessProfile.getnamespace()
+                    && (accessProfile.getnamespace().equals(com.emc.storageos.db.client.model.StorageSystem.Discovery_Namespaces.REMOTE_REPLICATION_CONFIGURATION.toString()))){
+                _log.info("Discovery of remote replication sets for storage system type {}", accessProfile.getSystemType());
             } else {
                 // discover storage system
                 discoverStorageSystem(driver, accessProfile);

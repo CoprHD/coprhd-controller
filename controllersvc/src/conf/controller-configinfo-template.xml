@@ -67,6 +67,7 @@
 
         <entry key="Discovery-externaldevice-all" value="discovery-externaldevice-context.xml" />
         <entry key="Discovery-externaldevice-unmanaged_volumes" value="discovery-externaldevice-context.xml" />
+        <entry key="RemoteReplicationConfig_Discovery-externaldevice-remote_replication_configuration" value="discovery-externaldevice-context.xml" />
         <entry key="Metering-externaldevice" value="discovery-externaldevice-context.xml" />
 
         <entry key="Discovery-rp-all" value="discovery-recoverpoint-context.xml" />
@@ -116,6 +117,7 @@
         <entry key="compute-discovery-core-pool-size" value="3" />
         
         <entry key="metering-core-pool-size" value="1" />
+        <entry key="rr-config-discovery-core-pool-size" value="1" />
 
         <entry key="time-tolerance" value="600" />
 

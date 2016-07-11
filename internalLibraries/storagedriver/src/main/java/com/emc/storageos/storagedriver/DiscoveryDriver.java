@@ -76,6 +76,6 @@ public interface DiscoveryDriver extends StorageDriver {
      */
     public DriverTask discoverStorageProvider(StorageProvider storageProvider, List<StorageSystem> storageSystems);
 
-    public DriverTask discoverRemoteReplicationSets(List<RemoteReplicationSet> remoteReplicationSets);
+    public DriverTask discoverRemoteReplicationSets(List<String> storageSystemNativeIds, List<RemoteReplicationSet> remoteReplicationSets);
 
 }

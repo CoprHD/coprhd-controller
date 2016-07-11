@@ -574,6 +574,7 @@ public class DataCollectionJobScheduler {
         for (DataCollectionJob job : jobs) {
             try {
                 DataCollectionTaskCompleter completer = job.getCompleter();
+                // todo: revisit after StorageSystemType table is merged --- there is no system for rr discovery jobs.
                 DiscoveredSystemObject system = (DiscoveredSystemObject)
                         _dbClient.queryObject(completer.getType(), completer.getId());
                 if (isDataCollectionJobSchedulingNeeded(system,
@@ -689,6 +690,11 @@ public class DataCollectionJobScheduler {
                 !DiscoveredDataObject.RegistrationStatus.REGISTERED.toString()
                         .equalsIgnoreCase(system.getRegistrationStatus())) {
             return false;
+        }
+
+        // todo: temp waiting for StorageSystemType table merge.
+        if (ControllerServiceImpl.RR_DISCOVERY.equalsIgnoreCase(type)) {
+            return true;
         }
 
         // Scan triggered the discovery of this new System found, and discovery was in progress

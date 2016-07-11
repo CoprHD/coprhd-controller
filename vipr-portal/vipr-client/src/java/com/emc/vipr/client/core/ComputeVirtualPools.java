@@ -7,7 +7,6 @@ package com.emc.vipr.client.core;
 import static com.emc.vipr.client.core.impl.PathConstants.ID_URL_FORMAT;
 import static com.emc.vipr.client.core.impl.PathConstants.VARRAY_URL;
 import static com.emc.vipr.client.core.util.ResourceUtils.defaultList;
-import static com.emc.vipr.client.core.util.VirtualPoolUtils.computeVpools;
 
 import java.net.URI;
 import java.util.List;
@@ -92,8 +91,13 @@ public class ComputeVirtualPools extends AbstractCoreBulkResources<ComputeVirtua
         return ResourceUtils.defaultList(response.getComputeVirtualPool());
     }
 
-    public List<NamedRelatedResourceRep> getByTenant(URI tenantId) {
-        return getByTenant(tenantId);
+    public List<ComputeVirtualPoolRestRep> getByTenant(URI tenantId) {
+        return getByTenant(tenantId, null);
+    }
+
+    public List<ComputeVirtualPoolRestRep> getByTenant(URI tenantId, ResourceFilter<ComputeVirtualPoolRestRep> filter) {
+        List<NamedRelatedResourceRep> refs = listByTenant(tenantId);
+        return getByRefs(refs, filter);
     }
 
 
@@ -133,16 +137,16 @@ public class ComputeVirtualPools extends AbstractCoreBulkResources<ComputeVirtua
      *            the ID of the virtual array.
      * @return the list of virtual pool references.
      */
-    public List<NamedRelatedVirtualPoolRep> listByVirtualArray(URI varrayId) {
-        VirtualPoolList response = client.get(VirtualPoolList.class, String.format(ID_URL_FORMAT, VARRAY_URL) + "/vpools", varrayId);
-        return defaultList(response.getVirtualPool());
+    public List<NamedRelatedResourceRep> listByVirtualArray(URI varrayId) {
+        ComputeVirtualPoolList response = client.get(ComputeVirtualPoolList.class, String.format(ID_URL_FORMAT, VARRAY_URL) + "/vpools", varrayId);
+        return response.getComputeVirtualPool();
     }
 
-    public List<NamedRelatedVirtualPoolRep> listByVirtualArrayAndTenant(URI varrayId, URI tenantId) {
+    public List<NamedRelatedResourceRep> listByVirtualArrayAndTenant(URI varrayId, URI tenantId) {
         UriBuilder builder = client.uriBuilder(String.format(ID_URL_FORMAT, VARRAY_URL) + "/vpools");
         builder.queryParam(SearchConstants.TENANT_ID_PARAM, tenantId);
-        VirtualPoolList response = client.getURI(VirtualPoolList.class, builder.build(varrayId));
-        return defaultList(response.getVirtualPool());
+        ComputeVirtualPoolList response = client.getURI(ComputeVirtualPoolList.class, builder.build(varrayId));
+        return response.getComputeVirtualPool();
     }
 
     /**
@@ -191,14 +195,14 @@ public class ComputeVirtualPools extends AbstractCoreBulkResources<ComputeVirtua
      * @see #getByRefs(java.util.Collection)
      */
     public List<ComputeVirtualPoolRestRep> getByVirtualArray(URI varrayId, ResourceFilter<ComputeVirtualPoolRestRep> filter) {
-        List<NamedRelatedVirtualPoolRep> refs = listByVirtualArray(varrayId);
-        return getByRefs(computeVpools(refs), filter);
+        List<NamedRelatedResourceRep> refs = listByVirtualArray(varrayId);
+        return getByRefs(refs, filter);
     }
 
 
     public List<ComputeVirtualPoolRestRep> getByVirtualArray(URI varrayId, URI tenantId, ResourceFilter<ComputeVirtualPoolRestRep> filter) {
-        List<NamedRelatedVirtualPoolRep> refs = listByVirtualArrayAndTenant(varrayId, tenantId);
-        return getByRefs(computeVpools(refs), filter);
+        List<NamedRelatedResourceRep> refs = listByVirtualArrayAndTenant(varrayId, tenantId);
+        return getByRefs(refs, filter);
     }
 
     /**

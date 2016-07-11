@@ -7,6 +7,7 @@ package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -382,20 +383,33 @@ public class DataCollectionJobScheduler {
             addToList(allSystemsURIs, _dbClient.queryByType(ComputeSystem.class, true).iterator());
         } else if (jobType.equalsIgnoreCase(ControllerServiceImpl.ARRAYAFFINITY_DISCOVERY)) {
             List<URI> systemURIs = _dbClient.queryByType(StorageSystem.class, true);
-            Iterator<StorageSystem> storageSystems = _dbClient.queryIterativeObjects(StorageSystem.class, systemURIs);
+            List<StorageSystem> systems = new ArrayList<StorageSystem>();
+            Iterator<StorageSystem> storageSystems = _dbClient.queryIterativeObjects(StorageSystem.class, systemURIs, true);
             while (storageSystems.hasNext()) {
-                StorageSystem systemObj = storageSystems.next();
-                if (systemObj.deviceIsType(Type.vmax) || systemObj.deviceIsType(Type.vnxblock) || systemObj.deviceIsType(Type.xtremio)) {
-                    StorageProvider provider = _dbClient.queryObject(StorageProvider.class,
-                            systemObj.getActiveProviderURI());
-                    if (provider != null && !provider.getInactive()) {
-                        List<URI> systemIds = providerToSystemsMap.get(provider.getId());
-                        if (systemIds == null) {
-                            systemIds = new ArrayList<URI>();
-                            providerToSystemsMap.put(provider.getId(), systemIds);
-                        }
-                        systemIds.add(systemObj.getId());
+                StorageSystem system = storageSystems.next();
+                if (system.deviceIsType(Type.vmax) || system.deviceIsType(Type.vnxblock) || system.deviceIsType(Type.xtremio)) {
+                    systems.add(system);
+                }
+            }
+
+            // Sort systems by last array affinity time, so that system with the earliest last array affinity time will be used
+            // when checking if job should be scheduled
+            Collections.sort(systems, new Comparator<StorageSystem>() {
+                public int compare(StorageSystem system1, StorageSystem system2) {
+                    return Long.compare(system1.getLastArrayAffinityRunTime(), system2.getLastArrayAffinityRunTime());
+                }
+             });
+
+             for (StorageSystem system : systems) {
+                StorageProvider provider = _dbClient.queryObject(StorageProvider.class,
+                        system.getActiveProviderURI());
+                if (provider != null && !provider.getInactive()) {
+                    List<URI> systemIds = providerToSystemsMap.get(provider.getId());
+                    if (systemIds == null) {
+                        systemIds = new ArrayList<URI>();
+                        providerToSystemsMap.put(provider.getId(), systemIds);
                     }
+                    systemIds.add(system.getId());
                 }
             }
         }
@@ -408,7 +422,6 @@ public class DataCollectionJobScheduler {
             for (Map.Entry<URI, List<URI>> entry : providerToSystemsMap.entrySet()) {
                 String taskId = UUID.randomUUID().toString();
                 List<URI> systemIds = entry.getValue();
-                Collections.shuffle(systemIds);
                 ArrayAffinityDataCollectionTaskCompleter completer = new ArrayAffinityDataCollectionTaskCompleter(StorageSystem.class, systemIds, taskId, jobType, true);
                 DataCollectionArrayAffinityJob job = new DataCollectionArrayAffinityJob(null, systemIds, completer, DataCollectionJob.JobOrigin.SCHEDULER, Discovery_Namespaces.ARRAY_AFFINITY.name());
                 jobs.add(job);
@@ -504,9 +517,6 @@ public class DataCollectionJobScheduler {
             MeteringTaskCompleter completer = new MeteringTaskCompleter(systemClass, systemURI,
                     taskId);
             job = new DataCollectionMeteringJob(completer, DataCollectionJob.JobOrigin.SCHEDULER);
-        } else if (ControllerServiceImpl.ARRAYAFFINITY_DISCOVERY.equalsIgnoreCase(jobType)) {
-            DiscoverTaskCompleter completer = new DiscoverTaskCompleter(systemClass, systemURI, taskId, jobType);
-            job = new DataCollectionDiscoverJob(completer, DataCollectionJob.JobOrigin.SCHEDULER, Discovery_Namespaces.ARRAY_AFFINITY.name());
         } else if (ControllerServiceImpl.isDiscoveryJobTypeSupported(jobType)) {
             DiscoverTaskCompleter completer = new DiscoverTaskCompleter(systemClass, systemURI, taskId, jobType);
             job = new DataCollectionDiscoverJob(completer, DataCollectionJob.JobOrigin.SCHEDULER, Discovery_Namespaces.ALL.toString());

@@ -34,6 +34,7 @@ import com.emc.storageos.coordinator.client.service.DrPostFailoverHandler.QueueC
 import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.StorageSystem.Discovery_Namespaces;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.common.DataObjectScanner;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.exceptions.DeviceControllerException;
@@ -652,7 +653,7 @@ public class ControllerServiceImpl implements ControllerService {
                 URI hostId = ((ArrayAffinityAsyncTask) task).getHostId();
                 List<URI> systemIds = ((ArrayAffinityAsyncTask) task).getSystemIds();
                 ArrayAffinityDataCollectionTaskCompleter completer =
-                        new ArrayAffinityDataCollectionTaskCompleter(task._clazz, systemIds, task._opId, jobType, false);
+                        new ArrayAffinityDataCollectionTaskCompleter(task._clazz, systemIds, task._opId, jobType, NullColumnValueGetter.isNullURI(hostId));
                 DataCollectionJob job = new DataCollectionArrayAffinityJob(hostId, systemIds, completer, task._namespace);
                 jobs.add(job);
             } else {

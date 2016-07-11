@@ -806,7 +806,7 @@ public class StorageSystemService extends TaskResourceService {
                 }
             }
 
-            tasks.add(new ArrayAffinityAsyncTask(StorageSystem.class, storageSystem.getId(), systemIds, null, taskId));
+            tasks.add(new ArrayAffinityAsyncTask(StorageSystem.class, systemIds, null, taskId));
         } else {
             scheduler = new DiscoveredObjectTaskScheduler(
                     _dbClient, new DiscoverJobExec(controller));

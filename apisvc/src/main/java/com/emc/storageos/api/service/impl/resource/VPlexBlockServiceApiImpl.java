@@ -1420,11 +1420,6 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                         volume, vpool, taskId, null, null));
             }
 
-//            // BBB - temp
-//            s_logger.info(String.format("Migrations firing (grouped by RG)..."));
-//            for (VolumeDescriptor desc : descriptors) {
-//                s_logger.info(String.format("%s", desc.toString()));
-//            }
             // Orchestrate the vpool changes of all volumes as a single request.
             orchestrateVPoolChanges(volumesInRGRequest, descriptors, taskId);
         }
@@ -1877,6 +1872,9 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             targetVolume.setReplicationGroupInstance(sourceVolume.getReplicationGroupInstance());
         }
 
+        // Retain any previous RP fields on the new target volumes
+        targetVolume.setRpCopyName(sourceVolume.getRpCopyName());
+        targetVolume.setInternalSiteName(sourceVolume.getInternalSiteName());
         targetVolume.addInternalFlags(Flag.INTERNAL_OBJECT);
         _dbClient.updateObject(targetVolume);
 

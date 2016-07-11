@@ -590,17 +590,21 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
         try {
             dialog.config();
             zonesetClone(dialog, vsanId, activeZoneset);
+            dialog.zonesetNameVsan(activeZoneset.getName(), vsanId, false);
+
             for (Zone zone : zonesToBeDeleted) {
                 String zoneName = zone.getName();
                 _log.info("Removing zone: " + zoneName + " vsan: " + vsanId);
                 try {
-                    dialog.zoneNameVsan(zoneName, vsanId, true);
+                	dialog.removeZoneMemberForZoneset(vsanId, zone.getName());
                     removedZoneNames.put(zoneName, SUCCESS);
                 } catch (Exception ex) {
                     removedZoneNames.put(zoneName, ERROR + " : " + ex.getMessage());
                     handleZonesStrategyException(ex, activateZones);
                 }
             }
+            _log.info("going back to config prompt");
+            dialog.config();
             if (activateZones) {
                 dialog.zonesetActivate(activeZoneset.getName(), vsanId, ((remainingZones[0] == 0) ? true : false));
             }
@@ -852,7 +856,6 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
 	 * @param activeZoneset
 	 */
 	private void zonesetClone(MDSDialog dialog, Integer vsanId, Zoneset activeZoneset) {
-		//Bharath - add code to call the zoneset clone here
         boolean doZonesetClone = Boolean.valueOf(ControllerUtils.getPropertyValueFromCoordinator(_coordinator,
                 "controller_mds_clone_zoneset")) ;
         boolean allowZonesIfZonesetCloneFails = Boolean.valueOf(ControllerUtils.getPropertyValueFromCoordinator(_coordinator,
@@ -864,8 +867,7 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
         		dialog.zonesetClone(vsanId, activeZoneset.getName());
         	} catch (NetworkDeviceControllerException nde) {
         		_log.info("Failed to create zoneset clone. Reason : ", nde.getMessage());
-        		if (!allowZonesIfZonesetCloneFails) {
-        			//TODO: Bharath - fix the exception type.
+        		if (!allowZonesIfZonesetCloneFails) {        			
         			throw nde;
         		}
         	}        	
@@ -1481,7 +1483,6 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
         try {
             // Go into config mode. This allows us to change the configuration.
             dialog.config();
-            //Bharath: check if this is the correct place for the zone clone call
             zonesetClone(dialog, vsanId, activeZoneset);
             commitZones(dialog, vsanId, activeZoneset);
             dialog.copyRunningConfigToStartupFabric();

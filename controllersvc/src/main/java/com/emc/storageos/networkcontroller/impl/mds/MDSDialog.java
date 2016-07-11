@@ -1399,8 +1399,7 @@ public class MDSDialog extends SSHDialog {
                 new Object[] { getSession().getSession().getHost(), getSession().getSession().getPort() }));
 
     }
-    
-    //Bharath
+       
     /**
      * Does a zoneset clone of the existing zoneset in vsan 
      * 
@@ -1422,15 +1421,14 @@ public class MDSDialog extends SSHDialog {
         StringBuilder buf = new StringBuilder();
         String newZoneset = generateZonesetCloneName(zonesetToClone);
         manageZonesetClone(vsanId, newZoneset);
-        _log.info("zone clone name : " + newZoneset	);
+        _log.info("zoneset clone name : " + newZoneset	);
         String payload = MessageFormat.format(MDSDialogProperties.getString("MDSDialog.zonesetClone.cmd"), zonesetToClone, newZoneset, vsanId); //zoneset clone {0} {1} vsan {2}\n
         lastPrompt = sendWaitFor(payload, defaultTimeout, prompts, buf);
         String[] lines = getLines(buf);
         
         for(String line : lines ){
         	if (line.indexOf(errorString) >= 0) {
-        		_log.info("Zoneset clone operation failed");
-        		//TODO: Bharath - fix the exception type
+        		_log.info("Zoneset clone operation failed");        		
         		throw NetworkDeviceControllerException.exceptions.zonesetCloneFailed(newZoneset, line);
         	}
         }
@@ -1439,6 +1437,37 @@ public class MDSDialog extends SSHDialog {
                 new Object[] { getSession().getSession().getHost(), getSession().getSession().getPort() }));
     }
     
+    
+    /**
+     * Does a zoneset clone of the existing zoneset in vsan 
+     * 
+     * @throws NetworkDeviceControllerException
+     */
+    public void removeZoneMemberForZoneset(Integer vsanId, String zoneset) throws NetworkDeviceControllerException {
+        _log.info(MessageFormat.format("Host: {0}, Port: {1} - BEGIN zonesetClone",
+                new Object[] { getSession().getSession().getHost(), getSession().getSession().getPort() }));
+
+        if (!inConfigMode) {
+            throw NetworkDeviceControllerException.exceptions.mdsDeviceNotInConfigMode();
+        }
+        if (lastPrompt != SSHPrompt.MDS_CONFIG_ZONESET) {
+            throw NetworkDeviceControllerException.exceptions.mdsUnexpectedLastPrompt(lastPrompt.toString(),
+                    SSHPrompt.MDS_CONFIG.toString());
+        }
+        SSHPrompt[] prompts = { SSHPrompt.MDS_CONFIG_ZONESET};
+        StringBuilder buf = new StringBuilder();
+        String payload = MessageFormat.format(MDSDialogProperties.getString("MDSDialong.noMemberZone.cmd"), zoneset); //no member {0}
+        lastPrompt = sendWaitFor(payload, defaultTimeout, prompts, buf);
+        String[] lines = getLines(buf);
+     
+        _log.info(MessageFormat.format("Host: {0}, Port: {1} - END zonesetClone",
+                new Object[] { getSession().getSession().getHost(), getSession().getSession().getPort() }));
+    }
+    
+    /**
+     * @param vsanId
+     * @param zonesetName
+     */
     private void manageZonesetClone(Integer vsanId, String zonesetName) {
     	List<Zoneset> zonesets = showZoneset(vsanId, false, null, false, false);
     	    	
@@ -1447,12 +1476,18 @@ public class MDSDialog extends SSHDialog {
   	    String dateStr = dateFormat.format(cal.getTime()); 
     	for (Zoneset zoneset : zonesets) {
     		if (zoneset.getName().contains(dateStr) && zoneset.getName().contains("ViPR")) {
-    			_log.info(String.format("Bharath - removing zoneset %s", zoneset.getName()));    			    		
+    			_log.info(String.format("Removing zoneset (clone) %s", zoneset.getName()));    			    		
     			zonesetNameVsan(zoneset.getName(), vsanId, true);
+    			//Bharath TODO: fix this to remove surgically only the zones in the active zoneset and not in the cloned zoneset
+    			//removeZoneMemberForZoneset(vsanId, zonesetName);
     		}
     	}    	
     }
         
+    /**
+     * @param zonesetToClone
+     * @return
+     */
     private String generateZonesetCloneName(String zonesetToClone) {
     	//get current date time with Calendar()
  	   Calendar cal = Calendar.getInstance();

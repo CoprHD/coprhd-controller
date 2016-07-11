@@ -164,7 +164,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	}
 
 	/**
-	 * Get storage system information
+	 * Get storage system information and capabilities
 	 */
 	@Override
 	public DriverTask discoverStorageSystem(StorageSystem storageSystem) {
@@ -249,7 +249,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	}
 
 	/**
-	 * Get storage pool information
+	 * Get storage pool information and its capabilities
 	 */
 	@Override
 	public DriverTask discoverStoragePools(StorageSystem storageSystem, List<StoragePool> storagePools) {
@@ -564,7 +564,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	}
 
 	/**
-	 * Get storage port information
+	 * Get storage port information and its properties
 	 */
 	@Override
 	public DriverTask discoverStoragePorts(StorageSystem storageSystem, List<StoragePort> storagePorts) {
@@ -746,6 +746,9 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
         return task;
 	}
 
+   /**
+     * Expand the size of requested volume
+     */
 	@Override
 	public DriverTask expandVolume(StorageVolume volume, long newCapacity) {
         DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_EXPAND_STORAGE_VOLUMES);
@@ -786,6 +789,9 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
     return task;
 	}
 
+	/**
+	 * Remove the list of volumes from array
+	 */
 	@Override
 	public DriverTask deleteVolumes(List<StorageVolume> volumes) {
 	    DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_DELETE_STORAGE_VOLUMES);
@@ -1496,16 +1502,16 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
         }
     }
 
-    /*
-      ******USE CASES**********
+    /*      
+     *******USE CASES**********
       
       EXCLUSIVE EXPORT: Will include port number of host
       
-      1 Export volume to existing host * 
-      2 Export volume to non-existing host * 
-      3 Add initiator to existing host *
-      4 Remove initiator from host *
-      5 Unexport volume *
+      1 Export volume to existing host  
+      2 Export volume to non-existing host  
+      3 Add initiator to existing host 
+      4 Remove initiator from host 
+      5 Unexport volume 
       
       A 1-5 can be done with single/multiple volumes,initiators as applicable
       B Does not depend on host name
@@ -1515,16 +1521,16 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
       -------------------------------------------
       SHARED EXPORT: Will not include port number, exported to all ports, the cluster can see
       
-      1 Export volume to existing cluster + (SDK gives n host calls=>export to individual host)
-      2 Export volume to non-existing cluster +
-      3 Add initiator to existing host in cluster +
+      1 Export volume to existing cluster
+      2 Export volume to non-existing cluster 
+      3 Add initiator to existing host in cluster 
       4 Remove initiator from host in cluster
       5 Unexport volume from cluster
-      6 Export a private volume to a host in a cluster +
+      6 Export a private volume to a host in a cluster 
       7 Unexport a private volume from a host in a cluster
-      8 Add a host to cluster +
+      8 Add a host to cluster 
       9 Remove a host from a cluster
-      10 Add a host having private export +
+      10 Add a host having private export 
       11 Remove a host having private export
       12 Move a host from one cluster to another
       
@@ -1936,6 +1942,9 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
         }
     }
    
+    /* 
+     * Unexport the volumes from array
+     */
     @Override
     public DriverTask unexportVolumesFromInitiators(List<Initiator> initiators, List<StorageVolume> volumes) {
         DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_UNEXPORT_STORAGE_VOLUMES);

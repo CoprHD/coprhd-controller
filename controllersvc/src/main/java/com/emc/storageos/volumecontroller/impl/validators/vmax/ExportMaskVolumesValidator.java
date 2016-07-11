@@ -21,9 +21,10 @@ import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.STORAGE
 import static com.google.common.collect.Collections2.transform;
 
 /**
- * TODO
+ * Vmax validator for validating there are no extra volumes in an export mask than
+ * what is expected.
  */
-public class ExportMaskVolumesValidator extends AbstractVmaxDUPValidator {
+public class ExportMaskVolumesValidator extends AbstractVmaxValidator {
 
     private static final Logger log = LoggerFactory.getLogger(ExportMaskVolumesValidator.class);
 
@@ -39,11 +40,12 @@ public class ExportMaskVolumesValidator extends AbstractVmaxDUPValidator {
     }
 
     @Override
-    protected boolean execute() throws Exception {
+    public boolean validate() throws Exception {
         log.info("Validating export mask delete: {}", exportMask.getMaskName());
         CIMObjectPath maskingViewPath = getCimPath().getMaskingViewPath(storage, exportMask.getMaskName());
         List<String> failureReasons = Lists.newArrayList();
 
+        getLogger().setLog(log);
         getHelper().callRefreshSystem(storage, null, true);
 
         List<Volume> volumes = getDbClient().queryObject(Volume.class, volumeURIs);
@@ -63,6 +65,8 @@ public class ExportMaskVolumesValidator extends AbstractVmaxDUPValidator {
 
             log.info("{} has volumes: {}", storage.getSerialNumber(), Joiner.on(',').join(smisIds));
             if (smisIds.size() > viprIds.size()) {
+                getLogger().logDiff(exportMask.getId().toString(), "volumes",
+                        Joiner.on(",").join(viprIds), Joiner.on(',').join(smisIds));
                 failureReasons.add("unknown additional volumes were found");
             }
         } catch (WBEMException e) {

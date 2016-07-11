@@ -12,6 +12,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import com.emc.storageos.volumecontroller.impl.validators.ValCk;
+import com.emc.storageos.volumecontroller.impl.validators.ValidatorFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,6 +53,7 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
     private static RPDeviceController _rpDeviceController;
     private static SRDFDeviceController _srdfDeviceController;
     private static ReplicaDeviceController _replicaDeviceController;
+    private static ValidatorFactory validator;
     private ControllerLockingService _locker;
 
     static final String CREATE_VOLUMES_WF_NAME = "CREATE_VOLUMES_WORKFLOW";
@@ -143,6 +146,11 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
         List<URI> volUris = VolumeDescriptor.getVolumeURIs(volumes);
         VolumeWorkflowCompleter completer = new VolumeWorkflowCompleter(volUris, taskId);
         Workflow workflow = null;
+        StringBuilder msgs = new StringBuilder();
+        validator.volumeURIs(volUris, true, true, msgs, ValCk.ID, ValCk.VPLEX);
+        if (msgs.length() > 0) {
+            throw DeviceControllerException.exceptions.invalidSystemType(msgs.toString());
+        }
 
         try {
             // Generate the Workflow.
@@ -649,5 +657,13 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(ex);
             completer.error(s_dbClient, _locker, serviceError);
         }
+    }
+
+    public static ValidatorFactory getValidator() {
+        return validator;
+    }
+
+    public static void setValidator(ValidatorFactory validator) {
+        BlockOrchestrationDeviceController.validator = validator;
     }
 }

@@ -171,15 +171,6 @@ public class VirtualArrayProvider extends BaseAssetOptionsProvider {
         return createBaseResourceOptions(client.varrays().getByIds(varrayIds));
     }
 
-    @Asset("computeVirtualArray")
-    public List<AssetOption> getComputeVirtualArrays(AssetOptionsContext context) {
-        return getBlockVirtualArrays(context);
-    }
-
-    @Asset("objectVirtualArray")
-    public List<AssetOption> getObjectVirtualArrays(AssetOptionsContext context) {
-        return getBlockVirtualArrays(context);
-    }
 
     /**
      * remove any varrays, which context's tenant doesn't have access to, from inputArrays

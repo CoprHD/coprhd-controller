@@ -16,6 +16,7 @@ public class VirtualPoolUtils {
     public static final String VPLEX_LOCAL = "vplex_local";
     public static final String VPLEX_DISTRIBUTED = "vplex_distributed";
     public static final String OBJECT = "object";
+    public static final String COMPUTE = "compute";
 
     private static boolean isVplexLocal(String type) {
         return VPLEX_LOCAL.equals(type);
@@ -39,6 +40,10 @@ public class VirtualPoolUtils {
 
     public static List<NamedRelatedVirtualPoolRep> objectVpools(List<NamedRelatedVirtualPoolRep> pools) {
         return byType(pools, OBJECT);
+    }
+
+    public static List<NamedRelatedVirtualPoolRep> computeVpools(List<NamedRelatedVirtualPoolRep> pools) {
+        return byType(pools, COMPUTE);
     }
     
     private static List<NamedRelatedVirtualPoolRep> byType(List<NamedRelatedVirtualPoolRep> pools, String type) {

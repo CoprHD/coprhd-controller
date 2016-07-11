@@ -4,7 +4,10 @@
  */
 package com.emc.vipr.client.core;
 
+import static com.emc.vipr.client.core.impl.PathConstants.ID_URL_FORMAT;
+import static com.emc.vipr.client.core.impl.PathConstants.VARRAY_URL;
 import static com.emc.vipr.client.core.util.ResourceUtils.defaultList;
+import static com.emc.vipr.client.core.util.VirtualPoolUtils.computeVpools;
 
 import java.net.URI;
 import java.util.List;
@@ -17,17 +20,15 @@ import com.emc.storageos.model.compute.ComputeElementListRestRep;
 import com.emc.storageos.model.compute.ComputeElementRestRep;
 import com.emc.storageos.model.quota.QuotaInfo;
 import com.emc.storageos.model.quota.QuotaUpdateParam;
-import com.emc.storageos.model.vpool.ComputeVirtualPoolBulkRep;
-import com.emc.storageos.model.vpool.ComputeVirtualPoolCreateParam;
-import com.emc.storageos.model.vpool.ComputeVirtualPoolElementUpdateParam;
-import com.emc.storageos.model.vpool.ComputeVirtualPoolList;
-import com.emc.storageos.model.vpool.ComputeVirtualPoolRestRep;
-import com.emc.storageos.model.vpool.ComputeVirtualPoolUpdateParam;
+import com.emc.storageos.model.vpool.*;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.filters.ResourceFilter;
 import com.emc.vipr.client.core.impl.PathConstants;
+import com.emc.vipr.client.core.impl.SearchConstants;
 import com.emc.vipr.client.core.util.ResourceUtils;
 import com.emc.vipr.client.impl.RestClient;
+
+import javax.ws.rs.core.UriBuilder;
 
 /**
  * Compute Virtual Pools resource.
@@ -78,6 +79,30 @@ public class ComputeVirtualPools extends AbstractCoreBulkResources<ComputeVirtua
     }
 
     /**
+     * Lists all virtual pools of specific tenant
+     * <p>
+     * API Call: <tt>GET /block/vpools</tt>
+     *
+     * @return the list of virtual pool references of specific tenant
+     */
+    public List<NamedRelatedVirtualPoolRep> listByTenant(URI tenantId) {
+        UriBuilder builder = client.uriBuilder(baseUrl);
+        builder.queryParam(SearchConstants.TENANT_ID_PARAM, tenantId);
+        VirtualPoolList response = client.getURI(VirtualPoolList.class, builder.build());
+        return ResourceUtils.defaultList(response.getVirtualPool());
+    }
+
+    public List<ComputeVirtualPoolRestRep> getByTenant(URI tenantId) {
+        return getByTenant(tenantId, null);
+    }
+
+    public List<ComputeVirtualPoolRestRep> getByTenant(URI tenantId, ResourceFilter<ComputeVirtualPoolRestRep> filter) {
+        List<NamedRelatedVirtualPoolRep> refs = listByTenant(tenantId);
+        return getByRefs(refs, filter);
+    }
+
+
+    /**
      * Gets all compute virtual pools.
      * 
      * @return the list of compute virtual pools.
@@ -101,6 +126,84 @@ public class ComputeVirtualPools extends AbstractCoreBulkResources<ComputeVirtua
     public List<ComputeVirtualPoolRestRep> getAll(ResourceFilter<ComputeVirtualPoolRestRep> filter) {
         List<NamedRelatedResourceRep> refs = list();
         return getByRefs(refs, filter);
+    }
+
+
+    /**
+     * Lists the virtual pools that are associated with the given virtual array.
+     * <p>
+     * API Call: <tt>GET /vdc/varrays/{id}/vpools</tt>
+     *
+     * @param varrayId
+     *            the ID of the virtual array.
+     * @return the list of virtual pool references.
+     */
+    public List<NamedRelatedVirtualPoolRep> listByVirtualArray(URI varrayId) {
+        VirtualPoolList response = client.get(VirtualPoolList.class, String.format(ID_URL_FORMAT, VARRAY_URL) + "/vpools", varrayId);
+        return defaultList(response.getVirtualPool());
+    }
+
+    public List<NamedRelatedVirtualPoolRep> listByVirtualArrayAndTenant(URI varrayId, URI tenantId) {
+        UriBuilder builder = client.uriBuilder(String.format(ID_URL_FORMAT, VARRAY_URL) + "/vpools");
+        builder.queryParam(SearchConstants.TENANT_ID_PARAM, tenantId);
+        VirtualPoolList response = client.getURI(VirtualPoolList.class, builder.build(varrayId));
+        return defaultList(response.getVirtualPool());
+    }
+
+    /**
+     * Gets the storage pools that are associated with the given block virtual pool.
+     * Convenience method for calling getByRefs(listByVirtualArray(varrayId)).
+     *
+     * @param varrayId
+     *            the ID of the virtual array.
+     * @return the list of virtual pools.
+     *
+     * @see #listByVirtualArray(URI)
+     * @see #getByRefs(java.util.Collection)
+     */
+    public List<ComputeVirtualPoolRestRep> getByVirtualArray(URI varrayId) {
+        return getByVirtualArray(varrayId, null);
+    }
+
+    /**
+     * Gets the storage pools that are associated with the given block virtual pool and tenant.
+     *
+     * @param varrayId
+     *            the ID of the virtual array.
+     * @param tenantId
+     *            the ID of tenant
+     * @return the list of virtual pools.
+     *
+     * @see #listByVirtualArray(URI)
+     * @see #getByRefs(java.util.Collection)
+     */
+    public List<ComputeVirtualPoolRestRep> getByVirtualArrayAndTenant(URI varrayId, URI tenantId) {
+        return getByVirtualArray(varrayId, tenantId, null);
+    }
+
+    /**
+     * Gets the storage pools that are associated with the given block virtual pool.
+     * Convenience method for calling getByRefs(listByVirtualArray(varrayId)).
+     *
+     * @param varrayId
+     *            the ID of the virtual array.
+     * @param filter
+     *            the resource filter to apply to the results as they are returned (optional).
+     *
+     * @return the list of virtual pools.
+     *
+     * @see #listByVirtualArray(URI)
+     * @see #getByRefs(java.util.Collection)
+     */
+    public List<ComputeVirtualPoolRestRep> getByVirtualArray(URI varrayId, ResourceFilter<ComputeVirtualPoolRestRep> filter) {
+        List<NamedRelatedVirtualPoolRep> refs = listByVirtualArray(varrayId);
+        return getByRefs(computeVpools(refs), filter);
+    }
+
+
+    public List<ComputeVirtualPoolRestRep> getByVirtualArray(URI varrayId, URI tenantId, ResourceFilter<ComputeVirtualPoolRestRep> filter) {
+        List<NamedRelatedVirtualPoolRep> refs = listByVirtualArrayAndTenant(varrayId, tenantId);
+        return getByRefs(computeVpools(refs), filter);
     }
 
     /**

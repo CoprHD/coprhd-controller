@@ -4,7 +4,7 @@
   fields:{
 
     virtualArray:{
-      type:"assetType.vipr.objectVirtualArray",
+      type:"assetType.vipr.blockVirtualArray",
       lockable:true
     },
     

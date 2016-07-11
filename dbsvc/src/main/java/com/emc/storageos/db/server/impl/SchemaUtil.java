@@ -571,7 +571,7 @@ public class SchemaUtil {
                     primaryKey="key, column1 ,column2 ,column3 ,column4";
                 } else if (cf.getColumnSerializer() instanceof IndexColumnNameSerializer) {
                     comparator = IndexColumnNameSerializer.getComparatorName();
-                    schema="key text,column1 text,column2 text,column3 text,column4 text, column5 timeuuid,value blob";
+                    schema="key text,column1 text,column2 text,column3 text,column4 text,column5 timeuuid,value blob";
                     primaryKey="key, column1 ,column2 ,column3 ,column4, column5";
                 } else {
                     throw new IllegalArgumentException();

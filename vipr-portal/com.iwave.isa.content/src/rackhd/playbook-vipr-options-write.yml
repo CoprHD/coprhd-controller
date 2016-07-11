@@ -13,9 +13,5 @@
   - name: Remove last comma
     lineinfile: dest={{ ansibleResultFile }} regexp="^(.*),$" line="\1" backrefs=yes
 
-  - name: Add None option to list of options
-    lineinfile: dest={{ ansibleResultFile }} line=" ,{\"name\":\"None\",\"id\":\"null\"}"
-    when: (includeOptionNone is defined) and includeOptionNone
-
   - name: Write out end of options list
     lineinfile: dest={{ ansibleResultFile }} line="]" 

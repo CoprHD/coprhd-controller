@@ -37,8 +37,8 @@ class HostInitiator(object):
     URI_INITIATOR_DETAILS_BULK = "/compute/initiators/bulk"
     URI_HOST_LIST_INITIATORS = "/compute/hosts/{0}/initiators"
     URI_INITIATOR_DEACTIVATE = "/compute/initiators/{0}/deactivate"
-    URI_INITIATOR_ALIASGET = "/compute/initiators/{0}/alias-get/{1}"
-    URI_INITIATOR_ALIASSET = "/compute/initiators/{0}/alias-set"
+    URI_INITIATOR_ALIASGET = "/compute/initiators/{0}/alias/{1}"
+    URI_INITIATOR_ALIASSET = "/compute/initiators/{0}/alias"
 
     INITIATOR_PROTOCOL_LIST = ['FC', 'iSCSI']
 

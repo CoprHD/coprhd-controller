@@ -3264,7 +3264,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 throw e;
             }
         }
-        if ((versionSubstring == null) || !(Integer.parseInt(versionSubstring) >= 2)) {
+        if (NullColumnValueGetter.isNullValue(versionSubstring) || !(Integer.parseInt(versionSubstring) >= 2)) {
             String errMsg = String.format(
                     "SMI-S Provider associated with Storage System %s does not support Initiator Alias operations",
                     storageSystem.getSerialNumber());

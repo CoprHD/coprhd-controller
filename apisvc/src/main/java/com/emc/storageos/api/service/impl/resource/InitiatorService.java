@@ -318,7 +318,7 @@ public class InitiatorService extends TaskResourceService {
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/{id}/alias-get/{sid}")
+    @Path("/{id}/alias/{sid}")
     public InitiatorAliasRestRep getInitiatorAlias(@PathParam("id") URI id, @PathParam("sid") URI systemURI) {
         // Basic Checks
         Initiator initiator = queryResource(id);
@@ -343,7 +343,7 @@ public class InitiatorService extends TaskResourceService {
             throw APIException.badRequests.operationNotSupportedForSystemType(ALIAS, system.getSystemType());
         }
         // If the Alias is empty, set it to "/".
-        if ((initiatorAlias == null) || (initiatorAlias.isEmpty())) {
+        if (NullColumnValueGetter.isNullValue(initiatorAlias)) {
             initiatorAlias = EMPTY_INITIATOR_ALIAS;
         }
         // Update the initiator
@@ -366,7 +366,7 @@ public class InitiatorService extends TaskResourceService {
     @PUT
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/{id}/alias-set")
+    @Path("/{id}/alias")
     public InitiatorAliasRestRep setInitiatorAlias(@PathParam("id") URI id, InitiatorAliasSetParam aliasSetParam) {
         //Basic Checks
         Initiator initiator = queryResource(id);

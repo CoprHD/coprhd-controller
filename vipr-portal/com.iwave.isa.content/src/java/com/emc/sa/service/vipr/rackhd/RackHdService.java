@@ -95,18 +95,6 @@ public class RackHdService extends ViPRService {
 			}
 		}
 
-		// ignore params with no value
-		for(Iterator<Map.Entry<String, Object>> it =
-                      params.entrySet().iterator(); it.hasNext();){
-			Map.Entry<String, Object> entry = it.next(); 
-			if( (entry.getValue() == null) ||
-                              entry.getValue().toString().equals("")) {
-				warn("Ignoring parameter: " + entry.getKey() + "=" + 
-                                  entry.getValue());
-				it.remove();
-			}
-		}
-
 		/**
 		 * Temporary feature - Services can have only on ServiceDescriptor.
 		 * All we can do is lock down fields for different uses.

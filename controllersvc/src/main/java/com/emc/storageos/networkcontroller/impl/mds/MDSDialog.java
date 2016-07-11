@@ -1219,8 +1219,8 @@ public class MDSDialog extends SSHDialog {
      * @param zoneName
      * @throws NetworkDeviceControllerException
      */
-    public void zonesetMember(String zoneName) throws NetworkDeviceControllerException {
-        if (!inConfigMode) {
+    public void zonesetMember(String zoneName, boolean no) throws NetworkDeviceControllerException {
+    	if (!inConfigMode) {
             throw NetworkDeviceControllerException.exceptions.mdsDeviceNotInConfigMode();
         }
         if (lastPrompt != SSHPrompt.MDS_CONFIG_ZONESET) {
@@ -1228,10 +1228,12 @@ public class MDSDialog extends SSHDialog {
                     SSHPrompt.MDS_CONFIG_ZONESET.toString());
         }
         SSHPrompt[] prompts = { SSHPrompt.MDS_CONFIG_ZONESET };
+        String noString = no ? MDSDialogProperties.getString("MDSDialog.zonesetMember.no.cmd") : ""; // no
+
         StringBuilder buf = new StringBuilder();
         boolean retryNeeded = true;
         for (int retryCount = 0; retryCount < sessionLockRetryMax && retryNeeded; retryCount++) {
-            String payload = MessageFormat.format(MDSDialogProperties.getString("MDSDialog.zonesetMember.member.cmd"), zoneName); // member
+            String payload = MessageFormat.format(MDSDialogProperties.getString("MDSDialog.zonesetMember.member.cmd"), zoneName, noString); // member
                                                                                                                                   // {0}\n
             lastPrompt = sendWaitFor(payload, defaultTimeout, prompts, buf);
             String[] lines = getLines(buf);
@@ -1451,33 +1453,6 @@ public class MDSDialog extends SSHDialog {
         }
 
         _log.info(MessageFormat.format("Host: {0}, Port: {1} - END zonesetClone",
-                new Object[] { getSession().getSession().getHost(), getSession().getSession().getPort() }));
-    }
-    
-    
-    /**
-     * Does a zoneset clone of the existing zoneset in vsan 
-     * 
-     * @throws NetworkDeviceControllerException
-     */
-    public void removeZoneMemberForZoneset(Integer vsanId, String zoneset) throws NetworkDeviceControllerException {
-        _log.info(MessageFormat.format("Host: {0}, Port: {1} - BEGIN removeZoneMemberForZoneset",
-                new Object[] { getSession().getSession().getHost(), getSession().getSession().getPort() }));
-
-        if (!inConfigMode) {
-            throw NetworkDeviceControllerException.exceptions.mdsDeviceNotInConfigMode();
-        }
-        if (lastPrompt != SSHPrompt.MDS_CONFIG_ZONESET) {
-            throw NetworkDeviceControllerException.exceptions.mdsUnexpectedLastPrompt(lastPrompt.toString(),
-                    SSHPrompt.MDS_CONFIG.toString());
-        }
-        SSHPrompt[] prompts = { SSHPrompt.MDS_CONFIG_ZONESET};
-        StringBuilder buf = new StringBuilder();
-        String payload = MessageFormat.format(MDSDialogProperties.getString("MDSDialong.noMemberZone.cmd"), zoneset); //no member {0}
-        lastPrompt = sendWaitFor(payload, defaultTimeout, prompts, buf);
-        String[] lines = getLines(buf);
-     
-        _log.info(MessageFormat.format("Host: {0}, Port: {1} - END removeZoneMemberForZoneset",
                 new Object[] { getSession().getSession().getHost(), getSession().getSession().getPort() }));
     }
     

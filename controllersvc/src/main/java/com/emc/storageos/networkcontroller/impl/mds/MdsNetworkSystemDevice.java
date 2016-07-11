@@ -393,7 +393,7 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
                 dialog.zonesetNameVsan(activeZoneset.getName(), vsanId, false);
                 for (String zoneName : addedZoneNames.keySet()) {
                     if (SUCCESS.equals(addedZoneNames.get(zoneName))) {
-                        dialog.zonesetMember(zoneName);
+                        dialog.zonesetMember(zoneName, false);
                     }
                 }
                 dialog.exitToConfig();
@@ -589,13 +589,13 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
 
         try {
             dialog.config();
-            zonesetClone(dialog, vsanId, activeZoneset);                       
-            for (Zone zone : zonesToBeDeleted) {
-            	dialog.zonesetNameVsan(activeZoneset.getName(), vsanId, false);
+            zonesetClone(dialog, vsanId, activeZoneset);       
+            dialog.zonesetNameVsan(activeZoneset.getName(), vsanId, false);
+            for (Zone zone : zonesToBeDeleted) {            	
                 String zoneName = zone.getName();
-                _log.info("Removing zone: " + zoneName + " vsan: " + vsanId);
+                _log.info("Removing zone: " + zoneName + "zoneset: " + activeZoneset.getName() +  "vsan: " + vsanId);
                 try {
-                	dialog.removeZoneMemberForZoneset(vsanId, zone.getName());
+                	dialog.zonesetMember(zone.getName(), true);
                     removedZoneNames.put(zoneName, SUCCESS);
                 } catch (Exception ex) {
                     removedZoneNames.put(zoneName, ERROR + " : " + ex.getMessage());

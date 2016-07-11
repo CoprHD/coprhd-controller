@@ -17,6 +17,8 @@
 
   - include: playbook-rest-request.yml
 
+# catch case when restResult has no volume IDs
+
   - name: Extract Volume IDs from restResults
     set_fact: vol_id_item="{{item.id}}"
     with_items: "{{ restResult.json.resource }}"

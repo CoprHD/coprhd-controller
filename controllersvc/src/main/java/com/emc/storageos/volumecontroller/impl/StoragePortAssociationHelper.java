@@ -188,7 +188,7 @@ public class StoragePortAssociationHelper {
                 pools = new ArrayList<StoragePool>();
             }
 
-            //ALIK Lets find out if we have no network set to true
+            //Lets find out if we have no network set to true
             boolean noNetwork = isNoNetwork(varraysToAddIds, dbClient);
 
             // for better reading, added a method to group Ports by Network
@@ -204,7 +204,7 @@ public class StoragePortAssociationHelper {
                     }
                 }
             }
-            // ALIK if No Network set to true associate Storage pools
+            // If No Network set to true associate Storage pools
 
             if(noNetwork) {
             	StoragePoolAssociationHelper.updateVArrayRelations(ports, null, dbClient, null);

@@ -465,6 +465,7 @@ public class BlockVirtualPools extends ViprResourceController {
                 BlockProtocols.ScaleIO,
                 BlockProtocols.RBD
                 ));
+<<<<<<< HEAD
         renderArgs.put("systemTypeOptions", StorageSystemTypes.options(
                 StorageSystemTypes.NONE,
                 StorageSystemTypes.VMAX,
@@ -478,6 +479,10 @@ public class BlockVirtualPools extends ViprResourceController {
                 StorageSystemTypes.IBMXIV,
                 StorageSystemTypes.CEPH
                 ));
+=======
+        renderArgs.put("systemTypeOptions", StorageSystemTypes.getBlockStorageOptions());
+
+>>>>>>> origin/integration-3.2
         renderArgs.put("driveTypeOptions", DriveTypes.options(
                 DriveTypes.NONE,
                 DriveTypes.FC,

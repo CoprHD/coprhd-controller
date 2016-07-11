@@ -2164,10 +2164,9 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
 
                     // Smis call to add volumes that are already available in Group, will result in error.
                     // Refresh first for confidence and avoid false positives.
-                    forProvider = findProviderFactory.withGroup(storage, groupName).find();
-                    ReplicationUtils.callEMCRefresh(_helper, forProvider, true);
+                    ReplicationUtils.callEMCRefresh(_helper, storage, true);
                     Set<String> blockObjectsToAdd = _helper.filterVolumesAlreadyPartOfReplicationGroup(
-                            forProvider, cgPath, blockObjectNames);
+                            storage, cgPath, blockObjectNames);
                     if (!blockObjectsToAdd.isEmpty()) {
                         CIMArgument[] output = new CIMArgument[5];
                         CIMObjectPath[] members = _cimPath.getVolumePaths(storage,
@@ -2175,7 +2174,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                         boolean cgHasGroupRelationship = ControllerUtils.checkCGHasGroupRelationship(storage, consistencyGroup.getId(), _dbClient);
                         if (!cgHasGroupRelationship) {
                             CIMArgument[] addMembersInput = _helper.getAddMembersInputArguments(cgPath, members);
-                            _helper.invokeMethod(forProvider, replicationSvc, SmisConstants.ADD_MEMBERS,
+                            _helper.invokeMethod(storage, replicationSvc, SmisConstants.ADD_MEMBERS,
                                     addMembersInput, output);
                         } else {
                             final CIMObjectPath maskingGroupPath = _cimPath.getMaskingGroupPath(storage, groupName,

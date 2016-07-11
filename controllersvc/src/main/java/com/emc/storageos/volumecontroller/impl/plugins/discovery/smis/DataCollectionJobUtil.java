@@ -114,7 +114,9 @@ public class DataCollectionJobUtil {
                 StorageProvider.InterfaceType.unity.name().equalsIgnoreCase(
                         ((StorageProvider) taskObject).getInterfaceType())) {
             populateUnityAccessProfile(profile, (StorageProvider) taskObject);
-        } else if (clazz == StorageSystem.class) {
+        } else if (clazz == StorageProvider.class &&
+                StorageSystem.Type.isDriverManagedStorageProvider(((StorageProvider) taskObject).getInterfaceType())){
+            populateExternalProviderAccessProfile(profile, (StorageProvider) taskObject);        } else if (clazz == StorageSystem.class) {
             populateAccessProfile(profile, (StorageSystem) taskObject, nameSpace);
         } else if (clazz == ProtectionSystem.class) {
             populateAccessProfile(profile, (ProtectionSystem) taskObject, nameSpace);
@@ -133,6 +135,16 @@ public class DataCollectionJobUtil {
         }
 
         return profile;
+    }
+
+    private void populateExternalProviderAccessProfile(AccessProfile accessProfile, StorageProvider providerInfo) {
+        accessProfile.setSystemId(providerInfo.getId());
+        accessProfile.setSystemClazz(providerInfo.getClass());
+        accessProfile.setIpAddress(providerInfo.getIPAddress());
+        accessProfile.setUserName(providerInfo.getUserName());
+        accessProfile.setPassword(providerInfo.getPassword());
+        accessProfile.setSystemType(getSystemType(providerInfo));
+        accessProfile.setProviderPort(String.valueOf(providerInfo.getPortNumber()));
     }
 
     private void populateScaleIOAccessProfile(AccessProfile accessProfile, StorageProvider providerInfo) {
@@ -591,6 +603,10 @@ public class DataCollectionJobUtil {
             accessProfile.setPassword(storageDevice.getSmisPassword());
             accessProfile.setLastSampleTime(0L);
         } else if (StorageSystem.Type.isDriverManagedStorageSystem(storageDevice.getSystemType())) {
+            if (StorageSystem.Type.isProviderStorageSystem(storageDevice.getSystemType())) {
+                injectDiscoveryProfile(accessProfile, storageDevice);
+            } else {
+                // directly managed
             accessProfile.setSystemType(storageDevice.getSystemType());
             accessProfile.setIpAddress(storageDevice.getIpAddress());
             accessProfile.setUserName(storageDevice.getUsername());

@@ -259,6 +259,7 @@ public class FileVirtualPools extends ViprResourceController {
         renderArgs.put("provisioningTypeOptions",
                 ProvisioningTypes.options(ProvisioningTypes.THICK, ProvisioningTypes.THIN));
         renderArgs.put("protocolOptions", FileProtocols.options(FileProtocols.CIFS, FileProtocols.NFS, FileProtocols.NFSV4));
+<<<<<<< HEAD
         renderArgs.put("systemTypeOptions",
                 StorageSystemTypes.options(
                         StorageSystemTypes.NONE,
@@ -269,6 +270,10 @@ public class FileVirtualPools extends ViprResourceController {
                         StorageSystemTypes.NETAPP,
                         StorageSystemTypes.NETAPPC,
                         StorageSystemTypes.DATA_DOMAIN));
+=======
+        renderArgs.put("systemTypeOptions", StorageSystemTypes.getFileStorageOptions());
+
+>>>>>>> origin/integration-3.2
         renderArgs.put("poolAssignmentOptions",
                 PoolAssignmentTypes.options(PoolAssignmentTypes.AUTOMATIC, PoolAssignmentTypes.MANUAL));
         renderArgs.put("varrayAttributeNames", VirtualArrayUtils.ATTRIBUTES);

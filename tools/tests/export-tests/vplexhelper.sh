@@ -15,7 +15,7 @@ add_volume_to_mask() {
     serial_number=$1
     device_id=$2
     pattern=$3
-    java -Dproperty.file=${tools_file} -jar ${tools_jar} -vplex vplex -method add_volume_to_mask -params "${device_id},${pattern}" 
+    java -Dproperty.file=${tools_file} -jar ${tools_jar} -vplex $VPLEX_MODE -method add_volume_to_mask -params "${device_id},${pattern}" 
     echo "Added volume ${device_id} to initiator group ${pattern}"
 }
 
@@ -23,30 +23,28 @@ remove_volume_from_mask() {
     serial_number=$1
     device_id=$2
     pattern=$3
-    java -Dproperty.file=${tools_file} -jar ${tools_jar} -vplex vplex -method remove_volume_from_mask -params "${device_id},${pattern}"
+    java -Dproperty.file=${tools_file} -jar ${tools_jar} -vplex $VPLEX_MODE -method remove_volume_from_mask -params "${device_id},${pattern}"
     echo "Removed volume ${device_id} from initiator group ${pattern}"
 }
 
 delete_volume() {
     serial_number=$1
     device_id=$2
-    java -Dproperty.file=${tools_file} -jar ${tools_jar} -vplex vplex -method delete_volume -params "${device_id}" 
+    java -Dproperty.file=${tools_file} -jar ${tools_jar} -vplex $VPLEX_MODE -method delete_volume -params "${device_id}" 
 }
 
 remove_initiator_from_mask() {
     serial_number=$1
     device_id=$2
     pattern=$3
-    java -Dproperty.file=${tools_file} -jar ${tools_jar} -vplex vplex -method remove_initiator_from_mask -params "${device_id},${pattern}"
-
+    java -Dproperty.file=${tools_file} -jar ${tools_jar} -vplex $VPLEX_MODE -method remove_initiator_from_mask -params "${device_id},${pattern}"
 }
 
 add_initiator_to_mask() {
     serial_number=$1
     device_id=$2
     pattern=$3
-    java -Dproperty.file=${tools_file} -jar ${tools_jar} -vplex vplex -method add_initiator_to_mask -params "${device_id},${pattern}"
-
+    java -Dproperty.file=${tools_file} -jar ${tools_jar} -vplex $VPLEX_MODE -method add_initiator_to_mask -params "${device_id},${pattern}"
 }
 
 verify_export() {
@@ -62,7 +60,7 @@ verify_export() {
     TMPFILE1=/tmp/verify-${RANDOM}
     TMPFILE2=/dev/null
 
-    java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays vplex -method get_initiator_group -params ${IG_PATTERN} > ${TMPFILE1} 2> ${TMPFILE2}
+    java -Dproperty.file=${tools_file} -jar ${tools_jar} -vplex $VPLEX_MODE -method get_initiator_group -params ${IG_PATTERN} > ${TMPFILE1} 2> ${TMPFILE2}
     grep -n ${IG_PATTERN} ${TMPFILE1} > /dev/null
     if [ $? -ne 0 ]
 	then
@@ -71,7 +69,7 @@ verify_export() {
 	    echo "PASSED: Verified MaskingView with pattern ${IG_PATTERN} doesn't exist."
 	    exit 0;
 	fi
-	echo "ERROR: Expected MaskingView ${IG_PATTERN}, but could not find it";
+	echo "ERROR: I Expected MaskingView ${IG_PATTERN}, but could not find it";
 	exit 1;
     else
 	if [ "$2" = "gone" ]
@@ -110,8 +108,9 @@ verify_export() {
 
 # Check to see if this is an operational request or a verification of export request
 dir=`pwd`
-tools_file="/Users/beachn/workspace/vipr-controller-qe/users/jai/ArrayTools/src/main/resources/tools.yml"
-tools_jar="/Users/beachn/workspace/vipr-controller-qe/users/jai/ArrayTools/target/ArrayTools-1.0-SNAPSHOT.jar"
+tools_file="${dir}/tools.yml"
+tools_jar="${dir}/ArrayTools-1.0-SNAPSHOT.jar"
+
 if [ "$1" = "add_volume_to_mask" ]; then
     shift
     add_volume_to_mask $1 $2 $3

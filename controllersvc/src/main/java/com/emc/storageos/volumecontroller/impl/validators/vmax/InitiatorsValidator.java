@@ -19,9 +19,10 @@ import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CP_INST
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CP_SE_STORAGE_HARDWARE_ID;
 
 /**
- * TODO
+ * Vmax validator for validating there are no additional initiators in the export mask
+ * than what is expected.
  */
-public class InitiatorsValidator extends AbstractVmaxDUPValidator {
+public class InitiatorsValidator extends AbstractVmaxValidator {
 
     private static final Logger log = LoggerFactory.getLogger(InitiatorsValidator.class);
     private StorageSystem storage;
@@ -35,8 +36,9 @@ public class InitiatorsValidator extends AbstractVmaxDUPValidator {
     }
 
     @Override
-    protected boolean execute() throws Exception {
+    public boolean validate() throws Exception {
         log.info("Validating remove volume operation");
+        getLogger().setLog(log);
 
         ExportMask exportMask = getDbClient().queryObject(ExportMask.class, exportMaskURI);
         CIMObjectPath maskingViewPath = getCimPath().getMaskingViewPath(storage, exportMask.getMaskName());
@@ -57,7 +59,10 @@ public class InitiatorsValidator extends AbstractVmaxDUPValidator {
 
             log.info("{} has initiators: {}", storage.getSerialNumber(), Joiner.on(',').join(smisInitiators));
             if (smisInitiators.size() > initiators.size()) {
-                throw new RuntimeException("Unknown additional initiators were found");
+                String smisJoined = Joiner.on(',').join(smisInitiators);
+                getLogger().logDiff(exportMask.getId().toString(), "initiators",
+                        Joiner.on(',').join(initiators), smisJoined);
+                throw new RuntimeException("Unknown additional initiators were found: " + smisJoined);
             }
         } catch (WBEMException e) {
             log.error("Failure occurred whilst validating initiators for export mask {}", exportMask.getMaskName(), e);

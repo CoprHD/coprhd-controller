@@ -266,10 +266,6 @@
         </property>
     </bean>
 
-    <bean id="mailHandler" class="com.emc.storageos.systemservices.impl.util.MailHandler"/>
-
-    <bean id="drSiteNetworkMonitor" class="com.emc.storageos.systemservices.impl.util.DrSiteNetworkMonitor"/>
-
     <bean id="syssvcserver" class="com.emc.storageos.systemservices.impl.SysSvcImpl">
         <property name="softwareUpdate" ref="softwareUpdate" />
         <property name="application" ref="syssvcApp" />
@@ -638,5 +634,27 @@
     	<property name="jobProducer" ref="dbConsistencyJobProducer" />
     	<property name="name" value="SyssvcDBCheckHandler"/>
     </bean>
+    
+    <bean id="drZkHealthMonitor" class="com.emc.storageos.systemservices.impl.util.DrZkHealthMonitor">
+    	<property name="drUtil" ref="drUtil" />
+    	<property name="coordinator" ref="coordinatorclientext" />
+    	<property name="name" value="DrZkMonitor"/>
+    	<property name="initDelayInSecs" value="180"/>
+    	<property name="frequencyInSecs" value="60"/>
+    </bean>
+    
+    <bean id="drDbHealthMonitor" class="com.emc.storageos.systemservices.impl.util.DrDbHealthMonitor">
+    	<property name="drUtil" ref="drUtil" />
+    	<property name="coordinatorClient" ref="coordinator" />
+    	<property name="name" value="DrDbMonitor"/>
+    	<property name="initDelayInSecs" value="180"/>
+    	<property name="frequencyInSecs" value="60"/>
+    </bean>
+    
+    <bean id="mailHandler" class="com.emc.storageos.systemservices.impl.util.MailHandler"/>
+    <bean id="drSiteNetworkMonitor" class="com.emc.storageos.systemservices.impl.util.DrSiteNetworkMonitor">
+    	<property name="name" value="DrNetworkMonitor"/>
+    </bean>
+    
 </beans>
     

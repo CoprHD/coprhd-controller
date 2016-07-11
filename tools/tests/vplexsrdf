@@ -1,0 +1,563 @@
+#!/bin/sh
+#
+# Copyright (c) 2016 EMC Corporation
+# All Rights Reserved
+#
+
+
+# Save the command arguments
+ARGC=$#
+[ $ARGC -eq 0 ] && {
+    echo "usage: vplexsrdf config_file"
+    exit 2;
+}
+
+SANITY_CONFIG_FILE=""
+# ============================================================
+# Check if there is a sanity configuration file specified
+# on the command line. In, which case, we should use that
+# ============================================================
+if [ "$1"x != "x" ]; then
+   if [ -f "$1" ]; then
+      SANITY_CONFIG_FILE=$1
+      echo Using sanity configuration file $SANITY_CONFIG_FILE
+      source $SANITY_CONFIG_FILE
+      shift
+   fi
+fi
+
+ARGV=$*
+CWD=$(pwd)
+export PATH=$CWD:$PATH
+echo "PATH: " $PATH
+
+# Tenant and project and consistency group
+rootTenant=`tenant root`
+export rootTenant
+[ "$tenant" ] || {
+    tenant=$rootTenant
+}
+export tenant
+echo tenant $tenant 
+[ "$project" ] || {
+    project=$VPLEXSRDF_PROJECT
+}
+echo project $project
+existingProjects=$(project list --tenant $tenant)
+echo "Existing projects: $existingProjects"
+$(echo $existingProjects | grep -q $project) || {
+    echo project create --tenant $tenant $project
+    project create --tenant $tenant $project
+}
+
+# Virtual arrays
+SITEr1=220cl1			# The source SRDF site and source 1st VPLEX site
+SITEr2=154cl2			# The target SRDF site and possible 2nd VPLEX site
+SITEha=220cl2			# The 1st VPLEX HA site
+SITEr2ha=154cl1			# The 2nd VPLEX HA site
+
+# Virtual pools
+VPOOL1=${VPOOL1:-vrdfsrc}		# The source virtual pool under test
+
+
+# Configuration file to be used  
+source $SANITY_CONFIG_FILE 
+
+# Variables about volumes
+BLK_SIZE=${BLK_SIZE:-1073741824}
+BLK_SIZE2=${BLK_SIZE2:-2147483648}
+VOLUME_COUNT=${VOLUME_COUNT:-2}
+[ "$VOLUME_COUNT" -lt 2 ] && {
+    echo "VOLUME_COUNT < 2 not supported- exiting"
+    exit
+}
+
+macaddr=`/sbin/ifconfig eth0 | /usr/bin/awk '/HWaddr/ { print $5 }'`
+echo macaddr ${macaddr}
+hostseed=`echo ${macaddr} | awk -F: '{print $5$6}'`
+export hostseed
+hostbase=host${hostseed}
+export hostbase
+echo "hostbase $hostbase"
+seed=`date "+%H%M%S%N"`
+seed2b=`printf "%02X" $$ | cut -b1-2`
+echo "seed $seed seed2b $seed2b"
+
+echoit() {
+    echo "******************************************************************"
+    echo $*
+    echo "******************************************************************"
+}
+run() {
+    cmd=$*
+    date
+    echoit $cmd
+    $cmd 2>&1
+    status=$?
+    date
+    if [ $status -ne 0 ]; then
+        echoit $cmd failed
+	date
+	exit $status
+    fi
+}
+
+
+pwwn() {
+    idx=$1; echo 50:${macaddr}:${idx}
+}
+nwwn() {
+    idx=$1; echo 51:${macaddr}:${idx}
+}
+
+
+# $1 = failure message
+fail() {
+    [ "$1" = ""	] && {
+        $1="Failed- please see previous messages"
+    }
+    echoit fail: $1
+    date
+    exit 2
+}
+
+#
+# Create a volume
+# $1=name, $2=varray, $3=vpool, $4=cg
+volume_create() {
+    name=$1; varray=$2; vpool=$3; cg=$4
+    echoit "Creating volumes $name in $varray $vpool"
+    run volume create --consistencyGroup $cg $name $project $varray $vpool $BLK_SIZE --count ${VOLUME_COUNT}
+}
+
+# Function to create a cluster. $1 is the cluster name
+cluster_create() {
+    name=$1
+    exists=$(cluster list ${tenant} | grep $name | wc -l)
+    [ $exists -ne 1 ] && {
+        echoit "creating cluster $name"
+        run cluster create $name $tenant --project $project
+    }
+}
+cluster_create vplexsrdfclus
+clusterId=$(cluster list $rootTenant | grep vplexsrdfclus | awk ' { print $4; }')
+
+# Function to create a host.
+# $1 = host name, $2 = cluster name
+# $3 = arg to pwwn for first initiator, 
+# $4 = arg to pwwn for second initiator
+# $5 = network to add first initiator to
+# $6 = network to add second initiator to
+host_create() {
+    name=$1; cluster=$2; init1=$3; init2=$4; net1=$5; net2=$6
+    exists=$(hosts list ${tenant} | grep $name | wc -l)
+    [ $exists -ne 1 ] && {
+        echoit "creating host $name"
+        run hosts create $name $tenant Other ${name}.org --port 2222 --cluster $cluster
+        run initiator create $name FC $(pwwn $init1) --node $(nwwn $init1)
+        run initiator create $name FC $(pwwn $init2) --node $(nwwn $init2)
+        run transportzone add $net1 $(pwwn $init1)
+        run transportzone add $net2 $(pwwn $init2)
+    }
+}
+
+
+# Control over running individual parts of the test (true/false)
+create_volume=true			# if false, specify volname1 and CGlabel
+export_volume=false
+test_protection_ops=false
+test_expand=false
+test_r1_snapvx_nocopy=false
+test_r2_snapvx_nocopy=false
+test_r1_fullcopy=false
+test_r2_fullcopy=false
+delete_volume=false
+create_delete_loop=false			# specify $volname1 and $CGlabel
+
+# Setup basic varrays
+vplexsrdf_setup() {
+     # Make virtual arrays if necessary
+     existingVAs=$(neighborhood list | awk ' { print $1; }')
+     # Ensure the virtual arrays are present
+     $(echo $existingVAs | grep -q $SITEr1 ) || {
+         neighborhood create $SITEr1
+     }
+     $(echo $existingVAs | grep -q $SITEr2 ) || {
+         neighborhood create $SITEr2
+     }
+     $(echo $existingVAs | grep -q $SITEha ) || {
+         neighborhood create $SITEha
+     }
+     $(echo $existingVAs | grep -q $SITEr2ha ) || {
+         neighborhood create $SITEr2ha
+     }
+     existingVAs=$(neighborhood list | awk ' { print $1; }')
+     echo "Virtual arrays: $existingVAs"
+}
+
+vplexsrdf_setup
+
+# Discover and configure all the equipment needed for VPLEXSRDF
+vplexsrdf_discover() {
+    # Discover the brocade
+    brocadeDiscovered=$(networksystem list | grep $BROCADE_NETWORK | wc -l)
+    [ $brocadeDiscovered -eq 1 ] || {
+        run networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
+    } 
+    $(networksystem list_connections $BROCADE_NETWORK | awk ' {print $1;}' | sort | uniq >/tmp/__networks)
+    networks=$(cat /tmp/__networks)
+    echoit "Discovered networks: $networks"
+    losam082=FABRIC_$(cat /tmp/__networks | grep "losam082")
+    vplex154=FABRIC_$(cat /tmp/__networks | grep "vplex154")
+    fid30=FABRIC_$(cat /tmp/__networks | grep "FID_30")
+    fid40=FABRIC_$(cat /tmp/__networks | grep "FID_40")
+    echo A $losam082 B $vplex154 C $fid30 D $fid40
+    rm /tmp/__networks
+
+    transportzone assign $fid30 $SITEr1
+    transportzone assign $fid40 $SITEha
+    transportzone assign $losam082 $SITEr2
+    transportzone assign $vplex154 $SITEr2
+    transportzone assign $losam082 $SITEr2ha
+    transportzone assign $vplex154 $SITEr2ha
+
+    # Discover the providers
+    existingProviders=$(storageprovider list | awk ' {print $2;}')
+    echo "Existing providers: $existingProviders"
+    newProvider=0
+    # Discover the providers
+    $(echo $existingProviders | grep -q $VPLEXSRDF_SOURCE_PROVIDER) || {
+        run smisprovider create $VPLEXSRDF_SOURCE_PROVIDER $VPLEXSRDF_SOURCE_PROVIDER 5989 $SMIS_USER $SMIS_PASSWD true
+	newProvider=1
+    }
+    $(echo $existingProviders | grep -q $VPLEXSRDF_TARGET_PROVIDER) || {
+        run smisprovider create $VPLEXSRDF_TARGET_PROVIDER $VPLEXSRDF_TARGET_PROVIDER 5989 $SMIS_USER $SMIS_PASSWD true
+	newProvider=1
+    }
+    $(echo $existingProviders | grep -q $VPLEXSRDF_HA_PROVIDER) || {
+        run smisprovider create $VPLEXSRDF_HA_PROVIDER $VPLEXSRDF_HA_PROVIDER 5989 $SMIS_USER $SMIS_PASSWD true
+	newProvider=1
+    }
+    # Discover the VPLEXes
+    $(echo $existingProviders | grep -q $VPLEXSRDF_VPLEX1_IP) || {
+        run storageprovider create $VPLEXSRDF_VPLEX1_IP $VPLEXSRDF_VPLEX1_IP 443 $VPLEX_USER "$VPLEX_PASSWD" vplex
+        newProvider=1
+    }
+    $(echo $existingProviders | grep -q $VPLEXSRDF_VPLEX2_IP) || {
+        run storageprovider create $VPLEXSRDF_VPLEX2_IP $VPLEXSRDF_VPLEX2_IP 443 $VPLEX_USER "$VPLEX_PASSWD" vplex
+        newProvider=1
+    }
+
+    if [ $newProvider -eq 1 ]; then 
+        echoit "Initiating discovery_all... this may take some time"
+        run storagedevice discover_all
+    fi
+
+    # Check discovery of the storage systems
+    existingArrays=$(storagedevice list | awk ' {print $2;}')
+    echo "Existing arrays: $existingArrays"
+    $(echo $existingArrays | grep -q $VPLEXSRDF_SOURCE_GUID) || {
+        echo "Array $VPLEXSRDF_SOURCE_GUID not discovered. Fatal error".
+	exit 2
+    }
+    $(echo $existingArrays | grep -q $VPLEXSRDF_TARGET_GUID) || {
+        echo "Array $VPLEXSRDF_TARGET_GUID not discovered. Fatal error".
+	exit 2
+    }
+    $(echo $existingArrays | grep -q $VPLEXSRDF_HA_GUID) || {
+        echo "Array $VPLEXSRDF_HA_GUID not discovered. Fatal error".
+	exit 2
+    }
+
+    # Assign all the storage ports.
+    [ $newProvider -eq 0 ] || {
+        storagedevice_list
+        run storageport update $VPLEXSRDF_SOURCE_GUID FC --addvarrays $SITEr1
+        run storageport update $VPLEXSRDF_HA_GUID FC --addvarrays $SITEha
+        run storageport update $VPLEXSRDF_TARGET_GUID FC --addvarrays $SITEr2
+        run storageport update $VPLEXSRDF_VPLEX2_GUID FC --group director-1-1-A --addvarrays $SITEr1
+        run storageport update $VPLEXSRDF_VPLEX2_GUID FC --group director-1-1-B --addvarrays $SITEr1
+        run storageport update $VPLEXSRDF_VPLEX2_GUID FC --group director-2-1-A --addvarrays $SITEha
+        run storageport update $VPLEXSRDF_VPLEX2_GUID FC --group director-2-1-B --addvarrays $SITEha
+        run storageport update $VPLEXSRDF_VPLEX1_GUID FC --group director-2-1-A --addvarrays $SITEr2
+        run storageport update $VPLEXSRDF_VPLEX1_GUID FC --group director-2-1-B --addvarrays $SITEr2
+        run storageport update $VPLEXSRDF_VPLEX1_GUID FC --group director-1-1-A --addvarrays $SITEr2ha
+        run storageport update $VPLEXSRDF_VPLEX1_GUID FC --group director-1-1-B --addvarrays $SITEr2ha
+        echo "Storage port assignment completed."
+        host_create vplexsrdfhost1 $clusterId A0 A1 $losam082 $losam082
+        host_create vplexsrdfhost2 $clusterId A2 A3 $losam082 $losam082
+    }
+}
+
+vplexsrdf_discover
+
+# Set up the virtual pools
+existingVpools=$(cos list block | awk ' {print $1;}')
+vrdfsrc=$(echo $existingVpools | grep -c vrdfsrc)
+vrdfha=$(echo $existingVpools | grep -c vrdfha)
+vrdftgt=$(echo $existingVpools | grep -c vrdftgt)
+vrdfsrcLocalR1=$(echo $existingVpools | grep -c vrdfsrcLocalR1)
+echo "existing pools: " $existingPools
+
+if [ $vrdftgt -eq 0 ];
+then
+run cos create block vrdftgt false --description R2_VPlexL_on_VMAX \
+	--protocols FC --numpaths 1 --highavailability vplex_local --system_type vmax \
+	--provisionType Thin --neighborhoods $SITEr2 --expandable true \
+	--max_snapshots 4 --multiVolumeConsistency 
+cos update block vrdftgt --storage $VPLEXSRDF_TARGET_GUID
+cos allow vrdftgt block $rootTenant
+fi
+
+if [ $vrdfha -eq 0 ];
+then
+run cos create block vrdfha false --description VMAX_HA \
+	--protocols FC --numpaths 1 --system_type vmax \
+	--provisionType Thin --neighborhoods $SITEha --expandable true \
+	--max_snapshots 4 --multiVolumeConsistency 
+cos update block vrdfha --storage $VPLEXSRDF_HA_GUID
+cos allow vrdfha block $rootTenant
+fi
+
+if [ $vrdfsrc -eq 0 ];
+then
+run cos create block vrdfsrc false --description VPlexD_SRDF_R1_to_VPlexL_SRDF_R2 \
+	--protocols FC --numpaths 1 --highavailability vplex_distributed --haNeighborhood $SITEha --haCos vrdfha \
+        --system_type vmax --provisionType Thin --neighborhoods $SITEr1 --expandable true \
+	--max_snapshots 4 --multiVolumeConsistency --srdf "$SITEr2:vrdftgt:ASYNCHRONOUS"
+cos update block vrdfsrc --storage $VPLEXSRDF_SOURCE_GUID
+cos allow vrdfsrc block $rootTenant
+fi
+echoit "Virtual Pools"
+
+if [ $vrdfsrcLocalR1 -eq 0 ];
+then
+run cos create block vrdfsrcLocalR1 false --description VPlexL_SRDF_R1_to_VPlexL_SRDF_R2 \
+	--protocols FC --numpaths 1 --highavailability vplex_local \
+        --system_type vmax --provisionType Thin --neighborhoods $SITEr1 --expandable true \
+	--max_snapshots 4 --multiVolumeConsistency --srdf "$SITEr2:vrdftgt:ASYNCHRONOUS"
+cos update block vrdfsrcLocalR1 --storage $VPLEXSRDF_SOURCE_GUID
+cos allow vrdfsrcLocalR1 block $rootTenant
+fi
+cos list block
+
+vplexsrdf_test() {
+volname1=${volname1:-"vplexSrdfA$hostseed$seed2b"}
+volname1target=${volname1}-target-${SITEr2}
+volname2=${volname1:-"vplexSrdfB$hostseed$seed2b"}
+volname2target=${volname2}-target-${SITEr2}
+
+security login root 'ChangeMe1!'
+if [ $create_volume = "true" ];
+then
+    security login root 'ChangeMe1!'
+    # Create consistency group 
+    CGlabel=${CGlabel:-"vpxrdf${seed2b}"}
+    export CGlabel
+    run blockconsistencygroup create $project $CGlabel
+    echoit "create volume $volname1"
+    volume_create "$volname1" $SITEr1 $VPOOL1 $CGlabel
+else
+    echoit "Using existing volume $volname1 cg $CGlabel"
+fi
+CGtarget=$CGlabel-Target-$SITEr2
+
+if [ $VOLUME_COUNT -gt 1 ];
+then
+    volname1=${volname1}-1
+    volname1target=${volname1}-target-${SITEr2}
+    echo "volname1 $volname1"
+    echo "volname1target $volname1target"
+fi
+
+if [ $export_volume = "true" ]; 
+then
+   echoit "Exporting volume to cluster"
+   run export_group create $project egtest1 $SITEr1 --type Cluster --clusters $clusterId --volspec $project/$volname1
+fi
+
+if [ "$test_protection_ops" = "true" ];
+then
+security login root 'ChangeMe1!'
+echoit "Testing Failover/cancel CG"
+run blockconsistencygroup failover $CGlabel --targetVarray ${SITEr2} --copyType srdf
+run blockconsistencygroup failover_cancel $CGlabel --targetVarray ${SITEr2} --copyType srdf
+echoit "Testing Swap/back CG"
+run blockconsistencygroup swap $CGlabel --targetVarray ${SITEr2} --copyType srdf
+run blockconsistencygroup swap ${CGlabel}-Target-${SITEr2} --targetVarray ${SITEr1} --copyType srdf
+fi
+
+if [ "$test_expand" = "true" ];
+then
+security login root 'ChangeMe1!'
+echoit "Testing volume expand"
+run volume expand $project/$volname1 ${BLK_SIZE2}
+fi
+
+if [ "$test_r1_snapvx_nocopy" = "true" ];
+then
+security login root 'ChangeMe1!'
+# Create snapvx sessions with no linked targets
+SNAP_SESSION_NAME1=$CGlabel-snap1
+SNAP_SESSION_NAME2=$CGlabel-snap2
+SNAP_SESSION_TGT_NAME1=${volname1}-snap1
+SNAP_SESSION_TGT_NAME2=${volname1}-snap2
+echoit "Creating snapvx session $SNAP_SESSION_NAME1"
+run blockconsistencygroup create_snapshot_session $CGlabel $SNAP_SESSION_NAME1
+echoit "Creating snapvx session $SNAP_SESSION_NAME2"
+run blockconsistencygroup create_snapshot_session $CGlabel $SNAP_SESSION_NAME2
+# Restore the snapvx session.
+echoit "Restoring snapvx session $SNAP_SESSION_NAME1"
+run blockconsistencygroup restore_targets $CGlabel/$SNAP_SESSION_NAME1
+# Link target to the snapvx session 1 in default nocopy mode.
+echoit "Linking target $SNAP_SESSION_TGT_NAME1 to snapvx session $SNAP_SESSION_NAME1"
+run blockconsistencygroup link_targets $CGlabel/$SNAP_SESSION_NAME1 1 $SNAP_SESSION_TGT_NAME1
+# Relink target to the snapvx session 2.
+echoit "Relinking target $SNAP_SESSION_TGT_NAME1 to SnapVx session 2"
+run blockconsistencygroup relink_targets $CGlabel/$SNAP_SESSION_NAME2 $CGlabel/${SNAP_SESSION_TGT_NAME1}-1-1
+# Unlink target from the snapvx session and delete target volume.
+echoit "unlinking target from SnapVx session 2"
+run blockconsistencygroup unlink_targets $CGlabel/$SNAP_SESSION_NAME2 $CGlabel/${SNAP_SESSION_TGT_NAME1}-1-1 --delete_target true
+# Delete the snapvx sessions.
+echoit "Deleting SnapVx sessions $SNAP_SESSION_NAME1 and $SNAP_SESSION_NAME2"
+run blockconsistencygroup delete_snapshot_session $CGlabel/$SNAP_SESSION_NAME1
+run blockconsistencygroup delete_snapshot_session $CGlabel/$SNAP_SESSION_NAME2
+fi
+
+if [ "$test_r2_snapvx_nocopy" = "true" ];
+then
+security login root 'ChangeMe1!'
+# Create snapvx sessions with no linked targets
+SNAP_SESSION_NAME1=$CGtarget-snap1
+SNAP_SESSION_NAME2=$CGtarget-snap2
+SNAP_SESSION_TGT_NAME1=${volname1}-r2-snap1
+SNAP_SESSION_TGT_NAME2=${volname1}-r2-snap2
+echoit "Creating snapvx session $SNAP_SESSION_NAME1"
+run blockconsistencygroup create_snapshot_session $CGtarget $SNAP_SESSION_NAME1
+echoit "Creating snapvx session $SNAP_SESSION_NAME2"
+run blockconsistencygroup create_snapshot_session $CGtarget $SNAP_SESSION_NAME2
+# Restore the snapvx session.
+echoit "Pausing the link so can restore R2"
+run volume change_link $project/$volname1 pause $project/$volname1target srdf
+echoit "Restoring snapvx session $SNAP_SESSION_NAME1"
+run blockconsistencygroup restore_targets $CGtarget/$SNAP_SESSION_NAME1
+echoit "Resuming the link"
+run volume change_link $project/$volname1 resume $project/$volname1target srdf
+# Link target to the snapvx session 1 in default nocopy mode.
+echoit "Linking target $SNAP_SESSION_TGT_NAME1 to snapvx session $SNAP_SESSION_NAME1"
+run blockconsistencygroup link_targets $CGtarget/$SNAP_SESSION_NAME1 1 $SNAP_SESSION_TGT_NAME1
+# Relink target to the snapvx session 2.
+echoit "Relinking target $SNAP_SESSION_TGT_NAME1 to SnapVx session 2"
+run blockconsistencygroup relink_targets $CGtarget/$SNAP_SESSION_NAME2 $CGtarget/${SNAP_SESSION_TGT_NAME1}-1-1
+# Unlink target from the snapvx session and delete target volume.
+echoit "unlinking target from SnapVx session 2"
+run blockconsistencygroup unlink_targets $CGtarget/$SNAP_SESSION_NAME2 $CGtarget/${SNAP_SESSION_TGT_NAME1}-1-1 --delete_target true
+# Delete the snapvx sessions.
+echoit "Deleting SnapVx sessions $SNAP_SESSION_NAME1 and $SNAP_SESSION_NAME2"
+run blockconsistencygroup delete_snapshot_session $CGtarget/$SNAP_SESSION_NAME1
+run blockconsistencygroup delete_snapshot_session $CGtarget/$SNAP_SESSION_NAME2
+fi
+
+if [ "$test_r1_fullcopy" = "true" ];
+then
+security login root 'ChangeMe1!'
+r1copy1=${volname1}_r1_copy1
+echoit "Creating full copy $r1copy1"
+volume full_copy $r1copy1 $project/$volname1
+echoit "Resyncing full copy $r1copy1-1"
+volume full_copy_resync $project/$r1copy1-1
+echoit "Restoring full copy $r1copy1"
+volume full_copy_restore $project/$r1copy1-1
+i=1
+while [ $i -le $VOLUME_COUNT ];
+    do
+    echoit "Detaching full copy $r1copy1-$i"
+    volume detach $project/$volname1 $project/$r1copy1-$i
+    echoit "Deleting full copy $r1copy1-$i"
+    volume delete $project/$r1copy1-$i --wait --wait
+    i=$(($i + 1))
+    done
+fi
+
+if [ "$test_r2_fullcopy" = "true" ];
+then
+security login root 'ChangeMe1!'
+r2copy1=${volname1}_r2_copy1
+echoit "Creating full copy $r2copy1"
+run volume full_copy $r2copy1 $project/$volname1target
+echoit "Resyncing full copy $r2copy1-1"
+run volume full_copy_resync $project/$r2copy1-1
+echoit "Restoring full copy $r2copy1-1"
+run volume full_copy_restore $project/$r2copy1-1
+i=1
+while [ $i -le $VOLUME_COUNT ];
+    do
+    echoit "Detaching full copy $r2copy1-$i"
+    run volume detach $project/$volname1target $project/$r2copy1-$i
+    echoit "Deleting full copy $r2copy1-$i"
+    run volume delete $project/$r2copy1-$i --wait
+    i=$(($i + 1))
+    done
+echoit "Resuming synchronization on link after restore"
+run volume change_link $project/$volname1 resume $project/$volname1target srdf
+fi
+
+if [ $export_volume = "true" ];
+then
+   echoit "Deleting export group egtest1"
+   run export_group delete $project/egtest1
+fi
+
+# Remove volume suffix
+volname1=$(echo $volname1 | sed 's/-1//')
+echo volname1 $volname1
+
+if [ "$delete_volume" = "true" ];
+then
+security login root 'ChangeMe1!'
+if [ "$VOLUME_COUNT" -eq 1 ]; then
+echoit "remove volume $volname1"
+run volume delete $project/$volname1 --wait
+else
+    i=1;
+    while [ $i -le $VOLUME_COUNT ];
+    do
+        # Loop removing all volumes
+        run volume delete $project/${volname1}-$i --wait
+        i=$(($i + 1))
+    done
+fi
+echoit "Delete consistency group $CGlabel"
+run blockconsistencygroup delete $CGlabel
+fi
+
+# Create/delete volume(s) in the same CG over and over
+if [ "$create_delete_loop" = "true" ];
+then
+    for i in a b c d e f g h i j ;
+    do
+    security login root 'ChangeMe1!'
+    echoit "create volume $volname1"
+    volume_create "$volname1$i" $SITEr1 $VPOOL1 $CGlabel
+    if [ "$VOLUME_COUNT" -eq 1 ]; then
+        echoit "remove volume $volname1"
+        run volume delete $project/$volname1$i --wait
+    else
+        j=1;
+        while [ $j -le $VOLUME_COUNT ];
+        do
+            # Loop removing all volumes
+            run volume delete $project/${volname1}${i}-$j --wait
+            j=$(($j + 1))
+        done
+    fi
+    done
+fi
+
+echoit "passed"
+date
+}
+
+vplexsrdf_test
+
+

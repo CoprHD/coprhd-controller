@@ -265,6 +265,7 @@ public class FileVirtualPools extends ViprResourceController {
                         StorageSystemTypes.ISILON,
                         StorageSystemTypes.VNX_FILE,
                         StorageSystemTypes.VNXe,
+                        StorageSystemTypes.UNITY,
                         StorageSystemTypes.NETAPP,
                         StorageSystemTypes.NETAPPC,
                         StorageSystemTypes.DATA_DOMAIN));

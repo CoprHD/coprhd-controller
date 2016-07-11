@@ -57,5 +57,7 @@ public class PathConstants {
     public static final String CATALOG_SUB_SERVICES_URL = CATALOG_CATEGORY_URL + "/{id}/services";
     public static final String CATALOG_PREFERENCES = "/catalog/preferences";
     public static final String USER_PREFERENCES = "/user/preferences";
+    public static final String ORDER2_PAUSE = ORDER2_URL + "/{id}/pause";
+    public static final String ORDER2_RESUME = ORDER2_URL + "/{id}/resume";
 
 }

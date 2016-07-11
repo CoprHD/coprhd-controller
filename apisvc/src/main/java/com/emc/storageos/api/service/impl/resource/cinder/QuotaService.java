@@ -386,7 +386,7 @@ public class QuotaService extends TaskResourceService {
             try {
 				return CinderApiUtils.getCinderResponse(CinderApiUtils
 				        .convertMapToXML(respCinderQuota.quota_set, "quota_set", String.class),
-				        header, false);
+				        header, false,CinderConstants.STATUS_OK);
 			} catch (DOMException e) {
 				_log.info("DOM exception occured during converting Map to XML");
 				return Response.status(500).build();
@@ -398,7 +398,7 @@ public class QuotaService extends TaskResourceService {
 				return Response.status(500).build();
 			}
         } else if (CinderApiUtils.getMediaType(header).equals("json")) {
-            return CinderApiUtils.getCinderResponse(respCinderQuota, header, false);
+            return CinderApiUtils.getCinderResponse(respCinderQuota, header, false,CinderConstants.STATUS_OK);
         } else {
             return Response.status(ClientResponse.Status.UNSUPPORTED_MEDIA_TYPE.getStatusCode()).entity(ClientResponse.Status.UNSUPPORTED_MEDIA_TYPE.getReasonPhrase())
                     .build();
@@ -414,13 +414,13 @@ public class QuotaService extends TaskResourceService {
             try {
 				return CinderApiUtils.getCinderResponse(CinderApiUtils
 				        .convertMapToXML(respCinderUsage.getQuota_set(), "quota_set", UsageAndLimits.class),
-				        header, false);
+				        header, false,CinderConstants.STATUS_OK);
 			} catch (IllegalAccessException e) {
 				_log.info("Illegal access exception encountered while converting Usage details to XML format");
 				return Response.status(404).build();
 			}
         } else if (CinderApiUtils.getMediaType(header).equals("json")) {
-            return CinderApiUtils.getCinderResponse(respCinderUsage, header, false);
+            return CinderApiUtils.getCinderResponse(respCinderUsage, header, false,CinderConstants.STATUS_OK);
         } else {
             return Response.status(ClientResponse.Status.UNSUPPORTED_MEDIA_TYPE.getStatusCode()).entity(ClientResponse.Status.UNSUPPORTED_MEDIA_TYPE.getReasonPhrase())
                     .build();

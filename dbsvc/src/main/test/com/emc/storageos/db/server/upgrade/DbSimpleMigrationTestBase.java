@@ -10,6 +10,7 @@ import com.emc.storageos.db.client.impl.*;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.common.DataObjectScanner;
 import com.emc.storageos.db.server.DbsvcTestBase;
+import com.emc.storageos.db.server.impl.MigrationHandlerImpl;
 import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.serializers.StringSerializer;
 import org.junit.Test;
@@ -29,13 +30,21 @@ public abstract class DbSimpleMigrationTestBase extends DbsvcTestBase {
 
     /**
      * @return the DB version upgraded from
+     * @deprecated no need to override this method
      */
-    protected abstract String getSourceVersion();
+    @Deprecated
+    protected String getSourceVersion() {
+    	return "1.0";
+    }
 
     /**
      * @return the DB version upgraded to
+     * @deprecated no need to override this method
      */
-    protected abstract String getTargetVersion();
+    @Deprecated
+    protected String getTargetVersion() {
+    	return "2.0";
+    }
 
     /**
      * Implement this method to create test data to be migrated
@@ -68,7 +77,7 @@ public abstract class DbSimpleMigrationTestBase extends DbsvcTestBase {
     }
 
     protected void runMigration() throws Exception {
-        startDb(getSourceVersion(), getTargetVersion(), null);
+        startDb(getSourceVersion(), getTargetVersion(), null, null, true);
     }
 
     protected static void alterSchema() {
@@ -93,11 +102,12 @@ public abstract class DbSimpleMigrationTestBase extends DbsvcTestBase {
         if (_dataDir.exists() && _dataDir.isDirectory()) {
             cleanDirectory(_dataDir);
         }
-        startDb(sourceVersion.getSchemaVersion(), sourceVersion.getSchemaVersion(), null, scanner);
+        startDb(sourceVersion.getSchemaVersion(), sourceVersion.getSchemaVersion(), null, scanner, false);
 
         scanner = null;
 
     }
+    
 
     protected static abstract class AlterSchema {
         protected abstract void process();

@@ -597,6 +597,9 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             MultiVolumeTaskCompleter multiVolumeTaskCompleter = (MultiVolumeTaskCompleter) taskCompleter;
             Set<CIMInstance> parkingSLOStorageGroups = new HashSet<>();
             Set<Volume> cloneVolumes = new HashSet<Volume>();
+
+            _helper.callRefreshSystem(storageSystem, null, false);
+
             for (Volume volume : volumes) {
                 logMsgBuilder.append(String.format("%nVolume:%s", volume.getLabel()));
                 if (storageSystem.checkIfVmax3()) {
@@ -1768,13 +1771,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
 
             // Find a provider with reference to the CG
             storage = findProviderFactory.withGroup(storage, groupName).find();
-            if (storage == null) {
-                // Fail the task
-                serviceError = DeviceControllerErrors.smis.noConsistencyGroupWithGivenName();
-                _log.warn(String.format("Consistency group %s not found on %s", groupName, systemURI));
-                return;
-            }
-
+            if (storage != null) {
             // Check if the CG exists
             CIMObjectPath cgPath = _cimPath.getReplicationGroupPath(storage, groupName);
             CIMObjectPath replicationSvc = _cimPath.getControllerReplicationSvcPath(storage);
@@ -1785,6 +1782,11 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                     cleanupAnyGroupBackupSnapshots(storage, cgPath);
                 }
 
+                    if (storage.deviceIsType(Type.vmax) && storage.checkIfVmax3()) {
+                        // if deleting snap session replication group, we need to remove the EMCSFSEntries first
+                        _helper.removeSFSEntryForReplicaReplicationGroup(storage, replicationSvc, replicationGroupName);
+                    }
+
                 if (storage.checkIfVmax3() && replicationGroupName != null) {
                     // if deleting snap session replication group, we need to remove the EMCSFSEntries first
                     _helper.removeSFSEntryForReplicaReplicationGroup(storage, replicationSvc, replicationGroupName);
@@ -1792,18 +1794,15 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                     markSnapSessionsInactiveForReplicationGroup(systemURI, consistencyGroupId, replicationGroupName);
                 }
 
-                if (sourceReplicationGroup != null && !sourceReplicationGroup.isEmpty()) {
-                    // if deleting full copy replication group, we need to remove the EMCSFSEntries first
-                    _helper.removeSFSEntryForReplicaReplicationGroup(storage, replicationSvc, replicationGroupName,
-                            sourceReplicationGroup);
-
-                }
                 // Invoke the deletion of the consistency group
                 CIMArgument[] inArgs;
                 CIMArgument[] outArgs = new CIMArgument[5];
                 inArgs = _helper.getDeleteReplicationGroupInputArguments(storage, groupName);
                 _helper.invokeMethod(storage, replicationSvc, SmisConstants.DELETE_GROUP, inArgs,
                         outArgs);
+            }
+            } else {
+                _log.info("No storage provider available with group {}.  Assume it has already been deleted.");
             }
 
             if (keepRGName || consistencyGroup == null) {
@@ -2189,7 +2188,11 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 } else {
                     CIMObjectPath replicationSvc = _cimPath.getControllerReplicationSvcPath(storage);
                     String[] blockObjectNames = _helper.getBlockObjectAlternateNames(volumes);
+
                     // Smis call to add volumes that are already available in Group, will result in error.
+                    // Refresh first for confidence and avoid false positives.
+                    forProvider = findProviderFactory.withGroup(storage, groupName).find();
+                    ReplicationUtils.callEMCRefresh(_helper, forProvider, true);
                     Set<String> blockObjectsToAdd = _helper.filterVolumesAlreadyPartOfReplicationGroup(
                             forProvider, cgPath, blockObjectNames);
                     if (!blockObjectsToAdd.isEmpty()) {

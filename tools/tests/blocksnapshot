@@ -32,7 +32,7 @@ def snapshot_delete(args):
     bourne.connect(args.ip)
     uri = bourne.block_snapshot_query(args.name)
     start = time.time()
-    tasks = bourne.block_snapshot_delete(uri)
+    tasks = bourne.block_snapshot_delete(uri, args.vipronly)
     total = time.time() - start
     print "Delete snapshot completed in", "{0:.2f}".format(total), "seconds"
     for task in tasks:
@@ -173,6 +173,7 @@ create.add_argument('--create_inactive', help = 'This option allows the snapshot
 # snapshot delete uri [--ip ipaddr]
 delete = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 delete.add_argument('name', help = 'name of snapshot')
+delete.add_argument('--vipronly', action='store_true', help = 'Delete only from ViPR')
 
 # snapshot list   fsuri [--ip ipaddr]
 list = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')

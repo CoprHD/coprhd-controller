@@ -17,8 +17,6 @@ import java.util.Collection;
  */
 public class AllStorageSyncsInRDFGroupCollector extends AbstractCollector {
 
-    private boolean activeOnly;
-
     public AllStorageSyncsInRDFGroupCollector(DbClient dbClient, SRDFUtils utils) {
         super(dbClient, utils);
     }

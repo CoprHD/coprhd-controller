@@ -34,7 +34,7 @@ EOF
 _gen_conn_sections() {
     local ips=$1
     local ports=""
-    if [[ ${ips} == *"${LOCAL_IP}"* ]] ; then
+    if [[ ${ips} =~ (^| )${LOCAL_IP}($| ) ]] ; then
         ports=${PORTS_PROTECTED_IN_CLUSTER}
     else
         ports=${PORTS_PROTECTED_ACROSS_SITE}

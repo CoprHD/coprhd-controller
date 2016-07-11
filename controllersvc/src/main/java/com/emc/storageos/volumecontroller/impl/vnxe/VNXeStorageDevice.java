@@ -2623,4 +2623,10 @@ public class VNXeStorageDevice extends VNXeOperations
         return BiosCommandResult.createErrorResult(
                 DeviceControllerErrors.vnxe.operationNotSupported("List Snapshots by Policy", "VNXe"));
     }
+
+	@Override
+	public Map<URI, List<Integer>> doFindHostHLUs(StorageSystem storage, List<URI> hostURIs)
+			throws DeviceControllerException {
+	    throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+	}
 }

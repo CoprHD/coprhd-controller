@@ -13,8 +13,8 @@ import com.google.gson.annotations.SerializedName;
 @JsonRootName(value = "xtremio_lun_maps_info")
 public class XtremIOLunMapsInfo {
 
-    @SerializedName("lun_maps")
-    @JsonProperty(value = "lun_maps")
+    @SerializedName("lun-maps")
+    @JsonProperty(value = "lun-maps")
     private XtremIOObjectInfo[] lunMapInfo;
 
     public XtremIOObjectInfo[] getLunMapInfo() {

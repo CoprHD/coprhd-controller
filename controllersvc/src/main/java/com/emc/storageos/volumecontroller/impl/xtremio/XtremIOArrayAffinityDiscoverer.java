@@ -6,6 +6,7 @@
 package com.emc.storageos.volumecontroller.impl.xtremio;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -33,9 +34,11 @@ import com.emc.storageos.xtremio.restapi.XtremIOClientFactory;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiator;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiatorGroup;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOLunMap;
+import com.emc.storageos.xtremio.restapi.model.response.XtremIOObjectInfo;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolume;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 /**
@@ -44,9 +47,10 @@ import com.google.common.collect.Sets;
 public class XtremIOArrayAffinityDiscoverer {
     private static final Logger log = LoggerFactory.getLogger(XtremIOArrayAffinityDiscoverer.class);
 
-    private List<XtremIOLunMap> xtremIOLunMaps = null;
-
     private XtremIOClientFactory xtremioRestClientFactory;
+
+    // map of IG name to Volume names mapped
+    Map<String, Set<String>> igToVolumesMap = null;
 
     public void setXtremioRestClientFactory(XtremIOClientFactory xtremioRestClientFactory) {
         this.xtremioRestClientFactory = xtremioRestClientFactory;
@@ -68,6 +72,9 @@ public class XtremIOArrayAffinityDiscoverer {
         }
     }
 
+    /**
+     * Gets the preferred pool map for the given host.
+     */
     private Map<String, String> getPreferredPoolMapForHost(StorageSystem system, Host host, DbClient dbClient) throws Exception {
         /**
          * Group host's initiators by IG,
@@ -104,7 +111,7 @@ public class XtremIOArrayAffinityDiscoverer {
             // get the storage pool associated with the XtremIO system
             StoragePool storagePool = XtremIOProvUtils.getXtremIOStoragePool(system.getId(), dbClient);
 
-            String maskType = getMaskTypeForHost(xtremIOClient, xioClusterName, groupInitiatorsByIG, igNames, volumeNames);
+            String maskType = getMaskTypeForHost(xtremIOClient, xioClusterName, groupInitiatorsByIG, null, igNames, volumeNames);
 
             ArrayAffinityDiscoveryUtils.addPoolToPreferredPoolMap(preferredPoolMap, storagePool.getId().toString(), maskType);
         } else {
@@ -120,41 +127,66 @@ public class XtremIOArrayAffinityDiscoverer {
     private Set<String> getVolumesForHost(XtremIOClient xtremIOClient, String xioClusterName, Set<String> igNames) throws Exception {
         log.info("Querying volumes for IGs {}", igNames.toArray());
         Set<String> volumeNames = new HashSet<String>();
-        // get the XtremIO lun map details
-        List<XtremIOLunMap> lunMaps = getLunMapsForArray(xtremIOClient, xioClusterName);
-        for (XtremIOLunMap lunMap : lunMaps) {
-            try {
-                if (igNames.contains(lunMap.getIgName())) {
-                    log.info("LunMap {} matching for IG {}", lunMap.getMappingInfo().get(2), lunMap.getIgName());
-                    volumeNames.add(lunMap.getVolumeName());
-                }
-            } catch (Exception ex) {
-                log.info("Error processing XtremIO lun map {}. {}", lunMap, ex.getMessage());
+        Map<String, Set<String>> igToVolumesMap = getIgToVolumesMap(xtremIOClient, xioClusterName);
+        for (String igName : igNames) {
+            Set<String> igVolumes = igToVolumesMap.get(igName);
+            log.info("Volumes {} found for IG {}", igVolumes, igName);
+            if (igVolumes != null) {
+                volumeNames.addAll(igVolumes);
             }
         }
         return volumeNames;
     }
 
     /**
-     * Gets the lun maps from the array. If already queried, it returns the cached data.
-     *
-     * @param xtremIOClient the xtrem io client
-     * @param xioClusterName the xio cluster name
-     * @return the lun maps for array
-     * @throws Exception the exception
+     * Queries the Lunmap information from array, forms IG name to volume names map.
      */
-    private List<XtremIOLunMap> getLunMapsForArray(XtremIOClient xtremIOClient, String xioClusterName) throws Exception {
-        if (xtremIOLunMaps == null) {
-            xtremIOLunMaps = xtremIOClient.getXtremIOLunMaps(xioClusterName);
+    private Map<String, Set<String>> getIgToVolumesMap(XtremIOClient xtremIOClient, String xioClusterName) throws Exception {
+        if (igToVolumesMap == null) {
+            log.info("Querying LunMaps for cluster {}", xioClusterName);
+            igToVolumesMap = new HashMap<>();
+
+            // get the XtremIO lun map links and process them in batches
+            List<XtremIOObjectInfo> lunMapLinks = xtremIOClient.getXtremIOLunMapLinks(xioClusterName);
+            List<List<XtremIOObjectInfo>> lunMapPartitions = Lists.partition(lunMapLinks, Constants.DEFAULT_PARTITION_SIZE);
+            for (List<XtremIOObjectInfo> partition : lunMapPartitions) {
+                // Get the lun map details
+                List<XtremIOLunMap> lunMaps = xtremIOClient.getXtremIOLunMapsForLinks(partition, xioClusterName);
+                for (XtremIOLunMap lunMap : lunMaps) {
+                    try {
+                        log.info("Looking at LunMap {}; IG name: {}, Volume: {}",
+                                lunMap.getMappingInfo().get(2), lunMap.getIgName(), lunMap.getVolumeName());
+                        String igName = lunMap.getIgName();
+                        Set<String> volumes = igToVolumesMap.get(igName);
+                        if (volumes == null) {
+                            volumes = new HashSet<String>();
+                            igToVolumesMap.put(igName, volumes);
+                        }
+                        volumes.add(lunMap.getVolumeName());
+                    } catch (Exception ex) {
+                        log.info("Error processing XtremIO lun map {}. {}", lunMap, ex.getMessage());
+                    }
+                }
+            }
         }
-        return xtremIOLunMaps;
+        return igToVolumesMap;
     }
 
     /**
      * Identifies the mask type (Host/Cluster) for the given host's IGs.
+     *
+     * @param xtremIOClient - xtremio client
+     * @param xioClusterName - xio cluster name
+     * @param groupInitiatorsByIG - IG name to initiators map
+     * @param igNameToHostsMap - IG name to hosts map
+     * @param hostIGNames - host to IG names map
+     * @param volumeNames - volume names for the host
+     * @return the mask type for host
+     * @throws Exception
      */
     private String getMaskTypeForHost(XtremIOClient xtremIOClient, String xioClusterName,
-            ArrayListMultimap<String, Initiator> groupInitiatorsByIG, Set<String> hostIGNames, Set<String> volumeNames)
+            ArrayListMultimap<String, Initiator> groupInitiatorsByIG, Map<String, Set<String>> igNameToHostsMap, Set<String> hostIGNames,
+            Set<String> volumeNames)
             throws Exception {
         log.debug("Finding out mask type for the host");
         /**
@@ -165,7 +197,8 @@ public class XtremIOArrayAffinityDiscoverer {
         String maskType = ExportGroup.ExportGroupType.Host.name();
         for (String igName : hostIGNames) {
             XtremIOInitiatorGroup xioIG = xtremIOClient.getInitiatorGroup(igName, xioClusterName);
-            if (Integer.parseInt(xioIG.getNumberOfInitiators()) > groupInitiatorsByIG.get(igName).size()) {
+            if (Integer.parseInt(xioIG.getNumberOfInitiators()) > groupInitiatorsByIG.get(igName).size()
+                    || (igNameToHostsMap != null && igNameToHostsMap.get(igName) != null && igNameToHostsMap.get(igName).size() > 1)) {
                 maskType = ExportGroup.ExportGroupType.Cluster.name();
                 break;
             }
@@ -182,7 +215,6 @@ public class XtremIOArrayAffinityDiscoverer {
                         continue;
                     }
                     String volumeIGName = (String) igDetails.get(1);
-                    // TODO check Default?
                     volumeIGNames.add(volumeIGName);
                 }
             }
@@ -195,6 +227,9 @@ public class XtremIOArrayAffinityDiscoverer {
         return maskType;
     }
 
+    /**
+     * Gets the IG name for the given initiator.
+     */
     private String getIGNameForInitiator(Initiator initiator, String storageSerialNumber, XtremIOClient client, String xioClusterName)
             throws Exception {
         String igName = null;
@@ -235,6 +270,7 @@ public class XtremIOArrayAffinityDiscoverer {
         // Group all the initiators and their initiator groups based on ViPR host.
         ArrayListMultimap<String, Initiator> igNameToInitiatorsMap = ArrayListMultimap.create();
         Map<URI, Set<String>> hostToIGNamesMap = new HashMap<URI, Set<String>>();
+        Map<String, Set<String>> igNameToHostsMap = new HashMap<String, Set<String>>();
         List<XtremIOInitiator> initiators = xtremIOClient.getXtremIOInitiatorsInfo(xioClusterName);
         for (XtremIOInitiator initiator : initiators) {
             String initiatorNetworkId = initiator.getPortAddress();
@@ -245,25 +281,38 @@ public class XtremIOArrayAffinityDiscoverer {
                 continue;
             }
             URI hostId = knownInitiator.getHost();
+            String hostName = knownInitiator.getHostName();
             if (!NullColumnValueGetter.isNullURI(hostId)) {
                 log.info("Found a host {}({}) in ViPR for initiator {}",
                         hostId.toString(), knownInitiator.getHostName(), initiatorNetworkId);
                 String igName = initiator.getInitiatorGroup().get(1);
                 igNameToInitiatorsMap.put(igName, knownInitiator);
+
                 Set<String> hostIGNames = hostToIGNamesMap.get(hostId);
                 if (hostIGNames == null) {
                     hostIGNames = new HashSet<String>();
                     hostToIGNamesMap.put(hostId, hostIGNames);
                 }
                 hostIGNames.add(igName);
+
+                Set<String> igHostNames = igNameToHostsMap.get(igName);
+                if (igHostNames == null) {
+                    igHostNames = new HashSet<String>();
+                    igNameToHostsMap.put(igName, igHostNames);
+                }
+                igHostNames.add(hostName);
             } else {
                 log.info("No host in ViPR found configured for initiator {}", initiatorNetworkId);
             }
         }
+        log.info("IG name to Initiators Map: {}", Joiner.on(",").join(igNameToInitiatorsMap.asMap().entrySet()));
+        log.info("IG name to Hosts Map: {}", Joiner.on(",").join(igNameToHostsMap.entrySet()));
+        log.info("Host to IG names Map: {}", Joiner.on(",").join(hostToIGNamesMap.entrySet()));
 
         // As XtremIO array has only one storage pool, add the pool directly.
         // get the storage pool associated with the XtremIO system
         StoragePool storagePool = XtremIOProvUtils.getXtremIOStoragePool(system.getId(), dbClient);
+        List<Host> hostsToUpdate = new ArrayList<Host>();
         for (URI hostId : hostToIGNamesMap.keySet()) {
             Host host = dbClient.queryObject(Host.class, hostId);
             if (host != null) {
@@ -272,7 +321,7 @@ public class XtremIOArrayAffinityDiscoverer {
                 Set<String> volumeNames = getVolumesForHost(xtremIOClient, xioClusterName, hostToIGNamesMap.get(hostId));
                 if (!volumeNames.isEmpty()) {
                     String maskType = getMaskTypeForHost(xtremIOClient, xioClusterName,
-                            igNameToInitiatorsMap, hostToIGNamesMap.get(hostId), volumeNames);
+                            igNameToInitiatorsMap, igNameToHostsMap, hostToIGNamesMap.get(hostId), volumeNames);
 
                     ArrayAffinityDiscoveryUtils.addPoolToPreferredPoolMap(preferredPoolMap, storagePool.getId().toString(), maskType);
                 } else {
@@ -281,9 +330,12 @@ public class XtremIOArrayAffinityDiscoverer {
 
                 if (ArrayAffinityDiscoveryUtils.updatePreferredPools(host, Sets.newHashSet(system.getId().toString()),
                         dbClient, preferredPoolMap)) {
-                    dbClient.updateObject(host);
+                    hostsToUpdate.add(host);
                 }
             }
+        }
+        if (!hostsToUpdate.isEmpty()) {
+            dbClient.updateObject(hostsToUpdate);
         }
     }
 }

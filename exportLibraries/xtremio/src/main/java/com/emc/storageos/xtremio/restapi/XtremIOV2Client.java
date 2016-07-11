@@ -188,7 +188,7 @@ public class XtremIOV2Client extends XtremIOClient {
                 log.debug("Trying to get LunMap details for {}", lunMapURI.toString());
                 ClientResponse response = get(lunMapURI);
                 XtremIOLunMaps lunMaps = getResponseObject(XtremIOLunMaps.class, response);
-                log.info("LunMap {}", lunMaps.getContent().getMappingInfo().get(1) + "-"
+                log.debug("LunMap {}", lunMaps.getContent().getMappingInfo().get(1) + " - "
                         + lunMaps.getContent().getMappingInfo().get(2));
                 lunMapList.add(lunMaps.getContent());
             } catch (InternalException ex) {

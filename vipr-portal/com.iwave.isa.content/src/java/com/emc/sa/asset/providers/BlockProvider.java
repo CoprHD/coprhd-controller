@@ -2020,11 +2020,46 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @Asset("blockJournalSizeHelp")
     @AssetDependencies("rpConsistencyGroupByProject")
     public List<AssetOption> getBlockJournalSizeHelp(AssetOptionsContext ctx, URI consistencyGroup) {
-        List<AssetOption> options = Lists.newArrayList();
         
-        options.add(new AssetOption("HelpTest", "DynamicHelp"));
-        
-        return options;
+        String minimumSize = null;
+
+        BlockConsistencyGroupRestRep cg = api(ctx).blockConsistencyGroups().get(consistencyGroup);
+        for (RelatedResourceRep vol : cg.getVolumes()) {
+            VolumeRestRep volume = api(ctx).blockVolumes().get(vol);
+            if (volume.getProtection() != null && volume.getProtection().getRpRep() != null
+                    && volume.getProtection().getRpRep().getProtectionSet() != null) {
+                RelatedResourceRep protectionSetId = volume.getProtection().getRpRep().getProtectionSet();
+                ProtectionSetRestRep protectionSet = api(ctx).blockVolumes().getProtectionSet(volume.getId(), protectionSetId.getId());
+                for (RelatedResourceRep protectionVolume : protectionSet.getVolumes()) {
+                    VolumeRestRep vol1 = api(ctx).blockVolumes().get(protectionVolume);
+                    if (vol1.getProtection().getRpRep().getPersonality().equalsIgnoreCase("METADATA")) {
+                        String capacity = api(ctx).blockVolumes().get(protectionVolume).getCapacity();
+                        if (minimumSize == null || Float.parseFloat(capacity) < Float.parseFloat(minimumSize)) {
+                            minimumSize = capacity;
+                        }
+                    }
+                }
+            }
+        }
+
+        float size = Float.parseFloat(minimumSize) * 3;
+        if (minimumSize == null) {
+            return Lists.newArrayList();
+        } else {
+            if (size < 1.09 * 1024) {
+                return Lists.newArrayList(newAssetOption(minimumSize, getMessage("block.addJournalCapacity.minDescription")));
+            } else if (size > 1.09 * 1024 && size < 10 * 1024) {
+                return Lists.newArrayList(newAssetOption(minimumSize, getMessage("block.addJournalCapacity.specificDescription", size)));
+            } else {
+                return Lists.newArrayList(newAssetOption(minimumSize, getMessage("block.addJournalCapacity.maxDescription")));
+            }
+            //return Lists.newArrayList(newAssetOption(minimumSize, minimumSize));
+        }
+//        List<AssetOption> options = Lists.newArrayList();
+//        
+//        options.add(new AssetOption("HelpTest", "DynamicHelp"));
+//        
+//        return options;
     }
 
     @Asset("volumeWithoutConsistencyGroup")

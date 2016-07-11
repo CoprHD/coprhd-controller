@@ -89,8 +89,10 @@ public class RowMutatorDS {
         atomicBatch.add(insert);
     }
 
-    public void deleteRecordColumn(String tableName, String recordKey) {
-        Delete deleteRecord = delete().from(String.format("\"%s\"", tableName)).where(eq("key", recordKey)).ifExists();
+    public void deleteRecordColumn(String tableName, String recordKey, CompositeColumnName column) {
+        Delete deleteRecord = delete().from(String.format("\"%s\"", tableName)).where(eq("key", recordKey))
+                .and(eq("column1", column.getOne())).and(eq("column2", column.getTwo())).and(eq("column3", column.getThree()))
+                .and(eq("column4", column.getTimeUUID())).ifExists();
         atomicBatch.add(deleteRecord);
     }
 

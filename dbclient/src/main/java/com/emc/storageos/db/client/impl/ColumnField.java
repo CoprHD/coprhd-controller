@@ -360,7 +360,7 @@ public class ColumnField {
     public boolean removeColumn(String recordKey, CompositeColumnName column, RowMutatorDS mutator,
             Map<String, List<CompositeColumnName>> fieldColumnMap) {
         // remove record
-        mutator.deleteRecordColumn(_parentType.getCF().getName(), recordKey);
+        mutator.deleteRecordColumn(_parentType.getCF().getName(), recordKey, column);
 
         if (_index == null || column.isNoIndex() || isDeletionMark(column)) {
             return false;

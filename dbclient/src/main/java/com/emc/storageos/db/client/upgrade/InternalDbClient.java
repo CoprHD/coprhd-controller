@@ -241,7 +241,7 @@ public class InternalDbClient extends DbClientImpl {
                 try {
                     List<CompositeColumnName> columnList = rows.get(rowKey);
                     
-                    if (columnList.size() == 0) {
+                    if (columnList.isEmpty()) {
                         continue;
                     }
                     // can't simply use doType.deserialize(clazz, row, cleanList) below

@@ -57,6 +57,7 @@ import com.emc.storageos.xtremio.restapi.XtremIOConstants.XTREMIO_ENTITY_TYPE;
 import com.emc.storageos.xtremio.restapi.errorhandling.XtremIOApiException;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOConsistencyGroup;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolume;
+import com.google.common.collect.Lists;
 
 public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
 
@@ -470,8 +471,13 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
     public void doExportDelete(StorageSystem storage, ExportMask exportMask,
             List<URI> volumeURIs, List<URI> initiatorURIs, TaskCompleter taskCompleter) throws DeviceControllerException {
         _log.info("{} doExportDelete START ...", storage.getSerialNumber());
+
+        List<Initiator> initiators = Lists.newArrayList();
+        if (initiatorURIs != null) {
+            initiators.addAll(dbClient.queryObject(Initiator.class, initiatorURIs));
+        }
         xtremioExportOperationHelper.deleteExportMask(storage, exportMask.getId(),
-                new ArrayList<URI>(), new ArrayList<URI>(), new ArrayList<Initiator>(),
+                volumeURIs, new ArrayList<URI>(), initiators,
                 taskCompleter);
         _log.info("{} doExportDelete END ...", storage.getSerialNumber());
     }

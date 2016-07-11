@@ -200,16 +200,20 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	        List<String> protocols = new ArrayList<String>();
 	        protocols.add(Protocols.iSCSI.toString());
 	        protocols.add(Protocols.FC.toString());
-	        protocols.add(Protocols.FCoE.toString());
 	        storageSystem.setProtocols(protocols);
 
 	        storageSystem.setFirmwareVersion(systemRes.getSystemVersion());
-	        storageSystem.setIsSupportedVersion(true); //always supported
+	        if (systemRes.getSystemVersion().startsWith("3.1") || systemRes.getSystemVersion().startsWith("3.2.1") ) {
+	            // SDK is taking care of unsupported message
+	            storageSystem.setIsSupportedVersion(false);
+	        } else {
+	            storageSystem.setIsSupportedVersion(true);
+	        }
+
 	        storageSystem.setModel(systemRes.getModel());
 	        storageSystem.setProvisioningType(SupportedProvisioningType.THIN_AND_THICK);
 	        Set<StorageSystem.SupportedReplication> supportedReplications = new HashSet<>();
-	        supportedReplications.add(StorageSystem.SupportedReplication.elementReplica);
-	        supportedReplications.add(StorageSystem.SupportedReplication.groupReplica);
+	        // 3PAR Remote copy will be supported in coming versions
 	        storageSystem.setSupportedReplications(supportedReplications);
 
 	        // Storage object properties
@@ -262,9 +266,9 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
             CPGCommandResult cpgResult = hp3parApi.getAllCPGDetails();
             
             // for each ViPR Storage pool = 3PAR CPG
-            for (int index = 0; index < cpgResult.getTotal(); index++) {
+            for (CPGMember currMember:cpgResult.getMembers()) {
+                
                 StoragePool pool = new StoragePool();
-                CPGMember currMember =  cpgResult.getMembers().get(index);
                 
                 pool.setPoolName(currMember.getName());
                 pool.setStorageSystemId(storageSystem.getNativeId());
@@ -272,7 +276,6 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
                 Set<Protocols> supportedProtocols = new HashSet<>();
                 supportedProtocols.add(Protocols.iSCSI);
                 supportedProtocols.add(Protocols.FC);
-                supportedProtocols.add(Protocols.FCoE);
                 pool.setProtocols(supportedProtocols);
                 
                 pool.setTotalCapacity((currMember.getUsrUsage().getTotalMiB().longValue() +
@@ -579,9 +582,8 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
             PortStatisticsCommandResult portStatResult = hp3parApi.getPortStatisticsDetail();
 
             // for each ViPR Storage port = 3PAR host port
-            for (Integer index = 0; index < portResult.getTotal(); index++) {
+            for (PortMembers currMember:portResult.getMembers()) {
                 StoragePort port = new StoragePort();
-                PortMembers currMember =  portResult.getMembers().get(index);
 
                 // Consider online target ports 
                 if (currMember.getMode() != HP3PARConstants.MODE_TARGET ||
@@ -615,8 +617,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
                 }
                 
                 // loop for port speed as specific query is not supported
-                for (int stat = 0; stat < portStatResult.getTotal(); stat++) {
-                    PortStatMembers currStat = portStatResult.getMembers().get(stat);
+                for (PortStatMembers currStat:portStatResult.getMembers()) {
 
                     if (currMember.getPortPos().getNode() == currStat.getNode() && 
                             currMember.getPortPos().getSlot() == currStat.getSlot() && 
@@ -636,7 +637,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
                     port.setPortNetworkId(SanUtils.formatWWN(currMember.getPortWWN()));
                     // rest of the values
                     port.setEndPointID(port.getPortNetworkId());
-                    port.setTcpPortNumber(index.longValue());
+                    port.setTcpPortNumber((long)0);
                 } else {
                     port.setIpAddress(currMember.getIPAddr());
                     port.setPortNetworkId(currMember.getiSCSINmae());
@@ -1463,8 +1464,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
                     for (Initiator init:initiators) {
 
                         // Is initiator FC
-                        if (init.getProtocol().toString().compareToIgnoreCase(Protocols.FC.toString()) == 0 || 
-                                init.getProtocol().toString().compareToIgnoreCase(Protocols.FCoE.toString()) == 0) {
+                        if (init.getProtocol().toString().compareToIgnoreCase(Protocols.FC.toString()) == 0 ) {
                             // verify in all FC ports with host 
                             for (int kFc = 0; kFc < hostMemb.getFCPaths().size(); kFc++) {
                                 FcPath fcPath = hostMemb.getFCPaths().get(kFc);
@@ -1920,10 +1920,8 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
             }
             
             String[] pos = sp.getNativeId().split(":");
-            ArrayList<FcPath> fcPath = hostRes.getFCPaths();
             
-            for (int index = 0; index < fcPath.size(); index++) {
-                FcPath fc = fcPath.get(index); 
+            for (FcPath fc:hostRes.getFCPaths()) {
 
                 if (fc.getPortPos() != null) {
                     if ((fc.getPortPos().getNode().toString().compareToIgnoreCase(pos[0]) == 0) &&
@@ -1934,45 +1932,9 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
                         clusterPorts.add(sp);
                     }
                 } // porPos != null
-            } //for index
+            } //for fc
         }
     }
-    
-    private void getInitiatorPaths(List<Initiator> initiators, List<Position> initiatorPaths, String storageId, String host) 
-            throws Exception {
-        HP3PARApi hp3parApi = getHP3PARDeviceFromNativeId(storageId);
-        HostMember hostMemb = hp3parApi.getHostDetails(host);
-        
-        for (Initiator init:initiators) {
-            
-            if (init.getProtocol().toString().compareToIgnoreCase(Protocols.FC.toString()) == 0 || 
-                    init.getProtocol().toString().compareToIgnoreCase(Protocols.FCoE.toString()) == 0) {
-                // verify in all FC ports with host 
-                for (int kFc = 0; kFc < hostMemb.getFCPaths().size(); kFc++) {
-                    FcPath fcPath = hostMemb.getFCPaths().get(kFc);
-                    if (SanUtils.formatWWN(fcPath.getWwn()).compareToIgnoreCase(init.getPort()) == 0) {
-                        Position pos = fcPath.getPortPos();
-                        if (initiatorPaths.contains(pos) == false) {
-                            initiatorPaths.add(pos);
-                        }
-                    }
-                }
-            } else {
-                // if iSCSI ports
-                // verify in all FC ports with host 
-                for (int kSc = 0; kSc < hostMemb.getFCPaths().size(); kSc++) {
-                    ISCSIPath scsiPath = hostMemb.getiSCSIPaths().get(kSc);
-                    if (scsiPath.getName().compareToIgnoreCase(init.getPort()) == 0) {
-                        Position pos = scsiPath.getPortPos();
-                        if (initiatorPaths.contains(pos) == false) {
-                            initiatorPaths.add(pos);
-                        }
-                    }
-                }
-            } //end if FC/iSCSI
-        }//end for
-    }
-    
    
     @Override
     public DriverTask unexportVolumesFromInitiators(List<Initiator> initiators, List<StorageVolume> volumes) {
@@ -2018,8 +1980,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
                     Position pos = null;
                     VirtualLunsList vlunRes = hp3parApi.getAllVlunDetails();
 
-                    for (int index = 0; index < vlunRes.getTotal(); index++) {
-                        VirtualLun vLun = vlunRes.getMembers().get(index);
+                    for (VirtualLun vLun:vlunRes.getMembers()) {
 
                         for (Initiator init:initiators) {
                             String portId = init.getPort();

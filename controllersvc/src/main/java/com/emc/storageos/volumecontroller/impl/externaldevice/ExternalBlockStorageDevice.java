@@ -594,6 +594,9 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                     cloneObject.setProvisionedCapacity(driverCloneResult.getProvisionedCapacity());
                     cloneObject.setAllocatedCapacity(driverCloneResult.getAllocatedCapacity());
                     cloneObject.setInactive(false);
+                    if (driverCloneResult.getLabel() != null && !driverCloneResult.getLabel().isEmpty()) {
+                    cloneObject.setLabel(driverCloneResult.getLabel());
+                    }
                     cloneObject.setConsistencyGroup(parentVolume.getConsistencyGroup());
                     cloneObjects.add(cloneObject);
                 }

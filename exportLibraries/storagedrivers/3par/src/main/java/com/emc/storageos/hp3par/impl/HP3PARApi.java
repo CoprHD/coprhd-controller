@@ -27,12 +27,15 @@ import com.emc.storageos.hp3par.command.PortStatisticsCommandResult;
 import com.emc.storageos.hp3par.command.Privileges;
 import com.emc.storageos.hp3par.command.SystemCommandResult;
 import com.emc.storageos.hp3par.command.UserRoleCommandResult;
+import com.emc.storageos.hp3par.command.VVSetCloneList;
+import com.emc.storageos.hp3par.command.VVSetCloneList.VVSetVolumeClone;
 import com.emc.storageos.hp3par.command.VirtualLunsList;
 import com.emc.storageos.hp3par.command.VlunResult;
 import com.emc.storageos.hp3par.command.VolumeDetailsCommandResult;
 import com.emc.storageos.hp3par.connection.RESTClient;
 import com.emc.storageos.hp3par.utils.CompleteError;
 import com.emc.storageos.hp3par.utils.HP3PARConstants;
+import com.emc.storageos.storagedriver.model.VolumeClone;
 import com.google.gson.Gson;
 import com.google.json.JsonSanitizer;
 import com.sun.jersey.api.client.ClientResponse;
@@ -89,6 +92,7 @@ public class HP3PARApi {
     
     // For ingestion
 	private static final String URI_VLUNS_OF_VOLUME = "/api/v1/vluns?query=%22volumeWWN=={0}%22";
+	private static final String URI_SNAPSHOTS_OF_VOLUME = "/api/v1/volumes?query=%22copyOf=={0}%22";
     
     // For export
     private static final String URI_CREATE_VLUN = "/api/v1/vluns";
@@ -554,7 +558,8 @@ public class HP3PARApi {
                 			baseVolumeName, baseVolumeSnapCPG, baseVolumeUserCPG,volResult.getCopyOf(), volResult.getCopyType(), volResult.getName(), volResult.getProvisioningType());
                 
                 createVolume(cloneName, baseVolumeSnapCPG, tpvv, volResult.getSizeMiB());
-
+                // sleep for some milliseconds required ?
+                
                 try {
                     volResult = getVolumeDetails(baseVolumeName);
                     } catch (Exception e) {
@@ -1299,7 +1304,7 @@ public class HP3PARApi {
         
         // for VV set creation 
         String payload = "{\"name\": \"" + displayName +"\" }";
-
+        
         //final String path = MessageFormat.format(URI_CREATE_CG);
         _log.info(" 3PARDriver: createVVset uri = {} payload {} ",URI_CREATE_CG.toString(),payload);
         
@@ -1531,7 +1536,51 @@ public class HP3PARApi {
         } //end try/catch/finally
     
 	}
+
 	
+	/**
+	 * Get all vluns, which are associated with a volume, snapshot or a clone. 
+	 * 
+	 * @param displayName
+	 * @return
+	 * @throws Exception
+	 */
+	public VolumesCommandResult getSnapshotsOfVolume(String volumeName) throws Exception {
+
+        _log.info("3PARDriver: getVLunsOfVolume enter");
+        ClientResponse clientResp = null;
+        final String path = MessageFormat.format(URI_SNAPSHOTS_OF_VOLUME, volumeName);
+        _log.info("getVLunsOfVolume path is {}", path);
+        
+        try {
+	    _log.info("BEFORE GET CALL");
+            clientResp = get(path);
+            if (clientResp == null) {
+                _log.error("3PARDriver: getVLunsOfVolume There is no response from 3PAR");
+                throw new HP3PARException("There is no response from 3PAR");
+            } else if (clientResp.getStatus() != 200) {
+                String errResp = getResponseDetails(clientResp);
+                _log.error("3PARDriver: getVLunsOfVolume There is error response from 3PAR = {}" , errResp);
+                throw new HP3PARException(errResp);
+            } else {
+                String responseString = clientResp.getEntity(String.class);
+                _log.info("3PARDriver: getVLunsOfVolume 3PAR response is {}", responseString);
+                VolumesCommandResult volumesResult = new Gson().fromJson(sanitize(responseString),
+                		VolumesCommandResult.class);
+                return volumesResult;
+            }
+        } catch (Exception e) {
+	    _log.info("getVLunsOfVolume exception is {}", e.getMessage());
+            throw e;
+        } finally {
+            if (clientResp != null) {
+                clientResp.close();
+            }
+            _log.info("3PARDriver: getVLunsOfVolume leave");
+        } //end try/catch/finally
+    
+	}
+
 
 	public void createVVsetVirtualCopy(String nativeId, String snapshotName, Boolean readOnly) throws Exception {
 
@@ -1569,6 +1618,114 @@ public class HP3PARApi {
 	        } //end try/catch/finally
 	    }
 
+	public VVSetVolumeClone[] createVVsetPhysicalCopy(String nativeId, String vVsetNameForClone, List<VolumeClone> clones, Boolean saveSnapshot) throws Exception {
 
+		_log.info("3PARDriver:createVVsetPhysicalCopy enter");
+        _log.info(" 3PARDriver:createVVsetPhysicalCopy CG name {} for cloning , corresponding CG clone name {} ", nativeId,vVsetNameForClone);
+        ClientResponse clientResp = null;
+        String vvSetClones = "";
+        // for snapshot creation 
+        String payload = "{\"action\":\"createPhysicalCopy\", \"parameters\": { \"destVolume\": \"" + vVsetNameForClone + "\" , \"saveSnapshot\": " + saveSnapshot +"} }";
+
+        final String path = MessageFormat.format(URI_CLONE_CG, nativeId);
+        
+        _log.info(" 3PARDriver: createVVsetPhysicalCopy uri = {} payload {} ",path,payload);
+        try {
+        	
+			// get Vipr generated clone name and create corresponding volumes
+		   	for (VolumeClone clone : clones) {
+	            
+	                _log.info("3PARDriver: createVVsetPhysicalCopy generated clone native id {}, display name {} - start",
+	                		clone.getParentId(), clone.getDisplayName());  
+	            
+	                String generatedCloneName = clone.getDisplayName();
+	                String baseVolumeName = clone.getParentId();
+	                // create new volume , CG clone will fail if already exists
+	                VolumeDetailsCommandResult volResult = null;
+	                
+	                volResult = getVolumeDetails(baseVolumeName);
+	                
+	                if (volResult != null) {
+	                	// UserCPG will be absent for clones, hence using snapCPG here. We might need to re-look CPG selection later
+	                	String baseVolumeUserCPG = volResult.getUserCPG();
+	                	String baseVolumeSnapCPG = volResult.getSnapCPG();
+	                	Boolean tpvv = true;
+	                
+	                	_log.info("3PARDriver: createVolumeClone base volume exists, id {}, baseVolumeSnapCPG {} , baseVolumeUserCPG {} , copyOf {}, copyType {} , name {}, volume type {} - ",
+	                			baseVolumeName, baseVolumeSnapCPG, baseVolumeUserCPG,volResult.getCopyOf(), volResult.getCopyType(), volResult.getName(), volResult.getProvisioningType());
+	                
+	                createVolume(generatedCloneName, baseVolumeSnapCPG, tpvv, volResult.getSizeMiB());
+	                vvSetClones = vvSetClones+"\""+generatedCloneName+"\",";
+	                
+	                }
+		   	}
+		   	
+		   	if (vvSetClones != "") {
+		   		vvSetClones = vvSetClones.substring(0,vvSetClones.lastIndexOf(","));
+
+	        // for VV set addition {"action":1,"setmembers":["vol-name","vol-name2"]} 
+	        String vvsetPayload = "{\"name\": \"" + vVsetNameForClone +"\", \"setmembers\": [ \"" + vvSetClones + "\" ] }";
+	        
+	      //final String path = MessageFormat.format(URI_CREATE_CG);
+	        _log.info(" 3PARDriver: createVVsetPhysicalCopy uri = {} vvsetPayload {} ",URI_CREATE_CG.toString(),vvsetPayload);
+	        
+	        // Create and update Clone CG object and volumes
+	        try {
+	            clientResp = post(URI_CREATE_CG, vvsetPayload);
+	            if (clientResp == null) {
+	                _log.error("3PARDriver: createVVsetPhysicalCopy There is no response from 3PAR");
+	                throw new HP3PARException("There is no response from 3PAR");
+	            } else if (clientResp.getStatus() != 201) {
+	                String errResp = getResponseDetails(clientResp);
+	                _log.error("3PARDriver: createVVsetPhysicalCopy There is error response from 3PAR = {}" , errResp);
+	                throw new HP3PARException(errResp);
+	            } else {
+	            	_log.info("3PARDriver: createVVsetPhysicalCopy vvset created");
+	            }
+	        } catch (Exception e) {
+	            throw e;
+	        } finally {
+	            if (clientResp != null) {
+	                clientResp.close();
+	            }
+	            _log.info("3PARDriver: createVVsetPhysicalCopy execute vvset");
+	        } //end try/catch/finally
+	    
+		// Executing CG clone 	
+	        try {
+            clientResp = post(path, payload);
+            if (clientResp == null) {
+                _log.error("3PARDriver:There is no response from 3PAR");
+                throw new HP3PARException("There is no response from 3PAR");
+            } else if (clientResp.getStatus() != 201) {
+                String errResp = getResponseDetails(clientResp);
+                throw new HP3PARException(errResp);
+            } else {
+            	String responseString = clientResp.getEntity(String.class);
+            	//String customerResponseString = "{\"Altered\":"+responseString+"}";
+            	_log.info("3PARDriver:createVVsetVirtualCopy success , response ",responseString);
+            	
+            	VVSetVolumeClone[] output =  new Gson().fromJson(sanitize(responseString),
+            									VVSetVolumeClone[].class);
+                return output;
+            	
+            }
+		   	} catch (Exception e) {
+            throw e;
+        } finally {
+            if (clientResp != null) {
+                clientResp.close();
+            }
+            _log.info("3PARDriver:createVVsetVirtualCopy leave");
+        } //end try/catch/finally
+    
+		   	}
+	}  catch (Exception e) {
+		_log.info("3PARDriver:createVVsetVirtualCopy ERROR ");
+        throw e;
+    }
+		return null;
+
+	}
 }
 

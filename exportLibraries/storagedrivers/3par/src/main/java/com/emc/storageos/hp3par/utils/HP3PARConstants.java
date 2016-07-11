@@ -89,6 +89,38 @@ public class HP3PARConstants {
         }       
     }
 
+    
+    public static enum copyType
+    {
+    	BASE("BASE" , 1),
+    	PHYSICAL_COPY("PHYSICAL_COPY", 2),
+    	VIRTUAL_COPY("VIRTUAL_COPY", 3);
+        	
+        public String type= "";
+        public int value = 0;
+        
+        public String getType() {
+			return type;
+		}
+
+		public void setType(String type) {
+			this.type = type;
+		}
+
+		public int getValue() {
+			return value;
+		}
+
+		public void setValue(int value) {
+			this.value = value;
+		}
+
+		copyType(String type, int value)
+        {
+            this.type = type;
+            this.value= value;
+        }       
+    }
 
 }
 

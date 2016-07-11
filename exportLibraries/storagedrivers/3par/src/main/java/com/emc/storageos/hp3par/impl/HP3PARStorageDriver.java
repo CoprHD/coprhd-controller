@@ -37,16 +37,16 @@ import com.emc.storageos.hp3par.command.PortStatMembers;
 import com.emc.storageos.hp3par.command.PortStatisticsCommandResult;
 import com.emc.storageos.hp3par.command.Position;
 import com.emc.storageos.hp3par.command.SystemCommandResult;
-
 import com.emc.storageos.hp3par.command.VirtualLun;
 import com.emc.storageos.hp3par.command.VirtualLunsList;
 
 import com.emc.storageos.hp3par.command.VlunResult;
-
+import com.emc.storageos.hp3par.command.VolumeAncestorInfo;
 import com.emc.storageos.hp3par.command.VolumeDetailsCommandResult;
 import com.emc.storageos.hp3par.connection.HP3PARApiFactory;
 import com.emc.storageos.hp3par.utils.CompleteError;
 import com.emc.storageos.hp3par.utils.HP3PARConstants;
+import com.emc.storageos.hp3par.utils.HP3PARConstants.copyType;
 import com.emc.storageos.hp3par.utils.SanUtils;
 import com.emc.storageos.storagedriver.AbstractStorageDriver;
 import com.emc.storageos.storagedriver.BlockStorageDriver;
@@ -56,6 +56,7 @@ import com.emc.storageos.storagedriver.RegistrationData;
 import com.emc.storageos.storagedriver.model.Initiator;
 import com.emc.storageos.storagedriver.model.Initiator.HostOsType;
 import com.emc.storageos.storagedriver.model.Initiator.Type;
+import com.emc.storageos.storagedriver.model.StorageBlockObject;
 import com.emc.storageos.storagedriver.model.StorageHostComponent;
 import com.emc.storageos.storagedriver.model.StorageObject;
 import com.emc.storageos.storagedriver.model.StorageObject.AccessStatus;
@@ -73,6 +74,8 @@ import com.emc.storageos.storagedriver.model.StorageSystem;
 import com.emc.storageos.storagedriver.model.StorageSystem.SupportedProvisioningType;
 import com.emc.storageos.storagedriver.model.StorageVolume;
 import com.emc.storageos.storagedriver.model.VolumeClone;
+import com.emc.storageos.hp3par.command.VVSetCloneList;
+import com.emc.storageos.hp3par.command.VVSetCloneList.VVSetVolumeClone;
 import com.emc.storageos.storagedriver.model.VolumeConsistencyGroup;
 import com.emc.storageos.storagedriver.model.VolumeMirror;
 import com.emc.storageos.storagedriver.model.VolumeSnapshot;
@@ -80,6 +83,7 @@ import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
 import com.emc.storageos.hp3par.command.VolumesCommandResult;
 import com.emc.storageos.hp3par.command.VolumeMember;
+
 /**
  * 
  * Implements functions to discover the HP 3PAR storage and provide provisioning
@@ -90,23 +94,30 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 
 	private static final Logger _log = LoggerFactory.getLogger(HP3PARStorageDriver.class);
 	private HP3PARApiFactory hp3parApiFactory = null;
-	
+
 	// HashMap of list of storage ports discovered for each storage systems.
-    // KEY: storage system id would be the key. 
-	// VALUE:List of storage ports discovered for the storage system identified by the key.	
-    private static Map<String, List<StoragePort>> storagePortMap = new HashMap<String, List<StoragePort>>();
-          
-	public HP3PARStorageDriver () {
-	    _log.info("3PARDriver:HP3PARStorageDriver enter");
-	    if (hp3parApiFactory == null) {
-	        hp3parApiFactory = new HP3PARApiFactory();
-	        hp3parApiFactory.setConnectionTimeoutMs(30000);
-	        hp3parApiFactory.setConnManagerTimeout(60000);
-	        hp3parApiFactory.setSocketConnectionTimeoutMs(7200000);
-	        hp3parApiFactory.init();
-	    }
-	}
+	// KEY: storage system id would be the key.
+	// VALUE:List of storage ports discovered for the storage system identified
+	// by the key.
+	private static Map<String, List<StoragePort>> storagePortMap = new HashMap<String, List<StoragePort>>();
+	private static HashMap<String, HashMap<String, ArrayList<VolumeMember>>> vvolToVvolsMap = new HashMap<String, HashMap<String, ArrayList<VolumeMember>>>();
+	private static HashMap<String, HashMap<Long, VolumeAncestorInfo>> vvolIdTOMetaInfoMap = new HashMap<String, HashMap<Long, VolumeAncestorInfo>>();
 	
+	//private static HashMap<Integer, String> vvolIdTONameMap = new HashMap<Integer, String>();	
+	private static Map<String, List<String>> snapshotsMap = new HashMap<String, List<String>>();
+	private static Map<String, List<String>> clonesMap = new HashMap<String, List<String>>();
+
+	public HP3PARStorageDriver() {
+		_log.info("3PARDriver:HP3PARStorageDriver enter");
+		if (hp3parApiFactory == null) {
+			hp3parApiFactory = new HP3PARApiFactory();
+			hp3parApiFactory.setConnectionTimeoutMs(30000);
+			hp3parApiFactory.setConnManagerTimeout(60000);
+			hp3parApiFactory.setSocketConnectionTimeoutMs(7200000);
+			hp3parApiFactory.init();
+		}
+	}
+
 	@Override
 	public DriverTask getTask(String taskId) {
 		_log.info("3PARDriver: getTask Running ");
@@ -114,35 +125,33 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 		return null;
 	}
 
-	
 	/*
-	 * objectid is nothing but the native id of the storage object.
-	 * For consistency group it would be the native id of consistency group, which on the 
-	 * HP3PAR array is nothing but the name of the volume set. 
+	 * objectid is nothing but the native id of the storage object. For
+	 * consistency group it would be the native id of consistency group, which
+	 * on the HP3PAR array is nothing but the name of the volume set.
 	 */
 	@Override
 	public <T extends StorageObject> T getStorageObject(String storageSystemId, String objectId, Class<T> type) {
 		// TODO Auto-generated method stub
 		_log.info("3PARDriver: getStorageObject Running ");
-		try{
-			HP3PARApi hp3parApi = getHP3PARDeviceFromNativeId(storageSystemId);		
+		try {
+			HP3PARApi hp3parApi = getHP3PARDeviceFromNativeId(storageSystemId);
 			ConsistencyGroupResult cgResult = null;
-			if (VolumeConsistencyGroup.class.getSimpleName().equals(type.getSimpleName())){
+			if (VolumeConsistencyGroup.class.getSimpleName().equals(type.getSimpleName())) {
 				cgResult = hp3parApi.getVVsetDetails(objectId);
 				VolumeConsistencyGroup cg = new VolumeConsistencyGroup();
-	            cg.setStorageSystemId(storageSystemId);
-	            cg.setNativeId(cgResult.getName());
-	            cg.setDeviceLabel(objectId);	            
-	            _log.info("3PARDriver: getStorageObject leaving ");
-	            return (T)cg;
+				cg.setStorageSystemId(storageSystemId);
+				cg.setNativeId(cgResult.getName());
+				cg.setDeviceLabel(objectId);
+				_log.info("3PARDriver: getStorageObject leaving ");
+				return (T) cg;
 			}
-		}
-		catch(Exception e){
-			String msg = String.format("3PARDriver: Unable to get Stroage Object for id %s; Error: %s.\n",
-					objectId, e.getMessage());
-            _log.error(msg);           
-            e.printStackTrace();
-            return (T)null;
+		} catch (Exception e) {
+			String msg = String.format("3PARDriver: Unable to get Stroage Object for id %s; Error: %s.\n", objectId,
+					e.getMessage());
+			_log.error(msg);
+			e.printStackTrace();
+			return (T) null;
 		}
 		return null;
 	}
@@ -153,7 +162,6 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 		// TODO Auto-generated method stub
 		return null;
 	}
-	
 
 	/**
 	 * Get storage system information
@@ -236,9 +244,8 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	    return task;
 	}
 
-
 	/**
-	 * Get storage pool information 
+	 * Get storage pool information
 	 */
 	@Override
 	public DriverTask discoverStoragePools(StorageSystem storageSystem, List<StoragePool> storagePools) {
@@ -348,121 +355,210 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
         return task;
 	}
 
-        @Override
+	@Override
 	public DriverTask getStorageVolumes(StorageSystem storageSystem, List<StorageVolume> storageVolumes,
 			MutableInt token) {
 
 		if (token.intValue() == 0) {
-            //arrayToVolumeToVolumeExportInfoMap.clear();
-        }
-		
-        DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_GET_STORAGE_VOLUMES);
+			// arrayToVolumeToVolumeExportInfoMap.clear();
+		}
+
+		DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_GET_STORAGE_VOLUMES);
 
 		List<StoragePort> ports = new ArrayList<>();
-	    discoverStoragePorts(storageSystem, ports);
-	
-		try{
-			HashMap<String,ArrayList<String>> volumesToVolSetsMap = generateVolumeSetToVolumeMap(storageSystem);
-			
-	        // get Api client
-	        HP3PARApi hp3parApi = getHP3PARDeviceFromNativeId(storageSystem.getNativeId());
-	        VolumesCommandResult objStorageVolumes = hp3parApi.getStorageVolumes();
-	        			                
-	        for (int volIndex = 0; volIndex < objStorageVolumes.getTotal() ; volIndex++) {
-	        	VolumeMember objVolMember = objStorageVolumes.getMembers().get(volIndex);
-	            StorageVolume driverVolume = new StorageVolume();
-	            driverVolume.setStorageSystemId(storageSystem.getNativeId());
-	            driverVolume.setStoragePoolId(objVolMember.getUserCPG());
-	            driverVolume.setNativeId(objVolMember.getName());
-	            //if (VOLUMES_IN_CG) {
-	            //driverVolume.setConsistencyGroup("driverSimulatorCG-" + token.intValue());
-	            //}	            	           
-	            driverVolume.setProvisionedCapacity(objVolMember.getSizeMiB() * HP3PARConstants.MEGA_BYTE);
-	            driverVolume.setAllocatedCapacity(objVolMember.getSizeMiB() * HP3PARConstants.MEGA_BYTE);
-	            driverVolume.setWwn(objVolMember.getWwn());
-	            driverVolume.setNativeId(objVolMember.getName()); //required for volume delete
-	            driverVolume.setDeviceLabel(objVolMember.getName());
-	            
-	            //if the volumesToVolSetsMap contains the volume name entry. It means that volume
-	            //belongs to consistencygroup(volume set in hp3par teminology)
-	            if(volumesToVolSetsMap.containsKey(objVolMember.getName())){
-	            	driverVolume.setConsistencyGroup(volumesToVolSetsMap.get(objVolMember.getName()).get(0));
-	            }
-	            else{
-	            	_log.debug("Unmanaged volume volume {}  not part of any consistency group", driverVolume);	
-	            }
-	            
-	            if(objVolMember.isReadOnly()){
-	            	driverVolume.setAccessStatus(StorageVolume.AccessStatus.READ_ONLY);
-	            }
-	            else{
-	            	driverVolume.setAccessStatus(StorageVolume.AccessStatus.READ_WRITE);
-	            }
-	            
-	            if(objVolMember.getProvisioningType() == HP3PARConstants.provisioningType.TPVV.getValue() ){
-	            	driverVolume.setThinlyProvisioned(true);
-	            }
-	            else{
-	            	driverVolume.setThinlyProvisioned(false);
-	            }
-	            
-	            //TODO: how much should the thin volume preallocation size be.
-	            driverVolume.setThinVolumePreAllocationSize(3000L);	            	                                   
-	            storageVolumes.add(driverVolume);
-	            _log.info("Unmanaged volume info: pool {}, volume {}", driverVolume.getStoragePoolId(), driverVolume);
-	            
-	        }		
-	        task.setStatus(DriverTask.TaskStatus.READY);
-		}
-		catch(Exception e){
-			String msg = String.format
-	                ("3PARDriver: Unable to get storagevolumes for storage system %s native id %s; Error: %s.\n",
-                    storageSystem.getSystemName(), storageSystem.getNativeId(), e.getMessage());
-			task.setMessage(msg);
-	        task.setStatus(DriverTask.TaskStatus.FAILED);
-	        e.printStackTrace();
-		}
-		return task;		
-	}
-        
-    /*
-     * Returns: Hashmap of volume to volumesets mapping
-     * The key of this hashmap will be the name of the volume
-     * The value of the hasmap returned will be an array list 
-     * of volume sets that the volume belongs to.
-     * Example: {volume1: [volumeset5] , volume2:[volumeset1, volumeset2]}
-     */
-    private HashMap<String,ArrayList<String>> generateVolumeSetToVolumeMap(StorageSystem storageSystem) throws Exception{    
-        // get Api client
-        HP3PARApi hp3parApi = getHP3PARDeviceFromNativeId(storageSystem.getNativeId());
-        ConsistencyGroupsListResult objConsisGroupSets = hp3parApi.getVVsetsList();
-		HashMap<String,ArrayList<String>> volumeToVolumeSetMap = new HashMap<String,ArrayList<String>>();
+		discoverStoragePorts(storageSystem, ports);
 		
-        _log.info("3PARDriver: objConsisGroupSets.getTotal() information is {}",objConsisGroupSets.getTotal());
-        for (Integer index = 0; index < objConsisGroupSets.getTotal(); index++){
-        	ConsistencyGroupResult objConsisGroupResult = objConsisGroupSets.getMembers().get(index);
-        	
-        	if(objConsisGroupResult.getSetmembers()!=null){
-	        	for (Integer volIndex = 0 ; volIndex < objConsisGroupResult.getSetmembers().size() ; volIndex++){
-	        		String vVolName = objConsisGroupResult.getSetmembers().get(volIndex);
-	        		if(!volumeToVolumeSetMap.containsKey(vVolName)){	        			
-	        			ArrayList<String> volSetList = new ArrayList<String>();
-	        			volSetList.add(objConsisGroupResult.getName());
-	            		volumeToVolumeSetMap.put(vVolName, volSetList);
-	            	}
-	        		else{	        			
-	        			volumeToVolumeSetMap.get(vVolName).add(objConsisGroupResult.getName());
-	        		}
-	        	}        	
-        	}
-        }
-        
-        
-        _log.info("3PARDriver: volumeToVolumeSetMap information is {}",volumeToVolumeSetMap.toString());
-        return volumeToVolumeSetMap;	
-    }
-        
-   
+		HashMap<String, ArrayList<VolumeMember>> mappings = null;
+		HashMap<Long, VolumeAncestorInfo> idToNameMap = null;
+		
+		if(vvolToVvolsMap.containsKey(storageSystem.getNativeId())){
+			mappings = vvolToVvolsMap.get(storageSystem.getNativeId());
+		}
+		else{
+			mappings = new HashMap<String, ArrayList<VolumeMember>>();
+			vvolToVvolsMap.put(storageSystem.getNativeId(), mappings);
+		}
+		if(vvolIdTOMetaInfoMap.containsKey(storageSystem.getNativeId())){
+			idToNameMap = vvolIdTOMetaInfoMap.get(storageSystem.getNativeId());
+		}
+		else{
+			idToNameMap = new HashMap<Long, VolumeAncestorInfo>();
+			vvolIdTOMetaInfoMap.put(storageSystem.getNativeId(), idToNameMap);
+		}
+				
+		try {
+			HashMap<String, ArrayList<String>> volumesToVolSetsMap = generateVolumeSetToVolumeMap(storageSystem);
+
+			// get Api client
+			HP3PARApi hp3parApi = getHP3PARDeviceFromNativeId(storageSystem.getNativeId());
+			VolumesCommandResult objStorageVolumes = hp3parApi.getStorageVolumes();
+
+			_log.info("BEFORE THE FIRST FOR LOOP");
+			_log.info("BEFORE THE FIRST FOR LOOP the TOTAL SIZE IS {}", objStorageVolumes.getTotal());
+			
+			//first we build HashMap of volume id , volume name
+			for (int volIndex = 0; volIndex < objStorageVolumes.getTotal(); volIndex++) {
+				VolumeMember objVolMember = objStorageVolumes.getMembers().get(volIndex);
+				if(objVolMember.getCopyType() == HP3PARConstants.copyType.VIRTUAL_COPY.getValue()){
+					VolumeAncestorInfo objAncestorInfo = new VolumeAncestorInfo();
+					objAncestorInfo.setBaseId(objVolMember.getBaseId());
+					objAncestorInfo.setCopyType(objVolMember.getCopyType());
+					objAncestorInfo.setName(objVolMember.getName());
+					idToNameMap.put(new Long(objVolMember.getId()), objAncestorInfo);
+				}
+				else if(objVolMember.getCopyType() == HP3PARConstants.copyType.PHYSICAL_COPY.getValue()){
+					VolumeAncestorInfo objAncestorInfo = new VolumeAncestorInfo();
+					objAncestorInfo.setBaseId(objVolMember.getPhysParentId());
+					objAncestorInfo.setCopyType(objVolMember.getCopyType());
+					objAncestorInfo.setName(objVolMember.getName());
+					idToNameMap.put(new Long(objVolMember.getId()), objAncestorInfo);
+				}
+			}	
+			
+			_log.info("idToNameMap is {}", idToNameMap);				
+			_log.info("objStorageVolumes.getTotal() is {}", objStorageVolumes.getTotal());
+			
+			for (int volIndex = 0; volIndex < objStorageVolumes.getTotal(); volIndex++) {
+				VolumeMember objVolMember = objStorageVolumes.getMembers().get(volIndex);
+				_log.info("volindex is {}", volIndex);
+				_log.info("objVolMember.getid is {}", objVolMember.getId());
+				_log.info("objVolMember.getbaseid is {}", objVolMember.getBaseId());
+				_log.info("objVolMember.getname is {}", objVolMember.getName());
+				StorageVolume driverVolume = new StorageVolume();
+				driverVolume.setStorageSystemId(storageSystem.getNativeId());
+				driverVolume.setStoragePoolId(objVolMember.getUserCPG());
+				driverVolume.setNativeId(objVolMember.getName());
+				// if (VOLUMES_IN_CG) {
+				// driverVolume.setConsistencyGroup("driverSimulatorCG-" +
+				// token.intValue());
+				// }
+				//driverVolume.setConsistencyGroup(consistencyGroup);
+				driverVolume.setProvisionedCapacity(objVolMember.getSizeMiB() * HP3PARConstants.MEGA_BYTE);
+				driverVolume.setAllocatedCapacity(objVolMember.getSizeMiB() * HP3PARConstants.MEGA_BYTE);
+				driverVolume.setWwn(objVolMember.getWwn());
+				driverVolume.setNativeId(objVolMember.getName()); 
+				driverVolume.setDeviceLabel(objVolMember.getName());
+
+				// if the volumesToVolSetsMap contains the volume name entry. It  means 
+				//that volume belongs to consistency group(volume set in hp3par terminology)
+				if (volumesToVolSetsMap.containsKey(objVolMember.getName())) {
+					driverVolume.setConsistencyGroup(volumesToVolSetsMap.get(objVolMember.getName()).get(0));
+				} else {
+					_log.debug("Unmanaged volume volume {}  not part of any consistency group", driverVolume);
+				}
+
+				if (objVolMember.isReadOnly()) {
+					driverVolume.setAccessStatus(StorageVolume.AccessStatus.READ_ONLY);
+				} else {
+					driverVolume.setAccessStatus(StorageVolume.AccessStatus.READ_WRITE);
+				}
+
+				if (objVolMember.getProvisioningType() == HP3PARConstants.provisioningType.TPVV.getValue()) {
+					driverVolume.setThinlyProvisioned(true);
+				} else {
+					driverVolume.setThinlyProvisioned(false);
+				}
+
+				// TODO: how much should the thin volume preallocation size be.
+				driverVolume.setThinVolumePreAllocationSize(3000L);
+				
+				_log.info("objVolMember.getCopyOf() in getstoragevolumes is {}",objVolMember.getCopyOf());
+				if(objVolMember.getCopyOf()!=null){
+					
+				}
+				else{
+					_log.info("Adding to storagevolumes array the volume {}", objVolMember.getName());
+					storageVolumes.add(driverVolume);
+				}				
+				
+				_log.info("Unmanaged volume info: pool {}, volume {}", driverVolume.getStoragePoolId(), driverVolume);				
+				_log.info("objVolMember.getCopyOf() is {}", objVolMember.getCopyOf());
+								
+				if( objVolMember.getCopyOf() != null){
+					_log.info("Came in the the IF CONDITION");
+					_log.info("objVolMember.getCopyType() {}", objVolMember.getCopyType());
+					
+					VolumeAncestorInfo objAncestor = null;					
+					//Here we see if the current VVOL entity's copyof value corresponds to a physical
+					//volume or another virtual copy. 
+					//Example: snapA, is the snapshot of volumeA. Now snapA', is the snapshot of snapA.
+					//then when objVolMember represents snapA', then copyOf will point to snapA, but
+					//baseid will point to the id of the volume volumeA.					
+					if(objVolMember.getCopyType()==copyType.VIRTUAL_COPY.getValue()){						
+						_log.info("objVolMember.getBaseId() is {}",objVolMember.getBaseId());
+						objAncestor = idToNameMap.get(objVolMember.getBaseId());										
+					}
+					else if(objVolMember.getCopyType()==copyType.PHYSICAL_COPY.getValue()){						
+						_log.info("objVolMember.getBaseId() is {}",objVolMember.getPhysParentId());
+						objAncestor = idToNameMap.get(objVolMember.getPhysParentId());						
+					}
+					
+					if(mappings.containsKey(objAncestor.getName())){
+						_log.info("IN THE IF COND ADDING TO THE LIST OF CHILDREN {}" ,objVolMember.getName());							
+						ArrayList<VolumeMember> listOfChildren = (ArrayList<VolumeMember>)mappings.get(objAncestor.getName());
+						listOfChildren.add(objVolMember);
+					}
+					else{
+						_log.info("IN THE ELSE COND ADDING TO THE LIST OF CHILDREN {}" ,objVolMember.getName());
+						ArrayList<VolumeMember> listOfChildren = new ArrayList<VolumeMember>();
+						listOfChildren.add(objVolMember);
+						mappings.put(objAncestor.getName() , listOfChildren);
+					}
+					_log.info("objAncestor name is {}" , objAncestor.getName());
+					_log.info("objVolMember being added is {} ", objVolMember.getName());				
+					_log.info("objAncestor is {}" , objAncestor);
+				}					
+				_log.info("volIndex after the if condition is {}", volIndex);	
+				_log.info("AFTER IF objStorageVolumes.getTotal() {}",objStorageVolumes.getTotal() );
+				
+			}
+			_log.info("THE MAPPINGS BEING RETURNED BY THE GETSTORAGEVOLS IS {}" , vvolToVvolsMap);
+			task.setStatus(DriverTask.TaskStatus.READY);
+		} catch (Exception e) {
+			String msg = String.format(
+					"3PARDriver: Unable to get storagevolumes for storage system %s native id %s; Error: %s.\n",
+					storageSystem.getSystemName(), storageSystem.getNativeId(), e.getMessage());
+			task.setMessage(msg);
+			task.setStatus(DriverTask.TaskStatus.FAILED);
+			e.printStackTrace();
+		}
+		return task;
+	}
+
+	/*
+	 * Returns: Hashmap of volume to volumesets mapping The key of this hashmap
+	 * will be the name of the volume The value of the hasmap returned will be
+	 * an array list of volume sets that the volume belongs to. Example:
+	 * {volume1: [volumeset5] , volume2:[volumeset1, volumeset2]}
+	 */
+	private HashMap<String, ArrayList<String>> generateVolumeSetToVolumeMap(StorageSystem storageSystem)
+			throws Exception {
+		// get Api client
+		HP3PARApi hp3parApi = getHP3PARDeviceFromNativeId(storageSystem.getNativeId());
+		ConsistencyGroupsListResult objConsisGroupSets = hp3parApi.getVVsetsList();
+		HashMap<String, ArrayList<String>> volumeToVolumeSetMap = new HashMap<String, ArrayList<String>>();
+
+		_log.info("3PARDriver: objConsisGroupSets.getTotal() information is {}", objConsisGroupSets.getTotal());
+		for (Integer index = 0; index < objConsisGroupSets.getTotal(); index++) {
+			ConsistencyGroupResult objConsisGroupResult = objConsisGroupSets.getMembers().get(index);
+
+			if (objConsisGroupResult.getSetmembers() != null) {
+				for (Integer volIndex = 0; volIndex < objConsisGroupResult.getSetmembers().size(); volIndex++) {
+					String vVolName = objConsisGroupResult.getSetmembers().get(volIndex);
+					if (!volumeToVolumeSetMap.containsKey(vVolName)) {
+						ArrayList<String> volSetList = new ArrayList<String>();
+						volSetList.add(objConsisGroupResult.getName());
+						volumeToVolumeSetMap.put(vVolName, volSetList);
+					} else {
+						volumeToVolumeSetMap.get(vVolName).add(objConsisGroupResult.getName());
+					}
+				}
+			}
+		}
+
+		_log.info("3PARDriver: volumeToVolumeSetMap information is {}", volumeToVolumeSetMap.toString());
+		return volumeToVolumeSetMap;
+	}
 
 	/**
 	 * Get storage port information
@@ -581,6 +677,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
         }
         return task;
     }
+
 
 	@Override
 	public DriverTask discoverStorageHostComponents(StorageSystem storageSystem,
@@ -732,18 +829,152 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	}
 	
     @Override
-    public List<VolumeSnapshot> getVolumeSnapshots(StorageVolume volume) {
-    	_log.info("3PARDriver: getVolumeSnapshots Running ");
-        // TODO Auto-generated method stub
-        return null;
+    public List<VolumeSnapshot> getVolumeSnapshots(StorageVolume volume) {    	
+		_log.info("3PARDriver: getVolumeSnapshots Running ");
+		List<VolumeSnapshot> snapshots = new ArrayList<>();
+
+		try {
+			_log.info("vvolToVvolsMap is {}" , vvolToVvolsMap.toString());
+			
+			HP3PARApi hp3parApi = getHP3PARDeviceFromNativeId(volume.getStorageSystemId());
+			//VolumesCommandResult snapsResult = hp3parApi.getSnapshotsOfVolume(volume.getNativeId());
+			
+			HashMap<String, ArrayList<VolumeMember>> volMappings = null;
+			ArrayList listOfChildVols = null;
+			
+			if( vvolToVvolsMap.containsKey(volume.getStorageSystemId())){
+				volMappings = vvolToVvolsMap.get(volume.getStorageSystemId());
+				listOfChildVols = volMappings.get(volume.getNativeId());
+			}
+			else{
+				return snapshots;
+			}
+
+			_log.info("listOfChildVols.size()  is {}", listOfChildVols.size() );
+			
+			//for (int i = 0; i < snapsResult.getTotal(); i++) {
+			for (int i = 0; i < listOfChildVols.size() ; i++) {
+				//VolumeMember is the data structure used for representation of the HP3PAR virtual volume
+				VolumeMember objSnapshot = (VolumeMember)listOfChildVols.get(i);				
+				//VolumeSnapshot is the CoprHD southbound freamework's datastructure 
+				VolumeSnapshot driverSnapshot = new VolumeSnapshot();
+				
+				driverSnapshot.setParentId(volume.getNativeId());
+				driverSnapshot.setNativeId(objSnapshot.getName());
+				driverSnapshot.setDeviceLabel(objSnapshot.getName());
+				driverSnapshot.setStorageSystemId(volume.getStorageSystemId());
+				driverSnapshot.setAccessStatus(StorageObject.AccessStatus.READ_ONLY);
+				
+				if(volume.getConsistencyGroup()!=null){
+					driverSnapshot.setConsistencyGroup(volume.getConsistencyGroup());
+				}
+				
+				driverSnapshot.setWwn(objSnapshot.getWwn());
+
+				// TODO: We need to have more clarity on provisioned and
+				// allocated sizes
+				driverSnapshot.setAllocatedCapacity(objSnapshot.getSizeMiB() * HP3PARConstants.MEGA_BYTE);
+				driverSnapshot.setProvisionedCapacity(objSnapshot.getSizeMiB() * HP3PARConstants.MEGA_BYTE);
+				snapshots.add(driverSnapshot);
+
+				/*
+				 * if (GENERATE_EXPORT_DATA) { // generate export data for this
+				 * snap --- the same export data as for its parent volume
+				 * generateExportDataForVolumeReplica(volume, snapshot); }
+				 */
+			}
+			return snapshots;
+		} catch (Exception e) {
+			String msg = String.format(
+					"3PARDriver: Unable to get snapshot of volume with storage system %s and volume native id %s; Error: %s.\n",
+					volume.getStorageSystemId(), volume.getNativeId(), e.getMessage());
+			e.printStackTrace();
+		}
+
+		return null;
     }
 
+    /**
+     * Identifying clones of the given parent base volume.
+     * NOTE: Intermediate physical copies of 3PAR generated from other snapshots/clone are shown as clone of base volume itself
+     * Need to check this behavior ?
+     */
     @Override
-    public List<VolumeClone> getVolumeClones(StorageVolume volume) {
-    	_log.info("3PARDriver: getVolumeClones Running ");
-        // TODO Auto-generated method stub
-        return null;
-    }
+	public List<VolumeClone> getVolumeClones(StorageVolume volume) {
+		_log.info("3PARDriver: getVolumeClones Running ");
+		List<VolumeClone> clones = new ArrayList<>();
+
+		try {
+			_log.info("vvolToVvolsMap is {}", vvolToVvolsMap.toString());
+
+			HP3PARApi hp3parApi = getHP3PARDeviceFromNativeId(volume.getStorageSystemId());
+			// VolumesCommandResult snapsResult =
+			// hp3parApi.getClonesOfVolume(volume.getNativeId());
+
+			HashMap<String, ArrayList<VolumeMember>> volMappings = null;
+			ArrayList listOfChildVols = null;
+
+			if (vvolToVvolsMap.containsKey(volume.getStorageSystemId())) {
+				volMappings = vvolToVvolsMap.get(volume.getStorageSystemId());
+				listOfChildVols = volMappings.get(volume.getNativeId());
+			} else {
+				return clones;
+			}
+
+			_log.info("listOfChildVols.size()  is {}", listOfChildVols.size());
+
+			// for (int i = 0; i < snapsResult.getTotal(); i++) {
+			for (int i = 0; i < listOfChildVols.size(); i++) {
+				// VolumeMember is the data structure used for representation of
+				// the HP3PAR virtual volume
+				VolumeMember objClone = (VolumeMember) listOfChildVols.get(i);
+				if (objClone.getCopyType() == copyType.PHYSICAL_COPY.getValue()) {
+					// VolumeClone is the CoprHD southbound freamework's data
+					// structure
+					VolumeClone driverClone = new VolumeClone();
+
+					driverClone.setParentId(volume.getNativeId());
+					driverClone.setNativeId(objClone.getName());
+					driverClone.setDeviceLabel(objClone.getName());
+					driverClone.setStorageSystemId(volume.getStorageSystemId());
+					driverClone.setStoragePoolId(volume.getStoragePoolId());
+					driverClone.setAccessStatus(StorageObject.AccessStatus.READ_ONLY);
+
+					if (volume.getConsistencyGroup() != null) {
+						driverClone.setConsistencyGroup(volume.getConsistencyGroup());
+					}
+
+					driverClone.setWwn(objClone.getWwn());
+					driverClone.setThinlyProvisioned(volume.getThinlyProvisioned());
+
+					// TODO: We need to have more clarity on provisioned and
+					// allocated sizes
+					driverClone.setAllocatedCapacity(objClone.getSizeMiB() * HP3PARConstants.MEGA_BYTE);
+					driverClone.setProvisionedCapacity(objClone.getSizeMiB() * HP3PARConstants.MEGA_BYTE);
+					driverClone.setReplicationState(VolumeClone.ReplicationState.SYNCHRONIZED);
+					clones.add(driverClone);
+
+					/*
+					 * Attached clones in HP3PAR cannot be exported, and
+					 * detached clone will not be shown as physical copy, it
+					 * becomes a base volume. 
+					 * 
+					 * if (GENERATE_EXPORT_DATA) { //generate export data for this clone --- the same export
+					 * 								data as for its parent volume
+					 * generateExportDataForVolumeReplica(volume, clone); }
+					 */
+				}
+			}
+			return clones;
+		} catch (Exception e) {
+			String msg = String.format(
+					"3PARDriver: Unable to get clone of volume with storage system %s and volume native id %s; Error: %s.\n",
+					volume.getStorageSystemId(), volume.getNativeId(), e.getMessage());
+			e.printStackTrace();
+		}
+
+		return null;
+	}
 
     @Override
     public List<VolumeMirror> getVolumeMirrors(StorageVolume volume) {
@@ -1076,15 +1307,37 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
     @Override
     public Map<String, HostExportInfo> getVolumeExportInfoForHosts(StorageVolume volume) {
     	_log.info("3PARDriver: getVolumeExportInfoForHosts Running ");       
-    	    	
-    	try{    		    		
-    		_log.info("volume.getdisplay name is {}",volume.getNativeId());
-    		_log.info("volume.getstoragesysid  is {}",volume.getStorageSystemId());    
+    	_log.info("volume.getdisplay name is {}",volume.getNativeId());
+		_log.info("volume.getstoragesysid  is {}",volume.getStorageSystemId());		
+		return getBlockObjectExportInfoForHosts(volume.getStorageSystemId(), volume.getWwn() , volume.getNativeId(), volume);
+    }
+    
+
+    @Override
+    public Map<String, HostExportInfo> getSnapshotExportInfoForHosts(VolumeSnapshot snapshot) {
+    	_log.info("3PARDriver: getSnapshotExportInfoForHosts Running ");       
+    	_log.info("volume.getdisplay name is {}",snapshot.getNativeId());
+		_log.info("volume.getstoragesysid  is {}",snapshot.getStorageSystemId());		
+		return getBlockObjectExportInfoForHosts(snapshot.getStorageSystemId(), snapshot.getWwn() , snapshot.getNativeId(), snapshot);
+    }
+
+    @Override
+    public Map<String, HostExportInfo> getCloneExportInfoForHosts(VolumeClone clone) {
+    	_log.info("3PARDriver: getCloneExportInfoForHosts Running ");
+    	_log.info("volume.getdisplay name is {}",clone.getNativeId());
+		_log.info("volume.getstoragesysid  is {}",clone.getStorageSystemId());		
+		return getBlockObjectExportInfoForHosts(clone.getStorageSystemId(), clone.getWwn() , clone.getNativeId(), clone);
+    }
+    
+    
+    public Map<String, HostExportInfo> getBlockObjectExportInfoForHosts(String storageSystemId , String wwn,  
+    																	String objectName , StorageBlockObject object) {
+    	try{    		    		    		   
     		Map<String, HostExportInfo> resultMap = new HashMap<String, HostExportInfo>();
-    		    		
+    		
     		//get the vlun associated with the volume at consideration.
-    		HP3PARApi hp3parApi = getHP3PARDeviceFromNativeId(volume.getStorageSystemId());
-    		VirtualLunsList vlunsOfVolume = hp3parApi.getVLunsOfVolume(volume.getWwn());
+    		HP3PARApi hp3parApi = getHP3PARDeviceFromNativeId(storageSystemId);
+    		VirtualLunsList vlunsOfVolume = hp3parApi.getVLunsOfVolume(wwn);
     		    		
     		//process the vlun information by iterating through the vluns
     		//and then for each vlun, we create the appropriate key:value pair
@@ -1124,12 +1377,12 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	        				objVirtualLun.getRemoteName().substring(14, 16);
     	        
 		        _log.info("before native id");
-    		        String nativeId = String.format("%s:%s:%s", objVirtualLun.getPortPos().getNode(),
-	    	        		objVirtualLun.getPortPos().getSlot(), objVirtualLun.getPortPos().getCardPort());
-	        
+		        String nativeId = String.format("%s:%s:%s", objVirtualLun.getPortPos().getNode(),
+    	        		objVirtualLun.getPortPos().getSlot(), objVirtualLun.getPortPos().getCardPort());
+        
 	        	//Check which of the storage ports discovered, matches the node:portpos:cardport 
     	        //combination of the VLUN
-		        List<StoragePort> storPortsOfStorage = storagePortMap.get(volume.getStorageSystemId());    	        
+		        List<StoragePort> storPortsOfStorage = storagePortMap.get(storageSystemId);    	        
 				_log.info("storPortsOfStorage are {}",storPortsOfStorage);
 				_log.info("storPortMap are {}",storagePortMap);
 
@@ -1177,27 +1430,12 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
     	}
     	catch (Exception e) {
 			String msg = String.format(
-					"3PARDriver: Unable to get export info of the volume %s in storage system native id is %s; Error: %s.\n",
-					volume.getDisplayName(), volume.getStorageSystemId(), e.getMessage());
+					"3PARDriver: Unable to get export info of the storage objet %s in storage system native id is %s; Error: %s.\n",
+					objectName, storageSystemId, e.getMessage());
 			_log.error(msg);			
 			e.printStackTrace();
 		}
                     	
-        return null;
-    }
-    
-
-    @Override
-    public Map<String, HostExportInfo> getSnapshotExportInfoForHosts(VolumeSnapshot snapshot) {
-    	_log.info("3PARDriver: getSnapshotExportInfoForHosts Running ");
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    @Override
-    public Map<String, HostExportInfo> getCloneExportInfoForHosts(VolumeClone clone) {
-    	_log.info("3PARDriver: getCloneExportInfoForHosts Running ");
-        // TODO Auto-generated method stub
         return null;
     }
 
@@ -1866,13 +2104,14 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 
     @Override
 	public DriverTask createConsistencyGroup(VolumeConsistencyGroup consistencyGroup) {
-
 		DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_CREATE_CONSISTENCY_GROUP);
 
 		try {
-			_log.info("3PARDriver: createConsistencyGroup for storage system  id {}, display name {} , native id {}, device lable id {} , cosistency group id {}  - start",
+			_log.info(
+					"3PARDriver: createConsistencyGroup for storage system  id {}, display name {} , native id {}, device lable id {} , cosistency group id {}  - start",
 					consistencyGroup.getStorageSystemId(), consistencyGroup.getDisplayName(),
-					consistencyGroup.getNativeId(),consistencyGroup.getDeviceLabel(),consistencyGroup.getConsistencyGroup());
+					consistencyGroup.getNativeId(), consistencyGroup.getDeviceLabel(),
+					consistencyGroup.getConsistencyGroup());
 
 			// get Api client
 			HP3PARApi hp3parApi = getHP3PARDeviceFromNativeId(consistencyGroup.getStorageSystemId());
@@ -1883,14 +2122,16 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 			hp3parApi.createVVset(consistencyGroup.getDisplayName());
 			cgResult = hp3parApi.getVVsetDetails(consistencyGroup.getDisplayName());
 
-			_log.info("3PARDriver: createConsistencyGroup getDetails "+cgResult.getDetails());
+			_log.info("3PARDriver: createConsistencyGroup getDetails " + cgResult.getDetails());
 			consistencyGroup.setNativeId(consistencyGroup.getDisplayName());
 			consistencyGroup.setDeviceLabel(consistencyGroup.getDisplayName());
 
 			task.setStatus(DriverTask.TaskStatus.READY);
-			_log.info("3PARDriver: createConsistencyGroup for storage system  id {}, display name {} , native id {}, device lable id {} , cosistency group id {}  - end",
+			_log.info(
+					"3PARDriver: createConsistencyGroup for storage system  id {}, display name {} , native id {}, device lable id {} , cosistency group id {}  - end",
 					consistencyGroup.getStorageSystemId(), consistencyGroup.getDisplayName(),
-					consistencyGroup.getNativeId(),consistencyGroup.getDeviceLabel(),consistencyGroup.getConsistencyGroup());
+					consistencyGroup.getNativeId(), consistencyGroup.getDeviceLabel(),
+					consistencyGroup.getConsistencyGroup());
 		} catch (Exception e) {
 			String msg = String.format(
 					"3PARDriver: Unable to create consistency group name %s in storage system native id is %s; Error: %s.\n",
@@ -1900,96 +2141,99 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 			task.setStatus(DriverTask.TaskStatus.PARTIALLY_FAILED);
 			e.printStackTrace();
 		}
-        
-        return task;
-        
-    }
 
-    /**
-     * Delete VV Set or consistency group
-     * 
-     */
-    @Override
-    public DriverTask deleteConsistencyGroup(VolumeConsistencyGroup consistencyGroup) {
-		_log.info("3PARDriver: deleteConsistencyGroup for storage system  id {}, display name {} , native id {}, device lable id {} , cosistency group id {}  - start",
+		return task;
+
+	}
+
+	/**
+	 * Delete VV Set or consistency group
+	 * 
+	 */
+	@Override
+	public DriverTask deleteConsistencyGroup(VolumeConsistencyGroup consistencyGroup) {
+		_log.info(
+				"3PARDriver: deleteConsistencyGroup for storage system  id {}, display name {} , native id {}, device lable id {} , cosistency group id {}  - start",
 				consistencyGroup.getStorageSystemId(), consistencyGroup.getDisplayName(),
-				consistencyGroup.getNativeId(),consistencyGroup.getDeviceLabel(),consistencyGroup.getConsistencyGroup());
+				consistencyGroup.getNativeId(), consistencyGroup.getDeviceLabel(),
+				consistencyGroup.getConsistencyGroup());
 
-	    DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_DELETE_CONSISTENCY_GROUP);
+		DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_DELETE_CONSISTENCY_GROUP);
 
-            try {
+		try {
 
-                // get Api client
-                HP3PARApi hp3parApi = getHP3PARDeviceFromNativeId(consistencyGroup.getStorageSystemId());
+			// get Api client
+			HP3PARApi hp3parApi = getHP3PARDeviceFromNativeId(consistencyGroup.getStorageSystemId());
 
-                // Delete virtual copies of CG
-                hp3parApi.deleteVVset(consistencyGroup.getNativeId());
-                
-                task.setStatus(DriverTask.TaskStatus.READY);
-                _log.info("3PARDriver: deleteConsistencyGroup for storage system native id {}, volume name {} - end",
-                		consistencyGroup.getStorageSystemId(), consistencyGroup.getDisplayName());            
-            } catch (Exception e) {
-                String msg = String.format(
-                        "3PARDriver: deleteConsistencyGroup Unable to delete CG %s with native id %s which is part of storage system native id %s; Error: %s.\n",
-                        consistencyGroup.getDisplayName(), consistencyGroup.getNativeId(), consistencyGroup.getStorageSystemId(), e.getMessage());
-                _log.error(msg);
-                task.setMessage(msg);
-                task.setStatus(DriverTask.TaskStatus.PARTIALLY_FAILED);
-                e.printStackTrace();
-            }
-        
-        return task;
-    
-    }
+			// Delete virtual copies of CG
+			hp3parApi.deleteVVset(consistencyGroup.getNativeId());
 
-    @Override
-    public DriverTask createConsistencyGroupSnapshot(VolumeConsistencyGroup consistencyGroup, List<VolumeSnapshot> snapshots,
-			List<CapabilityInstance> capabilities) {
+			task.setStatus(DriverTask.TaskStatus.READY);
+			_log.info("3PARDriver: deleteConsistencyGroup for storage system native id {}, volume name {} - end",
+					consistencyGroup.getStorageSystemId(), consistencyGroup.getDisplayName());
+		} catch (Exception e) {
+			String msg = String.format(
+					"3PARDriver: deleteConsistencyGroup Unable to delete CG %s with native id %s which is part of storage system native id %s; Error: %s.\n",
+					consistencyGroup.getDisplayName(), consistencyGroup.getNativeId(),
+					consistencyGroup.getStorageSystemId(), e.getMessage());
+			_log.error(msg);
+			task.setMessage(msg);
+			task.setStatus(DriverTask.TaskStatus.PARTIALLY_FAILED);
+			e.printStackTrace();
+		}
+
+		return task;
+
+	}
+
+	@Override
+	public DriverTask createConsistencyGroupSnapshot(VolumeConsistencyGroup consistencyGroup,
+			List<VolumeSnapshot> snapshots, List<CapabilityInstance> capabilities) {
 		_log.info(
 				"3PARDriver: createConsistencyGroupSnapshot for storage system  id {}, display name {} , native id {} - start",
 				consistencyGroup.getStorageSystemId(), consistencyGroup.getDisplayName(),
 				consistencyGroup.getNativeId());
-		String  VVsetSnapshotName = consistencyGroup.getDisplayName();
-		
+		String VVsetSnapshotName = consistencyGroup.getDisplayName();
+
 		DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_SNAPSHOT_CONSISTENCY_GROUP);
 		VolumeDetailsCommandResult volResult = null;
-		
+
 		try {
 
 			Boolean readOnly = true;
 
 			// get Vipr generated Snapshot name
-		   	for (VolumeSnapshot snap : snapshots) {
-	            
-	            	//native id = null , 
-	                _log.info("3PARDriver: createConsistencyGroupSnapshot for volume native id {}, snap shot name generated is {} - start",
-	                		snap.getParentId(), snap.getDisplayName());  
-	            
-	                if (snap.getAccessStatus() != AccessStatus.READ_ONLY) {
-	                	readOnly = false;
-	                }
-	                
-	                String generatedSnapshotName = snap.getDisplayName();
-	                VVsetSnapshotName = generatedSnapshotName.substring(0, generatedSnapshotName.lastIndexOf("-")) + "-" ;
-	                _log.info("3PARDriver: createConsistencyGroupSnapshot VVsetSnapshotName {} ",VVsetSnapshotName);
-	                break;
+			for (VolumeSnapshot snap : snapshots) {
 
-		   	}
-		   	
-		   	
+				// native id = null ,
+				_log.info(
+						"3PARDriver: createConsistencyGroupSnapshot for volume native id {}, snap shot name generated is {} - start",
+						snap.getParentId(), snap.getDisplayName());
+
+				if (snap.getAccessStatus() != AccessStatus.READ_ONLY) {
+					readOnly = false;
+				}
+
+				String generatedSnapshotName = snap.getDisplayName();
+				VVsetSnapshotName = generatedSnapshotName.substring(0, generatedSnapshotName.lastIndexOf("-")) + "-";
+				_log.info("3PARDriver: createConsistencyGroupSnapshot VVsetSnapshotName {} ", VVsetSnapshotName);
+				break;
+
+			}
+
 			// get Api client
 			HP3PARApi hp3parApi = getHP3PARDeviceFromNativeId(consistencyGroup.getStorageSystemId());
-		   	
+
 			// Create vvset snapshot
-			hp3parApi.createVVsetVirtualCopy(consistencyGroup.getNativeId(), VVsetSnapshotName,readOnly);
+			hp3parApi.createVVsetVirtualCopy(consistencyGroup.getNativeId(), VVsetSnapshotName, readOnly);
 			int volumeNumber = 0;
-			int snapVolumeCount  = snapshots.size();
-			
+			int snapVolumeCount = snapshots.size();
+
 			/**
-			 * for each volume snapshot available 
-			 * find correct snapshot object and set the values
+			 * for each volume snapshot available find correct snapshot object
+			 * and set the values
 			 */
-						
+
 			while (volumeNumber < snapVolumeCount) {
 
 				String snapshotCreated = VVsetSnapshotName + volumeNumber;
@@ -2009,20 +2253,21 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 									snap.getDisplayName(), snap.getNativeId(), snap.getDeviceLabel());
 
 							String parentName = snap.getParentId();
-							_log.info("createConsistencyGroupSnapshot +++{}++{}+++ ", parentName , baseVolume);
+							_log.info("createConsistencyGroupSnapshot +++{}++{}+++ ", parentName, baseVolume);
 							if (parentName.equals(baseVolume)) {
 								_log.info(
-										"createConsistencyGroupSnapshot snap name {} wwn {} deviceLable {} displayname {} " 
-										, snap.getNativeId(),snap.getWwn(),snap.getDeviceLabel(),snap.getDisplayName());
+										"createConsistencyGroupSnapshot snap name {} wwn {} deviceLable {} displayname {} ",
+										snap.getNativeId(), snap.getWwn(), snap.getDeviceLabel(),
+										snap.getDisplayName());
 								snap.setWwn(volResult.getWwn());
 								snap.setNativeId(volResult.getName());
 								snap.setDeviceLabel(volResult.getName());
 								snap.setLabel(volResult.getName());
 								// snap.setAccessStatus(volResult.getAccessStatus());
 								snap.setDisplayName(volResult.getName());
-								
-								_log.info(
-										"createConsistencyGroupSnapshot volResult name {} wwn {} " , volResult.getName(),volResult.getWwn());
+
+								_log.info("createConsistencyGroupSnapshot volResult name {} wwn {} ",
+										volResult.getName(), volResult.getWwn());
 							}
 
 							_log.info(
@@ -2042,7 +2287,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 				}
 				volumeNumber = volumeNumber + 1;
 			}
-			
+
 			task.setStatus(DriverTask.TaskStatus.READY);
 			_log.info(
 					"createConsistencyGroupSnapshot for storage system native id {}, CG display Name {}, CG native id {} - end",
@@ -2051,153 +2296,254 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 		} catch (Exception e) {
 			String msg = String.format(
 					"3PARDriver: Unable to create vv set snap name %s and its native id %s whose storage system  id is %s; Error: %s.\n",
-					VVsetSnapshotName, consistencyGroup.getNativeId(), consistencyGroup.getStorageSystemId(), e.getMessage());
+					VVsetSnapshotName, consistencyGroup.getNativeId(), consistencyGroup.getStorageSystemId(),
+					e.getMessage());
 			_log.error(msg);
 			task.setMessage(msg);
 			task.setStatus(DriverTask.TaskStatus.PARTIALLY_FAILED);
 			e.printStackTrace();
 		}
-        
-        return task;
-        
-    }
 
-    @Override
-    public DriverTask deleteConsistencyGroupSnapshot(List<VolumeSnapshot> snapshots) {
+		return task;
 
-	    DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_DELETE_SNAPSHOT_CONSISTENCY_GROUP);
+	}
 
-        // For each requested CG volume snapshot 
-        for (VolumeSnapshot snap : snapshots) {
-            try {
-                _log.info("3PARDriver: deleteConsistencyGroupSnapshot for storage system native id {}, volume name {} , native id {} - start",
-                		snap.getStorageSystemId(), snap.getDisplayName(), snap.getNativeId());     
+	@Override
+	public DriverTask deleteConsistencyGroupSnapshot(List<VolumeSnapshot> snapshots) {
 
-                // get Api client
-                HP3PARApi hp3parApi = getHP3PARDeviceFromNativeId(snap.getStorageSystemId());
+		DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_DELETE_SNAPSHOT_CONSISTENCY_GROUP);
 
-                // Delete virtual copy
-                hp3parApi.deleteVirtualCopy(snap.getNativeId());
-                
-                task.setStatus(DriverTask.TaskStatus.READY);
-                _log.info("3PARDriver: deleteConsistencyGroupSnapshot for storage system native id {}, volume name {} - end",
-                		snap.getStorageSystemId(), snap.getDisplayName());            
-            } catch (Exception e) {
-                String msg = String.format(
-                        "3PARDriver: deleteConsistencyGroupSnapshot Unable to delete cg snapshot name %s with native id %s for storage system native id %s; Error: %s.\n",
-                        snap.getDisplayName(), snap.getNativeId(), snap.getStorageSystemId(), e.getMessage());
-                _log.error(msg);
-                task.setMessage(msg);
-                task.setStatus(DriverTask.TaskStatus.PARTIALLY_FAILED);
-                e.printStackTrace();
-            }
-        } // end for each delete snapshot
-        
-        return task;
-    }
+		// For each requested CG volume snapshot
+		for (VolumeSnapshot snap : snapshots) {
+			try {
+				_log.info(
+						"3PARDriver: deleteConsistencyGroupSnapshot for storage system native id {}, volume name {} , native id {} - start",
+						snap.getStorageSystemId(), snap.getDisplayName(), snap.getNativeId());
 
-    @Override
-    public DriverTask createConsistencyGroupClone(VolumeConsistencyGroup consistencyGroup, List<VolumeClone> clones,
-            List<CapabilityInstance> capabilities) {
-    	_log.info("3PARDriver: createConsistencyGroupClone for storage system  id {}, display name {} , native id {} - start",
-    			consistencyGroup.getStorageSystemId(), consistencyGroup.getDisplayName(), consistencyGroup.getNativeId());
 
-        // TODO Auto-generated method stub
-        return null;
-    }
-    
-    /*
-     * Internal methods in the driver
-     */
-    private HP3PARApi getHP3PARDevice(StorageSystem hp3parSystem) throws HP3PARException {
-        URI deviceURI;
-        _log.info("3PARDriver:getHP3PARDevice input storage system");
-        
-        try {
-            deviceURI = new URI("https", null, hp3parSystem.getIpAddress(), hp3parSystem.getPortNumber(), "/", null, null);
-            return hp3parApiFactory
-                    .getRESTClient(deviceURI, hp3parSystem.getUsername(), hp3parSystem.getPassword());
-        } catch (Exception e) {
-            e.printStackTrace();
-            _log.error("3PARDriver:Error in getting 3PAR device, with StorageSystem");
-            throw new HP3PARException("Error in getting 3PAR device");
-        }       
-    }
+				// get Api client
+				HP3PARApi hp3parApi = getHP3PARDeviceFromNativeId(snap.getStorageSystemId());
 
-    private HP3PARApi getHP3PARDevice(String ip, String port, String user, String pass) throws HP3PARException {
-        URI deviceURI;
-        _log.info("3PARDriver:getHP3PARDevice input full details");
-        
-        try {
-            deviceURI = new URI("https", null, ip, Integer.parseInt(port), "/", null, null);
-            return hp3parApiFactory
-                    .getRESTClient(deviceURI, user, pass);
-        } catch (Exception e) {
-            e.printStackTrace();
-            _log.error("3PARDriver:Error in getting 3PAR device with details");
-            throw new HP3PARException("Error in getting 3PAR device");
-        }       
-    }
-    
-    private HP3PARApi getHP3PARDeviceFromNativeId(String nativeId) throws HP3PARException {
-        try {
-            Map<String, List<String>> connectionInfo =
-                    driverRegistry.getDriverAttributesForKey(HP3PARConstants.DRIVER_NAME, nativeId);
-            List<String> ipAddress = connectionInfo.get(HP3PARConstants.IP_ADDRESS);
-            List<String> portNumber = connectionInfo.get(HP3PARConstants.PORT_NUMBER);
-            List<String> userName = connectionInfo.get(HP3PARConstants.USER_NAME);
-            List<String> password = connectionInfo.get(HP3PARConstants.PASSWORD);
-            HP3PARApi hp3parApi = getHP3PARDevice(ipAddress.get(0), portNumber.get(0),
-                    userName.get(0),password.get(0));
-            return hp3parApi;
-        } catch (Exception e) {
-            e.printStackTrace();
-            _log.error("3PARDriver:Error in getting 3PAR device with nativeId");
-            throw new HP3PARException("Error in getting 3PAR device");
-        }
-    }
+				// Delete virtual copy
+				hp3parApi.deleteVirtualCopy(snap.getNativeId());
+
+				task.setStatus(DriverTask.TaskStatus.READY);
+				_log.info(
+						"3PARDriver: deleteConsistencyGroupSnapshot for storage system native id {}, volume name {} - end",
+						snap.getStorageSystemId(), snap.getDisplayName());
+			} catch (Exception e) {
+				String msg = String.format(
+						"3PARDriver: deleteConsistencyGroupSnapshot Unable to delete cg snapshot name %s with native id %s for storage system native id %s; Error: %s.\n",
+						snap.getDisplayName(), snap.getNativeId(), snap.getStorageSystemId(), e.getMessage());
+				_log.error(msg);
+				task.setMessage(msg);
+				task.setStatus(DriverTask.TaskStatus.PARTIALLY_FAILED);
+				e.printStackTrace();
+			}
+		} // end for each delete snapshot
+
+		return task;
+	}
 
     /**
-     * Create driver task for task type
-     *
-     * @param taskType
+     * Creating physical copy for VVset or CG clone 
+     * Rest API expects created VVset with its corresponding volumes types for clone destination 
+     * So, There are many ways for implementation
+     * 1. Customer will provide the VVSet name which already exist in Array with its corresponding similar volumes for cloning
+     *  
+     * 2. Customer will not provide any existing and matching VV set with corresponding volumes for CG clone 
+     * 
+     * 3. Customer will provide VVset name which is created but volumes are not of matching for clone creation.
+     * 
+     * Create new VV Set / CG .
+     * Create new volumes similar to parent VVSet volumes
+     * Use this newly created VV set for CG clone 
+     * option 2 is implemented, need to handle negative / error cases of option 3  
      */
-    private DriverTask createDriverTask(String taskType) {
-        String taskID = String.format("%s+%s+%s", HP3PARConstants.DRIVER_NAME, taskType, UUID.randomUUID());
-        DriverTask task = new HP3PARDriverTask(taskID);
-        return task;
-    }
-    
-    private void setConnInfoToRegistry(String systemNativeId, String ipAddress, int port, String username, String password) {
-        _log.info("3PARDriver:Saving connection info in registry enter");
-        Map<String, List<String>> attributes = new HashMap<>();
-        List<String> listIP = new ArrayList<>();
-        List<String> listPort = new ArrayList<>();
-        List<String> listUserName = new ArrayList<>();
-        List<String> listPwd = new ArrayList<>();
 
-        listIP.add(ipAddress);
-        attributes.put(HP3PARConstants.IP_ADDRESS, listIP);
-                listPort.add(Integer.toString(port));
-        attributes.put(HP3PARConstants.PORT_NUMBER, listPort);
-                listUserName.add(username);
-        attributes.put(HP3PARConstants.USER_NAME, listUserName);
-                listPwd.add(password);
-        attributes.put(HP3PARConstants.PASSWORD, listPwd);
-        this.driverRegistry.setDriverAttributesForKey(HP3PARConstants.DRIVER_NAME, systemNativeId, attributes);
-        _log.info("3PARDriver:Saving connection info in registry leave");
-    }
+	@Override
+	public DriverTask createConsistencyGroupClone(VolumeConsistencyGroup consistencyGroup, List<VolumeClone> clones,
+			List<CapabilityInstance> capabilities) {
 
-    @Override
-    public DriverTask discoverStorageProvider(StorageProvider storageProvider, List<StorageSystem> storageSystems) {
-        // TODO Auto-generated method stub
-        return null;
-    }
+		DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_CLONE_CONSISTENCY_GROUP);
+	    	
+	    	_log.info("3PARDriver: createConsistencyGroupClone for storage system  id {}, Base CG name {} , Base CG native id {} - start",
+	    			consistencyGroup.getStorageSystemId(), consistencyGroup.getDisplayName(), consistencyGroup.getNativeId());
+	    	String  VVsetNameForClone = consistencyGroup.getDisplayName();
+			
+			VolumeDetailsCommandResult volResult = null;
+			HashMap<String,VolumeClone> clonesMap = new HashMap<String,VolumeClone>();
+			
+			try {
 
+				Boolean saveSnapshot = true;
 
-    @Override
-    public boolean validateStorageProviderConnection(StorageProvider storageProvider) {
-        // TODO Auto-generated method stub
-        return false;
-    }
+				// get Vipr generated clone name
+			   	for (VolumeClone clone : clones) {
+		            
+		            	//native id = null , 
+		                _log.info("3PARDriver: createConsistencyGroupClone generated clone parent id {}, display name {} - start",
+		                		clone.getParentId(), clone.getDisplayName());  
+		            
+		                String generatedCloneName = clone.getDisplayName();
+		                VVsetNameForClone = generatedCloneName.substring(0, generatedCloneName.lastIndexOf("-"));
+		                _log.info("3PARDriver: createConsistencyGroupClone CG name {} to be used in cloning ",VVsetNameForClone);
+		                clonesMap.put(clone.getParentId(), clone);
+
+			   	}
+			    _log.info("3PARDriver: createConsistencyGroupClone  clonesMap {}",clonesMap.toString());
+			    
+				// get Api client
+				HP3PARApi hp3parApi = getHP3PARDeviceFromNativeId(consistencyGroup.getStorageSystemId());
+			   	
+				// Create vvset clone
+				VVSetVolumeClone[] result = hp3parApi.createVVsetPhysicalCopy(consistencyGroup.getNativeId(), VVsetNameForClone, clones, saveSnapshot);
+				
+				_log.info("3PARDriver: createConsistencyGroupClone outPut of CG clone result  {} ",result.toString());
+				
+				int volumeNumber = 0;
+				int cloneVolumeCount  = result.length;
+				
+				/**
+				 * for each volume clone result returned  
+				 * find corresponding clone object and set its value and commit it
+				 */
+				//ArrayList<VVSetVolumeClone> createdClones = result.getClonesInfo();
+
+			//	for (VVSetVolumeClone cloneCreated : createdClones) {
+					for (VVSetVolumeClone cloneCreated : result) {	
+					VolumeClone clone = clonesMap.get(cloneCreated.getParent());
+					
+					_log.info("createConsistencyGroupClone cloneCreated {} and local clone obj nativeid = {} , parent id = {}",cloneCreated.getValues(),clone.getNativeId(),clone.getParentId());
+					volResult = hp3parApi.getVolumeDetails(cloneCreated.getChild());
+					
+					_log.info("createConsistencyGroupClone cloneCreated All values {} ",volResult.getAllValues());
+					
+					clone.setWwn(volResult.getWwn());
+					clone.setNativeId(volResult.getName());
+					clone.setDeviceLabel(volResult.getName());
+					clone.setLabel(volResult.getName());
+					// snap.setAccessStatus(volResult.getAccessStatus());
+					clone.setDisplayName(volResult.getName());
+
+					clone.setReplicationState(VolumeClone.ReplicationState.SYNCHRONIZED);
+
+					clone.setProvisionedCapacity(clone.getRequestedCapacity());
+					clone.setAllocatedCapacity(clone.getRequestedCapacity());
+					
+				}
+				
+				task.setStatus(DriverTask.TaskStatus.READY);
+				_log.info(
+						"createConsistencyGroupClone for storage system native id {}, CG display Name {}, CG native id {} - end",
+						consistencyGroup.getStorageSystemId(), consistencyGroup.getDisplayName(),
+						consistencyGroup.getNativeId());
+			} catch (Exception e) {
+				String msg = String.format(
+						"3PARDriver: createConsistencyGroupClone Unable to create vv set snap name %s and its native id %s whose storage system  id is %s; Error: %s.\n",
+						VVsetNameForClone, consistencyGroup.getNativeId(), consistencyGroup.getStorageSystemId(), e.getMessage());
+				_log.error(msg);
+				task.setMessage(msg);
+				task.setStatus(DriverTask.TaskStatus.PARTIALLY_FAILED);
+				e.printStackTrace();
+			}
+	        
+	        return task;
+	        
+	    }
+	   
+
+	/*
+	 * Internal methods in the driver
+	 */
+	private HP3PARApi getHP3PARDevice(StorageSystem hp3parSystem) throws HP3PARException {
+		URI deviceURI;
+		_log.info("3PARDriver:getHP3PARDevice input storage system");
+
+		try {
+			deviceURI = new URI("https", null, hp3parSystem.getIpAddress(), hp3parSystem.getPortNumber(), "/", null,
+					null);
+			return hp3parApiFactory.getRESTClient(deviceURI, hp3parSystem.getUsername(), hp3parSystem.getPassword());
+		} catch (Exception e) {
+			e.printStackTrace();
+			_log.error("3PARDriver:Error in getting 3PAR device, with StorageSystem");
+			throw new HP3PARException("Error in getting 3PAR device");
+		}
+	}
+
+	private HP3PARApi getHP3PARDevice(String ip, String port, String user, String pass) throws HP3PARException {
+		URI deviceURI;
+		_log.info("3PARDriver:getHP3PARDevice input full details");
+
+		try {
+			deviceURI = new URI("https", null, ip, Integer.parseInt(port), "/", null, null);
+			return hp3parApiFactory.getRESTClient(deviceURI, user, pass);
+		} catch (Exception e) {
+			e.printStackTrace();
+			_log.error("3PARDriver:Error in getting 3PAR device with details");
+			throw new HP3PARException("Error in getting 3PAR device");
+		}
+	}
+
+	private HP3PARApi getHP3PARDeviceFromNativeId(String nativeId) throws HP3PARException {
+		try {
+			Map<String, List<String>> connectionInfo = driverRegistry
+					.getDriverAttributesForKey(HP3PARConstants.DRIVER_NAME, nativeId);
+			List<String> ipAddress = connectionInfo.get(HP3PARConstants.IP_ADDRESS);
+			List<String> portNumber = connectionInfo.get(HP3PARConstants.PORT_NUMBER);
+			List<String> userName = connectionInfo.get(HP3PARConstants.USER_NAME);
+			List<String> password = connectionInfo.get(HP3PARConstants.PASSWORD);
+			HP3PARApi hp3parApi = getHP3PARDevice(ipAddress.get(0), portNumber.get(0), userName.get(0),
+					password.get(0));
+			return hp3parApi;
+		} catch (Exception e) {
+			e.printStackTrace();
+			_log.error("3PARDriver:Error in getting 3PAR device with nativeId");
+			throw new HP3PARException("Error in getting 3PAR device");
+		}
+	}
+
+	/**
+	 * Create driver task for task type
+	 *
+	 * @param taskType
+	 */
+	private DriverTask createDriverTask(String taskType) {
+		String taskID = String.format("%s+%s+%s", HP3PARConstants.DRIVER_NAME, taskType, UUID.randomUUID());
+		DriverTask task = new HP3PARDriverTask(taskID);
+		return task;
+	}
+
+	private void setConnInfoToRegistry(String systemNativeId, String ipAddress, int port, String username,
+			String password) {
+		_log.info("3PARDriver:Saving connection info in registry enter");
+		Map<String, List<String>> attributes = new HashMap<>();
+		List<String> listIP = new ArrayList<>();
+		List<String> listPort = new ArrayList<>();
+		List<String> listUserName = new ArrayList<>();
+		List<String> listPwd = new ArrayList<>();
+
+		listIP.add(ipAddress);
+		attributes.put(HP3PARConstants.IP_ADDRESS, listIP);
+		listPort.add(Integer.toString(port));
+		attributes.put(HP3PARConstants.PORT_NUMBER, listPort);
+		listUserName.add(username);
+		attributes.put(HP3PARConstants.USER_NAME, listUserName);
+		listPwd.add(password);
+		attributes.put(HP3PARConstants.PASSWORD, listPwd);
+		this.driverRegistry.setDriverAttributesForKey(HP3PARConstants.DRIVER_NAME, systemNativeId, attributes);
+		_log.info("3PARDriver:Saving connection info in registry leave");
+	}
+
+	@Override
+	public DriverTask discoverStorageProvider(StorageProvider storageProvider, List<StorageSystem> storageSystems) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public boolean validateStorageProviderConnection(StorageProvider storageProvider) {
+		// TODO Auto-generated method stub
+		return false;
+	}
 }

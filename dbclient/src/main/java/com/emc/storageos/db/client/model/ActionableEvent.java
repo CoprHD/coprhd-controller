@@ -10,7 +10,7 @@ import java.net.URI;
 @Cf("Event")
 public class ActionableEvent extends DataObject implements TenantResource {
 
-    public class Method implements Serializable {
+    public static class Method implements Serializable {
         public String _orchestrationMethod;
         public Object[] _args;
 
@@ -18,12 +18,21 @@ public class ActionableEvent extends DataObject implements TenantResource {
             this._orchestrationMethod = orchestrationMethod;
             this._args = args;
         }
+
+        public byte[] serialize() {
+            return new GenericSerializer().toByteArray(Method.class, this);
+        }
+
+        public static Method deserialize(byte[] array) {
+            return new GenericSerializer().fromByteArray(Method.class, array);
+        }
+
     }
 
     private String _message;
     private String _controllerClass;
     private URI _tenant;
-    private Method _method;
+    private byte[] _method;
 
     @Name("message")
     public String getMessage() {
@@ -46,11 +55,11 @@ public class ActionableEvent extends DataObject implements TenantResource {
     }
 
     @Name("method")
-    public Method getMethod() {
+    public byte[] getMethod() {
         return _method;
     }
 
-    public void setMethod(Method method) {
+    public void setMethod(byte[] method) {
         this._method = method;
         setChanged("method");
     }

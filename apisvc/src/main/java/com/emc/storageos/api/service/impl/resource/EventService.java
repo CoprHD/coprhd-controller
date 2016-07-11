@@ -101,8 +101,10 @@ public class EventService extends TaskResourceService {
 
             Controller controller = getController(controllerClass, null);
 
-            Method m = controllerClass.getMethod(event.getMethod()._orchestrationMethod);
-            m.invoke(controller, event.getMethod()._args);
+            ActionableEvent.Method eventMethod = ActionableEvent.Method.deserialize(event.getMethod());
+
+            Method m = controllerClass.getMethod(eventMethod._orchestrationMethod);
+            m.invoke(controller, eventMethod._args);
 
         } catch (ClassNotFoundException e) {
             _log.error(e.getMessage());
@@ -156,7 +158,9 @@ public class EventService extends TaskResourceService {
         event.setTenant(tenant.getId());
         event.setMessage(createParam.getMessage());
         event.setControllerClass(createParam.getControllerClass());
-        event.setMethod(new ActionableEvent().new Method(createParam.getOrchestrationMethod(), createParam.getParameters().toArray()));
+        com.emc.storageos.db.client.model.ActionableEvent.Method method = new ActionableEvent.Method(
+                createParam.getOrchestrationMethod(), createParam.getParameters().toArray());
+        event.setMethod(method.serialize());
         event.setLabel("Label[" + createParam.getMessage() + "]");
         _dbClient.createObject(event);
         return map(event);

@@ -83,24 +83,24 @@
         <input-text></input-text>
       </control-group>
 
-	  <control-group   v-field="smisProvider.hyperScaleUser"  ng-show="smisProvider.interfaceType ==='ibmxiv'" >
+	  <control-group   v-field="smisProvider.hyperScaleUser"  ng-show="smisProvider.interfaceType ==='ibmxiv'" required="!editMode">
         <input-text></input-text>
       </control-group>
             
-      <control-group v-field="smisProvider.hyperScalePassword"  ng-show="smisProvider.interfaceType ==='ibmxiv'" >
+      <control-group v-field="smisProvider.hyperScalePassword"  ng-show="smisProvider.interfaceType ==='ibmxiv'" required="!editMode">
         <input-password></input-password>
       </control-group>
 
-      <control-group v-field="smisProvider.hyperScaleConfPasswd" ng-show="smisProvider.interfaceType ==='ibmxiv'" >
+      <control-group v-field="smisProvider.hyperScaleConfPasswd" ng-show="smisProvider.interfaceType ==='ibmxiv'" required="!editMode">
         <input-password></input-password>
       </control-group>      
       
 
-      <control-group v-field="smisProvider.hyperScaleHost" ng-show="smisProvider.interfaceType ==='ibmxiv'">
+      <control-group v-field="smisProvider.hyperScaleHost" ng-show="smisProvider.interfaceType ==='ibmxiv'" required="!editMode">
         <input-text></input-text>
       </control-group>
       
-      <control-group v-field="smisProvider.hyperScalePort" ng-show="smisProvider.interfaceType ==='ibmxiv'">
+      <control-group v-field="smisProvider.hyperScalePort" ng-show="smisProvider.interfaceType ==='ibmxiv'" required="!editMode">
         <input-text></input-text>
       </control-group>
       

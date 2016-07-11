@@ -562,7 +562,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
                 port.setOperationalStatus(StoragePort.OperationalStatus.OK);  
                 _log.info("3PARDriver: added storage port {}, native id {}",  port.getPortName(), port.getNativeId());
                 storagePorts.add(port);
-            } //for each storage pool
+            } //for each storage port
                        
             storagePortMap.put(storageSystem.getNativeId() , storagePorts);
             
@@ -597,7 +597,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	public DriverTask createVolumes(List<StorageVolume> volumes, StorageCapabilities capabilities) {
         DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_CREATE_STORAGE_VOLUMES);
 
-        // For each requested volume (in one or more 3par system)
+        // For each requested volume
         for (StorageVolume volume : volumes) {
             try {
                 _log.info("3PARDriver:createVolumes for storage system native id {}, volume name {} - start",

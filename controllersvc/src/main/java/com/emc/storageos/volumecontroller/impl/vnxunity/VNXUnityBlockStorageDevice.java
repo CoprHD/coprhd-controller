@@ -1113,5 +1113,14 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
         logger.error("This method is not implemented");
         return null;
     }
+    
+    @Override
+    public void doInitiatorAliasSet(StorageSystem storage, Initiator initiator, String initiatorAlias) throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
 
+    @Override
+    public String doInitiatorAliasGet(StorageSystem storage, Initiator initiator) throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
 }

@@ -12,6 +12,7 @@ import static controllers.Common.copyRenderArgsToAngular;
 import static util.BourneUtil.getViprClient;
 
 import java.net.URI;
+import java.net.URL;
 import java.util.List;
 import java.util.Set;
 
@@ -225,6 +226,8 @@ public class StorageProviders extends ViprResourceController {
 
         public String elementManagerURL;
 
+        public String secondaryURL;
+
         @MaxSize(2048)
         public String hyperScaleUser;
 
@@ -234,11 +237,11 @@ public class StorageProviders extends ViprResourceController {
         @MaxSize(2048)
         public String hyperScaleConfPasswd = "";
 
-        public String hyperScaleURL;
-        
         public String hyperScaleHost;
+
+        public Integer hyperScalePort;
         
-        public String hyperScalePort;
+        public URL url;
 
         public StorageProviderForm() {
         }
@@ -265,8 +268,8 @@ public class StorageProviders extends ViprResourceController {
             if (StringUtils.isNotEmpty(this.hyperScaleConfPasswd)) {
                 this.secondaryPasswordConfirm = this.hyperScaleConfPasswd;
             }
-            if (StringUtils.isNotEmpty(this.hyperScaleHost)&&StringUtils.isNotEmpty(this.hyperScalePort)) {
-                this.elementManagerURL = this.hyperScaleURL;
+            if (StringUtils.isNotEmpty(this.hyperScaleHost)&&StringUtils.isNotEmpty(this.hyperScalePort.toString())) {
+                this.secondaryURL = "https://"+this.hyperScaleHost+":"+this.hyperScalePort;
             }
         }
 
@@ -282,10 +285,17 @@ public class StorageProviders extends ViprResourceController {
             this.interfaceType = storageProvider.getInterface();
             this.secondaryUsername = storageProvider.getSecondaryUsername();
             this.secondaryPassword = ""; // the platform will never return the real password
+            this.secondaryURL = storageProvider.getSecondaryURL();
             this.elementManagerURL = storageProvider.getElementManagerURL();
             this.hyperScaleUser = storageProvider.getSecondaryUsername();
             this.hyperScalePassword = ""; // the platform will never return the real password
-            this.hyperScaleURL = storageProvider.getElementManagerURL();
+            try {
+                url = new URL(this.secondaryURL);
+            } catch(Exception e) {
+                e.getMessage();
+            }
+            this.hyperScaleHost = url.getHost();
+            this.hyperScalePort = url.getPort();
             if (isScaleIOApi()) {
                 this.secondaryUsername = this.userName;
                 this.secondaryPassword = this.password;
@@ -307,14 +317,14 @@ public class StorageProviders extends ViprResourceController {
         public StorageProviderRestRep update() {
             return StorageProviderUtils.update(uri(id), name, ipAddress,
                     portNumber, userName, password, useSSL, interfaceType,
-                    secondaryUsername, secondaryPassword, elementManagerURL);
+                    secondaryUsername, secondaryPassword, elementManagerURL, secondaryURL);
         }
 
         public Task<StorageProviderRestRep> create() {
             Task<StorageProviderRestRep> task = StorageProviderUtils.create(
                     name, ipAddress, portNumber, userName, password, useSSL,
                     interfaceType, secondaryUsername, secondaryPassword,
-                    elementManagerURL);
+                    elementManagerURL, secondaryURL);
             new SaveWaitJob(getViprClient(), task).now();
             return task;
         }

@@ -55,6 +55,7 @@ import com.emc.storageos.db.client.model.DecommissionedResource;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
+import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
@@ -4302,6 +4303,10 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 lockKey = replicationGroupName;
             }
 
+            if (lockKey == null) {
+                BlockConsistencyGroup cgObj = _dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroup);
+                lockKey = cgObj.getAlternateLabel() != null ? cgObj.getAlternateLabel() : cgObj.getLabel();
+            }
             // Lock the CG for the step duration.
             List<String> lockKeys = new ArrayList<>();
             lockKeys.add(ControllerLockingUtil.getReplicationGroupStorageKey(_dbClient, lockKey, storage));
@@ -6692,5 +6697,23 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     public String addStepsForPreCreateReplica(Workflow workflow, String waitFor, List<VolumeDescriptor> volumeDescriptors, String taskId)
             throws InternalException {
         return waitFor;
+    }
+
+    @Override
+    public void setInitiatorAlias(URI systemURI, URI initiatorURI, String initiatorAlias) throws Exception {
+        StorageSystem system = _dbClient.queryObject(StorageSystem.class, systemURI);
+        Initiator initiator = _dbClient.queryObject(Initiator.class, initiatorURI);
+
+        getDevice(system.getSystemType()).doInitiatorAliasSet(
+                system, initiator, initiatorAlias);
+    }
+
+    @Override
+    public String getInitiatorAlias(URI systemURI, URI initiatorURI) throws Exception {
+        StorageSystem system = _dbClient.queryObject(StorageSystem.class, systemURI);
+        Initiator initiator = _dbClient.queryObject(Initiator.class, initiatorURI);
+
+        return getDevice(system.getSystemType()).doInitiatorAliasGet(
+                system, initiator);
     }
 }

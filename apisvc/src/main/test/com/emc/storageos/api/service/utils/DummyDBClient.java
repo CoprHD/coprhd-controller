@@ -9,7 +9,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -340,7 +339,8 @@ public class DummyDBClient implements DbClient {
                         st.setUser(new URI("http://u." + i));
                         st.setVirtualPool(new URI("http://vpool.gold" + i));
                         callback.data((T) st,
-                                UUIDs.unixTimestamp(uuid) * 1000);
+                                UUIDs.unixTimestamp(uuid) * 1000); 
+                        // multiply 1000 to convert to MS
                     }
                 } catch (URISyntaxException e) {
                     _logger.error(e.getMessage(), e);

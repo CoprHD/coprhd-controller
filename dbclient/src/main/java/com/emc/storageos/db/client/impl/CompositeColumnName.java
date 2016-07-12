@@ -26,51 +26,43 @@ public class CompositeColumnName {
     UUID _timeUUID;
     
     private ByteBuffer value;
-    private long writeTimeStamp; // unit is MS
+    private long writeTimeStampMS; // unit is MS
 
     public CompositeColumnName() {
     }
 
     public CompositeColumnName(String one) {
-        _one = one;
+        this(null, one, null, null, null, null, 0);
     }
 
     public CompositeColumnName(String one, String two) {
-        _one = one;
-        _two = two;
+        this(null, one, two, null, null, null, 0);
     }
 
     public CompositeColumnName(String one, String two, UUID timeUUID) {
-        _one = one;
-        _two = two;
-        _timeUUID = timeUUID;
+        this(null, one, two, null, timeUUID, null, 0);
     }
 
     public CompositeColumnName(String one, String two, String three) {
-        _one = one;
-        _two = two;
-        _three = three;
+        this(null, one, two, three, null, null, 0);
     }
 
     public CompositeColumnName(String one, String two, String three, UUID timeUUID) {
-        _one = one;
-        _two = two;
-        _three = three;
-        _timeUUID = timeUUID;
+        this(null, one, two, three, timeUUID, null, 0);
     }
     
     public CompositeColumnName(String rowKey, String one, String two, String three, UUID timeUUID, ByteBuffer value) {
+        this(rowKey, one, two, three, timeUUID, value, 0);
+    }
+    
+    public CompositeColumnName(String rowKey, String one, String two, String three, UUID timeUUID, ByteBuffer value, long writeTimeStampMS) {
         this.rowKey = rowKey;
         _one = one;
         _two = two;
         _three = three;
         _timeUUID = timeUUID;
         this.value = value;
-    }
-    
-    public CompositeColumnName(String rowKey, String one, String two, String three, UUID timeUUID, ByteBuffer value, long writeTimeStamp) {
-        this(rowKey, one, two, three, timeUUID, value);
-        this.writeTimeStamp = writeTimeStamp;
+        this.writeTimeStampMS = writeTimeStampMS;
     }
 
     public String getOne() {
@@ -97,8 +89,8 @@ public class CompositeColumnName {
         return value;
     }
 
-    public long getWriteTimeStamp() {
-        return writeTimeStamp;
+    public long getWriteTimeStampMS() {
+        return writeTimeStampMS;
     }
 
     @Override

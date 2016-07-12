@@ -621,7 +621,7 @@ public class DbClientContext {
     public void removeDcFromStrategyOptions(String dcId)  {
         Map<String, String> strategyOptions;
         try {
-            strategyOptions = this.getStrategyOptions();
+            strategyOptions = getStrategyOptions();
         } catch (DriverException ex) {
             log.error("Unexpected errors to describe keyspace", ex);
             throw DatabaseException.fatals.failedToChangeStrategyOption(ex.getMessage());

@@ -365,7 +365,7 @@ public class DBClient {
             if (latestField != null) {
                 record.append(String.format(
                         "The latest modified time is %s on Field(%s).\n", new Date(
-                                latestField.getWriteTimeStamp() / 1000), latestField.getOne()));
+                                latestField.getWriteTimeStampMS() / 1000), latestField.getOne()));
             }
         }
         

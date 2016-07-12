@@ -793,8 +793,6 @@ public class VolumeGroupService extends TaskResourceService {
                         partialVolumeList.add(entry.getValue().getId());
                     }
                 }
-            
-                // TODO add support for RP sites partial snapshots
                 
             } else {
                 
@@ -802,7 +800,6 @@ public class VolumeGroupService extends TaskResourceService {
                 
                 // if there are RP volumes in the application, treat is as partial
                 if (!groupToVolume.values().isEmpty() && !NullColumnValueGetter.isNullURI(groupToVolume.values().iterator().next().getProtectionController())) {
-                    // TODO add support for target site create snapshots
                     for (Entry<String, Volume> entry : groupToVolume.entrySet()) {
                         if (NullColumnValueGetter.isNotNullValue(entry.getValue().getPersonality()) && 
                                 entry.getValue().getPersonality().equals(Volume.PersonalityTypes.SOURCE.toString()) ) {

@@ -52,31 +52,32 @@ verify_export() {
     SID=$1
     shift
 
-    # next parameters: Initiator group Name, Number of Initiators, Number of Luns
-    # If checking if the Initiator group does not exist, then parameter $2 should be "gone"
-    IG_PATTERN=$1
+    # next parameters: Storage View Name Name, Number of Initiators, Number of Luns
+    # If checking if the Storage View does not exist, then parameter $2 should be "gone"
+    STORAGE_VIEW_NAME=$1
     NUM_INITIATORS=$2
     NUM_LUNS=$3
     TMPFILE1=/tmp/verify-${RANDOM}
-    TMPFILE2=/dev/null
+    TMPFILE2=$TMPFILE1-error
 
-    java -Dproperty.file=${tools_file} -jar ${tools_jar} -vplex $VPLEX_MODE -method get_initiator_group -params ${IG_PATTERN} > ${TMPFILE1} 2> ${TMPFILE2}
-    grep -n ${IG_PATTERN} ${TMPFILE1} > /dev/null
-    if [ $? -ne 0 ]
-	then
-	if [ "$2" = "gone" ]
-	    then
-	    echo "PASSED: Verified MaskingView with pattern ${IG_PATTERN} doesn't exist."
-	    exit 0;
-	fi
-	echo "ERROR: I Expected MaskingView ${IG_PATTERN}, but could not find it";
-	exit 1;
-    else
-	if [ "$2" = "gone" ]
-	    then
-	    echo "ERROR: Expected MaskingView ${IG_PATTERN} to be gone, but it was found"
+    java -Dproperty.file=${tools_file} -jar ${tools_jar} -vplex $VPLEX_MODE -method get_storage_view -params ${STORAGE_VIEW_NAME} > ${TMPFILE1} 2> ${TMPFILE2}
+    grep -n ${STORAGE_VIEW_NAME} ${TMPFILE1} > /dev/null
+    echo "tempfiles start"
+    cat $TMPFILE1
+    cat $TMPFILE2
+    echo "tempfiles stop"
+    if [ $? -ne 0 ]; then
+        if [ "$2" = "gone" ]; then
+            echo "PASSED: Verified Storage View with pattern ${STORAGE_VIEW_NAME} doesn't exist."
+            exit 0;
+        fi
+    	echo "ERROR: I Expected Storage View ${STORAGE_VIEW_NAME}, but could not find it";
 	    exit 1;
-	fi
+    else
+        if [ "$2" = "gone" ]; then
+            echo "ERROR: Expected Storage View ${STORAGE_VIEW_NAME} to be gone, but it was found"
+            exit 1;
+        fi
     fi
 
     num_inits=`grep -Po '(?<="numberOfInitiators":")[^"]*' ${TMPFILE1}`

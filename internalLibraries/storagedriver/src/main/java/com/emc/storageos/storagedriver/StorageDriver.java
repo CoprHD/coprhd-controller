@@ -10,11 +10,13 @@ import com.emc.storageos.storagedriver.model.StorageObject;
 
 public interface StorageDriver {
 
+
+    public static final String SDK_VERSION_NUMBER = "3.2.0.0";
+
     /**
-     * Get list of supported storage system types. Ex. vmax, vnxblock, hitachi, etc...
-     * @return list of supported storage system types
+     *  Get driver registration data.
      */
-    public List<String> getSystemTypes();
+    public RegistrationData getRegistrationData();
 
     /**
      * Return driver task with a given id.

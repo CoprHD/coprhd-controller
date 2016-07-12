@@ -696,4 +696,9 @@ public class XtremIOV2Client extends XtremIOClient {
         return volumesResponse.getContent();
     }
 
+    @Override
+    public boolean isVersion2() {
+        return true;
+    }
+
 }

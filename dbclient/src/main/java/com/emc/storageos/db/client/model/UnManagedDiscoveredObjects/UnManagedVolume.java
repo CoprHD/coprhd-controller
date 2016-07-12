@@ -103,7 +103,6 @@ public class UnManagedVolume extends UnManagedDiscoveredObject {
         STORAGE_POOL("PoolUri", "PoolUri"),
         NATIVE_GUID("NativeGuid", "NativeGuid"),
         AUTO_TIERING_POLICIES("PolicyRuleName", "PolicyRuleName"),
-        IS_THINLY_PROVISIONED("EMCSVThinlyProvisioned", "ThinlyProvisioned"),
         NATIVE_ID("SVDeviceID", "DeviceID"),
         SUPPORTED_VPOOL_LIST("vpoolUriList", "vpoolUriList"),
         DATA_FORMAT("EMCSVDataFormat", "EMCDataFormat"),
@@ -168,7 +167,8 @@ public class UnManagedVolume extends UnManagedDiscoveredObject {
         RP_UNMANAGED_SOURCE_VOLUME("rpUnManagedSourceVolume", "rpUnManagedSourceVolume"),
         RP_MANAGED_SOURCE_VOLUME("rpManagedSourceVolume", "rpManagedSourceVolume"),
         RP_ACCESS_STATE("rpAccessState", "rpAccessState"),
-        SNAPSHOT_CONSISTENCY_GROUP_NAME("snapshotConsistencyGroupName", "snapshotConsistencyGroupName");
+        SNAPSHOT_CONSISTENCY_GROUP_NAME("snapshotConsistencyGroupName", "snapshotConsistencyGroupName"),
+        FULL_COPY_CONSISTENCY_GROUP_NAME("fullCopyConsistencyGroupName", "fullCopyConsistencyGroupName");
 
         private final String _infoKey;
         private final String _alternateKey;

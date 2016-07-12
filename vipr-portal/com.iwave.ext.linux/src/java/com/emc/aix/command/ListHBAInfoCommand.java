@@ -26,7 +26,6 @@ public class ListHBAInfoCommand extends AixResultsCommand<List<HBAInfo>> {
         sb.append("  lscfg -vpl $host | grep -E -i -w 'Network Address|Device Specific.\\(Z8\\)'; ");
         sb.append("done; ");
         setCommand(sb.toString());
-        setRunAsRoot(true);
     }
 
     @Override

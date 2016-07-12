@@ -29,6 +29,8 @@ import java.util.UUID;
 
 import javax.xml.bind.DataBindingException;
 
+import com.emc.storageos.volumecontroller.impl.block.rollback.ReplicaCleanupContext;
+import com.emc.storageos.volumecontroller.impl.block.rollback.ReplicaCleanupFactory;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -232,6 +234,9 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     private static final String DELETE_SNAPSHOT_SESSION_STEP_GROUP = "DeleteSnapshotSession";
     private static final String DELETE_SNAPSHOT_SESSION_METHOD = "deleteBlockSnapshotSession";
     private static final String RESTORE_FROM_FULLCOPY_METHOD_NAME = "restoreFromFullCopy";
+    private static final String ROLLBACK_CLEANUP_REPLICAS_STEP_GROUP = "RollbackReplicaCleanUp";
+    private static final String ROLLBACK_CLEANUP_REPLICAS_METHOD_NAME = "rollbackCleanupReplicas";
+    private static final String ROLLBACK_CLEANUP_REPLICAS_STEP_DESC = "Null provisioning step; clean up replicas on rollback";
 
     public static final String BLOCK_VOLUME_EXPAND_GROUP = "BlockDeviceExpandVolume";
 
@@ -246,6 +251,9 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     private static final String UPDATE_VOLUMES_STEP_GROUP = "UPDATE_VOLUMES";
     public static final String DELETE_GROUP_STEP_GROUP = "DELETE_GROUP";
     private static final String RESTORE_FROM_FULLCOPY_STEP = "restoreFromFullCopy";
+
+    private static final String METHOD_CREATE_FULL_COPY_STEP = "createFullCopy";
+    private static final String METHOD_CREATE_SNAPSHOT_SESSION_STEP = "createSnapshotSession";
 
     public void setDbClient(DbClient dbc) {
         _dbClient = dbc;
@@ -449,6 +457,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         // Add a Step to create the consistency group if needed
         waitFor = addStepsForCreateConsistencyGroup(workflow, waitFor, volumeDescriptors, CREATE_CONSISTENCY_GROUP_STEP_GROUP);
 
+        waitFor = addStepsForReplicaRollbackCleanup(workflow, waitFor, volumeDescriptors);
+
         // Add a Step for each Pool in each Device.
         // For meta volumes add Step for each meta volume, except vmax thin meta volumes.
         for (URI poolURI : poolMap.keySet()) {
@@ -521,6 +531,36 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         waitFor = CREATE_VOLUMES_STEP_GROUP;
 
         return waitFor;
+    }
+
+    private String addStepsForReplicaRollbackCleanup(Workflow workflow, String waitFor, List<VolumeDescriptor> volumeDescriptors) {
+        List<URI> volumeURIs = VolumeDescriptor.getVolumeURIs(volumeDescriptors);
+        VolumeDescriptor volumeDescriptor = volumeDescriptors.get(0);
+        URI deviceURI = volumeDescriptor.getDeviceURI();
+
+        Workflow.Method cleanupReplicasMethod = new Workflow.Method(ROLLBACK_CLEANUP_REPLICAS_METHOD_NAME, deviceURI, volumeURIs);
+
+        waitFor = workflow.createStep(ROLLBACK_CLEANUP_REPLICAS_STEP_GROUP, ROLLBACK_CLEANUP_REPLICAS_STEP_DESC,
+                waitFor, deviceURI, getDeviceType(deviceURI), this.getClass(),
+                rollbackMethodNullMethod(), cleanupReplicasMethod, null);
+
+        return waitFor;
+    }
+
+    public boolean rollbackCleanupReplicas(URI systemURI, List<URI> volumeURIs, String opId) {
+        WorkflowStepCompleter.stepExecuting(opId);
+        try {
+            _log.info("Cleaning up replicas for {} volumes", volumeURIs.size());
+            Set<URI> uniqueVolumes = new HashSet<>(volumeURIs);
+
+            ReplicaCleanupContext replicaCleanupContext = ReplicaCleanupFactory.getContext(_dbClient);
+            replicaCleanupContext.execute(uniqueVolumes);
+        } catch (Exception e) {
+            _log.warn("Caught exception whilst rolling back replica cleanup.", e);
+        } finally {
+            WorkflowStepCompleter.stepSucceded(opId);
+        }
+        return true;
     }
 
     /**
@@ -1468,6 +1508,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         SimpleTaskCompleter completer = new SimpleTaskCompleter(Volume.class, volume, opId);
 
         try {
+            WorkflowStepCompleter.stepExecuting(opId);;
             final String workflowKey = "expandBlockVolume";
             if (!WorkflowService.getInstance().hasWorkflowBeenCreated(opId, workflowKey)) {
                 // Get a new workflow to execute volume expand
@@ -2283,12 +2324,13 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 snapSession.setProject(blockSnapshot.getProject());
                 snapSession.setStorageController(storage);
                 snapSession.addInternalFlags(Flag.INTERNAL_OBJECT);
-                if (NullColumnValueGetter.isNullURI(cgURI)) {
-                    snapSession.setParent(new NamedURI(blockSnapshot.getId(), blockSnapshot.getLabel()));
-                } else {
+
+                if (!NullColumnValueGetter.isNullURI(cgURI) && NullColumnValueGetter.isNotNullValue(replicationGroupName)) {
                     snapSession.setConsistencyGroup(cgURI);
                     snapSession.setReplicationGroupInstance(replicationGroupName);
                     snapSession.setSessionSetName(replicationGroupName);
+                } else {
+                    snapSession.setParent(new NamedURI(blockSnapshot.getId(), blockSnapshot.getLabel()));
                 }
                 snapSession.setLinkedTargets(linkedTargets);
                 _dbClient.createObject(snapSession);
@@ -2311,13 +2353,15 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 // is group operation the source target group will be linked to the created
                 // group session.
                 Workflow.Method linkMethod;
-                if (NullColumnValueGetter.isNullURI(cgURI)) {
-                    linkMethod = linkBlockSnapshotSessionTargetMethod(storage, snapSessionURI, sourceSnapshotURIs.get(0),
-                            BlockSnapshotSession.CopyMode.copy.name(), Boolean.TRUE);
-                } else {
+
+                if (!NullColumnValueGetter.isNullURI(cgURI) && NullColumnValueGetter.isNotNullValue(replicationGroupName)) {
                     linkMethod = linkBlockSnapshotSessionTargetGroupMethod(storage, snapSessionURI, sourceSnapshotURIs,
                             BlockSnapshotSession.CopyMode.copy.name(), Boolean.TRUE);
+                } else {
+                    linkMethod = linkBlockSnapshotSessionTargetMethod(storage, snapSessionURI, sourceSnapshotURIs.get(0),
+                            BlockSnapshotSession.CopyMode.copy.name(), Boolean.TRUE);
                 }
+
                 waitFor = workflow.createStep(
                         LINK_SNAPSHOT_SESSION_TARGET_STEP_GROUP,
                         String.format("Link source volume %s to snapshot session for snapshot target volume %s", volume, snapshot),
@@ -3342,12 +3386,15 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     static final String FULL_COPY_WORKFLOW = "fullCopyVolumes";
     static final String FULL_COPY_CREATE_STEP_GROUP = "createFullCopiesStepGroup";
+    static final String SNAPSHOT_SESSION_CREATE_STEP_GROUP = "createSnapshotSessionStepGroup";
     static final String FULL_COPY_WFS_STEP_GROUP = "waitForSyncStepGroup";
     static final String FULL_COPY_DETACH_STEP_GROUP = "detachFullCopyStepGroup";
     static final String FULL_COPY_FRACTURE_STEP_GROUP = "fractureFullCopyStepGroup";
     static final String SNAPSHOT_DELETE_STEP_GROUP = "deleteSnapshotStepGroup";
     static final String MIRROR_FRACTURE_STEP_GROUP = "fractureMirrorStepGroup";
     static final String MIRROR_DETACH_STEP_GROUP = "detachMirrorStepGroup";
+    static final String FULL_COPY_CREATE_ORCHESTRATION_STEP = "createFullCopiesOrchestrationStep";
+    static final String SNAPSHOT_SESSION_CREATE_ORCHESTRATION_STEP = "createSnapshotSessionOrchestrationStep";
 
     @Override
     public void createFullCopy(URI storage, List<URI> fullCopyVolumes, Boolean createInactive,
@@ -5994,7 +6041,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             BlockSnapshotSession tgtSnapSession = _dbClient.queryObject(BlockSnapshotSession.class, tgtSnapSessionURI);
 
             // For CG's, ensure 1 target per ReplicationGroup
-            if (tgtSnapSession.hasConsistencyGroup()) {
+            if (tgtSnapSession.hasConsistencyGroup()
+                    && NullColumnValueGetter.isNotNullValue(tgtSnapSession.getReplicationGroupInstance())) {
                 Iterator<BlockSnapshot> iterator = _dbClient.queryIterativeObjects(BlockSnapshot.class, snapshotURIs);
                 List<BlockSnapshot> snapshots = Lists.newArrayList(iterator);
                 Set<String> replicationGroups = new HashSet<>();
@@ -6095,7 +6143,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             BlockSnapshotSession snapSession = _dbClient.queryObject(BlockSnapshotSession.class, snapSessionURI);
 
             // For CG's, ensure 1 target per ReplicationGroup
-            if (snapSession.hasConsistencyGroup()) {
+            if (snapSession.hasConsistencyGroup() && NullColumnValueGetter.isNotNullValue(snapSession.getReplicationGroupInstance())) {
                 Iterator<BlockSnapshot> snapshots = _dbClient.queryIterativeObjects(BlockSnapshot.class, snapshotDeletionMap.keySet());
                 final Set<String> replicationGroups = new HashSet<>();
                 final Map<URI, BlockSnapshot> uriToSnapshotCache = new HashMap<>();
@@ -6212,7 +6260,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
             // Check if we are dealing with a single volume or a group...
             BlockObject sourceObj = null;
-            if (snapshotSession.hasConsistencyGroup()) {
+            if (snapshotSession.hasConsistencyGroup()
+                    && NullColumnValueGetter.isNotNullValue(snapshotSession.getReplicationGroupInstance())) {
                 // We need a single source volume for the session.
                 BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, snapshotSession.getConsistencyGroup());
                 List<Volume> nativeVolumes = BlockConsistencyGroupUtils.getActiveNativeVolumesInCG(cg, _dbClient);
@@ -6721,6 +6770,115 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 this.getClass(), restoreFromFullcopyMethod, null, null);
         _log.info("Created workflow step to restore volume from full copies");
 
+        return waitFor;
+    }
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationInterface#addStepsForCreateFullCopy(com.emc.storageos.workflow.Workflow, java.lang.String, java.util.List, java.lang.String)
+     */
+    @Override
+    public String addStepsForCreateFullCopy(Workflow workflow, String waitFor, List<VolumeDescriptor> volumeDescriptors,
+            String taskId) throws InternalException {
+        
+        List<VolumeDescriptor> blockVolmeDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
+                new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_DATA, VolumeDescriptor.Type.VPLEX_IMPORT_VOLUME },
+                new VolumeDescriptor.Type[] {});
+        
+        // If no volumes to create, just return
+        if (blockVolmeDescriptors.isEmpty()) {
+            return waitFor;
+}
+        
+        URI storageURI = null;
+        boolean createInactive = false;
+
+        List<URI> fullCopyList = new ArrayList<URI>();
+        for (VolumeDescriptor descriptor : blockVolmeDescriptors) {
+            Volume volume = _dbClient.queryObject(Volume.class, descriptor.getVolumeURI());
+            if (volume != null && !volume.getInactive()) {
+                URI parentId = volume.getAssociatedSourceVolume();
+                if (!NullColumnValueGetter.isNullURI(parentId)) {
+                    fullCopyList.add(volume.getId());
+                    storageURI = volume.getStorageController();
+                    createInactive = Boolean.getBoolean(descriptor.getCapabilitiesValues().getReplicaCreateInactive());
+                }
+            }
+        }
+        
+        if (!fullCopyList.isEmpty()) {
+            String stepId = workflow.createStepId();
+            // Now add the steps to create the block full copy on the storage system
+            StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storageURI);
+            Workflow.Method createFullCopyMethod = new Workflow.Method(METHOD_CREATE_FULL_COPY_STEP, storageURI, fullCopyList,
+                    createInactive);
+            Workflow.Method nullRollbackMethod = new Workflow.Method(ROLLBACK_METHOD_NULL);
+
+            waitFor = workflow.createStep(FULL_COPY_CREATE_ORCHESTRATION_STEP, "Create Block Full Copy", waitFor, storageSystem.getId(),
+                    storageSystem.getSystemType(), this.getClass(), createFullCopyMethod, nullRollbackMethod, stepId);
+            _log.info(String.format("Added %s step [%s] in workflow", FULL_COPY_CREATE_STEP_GROUP, stepId));
+        }
+        
+        return waitFor;
+    }
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationInterface#addStepsForPostCreateReplica(com.emc.storageos.workflow.Workflow, java.lang.String, java.util.List, java.lang.StringBuffer, java.lang.String)
+     */
+    @Override
+    public String addStepsForPostCreateReplica(Workflow workflow, String waitFor, List<VolumeDescriptor> volumeDescriptors,
+            String taskId) throws InternalException {
+        // nothing to do post create replica
+        return waitFor;
+    }
+
+    /**
+     * @param workflow
+     * @param waitFor
+     * @param volumeDescriptors
+     * @param taskId
+     * @return
+     */
+    public String addStepsForCreateSnapshotSession(Workflow workflow, String waitFor, List<VolumeDescriptor> volumeDescriptors,
+            String taskId) {
+        
+        List<VolumeDescriptor> blockVolmeDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
+                new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_SNAPSHOT_SESSION },
+                new VolumeDescriptor.Type[] {});
+        
+        // If no volumes to create, just return
+        if (blockVolmeDescriptors.isEmpty()) {
+            return waitFor;
+        }
+        
+        // we expect just one snapshot session volume descriptor
+        VolumeDescriptor descriptor = blockVolmeDescriptors.get(0);
+        BlockSnapshotSession session = _dbClient.queryObject(BlockSnapshotSession.class, descriptor.getVolumeURI());
+        if (session != null && !session.getInactive()) {
+            String stepId = workflow.createStepId();
+            // Now add the steps to create the snapshot session on the storage system
+            URI storageURI = session.getStorageController();
+            StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storageURI);
+            Workflow.Method createSnapshotSessionMethod = new Workflow.Method(METHOD_CREATE_SNAPSHOT_SESSION_STEP, storageURI, 
+                    descriptor.getVolumeURI(),  
+                    descriptor.getSnapSessionSnapshotURIs(), 
+                    descriptor.getCapabilitiesValues().getSnapshotSessionCopyMode());
+            Workflow.Method nullRollbackMethod = new Workflow.Method(ROLLBACK_METHOD_NULL);
+
+            waitFor = workflow.createStep(SNAPSHOT_SESSION_CREATE_ORCHESTRATION_STEP, "Create Block Snapshot Session", waitFor, storageSystem.getId(),
+                    storageSystem.getSystemType(), this.getClass(), createSnapshotSessionMethod, nullRollbackMethod, stepId);
+            _log.info(String.format("Added %s step [%s] in workflow", SNAPSHOT_SESSION_CREATE_STEP_GROUP, stepId));
+            
+        }
+        
+        return waitFor;
+    }
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationInterface#addStepsForPreCreateReplica(com.emc.storageos.workflow.Workflow, java.lang.String, java.util.List, java.lang.String)
+     */
+    @Override
+    public String addStepsForPreCreateReplica(Workflow workflow, String waitFor, List<VolumeDescriptor> volumeDescriptors, String taskId)
+            throws InternalException {
         return waitFor;
     }
 }

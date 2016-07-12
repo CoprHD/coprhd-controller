@@ -10,7 +10,7 @@ import org.codehaus.jackson.map.annotate.JsonSerialize;
 @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
 public class VNXeSnapRestoreParam extends ParamBase {
     private String copyName;
-    private Boolean force;
+    private Boolean force = null;
 
     public String getCopyName() {
         return copyName;

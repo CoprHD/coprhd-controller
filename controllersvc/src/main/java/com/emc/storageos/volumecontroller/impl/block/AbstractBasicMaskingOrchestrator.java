@@ -1177,11 +1177,12 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                                 exportMasksToZoneRemoveVolumes.add(exportMask);
                                 volumesToZoneRemoveVolumes.addAll(volumesToRemove);
 
-                                List<URI> volumesToRemoveList = new ArrayList<URI>();
+                                Set<URI> initiatorURIs = ExportMaskUtils.getAllInitiatorsForExportMask(_dbClient, exportMask);
+                                List<URI> volumesToRemoveList = new ArrayList<>();
                                 volumesToRemoveList.addAll(volumesToRemove);
                                 previousStep = generateDeviceSpecificExportMaskRemoveVolumesWorkflow(
                                         workflow, previousStep, exportGroup, exportMask, storage,
-                                        volumesToRemoveList, null, null);
+                                        volumesToRemoveList, Lists.newArrayList(initiatorURIs), null);
                                 generatedWorkFlowSteps = true;
                             }
                         }

@@ -400,6 +400,7 @@ public class SchemaUtil {
             if (localDataRevision.equals(targetDataRevision)) {
                 if (siteState != SiteState.STANDBY_SYNCING) {
                     _log.info("Change site state to SYNCING and rebuild data from active site");
+                    currentSite.setLastState(siteState);
                     currentSite.setState(SiteState.STANDBY_SYNCING);
                     _coordinator.persistServiceConfiguration(currentSite.toConfiguration());
                 }

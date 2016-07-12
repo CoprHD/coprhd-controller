@@ -204,6 +204,20 @@ public class LinuxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
             LOG.error("Failed to list iSCSI Ports, skipping");
         }
 
+        try {
+            String cephPseudoPort = String.format("rbd:%s", linux.getMachineId());
+            Initiator initiator;
+            if (findInitiatorByPort(oldInitiators, cephPseudoPort) == null) {
+                initiator = getOrCreateInitiator(oldInitiators, cephPseudoPort);
+                addedInitiators.add(initiator);
+            } else {
+                initiator = getOrCreateInitiator(oldInitiators, cephPseudoPort);
+            }
+            discoverRBDInitiator(host, initiator, cephPseudoPort);
+        } catch (Exception e) {
+            LOG.error("Failed to create RBD pseudo port, skipping");
+        }
+
         // update export groups with new initiators if host is in use.
         if (!addedInitiators.isEmpty()) {
             Collection<URI> addedInitiatorIds = Lists.newArrayList(Collections2.transform(addedInitiators,
@@ -226,6 +240,15 @@ public class LinuxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
         initiator.setInitiatorNode("");
         initiator.setInitiatorPort(iqn);
         initiator.setProtocol(Protocol.iSCSI.name());
+        setHostInterfaceRegistrationStatus(initiator, host);
+        save(initiator);
+    }
+
+    private void discoverRBDInitiator(Host host, Initiator initiator, String port) {
+        setInitiator(initiator, host);
+        initiator.setInitiatorNode("");
+        initiator.setInitiatorPort(port);
+        initiator.setProtocol(Protocol.RBD.name());
         setHostInterfaceRegistrationStatus(initiator, host);
         save(initiator);
     }

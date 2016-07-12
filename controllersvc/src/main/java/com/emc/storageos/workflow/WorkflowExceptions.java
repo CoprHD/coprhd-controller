@@ -35,4 +35,7 @@ public interface WorkflowExceptions {
     @DeclareServiceCode(ServiceCode.WORKFLOW_INVALID_ARGUMENTS)
     public WorkflowException workflowSuspendTriggerNotFound(String classMethodName, String knownEntries);
     
+    @DeclareServiceCode(ServiceCode.WORKFLOW_CONSTRUCTION_ERROR)
+    public WorkflowException workflowConstructionError(String reason);
+    
 }

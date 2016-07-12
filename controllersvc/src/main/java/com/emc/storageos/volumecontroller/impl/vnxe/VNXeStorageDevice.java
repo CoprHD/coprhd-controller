@@ -2335,7 +2335,7 @@ public class VNXeStorageDevice extends VNXeOperations
     public BiosCommandResult doCreateQuotaDirectory(StorageSystem storage,
             FileDeviceInputOutput args, QuotaDirectory qd) throws ControllerException {
         BiosCommandResult result = new BiosCommandResult();
-        ServiceError serviceError = DeviceControllerErrors.vnxe.operationNotSupported();
+        ServiceError serviceError = DeviceControllerErrors.vnxe.operationNotSupported("Create Quota Directory","VNXe");
         result = BiosCommandResult.createErrorResult(serviceError);
         return result;
     }
@@ -2344,7 +2344,7 @@ public class VNXeStorageDevice extends VNXeOperations
     public BiosCommandResult doDeleteQuotaDirectory(StorageSystem storage,
             FileDeviceInputOutput args) throws ControllerException {
         BiosCommandResult result = new BiosCommandResult();
-        ServiceError serviceError = DeviceControllerErrors.vnxe.operationNotSupported();
+        ServiceError serviceError = DeviceControllerErrors.vnxe.operationNotSupported("Delete Quota Directory", "VNXe");
         result = BiosCommandResult.createErrorResult(serviceError);
         return result;
     }
@@ -2353,7 +2353,7 @@ public class VNXeStorageDevice extends VNXeOperations
     public BiosCommandResult doUpdateQuotaDirectory(StorageSystem storage,
             FileDeviceInputOutput args, QuotaDirectory qd) throws ControllerException {
         BiosCommandResult result = new BiosCommandResult();
-        ServiceError serviceError = DeviceControllerErrors.vnxe.operationNotSupported();
+        ServiceError serviceError = DeviceControllerErrors.vnxe.operationNotSupported("Update Quota Directory", "VNXe");
         result = BiosCommandResult.createErrorResult(serviceError);
         return result;
     }
@@ -2363,7 +2363,7 @@ public class VNXeStorageDevice extends VNXeOperations
             FileDeviceInputOutput args) {
 
         return BiosCommandResult.createErrorResult(
-                DeviceControllerErrors.vnxe.operationNotSupported());
+                DeviceControllerErrors.vnxe.operationNotSupported("Add or Update CIFS Share ACLs", "VNXe"));
     }
 
     @Override
@@ -2371,7 +2371,7 @@ public class VNXeStorageDevice extends VNXeOperations
             FileDeviceInputOutput args) {
 
         return BiosCommandResult.createErrorResult(
-                DeviceControllerErrors.vnxe.operationNotSupported());
+                DeviceControllerErrors.vnxe.operationNotSupported("Delete CIFS Share ACLs", "VNXe"));
     }
 
     @Override
@@ -2519,13 +2519,13 @@ public class VNXeStorageDevice extends VNXeOperations
     @Override
     public BiosCommandResult updateNfsACLs(StorageSystem storage, FileDeviceInputOutput args) {
         return BiosCommandResult.createErrorResult(
-                DeviceControllerErrors.vnxe.operationNotSupported());
+                DeviceControllerErrors.vnxe.operationNotSupported("Add or Update NFS Share ACLs", "VNXe"));
     }
 
     @Override
     public BiosCommandResult deleteNfsACLs(StorageSystem storageObj, FileDeviceInputOutput args) {
         return BiosCommandResult.createErrorResult(
-                DeviceControllerErrors.vnxe.operationNotSupported());
+                DeviceControllerErrors.vnxe.operationNotSupported("Delete NFS Share ACLs", "VNXe"));
     }
 
     @Override
@@ -2611,18 +2611,18 @@ public class VNXeStorageDevice extends VNXeOperations
     @Override
     public BiosCommandResult assignFilePolicy(StorageSystem storageObj, FileDeviceInputOutput args) {
         return BiosCommandResult.createErrorResult(
-                DeviceControllerErrors.vnxe.operationNotSupported());
+                DeviceControllerErrors.vnxe.operationNotSupported("Assign File Policy", "VNXe"));
     }
 
     @Override
     public BiosCommandResult unassignFilePolicy(StorageSystem storageObj, FileDeviceInputOutput args) {
         return BiosCommandResult.createErrorResult(
-                DeviceControllerErrors.vnxe.operationNotSupported());
+                DeviceControllerErrors.vnxe.operationNotSupported("Unassign File Policy" , "VNXe"));
     }
 
     @Override
     public BiosCommandResult listSanpshotByPolicy(StorageSystem storageObj, FileDeviceInputOutput args) {
         return BiosCommandResult.createErrorResult(
-                DeviceControllerErrors.vnxe.operationNotSupported());
+                DeviceControllerErrors.vnxe.operationNotSupported("List Snapshots by Policy", "VNXe"));
     }
 }

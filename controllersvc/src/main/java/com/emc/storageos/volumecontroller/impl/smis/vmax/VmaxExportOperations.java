@@ -28,8 +28,9 @@ import javax.wbem.CloseableIterator;
 import javax.wbem.WBEMException;
 import javax.wbem.client.WBEMClient;
 
-import com.emc.storageos.volumecontroller.impl.validators.DUPValidationFactoryProvider;
-import com.emc.storageos.volumecontroller.impl.validators.DUPreventionValidator;
+import com.emc.storageos.volumecontroller.impl.validators.StorageSystemValidatorFactory;
+import com.emc.storageos.volumecontroller.impl.validators.ValidatorFactory;
+import com.emc.storageos.volumecontroller.impl.validators.Validator;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -108,7 +109,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
 
     private CIMObjectPathFactory _cimPath;
 
-    private DUPValidationFactoryProvider validators;
+    private ValidatorFactory validator;
 
     public static final String VIPR_NO_CLUSTER_SPECIFIED_NULL_VALUE = "VIPR-NO-CLUSTER-SPECIFIED-NULL-VALUE";
 
@@ -140,8 +141,8 @@ public class VmaxExportOperations implements ExportMaskOperations {
         _dbClient = dbClient;
     }
 
-    public void setValidators(DUPValidationFactoryProvider validators) {
-        this.validators = validators;
+    public void setValidator(ValidatorFactory validator) {
+        this.validator = validator;
     }
 
     /*
@@ -394,9 +395,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
                 List<URI> volumeURIs = ExportMaskUtils.getVolumeURIs(exportMask);
 
-                DUPreventionValidator validator =
-                        validators.vmax().exportMaskDelete(storage, exportMask,  volumeURIList, initiatorList);
-                validator.validate();
+                validator.vmax().exportMaskDelete(storage, exportMask,  volumeURIList, initiatorList).validate();
 
                 if (!deleteMaskingView(storage, exportMaskURI, childGroupsByFast, taskCompleter)) {
                     // Could not delete the MaskingView. Error should be stuffed by the
@@ -1111,6 +1110,13 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 _log.info("removeVolumes: impacted initiators: {}", Joiner.on(",").join(initiatorList));
             }
 
+            validator.vmax().removeVolumes(storage, exportMaskURI, initiatorList).validate();
+
+            // Breakdown:
+            // StorageSystemValidatorFactory vmaxFactory = validator.vmax();
+            // Validator val = vmaxFactory.removeVolumes(storage, exportMaskURI, initiatorList);
+            // val.validate();
+
             boolean isVmax3 = storage.checkIfVmax3();
             WBEMClient client = _helper.getConnection(storage).getCimClient();
             // Get the context from the task completer, in case this is a rollback.
@@ -1220,10 +1226,9 @@ public class VmaxExportOperations implements ExportMaskOperations {
                         // Inspect each block object (if it is a volume in the first place) to see if any of them are
                         // RecoverPoint related.
                         for (URI boUri : volumesInSG) {
-                            BlockObject bo = BlockObject.fetch(_dbClient, boUri);
-                            if (bo instanceof Volume) {
+                            if (URIUtil.isType(boUri, Volume.class)) {
                                 Volume volume = _dbClient.queryObject(Volume.class, boUri);
-                                if (volume.checkForRp() || RPHelper.isAssociatedToAnyRpVplexTypes(volume, _dbClient)) {
+                                if (volume != null && (volume.checkForRp() || RPHelper.isAssociatedToAnyRpVplexTypes(volume, _dbClient))) {
                                     // Determined that the volume is RP related
                                     containsRPVolume = true;
                                     break;

@@ -455,6 +455,10 @@ ext {
         "com.googlecode.json-simple:json-simple:1.1"
     ]
 
+    jcifs = [
+         "jcifs:jcifs:1.3.17"
+    ]
+
     ceph = [
         "com.ceph:rados:0.3.0"
     ]

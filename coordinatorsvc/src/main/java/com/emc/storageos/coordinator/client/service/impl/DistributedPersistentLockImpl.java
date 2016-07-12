@@ -134,8 +134,16 @@ public class DistributedPersistentLockImpl implements DistributedPersistentLock 
             bZNodesCreated = true;
         } catch (KeeperException.NodeExistsException nee) {
             _log.debug("createZNodes(): For lock: {}, ZNodes already exist", _persistentLockName, nee);
+            try {
+                if (clientName.equals(getLockOwner())) {
+                    bZNodesCreated = true;
+                    _log.info("createZNodes(): owner is trying to create {} again.", _persistentLockName);
+                }
+            } catch (Exception e) {
+                _log.warn("createZNodes(): Problem while getting ZNodes: {}", _persistentLockName, e);
+            }
         } catch (Exception e) {
-            _log.debug("createZNodes(): Problem while creating ZNodes: {}", _persistentLockName, e);
+            _log.warn("createZNodes(): Problem while creating ZNodes: {}", _persistentLockName, e);
         }
         _log.debug("createZNodes(): Result: {}", bZNodesCreated);
         return bZNodesCreated;

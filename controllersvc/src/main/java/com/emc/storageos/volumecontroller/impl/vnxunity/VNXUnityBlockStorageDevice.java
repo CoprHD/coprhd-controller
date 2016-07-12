@@ -282,7 +282,7 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
                 dbClient.updateObject(vol);
             }
             for (URI pool : updateStoragePools) {
-                VNXeJob.updateStoragePoolCapacity(dbClient, apiClient, pool);
+                VNXeJob.updateStoragePoolCapacity(dbClient, apiClient, pool, null);
             }
             completer.ready(dbClient);
 
@@ -1109,4 +1109,13 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 
+    @Override
+    public void doInitiatorAliasSet(StorageSystem storage, Initiator initiator, String initiatorAlias) throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public String doInitiatorAliasGet(StorageSystem storage, Initiator initiator) throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
 }

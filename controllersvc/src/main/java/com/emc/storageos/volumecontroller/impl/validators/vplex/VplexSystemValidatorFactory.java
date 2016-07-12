@@ -67,6 +67,11 @@ public class VplexSystemValidatorFactory implements StorageSystemValidatorFactor
         return remediatedVolumes;
     }
 
+    @Override
+    public Validator removeInitiators(StorageSystem storage, ExportMask exportMask, Collection<URI> volumeURIList) {
+        return null;
+    }
+
     private void validateVolume(Volume volume, boolean delete, boolean remediate, StringBuilder msgs, ValCk[] checks) {
         // TODO Tom's code here.
         logger.logDiff(volume.getId().toString(), "field", "dbValue", "hwValue");

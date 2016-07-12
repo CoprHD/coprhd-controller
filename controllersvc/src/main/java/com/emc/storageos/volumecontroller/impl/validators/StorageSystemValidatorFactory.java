@@ -50,4 +50,6 @@ public interface StorageSystemValidatorFactory {
      * @return -- list of any Volumes that were remediated
      */
     List<Volume> volumes(StorageSystem storageSystem, List<Volume> volumes, boolean delete, boolean remediate, StringBuilder msgs, ValCk[] checks);
+
+    Validator removeInitiators(StorageSystem storage, ExportMask exportMask, Collection<URI> volumeURIList);
 }

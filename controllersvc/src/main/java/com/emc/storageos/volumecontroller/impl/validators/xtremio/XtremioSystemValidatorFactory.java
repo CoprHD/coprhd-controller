@@ -56,4 +56,9 @@ public class XtremioSystemValidatorFactory implements StorageSystemValidatorFact
                                 StringBuilder msgs, ValCk[] checks) {
         return null;
     }
+
+    @Override
+    public Validator removeInitiators(StorageSystem storage, ExportMask exportMask, Collection<URI> volumeURIList) {
+        return null;
+    }
 }

@@ -5,7 +5,6 @@ import com.emc.storageos.volumecontroller.impl.smis.CIMObjectPathFactory;
 import com.emc.storageos.volumecontroller.impl.smis.SmisCommandHelper;
 import com.emc.storageos.volumecontroller.impl.validators.Validator;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorLogger;
-import org.slf4j.Logger;
 
 /**
  * Abstract super-class for Vmax validators, providing convenience

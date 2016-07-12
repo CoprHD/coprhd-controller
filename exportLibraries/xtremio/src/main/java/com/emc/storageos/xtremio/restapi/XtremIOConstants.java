@@ -20,6 +20,7 @@ public class XtremIOConstants {
     public static final String V2_INITIATOR_GROUP_ROOT_FOLDER = "/InitiatorGroup/";
     public static final String UNDERSCORE = "_";
     public static final String EMPTY_STRING = "";
+    public static final String SLASH = "/";
 
     public static final String VOLUME_KEY = "volume";
     public static final String SNAPSHOT_KEY = "snapshot";
@@ -84,6 +85,7 @@ public class XtremIOConstants {
     public static final String XTREMIO_INPUT_NAME_CLUSTER_STR = "?name=%s&cluster-name=%s";
     public static final String XTREMIO_XMS_FILTER_STR = "?prop=restapi-protocol-version";
     public static final String XTREMIO_CLUSTER_FILTER_STR = "?filter=sys-psnt-serial-number:eq:%s";
+    public static final String XTREMIO_LUNMAP_IG_FILTER_STR = "?filter=ig-name:eq:%s&cluster-name=%s";
     public static final String XTREMIO_REGULAR_TYPE = "regular";
     public static final String XTREMIO_READ_ONLY_TYPE = "readonly";
     public static final int XTREMIO_MAX_VOL_LENGTH = 55;

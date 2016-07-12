@@ -76,8 +76,15 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                 throw new DeviceControllerException("Invalid ExportMask URI: " + exportMaskURI);
             }
 
+            XtremIOClient client = XtremIOProvUtils.getXtremIOClient(dbClient, storage, xtremioRestClientFactory);
+            String xioClusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
+
+            List<Initiator> initiatorsToBeCreated = new ArrayList<Initiator>();
+            ArrayListMultimap<String, Initiator> initiatorToIGMap = mapInitiatorToInitiatorGroup(storage.getSerialNumber(), initiatorList,
+                    initiatorsToBeCreated, xioClusterName, client);
+
             runLunMapCreationAlgorithm(storage, exportMask, volumeURIHLUs, initiatorList,
-                    targetURIList, taskCompleter);
+                    targetURIList, client, xioClusterName, initiatorToIGMap, initiatorsToBeCreated, taskCompleter);
         } catch (final Exception ex) {
             _log.error("Problem in createExportMask: ", ex);
             ServiceError serviceError = DeviceControllerErrors.xtremio
@@ -113,16 +120,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                 throw new DeviceControllerException("Invalid ExportMask URI: " + exportMaskURI);
             }
 
-            // initiators are volumes are empty list , hence get it from export mask.
-            List<URI> volumeUris = new ArrayList<URI>(Collections2.transform(exportMask.getVolumes()
-                    .keySet(), CommonTransformerFunctions.FCTN_STRING_TO_URI));
-
-            List<URI> initiatorUriList = new ArrayList<URI>(Collections2.transform(
-                    exportMask.getInitiators(), CommonTransformerFunctions.FCTN_STRING_TO_URI));
-
-            List<Initiator> initiators = dbClient.queryObject(Initiator.class, initiatorUriList);
-
-            runLunMapDeletionOrRemoveInitiatorAlgorithm(storage, exportMask, volumeUris, initiators, taskCompleter);
+            runLunMapDeletionOrRemoveInitiatorAlgorithm(storage, exportMask, volumeURIList, initiatorList, taskCompleter);
         } catch (final Exception ex) {
             _log.error("Problem in deleteExportMask: ", ex);
             ServiceError serviceError = DeviceControllerErrors.xtremio
@@ -152,8 +150,17 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                 throw new DeviceControllerException("Invalid ExportMask URI: " + exportMaskURI);
             }
 
-            runLunMapCreationAlgorithm(storage, exportMask, volumeURIHLUs, initiatorList, null,
-                    taskCompleter);
+            XtremIOClient client = XtremIOProvUtils.getXtremIOClient(dbClient, storage, xtremioRestClientFactory);
+            String xioClusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
+
+            List<Initiator> initiatorsToBeCreated = new ArrayList<Initiator>();
+            ArrayListMultimap<String, Initiator> initiatorToIGMap = mapInitiatorToInitiatorGroup(storage.getSerialNumber(), initiatorList,
+                    null, xioClusterName, client);
+
+            validateAdditionalInitiatorsInIG(initiatorToIGMap, null, xioClusterName, client, false);
+
+            runLunMapCreationAlgorithm(storage, exportMask, volumeURIHLUs, initiatorList, null, client, xioClusterName, initiatorToIGMap,
+                    initiatorsToBeCreated, taskCompleter);
         } catch (final Exception ex) {
             _log.error("Problem in addVolumes: ", ex);
             ServiceError serviceError = DeviceControllerErrors.xtremio
@@ -218,16 +225,29 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
             if (exportMask == null || exportMask.getInactive()) {
                 throw new DeviceControllerException("Invalid ExportMask URI: " + exportMaskURI);
             }
+            XtremIOClient client = XtremIOProvUtils.getXtremIOClient(dbClient, storage, xtremioRestClientFactory);
+            String xioClusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
+
+            List<Initiator> initiatorsToBeCreated = new ArrayList<Initiator>();
+            ArrayListMultimap<String, Initiator> initiatorToIGMap = mapInitiatorToInitiatorGroup(storage.getSerialNumber(), initiators,
+                    initiatorsToBeCreated, xioClusterName, client);
+
+            validateAdditionalVolumesInIG(volumeURIs, initiatorToIGMap.keySet(), xioClusterName, client, false);
+
             Map<URI, Integer> map = new HashMap<URI, Integer>();
-            for (Entry<String, String> entry : exportMask.getVolumes().entrySet()) {
-                map.put(URI.create(entry.getKey()), Integer.parseInt(entry.getValue()));
+            for (URI volumeURI : volumeURIs) {
+                String hlu = exportMask.getVolumes().get(volumeURI.toString());
+                if (NullColumnValueGetter.isNotNullValue(hlu)) {
+                    map.put(volumeURI, Integer.parseInt(hlu));
+                }
             }
 
             // to make it uniform , using these structures
             VolumeURIHLU[] volumeLunArray = ControllerUtils.getVolumeURIHLUArray(
                     storage.getSystemType(), map, dbClient);
-            runLunMapCreationAlgorithm(storage, exportMask, volumeLunArray, initiators, targets,
-                    taskCompleter);
+
+            runLunMapCreationAlgorithm(storage, exportMask, volumeLunArray, initiators, targets, client, xioClusterName, initiatorToIGMap,
+                    initiatorsToBeCreated, taskCompleter);
         } catch (final Exception ex) {
             _log.error("Problem in addInitiators: ", ex);
             ServiceError serviceError = DeviceControllerErrors.xtremio
@@ -293,6 +313,8 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
             _log.info("List of  IGs found {} with size : {}",
                     Joiner.on(",").join(groupInitiatorsByIG.asMap().entrySet()), groupInitiatorsByIG.size());
 
+            validateAdditionalVolumesInIG(volumeURIList, groupInitiatorsByIG.keySet(), xioClusterName, client, true);
+
             // Deleting the initiator automatically removes the initiator from
             // lun map
             for (Initiator initiator : initiators) {
@@ -321,10 +343,10 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
             deleteInitiatorGroupFolder(client, xioClusterName, clusterName, hostName, storage);
 
             taskCompleter.ready(dbClient);
-        } catch (Exception e) {
-            String errMsg = "Export Operations failed deleting these initiators: ".concat(Joiner.on(", ").join(
-                    failedIGs));
-            ServiceError serviceError = DeviceControllerException.errors.jobFailedMsg(errMsg, null);
+        } catch (Exception ex) {
+            _log.error("Problem in removeInitiators: ", ex);
+            ServiceError serviceError = DeviceControllerErrors.xtremio
+                    .operationFailed("removeInitiators", ex.getMessage());
             taskCompleter.error(dbClient, serviceError);
             return;
         }
@@ -379,8 +401,6 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
 
         // find initiators associated with IG, if the given list is of initiators is same, then run
         // removeLunMap
-        ArrayListMultimap<String, Initiator> groupInitiatorsByIG = ArrayListMultimap.create();
-        Set<String> igNames = new HashSet<String>();
         XtremIOClient client = null;
         // if host Name is not available in at least one of the initiator, then set it to
         // Default_IG;
@@ -391,28 +411,20 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
             String xioClusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
 
             for (Initiator initiator : initiators) {
-                String igName = null;
                 if (null != initiator.getHostName()) {
                     // initiators already grouped by Host
                     hostName = initiator.getHostName();
                     clusterName = initiator.getClusterName();
-                }
-                igName = getIGNameForInitiator(initiator, storage.getSerialNumber(), client, xioClusterName);
-                if (igName != null && !igName.isEmpty()) {
-                    groupInitiatorsByIG.put(igName, initiator);
-                    igNames.add(igName);
+                    break;
                 }
             }
+            ArrayListMultimap<String, Initiator> groupInitiatorsByIG = mapInitiatorToInitiatorGroup(storage.getSerialNumber(), initiators,
+                    null, xioClusterName, client);
 
             // DU validation
-            for (String ig : groupInitiatorsByIG.keySet()) {
-                List<Initiator> knownInitiators = getKnownInitiatorsForIG(ig, xioClusterName, client);
-                validateAdditionalInitiatorsInIG(knownInitiators, groupInitiatorsByIG.get(ig), hostName);
-            }
-            _log.info("List of reusable IGs found {} with size : {}",
-                    Joiner.on(",").join(groupInitiatorsByIG.asMap().entrySet()),
-                    groupInitiatorsByIG.size());
+            validateAdditionalInitiatorsInIG(groupInitiatorsByIG, null, xioClusterName, client, true);
 
+            Set<String> igNames = groupInitiatorsByIG.keySet();
             List<URI> failedVolumes = new ArrayList<URI>();
             for (URI volumeUri : volumes) {
                 BlockObject blockObj = BlockObject.fetch(dbClient, volumeUri);
@@ -538,8 +550,6 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
         // find LunMap associated with Volume
         // Then find initiatorGroup associated with this lun map
 
-        ArrayListMultimap<String, Initiator> groupInitiatorsByIG = ArrayListMultimap.create();
-        Set<String> igNames = new HashSet<String>();
         XtremIOClient client = null;
         // if host Name is not available in at least one of the initiator, then set it to
         // Default_IG;
@@ -551,23 +561,21 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
             boolean initiatorsOfRP = ExportUtils.checkIfInitiatorsForRP(initiators);
 
             for (Initiator initiator : initiators) {
-                String igName = null;
                 if (null != initiator.getHostName()) {
                     // initiators already grouped by Host
                     hostName = initiator.getHostName();
                     clusterName = initiator.getClusterName();
-                }
-                igName = getIGNameForInitiator(initiator, storage.getSerialNumber(), client, xioClusterName);
-                if (igName != null && !igName.isEmpty()) {
-                    groupInitiatorsByIG.put(igName, initiator);
-                    igNames.add(igName);
+                    break;
                 }
             }
+            ArrayListMultimap<String, Initiator> groupInitiatorsByIG = mapInitiatorToInitiatorGroup(storage.getSerialNumber(), initiators,
+                    null, xioClusterName, client);
+            ArrayListMultimap<String, Initiator> knownInitiatorsToIGMap = ArrayListMultimap.create();
+            // DU validations
+            validateAdditionalInitiatorsInIG(groupInitiatorsByIG, knownInitiatorsToIGMap, xioClusterName, client, true);
+            validateAdditionalVolumesInIG(volumes, groupInitiatorsByIG.keySet(), xioClusterName, client, true);
 
-            _log.info("List of reusable IGs found {} with size : {}",
-                    Joiner.on(",").join(groupInitiatorsByIG.asMap().entrySet()),
-                    groupInitiatorsByIG.size());
-
+            Set<String> igNames = groupInitiatorsByIG.keySet();
             List<URI> failedVolumes = new ArrayList<URI>();
             List<String> failedIGs = new ArrayList<String>();
             for (URI volumeUri : volumes) {
@@ -621,31 +629,19 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                         }
 
                         /**
-                         * Get list of initiators associated with the IG.
-                         *
-                         * a. If there are unknown initiators in IG, fail the operation
-                         * b. i) If Cluster export:
-                         * - - - If there are additional initiators other than the ones in ExportMask:
-                         * - - - check if all of them belong to different host but same cluster (Single IG with all cluster initiators)
-                         * - - -- if true, remove initiator from IG,
-                         * - - -- else fail the operation.
+                         * i) If Cluster export:
+                         * If there are additional initiators other than the requested ones (Single IG with all cluster initiators)
+                         * - - - remove initiator from IG,
                          * - - - Note: If initiators are of RP (CTRL-13622), always delete LunMap.
-                         * - ii) Host export: Check additional initiators belong to same host or different host
-                         * - - -- If same host, delete LunMap
-                         * - - -- If different host, fail the operation
-                         *
-                         * Reason for failing: We do not want to cause DU by choosing an operation when additional initiators
-                         * are present in the IG. Better fail the operation explaining the situation instead of resulting in DU.
+                         * - ii) Host export:
+                         * - - -- delete LunMap
                          */
-                        List<Initiator> knownInitiatorsInIG = getKnownInitiatorsForIG(igName, xioClusterName, client);
-                        if (clusterName != null) {
-                            if (!initiatorsOfRP && checkIfIGHasOtherHostInitiatorsOfSameCluster(knownInitiatorsInIG,
-                                    groupInitiatorsByIG.get(igName), hostName, clusterName)) {
-                                removeInitiator = true;
-                            }        // else deleteLunMap
-                        } else {
-                            validateAdditionalInitiatorsInIG(knownInitiatorsInIG, groupInitiatorsByIG.get(igName), hostName);
+                        boolean igHasOtherHostInitiatorsOfSameCluster = knownInitiatorsToIGMap.get(igName).size() > groupInitiatorsByIG
+                                .get(igName).size();
+                        if (!initiatorsOfRP && clusterName != null && igHasOtherHostInitiatorsOfSameCluster) {
+                            removeInitiator = true;
                         }
+
                         if (!removeInitiator) {
                             // delete LunMap
                             @SuppressWarnings("unchecked")
@@ -837,13 +833,11 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
         }
     }
 
-    private void runLunMapCreationAlgorithm(StorageSystem storage, ExportMask exportMask,
-            VolumeURIHLU[] volumeURIHLUs, List<Initiator> initiators, List<URI> targets,
-            TaskCompleter taskCompleter) throws DeviceControllerException {
+    private void runLunMapCreationAlgorithm(StorageSystem storage, ExportMask exportMask, VolumeURIHLU[] volumeURIHLUs,
+            List<Initiator> initiators, List<URI> targets, XtremIOClient client, String xioClusterName,
+            ArrayListMultimap<String, Initiator> initiatorToIGMap, List<Initiator> initiatorsToBeCreated, TaskCompleter taskCompleter)
+                    throws DeviceControllerException {
 
-        ArrayListMultimap<String, Initiator> groupInitiatorsByIG = ArrayListMultimap.create();
-        List<Initiator> initiatorsToBeCreated = new ArrayList<Initiator>();
-        XtremIOClient client = null;
         Set<String> igNames = null;
 
         // if host Name is not available in at least one of the initiator, then set it to
@@ -851,30 +845,17 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
         try {
             String hostName = null;
             String clusterName = null;
-            client = XtremIOProvUtils.getXtremIOClient(dbClient, storage, xtremioRestClientFactory);
-            String xioClusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
 
             _log.info("Finding re-usable IGs available on Array {}", storage.getNativeGuid());
 
             for (Initiator initiator : initiators) {
-                String igName = null;
                 if (null != initiator.getHostName()) {
                     // initiators already grouped by Host
                     hostName = initiator.getHostName();
                     clusterName = initiator.getClusterName();
-                }
-
-                igName = getIGNameForInitiator(initiator, storage.getSerialNumber(), client, xioClusterName);
-                if (igName == null || igName.isEmpty()) {
-                    _log.info("initiator {} - no IG found. Adding to create list", initiator.getLabel(), igName);
-                    initiatorsToBeCreated.add(initiator);
-                } else {
-                    groupInitiatorsByIG.put(igName, initiator);
+                    break;
                 }
             }
-
-            _log.info("Found {} existing IGs: {} after running selection process",
-                    groupInitiatorsByIG.size(), Joiner.on(",").join(groupInitiatorsByIG.asMap().entrySet()));
 
             // since we're reusing existing IGs, volumes might get exposed to other initiators in
             // IG.
@@ -884,11 +865,16 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
             // creating IG, if fails
             // then we consider that it's already created
             igNames = new HashSet<String>();
-            igNames.addAll(groupInitiatorsByIG.keySet());
+            igNames.addAll(initiatorToIGMap.keySet());
             if (!initiatorsToBeCreated.isEmpty()) {
                 // create new initiator and add to IG; add IG to IG folder
                 addInitiatorToInitiatorGroup(client, xioClusterName, clusterName, hostName,
                         initiatorsToBeCreated, igNames, exportMask, storage);
+                List<URI> volumeURIs = new ArrayList<URI>();
+                for (VolumeURIHLU volURIHLU : volumeURIHLUs) {
+                    volumeURIs.add(volURIHLU.getVolumeURI());
+                }
+                validateAdditionalVolumesInIG(volumeURIs, igNames, xioClusterName, client, false);
             }
 
             if (igNames.isEmpty()) {
@@ -1023,7 +1009,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
      * @param xio client
      * @return
      */
-    private List<Initiator> getKnownInitiatorsForIG(String igName, String xioClusterName, XtremIOClient client)
+    private List<Initiator> getKnownInitiatorsForIG(String igName, String xioClusterName, XtremIOClient client, boolean errorOnMismatch)
             throws Exception {
         _log.info("Getting list of known Initiators for IG {}", igName);
         // get all initiators and see which initiators belong to given IG name.
@@ -1047,11 +1033,13 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
         if (knownInitiatorsInIG.size() < allInitiatorsInIG.size()) {
             Collection<String> knownInitiatorNames = Collections2.transform(knownInitiatorsInIG,
                     CommonTransformerFunctions.fctnInitiatorToPortName());
-            String errMsg = String.format("there are unknown initiators present in the Initiator Group on the array. "
+            String msg = String.format("there are unknown initiators present in the Initiator Group on the array. "
                     + "Initiators on the array: %s, Initiators registered in Controller: %s",
                     allInitiatorsInIG, knownInitiatorNames);
-            _log.error(errMsg);
-            throw DeviceControllerException.exceptions.couldNotPerformExportDelete(errMsg);
+            _log.info(msg);
+            if (errorOnMismatch) {
+                throw DeviceControllerException.exceptions.couldNotPerformExportDelete(msg);
+            }
         }
         return knownInitiatorsInIG;
     }
@@ -1059,7 +1047,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
     /**
      * If there are additional initiators, this method validates that they belong to other Host's Initiators belonging to same cluster.
      */
-    private boolean checkIfIGHasOtherHostInitiatorsOfSameCluster(List<Initiator> knownInitiatorsInIG,
+    private Collection<String> checkIfIGHasOtherHostInitiatorsOfSameCluster(List<Initiator> knownInitiatorsInIG,
             List<Initiator> requestedInitiatorsInIG, String hostName, String clusterName) {
         Collection<String> initiatorsInIG = Collections2.transform(knownInitiatorsInIG,
                 CommonTransformerFunctions.fctnInitiatorToPortName());
@@ -1083,55 +1071,209 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                 }
             }
             initiatorsInIG.removeAll(listToIgnore);
-
-            if (initiatorsInIG.isEmpty()) {
-                return true;    // all other initiators in IG belong to different host but same cluster
-            } else {
-                // fail the operation
-                String errMsg = String.format("there are initiators in the Initiator Group on the array "
-                        + "which belong to different cluster: %s", initiatorsInIG);
-                _log.error(errMsg);
-                throw DeviceControllerException.exceptions.couldNotPerformExportDelete(errMsg);
-            }
         }
-        return false;
+        return initiatorsInIG;
     }
 
     /**
      * If there are additional initiators, this method validates that they belong to the same Host.
      */
-    private boolean validateAdditionalInitiatorsInIG(List<Initiator> knownInitiatorsInIG,
-            List<Initiator> requestedInitiatorsInIG, String hostName) {
+    private Collection<String> validateAdditionalInitiatorsInIGBelongToSameHost(List<Initiator> knownInitiatorsInIG,
+            List<Initiator> requestedInitiatorsInIG, String hostName, boolean errorOnMismatch) {
         Collection<String> initiatorsInIG = Collections2.transform(knownInitiatorsInIG,
                 CommonTransformerFunctions.fctnInitiatorToPortName());
         Collection<String> requestedInitiators = Collections2.transform(requestedInitiatorsInIG,
                 CommonTransformerFunctions.fctnInitiatorToPortName());
-        _log.info("ViPR known Initiators present in IG: {}, Initiators requested to be removed: {}",
+        _log.info("ViPR known Initiators present in IG: {}, Initiators in the request: {}",
                 initiatorsInIG, requestedInitiators);
         initiatorsInIG.removeAll(requestedInitiators);
         if (!initiatorsInIG.isEmpty()) {
-            /*
-             * _log.info("Host name: {}", hostName);
-             * _log.info("There are other initiators present in the IG, checking if they all belong to same host");
-             * // check if the other initiators belong to different host
-             * List<String> listToIgnore = new ArrayList<String>();
-             * for (Initiator ini : knownInitiatorsInIG) {
-             * if (ini.getHostName() != null && ini.getHostName().equalsIgnoreCase(hostName)) {
-             * listToIgnore.add(Initiator.normalizePort(ini.getInitiatorPort()));
-             * }
-             * }
-             * initiatorsInIG.removeAll(listToIgnore);
-             *
-             * if (!initiatorsInIG.isEmpty()) {
-             */
-            // fail the operation
-            String errMsg = String.format("there are initiators in the Initiator Group on the array "
-                    + "which are not part of the request: %s", initiatorsInIG);
-            _log.error(errMsg);
-            throw DeviceControllerException.exceptions.couldNotPerformExportDelete(errMsg);
-            // }
+            _log.info("Host name: {}", hostName);
+            _log.info("There are other initiators present in the IG, checking if they all belong to same host");
+            // check if the other initiators belong to different host
+            List<String> listToIgnore = new ArrayList<String>();
+            for (Initiator ini : knownInitiatorsInIG) {
+                if (ini.getHostName() != null && ini.getHostName().equalsIgnoreCase(hostName)) {
+                    listToIgnore.add(Initiator.normalizePort(ini.getInitiatorPort()));
+                }
+            }
+            initiatorsInIG.removeAll(listToIgnore);
+
+            if (!initiatorsInIG.isEmpty()) {
+                // fail the operation
+                String msg = String.format("there are initiators in the Initiator Group on the array "
+                        + "which belong to different host: %s", initiatorsInIG);
+                _log.info(msg);
+                if (errorOnMismatch) {
+                    throw DeviceControllerException.exceptions.couldNotPerformExportDelete(msg);
+                }
+            }
         }
-        return true;
+        return initiatorsInIG;
+    }
+
+    /**
+     *
+     * Get list of initiators associated with the IG.
+     *
+     * a. If there are unknown initiators in IG, fail the operation
+     * b. i) If Cluster export:
+     * - - - If there are additional initiators other than the ones in ExportMask:
+     * - - - check if all of them belong to different host but same cluster (Single IG with all cluster initiators)
+     * - ii) Host export: Check additional initiators belong to same host or different host
+     * - - -- If different host, fail the operation
+     *
+     * Reason for failing: We do not want to cause DU by choosing an operation when additional initiators
+     * are present in the IG. Better fail the operation explaining the situation instead of resulting in DU.
+     *
+     * @param initiatorToIGMap
+     * @param xioClusterName
+     * @param client
+     * @param errorOnMismatch
+     * @throws Exception
+     */
+    private void validateAdditionalInitiatorsInIG(ArrayListMultimap<String, Initiator> initiatorToIGMap,
+            ArrayListMultimap<String, Initiator> knownInitiatorToIGMap, String xioClusterName,
+            XtremIOClient client, boolean errorOnMismatch) throws Exception {
+
+        if (knownInitiatorToIGMap == null) {
+            knownInitiatorToIGMap = ArrayListMultimap.create();
+        }
+        List<Initiator> knownInitiatorsInIGs = new ArrayList<Initiator>();
+        List<String> allInitiatorsInIGs = new ArrayList<String>();
+        List<XtremIOInitiator> initiators = client.getXtremIOInitiatorsInfo(xioClusterName);
+        for (XtremIOInitiator initiator : initiators) {
+            String igNameInInitiator = initiator.getInitiatorGroup().get(1);
+            if (initiatorToIGMap.keySet().contains(igNameInInitiator)) {
+                allInitiatorsInIGs.add(Initiator.normalizePort(initiator.getPortAddress()));
+                Initiator knownInitiator = NetworkUtil.getInitiator(initiator.getPortAddress(), dbClient);
+                if (knownInitiator != null) {
+                    knownInitiatorsInIGs.add(knownInitiator);
+                    knownInitiatorToIGMap.put(igNameInInitiator, knownInitiator);
+                }
+            }
+        }
+        _log.info("Initiators present in IG: {}", allInitiatorsInIGs);
+
+        // Fail the operation if there are unknown initiators in the IG (not registered in ViPR)
+        if (knownInitiatorsInIGs.size() < allInitiatorsInIGs.size()) {
+            Collection<String> knownInitiatorNames = Collections2.transform(knownInitiatorsInIGs,
+                    CommonTransformerFunctions.fctnInitiatorToPortName());
+            String msg = String.format("there are unknown initiators present in the Initiator Group on the array. "
+                    + "Initiators on the array: %s, Initiators registered in Controller: %s",
+                    allInitiatorsInIGs, knownInitiatorNames);
+            _log.info(msg);
+            if (errorOnMismatch) {
+                throw DeviceControllerException.exceptions.couldNotPerformExportDelete(msg);
+            }
+            return;
+        }
+
+        for (String igName : initiatorToIGMap.keySet()) {
+            List<Initiator> requestedInitiatorsInIG = initiatorToIGMap.get(igName);
+            List<Initiator> initiatorsInIG = knownInitiatorToIGMap.get(igName);
+            String hostName = null;
+            String clusterName = null;
+            for (Initiator initiator : requestedInitiatorsInIG) {
+                if (null != initiator.getHostName()) {
+                    // initiators already grouped by Host
+                    hostName = initiator.getHostName();
+                    clusterName = initiator.getClusterName();
+                    break;
+                }
+            }
+            Collection<String> knownInitiators = Collections2.transform(initiatorsInIG,
+                    CommonTransformerFunctions.fctnInitiatorToPortName());
+            Collection<String> requestedInitiators = Collections2.transform(requestedInitiatorsInIG,
+                    CommonTransformerFunctions.fctnInitiatorToPortName());
+
+            knownInitiators.removeAll(requestedInitiators);
+            if (!knownInitiators.isEmpty()) {
+                List<String> listToIgnore = new ArrayList<String>();
+                _log.info(
+                        "There are other initiators present in the IG - {}. Checking if they all belong to same host or different host but same cluster.",
+                        knownInitiators);
+                _log.info("Host name: {}, Cluster name: {}", hostName, clusterName);
+                // check if the other initiators belong to different host
+                for (Initiator ini : initiatorsInIG) {
+                    if (NullColumnValueGetter.isNotNullValue(clusterName) && ini.getHostName() != null
+                            && !ini.getHostName().equalsIgnoreCase(hostName)) {
+                        // check if they belong to same cluster
+                        if (ini.getClusterName() != null && clusterName != null && !clusterName.isEmpty()
+                                && ini.getClusterName().equalsIgnoreCase(clusterName)) {
+                            listToIgnore.add(Initiator.normalizePort(ini.getInitiatorPort()));
+                        }
+                    } else if (ini.getHostName() != null && ini.getHostName().equalsIgnoreCase(hostName)) {
+                        listToIgnore.add(Initiator.normalizePort(ini.getInitiatorPort()));
+                    }
+                }
+                knownInitiators.removeAll(listToIgnore);
+
+                if (!initiatorsInIG.isEmpty()) {
+                    // fail the operation
+                    String msg = String.format("there are initiators -  %s in the Initiator Group on the array "
+                            + "which is different than the initiators expected : %s", initiatorsInIG, requestedInitiatorsInIG);
+                    _log.info(msg);
+                    if (errorOnMismatch) {
+                        throw DeviceControllerException.exceptions.couldNotPerformExportDelete(msg);
+                    }
+                }
+            }
+        }
+    }
+
+    private Collection<String> validateAdditionalVolumesInIG(List<URI> knownVolumeURIsInIG,
+            Collection<String> igNames, String xioClusterName, XtremIOClient client, boolean errorOnMismatch)
+                    throws Exception {
+        Set<String> knownVolumes = new HashSet<String>();
+        Set<String> igVols = new HashSet<String>();
+        // get the volumes in the IGs and validate against passed impacted volumes
+        List<Volume> knownVolumesInIG = dbClient.queryObject(Volume.class, knownVolumeURIsInIG);
+        List<XtremIOVolume> igVolumes = new ArrayList<XtremIOVolume>();
+        for (String igName : igNames) {
+            igVolumes.addAll(XtremIOProvUtils.getInitiatorGroupVolumes(igName, xioClusterName, client));
+        }
+        for (Volume knownVolumeInIG : knownVolumesInIG) {
+            knownVolumes.add(knownVolumeInIG.getDeviceLabel());
+        }
+
+        for (XtremIOVolume igVolume : igVolumes) {
+            igVols.add(igVolume.getVolInfo().get(1));
+        }
+
+        _log.info("ViPR known volumes present in IG: {}, volumes in IG: {}",
+                knownVolumes, igVols);
+        igVols.removeAll(knownVolumes);
+        if (!igVols.isEmpty()) {
+
+            // fail the operation
+            String msg = String.format("there are volumes in the Initiator Group on the array "
+                    + "which are not part of the request: %s", igVols);
+            _log.info(msg);
+            if (errorOnMismatch) {
+                throw DeviceControllerException.exceptions.couldNotPerformExportDelete(msg);
+            }
+        }
+        return igVols;
+    }
+
+    public ArrayListMultimap<String, Initiator> mapInitiatorToInitiatorGroup(String storageSerialNumber, List<Initiator> initiators,
+            List<Initiator> initiatorsNotFound, String xioClusterName, XtremIOClient client) throws Exception {
+        ArrayListMultimap<String, Initiator> initiatorToIGMap = ArrayListMultimap.create();
+        for (Initiator initiator : initiators) {
+            String igName = getIGNameForInitiator(initiator, storageSerialNumber, client, xioClusterName);
+            if (igName == null || igName.isEmpty()) {
+                _log.info("initiator {} - no IG found.", initiator.getLabel(), igName);
+                if (initiatorsNotFound != null) {
+                    initiatorsNotFound.add(initiator);
+                }
+            } else {
+                initiatorToIGMap.put(igName, initiator);
+            }
+        }
+        _log.info("Found {} existing IGs: {} after running selection process",
+                initiatorToIGMap.size(), Joiner.on(",").join(initiatorToIGMap.asMap().entrySet()));
+        return initiatorToIGMap;
     }
 
     @Override

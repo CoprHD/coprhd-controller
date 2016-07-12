@@ -6,13 +6,14 @@ package com.emc.vipr.model.catalog;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
+import java.io.*;
 import java.util.List;
 
 /*
  * Schedule Info for ScheduledEvent (a set of orders)
  * Note: all the time here is UTC.
  */
-public class ScheduleInfo {
+public class ScheduleInfo implements Serializable {
     // start hour and minute of the date
     private Integer hourOfDay;
     private Integer minuteOfHour;
@@ -128,5 +129,28 @@ public class ScheduleInfo {
 
     public void setDateExceptions(List<String> dateExceptions) {
         this.dateExceptions = dateExceptions;
+    }
+
+    public byte[] serialize() throws IOException {
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        ObjectOutputStream out = new ObjectOutputStream(bos);
+        try {
+            out.writeObject(this);
+        } finally {
+            out.close();
+        }
+        return bos.toByteArray();
+    }
+    public static ScheduleInfo deserialize(byte[] data) throws IOException,
+            ClassNotFoundException {
+        Object obj = null;
+        ByteArrayInputStream bis = new ByteArrayInputStream(data);
+        ObjectInputStream in = new ObjectInputStream(bis);
+        try {
+            obj = in.readObject();
+        } finally {
+            in.close();
+        }
+        return (ScheduleInfo) obj;
     }
 }

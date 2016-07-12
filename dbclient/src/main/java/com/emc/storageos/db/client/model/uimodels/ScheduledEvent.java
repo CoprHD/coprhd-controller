@@ -28,7 +28,7 @@ public class ScheduledEvent extends DataObject implements TenantDataObject {
 
     private ScheduledEventType eventType;
 
-    private ScheduleInfo scheduleInfo; // concrete schedule info
+    private String scheduleInfo; // concrete schedule info
 
     private ScheduledEventStatus eventStatus; // even status
 
@@ -53,11 +53,11 @@ public class ScheduledEvent extends DataObject implements TenantDataObject {
     }
 
     @Name(SCHEDULE_INFO)
-    public ScheduleInfo getScheduleInfo() {
+    public String getScheduleInfo() {
         return scheduleInfo;
     }
 
-    public void setScheduleInfo(ScheduleInfo scheduleInfo) {
+    public void setScheduleInfo(String scheduleInfo) {
         this.scheduleInfo = scheduleInfo;
         setChanged(SCHEDULE_INFO);
     }

@@ -36,9 +36,9 @@ import com.emc.storageos.vnxe.models.VNXeStorageTier;
 public class ApiClientTest {
     private static KHClient _client;
     private static VNXeApiClient apiClient;
-    private static String host = EnvConfig.get("sanity", "unity.host");
-    private static String userName = EnvConfig.get("sanity", "unity.username");
-    private static String password = EnvConfig.get("sanity", "unity.password");
+    private static String host = "losav164.lss.emc.com";
+    private static String userName = "srmqe";
+    private static String password = "SRMqe123!";
     private static int port = 443;
 
     @BeforeClass
@@ -122,7 +122,7 @@ public class ApiClientTest {
         }
     }
 
-    // @Test
+    @Test
     public void createLun() {
         String name = "vipr-lun1";
         VNXeCommandJob job = apiClient.createLun(name, "pool_1", 2000000000L, true, null);
@@ -360,7 +360,7 @@ public class ApiClientTest {
         System.out.println(id);
     }
 
-    @Test
+    // @Test
     public void modifyHlu() {
         apiClient.modifyHostLunHlu("Host_20", "Host_20_sv_189_prod", 0);
 

@@ -230,7 +230,8 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
         if (!DiscoveredDataObject.Type.vmax.name().equals(systemType)
                 && !DiscoveredDataObject.Type.vnxblock.name().equals(systemType)
                 && !DiscoveredDataObject.Type.hds.name().equals(systemType)
-                && !DiscoveredDataObject.Type.xtremio.name().equals(systemType)) {
+                && !DiscoveredDataObject.Type.xtremio.name().equals(systemType)
+                && !DiscoveredDataObject.Type.unity.name().equals(systemType)) {
             throw APIException.badRequests.changesNotSupportedFor("VirtualPool",
                     format("volumes on storage systems of type {0}", systemType));
         }

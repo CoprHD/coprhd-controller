@@ -373,11 +373,13 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
         try {
             // Go into config mode. This allows us to change the configuration.
             dialog.config();
-            zonesetClone(dialog, vsanId, activeZoneset);
+            //zonesetClone(dialog, vsanId, activeZoneset);
+            boolean doZonesetClone = false;
             for (Zone zone : zones) {
                 try {
                     if (createZone(dialog, zone, vsanId, fabricZones, activeZoneset)) {
                         addedZoneNames.put(zone.getName(), SUCCESS);
+                        doZonesetClone = true;
                     } else {
                         addedZoneNames.put(zone.getName(), NO_CHANGE);
                     }
@@ -385,6 +387,10 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
                     addedZoneNames.put(zone.getName(), ERROR + ": " + ex.getMessage());
                     handleZonesStrategyException(ex, activateZones);
                 }
+            }
+            
+            if (doZonesetClone) {
+            	zonesetClone(dialog, vsanId, activeZoneset);
             }
 
             // if there were normal zones created, commit them

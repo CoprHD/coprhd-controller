@@ -1469,9 +1469,7 @@ public class MDSDialog extends SSHDialog {
     	for (Zoneset zoneset : zonesets) {
     		if (zoneset.getName().contains(dateStr) && zoneset.getName().contains("ViPR")) {
     			_log.info(String.format("Removing zoneset (clone) %s", zoneset.getName()));    			    		
-    			zonesetNameVsan(zoneset.getName(), vsanId, true);
-    			//Bharath TODO: fix this to remove surgically only the zones in the active zoneset and not in the cloned zoneset
-    			//removeZoneMemberForZoneset(vsanId, zonesetName);
+    			zonesetNameVsan(zoneset.getName(), vsanId, true);    			
     		}
     	}    	
     }

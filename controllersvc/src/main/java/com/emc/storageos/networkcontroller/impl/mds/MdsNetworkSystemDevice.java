@@ -861,10 +861,16 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
 	 * @param activeZoneset
 	 */
 	private void zonesetClone(MDSDialog dialog, Integer vsanId, Zoneset activeZoneset) {
-        boolean doZonesetClone = Boolean.valueOf(ControllerUtils.getPropertyValueFromCoordinator(_coordinator,
+		boolean doZonesetClone = true;
+		boolean allowZonesIfZonesetCloneFails = true;
+		try {
+			doZonesetClone = Boolean.valueOf(ControllerUtils.getPropertyValueFromCoordinator(_coordinator,
                 "controller_mds_clone_zoneset")) ;
-        boolean allowZonesIfZonesetCloneFails = Boolean.valueOf(ControllerUtils.getPropertyValueFromCoordinator(_coordinator,
+			allowZonesIfZonesetCloneFails = Boolean.valueOf(ControllerUtils.getPropertyValueFromCoordinator(_coordinator,
                 "controller_mds_allow_zoneset_commit")) ;
+		} catch (Exception e) {
+			_log.warn("Zoneset clone properties not set");
+		}
         
         if (doZonesetClone) {
         	_log.info(String.format("Cloning zoneset %s", activeZoneset.getName()));

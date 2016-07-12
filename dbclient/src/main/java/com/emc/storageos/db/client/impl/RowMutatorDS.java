@@ -41,8 +41,8 @@ public class RowMutatorDS {
 
     private UUID timeUUID;
 
-    private static final String insertRecordFormat = "INSERT INTO \"%s\" (key, column1, column2, column3, column4, value) VALUES (?, ?, ?, ?, ?, ?)";
-    private static final String insertIndexFormat = "INSERT INTO \"%s\" (key, column1, column2, column3, column4, column5, value) VALUES (?, ?, ?, ?, ?, ?, ?)";
+    private static final String updateRecordFormat = "UPDATE \"%s\" SET value = ? WHERE key = ? AND column1 = ? AND column2 = ? AND column3 = ? AND column4 = ?";
+    private static final String updateIndexFormat = "UPDATE \"%s\" SET value = ? WHERE key = ? AND column1 = ? AND column2 = ? AND column3 = ? AND column4 = ? AND column5 = ?";
 
     public RowMutatorDS(DbClientContext context) {
         this.context = context;
@@ -60,7 +60,7 @@ public class RowMutatorDS {
 
     public void insertRecordColumn(String tableName, String recordKey, CompositeColumnName column, Object val) {
         // todo consider 'ttl'
-        PreparedStatement insertPrepared = context.getPreparedStatement(String.format(insertRecordFormat, tableName));
+        PreparedStatement insertPrepared = context.getPreparedStatement(String.format(updateRecordFormat, tableName));
         BoundStatement insert = insertPrepared.bind();
         insert.setString("key", recordKey);
         // For PRIMARY KEY (key, column1, column2, column3, column4), the primary key cannot be null
@@ -75,7 +75,7 @@ public class RowMutatorDS {
     }
 
     public void insertIndexColumn(String tableName, String indexRowKey, IndexColumnName column, Object val) {
-        PreparedStatement insertPrepared = context.getPreparedStatement(String.format(insertIndexFormat, tableName));
+        PreparedStatement insertPrepared = context.getPreparedStatement(String.format(updateIndexFormat, tableName));
         BoundStatement insert = insertPrepared.bind();
         insert.setString("key", indexRowKey);
         // For PRIMARY KEY (key, column1, column2, column3, column4, column5), the primary key cannot be null

@@ -116,10 +116,10 @@ public class XtremIOArrayAffinityDiscoverer {
             // As XtremIO array has only one storage pool, add the pool directly.
             // get the storage pool associated with the XtremIO system
             StoragePool storagePool = XtremIOProvUtils.getXtremIOStoragePool(system.getId(), dbClient);
-
-            String maskType = getMaskTypeForHost(xtremIOClient, xioClusterName, groupInitiatorsByIG, null, igNames, volumeNames);
-
-            ArrayAffinityDiscoveryUtils.addPoolToPreferredPoolMap(preferredPoolMap, storagePool.getId().toString(), maskType);
+            if (storagePool != null) {
+                String maskType = getMaskTypeForHost(xtremIOClient, xioClusterName, groupInitiatorsByIG, null, igNames, volumeNames);
+                ArrayAffinityDiscoveryUtils.addPoolToPreferredPoolMap(preferredPoolMap, storagePool.getId().toString(), maskType);
+            }
         } else {
             log.info("No UnManaged Volumes found for this Host");
         }
@@ -348,10 +348,12 @@ public class XtremIOArrayAffinityDiscoverer {
                 filterKnownVolumes(system, dbClient, xtremIOClient, xioClusterName, volumeNames);
                 if (!volumeNames.isEmpty()) {
                     log.info("UnManaged Volumes found for this Host: {}", volumeNames);
-                    String maskType = getMaskTypeForHost(xtremIOClient, xioClusterName,
-                            igNameToInitiatorsMap, igNameToHostsMap, hostToIGNamesMap.get(hostId), volumeNames);
-
-                    ArrayAffinityDiscoveryUtils.addPoolToPreferredPoolMap(preferredPoolMap, storagePool.getId().toString(), maskType);
+                    if (storagePool != null) {
+                        String maskType = getMaskTypeForHost(xtremIOClient, xioClusterName,
+                                igNameToInitiatorsMap, igNameToHostsMap, hostToIGNamesMap.get(hostId), volumeNames);
+                        ArrayAffinityDiscoveryUtils.addPoolToPreferredPoolMap(preferredPoolMap,
+                                storagePool.getId().toString(), maskType);
+                    }
                 } else {
                     log.info("No UnManaged Volumes found for this Host");
                 }

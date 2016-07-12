@@ -88,7 +88,6 @@ public class XtremIOProvUtils {
      * @return the xtremio storage pool
      */
     public static StoragePool getXtremIOStoragePool(URI systemId, DbClient dbClient) {
-        StoragePool storagePool = null;
         URIQueryResultList storagePoolURIs = new URIQueryResultList();
         dbClient.queryByConstraint(ContainmentConstraint.Factory
                 .getStorageDeviceStoragePoolConstraint(systemId),
@@ -98,10 +97,10 @@ public class XtremIOProvUtils {
             URI storagePoolURI = poolsItr.next();
             StoragePool pool = dbClient.queryObject(StoragePool.class, storagePoolURI);
             if (pool != null && !pool.getInactive()) {
-                storagePool = pool;
+                return pool;
             }
         }
-        return storagePool;
+        return null;
     }
 
     /**

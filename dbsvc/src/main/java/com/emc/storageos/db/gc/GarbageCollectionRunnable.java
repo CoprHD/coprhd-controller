@@ -10,12 +10,10 @@ import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
-import com.netflix.astyanax.util.TimeUUIDUtils;
 
+import com.datastax.driver.core.utils.UUIDs;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
-
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.DataObject;
@@ -44,7 +42,7 @@ abstract class GarbageCollectionRunnable implements Runnable {
 
         // Now - gcDelay
         if (gcDelayMins > 0) {
-            timeStartMarker = TimeUUIDUtils.getMicrosTimeFromUUID(TimeUUIDUtils.getUniqueTimeUUIDinMicros())
+            timeStartMarker = UUIDs.unixTimestamp(UUIDs.timeBased()) * 1000
                     - (gcDelayMins * MIN_TO_MICROSECS);
         } else {
             timeStartMarker = 0;

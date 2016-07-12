@@ -4,9 +4,28 @@
  */
 package com.emc.storageos.db.client.upgrade;
 
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.datastax.driver.core.ResultSet;
 import com.emc.storageos.db.client.constraint.DecommissionedConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.impl.*;
+import com.emc.storageos.db.client.impl.ColumnField;
+import com.emc.storageos.db.client.impl.CompositeColumnName;
+import com.emc.storageos.db.client.impl.DataObjectType;
+import com.emc.storageos.db.client.impl.DbClientImpl;
+import com.emc.storageos.db.client.impl.RemovedColumnsList;
+import com.emc.storageos.db.client.impl.RowMutator;
+import com.emc.storageos.db.client.impl.SchemaRecordType;
+import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.SchemaRecord;
 import com.emc.storageos.db.client.util.KeyspaceUtil;
@@ -19,12 +38,6 @@ import com.netflix.astyanax.ddl.SchemaChangeResult;
 import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.Row;
 import com.netflix.astyanax.model.Rows;
-import com.netflix.astyanax.query.RowSliceQuery;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.net.URI;
-import java.util.*;
 
 /**
  * Internal db client used for upgrade migrations
@@ -120,15 +133,12 @@ public class InternalDbClient extends DbClientImpl {
     public SchemaRecord querySchemaRecord(String version) throws DatabaseException {
         try {
             SchemaRecordType type = TypeMap.getSchemaRecordType();
-            RowSliceQuery<String, String> query = getLocalKeyspace()
-                    .prepareQuery(type.getCf())
-                    .getRowSlice(version);
-            Rows<String, String> rows = query.execute().getResult();
-            if (rows == null || rows.isEmpty()) {
-                return null;
-            }
-            return type.deserialize(rows.iterator().next());
-        } catch (ConnectionException e) {
+            
+            String queryString = String.format("select * from \"%s\" where key='%s'", type.getCf().getName(), version);
+            ResultSet resultSet = this.getLocalContext().getSession().execute(queryString);
+            
+            return type.deserialize(resultSet.one());
+        } catch (com.datastax.driver.core.exceptions.ConnectionException e) {
             throw DatabaseException.retryables.connectionFailed(e);
         }
     }
@@ -199,27 +209,27 @@ public class InternalDbClient extends DbClientImpl {
         Iterator<URI> recIt = result.iterator();
         List<URI> batch = getNextBatch(recIt);
         while (!batch.isEmpty()) {
-            Rows<String, CompositeColumnName> rows = queryRowsWithAllColumns(
-                    localContext.getKeyspace(), batch, doType.getCF());
-            Iterator<Row<String, CompositeColumnName>> it = rows.iterator();
-            while (it.hasNext()) {
-                Row<String, CompositeColumnName> row = it.next();
-
+            Map<String, List<CompositeColumnName>> rows = queryRowsWithAllColumns(
+                    localContext, batch, doType.getCF().getName());
+            for (String rowKey : rows.keySet()) {
+                
                 try {
-                    if (row.getColumns().size() == 0) {
+                    List<CompositeColumnName> columnList = rows.get(rowKey);
+                    
+                    if (columnList.isEmpty()) {
                         continue;
                     }
                     // can't simply use doType.deserialize(clazz, row, cleanList) below
                     // since the DataObject instance retrieved in this way doesn't have
                     // change tracking information within and nothing gets persisted into
                     // db in the end.
-                    log.info("Migrating record {} to geo db", row.getKey());
-                    DataObject obj = DataObject.createInstance(clazz, URI.create(row.getKey()));
+                    log.info("Migrating record {} to geo db", rowKey);
+                    DataObject obj = DataObject.createInstance(clazz, URI.create(rowKey));
                     obj.trackChanges();
-                    Iterator<Column<CompositeColumnName>> columnIterator = row.getColumns().iterator();
+                    Iterator<CompositeColumnName> columnIterator = columnList.iterator();
                     while (columnIterator.hasNext()) {
-                        Column<CompositeColumnName> column = columnIterator.next();
-                        ColumnField columnField = doType.getColumnField(column.getName().getOne());
+                        CompositeColumnName column = columnIterator.next();
+                        ColumnField columnField = doType.getColumnField(column.getOne());
                         if (columnField.isEncrypted()) {
                             // Decrypt using the local encryption provider and later
                             // encrypt it again using the geo encryption provider

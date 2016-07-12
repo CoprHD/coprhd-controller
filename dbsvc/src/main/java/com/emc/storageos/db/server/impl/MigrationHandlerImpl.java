@@ -7,9 +7,10 @@ package com.emc.storageos.db.server.impl;
 import java.io.BufferedReader;
 import java.io.StringReader;
 import java.lang.annotation.Annotation;
-import java.net.URI;
 import java.util.*;
 
+import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.Session;
 import com.emc.storageos.db.common.*;
 import com.emc.storageos.services.util.AlertsLogger;
 import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
@@ -28,11 +29,9 @@ import com.emc.storageos.coordinator.client.model.MigrationStatus;
 import com.emc.storageos.coordinator.client.model.UpgradeFailureInfo;
 import com.emc.storageos.coordinator.exceptions.FatalCoordinatorException;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.impl.DbClientContext;
 import com.emc.storageos.db.client.model.SchemaRecord;
 import com.emc.storageos.db.client.model.UpgradeAllowed;
-import com.emc.storageos.db.client.model.VdcVersion;
 import com.emc.storageos.db.common.diff.DbSchemasDiff;
 import com.emc.storageos.db.common.schema.AnnotationType;
 import com.emc.storageos.db.common.schema.AnnotationValue;
@@ -44,7 +43,6 @@ import com.emc.storageos.db.exceptions.FatalDatabaseException;
 import com.emc.storageos.db.server.MigrationHandler;
 import com.emc.storageos.db.client.upgrade.*;
 import com.emc.storageos.db.client.upgrade.callbacks.GeoDbMigrationCallback;
-import com.netflix.astyanax.Keyspace;
 
 /**
  * Default implementation of migration handler
@@ -522,12 +520,23 @@ public class MigrationHandlerImpl implements MigrationHandler {
         DbClientContext geoContext = this.dbClient.getGeoContext();
         this.dbClient.setGeoContext(new DbClientContext() {
             @Override
-            public Keyspace getKeyspace() {
+            public Cluster getCassandraCluster() {
+                logErrorsForDisableGeoUpgrade();
+                throw new IllegalArgumentException("doesn't support migration callback for Geo");
+            }
+
+            @Override
+            public Session getSession() {
+                logErrorsForDisableGeoUpgrade();
+                throw new IllegalArgumentException("doesn't support migration callback for Geo");
+            }
+
+            private void logErrorsForDisableGeoUpgrade() {
                 log.error("doesn't support migration callback for Geo");
                 for (StackTraceElement st : Thread.currentThread().getStackTrace()) {
                     log.error(st.getClassName() + ":" + st.getMethodName() + ", (" + st.getLineNumber() + ") \n");
                 }
-                throw new IllegalArgumentException("doesn't support migration callback for Geo");
+                
             }
         });
         return geoContext;

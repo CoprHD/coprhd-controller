@@ -69,7 +69,6 @@ import com.datastax.driver.core.exceptions.DriverException;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.db.client.TimeSeriesMetadata;
 import com.emc.storageos.db.client.TimeSeriesQueryResult;
-import com.emc.storageos.db.client.impl.CompositeColumnName;
 import com.emc.storageos.db.client.impl.DataObjectType;
 import com.emc.storageos.db.client.impl.DbCheckerFileWriter;
 import com.emc.storageos.db.client.impl.DbClientContext;
@@ -104,7 +103,6 @@ import com.emc.storageos.geo.service.impl.util.VdcConfigHelper;
 import com.emc.storageos.geo.vdccontroller.impl.InternalDbClient;
 import com.emc.storageos.geomodel.VdcConfig;
 import com.emc.storageos.security.SerializerUtils;
-import com.netflix.astyanax.model.Column;
 import com.sun.jersey.core.spi.scanning.PackageNamesScanner;
 import com.sun.jersey.spi.scanning.AnnotationScannerListener;
 
@@ -361,13 +359,12 @@ public class DBClient {
         }
         
         if (this.showModificationTime) {
-            Column<CompositeColumnName> latestField = _dbClient.getLatestModifiedField(
+            TimeStampCompositeColumnName latestField = _dbClient.getLatestModifiedField(
                     TypeMap.getDoType(clazz), object.getId(), ignoreList);
             if (latestField != null) {
                 record.append(String.format(
                         "The latest modified time is %s on Field(%s).\n", new Date(
-                                latestField.getTimestamp() / 1000), latestField.getName()
-                                .getOne()));
+                                latestField.getWriteTimeStampMS() / 1000), latestField.getOne()));
             }
         }
         

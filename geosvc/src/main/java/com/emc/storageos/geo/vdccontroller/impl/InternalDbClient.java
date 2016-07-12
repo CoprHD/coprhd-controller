@@ -25,8 +25,6 @@ import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.management.jmx.recovery.DbManagerOps;
 import com.emc.vipr.model.sys.recovery.DbRepairStatus;
 import com.netflix.astyanax.Keyspace;
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
-import com.netflix.astyanax.ddl.KeyspaceDefinition;
 import org.apache.cassandra.locator.EndpointSnitchInfoMBean;
 import org.apache.cassandra.service.StorageServiceMBean;
 import org.slf4j.Logger;
@@ -64,15 +62,6 @@ public class InternalDbClient extends DbClientImpl {
     @Deprecated
     public String getMyVdcId() {
         return VdcUtil.getLocalShortVdcId();
-    }
-
-    /**
-     * Initialize local db context only. Geodb context will be initialized on demand
-     */
-    protected void setupContext() {
-        if (localContext != null) {
-            setupContext(localContext, Constants.DBSVC_NAME);
-        }
     }
 
     protected Keyspace getGeoKeyspace() {
@@ -317,11 +306,8 @@ public class InternalDbClient extends DbClientImpl {
         }
     }
 
-    public Map<String, String> getGeoStrategyOptions() throws ConnectionException {
-        Keyspace ks = getGeoKeyspace();
-        KeyspaceDefinition ksDef = ks.describeKeyspace();
-
-        return ksDef.getStrategyOptions();
+    public Map<String, String> getGeoStrategyOptions() {
+        return this.getGeoContext().getStrategyOptions();
     }
 
     public void runNodeRepairBackEnd(String reconnVdcShortId) throws Exception {
@@ -331,9 +317,8 @@ public class InternalDbClient extends DbClientImpl {
         localJmxClient.runNodeRepairBackEnd();
     }
 
-    public Map<String, List<String>> getGeoSchemaVersions() throws ConnectionException {
-        Keyspace ks = getGeoKeyspace();
-        return ks.describeSchemaVersions();
+    public Map<String, List<String>> getGeoSchemaVersions() {
+        return this.getGeoContext().getSchemaVersions();
     }
 
     public void addVdcNodesToBlacklist(VirtualDataCenter vdc) {

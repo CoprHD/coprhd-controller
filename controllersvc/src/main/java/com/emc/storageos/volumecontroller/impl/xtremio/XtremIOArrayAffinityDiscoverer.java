@@ -9,6 +9,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -23,11 +24,14 @@ import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.util.NetworkUtil;
+import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.export.ArrayAffinityDiscoveryUtils;
+import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
 import com.emc.storageos.volumecontroller.impl.xtremio.prov.utils.XtremIOProvUtils;
 import com.emc.storageos.xtremio.restapi.XtremIOClient;
 import com.emc.storageos.xtremio.restapi.XtremIOClientFactory;
@@ -103,10 +107,12 @@ public class XtremIOArrayAffinityDiscoverer {
 
         Set<String> igNames = groupInitiatorsByIG.keySet();
         Set<String> volumeNames = getVolumesForHost(xtremIOClient, xioClusterName, igNames);
+        // consider only unmanaged volumes
+        filterKnownVolumes(system, dbClient, xtremIOClient, xioClusterName, volumeNames);
 
         // get storage pool for matching volumes
         if (!volumeNames.isEmpty()) {
-            log.info("Volumes found for this Host: {}", volumeNames);
+            log.info("UnManaged Volumes found for this Host: {}", volumeNames);
             // As XtremIO array has only one storage pool, add the pool directly.
             // get the storage pool associated with the XtremIO system
             StoragePool storagePool = XtremIOProvUtils.getXtremIOStoragePool(system.getId(), dbClient);
@@ -115,7 +121,7 @@ public class XtremIOArrayAffinityDiscoverer {
 
             ArrayAffinityDiscoveryUtils.addPoolToPreferredPoolMap(preferredPoolMap, storagePool.getId().toString(), maskType);
         } else {
-            log.info("No Volumes found for this Host");
+            log.info("No UnManaged Volumes found for this Host");
         }
 
         return preferredPoolMap;
@@ -170,6 +176,25 @@ public class XtremIOArrayAffinityDiscoverer {
             }
         }
         return igToVolumesMap;
+    }
+
+    /**
+     * Filter the known volumes in DB, as the preferredPoolIds list in Host needs
+     * to have pools of unmanaged volumes alone.
+     */
+    private void filterKnownVolumes(StorageSystem system, DbClient dbClient,
+            XtremIOClient xtremIOClient, String xioClusterName, Set<String> igVolumes) throws Exception {
+        Iterator<String> itr = igVolumes.iterator();
+        while (itr.hasNext()) {
+            String volumeName = itr.next();
+            XtremIOVolume xioVolume = xtremIOClient.getVolumeDetails(volumeName, xioClusterName);
+            String managedVolumeNativeGuid = NativeGUIDGenerator.generateNativeGuidForVolumeOrBlockSnapShot(
+                    system.getNativeGuid(), xioVolume.getVolInfo().get(0));
+            Volume dbVolume = DiscoveryUtils.checkStorageVolumeExistsInDB(dbClient, managedVolumeNativeGuid);
+            if (dbVolume != null) {
+                itr.remove();
+            }
+        }
     }
 
     /**
@@ -319,14 +344,16 @@ public class XtremIOArrayAffinityDiscoverer {
                 log.info("Processing Host {}", host.getLabel());
                 Map<String, String> preferredPoolMap = new HashMap<String, String>();
                 Set<String> volumeNames = getVolumesForHost(xtremIOClient, xioClusterName, hostToIGNamesMap.get(hostId));
+                // consider only unmanaged volumes
+                filterKnownVolumes(system, dbClient, xtremIOClient, xioClusterName, volumeNames);
                 if (!volumeNames.isEmpty()) {
-                    log.info("Volumes found for this Host: {}", volumeNames);
+                    log.info("UnManaged Volumes found for this Host: {}", volumeNames);
                     String maskType = getMaskTypeForHost(xtremIOClient, xioClusterName,
                             igNameToInitiatorsMap, igNameToHostsMap, hostToIGNamesMap.get(hostId), volumeNames);
 
                     ArrayAffinityDiscoveryUtils.addPoolToPreferredPoolMap(preferredPoolMap, storagePool.getId().toString(), maskType);
                 } else {
-                    log.info("No Volumes found for this Host");
+                    log.info("No UnManaged Volumes found for this Host");
                 }
 
                 if (ArrayAffinityDiscoveryUtils.updatePreferredPools(host, Sets.newHashSet(system.getId().toString()),

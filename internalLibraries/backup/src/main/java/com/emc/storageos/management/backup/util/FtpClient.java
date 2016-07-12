@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.management.backup.util;
 
+import java.net.ConnectException;
 import java.net.URI;
 import java.io.File;
 import java.io.IOException;
@@ -12,12 +13,13 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.http.auth.AuthenticationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.management.backup.BackupConstants;
 
-public class FtpClient {
+public class FtpClient implements BackupClient {
     private static final Logger log = LoggerFactory.getLogger(FtpClient.class);
 
     private final String uri;
@@ -42,13 +44,13 @@ public class FtpClient {
         return builder;
     }
 
-    private static boolean startsWithIgnoreCase(String str, String prefix) {
-        return str.regionMatches(true, 0, prefix, 0, prefix.length());
-    }
-
     public static boolean isSupported(String url) {
         return startsWithIgnoreCase(url, BackupConstants.FTPS_URL_PREFIX) ||
                 startsWithIgnoreCase(url, BackupConstants.FTP_URL_PREFIX);
+    }
+
+    private static boolean startsWithIgnoreCase(String str, String prefix) {
+        return str.regionMatches(true, 0, prefix, 0, prefix.length());
     }
 
     public long getFileSize(String fileName) throws IOException, InterruptedException {
@@ -172,6 +174,36 @@ public class FtpClient {
         builder.command().add(remoteBackupFile);
 
         return new ProcessInputStream(builder.start());
+    }
+
+    public String getUri() {
+        return this.uri;
+    }
+
+    public void validate() throws AuthenticationException, ConnectException {
+        ProcessBuilder builder = getBuilder();
+        builder.command().add("-I");
+        builder.command().add("--connect-timeout");
+        builder.command().add("30");
+        builder.command().add(uri);
+        int exitCode;
+        StringBuilder errText;
+        try {
+            ProcessRunner processor = new ProcessRunner(builder.start(), false);
+            errText = new StringBuilder();
+            processor.captureAllTextInBackground(processor.getStdErr(), errText);
+            exitCode = processor.join();
+        } catch (Exception e) {
+            throw new ConnectException(e.getMessage());
+        }
+        if (exitCode != 0) {
+            if (exitCode == 67) {
+                throw new AuthenticationException(errText.length() > 0 ? errText.toString() : Integer.toString(exitCode));
+            } else {
+                throw new ConnectException(errText.length() > 0 ? errText.toString() : Integer.toString(exitCode));
+            }
+        }
+
     }
 
     // just show the first letter of password

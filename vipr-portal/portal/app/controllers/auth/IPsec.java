@@ -85,7 +85,7 @@ public class IPsec extends ViprResourceController {
 
         public IPSecStatusInfo(IPsecStatus ipsecStatus) {
             status = ipsecStatus.getStatus();
-            configGeneratedDate = convertToDateTime(ipsecStatus.getVersion());
+            configGeneratedDate = convertToDateTime(ipsecStatus.getUpdatedTime());
             failureNodes = new ArrayList<IPsecFailedNodeInfo>();
             if (!CollectionUtils.isEmpty(ipsecStatus.getDisconnectedNodes())) {
                 for (String disconnectedNode : ipsecStatus.getDisconnectedNodes()) {

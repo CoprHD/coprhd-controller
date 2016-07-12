@@ -34,7 +34,7 @@ import com.google.common.collect.Sets;
 public class VirtualArrayProvider extends BaseAssetOptionsProvider {
     @Asset("virtualArray")
     public List<AssetOption> getVirtualArray(AssetOptionsContext ctx) {
-        return createBaseResourceOptions(api(ctx).varrays().getAll());
+        return createBaseResourceOptions(api(ctx).varrays().getByTenant(ctx.getTenant()));
     }
 
     @Asset("virtualArray")
@@ -47,7 +47,7 @@ public class VirtualArrayProvider extends BaseAssetOptionsProvider {
     @AssetDependencies({ "mobilityGroupMethod", "project" })
     public List<AssetOption> getBlockVirtualArrays(AssetOptionsContext ctx, String mobilityGroupMethod, URI project) {
         if (mobilityGroupMethod.equalsIgnoreCase(BlockProvider.INGEST_AND_MIGRATE_OPTION_KEY)) {
-            return createBaseResourceOptions(api(ctx).varrays().getAll());
+            return createBaseResourceOptions(api(ctx).varrays().getByTenant(ctx.getTenant()));
         } else {
             return Lists.newArrayList();
         }
@@ -137,7 +137,7 @@ public class VirtualArrayProvider extends BaseAssetOptionsProvider {
         ViPRCoreClient client = api(context);
         // Get the set of virtual arrays that are associated with file vpools
         Set<URI> varrayIds = new HashSet<>();
-        for (FileVirtualPoolRestRep vpool : client.fileVpools().getAll()) {
+        for (FileVirtualPoolRestRep vpool : client.fileVpools().getByTenant(context.getTenant())) {
             varrayIds.addAll(ResourceUtils.refIds(vpool.getVirtualArrays()));
         }
         return createBaseResourceOptions(client.varrays().getByIds(varrayIds));

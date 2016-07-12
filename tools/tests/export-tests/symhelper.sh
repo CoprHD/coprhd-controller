@@ -112,6 +112,7 @@ remove_initiator_from_mask() {
 
 delete_volume() {
     echo "Delete volume for VMAX not yet supported";
+    sleep 30
 }
 
 verify_export() {

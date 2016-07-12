@@ -39,6 +39,7 @@ import com.emc.storageos.volumecontroller.placement.ExportPathUpdater;
 import com.emc.storageos.workflow.Workflow;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
+import com.google.common.collect.Lists;
 
 /**
  * This class will have common code used by the MaskingOrchestrator implementations. It
@@ -1176,11 +1177,12 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                                 exportMasksToZoneRemoveVolumes.add(exportMask);
                                 volumesToZoneRemoveVolumes.addAll(volumesToRemove);
 
-                                List<URI> volumesToRemoveList = new ArrayList<URI>();
+                                Set<URI> initiatorURIs = ExportMaskUtils.getAllInitiatorsForExportMask(_dbClient, exportMask);
+                                List<URI> volumesToRemoveList = new ArrayList<>();
                                 volumesToRemoveList.addAll(volumesToRemove);
                                 previousStep = generateDeviceSpecificExportMaskRemoveVolumesWorkflow(
                                         workflow, previousStep, exportGroup, exportMask, storage,
-                                        volumesToRemoveList, null, null);
+                                        volumesToRemoveList, Lists.newArrayList(initiatorURIs), null);
                                 generatedWorkFlowSteps = true;
                             }
                         }
@@ -1267,6 +1269,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                         // One way to know if we should delete the mask is if all of the volumes in the mask
                         // are represented in the export group.
                         boolean deleteEntireMask = removingLastExportMaskVolumes(exportMask, new ArrayList<>(volumeURIs));
+                        _log.info("deleteEntireMask for {}? {}", exportMask.getId(), deleteEntireMask);
 
                         Set<URI> initiatorsToRemove = new HashSet<>();
                         Set<URI> volumesToRemove = new HashSet<>();
@@ -1400,8 +1403,11 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                     previousStep = generateDeviceSpecificZoningDeleteWorkflow(workflow, previousStep, exportGroup,
                             exportMasksToZoneDelete);
                     for (ExportMask exportMask : exportMasksToZoneDelete) {
+                        List<URI> volumeURIs = ExportMaskUtils.getVolumeURIs(exportMask);
+                        Set<URI> initiatorURIs = ExportMaskUtils.getAllInitiatorsForExportMask(_dbClient, exportMask);
+
                         previousStep = generateDeviceSpecificExportMaskDeleteWorkflow(workflow, previousStep, exportGroup,
-                                exportMask, null, null, storage);
+                                exportMask, volumeURIs, Lists.newArrayList(initiatorURIs), storage);
                     }
                 }
                 if (!exportMasksToZoneRemoveVolumes.isEmpty()) {

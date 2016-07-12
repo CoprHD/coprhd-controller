@@ -29,6 +29,10 @@ public interface OrderManager {
 
     public void deleteOrder(Order order);
 
+    public void pauseOrder(Order order);
+
+    public void resumeOrder(Order order);
+
     public List<Order> getOrders(URI tenantId);
 
     public List<Order> getUserOrders(StorageOSUser user);

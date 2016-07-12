@@ -16,6 +16,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
@@ -133,5 +134,14 @@ public class XIVBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
     protected void verifyCGSnapshotRequest() {
         // Do nothing here. XIV only supports clone of single volume,
         // this includes clone of snapshot of volume in a CG.
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected <T extends BlockObject> void addConsistencyGroupTasks(List<T> objects, TaskList taskList, String taskId,
+                                                                  ResourceOperationTypeEnum operationTypeEnum) {
+        // Do nothing here. XIV only supports clone of single volume
     }
 }

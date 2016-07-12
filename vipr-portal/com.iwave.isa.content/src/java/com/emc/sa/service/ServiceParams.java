@@ -61,6 +61,8 @@ public interface ServiceParams {
     public String EXPORT_HOSTS = "exportHosts";
     public String FAILOVER_TARGET = "failoverTarget";
     public String FAILOVER_TARGET_FILE = "failoverTargetFile";
+    public String FAILBACK_TARGET = "failbackTarget";
+    public String FAILBACK_TARGET_FILE = "failbackTargetFile";
     public String IMAGE_TO_ACCESS = "imageToAccess";
     public String POINT_IN_TIME = "pointInTime";
     public String NUMBER_OF_VOLUMES = "numberOfVolumes";

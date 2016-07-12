@@ -164,7 +164,7 @@ public class ComputeVirtualPoolService extends TaggedResource {
 
         StorageOSUser user = getUserFromContext();
         Iterator<ComputeVirtualPool> iter = _dbClient.queryIterativeObjects(ComputeVirtualPool.class, ids);
-        List<ComputeVirtualPool> vpoolObjects = null;
+        List<ComputeVirtualPool> vpoolObjects = new ArrayList<>();
         while (iter.hasNext()) {
             vpoolObjects.add(iter.next());
         }

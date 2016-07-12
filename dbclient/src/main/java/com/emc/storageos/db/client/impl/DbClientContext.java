@@ -480,8 +480,11 @@ public class DbClientContext {
 
         String[] contactPoints = {LOCAL_HOST};
         cassandraCluster = initConnection(contactPoints);
-        if (cassandraSession == null) {
+        String keyspaceString = String.format("\"%s\"", keyspaceName);
+        if (cassandraCluster.getMetadata().getKeyspace(keyspaceString) == null) {
             cassandraSession = cassandraCluster.connect();
+        } else {
+            cassandraSession = cassandraCluster.connect(keyspaceString);
         }
         prepareStatementMap = new HashMap<String, PreparedStatement>();
     }
@@ -764,6 +767,9 @@ public class DbClientContext {
     }
 
     public Session getSession() {
+        if (cassandraCluster == null || cassandraCluster.isClosed()) {
+            this.initClusterContext();
+        }
         return cassandraSession;
     }
     

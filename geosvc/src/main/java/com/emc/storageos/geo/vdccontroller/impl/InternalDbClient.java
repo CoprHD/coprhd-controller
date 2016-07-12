@@ -64,15 +64,6 @@ public class InternalDbClient extends DbClientImpl {
         return VdcUtil.getLocalShortVdcId();
     }
 
-    /**
-     * Initialize local db context only. Geodb context will be initialized on demand
-     */
-    protected void setupContext() {
-        if (localContext != null) {
-            setupContext(localContext, Constants.DBSVC_NAME);
-        }
-    }
-
     protected Keyspace getGeoKeyspace() {
         if (geoContext != null && !geoContext.isInitDone()) {
             setupContext(geoContext, Constants.GEODBSVC_NAME);

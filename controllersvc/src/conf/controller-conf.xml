@@ -411,8 +411,25 @@
     <bean id="storageDriverSimulator" class="com.emc.storageos.driver.driversimulator.StorageDriverSimulator">
     </bean>
     <bean id="HP3Par" class="com.emc.storageos.hp3par.impl.HP3PARStorageDriver">
+    	<property name="ingestHelper" ref="3parIngestionHelper"></property>
+    	<property name="hp3parApiFactory" ref="hp3parApiFactory"/>
+    	<property name="hp3parUtil" ref="hp3parUtil"/>
+    </bean>
+    
+    <bean id="3parIngestionHelper" class="com.emc.storageos.hp3par.impl.HP3PARIngestHelper">
+    	<property name="hp3parApiFactory" ref="hp3parApiFactory"/>
+    	<property name="hp3parUtil" ref="hp3parUtil"></property>
     </bean>
 
+	<bean id="hp3parApiFactory" class="com.emc.storageos.hp3par.connection.HP3PARApiFactory" init-method="init">
+		<property name="connectionTimeoutMs" value="30000"/>
+		<property name="connManagerTimeout" value="60000"/>
+		<property name="socketConnectionTimeoutMs" value="7200000"/>
+	</bean>
+	
+	<bean id="hp3parUtil" class="com.emc.storageos.hp3par.utils.HP3PARUtil">
+		<property name="hp3parApiFactory" ref="hp3parApiFactory"/>
+	</bean>
 
     <bean id="externalDeviceExportMaskOperationsHelper" class="com.emc.storageos.volumecontroller.impl.externaldevice.ExternalDeviceExportOperations">
         <property name="dbClient" ref="dbclient"/>

@@ -1498,6 +1498,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
             return hp3parHost;
         } catch (Exception e) {
             _log.error("3PARDriver:get3parHostname could not get 3par registered host name");
+            _log.error(CompleteError.getStackTrace(e));
             return null;
         }
     }

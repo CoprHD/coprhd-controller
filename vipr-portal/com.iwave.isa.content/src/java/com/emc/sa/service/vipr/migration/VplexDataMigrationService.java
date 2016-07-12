@@ -27,7 +27,7 @@ public class VplexDataMigrationService extends ViPRService {
     private URI consistencyGroup;
 
     @Param(value = ServiceParams.DISPLAY_JOURNALS, required = false)
-    protected Boolean displayJournals;
+    protected String displayJournals;
 
     @Override
     public void execute() throws Exception {

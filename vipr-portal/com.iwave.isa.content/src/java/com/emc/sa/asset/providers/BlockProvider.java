@@ -118,6 +118,9 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     public static final String LINKED_SNAPSHOT_COPYMODE_VALUE = "copy";
     public static final String LINKED_SNAPSHOT_NOCOPYMODE_VALUE = "nocopy";
+    
+    public static final String YES_VALUE = "yes";
+    public static final String NO_VALUE = "no";
 
     public static final String MIGRATE_ONLY_OPTION_KEY = "migrate_only";
     public static final String INGEST_AND_MIGRATE_OPTION_KEY = "ingest_and_migrate";
@@ -156,6 +159,8 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             "block.snapshot.linked.copymode");
     private static final AssetOption LINKED_SNAPSHOT_NOCOPYMODE_OPTION = newAssetOption(LINKED_SNAPSHOT_NOCOPYMODE_VALUE,
             "block.snapshot.linked.nocopymode");
+    private static final AssetOption DISPLAY_JOUNRNALS_TRUE_OPTION = newAssetOption(YES_VALUE, "choice.yes");
+    private static final AssetOption DISPLAY_JOUNRNALS_FALSE_OPTION = newAssetOption(NO_VALUE, "choice.no");
 
     private static List<AssetOption> NTFS_OPTIONS = Lists.newArrayList(newAssetOption("DEFAULT", "Default"),
             newAssetOption("512", "512"),
@@ -387,53 +392,14 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     
     @Asset("virtualPoolChangeVolumeWithSource")
     @AssetDependencies({ "project", "blockVirtualPool", "displayJournals" })
-    public List<AssetOption> getVpoolChangeVolumes(AssetOptionsContext ctx, URI projectId, URI virtualPoolId, Boolean displayJournals) {
+    public List<AssetOption> getVpoolChangeVolumes(AssetOptionsContext ctx, URI projectId, URI virtualPoolId, String displayJournals) {
         info("BBB displayJournals: " + displayJournals);
+        if (YES_VALUE.equals(displayJournals)) {
+            return createVolumeOptions(api(ctx), listJournalVolumes(api(ctx), projectId, new VirtualPoolFilter(virtualPoolId))); 
+        } 
         return createVolumeOptions(api(ctx), listSourceVolumes(api(ctx), projectId, new VirtualPoolFilter(virtualPoolId)));        
     }
-    
-// // VPLEX volumes that don't have reference to this mobility group
-//    List<URI> volumeIds = client.blockVolumes().listBulkIds();
-//    final ResourceFilter<VolumeRestRep> vplexFilter = new VplexVolumeFilter();
-//    List<VolumeRestRep> volumes = client.blockVolumes().getByIds(volumeIds, new ResourceFilter<VolumeRestRep>() {
-//        @Override
-//        public boolean acceptId(URI id) {
-//            return true;
-//        }
-//
-//        @Override
-//        public boolean accept(VolumeRestRep item) {
-//            boolean accept = (item.getVolumeGroups() == null || !contains(item, mobilityGroupId))
-//                                && vplexFilter.accept(item);
-//            if (accept) {
-//                boolean rpProtection = (item.getProtection() != null 
-//                                               && item.getProtection().getRpRep() != null
-//                                               && item.getProtection().getRpRep().getPersonality() != null);
-//                if (rpProtection) {
-//                    // If RP+VPLEX protection specified, only allow RP SOURCE volumes to be listed
-//                    // as candidates for mobility groups. Exclude TARGETs and JOURNALs.
-//                    String personality = item.getProtection().getRpRep().getPersonality();
-//                    if (Volume.PersonalityTypes.TARGET.name().equals(personality)
-//                            || Volume.PersonalityTypes.METADATA.name().equals(personality)) {
-//                        accept = false;
-//                    }
-//                }
-//            }                    
-//            return accept;
-//        }
-//
-//        private boolean contains(VolumeRestRep item, URI mobilityGroup) {
-//            for (RelatedResourceRep vg : item.getVolumeGroups()) {
-//                if (vg.getId().equals(mobilityGroup)) {
-//                    return true;
-//                }
-//            }
-//            return false;
-//        }
-//    });
-    
-    
-
+ 
     @Asset("virtualPoolChangeVolumeWithSourceFilter")
     @AssetDependencies({ "project", "blockVirtualPool", "sourceVolumeFilter" })
     public List<AssetOption> getVpoolChangeVolumes(AssetOptionsContext ctx, URI projectId, URI virtualPoolId, int volumePage) {
@@ -1531,6 +1497,15 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         List<AssetOption> options = Lists.newArrayList();
         options.add(LINKED_SNAPSHOT_COPYMODE_OPTION);
         options.add(LINKED_SNAPSHOT_NOCOPYMODE_OPTION);
+        return options;
+    }
+    
+    @Asset("displayJournals")
+    public List<AssetOption> getDisplayJournals(AssetOptionsContext ctx) {
+        // These are hard coded values for now. In the future, this may be available through an API
+        List<AssetOption> options = Lists.newArrayList();
+        options.add(DISPLAY_JOUNRNALS_FALSE_OPTION);
+        options.add(DISPLAY_JOUNRNALS_TRUE_OPTION);
         return options;
     }
 
@@ -2693,6 +2668,17 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             filter.and(additionalFilter);
         }
         return client.blockVolumes().findByProject(project, filter);
+    }
+    
+    @SafeVarargs
+    public static List<VolumeRestRep> listJournalVolumes(ViPRCoreClient client, URI project, ResourceFilter<VolumeRestRep>... filters) {
+        // Filter all volumes except Journals
+        FilterChain<VolumeRestRep> filter = new FilterChain<VolumeRestRep>(new SRDFTargetFilter().not());
+        filter.and(RecoverPointPersonalityFilter.METADATA);
+        for (ResourceFilter<VolumeRestRep> additionalFilter : filters) {
+            filter.and(additionalFilter);
+        }
+        return client.blockVolumes().withInternal(true).findByProject(project, filter);
     }
 
     protected static List<VolumeRestRep> listVolumes(ViPRCoreClient client, URI project) {

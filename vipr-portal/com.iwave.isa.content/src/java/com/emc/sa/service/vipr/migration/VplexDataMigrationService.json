@@ -29,9 +29,8 @@
     },
     
     displayJournals: {
-      type: "boolean",
-      initialValue: "false",
-      required: "false",
+      type: "assetType.vipr.displayJournals",
+      required: "false",      
       lockable: true
     }
   }

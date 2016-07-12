@@ -347,12 +347,13 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 args.addFileShare(fsObj);
                 args.setFileOperation(isFile);
                 BiosCommandResult result;
-                // work flow service
                 WorkflowStepCompleter.stepExecuting(opId);
                 if (FileControllerConstants.DeleteTypeEnum.VIPR_ONLY.toString().equalsIgnoreCase(deleteType) && !fsObj.getInactive()) {
                     result = BiosCommandResult.createSuccessfulResult();
                 } else {
                     if (!fsObj.getInactive()) {
+                        // Acquire lock for VNXFILE Storage System
+                        acquireStepLock(storageObj, opId);
                         result = getDevice(storageObj.getSystemType()).doDeleteFS(storageObj, args);
                     } else {
                         result = BiosCommandResult.createSuccessfulResult();
@@ -387,9 +388,10 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                         boolean fsCheck = getDevice(storageObj.getSystemType()).doCheckFSExists(storageObj, args);
 
                         if (fsCheck) {
-                            String errMsg = new String(
-                                    "delete file system from DB failed due to either snapshots or quota directories exist for file system "
-                                            + fsObj.getLabel());
+                            String errMsg = new String("delete file system from DB failed due to :"
+                                    + " either snapshots or quota directories exists for file system and currently "
+                                    + "ViPR doesn't support snapshot or quota directory ingestion."
+                                    + fsObj.getLabel());
                             _log.error(errMsg);
 
                             final ServiceCoded serviceCoded = DeviceControllerException.errors.jobFailedOpMsg(
@@ -433,12 +435,20 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 setVirtualNASinArgs(fsObj.getVirtualNAS(), args);
                 args.addFileShare(fsObj);
                 args.setFileOperation(isFile);
+
+                // Acquire lock for VNXFILE Storage System
+                acquireStepLock(storageObj, opId);
+                WorkflowStepCompleter.stepExecuting(opId);
                 BiosCommandResult result = getDevice(storageObj.getSystemType()).doDeleteSnapshot(storageObj, args);
                 if (result.getCommandPending()) {
                     return;
                 }
+                if (!result.isCommandSuccess() && !result.getCommandPending()) {
+                    WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
+                }
                 snapshotObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
                 if (result.isCommandSuccess()) {
+                    WorkflowStepCompleter.stepSucceded(opId);
                     snapshotObj.setInactive(true);
                     // delete the corresponding export rules if available.
                     args.addSnapshot(snapshotObj);
@@ -582,7 +592,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             } else {
                 _log.info("Exports are null");
             }
-            // Code to acquire lock on for VNXFILE Storage System
+            // Acquire lock for VNXFILE Storage System
             acquireStepLock(storageObj, opId);
             WorkflowStepCompleter.stepExecuting(opId);
             BiosCommandResult result = getDevice(storageObj.getSystemType()).doExport(storageObj, args, fileExports);
@@ -932,7 +942,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 args.setFileOperation(true);
                 setVirtualNASinArgs(fsObj.getVirtualNAS(), args);
 
-                // Code to acquire lock on for VNXFILE Storage System
+                // Acquire lock for VNXFILE Storage System
                 WorkflowStepCompleter.stepExecuting(opId);
                 acquireStepLock(storageObj, opId);
                 BiosCommandResult result = getDevice(storageObj.getSystemType()).doShare(storageObj, args, smbFileShare);
@@ -966,8 +976,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 args.addFileShare(fsObj);
                 args.setFileOperation(false);
                 setVirtualNASinArgs(fsObj.getVirtualNAS(), args);
-                // Code to acquire lock on for VNXFILE Storage System
                 WorkflowStepCompleter.stepExecuting(opId);
+                // Acquire lock for VNXFILE Storage System
                 acquireStepLock(storageObj, opId);
                 BiosCommandResult result = getDevice(storageObj.getSystemType()).doShare(storageObj, args, smbFileShare);
 
@@ -1038,7 +1048,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 fileObject = fsObj;
                 args.addFSFileObject(fsObj);
                 args.setFileOperation(true);
-
+                // Acquire lock for VNXFILE Storage System
                 acquireStepLock(storageObj, opId);
                 WorkflowStepCompleter.stepExecuting(opId);
                 BiosCommandResult result = getDevice(storageObj.getSystemType()).doDeleteShare(storageObj, args, smbFileShare);
@@ -1071,7 +1081,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 fileObject = snapshotObj;
                 args.addSnapshotFileObject(snapshotObj);
                 args.setFileOperation(false);
-
+                // Acquire lock for VNXFILE Storage System
                 acquireStepLock(storageObj, opId);
                 WorkflowStepCompleter.stepExecuting(opId);
                 BiosCommandResult result = getDevice(storageObj.getSystemType()).doDeleteShare(storageObj, args, smbFileShare);
@@ -1227,7 +1237,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             args.addStoragePool(storagePool);
             args.setOpId(task);
 
-            // Acquire lock on for VNXFILE Storage System
+            // Acquire lock for VNXFILE Storage System
             acquireStepLock(storageObj, task);
             WorkflowStepCompleter.stepExecuting(task);
             BiosCommandResult result = getDevice(storageObj.getSystemType()).doSnapshotFS(storageObj, args);
@@ -1905,7 +1915,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             // Query & Pass all Existing Exports
             args.setExistingDBExportRules(queryExports(args));
 
-            // Acquire lock on for VNXFILE Storage System
+            // Acquire lock for VNXFILE Storage System
             acquireStepLock(storageObj, opId);
 
             WorkflowStepCompleter.stepExecuting(opId);
@@ -2615,7 +2625,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             args.setExistingShareAcls(queryExistingShareAcls(args));
 
             // Do the Operation on device.
-            // Acquire lock on for VNXFILE Storage System
+            // Acquire lock for VNXFILE Storage System
             acquireStepLock(storageObj, opId);
             WorkflowStepCompleter.stepExecuting(opId);
             BiosCommandResult result = getDevice(storageObj.getSystemType())
@@ -3974,12 +3984,25 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
     }
 
+    /**
+     * Common method used to create Controller methods that would be executed by workflow service
+     * 
+     * @param workflow
+     * @param waitFor
+     * @param methodName - Name of the method to be executed
+     * @param stepId
+     * @param stepDescription
+     * @param storage
+     * @param args - Parameters of the method that has to be excecuted by workflow
+     * @return waitForStep
+     */
     public String createMethod(Workflow workflow, String waitFor, String methodName, String stepId, String stepDescription, URI storage,
             Object[] args) {
         StorageSystem system = _dbClient.queryObject(StorageSystem.class, storage);
         Workflow.Method method = new Workflow.Method(methodName, args);
-        waitFor = workflow.createStep(null, stepDescription, waitFor, storage, system.getSystemType(), getClass(), method, null, stepId);
-        return waitFor;
+        String waitForStep = workflow.createStep(null, stepDescription, waitFor, storage, system.getSystemType(), getClass(), method, null,
+                stepId);
+        return waitForStep;
     }
 
     /**
@@ -3987,9 +4010,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
      * This method is used to acquire lock at a particular work flow step.Currently we are acquiring lock only for VNXFILE.
      * This lock would be released after the step completion (either failure or success).
      * 
-     * @param StorageSystem storageSystem
-     * @param String opId
-     * @throws DeviceControllerException
+     * @param storageObj -Storage System object's native id is used to generate key for the lock
+     * @param opId
      */
     public void acquireStepLock(StorageSystem storageObj, String opId) {
         if (storageObj.deviceIsType(Type.vnxfile)) {

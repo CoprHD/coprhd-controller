@@ -108,86 +108,86 @@ public interface FileServiceApi {
 
     /**
      * Create CIFS share for the FileSystem
-     *
-     * @param URI storageSystem
-     * @param URI fileSystem/Snapshot
-     * @param FileSMBShare
-     * @param String task
+     * 
+     * @param storageSystem
+     * @param fileSystem
+     * @param smbShare
+     * @param task
      * @throws InternalException
      */
-    public void share(URI storageSystem, URI fileSystem, FileSMBShare smbShare, String task)
+    void share(URI storageSystem, URI fileSystem, FileSMBShare smbShare, String task)
             throws InternalException;
 
     /**
-     * Create NFS Export for the FileSystem
-     *
-     * @param URI storageSystem
-     * @param URI fileSystem/Snapshot
-     * @param List FileShareExport
-     * @param String opId
+     * Create NFS Exports for the FileSystem
+     * 
+     * @param storage
+     * @param fsURI
+     * @param exports
+     * @param opId
      * @throws InternalException
      */
-    public void export(URI storage, URI fsURI, List<FileShareExport> exports, String opId)
+    void export(URI storage, URI fsURI, List<FileShareExport> exports, String opId)
             throws InternalException;
 
     /**
-     * Update NFS Export Rules for the FileSystem
-     *
-     * @param URI storageSystem
-     * @param URI fileSystem
-     * @param FileExportUpdateParams param
-     * @param String opId
+     * Update NFS Exports Rules for the FileSystem
+     * 
+     * @param storage
+     * @param fsURI
+     * @param param
+     * @param opId
      * @throws InternalException
      */
-    public void updateExportRules(URI storage, URI fsURI, FileExportUpdateParams param, String opId)
+    void updateExportRules(URI storage, URI fsURI, FileExportUpdateParams param, String opId)
             throws InternalException;
 
     /**
      * Update CIFS Share ACLs for the FileSystem
-     *
-     * @param URI storageSystem
-     * @param URI fileSystem
-     * @param String shareName
-     * @param CifsShareACLUpdateParams param
-     * @param String opId
+     * 
+     * @param storage
+     * @param fsURI
+     * @param shareName
+     * @param param
+     * @param opId
      * @throws InternalException
      */
-    public void updateShareACLs(URI storage, URI fsURI, String shareName, CifsShareACLUpdateParams param, String opId)
+    void updateShareACLs(URI storage, URI fsURI, String shareName, CifsShareACLUpdateParams param, String opId)
             throws InternalException;
 
     /**
      * Create FileSystem Snapshot
-     *
-     * @param URI storageSystem
-     * @param URI snapshot
-     * @param URI fileSystem
-     * @param String opId
+     * 
+     * @param storage
+     * @param snapshot
+     * @param fsURI
+     * @param opId
      * @throws InternalException
      */
-    public void snapshotFS(URI storage, URI snapshot, URI fsURI, String opId)
+    void snapshotFS(URI storage, URI snapshot, URI fsURI, String opId)
             throws InternalException;
 
     /**
      * Delete FileSystem Share
-     *
-     * @param URI storageSystem
-     * @param URI FileSystem/snapshot
-     * @param FileSMBShare
-     * @param String opId
+     * 
+     * @param storage
+     * @param uri
+     * @param fileSMBShare
+     * @param task
      * @throws InternalException
      */
-    public void deleteShare(URI storage, URI uri, FileSMBShare fileSMBShare, String task) throws InternalException;
+    void deleteShare(URI storage, URI uri, FileSMBShare fileSMBShare, String task) throws InternalException;
 
     /**
      * Delete FileSystem Export Rules
-     *
-     * @param URI storageSystem
-     * @param URI FileSystem/snapshot
-     * @param Boolean allDirs
-     * @param String subDirs
-     * @param String taskId
+     * 
+     * @param storage
+     * @param uri
+     * @param allDirs
+     * @param subDirs
+     * @param taskId
      * @throws InternalException
      */
-    public void deleteExportRules(URI storage, URI uri, boolean allDirs, String subDirs, String taskId) throws InternalException;
+    void deleteExportRules(URI storage, URI uri, boolean allDirs, String subDirs, String taskId) throws InternalException;
 
 }

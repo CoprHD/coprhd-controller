@@ -43,7 +43,7 @@ public class VNXeFSSnapshotTaskCompleter extends TaskCompleter {
                     WorkflowStepCompleter.stepFailed(getOpId(), coded);
                 }
                 break;
-            default:
+            case ready:
                 dbClient.ready(Snapshot.class, getId(), getOpId());
                 if (fsObj != null) {
                     dbClient.ready(FileShare.class, fsObj.getId(), getOpId());
@@ -51,10 +51,13 @@ public class VNXeFSSnapshotTaskCompleter extends TaskCompleter {
                 if (isNotifyWorkflow()) {
                     WorkflowStepCompleter.stepSucceded(getOpId());
                 }
-
                 _logger.info("Done Snapshot operation {}, with Status: {}", getOpId(), status.name());
-
+                break;
+            default:
+                if (isNotifyWorkflow()) {
+                    WorkflowStepCompleter.stepExecuting(getOpId());
+                }
+                break;
         }
     }
-
 }

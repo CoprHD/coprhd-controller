@@ -220,5 +220,5 @@ public interface DeviceControllerErrors {
     public ServiceError deleteExportRuleFailed(final String fsUris, final String operationName, final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
-    public ServiceError deleteShareFailed(final String fsUris, final String operationName, final Throwable cause);
+    public ServiceError deleteCIFSShareFailed(final String fsUris, final String operationName, final Throwable cause);
 }

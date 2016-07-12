@@ -276,10 +276,10 @@ angular.module("portalApp").controller({
         		if (window.location.pathname.indexOf("resources.filesnapshots") > -1) {
         			$http.get(routes.FileSnapshots_fileSnapshotExportsJson(), data).success(setData);
         		} else {
-        			$http.get(routes.FileSystems_fileSystemExportsJson(), data).success(setData).error.("Error");
+        			$http.get(routes.FileSystems_fileSystemExportsJson(), data).success(setData);
         		}
     		} else {
-    			$scope.rule.security = "sys";
+    			$scope.rule.security = ["sys"];
         		$scope.rule.anon = "root";
         		$scope.rule.endpoints = [];
         		$scope.rule.endpoints.push(angular.copy($scope.add));

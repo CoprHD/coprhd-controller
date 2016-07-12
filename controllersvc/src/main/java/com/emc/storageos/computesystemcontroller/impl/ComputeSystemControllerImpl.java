@@ -781,6 +781,8 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         ExportGroup exportGroupObject = _dbClient.queryObject(ExportGroup.class, exportGroup);
         ExportUtils.getAddedAndRemovedBlockObjects(newVolumesMap, exportGroupObject, addedBlockObjects, removedBlockObjects);
         BlockExportController blockController = getController(BlockExportController.class, BlockExportController.EXPORT);
+        _dbClient.createTaskOpStatus(ExportGroup.class, exportGroup,
+                stepId, ResourceOperationTypeEnum.UPDATE_EXPORT_GROUP);
         blockController.exportGroupUpdate(exportGroup, addedBlockObjects, removedBlockObjects, newClusters,
                 newHosts, newInitiators, stepId);
     }
@@ -819,6 +821,8 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
     public void deleteExportGroup(URI exportGroup, String stepId) {
         BlockExportController blockController = getController(BlockExportController.class, BlockExportController.EXPORT);
+        _dbClient.createTaskOpStatus(ExportGroup.class, exportGroup,
+                stepId, ResourceOperationTypeEnum.DELETE_EXPORT_GROUP);
         blockController.exportGroupDelete(exportGroup, stepId);
     }
 

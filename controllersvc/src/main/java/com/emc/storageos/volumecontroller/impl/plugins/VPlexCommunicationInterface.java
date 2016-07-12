@@ -1877,7 +1877,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                 s_logger.debug("VPlex port info: {}", portInfo.toString());
 
                 if (null == portInfo.getPortWwn()) {
-                    s_logger.debug("Not a FC port, skipping port {}",
+                    s_logger.info("Not a FC port, skipping port {}",
                             portInfo.getName());
                     continue;
                 }

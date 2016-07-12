@@ -1221,7 +1221,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
      * @param nasServers
      */
     String getUserAccessZonePath(Map<String, NASServer> nasServers) {
-        String accessZonePath = "";
+        String accessZonePath = ",";
+        // Initialized with comma as empty can lead to exception at controller configuration.
         if (nasServers != null && !nasServers.isEmpty()) {
             for (String path : nasServers.keySet()) {
                 String nasType = URIUtil.getTypeName(nasServers.get(path).getId());
@@ -1236,12 +1237,13 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     /**
      * Add custom discovery directory paths from controller configuration
      */
-    private void updateDiscoveryPathForUnManagedFS(Map<String, NASServer> nasServer, StorageSystem storage) {
+    private void updateDiscoveryPathForUnManagedFS(Map<String, NASServer> nasServer, StorageSystem storage)
+            throws IsilonCollectionException {
         String paths = "";
         String systemAccessZone = "";
         String userAccessZone = "";
         String namespace = "";
-        String noAccessZone = ",";
+        String customLocations = ",";
 
         // get the system access zones
         namespace = customConfigHandler.getComputedCustomConfigValue(CustomConfigConstants.ISILON_SYSTEM_ACCESS_ZONE_NAMESPACE,
@@ -1254,13 +1256,19 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         DataSource dataSource = dataSourceFactory.createIsilonUnmanagedFileSystemLocationsDataSource(storage);
         dataSource.addProperty(CustomConfigConstants.ISILON_SYSTEM_ACCESS_ZONE, systemAccessZone);
         dataSource.addProperty(CustomConfigConstants.ISILON_USER_ACCESS_ZONE, userAccessZone);
-        dataSource.addProperty(CustomConfigConstants.ISILON_NO_ACCESS_ZONE, noAccessZone);
+        dataSource.addProperty(CustomConfigConstants.ISILON_CUSTOM_DIR_PATH, customLocations);
 
         paths = customConfigHandler.getComputedCustomConfigValue(CustomConfigConstants.ISILON_UNMANAGED_FILE_SYSTEM_LOCATIONS,
                 "isilon",
                 dataSource);
         // trim leading or trailing or multiple comma.
         paths = paths.replaceAll("^,+", "").replaceAll(",+$", "").replaceAll(",+", ",");
+        if (paths.equals(",") || paths.isEmpty()) {
+            IsilonCollectionException ice = new IsilonCollectionException(
+                    "computed unmanaged file system location is empty. Please verify Isilon controller config settings");
+
+            throw ice;
+        }
         _log.info("Unmanaged file system locations are {}", paths);
         List<String> pathList = Arrays.asList(paths.split(","));
 
@@ -1573,7 +1581,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                                     UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED.toString(), TRUE);
                         } else {
                             // NO exports found
-                            _log.info("FS {} is ignored because it doesnt have exports and shares", fs.getPath());
+                            _log.info("FS {} does not have export or share", fs.getPath());
                         }
 
                         if (alreadyExist) {

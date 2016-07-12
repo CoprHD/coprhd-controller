@@ -135,7 +135,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	}
 
 	/**
-	 * Get storage system information
+	 * Get storage system information and capabilities
 	 */
 	@Override
 	public DriverTask discoverStorageSystem(StorageSystem storageSystem) {
@@ -217,7 +217,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	}
 
 	/**
-	 * Get storage pool information
+	 * Get storage pool information and its capabilities
 	 */
 	@Override
 	public DriverTask discoverStoragePools(StorageSystem storageSystem, List<StoragePool> storagePools) {
@@ -851,12 +851,14 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 		return null;
 	}
 
+
 	@Override
 	public DriverTask splitVolumeMirror(List<VolumeMirror> mirrors) {
 		_log.info("3PARDriver: splitVolumeMirror Running ");
 		// TODO Auto-generated method stub
 		return null;
 	}
+
 
 	@Override
 	public DriverTask resumeVolumeMirror(List<VolumeMirror> mirrors) {
@@ -879,6 +881,9 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 				volume.getNativeId(), volume, driverRegistry);
 	}
 
+   /**
+     * Expand the size of requested volume
+     */
 	@Override
 	public Map<String, HostExportInfo> getSnapshotExportInfoForHosts(VolumeSnapshot snapshot) {
 		_log.info("3PARDriver: getSnapshotExportInfoForHosts Running ");
@@ -886,6 +891,9 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 				snapshot.getNativeId(), snapshot, driverRegistry);
 	}
 
+	/**
+	 * Remove the list of volumes from array
+	 */
 	@Override
 	public Map<String, HostExportInfo> getCloneExportInfoForHosts(VolumeClone clone) {
 		_log.info("3PARDriver: getCloneExportInfoForHosts Running ");

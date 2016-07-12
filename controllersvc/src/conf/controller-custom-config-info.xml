@@ -1021,7 +1021,7 @@
             <map>
                 <entry key-ref="systemAccessZone" value="false"/>
                 <entry key-ref="userAccessZone" value="false"/>
-                 <entry key-ref="noAccessZone" value="false"/>
+                <entry key-ref="customDirPath" value="false"/>
             </map>
         </property>
         <property name="scope">
@@ -1352,10 +1352,10 @@
         <property name="sample" value="/ifs/zoneA,/ifs/zoneB"/>
     </bean> 
     
-    <!-- noAccessZone bean is added as workaround,it do not include any predefine path.-->
-    <!-- no_access_zone variable should be used when no other variable is used in path.-->
-    <bean id="noAccessZone" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
-        <property name="displayName" value="no_access_zone"/>
+    <!-- customDirPath bean is added as workaround,it do not include any predefine path.-->
+    <!-- custom_dir_path variable should be used when no other variable is used in path.-->
+    <bean id="customDirPath" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
+        <property name="displayName" value="custom_dir_path"/>
         <property name="sample" value=","/>
     </bean>
     

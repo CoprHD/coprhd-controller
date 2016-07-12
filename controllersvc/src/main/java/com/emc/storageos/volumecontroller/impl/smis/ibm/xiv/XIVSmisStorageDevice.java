@@ -1220,11 +1220,11 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
      * {@inheritDoc}
      */
     @Override
-    public Map<URI, List<String>> doFindHostHLUs(StorageSystem storage, List<URI> hostURIs) throws DeviceControllerException {
-        Map<URI, List<String>> hostToHLUMap = new HashMap<URI, List<String>>();
+    public Map<URI, List<Integer>> doFindHostHLUs(StorageSystem storage, List<URI> hostURIs) throws DeviceControllerException {
+        Map<URI, List<Integer>> hostToHLUMap = new HashMap<URI, List<Integer>>();
 
         for (URI hostURI : hostURIs) {
-            List<String> hostHLUs = new ArrayList<String>();
+            List<Integer> hostHLUs = new ArrayList<Integer>();
             hostToHLUMap.put(hostURI, hostHLUs);
             Host host = _dbClient.queryObject(Host.class, hostURI);
             String label = host.getLabel();
@@ -1243,7 +1243,10 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
 
                     while (seForPCItr.hasNext()) {
                         CIMInstance instance = seForPCItr.next();
-                        hostHLUs.add(CIMPropertyFactory.getPropertyValue(instance, "DeviceNumber"));
+                        final String deviceNumber = CIMPropertyFactory.getPropertyValue(instance, "DeviceNumber");
+                        if(null != deviceNumber && !deviceNumber.isEmpty()){
+                        	hostHLUs.add(Integer.parseInt(deviceNumber));
+                        }
                     }
                     _log.info("HLU list for Host {} : {}", label, hostHLUs);
                 } catch (WBEMException e) {

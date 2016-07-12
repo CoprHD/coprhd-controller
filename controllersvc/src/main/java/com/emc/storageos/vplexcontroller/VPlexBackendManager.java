@@ -68,6 +68,7 @@ import com.emc.storageos.volumecontroller.placement.StoragePortsAssigner;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAssignerFactory;
 import com.emc.storageos.vplex.api.VPlexApiException;
 import com.emc.storageos.workflow.Workflow;
+import com.google.common.collect.Collections2;
 
 public class VPlexBackendManager {
     private DbClient _dbClient;
@@ -662,8 +663,13 @@ public class VPlexBackendManager {
             exportTaskCompleter = new ExportMaskOnlyRemoveVolumeCompleter(exportGroup.getId(),
                     mask.getId(), volumes, stepId);
             VplexBackEndMaskingOrchestrator orca = getOrch(storage);
+            List<URI> initiatorURIs = new ArrayList<>();
+            if (mask.getInitiators() != null) {
+                initiatorURIs = new ArrayList<URI>(Collections2.transform(mask.getInitiators(),
+                        CommonTransformerFunctions.FCTN_STRING_TO_URI));
+            }
             Workflow.Method removeVolumesMethod = orca.deleteOrRemoveVolumesFromExportMaskMethod(
-                    storage.getId(), exportGroup.getId(), mask.getId(), volumes, null, exportTaskCompleter);
+                    storage.getId(), exportGroup.getId(), mask.getId(), volumes, initiatorURIs, exportTaskCompleter);
             workflow.createStep(EXPORT_STEP,
                     String.format("Removing volume from ExportMask %s", mask.getMaskName()),
                     previousStepId, storage.getId(), storage.getSystemType(), orca.getClass(),
@@ -895,8 +901,13 @@ public class VPlexBackendManager {
         // TODO DUPP:
         // 1. Figure out the initiators that are impacted by the operation and add them to these method declarations
         //
+        List<URI> initiatorURIs = new ArrayList<>();
+        if (exportMask.getInitiators() != null) {
+            initiatorURIs = new ArrayList<URI>(Collections2.transform(exportMask.getInitiators(),
+                    CommonTransformerFunctions.FCTN_STRING_TO_URI));
+        }
         Workflow.Method rollbackMaskMethod = orca.deleteOrRemoveVolumesFromExportMaskMethod(
-                array.getId(), exportGroup.getId(), exportMask.getId(), volumeList, null, rollbackCompleter);
+                array.getId(), exportGroup.getId(), exportMask.getId(), volumeList, initiatorURIs, rollbackCompleter);
         workflow.createStep(EXPORT_STEP, "createOrAddVolumesToExportMask: " + exportMask.getMaskName(),
                 previousStepId, array.getId(), array.getSystemType(), orca.getClass(),
                 updateMaskMethod, rollbackMaskMethod, maskStepId);

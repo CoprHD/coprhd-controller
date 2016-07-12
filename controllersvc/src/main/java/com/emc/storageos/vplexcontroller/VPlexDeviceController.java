@@ -1137,8 +1137,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // are in the VPLEX_STEP step group, which subsequent steps will wait on.
             // This allows operation for delete virtual volumes in each Vplex to operate in parellel, 
             // but subsequent steps will wait on all the delete virtual volumes operations to complete.
-            String nextStepWaitFor = waitFor;
             for (URI vplexURI : vplexMap.keySet()) {
+                String nextStepWaitFor = waitFor;
                 StorageSystem vplexSystem = getDataObject(StorageSystem.class, vplexURI, _dbClient);
                 // First validate that the backend volumes for these VPLEX volumes are
                 // the actual volumes used by the VPLEX volume on the VPLEX system. We

@@ -96,18 +96,19 @@ public class EventService extends TaskResourceService {
             Method m = getMethod(EventService.class, eventMethod.getOrchestrationMethod());
             return (TaskResourceRep) m.invoke(this, eventMethod.getArgs());
         } catch (SecurityException e) {
-            _log.error(e.getMessage());
+            _log.error(e.getMessage(), e.getStackTrace());
         } catch (IllegalAccessException e) {
-            _log.error(e.getMessage());
+            _log.error(e.getMessage(), e.getStackTrace());
         } catch (IllegalArgumentException e) {
-            _log.error(e.getMessage());
+            _log.error(e.getMessage(), e.getStackTrace());
         } catch (InvocationTargetException e) {
-            _log.error(e.getMessage());
+            _log.error(e.getMessage(), e.getStackTrace());
         }
         return new TaskResourceRep();
     }
 
-    public TaskResourceRep detachHostStorage(URI hostId, boolean deactivateOnComplete, boolean deactivateBootVolume) {
+    public TaskResourceRep detachHostStorage(String hostIdStr, boolean deactivateOnComplete, boolean deactivateBootVolume) {
+        URI hostId = URI.create(hostIdStr);
         ComputeSystemController computeController = getController(ComputeSystemController.class, null);
         Host host = _dbClient.queryObject(Host.class, hostId);
         String taskId = UUID.randomUUID().toString();

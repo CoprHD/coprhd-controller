@@ -178,7 +178,7 @@ $(VMDK): | downloadISO createREPO
 ifeq ($(USE_CACHE),true)
 	sed -i /installNginx/d $(WORKSPACE)/templates/config.sh
 	sed -i "/__REPO__/ i\        <source path=\"__CACHEBUILD__\"/>\n    </repository>\n    <repository type=\"rpm-md\" priority=\"1\">" $(WORKSPACE)/templates/config.xml
-	sed -i s/"__CACHEBUILD__"/"https:\/\/build.coprhd.org\/jenkins\/job\/CH-coprhd-controller-coprhd-repo\/ws\/repo\/$(USE_CACHE_BUILD)"/g $(WORKSPACE)/templates/config.xml
+	sed -i s/"__CACHEBUILD__"/"https:\/\/build.coprhd.org\/jenkins\/job\/CH-coprhd-controller-coprhd-repo\/ws\/opensuse-13.2\/$(USE_CACHE_BUILD)"/g $(WORKSPACE)/templates/config.xml
 	sed -i s/"<archive name=\"nginx.*\"\/>"/"<package name=\"nginx\"\/>"/g $(WORKSPACE)/templates/config.xml
 	sed -i /"<archive name=.*>"/d $(WORKSPACE)/templates/config.xml
 endif

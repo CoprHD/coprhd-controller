@@ -487,8 +487,8 @@ CEPH_EXPORT_GROUP_NAME=EXPCephGroup${RANDOM}
 
 # UNITY  device configuration
 #
-UNITY_DEV=unity_device
-UNITY_NATIVEGUID=UNITY+$UNITY_SN
+UNITY_DEV=${UNITY_DEV:-unity_device}
+UNITY_NATIVEGUID=${UNITY_DEV:-UNITY+$UNITY_SN}
 
 #
 # DataDomain file device configuration
@@ -7167,7 +7167,7 @@ export_host()
     pwwn23=`pwwn C$k`
     pwwn24=`pwwn D$k`
 
-    run export_group create --type Host $proj $expname $NH --volspec "$vol1+1" --hosts "$hostname1"
+    run export_group create $proj $expname $NH --type Host --volspec "$vol1+1" --hosts "$hostname1"
     run export_group show $exp
     run export_group update $exp --addVolspec "$vol2+2" --remVols $vol1
     run export_group show $exp
@@ -7218,7 +7218,7 @@ export_cluster()
     pwwn23=`pwwn C$k`
     pwwn24=`pwwn D$k`
 
-    run export_group create --type Cluster $proj $expname $NH --volspec "$vol1+1" --clusters "$cluster1"
+    run export_group create $proj $expname $NH --type Cluster --volspec "$vol1+1" --clusters "$cluster1"
     run export_group show $exp
     run export_group update $exp --addVolspec "$vol2+1" --remVols $vol1
     run export_group show $exp
@@ -9946,13 +9946,16 @@ save_token_file() {
 }
 
 _failure() {
-    if [ -f ${CMD_OUTPUT} ]; then
-	echo "*******************************************************" >&2
+    echo "*******************************************************" >&2
+    if [ -f ${CMD_OUTPUT} -a -s ${CMD_OUTPUT} ]; then
 	/usr/bin/cat ${CMD_OUTPUT}                                     >&2
-	echo "*******************************************************" >&2
+    else
+	echo "Command failed with $2, but no command had no output"              >&2
     fi
+    echo "*******************************************************" >&2
+        
     echo "***"                                                   >&2
-    secho "FAILED! $0:$1: `eval echo ${BASH_COMMAND}`"           >&2
+    secho "FAILED! $0:$1: `eval echo ${cmd}`"                    >&2
     echo "***"                                                   >&2
     date
     run_undo_commands
@@ -10626,7 +10629,7 @@ unity_tests()
     snap2_label=snap2-${RANDOM}
     eg=eg-${RANDOM}
 	    
-	    run transportzone add $NH/$IP_ZONE $iqn1
+    run transportzone add $NH/$IP_ZONE $iqn1
     run volume create $vol1 $PROJECT $NH $COS_UNITYBLOCK_CG $BLK_SIZE
     sleep 60
     run volume expand $PROJECT/$vol1 $BLK_SIZE_EXPAND

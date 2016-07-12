@@ -64,7 +64,7 @@ public class AttributeMatcherFramework implements ApplicationContextAware {
      *            matchers are grouped by its relativity
      */
     public List<StoragePool> matchAttributes(List<StoragePool> allPools, Map<String, Object> attributeMap,
-            DbClient dbClient, CoordinatorClient coordinator, String matcherGroupName) {
+            DbClient dbClient, CoordinatorClient coordinator, String matcherGroupName, StringBuffer errorMessage) {
         List<StoragePool> matchedPools = new ArrayList<StoragePool>();
         matchedPools.addAll(allPools);
         try {
@@ -77,7 +77,7 @@ public class AttributeMatcherFramework implements ApplicationContextAware {
                 int poolSizeAtTheStart = matchedPools.size();
                 if (!matchedPools.isEmpty()) {
                     _logger.debug("passing {} pools to match", matchedPools.size());
-                    matchedPools = matcher.runMatchStoragePools(matchedPools, attributeMap);
+                    matchedPools = matcher.runMatchStoragePools(matchedPools, attributeMap, errorMessage);
                     if (matchedPools.isEmpty()) {
                         _logger.info(String.format("Failed to find match because of %s",
                                 matcher.getClass().getSimpleName()));

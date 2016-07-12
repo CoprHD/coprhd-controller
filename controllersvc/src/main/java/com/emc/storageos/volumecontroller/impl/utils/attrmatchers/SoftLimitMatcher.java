@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,7 +27,8 @@ public class SoftLimitMatcher extends AttributeMatcher {
     }
 
     @Override
-    protected List<StoragePool> matchStoragePoolsWithAttributeOn(List<StoragePool> allPools, Map<String, Object> attributeMap) {
+    protected List<StoragePool> matchStoragePoolsWithAttributeOn(List<StoragePool> allPools, Map<String, Object> attributeMap,
+            StringBuffer errorMessage) {
         List<StoragePool> filteredPools = new ArrayList<StoragePool>();
         _logger.info("started matching pools with soft limit.");
         for (StoragePool pool : allPools) {
@@ -36,6 +38,12 @@ public class SoftLimitMatcher extends AttributeMatcher {
                 filteredPools.add(pool);
             }
         }
+
+        if (CollectionUtils.isEmpty(filteredPools)) {
+            errorMessage.append("No Matching pools found with support soft limit");
+            _logger.error(errorMessage.toString());
+        }
+
         return filteredPools;
     }
 

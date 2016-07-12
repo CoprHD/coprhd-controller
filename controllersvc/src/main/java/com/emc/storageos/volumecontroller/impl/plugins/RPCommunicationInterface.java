@@ -64,8 +64,8 @@ import com.emc.storageos.recoverpoint.responses.RecoverPointVolumeProtectionInfo
 import com.emc.storageos.recoverpoint.utils.WwnUtils;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.ConnectivityUtil;
-import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.ConnectivityUtil.StorageSystemType;
+import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.VersionChecker;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
@@ -309,9 +309,10 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
      */
     private void matchVPools(URI rpSystemId) {
         List<URI> storagePoolIds = ConnectivityUtil.getRPSystemStoragePools(_dbClient, rpSystemId);
+        StringBuffer errorMessage = new StringBuffer();
         if (storagePoolIds != null && !storagePoolIds.isEmpty()) {
             List<StoragePool> storagePools = _dbClient.queryObject(StoragePool.class, storagePoolIds);
-            ImplicitPoolMatcher.matchModifiedStoragePoolsWithAllVirtualPool(storagePools, _dbClient, _coordinator);
+            ImplicitPoolMatcher.matchModifiedStoragePoolsWithAllVirtualPool(storagePools, _dbClient, _coordinator, errorMessage);
         }
     }
 

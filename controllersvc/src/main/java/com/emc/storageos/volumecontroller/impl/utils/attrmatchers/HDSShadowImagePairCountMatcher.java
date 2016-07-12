@@ -11,6 +11,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,7 +34,8 @@ public class HDSShadowImagePairCountMatcher extends AttributeMatcher {
     }
 
     @Override
-    protected List<StoragePool> matchStoragePoolsWithAttributeOn(List<StoragePool> pools, Map<String, Object> attributeMap) {
+    protected List<StoragePool> matchStoragePoolsWithAttributeOn(List<StoragePool> pools, Map<String, Object> attributeMap,
+            StringBuffer errorMessage) {
         int mirrorCount = 0;
         if (attributeMap.containsKey(Attributes.max_native_continuous_copies.name())) {
             mirrorCount = (int) attributeMap.get(Attributes.max_native_continuous_copies.name());
@@ -62,6 +64,12 @@ public class HDSShadowImagePairCountMatcher extends AttributeMatcher {
         logger.info("Pools Matching Maximum Snapshot/Mirror Count for HDS Ended. Snapshot : {} Mirror : {}",
                 snapshotCount, mirrorCount);
         logger.info(Joiner.on("\t").join(getNativeGuidFromPools(filteredPoolList)));
+
+        if (CollectionUtils.isEmpty(filteredPoolList)) {
+            errorMessage.append("No HDS Storage pool found for HDS replica creation");
+            logger.error(errorMessage.toString());
+        }
+
         return filteredPoolList;
     }
 

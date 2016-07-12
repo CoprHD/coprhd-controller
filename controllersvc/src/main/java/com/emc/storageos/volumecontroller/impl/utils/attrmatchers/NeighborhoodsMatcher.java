@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,7 +38,8 @@ public class NeighborhoodsMatcher extends AttributeMatcher {
      * @return list of pools in the specified vArrays
      */
     @Override
-    public List<StoragePool> matchStoragePoolsWithAttributeOn(List<StoragePool> pools, Map<String, Object> attributeMap) {
+    public List<StoragePool> matchStoragePoolsWithAttributeOn(List<StoragePool> pools, Map<String, Object> attributeMap,
+            StringBuffer errorMessage) {
         List<StoragePool> matchedPools = new ArrayList<StoragePool>();
 
         Set<String> vArrays = (Set<String>) attributeMap.get(Attributes.varrays.toString());
@@ -53,6 +55,10 @@ public class NeighborhoodsMatcher extends AttributeMatcher {
                     matchedPools.add(pool);
                 }
             }
+        }
+        if (CollectionUtils.isEmpty(matchedPools)) {
+            errorMessage.append(String.format("vArrays %s does not have Storage Pools", vArrays));
+            _logger.error(errorMessage.toString());
         }
         _logger.info("Pools Matching vArrays Ended: {}", Joiner.on("\t").join(getNativeGuidFromPools(matchedPools)));
         return matchedPools;

@@ -1436,7 +1436,8 @@ public class PortMetricsProcessor {
         // if before and after lists are not the same, implied one of the port allocation disqualification status
         // has changed. Then, invoke pool matcher
         if (!disqualifiedPortAfterCompute.equals(disqualifiedPortBeforeCompute)) {
-            ImplicitPoolMatcher.matchStorageSystemPoolsToVPools(storageSystem.getId(), _dbClient, _coordinator);
+            StringBuffer errorMessage = new StringBuffer();
+            ImplicitPoolMatcher.matchStorageSystemPoolsToVPools(storageSystem.getId(), _dbClient, _coordinator, errorMessage);
         }
     }
 

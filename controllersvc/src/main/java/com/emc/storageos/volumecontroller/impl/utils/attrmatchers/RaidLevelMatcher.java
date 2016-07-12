@@ -14,8 +14,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool.RaidLevel;
@@ -45,7 +47,8 @@ public class RaidLevelMatcher extends ConditionalAttributeMatcher {
 
     @SuppressWarnings("unchecked")
     @Override
-    protected List<StoragePool> matchStoragePoolsWithAttributeOn(List<StoragePool> pools, Map<String, Object> attributeMap) {
+    protected List<StoragePool> matchStoragePoolsWithAttributeOn(List<StoragePool> pools, Map<String, Object> attributeMap,
+            StringBuffer errorMessage) {
         List<StoragePool> filteredPoolList = new ArrayList<StoragePool>(pools);
         Set<String> raidLevels = null;
         raidLevels = (Set<String>) attributeMap.get(Attributes.raid_levels.toString());
@@ -74,6 +77,11 @@ public class RaidLevelMatcher extends ConditionalAttributeMatcher {
                 filteredPoolList.remove(pool);
             }
         }
+        if (CollectionUtils.isEmpty(filteredPoolList)) {
+            errorMessage.append(String.format("No matching pools for the given raid levels : %s", raidLevels));
+            _logger.error(errorMessage.toString());
+        }
+
         _logger.info("Pools Matching RaidLevels Ended :{}", Joiner.on("\t").join(getNativeGuidFromPools(filteredPoolList)));
         return filteredPoolList;
     }

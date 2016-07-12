@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,8 +36,14 @@ public class SRDFMetroMatcher extends AttributeMatcher {
             .getLogger(SRDFMetroMatcher.class);
 
     @Override
-    public List<StoragePool> matchStoragePoolsWithAttributeOn(List<StoragePool> pools, Map<String, Object> attributeMap) {
-        return filterPoolsForSRDFActiveMode(pools);
+    public List<StoragePool> matchStoragePoolsWithAttributeOn(List<StoragePool> pools, Map<String, Object> attributeMap,
+            StringBuffer errorMessage) {
+        List<StoragePool> matchedPools = filterPoolsForSRDFActiveMode(pools);
+        if (CollectionUtils.isEmpty(matchedPools)) {
+            errorMessage.append("No matching storage pools found for SRDF ACTIVE pair creation");
+            _logger.error(errorMessage.toString());
+        }
+        return matchedPools;
     }
 
     @Override

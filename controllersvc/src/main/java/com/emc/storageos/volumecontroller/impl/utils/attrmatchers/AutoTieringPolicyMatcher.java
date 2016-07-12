@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,7 +41,8 @@ public class AutoTieringPolicyMatcher extends AttributeMatcher {
     private static final Logger _logger = LoggerFactory.getLogger(AutoTieringPolicyMatcher.class);
 
     @Override
-    protected List<StoragePool> matchStoragePoolsWithAttributeOn(List<StoragePool> pools, Map<String, Object> attributeMap) {
+    protected List<StoragePool> matchStoragePoolsWithAttributeOn(List<StoragePool> pools, Map<String, Object> attributeMap,
+            StringBuffer errorMessage) {
         String autoTieringPolicyName = attributeMap.get(Attributes.auto_tiering_policy_name.toString()).toString();
 
         _logger.info("Pools Matching Auto Tiering Policy name attribute {} Started:{}", autoTieringPolicyName, Joiner
@@ -85,6 +87,11 @@ public class AutoTieringPolicyMatcher extends AttributeMatcher {
         }
         _logger.info("Pools Matching Auto Tiering name Ended:{}",
                 Joiner.on("\t").join(getNativeGuidFromPools(filteredPoolList)));
+        if (CollectionUtils.isEmpty(filteredPoolList)) {
+            errorMessage.append("No matching storage pools found with auto tiering policy");
+            _logger.error(errorMessage.toString());
+        }
+
         return filteredPoolList;
     }
 

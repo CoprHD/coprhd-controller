@@ -10,6 +10,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,7 +35,8 @@ public class MaxResourcesMatcher extends AttributeMatcher {
     }
 
     @Override
-    protected List<StoragePool> matchStoragePoolsWithAttributeOn(List<StoragePool> pools, Map<String, Object> attributeMap) {
+    protected List<StoragePool> matchStoragePoolsWithAttributeOn(List<StoragePool> pools, Map<String, Object> attributeMap,
+            StringBuffer errorMessage) {
         _log.info("Pools Matching max resources Started: {}", Joiner.on("\t").join(getNativeGuidFromPools(pools)));
         List<StoragePool> filteredPoolList = new ArrayList<StoragePool>(pools);
         Iterator<StoragePool> poolIterator = pools.iterator();
@@ -44,6 +46,10 @@ public class MaxResourcesMatcher extends AttributeMatcher {
             if (checkPoolMaximumResourcesApproached(pool, _objectCache.getDbClient(), 0)) {
                 filteredPoolList.remove(pool);
             }
+        }
+        if (CollectionUtils.isEmpty(filteredPoolList)) {
+            errorMessage.append("Reached Pool/System maximum resources limit.");
+            _log.error(errorMessage.toString());
         }
         _log.info("Pools Matching max resources Ended: {}", Joiner.on("\t").join(getNativeGuidFromPools(filteredPoolList)));
         return filteredPoolList;

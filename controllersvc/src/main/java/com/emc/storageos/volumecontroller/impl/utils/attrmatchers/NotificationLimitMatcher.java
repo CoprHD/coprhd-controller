@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,7 +27,8 @@ public class NotificationLimitMatcher extends AttributeMatcher {
     }
 
     @Override
-    protected List<StoragePool> matchStoragePoolsWithAttributeOn(List<StoragePool> allPools, Map<String, Object> attributeMap) {
+    protected List<StoragePool> matchStoragePoolsWithAttributeOn(List<StoragePool> allPools, Map<String, Object> attributeMap,
+            StringBuffer errorMessage) {
         List<StoragePool> filteredPools = new ArrayList<StoragePool>();
         _logger.info("started matching pools with notification limit.");
         for (StoragePool pool : allPools) {
@@ -35,6 +37,10 @@ public class NotificationLimitMatcher extends AttributeMatcher {
                     && system.getSupportNotificationLimit().equals(attributeMap.get(Attributes.support_notification_limit.name()))) {
                 filteredPools.add(pool);
             }
+        }
+        if (CollectionUtils.isEmpty(filteredPools)) {
+            errorMessage.append("No Matching pools found with support notification limit");
+            _logger.error(errorMessage.toString());
         }
         return filteredPools;
     }

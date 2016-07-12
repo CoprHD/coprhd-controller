@@ -54,11 +54,9 @@ import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
-import com.emc.storageos.db.client.util.SizeUtil;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
-import com.emc.storageos.model.block.VolumeCreate;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.AttributeMatcher;
 import com.emc.storageos.volumecontroller.AttributeMatcher.Attributes;
@@ -280,10 +278,14 @@ public class StorageScheduler implements Scheduler {
         // StorageSystem that the source volume was created against.
         List<StoragePool> matchedPools = getMatchingPools(vArray, vPool, capabilities, attributeMap);
         if (matchedPools == null || matchedPools.isEmpty()) {
-            _log.warn("VArray {} does not have storage pools which match VPool {} to clone volume {}.", new Object[] { vArray.getId(),
-                    vPool.getId(), blockObject.getId() });
+            StringBuffer errMes = new StringBuffer();
+            if (attributeMap.get(AttributeMatcher.ERROR_MESSAGE) != null) {
+                errMes = (StringBuffer) attributeMap.get(AttributeMatcher.ERROR_MESSAGE);
+            }
+            _log.warn("VArray {} does not have storage pools which match VPool {} to clone volume {}. {}", new Object[] { vArray.getId(),
+                    vPool.getId(), blockObject.getId(), errMes });
             throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarrayForClones(vPool.getLabel(), vArray.getLabel(),
-                    blockObject.getId());
+                    blockObject.getId(), errMes.toString());
         }
 
         _log.info(String.format("Found %s candidate pools for placement of %s clone(s) of volume %s .",
@@ -535,24 +537,29 @@ public class StorageScheduler implements Scheduler {
             attributeMap.putAll(optionalAttributes);
         }
         _log.info("Populated attribute map: {}", attributeMap);
-
+        StringBuffer errorMessage = new StringBuffer();
         // Execute basic precondition check to verify that vArray has active storage pools in the vPool.
         // We will return a more accurate error condition if this basic check fails.
         List<StoragePool> matchedPools = _matcherFramework.matchAttributes(
                 matchedPoolsForCos, attributeMap, _dbClient, _coordinator,
-                AttributeMatcher.BASIC_PLACEMENT_MATCHERS);
+                AttributeMatcher.BASIC_PLACEMENT_MATCHERS, errorMessage);
         if (matchedPools == null || matchedPools.isEmpty()) {
             _log.warn("vPool {} does not have active storage pools in vArray  {} .",
                     vpool.getId(), varray.getId());
-            throw APIException.badRequests.noStoragePoolsForVpoolInVarray(varray.getLabel(), vpool.getLabel());
+            throw APIException.badRequests.noStoragePools(varray.getLabel(), vpool.getLabel(), errorMessage.toString());
         }
+
+        errorMessage.setLength(0);
 
         // Matches the pools against the VolumeParams.
         // Use a set of matched pools returned from the basic placement matching as the input for this call.
         matchedPools = _matcherFramework.matchAttributes(
                 matchedPools, attributeMap, _dbClient, _coordinator,
-                AttributeMatcher.PLACEMENT_MATCHERS);
+                AttributeMatcher.PLACEMENT_MATCHERS, errorMessage);
         if (matchedPools == null || matchedPools.isEmpty()) {
+            if (optionalAttributes != null) {
+                optionalAttributes.put(AttributeMatcher.ERROR_MESSAGE, errorMessage);
+            }
             _log.warn("Varray {} does not have storage pools which match vpool {} properties and have specified  capabilities.",
                     varray.getId(), vpool.getId());
             return storagePools;

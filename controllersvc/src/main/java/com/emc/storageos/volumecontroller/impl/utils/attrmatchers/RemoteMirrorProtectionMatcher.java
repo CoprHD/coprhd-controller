@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,7 +51,8 @@ public class RemoteMirrorProtectionMatcher extends AttributeMatcher {
 
     @Override
     protected List<StoragePool> matchStoragePoolsWithAttributeOn(
-            List<StoragePool> allPools, Map<String, Object> attributeMap) {
+            List<StoragePool> allPools, Map<String, Object> attributeMap,
+            StringBuffer errorMessage) {
         Map<String, List<String>> remoteCopySettings = (Map<String, List<String>>)
                 attributeMap.get(Attributes.remote_copy.toString());
         _logger.info("Pools matching remote protection  Started :  {} ",
@@ -95,6 +97,13 @@ public class RemoteMirrorProtectionMatcher extends AttributeMatcher {
             }
         }
         _logger.info("Pools matching remote mirror protection Ended: {}", Joiner.on("\t").join(getNativeGuidFromPools(matchedPools)));
+        if (CollectionUtils.isEmpty(matchedPools)) {
+            Set<String> copyModes = getSupportedCopyModesFromGivenRemoteSettings(remoteCopySettings);
+            errorMessage.append(String.format("No matching storage pools as associated Storage System is not SRDF supported or "
+                    + "there are no available active RA Groups with the expected copy mode %s", copyModes));
+            _logger.error(errorMessage.toString());
+        }
+
         return matchedPools;
     }
 

@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -70,7 +71,8 @@ public class FileReplicationAttrMatcher extends AttributeMatcher {
 
     @Override
     protected List<StoragePool> matchStoragePoolsWithAttributeOn(
-            List<StoragePool> allPools, Map<String, Object> attributeMap) {
+            List<StoragePool> allPools, Map<String, Object> attributeMap,
+            StringBuffer errorMessage) {
 
         Map<String, List<String>> remoteCopySettings = (Map<String, List<String>>)
                 attributeMap.get(Attributes.file_replication.toString());
@@ -169,6 +171,10 @@ public class FileReplicationAttrMatcher extends AttributeMatcher {
             } else {
                 _logger.info("Invalid replication type given {}", replicationType);
             }
+        }
+        if (CollectionUtils.isEmpty(matchedPools)) {
+            errorMessage.append("No matching storage pool found for File replication");
+            _logger.error(errorMessage.toString());
         }
         _logger.info("Pools matching file replication protection Ended: {}", Joiner.on("\t").join(getNativeGuidFromPools(matchedPools)));
         return matchedPools;

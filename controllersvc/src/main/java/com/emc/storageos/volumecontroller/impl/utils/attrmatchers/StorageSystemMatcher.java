@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,7 +44,8 @@ public class StorageSystemMatcher extends AttributeMatcher {
      */
     @Override
     @SuppressWarnings("unchecked")
-    public List<StoragePool> matchStoragePoolsWithAttributeOn(List<StoragePool> pools, Map<String, Object> attributeMap) {
+    public List<StoragePool> matchStoragePoolsWithAttributeOn(List<StoragePool> pools, Map<String, Object> attributeMap,
+            StringBuffer errorMessage) {
         List<StoragePool> matchedPools = new ArrayList<StoragePool>();
 
         Set<String> systems = (Set<String>) attributeMap.get(Attributes.storage_system
@@ -58,6 +60,11 @@ public class StorageSystemMatcher extends AttributeMatcher {
         }
         _logger.info("{} pools are matching with systems after matching.",
                 matchedPools.size());
+        if (CollectionUtils.isEmpty(matchedPools)) {
+            errorMessage.append(String.format("No matching storage pools for the Storage systems : %s", systems));
+            _logger.error(errorMessage.toString());
+        }
+
         return matchedPools;
     }
 

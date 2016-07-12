@@ -10,6 +10,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,7 +64,8 @@ public class VNXBlockAutoTieringPolicyMatcher extends AttributeMatcher {
     }
 
     @Override
-    protected List<StoragePool> matchStoragePoolsWithAttributeOn(List<StoragePool> pools, Map<String, Object> attributeMap) {
+    protected List<StoragePool> matchStoragePoolsWithAttributeOn(List<StoragePool> pools, Map<String, Object> attributeMap,
+            StringBuffer errorMessage) {
         _logger.info("Auto Tiering Policy Matcher Started :" + Joiner.on("\t").join(getNativeGuidFromPools(pools)));
 
         String autoTieringPolicyName = attributeMap.get(Attributes.auto_tiering_policy_name.toString()).toString();
@@ -79,7 +81,14 @@ public class VNXBlockAutoTieringPolicyMatcher extends AttributeMatcher {
          */
 
         /** Run Ranking Algorithm to get matched Pools on VNX */
-        return returnMatchedVNXPoolsForGivenAutoTieringPolicy(pools, autoTieringPolicyName);
+        List<StoragePool> filteredPoolList = returnMatchedVNXPoolsForGivenAutoTieringPolicy(pools, autoTieringPolicyName);
+
+        if (CollectionUtils.isEmpty(filteredPoolList)) {
+            errorMessage.append(String.format("Storage Pools are not available for VNX fast policy %s", autoTieringPolicyName));
+            _logger.info(errorMessage.toString());
+        }
+
+        return filteredPoolList;
     }
 
     /**

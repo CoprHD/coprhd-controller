@@ -9,6 +9,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,7 +49,8 @@ public class CapacityMatcher extends AttributeMatcher {
     }
 
     @Override
-    protected List<StoragePool> matchStoragePoolsWithAttributeOn(List<StoragePool> pools, Map<String, Object> attributeMap) {
+    protected List<StoragePool> matchStoragePoolsWithAttributeOn(List<StoragePool> pools, Map<String, Object> attributeMap,
+            StringBuffer errorMessage) {
         _log.info("Pools Matching capacity  Started:" + Joiner.on("\t").join(getNativeGuidFromPools(pools)));
         List<StoragePool> filteredPoolList = new ArrayList<StoragePool>(pools);
         Long resourceSize = (Long) attributeMap.get(Attributes.size.toString());
@@ -73,6 +75,11 @@ public class CapacityMatcher extends AttributeMatcher {
             if (!poolMatchesCapacity(pool, requiredCapacity, resourceSize, true, supportsThinProvisioning, thinVolumePreAllocationSize)) {
                 filteredPoolList.remove(pool);
             }
+        }
+
+        if (CollectionUtils.isEmpty(filteredPoolList)) {
+            errorMessage.append("No available free space");
+            _log.error(errorMessage.toString());
         }
         _log.info("Pools Matching capacity Ended :" + Joiner.on("\t").join(getNativeGuidFromPools(filteredPoolList)));
         return filteredPoolList;

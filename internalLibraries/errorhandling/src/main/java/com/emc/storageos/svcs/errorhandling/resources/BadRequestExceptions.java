@@ -942,7 +942,7 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_NO_PLACEMENT_FOUND)
     public BadRequestException noMatchingRecoverPointStoragePoolsForVpoolAndVarrays(
-            final String vpoolLabel, final Set<String> varrayLabels);
+            final String vpoolLabel, final Set<String> varrayLabels, String errorMessage);
 
     @DeclareServiceCode(ServiceCode.API_NO_PLACEMENT_FOUND)
     public BadRequestException noMatchingStoragePoolsForVpoolAndVarray(final String vpoolLabel,
@@ -950,7 +950,7 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_NO_PLACEMENT_FOUND)
     public BadRequestException noMatchingStoragePoolsForVpoolAndVarrayForClones(final String vpoolLabel,
-            final String varrayLabel, final URI volumeId);
+            final String varrayLabel, final URI volumeId, String errorMessage);
 
     @DeclareServiceCode(ServiceCode.API_NO_PLACEMENT_FOUND)
     public BadRequestException noStoragePoolsForVpoolInVarray(final String varrayLabel, final String vpoolLabel);
@@ -2982,4 +2982,6 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotDeleteSRDFTargetVolume(final String label);
     
+    @DeclareServiceCode(ServiceCode.API_NO_PLACEMENT_FOUND)
+    public BadRequestException noStoragePools(final String varrayLabel, final String vpoolLabel, final String errorMessage);
 }

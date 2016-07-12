@@ -9,7 +9,8 @@ import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
 import java.util.List;
 
 /**
- * Describes consistency replication group on device.
+ * Describes consistency remote replication group on device.
+ * Group always has one source storage system and one target storage system.
  * Instances of this type are discovered from device.
  */
 public class RemoteReplicationGroup {

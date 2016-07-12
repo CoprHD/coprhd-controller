@@ -411,7 +411,7 @@ public class ControllerServiceImpl implements ControllerService {
         _meteringJobConsumer = meteringJobConsumer;
     }
 
-    public void setRemoteReplicationConfigDiscoveryJobConsumer(DataCollectionJobConsumer rrConfigDiscoveryJobConsumer) {
+    public void setRrConfigDiscoveryJobConsumer(DataCollectionJobConsumer rrConfigDiscoveryJobConsumer) {
         _rrConfigDiscoveryJobConsumer = rrConfigDiscoveryJobConsumer;
     }
 

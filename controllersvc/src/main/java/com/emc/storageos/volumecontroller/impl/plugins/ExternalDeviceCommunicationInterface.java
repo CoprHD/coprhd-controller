@@ -19,6 +19,8 @@ import java.util.Set;
 
 import com.emc.storageos.storagedriver.BlockStorageDriver;
 import com.emc.storageos.storagedriver.StorageDriver;
+import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationGroup;
+import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -149,6 +151,8 @@ public class ExternalDeviceCommunicationInterface extends
             } else if (null != accessProfile.getnamespace()
                     && (accessProfile.getnamespace().equals(com.emc.storageos.db.client.model.StorageSystem.Discovery_Namespaces.REMOTE_REPLICATION_CONFIGURATION.toString()))){
                 _log.info("Discovery of remote replication sets for storage system type {}", accessProfile.getSystemType());
+                discoverRemoteReplicationConfiguration(driver, deviceType);
+                _completer.statusReady(_dbClient, "Completed discovery of remote replication configuration.");
             } else {
                 // discover storage system
                 discoverStorageSystem(driver, accessProfile);
@@ -214,7 +218,7 @@ public class ExternalDeviceCommunicationInterface extends
             storageSystem.setDiscoveryStatus(DiscoveredDataObject.DataCollectionJobStatus.IN_PROGRESS.toString());
             _dbClient.updateObject(storageSystem);
             if (accessProfile.getnamespace().equals(com.emc.storageos.db.client.model.StorageSystem.Discovery_Namespaces.UNMANAGED_VOLUMES.toString())) {
-                unManagedVolumeDiscoverer.discoverUnManagedBlockObjects((BlockStorageDriver)driver, storageSystem, _dbClient, _partitionManager);
+                unManagedVolumeDiscoverer.discoverUnManagedBlockObjects((BlockStorageDriver) driver, storageSystem, _dbClient, _partitionManager);
             }
 
             // discovery succeeds
@@ -543,6 +547,51 @@ public class ExternalDeviceCommunicationInterface extends
         }
     }
 
+    /**
+     * Discover remote replication configuration for the specified storage system type.
+     *
+     * Read all instances of storage systems with specified type.
+     * Call driver to discover remote replication sets and remote replication groups for these systems.
+     * Store this information in database.
+     *
+     * @param driver storage driver
+     * @param storageSystemType storage system type
+     */
+    private void discoverRemoteReplicationConfiguration(DiscoveryDriver driver, String storageSystemType) {
+
+        List<String> systemNativeIds = new ArrayList<>();
+        // get all systems of the required type
+        List<URI> systemUris = _dbClient.queryByType(com.emc.storageos.db.client.model.StorageSystem.class, true);
+        for (URI systemUri : systemUris) {
+            com.emc.storageos.db.client.model.StorageSystem system =
+                    _dbClient.queryObject(com.emc.storageos.db.client.model.StorageSystem.class, systemUri);
+            if (system != null && system.getSystemType().equalsIgnoreCase(storageSystemType)) {
+                systemNativeIds.add(system.getNativeId());
+            }
+        }
+
+        _log.info("Discover remote replication configuration for the following systems of type {} : {}", storageSystemType, systemNativeIds);
+
+        // call the driver to discover remote configuration
+        List<RemoteReplicationSet> driverRemoteReplicationSets = new ArrayList<>();
+        DriverTask task = driver.discoverRemoteReplicationSets(systemNativeIds, driverRemoteReplicationSets);
+        // process discovery results.
+        // todo: need to implement support for async case.
+        if (task.getStatus() == DriverTask.TaskStatus.READY)  {
+            // process driver remote replication sets and build data base objects for them.
+            processDriverRemoteReplicationSets(driverRemoteReplicationSets);
+        } else {
+            String errorMsg = String.format("Failed to discover remote replication configuration for type %s",
+                    storageSystemType);
+            throw new ExternalDeviceCollectionException(false, ServiceCode.DISCOVERY_ERROR,
+                    null, errorMsg, null, null);
+        }
+//
+//        String nativeGuid = NativeGUIDGenerator.generateNativeGuid(accessProfile.getSystemType(),
+//                driverStorageSystem.getNativeId())
+
+    }
+
     private void prepareNewPort(com.emc.storageos.db.client.model.StoragePort storagePort, StoragePort driverPort) {
 
         storagePort.setId(URIUtil.createId(com.emc.storageos.db.client.model.StoragePort.class));
@@ -643,5 +692,49 @@ public class ExternalDeviceCommunicationInterface extends
                 }
             }
         }
+    }
+
+    /**
+     * Process driver remote replication sets and builds corresponding persistent objects..
+     *
+     * @param driverRRSets driver model remote replication sets
+     */
+    private void processDriverRemoteReplicationSets(List<RemoteReplicationSet> driverRRSets) {
+
+        // For each driver set create persistent set. If a set has groups, process groups from this set.
+        List<com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet> systemSets =
+                new ArrayList<com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet>();
+
+        List<com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup> systemGroups =
+                new ArrayList<com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup>();
+        for (RemoteReplicationSet driverSet : driverRRSets) {
+            com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet systemRRSet =
+                    processDriverRRSet(driverSet);
+            systemSets.add(systemRRSet);
+
+            List<com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup> systemRRGroups =
+                    processDriverRRGroups(driverSet.getReplicationGroups());
+            systemGroups.addAll(systemRRGroups);
+        }
+
+        // check which system sets/groups we need to update and which we need to create
+
+    }
+
+    private com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet
+             processDriverRRSet(RemoteReplicationSet driverSet) {
+        com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet systemSet =
+                new com.emc.storageos.db.client.model.remotereplication.RemoteReplicationSet();
+        return systemSet;
+    }
+
+    private List<com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup>
+               processDriverRRGroups(Set<RemoteReplicationGroup> driverGroups) {
+
+        List<com.emc.storageos.db.client.model.remotereplication.RemoteReplicationGroup> systemGroups =
+                new ArrayList<>();
+
+        return systemGroups;
+
     }
 }

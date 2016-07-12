@@ -258,6 +258,7 @@ public class DataCollectionJobScheduler {
         }
 
         if (enableRemoteReplicationConfigAutoDiscovery) {
+            _logger.info("Auto discovery of remote replication configuration is enabled.");
             JobIntervals intervals = JobIntervals.get(ControllerServiceImpl.RR_DISCOVERY);
             schedulingProcessor.addScheduledTask(new DiscoveryScheduler(ControllerServiceImpl.RR_DISCOVERY),
                     intervals.getInitialDelay(),

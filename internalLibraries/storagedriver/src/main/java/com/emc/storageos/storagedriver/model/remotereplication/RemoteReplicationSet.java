@@ -20,7 +20,7 @@ import java.util.Set;
  */
 public class RemoteReplicationSet {
 
-    // Device native id of the replication set. Type: Output.
+    // Device native id of the replication set. Identifies replication set for driver. Type: Output.
     private String nativeId;
 
     // Display name of the replication set. Type: Output.
@@ -65,7 +65,10 @@ public class RemoteReplicationSet {
     /**
      * Defines replication modes supported for elements of this set.
      */
-    private Set<ReplicationMode> supportedReplicationMode;
+    private Set<ReplicationMode> supportedReplicationModes;
+
+    // When replication link operations are supported on the SET level, defines link mode.
+    private ReplicationMode replicationMode;
 
     /**
      * State of replication link.
@@ -110,5 +113,83 @@ public class RemoteReplicationSet {
     private List<CapabilityInstance> capabilities;
 
 
+    public String getNativeId() {
+        return nativeId;
+    }
 
+    public void setNativeId(String nativeId) {
+        this.nativeId = nativeId;
+    }
+
+    public String getDisplayName() {
+        return displayName;
+    }
+
+    public void setDisplayName(String displayName) {
+        this.displayName = displayName;
+    }
+
+    public Map<String, Set<ReplicationRole>> getSystemMap() {
+        return systemMap;
+    }
+
+    public void setSystemMap(Map<String, Set<ReplicationRole>> systemMap) {
+        this.systemMap = systemMap;
+    }
+
+    public Set<ReplicationLinkGranularity> getSupportedReplicationLinkGranularity() {
+        return supportedReplicationLinkGranularity;
+    }
+
+    public void setSupportedReplicationLinkGranularity(Set<ReplicationLinkGranularity> supportedReplicationLinkGranularity) {
+        this.supportedReplicationLinkGranularity = supportedReplicationLinkGranularity;
+    }
+
+    public Set<ReplicationMode> getSupportedReplicationModes() {
+        return supportedReplicationModes;
+    }
+
+    public void setSupportedReplicationModes(Set<ReplicationMode> supportedReplicationModes) {
+        this.supportedReplicationModes = supportedReplicationModes;
+    }
+
+    public ReplicationMode getReplicationMode() {
+        return replicationMode;
+    }
+
+    public void setReplicationMode(ReplicationMode replicationMode) {
+        this.replicationMode = replicationMode;
+    }
+
+    public ReplicationState getReplicationState() {
+        return replicationState;
+    }
+
+    public void setReplicationState(ReplicationState replicationState) {
+        this.replicationState = replicationState;
+    }
+
+    public Set<ElementType> getSupportedElementTypes() {
+        return supportedElementTypes;
+    }
+
+    public void setSupportedElementTypes(Set<ElementType> supportedElementTypes) {
+        this.supportedElementTypes = supportedElementTypes;
+    }
+
+    public Set<RemoteReplicationGroup> getReplicationGroups() {
+        return replicationGroups;
+    }
+
+    public void setReplicationGroups(Set<RemoteReplicationGroup> replicationGroups) {
+        this.replicationGroups = replicationGroups;
+    }
+
+    public List<CapabilityInstance> getCapabilities() {
+        return capabilities;
+    }
+
+    public void setCapabilities(List<CapabilityInstance> capabilities) {
+        this.capabilities = capabilities;
+    }
 }

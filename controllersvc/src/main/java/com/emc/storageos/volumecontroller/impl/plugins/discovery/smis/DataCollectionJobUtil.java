@@ -596,6 +596,8 @@ public class DataCollectionJobUtil {
             // todo: temp before StorageSystemType table is merged
         } else if (nameSpace != null && nameSpace.equals(StorageSystem.Discovery_Namespaces.REMOTE_REPLICATION_CONFIGURATION.toString())) {
             accessProfile.setSystemType(storageDevice.getSystemType());
+            accessProfile.setnamespace(nameSpace);
+            _logger.info("Set name space in profile {}", nameSpace);
         } else if (StorageSystem.Type.isDriverManagedStorageSystem(storageDevice.getSystemType())) {
             accessProfile.setSystemType(storageDevice.getSystemType());
             accessProfile.setIpAddress(storageDevice.getIpAddress());

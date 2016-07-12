@@ -643,7 +643,9 @@ public class ColumnField {
     }
 
     private CompositeColumnName getColumnName(CompositeColumnName column, String value, boolean noIndex) {
-        column.setValue(UTF8Serializer.instance.serialize(value));
+        if (value != null) {
+            column.setValue(UTF8Serializer.instance.serialize(value));
+        }
         column.setNoIndex(noIndex);
         return column;
     }

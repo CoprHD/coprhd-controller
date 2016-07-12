@@ -2523,11 +2523,6 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             if (exp == null) {
                 _log.info("Ignoring file system {}, export {} not found", fsPath, expId);
                 return false;
-                /*
-                 * } else if (exp.getSecurityFlavors().size() > 1) {
-                 * _log.info("Ignoring file system {}, multiple security flavors {} found", fsPath, exp.getSecurityFlavors().toString());
-                 * return false;
-                 */
             } else if (exp.getPaths().size() > 1) {
                 for (String expPath : exp.getPaths()) {
                     if (!expPath.equalsIgnoreCase(fsPath) && !expPath.startsWith(fsPath + "/")) {

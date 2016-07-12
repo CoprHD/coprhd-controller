@@ -279,7 +279,7 @@ angular.module("portalApp").controller({
         			$http.get(routes.FileSystems_fileSystemExportsJson(), data).success(setData);
         		}
     		} else {
-    			$scope.rule.security = ["sys"];
+    			$scope.rule.security = "sys";
         		$scope.rule.anon = "root";
         		$scope.rule.endpoints = [];
         		$scope.rule.endpoints.push(angular.copy($scope.add));

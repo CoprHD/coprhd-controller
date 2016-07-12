@@ -744,7 +744,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         // set security type
         // Need to use "unix" instead of "sys" . Isilon requires "unix", not
         // "sys".
-
+        // input export may contain one or more security types in a string separated by comma.
         ArrayList<String> secFlavors = new ArrayList<>();
         for (String securityType : expRule.getSecFlavor().split(",")) {
             securityType = securityType.trim();
@@ -1577,8 +1577,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             if (exportModify != null && !exportModify.isEmpty()) {
                 for (ExportRule existingRule : exportsToprocess) {
                     for (ExportRule newExportRule : exportModify) {
-                        // <TODO>
-                        // List of sec type and compare both list of sec!!
                         if (newExportRule.getSecFlavor().equals(existingRule.getSecFlavor())) {
                             newExportRule.setDeviceExportId(existingRule.getDeviceExportId());
                             exportsToModify.add(newExportRule);

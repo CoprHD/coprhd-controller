@@ -762,7 +762,7 @@ public class FileService extends TaskResourceService {
 
         _log.info("Export security type {}", param.getSecurityType());
         for (String sectype : param.getSecurityType().split(",")) {
-            ArgValidator.checkFieldValueFromEnum(sectype, "type",
+            ArgValidator.checkFieldValueFromEnum(sectype.trim(), "type",
                     EnumSet.allOf(FileShareExport.SecurityTypes.class));
         }
 

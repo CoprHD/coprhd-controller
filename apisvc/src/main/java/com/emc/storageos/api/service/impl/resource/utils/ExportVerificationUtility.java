@@ -727,7 +727,7 @@ public class ExportVerificationUtility {
             exportRule.setIsToProceed(true, ExportOperationErrorType.NO_ERROR);
             for (String securityType : exportRule.getSecFlavor().split(",")) {
                 if (!securityType.trim().isEmpty()) {
-                    secTypes.add(securityType);
+                    secTypes.add(securityType.trim());
                     ExportSecurityType secType = ExportSecurityType.valueOf(securityType.trim().toUpperCase());
                     if (secType == null) {
                         exportRule.setIsToProceed(false,

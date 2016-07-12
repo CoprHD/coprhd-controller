@@ -49,10 +49,10 @@ public class VPlexDrillDownParser {
         }
     };
     public class Node {
-        NodeType type;
-        String arg1;
-        String arg2;
-        List<Node> children = new ArrayList<Node>();
+        private NodeType type;
+        private String arg1;
+        private String arg2;
+        private List<Node> children = new ArrayList<Node>();
         Node(NodeType type, String [] lineArgs) {
             this.type = type;
             if (lineArgs.length > 1) {
@@ -105,11 +105,11 @@ public class VPlexDrillDownParser {
     }
     
 
-    int currentLine = 0;
+    private int currentLine = 0;
     // drill-down text split up by lines
-    String[] lines;
+    private String[] lines;
     // arguments within the current line
-    String[] lineargs;
+    private String[] lineargs;
     public VPlexDrillDownParser(String drillDownString) {
         if (drillDownString == null) {
             return;

@@ -739,6 +739,7 @@
                 <entry key="rp" value-ref="rpVplexConsistencyGroupManager"/>
             </map>
         </property>
+        <property name="validator" ref="validator"/>
     </bean>
     
     <bean id="vplexlockmgr" class="com.emc.storageos.vplexcontroller.VPlexApiLockManager">

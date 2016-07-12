@@ -22,6 +22,7 @@ import com.emc.storageos.vplex.api.VPlexApiFactory;
 import com.emc.storageos.vplex.api.VPlexDeviceInfo;
 import com.emc.storageos.vplex.api.VPlexDistributedDeviceInfo;
 import com.emc.storageos.vplex.api.VPlexExtentInfo;
+import com.emc.storageos.vplex.api.VPlexResourceInfo;
 import com.emc.storageos.vplex.api.VPlexStorageVolumeInfo;
 import com.emc.storageos.vplex.api.VPlexVirtualVolumeInfo;
 import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
@@ -57,32 +58,79 @@ public class VPlexSystemValidator extends AbstractSystemValidator {
 	private void validateVolume(Volume virtualVolume, boolean delete, boolean remediate, StringBuilder msgs, ValCk... checks) {
 		List<ValCk> checkList = Arrays.asList(checks);
 		String volumeId = String.format("%s (%s)(%s)", virtualVolume.getLabel(), virtualVolume.getNativeGuid(), virtualVolume.getId());
+		
+		// Look up the virtual volume info using the deviceLabel in the DB
 		VPlexVirtualVolumeInfo vvinfo = null;
 		try {
 		    vvinfo = client.findVirtualVolumeAndUpdateInfo(virtualVolume.getDeviceLabel());
 		} catch (VPlexApiException ex) {
 		    log.info(ex.getMessage());
 		}
+
 		if (vvinfo == null) {
-		    // Didn't find the virtual volume. Error if we're not deleting. 
+		    try {
+		        // Didn't find the virtual volume. Look at the storage volume, and from that determine
+		        // the deviceName. Then lookup the Deivce or DistributedDevice and check to see if
+		        // the device has been reassigned to a different virtual volume.
+		        Volume storageVolume = VPlexUtil.getVPLEXBackendVolume(virtualVolume, true, dbClient, false);
+		        if (storageVolume != null) {
+		            StorageSystem system = dbClient.queryObject(StorageSystem.class, storageVolume.getStorageController());
+		            // Look up the corresponding device name to our Storage Volumej
+		            String deviceName  = client.getDeviceForStorageVolume(storageVolume.getNativeId(),
+		                    storageVolume.getWWN(), system.getSerialNumber());
+		            if (deviceName == null) {
+		                if (!delete) {
+		                    // We didn't find a device name for the storage volume. Error if not deleting.
+		                    logDiff(volumeId, "Vplex device-name", system.getSerialNumber() + "-" + storageVolume.getNativeId(), "<not-found>");
+		                    return;
+		                }
+		            }
+		            if (!deviceName.matches(VPlexApiConstants.STORAGE_VOLUME_NOT_IN_USE)) {
+		                String volumeType = VPlexApiConstants.LOCAL_VIRTUAL_VOLUME;
+		                if (virtualVolume.getAssociatedVolumes() != null && virtualVolume.getAssociatedVolumes().size() > 1) {
+	                        volumeType = VPlexApiConstants.DISTRIBUTED_VIRTUAL_VOLUME;
+	                    }
+	                    VPlexResourceInfo resourceInfo = client.getDeviceStructure(deviceName, volumeType);
+	                    if (resourceInfo instanceof VPlexDeviceInfo) {
+	                        VPlexDeviceInfo localDeviceInfo = (VPlexDeviceInfo) resourceInfo;
+	                        String virtualVolumeName = localDeviceInfo.getVirtualVolume();
+	                        if (virtualVolumeName != null && !virtualVolumeName.equals(virtualVolume.getDeviceLabel())) {
+	                            logDiff(volumeId, "virtual-volume name", virtualVolume.getDeviceLabel(), virtualVolumeName);
+	                        }
+	                    } else if (resourceInfo instanceof VPlexDistributedDeviceInfo) {
+	                        VPlexDistributedDeviceInfo distDeviceInfo = (VPlexDistributedDeviceInfo) resourceInfo;
+	                        String virtualVolumeName = distDeviceInfo.getVirtualVolume();
+	                        if (virtualVolumeName != null && !virtualVolumeName.equals(virtualVolume.getDeviceLabel())) {
+                                logDiff(volumeId, "virtual-volume name", virtualVolume.getDeviceLabel(), virtualVolumeName);
+                            } 
+	                    }
+		            }
+		        }
+		    } catch (VPlexApiException ex) {
+		        log.info("Unable to determine if device reused: " + volumeId, ex);
+		        throw ex;
+		    }
 		    if (!delete) {
+		        // If we didn't log an error above indicating that the volume was reused,
+		        // and we are not deleting, it is still an error.
+		        // If we are deleting we won't error if it's just not there.
 		        logDiff(volumeId, "virtual-volume", virtualVolume.getDeviceLabel(), "no corresponding virtual volume information");
 		    }
 		    return;
 		}
 		
 		if (checkList.contains(ValCk.ID)) {
-			if (!virtualVolume.getNativeId().equals(vvinfo.getName())) {
-				logDiff(volumeId, "native-id", virtualVolume.getNativeId(), vvinfo.getName());
+			if (!virtualVolume.getDeviceLabel().equals(vvinfo.getName())) {
+				logDiff(volumeId, "native-id", virtualVolume.getDeviceLabel(), vvinfo.getName());
 			}
 			if (!NullColumnValueGetter.isNullValue(virtualVolume.getWWN()) && vvinfo.getWwn() != null
 					&& !virtualVolume.getWWN().equalsIgnoreCase(vvinfo.getWwn())) {
 				logDiff(volumeId, "wwn", virtualVolume.getWWN(), vvinfo.getWwn());
 			}
-			if (virtualVolume.getAllocatedCapacity() != vvinfo.getCapacityBytes()) {
-				logDiff(volumeId, "capacity", virtualVolume.getAllocatedCapacity().toString(), vvinfo.getCapacityBytes().toString());
+			if (!virtualVolume.getProvisionedCapacity().equals(vvinfo.getCapacityBytes())) {
+				logDiff(volumeId, "capacity", virtualVolume.getProvisionedCapacity().toString(), vvinfo.getCapacityBytes().toString());
 			}
-			if (!virtualVolume.getAssociatedVolumes().isEmpty()) {
+			if (virtualVolume.getAssociatedVolumes() != null && !virtualVolume.getAssociatedVolumes().isEmpty()) {
 				String locality = virtualVolume.getAssociatedVolumes().size() > 1 ? 
 						VPlexApiConstants.DISTRIBUTED_VIRTUAL_VOLUME : VPlexApiConstants.LOCAL_VIRTUAL_VOLUME;
 				if (!locality.equalsIgnoreCase(vvinfo.getLocality())) {

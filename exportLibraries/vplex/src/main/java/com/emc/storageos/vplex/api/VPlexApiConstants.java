@@ -316,5 +316,8 @@ public class VPlexApiConstants {
 
     // delimiter for cause in VPLEX API error responses
     public static final String CAUSE_DELIM = "cause:";
+    
+    // Match string for device name when a Storage Volume is not used (either claimed or unclaimed)
+    public static final String STORAGE_VOLUME_NOT_IN_USE = "Storage-volume.*is not in use.*";
 
 }

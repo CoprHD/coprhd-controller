@@ -436,19 +436,12 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 args.addFileShare(fsObj);
                 args.setFileOperation(isFile);
 
-                // Acquire lock for VNXFILE Storage System
-                acquireStepLock(storageObj, opId);
-                WorkflowStepCompleter.stepExecuting(opId);
                 BiosCommandResult result = getDevice(storageObj.getSystemType()).doDeleteSnapshot(storageObj, args);
                 if (result.getCommandPending()) {
                     return;
                 }
-                if (!result.isCommandSuccess() && !result.getCommandPending()) {
-                    WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
-                }
                 snapshotObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
                 if (result.isCommandSuccess()) {
-                    WorkflowStepCompleter.stepSucceded(opId);
                     snapshotObj.setInactive(true);
                     // delete the corresponding export rules if available.
                     args.addSnapshot(snapshotObj);

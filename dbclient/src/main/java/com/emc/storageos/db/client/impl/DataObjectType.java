@@ -248,7 +248,9 @@ public class DataObjectType {
             Iterator<Column<CompositeColumnName>> it = row.getColumns().iterator();
             while (it.hasNext()) {
                 Column<CompositeColumnName> column = it.next();
-                cleanupList.add(key, column.getName());
+                CompositeColumnName columnName = column.getName();
+                columnName.setValue(column.getByteBufferValue());
+                cleanupList.add(key, columnName);
                 ColumnField columnField = _columnFieldMap.get(column.getName().getOne());
                 if (columnField != null) {
                     columnField.deserialize(column, obj);

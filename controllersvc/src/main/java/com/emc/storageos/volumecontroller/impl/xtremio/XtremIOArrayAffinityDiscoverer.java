@@ -50,7 +50,7 @@ public class XtremIOArrayAffinityDiscoverer {
     private XtremIOClientFactory xtremioRestClientFactory;
 
     // map of IG name to Volume names mapped
-    Map<String, Set<String>> igToVolumesMap = null;
+    private Map<String, Set<String>> igToVolumesMap = null;
 
     public void setXtremioRestClientFactory(XtremIOClientFactory xtremioRestClientFactory) {
         this.xtremioRestClientFactory = xtremioRestClientFactory;
@@ -127,7 +127,7 @@ public class XtremIOArrayAffinityDiscoverer {
     private Set<String> getVolumesForHost(XtremIOClient xtremIOClient, String xioClusterName, Set<String> igNames) throws Exception {
         log.info("Querying volumes for IGs {}", igNames.toArray());
         Set<String> volumeNames = new HashSet<String>();
-        Map<String, Set<String>> igToVolumesMap = getIgToVolumesMap(xtremIOClient, xioClusterName);
+        igToVolumesMap = getIgToVolumesMap(xtremIOClient, xioClusterName);
         for (String igName : igNames) {
             Set<String> igVolumes = igToVolumesMap.get(igName);
             log.info("Volumes {} found for IG {}", igVolumes, igName);
@@ -259,10 +259,10 @@ public class XtremIOArrayAffinityDiscoverer {
     public void findAndUpdatePreferredPools(StorageSystem system, DbClient dbClient) throws Exception {
         /**
          * Get all initiators on array,
-         * Group initiators by IG, also maintain a map of Host to IGs.
+         * Group initiators by IG, also maintain a map of Host to IGs, and a map of IG to Hosts.
          * For each Host entry in the map:
          * - Find if any of its IG has volumes,
-         * - Find the mask type for the pool.
+         * - Find the mask type for the host.
          */
         XtremIOClient xtremIOClient = XtremIOProvUtils.getXtremIOClient(dbClient, system, xtremioRestClientFactory);
         String xioClusterName = xtremIOClient.getClusterDetails(system.getSerialNumber()).getName();
@@ -320,6 +320,7 @@ public class XtremIOArrayAffinityDiscoverer {
                 Map<String, String> preferredPoolMap = new HashMap<String, String>();
                 Set<String> volumeNames = getVolumesForHost(xtremIOClient, xioClusterName, hostToIGNamesMap.get(hostId));
                 if (!volumeNames.isEmpty()) {
+                    log.info("Volumes found for this Host: {}", volumeNames);
                     String maskType = getMaskTypeForHost(xtremIOClient, xioClusterName,
                             igNameToInitiatorsMap, igNameToHostsMap, hostToIGNamesMap.get(hostId), volumeNames);
 

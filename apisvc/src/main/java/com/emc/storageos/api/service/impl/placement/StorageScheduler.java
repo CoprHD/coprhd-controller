@@ -640,6 +640,16 @@ public class StorageScheduler implements Scheduler {
         // get all the candidate arrays
         List<StorageSystem> candidateSystems = _dbClient.queryObject(StorageSystem.class, candidatePoolMap.keySet());
 
+        // all pools that can be used for placement
+        List<StoragePool> poolList = new ArrayList<StoragePool>();
+        for (List<StoragePool> pools : candidatePoolMap.values()) {
+            poolList.addAll(pools);
+        }
+
+        // compute and set storage pools' and arrays' average port usage metrics before sorting
+        _log.info("ArrayAffinity - compute port metrics");
+        _portMetricsProcessor.computeStoragePoolsAvgPortMetrics(poolList);
+
         // sort the arrays, first by host/cluster's preference, then by array's average port metrics
         Collections.sort(candidateSystems, new StorageSystemMetricComparator(arrayToHostWeightMap));
         _log.info("ArrayAffinity - sorted candidate systems {}",
@@ -1049,6 +1059,7 @@ public class StorageScheduler implements Scheduler {
         // If inCG is true, it is similar to the array affinity case.
         // Only difference is that resources will not be placed to more than one preferred systems if inCG is true
         if (capabilities.getResourceCount() > 1 && inCG || capabilities.getArrayAffinity()) {
+            _log.info("Calling performArrayAffinityPlacement");
             List<Recommendation> recommendations = performArrayAffinityPlacement(varrayId, capabilities, candidatePools, inCG);
             if (!recommendations.isEmpty()) {
                 return recommendations;
@@ -1059,6 +1070,7 @@ public class StorageScheduler implements Scheduler {
         }
 
         // this is the behavior without array affinity policy
+        _log.info("Calling getRecommendedPools");
         return getRecommendedPools(varrayId, candidatePools, capabilities, true);
     }
 

@@ -1048,4 +1048,30 @@ public interface BlockStorageDevice {
             String replicationGroupName, Boolean keepRGName, Boolean markInactive, 
             String sourceReplicationGroup, TaskCompleter taskCompleter) throws DeviceControllerException;
     
+    /**
+     * Finds the HLUs for a Host or Hosts within Cluster.
+     * 
+     * @param storage StorageSystem on which HLU needs to be determined
+     * @param hostURIs List of Host URIs. Cluster export will have more than one hosts
+     * @return Map of Host to its Volume HLUs
+     * @throws DeviceControllerException If error occurs during the processing
+     */
+    public Map<URI, List<Integer>> doFindHostHLUs(StorageSystem storage, List<URI> hostURIs) throws DeviceControllerException;
+    /**
+     * Set an Alias for the supplied initiator on a given Storage System
+     * 
+     * @param storage
+     * @param initiator
+     * @param initiatorAlias - User friendly name for the Initiator on the Storage System
+     */
+    public void doInitiatorAliasSet(StorageSystem storage, Initiator initiator, String initiatorAlias) throws Exception;
+
+    /**
+     * Get the Alias for an initiator on the supplied Storage System if Set
+     * 
+     * @param storage
+     * @param initiator
+     */
+    public String doInitiatorAliasGet(StorageSystem storage, Initiator initiator) throws Exception;
+
 }

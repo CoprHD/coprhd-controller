@@ -19,8 +19,11 @@ import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
+import com.emc.storageos.customconfigcontroller.DataSource;
+import com.emc.storageos.customconfigcontroller.DataSourceFactory;
 import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
@@ -80,6 +83,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     private static final Logger _log = LoggerFactory.getLogger(IsilonFileStorageDevice.class);
 
     private static final String IFS_ROOT = "/ifs";
+    private static final String FW_SLASH = "/";
     private static final String VIPR_DIR = "vipr";
 
     private static final String QUOTA = "quota";
@@ -92,8 +96,10 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     private HashMap<String, String> configinfo;
 
     private DbClient _dbClient;
-
+    @Autowired
     private CustomConfigHandler customConfigHandler;
+    @Autowired
+    private DataSourceFactory dataSourceFactory;
 
     private FileMirrorOperations mirrorOperations;
 
@@ -862,21 +868,13 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             _log.info("IsilonFileStorageDevice doCreateFS {} with name {} - start", args.getFsId(), args.getFsName());
             IsilonApi isi = getIsilonDevice(storage);
 
-            String projName = null;
-            String tenantOrg = null;
             VirtualNAS vNAS = args.getvNAS();
             String vNASPath = null;
-
+            // get the custom path from the controller configuration
+            String customPath = getCustomPath(storage, args);
             if (vNAS != null) {
                 vNASPath = vNAS.getBaseDirPath();
                 _log.info("vNAS base directory path: {}", vNASPath);
-            }
-
-            if (args.getProject() != null) {
-                projName = args.getProjectNameWithNoSpecialCharacters();
-            }
-            if (args.getTenantOrg() != null) {
-                tenantOrg = args.getTenantNameWithNoSpecialCharacters();
             }
 
             String usePhysicalNASForProvisioning = customConfigHandler.getComputedCustomConfigValue(
@@ -886,32 +884,21 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             String mountPath = null;
             // Update the mount path as required
             if (vNASPath != null && !vNASPath.trim().isEmpty()) {
-                if (projName != null && tenantOrg != null) {
-                    mountPath = String.format("%1$s/%2$s/%3$s/%4$s/%5$s", vNASPath,
-                            args.getVPoolNameWithNoSpecialCharacters(), args.getTenantNameWithNoSpecialCharacters(),
-                            args.getProjectNameWithNoSpecialCharacters(), args.getFsName());
-                } else {
-                    mountPath = String.format("%1$s/%2$s/%3$s", vNASPath, args.getVPoolNameWithNoSpecialCharacters(),
-                            args.getFsName());
-                }
+                mountPath = vNASPath + FW_SLASH + customPath + FW_SLASH + args.getFsName();
+
             } else if (Boolean.valueOf(usePhysicalNASForProvisioning)) {
-                if (projName != null && tenantOrg != null) {
-                    mountPath = String.format("%1$s/%2$s/%3$s/%4$s/%5$s/%6$s", IFS_ROOT, VIPR_DIR,
-                            args.getVPoolNameWithNoSpecialCharacters(), args.getTenantNameWithNoSpecialCharacters(),
-                            args.getProjectNameWithNoSpecialCharacters(), args.getFsName());
-                } else {
-                    mountPath = String.format("%1$s/%2$s/%3$s/%4$s", IFS_ROOT, VIPR_DIR,
-                            args.getVPoolNameWithNoSpecialCharacters(), args.getFsName());
-                }
+
+                mountPath = IFS_ROOT + FW_SLASH + getSystemAccessZoneNamespace() + FW_SLASH + customPath + FW_SLASH + args.getFsName();
             } else {
                 _log.error(
                         "No suitable access zone found for provisioning. Provisioning on System access zone is disabled");
                 throw DeviceControllerException.exceptions.createFileSystemOnPhysicalNASDisabled();
             }
 
+            // replace extra forward slash with single one
+            mountPath = mountPath.replaceAll("/+", "/");
             _log.info("Mount path to mount the Isilon File System {}", mountPath);
             args.setFsMountPath(mountPath);
-
             args.setFsNativeGuid(args.getFsMountPath());
             args.setFsNativeId(args.getFsMountPath());
             args.setFsPath(args.getFsMountPath());
@@ -2601,5 +2588,47 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         task.setProgress(100);
         _dbClient.updateObject(task);
         return BiosCommandResult.createSuccessfulResult();
+    }
+
+    /**
+     * Gets the file system custom path value from controller configuration
+     * 
+     * @param storage Isilon storage system
+     * @param args FileDeviceInputOutput object
+     * @return evaluated custom path
+     */
+    private String getCustomPath(StorageSystem storage, FileDeviceInputOutput args) {
+
+        String path = "";
+
+        IsilonApi isi = getIsilonDevice(storage);
+        String clusterName = isi.getClusterConfig().getName();
+        DataSource dataSource = dataSourceFactory.createIsilonFileSystemPathDataSource(args.getProject(), args.getVPool(),
+                args.getTenantOrg(), storage);
+        dataSource.addProperty(CustomConfigConstants.ISILON_CLUSTER_NAME, clusterName);
+        String configPath = customConfigHandler.getComputedCustomConfigValue(CustomConfigConstants.ISILON_PATH_CUSTOMIZATION, "isilon",
+                dataSource);
+        _log.debug("The isilon user defined custom path is  {}", configPath);
+        if (configPath != null && !configPath.isEmpty()) {
+            path = args.getPathWithoutSpecialCharacters(configPath);
+        }
+        return path;
+    }
+
+    /**
+     * Get the File System default system access zone from
+     * controller configuration.
+     * 
+     * @return access zone folder name
+     */
+
+    private String getSystemAccessZoneNamespace() {
+
+        String namespace = "";
+
+        namespace = customConfigHandler.getComputedCustomConfigValue(CustomConfigConstants.ISILON_SYSTEM_ACCESS_ZONE_NAMESPACE, "isilon",
+                null);
+
+        return namespace;
     }
 }

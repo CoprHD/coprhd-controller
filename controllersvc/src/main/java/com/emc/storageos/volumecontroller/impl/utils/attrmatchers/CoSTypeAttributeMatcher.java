@@ -49,7 +49,7 @@ public class CoSTypeAttributeMatcher extends AttributeMatcher {
             }
         }
         if (CollectionUtils.isEmpty(matchedPools)) {
-            errorMessage.append(String.format("No matching pools found with Virtual Pool Type attribute %s", vpoolType));
+            errorMessage.append(String.format("No matching pools found with Virtual Pool Type attribute %s. ", vpoolType));
             _logger.error(errorMessage.toString());
         }
         _logger.info("Pools Matching VPoolType Ended: {}", Joiner.on("\t").join(getNativeGuidFromPools(matchedPools)));

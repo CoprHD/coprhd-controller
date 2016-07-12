@@ -57,7 +57,7 @@ public class NeighborhoodsMatcher extends AttributeMatcher {
             }
         }
         if (CollectionUtils.isEmpty(matchedPools)) {
-            errorMessage.append(String.format("vArrays %s does not have Storage Pools", vArrays));
+            errorMessage.append(String.format("vArrays %s does not have Storage Pools. ", vArrays));
             _logger.error(errorMessage.toString());
         }
         _logger.info("Pools Matching vArrays Ended: {}", Joiner.on("\t").join(getNativeGuidFromPools(matchedPools)));

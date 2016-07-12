@@ -52,7 +52,7 @@ public class ActivePoolMatcher extends AttributeMatcher {
         }
 
         if (CollectionUtils.isEmpty(matchedPools)) {
-            errorMessage.append("No active storage pools are available");
+            errorMessage.append("No active storage pools are available. ");
             _logger.error(errorMessage.toString());
         }
         _logger.info("Active Pools Matcher Ended : {}", Joiner.on("\t").join(getNativeGuidFromPools(matchedPools)));

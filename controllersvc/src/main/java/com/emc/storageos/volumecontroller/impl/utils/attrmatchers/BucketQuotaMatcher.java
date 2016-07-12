@@ -57,7 +57,7 @@ private static final Logger _logger = LoggerFactory.getLogger(BucketQuotaMatcher
         }
 
         if (CollectionUtils.isEmpty(filteredPoolList)) {
-            errorMessage.append(String.format("No available capacity for hard quota %d", hardQuota));
+            errorMessage.append(String.format("No available capacity for hard quota %d. ", hardQuota));
             _logger.error(errorMessage.toString());
         }
         _logger.info("Pools Matching Hard quota Ended : {}, {}", hardQuota,

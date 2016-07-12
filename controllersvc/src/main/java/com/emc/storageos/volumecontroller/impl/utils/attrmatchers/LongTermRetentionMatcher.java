@@ -43,7 +43,7 @@ public class LongTermRetentionMatcher extends AttributeMatcher {
         _logger.info("Long Term Retention Matcher Ended : {}", Joiner.on("\t").join(getNativeGuidFromPools(matchedPools)));
 
         if (CollectionUtils.isEmpty(matchedPools)) {
-            errorMessage.append(String.format("No matching stoarge pool with long term retention %s found", retention.toString()));
+            errorMessage.append(String.format("No matching stoarge pool with long term retention %s found. ", retention.toString()));
             _logger.error(errorMessage.toString());
         }
         return matchedPools;

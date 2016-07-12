@@ -173,7 +173,7 @@ public class FileReplicationAttrMatcher extends AttributeMatcher {
             }
         }
         if (CollectionUtils.isEmpty(matchedPools)) {
-            errorMessage.append("No matching storage pool found for File replication");
+            errorMessage.append("No matching storage pool found for File replication. ");
             _logger.error(errorMessage.toString());
         }
         _logger.info("Pools matching file replication protection Ended: {}", Joiner.on("\t").join(getNativeGuidFromPools(matchedPools)));

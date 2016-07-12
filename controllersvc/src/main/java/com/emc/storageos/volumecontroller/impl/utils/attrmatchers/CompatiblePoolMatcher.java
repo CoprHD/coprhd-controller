@@ -49,7 +49,7 @@ public class CompatiblePoolMatcher extends AttributeMatcher {
         _logger.info("Compatible Pools Matcher Ended : {}", Joiner.on("\t").join(getNativeGuidFromPools(matchedPools)));
 
         if (CollectionUtils.isEmpty(matchedPools)) {
-            errorMessage.append("No matching compatible stoarge pool found");
+            errorMessage.append("No matching compatible stoarge pool found. ");
             _logger.error(errorMessage.toString());
         }
         return matchedPools;

@@ -239,7 +239,7 @@ public class ProtectionAttrMatcher extends AttributeMatcher {
         if (CollectionUtils.isEmpty(matchedPools)) {
             errorMessage.append(
                     "No valid protection system could be found for storage pools. "
-                            + "Please check data protection systems to ensure they are not inactive or invalid.");
+                            + "Please check data protection systems to ensure they are not inactive or invalid. ");
         }
         
         _logger.info("Pools matching protection attributes ended. " +

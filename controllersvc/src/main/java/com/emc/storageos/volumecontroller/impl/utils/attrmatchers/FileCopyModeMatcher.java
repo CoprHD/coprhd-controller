@@ -71,7 +71,7 @@ public class FileCopyModeMatcher extends AttributeMatcher {
         }
         
         if(CollectionUtils.isEmpty(matchedPools)){
-            errorMessage.append(String.format("No matching storage pools found for copy mode %s and copy type %s", copyMode, copyType));
+            errorMessage.append(String.format("No matching storage pools found for copy mode %s and copy type %s. ", copyMode, copyType));
             _logger.error(errorMessage.toString());
         }
         _logger.info("Pools matching file replication copy mode  Ended: {}", Joiner.on("\t").join(getNativeGuidFromPools(matchedPools)));

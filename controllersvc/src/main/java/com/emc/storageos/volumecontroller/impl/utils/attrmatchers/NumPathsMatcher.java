@@ -150,7 +150,7 @@ public class NumPathsMatcher extends AttributeMatcher {
             matchedPools.add(pool);
         }
         if (CollectionUtils.isEmpty(matchedPools)) {
-            errorMessage.append(String.format("No storage pool is matching with the VPool maximum path parameter %d", maxPaths));
+            errorMessage.append(String.format("No storage pool is matching with the VPool maximum path parameter %d. ", maxPaths));
             _logger.error(errorMessage.toString());
         }
         _logger.info("NumPathsMatcher maxPaths: " + maxPaths + " passed " + matchedPools.size() + " pools");

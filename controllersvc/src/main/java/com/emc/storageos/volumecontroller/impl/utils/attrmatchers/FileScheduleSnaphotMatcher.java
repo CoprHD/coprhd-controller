@@ -51,7 +51,7 @@ public class FileScheduleSnaphotMatcher extends AttributeMatcher {
             }
         }
         if(CollectionUtils.isEmpty(matchedPools)){
-            errorMessage.append("No matching storage pools found for File snapshot scheduling");
+            errorMessage.append("No matching storage pools found for File snapshot scheduling. ");
             _logger.error(errorMessage.toString());
         }
         _logger.info("FileScheduleSnaphotMatchern Matcher Ended : {}", Joiner.on("\t").join(getNativeGuidFromPools(matchedPools)));

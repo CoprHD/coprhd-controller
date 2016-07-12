@@ -77,7 +77,7 @@ public class ProtocolsAttrMatcher extends AttributeMatcher {
         _logger.info("Pools Matching Protocols Ended: {}", Joiner.on("\t").join(getNativeGuidFromPools(matchedPools)));
 
         if (CollectionUtils.isEmpty(matchedPools)) {
-            errorMessage.append(String.format("No matching storage pools found for the protocols %s", protocolsRequested));
+            errorMessage.append(String.format("No matching storage pools found for the protocols %s. ", protocolsRequested));
             _logger.error(errorMessage.toString());
         }
 

@@ -63,7 +63,7 @@ public class MultiVolumeConsistencyMatcher extends AttributeMatcher {
         _logger.info("Pool Matching MultiVolumeConsistency Matcher Ended:{}",
                 Joiner.on("\t").join(getNativeGuidFromPools(matchedPools)));
         if (CollectionUtils.isEmpty(matchedPools)) {
-            errorMessage.append("No matching stoarge pool found with consistency group support");
+            errorMessage.append("No matching stoarge pool found with consistency group support. ");
             _logger.error(errorMessage.toString());
         }
         return matchedPools;

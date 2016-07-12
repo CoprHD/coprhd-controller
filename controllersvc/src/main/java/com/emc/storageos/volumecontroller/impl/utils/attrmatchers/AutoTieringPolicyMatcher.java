@@ -88,7 +88,7 @@ public class AutoTieringPolicyMatcher extends AttributeMatcher {
         _logger.info("Pools Matching Auto Tiering name Ended:{}",
                 Joiner.on("\t").join(getNativeGuidFromPools(filteredPoolList)));
         if (CollectionUtils.isEmpty(filteredPoolList)) {
-            errorMessage.append("No matching storage pools found with auto tiering policy");
+            errorMessage.append("No matching storage pools found with auto tiering policy. ");
             _logger.error(errorMessage.toString());
         }
 

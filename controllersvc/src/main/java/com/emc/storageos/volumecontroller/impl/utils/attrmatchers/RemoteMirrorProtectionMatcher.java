@@ -100,7 +100,7 @@ public class RemoteMirrorProtectionMatcher extends AttributeMatcher {
         if (CollectionUtils.isEmpty(matchedPools)) {
             Set<String> copyModes = getSupportedCopyModesFromGivenRemoteSettings(remoteCopySettings);
             errorMessage.append(String.format("No matching storage pools as associated Storage System is not SRDF supported or "
-                    + "there are no available active RA Groups with the expected copy mode %s", copyModes));
+                    + "there are no available active RA Groups with the expected copy mode %s. ", copyModes));
             _logger.error(errorMessage.toString());
         }
 

@@ -15,6 +15,7 @@ import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -70,6 +71,11 @@ public class DeviceTypeMatcher extends AttributeMatcher {
         }
         _logger.info("Device Type {} Matcher Ended {} :", deviceType,
                 Joiner.on("\t").join(getNativeGuidFromPools(filteredPools)));
+        
+        if(CollectionUtils.isEmpty(filteredPools)){
+            errorMessage.append(String.format("No matching storage pool available for the given device type %s. ", deviceType));
+            _logger.error(errorMessage.toString());
+        }
         return filteredPools;
     }
 

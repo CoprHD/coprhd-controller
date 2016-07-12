@@ -65,7 +65,7 @@ public class ThinVolumePreAllocationMatcher extends AttributeMatcher {
         _logger.info("Pools Matching ThinVolumePreAllocationPercentage Ended {}, {}", thinVolumePreAllocationPercentage, Joiner
                 .on("\t").join(getNativeGuidFromPools(filteredPoolList)));
         if (CollectionUtils.isEmpty(filteredPoolList)) {
-            errorMessage.append(String.format("No matching storage pools found with thin volume pre allocation percentage %d",
+            errorMessage.append(String.format("No matching storage pools found with thin volume pre allocation percentage %d. ",
                     thinVolumePreAllocationPercentage));
             _logger.error(errorMessage.toString());
         }

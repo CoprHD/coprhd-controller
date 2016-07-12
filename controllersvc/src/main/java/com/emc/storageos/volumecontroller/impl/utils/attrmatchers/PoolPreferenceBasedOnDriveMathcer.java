@@ -75,7 +75,7 @@ public class PoolPreferenceBasedOnDriveMathcer extends AttributeMatcher {
         }
 
         if (CollectionUtils.isEmpty(optimalPools)) {
-            errorMessage.append("No matching pools available for pool preference  based on the drive type");
+            errorMessage.append("No matching pools available for pool preference  based on the drive type. ");
             _logger.error(errorMessage.toString());
         }
         _logger.info("Optimal Pool Selection Matcher Ended {} :", Joiner.on("\t").join(getNativeGuidFromPools(optimalPools)));

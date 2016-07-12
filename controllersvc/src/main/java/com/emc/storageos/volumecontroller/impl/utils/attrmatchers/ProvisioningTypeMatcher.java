@@ -69,7 +69,7 @@ public class ProvisioningTypeMatcher extends AttributeMatcher {
             }
         }
         if (CollectionUtils.isEmpty(filteredPoolList)) {
-            errorMessage.append(String.format("No matching storage pool found for %s provisioning type", provisioningType));
+            errorMessage.append(String.format("No matching storage pool found for %s provisioning type. ", provisioningType));
             _logger.error(errorMessage.toString());
         }
         _logger.info("Pools Matching provisioningType Ended {}, {}", provisioningType,

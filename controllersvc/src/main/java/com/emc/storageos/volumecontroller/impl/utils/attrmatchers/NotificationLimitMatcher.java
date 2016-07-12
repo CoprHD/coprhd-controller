@@ -39,7 +39,7 @@ public class NotificationLimitMatcher extends AttributeMatcher {
             }
         }
         if (CollectionUtils.isEmpty(filteredPools)) {
-            errorMessage.append("No Matching pools found with support notification limit");
+            errorMessage.append("No Matching pools found with support notification limit. ");
             _logger.error(errorMessage.toString());
         }
         return filteredPools;

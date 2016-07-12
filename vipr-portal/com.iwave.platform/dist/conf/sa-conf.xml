@@ -119,6 +119,7 @@
 				<ref bean="catalogServiceService" />
 				<ref bean="executionWindowService" />
 				<ref bean="orderService" />
+                <ref bean="scheduledEventService" />
 				<ref bean="serviceDescriptorService" />
 				<ref bean="userPreferenceService" />
 				<ref bean="catalogPreferenceService" />

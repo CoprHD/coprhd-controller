@@ -40,7 +40,7 @@ public class ScheduleInfo implements Serializable {
     private List<String> dateExceptions;
 
     @XmlElement(name = "hourOfDay", required = true)
-    public Integer getHourOfDayInUTC() {
+    public Integer getHourOfDay() {
         return hourOfDay;
     }
 

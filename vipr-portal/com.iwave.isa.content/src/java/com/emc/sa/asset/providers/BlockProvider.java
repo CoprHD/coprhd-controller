@@ -383,6 +383,55 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getVpoolChangeVolumes(AssetOptionsContext ctx, URI projectId, URI virtualPoolId) {
         return createVolumeOptions(api(ctx), listSourceVolumes(api(ctx), projectId, new VirtualPoolFilter(virtualPoolId)));
     }
+    
+    @Asset("virtualPoolChangeVolumeWithSource")
+    @AssetDependencies({ "project", "blockVirtualPool", "displayJournals" })
+    public List<AssetOption> getVpoolChangeVolumes(AssetOptionsContext ctx, URI projectId, URI virtualPoolId, boolean displayJournals) {
+        info("BBB displayJournals: " + displayJournals);
+        return createVolumeOptions(api(ctx), listSourceVolumes(api(ctx), projectId, new VirtualPoolFilter(virtualPoolId)));        
+    }
+    
+// // VPLEX volumes that don't have reference to this mobility group
+//    List<URI> volumeIds = client.blockVolumes().listBulkIds();
+//    final ResourceFilter<VolumeRestRep> vplexFilter = new VplexVolumeFilter();
+//    List<VolumeRestRep> volumes = client.blockVolumes().getByIds(volumeIds, new ResourceFilter<VolumeRestRep>() {
+//        @Override
+//        public boolean acceptId(URI id) {
+//            return true;
+//        }
+//
+//        @Override
+//        public boolean accept(VolumeRestRep item) {
+//            boolean accept = (item.getVolumeGroups() == null || !contains(item, mobilityGroupId))
+//                                && vplexFilter.accept(item);
+//            if (accept) {
+//                boolean rpProtection = (item.getProtection() != null 
+//                                               && item.getProtection().getRpRep() != null
+//                                               && item.getProtection().getRpRep().getPersonality() != null);
+//                if (rpProtection) {
+//                    // If RP+VPLEX protection specified, only allow RP SOURCE volumes to be listed
+//                    // as candidates for mobility groups. Exclude TARGETs and JOURNALs.
+//                    String personality = item.getProtection().getRpRep().getPersonality();
+//                    if (Volume.PersonalityTypes.TARGET.name().equals(personality)
+//                            || Volume.PersonalityTypes.METADATA.name().equals(personality)) {
+//                        accept = false;
+//                    }
+//                }
+//            }                    
+//            return accept;
+//        }
+//
+//        private boolean contains(VolumeRestRep item, URI mobilityGroup) {
+//            for (RelatedResourceRep vg : item.getVolumeGroups()) {
+//                if (vg.getId().equals(mobilityGroup)) {
+//                    return true;
+//                }
+//            }
+//            return false;
+//        }
+//    });
+    
+    
 
     @Asset("virtualPoolChangeVolumeWithSourceFilter")
     @AssetDependencies({ "project", "blockVirtualPool", "sourceVolumeFilter" })

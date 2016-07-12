@@ -1465,7 +1465,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
 
             // The same restriction applies to the target HA virtual pool
             // when the HA side is being migrated.
-            URI haVArrayURI = VirtualPoolChangeAnalyzer.getHaVarrayURI(currentVPool, _dbClient);
+            URI haVArrayURI = VirtualPoolChangeAnalyzer.getHaVarrayURI(currentVPool);
             if (!NullColumnValueGetter.isNullURI(haVArrayURI)) {
                 // The HA varray is not null so must be distributed.
                 VirtualPool currentHAVpool = VirtualPoolChangeAnalyzer.getHaVpool(currentVPool, _dbClient);
@@ -1570,7 +1570,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
 
         // Now determine if the backend volume in the HA varray
         // needs to be migrated.
-        URI haVarrayURI = VirtualPoolChangeAnalyzer.getHaVarrayURI(currentVpool, _dbClient);
+        URI haVarrayURI = VirtualPoolChangeAnalyzer.getHaVarrayURI(currentVpool);
         if (haVarrayURI != null) {
             VirtualArray haVarray = _dbClient.queryObject(VirtualArray.class, haVarrayURI);
             VirtualPool currentHaVpool = VirtualPoolChangeAnalyzer.getHaVpool(currentVpool, _dbClient);

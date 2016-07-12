@@ -4306,7 +4306,7 @@ public class BlockService extends TaskResourceService {
                         volume.getVirtualArray(), _dbClient);
             } else if (migrateHAVolume) {
                 structureOK = VPlexDeviceController.migrationSupportedForVolume(volume,
-                        VirtualPoolChangeAnalyzer.getHaVarrayURI(currentVpool, _dbClient),
+                        VirtualPoolChangeAnalyzer.getHaVarrayURI(currentVpool),
                         _dbClient);
             }
         }

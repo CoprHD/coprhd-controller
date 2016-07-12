@@ -198,7 +198,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
                 notSuppReasonBuff.append("Incompatible Remote Copy Varray Settings");
             }
             if (isConvertToDistributed) {
-                URI haVarrayURI = getHaVarrayURI(newVpool, dbClient);
+                URI haVarrayURI = getHaVarrayURI(newVpool);
                 URI volumeVarray = volume.getVirtualArray();
                 URI cgURI = volume.getConsistencyGroup();
                 if (haVarrayURI.equals(volumeVarray)) {
@@ -373,7 +373,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
         VirtualPool newHaVpool = null;
         // Get the HA varray specified by the current vpool. If it's
         // null the current vpool does not specify VPLEX distributed HA.
-        URI haVarrayURI = getHaVarrayURI(currentVpool, dbClient);
+        URI haVarrayURI = getHaVarrayURI(currentVpool);
 
         if (haVarrayURI != null) {
             // RP+VPLEX only
@@ -405,12 +405,11 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
      * Gets the HA virtual array specified by the passed virtual pool.
      * 
      * @param vpool A reference to the virtual pool.
-     * @param dbClient A reference to a DB client.
      * 
      * @return The HA virtual array specified by the passed virtual pool
      *         or null if the virtual pool does not specify VPLEX distributed HA.
      */
-    public static URI getHaVarrayURI(VirtualPool vpool, DbClient dbClient) {
+    public static URI getHaVarrayURI(VirtualPool vpool) {
         URI haVarrayURI = null;
         if (VirtualPool.HighAvailabilityType.vplex_distributed.name().equals(vpool.getHighAvailability())) {
             StringMap newHaVpoolMap = vpool.getHaVarrayVpoolMap();
@@ -1615,7 +1614,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
                 currentSourceJournalVpoolId = currentVpool.getId().toString();
             }
 
-            // If the current Source Journal vpool is not set, default it to the known value.
+            // If the new Source Journal vpool is not set, default it to the known value.
             // NOTE: If the new Source Journal varray is not set, we have no way of knowing
             // what it will be, so we can not assume it.
             if (newSourceJournalVpoolId.equals("null")) {
@@ -1630,6 +1629,47 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
                 VirtualPool newSourceJournalVpool = dbClient.queryObject(VirtualPool.class, URI.create(newSourceJournalVpoolId));
                 
                 journalMigrations.put(currentSourceJournalVpool, newSourceJournalVpool);                
+            }            
+            
+            // Only MetroPoint configurations will have Standby Journals
+            if (VirtualPool.vPoolSpecifiesMetroPoint(currentVpool)
+                    && VirtualPool.vPoolSpecifiesMetroPoint(newVpool)) {            
+                // Current Standby Journal varray/vpool
+                String currentStandbyJournalVarrayId = NullColumnValueGetter.getStringValue(currentVpool
+                        .getStandbyJournalVarray());
+                String currentStandbyJournalVpoolId = NullColumnValueGetter.getStringValue(currentVpool
+                        .getStandbyJournalVpool());
+                // New Standby Journal varray/vpool
+                String newStandbyJournalVarrayId = NullColumnValueGetter.getStringValue(newVpool
+                        .getStandbyJournalVarray());
+                String newStandbyJournalVpoolId = NullColumnValueGetter.getStringValue(newVpool
+                        .getStandbyJournalVpool());
+    
+                // If the current Standby Journal varray/vpool are not set, default them to known values.
+                if (currentStandbyJournalVarrayId.equals("null")) {
+                    currentStandbyJournalVarrayId = getHaVarrayURI(currentVpool).toString();
+                }
+                if (currentStandbyJournalVpoolId.equals("null")) {
+                    currentStandbyJournalVpoolId = currentVpool.getId().toString();
+                }
+    
+                // If the new Standby Journal varray/vpool is not set, default it to the known value.
+                if (newStandbyJournalVarrayId.equals("null")) {
+                    newStandbyJournalVarrayId = getHaVarrayURI(newVpool).toString();
+                }
+                if (newStandbyJournalVpoolId.equals("null")) {
+                    newStandbyJournalVpoolId = newVpool.getId().toString();
+                }
+    
+                // Only consider the Standby Journal migration if the varrays are the same and the vpools
+                // are different.
+                if (currentStandbyJournalVarrayId.equals(newStandbyJournalVarrayId)
+                        && !currentStandbyJournalVpoolId.equals(newStandbyJournalVpoolId)) {
+                    VirtualPool currentStandbyJournalVpool = dbClient.queryObject(VirtualPool.class, URI.create(currentStandbyJournalVpoolId));
+                    VirtualPool newStandbyJournalVpool = dbClient.queryObject(VirtualPool.class, URI.create(newStandbyJournalVpoolId));
+                    
+                    journalMigrations.put(currentStandbyJournalVpool, newStandbyJournalVpool);                
+                }
             }
 
             // Check the Targets for potential candidates for migration

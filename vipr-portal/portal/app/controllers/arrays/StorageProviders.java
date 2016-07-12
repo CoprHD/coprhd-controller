@@ -239,7 +239,7 @@ public class StorageProviders extends ViprResourceController {
 
         public String hyperScaleHost;
 
-        public Integer hyperScalePort;
+        public String hyperScalePort;
         
         public URL url;
 
@@ -268,7 +268,7 @@ public class StorageProviders extends ViprResourceController {
             if (StringUtils.isNotEmpty(this.hyperScaleConfPasswd)) {
                 this.secondaryPasswordConfirm = this.hyperScaleConfPasswd;
             }
-            if (StringUtils.isNotEmpty(this.hyperScaleHost)&&StringUtils.isNotEmpty(this.hyperScalePort.toString())) {
+            if (StringUtils.isNotEmpty(this.hyperScaleHost)&&StringUtils.isNotEmpty(this.hyperScalePort)) {
                 this.secondaryURL = "https://"+this.hyperScaleHost+":"+this.hyperScalePort;
             }
         }
@@ -295,7 +295,7 @@ public class StorageProviders extends ViprResourceController {
                 e.getMessage();
             }
             this.hyperScaleHost = url.getHost();
-            this.hyperScalePort = url.getPort();
+            this.hyperScalePort = Integer.toString(url.getPort());
             if (isScaleIOApi()) {
                 this.secondaryUsername = this.userName;
                 this.secondaryPassword = this.password;

@@ -458,6 +458,8 @@ service.defaultCostCodeId=Default Cost Code
 service.field.validation=Invalid field value
 service.unknown.type=UNKNOWN TYPE
 service.unknown.type.description=Field <b>%s</b> is of type <b>%s</b> which is not supported
+service.schedulerAllowed=Scheduler Allowed
+service.schedulerAllowed.helpText=If specified, allow user to schedule recurring orders
 
 serviceField.name=Field
 serviceField.locked=Locked

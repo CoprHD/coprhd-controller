@@ -5,6 +5,7 @@
 package util;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -67,7 +68,11 @@ public class FileUtils {
                     }
                 }
                 exportRuleInfo.setAnon(rule.getAnon());
-                exportRuleInfo.setSecurity(rule.getSecFlavor());
+                List<String> secTypes = new ArrayList<String>();
+                for(String secType:rule.getSecFlavor().split(",")) {
+                	secTypes.add(secType.trim());
+                }
+                exportRuleInfo.setSecurity(secTypes);
                 exportRuleInfo.setEndpointsInfo(infos);
             }
         }
@@ -101,7 +106,7 @@ public class FileUtils {
 
     public static class ExportRuleInfo {
         public String anon;
-        public String security;
+        public List<String> security;
         public List<EndpointInfo> endpoints;
 
         public ExportRuleInfo() {
@@ -111,7 +116,7 @@ public class FileUtils {
             this.anon = anon;
         }
 
-        public void setSecurity(String security) {
+        public void setSecurity(List<String> security) {
             this.security = security;
         }
 

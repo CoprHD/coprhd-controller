@@ -21,6 +21,7 @@ import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.api.service.impl.resource.AbstractBlockServiceApiImpl;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
@@ -143,11 +144,20 @@ public class StorageScheduler implements Scheduler {
 
         // Initialize a list of recommendations to be returned.
         List<Recommendation> recommendations = new ArrayList<Recommendation>();
+        Map<String, Object> attributeMap = new HashMap<String, Object>();
 
         // Get all storage pools that match the passed CoS params and
         // protocols. In addition, the pool must have enough capacity
         // to hold at least one resource of the requested size.
-        List<StoragePool> candidatePools = getMatchingPools(neighborhood, cos, capabilities);
+        List<StoragePool> candidatePools = getMatchingPools(neighborhood, cos, capabilities, attributeMap);
+
+        if (CollectionUtils.isEmpty(candidatePools)) {
+            StringBuffer errorMessage = new StringBuffer();
+            if (attributeMap.get(AttributeMatcher.ERROR_MESSAGE) != null) {
+                errorMessage = (StringBuffer) attributeMap.get(AttributeMatcher.ERROR_MESSAGE);
+            }
+            throw APIException.badRequests.noStoragePools(neighborhood.getLabel(), cos.getLabel(), errorMessage.toString());
+        }
 
         // Get the recommendations for the candidate pools.
         recommendations = getRecommendationsForPools(neighborhood.getId().toString(), candidatePools, capabilities);
@@ -210,7 +220,11 @@ public class StorageScheduler implements Scheduler {
             if (matchedPools == null || matchedPools.isEmpty()) {
                 // TODO fix message and throw service code exception
                 _log.warn("VArray {} does not have storage pools which match VPool {}.", vArray.getId(), vPool.getId());
-                throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(vPool.getLabel(), vArray.getLabel());
+                StringBuffer errorMessage = new StringBuffer();
+                if (attributeMap.get(AttributeMatcher.ERROR_MESSAGE) != null) {
+                    errorMessage = (StringBuffer) attributeMap.get(AttributeMatcher.ERROR_MESSAGE);
+                }
+                throw APIException.badRequests.noStoragePools(vPool.getLabel(), vArray.getLabel(), errorMessage.toString());
             }
 
             // place all mirrors for this storage system in the matched pools

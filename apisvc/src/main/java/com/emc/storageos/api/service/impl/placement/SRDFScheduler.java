@@ -186,12 +186,12 @@ public class SRDFScheduler implements Scheduler {
 
         _log.debug("Schedule storage for {} resource(s) of size {}.",
                 capabilities.getResourceCount(), capabilities.getSize());
-
+        Map<String, Object> attributeMap = new HashMap<String, Object>();
         capabilities.put(VirtualPoolCapabilityValuesWrapper.PERSONALITY, VirtualPoolCapabilityValuesWrapper.SRDF_SOURCE);
         // Get all storage pools that match the passed vpool params and
         // protocols. In addition, the pool must have enough capacity
         // to hold at least one resource of the requested size.
-        List<StoragePool> pools = _blockScheduler.getMatchingPools(varray, vpool, capabilities);
+        List<StoragePool> pools = _blockScheduler.getMatchingPools(varray, vpool, capabilities, attributeMap);
 
         if (pools == null || pools.isEmpty()) {
             _log.error(
@@ -199,8 +199,12 @@ public class SRDFScheduler implements Scheduler {
                             + "match the passed vpool parameters and protocols and/or there are no pools that have enough capacity to "
                             + "hold at least one resource of the requested size.",
                     varray.getLabel());
-            throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(vpool.getLabel(),
-                    varray.getLabel());
+            StringBuffer errorMessage = new StringBuffer();
+            if (attributeMap.get(AttributeMatcher.ERROR_MESSAGE) != null) {
+                errorMessage = (StringBuffer) attributeMap.get(AttributeMatcher.ERROR_MESSAGE);
+            }
+            throw APIException.badRequests.noStoragePools(vpool.getLabel(),
+                    varray.getLabel(), errorMessage.toString());
         }
 
         // skip StoragePools, which had been used as R2 targets for given consistencyGroup earlier.

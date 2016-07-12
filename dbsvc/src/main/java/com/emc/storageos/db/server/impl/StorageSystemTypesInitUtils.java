@@ -8,7 +8,6 @@ package com.emc.storageos.db.server.impl;
 import static java.util.Arrays.asList;
 
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -20,7 +19,6 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.StorageSystemType;
-import com.google.common.collect.Lists;
 
 public class StorageSystemTypesInitUtils {
 
@@ -47,9 +45,11 @@ public class StorageSystemTypesInitUtils {
     private static final String DATA_DOMAIN = "datadomain";
     private static final String DATA_DOMAIN_PROVIDER = "ddmc";
     private static final String ECS = "ecs";
-
+    private static final String CEPH = "ceph";
+    private static final String UNITY = "unity";
+    
     // Default File arrays
-    private static List<String> storageArrayFile = asList(VNX_FILE, ISILON, NETAPP, NETAPPC);
+    private static List<String> storageArrayFile = asList(VNX_FILE, ISILON, NETAPP, NETAPPC, UNITY);
 
     // Default Provider for File
     private static List<String> storageProviderFile = asList(SCALEIOAPI);
@@ -59,7 +59,7 @@ public class StorageSystemTypesInitUtils {
 
     // Default Storage provider for Block
     private static List<String> storageProviderBlock = asList(SMIS, HITACHI_PROVIDER, CINDER, DATA_DOMAIN_PROVIDER, VPLEX, SCALEIO,
-            IBMXIV, XTREMIO);
+            IBMXIV, XTREMIO, UNITY, CEPH);
 
     // Default object arrays
     private static List<String> storageArrayObject = asList(ECS);
@@ -74,6 +74,8 @@ public class StorageSystemTypesInitUtils {
     private static HashMap<String, Boolean> onlyMDM = null;
 
     private static HashMap<String, Boolean> elementManager = null;
+    
+    private static HashMap<String, Boolean> secretKey = null;
 
     // Name of Array and its Display Name mapping
     private static HashMap<String, String> nameDisplayNameMap = null;
@@ -275,7 +277,9 @@ public class StorageSystemTypesInitUtils {
             if (nonSslPortMap.get(block) != null) {
                 ssType.setNonSslPort(nonSslPortMap.get(block));
             }
-
+            if (secretKey.get(block) != null) {
+                ssType.setIsSecretKey(secretKey.get(block));
+            }
             dbClient.createObject(ssType);
         }
     }
@@ -312,6 +316,9 @@ public class StorageSystemTypesInitUtils {
             }
             if (nonSslPortMap.get(block) != null) {
                 ssType.setNonSslPort(nonSslPortMap.get(block));
+            }
+            if (secretKey.get(block) != null) {
+                ssType.setIsSecretKey(secretKey.get(block));
             }
 
             dbClient.createObject(ssType);
@@ -402,8 +409,12 @@ public class StorageSystemTypesInitUtils {
         log.info("Intializing storage system type Column Family for default storage drivers");
 
         initializeDefaultSSL();
+
         // When db and default list are not in sync, re-insert is required, and make sure we avoid duplicate entry
         createDbStorageTypeMap(dbClient);
+
+        secretKey = new HashMap<String, Boolean>();
+        secretKey.put(CEPH, true);
 
         defaultMDM = new HashMap<String, Boolean>();
         defaultMDM.put(SCALEIO, true);
@@ -421,7 +432,7 @@ public class StorageSystemTypesInitUtils {
         initializeSSLPort();
         // Storage Array/Provider port
         initializeNonSslPort();
-
+        
         // Insert File Arrays
         insertFileArrays(dbClient);
         // Insert File Providers

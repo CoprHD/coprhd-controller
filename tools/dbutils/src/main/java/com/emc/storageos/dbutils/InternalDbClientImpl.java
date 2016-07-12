@@ -9,7 +9,6 @@ import java.net.URI;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -24,7 +23,6 @@ import com.datastax.driver.core.exceptions.ConnectionException;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.constraint.impl.ContainmentConstraintImpl;
-import com.emc.storageos.db.client.impl.CompositeColumnName;
 import com.emc.storageos.db.client.impl.DataObjectType;
 import com.emc.storageos.db.client.impl.DbClientContext;
 import com.emc.storageos.db.client.model.DataObject;
@@ -77,7 +75,7 @@ public class InternalDbClientImpl extends InternalDbClient {
         }
     }
 
-    public CompositeColumnName getLatestModifiedField(DataObjectType type, URI id, Set<String> ignoreList) {
+    public TimeStampCompositeColumnName getLatestModifiedField(DataObjectType type, URI id, Set<String> ignoreList) {
         
         StringBuilder queryString = new StringBuilder("select key, column1, column2, column3, column4, value, WRITETIME(value) as timestamp from \"");
         queryString.append(type.getCF().getName());
@@ -109,14 +107,15 @@ public class InternalDbClientImpl extends InternalDbClient {
             }
         }
 
-        return new CompositeColumnName(
+        TimeStampCompositeColumnName result = new TimeStampCompositeColumnName(
                 resultRow.getString(0),
                 resultRow.getString(1),
                 resultRow.getString(2),
                 resultRow.getString(3),
                 resultRow.getUUID(4),
-                resultRow.getBytes(5),
-                latestTimeStamp);
+                resultRow.getBytes(5));
+        result.setWriteTimeStampMS(latestTimeStamp);
+        return result;
     }
     
     public List<URI> getReferUris(URI targetUri, Class<? extends DataObject> type, Dependency dependency) {

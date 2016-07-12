@@ -69,7 +69,6 @@ import com.datastax.driver.core.exceptions.DriverException;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.db.client.TimeSeriesMetadata;
 import com.emc.storageos.db.client.TimeSeriesQueryResult;
-import com.emc.storageos.db.client.impl.CompositeColumnName;
 import com.emc.storageos.db.client.impl.DataObjectType;
 import com.emc.storageos.db.client.impl.DbCheckerFileWriter;
 import com.emc.storageos.db.client.impl.DbClientContext;
@@ -360,7 +359,7 @@ public class DBClient {
         }
         
         if (this.showModificationTime) {
-            CompositeColumnName latestField = _dbClient.getLatestModifiedField(
+            TimeStampCompositeColumnName latestField = _dbClient.getLatestModifiedField(
                     TypeMap.getDoType(clazz), object.getId(), ignoreList);
             if (latestField != null) {
                 record.append(String.format(

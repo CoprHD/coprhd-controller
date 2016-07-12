@@ -17,8 +17,6 @@
 UNDO_LOG=/tmp/undo.log.$$
 touch $UNDO_LOG
 
-echo "undo log is: $UNDO_LOG"
-
 #
 # Poor man's implementation of creating entries on
 # a file that are written such that the last in is

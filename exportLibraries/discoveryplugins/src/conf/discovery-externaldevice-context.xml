@@ -9,7 +9,7 @@
      </bean> -->
      <bean id="storageDriverSimulator" class="com.emc.storageos.driver.driversimulator.StorageDriverSimulator">
      </bean>
-     <bean id="HP3PAR" class="com.emc.storageos.hp3par.impl.HP3PARStorageDriver">
+     <bean id="hp3PAR" class="com.emc.storageos.hp3par.impl.HP3PARStorageDriver">
      </bean>
 
     <bean id="unManagedVolumeDiscoverer" class="com.emc.storageos.volumecontroller.impl.externaldevice.ExternalDeviceUnManagedVolumeDiscoverer">
@@ -28,7 +28,7 @@
                 <!-- <entry key="scaleiosystem" value-ref="scaleioDriver"/> -->
                 <entry key="providersystem" value-ref="storageDriverSimulator"/>
                 <entry key="driverprovider" value-ref="storageDriverSimulator"/>
-                <entry key="hp3par" value-ref="HP3PAR"/>
+                <entry key="hp3par" value-ref="hp3PAR"/>
             </map>
         </property>
     </bean>

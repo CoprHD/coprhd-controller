@@ -88,9 +88,8 @@ public class HP3PARUtil {
             PortStatisticsCommandResult portStatResult = hp3parApi.getPortStatisticsDetail();
 
             // for each ViPR Storage port = 3PAR host port
-            for (Integer index = 0; index < portResult.getTotal(); index++) {
+            for (PortMembers currMember:portResult.getMembers()) {
                 StoragePort port = new StoragePort();
-                PortMembers currMember =  portResult.getMembers().get(index);
 
                 // Consider online target ports 
                 if (currMember.getMode() != HP3PARConstants.MODE_TARGET ||
@@ -124,8 +123,7 @@ public class HP3PARUtil {
                 }
                 
                 // loop for port speed as specific query is not supported
-                for (int stat = 0; stat < portStatResult.getTotal(); stat++) {
-                    PortStatMembers currStat = portStatResult.getMembers().get(stat);
+                for (PortStatMembers currStat:portStatResult.getMembers()) {
 
                     if (currMember.getPortPos().getNode() == currStat.getNode() && 
                             currMember.getPortPos().getSlot() == currStat.getSlot() && 
@@ -145,7 +143,7 @@ public class HP3PARUtil {
                     port.setPortNetworkId(SanUtils.formatWWN(currMember.getPortWWN()));
                     // rest of the values
                     port.setEndPointID(port.getPortNetworkId());
-                    port.setTcpPortNumber(index.longValue());
+                    port.setTcpPortNumber((long)0);
                 } else {
                     port.setIpAddress(currMember.getIPAddr());
                     port.setPortNetworkId(currMember.getiSCSINmae());

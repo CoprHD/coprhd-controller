@@ -77,17 +77,11 @@ import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
 public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockStorageDriver {
 
 	private static final Logger _log = LoggerFactory.getLogger(HP3PARStorageDriver.class);
-	private HP3PARApiFactory hp3parApiFactory;
 
-	// HashMap of list of storage ports discovered for each storage systems.
-	// KEY: storage system id would be the key.
-	// VALUE:List of storage ports discovered for the storage system identified
-	// by the key.
-	// private static Map<String, List<StoragePort>> storagePortMap = new
-	// HashMap<String, List<StoragePort>>();
+	// Independent functionalities
 	private HP3PARIngestHelper ingestHelper;
-
 	private HP3PARUtil hp3parUtil;
+	private HP3PARApiFactory hp3parApiFactory;
 
 	@Override
 	public DriverTask getTask(String taskId) {
@@ -165,23 +159,25 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 			SystemCommandResult systemRes = hp3parApi.getSystemDetails();
 			storageSystem.setSerialNumber(systemRes.getSerialNumber());
 			storageSystem.setMajorVersion(systemRes.getSystemVersion());
-			storageSystem.setMinorVersion("0"); // as there is no individual
-												// portion in 3par api
+			storageSystem.setMinorVersion("0"); // as there is no individual portion in 3par api
 
 			// protocols supported
 			List<String> protocols = new ArrayList<String>();
 			protocols.add(Protocols.iSCSI.toString());
 			protocols.add(Protocols.FC.toString());
-			protocols.add(Protocols.FCoE.toString());
 			storageSystem.setProtocols(protocols);
 
 			storageSystem.setFirmwareVersion(systemRes.getSystemVersion());
-			storageSystem.setIsSupportedVersion(true); // always supported
+			if (systemRes.getSystemVersion().startsWith("3.1") || systemRes.getSystemVersion().startsWith("3.2.1") ) {
+			    // SDK is taking care of unsupported message
+			    storageSystem.setIsSupportedVersion(false);
+			} else {
+			    storageSystem.setIsSupportedVersion(true);
+			}
+			
 			storageSystem.setModel(systemRes.getModel());
 			storageSystem.setProvisioningType(SupportedProvisioningType.THIN_AND_THICK);
 			Set<StorageSystem.SupportedReplication> supportedReplications = new HashSet<>();
-			supportedReplications.add(StorageSystem.SupportedReplication.elementReplica);
-			supportedReplications.add(StorageSystem.SupportedReplication.groupReplica);
 			storageSystem.setSupportedReplications(supportedReplications);
 
 			// Storage object properties
@@ -235,9 +231,8 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 			CPGCommandResult cpgResult = hp3parApi.getAllCPGDetails();
 
 			// for each ViPR Storage pool = 3PAR CPG
-			for (int index = 0; index < cpgResult.getTotal(); index++) {
+			for (CPGMember currMember:cpgResult.getMembers()) {
 				StoragePool pool = new StoragePool();
-				CPGMember currMember = cpgResult.getMembers().get(index);
 
 				pool.setPoolName(currMember.getName());
 				pool.setStorageSystemId(storageSystem.getNativeId());
@@ -245,7 +240,6 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 				Set<Protocols> supportedProtocols = new HashSet<>();
 				supportedProtocols.add(Protocols.iSCSI);
 				supportedProtocols.add(Protocols.FC);
-				supportedProtocols.add(Protocols.FCoE);
 				pool.setProtocols(supportedProtocols);
 
 				pool.setTotalCapacity((currMember.getUsrUsage().getTotalMiB().longValue()
@@ -381,7 +375,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	public DriverTask createVolumes(List<StorageVolume> volumes, StorageCapabilities capabilities) {
 		DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_CREATE_STORAGE_VOLUMES);
 
-		// For each requested volume (in one or more 3par system)
+		// For each requested volume
 		for (StorageVolume volume : volumes) {
 			try {
 				_log.info("3PARDriver:createVolumes for storage system native id {}, volume name {} - start",
@@ -401,8 +395,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 				volume.setProvisionedCapacity(volResult.getSizeMiB() * HP3PARConstants.MEGA_BYTE);
 				volume.setAllocatedCapacity(volResult.getSizeMiB() * HP3PARConstants.MEGA_BYTE);
 				volume.setWwn(volResult.getWwn());
-				volume.setNativeId(volume.getDisplayName()); // required for
-																// volume delete
+				volume.setNativeId(volume.getDisplayName()); // required for volume delete
 				volume.setDeviceLabel(volume.getDisplayName());
 				volume.setAccessStatus(AccessStatus.READ_WRITE);
 
@@ -433,6 +426,9 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 		return task;
 	}
 
+	/**
+     * Expand the size of requested volume
+     */
 	@Override
 	public DriverTask expandVolume(StorageVolume volume, long newCapacity) {
 		DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_EXPAND_STORAGE_VOLUMES);
@@ -441,6 +437,10 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 		try {
 			_log.info("3PARDriver:expandVolume for storage system native id {}, volume name {} - start",
 					volume.getStorageSystemId(), volume.getDisplayName());
+			
+			if (newCapacity < volume.getProvisionedCapacity()) {
+			    throw new HP3PARException("New capacity is less than original capcity");
+			}
 
 			// get Api client
 			HP3PARApi hp3parApi = hp3parUtil.getHP3PARDeviceFromNativeId(volume.getStorageSystemId(),
@@ -474,6 +474,9 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 		return task;
 	}
 
+	/**
+     * Remove the list of volumes from array
+     */
 	@Override
 	public DriverTask deleteVolumes(List<StorageVolume> volumes) {
 		DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_DELETE_STORAGE_VOLUMES);
@@ -925,8 +928,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 				for (Initiator init : initiators) {
 
 					// Is initiator FC
-					if (init.getProtocol().toString().compareToIgnoreCase(Protocols.FC.toString()) == 0
-							|| init.getProtocol().toString().compareToIgnoreCase(Protocols.FCoE.toString()) == 0) {
+				    if (init.getProtocol().toString().compareToIgnoreCase(Protocols.FC.toString()) == 0 ) {
 						// verify in all FC ports with host
 						for (int kFc = 0; kFc < hostMemb.getFCPaths().size(); kFc++) {
 							FcPath fcPath = hostMemb.getFCPaths().get(kFc);
@@ -956,48 +958,51 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 			return hp3parHost;
 		} catch (Exception e) {
 			_log.error("3PARDriver:get3parHostname could not get 3par registered host name");
+			_log.error(CompleteError.getStackTrace(e));
 			return null;
 		}
 	}
 
-	/*
-	 ****** USE CASES**********
-	 * 
-	 * EXCLUSIVE EXPORT: Will include port number of host
-	 * 
-	 * 1 Export volume to existing host * 2 Export volume to non-existing host *
-	 * 3 Add initiator to existing host * 4 Remove initiator from host * 5
-	 * Unexport volume *
-	 * 
-	 * A 1-5 can be done with single/multiple volumes,initiators as applicable B
-	 * Does not depend on host name C Adding an initiator in matched-set will
-	 * not do anything further. All volumes have to be exported to new initiator
-	 * explicitly. In host-sees 3PAR will automatically export the volumes to
-	 * newly added initiator. ------------------------------------------- SHARED
-	 * EXPORT: Will not include port number, exported to all ports, the cluster
-	 * can see
-	 * 
-	 * 1 Export volume to existing cluster + (SDK gives n host calls=>export to
-	 * individual host) 2 Export volume to non-existing cluster + 3 Add
-	 * initiator to existing host in cluster + 4 Remove initiator from host in
-	 * cluster 5 Unexport volume from cluster 6 Export a private volume to a
-	 * host in a cluster + 7 Unexport a private volume from a host in a cluster
-	 * 8 Add a host to cluster + 9 Remove a host from a cluster 10 Add a host
-	 * having private export + 11 Remove a host having private export 12 Move a
-	 * host from one cluster to another
-	 * 
-	 * A 1-12 can be done with single/multiple volumes,initiators,hosts as
-	 * applicable B Cluster name in ViPR and 3PAR has to be identical with case
-	 * C Adding a new host to host-set will automatically export all volumes to
-	 * the new host(initial export must have been host-set)
-	 */
+    /*********USE CASES**********
+      
+      EXCLUSIVE EXPORT: Will include port number of host
+      
+      1 Export volume to existing host  
+      2 Export volume to non-existing host  
+      3 Add initiator to existing host 
+      4 Remove initiator from host 
+      5 Unexport volume 
+      
+      A 1-5 can be done with single/multiple volumes,initiators as applicable
+      B Does not depend on host name
+      C Adding an initiator in matched-set will not do anything further. 
+        All volumes have to be exported to new initiator explicitly. 
+        In host-sees 3PAR will automatically export the volumes to newly added initiator.
+      -------------------------------------------
+      SHARED EXPORT: Will not include port number, exported to all ports, the cluster can see
+      
+      1 Export volume to existing cluster
+      2 Export volume to non-existing cluster 
+      3 Add initiator to existing host in cluster 
+      4 Remove initiator from host in cluster
+      5 Unexport volume from cluster
+      6 Export a private volume to a host in a cluster 
+      7 Unexport a private volume from a host in a cluster
+      8 Add a host to cluster 
+      9 Remove a host from a cluster
+      10 Add a host having private export 
+      11 Remove a host having private export
+      12 Move a host from one cluster to another
+      
+      A 1-12 can be done with single/multiple volumes,initiators,hosts as applicable
+      B Cluster name in ViPR and 3PAR has to be identical with case
+      C Adding a new host to host-set will automatically export all volumes to the new host(initial export must have been host-set)
+     */
 
-	/*
-	 * All volumes in the list will be exported to all initiators using
-	 * recommended ports. If a volume can not be exported to 'n' initiators the
-	 * same will be tried with available ports
-	 */
-
+    /*
+     * All volumes in the list will be exported to all initiators using recommended ports. If a volume can not be exported to 'n' 
+     * initiators the same will be tried with available ports  
+     */
 	@Override
 	public DriverTask exportVolumesToInitiators(List<Initiator> initiators, List<StorageVolume> volumes,
 			Map<String, String> volumeToHLUMap, List<StoragePort> recommendedPorts, List<StoragePort> availablePorts,
@@ -1410,10 +1415,8 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 			}
 
 			String[] pos = sp.getNativeId().split(":");
-			ArrayList<FcPath> fcPath = hostRes.getFCPaths();
 
-			for (int index = 0; index < fcPath.size(); index++) {
-				FcPath fc = fcPath.get(index);
+			for (FcPath fc:hostRes.getFCPaths()) {
 
 				if (fc.getPortPos() != null) {
 					if ((fc.getPortPos().getNode().toString().compareToIgnoreCase(pos[0]) == 0)
@@ -1424,45 +1427,13 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 						clusterPorts.add(sp);
 					}
 				} // porPos != null
-			} // for index
+			} // for fc
 		}
 	}
 
-	private void getInitiatorPaths(List<Initiator> initiators, List<Position> initiatorPaths, String storageId,
-			String host) throws Exception {
-		HP3PARApi hp3parApi = hp3parUtil.getHP3PARDeviceFromNativeId(storageId, driverRegistry);
-		HostMember hostMemb = hp3parApi.getHostDetails(host);
-
-		for (Initiator init : initiators) {
-
-			if (init.getProtocol().toString().compareToIgnoreCase(Protocols.FC.toString()) == 0
-					|| init.getProtocol().toString().compareToIgnoreCase(Protocols.FCoE.toString()) == 0) {
-				// verify in all FC ports with host
-				for (int kFc = 0; kFc < hostMemb.getFCPaths().size(); kFc++) {
-					FcPath fcPath = hostMemb.getFCPaths().get(kFc);
-					if (SanUtils.formatWWN(fcPath.getWwn()).compareToIgnoreCase(init.getPort()) == 0) {
-						Position pos = fcPath.getPortPos();
-						if (initiatorPaths.contains(pos) == false) {
-							initiatorPaths.add(pos);
-						}
-					}
-				}
-			} else {
-				// if iSCSI ports
-				// verify in all FC ports with host
-				for (int kSc = 0; kSc < hostMemb.getFCPaths().size(); kSc++) {
-					ISCSIPath scsiPath = hostMemb.getiSCSIPaths().get(kSc);
-					if (scsiPath.getName().compareToIgnoreCase(init.getPort()) == 0) {
-						Position pos = scsiPath.getPortPos();
-						if (initiatorPaths.contains(pos) == false) {
-							initiatorPaths.add(pos);
-						}
-					}
-				}
-			} // end if FC/iSCSI
-		} // end for
-	}
-
+    /* 
+     * Unexport the volumes from array
+     */
 	@Override
 	public DriverTask unexportVolumesFromInitiators(List<Initiator> initiators, List<StorageVolume> volumes) {
 		DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_UNEXPORT_STORAGE_VOLUMES);
@@ -1508,8 +1479,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 					Position pos = null;
 					VirtualLunsList vlunRes = hp3parApi.getAllVlunDetails();
 
-					for (int index = 0; index < vlunRes.getTotal(); index++) {
-						VirtualLun vLun = vlunRes.getMembers().get(index);
+					for (VirtualLun vLun:vlunRes.getMembers()) {
 
 						for (Initiator init : initiators) {
 							String portId = init.getPort();

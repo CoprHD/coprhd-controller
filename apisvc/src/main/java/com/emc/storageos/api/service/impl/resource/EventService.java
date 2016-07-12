@@ -5,6 +5,7 @@
 package com.emc.storageos.api.service.impl.resource;
 
 import static com.emc.storageos.api.mapper.DbObjectMapper.toRelatedResource;
+import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -25,8 +26,8 @@ import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.Controller;
 import com.emc.storageos.api.mapper.DbObjectMapper;
+import com.emc.storageos.computesystemcontroller.ComputeSystemController;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.ActionableEvent;
@@ -37,6 +38,7 @@ import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
+import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.event.EventCreateParam;
 import com.emc.storageos.model.event.EventList;
 import com.emc.storageos.model.host.EventRestRep;
@@ -45,7 +47,6 @@ import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
-import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 @DefaultPermissions(readRoles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN }, writeRoles = {
         Role.TENANT_ADMIN }, readAcls = { ACL.ANY })
@@ -85,32 +86,15 @@ public class EventService extends TaskResourceService {
     @POST
     @Path("/{id}/approve")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public Response approveEvent(@PathParam("id") URI id) throws DatabaseException {
+    public TaskResourceRep approveEvent(@PathParam("id") URI id) throws DatabaseException {
         ActionableEvent event = queryObject(ActionableEvent.class, id, false);
         // check the user permissions
         verifyAuthorizedInTenantOrg(event.getTenant(), getUserFromContext());
 
-        // TODO testing calling controller workflow
-        URI hostId = URI.create(event.getMessage());
-        String taskId = UUID.randomUUID().toString();
-        Operation op = _dbClient.createTaskOpStatus(Host.class, hostId, taskId,
-                ResourceOperationTypeEnum.DELETE_HOST);
-
         try {
-            Class controllerClass = Class.forName(event.getControllerClass());
-
-            Controller controller = getController(controllerClass, null);
-
             ActionableEvent.Method eventMethod = ActionableEvent.Method.deserialize(event.getMethod());
-
-            Method m = controllerClass.getMethod(eventMethod.getOrchestrationMethod());
-            m.invoke(controller, eventMethod.getArgs());
-
-        } catch (ClassNotFoundException e) {
-            _log.error(e.getMessage());
-            throw APIException.badRequests.parameterIsNotValid("controllerClass");
-        } catch (NoSuchMethodException e) {
-            _log.error(e.getMessage());
+            Method m = getMethod(EventService.class, eventMethod.getOrchestrationMethod());
+            return (TaskResourceRep) m.invoke(this, eventMethod.getArgs());
         } catch (SecurityException e) {
             _log.error(e.getMessage());
         } catch (IllegalAccessException e) {
@@ -120,9 +104,17 @@ public class EventService extends TaskResourceService {
         } catch (InvocationTargetException e) {
             _log.error(e.getMessage());
         }
-        //
+        return new TaskResourceRep();
+    }
 
-        return Response.ok().build();
+    public TaskResourceRep detachHostStorage(URI hostId, boolean deactivateOnComplete, boolean deactivateBootVolume) {
+        ComputeSystemController computeController = getController(ComputeSystemController.class, null);
+        Host host = _dbClient.queryObject(Host.class, hostId);
+        String taskId = UUID.randomUUID().toString();
+        Operation op = _dbClient.createTaskOpStatus(Host.class, hostId, taskId,
+                ResourceOperationTypeEnum.DELETE_HOST);
+        computeController.detachHostStorage(hostId, deactivateOnComplete, deactivateBootVolume, taskId);
+        return toTask(host, taskId, op);
     }
 
     private Method getMethod(Class clazz, String name) {
@@ -157,7 +149,6 @@ public class EventService extends TaskResourceService {
         event.setId(URIUtil.createId(ActionableEvent.class));
         event.setTenant(tenant.getId());
         event.setMessage(createParam.getMessage());
-        event.setControllerClass(createParam.getControllerClass());
         com.emc.storageos.db.client.model.ActionableEvent.Method method = new ActionableEvent.Method(
                 createParam.getOrchestrationMethod(), createParam.getParameters().toArray());
         event.setMethod(method.serialize());

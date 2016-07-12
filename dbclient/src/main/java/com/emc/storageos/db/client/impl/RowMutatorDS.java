@@ -4,6 +4,7 @@ import com.datastax.driver.core.BatchStatement;
 import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.querybuilder.Delete;
 import com.datastax.driver.core.utils.UUIDs;
 import com.emc.storageos.db.client.model.NamedURI;
@@ -90,16 +91,21 @@ public class RowMutatorDS {
     }
 
     public void deleteRecordColumn(String tableName, String recordKey, CompositeColumnName column) {
-        Delete deleteRecord = delete().from(String.format("\"%s\"", tableName)).where(eq("key", recordKey))
-                .and(eq("column1", column.getOne())).and(eq("column2", column.getTwo())).and(eq("column3", column.getThree()))
-                .and(eq("column4", column.getTimeUUID())).ifExists();
+        Statement deleteRecord = delete().from(String.format("\"%s\"", tableName)).where(eq("key", recordKey))
+                .and(eq("column1", column.getOne() == null ? StringUtils.EMPTY : column.getOne()))
+                .and(eq("column2", column.getTwo() == null ? StringUtils.EMPTY : column.getTwo()))
+                .and(eq("column3", column.getThree() == null ? StringUtils.EMPTY : column.getThree()))
+                .and(eq("column4", column.getTimeUUID()));
         atomicBatch.add(deleteRecord);
     }
 
     public void deleteIndexColumn(String tableName, String indexRowKey, IndexColumnName column) {
-        Delete deleteIndex = delete().from(String.format("\"%s\"", tableName)).where(eq("key", indexRowKey))
-                .and(eq("column1", column.getOne())).and(eq("column2", column.getTwo())).and(eq("column3", column.getThree()))
-                .and(eq("column4", column.getFour())).and(eq("column5", column.getTimeUUID())).ifExists();
+        Statement deleteIndex = delete().from(String.format("\"%s\"", tableName)).where(eq("key", indexRowKey))
+                .and(eq("column1", column.getOne() == null ? StringUtils.EMPTY : column.getOne()))
+                .and(eq("column2", column.getTwo() == null ? StringUtils.EMPTY : column.getTwo()))
+                .and(eq("column3", column.getThree() == null ? StringUtils.EMPTY : column.getThree()))
+                .and(eq("column4", column.getFour() == null ? StringUtils.EMPTY : column.getFour()))
+                .and(eq("column5", column.getTimeUUID()));
         atomicBatch.add(deleteIndex);
     }
 

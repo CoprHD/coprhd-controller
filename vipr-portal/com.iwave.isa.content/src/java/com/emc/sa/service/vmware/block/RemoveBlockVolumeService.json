@@ -18,7 +18,7 @@
       type:"assetType.vipr.esxHost"
     },
     volumes: {
-      type:"assetType.vipr.unmountedBlockResource",
+      type:"assetType.vipr.assignedBlockDatastore",
       select:"many"
     },
     deletionType:{

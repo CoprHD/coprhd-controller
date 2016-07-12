@@ -11,20 +11,38 @@ import java.net.URI;
 public class ActionableEvent extends DataObject implements TenantResource {
 
     public static class Method implements Serializable {
-        public String _orchestrationMethod;
-        public Object[] _args;
 
-        public Method(String orchestrationMethod, Object... args) {
-            this._orchestrationMethod = orchestrationMethod;
-            this._args = args;
+        private static final long serialVersionUID = 1L;
+        protected String orchestrationMethod;
+        protected Object[] args;
+
+        public Method(String orchestrationMethod, Object[] args) {
+            this.orchestrationMethod = orchestrationMethod;
+            this.args = args;
+        }
+
+        public String getOrchestrationMethod() {
+            return this.orchestrationMethod;
+        }
+
+        public Object[] getArgs() {
+            return this.args;
+        }
+
+        public void setOrchestrationMethod(String name) {
+            this.orchestrationMethod = name;
+        }
+
+        public void setArgs(Object... args) {
+            this.args = args;
         }
 
         public byte[] serialize() {
-            return new GenericSerializer().toByteArray(Method.class, this);
+            return com.emc.storageos.coordinator.client.service.impl.GenericSerializer.serialize(this);
         }
 
         public static Method deserialize(byte[] array) {
-            return new GenericSerializer().fromByteArray(Method.class, array);
+            return (Method) com.emc.storageos.coordinator.client.service.impl.GenericSerializer.deserialize(array);
         }
 
     }

@@ -103,8 +103,8 @@ public class EventService extends TaskResourceService {
 
             ActionableEvent.Method eventMethod = ActionableEvent.Method.deserialize(event.getMethod());
 
-            Method m = controllerClass.getMethod(eventMethod._orchestrationMethod);
-            m.invoke(controller, eventMethod._args);
+            Method m = controllerClass.getMethod(eventMethod.getOrchestrationMethod());
+            m.invoke(controller, eventMethod.getArgs());
 
         } catch (ClassNotFoundException e) {
             _log.error(e.getMessage());

@@ -1128,159 +1128,86 @@ public class VPlexApiMigrationManager {
      * @throws VPlexApiException When an error occurs making the updates.
      */
     private void updateVirtualVolumeInfoAfterCommit(String virtualVolumeName,
-            List<VPlexMigrationInfo> migrationInfoList, boolean rename) throws VPlexApiException {
+            List<VPlexMigrationInfo> migrationInfoList, boolean rename)
+                    throws VPlexApiException {
 
         // Get the cluster information.
         VPlexApiDiscoveryManager discoveryMgr = _vplexApiClient.getDiscoveryManager();
         List<VPlexClusterInfo> clusterInfoList = discoveryMgr.getClusterInfoLite();
 
-        // Process each migration.
+        // Process each migration. Note that there will only be 1.
         for (VPlexMigrationInfo migrationInfo : migrationInfoList) {
-            VPlexVirtualVolumeInfo virtualVolumeInfo = null;
             if (migrationInfo.getIsDeviceMigration()) {
-                // In some cases for a device migration, the virtual volume name is
-                // automatically updated after the commit and there is nothing to do.
-                // In other cases it remains unchanged and in others it simply ends
-                // up as the target volume name and we need to append the virtual
-                // volume suffix.
-                virtualVolumeInfo = findVirtualVolumeAfterDeviceMigration(virtualVolumeName, migrationInfo, clusterInfoList);
-                if (virtualVolumeInfo == null) {
-                    break;
-                }
-
-                String migrationTgtName = migrationInfo.getTarget();
-                if ((virtualVolumeName.equals(virtualVolumeInfo.getName())) || (migrationTgtName.equals(virtualVolumeInfo.getName()))) {
-                    // If we are here then VPLEX didn't rename the volume name, make a call to rename volume name
-                    // Build the name for volume so as to rename the vplex volume that is created
-                    // with the same name as the device name to follow the name pattern _vol
-                    // as the suffix for the vplex volumes
-                    String volumeNameAfterMigration = virtualVolumeInfo.getName();
-                    String volumePathAfterMigration = virtualVolumeInfo.getPath();
-                    StringBuilder volumeNameBuilder = new StringBuilder();
-                    volumeNameBuilder.append(migrationTgtName);
-                    volumeNameBuilder.append(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX);
-
-                    // Rename the VPLEX volume name
-                    virtualVolumeInfo = _vplexApiClient.renameResource(virtualVolumeInfo, volumeNameBuilder.toString());
-
-                    s_logger.info(String.format("Renamed virtual volume name after migration from name: %s path: %s to %s",
-                            volumeNameAfterMigration, volumePathAfterMigration, volumeNameBuilder.toString()));
-                }
-                migrationInfo.setVirtualVolumeInfo(virtualVolumeInfo);
-            } else if (rename) {
-                // Strip the extent prefix and suffix from the
-                // migration source.
-                String migrationSrcName = migrationInfo.getSource();
-                if (!migrationSrcName.startsWith(VPlexApiConstants.EXTENT_PREFIX)
-                        && !migrationSrcName.endsWith(VPlexApiConstants.EXTENT_SUFFIX)) {
-                    // This is mostly going to be the case ingestion case with non-default names.
-                    s_logger.info("Migration source {} does not follow the default naming convention hence the volume name"
-                            + " will not be updated.", migrationSrcName);
-                    return;
-                }
-
-                // Find the virtual volume containing the source volume
-                // name.
-                for (VPlexClusterInfo clusterInfo : clusterInfoList) {
-                    virtualVolumeInfo = discoveryMgr.findVirtualVolume(
-                            clusterInfo.getName(), virtualVolumeName, false);
-                    if (virtualVolumeInfo != null) {
-                        break;
-                    }
-                }
-
-                // In the case of an ingested volume that was previously migrated
-                // we won't find the virtual volume. When an ingested volume is
-                // first migrated, we won't know anything about the source volumes,
-                // and we don't even try to rename the volume, which is OK. We don't
-                // want to rename an ingested volume. Once is had been migrated
-                // we will know the source volumes and the flag will be set such that
-                // rename will be true, so this code will be invoked. However, the
-                // virtual volume name will not be a reflection of the sources used
-                // by the volume as in the case of a ViPR created volume. Therefore,
-                // we will not find the volume and we will not rename it, which again
-                // is OK. We don't want to rename it.
-                if (virtualVolumeInfo == null) {
-                    s_logger.info(
-                            "Could not find virtual volume for migration source {}",
-                            migrationSrcName);
-                    return;
-                }
-
-                // Update the virtual volume name and associated distributed
-                // device name to reflect the target rather than the source.
-                String srcVolumeName = migrationSrcName.substring(VPlexApiConstants.EXTENT_PREFIX.length(),
-                        migrationSrcName.indexOf(VPlexApiConstants.EXTENT_SUFFIX));
-                String migrationTgtName = migrationInfo.getTarget();
-                String tgtVolumeName = migrationTgtName.substring(
-                        VPlexApiConstants.EXTENT_PREFIX.length(),
-                        migrationTgtName.indexOf(VPlexApiConstants.EXTENT_SUFFIX));
-                String updatedVirtualVolumeName = virtualVolumeName.replace(
-                        srcVolumeName, tgtVolumeName);
-                virtualVolumeInfo = _vplexApiClient.getVirtualVolumeManager()
-                        .renameVPlexResource(virtualVolumeInfo, updatedVirtualVolumeName);
-
-                // Update the virtual volume information and set it
-                // into the migration info.
-                virtualVolumeInfo.updateNameOnMigrationCommit(updatedVirtualVolumeName);
-                migrationInfo.setVirtualVolumeInfo(virtualVolumeInfo);
-
-                // Now update the distributed device after the virtual volume
-                // name has been updated if the virtual volume is a distributed
-                // virtual volume.
-                if (virtualVolumeName.startsWith(VPlexApiConstants.DIST_DEVICE_PREFIX)
-                        && virtualVolumeName.endsWith(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX)) {
-                    String distDeviceName = virtualVolumeName.substring(0,
-                            virtualVolumeName.indexOf(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX));
-                    VPlexDistributedDeviceInfo distDeviceInfo = discoveryMgr
-                            .findDistributedDevice(distDeviceName);
-                    if (distDeviceInfo == null) {
-                        s_logger.info("Could not find distributed device {} for the virtual volume {}, hence distributed "
-                                + "device name will not be updated. ", distDeviceName, virtualVolumeName);
-                        return;
-                    }
-                    String updatedDistDeviceName = distDeviceName.replace(srcVolumeName,
-                            tgtVolumeName);
-                    distDeviceInfo = _vplexApiClient.getVirtualVolumeManager()
-                            .renameVPlexResource(distDeviceInfo, updatedDistDeviceName);
-
-                    // Lastly, update the names of the distributed device
-                    // components, i.e., the local device names.
-                    String srcDeviceName = VPlexApiConstants.DEVICE_PREFIX + srcVolumeName;
-                    String tgtDeviceName = VPlexApiConstants.DEVICE_PREFIX + tgtVolumeName;
-                    List<VPlexDistributedDeviceComponentInfo> componentList = _vplexApiClient.getVirtualVolumeManager()
-                            .getDistributedDeviceComponents(distDeviceInfo.getName());
-                    for (VPlexResourceInfo component : componentList) {
-                        if (component.getName().equals(srcDeviceName)) {
-                            _vplexApiClient.getVirtualVolumeManager()
-                                    .renameVPlexResource(component, tgtDeviceName);
-                        }
-                    }
-
-                } else {
-                    // Update the local device name.
-                    if (virtualVolumeName.endsWith(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX)) {
-                        String deviceName = virtualVolumeName.substring(0, virtualVolumeName
-                                .indexOf(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX));
-                        s_logger.info("Updating device {} to reflect new volume {}",
-                                deviceName, tgtVolumeName);
-                        VPlexDeviceInfo deviceInfo = discoveryMgr.findLocalDevice(deviceName);
-                        if (deviceInfo == null) {
-                            s_logger.info("Could not find local device {} for the virtual volume {}, hence "
-                                    + "device name will not be updated. ", deviceName, virtualVolumeName);
-                            return;
-                        }
-                        String updatedDeviceName = deviceName.replace(srcVolumeName,
-                                tgtVolumeName);
-                        _vplexApiClient.getVirtualVolumeManager()
-                                .renameVPlexResource(deviceInfo, updatedDeviceName);
-                    }
-
-                }
+                updateVolumeInfoAfterCommitDeviceMigration(virtualVolumeName, migrationInfo,
+                        clusterInfoList, rename);
+            } else {
+                updateVolumeInfoAfterCommitExtentMigration(virtualVolumeName, migrationInfo,
+                        clusterInfoList, rename);
             }
         }
+        
+        s_logger.info("Done updating volume info after commit");
+    }
+    
+    /**
+     * Updates the virtual volume information after a device migration is successfully
+     * committed. Note that the volume will be a local virtual volume as device migration
+     * is not supported for distributed volumes.
+     * 
+     * @param originalVolumeName The name of the volume prior to the commit.
+     * @param migrationInfo The migration information.
+     * @param clusterInfoList The cluster info
+     * @param rename Whether or not the volume should be renamed after commit.
+     */
+    private void updateVolumeInfoAfterCommitDeviceMigration(String originalVolumeName, 
+            VPlexMigrationInfo migrationInfo, List<VPlexClusterInfo> clusterInfoList,
+            boolean rename) {
+        // Find the volume after the migration.
+        VPlexVirtualVolumeInfo virtualVolumeInfo = findVirtualVolumeAfterDeviceMigration(originalVolumeName, 
+                migrationInfo, clusterInfoList);
+        if (virtualVolumeInfo == null) {
+            s_logger.warn("Could not find virtual volume {} after device migration", originalVolumeName);
+            return;
+        }
 
-        s_logger.info("Successfully update volume info after commit");
+        // Check to see if the volume is to be renamed after migration to maintain
+        // the "<local-device-name>_vol" naming convention. Since it is now using a 
+        // new local device, its current name will not match this convention.
+        if ((rename) && (volumeHasDefaultNamingConvention(originalVolumeName, false))) {
+            // In some cases for a device migration, the virtual volume name is
+            // automatically updated by VPLEX after the commit and there is nothing 
+            // to do. In other cases it remains unchanged, and in others it simply ends
+            // up as the target volume name without the "_vol" suffix. We have seen
+            // all these behaviors on the VPLEX. So, we check if the volume name needs
+            // to be updated and if so, we update the name.
+            String migrationTgtName = migrationInfo.getTarget();
+            if ((originalVolumeName.equals(virtualVolumeInfo.getName())) || 
+                    (migrationTgtName.equals(virtualVolumeInfo.getName()))) {
+                // If we are here then VPLEX didn't rename the volume, so make a call to 
+                // rename the volume. Build the name for volume so as to rename the vplex 
+                // volume that is created with the same name as the device name to follow 
+                // the name pattern _vol as the suffix for the vplex volumes.
+                String volumeNameAfterMigration = virtualVolumeInfo.getName();
+                String volumePathAfterMigration = virtualVolumeInfo.getPath();
+                StringBuilder volumeNameBuilder = new StringBuilder();
+                volumeNameBuilder.append(migrationTgtName);
+                volumeNameBuilder.append(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX);
+    
+                // Rename the VPLEX volume name and update the migration information.
+                virtualVolumeInfo = _vplexApiClient.renameResource(virtualVolumeInfo, volumeNameBuilder.toString());
+                s_logger.info(String.format("Renamed virtual volume after migration from name: %s path: %s to %s",
+                        volumeNameAfterMigration, volumePathAfterMigration, volumeNameBuilder.toString()));
+            } 
+            migrationInfo.setVirtualVolumeInfo(virtualVolumeInfo);
+        } else if (!originalVolumeName.equals(virtualVolumeInfo.getName())) {
+            // We are not to rename the volume, but it could be that VPLEX renamed it 
+            // automatically. So we will rename it back to its original name if necessary
+            // and update the migration info.
+            String newName = virtualVolumeInfo.getName();
+            virtualVolumeInfo = _vplexApiClient.renameResource(virtualVolumeInfo, originalVolumeName);
+            s_logger.info("Renamed virtual volume {} back to its orginal name {}", newName, originalVolumeName);
+            migrationInfo.setVirtualVolumeInfo(virtualVolumeInfo);
+        }
     }
 
     /**
@@ -1339,4 +1266,226 @@ public class VPlexApiMigrationManager {
         }
         return virtualVolumeInfo;
     }
+    
+    /**
+     * Updates the virtual volume information after an extent migration is successfully
+     * committed. Note that the volume can be local or distributed for an extent migration.
+     * 
+     * @param originalVolumeName The name of the volume prior to the commit.
+     * @param migrationInfo The migration information.
+     * @param clusterInfoList The cluster info
+     * @param rename Whether or not the volume should be renamed after commit.
+     */
+    private void updateVolumeInfoAfterCommitExtentMigration(String originalVolumeName, 
+            VPlexMigrationInfo migrationInfo, List<VPlexClusterInfo> clusterInfoList,
+            boolean rename) {
+        s_logger.info("Updating volume information after committing extent migration for volume {}", originalVolumeName);
+        
+        // Find the virtual volume.
+        VPlexVirtualVolumeInfo virtualVolumeInfo = null;
+        VPlexApiDiscoveryManager discoveryMgr = _vplexApiClient.getDiscoveryManager();
+        for (VPlexClusterInfo clusterInfo : clusterInfoList) {
+            virtualVolumeInfo = discoveryMgr.findVirtualVolume(clusterInfo.getName(), originalVolumeName, false);
+            if (virtualVolumeInfo != null) {
+                break;
+            }
+        }
+        if (virtualVolumeInfo == null) {
+            s_logger.warn("Could not find virtual volume {}", originalVolumeName);
+            return;
+        }
+
+        // Check to see if we should rename the volume and/or supporting devices to
+        // maintain the the ViPR default naming convention. We don't want to rename if
+        // the passed rename flag is false or the volume does not conform to the 
+        // default ViPR naming convention for example, ingested volumes.
+        if (rename) {
+            boolean isDistributed = VPlexVirtualVolumeInfo.Locality.distributed.name().equals(virtualVolumeInfo.getLocality());
+            if (volumeHasDefaultNamingConvention(originalVolumeName, isDistributed)) {
+                renameVolumeAfterExtentMigration(virtualVolumeInfo, migrationInfo);
+                renameSupportingDevicesAfterExtentMigration(virtualVolumeInfo, migrationInfo);
+            } else if (supportingDeviceHasDefaultNamingConvention(virtualVolumeInfo.getSupportingDevice(), isDistributed)) {
+                renameSupportingDevicesAfterExtentMigration(virtualVolumeInfo, migrationInfo);
+            }
+        }
+    }
+    
+    /**
+     * Determines if the volume has default naming conventions. A volume with default naming
+     * convention has a format like below:
+     * 
+     * local volume: device_<claimed_storage_volume_name>_vol.
+     * distribute volume: dd_<claimed_storage_volume_name1>_<claimed_storage_volume_name2>_vol.
+     * 
+     * We should be able to parse the passed volume name to get the claimed storage
+     * volume names and then call the utility method to verify the name. If there is
+     * any kind of parsing error, then we know the volume does not have the default 
+     * naming convention. This could be a volume which was created with custom naming enabled
+     * or it could be a volume that was ingested.
+     * 
+     * @param volumeName The volume name.
+     * @param isDistributed true if the volume is distributed, false for local.
+     *  
+     * @return true if the volume has the default naming convention, else false.
+     */
+    private boolean volumeHasDefaultNamingConvention(String volumeName, boolean isDistributed) {
+        try {
+            int endIndex = volumeName.length() - VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX.length();
+            String supportingDeviceName = volumeName.substring(0, endIndex);
+            List<String> claimedVolumeNames = new ArrayList<String>();
+            if (!isDistributed) {
+                int startIndex = VPlexApiConstants.DEVICE_PREFIX.length();
+                claimedVolumeNames.add(volumeName.substring(startIndex, endIndex));
+            } else {
+                String distVolPrefix = VPlexApiConstants.DIST_DEVICE_PREFIX + VPlexApiConstants.DIST_DEVICE_NAME_DELIM;
+                int startIndex = distVolPrefix.length();
+                String supportingDeviceNameNoPrefix = supportingDeviceName.substring(startIndex);
+                claimedVolumeNames.addAll(Arrays.asList(supportingDeviceNameNoPrefix.split(VPlexApiConstants.DIST_DEVICE_NAME_DELIM)));
+            }
+            
+            return VPlexApiUtils.volumeHasDefaultNamingConvention(volumeName, supportingDeviceName, isDistributed, claimedVolumeNames);
+        } catch (Exception e) {
+            // Exceptions will occur while indexing the passed volume name if the volume
+            // does not conform to the default naming convention.
+            s_logger.info("Volume {} does not conform to default naming convention: {}", volumeName, e.getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Determines if the passed device has default naming conventions. A device with 
+     * default naming convention has a format like below:
+     * 
+     * local device: device_<claimed_storage_volume_name>.
+     * distribute device: dd_<claimed_storage_volume_name1>_<claimed_storage_volume_name2>.
+     * 
+     * We should be able to parse the passed device name to get the claimed storage
+     * volume names and then call the utility method to verify the name. If there is
+     * any kind of parsing error, then we know the device does not have the default 
+     * naming convention.
+     * 
+     * We need to check the device in cases of custom naming. For custom naming the
+     * the virtual volume may not have the default naming convention, but since we
+     * we always build the underlying artifacts using the default conventions, the
+     * supporting device for a volume may have the default convention. If the supporting
+     * device does have the default convention, we want to update it after successful
+     * commit of a migration.
+     * 
+     * @param deviceName The deviceName
+     * @param isDistributed true if the device is distributed, false for local.
+     *  
+     * @return true if the device has the default naming convention, else false.
+     */
+    private boolean supportingDeviceHasDefaultNamingConvention(String deviceName, boolean isDistributed) {
+        try {
+            List<String> claimedVolumeNames = new ArrayList<String>();
+            if (!isDistributed) {
+                int startIndex = VPlexApiConstants.DEVICE_PREFIX.length();
+                claimedVolumeNames.add(deviceName.substring(startIndex));
+            } else {
+                String distVolPrefix = VPlexApiConstants.DIST_DEVICE_PREFIX + VPlexApiConstants.DIST_DEVICE_NAME_DELIM;
+                int startIndex = distVolPrefix.length();
+                String supportingDeviceNameNoPrefix = deviceName.substring(startIndex);
+                claimedVolumeNames.addAll(Arrays.asList(supportingDeviceNameNoPrefix.split(VPlexApiConstants.DIST_DEVICE_NAME_DELIM)));
+            }
+            
+            return VPlexApiUtils.deviceHasDefaultNamingConvention(deviceName, isDistributed, claimedVolumeNames);
+        } catch (Exception e) {
+            // Exceptions will occur while indexing the passed volume name if the volume
+            // does not conform to the default naming convention.
+            s_logger.info("Device {} does not conform to default naming convention: {}", deviceName, e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Renames the virtual volume after an extent migration to maintain the default ViPR
+     * naming conventions.
+     * 
+     * @param virtualVolumeInfo The virtual volume information
+     * @param migrationInfo The migration information.
+     */
+    private void renameVolumeAfterExtentMigration(VPlexVirtualVolumeInfo virtualVolumeInfo, VPlexMigrationInfo migrationInfo) {
+        // Update the virtual volume name and associated distributed
+        // device name to reflect the target rather than the source.
+        String migrationSrcName = migrationInfo.getSource();
+        String srcVolumeName = migrationSrcName.substring(VPlexApiConstants.EXTENT_PREFIX.length(),
+                migrationSrcName.indexOf(VPlexApiConstants.EXTENT_SUFFIX));
+        String migrationTgtName = migrationInfo.getTarget();
+        String tgtVolumeName = migrationTgtName.substring(
+                VPlexApiConstants.EXTENT_PREFIX.length(),
+                migrationTgtName.indexOf(VPlexApiConstants.EXTENT_SUFFIX));
+        String virtualVolumeName = virtualVolumeInfo.getName();
+        String updatedVirtualVolumeName = virtualVolumeName.replace(
+                srcVolumeName, tgtVolumeName);
+        virtualVolumeInfo = _vplexApiClient.getVirtualVolumeManager()
+                .renameVPlexResource(virtualVolumeInfo, updatedVirtualVolumeName);
+
+        // Update the virtual volume information and set it
+        // into the migration info.
+        virtualVolumeInfo.updateNameOnMigrationCommit(updatedVirtualVolumeName);
+        migrationInfo.setVirtualVolumeInfo(virtualVolumeInfo);
+    }
+    
+    /**
+     * Renames the supporting devices of a virtual volume after an extent migration to
+     * maintain the default ViPR naming conventions. This would rename the distributed
+     * device and the underlying local devices.
+     * 
+     * @param vvInfo The virtual volume info.
+     * @param migrationInfo The migration information.
+     */
+    private void renameSupportingDevicesAfterExtentMigration(VPlexVirtualVolumeInfo vvInfo, VPlexMigrationInfo migrationInfo) {
+        // Get the discovery and virtual volume managers.
+        VPlexApiDiscoveryManager discoveryMgr = _vplexApiClient.getDiscoveryManager();
+        VPlexApiVirtualVolumeManager vvolMgr = _vplexApiClient.getVirtualVolumeManager();
+        
+        // Get the supporting device name.
+        String supportingDeviceName = vvInfo.getSupportingDevice();        
+        
+        // Get the source and target volume names from the migration info.
+        String migrationSrcName = migrationInfo.getSource();
+        String srcVolumeName = migrationSrcName.substring(VPlexApiConstants.EXTENT_PREFIX.length(),
+                migrationSrcName.indexOf(VPlexApiConstants.EXTENT_SUFFIX));
+        String migrationTgtName = migrationInfo.getTarget();
+        String tgtVolumeName = migrationTgtName.substring(
+                VPlexApiConstants.EXTENT_PREFIX.length(),
+                migrationTgtName.indexOf(VPlexApiConstants.EXTENT_SUFFIX));
+
+        // Update the distributed device if the virtual volume is a distributed
+        // virtual volume.
+        if (supportingDeviceName.startsWith(VPlexApiConstants.DIST_DEVICE_PREFIX)) {
+            VPlexDistributedDeviceInfo supportingDeviceInfo = discoveryMgr.findDistributedDevice(supportingDeviceName);
+            if (supportingDeviceInfo == null) {
+                s_logger.info("Could not find distributed device {} for the virtual volume {}, hence distributed "
+                        + "device name will not be updated. ", supportingDeviceName, vvInfo.getName());
+                return;
+            }
+            String updatedDistDeviceName = supportingDeviceName.replace(srcVolumeName, tgtVolumeName);
+            supportingDeviceInfo = vvolMgr.renameVPlexResource(supportingDeviceInfo, updatedDistDeviceName);
+
+            // Lastly, update the names of the distributed device components, i.e., 
+            // the local device names.
+            String srcDeviceName = VPlexApiConstants.DEVICE_PREFIX + srcVolumeName;
+            String tgtDeviceName = VPlexApiConstants.DEVICE_PREFIX + tgtVolumeName;
+            List<VPlexDistributedDeviceComponentInfo> componentList = vvolMgr
+                    .getDistributedDeviceComponents(supportingDeviceInfo.getName());
+            for (VPlexResourceInfo component : componentList) {
+                if (component.getName().equals(srcDeviceName)) {
+                    vvolMgr.renameVPlexResource(component, tgtDeviceName);
+                }
+            }
+        } else {
+            // Update the local device name for local volumes.
+            s_logger.info("Updating device {} to reflect new volume {}", supportingDeviceName, tgtVolumeName);
+            VPlexDeviceInfo supportingDeviceInfo = discoveryMgr.findLocalDevice(supportingDeviceName);
+            if (supportingDeviceInfo == null) {
+                s_logger.info("Could not find local device {} for the virtual volume {}, hence "
+                        + "device name will not be updated. ", supportingDeviceName, vvInfo.getName());
+                return;
+            }
+            String updatedDeviceName = supportingDeviceName.replace(srcVolumeName, tgtVolumeName);
+            vvolMgr.renameVPlexResource(supportingDeviceInfo, updatedDeviceName);
+        }
+    }    
 }

@@ -558,8 +558,8 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 		for (VolumeSnapshot snap : snapshots) {
 			try {
 				// native id = null ,
-				_log.info("3PARDriver: createVolumeSnapshot for storage system native id {}, volume name {} - start",
-						snap.toString(), snap.getDisplayName());
+				_log.info("3PARDriver: createVolumeSnapshot for storage system native id {}, snapshot name {}, parent id {}- start",
+						snap.getNativeId(), snap.getDisplayName(), snap.getParentId());
 				Boolean readOnly = true;
 
 				// get Api client
@@ -574,8 +574,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 				volResult = hp3parApi.getVolumeDetails(snap.getDisplayName());
 
 				// Actual size of the volume in array
-				// snap.setProvisionedCapacity(volResult.getSizeMiB() *
-				// HP3PARConstants.MEGA_BYTE);
+				snap.setProvisionedCapacity(volResult.getSizeMiB() * HP3PARConstants.MEGA_BYTE);
 				snap.setWwn(volResult.getWwn());
 				snap.setNativeId(snap.getDisplayName()); // required for volume
 															// delete
@@ -583,8 +582,8 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 				snap.setAccessStatus(snap.getAccessStatus());
 
 				task.setStatus(DriverTask.TaskStatus.READY);
-				_log.info("createVolumeSnapshot for storage system native id {}, volume name {} - end",
-						snap.getStorageSystemId(), snap.getDisplayName());
+				_log.info("createVolumeSnapshot for storage system native id {}, snapshot name {}, parent id {} - end",
+						snap.getStorageSystemId(), snap.getDisplayName(), snap.getParentId());
 			} catch (Exception e) {
 				String msg = String.format(
 						"3PARDriver: Unable to create volume snap name %s for parent base volume id %s whose storage system native id is %s; Error: %s.\n",
@@ -613,7 +612,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 		for (VolumeSnapshot snap : snapshots) {
 			try {
 				_log.info(
-						"3PARDriver: restoreSnapshot for storage system system id {}, volume name {} , native id {} , all = {} - start",
+						"3PARDriver: restoreSnapshot for storage system system id {}, snapshot name {} , native id {} , all = {} - start",
 						snap.getStorageSystemId(), snap.getDisplayName(), snap.getNativeId(), snap.toString());
 
 				// get Api client
@@ -623,11 +622,11 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 				hp3parApi.restoreVirtualCopy(snap.getNativeId());
 
 				task.setStatus(DriverTask.TaskStatus.READY);
-				_log.info("3PARDriver: restoreSnapshot for storage system  id {}, volume snap display name {} - end",
+				_log.info("3PARDriver: restoreSnapshot for storage system  id {}, snapshot display name {} - end",
 						snap.getStorageSystemId(), snap.getDisplayName());
 			} catch (Exception e) {
 				String msg = String.format(
-						"3PARDriver: Unable to restore volume display name %s with native id %s for storage system id %s; Error: %s.\n",
+						"3PARDriver: Unable to restore snapshot display name %s with native id %s for storage system id %s; Error: %s.\n",
 						snap.getDisplayName(), snap.getNativeId(), snap.getStorageSystemId(), e.getMessage());
 				_log.error(msg);
 				task.setMessage(msg);
@@ -648,7 +647,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 		for (VolumeSnapshot snap : snapshots) {
 			try {
 				_log.info(
-						"3PARDriver: deleteVolumeSnapshot for storage system native id {}, volume name {} , native id {} - start",
+						"3PARDriver: deleteVolumeSnapshot for storage system native id {}, snapshot name {} , native id {} - start",
 						snap.getStorageSystemId(), snap.getDisplayName(), snap.getNativeId());
 
 				// get Api client
@@ -658,11 +657,11 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 				hp3parApi.deleteVirtualCopy(snap.getNativeId());
 
 				task.setStatus(DriverTask.TaskStatus.READY);
-				_log.info("3PARDriver: deleteVolumeSnapshot for storage system native id {}, volume name {} - end",
+				_log.info("3PARDriver: deleteVolumeSnapshot for storage system native id {}, snapshot name {} - end",
 						snap.getStorageSystemId(), snap.getDisplayName());
 			} catch (Exception e) {
 				String msg = String.format(
-						"3PARDriver: Unable to delete volume name %s with native id %s for storage system native id %s; Error: %s.\n",
+						"3PARDriver: Unable to delete snapshot name %s with native id %s for storage system native id %s; Error: %s.\n",
 						snap.getDisplayName(), snap.getNativeId(), snap.getStorageSystemId(), e.getMessage());
 				_log.error(msg);
 				task.setMessage(msg);
@@ -677,15 +676,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	/**
 	 * Physical Copy is a 3PAR term for Volume clone
 	 * 
-	 * Vipr UI doesn't provide offline/online options while creating clone, so
-	 * below logic will be followed First, create clone creation as offline
-	 * volume [Attached volume] if error, create a new volume with clone name by
-	 * using its base volume parameters like TPVV,CPG. Then create a offline
-	 * volume clone using newly created volume clone Note: A offline clone
-	 * creates a attached clone, which actually creates a intermediate snapshot
-	 * which can be utilized for restore/update.
 	 */
-
 	@Override
 	public DriverTask createVolumeClone(List<VolumeClone> clones, StorageCapabilities capabilities) {
 
@@ -695,7 +686,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 			try {
 				// native id = null ,
 				_log.info(
-						"3PARDriver: createVolumeClone for storage system native id {}, volume name {} , volume clone name {} - start",
+						"3PARDriver: createVolumeClone for storage system native id {}, clone parent name {} , clone name {} - start",
 						clone.toString(), clone.getParentId(), clone.getDisplayName());
 				// get Api client
 				HP3PARApi hp3parApi = hp3parUtil.getHP3PARDeviceFromNativeId(clone.getStorageSystemId(),
@@ -716,7 +707,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 				clone.setReplicationState(VolumeClone.ReplicationState.SYNCHRONIZED);
 
 				task.setStatus(DriverTask.TaskStatus.READY);
-				_log.info("createVolumeClone for storage system native id {}, volume name {} - end",
+				_log.info("createVolumeClone for storage system native id {}, volume clone name {} - end",
 						clone.getStorageSystemId(), clone.getDisplayName());
 			} catch (Exception e) {
 				String msg = String.format(
@@ -734,21 +725,24 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 
 	}
 
+	/**
+	 *  There is no REST API available for detach clone in HP3PAR
+	 *	This is getting called while delete clone, hence setting this as
+	 *	working by default.  
+	 */
 	@Override
 	public DriverTask detachVolumeClone(List<VolumeClone> clones) {
-		// There is no REST API available for detach clone in HP3PAR
-		// This is getting called while delete clone, hence setting this as
-		// working by default
-		_log.info("3PARDriver: detachVolumeClone Running ");
-		DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_RESTORE_CLONE_VOLUMES);
+		
+		_log.info("3PARDriver: detachVolumeClone no action ");
+		DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_DETACH_CLONE_VOLUMES);
 		task.setStatus(DriverTask.TaskStatus.READY);
 		return task;
 	}
 
 	/**
 	 * restore clone or restore physical copy Intermediate snapshot will be used
-	 * for restore, this got generated during clone creation NOTE: intermediate
-	 * snapshot cannot be exported hence offline restore will be used
+	 * for restore, this got generated during clone creation 
+	 * NOTE: intermediate snapshot cannot be exported hence offline restore will be used
 	 */
 	@Override
 	public DriverTask restoreFromClone(List<VolumeClone> clones) {
@@ -760,8 +754,8 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 		for (VolumeClone clone : clones) {
 			try {
 				_log.info(
-						"3PARDriver: restoreFromClone for storage system system id {}, volume name {} , native id {} , all = {} - start",
-						clone.getStorageSystemId(), clone.getDisplayName(), clone.getNativeId(), clone.toString());
+						"3PARDriver: restoreFromClone for storage system system id {}, clone name {} , native id {}  - start",
+						clone.getStorageSystemId(), clone.getDisplayName(), clone.getNativeId());
 
 				// get Api client
 				HP3PARApi hp3parApi = hp3parUtil.getHP3PARDeviceFromNativeId(clone.getStorageSystemId(),
@@ -778,7 +772,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 						clone.getStorageSystemId(), clone.getNativeId());
 			} catch (Exception e) {
 				String msg = String.format(
-						"3PARDriver:restoreFromClone Unable to restore volume display name %s with native id %s for storage system id %s; Error: %s.\n",
+						"3PARDriver:restoreFromClone Unable to restore volume clone display name %s with native id %s for storage system id %s; Error: %s.\n",
 						clone.getDisplayName(), clone.getNativeId(), clone.getStorageSystemId(), e.getMessage());
 				_log.error(msg);
 				task.setMessage(msg);
@@ -799,7 +793,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 		for (VolumeClone clone : clones) {
 			try {
 				_log.info(
-						"3PARDriver: deleteVolumeSnapshot for storage system native id {}, volume name {} , native id {} - start",
+						"3PARDriver: deleteVolumeClone for storage system native id {}, volume clone name {} , native id {} - start",
 						clone.getStorageSystemId(), clone.getDisplayName(), clone.getNativeId());
 
 				// get Api client
@@ -810,11 +804,11 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 				hp3parApi.deletePhysicalCopy(clone.getNativeId());
 
 				task.setStatus(DriverTask.TaskStatus.READY);
-				_log.info("3PARDriver: deleteVolumecloneshot for storage system native id {}, volume name {} - end",
+				_log.info("3PARDriver: deleteVolumeClone for storage system native id {}, volume clone name {} - end",
 						clone.getStorageSystemId(), clone.getDisplayName());
 			} catch (Exception e) {
 				String msg = String.format(
-						"3PARDriver: Unable to delete volume name %s with native id %s for storage system native id %s; Error: %s.\n",
+						"3PARDriver: deleteVolumeClone Unable to delete volume clone name %s with native id %s for storage system native id %s; Error: %s.\n",
 						clone.getDisplayName(), clone.getNativeId(), clone.getStorageSystemId(), e.getMessage());
 				_log.error(msg);
 				task.setMessage(msg);
@@ -1564,6 +1558,11 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 		return task;
 	}
 
+	/**
+	 * createConsistencyGroup will get called once and subsequent volume addition to the CG will be handled 
+	 * in create volume
+	 * 
+	 */
 	@Override
 	public DriverTask createConsistencyGroup(VolumeConsistencyGroup consistencyGroup) {
 		DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_CREATE_CONSISTENCY_GROUP);
@@ -1712,18 +1711,17 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 
 					if (baseVolume != null) {
 						for (VolumeSnapshot snap : snapshots) {
-							_log.info(
-									"createConsistencyGroupSnapshot Snapshot system native id {}, Parent Volume {}, access status {}, display name {}, native Name {}, DeviceLabel {} - Before",
-									snap.getStorageSystemId(), snap.getParentId(), snap.getAccessStatus(),
-									snap.getDisplayName(), snap.getNativeId(), snap.getDeviceLabel());
 
 							String parentName = snap.getParentId();
-							_log.info("createConsistencyGroupSnapshot +++{}++{}+++ ", parentName, baseVolume);
+
 							if (parentName.equals(baseVolume)) {
 								_log.info(
-										"createConsistencyGroupSnapshot snap name {} wwn {} deviceLable {} displayname {} ",
-										snap.getNativeId(), snap.getWwn(), snap.getDeviceLabel(),
-										snap.getDisplayName());
+										"createConsistencyGroupSnapshot Snapshot system native id {}, Parent id {}, base volume {}, "
+												+ "access status {}, display name {}, native Name {}, DeviceLabel {}, wwn {} - Before ",
+										snap.getStorageSystemId(), snap.getParentId(), baseVolume,
+										snap.getAccessStatus(), snap.getDisplayName(), snap.getNativeId(),
+										snap.getDeviceLabel(), snap.getWwn());
+
 								snap.setWwn(volResult.getWwn());
 								snap.setNativeId(volResult.getName());
 								snap.setDeviceLabel(volResult.getName());
@@ -1733,12 +1731,11 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 
 								_log.info("createConsistencyGroupSnapshot volResult name {} wwn {} ",
 										volResult.getName(), volResult.getWwn());
+								_log.info(
+										"createConsistencyGroupSnapshot Snapshot system native id {}, Parent Volume {}, access status {}, display name {}, native Name {}, DeviceLabel {} - After",
+										snap.getStorageSystemId(), snap.getParentId(), snap.getAccessStatus(),
+										snap.getDisplayName(), snap.getNativeId(), snap.getDeviceLabel());
 							}
-
-							_log.info(
-									"createConsistencyGroupSnapshot Snapshot system native id {}, Parent Volume {}, access status {}, display name {}, native Name {}, DeviceLabel {} - After",
-									snap.getStorageSystemId(), snap.getParentId(), snap.getAccessStatus(),
-									snap.getDisplayName(), snap.getNativeId(), snap.getDeviceLabel());
 
 						}
 					} else {

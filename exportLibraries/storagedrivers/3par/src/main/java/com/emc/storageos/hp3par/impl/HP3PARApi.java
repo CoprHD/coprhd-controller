@@ -501,6 +501,19 @@ public class HP3PARApi {
         } //end try/catch/finally
     }
 
+    /**
+     * 
+     * Vipr UI doesn't provide offline (Attached volume) / online options while creating clone, so
+	 * below logic will be followed: 
+	 * First, to check destination volume exists we execute create clone creation as offline volume.
+	 * if error, destination clone volume doesn't exist, so create a new volume with clone name by
+	 * using its base volume parameters like TPVV,CPG. Then create a offline
+	 * volume clone using newly created volume clone 
+	 * Note: A offline clone creates a attached clone, which actually creates 
+	 * a intermediate snapshot which can be utilized for restore/update.
+	 * We are not using online option, as it creates detached volume with no way to restore/update.
+	 * 
+     */
     public void createPhysicalCopy(String baseVolumeName, String cloneName, String cloneCPG) throws Exception {
 		_log.info("3PARDriver: createPhysicalCopy enter");
 

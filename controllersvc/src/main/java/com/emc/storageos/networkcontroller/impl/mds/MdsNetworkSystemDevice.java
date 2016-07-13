@@ -373,7 +373,6 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
         try {
             // Go into config mode. This allows us to change the configuration.
             dialog.config();
-            //zonesetClone(dialog, vsanId, activeZoneset);
             boolean doZonesetClone = false;
             for (Zone zone : zones) {
                 try {
@@ -402,6 +401,7 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
                         dialog.zonesetMember(zoneName, false);
                     }
                 }
+                //dialog.config();
                 dialog.exitToConfig();
                 commitZones(dialog, vsanId, activateZones ? activeZoneset : null);
                 dialog.copyRunningConfigToStartupFabric();
@@ -609,7 +609,7 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
                 }
             }
             _log.info("going back to config prompt");
-            dialog.config();
+            dialog.exitToConfig();
             if (activateZones) {
                 dialog.zonesetActivate(activeZoneset.getName(), vsanId, ((remainingZones[0] == 0) ? true : false));
             }

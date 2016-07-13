@@ -1420,7 +1420,8 @@ public class MDSDialog extends SSHDialog {
     }
        
     /**
-     * Does a zoneset clone of the existing zoneset in vsan 
+     * Creates a clone of the zoneset. 
+     * cmd : zoneset clone <existing_zoneset_name> <zoneset_clone_name> vsan <vsan id>
      * 
      * @throws NetworkDeviceControllerException
      */
@@ -1439,7 +1440,7 @@ public class MDSDialog extends SSHDialog {
         String errorString = MDSDialogProperties.getString("MDSDialog.zonesetClone.invalidname.cmd");
         StringBuilder buf = new StringBuilder();
         String newZoneset = generateZonesetCloneName(zonesetToClone);
-        manageZonesetClone(vsanId, newZoneset);
+        manageZonesetClone(vsanId);
         _log.info("zoneset clone name : " + newZoneset	);
         String payload = MessageFormat.format(MDSDialogProperties.getString("MDSDialog.zonesetClone.cmd"), zonesetToClone, newZoneset, vsanId); //zoneset clone {0} {1} vsan {2}\n
         lastPrompt = sendWaitFor(payload, defaultTimeout, prompts, buf);
@@ -1457,10 +1458,14 @@ public class MDSDialog extends SSHDialog {
     }
     
     /**
+     * This routine does some basic management of cloned zonesets on the switch. 
+     * Currently, only one zoneset clone per zoneset per vsan per day is maintained on the switch.
+     * This routine looks for any zoneset clones that contain the same date time-stamp and removes it. 
+     *  
      * @param vsanId
-     * @param zonesetName
+     * 
      */
-    private void manageZonesetClone(Integer vsanId, String zonesetName) {
+    private void manageZonesetClone(Integer vsanId) {
     	List<Zoneset> zonesets = showZoneset(vsanId, false, null, false, false);
     	    	
     	Calendar cal = Calendar.getInstance();
@@ -1475,6 +1480,10 @@ public class MDSDialog extends SSHDialog {
     }
         
     /**
+     * Generate a unique name for the zoneset clone.
+     * The format of the zoneset clone name is "ViPR-<existing_zone>-MM_dd_yy-HH_mm"
+     * MM_dd_yy and HH_mm refer to the date and the time-stamp that will help identify when the clone was performed.
+     * 
      * @param zonesetToClone
      * @return
      */
@@ -1484,6 +1493,8 @@ public class MDSDialog extends SSHDialog {
  	   DateFormat dateFormat = new SimpleDateFormat("MM_dd_yy-HH_mm");
  	   String dateString = dateFormat.format(cal.getTime()); 	
  	   String longName = MDSDialogProperties.getString("MDSDialog.zonesetCloneLongName.cmd");
+ 	   //NOTE: This is a hook placed to assist QE in trigerring a zoneset clone failure on demand. 
+ 	   //This will never be pusblished or documented in any way. 
  	   if (!longName.contains("!MDSDialog.zonesetCloneLongName.cmd!")) {
  		   return longName;
  	   }
@@ -1510,7 +1521,7 @@ public class MDSDialog extends SSHDialog {
         SSHPrompt[] prompts = { SSHPrompt.MDS_CONFIG, SSHPrompt.MDS_CONTINUE_QUERY };
         StringBuilder buf = new StringBuilder();
         String payload = MDSDialogProperties.getString("MDSDialog.copyRunningConfigToStartupFabric.cmd"); // copy running-config
-                                                                                                          // startup-cnofig fabric\n
+                                                                                                          // startup-config fabric\n
         lastPrompt = sendWaitFor(payload, defaultTimeout, prompts, buf);
         if (lastPrompt == SSHPrompt.MDS_CONTINUE_QUERY) {
             payload = MDSDialogProperties.getString("MDSDialog.copyRunningConfigToStartupFabric.y.cmd");  // y\n

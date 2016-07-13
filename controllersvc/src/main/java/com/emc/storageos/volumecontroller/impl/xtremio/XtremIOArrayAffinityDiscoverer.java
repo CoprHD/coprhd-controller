@@ -53,9 +53,6 @@ public class XtremIOArrayAffinityDiscoverer {
 
     private XtremIOClientFactory xtremioRestClientFactory;
 
-    // map of IG name to Volume names mapped
-    private Map<String, Set<String>> igToVolumesMap = null;
-
     public void setXtremioRestClientFactory(XtremIOClientFactory xtremioRestClientFactory) {
         this.xtremioRestClientFactory = xtremioRestClientFactory;
     }
@@ -105,8 +102,11 @@ public class XtremIOArrayAffinityDiscoverer {
         log.info("List of IGs found {}",
                 Joiner.on(",").join(groupInitiatorsByIG.asMap().entrySet()));
 
+        // map of IG name to Volume names mapped
+        Map<String, Set<String>> igToVolumesMap = getIgToVolumesMap(xtremIOClient, xioClusterName);
+
         Set<String> igNames = groupInitiatorsByIG.keySet();
-        Set<String> volumeNames = getVolumesForHost(xtremIOClient, xioClusterName, igNames);
+        Set<String> volumeNames = getVolumesForHost(igNames, igToVolumesMap);
         // consider only unmanaged volumes
         filterKnownVolumes(system, dbClient, xtremIOClient, xioClusterName, volumeNames);
 
@@ -128,12 +128,11 @@ public class XtremIOArrayAffinityDiscoverer {
     }
 
     /**
-     * Gets the volumes from the array for the given host's IGs.
+     * Gets the volumes for the given host's IGs.
      */
-    private Set<String> getVolumesForHost(XtremIOClient xtremIOClient, String xioClusterName, Set<String> igNames) throws Exception {
+    private Set<String> getVolumesForHost(Set<String> igNames, Map<String, Set<String>> igToVolumesMap) throws Exception {
         log.info("Querying volumes for IGs {}", igNames.toArray());
         Set<String> volumeNames = new HashSet<String>();
-        igToVolumesMap = getIgToVolumesMap(xtremIOClient, xioClusterName);
         for (String igName : igNames) {
             Set<String> igVolumes = igToVolumesMap.get(igName);
             log.info("Volumes {} found for IG {}", igVolumes, igName);
@@ -145,33 +144,31 @@ public class XtremIOArrayAffinityDiscoverer {
     }
 
     /**
-     * Queries the Lunmap information from array, forms IG name to volume names map.
+     * Queries the lun maps information from array, forms IG name to volume names map.
      */
     private Map<String, Set<String>> getIgToVolumesMap(XtremIOClient xtremIOClient, String xioClusterName) throws Exception {
-        if (igToVolumesMap == null) {
-            log.info("Querying LunMaps for cluster {}", xioClusterName);
-            igToVolumesMap = new HashMap<>();
+        log.info("Querying lun maps for cluster {}", xioClusterName);
+        Map<String, Set<String>> igToVolumesMap = new HashMap<>();
 
-            // get the XtremIO lun map links and process them in batches
-            List<XtremIOObjectInfo> lunMapLinks = xtremIOClient.getXtremIOLunMapLinks(xioClusterName);
-            List<List<XtremIOObjectInfo>> lunMapPartitions = Lists.partition(lunMapLinks, Constants.DEFAULT_PARTITION_SIZE);
-            for (List<XtremIOObjectInfo> partition : lunMapPartitions) {
-                // Get the lun map details
-                List<XtremIOLunMap> lunMaps = xtremIOClient.getXtremIOLunMapsForLinks(partition, xioClusterName);
-                for (XtremIOLunMap lunMap : lunMaps) {
-                    try {
-                        log.info("Looking at LunMap {}; IG name: {}, Volume: {}",
-                                lunMap.getMappingInfo().get(2), lunMap.getIgName(), lunMap.getVolumeName());
-                        String igName = lunMap.getIgName();
-                        Set<String> volumes = igToVolumesMap.get(igName);
-                        if (volumes == null) {
-                            volumes = new HashSet<String>();
-                            igToVolumesMap.put(igName, volumes);
-                        }
-                        volumes.add(lunMap.getVolumeName());
-                    } catch (Exception ex) {
-                        log.info("Error processing XtremIO lun map {}. {}", lunMap, ex.getMessage());
+        // get the XtremIO lun map links and process them in batches
+        List<XtremIOObjectInfo> lunMapLinks = xtremIOClient.getXtremIOLunMapLinks(xioClusterName);
+        List<List<XtremIOObjectInfo>> lunMapPartitions = Lists.partition(lunMapLinks, Constants.DEFAULT_PARTITION_SIZE);
+        for (List<XtremIOObjectInfo> partition : lunMapPartitions) {
+            // Get the lun map details
+            List<XtremIOLunMap> lunMaps = xtremIOClient.getXtremIOLunMapsForLinks(partition, xioClusterName);
+            for (XtremIOLunMap lunMap : lunMaps) {
+                try {
+                    log.info("Looking at lun map {}; IG name: {}, Volume: {}",
+                            lunMap.getMappingInfo().get(2), lunMap.getIgName(), lunMap.getVolumeName());
+                    String igName = lunMap.getIgName();
+                    Set<String> volumes = igToVolumesMap.get(igName);
+                    if (volumes == null) {
+                        volumes = new HashSet<String>();
+                        igToVolumesMap.put(igName, volumes);
                     }
+                    volumes.add(lunMap.getVolumeName());
+                } catch (Exception ex) {
+                    log.info("Error processing XtremIO lun map {}. {}", lunMap, ex.getMessage());
                 }
             }
         }
@@ -225,6 +222,7 @@ public class XtremIOArrayAffinityDiscoverer {
             if (Integer.parseInt(xioIG.getNumberOfInitiators()) > groupInitiatorsByIG.get(igName).size()
                     || (igNameToHostsMap != null && igNameToHostsMap.get(igName) != null && igNameToHostsMap.get(igName).size() > 1)) {
                 maskType = ExportGroup.ExportGroupType.Cluster.name();
+                log.info("This Host has volume(s) shared with multiple hosts");
                 break;
             }
         }
@@ -247,6 +245,7 @@ public class XtremIOArrayAffinityDiscoverer {
             volumeIGNames.removeAll(hostIGNames);
             if (!volumeIGNames.isEmpty()) {
                 maskType = ExportGroup.ExportGroupType.Cluster.name();
+                log.info("This Host has volume(s) shared with multiple hosts");
             }
         }
         return maskType;
@@ -334,6 +333,9 @@ public class XtremIOArrayAffinityDiscoverer {
         log.info("IG name to Hosts Map: {}", Joiner.on(",").join(igNameToHostsMap.entrySet()));
         log.info("Host to IG names Map: {}", Joiner.on(",").join(hostToIGNamesMap.entrySet()));
 
+        // map of IG name to Volume names mapped
+        Map<String, Set<String>> igToVolumesMap = getIgToVolumesMap(xtremIOClient, xioClusterName);
+
         // As XtremIO array has only one storage pool, add the pool directly.
         // get the storage pool associated with the XtremIO system
         StoragePool storagePool = XtremIOProvUtils.getXtremIOStoragePool(system.getId(), dbClient);
@@ -343,7 +345,7 @@ public class XtremIOArrayAffinityDiscoverer {
             if (host != null) {
                 log.info("Processing Host {}", host.getLabel());
                 Map<String, String> preferredPoolMap = new HashMap<String, String>();
-                Set<String> volumeNames = getVolumesForHost(xtremIOClient, xioClusterName, hostToIGNamesMap.get(hostId));
+                Set<String> volumeNames = getVolumesForHost(hostToIGNamesMap.get(hostId), igToVolumesMap);
                 // consider only unmanaged volumes
                 filterKnownVolumes(system, dbClient, xtremIOClient, xioClusterName, volumeNames);
                 if (!volumeNames.isEmpty()) {

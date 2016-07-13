@@ -38,6 +38,8 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
+import com.emc.storageos.locking.LockTimeoutValue;
+import com.emc.storageos.locking.LockType;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.vnxe.VNXeApiClient;
@@ -49,6 +51,7 @@ import com.emc.storageos.volumecontroller.BlockStorageDevice;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.SnapshotOperations;
 import com.emc.storageos.volumecontroller.TaskCompleter;
+import com.emc.storageos.volumecontroller.impl.ControllerLockingUtil;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.VolumeURIHLU;
@@ -64,6 +67,7 @@ import com.emc.storageos.volumecontroller.impl.vnxe.job.VNXeCreateVolumesJob;
 import com.emc.storageos.volumecontroller.impl.vnxe.job.VNXeDeleteVolumesJob;
 import com.emc.storageos.volumecontroller.impl.vnxe.job.VNXeExpandVolumeJob;
 import com.emc.storageos.volumecontroller.impl.vnxe.job.VNXeJob;
+import com.emc.storageos.workflow.WorkflowService;
 
 public class VNXUnityBlockStorageDevice extends VNXUnityOperations
         implements BlockStorageDevice {
@@ -72,6 +76,7 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
 
     private SnapshotOperations snapshotOperations;
     private NameGenerator nameGenerator;
+    private WorkflowService workflowService;
 
     public NameGenerator getNameGenerator() {
         return nameGenerator;
@@ -94,6 +99,10 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
 
     public void setSnapshotOperations(final SnapshotOperations snapshotOperations) {
         this.snapshotOperations = snapshotOperations;
+    }
+    
+    public void setWorkflowService(WorkflowService workflowService) {
+        this.workflowService = workflowService;
     }
 
     @Override
@@ -174,6 +183,7 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
             if (isCG) {
                 logger.info(String.format("cg %s for the volume", cgName));
                 String cgId = apiClient.getConsistencyGroupIdByName(cgName);
+                getCGLock(storage, cgName, opId);
                 VNXeCommandJob job = apiClient.createLunsInConsistencyGroup(volNames, storagePool.getNativeId(), vol.getCapacity(),
                         vol.getThinlyProvisioned(), autoTierPolicyName, cgId);
                 jobs.add(job.getId());
@@ -221,13 +231,15 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
         logger.info(String.format("Expand Volume Start - Array: %s, Pool: %s, Volume: %s, New size: %d",
                 storage.getSerialNumber(), pool.getNativeGuid(), volume.getLabel(), size));
 
-        String consistencyGroupId = volume.getReplicationGroupInstance();
-        if (NullColumnValueGetter.isNullValue(consistencyGroupId)) {
-            consistencyGroupId = null;
-        }
+        String cgName = volume.getReplicationGroupInstance();
+        String consistencyGroupId = null;
 
         try {
             VNXeApiClient apiClient = getVnxUnityClient(storage);
+            if (NullColumnValueGetter.isNotNullValue(cgName)) {
+                consistencyGroupId = apiClient.getConsistencyGroupIdByName(cgName); 
+                getCGLock(storage, cgName, taskCompleter.getOpId());
+            }
             VNXeCommandJob commandJob = apiClient.expandLun(volume.getNativeId(), size, consistencyGroupId);
             VNXeExpandVolumeJob expandVolumeJob = new VNXeExpandVolumeJob(commandJob.getId(), storage.getId(), taskCompleter);
             ControllerServiceImpl.enqueueJob(new QueueJob(expandVolumeJob));
@@ -278,6 +290,7 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
                 String cgName = entry.getKey();
                 List<String> lunIDs = entry.getValue();
                 String cgId = apiClient.getConsistencyGroupIdByName(cgName);
+                getCGLock(storageSystem, cgName, opId);
                 apiClient.deleteLunsFromConsistencyGroup(cgId, lunIDs);
             }
 
@@ -597,17 +610,14 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
         BlockConsistencyGroup consistencyGroupObj = dbClient.queryObject(BlockConsistencyGroup.class,
                 consistencyGroup);
         VNXeApiClient apiClient = getVnxUnityClient(storage);
-
-        String tenantName = "";
-        try {
-            TenantOrg tenant = dbClient.queryObject(TenantOrg.class, consistencyGroupObj.getTenant()
-                    .getURI());
-            tenantName = tenant.getLabel();
-        } catch (DatabaseException e) {
-            logger.error("Error lookup TenantOrb object", e);
+        
+        String label = null;
+        if (NullColumnValueGetter.isNotNullValue(replicationGroupName)) {
+            label = replicationGroupName;
+        } else {
+            label = consistencyGroupObj.getLabel();
         }
-        String label = nameGenerator.generate(tenantName, consistencyGroupObj.getLabel(),
-                consistencyGroupObj.getId().toString(), '-', VNXeConstants.MAX_NAME_LENGTH);
+
         try {
             VNXeCommandResult result = apiClient.createConsistencyGroup(label);
             if (result.getStorageResource() != null) {
@@ -1163,4 +1173,23 @@ public class VNXUnityBlockStorageDevice extends VNXUnityOperations
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 
+    /**
+     * Acquire the workflow step lock for CG
+     * 
+     * @param system The storage system
+     * @param cgName The consistency group name
+     * @param stepId The step id
+     */
+    private void getCGLock(StorageSystem system, String cgName, String stepId) {
+        // lock around create and delete operations on the same CG
+        logger.info(String.format("Getting lock for the CG %s", cgName));
+        List<String> lockKeys = new ArrayList<String>();
+        String key = cgName + system.getNativeGuid();
+        lockKeys.add(key);
+        boolean lockAcquired = workflowService.acquireWorkflowStepLocks(stepId, lockKeys, LockTimeoutValue.get(LockType.ARRAY_CG));
+        if (!lockAcquired) {
+            throw DeviceControllerException.exceptions.failedToAcquireLock(lockKeys.toString(),
+                    String.format("Add or remove volumes from Unity consistency group %s", cgName));
+        }
+    }
 }

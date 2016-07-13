@@ -952,6 +952,7 @@
             <property name="nameGenerator" ref="defaultNameGenerator"/>
             <property name="exportMaskOperationsHelper" ref="vnxunityExportMaskOperationsHelper"/>
             <property name="snapshotOperations" ref="vnxunitySnapshotOperations"/>
+            <property name="workflowService" ref="workflowService" />
     </bean>
 
     <bean id="netappFileDevice" class="com.emc.storageos.volumecontroller.impl.netapp.NetAppFileStorageDevice">

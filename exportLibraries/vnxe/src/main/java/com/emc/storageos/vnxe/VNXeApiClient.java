@@ -1252,8 +1252,14 @@ public class VNXeApiClient {
             lunModifyParam.setLun(new VNXeBase(lunID));
             lunModifyParamList.add(lunModifyParam);
             param.setLunModify(lunModifyParamList);
-            LunGroupRequests lunGroupRequest = new LunGroupRequests(_khClient);
-            job = lunGroupRequest.modifyLunGroupAsync(lunGroupID, param);
+            if (isUnityClient()) {
+                ConsistencyGroupRequests cgRequest = new ConsistencyGroupRequests(_khClient);
+                job = cgRequest.modifyConsistencyGroupAsync(lunGroupID, param);
+                
+            } else {
+                LunGroupRequests lunGroupRequest = new LunGroupRequests(_khClient);
+                job = lunGroupRequest.modifyLunGroupAsync(lunGroupID, param);
+            }
 
         } else if (vnxeLun.getType() == STANDALONE_LUN_TYPE) {
             BlockLunRequests req = new BlockLunRequests(_khClient);

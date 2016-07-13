@@ -98,7 +98,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	@Override
 	public <T extends StorageObject> T getStorageObject(String storageSystemId, String objectId, Class<T> type) {
 		// TODO Auto-generated method stub
-		_log.info("3PARDriver: getStorageObject Running ");
+		_log.info("3PARDriver: getStorageObject enter ");
 		try {
 			HP3PARApi hp3parApi = hp3parUtil.getHP3PARDeviceFromNativeId(storageSystemId, this.driverRegistry);
 			ConsistencyGroupResult cgResult = null;
@@ -123,9 +123,10 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 
 	@Override
 	public RegistrationData getRegistrationData() {
-		_log.info("3PARDriver: getStorageObject Running ");
-		// TODO Auto-generated method stub
-		return null;
+		_log.info("3PARDriver: getStorageObject enter");
+        RegistrationData registrationData = new RegistrationData(HP3PARConstants.DRIVER_NAME, "driversystem", null);
+        _log.info("3PARDriver: getStorageObject leave");
+        return registrationData;
 	}
 
 	/**
@@ -363,7 +364,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	@Override
 	public DriverTask discoverStorageHostComponents(StorageSystem storageSystem,
 			List<StorageHostComponent> embeddedStorageHostComponents) {
-		_log.info("3PARDriver: discoverStorageHostComponents Running ");
+		_log.error("3PARDriver: discoverStorageHostComponents not supported");
 		// TODO Auto-generated method stub
 		return null;
 	}
@@ -827,7 +828,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 
 	@Override
 	public DriverTask createVolumeMirror(List<VolumeMirror> mirrors, StorageCapabilities capabilities) {
-		_log.info("3PARDriver: createVolumeMirror Running ");
+		_log.error("3PARDriver: createVolumeMirror not supported ");
 		// TODO Auto-generated method stub
 		return null;
 	}
@@ -835,21 +836,21 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	@Override
 	public DriverTask createConsistencyGroupMirror(VolumeConsistencyGroup consistencyGroup, List<VolumeMirror> mirrors,
 			List<CapabilityInstance> capabilities) {
-		_log.info("3PARDriver: createConsistencyGroupMirror Running ");
+		_log.error("3PARDriver: createConsistencyGroupMirror not supported ");
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
 	public DriverTask deleteVolumeMirror(List<VolumeMirror> mirrors) {
-		_log.info("3PARDriver: deleteVolumeMirror Running ");
+		_log.error("3PARDriver: deleteVolumeMirror not supported ");
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
 	public DriverTask deleteConsistencyGroupMirror(List<VolumeMirror> mirrors) {
-		_log.info("3PARDriver: deleteConsistencyGroupMirror Running ");
+		_log.error("3PARDriver: deleteConsistencyGroupMirror not supported ");
 		// TODO Auto-generated method stub
 		return null;
 	}
@@ -857,7 +858,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 
 	@Override
 	public DriverTask splitVolumeMirror(List<VolumeMirror> mirrors) {
-		_log.info("3PARDriver: splitVolumeMirror Running ");
+		_log.error("3PARDriver: splitVolumeMirror not supported ");
 		// TODO Auto-generated method stub
 		return null;
 	}
@@ -865,14 +866,14 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 
 	@Override
 	public DriverTask resumeVolumeMirror(List<VolumeMirror> mirrors) {
-		_log.info("3PARDriver: resumeVolumeMirror Running ");
+		_log.error("3PARDriver: resumeVolumeMirror not supported ");
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
 	public DriverTask restoreVolumeMirror(List<VolumeMirror> mirrors) {
-		_log.info("3PARDriver: restoreVolumeMirror Running ");
+		_log.error("3PARDriver: restoreVolumeMirror not supported ");
 		// TODO Auto-generated method stub
 		return null;
 	}
@@ -906,7 +907,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 
 	@Override
 	public Map<String, HostExportInfo> getMirrorExportInfoForHosts(VolumeMirror mirror) {
-		_log.info("3PARDriver: getMirrorExportInfoForHosts Running ");
+		_log.error("3PARDriver: getMirrorExportInfoForHosts not supported ");
 		// TODO Auto-generated method stub
 		return null;
 	}
@@ -922,16 +923,14 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 
 			Complete:
 			// for each host in 3par
-			for (int iHst = 0; iHst < hostRes.getTotal(); iHst++) {
-				HostMember hostMemb = hostRes.getMembers().get(iHst);
+			for(HostMember hostMemb:hostRes.getMembers()) {
 				// for each host initiator sent
 				for (Initiator init : initiators) {
 
 					// Is initiator FC
 				    if (init.getProtocol().toString().compareToIgnoreCase(Protocols.FC.toString()) == 0 ) {
 						// verify in all FC ports with host
-						for (int kFc = 0; kFc < hostMemb.getFCPaths().size(); kFc++) {
-							FcPath fcPath = hostMemb.getFCPaths().get(kFc);
+						for(FcPath fcPath: hostMemb.getFCPaths()) {							
 							if (SanUtils.formatWWN(fcPath.getWwn()).compareToIgnoreCase(init.getPort()) == 0) {
 								hp3parHost = hostMemb.getName();
 								_log.info("3PARDriver: get3parHostname initiator {} host {}", init.getPort(),
@@ -939,10 +938,9 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 								break Complete;
 							}
 						}
-					} else {
+					} else if (init.getProtocol().toString().compareToIgnoreCase(Protocols.iSCSI.toString()) == 0 ){
 						// verify in all iSCSI ports with host
-						for (int kSc = 0; kSc < hostMemb.getiSCSIPaths().size(); kSc++) {
-							ISCSIPath scsiPath = hostMemb.getiSCSIPaths().get(kSc);
+						for (ISCSIPath scsiPath:hostMemb.getiSCSIPaths()) {
 							if (scsiPath.getName().compareToIgnoreCase(init.getPort()) == 0) {
 								hp3parHost = hostMemb.getName();
 								_log.info("3PARDriver: get3parHostname initiator {} host {}", init.getPort(),
@@ -1440,14 +1438,13 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 		_log.info("3PARDriver:unexportVolumesFromInitiators enter");
 
 		// All initiators belong to same host
-		ArrayList<Position> initiatorPaths = new ArrayList<>();
 		String host = null;
 		int totalUnexport = 0;
 
 		try {
 			if (initiators.isEmpty() || volumes.isEmpty()) {
-				_log.error("3PARDriver:unexportVolumesFromInitiators error blank initiator or volumes");
-				throw new HP3PARException("3PARDriver:unexportVolumesFromInitiators error blank initiator or volumes");
+				_log.error("3PARDriver:unexportVolumesFromInitiators error blank initiator and/or volumes");
+				throw new HP3PARException("3PARDriver:unexportVolumesFromInitiators error blank initiator and/or volumes");
 			}
 
 			host = get3parHostname(initiators, volumes.get(0).getStorageSystemId());

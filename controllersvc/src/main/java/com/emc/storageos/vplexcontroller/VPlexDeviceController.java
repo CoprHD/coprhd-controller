@@ -147,6 +147,8 @@ import com.emc.storageos.volumecontroller.impl.job.QueueJob;
 import com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
+import com.emc.storageos.volumecontroller.impl.validators.ValCk;
+import com.emc.storageos.volumecontroller.impl.validators.ValidatorFactory;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
 import com.emc.storageos.volumecontroller.placement.ExportPathUpdater;
 import com.emc.storageos.vplex.api.VPlexApiClient;
@@ -359,6 +361,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private BlockOrchestrationDeviceController _blockOrchestrationController;
     private NetworkDeviceController _networkDeviceController;
     private BlockStorageScheduler _blockScheduler;
+    private ValidatorFactory validator;
     private static volatile VPlexDeviceController _instance;
     private ExportWorkflowUtils _exportWfUtils;
     private NetworkScheduler _networkScheduler;
@@ -3410,6 +3413,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 opId);
         boolean hasSteps = false;
         try {
+            validator.volumeURIs(volumeURIs, false, false, ValCk.ID);
             Workflow workflow = _workflowService.getNewWorkflow(this, EXPORT_GROUP_REMOVE_VOLUMES, false, opId, null);
             StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
             ExportGroup exportGroup = getDataObject(ExportGroup.class, exportURI, _dbClient);
@@ -12690,5 +12694,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     public String addStepsForPreCreateReplica(Workflow workflow, String waitFor, List<VolumeDescriptor> volumeDescriptors, String taskId)
             throws InternalException {
         return waitFor;
+    }
+
+    public void setValidator(ValidatorFactory validator) {
+        this.validator = validator;
     }
 }

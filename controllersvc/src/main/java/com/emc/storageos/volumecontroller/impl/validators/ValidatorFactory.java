@@ -26,18 +26,25 @@ public class ValidatorFactory {
         this.systemFactories = systemFactories;
     }
 
-    public List<URI> volumeURIs(List<URI> uris, boolean delete, boolean remediate, StringBuilder msgs, ValCk... checks) {
+    /**
+     * Validates a list of Volumes 
+     * @param uris
+     * @param delete
+     * @param remediate
+     * @param checks A list of validation checks to be made (of type ValCk).
+     * @return 
+     */
+    public List<URI> volumeURIs(List<URI> uris, boolean delete, boolean remediate, ValCk... checks) {
         List<URI> remediatedURIs = new ArrayList<URI>();
         List<Volume> volumes = dbClient.queryObject(Volume.class, uris);
-        List<Volume> remediatedVolumes = volumes(volumes, delete, remediate, msgs, checks);
+        List<Volume> remediatedVolumes = volumes(volumes, delete, remediate, checks);
         for (Volume volume : remediatedVolumes) {
             remediatedURIs.add(volume.getId());
         }
         return remediatedURIs;
     }
 
-    public List<Volume> volumes(List<Volume> volumes, boolean delete,
-                                boolean remediate, StringBuilder msgs, ValCk... checks) {
+    public List<Volume> volumes(List<Volume> volumes, boolean delete, boolean remediate, ValCk... checks) {
         // Collect remediated volumes
         List<Volume> remediatedVolumes = new ArrayList<Volume>();
         // Partition volumes by StorageSystem
@@ -54,7 +61,7 @@ public class ValidatorFactory {
 
             StorageSystemValidatorFactory validator = getSystemValidator(system);
             if (validator != null) {
-                validator.volumes(system, entry.getValue(), delete, remediate, msgs, checks);
+                validator.volumes(system, entry.getValue(), delete, remediate, checks);
             }
         }
         return remediatedVolumes;
@@ -68,10 +75,19 @@ public class ValidatorFactory {
         return systemFactories.get("xtremio");
     }
 
+    /**
+     * Return the Vplex validator factory.
+     * @return VPlexSystemValidatorFactory instance
+     */
     public StorageSystemValidatorFactory vplex() {
         return systemFactories.get("vplex");
     }
 
+    /**
+     * Returns the appropriate StorageSystemValidatorFactory based on StorageSystem type.
+     * @param system -- StorageSystem object
+     * @return -- StorageSystemValidatorFactory
+     */
     private StorageSystemValidatorFactory getSystemValidator(StorageSystem system) {
         return systemFactories.get(system.getSystemType());
     }

@@ -93,10 +93,28 @@ public class ComputeVirtualPools extends AbstractCoreBulkResources<ComputeVirtua
         return ResourceUtils.defaultList(response.getComputeVirtualPool());
     }
 
+    /**
+     * Get all virtual pools of specific tenant
+     *
+     * @param tenantId
+     *            the ID of the tenant
+     *
+     * @return the list of compute virtual pool of specific tenant
+     */
     public List<ComputeVirtualPoolRestRep> getByTenant(URI tenantId) {
         return getByTenant(tenantId, null);
     }
 
+    /**
+     * Gets all compute virtual pools of specific tenant, optionally filtering the results.
+     *
+     * @param tenantId
+     *            the ID of the tenant
+     * @param filter
+     *            the resource filter to apply to the results as they are returned (optional).
+     *
+     * @return the list of compute virtual pools.
+     */
     public List<ComputeVirtualPoolRestRep> getByTenant(URI tenantId, ResourceFilter<ComputeVirtualPoolRestRep> filter) {
         List<NamedRelatedResourceRep> refs = listByTenant(tenantId);
         return getByRefs(refs, filter);
@@ -155,6 +173,18 @@ public class ComputeVirtualPools extends AbstractCoreBulkResources<ComputeVirtua
         return getByVirtualArray(varrayId, tenantId, null);
     }
 
+    /**
+     * Gets the compute virtual pools that are associated with the given virtual array and specific tenant.
+     *
+     * @param varrayId
+     *            the ID of the virtual array.
+     * @param tenantId
+     *            the ID of the tenant.
+     * @param filter
+     *            the resource filter to apply to the results as they are returned (optional).
+     *
+     * @return the list of compute virtual pools.
+     */
     public List<ComputeVirtualPoolRestRep> getByVirtualArray(URI varrayId, URI tenantId, ResourceFilter<ComputeVirtualPoolRestRep> filter) {
         List<ComputeVirtualPoolRestRep> allPools = null;
         if (tenantId == null) {

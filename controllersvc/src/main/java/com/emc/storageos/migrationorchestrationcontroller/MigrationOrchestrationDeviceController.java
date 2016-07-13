@@ -31,6 +31,7 @@ public class MigrationOrchestrationDeviceController implements MigrationOrchestr
     private static DbClient s_dbClient;
     private static BlockDeviceController _blockDeviceController;
     private static HostMigrationDeviceController _hostMigrationDeviceController;
+    // TODO: Add when native controller is added
     // private static NativeMigrationDeviceController _nativeMigrationDeviceController;
     private ControllerLockingService _locker;
 
@@ -68,9 +69,11 @@ public class MigrationOrchestrationDeviceController implements MigrationOrchestr
             waitFor = _hostMigrationDeviceController.addStepsForChangeVirtualPool(
                     workflow, waitFor, volumes, taskId);
 
+	    // TODO: Add in the native controller when that code is flushed out.
             // call the nativeMigrationDeviceController to add change virtual pool steps.
             // waitFor = _nativeMigrationDeviceController.addStepsForChangeVirtualPool(
             // workflow, waitFor, volumes, taskId);
+
             // Finish up and execute the plan.
             // The Workflow will handle the TaskCompleter
             String successMessage = "Change Virtual Pool suceeded for volumes: " + volURIs.toString();
@@ -123,6 +126,7 @@ public class MigrationOrchestrationDeviceController implements MigrationOrchestr
             waitFor = _hostMigrationDeviceController.addStepsForChangeVirtualArray(workflow,
                     waitFor, volumeDescriptors, taskId);
 
+	    // TODO: Add in the native controller when that code is flushed out.
             // Then call the NativeMigrationDeviceController to add change virtual array steps.
             // waitFor = _nativeMigrationDeviceController.addStepsForChangeVirtualArray(workflow,
             // waitFor, volumeDescriptors, taskId);

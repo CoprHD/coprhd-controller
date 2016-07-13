@@ -11,6 +11,7 @@ import java.net.URI;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
@@ -24,7 +25,6 @@ public class StorageSystemTypesInitUtils {
 
     private static final Logger log = LoggerFactory.getLogger(StorageSystemTypesInitUtils.class);
 
-//    private static final String NONE = "NONE";
     private static final String ISILON = "isilon";
     private static final String VNX_BLOCK = "vnxblock";
     private static final String VNXe = "vnxe";
@@ -47,44 +47,23 @@ public class StorageSystemTypesInitUtils {
     private static final String ECS = "ecs";
     private static final String CEPH = "ceph";
     private static final String UNITY = "unity";
-    
-    // Default File arrays
+
     private static final List<String> FILE_TYPE_SYSTEMS = asList(VNX_FILE, ISILON, NETAPP, NETAPPC, UNITY);
+    private static final List<String> BLOCK_TYPE_SYSTEMS = asList(VMAX, VNX_BLOCK, VNXe, HITACHI, OPENSTACK, DATA_DOMAIN);
+    private static final List<String> OBJECT_TYPE_SYSTEMS = asList(ECS);
+    private static final List<String> FILE_TYPE_SYSTEM_PROVIDERS = asList(SCALEIOAPI);
+    private static final List<String> BLOCK_TYPE_SYSTEM_PROVIDERS = asList(SMIS, HITACHI_PROVIDER, CINDER,
+            DATA_DOMAIN_PROVIDER, VPLEX, SCALEIO, IBMXIV, XTREMIO, UNITY, CEPH);
 
-    // Default Provider for File
-    private static List<String> storageProviderFile = asList(SCALEIOAPI);
-
-    // Default block arrays
-    private static final List<String> BLOCK_ARRAY_SYSTEMS = asList(VMAX, VNX_BLOCK, VNXe, HITACHI, OPENSTACK, DATA_DOMAIN);
-
-    // Default Storage provider for Block
-    private static List<String> storageProviderBlock = asList(SMIS, HITACHI_PROVIDER, CINDER, DATA_DOMAIN_PROVIDER, VPLEX, SCALEIO,
-            IBMXIV, XTREMIO, UNITY, CEPH);
-
-    // Default object arrays
-    private static List<String> storageArrayObject = asList(ECS);
-
-    private StorageSystemTypesInitUtils() {
-    }
-
-    private static final HashMap<String, Boolean> DEFAULT_SSL_ENABLE_MAP;
-
-    private static final HashMap<String, Boolean> DEFAULT_MDM_ENABLE_MAP;
-
-    private static final HashMap<String, Boolean> ONLY_MDM_MAP;
-
-    private static final HashMap<String, Boolean> ELEMENT_MANAGER;
-    
-    private static final HashMap<String, Boolean> SECREAT_KEY_ENABLE_MAP;
-
-    // Name of Array and its Display Name mapping
-    private static final HashMap<String, String> DISPLAY_NAME_MAP;
-
-    private static final HashMap<String, String> SSL_PORT_MAP;
-
-    private static final HashMap<String, String> NON_SSL_PORT_MAP;
-    private static final HashMap<String, String> STORAGE_PROVIDER_MAP;
-    private static HashMap<String, String> dbStorageTypeMap = null;
+    private static final Map<String, Boolean> DEFAULT_SSL_ENABLE_MAP;
+    private static final Map<String, Boolean> DEFAULT_MDM_ENABLE_MAP;
+    private static final Map<String, Boolean> ONLY_MDM_MAP;
+    private static final Map<String, Boolean> ELEMENT_MANAGER;
+    private static final Map<String, Boolean> SECREAT_KEY_ENABLE_MAP;
+    private static final Map<String, String> DISPLAY_NAME_MAP;
+    private static final Map<String, String> SSL_PORT_MAP;
+    private static final Map<String, String> NON_SSL_PORT_MAP;
+    private static final Map<String, String> STORAGE_PROVIDER_MAP;
 
     static {
         // Initialize default SSL enable map
@@ -193,11 +172,18 @@ public class StorageSystemTypesInitUtils {
         STORAGE_PROVIDER_MAP.put(XTREMIO, "Storage Provider for EMC XtremIO");
     }
 
+    public StorageSystemTypesInitUtils(DbClient dbClient) {
+        this.dbClient = dbClient;
+    }
+
+    private DbClient dbClient;
+    private Map<String, String> dbStorageTypeMap = null;
+
     /**
      * Create a HashMap of existing storage system types, to avoid duplicate insertion
      * 
      */
-    private static void createDbStorageTypeMap(DbClient dbClient) {
+    private  void createDbStorageTypeMap() {
         List<URI> ids = dbClient.queryByType(StorageSystemType.class, true);
         Iterator<StorageSystemType> existingTypes = dbClient.queryIterativeObjects(StorageSystemType.class, ids);
         dbStorageTypeMap = new HashMap<String, String>();
@@ -208,7 +194,7 @@ public class StorageSystemTypesInitUtils {
         }
     }
 
-    private static void insertFileArrays(DbClient dbClient) {
+    private void insertFileArrays() {
         for (String file : FILE_TYPE_SYSTEMS) {
             if (dbStorageTypeMap != null && StringUtils.equals(file, dbStorageTypeMap.get(file)) ) {
                 // avoid duplicate entries
@@ -248,8 +234,8 @@ public class StorageSystemTypesInitUtils {
         }
     }
 
-    private static void insertFileProviders(DbClient dbClient) {
-        for (String file : storageProviderFile) {
+    private void insertFileProviders() {
+        for (String file : FILE_TYPE_SYSTEM_PROVIDERS) {
             if (dbStorageTypeMap != null && StringUtils.equals(file, dbStorageTypeMap.get(file)) ) {
                 // avoid duplicate entries
                 continue;
@@ -285,8 +271,8 @@ public class StorageSystemTypesInitUtils {
         }
     }
 
-    private static void insertBlockArrays(DbClient dbClient) {
-        for (String block : BLOCK_ARRAY_SYSTEMS) {
+    private void insertBlockArrays() {
+        for (String block : BLOCK_TYPE_SYSTEMS) {
             if (dbStorageTypeMap != null && StringUtils.equals(block, dbStorageTypeMap.get(block)) ) {
                 // avoid duplicate entries
                 continue;
@@ -325,8 +311,8 @@ public class StorageSystemTypesInitUtils {
         }
     }
 
-    private static void insertBlockProviders(DbClient dbClient) {
-        for (String block : storageProviderBlock) {
+    private void insertBlockProviders() {
+        for (String block : BLOCK_TYPE_SYSTEM_PROVIDERS) {
             if (dbStorageTypeMap != null && StringUtils.equals(block, dbStorageTypeMap.get(block)) ) {
                 // avoid duplicate entries
                 continue;
@@ -366,8 +352,8 @@ public class StorageSystemTypesInitUtils {
         }
     }
 
-    private static void insertObjectArrays(DbClient dbClient) {
-        for (String object : storageArrayObject) {
+    private void insertObjectArrays() {
+        for (String object : OBJECT_TYPE_SYSTEMS) {
             if (dbStorageTypeMap != null && StringUtils.equals(object, dbStorageTypeMap.get(object)) ) {
                 // avoid duplicate entries
                 continue;
@@ -404,33 +390,33 @@ public class StorageSystemTypesInitUtils {
         }
     }
 
-    public static HashMap<String, String> getDisplayNames() {
+    public static Map<String, String> getDisplayNames() {
         return DISPLAY_NAME_MAP;
     }
 
-    public static HashMap<String, String> getProviderDsiplayNameMap() {
+    public static Map<String, String> getProviderDsiplayNameMap() {
         return STORAGE_PROVIDER_MAP;
     }
 
-    public static void initializeStorageSystemTypes(DbClient dbClient) {
+    public void initializeStorageSystemTypes() {
         log.info("Intializing storage system type Column Family for default storage drivers");
 
         // When db and default list are not in sync, re-insert is required, and make sure we avoid duplicate entry
-        createDbStorageTypeMap(dbClient);
+        createDbStorageTypeMap();
 
         // Insert File Arrays
-        insertFileArrays(dbClient);
+        insertFileArrays();
         // Insert File Providers
-        insertFileProviders(dbClient);
+        insertFileProviders();
 
         // Insert Block Arrays
-        insertBlockArrays(dbClient);
+        insertBlockArrays();
         // Insert Block Providers
-        insertBlockProviders(dbClient);
+        insertBlockProviders();
 
         // Insert Object Arrays
-        insertObjectArrays(dbClient);
+        insertObjectArrays();
 
-        log.info("Default drivers initialization done....");
+        log.info("Default drivers initialization done.");
     }
 }

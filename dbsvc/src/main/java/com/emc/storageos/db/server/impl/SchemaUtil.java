@@ -907,7 +907,7 @@ public class SchemaUtil {
             // For time-being consideration, fix other bug first.
             //Compare our default-list and data available at DB are in sync
             int dbElementCount = uriList.size();
-            HashMap<String, String> defaultDisplayName = StorageSystemTypesInitUtils.getDisplayNames();
+            Map<String, String> defaultDisplayName = StorageSystemTypesInitUtils.getDisplayNames();
             int defaultCount = defaultDisplayName.size();
             if(dbElementCount < defaultCount) {
                 // This means default list and data at DB are not in sync, so insert again
@@ -917,7 +917,8 @@ public class SchemaUtil {
         if (storageTypeExist) {
             return;
         }
-        StorageSystemTypesInitUtils.initializeStorageSystemTypes(dbClient);
+        StorageSystemTypesInitUtils utils = new StorageSystemTypesInitUtils(dbClient);
+        utils.initializeStorageSystemTypes();
     }
 
     /**

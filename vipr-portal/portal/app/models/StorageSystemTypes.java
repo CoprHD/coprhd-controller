@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;
 
@@ -159,7 +160,7 @@ public class StorageSystemTypes {
      * Inside structure of StringOption is "storage type name: provider name (or storage type display name)
      */
     public static List<StringOption> getStorageTypeOptions() {
-        HashMap<String, String> arrayProviderMap = StorageSystemTypesInitUtils.getProviderDsiplayNameMap();
+        Map<String, String> arrayProviderMap = StorageSystemTypesInitUtils.getProviderDsiplayNameMap();
         List<StringOption> options = new ArrayList<StringOption>();
         StorageSystemTypeList typeList = StorageSystemTypeUtils.getAllStorageSystemTypes(StorageSystemTypeUtils.ALL_TYPE);
 

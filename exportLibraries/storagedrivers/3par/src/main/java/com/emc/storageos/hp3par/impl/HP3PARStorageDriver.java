@@ -539,7 +539,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 
 	@Override
 	public List<VolumeMirror> getVolumeMirrors(StorageVolume volume) {
-		_log.info("3PARDriver: getVolumeMirrors Running ");
+		_log.error("3PARDriver: getVolumeMirrors not supported ");
 		// TODO Auto-generated method stub
 		return null;
 	}
@@ -1299,7 +1299,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 
 								// get storage array ports for this host ports
 								List<StoragePort> clusterStoragePorts = new ArrayList<>();
-								getCluseterStoragePorts(hostRes, availablePorts, vol.getStorageSystemId(),
+								getClusterStoragePorts(hostRes, availablePorts, vol.getStorageSystemId(),
 										clusterStoragePorts);
 
 								for (StoragePort sp : clusterStoragePorts) {
@@ -1344,7 +1344,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 
 								// get storage array ports for this host ports
 								List<StoragePort> clusterStoragePorts = new ArrayList<>();
-								getCluseterStoragePorts(hostRes, availablePorts, vol.getStorageSystemId(),
+								getClusterStoragePorts(hostRes, availablePorts, vol.getStorageSystemId(),
 										clusterStoragePorts);
 
 								for (StoragePort sp : clusterStoragePorts) {
@@ -1406,7 +1406,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 		return task;
 	}
 
-	private void getCluseterStoragePorts(HostMember hostRes, List<StoragePort> arrayPorts, String volStorageSystemId,
+	private void getClusterStoragePorts(HostMember hostRes, List<StoragePort> arrayPorts, String volStorageSystemId,
 			List<StoragePort> clusterPorts) {
 
 		for (StoragePort sp : arrayPorts) {

@@ -100,9 +100,9 @@ public class StorageSystems extends ViprResourceController {
     private static final String EXPECTED_GEO_VERSION_FOR_VNAS_SUPPORT = "2.4";
 
     private static void addReferenceData() {
-        renderArgs.put("storageArrayTypeList", StorageSystemTypes.getStorageOption());
+        renderArgs.put("storageArrayTypeList", StorageSystemTypes.getStorageTypeOptions());
         renderArgs.put("smisStorageSystemTypeList", StorageProviderTypes.getProviderOption());
-        renderArgs.put("nonSmisStorageSystemTypeList", StorageSystemTypes.getStorageOption());
+        renderArgs.put("nonSmisStorageSystemTypeList", StorageSystemTypes.getStorageTypeOptions());
         renderArgs.put("sslDefaultStorageSystemList", StorageProviderTypes.getProvidersWithSSL());
         renderArgs.put("nonSSLStorageSystemList", StorageProviderTypes.getProvidersWithoutSSL());
 

@@ -276,7 +276,12 @@ public class StorageProviders extends ViprResourceController {
                 this.secondaryPasswordConfirm = this.hyperScaleConfPasswd;
             }
             if (StringUtils.isNotEmpty(this.hyperScaleHost)&&StringUtils.isNotEmpty(this.hyperScalePort)) {
-                this.secondaryURL = "https://"+this.hyperScaleHost+":"+this.hyperScalePort;
+                try {
+                    url = new URL("https",this.hyperScaleHost, Integer.parseInt(this.hyperScalePort),"");
+                }catch(Exception e) {
+                    e.getMessage();
+                }
+                this.secondaryURL = url.toString();
             }
         }
 

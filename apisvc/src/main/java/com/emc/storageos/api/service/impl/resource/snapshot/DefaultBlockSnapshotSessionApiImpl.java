@@ -7,6 +7,8 @@ package com.emc.storageos.api.service.impl.resource.snapshot;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -288,36 +290,10 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
             // Create <newTargetCount> lists of targets
             // Snapset labels use format <newTargetsName>-<currentTargetCount>
             // Labels will look like <snapsetLabel>-<count>
-            for (int i = 0; i < newTargetCount; i++) {
-                int count = 0;
-                Map<URI, BlockSnapshot> targetMap = new HashMap<>();
-                for (BlockObject sourceObj : sourceObjList) {
-                    // Generate label here
-                    String snapsetLabel = String.format("%s-%s", newTargetsName, i + 1);
-                    String label = snapsetLabel;
-                    String rgName = sourceObj.getReplicationGroupInstance();
-                    if (sourceObj instanceof Volume && ((Volume) sourceObj).isVPlexVolume(_dbClient)) {
-                        // get RG name from back end volume
-                        Volume srcBEVolume = VPlexUtil.getVPLEXBackendVolume((Volume) sourceObj, true, _dbClient);
-                        rgName = srcBEVolume.getReplicationGroupInstance();
-                    }
+            List<Map<URI, BlockSnapshot>> targetMaps = prepareSnapshotsForSession(sourceObjList, sourceObjList.size(),
+                    newTargetCount, newTargetsName, inApplication);
 
-                    if (NullColumnValueGetter.isNotNullValue(rgName) && inApplication) {
-                        // There can be multiple RGs in a CG, in such cases generate unique name
-                        if (sourceObjList.size() > 1) {
-                            label = String.format("%s-%s-%s", snapsetLabel, rgName, ++count);
-                        } else {
-                            label = String.format("%s-%s", snapsetLabel, rgName);
-                        }
-                    } else if (sourceObjList.size() > 1) {
-                        label = String.format("%s-%s", snapsetLabel, ++count);
-                    }
-
-                    BlockSnapshot blockSnapshot = prepareSnapshotForSession(sourceObj, snapsetLabel, label);
-                    targetMap.put(blockSnapshot.getId(), blockSnapshot);
-                }
-                snapSessionSnapshots.add(targetMap);
-            }
+            snapSessionSnapshots.addAll(targetMaps);
         }
 
         // Create and return the prepared snapshot session.
@@ -399,6 +375,13 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
             String newTargetsName, boolean inApplication) {
         List<Map<URI, BlockSnapshot>> snapSessionSnapshots = new ArrayList<>();
 
+        Collections.sort(sourceObjList, new Comparator<BlockObject>() {
+            @Override
+            public int compare(BlockObject one, BlockObject two) {
+                return one.getLabel().compareToIgnoreCase(two.getLabel());
+            }
+        });
+
         for (int i = 0; i < newTargetCount; i++) {
             int count = 0;
             Map<URI, BlockSnapshot> targetMap = new HashMap<>();
@@ -407,6 +390,13 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
                 String snapsetLabel = String.format("%s-%s", newTargetsName, i + 1);
                 String label = snapsetLabel;
                 String rgName = sourceObj.getReplicationGroupInstance();
+
+                if (sourceObj instanceof Volume && ((Volume) sourceObj).isVPlexVolume(_dbClient)) {
+                    // get RG name from back end volume
+                    Volume srcBEVolume = VPlexUtil.getVPLEXBackendVolume((Volume) sourceObj, true, _dbClient);
+                    rgName = srcBEVolume.getReplicationGroupInstance();
+                }
+
                 if (NullColumnValueGetter.isNotNullValue(rgName) && inApplication) {
                     // There can be multiple RGs in a CG, in such cases generate unique name
                     if (sourceObjList.size() > 1) {

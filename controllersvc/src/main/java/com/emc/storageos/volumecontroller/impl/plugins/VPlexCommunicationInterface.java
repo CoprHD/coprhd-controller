@@ -1075,6 +1075,10 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             }
         }
 
+        // set thin provisioning state from virtual-volume thin-enabled property
+        String thinlyProvisioned = info.isThinEnabled() ? TRUE : FALSE; 
+        unManagedVolumeCharacteristics.put(SupportedVolumeCharacterstics.IS_THINLY_PROVISIONED.toString(), thinlyProvisioned);
+
         // add this info to the unmanaged volume object
         volume.setVolumeCharacterstics(unManagedVolumeCharacteristics);
         volume.addVolumeInformation(unManagedVolumeInformation);
@@ -1169,18 +1173,6 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                         set.add(syncActive);
                         volume.putVolumeInfo(
                                 SupportedVolumeInformation.IS_SYNC_ACTIVE.name(), set);
-                    }
-
-                    // set thin provisioning state on parent if found in backend volume
-                    String thinlyProvisioned = VplexBackendIngestionContext
-                            .extractValueFromStringSet(
-                                    SupportedVolumeInformation.IS_THINLY_PROVISIONED.name(),
-                                    bvol.getVolumeInformation());
-                    if (thinlyProvisioned != null && !thinlyProvisioned.isEmpty()) {
-                        StringSet set = new StringSet();
-                        set.add(thinlyProvisioned);
-                        volume.putVolumeInfo(
-                                SupportedVolumeInformation.IS_THINLY_PROVISIONED.name(), set);
                     }
                 }
 
@@ -1877,7 +1869,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                 s_logger.debug("VPlex port info: {}", portInfo.toString());
 
                 if (null == portInfo.getPortWwn()) {
-                    s_logger.debug("Not a FC port, skipping port {}",
+                    s_logger.info("Not a FC port, skipping port {}",
                             portInfo.getName());
                     continue;
                 }

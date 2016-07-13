@@ -216,13 +216,28 @@ public class BlockVolumes extends ResourceController {
 
     public static void volumeSnapshotSessions(String volumeId) {
 
-        ViPRCoreClient client = BourneUtil.getViprClient();
+		ViPRCoreClient client = BourneUtil.getViprClient();
 
-        List<NamedRelatedResourceRep> refs = client.blockSnapshotSessions().listByVolume(uri(volumeId));
+        VolumeRestRep volume = client.blockVolumes().get(uri(volumeId));
 
-        List<BlockSnapshotSessionRestRep> snapshotSessions = client.blockSnapshotSessions().getByRefs(refs);
+        List<BlockSnapshotSessionRestRep> snapshotSessions = Lists.newArrayList();
 
-        render(snapshotSessions, volumeId);
+        if (volume.getConsistencyGroup() != null) {
+            
+            URI consistencygroup = volume.getConsistencyGroup().getId();
+
+            List<NamedRelatedResourceRep> cgSessions = client.blockConsistencyGroups().getSnapshotSessions(consistencygroup);
+
+            snapshotSessions = client.blockSnapshotSessions().getByRefs(cgSessions);
+
+        } else {
+
+            List<NamedRelatedResourceRep> refs = client.blockSnapshotSessions().listByVolume(uri(volumeId));
+
+            snapshotSessions = client.blockSnapshotSessions().getByRefs(refs);
+        }
+
+		render(snapshotSessions, volumeId);
     }
 
     public static void unlinkTargetSnapshot(String sessionId, String volumeId, Boolean deleteOption) {

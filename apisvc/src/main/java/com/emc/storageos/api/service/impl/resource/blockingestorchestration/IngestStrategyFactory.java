@@ -156,7 +156,7 @@ public class IngestStrategyFactory {
          * 
          * XtremIO,HDS are examples.
          */
-        MASK_PER_HOST("xtremio,hds"),
+        MASK_PER_HOST("xtremio,hds,unity"),
         /*
          * MULTIPLE_MASK_PER_HOST :
          * Arrays whose existing masking containers can be modeled to export mask in ViPR DB

@@ -1312,5 +1312,33 @@ public class SRDFScheduler implements Scheduler {
         return (VirtualPool.vPoolSpecifiesSRDF(vPool) || vPoolUse == VpoolUse.SRDF_COPY);
     }
     
+    /**
+     * Check all the volumes in a project that match the given RDF Group. 
+     * Return true if any report SWAPPED LinkStatus.
+     * @param dbClient -- database client
+     * @param projectURI -- Project URI -- used to constrain volumes
+     * @param rdfGroupURI -- RDF Group -- used to match for LinkStatus
+     * @return true if a volume matching the specified RDF group has a LinkStatus of SWAPPED
+     */
+    public static boolean rdfGroupHasSwappedVolumes(DbClient dbClient, URI projectURI, URI rdfGroupURI) {
+        if (rdfGroupURI == null) {
+            return false;
+        }
+        // Find all volumes in the project.
+        URIQueryResultList volumeIds = new URIQueryResultList();
+        dbClient.queryByConstraint(ContainmentConstraint.Factory.getProjectVolumeConstraint(projectURI), volumeIds);
+        Iterator<Volume> volumeItr = dbClient.queryIterativeObjects(Volume.class, volumeIds);
+        while (volumeItr.hasNext()) {
+            Volume volume = volumeItr.next();
+            if (rdfGroupURI.equals(volume.getSrdfGroup())) {
+                if (Volume.LinkStatus.SWAPPED.name().equals(volume.getLinkStatus())) {
+                    return true;
+                }
+            }
+        }
+        // No volumes report swapped that match RDF Group
+        return false;
+    }
+    
     
 }

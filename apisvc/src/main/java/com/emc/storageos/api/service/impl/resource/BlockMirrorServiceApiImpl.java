@@ -42,7 +42,6 @@ import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
-import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
@@ -52,6 +51,7 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VolumeGroup;
+import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
@@ -475,8 +475,6 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
                 } else if (!mirrorIsResumable(mirror)) {
                     throw APIException.badRequests.cannotResumeContinuousCopyWithSyncState(mirror.getId(), mirror.getSyncState(),
                             sourceVolume.getId());
-                } else {
-                    mirrorURIs.add(mirror.getId());
                 }
                 mirrorURIs.add(mirror.getId());
             }
@@ -496,11 +494,11 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
             taskList.getTaskList().add(toTask(sourceVolume, taskId, op));
         } else {
             if (!isCG) {
-                Collection<String> mirrorTargetIds = Collections2.transform(blockMirrors, FCTN_VOLUME_URI_TO_STR);
+                Collection<String> mirrorTargetIds = Collections2.transform(mirrorsToProcess, FCTN_VOLUME_URI_TO_STR);
                 String mirrorTargetCommaDelimList = Joiner.on(',').join(mirrorTargetIds);
                 Operation op = _dbClient.createTaskOpStatus(Volume.class, sourceVolume.getId(), taskId,
                         ResourceOperationTypeEnum.RESUME_VOLUME_MIRROR, mirrorTargetCommaDelimList);
-                taskList.getTaskList().add(toTask(sourceVolume, blockMirrors, taskId, op));
+                taskList.getTaskList().add(toTask(sourceVolume, mirrorsToProcess, taskId, op));
             } else {
                 populateTaskList(sourceVolume, groupMirrorSourceMap, taskList, taskId, ResourceOperationTypeEnum.RESUME_VOLUME_MIRROR);
             }

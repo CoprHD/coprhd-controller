@@ -20,7 +20,6 @@ import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.db.client.model.Volume.VolumeAccessState;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.security.audit.AuditLogManager;
@@ -62,6 +61,7 @@ public class SRDFTaskCompleter extends TaskCompleter {
     @Override
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded)
             throws DeviceControllerException {
+        setDbClient(dbClient);
         setStatus(dbClient, status, coded);
         updateWorkflowStatus(status, coded);
         updateVolumeStatus(dbClient, status);
@@ -216,7 +216,7 @@ public class SRDFTaskCompleter extends TaskCompleter {
             URIQueryResultList exportGroups = new URIQueryResultList();
             getDbClient().queryByConstraint(ContainmentConstraint.
                     Factory.getBlockObjectExportGroupConstraint(v.getId()), exportGroups);
-            if (exportGroups != null && exportGroups.iterator().hasNext()) {
+            if (exportGroups.iterator().hasNext()) {
                 // A source volume that is in an export group is write-disabled or not-ready.
                 return Volume.VolumeAccessState.NOT_READY;
             } else {
@@ -243,28 +243,40 @@ public class SRDFTaskCompleter extends TaskCompleter {
             if (Operation.Status.ready.equals(status)) {
                 List<Volume> volumes = dbClient.queryObject(Volume.class, getIds());
                 for (Volume v : volumes) {
-                    v.setLinkStatus(getVolumeSRDFLinkStatusForSuccess().name());
-                    if (v.getPersonality() != null) {                    
-                        v.setAccessState(getVolumeAccessStateForSuccess(v).name());
-                    }
-                    if (v.getSrdfTargets() != null) {
-                        List<URI> targetVolumeURIs = new ArrayList<URI>();
-                        for (String targetId : v.getSrdfTargets()) {
-                            targetVolumeURIs.add(URI.create(targetId));
-                        }
-                        List<Volume> targetVolumes = dbClient.queryObject(Volume.class, targetVolumeURIs);
-                        for (Volume targetVolume : targetVolumes) {
-                            targetVolume.setLinkStatus(getVolumeSRDFLinkStatusForSuccess().name());
-                            targetVolume.setAccessState(getVolumeAccessStateForSuccess(targetVolume).name());
-                        }
-                        dbClient.updateAndReindexObject(targetVolumes);
-                    }
+                    updateVolume(v);
                 }
-                dbClient.persistObject(volumes);
+                dbClient.updateObject(volumes);
                 _logger.info("Updated SRDF link status for volumes: {}", getIds());
             }
         } catch (Exception e) {
             _logger.info("Not updating volume SRDF link status for volumes: {}", getIds(), e);
+        }
+    }
+
+    private void updateVolume(Volume v) {
+        if (v.isVPlexVolume(dbClient)) {
+            // skip VPLEX volumes, as they delegate SRDF characteristics to their native volumes.
+            return;
+        }
+
+        v.setLinkStatus(getVolumeSRDFLinkStatusForSuccess().name());
+
+        if (v.getPersonality() != null) {
+            v.setAccessState(getVolumeAccessStateForSuccess(v).name());
+        }
+
+        if (v.getSrdfTargets() != null) {
+            List<URI> targetVolumeURIs = new ArrayList<>();
+            for (String targetId : v.getSrdfTargets()) {
+                targetVolumeURIs.add(URI.create(targetId));
+            }
+
+            List<Volume> targetVolumes = dbClient.queryObject(Volume.class, targetVolumeURIs);
+            for (Volume targetVolume : targetVolumes) {
+                targetVolume.setLinkStatus(getVolumeSRDFLinkStatusForSuccess().name());
+                targetVolume.setAccessState(getVolumeAccessStateForSuccess(targetVolume).name());
+            }
+            dbClient.updateObject(targetVolumes);
         }
     }
 }

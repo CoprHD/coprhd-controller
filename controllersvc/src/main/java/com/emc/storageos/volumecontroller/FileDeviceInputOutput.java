@@ -269,7 +269,8 @@ public class FileDeviceInputOutput {
     /**
      * add storage pool
      * 
-     * @param pool StoragePool object
+     * @param pool
+     *            StoragePool object
      */
     public void addStoragePool(StoragePool pool) {
         this.pool = pool;
@@ -282,7 +283,8 @@ public class FileDeviceInputOutput {
     /**
      * add fileshare
      * 
-     * @param fs FileShare object
+     * @param fs
+     *            FileShare object
      */
     public void addFileShare(FileShare fs) {
         this.fs = fs;
@@ -291,7 +293,8 @@ public class FileDeviceInputOutput {
     /**
      * add Snapshot
      * 
-     * @param snap Snapshot object
+     * @param snap
+     *            Snapshot object
      */
     public void addSnapshot(Snapshot snap) {
         this.snapshot = snap;
@@ -300,7 +303,8 @@ public class FileDeviceInputOutput {
     /**
      * add filepolicy
      * 
-     * @param fp FilePolicy object
+     * @param fp
+     *            FilePolicy object
      */
     public void addFilePolicy(SchedulePolicy fp) {
         this.fp = fp;
@@ -309,7 +313,8 @@ public class FileDeviceInputOutput {
     /**
      * add FileShare as a FileObject and FileShare
      * 
-     * @param obj FileShare
+     * @param obj
+     *            FileShare
      */
     public void addFSFileObject(FileShare obj) {
         fObj = obj;
@@ -563,6 +568,15 @@ public class FileDeviceInputOutput {
     }
 
     /**
+     * Get quota id
+     * 
+     * @return
+     */
+    public URI getQuotaDirectoryId() {
+        return quotaDirectory.getId();
+    }
+
+    /**
      * Get FileObject id
      * 
      * @return URI
@@ -743,6 +757,25 @@ public class FileDeviceInputOutput {
     }
 
     /**
+     * Get QuotaDirectory name
+     * 
+     * @return String
+     */
+
+    public String getQuotaDirectoryNativeId() {
+        return quotaDirectory.getNativeId();
+    }
+
+    /**
+     * Set QuotaDirectory name
+     * 
+     * @param qDirName
+     */
+    public void setQuotaDirectoryNativeId(String nativeId) {
+        quotaDirectory.setNativeId(nativeId);
+    }
+
+    /**
      * Get FS name
      * 
      * @return String
@@ -889,6 +922,11 @@ public class FileDeviceInputOutput {
         return label.replaceAll("[^\\dA-Za-z ]", "").replaceAll("\\s+", "_");
     }
 
+    // replace all special characters except forward slash; -+!@#$%^&())";:[]{}\ |
+    public String getPathWithoutSpecialCharacters(String path) {
+        return path.replaceAll("[^/\\-\\dA-Za-z ]", "").replaceAll("\\s+", "_");
+    }
+
     public Project getProject() {
         return project;
     }
@@ -927,7 +965,8 @@ public class FileDeviceInputOutput {
     /**
      * add FileSystemQuotaDirectory object
      * 
-     * @param quotaDir FileSystemQuotaDirectory object
+     * @param quotaDir
+     *            FileSystemQuotaDirectory object
      */
     public void addQuotaDirectory(QuotaDirectory quotaDir) {
         this.quotaDirectory = quotaDir;

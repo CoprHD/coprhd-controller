@@ -11,10 +11,12 @@ import com.emc.storageos.vnxe.models.VNXeStorageTier;
 
 public class StorageTierRequest extends KHRequests<VNXeStorageTier> {
     private static final String URL = "/api/types/storageTier/instances";
+    private static final String FIELDS = "sizeTotal";
 
     public StorageTierRequest(KHClient client) {
         super(client);
         _url = URL;
+	_fields = FIELDS;
     }
 
     public List<VNXeStorageTier> get() {

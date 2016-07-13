@@ -25,7 +25,7 @@ import java.util.Map;
 
 
 /**
- * Implementation of persistant registry for device drivers
+ * Implementation of persistent registry for device drivers
  */
 public class RegistryImpl implements Registry {
 
@@ -77,7 +77,7 @@ public class RegistryImpl implements Registry {
         StringSetMap attributesMap = new StringSetMap();
         for (Map.Entry<String, List<String>> entry : attributes.entrySet()) {
             StringSet values = new StringSet(entry.getValue());
-            attributesMap.put(entry.getKey(), values);
+            updateAttributeInMap(attributesMap, entry.getKey(), values);
         }
         registryEntryForKey.setAttributes(attributesMap);
         if (existingEntry) {
@@ -196,7 +196,7 @@ public class RegistryImpl implements Registry {
                 existingKey = true;
                 StringSetMap attributes = registryEntryForKey.getAttributes();
                 StringSet attributeValue = new StringSet(value);
-                attributes.put(attribute, attributeValue);
+                updateAttributeInMap(attributes, attribute, attributeValue);
                 break;
             }
         }
@@ -208,7 +208,7 @@ public class RegistryImpl implements Registry {
             registryEntryForKey.setRegistryKey(key);
             StringSetMap attributesMap = new StringSetMap();
             StringSet values = new StringSet(value);
-            attributesMap.put(attribute, values);
+            updateAttributeInMap(attributesMap, attribute, values);
             registryEntryForKey.setAttributes(attributesMap);
         }
         // update db
@@ -224,6 +224,21 @@ public class RegistryImpl implements Registry {
             String msg = String.format("Illegal arguments: driverName %s , key %s ", driverName, key);
             log.error(msg);
             throw new IllegalArgumentException(msg);
+        }
+    }
+
+    /**
+     * Convenience method to add/update attribute to attribute map.
+     *
+     * @param attributes attribute map
+     * @param attributeName name of attribute
+     * @param attributeValue attribute value
+     */
+    private void updateAttributeInMap(StringSetMap attributes, String attributeName, StringSet attributeValue) {
+        if (attributes.containsKey(attributeName)) {
+            attributes.get(attributeName).replace(attributeValue);
+        } else {
+            attributes.put(attributeName, attributeValue);
         }
     }
 }

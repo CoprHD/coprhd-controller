@@ -4,15 +4,17 @@
  */
 package com.emc.vipr.client.core.filters;
 
-import com.emc.storageos.model.systems.StorageSystemRestRep;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
+
+import com.emc.storageos.model.systems.StorageSystemRestRep;
 
 public class StorageSystemTypeFilter extends DefaultResourceFilter<StorageSystemRestRep> {
 
-    public static final StorageSystemTypeFilter BLOCK = new StorageSystemTypeFilter("vnxblock", "vmax", "vplex", "hds", "xtremio", "vnxe",
-            "ibmxiv");
-    public static final StorageSystemTypeFilter FILE = new StorageSystemTypeFilter("isilon", "vnxfile", "netapp", "datadomain", "vnxe",
+    public static final StorageSystemTypeFilter BLOCK = new StorageSystemTypeFilter("vnxblock", "vmax", "vplex", "hds", "xtremio", "vnxe", "unity",
+            "ibmxiv", "ceph");
+    public static final StorageSystemTypeFilter FILE = new StorageSystemTypeFilter("isilon", "vnxfile", "netapp", "datadomain", "vnxe", "unity",
             "netappc");
 
     private Set<String> types;
@@ -32,4 +34,12 @@ public class StorageSystemTypeFilter extends DefaultResourceFilter<StorageSystem
     public boolean accept(StorageSystemRestRep item) {
         return types.contains(item.getSystemType());
     }
+
+	public StorageSystemTypeFilter(List<String> types) {
+		this.types = new HashSet<String>();
+		for (String type : types) {
+			this.types.add(type);
+}
+	}
+
 }

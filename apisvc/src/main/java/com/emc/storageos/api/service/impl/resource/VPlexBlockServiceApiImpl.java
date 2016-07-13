@@ -28,7 +28,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
-import org.eclipse.jetty.util.log.Log;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -63,8 +62,12 @@ import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.db.client.model.ExportGroup;
+import com.emc.storageos.db.client.model.ExportMask;
+import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
@@ -132,8 +135,6 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
-
-import javassist.bytecode.Descriptor;
 
 /**
  * Implementation of the {@link BlockServiceApi} when the VirtualPool specifies that created
@@ -213,17 +214,18 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
     private void validateVolumeLabels(String baseVolumeLabel, Project project,
             VirtualPoolCapabilityValuesWrapper vPoolCapabilities, Map<String, List<VPlexRecommendation>> varrayRecomendationsMap) {
         int varrayCount = 0;
-        Iterator<String> nhIter = varrayRecomendationsMap.keySet().iterator();
-        while (nhIter.hasNext()) {
-            String nhId = nhIter.next();
-            s_logger.info("Processing recommendations for NH {}", nhId);
+        Iterator<String> varrayIter = varrayRecomendationsMap.keySet().iterator();
+        while (varrayIter.hasNext()) {
+            String varrayId = varrayIter.next();
+            s_logger.info("Processing recommendations for virtual array {}", varrayId);
             int volumeCounter = 0;
             // Sum the resource counts from all recommendations.
             int totalResourceCount = 0;
-            for (VPlexRecommendation recommendation : varrayRecomendationsMap.get(nhId)) {
+            for (VPlexRecommendation recommendation : varrayRecomendationsMap.get(varrayId)) {
                 totalResourceCount += recommendation.getResourceCount();
             }
-            Iterator<VPlexRecommendation> recommendationsIter = varrayRecomendationsMap.get(nhId).iterator();
+            Iterator<VPlexRecommendation> recommendationsIter = varrayRecomendationsMap.get(varrayId).iterator();
+
             while (recommendationsIter.hasNext()) {
                 VPlexRecommendation recommendation = recommendationsIter.next();
                 URI storagePoolURI = recommendation.getSourceStoragePool();
@@ -503,6 +505,15 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     VolumeDescriptor.Type.VPLEX_VIRT_VOLUME, vplexStorageSystemURI, volumeId,
                     null, consistencyGroup == null ? null : consistencyGroup.getId(),
                     vPoolCapabilities, volume.getCapacity());
+            
+            // Set the compute resource in the descriptor if the volume to be created will be exported
+            // to a host/cluster after it has been created.
+            URI computeResourceURI = param.getComputeResource();
+            if (computeResourceURI != null) {
+                s_logger.info(String.format("Volume %s - will be exported to Host/Cluster: %s", volume.getLabel(),
+                        computeResourceURI.toString()));
+                descriptor.setComputeResource(computeResourceURI);
+            }
             descriptors.add(descriptor);
         }
 
@@ -1242,11 +1253,17 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         } else {
             if (VirtualPoolChangeAnalyzer.isVPlexConvertToDistributed(volumeVirtualPool, vpool,
                     new StringBuffer())) {
+                if (!VirtualPoolUtil.checkMatchingRemoteCopyVarraysettings(volumeVirtualPool, vpool, _dbClient)) {
+                    s_logger.info("Incompatible Remote Copy Varray Settings");
+                    throw BadRequestException.badRequests.changeToVirtualPoolNotSupported(
+                            volumeVirtualPool.getLabel(), "Incompatible Remote Copy Varray Settings");
+                }
                 if (vpoolChangeParam.getTransferSpeedParam() != null) {
                     transferSpeed = vpoolChangeParam.getTransferSpeedParam();
                     s_logger.info("Coversion of volume from vplex local to distributed will use the provided transfer speed {}",
                             transferSpeed);
                 }
+                
                 // Convert vplex_local to vplex_distributed
                 upgradeToDistributed(systemURI, volume, vpool, transferSpeed, taskId);
             } else if (!VirtualPool.vPoolSpecifiesMirrors(volumeVirtualPool, _dbClient)
@@ -1519,9 +1536,9 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 volume.getPool(), null);
 
         Map<String, Object> volumeParams = new HashMap<String, Object>();
-        volumeParams.put(VolumeDescriptor.PARAM_VPOOL_CHANGE_VOLUME_ID, volume.getId());
-        volumeParams.put(VolumeDescriptor.PARAM_VPOOL_CHANGE_VPOOL_ID, newVpool.getId());
-        volumeParams.put(VolumeDescriptor.PARAM_VPOOL_OLD_VPOOL_ID, volume.getVirtualPool());
+        volumeParams.put(VolumeDescriptor.PARAM_VPOOL_CHANGE_EXISTING_VOLUME_ID, volume.getId());
+        volumeParams.put(VolumeDescriptor.PARAM_VPOOL_CHANGE_NEW_VPOOL_ID, newVpool.getId());
+        volumeParams.put(VolumeDescriptor.PARAM_VPOOL_CHANGE_OLD_VPOOL_ID, volume.getVirtualPool());
         vplexVirtualVolumeDesc.setParameters(volumeParams);
         descriptors.add(vplexVirtualVolumeDesc);
 
@@ -2071,12 +2088,6 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             throw APIException.badRequests.changesNotSupportedFor("VirtualArray", "distributed VPlex volumes");
         }
 
-        // The volume cannot be exported.
-        if (volume.isVolumeExported(_dbClient)) {
-            s_logger.info("The volume is exported.");
-            throw APIException.badRequests.changesNotSupportedFor("VirtualArray", "exported volumes");
-        }
-
         // Verify that the VPLEX has connectivity to the new virtual array.
         // Note that we know at this point that the current and new varrays
         // are not the same.
@@ -2086,6 +2097,64 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 _dbClient, system.getId());
         if (!vplexSystemVarrays.contains(newVarray.getId())) {
             throw APIException.badRequests.invalidVarrayForVplex(system.getLabel(), newVarray.getLabel());
+        }
+
+        // If the volume is exported, all storage ports that the volume is exported through should be in the target virtual array
+        // The hosts that volume is exported to should be in the target virtual array too.
+        URIQueryResultList exportGroupURIs = new URIQueryResultList();
+        _dbClient.queryByConstraint(ContainmentConstraint.Factory.getBlockObjectExportGroupConstraint(volume.getId()), exportGroupURIs);
+        Iterator<URI> it = exportGroupURIs.iterator();
+        Set<URI> storagePorts = new HashSet<URI>();
+        Set<URI> initiators = new HashSet<URI>();
+        while (it.hasNext()) {
+            // exported
+            URI egUri = it.next();
+            ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, egUri);
+            List<URI> inits = StringSetUtil.stringSetToUriList(exportGroup.getInitiators());
+            initiators.addAll(inits);
+            List<URI> exportMaskuris = StringSetUtil.stringSetToUriList(exportGroup.getExportMasks());
+            for (URI exportMaskUri : exportMaskuris) {
+                ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskUri);
+                storagePorts.addAll(StringSetUtil.stringSetToUriList(exportMask.getStoragePorts()));
+            }
+        }
+        if (!storagePorts.isEmpty()) {
+            String newVarrayId = newVarray.getId().toString();
+            Set<URI> newVarrayStoragePorts = new HashSet<URI>();
+            URIQueryResultList queryResults = new URIQueryResultList();
+            _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                    .getAssignedVirtualArrayStoragePortsConstraint(newVarrayId), queryResults);
+            Iterator<URI> resultsIter = queryResults.iterator();
+            while (resultsIter.hasNext()) {
+                newVarrayStoragePorts.add(resultsIter.next());
+            }
+            
+            URIQueryResultList connectedResults = new URIQueryResultList();
+            _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                    .getImplicitVirtualArrayStoragePortsConstraint(newVarrayId), connectedResults);
+            Iterator<URI> iter = connectedResults.iterator();
+            while (iter.hasNext()) {
+                newVarrayStoragePorts.add(iter.next());
+            }
+            if (!newVarrayStoragePorts.containsAll(storagePorts)) {
+                s_logger.info("The volume is exported, but the exported target storage ports are not all in the target virtual array");
+                throw APIException.badRequests.changesNotSupportedFor("VirtualArray", "exported volumes, and the target storage ports exported through"
+                        + " are not all in the target virtual array");
+            }
+            for (URI init : initiators) {
+                Initiator initiator =  _dbClient.queryObject(Initiator.class, init);
+                if (initiator != null && !initiator.getInactive()) {
+                    String pwwn = initiator.getInitiatorPort();
+                    Set<String>varrayIds = ConnectivityUtil.getInitiatorVarrays(pwwn, _dbClient);
+                    if (!varrayIds.contains(newVarrayId)) {
+                        s_logger.info("The volume is exported, the exported hosts initiators are not all in the target virtual array");
+                        throw APIException.badRequests.changesNotSupportedFor("VirtualArray", "exported volumes, and the exported host initiators"
+                                + " are not all in the target virtual array");
+                    }
+                }
+            }
+           
+            
         }
 
         // If the vpool has assigned varrays, the vpool must be assigned
@@ -3361,6 +3430,9 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                             List<VolumeDescriptor> srdfDescriptors = srdfApi.getDescriptorsForVolumesToBeDeleted(
                                     assocVolume.getStorageController(), srdfVolumeIds, deletionType);
                             volumeDescriptors.addAll(srdfDescriptors);
+                        } else if (!NullColumnValueGetter.isNullNamedURI(assocVolume.getSrdfParent())) {
+                            // SRDF target, caller needs to specify source
+                            throw BadRequestException.badRequests.cannotDeleteSRDFTargetVolume(assocVolume.getLabel());
                         } else {
                             VolumeDescriptor assocDesc = new VolumeDescriptor(VolumeDescriptor.Type.BLOCK_DATA,
                                     assocVolume.getStorageController(), assocVolume.getId(), null, null);
@@ -3449,12 +3521,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                             descriptors.addAll(vplexTargetDescriptors);
                         }
                     }
-                    
-                } else if (associatedVolume.getSrdfParent() != null) {  // SRDF target volume
-                    // We don't handle SRDF targets directly, they are obtained above from the call to getVolumeDescriptorsForExpandVolume
-                    // in the SRDF api controller. The user should not specify expansion on a target virtual volume.
-                    throw BadRequestException.badRequests.cannotExpandTargetVirtualVolume(volume.getLabel());
-               
+                } else if (!NullColumnValueGetter.isNullNamedURI(associatedVolume.getSrdfParent())) {
+                    s_logger.info("Ignoring associated volume that is SRDF target: " + associatedVolume.getLabel());
                 } else {    // A nice, plain, simple backing volume
                     VolumeDescriptor descriptor = new VolumeDescriptor(
                             VolumeDescriptor.Type.BLOCK_DATA,
@@ -4174,4 +4242,5 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         s_logger.info("generateLabelFromAssociatedVolume: " + builder.toString());
         return builder.toString();
     }
+    
 }

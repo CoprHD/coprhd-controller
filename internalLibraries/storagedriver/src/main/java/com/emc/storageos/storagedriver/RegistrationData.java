@@ -1,12 +1,7 @@
-/*
- * Copyright (c) 2016 EMC Corporation
- * All Rights Reserved
- */
 package com.emc.storageos.storagedriver;
 
 import com.emc.storageos.storagedriver.storagecapabilities.CapabilityDefinition;
 
-import java.util.List;
 import java.util.Set;
 
 public class RegistrationData {

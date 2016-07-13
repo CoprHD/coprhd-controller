@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2016 EMC Corporation
+ * All Rights Reserved
+ */
+
 package com.emc.storageos.driver.driversimulator;
 
 import java.util.ArrayList;
@@ -10,6 +15,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import com.emc.storageos.storagedriver.DefaultStorageDriver;
 import org.apache.commons.lang.mutable.MutableBoolean;
 import org.apache.commons.lang.mutable.MutableInt;
 import org.slf4j.Logger;
@@ -17,6 +23,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.storagedriver.AbstractStorageDriver;
 import com.emc.storageos.storagedriver.BlockStorageDriver;
+import com.emc.storageos.storagedriver.DefaultDriverTask;
 import com.emc.storageos.storagedriver.DriverTask;
 import com.emc.storageos.storagedriver.HostExportInfo;
 import com.emc.storageos.storagedriver.RegistrationData;
@@ -26,6 +33,7 @@ import com.emc.storageos.storagedriver.model.StorageHostComponent;
 import com.emc.storageos.storagedriver.model.StorageObject;
 import com.emc.storageos.storagedriver.model.StoragePool;
 import com.emc.storageos.storagedriver.model.StoragePort;
+import com.emc.storageos.storagedriver.model.StorageProvider;
 import com.emc.storageos.storagedriver.model.StorageSystem;
 import com.emc.storageos.storagedriver.model.StorageVolume;
 import com.emc.storageos.storagedriver.model.VolumeClone;
@@ -36,7 +44,7 @@ import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
 
 
-public class StorageDriverSimulator extends AbstractStorageDriver implements BlockStorageDriver {
+public class StorageDriverSimulator extends DefaultStorageDriver implements BlockStorageDriver {
 
     private static final Logger _log = LoggerFactory.getLogger(StorageDriverSimulator.class);
     private static final String DRIVER_NAME = "SimulatorDriver";
@@ -117,8 +125,7 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
     // DiscoveryDriver implementation
 
     @Override
-    public DriverTask discoverStorageSystem(List<StorageSystem> storageSystems) {
-         StorageSystem storageSystem = storageSystems.get(0);
+    public DriverTask discoverStorageSystem(StorageSystem storageSystem) {
         _log.info("StorageDriver: discoverStorageSystem information for storage system {}, name {} - start",
                 storageSystem.getIpAddress(), storageSystem.getSystemName());
         String taskType = "discover-storage-system";
@@ -126,8 +133,12 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
         DriverTask task = new DriverSimulatorTask(taskId);
 
         try {
+            if (storageSystem.getSerialNumber() == null) {
             storageSystem.setSerialNumber(storageSystem.getSystemName());
+            }
+            if (storageSystem.getNativeId() == null) {
             storageSystem.setNativeId(storageSystem.getSystemName());
+            }
             storageSystem.setFirmwareVersion("2.4-3.12");
             storageSystem.setIsSupportedVersion(true);
             setConnInfoToRegistry(storageSystem.getNativeId(), storageSystem.getIpAddress(), storageSystem.getPortNumber(),
@@ -193,10 +204,10 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
                 supportedDriveTypes.add(StoragePool.SupportedDriveTypes.SATA);
                 pool.setSupportedDriveTypes(supportedDriveTypes);
 
-    //            Set<StoragePool.RaidLevels> raidLevels = new HashSet<>();
-    //            raidLevels.add(StoragePool.RaidLevels.RAID5);
-    //            raidLevels.add(StoragePool.RaidLevels.RAID6);
-    //            pool.setSupportedRaidLevels(raidLevels);
+                //            Set<StoragePool.RaidLevels> raidLevels = new HashSet<>();
+                //            raidLevels.add(StoragePool.RaidLevels.RAID5);
+                //            raidLevels.add(StoragePool.RaidLevels.RAID6);
+                //            pool.setSupportedRaidLevels(raidLevels);
 
                 storagePools.add(pool);
 
@@ -301,6 +312,21 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
         return task;
 
     }
+    
+    @Override
+    public DriverTask stopManagement(StorageSystem driverStorageSystem){
+    	_log.info("Stopping management for StorageSystem {}", driverStorageSystem.getNativeId());
+    	String driverName = this.getClass().getSimpleName();
+        String taskId = String.format("%s+%s+%s", driverName, "stopManagement", UUID.randomUUID().toString());
+        DriverTask task = new DriverSimulatorTask(taskId);
+        task.setStatus(DriverTask.TaskStatus.READY);
+        
+        String msg = String.format("Driver stopped managing storage system %s.",driverStorageSystem.getNativeId());
+        _log.info(msg);
+        task.setMessage(msg);
+        
+        return task;
+    }
 
     @Override
     public DriverTask createVolumes(List<StorageVolume> volumes, StorageCapabilities capabilities) {
@@ -357,6 +383,38 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
 
         _log.info("StorageDriver: deleteVolumes information for storage system {}, volume nativeIds {} - end",
                 volumes.get(0).getStorageSystemId(), volumes.toString());
+        return task;
+    }
+    
+    @Override
+    public DriverTask addVolumesToConsistencyGroup (List<StorageVolume> volumes, StorageCapabilities capabilities){
+    	_log.info("Adding {} Volumes to Consistency Group {}", volumes.toString(), volumes.get(0).getConsistencyGroup());
+        String taskType = "add-volumes-to-consistency-groupd";
+        String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
+        DriverTask task = new DriverSimulatorTask(taskId);
+        task.setStatus(DriverTask.TaskStatus.READY);
+        
+        String msg = String.format("StorageDriver: addVolumesToConsistencyGroup information for storage system %s, volume nativeIds %s, Consistency Group - end",
+        		volumes.get(0).getStorageSystemId(), volumes.toString());
+        _log.info(msg);
+        task.setMessage(msg);
+        
+        return task;
+    }
+    
+    @Override
+    public DriverTask removeVolumesFromConsistencyGroup(List<StorageVolume> volumes, StorageCapabilities capabilities){
+    	_log.info("Remove {} Volumes from Consistency Group {}", volumes.toString(), volumes.get(0).getConsistencyGroup());
+        String taskType = "remove-volumes-to-consistency-groupd";
+        String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
+        DriverTask task = new DriverSimulatorTask(taskId);
+        task.setStatus(DriverTask.TaskStatus.READY);
+        
+        String msg = String.format("StorageDriver: removeVolumesFromConsistencyGroup information for storage system %s, volume nativeIds %s, Consistency Group - end",
+                volumes.get(0).getStorageSystemId(), volumes.toString());
+        _log.info(msg);
+        task.setMessage(msg);
+        
         return task;
     }
 
@@ -558,7 +616,8 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
         String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
         DriverTask task = new DriverSimulatorTask(taskId);
         task.setStatus(DriverTask.TaskStatus.READY);
-        String msg = String.format("StorageDriver: exportVolumesToInitiators - end");
+        String msg = String.format("StorageDriver: exportVolumesToInitiators: export type %s, initiators %s .",
+                initiators.get(0).getInitiatorType(), initiators.toString());
         _log.info(msg);
         task.setMessage(msg);
         return task;
@@ -570,7 +629,8 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
         String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
         DriverTask task = new DriverSimulatorTask(taskId);
         task.setStatus(DriverTask.TaskStatus.READY);
-        String msg = String.format("StorageDriver: unexportVolumesFromInitiators - end");
+        String msg = String.format("StorageDriver: unexportVolumesFromInitiators: export type %s, initiators %s .",
+                initiators.get(0).getInitiatorType(), initiators.toString());
         _log.info(msg);
         task.setMessage(msg);
         return task;
@@ -779,11 +839,11 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
 
         listIP.add(ipAddress);
         attributes.put("IP_ADDRESS", listIP);
-                listPort.add(Integer.toString(port));
+        listPort.add(Integer.toString(port));
         attributes.put("PORT_NUMBER", listPort);
-                listUserName.add(username);
+        listUserName.add(username);
         attributes.put("USER_NAME", listUserName);
-                listPwd.add(password);
+        listPwd.add(password);
         attributes.put("PASSWORD", listPwd);
         _log.info(String.format("StorageDriver: setting connection information for %s, attributes: %s ", systemNativeId, attributes));
         this.driverRegistry.setDriverAttributesForKey("StorageDriverSimulator", systemNativeId, attributes);
@@ -803,7 +863,7 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
             if (SNAPS_IN_CG) {
                 snapshot.setConsistencyGroup(volume.getConsistencyGroup() + "snapSet-" + i);
             }
-                snapshot.setAllocatedCapacity(1000L);
+            snapshot.setAllocatedCapacity(1000L);
             snapshot.setProvisionedCapacity(volume.getProvisionedCapacity());
             snapshot.setWwn(String.format("%s%s", snapshot.getStorageSystemId(), snapshot.getNativeId()));
             snapshots.add(snapshot);
@@ -886,5 +946,50 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
     public DriverTask restoreVolumeMirror(List<VolumeMirror> mirrors) {
         return null;
     }
+
+    @Override
+    public DriverTask discoverStorageProvider(StorageProvider storageProvider, List<StorageSystem> storageSystems) {
+
+        storageProvider.setIsSupportedVersion(true);
+        StorageSystem providerSystem = new StorageSystem();
+        providerSystem.setSystemType("providersystem");
+        providerSystem.setNativeId("providerSystem-1");
+        providerSystem.setSerialNumber("1234567-1");
+        providerSystem.setFirmwareVersion("1.2.3");
+        storageSystems.add(providerSystem);
+
+        providerSystem = new StorageSystem();
+        providerSystem.setSystemType("providersystem");
+        providerSystem.setNativeId("providerSystem-2");
+        providerSystem.setSerialNumber("1234567-2");
+        providerSystem.setFirmwareVersion("1.2.3");
+        storageSystems.add(providerSystem);
+
+        providerSystem = new StorageSystem();
+        providerSystem.setSystemType("providersystem");
+        providerSystem.setNativeId("providerSystem-3");
+        providerSystem.setSerialNumber("1234567-3");
+        providerSystem.setFirmwareVersion("1.2.3");
+        storageSystems.add(providerSystem);
+
+        String taskType = "discover-storage-provider";
+        String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
+        DriverTask task = new DriverSimulatorTask(taskId);
+        task.setStatus(DriverTask.TaskStatus.READY);
+        String msg = String.format("Discovered provider: %s, discovered %s storage systems.", storageProvider.getProviderName(),
+                storageSystems.size());
+        task.setMessage(msg);
+        _log.info(msg);
+
+        return task;
+    }
+
+    @Override
+    public boolean validateStorageProviderConnection(StorageProvider storageProvider) {
+        String msg = String.format("Request to validate connection to storage provider with type: %s, host: %s, port: %s ",
+                storageProvider.getProviderType(), storageProvider.getProviderHost(), storageProvider.getPortNumber());
+        _log.info(msg);
+        return true;
+}
 
 }

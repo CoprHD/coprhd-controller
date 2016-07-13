@@ -9,9 +9,11 @@ import static java.util.Arrays.asList;
 
 import java.net.URI;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
@@ -109,6 +111,7 @@ public class StorageSystemTypesInitUtils {
         DISPLAY_NAME_MAP.put(XTREMIO, "EMC XtremIO");
         DISPLAY_NAME_MAP.put(DATA_DOMAIN, "Data Domain");
         DISPLAY_NAME_MAP.put(ECS, "EMC Elastic Cloud Storage");
+        DISPLAY_NAME_MAP.put(UNITY, "EMC Unity");
 
         DISPLAY_NAME_MAP.put(SMIS, "Storage Provider for EMC VMAX or VNX Block");
         DISPLAY_NAME_MAP.put(HITACHI_PROVIDER, "Storage Provider for Hitachi storage systems");
@@ -134,6 +137,7 @@ public class StorageSystemTypesInitUtils {
         SSL_PORT_MAP.put(ECS, "4443");
         SSL_PORT_MAP.put(VNXe, "443");
         SSL_PORT_MAP.put("vnxfile_smis", "5989");
+        SSL_PORT_MAP.put(UNITY, "443");
 
         NON_SSL_PORT_MAP = new HashMap<String, String>();
         NON_SSL_PORT_MAP.put("hicommand", "2001");
@@ -177,7 +181,10 @@ public class StorageSystemTypesInitUtils {
     }
 
     private DbClient dbClient;
-    private Map<String, String> dbStorageTypeMap = null;
+    // NOTE: current way to only compare key is definitely not enough
+    // will need to check all fields of a storage system type
+    // TODO
+    private Set<String> dbStorageTypeMap = null;
 
     /**
      * Create a HashMap of existing storage system types, to avoid duplicate insertion
@@ -186,17 +193,17 @@ public class StorageSystemTypesInitUtils {
     private void loadTypeMapFromDb() {
         List<URI> ids = dbClient.queryByType(StorageSystemType.class, true);
         Iterator<StorageSystemType> existingTypes = dbClient.queryIterativeObjects(StorageSystemType.class, ids);
-        dbStorageTypeMap = new HashMap<String, String>();
+        dbStorageTypeMap = new HashSet<String>();
         while (existingTypes.hasNext()) {
             StorageSystemType ssType = existingTypes.next();
             // why only name here
-            dbStorageTypeMap.put(ssType.getStorageTypeName(), ssType.getStorageTypeName());
+            dbStorageTypeMap.add(ssType.getStorageTypeName());
         }
     }
 
     private void insertFileArrays() {
         for (String file : FILE_TYPE_SYSTEMS) {
-            if (dbStorageTypeMap != null && StringUtils.equals(file, dbStorageTypeMap.get(file)) ) {
+            if (dbStorageTypeMap != null && dbStorageTypeMap.contains(file)) {
                 // avoid duplicate entries
                 continue;
             }
@@ -236,7 +243,7 @@ public class StorageSystemTypesInitUtils {
 
     private void insertFileProviders() {
         for (String file : FILE_TYPE_SYSTEM_PROVIDERS) {
-            if (dbStorageTypeMap != null && StringUtils.equals(file, dbStorageTypeMap.get(file)) ) {
+            if (dbStorageTypeMap != null && dbStorageTypeMap.contains(file)) {
                 // avoid duplicate entries
                 continue;
             }
@@ -273,7 +280,7 @@ public class StorageSystemTypesInitUtils {
 
     private void insertBlockArrays() {
         for (String block : BLOCK_TYPE_SYSTEMS) {
-            if (dbStorageTypeMap != null && StringUtils.equals(block, dbStorageTypeMap.get(block)) ) {
+            if (dbStorageTypeMap != null && dbStorageTypeMap.contains(block)) {
                 // avoid duplicate entries
                 continue;
             }
@@ -313,7 +320,7 @@ public class StorageSystemTypesInitUtils {
 
     private void insertBlockProviders() {
         for (String block : BLOCK_TYPE_SYSTEM_PROVIDERS) {
-            if (dbStorageTypeMap != null && StringUtils.equals(block, dbStorageTypeMap.get(block)) ) {
+            if (dbStorageTypeMap != null && dbStorageTypeMap.contains(block)) {
                 // avoid duplicate entries
                 continue;
             }
@@ -352,9 +359,40 @@ public class StorageSystemTypesInitUtils {
         }
     }
 
+    // TODO
+    private void insertCeph() {
+        
+    }
+
+    private void insertUnity() {
+        if (dbStorageTypeMap != null && dbStorageTypeMap.contains(UNITY)) {
+            log.info("Unity has been in db");
+            return;
+        }
+        StorageSystemType unity = new StorageSystemType();
+        URI unityUri = URIUtil.createId(StorageSystemType.class);
+        unity.setId(unityUri);
+        unity.setStorageTypeId(unityUri.toString());
+        unity.setStorageTypeName(UNITY);
+        unity.setStorageTypeDispName(DISPLAY_NAME_MAP.get(UNITY));
+        unity.setStorageTypeType(StorageSystemType.META_TYPE.BLOCK_AND_FILE.toString().toLowerCase());
+        unity.setIsSmiProvider(false);
+        unity.setIsDefaultSsl(true); // need to confirm
+        // isDefaultMDM field
+        // isOnlyMDM field
+        // isElementMgr field
+        // isSecretKey field
+        if (SSL_PORT_MAP.get(UNITY) != null) {
+            unity.setSslPort(SSL_PORT_MAP.get(UNITY));
+        }
+        // nonSslPort field
+        // driverClassName field
+        dbClient.createObject(unity);
+    }
+
     private void insertObjectArrays() {
         for (String object : OBJECT_TYPE_SYSTEMS) {
-            if (dbStorageTypeMap != null && StringUtils.equals(object, dbStorageTypeMap.get(object)) ) {
+            if (dbStorageTypeMap != null && dbStorageTypeMap.contains(object)) {
                 // avoid duplicate entries
                 continue;
             }
@@ -406,7 +444,7 @@ public class StorageSystemTypesInitUtils {
         insertBlockArrays();
         insertBlockProviders();
         insertObjectArrays();
-
+        insertUnity();
         log.info("Default drivers initialization done.");
     }
 }

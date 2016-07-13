@@ -192,11 +192,11 @@ public class StorageSystemTypes {
 
     public static List<StringOption> getBlockStorageOptions() {
         List<StringOption> options = new ArrayList<StringOption>(Arrays.asList(StringOption.NONE_OPTION));
-
         StorageSystemTypeList typeList = StorageSystemTypeUtils.getAllStorageSystemTypes(StorageSystemTypeUtils.ALL_TYPE);
         for (StorageSystemTypeRestRep type : typeList.getStorageSystemTypes()) {
             // ignore those whose type is not block
-            if (!StorageSystemTypeUtils.BLOCK_TYPE.equalsIgnoreCase(type.getStorageTypeType())) {
+            if (!StorageSystemTypeUtils.BLOCK_TYPE.equalsIgnoreCase(type.getStorageTypeType())
+                    && !StorageSystemTypeUtils.BLOCK_AND_FILE_TYPE.equalsIgnoreCase(type.getStorageTypeType())) {
                 continue;
             }
             // no need further check for non-SMIS providers
@@ -214,19 +214,19 @@ public class StorageSystemTypes {
     }
 
     public static List<StringOption> getFileStorageOptions() {
-        String alltypes = "all";
-        List<StringOption> storageoptions = new ArrayList<StringOption>();
-        // Add NONE option
-        storageoptions.add(new StringOption("NONE", "none"));
-        StorageSystemTypeList storagetypelist = StorageSystemTypeUtils.getAllStorageSystemTypes(alltypes);
-        for (StorageSystemTypeRestRep storagetypeRest : storagetypelist
-                .getStorageSystemTypes()) {
-            if (storagetypeRest.getStorageTypeType().equalsIgnoreCase("file") && !storagetypeRest.getIsSmiProvider()) {
-                storageoptions.add(new StringOption(storagetypeRest.getStorageTypeName(),
-                        storagetypeRest.getStorageTypeDispName()));
+        List<StringOption> options = new ArrayList<StringOption>(Arrays.asList(StringOption.NONE_OPTION));
+        StorageSystemTypeList typeList = StorageSystemTypeUtils.getAllStorageSystemTypes(StorageSystemTypeUtils.ALL_TYPE);
+        for (StorageSystemTypeRestRep type : typeList.getStorageSystemTypes()) {
+            if (!StorageSystemTypeUtils.FILE_TYPE.equalsIgnoreCase(type.getStorageTypeType())
+                    && !StorageSystemTypeUtils.BLOCK_AND_FILE_TYPE.equalsIgnoreCase(type.getStorageTypeType())) {
+                continue;
             }
+            if (type.getIsSmiProvider()) {
+                continue;
+            }
+            options.add(new StringOption(type.getStorageTypeName(), type.getStorageTypeDispName()));
         }
-        return storageoptions;
+        return options;
     }
 
     public static List<StringOption> getObjectStorageOptions() {

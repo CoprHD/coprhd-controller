@@ -40,21 +40,22 @@ public class StorageSystemType extends DataObject {
     private String nonSslPort;
     private String driverClassName;
 
-    public static enum storageSupportedType {
-        block, file, object, all
+    // Type of Storage System Types
+    public static enum META_TYPE {
+        BLOCK, FILE, OBJECT, BLOCK_AND_FILE, ALL
     }
 
-    // TODO
-    @Override
-    public int hashCode() {
-        return 1;
-    }
-
-    // TODO
-    @Override
-    public boolean equals(Object obj) {
-        return false;
-    }
+//    // TODO
+//    @Override
+//    public int hashCode() {
+//        return 1;
+//    }
+//
+//    // TODO
+//    @Override
+//    public boolean equals(Object obj) {
+//        return false;
+//    }
 
     @Name("storageTypeName")
     public String getStorageTypeName() {

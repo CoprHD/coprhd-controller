@@ -6,38 +6,35 @@
 package com.emc.storageos.vnxe.requests;
 
 import java.io.IOException;
+import java.net.URI;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.ArrayList;
 import java.util.Set;
 
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.NewCookie;
 
-import com.emc.storageos.vnxe.VNXeConstants;
-import com.emc.storageos.vnxe.VNXeException;
-import com.emc.storageos.vnxe.models.ParamBase;
-import com.emc.storageos.vnxe.models.VNXeCommandJob;
-import com.emc.storageos.vnxe.models.VNXeCommandResult;
-
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.JsonParseException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
-
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.vnxe.VNXeConstants;
+import com.emc.storageos.vnxe.VNXeException;
+import com.emc.storageos.vnxe.models.ParamBase;
+import com.emc.storageos.vnxe.models.VNXeCommandJob;
+import com.emc.storageos.vnxe.models.VNXeCommandResult;
+import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.ClientResponse.Status;
 import com.sun.jersey.api.client.WebResource;
-import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.core.util.MultivaluedMapImpl;
-
-import java.net.URI;
 
 /*
  * This is the base class for request sending to KittyHawk/VNXe server
@@ -46,12 +43,14 @@ public class KHRequests<T> {
     private static final Logger _logger = LoggerFactory.getLogger(KHRequests.class);
     protected MultivaluedMap<String, String> _queryParams;
     protected String _url;
+    protected String _fields;
     protected KHClient _client;
     private WebResource _resource;
     private Set<NewCookie> _requestCookies = new HashSet<NewCookie>();
 
     private static final String AUTH_TOKEN = "Cookie";
     private static final String CLIENT_HEADER = "X-EMC-REST-CLIENT";
+    private static final String EMC_CSRF_HEADER = "EMC-CSRF-TOKEN";
     private static final String GET_REQUEST = "GET";
     private static final String POST_REQUEST = "POST";
     private static final String DELETE_REQUEST = "DELETE";
@@ -66,7 +65,20 @@ public class KHRequests<T> {
     }
 
     public void setQueryParameters(MultivaluedMap<String, String> queryParams) {
-        _queryParams = queryParams;
+        if (_queryParams != null) {
+            for (String key : queryParams.keySet()) {
+                List<String> values = queryParams.get(key);
+                for (String value : values) {
+                    _queryParams.add(key, value);
+                }
+            }
+        } else {
+            _queryParams = queryParams;
+        }
+    }
+
+    public void unsetQueryParameters() {
+        _queryParams = null;
     }
 
     public WebResource buildResource(WebResource resource) {
@@ -79,6 +91,10 @@ public class KHRequests<T> {
     protected WebResource.Builder buildRequest(WebResource.Builder builder) {
 
         builder = builder.header(CLIENT_HEADER, "true");
+        if (_client.getEmcCsrfToken() != null) {
+            _logger.debug("EMC-CSRF-TOKEN is:: " + _client.getEmcCsrfToken());
+            builder.header(EMC_CSRF_HEADER, _client.getEmcCsrfToken());
+        }
         Set<NewCookie> cookies = null;
         if (!_requestCookies.isEmpty()) {
             cookies = _requestCookies;
@@ -105,7 +121,6 @@ public class KHRequests<T> {
 
         builder = builder.accept(MediaType.APPLICATION_JSON_TYPE);
         builder = builder.type(MediaType.APPLICATION_JSON_TYPE);
-
         return builder;
     }
 
@@ -113,7 +128,7 @@ public class KHRequests<T> {
         if (_queryParams == null) {
             return resource; // no query parameters
         }
-
+        _logger.debug("_queryParams:" + _queryParams);
         return resource.queryParams(_queryParams);
     }
 
@@ -131,11 +146,16 @@ public class KHRequests<T> {
      */
     public List<T> getDataForObjects(Class<T> valueType)
             throws VNXeException {
-        _logger.debug("getting data: {}", _url);
+        _logger.info("getting data: {}", _url);
         ClientResponse response = sendGetRequest(_resource);
+        String emcCsrfToken = response.getHeaders().getFirst(EMC_CSRF_HEADER);
+        if (emcCsrfToken != null) {
+            saveEmcCsrfToken(emcCsrfToken);
+        }
+
         saveClientCookies();
         String resString = response.getEntity(String.class);
-        _logger.debug("got data: " + resString);
+        _logger.info("got data: " + resString);
         JSONObject res;
         List<T> returnedObjects = new ArrayList<T>();
         try {
@@ -188,6 +208,11 @@ public class KHRequests<T> {
     public T getDataForOneObject(Class<T> valueType) throws VNXeException {
         _logger.debug("getting data: " + _url);
         ClientResponse response = sendGetRequest(_resource);
+        String emcCsrfToken = response.getHeaders().getFirst(EMC_CSRF_HEADER);
+        if (emcCsrfToken != null) {
+            saveEmcCsrfToken(emcCsrfToken);
+        }
+
         saveClientCookies();
         String resString = response.getEntity(String.class);
         _logger.debug("got data: " + resString);
@@ -265,6 +290,7 @@ public class KHRequests<T> {
                     .getRequestBuilder()).entity(parmString).post(ClientResponse.class);
             ;
             statusCode = response.getClientResponseStatus();
+
             if (statusCode == ClientResponse.Status.OK
                     || statusCode == ClientResponse.Status.ACCEPTED
                     || statusCode == ClientResponse.Status.NO_CONTENT) {
@@ -302,6 +328,7 @@ public class KHRequests<T> {
     public VNXeCommandJob postRequestAsync(ParamBase param) {
         setAsyncMode();
         ClientResponse response = postRequest(param);
+
         VNXeCommandJob job;
         String resString = response.getEntity(String.class);
         ObjectMapper mapper = new ObjectMapper();
@@ -369,11 +396,20 @@ public class KHRequests<T> {
      * Send GET request to KittyHawk server, and handle redirect/cookies
      */
     private ClientResponse sendGetRequest(WebResource resource) throws VNXeException {
-        _logger.debug("getting data: {} ", _url);
+        _logger.info("getting data: {} ", _url);
+        if (_client.isUnity() == true) {
+            setFields();
+        }
         ClientResponse response = buildRequest(addQueryParameters(buildResource(resource))
                 .getRequestBuilder()).get(ClientResponse.class);
         Status statusCode = response.getClientResponseStatus();
+        _logger.info(response.getStatus() + ":" + response.toString());
         if (statusCode == ClientResponse.Status.OK) {
+            String emcCsrfToken = response.getHeaders().getFirst(EMC_CSRF_HEADER);
+            if (emcCsrfToken != null) {
+                saveEmcCsrfToken(emcCsrfToken);
+            }
+
             saveClientCookies();
             return response;
         } else if (response.getClientResponseStatus() == ClientResponse.Status.UNAUTHORIZED) {
@@ -412,6 +448,11 @@ public class KHRequests<T> {
             _requestCookies.addAll(cookies);
         }
         saveClientCookies();
+
+        String emcCsrfToken = response.getHeaders().getFirst(EMC_CSRF_HEADER);
+        if (emcCsrfToken != null) {
+            saveEmcCsrfToken(emcCsrfToken);
+        }
         return response;
     }
 
@@ -505,6 +546,16 @@ public class KHRequests<T> {
     }
 
     /*
+     * save EMC_CSRF_TOKEN for next POST or PUT request
+     */
+    private void saveEmcCsrfToken(String emcCsrfToken) {
+        if (emcCsrfToken != null) {
+            _logger.debug("Saving CSRF token: " + emcCsrfToken);
+            _client.setEmcCsrfToken(emcCsrfToken);
+        }
+    }
+
+    /*
      * Send DELETE request to KittyHawk server in async mode
      * 
      * @param resource webResource
@@ -553,15 +604,26 @@ public class KHRequests<T> {
         setQueryParameters(queryParams);
     }
 
+    protected void setFields() {
+        _logger.info("Setting fields:" + _fields);
+        if (_fields != null) {
+            MultivaluedMap<String, String> queryParams = new MultivaluedMapImpl();
+            queryParams.add(VNXeConstants.FIELDS, _fields);
+            setQueryParameters(queryParams);
+        }
+    }
+
     private void authenticate() {
         // calling a GET operation would authenticate the client again.
         _client.setCookie(null);
+        _client.setEmcCsrfToken(null);
         StorageSystemRequest req = new StorageSystemRequest(_client);
         req.get();
     }
 
     private ClientResponse sendDeleteRequest(Object param) {
         ClientResponse response = null;
+
         if (param != null) {
             response = buildRequest(addQueryParameters(buildResource(_resource))
                     .getRequestBuilder()).entity(param).delete(ClientResponse.class);
@@ -582,10 +644,7 @@ public class KHRequests<T> {
                 throw VNXeException.exceptions.authenticationFailure(_url.toString());
             }
             String code = null;
-            if (status != null) {
-                code = status.toString();
-            }
-
+            code = Integer.toString(response.getStatus());
             StringBuilder errorBuilder = new StringBuilder();
             errorBuilder.append(requestType).append(" request to:");
             errorBuilder.append(_url);

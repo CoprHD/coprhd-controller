@@ -34,7 +34,7 @@ public abstract class TenantParam {
      * Description for the tenant.
      * 
      */
-    @XmlElement(required = false)
+    @XmlElement(required = false, nillable = true)
     public String getDescription() {
         return description;
     }

@@ -34,7 +34,8 @@ public class SystemTypeValidator extends VirtualPoolValidator<VirtualPoolCommonP
             if (!VirtualPool.SystemType.vmax.toString().equalsIgnoreCase(updateParam.getSystemType())
                     && !VirtualPool.SystemType.vnxblock.toString().equalsIgnoreCase(
                             updateParam.getSystemType())
-                    && !VirtualPool.SystemType.vnxe.toString().equalsIgnoreCase(updateParam.getSystemType())) {
+                    && !VirtualPool.SystemType.vnxe.toString().equalsIgnoreCase(updateParam.getSystemType())
+                    && !VirtualPool.SystemType.unity.toString().equalsIgnoreCase(updateParam.getSystemType())) {
                 throw APIException.badRequests.invalidParameterSystemTypeforAutoTiering();
             }
         }
@@ -44,6 +45,8 @@ public class SystemTypeValidator extends VirtualPoolValidator<VirtualPoolCommonP
                     && !VirtualPool.SystemType.vnxblock.toString().equalsIgnoreCase(
                             updateParam.getSystemType())
                     && !VirtualPool.SystemType.vnxe.toString().equalsIgnoreCase(
+                            updateParam.getSystemType())
+                    && !VirtualPool.SystemType.unity.toString().equalsIgnoreCase(
                             updateParam.getSystemType())) {
                 throw APIException.badRequests.virtualPoolSupportsVmaxVnxblockWithRaid();
             }

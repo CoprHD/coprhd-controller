@@ -53,6 +53,7 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
     public static final String EXISTING_SOURCE_FILE_SYSTEM = "existing_source_file_system";
     public static final String SOURCE_STORAGE_SYSTEM = "source_storage_system";
     public static final String FILE_TARGET_COPY_NAME = "file_target_copy_name";
+    public static final String CHANGE_VPOOL_VOLUME = "changeVpoolVolume";
 
     // meta volume capabilities
     public static final String IS_META_VOLUME = "isMetaVolume";
@@ -63,6 +64,10 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
     // compute resource capabilities
     public static final String COMPUTE = "compute";
     public static final String ARRAY_AFFINITY = "array_affinity";
+
+    // replica options
+    public static final String REPLICA_CREATE_INACTIVE = "replicaActiveInactiveMode";
+    public static final String SNAPSHOT_SESSION_COPY_MODE = "snapshotSessionCopyMode";
 
     private final Map<String, Object> _vpoolCapabilities = new HashMap<String, Object>();
 
@@ -201,6 +206,10 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
 
         if (capabilities.contains(ARRAY_AFFINITY)) {
             _vpoolCapabilities.put(ARRAY_AFFINITY, capabilities.getArrayAffinity());
+        }
+        
+        if (capabilities.contains(CHANGE_VPOOL_VOLUME)) {
+            _vpoolCapabilities.put(CHANGE_VPOOL_VOLUME, capabilities.getChangeVpoolVolume());
         }
     }
 
@@ -374,6 +383,19 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
 
     public String getFileTargetCopyName() {
         Object value = _vpoolCapabilities.get(FILE_TARGET_COPY_NAME);
+        return value != null ? (String) value : null;
+    }
+    
+    public String getChangeVpoolVolume() {
+        Object value = _vpoolCapabilities.get(CHANGE_VPOOL_VOLUME);
+        return value != null ? (String) value : null;
+    }        public String getReplicaCreateInactive() {
+        Object value = _vpoolCapabilities.get(REPLICA_CREATE_INACTIVE);
+        return value != null ? (String) value : null;
+    }
+    
+    public String getSnapshotSessionCopyMode() {
+        Object value = _vpoolCapabilities.get(SNAPSHOT_SESSION_COPY_MODE);
         return value != null ? (String) value : null;
     }
 

@@ -161,47 +161,47 @@ public class PlacementTestUtils {
     public static ProtectionSystem createProtectionSystem(DbClient dbClient, String type, String label, String cluster1, String cluster2, String cluster3, String protocol,
                                                           StringSetMap siteInitiators, StringSet associatedStorageSystems, StringSetMap rpVisibleArrays, Long cgCapacity,
                                                           Long cgCount, StringMap siteVolCap, StringMap siteVolCnt) {
-        ProtectionSystem proSystem = new ProtectionSystem();
-        String topology = proSystem.assembleClusterTopology(cluster1, cluster2, protocol);
-        String topology2 = proSystem.assembleClusterTopology(cluster2, cluster1, protocol);
-        StringSet cluTopo = new StringSet();
-        cluTopo.add(topology);
-        cluTopo.add(topology2);
+        ProtectionSystem ps = new ProtectionSystem();
+        String topology = ps.assembleClusterTopology(cluster1, cluster2, protocol);
+        String topology2 = ps.assembleClusterTopology(cluster2, cluster1, protocol);
+        StringSet clusterTopology = new StringSet();
+        clusterTopology.add(topology);
+        clusterTopology.add(topology2);
         if (cluster3 != null) {
-        	String topology3 = proSystem.assembleClusterTopology(cluster1,  cluster3, protocol);
-        	String topology4 = proSystem.assembleClusterTopology(cluster3,  cluster1, protocol);
-        	String topology5 = proSystem.assembleClusterTopology(cluster2,  cluster3, protocol);
-        	String topology6 = proSystem.assembleClusterTopology(cluster3,  cluster2, protocol);
-        	cluTopo.add(topology3);
-        	cluTopo.add(topology4);
-        	cluTopo.add(topology5);
-        	cluTopo.add(topology6);
+        	String topology3 = ps.assembleClusterTopology(cluster1,  cluster3, protocol);
+        	String topology4 = ps.assembleClusterTopology(cluster3,  cluster1, protocol);
+        	String topology5 = ps.assembleClusterTopology(cluster2,  cluster3, protocol);
+        	String topology6 = ps.assembleClusterTopology(cluster3,  cluster2, protocol);
+        	clusterTopology.add(topology3);
+        	clusterTopology.add(topology4);
+        	clusterTopology.add(topology5);
+        	clusterTopology.add(topology6);
         }
         
-        proSystem.setClusterTopology(cluTopo);
-        proSystem.setSiteInitiators(siteInitiators);
-        proSystem.setId(URI.create(label));
-        proSystem.setLabel(label);
-        proSystem.setInactive(false);
-        proSystem.setSystemType(type);
-        proSystem.setRegistrationStatus(RegistrationStatus.REGISTERED.name());
-        proSystem.setReachableStatus(true);
-        proSystem.setAssociatedStorageSystems(associatedStorageSystems);
-        proSystem.setCgCapacity(cgCapacity);
-        proSystem.setCgCount(cgCount);
-        proSystem.setSiteVolumeCapacity(siteVolCap);
-        proSystem.setSiteVolumeCount(siteVolCnt);
-        proSystem.setSiteVisibleStorageArrays(rpVisibleArrays);    
+        ps.setClusterTopology(clusterTopology);
+        ps.setSiteInitiators(siteInitiators);
+        ps.setId(URI.create(label));
+        ps.setLabel(label);
+        ps.setInactive(false);
+        ps.setSystemType(type);
+        ps.setRegistrationStatus(RegistrationStatus.REGISTERED.name());
+        ps.setReachableStatus(true);
+        ps.setAssociatedStorageSystems(associatedStorageSystems);
+        ps.setCgCapacity(cgCapacity);
+        ps.setCgCount(cgCount);
+        ps.setSiteVolumeCapacity(siteVolCap);
+        ps.setSiteVolumeCount(siteVolCnt);
+        ps.setSiteVisibleStorageArrays(rpVisibleArrays);    
         StringMap siteNames = new StringMap();
         siteNames.put(cluster1, cluster1);
         siteNames.put(cluster2, cluster2);
         if (null != cluster3) {
         	siteNames.put(cluster3, cluster3);
         }
-        proSystem.setRpSiteNames(siteNames);
-        dbClient.createObject(proSystem);
+        ps.setRpSiteNames(siteNames);
+        dbClient.createObject(ps);
        
-        return proSystem;
+        return ps;
     }
 
     public static VirtualArray createVirtualArray(DbClient dbClient, String label) {
@@ -289,7 +289,7 @@ public class PlacementTestUtils {
             String label, Network network, String[] portWWNs, VirtualArray varray) {
         StorageSystem storageSystem = PlacementTestUtils.createStorageSystem(dbClient, "vmax", label);
         
-     // Create two front-end storage ports system1.
+        // Create two front-end storage ports system1.
         List<StoragePort> system1Ports = new ArrayList<StoragePort>();
         for (int i = 0; i < portWWNs.length; i++) {
             system1Ports.add(PlacementTestUtils.createStoragePort(dbClient, storageSystem, network, portWWNs[i], varray,

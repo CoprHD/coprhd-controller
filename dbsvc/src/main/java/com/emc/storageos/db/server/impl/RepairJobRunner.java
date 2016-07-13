@@ -262,7 +262,7 @@ public class RepairJobRunner implements NotificationListener, AutoCloseable {
 
         repairRangeDone = false;
 
-        int cmd = svcProxy.forceRepairRangeAsync(range.begin, range.end, keySpaceName, true, false, true);
+        int cmd = svcProxy.forceRepairRangeAsync(range.begin, range.end, keySpaceName, true, false, false);
 
         _log.info("Wait for repairing this range to be done cmd={}", cmd);
         if (cmd > 0) {

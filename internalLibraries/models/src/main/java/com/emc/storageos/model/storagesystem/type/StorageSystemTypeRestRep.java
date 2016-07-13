@@ -9,6 +9,7 @@ import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+
 import com.emc.storageos.model.DataObjectRestRep;
 
 @XmlAccessorType(XmlAccessType.PROPERTY)
@@ -27,7 +28,8 @@ public class StorageSystemTypeRestRep extends DataObjectRestRep {
     private String nonSslPort;
     private String sslPort;
     private String driverClassName;
-
+    private boolean isSecretKey = false;
+    
     public StorageSystemTypeRestRep() {
     }
 
@@ -141,6 +143,18 @@ public class StorageSystemTypeRestRep extends DataObjectRestRep {
     }
 
     /**
+     * Whether the Storage System Type has a secret key.
+     */
+    @XmlElement(name = "is_secret_key")
+    public boolean getIsSecretKey() {
+        return isSecretKey;
+    }
+
+    public void setIsSecretKey(boolean isSecretKey) {
+        this.isSecretKey = isSecretKey;
+    }
+    
+    /**
      * SSL port number, if SSL is supported and enabled
      */
     @XmlElement(name = "ssl_port")
@@ -163,6 +177,7 @@ public class StorageSystemTypeRestRep extends DataObjectRestRep {
     public void setNonSslPort(String nonSslPort) {
         this.nonSslPort = nonSslPort;
     }
+
 
     /**
      * Storage System Type driver class name. This class is defined in South Bound SDK of CoprHD that device driver developer should
@@ -199,4 +214,5 @@ public class StorageSystemTypeRestRep extends DataObjectRestRep {
         builder.append("]");
         return builder.toString();
     }
+
 }

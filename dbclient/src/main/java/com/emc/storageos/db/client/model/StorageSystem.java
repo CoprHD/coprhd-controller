@@ -172,6 +172,8 @@ public class StorageSystem extends DiscoveredSystemObject {
         private static final SupportedFileReplicationTypes[] copyOfValues = values();
     }
 
+    // All pools share the same storage capacity
+    private Boolean sharedStorageCapacity = false;
 
     public static enum SupportedProvisioningTypes {
         THICK, THIN, THIN_AND_THICK, NONE
@@ -698,7 +700,6 @@ public class StorageSystem extends DiscoveredSystemObject {
         return _nativeId;
     }
 
-
     public void setNativeId(String nativeId) {
         _nativeId = nativeId;
         setChanged("nativeId");
@@ -753,5 +754,17 @@ public class StorageSystem extends DiscoveredSystemObject {
     public void setSuccessArrayAffinityTime(Long time) {
         _successArrayAffinityTime = time;
         setChanged("successArrayAffinityTime");
+    }
+
+    @Name("sharedStorageCapacity")
+    public Boolean getSharedStorageCapacity() {
+        return sharedStorageCapacity == null ? false : sharedStorageCapacity;
+    }
+
+    public void setSharedStorageCapacity(final Boolean sharedStorageCapacity) {
+        if (this.sharedStorageCapacity == null || !this.sharedStorageCapacity.equals(sharedStorageCapacity)) {
+            this.sharedStorageCapacity = sharedStorageCapacity;
+            setChanged("sharedStorageCapacity");
+        }
     }
 }

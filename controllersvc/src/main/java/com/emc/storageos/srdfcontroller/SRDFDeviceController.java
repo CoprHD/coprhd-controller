@@ -2377,9 +2377,9 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         for (VolumeDescriptor volumeDescriptor : volumeDescriptors) {
             if (volumeDescriptor.getParameters() != null) {
                 if (volumeDescriptor.getParameters().get(
-                        VolumeDescriptor.PARAM_VPOOL_CHANGE_VPOOL_ID) != null) {
+                        VolumeDescriptor.PARAM_VPOOL_CHANGE_NEW_VPOOL_ID) != null) {
                     return (URI) volumeDescriptor.getParameters().get(
-                            VolumeDescriptor.PARAM_VPOOL_CHANGE_VPOOL_ID);
+                            VolumeDescriptor.PARAM_VPOOL_CHANGE_NEW_VPOOL_ID);
                 }
             }
         }
@@ -2469,6 +2469,31 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
     private String generateRDFGroupLock(StorageSystem sourceSystem, RemoteDirectorGroup rdfGroup) {
         return sourceSystem.getSerialNumber() + "-rdfg-" + rdfGroup.getSourceGroupId();
     }
-    
-    
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationInterface#addStepsForPreCreateReplica(com.emc.storageos.workflow.Workflow, java.lang.String, java.util.List, java.lang.String)
+     */
+    @Override
+    public String addStepsForPreCreateReplica(Workflow workflow, String waitFor, List<VolumeDescriptor> volumeDescriptors, String taskId)
+            throws InternalException {
+        return waitFor;
+}
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationInterface#addStepsForPostCreateReplica(com.emc.storageos.workflow.Workflow, java.lang.String, java.util.List, java.lang.String)
+     */
+    @Override
+    public String addStepsForPostCreateReplica(Workflow workflow, String waitFor, List<VolumeDescriptor> volumeDescriptors, String taskId)
+            throws InternalException {
+        return waitFor;
+    }
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationInterface#addStepsForCreateFullCopy(com.emc.storageos.workflow.Workflow, java.lang.String, java.util.List, java.lang.String)
+     */
+    @Override
+    public String addStepsForCreateFullCopy(Workflow workflow, String waitFor, List<VolumeDescriptor> volumeDescriptors, String taskId)
+            throws InternalException {
+        return waitFor;
+    }
 }

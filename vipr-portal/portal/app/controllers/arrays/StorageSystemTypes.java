@@ -5,19 +5,16 @@
 
 package controllers.arrays;
 
-import static com.emc.vipr.client.core.util.ResourceUtils.uris;
 import static controllers.Common.backToReferrer;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import javax.ws.rs.core.Response;
-import javax.ws.rs.ext.Providers;
+import javax.ws.rs.core.MediaType;
 
 import org.apache.commons.lang.StringUtils;
 
@@ -25,12 +22,9 @@ import com.emc.storageos.model.storagesystem.type.StorageSystemTypeAddParam;
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeRestRep;
 import com.google.common.collect.Lists;
 import com.sun.jersey.api.client.ClientResponse;
-import com.sun.jersey.multipart.FormDataBodyPart;
 import com.sun.jersey.multipart.FormDataMultiPart;
 import com.sun.jersey.multipart.MultiPart;
 import com.sun.jersey.multipart.file.FileDataBodyPart;
-import com.sun.jersey.multipart.file.StreamDataBodyPart;
-import javax.ws.rs.core.MediaType;
 
 import controllers.Common;
 import controllers.deadbolt.Restrict;
@@ -203,6 +197,8 @@ public class StorageSystemTypes extends ViprResourceController {
         public Boolean useMDM = false;
 
         public Boolean isProvider = false;
+        
+        public Boolean isSecretKey = false;
 
         public StorageSystemTypeForm() {
         }
@@ -231,6 +227,7 @@ public class StorageSystemTypes extends ViprResourceController {
             this.isElementMgr = storageSysType.getIsElementMgr();
             this.useMDM = storageSysType.getIsDefaultMDM();
             this.isProvider = storageSysType.getIsSmiProvider();
+            this.isSecretKey = storageSysType.getIsSecretKey();
         }
 
         public StorageSystemTypeRestRep save() {
@@ -281,6 +278,11 @@ public class StorageSystemTypes extends ViprResourceController {
                 addParams.setIsElementMgr(isElementMgr);
             } else {
                 addParams.setIsElementMgr(false);
+            }
+            if (isSecretKey != null) {
+                addParams.setIsSecretKey(isSecretKey);
+            } else {
+                addParams.setIsSecretKey(false);
             }
 
             StorageSystemTypeRestRep task = StorageSystemTypeUtils.addStorageSystemType(addParams);

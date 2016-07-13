@@ -29,6 +29,13 @@
         <entry key="Discovery-vnxe-unmanaged_volumes" value="discovery-vnxe-context.xml" />
         <entry key="Discovery-vnxe-unmanaged_filesystems" value="discovery-vnxe-context.xml" />
 	    <entry key="Metering-vnxe" value="metering-vnxe-context.xml" />
+
+        <entry key="Discovery-unity-all" value="discovery-vnxunity-context.xml" />
+        <entry key="Discovery-unity-unmanaged_volumes" value="discovery-vnxunity-context.xml" />
+        <entry key="Discovery-unity-unmanaged_filesystems" value="discovery-vnxunity-context.xml" />
+        <entry key="Metering-unity" value="metering-vnxunity-context.xml" />
+        <entry key="Scanner-unity" value="discovery-vnxunity-context.xml"/>
+
 	    
         <entry key="NS_Discovery-mds-all" value="discovery-mds-context.xml" />
         <entry key="NS_Discovery-brocade-all" value="discovery-brocade-context.xml" />
@@ -80,6 +87,9 @@
 
         <entry key="Discovery-ecs-all" value="discovery-ecs-context.xml" />
 
+        <entry key="Scanner-ceph" value="discovery-ceph-context.xml" />
+        <entry key="Discovery-ceph-all" value="discovery-ceph-context.xml" />
+
         <!-- in seconds -->
         <!-- how often the job should be scheduled automatically -->
         <entry key="metering-interval" value="${controller_metering_interval}" />
@@ -119,6 +129,8 @@
         <entry key="metering-dump-location" value="/tmp" />
         <entry key="metering-records-partition-size" value="1000" />
         <entry key="sblim-timeout" value="1200000" />
+
+        <entry key="enable-auto-discovery-metering-scan-single-node-deployments" value="${controller_enable_auto_discovery_metering_scan_single_node_deployments}" />
         <entry key="enable-metering" value="${controller_enable_metering}" />
         <entry key="enable-autodiscovery" value="${controller_enable_autodiscovery}" />
         <entry key="enable-arrayaffinity-discovery" value="${controller_enable_arrayaffinity_discovery}" />

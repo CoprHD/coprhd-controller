@@ -93,7 +93,7 @@ public class TaskUtils {
             }
         };
 
-        systemClient.logs().getAsItems(processor, nodeIds, LOG_NAMES, LOG_SEVERITY, start, end, regex, LOGS_MAX_COUNT);
+        systemClient.logs().getAsItems(processor, nodeIds, null, LOG_NAMES, LOG_SEVERITY, start, end, regex, LOGS_MAX_COUNT);
 
         return logMessages;
     }

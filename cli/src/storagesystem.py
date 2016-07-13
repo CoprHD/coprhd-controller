@@ -66,8 +66,10 @@ class StorageSystem(object):
         'ibmxiv',
         'netappc',	
         'vnxe',
+        'unity',
         'ecs' ,
-        'datadomain']
+        'datadomain',
+        'ceph']
 
     BLOCK_SYSTEM_LIST = [
         'vnxblock',
@@ -77,7 +79,9 @@ class StorageSystem(object):
         'scaleio',
         'xtremio',
         'ibmxiv',
-        'vnxe']
+        'vnxe',
+        'ceph',
+        'unity']
 
     ARRAY_AFFINITY_SYSTEM_LIST = [
         'vmax',
@@ -90,6 +94,7 @@ class StorageSystem(object):
         'netapp',
         'netappc',	
         'vnxe',
+        'unity',
         'datadomain']
     
     OBJECT_SYSTEM_LIST =['ecs']
@@ -104,7 +109,8 @@ class StorageSystem(object):
         'openstack',
         'ibmxiv',
         'netappc',
-        'ecs' ,	
+        'ecs' ,
+        'unity',
         'vnxe']
 
     def __init__(self, ipAddr, port):

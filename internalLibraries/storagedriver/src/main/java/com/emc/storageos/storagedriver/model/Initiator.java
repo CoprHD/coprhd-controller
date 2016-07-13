@@ -43,11 +43,14 @@ public class Initiator extends StorageObject {
     }
 
     /**
-     * Type of initiator: host initiator, vplex backend initiator, etc.
+     * Type of initiator: host initiator, cluster initiator, vplex backend initiator, etc.
+     * For host/cluster export requests initiator type is set to host/cluster respectively
+     * to indicate to driver context of this request.
      */
     private Type initiatorType;
     public static enum Type {
         Host,
+        Cluster,
         VPLEX,
         RP
     }

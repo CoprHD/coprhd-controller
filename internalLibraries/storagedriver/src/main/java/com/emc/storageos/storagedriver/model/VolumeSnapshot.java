@@ -16,8 +16,8 @@ public class VolumeSnapshot extends StorageBlockObject {
     // use consistencyGroup for snapshot snapset.
     // snapSetId. Type: Input/Output.
     // Should be set to the same value for all consistency group  snapshots taken at the same time.
-   @Deprecated
-   private String snapSetId;
+    @Deprecated
+    private String snapSetId;
 
     // Logical size of a snap on array in bytes. Type: Output.
     private Long provisionedCapacity = 0L;
@@ -70,3 +70,4 @@ public class VolumeSnapshot extends StorageBlockObject {
         return getNativeId();
     }
 }
+

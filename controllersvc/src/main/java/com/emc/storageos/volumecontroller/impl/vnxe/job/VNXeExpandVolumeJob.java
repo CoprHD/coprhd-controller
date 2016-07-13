@@ -6,6 +6,7 @@
 package com.emc.storageos.volumecontroller.impl.vnxe.job;
 
 import java.net.URI;
+import java.util.Arrays;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,7 +48,8 @@ public class VNXeExpandVolumeJob extends VNXeJob {
             Volume volumeObj = dbClient.queryObject(Volume.class, volumeId);
             // If terminal state update storage pool capacity
             if (_status == JobStatus.SUCCESS || _status == JobStatus.FAILED) {
-                VNXeJob.updateStoragePoolCapacity(dbClient, vnxeApiClient, volumeObj.getPool());
+                VNXeJob.updateStoragePoolCapacity(dbClient, vnxeApiClient, volumeObj.getPool(), 
+                        Arrays.asList(volumeObj.getId().toString()));
             }
 
             if (_status == JobStatus.SUCCESS && volumeObj != null) {
@@ -89,7 +91,7 @@ public class VNXeExpandVolumeJob extends VNXeJob {
             logMsgBuilder.append(String.format(
                     "Expand volume successfully for NativeId: %s, URI: %s", volumeObj.getNativeId(),
                     getTaskCompleter().getId()));
-            dbClient.persistObject(volumeObj);
+            dbClient.updateObject(volumeObj);
         } else {
             logMsgBuilder.append("Could not find corresponding volume in the VNXe, using the resource ID: ");
             logMsgBuilder.append(volumeObj.getNativeId());

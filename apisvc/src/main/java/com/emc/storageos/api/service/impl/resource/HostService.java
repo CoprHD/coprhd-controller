@@ -1423,7 +1423,7 @@ public class HostService extends TaskResourceService {
                 _log.debug("Looking in used compute system:" + uri);
                 availableCEList = computeSystemToComputeElementsMap.get(uri);
                 if (availableCEList == null) {
-			continue;
+                    continue;
                 }
                 if (availableCEList.size() <= numRequiredCEs) {
                     selectedCEsList.addAll(availableCEList);
@@ -1465,7 +1465,7 @@ public class HostService extends TaskResourceService {
             else if (numHosts < count) {
                 _log.debug("Taking " + numHosts + " blades from compute system: " + key + " . Need no more.");
                 // pick n blades from m available blades.
-		availableCEList = new ArrayList<URI>();
+                availableCEList = new ArrayList<URI>();
                 availableCEList.addAll(computeElements);
                 selectedCEsList.addAll(pickBladesByStrafingAlgorithm(availableCEList, numRequiredCEs,
                         usedComputeElementsMap.get(key)));

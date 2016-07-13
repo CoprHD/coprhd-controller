@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.api.service.impl.resource;
 
+import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
 import static com.emc.storageos.api.mapper.DbObjectMapper.toRelatedResource;
 import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 
@@ -37,6 +38,7 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.ActionableEvent;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Host;
+import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.exceptions.DatabaseException;
@@ -100,7 +102,10 @@ public class EventService extends TaggedResource {
         try {
             ActionableEvent.Method eventMethod = ActionableEvent.Method.deserialize(event.getMethod());
             Method m = getMethod(EventService.class, eventMethod.getOrchestrationMethod());
-            return (TaskResourceRep) m.invoke(this, eventMethod.getArgs());
+            TaskResourceRep result = (TaskResourceRep) m.invoke(this, eventMethod.getArgs());
+            event.setStatus(ActionableEvent.Status.approved.name());
+            _dbClient.updateObject(event);
+            return result;
         } catch (SecurityException e) {
             _log.error(e.getMessage(), e.getStackTrace());
         } catch (IllegalAccessException e) {
@@ -141,8 +146,10 @@ public class EventService extends TaggedResource {
         // check the user permissions
         verifyAuthorizedInTenantOrg(event.getTenant(), getUserFromContext());
         // this.getController(clazz, hw);
+
+        event.setStatus(ActionableEvent.Status.declined.name());
         // TODO decline the event
-        _dbClient.markForDeletion(event);
+        _dbClient.updateObject(event);
         return Response.ok().build();
     }
 
@@ -156,6 +163,8 @@ public class EventService extends TaggedResource {
         event.setId(URIUtil.createId(ActionableEvent.class));
         event.setTenant(tenant.getId());
         event.setMessage(createParam.getMessage());
+        event.setStatus(ActionableEvent.Status.pending.name());
+        event.setResource(new NamedURI(createParam.getResource().getId(), createParam.getResource().getName()));
         com.emc.storageos.db.client.model.ActionableEvent.Method method = new ActionableEvent.Method(
                 createParam.getOrchestrationMethod(), createParam.getParameters().toArray());
         event.setMethod(method.serialize());
@@ -240,6 +249,8 @@ public class EventService extends TaggedResource {
         EventRestRep to = new EventRestRep();
         to.setName(from.getLabel());
         to.setMessage(from.getMessage());
+        to.setStatus(from.getStatus());
+        to.setResource(toNamedRelatedResource(from.getResource()));
         to.setTenant(toRelatedResource(ResourceTypeEnum.TENANT, from.getTenant()));
         DbObjectMapper.mapDataObjectFields(from, to);
         return to;

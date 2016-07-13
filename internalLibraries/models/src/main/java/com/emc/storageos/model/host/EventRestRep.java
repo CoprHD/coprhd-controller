@@ -10,6 +10,7 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
 import com.emc.storageos.model.DataObjectRestRep;
+import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.RelatedResourceRep;
 
 /**
@@ -20,6 +21,8 @@ import com.emc.storageos.model.RelatedResourceRep;
 public class EventRestRep extends DataObjectRestRep {
 
     private String message;
+    private NamedRelatedResourceRep resource;
+    private String status;
 
     private RelatedResourceRep tenant;
 
@@ -42,5 +45,23 @@ public class EventRestRep extends DataObjectRestRep {
 
     public void setMessage(String message) {
         this.message = message;
+    }
+
+    @XmlElement(name = "resource")
+    public NamedRelatedResourceRep getResource() {
+        return resource;
+    }
+
+    public void setResource(NamedRelatedResourceRep resource) {
+        this.resource = resource;
+    }
+
+    @XmlElement(name = "status")
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
     }
 }

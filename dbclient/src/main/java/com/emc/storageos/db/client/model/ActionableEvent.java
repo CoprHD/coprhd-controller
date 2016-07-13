@@ -49,8 +49,14 @@ public class ActionableEvent extends DataObject implements TenantResource {
 
     private String _message;
     private String _controllerClass;
+    private NamedURI resource;
+    private String status;
     private URI _tenant;
     private byte[] _method;
+
+    public enum Status {
+        pending, approved, declined
+    }
 
     @Name("message")
     public String getMessage() {
@@ -60,16 +66,6 @@ public class ActionableEvent extends DataObject implements TenantResource {
     public void setMessage(String message) {
         this._message = message;
         setChanged("message");
-    }
-
-    @Name("controllerClass")
-    public String getControllerClass() {
-        return _controllerClass;
-    }
-
-    public void setControllerClass(String controllerClass) {
-        this._controllerClass = controllerClass;
-        setChanged("controllerClass");
     }
 
     @Name("method")
@@ -123,6 +119,26 @@ public class ActionableEvent extends DataObject implements TenantResource {
     @Override
     public DataObject findDataObject() {
         return this;
+    }
+
+    @Name("resource")
+    public NamedURI getResource() {
+        return resource;
+    }
+
+    public void setResource(NamedURI resource) {
+        this.resource = resource;
+        setChanged("resource");
+    }
+
+    @Name("status")
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+        setChanged("status");
     }
 
 }

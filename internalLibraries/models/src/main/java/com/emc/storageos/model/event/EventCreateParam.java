@@ -10,6 +10,8 @@ import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
+import com.emc.storageos.model.NamedRelatedResourceRep;
+
 /**
  * Request POST parameter for event creation.
  */
@@ -20,6 +22,7 @@ public class EventCreateParam {
     private String orchestrationMethod;
     private URI tenant;
     private List<Object> parameters;
+    private NamedRelatedResourceRep resource;
 
     public EventCreateParam() {
     }
@@ -62,5 +65,14 @@ public class EventCreateParam {
 
     public void setParameters(List<Object> parameters) {
         this.parameters = parameters;
+    }
+
+    @XmlElement(required = false)
+    public NamedRelatedResourceRep getResource() {
+        return resource;
+    }
+
+    public void setResource(NamedRelatedResourceRep resource) {
+        this.resource = resource;
     }
 }

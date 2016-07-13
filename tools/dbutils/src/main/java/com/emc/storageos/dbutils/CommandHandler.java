@@ -13,6 +13,7 @@ import java.util.Map;
 import java.text.SimpleDateFormat;
 
 import com.emc.storageos.coordinator.client.model.Constants;
+import com.emc.storageos.db.client.impl.ColumnFamilyDefinition;
 import com.emc.storageos.db.client.impl.DbCheckerFileWriter;
 import com.emc.storageos.management.jmx.recovery.DbManagerOps;
 
@@ -429,7 +430,7 @@ public abstract class CommandHandler {
         long _timeout = 0;
 
         Keyspace _keyspace = null;                   // geo keyspace
-        ColumnFamily<String, String> _cf = null;     // global lock CF
+        ColumnFamilyDefinition _cf = null;     // global lock CF
 
         public GlobalLockHandler(String[] args) {
             if (args.length < 2) {

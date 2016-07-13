@@ -7,12 +7,6 @@ package com.emc.storageos.db.client.impl;
 
 import com.emc.storageos.db.client.TimeSeriesMetadata;
 import com.emc.storageos.db.client.model.*;
-import com.netflix.astyanax.model.ByteBufferRange;
-import com.netflix.astyanax.model.ColumnFamily;
-import com.netflix.astyanax.serializers.StringSerializer;
-import com.netflix.astyanax.serializers.TimeUUIDSerializer;
-import com.netflix.astyanax.util.RangeBuilder;
-import com.netflix.astyanax.util.TimeUUIDUtils;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.joda.time.format.DateTimeFormat;
@@ -36,7 +30,7 @@ public class TimeSeriesType<T extends TimeSeriesSerializer.DataPoint> implements
     private String _cfName;
     private DateTimeFormatter _prefixFormatter;
     private TimeBucket _bucketGranularity;
-    private ColumnFamily<String, UUID> _cf;
+    private ColumnFamilyDefinition _cf;
     private Integer _ttl;
     private AtomicLong _bucketIndex = new AtomicLong();
     private TimeSeries<T> _timeSeries;
@@ -212,7 +206,7 @@ public class TimeSeriesType<T extends TimeSeriesSerializer.DataPoint> implements
      * 
      * @return
      */
-    public ColumnFamily<String, UUID> getCf() {
+    public ColumnFamilyDefinition getCf() {
         return _cf;
     }
 
@@ -268,9 +262,7 @@ public class TimeSeriesType<T extends TimeSeriesSerializer.DataPoint> implements
                 throw new IllegalArgumentException("Unexpected annotation");
             }
         }
-        _cf = new ColumnFamily<String, UUID>(_cfName,
-                StringSerializer.get(),
-                TimeUUIDSerializer.get());
+        _cf = new ColumnFamilyDefinition(_cfName, ColumnFamilyDefinition.ComparatorType.TimeUUIDType);
         try {
             _timeSeries = _type.newInstance();
         } catch (Exception e) {

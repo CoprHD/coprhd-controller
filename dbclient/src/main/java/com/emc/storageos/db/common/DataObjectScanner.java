@@ -15,6 +15,7 @@ import java.util.Properties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.db.client.impl.ColumnFamilyDefinition;
 import com.emc.storageos.db.client.impl.ColumnField;
 import com.emc.storageos.db.client.impl.DataObjectType;
 import com.emc.storageos.db.client.impl.GlobalLockType;
@@ -30,7 +31,6 @@ import com.emc.storageos.db.client.model.GlobalLock;
 import com.emc.storageos.db.client.model.SchemaRecord;
 import com.emc.storageos.db.client.model.TimeSeries;
 import com.emc.storageos.db.client.util.KeyspaceUtil;
-import com.netflix.astyanax.model.ColumnFamily;
 
 /**
  * Scanner for sweeping all DataObject types defined and creates:
@@ -39,8 +39,8 @@ import com.netflix.astyanax.model.ColumnFamily;
  */
 public class DataObjectScanner extends PackageScanner {
     private static final Logger _log = LoggerFactory.getLogger(DataObjectScanner.class);
-    private Map<String, ColumnFamily> _cfMap;
-    private Map<String, ColumnFamily> _geocfMap;
+    private Map<String, ColumnFamilyDefinition> _cfMap;
+    private Map<String, ColumnFamilyDefinition> _geocfMap;
     private DependencyTracker _dependencyTracker;
     private boolean _dualDbSvcMode;
     private Properties _dbCommonInfo;
@@ -60,7 +60,7 @@ public class DataObjectScanner extends PackageScanner {
      * 
      * @return
      */
-    public Map<String, ColumnFamily> getCfMap() {
+    public Map<String, ColumnFamilyDefinition> getCfMap() {
         return _cfMap;
     }
 
@@ -69,7 +69,7 @@ public class DataObjectScanner extends PackageScanner {
      * 
      * @return
      */
-    public Map<String, ColumnFamily> getGeoCfMap() {
+    public Map<String, ColumnFamilyDefinition> getGeoCfMap() {
         return _geocfMap;
     }
 
@@ -84,8 +84,8 @@ public class DataObjectScanner extends PackageScanner {
     @SuppressWarnings("unchecked")
     public void init() {
         _dependencyTracker = new DependencyTracker();
-        _cfMap = new HashMap<String, ColumnFamily>();
-        _geocfMap = new HashMap<String, ColumnFamily>();
+        _cfMap = new HashMap<String, ColumnFamilyDefinition>();
+        _geocfMap = new HashMap<String, ColumnFamilyDefinition>();
 
         this.modelClasses = getModelClasses(Cf.class);
         scan(Cf.class);
@@ -116,7 +116,7 @@ public class DataObjectScanner extends PackageScanner {
             }
         } else if (TimeSeries.class.isAssignableFrom(clazz)) {
             TimeSeriesType tsType = TypeMap.getTimeSeriesType(clazz);
-            ColumnFamily cf = tsType.getCf();
+            ColumnFamilyDefinition cf = tsType.getCf();
             _cfMap.put(cf.getName(), cf);
             if (tsType.getCompactOptimized() &&
                     _dbCommonInfo != null &&
@@ -132,11 +132,11 @@ public class DataObjectScanner extends PackageScanner {
             }
         } else if (SchemaRecord.class.isAssignableFrom(clazz)) {
             SchemaRecordType srType = TypeMap.getSchemaRecordType();
-            ColumnFamily cf = srType.getCf();
+            ColumnFamilyDefinition cf = srType.getCf();
             _cfMap.put(cf.getName(), cf);
         } else if (GlobalLock.class.isAssignableFrom(clazz)) {
             GlobalLockType glType = TypeMap.getGlobalLockType();
-            ColumnFamily cf = glType.getCf();
+            ColumnFamilyDefinition cf = glType.getCf();
             _geocfMap.put(cf.getName(), cf);
         } else {
             throw new IllegalStateException("Failed to process Class " + clazz.getName());
@@ -167,7 +167,7 @@ public class DataObjectScanner extends PackageScanner {
         return true;
     }
 
-    private void addToTypeMap(Class clazz, Map<String, ColumnFamily> useCfMap) {
+    private void addToTypeMap(Class clazz, Map<String, ColumnFamilyDefinition> useCfMap) {
     	DependencyInterceptor dependencyInterceptor = new DependencyInterceptor(this.modelClasses);
     	
         Map<String, List<String>> indexCfTypeMap = new HashMap<String, List<String>>();

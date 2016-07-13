@@ -10,16 +10,12 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.netflix.astyanax.ColumnListMutation;
-import com.netflix.astyanax.model.ColumnFamily;
-import com.netflix.astyanax.model.Column;
-
 import com.emc.storageos.db.client.model.*;
 
 public class AltIdDbIndex extends DbIndex {
     private static final Logger _log = LoggerFactory.getLogger(AltIdDbIndex.class);
 
-    AltIdDbIndex(ColumnFamily<String, IndexColumnName> indexCF) {
+    AltIdDbIndex(ColumnFamilyDefinition indexCF) {
         super(indexCF);
     }
 

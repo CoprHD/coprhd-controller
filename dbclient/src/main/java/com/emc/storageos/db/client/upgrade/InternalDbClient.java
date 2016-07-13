@@ -301,7 +301,6 @@ public class InternalDbClient extends DbClientImpl {
             throw new IllegalArgumentException();
         }
         try {
-            Keyspace ks = getKeyspace(clazz);
             DbClientContext context = getDbClientContext(clazz);
             OperationResult<Rows<String, CompositeColumnName>> result =
                     ks.prepareQuery(doType.getCF()).getAllRows().setRowLimit(DEFAULT_PAGE_SIZE).execute();

@@ -53,7 +53,6 @@ import com.emc.storageos.db.exceptions.DatabaseException;
 import com.netflix.astyanax.ColumnListMutation;
 import com.netflix.astyanax.model.ByteBufferRange;
 import com.netflix.astyanax.model.Column;
-import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.serializers.StringSerializer;
 
 /**
@@ -174,7 +173,7 @@ public class ColumnField {
      * 
      * @return
      */
-    public ColumnFamily<String, IndexColumnName> getIndexCF() {
+    public ColumnFamilyDefinition getIndexCF() {
         return _index.getIndexCF();
     }
 
@@ -710,7 +709,7 @@ public class ColumnField {
 
         Annotation[] annotations = readMethod.getAnnotations();
 
-        ColumnFamily<String, IndexColumnName> indexCF = null;
+        ColumnFamilyDefinition indexCF = null;
         int minPrefixChars;
 
         boolean isLazyLoadable = false;
@@ -757,35 +756,35 @@ public class ColumnField {
             } else if (a instanceof Ttl) {
                 _ttl = ((Ttl) a).value();
             } else if (a instanceof RelationIndex) {
-                indexCF = new ColumnFamily<String, IndexColumnName>(
-                        ((RelationIndex) a).cf(), StringSerializer.get(), IndexColumnNameSerializer.get());
+                indexCF = new ColumnFamilyDefinition(
+                        ((RelationIndex) a).cf(), ColumnFamilyDefinition.ComparatorType.CompositeType, ColumnFamilyDefinition.INDEX_CF_COMPARATOR_NAME);
                 _indexRefType = ((RelationIndex) a).type();
                 deactivateIfEmpty = ((RelationIndex) a).deactivateIfEmpty();
                 _index = new RelationDbIndex(indexCF);
             } else if (a instanceof AlternateId) {
-                indexCF = new ColumnFamily<String, IndexColumnName>(((AlternateId) a).value(), StringSerializer.get(),
-                        IndexColumnNameSerializer.get());
+                indexCF = new ColumnFamilyDefinition(((AlternateId) a).value(), ColumnFamilyDefinition.ComparatorType.CompositeType,
+                        ColumnFamilyDefinition.INDEX_CF_COMPARATOR_NAME);
                 _index = new AltIdDbIndex(indexCF);
             } else if (a instanceof NamedRelationIndex) {
-                indexCF = new ColumnFamily<String, IndexColumnName>(((NamedRelationIndex) a).cf(), StringSerializer.get(),
-                        IndexColumnNameSerializer.get());
+                indexCF = new ColumnFamilyDefinition(((NamedRelationIndex) a).cf(), ColumnFamilyDefinition.ComparatorType.CompositeType,
+                        ColumnFamilyDefinition.INDEX_CF_COMPARATOR_NAME);
                 _indexRefType = ((NamedRelationIndex) a).type();
                 _index = new NamedRelationDbIndex(indexCF);
             } else if (a instanceof PrefixIndex) {
-                indexCF = new ColumnFamily<String, IndexColumnName>(((PrefixIndex) a).cf(), StringSerializer.get(),
-                        IndexColumnNameSerializer.get());
+                indexCF = new ColumnFamilyDefinition(((PrefixIndex) a).cf(), ColumnFamilyDefinition.ComparatorType.CompositeType,
+                        ColumnFamilyDefinition.INDEX_CF_COMPARATOR_NAME);
                 minPrefixChars = ((PrefixIndex) a).minChars();
                 _index = new PrefixDbIndex(indexCF, minPrefixChars);
             } else if (a instanceof PermissionsIndex && AbstractChangeTrackingSetMap.class.isAssignableFrom(_valueType)) {
-                indexCF = new ColumnFamily<String, IndexColumnName>(((PermissionsIndex) a).value(), StringSerializer.get(),
-                        IndexColumnNameSerializer.get());
+                indexCF = new ColumnFamilyDefinition(((PermissionsIndex) a).value(), ColumnFamilyDefinition.ComparatorType.CompositeType,
+                        ColumnFamilyDefinition.INDEX_CF_COMPARATOR_NAME);
                 _index = new PermissionsDbIndex(indexCF);
             } else if (a instanceof Encrypt && _valueType == String.class) {
                 _encrypt = true;
             } else if (a instanceof ScopedLabelIndex) {
                 ScopedLabelIndex scopeLabelIndex = (ScopedLabelIndex) a;
-                indexCF = new ColumnFamily<String, IndexColumnName>(scopeLabelIndex.cf(),
-                        StringSerializer.get(), IndexColumnNameSerializer.get());
+                indexCF = new ColumnFamilyDefinition(scopeLabelIndex.cf(), ColumnFamilyDefinition.ComparatorType.CompositeType,
+                        ColumnFamilyDefinition.INDEX_CF_COMPARATOR_NAME);
                 minPrefixChars = scopeLabelIndex.minChars();
                 _index = new ScopedLabelDbIndex(indexCF, minPrefixChars);
             } else if (a instanceof ClockIndependent) {
@@ -793,8 +792,8 @@ public class ColumnField {
             } else if (a instanceof DecommissionedIndex && Boolean.class.isAssignableFrom(_valueType)) {
                 if (!_property.getName().equals(DataObject.INACTIVE_FIELD_NAME)
                         || _parentType.getDataObjectClass().getAnnotation(NoInactiveIndex.class) == null) {
-                    indexCF = new ColumnFamily<String, IndexColumnName>(((DecommissionedIndex) a).value(), StringSerializer.get(),
-                            IndexColumnNameSerializer.get());
+                    indexCF = new ColumnFamilyDefinition(((DecommissionedIndex) a).value(), ColumnFamilyDefinition.ComparatorType.CompositeType,
+                            ColumnFamilyDefinition.INDEX_CF_COMPARATOR_NAME);
                     _index = new DecommissionedDbIndex(indexCF);
                 }
             } else if (a instanceof IndexByKey &&
@@ -810,8 +809,8 @@ public class ColumnField {
                 }
                 _mappedByField = ((Relation) a).mappedBy();
             } else if (a instanceof AggregatedIndex) {
-                indexCF = new ColumnFamily<String, IndexColumnName>(
-                        ((AggregatedIndex) a).cf(), StringSerializer.get(), IndexColumnNameSerializer.get());
+                indexCF = new ColumnFamilyDefinition(((AggregatedIndex) a).cf(), ColumnFamilyDefinition.ComparatorType.CompositeType, 
+                        ColumnFamilyDefinition.INDEX_CF_COMPARATOR_NAME);
                 String groupBy = ((AggregatedIndex) a).groupBy();
                 boolean global = ((AggregatedIndex) a).classGlobal();
                 _index = new AggregateDbIndex(indexCF, groupBy, global);

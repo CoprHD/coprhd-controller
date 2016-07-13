@@ -47,10 +47,9 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.impl.CompositeColumnNameSerializer;
+import com.emc.storageos.db.client.impl.ColumnFamilyDefinition;
 import com.emc.storageos.db.client.impl.DbClientContext;
 import com.emc.storageos.db.client.impl.DbClientImpl;
-import com.emc.storageos.db.client.impl.IndexColumnNameSerializer;
 import com.emc.storageos.db.client.impl.TimeSeriesType;
 import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.model.LongMap;
@@ -67,7 +66,6 @@ import com.emc.storageos.db.common.DbServiceStatusChecker;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.security.password.PasswordUtils;
-import com.netflix.astyanax.model.ColumnFamily;
 
 /**
  * Utility class for initializing DB schema from model classes
@@ -231,7 +229,7 @@ public class SchemaUtil {
         return _vdcList;
     }
 
-    public Map<String, ColumnFamily> getCfMap() {
+    public Map<String, ColumnFamilyDefinition> getCfMap() {
         return isGeoDbsvc() ? _doScanner.getGeoCfMap() : _doScanner.getCfMap();
     }
 
@@ -564,17 +562,15 @@ public class SchemaUtil {
         KeyspaceMetadata keyspaceMetaData = clientContext.getKeyspaceMetaData();
 
         boolean waitForSchema = false;
-        for (ColumnFamily cf : getCfMap().values()) {
-            String comparator = cf.getColumnSerializer().getComparatorType().getTypeName();
+        for (ColumnFamilyDefinition cf : getCfMap().values()) {
+            ColumnFamilyDefinition.ComparatorType comparatorType = cf.getComparatorType();
             String schema="key text,column1 text,value blob";
             String primaryKey="key, column1";
-            if (comparator.equals("CompositeType")) {
-                if (cf.getColumnSerializer() instanceof CompositeColumnNameSerializer) {
-                    comparator = CompositeColumnNameSerializer.getComparatorName();
+            if (comparatorType == ColumnFamilyDefinition.ComparatorType.CompositeType) {
+                if (ColumnFamilyDefinition.DATA_CF_COMPARATOR_NAME.equals(cf.getComparator())) {
                     schema="key text,column1 text,column2 text,column3 text,column4 timeuuid,value blob";
                     primaryKey="key, column1 ,column2 ,column3 ,column4";
-                } else if (cf.getColumnSerializer() instanceof IndexColumnNameSerializer) {
-                    comparator = IndexColumnNameSerializer.getComparatorName();
+                } else if (ColumnFamilyDefinition.INDEX_CF_COMPARATOR_NAME.equals(cf.getComparator())) {
                     schema="key text,column1 text,column2 text,column3 text,column4 text,column5 timeuuid,value blob";
                     primaryKey="key, column1 ,column2 ,column3 ,column4, column5";
                 } else {
@@ -582,16 +578,16 @@ public class SchemaUtil {
                 }
             }
 
-            if (comparator.equals("TimeUUIDType")) {
+            if (comparatorType == ColumnFamilyDefinition.ComparatorType.TimeUUIDType) {
                 schema="key text,column1 timeuuid,value blob";
                 primaryKey="key, column1";
             }
 
             TableMetadata cfd =  keyspaceMetaData.getTable("\"" + cf.getName() + "\"");
-            _log.info("cfd={} comparator={}", cfd, comparator);
+            _log.info("cfd={}", cfd);
 
             // The CF's gc_grace_period will be set if it's an index CF
-            Integer cfGcGrace = cf.getColumnSerializer() instanceof IndexColumnNameSerializer ? indexGcGrace : null;
+            Integer cfGcGrace = ColumnFamilyDefinition.INDEX_CF_COMPARATOR_NAME.equals(cf.getComparator()) ? indexGcGrace : null;
             // If there's specific configuration particular for this CF, take it.
             cfGcGrace = getIntProperty(DbClientImpl.DB_CASSANDRA_GC_GRACE_PERIOD_PREFIX + cf.getName(), cfGcGrace);
             String compactionStrategy = "SizeTieredCompactionStrategy";

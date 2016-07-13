@@ -10,9 +10,6 @@ import com.emc.storageos.db.client.impl.*;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.common.DataObjectScanner;
 import com.emc.storageos.db.server.DbsvcTestBase;
-import com.emc.storageos.db.server.impl.MigrationHandlerImpl;
-import com.netflix.astyanax.model.ColumnFamily;
-import com.netflix.astyanax.serializers.StringSerializer;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -113,9 +110,9 @@ public abstract class DbSimpleMigrationTestBase extends DbsvcTestBase {
         protected abstract void process();
 
         protected void replaceIndexCf(Class<? extends DataObject> clazz, String fieldName, String oldIndexCf) {
-            ColumnFamily<String, IndexColumnName> oldIndexCF = new ColumnFamily<String, IndexColumnName>(oldIndexCf,
-                    StringSerializer.get(),
-                    IndexColumnNameSerializer.get());
+            ColumnFamilyDefinition oldIndexCF = new ColumnFamilyDefinition(oldIndexCf,
+                    ColumnFamilyDefinition.ComparatorType.CompositeType,
+                    ColumnFamilyDefinition.INDEX_CF_COMPARATOR_NAME);
             DataObjectType doType = TypeMap.getDoType(clazz);
             if (doType != null) {
                 ColumnField field = doType.getColumnField(fieldName);

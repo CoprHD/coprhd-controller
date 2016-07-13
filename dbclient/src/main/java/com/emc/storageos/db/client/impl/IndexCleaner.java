@@ -18,9 +18,6 @@ import java.util.concurrent.Executors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.netflix.astyanax.model.ColumnFamily;
-import com.netflix.astyanax.serializers.StringSerializer;
-
 /**
  * Utility class for cleaning out old index entries
  */
@@ -147,9 +144,9 @@ public class IndexCleaner {
             Map<String, List<CompositeColumnName>> fieldColumnMap = buildFieldMapFromColumnList(cols);
             for (CompositeColumnName column : cols) {
                 ColumnField field = doType.getColumnField(column.getOne());
-                ColumnFamily<String, IndexColumnName> currentIndexCF = field.getIndex().getIndexCF();
-                ColumnFamily<String, IndexColumnName> oldIndexCF = new ColumnFamily<String, IndexColumnName>(
-                        oldIndexCf, StringSerializer.get(), IndexColumnNameSerializer.get());
+                ColumnFamilyDefinition currentIndexCF = field.getIndex().getIndexCF();
+                ColumnFamilyDefinition oldIndexCF = new ColumnFamilyDefinition(
+                        oldIndexCf, ColumnFamilyDefinition.ComparatorType.CompositeType, ColumnFamilyDefinition.INDEX_CF_COMPARATOR_NAME);
                 field.getIndex().setIndexCF(oldIndexCF);
                 field.removeIndex(rowKey, column, mutator, fieldColumnMap);
                 field.getIndex().setIndexCF(currentIndexCF);

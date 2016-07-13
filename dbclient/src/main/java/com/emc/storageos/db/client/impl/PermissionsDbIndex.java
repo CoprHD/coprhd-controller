@@ -10,14 +10,12 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.netflix.astyanax.model.ColumnFamily;
-
 import com.emc.storageos.db.client.model.*;
 
 public class PermissionsDbIndex extends DbIndex {
     private static final Logger _log = LoggerFactory.getLogger(PermissionsDbIndex.class);
 
-    PermissionsDbIndex(ColumnFamily<String, IndexColumnName> indexCF) {
+    PermissionsDbIndex(ColumnFamilyDefinition indexCF) {
         super(indexCF);
     }
 

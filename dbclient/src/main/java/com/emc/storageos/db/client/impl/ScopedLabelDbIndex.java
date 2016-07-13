@@ -11,8 +11,6 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.netflix.astyanax.model.ColumnFamily;
-
 import com.emc.storageos.db.client.model.*;
 
 public class ScopedLabelDbIndex extends DbIndex {
@@ -21,7 +19,7 @@ public class ScopedLabelDbIndex extends DbIndex {
     // minimum number of characters required for prefix indexing
     private int minPrefixChars;
 
-    ScopedLabelDbIndex(ColumnFamily<String, IndexColumnName> indexCF, int minChars) {
+    ScopedLabelDbIndex(ColumnFamilyDefinition indexCF, int minChars) {
         super(indexCF);
         minPrefixChars = minChars;
     }

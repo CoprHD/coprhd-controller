@@ -4033,14 +4033,14 @@ def volume_list_tasks(args):
                 else:
                     from common import TableGenerator
                     TableGenerator(
-                        res, ["module/id", "module/name", "resource/name", "state"]).printTable()
+                        res, ["module/id", "module/name", "resource/name", "state", "message"]).printTable()
         else:
             res = obj.list_tasks(args.tenant + "/" + args.project)
             if(res and len(res) > 0):
                 if(not args.verbose):
                     from common import TableGenerator
                     TableGenerator(
-                        res, ["module/id", "name", "state"]).printTable()
+                        res, ["module/id", "name", "state", "message"]).printTable()
                 else:
                     return common.format_json_object(res)
 

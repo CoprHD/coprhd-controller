@@ -8,13 +8,10 @@ import java.util.Map;
 import java.util.List;
 import java.util.UUID;
 
-import org.apache.cassandra.serializers.BooleanSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.netflix.astyanax.ColumnListMutation;
 import com.netflix.astyanax.model.ColumnFamily;
-import com.netflix.astyanax.model.Column;
 
 import com.emc.storageos.db.client.model.*;
 
@@ -41,7 +38,7 @@ public class DecommissionedDbIndex extends DbIndex {
                          RowMutatorDS mutator, Map<String, List<CompositeColumnName>> fieldColumnMap) {
         String rowKey = className;
         UUID uuid = column.getTimeUUID();
-        Boolean val = BooleanSerializer.instance.deserialize(column.getValue());
+        Boolean val = column.getBooleanValue();
 
         mutator.deleteIndexColumn(indexCF.getName(), rowKey, new IndexColumnName(val.toString(), recordKey, uuid));
         return true;

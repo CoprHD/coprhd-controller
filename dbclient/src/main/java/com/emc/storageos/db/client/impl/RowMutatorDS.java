@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2016 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.db.client.impl;
 
 import com.datastax.driver.core.BatchStatement;
@@ -128,9 +132,8 @@ public class RowMutatorDS {
         Class valClass = val.getClass();
         if (valClass == byte[].class) {
             blobVal = ByteBuffer.wrap((byte[]) val);
-        } else if (valClass == String.class) {
-            blobVal = UTF8Serializer.instance.serialize((String) val);
-        } else if (valClass == URI.class ||
+        } else if (valClass == String.class ||
+                valClass == URI.class ||
                 valClass == NamedURI.class ||
                 valClass == ScopedLabel.class) {
             blobVal = UTF8Serializer.instance.serialize(val.toString());

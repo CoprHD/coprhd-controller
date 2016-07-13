@@ -63,8 +63,7 @@ public class IndexCleaner {
 
             String rowKey = entry.getKey();
             List<CompositeColumnName> cols = entry.getValue();
-            for (int i = 0; i < cols.size(); i++) {
-                CompositeColumnName column = cols.get(i);
+            for (CompositeColumnName column : cols) {
                 ColumnField field = doType.getColumnField(column.getOne());
                 field.removeColumn(rowKey, column, mutator, listToClean.getAllColumns(rowKey));
                 for (ColumnField depField : field.getDependentFields()) {
@@ -84,16 +83,11 @@ public class IndexCleaner {
     }
 
     public void removeColumnAndIndex(RowMutatorDS mutator, DataObjectType doType, RemovedColumnsList listToClean) {
-
         Map<String, List<CompositeColumnName>> cleanList = listToClean.getColumnsToClean();
-        Iterator<Map.Entry<String, List<CompositeColumnName>>> entryIt = cleanList.entrySet().iterator();
-        while (entryIt.hasNext()) {
-            Map.Entry<String, List<CompositeColumnName>> entry = entryIt.next();
-
+        for (Map.Entry<String, List<CompositeColumnName>> entry : cleanList.entrySet()) {
             String rowKey = entry.getKey();
             List<CompositeColumnName> cols = entry.getValue();
-            for (int i = 0; i < cols.size(); i++) {
-                CompositeColumnName column = cols.get(i);
+            for (CompositeColumnName column : cols) {
                 ColumnField field = doType.getColumnField(column.getOne());
                 field.removeColumn(rowKey, column, mutator, listToClean.getAllColumns(rowKey));
             }

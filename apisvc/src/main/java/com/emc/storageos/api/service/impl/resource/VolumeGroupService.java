@@ -69,6 +69,7 @@ import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VolumeGroup;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.VolumeGroup.VolumeGroupRole;
 import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
@@ -114,6 +115,7 @@ import com.emc.storageos.model.block.SnapshotSessionUnlinkTargetsParam;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.model.host.HostList;
 import com.emc.storageos.model.host.cluster.ClusterList;
+import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.ACL;
@@ -2919,7 +2921,7 @@ public class VolumeGroupService extends TaskResourceService {
          * @param volumeGroup being update
          * @param volumes being added or removed
          */
-        protected void validateSameCG(DbClient dbClient, VolumeGroup volumeGroup, List<Volume> volumes) {
+        protected void validateSameCG(DbClient dbClient, VolumeGroup volumeGroup, List<Volume> volumes) {            
             Set<URI> consistencyGroups = Sets.newHashSet();
             List<URI> volumeIds = new ArrayList<URI>();
             // Get list of all consistency groups for these volumes
@@ -2936,7 +2938,12 @@ public class VolumeGroupService extends TaskResourceService {
 
                 for (URI consistencyGroupId : consistencyGroups) {
                     BlockConsistencyGroup consistencyGroup = dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroupId);
-                    List<Volume> cgVolumes = blockService.getActiveCGVolumes(consistencyGroup);
+                    List<Volume> cgVolumes = null;
+                    if (consistencyGroup.getRequestedTypes().contains(Types.RP.toString())) {
+                        cgVolumes = RPHelper.getCgSourceVolumes(consistencyGroup.getId(), dbClient);
+                    } else {
+                        cgVolumes = blockService.getActiveCGVolumes(consistencyGroup);
+                    }
 
                     // make sure all volumes in 'cgVolumes' are also in 'volumes'
                     for (Volume cgVolume : cgVolumes) {

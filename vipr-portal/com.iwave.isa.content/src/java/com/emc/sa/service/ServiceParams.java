@@ -81,6 +81,7 @@ public interface ServiceParams {
     public String COPY = "copy";
     public String INGESTION_METHOD = "ingestionMethod";
     public String READ_ONLY = "readOnly";
+    public String DISPLAY_JOURNALS = "displayJournals";
 
     public String MOBILITY_GROUP_METHOD = "mobilityGroupMethod";
 

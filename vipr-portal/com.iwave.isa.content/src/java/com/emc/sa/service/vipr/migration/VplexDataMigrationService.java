@@ -26,6 +26,9 @@ public class VplexDataMigrationService extends ViPRService {
     @Param(value=ServiceParams.CONSISTENCY_GROUP, required=false)
     private URI consistencyGroup;
 
+    @Param(value = ServiceParams.DISPLAY_JOURNALS, required = false)
+    protected String displayJournals;
+
     @Override
     public void execute() throws Exception {
         Tasks<VolumeRestRep> tasks = execute(new ChangeBlockVolumeVirtualPool(uris(volumeIds), targetVirtualPool, consistencyGroup));

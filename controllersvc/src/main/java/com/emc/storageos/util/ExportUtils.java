@@ -52,6 +52,8 @@ import com.emc.storageos.db.client.util.DataObjectUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.StringMapUtil;
 import com.emc.storageos.db.client.util.StringSetUtil;
+import com.emc.storageos.exceptions.DeviceControllerException;
+import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
@@ -646,6 +648,50 @@ public class ExportUtils {
             }
         }
         return map;
+    }
+
+    /**
+     * Validate that an ExportGroup's mapping of Volume URIs to LUNs contains only one
+     * entry for each LUN. Otherwise, throw an Exception containing detailed information.
+     * 
+     * @param exportGroupName the name of the ExportGroup containing this volume to URI mapping
+     * @param volumeMap a Map of Volume URI to LUN Integer for an ExportGroup
+     * @throws ControllerException if there are LUN inconsistencies
+     */
+    static public void validateExportGroupVolumeMap(String exportGroupName, Map<URI, Integer> volumeMap) throws ControllerException {
+
+        // reverse the volume map to consist of LUN Integers to Volume URIs
+        Map<Integer, List<URI>> reversedVolumeMap = new HashMap<Integer, List<URI>>();
+        for (Entry<URI, Integer> entry : volumeMap.entrySet()) {
+            List<URI> uriList = reversedVolumeMap.get(entry.getValue());
+            if (null == uriList) {
+                uriList = new ArrayList<URI>();
+                reversedVolumeMap.put(entry.getValue(), uriList);
+            }
+            uriList.add(entry.getKey());
+        }
+
+        // filter out any LUN keys with just one entry (which are valid entries)
+        // also, -1 (LUN_UNASSIGNED) can be valid for more than one Volume, so skip that, too
+        List<String> validationErrors = new ArrayList<String>();
+        reversedVolumeMap.remove(ExportGroup.LUN_UNASSIGNED);
+        for (Entry<Integer, List<URI>> entry : reversedVolumeMap.entrySet()) {
+            // if there is more than one entry for the LUN, we have a problem
+            if (entry.getValue().size() > 1) {
+                String vols = Joiner.on(", ").join(entry.getValue());
+                String error = "LUN " + entry.getKey() + " is mapped to more than one volume (" + vols + ")";
+                _log.error("ExportGroup {} has LUN inconsistency: {}", exportGroupName, error);
+                validationErrors.add(error);
+            }
+        }
+
+        // throw an Exception if we encountered any LUN inconsistencies
+        if (!validationErrors.isEmpty()) {
+            String details = Joiner.on(". ").join(validationErrors);
+            throw DeviceControllerException.exceptions.exportGroupInconsistentLunViolation(exportGroupName, details);
+        }
+
+        _log.info("volume map for Export Group {} has valid LUN information: {}", exportGroupName, volumeMap);
     }
 
     /**
@@ -1527,5 +1573,46 @@ public class ExportUtils {
             }
         }
         return result;
+    }
+
+    /**
+     * Selects and returns the list targets (storage ports) that need to be removed from
+     * an export mask when the initiators are removed from the storage group. If checks if
+     * the targets are used by other initiators before they can be removed. It returns
+     * an empty list if there are not any targets to remove.
+     *
+     * @param mask the export mask from which the initiator will be removed
+     * @param initiators the initiators being removed
+     * @return a list of targets that are no longer needed by an initiators.
+     */
+    public static List<URI> getRemoveInitiatorStoragePorts(
+            ExportMask mask, List<Initiator> initiators, DbClient dbClient) {
+        // uris of ports candidates for removal
+        Set<URI> portUris = new HashSet<URI>();
+        List<URI> remainingInitiators = ExportUtils.getExportMaskAllInitiators(mask, dbClient); // ask Ameer - do i need this function
+        for (Initiator initiator : initiators) {
+            portUris.addAll(ExportUtils.getInitiatorPortsInMask(mask, initiator, dbClient));
+            remainingInitiators.remove(initiator.getId());
+        }
+
+        // for the remaining initiators, get the networks and check if the ports are in use
+        if (!remainingInitiators.isEmpty()) {
+            Iterator<Initiator> remInitiators = dbClient.queryIterativeObjects(Initiator.class,
+                    remainingInitiators);
+            List<URI> initiatorPortUris = null;
+            while (remInitiators.hasNext()) {
+                Initiator initiator = remInitiators.next();
+                // stop looping if all the the ports are found to be in use
+                if (portUris.isEmpty()) {
+                    break;
+                }
+                initiatorPortUris = ExportUtils.getInitiatorPortsInMask(mask, initiator, dbClient);
+                _log.info("Ports {} are in use in by initiator {} ",
+                        initiatorPortUris, initiator.getInitiatorPort());
+                portUris.removeAll(initiatorPortUris);
+            }
+        }
+        _log.info("Ports {} are going to be removed", portUris);
+        return new ArrayList<URI>(portUris);
     }
 }

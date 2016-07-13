@@ -150,6 +150,22 @@ public class HostStorageAPI {
     }
 
     /**
+     * Attaches the lun.
+     */
+    public void attachScsiLun(HostScsiDisk disk) {
+        try {
+            HostStorageSystem storageSystem = getStorageSystem();
+            storageSystem.attachScsiLun(disk.getUuid());
+        } catch (HostConfigFault e) {
+            throw new VMWareException(e);
+        } catch (RuntimeFault e) {
+            throw new VMWareException(e);
+        } catch (RemoteException e) {
+            throw new VMWareException(e);
+        }
+    }
+
+    /**
      * Rescans the HBAs on the host.
      */
     public void rescanHBAs() {

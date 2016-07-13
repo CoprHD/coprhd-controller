@@ -413,8 +413,11 @@ public class NetworkDeviceController implements NetworkController {
                                 _dbClient.markForDeletion(ref);
                                 _log.info(String.format("Remove FCZoneReference key: %s volume %s id %s",
                                         ref.getPwwnKey(), ref.getVolumeUri(), ref.getId().toString()));
-                                recordZoneEvent(ref, OperationTypeEnum.REMOVE_SAN_ZONE.name(),
-                                        OperationTypeEnum.REMOVE_SAN_ZONE.getDescription());
+                                if(!zones.isEmpty()){
+                                	recordZoneEvent(ref, OperationTypeEnum.REMOVE_SAN_ZONE.name(),
+                                            OperationTypeEnum.REMOVE_SAN_ZONE.getDescription());
+                                }
+                                
                             }
                         }
                     } catch (DatabaseException ex) {
@@ -434,8 +437,11 @@ public class NetworkDeviceController implements NetworkController {
                             _log.info(String.format(
                                     "%s FCZoneReference key: %s volume %s group %s",
                                     newOrExisting[0], ref.getPwwnKey(), ref.getVolumeUri(), exportGroupUri));
-                            recordZoneEvent(ref, OperationTypeEnum.ADD_SAN_ZONE.name(),
-                                    OperationTypeEnum.ADD_SAN_ZONE.getDescription());
+                            if(!zones.isEmpty()){
+                            	recordZoneEvent(ref, OperationTypeEnum.ADD_SAN_ZONE.name(),
+                                        OperationTypeEnum.ADD_SAN_ZONE.getDescription());
+                            }
+                            
                         }
                     } catch (DatabaseException ex) {
                         _log.error("Could not persist FCZoneReference: " + refKey);

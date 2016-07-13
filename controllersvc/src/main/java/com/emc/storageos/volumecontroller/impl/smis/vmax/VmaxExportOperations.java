@@ -28,9 +28,7 @@ import javax.wbem.CloseableIterator;
 import javax.wbem.WBEMException;
 import javax.wbem.client.WBEMClient;
 
-import com.emc.storageos.volumecontroller.impl.validators.StorageSystemValidatorFactory;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorFactory;
-import com.emc.storageos.volumecontroller.impl.validators.Validator;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -1112,11 +1110,6 @@ public class VmaxExportOperations implements ExportMaskOperations {
 
             validator.vmax().removeVolumes(storage, exportMaskURI, initiatorList).validate();
 
-            // Breakdown:
-            // StorageSystemValidatorFactory vmaxFactory = validator.vmax();
-            // Validator val = vmaxFactory.removeVolumes(storage, exportMaskURI, initiatorList);
-            // val.validate();
-
             boolean isVmax3 = storage.checkIfVmax3();
             WBEMClient client = _helper.getConnection(storage).getCimClient();
             // Get the context from the task completer, in case this is a rollback.
@@ -1141,7 +1134,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 }
 
                 // TODO Check if this is necessary
-                _helper.callRefreshSystem(storage, null, true);
+                _helper.callRefreshSystem(storage);
 
                 Map<String, List<URI>> volumesByGroup = _helper.groupVolumesBasedOnExistingGroups(storage, parentGroupName, volumeURIList);
                 _log.info("Group Volumes by Storage Group size : {}", volumesByGroup.size());
@@ -1226,10 +1219,9 @@ public class VmaxExportOperations implements ExportMaskOperations {
                         // Inspect each block object (if it is a volume in the first place) to see if any of them are
                         // RecoverPoint related.
                         for (URI boUri : volumesInSG) {
-                            BlockObject bo = BlockObject.fetch(_dbClient, boUri);
-                            if (bo instanceof Volume) {
+                            if (URIUtil.isType(boUri, Volume.class)) {
                                 Volume volume = _dbClient.queryObject(Volume.class, boUri);
-                                if (volume.checkForRp() || RPHelper.isAssociatedToAnyRpVplexTypes(volume, _dbClient)) {
+                                if (volume != null && (volume.checkForRp() || RPHelper.isAssociatedToAnyRpVplexTypes(volume, _dbClient))) {
                                     // Determined that the volume is RP related
                                     containsRPVolume = true;
                                     break;
@@ -1542,7 +1534,9 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     _log.info("removeInitiators: volumes : {}", Joiner.on(',').join(volumeURIList));
                 }
                 _log.info("removeInitiators: initiators : {}", Joiner.on(',').join(initiatorList));
-                _log.info("removeInitiators: targets : {}", Joiner.on(',').join(targetURIList));
+                if (targetURIList != null) {
+                    _log.info("removeInitiators: targets : {}", Joiner.on(',').join(targetURIList));
+                }
 
                 // Get the context from the task completer, in case this is a rollback.
                 ExportOperationContext context = (ExportOperationContext) WorkflowService.getInstance().loadStepData(
@@ -1553,6 +1547,10 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     CIMArgument[] inArgs;
                     CIMArgument[] outArgs;
                     _log.info("Removing initiators ...");
+
+                    ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
+                    validator.vmax().removeInitiators(storage, exportMask, volumeURIList).validate();
+
                     // Create a mapping of the InitiatorPort String to Initiator.
                     Map<String, Initiator> nameToInitiator = new HashMap<String, Initiator>();
                     for (Initiator initiator : initiatorList) {

@@ -9,6 +9,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.emc.storageos.util.ExportUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,8 +34,7 @@ public class ExportMaskRemoveInitiatorCompleter extends ExportTaskCompleter {
     }
 
     @Override
-    protected void complete(DbClient dbClient, Operation.Status status,
-            ServiceCoded coded) throws DeviceControllerException {
+    public void ready(DbClient dbClient) throws DeviceControllerException {
         try {
             ExportGroup exportGroup = dbClient.queryObject(ExportGroup.class, getId());
             ExportMask exportMask = (getMask() != null) ?
@@ -50,19 +50,24 @@ public class ExportMaskRemoveInitiatorCompleter extends ExportTaskCompleter {
                     dbClient.markForDeletion(exportMask);
                     dbClient.updateObject(exportGroup);
                 } else {
+                    List<URI> targetPorts = ExportUtils.getRemoveInitiatorStoragePorts(exportMask, initiators, dbClient);
+                    if (targetPorts != null && !targetPorts.isEmpty()) {
+                        for (URI targetPort : targetPorts) {
+                            exportMask.removeTarget(targetPort);
+                        }
+                    }
                     dbClient.updateObject(exportMask);
                 }
                 _log.info(String.format(
                         "Done ExportMaskRemoveInitiator - Id: %s, OpId: %s, status: %s",
-                        getId().toString(), getOpId(), status.name()));
+                        getId().toString(), getOpId(), Operation.Status.ready.name()));
             }
         } catch (Exception e) {
             _log.error(String.format(
                     "Failed updating status for ExportMaskRemoveInitiator - Id: %s, OpId: %s",
                     getId().toString(), getOpId()), e);
         } finally {
-            super.complete(dbClient, status, coded);
+            super.ready(dbClient);
         }
     }
-
 }

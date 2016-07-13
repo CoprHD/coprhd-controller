@@ -33,7 +33,7 @@
 
 Usage()
 {
-    echo 'Usage: dutests.sh <sanity conf file path> [setup|delete] [vmax | vnx | vplex [local | distributed] | xtremio]  [test1 test2 ...]'
+    echo 'Usage: dutests.sh <sanity conf file path> [setup|delete] [vmax | vnx | vplex [local | distributed] | xtremio | unity]  [test1 test2 ...]'
     echo ' [setup]: Run on a new ViPR database, creates SMIS, host, initiators, vpools, varray, volumes'
     echo ' [delete]: Will exports and volumes'
     exit 2
@@ -99,11 +99,12 @@ verify_export() {
         masking_view_name=$export_name
     fi
 
-    echo "masking view name: $masking_view_name"
-
     # Why is this sleep here?  Please explain.  If it's specific to SMIS, please put in SMIS-specific block
-    #sleep 10
-    arrayhelper verify_export ${SERIAL_NUMBER} $masking_view_name $*
+    if [ "${SS}" = "vmax" ]; then
+	sleep 10
+    fi
+
+    arrayhelper verify_export ${SERIAL_NUMBER} ${masking_view_name} $*
     if [ $? -ne "0" ]; then
 	if [ -f ${CMD_OUTPUT} ]; then
 	    cat ${CMD_OUTPUT}
@@ -126,7 +127,7 @@ verify_export() {
 arrayhelper() {
     operation=$1
     serial_number=$2
-    
+
     case $operation in
     add_volume_to_mask)
 	device_id=$3
@@ -498,12 +499,35 @@ vnx_setup() {
     runcmd cos create block ${VPOOL_BASE}	\
 	--description Base true                 \
 	--protocols FC 			                \
-	--numpaths 1				            \
+	--numpaths 2				            \
 	--provisionType 'Thin'			        \
 	--max_snapshots 10                      \
 	--neighborhoods $NH                    
 
     runcmd cos update block $VPOOL_BASE --storage ${VNXB_NATIVEGUID}
+}
+
+unity_setup()
+{
+    discoveredsystem create $UNITY_DEV unity $UNITY_IP $UNITY_PORT $UNITY_USER $UNITY_PW --serialno=$UNITY_SN
+    storagedevice list
+
+    storagepool update $UNITY_NATIVEGUID --type block --volume_type THIN_AND_THICK
+    runcmd transportzone add ${SRDF_VMAXA_VSAN} $UNITY_INIT_PWWN1
+    runcmd transportzone add ${SRDF_VMAXA_VSAN} $UNITY_INIT_PWWN2
+    runcmd storagedevice discover_all
+
+    SERIAL_NUMBER=`storagedevice list | grep COMPLETE | awk '{print $2}' | awk -F+ '{print $2}'`
+    
+    runcmd cos create block ${VPOOL_BASE}	\
+	--description Base true                 \
+	--protocols FC 			                \
+	--numpaths 1				            \
+	--provisionType 'Thin'			        \
+	--max_snapshots 10                      \
+	--neighborhoods $NH                    
+
+    runcmd cos update block $VPOOL_BASE --storage ${UNITY_NATIVEGUID}
 }
 
 vmax_setup() {
@@ -780,15 +804,15 @@ test_0() {
     expname=${EXPORT_GROUP_NAME}t0
     set_suspend_on_class_method "none"
     verify_export ${expname}1 ${HOST1} gone
-    #verify_export ${expname}2 ${HOST2} gone
+    verify_export ${expname}2 ${HOST2} gone
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
-    #runcmd export_group create $PROJECT ${expname}2 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-2 --hosts "${HOST2}"
     verify_export ${expname}1 ${HOST1} 2 1
-    #verify_export ${expname}2 ${HOST2} 2 1
+    runcmd export_group create $PROJECT ${expname}2 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-2 --hosts "${HOST2}"
+    verify_export ${expname}2 ${HOST2} 2 1
     runcmd export_group delete $PROJECT/${expname}1
-    #runcmd export_group delete $PROJECT/${expname}2
     verify_export ${expname}1 ${HOST1} gone
-    #verify_export ${expname}2 ${HOST2} gone
+    runcmd export_group delete $PROJECT/${expname}2
+    verify_export ${expname}2 ${HOST2} gone
 }
 
 set_suspend_on_error() {
@@ -2175,7 +2199,7 @@ SS=${1}
 shift
 
 case $SS in
-    vmax|vnx|xio)
+    vmax|vnx|xio|unity)
     ;;
     vplex)
         # set local or distributed mode

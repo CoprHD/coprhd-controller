@@ -1,0 +1,23 @@
+{
+  baseKey:"RemoveUnexportedBlockStorage.Block",
+  serviceId:"RemoveUnexportedBlockStorage",
+  destructive: true,
+  fields: {
+    project:{
+      type:"assetType.vipr.project",
+      lockable: true
+    },
+    
+    volumes:{
+      type:"assetType.vipr.unexportedSourceBlockVolumeWithDeletion",
+      select: "many"
+    },
+
+    deletionType:{
+      type:"assetType.vipr.deletionType",
+      lockable:true,
+      initialValue:"FULL",
+      select:"one"
+    }
+  }
+}

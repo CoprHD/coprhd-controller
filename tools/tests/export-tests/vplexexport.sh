@@ -77,6 +77,8 @@ tenant=${tenant:-standalone}
     macaddr=`/sbin/ifconfig eth0 | /usr/bin/awk '/HWaddr/ { print $5 }'`
 }
 [ "$hostseed" ] || {
+    macaddr=`/sbin/ifconfig eth0 | /usr/bin/awk '/HWaddr/ { print $5 }'`
+    echo macaddr ${macaddr}
     hostseed=`echo ${macaddr} | awk -F: '{print $5$6}'`
     hostbase=host${hostseed}
     echo "hostbase $hostbase"

@@ -124,6 +124,7 @@ public class BlockSnapIngestOrchestrator extends BlockIngestOrchestrator {
         }
         // In case of XIO snaps, the snapshots belong to a snapset which represents the snapshot CG. This will be
         // populated in SNAPSHOT_CONSISTENCY_GROUP_NAME
+        // The same is applicable to external device snapshots
         String snapsetName = PropertySetterUtil.extractValueFromStringSet(
                 SupportedVolumeInformation.SNAPSHOT_CONSISTENCY_GROUP_NAME.toString(), unManagedVolumeInformation);
         if (null == snapsetName || snapsetName.trim().isEmpty()) {

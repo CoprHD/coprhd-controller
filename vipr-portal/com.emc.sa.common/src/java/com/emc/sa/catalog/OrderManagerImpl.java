@@ -636,4 +636,18 @@ public class OrderManagerImpl implements OrderManager {
         updateOrder(order);
     }
 
+    @Override
+    public void pauseOrder(Order order) {
+        log.info(String.format("Order %s is paused", order.getId()));
+        order.setOrderStatus(OrderStatus.PAUSED.name());
+        updateOrder(order);
+    }
+
+    @Override
+    public void resumeOrder(Order order) {
+        log.info(String.format("Order %s is resumed", order.getId()));
+        order.setOrderStatus(OrderStatus.EXECUTING.name());
+        updateOrder(order);
+    }
+
 }

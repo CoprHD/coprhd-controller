@@ -53,7 +53,12 @@ public class XtremioSystemValidatorFactory implements StorageSystemValidatorFact
 
     @Override
     public List<Volume> volumes(StorageSystem storageSystem, List<Volume> volumes, boolean delete, boolean remediate,
-                                StringBuilder msgs, ValCk[] checks) {
+                                ValCk[] checks) {
+        return null;
+    }
+
+    @Override
+    public Validator removeInitiators(StorageSystem storage, ExportMask exportMask, Collection<URI> volumeURIList) {
         return null;
     }
 }

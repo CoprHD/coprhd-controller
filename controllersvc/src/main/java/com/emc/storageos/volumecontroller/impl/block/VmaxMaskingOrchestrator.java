@@ -19,6 +19,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
+import com.emc.storageos.db.client.model.VirtualArray;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -736,8 +737,9 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
                     ExportMaskRemoveInitiatorCompleter exportTaskCompleter = new ExportMaskRemoveInitiatorCompleter(exportGroupURI,
                             mask.getId(), initiatorsToRemove, null);
+                    List<URI> volumeURIs = ExportMaskUtils.getVolumeURIs(mask);
                     previousStep = generateExportMaskRemoveInitiatorsWorkflow(workflow, previousStep, storage,
-                            exportGroup, mask, null, initiatorsToRemoveOnStorage, true, exportTaskCompleter);
+                            exportGroup, mask, volumeURIs, initiatorsToRemoveOnStorage, true, exportTaskCompleter);
                     anyOperationsToDo = true;
                 }
 
@@ -2023,7 +2025,26 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
         // Find all the ExportMasks on the array that have the initiators (or a subset of them)
         Map<URI, ExportMask> matchingMasks = readExistingExportMasks(storage, device, initiators);
+
+        // filter out export masks which do not have at least one port from the virtual array
+        Set<URI> invalidMasks = new HashSet<URI>();
+        VirtualArray virtualArray = _dbClient.queryObject(VirtualArray.class, descriptor.getVirtualArray());
+        for (Entry<URI, ExportMask> entry : matchingMasks.entrySet()) {
+            ExportMask mask = entry.getValue();
+            boolean matched = maskHasStoragePortsInExportVarray(virtualArray, mask);
+            if (!matched) {
+                invalidMasks.add(entry.getKey());
+                _log.info("Mask does not have valid ports from varray: {}", mask.getLabel());
+            }
+        }
+        for (URI maskUri : invalidMasks) {
+            matchingMasks.remove(maskUri);
+        }
+        // set matching masks in the descriptor
         descriptor.setMasks(matchingMasks);
+        if (matchingMasks.isEmpty()) {
+            return;
+        }
 
         // Dummy/non-essential data
         ExportGroup dummyExportGroup = new ExportGroup();

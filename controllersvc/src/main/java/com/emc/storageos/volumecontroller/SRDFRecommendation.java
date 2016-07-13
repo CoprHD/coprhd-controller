@@ -6,7 +6,10 @@ package com.emc.storageos.volumecontroller;
 
 import java.io.Serializable;
 import java.net.URI;
+import java.util.List;
 import java.util.Map;
+
+import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 
 /**
  * Recommendation for a placement is a storage pool and its storage device.
@@ -20,6 +23,8 @@ public class SRDFRecommendation extends Recommendation {
         // The target device houses the source storage system's RA Group this should be protected over.
         private URI sourceRAGroup;
         private String copyMode;
+        // The volume descriptors are kept here to pass up to SRDFTargetRecommendations
+        private List<VolumeDescriptor> descriptors;
 
         public URI getTargetStorageDevice() {
             return targetDevice;
@@ -53,6 +58,13 @@ public class SRDFRecommendation extends Recommendation {
             this.copyMode = copyMode;
         }
 
+        public List<VolumeDescriptor> getDescriptors() {
+            return descriptors;
+        }
+
+        public void setDescriptors(List<VolumeDescriptor> descriptors) {
+            this.descriptors = descriptors;
+        }
     }
 
     // Source

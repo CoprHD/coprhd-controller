@@ -559,9 +559,14 @@ public class StorageScheduler implements Scheduler {
             provMapBuilder.putAttributeInMap(AttributeMatcher.Attributes.support_notification_limit.name(), capabilities.getSupportsNotificationLimit());
         }
 
-        boolean arrayAffinity = VirtualPool.ResourcePlacementPolicyType.array_affinity.name().equals(vpool.getPlacementPolicy());
-        if (arrayAffinity && capabilities.getCompute() != null) {
-            capabilities.put(VirtualPoolCapabilityValuesWrapper.ARRAY_AFFINITY, true);
+        if (!(VirtualPool.vPoolSpecifiesProtection(vpool) || VirtualPool.vPoolSpecifiesSRDF(vpool) ||
+                VirtualPool.vPoolSpecifiesHighAvailability(vpool) ||
+                VirtualPool.vPoolSpecifiesHighAvailabilityDistributed(vpool))) {
+            // only enforce array affinity policy for vpool without RP, SRDF, VPLEX
+            boolean arrayAffinity = VirtualPool.ResourcePlacementPolicyType.array_affinity.name().equals(vpool.getPlacementPolicy());
+            if (arrayAffinity && capabilities.getCompute() != null) {
+                capabilities.put(VirtualPoolCapabilityValuesWrapper.ARRAY_AFFINITY, true);
+            }
         }
 
         Map<String, Object> attributeMap = provMapBuilder.buildMap();

@@ -115,6 +115,8 @@ public class ArrayAffinityProcessor {
                     SmisConstants.CIM_PROTOCOL_CONTROLLER, null, null));
         }
 
+        Set<CIMObjectPath> volumePathsInMasks = new HashSet<CIMObjectPath>();
+        Map<CIMObjectPath, String> volumeToPool = new HashMap<CIMObjectPath, String>();
         for (CIMObjectPath path : maskPaths) {
             _logger.info("Processing masking view {}", path.toString());
 
@@ -128,9 +130,25 @@ public class ArrayAffinityProcessor {
                 if (ArrayAffinityDiscoveryUtils.isUnmanagedVolume(volumePath, dbClient)) {
                     URI poolURI = ArrayAffinityDiscoveryUtils.getStoragePool(volumePath, cimClient, dbClient);
                     if (!NullColumnValueGetter.isNullURI(poolURI)) {
+                        if (ExportGroup.ExportGroupType.Host.name().equals(maskType)) {
+                            volumePathsInMasks.add(volumePath);
+                            volumeToPool.put(volumePath,  poolURI.toString());
+                        }
+
                         ArrayAffinityDiscoveryUtils.addPoolToPreferredPoolMap(preferredPoolMap, poolURI.toString(), maskType);
                     }
                 }
+            }
+        }
+
+        for (CIMObjectPath volumePath : volumePathsInMasks) {
+            // get masks from the volume path
+            List<CIMObjectPath> masks = DiscoveryUtils.getAssociatorNames(cimClient, volumePath, null,
+                        SmisConstants.CIM_PROTOCOL_CONTROLLER, null, null);
+            if (!maskPaths.containsAll(masks)) {
+                // shared volumes
+                _logger.info("Volume {} is shared by multiple hosts", volumePath);
+                ArrayAffinityDiscoveryUtils.addPoolToPreferredPoolMap(preferredPoolMap, volumeToPool.get(volumePath), ExportGroup.ExportGroupType.Cluster.name());              
             }
         }
 

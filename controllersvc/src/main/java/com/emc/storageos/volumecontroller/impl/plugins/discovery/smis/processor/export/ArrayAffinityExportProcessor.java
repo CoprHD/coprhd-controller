@@ -60,7 +60,9 @@ public class ArrayAffinityExportProcessor extends Processor {
 
     private Map<URI, Set<String>> _hostToExportMasksMap = null;
     private Map<String, Set<URI>> _exportMaskToHostsMap = null;
+    private Map<String, Set<String>> _maskToVolumesMap = null;
     private Map<String, Set<URI>> _maskToStoragePoolsMap = null;
+    private Map<String, URI> _volumeToStoragePoolMap = null;
 
     private PartitionManager _partitionManager;
 
@@ -138,12 +140,12 @@ public class ArrayAffinityExportProcessor extends Processor {
     }
 
     /**
-     * Gets the Map of hosts to maskingViewPaths that is being tracked in the keyMap.
+     * Gets the Map of host to maskingViewPaths that is being tracked in the keyMap.
      *
-     * @return a Map of hosts to maskingViewPaths
+     * @return a Map of host to maskingViewPaths
      */
     private Map<URI, Set<String>> getHostToExportMasksMap() {
-        // find or create the Host -> maskingViewPaths tracking data structure in the key map
+        // find or create the host -> maskingViewPaths tracking data structure in the key map
         _hostToExportMasksMap = (Map<URI, Set<String>>) _keyMap.get(Constants.HOST_EXPORT_MASKS_MAP);
         if (_hostToExportMasksMap == null) {
             _hostToExportMasksMap = new HashMap<URI, Set<String>>();
@@ -170,9 +172,25 @@ public class ArrayAffinityExportProcessor extends Processor {
     }
 
     /**
-     * Gets the Map of maskingViewPaths to StoragePools that is being tracked in the keyMap.
+     * Gets the Map of maskingViewPath to volumes that is being tracked in the keyMap.
      *
-     * @return a Map of maskingViewPaths to StoragePools
+     * @return a Map of maskingViewPath to volumes
+     */
+    private Map<String, Set<String>> getExportMaskToVolumesMap() {
+        // find or create the maskingViewPath -> volumes tracking data structure in the key map
+        _maskToVolumesMap = (Map<String, Set<String>>) _keyMap.get(Constants.EXPORT_MASK_VOLUMES_MAP);
+        if (_maskToVolumesMap == null) {
+            _maskToVolumesMap = new HashMap<String, Set<String>>();
+            _keyMap.put(Constants.EXPORT_MASK_VOLUMES_MAP, _maskToVolumesMap);
+        }
+
+        return _maskToVolumesMap;
+    }
+
+    /**
+     * Gets the Map of maskingViewPath to StoragePools that is being tracked in the keyMap.
+     *
+     * @return a Map of maskingViewPath to StoragePools
      */
     private Map<String, Set<URI>> getMaskToStoragePoolsMap() {
         // find or create the maskingViewPath -> StoragePools tracking data structure in the key map
@@ -183,6 +201,22 @@ public class ArrayAffinityExportProcessor extends Processor {
         }
 
         return _maskToStoragePoolsMap;
+    }
+
+    /**
+     * Gets the Map of volume to StoragePool that is being tracked in the keyMap.
+     *
+     * @return a Map of volume to StoragePool
+     */
+    private Map<String, URI> getVolumeToStoragePoolMap() {
+        // find or create the volume -> StoragePool tracking data structure in the key map
+        _volumeToStoragePoolMap = (Map<String, URI>) _keyMap.get(Constants.VOLUME_STORAGE_POOL_MAP);
+        if (_volumeToStoragePoolMap == null) {
+            _volumeToStoragePoolMap = new HashMap<String, URI>();
+            _keyMap.put(Constants.VOLUME_STORAGE_POOL_MAP, _volumeToStoragePoolMap);
+        }
+
+        return _volumeToStoragePoolMap;
     }
 
     /**
@@ -231,32 +265,35 @@ public class ArrayAffinityExportProcessor extends Processor {
 
                     // check if a host initiator exists for this id
                     Initiator knownInitiator = NetworkUtil.getInitiator(initiatorNetworkId, _dbClient);
+                    URI hostId = null;
                     if (knownInitiator != null) {
                         _logger.info("Found an initiator in ViPR on host " + knownInitiator.getHostName());
-
-                        // add to map of host to export masks, and map of mask to hosts
-                        URI hostId = knownInitiator.getHost();
-                        if (!NullColumnValueGetter.isNullURI(hostId)) {
-                            Set<String> maskingViewPaths = getHostToExportMasksMap().get(hostId);
-                            if (maskingViewPaths == null) {
-                                maskingViewPaths = new HashSet<String>();
-                                _logger.info("Creating mask set for host {}" + hostId);
-                                getHostToExportMasksMap().put(hostId, maskingViewPaths);
-                            }
-                            maskingViewPaths.add(maskingViewPath);
-
-                            Set<URI> hosts = getExportMaskToHostsMap().get(maskingViewPath);
-                            if (hosts == null) {
-                                 _logger.info("Initial host count for mask {}" + maskingViewPath);
-                                 hosts = new HashSet<URI>();
-                                 getExportMaskToHostsMap().put(maskingViewPath, hosts);
-                            }
-
-                            hosts.add(hostId);
-                        }
+                        hostId = knownInitiator.getHost();
                     } else {
                         _logger.info("No hosts in ViPR found configured for initiator " + initiatorNetworkId);
                     }
+
+                    if (hostId == null) {
+                        hostId = NullColumnValueGetter.getNullURI();
+                    }
+
+                    // add to map of host to export masks, and map of mask to hosts
+                    Set<String> maskingViewPaths = getHostToExportMasksMap().get(hostId);
+                    if (maskingViewPaths == null) {
+                        maskingViewPaths = new HashSet<String>();
+                        _logger.info("Creating mask set for host {}" + hostId);
+                        getHostToExportMasksMap().put(hostId, maskingViewPaths);
+                    }
+                    maskingViewPaths.add(maskingViewPath);
+
+                    Set<URI> hosts = getExportMaskToHostsMap().get(maskingViewPath);
+                    if (hosts == null) {
+                         _logger.info("Initial host count for mask {}" + maskingViewPath);
+                         hosts = new HashSet<URI>();
+                         getExportMaskToHostsMap().put(maskingViewPath, hosts);
+                    }
+
+                    hosts.add(hostId);
 
                     break;
 
@@ -271,13 +308,27 @@ public class ArrayAffinityExportProcessor extends Processor {
                         poolURI = ArrayAffinityDiscoveryUtils.getStoragePool(volumePath, client, _dbClient);
 
                         if (!NullColumnValueGetter.isNullURI(poolURI)) {
+                            Set<String> volumes = getExportMaskToVolumesMap().get(maskingViewPath);
+                            if (volumes == null) {
+                                volumes = new HashSet<String>();
+                                _logger.info("Creating volume set for mask {}" + maskingViewPath);
+                                getExportMaskToVolumesMap().put(maskingViewPath, volumes);
+                            }
+
+                            volumes.add(volumePath.toString());
+
                             Set<URI> pools = getMaskToStoragePoolsMap().get(maskingViewPath);
                             if (pools == null) {
                                 pools = new HashSet<URI>();
                                 _logger.info("Creating pool set for mask {}" + maskingViewPath);
                                 getMaskToStoragePoolsMap().put(maskingViewPath, pools);
                             }
+
                             pools.add(poolURI);
+
+                            if (!getVolumeToStoragePoolMap().containsKey(volumePath)) {
+                                getVolumeToStoragePoolMap().put(volumePath.toString(), poolURI);
+                            }
                         }
                     }
 
@@ -301,13 +352,45 @@ public class ArrayAffinityExportProcessor extends Processor {
     }
 
     private void updatePreferredPoolIds() {
-        Map<URI, Set<String>> hostExportMasks = getHostToExportMasksMap();
-        Map<String, Set<URI>> exportMaskHostCount = getExportMaskToHostsMap();
-        Map<String, Set<URI>> maskStroagePools = getMaskToStoragePoolsMap();
+        Map<URI, Set<String>> hostToExportMasks = getHostToExportMasksMap();
+        Map<String, Set<URI>> exportToMaskHostCount = getExportMaskToHostsMap();
+        Map<String, Set<String>> maskToVolumes = getExportMaskToVolumesMap();
+        Map<String, Set<URI>> maskToStroagePools = getMaskToStoragePoolsMap();
+        Map<String, URI> volumeToStoragePool = getVolumeToStoragePoolMap();
+
         String systemIdsStr = _profile.getProps().get(Constants.SYSTEM_IDS);
         String[] systemIds = systemIdsStr.split(Constants.ID_DELIMITER);
         Set<String> systemIdSet = new HashSet<String>(Arrays.asList(systemIds));
         List<Host> hostsToUpdate = new ArrayList<Host>();
+
+        Map<URI, Set<String>> hostToVolumes = new HashMap<URI, Set<String>>();
+        Map<String, Set<URI>> volumeToHosts = new HashMap<String, Set<URI>>();
+        // populate hostToVolumes and volumeToHosts maps
+        for (Map.Entry<URI, Set<String>> entry : hostToExportMasks.entrySet()) {
+            URI host = entry.getKey();
+            for (String mask : entry.getValue()) {
+                Set<String> volumes = maskToVolumes.get(mask);
+                if (volumes != null) {
+                    Set<String> hostVols = hostToVolumes.get(host);
+                    if (hostVols == null) {
+                        hostVols = new HashSet<String>();
+                        hostToVolumes.put(host, hostVols);
+                    }
+
+                    hostVols.addAll(volumes);
+
+                    for (String volume : volumes) {
+                        Set<URI> hosts = volumeToHosts.get(volume);
+                        if (hosts == null) {
+                            hosts = new HashSet<URI>();
+                            volumeToHosts.put(volume, hosts);
+                        }
+
+                        hosts.add(host);
+                    }
+                }
+            }
+        }
 
         try {
             List<URI> hostURIs = _dbClient.queryByType(Host.class, true);
@@ -316,17 +399,32 @@ public class ArrayAffinityExportProcessor extends Processor {
                 Host host = hosts.next();
                 if (host != null) {
                     _logger.info("Processing host {}", host.getLabel());
+                    // check masks
                     Map<String, String> preferredPoolMap = new HashMap<String, String>();
-                    Set<String> masks = hostExportMasks.get(host.getId());
+                    Set<String> masks = hostToExportMasks.get(host.getId());
                     if (masks != null && !masks.isEmpty()) {
                         for (String mask : masks) {
-                            Set<URI> pools = maskStroagePools.get(mask);
-                            String exportType = exportMaskHostCount.get(mask).size() > 1 ? ExportGroup.ExportGroupType.Cluster.name()
+                            Set<URI> pools = maskToStroagePools.get(mask);
+                            String exportType = exportToMaskHostCount.get(mask).size() > 1 ? ExportGroup.ExportGroupType.Cluster.name()
                                     : ExportGroup.ExportGroupType.Host.name();
                             if (pools != null && !pools.isEmpty()) {
                                 for (URI pool : pools) {
                                     ArrayAffinityDiscoveryUtils.addPoolToPreferredPoolMap(preferredPoolMap, pool.toString(), exportType);
                                 }
+                            }
+                        }
+                    }
+
+                    // check volumes
+                    Set<String> volumes = hostToVolumes.get(host.getId());
+                    if (volumes != null && !volumes.isEmpty()) {
+                        for (String volume : volumes) {
+                            URI pool = volumeToStoragePool.get(volume);
+
+                            if (pool != null) {
+                                String exportType = volumeToHosts.get(volume).size() > 1 ? ExportGroup.ExportGroupType.Cluster.name()
+                                        : ExportGroup.ExportGroupType.Host.name();
+                                ArrayAffinityDiscoveryUtils.addPoolToPreferredPoolMap(preferredPoolMap, pool.toString(), exportType);
                             }
                         }
                     }

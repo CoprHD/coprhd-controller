@@ -61,6 +61,7 @@ import static com.emc.storageos.model.ResourceTypeEnum.VPOOL;
 import static com.emc.storageos.model.ResourceTypeEnum.WORKFLOW;
 import static com.emc.storageos.model.ResourceTypeEnum.WORKFLOW_STEP;
 import static com.emc.storageos.model.ResourceTypeEnum.SCHEDULE_POLICY;
+import static com.emc.storageos.model.ResourceTypeEnum.STORAGE_SYSTEM_TYPE;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -123,6 +124,7 @@ import com.emc.storageos.db.client.model.Workflow;
 import com.emc.storageos.db.client.model.WorkflowStep;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
+import com.emc.storageos.db.client.model.StorageSystemType;
 import com.emc.storageos.model.ResourceTypeEnum;
 
 public class ResourceTypeMapping {
@@ -191,6 +193,7 @@ public class ResourceTypeMapping {
         classMapping.put(VOLUME_GROUP, VolumeGroup.class);
         classMapping.put(BLOCK_SNAPSHOT_SESSION, BlockSnapshotSession.class);
         classMapping.put(SCHEDULE_POLICY, SchedulePolicy.class);
+        classMapping.put(STORAGE_SYSTEM_TYPE, StorageSystemType.class);
 
         for (Map.Entry<ResourceTypeEnum, Class<? extends DataObject>> entry : classMapping.entrySet()) {
             resourceMapping.put(entry.getValue(), entry.getKey());

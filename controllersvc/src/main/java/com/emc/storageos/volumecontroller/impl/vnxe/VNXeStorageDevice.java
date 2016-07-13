@@ -2633,4 +2633,10 @@ public class VNXeStorageDevice extends VNXeOperations
     public String doInitiatorAliasGet(StorageSystem storage, Initiator initiator) throws Exception {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
+
+	@Override
+	public Map<URI, List<Integer>> doFindHostHLUs(StorageSystem storage, List<URI> hostURIs)
+			throws DeviceControllerException {
+	    throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+	}
 }

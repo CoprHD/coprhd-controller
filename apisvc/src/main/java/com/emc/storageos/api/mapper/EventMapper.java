@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.api.mapper;
 
+import static com.emc.storageos.api.mapper.DbObjectMapper.mapDataObjectFields;
 import static com.emc.storageos.api.mapper.DbObjectMapper.toRelatedResource;
 
 import com.emc.storageos.db.client.model.ActionableEvent;
@@ -17,6 +18,7 @@ public class EventMapper {
             return null;
         }
         EventRestRep to = new EventRestRep();
+        mapDataObjectFields(from, to);
         to.setTenant(toRelatedResource(ResourceTypeEnum.TENANT, from.getTenant()));
         return to;
     }

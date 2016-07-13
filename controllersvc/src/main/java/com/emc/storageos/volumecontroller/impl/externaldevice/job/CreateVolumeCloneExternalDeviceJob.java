@@ -53,7 +53,7 @@ public class CreateVolumeCloneExternalDeviceJob extends ExternalDeviceJob {
     @Override
     protected void doTaskSucceeded(DriverTask driverTask, DbClient dbClient) throws Exception {
         // Get the ViPR volume representing the clone.
-        s_logger.info(String.format("Successfully created volume clone %s:%s.", _volumeURI, driverTask.getMessage()));
+        s_logger.info(String.format("Successfully created volume clone %s:%s", _volumeURI, driverTask.getMessage()));
         Volume volume = dbClient.queryObject(Volume.class, _volumeURI);
         if (volume == null) {
             s_logger.error(String.format("Failed to find volume %s", _volumeURI));

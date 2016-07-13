@@ -64,6 +64,7 @@ import com.emc.storageos.volumecontroller.impl.externaldevice.job.CreateGroupClo
 import com.emc.storageos.volumecontroller.impl.externaldevice.job.CreateVolumeCloneExternalDeviceJob;
 import com.emc.storageos.volumecontroller.impl.externaldevice.job.ExpandVolumeExternalDeviceJob;
 import com.emc.storageos.volumecontroller.impl.externaldevice.job.RestoreFromCloneExternalDeviceJob;
+import com.emc.storageos.volumecontroller.impl.externaldevice.job.RestoreFromGroupCloneExternalDeviceJob;
 import com.emc.storageos.volumecontroller.impl.externaldevice.job.RestoreFromSnapshotExternalDeviceJob;
 import com.emc.storageos.volumecontroller.impl.job.QueueJob;
 import com.emc.storageos.volumecontroller.impl.plugins.ExternalDeviceCommunicationInterface;
@@ -887,7 +888,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
             } else if (task.getStatus() == DriverTask.TaskStatus.READY) {
                 String msg = String.format("doRestoreFromClone -- Restored volume from clone: %s .", task.getMessage());
                 _log.info(msg);
-                ExternalDeviceUtils.updateRestoredClone(clone, driverClone, dbClient);
+                ExternalDeviceUtils.updateRestoredClone(clone, driverClone, dbClient, true);
                 taskCompleter.ready(dbClient);
             } else {
                 String msg = String.format("Failed to restore volume from clone on storage system %s, clone: %s .",
@@ -930,12 +931,19 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
             }
             // Call driver
             task = driver.restoreFromClone(Collections.unmodifiableList(driverClones));
-            // todo: need to implement support for async case.
-            if (task.getStatus() == DriverTask.TaskStatus.READY) {
+            if (!isTaskInTerminalState(task.getStatus())) {
+                // If the task is not in a terminal state and will be completed asynchronously
+                // create a job to monitor the progress of the request and update the clone 
+                // volume replica state and call the completer as appropriate based on the result
+                // of the request.
+                RestoreFromGroupCloneExternalDeviceJob job = new RestoreFromGroupCloneExternalDeviceJob(
+                        storageSystem.getId(), cloneVolumes, task.getTaskId(), taskCompleter);
+                ControllerServiceImpl.enqueueJob(new QueueJob(job));
+            } else if (task.getStatus() == DriverTask.TaskStatus.READY) {
                 for (Map.Entry<VolumeClone, Volume> entry : driverCloneToCloneMap.entrySet() ) {
                     VolumeClone driverClone = entry.getKey();
                     Volume clone = entry.getValue();
-                    clone.setReplicaState(driverClone.getReplicationState().name());
+                    ExternalDeviceUtils.updateRestoredClone(clone, driverClone, dbClient, false);
                 }
 
                 String msg = String.format("doRestoreFromGroupClone -- Restore from group clone: %s .", task.getMessage());

@@ -85,9 +85,34 @@ public class ExternalDeviceUtils {
      * @param volume A reference to the Volume representing the controller clone..
      * @param deviceClone A reference to the external device clone.
      * @param dbClient A reference to a database client.
+     * @param updateDb true to update the object in the DB, false otherwise.
      */
-    public static void updateRestoredClone(Volume volume, VolumeClone deviceClone, DbClient dbClient) {
+    public static void updateRestoredClone(Volume volume, VolumeClone deviceClone, DbClient dbClient, boolean updateDb) {
         volume.setReplicaState(deviceClone.getReplicationState().name());
-        dbClient.updateObject(volume);
+        if (updateDb) {
+            dbClient.updateObject(volume);
+        }
+    }
+    
+    /**
+     * Determines if the passed volume (representing a controller clone) represents the
+     * passed external device clone.
+     *  
+     * @param volume A reference o a controller clone.
+     * @param deviceClone A reference to an external device clone.
+     * @param dbClient A reference to a database client.
+     * 
+     * @return true if the controller volume represents the passed external device clone, false otherwise.
+     */
+    public static boolean isVolumeExternalDeviceClone(Volume volume, VolumeClone deviceClone, DbClient dbClient) {
+        // Get the native id of the associated source volume for the controller clone.
+        URI assocSourceVolumeURI = volume.getAssociatedSourceVolume();
+        Volume assocSourceVolume = dbClient.queryObject(Volume.class, assocSourceVolumeURI);
+        String assocSourceVolumeNativeId = assocSourceVolume.getNativeId();
+        
+        // The passed controller clone represents the passed external device clone if 
+        // the native id of the associated source volume for the controller clone is
+        // the parent id of the passed device clone.
+        return deviceClone.getParentId().equals(assocSourceVolumeNativeId);
     }
 }

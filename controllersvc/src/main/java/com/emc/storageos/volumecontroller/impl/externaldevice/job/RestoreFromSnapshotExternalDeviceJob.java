@@ -48,7 +48,7 @@ public class RestoreFromSnapshotExternalDeviceJob extends ExternalDeviceJob {
     @Override
     protected void doTaskSucceeded(DriverTask driverTask, DbClient dbClient) throws Exception {
         // Get the ViPR volume representing the clone.
-        s_logger.info(String.format("Successfully restored snapshot %s:%s.", _snapshotURI, driverTask.getMessage()));
+        s_logger.info(String.format("Successfully restored snapshot %s:%s", _snapshotURI, driverTask.getMessage()));
     }
 
     /**

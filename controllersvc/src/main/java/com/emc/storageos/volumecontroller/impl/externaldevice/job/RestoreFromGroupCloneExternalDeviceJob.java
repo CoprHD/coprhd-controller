@@ -16,38 +16,34 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.storagedriver.DriverTask;
 import com.emc.storageos.storagedriver.model.VolumeClone;
-import com.emc.storageos.storagedriver.task.CreateVolumeCloneDriverTask;
+import com.emc.storageos.storagedriver.task.RestoreFromGroupCloneDriverTask;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.externaldevice.ExternalDeviceUtils;
 
 /**
  * This ExternalDeviceJob derived class is created to monitor the progress
- * of a request to a create group clone that will complete asynchronously.
+ * of a request to restore a group clone that will complete asynchronously.
  */
-public class CreateGroupCloneExternalDeviceJob extends ExternalDeviceJob {
+public class RestoreFromGroupCloneExternalDeviceJob extends ExternalDeviceJob {
     
     private static final long serialVersionUID = 1L;
     
-    // The URI of the volume serving as the clone.
+    // The URIs of the volumes representing the controller clones that are being restored.
     private List<URI> _volumeURIs;
-    
-    // The URI of the consistency group
-    private URI _cgURI;
 
     // Logger reference.
-    private static final Logger s_logger = LoggerFactory.getLogger(CreateGroupCloneExternalDeviceJob.class);
+    private static final Logger s_logger = LoggerFactory.getLogger(RestoreFromGroupCloneExternalDeviceJob.class);
 
     /**
      * Constructor.
      * 
      * @param storageSystemURI The URI of the external storage system on which the task is running.
-     * @param volumeURIs The URI of the volume serving as the clone.
-     * @param cgURI The consistency group URI.
+     * @param volumeURIs The URIs of the volumes representing the controller clones that are being restored.
      * @param driverTaskId The id of the task monitored by the job.
      * @param taskCompleter The task completer.
      */
-    public CreateGroupCloneExternalDeviceJob(URI storageSystemURI, List<URI> volumeURIs, URI cgURI,
-            String driverTaskId, TaskCompleter taskCompleter) {
+    public RestoreFromGroupCloneExternalDeviceJob(URI storageSystemURI, List<URI> volumeURIs, String driverTaskId,
+            TaskCompleter taskCompleter) {
         super(storageSystemURI, driverTaskId, taskCompleter);
         _volumeURIs = volumeURIs;
     }
@@ -57,9 +53,9 @@ public class CreateGroupCloneExternalDeviceJob extends ExternalDeviceJob {
      */
     @Override
     protected void doTaskSucceeded(DriverTask driverTask, DbClient dbClient) throws Exception {
-        s_logger.info(String.format("Successfully created group clone: %s", driverTask.getMessage()));
-        
-        // Update the ViPR volumes representing the clone with the
+        s_logger.info(String.format("Successfully restored group clone: %s", driverTask.getMessage()));
+
+        // Update the ViPR volumes representing the clones with the
         // corresponding driver clone.
         List<Volume> updatedVolumes = new ArrayList<>();
         for (URI volumeURI : _volumeURIs) {
@@ -70,11 +66,11 @@ public class CreateGroupCloneExternalDeviceJob extends ExternalDeviceJob {
             }
             
             // Update the ViPR clone with the driver clone information.
-            CreateVolumeCloneDriverTask createCloneDriverTask = (CreateVolumeCloneDriverTask) driverTask;
-            List<VolumeClone> updatedClones = createCloneDriverTask.getClones();
+            RestoreFromGroupCloneDriverTask restoreDriverTask = (RestoreFromGroupCloneDriverTask) driverTask;
+            List<VolumeClone> updatedClones = restoreDriverTask.getClones();
             for (VolumeClone updatedClone: updatedClones) {
                 if (ExternalDeviceUtils.isVolumeExternalDeviceClone(volume, updatedClone, dbClient)) {
-                    ExternalDeviceUtils.updateNewlyCreatedGroupClone(volume, updatedClone, _cgURI, dbClient);
+                    ExternalDeviceUtils.updateRestoredClone(volume, updatedClone, dbClient, false);
                     updatedVolumes.add(volume);
                     break;
                 }
@@ -82,25 +78,13 @@ public class CreateGroupCloneExternalDeviceJob extends ExternalDeviceJob {
         }
         dbClient.updateObject(updatedVolumes);
     }
-
+    
     /**
      * {@inheritDoc}
      */
     @Override
     protected void doTaskFailed(DriverTask driverTask, DbClient dbClient) throws Exception {
-        s_logger.error(String.format("Failed to create group volume clone: %s", driverTask.getMessage()));
-        
-        List<Volume> volumes = new ArrayList<>();
-        for (URI volumeURI : _volumeURIs) {
-            Volume volume = dbClient.queryObject(Volume.class, volumeURI);
-            if (volume == null) {
-                s_logger.error(String.format("Failed to find volume %s", volumeURI));
-                // Exception?
-            } else {
-                volume.setInactive(true);
-                volumes.add(volume);
-            }
-        }
-        dbClient.updateObject(volumes);
+        s_logger.error(String.format("Failed to restore group clone: %s", driverTask.getMessage()));
     }
 }
+

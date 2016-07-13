@@ -44,6 +44,18 @@ public class StorageSystemType extends DataObject {
         block, file, object, all
     }
 
+    // TODO
+    @Override
+    public int hashCode() {
+        return 1;
+    }
+
+    // TODO
+    @Override
+    public boolean equals(Object obj) {
+        return false;
+    }
+
     @Name("storageTypeName")
     public String getStorageTypeName() {
         return storageTypeName;

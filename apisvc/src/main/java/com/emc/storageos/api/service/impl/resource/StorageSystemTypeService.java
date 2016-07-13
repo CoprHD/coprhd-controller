@@ -197,7 +197,7 @@ public class StorageSystemTypeService extends TaskResourceService {
 	public Response deleteStorageSystemType(@PathParam("id") URI id) {
 		log.info("deleteStorageSystemType: {}", id);
 		// Name of Array and its Display Name mapping, cannot delete native drivers
-		HashMap<String, String> nativeDriverNameMap = StorageSystemTypesInitUtils.initializeDisplayName();
+		HashMap<String, String> nativeDriverNameMap = StorageSystemTypesInitUtils.getDisplayNames();
 		
 		StorageSystemType sstype = queryObject(StorageSystemType.class, id, true);
 		ArgValidator.checkEntity(sstype, id, isIdEmbeddedInURL(id));

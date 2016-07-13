@@ -159,7 +159,7 @@ public class StorageSystemTypes {
      * Inside structure of StringOption is "storage type name: provider name (or storage type display name)
      */
     public static List<StringOption> getStorageTypeOptions() {
-        HashMap<String, String> arrayProviderMap = StorageSystemTypesInitUtils.arrToProviderDsiplayName();
+        HashMap<String, String> arrayProviderMap = StorageSystemTypesInitUtils.getProviderDsiplayNameMap();
         List<StringOption> options = new ArrayList<StringOption>();
         StorageSystemTypeList typeList = StorageSystemTypeUtils.getAllStorageSystemTypes(StorageSystemTypeUtils.ALL_TYPE);
 

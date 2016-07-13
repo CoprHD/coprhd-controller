@@ -903,10 +903,11 @@ public class SchemaUtil {
             storageTypeExist = false;
         }
         else {
-            // REFACTOR SHIT HERE!!!!!!!!!!!!!!!!
+            // This part would definitely need to refactor since the logic doesn't quite make sense
+            // For time-being consideration, fix other bug first.
             //Compare our default-list and data available at DB are in sync
             int dbElementCount = uriList.size();
-            HashMap<String, String> defaultDisplayName = StorageSystemTypesInitUtils.initializeDisplayName();
+            HashMap<String, String> defaultDisplayName = StorageSystemTypesInitUtils.getDisplayNames();
             int defaultCount = defaultDisplayName.size();
             if(dbElementCount < defaultCount) {
                 // This means default list and data at DB are not in sync, so insert again

@@ -1995,4 +1995,22 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	public void setHp3parUtil(HP3PARUtil hp3parUtil) {
 		this.hp3parUtil = hp3parUtil;
 	}
+
+    @Override
+    public DriverTask stopManagement(StorageSystem storageSystem) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public DriverTask addVolumesToConsistencyGroup(List<StorageVolume> volumes, StorageCapabilities capabilities) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public DriverTask removeVolumesFromConsistencyGroup(List<StorageVolume> volumes, StorageCapabilities capabilities) {
+        // TODO Auto-generated method stub
+        return null;
+    }
 }

@@ -91,21 +91,27 @@ public class RowMutatorDS {
     }
 
     public void deleteRecordColumn(String tableName, String recordKey, CompositeColumnName column) {
-        Statement deleteRecord = delete().from(String.format("\"%s\"", tableName)).where(eq("key", recordKey))
+        Delete.Where deleteRecord = delete().from(String.format("\"%s\"", tableName)).where(eq("key", recordKey))
                 .and(eq("column1", column.getOne() == null ? StringUtils.EMPTY : column.getOne()))
                 .and(eq("column2", column.getTwo() == null ? StringUtils.EMPTY : column.getTwo()))
-                .and(eq("column3", column.getThree() == null ? StringUtils.EMPTY : column.getThree()))
-                .and(eq("column4", column.getTimeUUID()));
+                .and(eq("column3", column.getThree() == null ? StringUtils.EMPTY : column.getThree()));
+        UUID uuidColumn = column.getTimeUUID();
+        if (uuidColumn != null) {
+            deleteRecord.and(eq("column4", uuidColumn));
+        }
         atomicBatch.add(deleteRecord);
     }
 
     public void deleteIndexColumn(String tableName, String indexRowKey, IndexColumnName column) {
-        Statement deleteIndex = delete().from(String.format("\"%s\"", tableName)).where(eq("key", indexRowKey))
+        Delete.Where deleteIndex = delete().from(String.format("\"%s\"", tableName)).where(eq("key", indexRowKey))
                 .and(eq("column1", column.getOne() == null ? StringUtils.EMPTY : column.getOne()))
                 .and(eq("column2", column.getTwo() == null ? StringUtils.EMPTY : column.getTwo()))
                 .and(eq("column3", column.getThree() == null ? StringUtils.EMPTY : column.getThree()))
-                .and(eq("column4", column.getFour() == null ? StringUtils.EMPTY : column.getFour()))
-                .and(eq("column5", column.getTimeUUID()));
+                .and(eq("column4", column.getFour() == null ? StringUtils.EMPTY : column.getFour()));
+        UUID uuidColumn = column.getTimeUUID();
+        if (uuidColumn != null) {
+            deleteIndex.and(eq("column5", uuidColumn));
+        }
         atomicBatch.add(deleteIndex);
     }
 

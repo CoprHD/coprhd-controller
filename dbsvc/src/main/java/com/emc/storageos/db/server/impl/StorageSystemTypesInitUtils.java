@@ -183,7 +183,7 @@ public class StorageSystemTypesInitUtils {
      * Create a HashMap of existing storage system types, to avoid duplicate insertion
      * 
      */
-    private  void createDbStorageTypeMap() {
+    private void loadTypeMapFromDb() {
         List<URI> ids = dbClient.queryByType(StorageSystemType.class, true);
         Iterator<StorageSystemType> existingTypes = dbClient.queryIterativeObjects(StorageSystemType.class, ids);
         dbStorageTypeMap = new HashMap<String, String>();
@@ -400,21 +400,11 @@ public class StorageSystemTypesInitUtils {
 
     public void initializeStorageSystemTypes() {
         log.info("Intializing storage system type Column Family for default storage drivers");
-
-        // When db and default list are not in sync, re-insert is required, and make sure we avoid duplicate entry
-        createDbStorageTypeMap();
-
-        // Insert File Arrays
+        loadTypeMapFromDb();
         insertFileArrays();
-        // Insert File Providers
         insertFileProviders();
-
-        // Insert Block Arrays
         insertBlockArrays();
-        // Insert Block Providers
         insertBlockProviders();
-
-        // Insert Object Arrays
         insertObjectArrays();
 
         log.info("Default drivers initialization done.");

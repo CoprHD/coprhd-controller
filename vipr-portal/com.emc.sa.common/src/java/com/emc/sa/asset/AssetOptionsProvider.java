@@ -20,4 +20,6 @@ public interface AssetOptionsProvider {
     List<AssetOption> getAssetOptions(AssetOptionsContext context, String assetType, Map<String, String> availableAssets);
 
     List<String> getAssetDependencies(String assetType, Set<String> availableTypes);
+
+    boolean useRawLabels();
 }

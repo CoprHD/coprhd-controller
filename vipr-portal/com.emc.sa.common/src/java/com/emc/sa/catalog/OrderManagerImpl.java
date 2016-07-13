@@ -231,6 +231,12 @@ public class OrderManagerImpl implements OrderManager {
                 return getResourceLabel(key);
             }
             else {
+
+                // if provider prefers raw labels (because retrieval is too slow) use raw value
+                if(assetOptionsManager.getProviderForAssetType(assetType).useRawLabels()){
+                    return key;
+                }
+
                 // Defer to AssetOptions if it's not a ViPR resource
                 AssetOptionsContext context = assetOptionsManager.createDefaultContext(user);
                 List<AssetOption> options = assetOptionsManager.getOptions(context, assetType, assetValues);

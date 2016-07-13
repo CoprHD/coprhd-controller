@@ -83,6 +83,11 @@ public class RackHdProvider extends BaseAssetOptionsProvider {
         return assetTypeName.startsWith(ASSET_NAMESPACE_TAG + "."); 
     }
 
+    // since getting options is not fast, use raw labels when creating orders
+    public boolean useRawLabels(){
+        return true;
+    }
+
     Map<String,String> parentAssetParams = new HashMap<>();
     
     @Override

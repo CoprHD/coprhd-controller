@@ -1355,6 +1355,15 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         return taskList;
     }
     
+    /**
+     * Group all volumes in RGs and create a WF to migrate those volumes together.
+     * 
+     * @param volumes All volumes being considered for migration
+     * @param vpool The vpool to migrate to
+     * @param volumesNotInRG A container to store all volumes NOT in an RG
+     * @param volumesInRG A container to store all the volumes in an RG
+     * @param taskId The Task Id
+     */
     protected void migrateVolumesInReplicationGroup(List<Volume> volumes, VirtualPool vpool,   
             List<Volume> volumesNotInRG, List<Volume> volumesInRG, String taskId) {
         Table<URI, String, List<Volume>> groupVolumes = HashBasedTable.create();

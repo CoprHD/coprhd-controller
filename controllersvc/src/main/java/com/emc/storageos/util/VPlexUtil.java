@@ -54,7 +54,6 @@ import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.db.joiner.Joiner;
-import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.security.authorization.BasePermissionsHelper;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
@@ -1588,28 +1587,25 @@ public class VPlexUtil {
                 newHaVpoolName = haVpool.getLabel();
             }
 
-            // Check each backing volume, if the varray is the same as the virtual volume passed in
-            // then the source backing volume should be updated, otherwise is the HA backing volume that
-            // needs updating.
+            // Update the source or HA vpool based on the varray of the backing volume.
             for (String associatedVolId : volume.getAssociatedVolumes()) {
-                Volume associatedVol = dbClient.queryObject(Volume.class, URI.create(associatedVolId));
+                Volume backingVolume = dbClient.queryObject(Volume.class, URI.create(associatedVolId));
 
                 URI vpoolURI = newVpoolURI;
                 String vpoolName = newVpoolName;
 
                 // If the backing volume does not have the same varray as the source virtual
                 // volume, then we must be looking at the HA backing volume.
-                if (!associatedVol.getVirtualArray().equals(volume.getVirtualArray())) {
+                if (!backingVolume.getVirtualArray().equals(volume.getVirtualArray())) {
                     vpoolURI = newHaVpoolURI;
                     vpoolName = newHaVpoolName;
                 }
 
-                VirtualPool oldVpool = dbClient.queryObject(VirtualPool.class, associatedVol.getVirtualPool());
-                _log.info(String.format("Update backing volume [%s] (%s) virtual pool from [%s] (%s) to [%s] (%s).",
-                        associatedVol.getLabel(), associatedVol.getId(), oldVpool.getLabel(), oldVpool.getId(), vpoolName, vpoolURI));
-                associatedVol.setVirtualPool(vpoolURI);
-                // Update the backing volume
-                dbClient.updateObject(associatedVol);
+                VirtualPool oldVpool = dbClient.queryObject(VirtualPool.class, backingVolume.getVirtualPool());                
+                backingVolume.setVirtualPool(vpoolURI);                
+                dbClient.updateObject(backingVolume);
+                _log.info(String.format("Updated backing volume [%s](%s) virtual pool from [%s](%s) to [%s](%s).",
+                        backingVolume.getLabel(), backingVolume.getId(), oldVpool.getLabel(), oldVpool.getId(), vpoolName, vpoolURI));
             }
         }
     }

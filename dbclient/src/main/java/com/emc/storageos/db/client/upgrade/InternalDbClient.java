@@ -11,33 +11,30 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import com.emc.storageos.db.client.impl.DbClientContext;
-import com.emc.storageos.db.client.impl.RowMutatorDS;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.SimpleStatement;
 import com.emc.storageos.db.client.constraint.DecommissionedConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.impl.ColumnField;
 import com.emc.storageos.db.client.impl.CompositeColumnName;
 import com.emc.storageos.db.client.impl.DataObjectType;
+import com.emc.storageos.db.client.impl.DbClientContext;
 import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.client.impl.RemovedColumnsList;
+import com.emc.storageos.db.client.impl.RowMutatorDS;
 import com.emc.storageos.db.client.impl.SchemaRecordType;
 import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.SchemaRecord;
 import com.emc.storageos.db.client.util.KeyspaceUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
-import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.connectionpool.OperationResult;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.ddl.SchemaChangeResult;
-import com.netflix.astyanax.model.Column;
-import com.netflix.astyanax.model.Row;
-import com.netflix.astyanax.model.Rows;
 
 /**
  * Internal db client used for upgrade migrations
@@ -301,33 +298,30 @@ public class InternalDbClient extends DbClientImpl {
             throw new IllegalArgumentException();
         }
         try {
-            Keyspace ks = getKeyspace(clazz);
             DbClientContext context = getDbClientContext(clazz);
-            OperationResult<Rows<String, CompositeColumnName>> result =
-                    ks.prepareQuery(doType.getCF()).getAllRows().setRowLimit(DEFAULT_PAGE_SIZE).execute();
-            Iterator<Row<String, CompositeColumnName>> it = result.getResult().iterator();
+            
+            String queryString = String.format("select * from \"%s\"", doType.getCF().getName());
+            SimpleStatement statement = new SimpleStatement(queryString);
+            statement.setFetchSize(DEFAULT_PAGE_SIZE);
+            ResultSet resultSet = context.getSession().execute(statement);
+            Map<String, List<CompositeColumnName>> result = toColumnMap(resultSet);
+            
             RemovedColumnsList removedList = new RemovedColumnsList();
             List<DataObject> objects = new ArrayList<>(DEFAULT_PAGE_SIZE);
-            String key = null;
             Exception lastEx = null;
 
-            while (it.hasNext()) {
+            for (String rowKey : result.keySet()) {
                 try {
-                    Row<String, CompositeColumnName> row = it.next();
-                    if (row.getColumns().size() == 0) {
-                        continue;
-                    }
-                    key = row.getKey();
-                    DataObject obj = DataObject.createInstance(clazz, URI.create(key));
+                    DataObject obj = DataObject.createInstance(clazz, URI.create(rowKey));
                     obj.trackChanges();
                     objects.add(obj);
-                    Iterator<Column<CompositeColumnName>> columnIterator = row.getColumns().iterator();
+                    Iterator<CompositeColumnName> columnIterator = result.get(rowKey).iterator();
                     while (columnIterator.hasNext()) {
-                        Column<CompositeColumnName> column = columnIterator.next();
-                        ColumnField columnField = setFields.get(column.getName().getOne());
+                        CompositeColumnName column = columnIterator.next();
+                        ColumnField columnField = setFields.get(column.getOne());
                         if (columnField != null) {
                             columnField.deserialize(column, obj);
-                            removedList.add(key, column.getName());
+                            removedList.add(rowKey, column);
                         }
                     }
 
@@ -340,7 +334,7 @@ public class InternalDbClient extends DbClientImpl {
                         removedList.clear();
                     }
                 } catch (Exception e) {
-                    String message = String.format("DB migration failed reason: reset data key='%s'", key);
+                    String message = String.format("DB migration failed reason: reset data key='%s'", rowKey);
 
                     log.error(message);
                     log.error("e=", e);

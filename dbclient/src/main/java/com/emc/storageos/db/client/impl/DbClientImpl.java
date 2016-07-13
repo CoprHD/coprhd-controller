@@ -90,15 +90,9 @@ import com.netflix.astyanax.ColumnListMutation;
 import com.netflix.astyanax.ColumnMutation;
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.MutationBatch;
-import com.netflix.astyanax.connectionpool.OperationResult;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
-import com.netflix.astyanax.model.Column;
-import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.model.ConsistencyLevel;
-import com.netflix.astyanax.model.Row;
-import com.netflix.astyanax.model.Rows;
 import com.netflix.astyanax.util.TimeUUIDUtils;
-import org.springframework.util.CollectionUtils;
 
 /**
  * Default database client implementation
@@ -1106,7 +1100,7 @@ public class DbClientImpl implements DbClient {
 
         List<URI> objectsToCleanup = insertNewColumns(context, dataobjects);
         if (updateIndex && !objectsToCleanup.isEmpty()) {
-            Rows<String, CompositeColumnName> rows = fetchNewest(clazz, getKeyspace(clazz), objectsToCleanup);
+            Map<String, List<CompositeColumnName>> rows = fetchNewest(clazz, getDbClientContext(clazz), objectsToCleanup);
             cleanupOldColumns(clazz, rows);
         }
     }
@@ -1123,7 +1117,7 @@ public class DbClientImpl implements DbClient {
                 throw new IllegalArgumentException();
             }
             if (doType.needPreprocessing()) {
-                preprocessTypeIndexes(context.getKeyspace(), doType, object);
+                preprocessTypeIndexes(context, doType, object);
             }
             if (doType.serialize(mutator, object, new LazyLoader(this))) {
                 objectsToCleanup.add(object.getId());
@@ -1138,23 +1132,24 @@ public class DbClientImpl implements DbClient {
         return objectsToCleanup;
     }
 
-    protected <T extends DataObject> Rows<String, CompositeColumnName> fetchNewest(Class<? extends T> clazz, Keyspace ks,
+    protected <T extends DataObject> Map<String, List<CompositeColumnName>> fetchNewest(Class<? extends T> clazz, DbClientContext context,
             List<URI> objectsToCleanup) {
         DataObjectType doType = TypeMap.getDoType(clazz);
-        return queryRowsWithAllColumns(ks, objectsToCleanup, doType.getCF());
+        return queryRowsWithAllColumns(context, objectsToCleanup, doType.getCF().getName());
     }
 
-    protected <T extends DataObject> void cleanupOldColumns(Class<? extends T> clazz, Rows<String, CompositeColumnName> rows) {
+    protected <T extends DataObject> void cleanupOldColumns(Class<? extends T> clazz, Map<String, List<CompositeColumnName>> rows) {
         // cleanup old entries for indexed columns
         // CHECK - persist is called only with same object types for now
         // not sure, if this is an assumption we can make
         DataObjectType doType = TypeMap.getDoType(clazz);
         IndexCleanupList cleanList = new IndexCleanupList();
-        for (Row<String, CompositeColumnName> row : rows) {
-            if (row.getColumns().size() == 0) {
+        for (String rowKey : rows.keySet()) {
+            List<CompositeColumnName> columns = rows.get(rowKey);
+            if (columns.size() == 0) {
                 continue;
             }
-            doType.deserialize(clazz, row, cleanList, new LazyLoader(this));
+            doType.deserialize(clazz, rowKey, columns, cleanList, new LazyLoader(this));
         }
         if (!cleanList.isEmpty()) {
             boolean retryFailedWriteWithLocalQuorum = shouldRetryFailedWriteWithLocalQuorum(clazz);
@@ -1165,20 +1160,21 @@ public class DbClientImpl implements DbClient {
         }
     }
 
-    private <T extends DataObject> void preprocessTypeIndexes(Keyspace ks, DataObjectType doType, T object) {
+    private <T extends DataObject> void preprocessTypeIndexes(DbClientContext context, DataObjectType doType, T object) {
         //todo replace Row/Keyspace in this methods
         boolean queried = false;//todo seems 'queried' is useless?
-        Row<String, CompositeColumnName> row = null;
+        Map<String, List<CompositeColumnName>> rows = null;
 
         // Before serializing an object, we might need to set referenced fields.
         List<ColumnField> refColumns = doType.getRefUnsetColumns(object);
         if (!refColumns.isEmpty()) {
             if (!queried) {
-                row = queryRowWithAllColumns(ks, object.getId(), doType.getCF());
+                rows = queryRowWithAllColumns(context, object.getId(), doType.getCF().getName());
                 queried = true;
             }
-            if (row != null && row.getColumns().size() != 0) {
-                doType.deserializeColumns(object, row, refColumns, true);
+            if (rows != null && rows.size() != 0) {
+                String rowKey = object.getId().toString();
+                doType.deserializeColumns(object, rows.get(object.getId()), refColumns, true);
             }
         }
 
@@ -1186,12 +1182,13 @@ public class DbClientImpl implements DbClient {
         List<ColumnField> depColumns = doType.getDependentForModifiedColumns(object);
         if (!depColumns.isEmpty()) {
             if (!queried) {
-                row = queryRowWithAllColumns(ks, object.getId(), doType.getCF());
+                rows = queryRowWithAllColumns(context, object.getId(), doType.getCF().getName());
                 queried = true;
             }
             // get object with value for dependent fields.
-            if (row != null && row.getColumns().size() != 0) {
-                doType.deserializeColumns(object, row, depColumns, false);
+            if (rows != null && rows.size() != 0) {
+                String rowKey = object.getId().toString();
+                doType.deserializeColumns(object, rows.get(rowKey), depColumns, false);
             }
         }
     }
@@ -1464,74 +1461,6 @@ public class DbClientImpl implements DbClient {
     @Override
     public TimeSeriesMetadata queryTimeSeriesMetadata(Class<? extends TimeSeries> tsType) {
         return TypeMap.getTimeSeriesType(tsType);
-    }
-
-    /**
-     * Convenience helper that queries for a single row with given id
-     * @deprecated
-     * @param id row key
-     * @param cf column family
-     * @return matching row.
-     * @throws DatabaseException
-     */
-    private Row<String, CompositeColumnName> queryRowWithAllColumns(Keyspace ks, URI id,
-            ColumnFamily<String, CompositeColumnName> cf) {
-        Rows<String, CompositeColumnName> result = queryRowsWithAllColumns(ks, Arrays.asList(id), cf);
-        Row<String, CompositeColumnName> row = result.iterator().next();
-        if (row.getColumns().size() == 0) {
-            return null;
-        }
-        return row;
-    }
-
-    /**
-     * Convenience helper that queries for multiple rows for collection of row
-     * keys
-     * @deprecated
-     * @param keyspace keyspace to query rows against
-     * @param ids row keys
-     * @param cf column family
-     * @return matching rows
-     * @throws DatabaseException
-     */
-    protected Rows<String, CompositeColumnName> queryRowsWithAllColumns(Keyspace keyspace,
-            Collection<URI> ids, ColumnFamily<String, CompositeColumnName> cf) {
-        try {
-            OperationResult<Rows<String, CompositeColumnName>> result =
-                    keyspace.prepareQuery(cf)
-                            .getKeySlice(convertUriCollection(ids))
-                            .execute();
-            return result.getResult();
-        } catch (ConnectionException e) {
-            throw DatabaseException.retryables.connectionFailed(e);
-        }
-    }
-
-    /**
-     * Convenience helper that queries for multiple rows for collection of row
-     * keys for a single column
-     * @deprecated
-     * @param ids row keys.
-     * @param cf column family
-     * @param column column field for the column to query
-     * @return matching rows
-     * @throws DatabaseException
-     */
-
-    protected Rows<String, CompositeColumnName> queryRowsWithAColumn(Keyspace keyspace,
-            Collection<URI> ids, ColumnFamily<String, CompositeColumnName> cf, ColumnField column) {
-        try {
-            OperationResult<Rows<String, CompositeColumnName>> result;
-            result = keyspace.prepareQuery(cf)
-                    .getKeySlice(convertUriCollection(ids))
-                    .withColumnRange(CompositeColumnNameSerializer.get().buildRange()
-                            .greaterThanEquals(column.getName())
-                            .lessThanEquals(column.getName()))
-                    .execute();
-            return result.getResult();
-        } catch (ConnectionException e) {
-            throw DatabaseException.retryables.connectionFailed(e);
-        }
     }
     
     protected Map<String, List<CompositeColumnName>> queryRowsWithAColumn(DbClientContext context, Collection<URI> ids, String tableName, ColumnField column) {
@@ -1971,7 +1900,7 @@ public class DbClientImpl implements DbClient {
         return toColumnMap(resultSet);
     }
 
-    private Map<String, List<CompositeColumnName>> toColumnMap(ResultSet resultSet) {
+    protected Map<String, List<CompositeColumnName>> toColumnMap(ResultSet resultSet) {
         Map<String, List<CompositeColumnName>> result = new HashMap<String, List<CompositeColumnName>>();
         List<CompositeColumnName> rows = null;
         String lastKey = null;

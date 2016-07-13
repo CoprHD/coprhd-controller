@@ -30,9 +30,7 @@ import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.EncryptionProvider;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.exceptions.DatabaseException;
-import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnFamily;
-import com.netflix.astyanax.model.Row;
 import com.netflix.astyanax.serializers.StringSerializer;
 
 import javassist.CannotCompileException;
@@ -221,56 +219,14 @@ public class DataObjectType {
 
     /**
      * Deserializes row into data object instance
-     * @deprecated
      * @param clazz data object class
-     * @param row row
+     * @param rowkey row key
+     * @param rows raw rows queried from cassandra
      * @param cleanupList old columns that need to be deleted
      * @param <T> data object class
      * @return data object instance
      * @throws DatabaseException
      */
-    public <T extends DataObject> T deserialize(Class<T> clazz, Row<String, CompositeColumnName> row, IndexCleanupList cleanupList) {
-        return deserialize(clazz, row, cleanupList, null);
-    }
-
-    /**
-     * @deprecated
-     */
-    public <T extends DataObject> T deserialize(Class<T> clazz, Row<String, CompositeColumnName> row, IndexCleanupList cleanupList,
-            LazyLoader lazyLoader) {
-        if (!_clazz.isAssignableFrom(clazz)) {
-            throw new IllegalArgumentException();
-        }
-        try {
-            String key = row.getKey();
-            Class<? extends DataObject> type = (_instrumentedClazz == null) ? clazz : _instrumentedClazz;
-            DataObject obj = DataObject.createInstance(type, URI.create(row.getKey()));
-            Iterator<Column<CompositeColumnName>> it = row.getColumns().iterator();
-            while (it.hasNext()) {
-                Column<CompositeColumnName> column = it.next();
-                CompositeColumnName columnName = column.getName();
-                columnName.setValue(column.getByteBufferValue());
-                cleanupList.add(key, columnName);
-                ColumnField columnField = _columnFieldMap.get(column.getName().getOne());
-                if (columnField != null) {
-                    columnField.deserialize(column, obj);
-                } else {
-                    _log.debug("an unexpected column in db, it might because geo system has multiple vdc but in different version");
-                }
-            }
-            cleanupList.addObject(key, obj);
-            obj.trackChanges();
-
-            setLazyLoaders(obj, lazyLoader);
-
-            return clazz.cast(obj);
-        } catch (final InstantiationException e) {
-            throw DatabaseException.fatals.deserializationFailed(clazz, e);
-        } catch (final IllegalAccessException e) {
-            throw DatabaseException.fatals.deserializationFailed(clazz, e);
-        }
-    }
-    
     public <T extends DataObject> T deserialize(Class<T> clazz, String key, List<CompositeColumnName> rows, IndexCleanupList cleanupList,
             LazyLoader lazyLoader) {
         if (!_clazz.isAssignableFrom(clazz)) {
@@ -339,20 +295,16 @@ public class DataObjectType {
         }
     }
 
-    /**
-     * @deprecated
-     */
     <T extends DataObject> void
-            deserializeColumns(T object, Row<String, CompositeColumnName> row, List<ColumnField> columns, boolean clear) {
+            deserializeColumns(T object, List<CompositeColumnName> rows, List<ColumnField> columns, boolean clear) {
 
         Map<String, ColumnField> columnMap = new HashMap<String, ColumnField>();
         for (ColumnField column : columns) {
             columnMap.put(column.getName(), column);
         }
-        Iterator<Column<CompositeColumnName>> it = row.getColumns().iterator();
-        while (it.hasNext()) {
-            Column<CompositeColumnName> column = it.next();
-            ColumnField columnField = columnMap.get(column.getName().getOne());
+
+        for (CompositeColumnName column : rows){
+            ColumnField columnField = columnMap.get(column.getOne());
             if (columnField != null) {
                 columnField.deserialize(column, object);
             }

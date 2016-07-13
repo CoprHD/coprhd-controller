@@ -518,10 +518,6 @@ public class SchemaUtil {
             return false;
         }
         
-        if (_vdcList.size() == 1 && strategyOptions.size() == 1 && !strategyOptions.containsKey(dcName) && !isDrConfig) {
-            strategyOptions.clear();
-        }
-
         _log.info("Add {} to strategy options", dcName);
         strategyOptions.put(dcName, Integer.toString(getReplicationFactor()));
         return true;

@@ -50,7 +50,6 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Ttl;
 import com.emc.storageos.db.client.model.AggregatedIndex;
 import com.emc.storageos.db.exceptions.DatabaseException;
-import com.netflix.astyanax.ColumnListMutation;
 import com.netflix.astyanax.model.ByteBufferRange;
 import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnFamily;
@@ -301,14 +300,6 @@ public class ColumnField {
      * @param obj object containing this field
      * @throws DatabaseException
      */
-    public void deserialize(Column<CompositeColumnName> column, Object obj) {
-        if (_encrypt && _parentType.getEncryptionProvider() != null) {
-            deserializeEncryptedColumn(column, obj, _parentType.getEncryptionProvider());
-        } else {
-            ColumnValue.setField(column, _property, obj);
-        }
-    }
-    
     public void deserialize(CompositeColumnName compositeColumnName, Object obj) {
         if (_encrypt && _parentType.getEncryptionProvider() != null) {
             deserializeEncryptedColumn(compositeColumnName, obj, _parentType.getEncryptionProvider());
@@ -325,18 +316,6 @@ public class ColumnField {
      * @param encryptionProvider the encryption provider used to decrypt the column
      * @throws DatabaseException
      */
-    public void deserializeEncryptedColumn(Column<CompositeColumnName> column, Object obj,
-            EncryptionProvider encryptionProvider) {
-        if (!_encrypt) {
-            throw new IllegalArgumentException("column is not encrypted");
-        }
-
-        if (encryptionProvider == null) {
-            throw new IllegalArgumentException("null encryption provider");
-        }
-        ColumnValue.setEncryptedStringField(column, _property, obj, encryptionProvider);
-    }
-    
     public void deserializeEncryptedColumn(CompositeColumnName compositeColumnName, Object obj,
             EncryptionProvider encryptionProvider) {
         if (!_encrypt) {

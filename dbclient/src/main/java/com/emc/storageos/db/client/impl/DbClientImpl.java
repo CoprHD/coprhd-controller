@@ -321,19 +321,6 @@ public class DbClientImpl implements DbClient {
     }
 
     /**
-     * returns either local or geo keyspace depending on class annotation or id of dataObj,
-     * for query requests only
-     *
-     * @deprecated
-     * @param dataObj
-     * @return
-     */
-    protected Keyspace getKeyspace(DataObject dataObj) {
-        Class<? extends DataObject> clazz = dataObj.getClass();
-        return getKeyspace(clazz);
-    }
-
-    /**
      * returns either local or geo keyspace depending on class annotation of clazz,
      * for query requests only
      *
@@ -1174,10 +1161,11 @@ public class DbClientImpl implements DbClient {
             }
             if (rows != null && rows.size() != 0) {
                 String rowKey = object.getId().toString();
-                doType.deserializeColumns(object, rows.get(object.getId()), refColumns, true);
+                doType.deserializeColumns(object, rows.get(rowKey), refColumns, true);
             }
         }
 
+        rows = null;
         // We also might need to update dependent fields before serializing an object
         List<ColumnField> depColumns = doType.getDependentForModifiedColumns(object);
         if (!depColumns.isEmpty()) {

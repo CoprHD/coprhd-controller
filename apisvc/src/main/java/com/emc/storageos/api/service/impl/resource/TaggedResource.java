@@ -20,6 +20,11 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
+
+import com.emc.storageos.db.client.model.TenantOrg;
+import com.emc.storageos.svcs.errorhandling.resources.BadRequestExceptions;
+import org.apache.commons.lang.StringUtils;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -154,6 +159,43 @@ public abstract class TaggedResource extends ResourceService {
         } else {
             return tenantOwner.toString();
         }
+    }
+
+
+    /**
+     * Get tenant object from id
+     *
+     * it will also check if user have access to the tenant, return the tenant if:
+     *   1. it is user's home tenant
+     *   2. it is a subtenant which user has tenant role.
+     *
+     * or else throw insufficient permission exception.
+     *
+     * @param tenantId the URN of a ViPR tenant
+     * @return
+     */
+    protected TenantOrg getTenantIfHaveAccess(String tenantId) {
+        if (!StringUtils.isEmpty(tenantId)) {
+            URI tenantUri = URI.create(tenantId);
+            TenantOrg org = _permissionsHelper.getObjectById(tenantUri, TenantOrg.class);
+            ArgValidator.checkEntity(org, tenantUri, isIdEmbeddedInURL(tenantUri), true);
+
+            // check user has access to the input tenant
+            StorageOSUser user = getUserFromContext();
+            if (org.getId().toString().equals(user.getTenantId())) {
+                return org;
+            } else {
+                for (String subTenantId : _permissionsHelper.getSubtenantsForUser(user)){
+                    if (org.getId().toString().equals(subTenantId)) {
+                        return org;
+                    }
+                }
+
+                throw APIException.forbidden.insufficientPermissionsForUser(user.getName());
+            }
+        }
+
+        return null;
     }
 
     /**

@@ -150,7 +150,17 @@ public abstract class AbstractPermissionFilter implements ResourceFilter, Contai
                     throw APIException.forbidden.failedReadingProjectACLs(ex);
                 }
             } else { /* other resource acls */
+                // these acls are assigned to tenant, so enhanced to check not only user's home tenant,
+                // but also need to take into consideration of subtenants, which user has tenant roles.
                 acls = getUsageAclsFromURI(user.getTenantId(), getUriInfo());
+                for (String subtenantId : _permissionsHelper.getSubtenantsForUser(user)) {
+                    Set<String> subTenantAcls = getUsageAclsFromURI(subtenantId, getUriInfo());
+                    if (acls == null) {
+                        acls = subTenantAcls;
+                    } else if (subTenantAcls != null) {
+                        acls.addAll(subTenantAcls);
+                    }
+                }
             }
             // see if we got any and we got a hit
             if (acls != null) {

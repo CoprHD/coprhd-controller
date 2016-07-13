@@ -182,7 +182,7 @@ adg_motd() {
 # HACK - ovftool install
 #--------------------------------------
 adg_ovftoolInstall() {
-    rpm -Uvh http://pld-imgapprd01.isus.emc.com:8081/artifactory/adg-icc/x86_64/vmware-ovftool/3.5.0-1274719/VMware-ovftool-3.5.0-1274719.x86_64.rpm
+    rpm -Uvh http://asdrepo.isus.emc.com:8081/artifactory/adg-icc/x86_64/vmware-ovftool/3.5.0-1274719/VMware-ovftool-3.5.0-1274719.x86_64.rpm
 }
 
 #======================================

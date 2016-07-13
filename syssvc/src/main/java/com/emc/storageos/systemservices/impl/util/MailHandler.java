@@ -29,6 +29,7 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 
 public class MailHandler {
 
@@ -54,14 +55,6 @@ public class MailHandler {
         String to = getMailAddressOfUser("root");
         if (to == null || to.isEmpty()) {
             log.warn("Can't send mail alert, no email address for root user");
-
-            // audit the mail sent failure
-            auditLogManager.recordAuditLog(
-                    null, null, "syssvc",
-                    OperationTypeEnum.SEND_STANDBY_NETWORK_BROKEN_MAIL,
-                    System.currentTimeMillis(),
-                    AuditLogManager.AUDITLOG_FAILURE,
-                    null, site.getName());
             return;
         }
 
@@ -73,14 +66,6 @@ public class MailHandler {
         String content = MailHelper.readTemplate("StandbySiteBroken.html");
         content = MailHelper.parseTemplate(parameters, content);
         getMailHelper().sendMailMessage(to, title, content);
-
-        // audit the mail sent success
-        auditLogManager.recordAuditLog(
-                null, null, "syssvc",
-                OperationTypeEnum.SEND_STANDBY_NETWORK_BROKEN_MAIL,
-                new Date().getTime(),
-                AuditLogManager.AUDITLOG_SUCCESS,
-                null, site.getName());
     }
 
     /**
@@ -93,35 +78,16 @@ public class MailHandler {
         String to = getMailAddressOfUser("root");
         if (to == null || to.isEmpty()) {
             log.warn("Can't send mail alert, no email address for root user");
-
-            auditLogManager.recordAuditLog(
-                    null, null, "syssvc",
-                    OperationTypeEnum.SEND_STANDBY_DEGRADED_MAIL,
-                    System.currentTimeMillis(),
-                    AuditLogManager.AUDITLOG_FAILURE,
-                    null,
-                    siteName,
-                    degradeTime);
             return;
         }
 
         Map<String, String> params = Maps.newHashMap();
         params.put("siteName", siteName);
-        params.put("degradeTime", degradeTime);
+        params.put("degradeTime", String.format("%s (TimeZone: %s)", degradeTime, TimeZone.getDefault().getID()));
         String title = String.format("ATTENTION - %s site has been marked as STANDBY_DEGRADED state", siteName);
         String content = MailHelper.readTemplate("StandbySiteDegraded.html");
         content = MailHelper.parseTemplate(params, content);
         getMailHelper().sendMailMessage(to, title, content);
-
-        auditLogManager.recordAuditLog(
-                null, null, "syssvc",
-                OperationTypeEnum.SEND_STANDBY_DEGRADED_MAIL,
-                System.currentTimeMillis(),
-                AuditLogManager.AUDITLOG_SUCCESS,
-                null,
-                siteName,
-                degradeTime,
-                to);
     }
 
     private MailHelper getMailHelper() {

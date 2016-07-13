@@ -10,14 +10,13 @@ import java.util.List;
 
 import org.apache.commons.lang.StringUtils;
 
-import util.EnumOption;
-import util.StorageSystemTypeUtils;
-import util.StringOption;
-
 import com.emc.storageos.db.server.impl.StorageSystemTypesInitUtils;
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeList;
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeRestRep;
 import com.google.common.collect.Lists;
+
+import util.StorageSystemTypeUtils;
+import util.StringOption;
 
 public class StorageSystemTypes {
     private static final String OPTION_PREFIX = "StorageSystemType";
@@ -25,6 +24,7 @@ public class StorageSystemTypes {
     public static final String ISILON = "isilon";
     public static final String VNX_BLOCK = "vnxblock";
     public static final String VNXe = "vnxe";
+    public static final String UNITY = "unity";
     public static final String VNX_FILE = "vnxfile";
     public static final String VMAX = "vmax";
     public static final String NETAPP = "netapp";
@@ -38,6 +38,7 @@ public class StorageSystemTypes {
     public static final String XTREMIO = "xtremio";
     public static final String DATA_DOMAIN = "datadomain";
     public static final String ECS = "ecs";
+    public static final String CEPH = "ceph";
     private static final String SMIS = "smis";
     
     public static final String STORAGE_PROVIDER_VMAX = "STORAGE_PROVIDER.vmax";
@@ -49,16 +50,12 @@ public class StorageSystemTypes {
     public static final String STORAGE_PROVIDER_DATA_DOMAIN = "STORAGE_PROVIDER.ddmc";
     public static final String STORAGE_PROVIDER_IBMXIV = "STORAGE_PROVIDER.ibmxiv";
     public static final String STORAGE_PROVIDER_XTREMIO = "STORAGE_PROVIDER.xtremio";
+    public static final String STORAGE_PROVIDER_CEPH = "STORAGE_PROVIDER.ceph";
 
-    public static final String[] BLOCK_TYPES = { VMAX, VNX_BLOCK, VPLEX,
-            HITACHI, OPENSTACK, SCALEIO, SCALEIOAPI, XTREMIO, VNXe, IBMXIV };
-    public static final String[] FILE_TYPES = { ISILON, VNX_FILE, NETAPP,
-            DATA_DOMAIN, VNXe, NETAPPC };
-    public static final String[] STORAGE_PROVIDER_TYPES = { VMAX, VNX_BLOCK,
-            HITACHI, VPLEX, OPENSTACK, SCALEIO, SCALEIOAPI, DATA_DOMAIN,
-            IBMXIV, XTREMIO };
-    public static final String[] NON_SMIS_TYPES = { ISILON, VNX_FILE, NETAPP,
-            XTREMIO, VNXe, NETAPPC, ECS };
+    public static final String[] BLOCK_TYPES = { VMAX, VNX_BLOCK, VPLEX, HITACHI, OPENSTACK, SCALEIO, SCALEIOAPI, XTREMIO, VNXe, IBMXIV, CEPH, UNITY };
+    public static final String[] FILE_TYPES = { ISILON, VNX_FILE, NETAPP, DATA_DOMAIN, VNXe, UNITY, NETAPPC };
+    public static final String[] STORAGE_PROVIDER_TYPES = { VMAX, VNX_BLOCK, HITACHI, VPLEX, OPENSTACK, SCALEIO, SCALEIOAPI, DATA_DOMAIN, IBMXIV, XTREMIO, CEPH };
+    public static final String[] NON_SMIS_TYPES = { ISILON, VNX_FILE, NETAPP, XTREMIO, VNXe, UNITY, NETAPPC, ECS };
 
     public static boolean isNone(String type) {
         return NONE.equals(type);
@@ -95,9 +92,13 @@ public class StorageSystemTypes {
     public static boolean isScaleIO(String type) {
         return SCALEIO.equals(type);
     }
-
+    
     public static boolean isScaleIOApi(String type) {
-        return SCALEIOAPI.equals(type);
+    	return SCALEIOAPI.equals(type);
+    }
+
+    public static boolean isCeph(String type) {
+    	return CEPH.equals(type);
     }
 
     public static boolean isXtremIO(String type) {
@@ -108,10 +109,14 @@ public class StorageSystemTypes {
         return VNXe.equals(type);
     }
 
-    public static boolean isECS(String type) {
-        return ECS.equals(type);
+    public static boolean isUnity(String type) {
+        return UNITY.equals(type);
     }
 
+    public static boolean isECS(String type) {
+    	return ECS.equals(type);
+    }
+    
     public static boolean isFileStorageSystem(String type) {
         return contains(FILE_TYPES, type);
     }
@@ -165,7 +170,7 @@ public class StorageSystemTypes {
                 if (null != arrayProviderMap.get(storagetypeRest.getStorageTypeName())) {
                     if(StringUtils.equals(VMAX, storagetypeRest.getStorageTypeName())) {
                         allproviders.add(new StringOption(SMIS, arrayProviderMap.get(storagetypeRest.getStorageTypeName())));
-                    }
+}
                     else {
                         allproviders.add(new StringOption(storagetypeRest.getStorageTypeName(), arrayProviderMap.get(storagetypeRest
                             .getStorageTypeName())));
@@ -324,4 +329,20 @@ public class StorageSystemTypes {
         return allproviders;
     }
 
+    public static List<StringOption> getProvidersWithSecretKey() {
+        String alltypes = "all";
+        List<StringOption> allproviders = new ArrayList<StringOption>();
+        StorageSystemTypeList storagetypelist = StorageSystemTypeUtils
+                .getAllStorageSystemTypes(alltypes);
+        for (StorageSystemTypeRestRep storagetypeRest : storagetypelist
+                .getStorageSystemTypes()) {
+            if (storagetypeRest.getIsSecretKey()) {
+                allproviders.add(new StringOption(storagetypeRest
+                        .getStorageTypeName(), storagetypeRest
+                        .getStorageTypeDispName()));
+            }
+        }
+
+        return allproviders;
+    }
 }

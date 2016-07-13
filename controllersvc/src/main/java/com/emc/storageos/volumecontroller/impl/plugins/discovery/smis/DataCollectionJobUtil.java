@@ -107,6 +107,14 @@ public class DataCollectionJobUtil {
                         ((StorageProvider) taskObject).getInterfaceType())) {
             populateXtremIOAccessProfile(profile, (StorageProvider) taskObject);
         } else if (clazz == StorageProvider.class &&
+                StorageProvider.InterfaceType.ceph.name().equalsIgnoreCase(
+                        ((StorageProvider) taskObject).getInterfaceType())) {
+            populateCephAccessProfile(profile, (StorageProvider) taskObject);
+        } else if (clazz == StorageProvider.class &&
+                StorageProvider.InterfaceType.unity.name().equalsIgnoreCase(
+                        ((StorageProvider) taskObject).getInterfaceType())) {
+            populateUnityAccessProfile(profile, (StorageProvider) taskObject);
+        } else if (clazz == StorageProvider.class &&
                 StorageSystem.Type.isDriverManagedStorageProvider(((StorageProvider) taskObject).getInterfaceType())){
             populateExternalProviderAccessProfile(profile, (StorageProvider) taskObject);
         } else if (clazz == StorageSystem.class) {
@@ -360,6 +368,38 @@ public class DataCollectionJobUtil {
         accessProfile.setPortNumber(providerInfo.getPortNumber());
         accessProfile.setSslEnable(String.valueOf(providerInfo.getUseSSL()));
     }
+    
+    /**
+     * inject details needed for Scanning
+     * 
+     * @param accessProfile
+     * @param providerInfo
+     */
+    private void populateUnityAccessProfile(AccessProfile accessProfile, StorageProvider providerInfo) {
+        accessProfile.setSystemId(providerInfo.getId());
+        accessProfile.setSystemClazz(providerInfo.getClass());
+        accessProfile.setIpAddress(providerInfo.getIPAddress());
+        accessProfile.setUserName(providerInfo.getUserName());
+        accessProfile.setPassword(providerInfo.getPassword());
+        accessProfile.setSystemType(DiscoveredDataObject.Type.unity.name());
+        accessProfile.setPortNumber(providerInfo.getPortNumber());
+        accessProfile.setSslEnable(String.valueOf(providerInfo.getUseSSL()));
+    }
+
+    /**
+     * inject details needed for Scanning
+     *
+     * @param accessProfile
+     * @param providerInfo
+     */
+    private void populateCephAccessProfile(AccessProfile accessProfile, StorageProvider providerInfo) {
+        accessProfile.setSystemId(providerInfo.getId());
+        accessProfile.setSystemClazz(providerInfo.getClass());
+        accessProfile.setIpAddress(providerInfo.getIPAddress());
+        accessProfile.setUserName(providerInfo.getUserName());
+        accessProfile.setPassword(providerInfo.getPassword());
+        accessProfile.setSystemType("ceph");
+    }
 
     /**
      * inject Details needed for Discovery
@@ -555,6 +595,14 @@ public class DataCollectionJobUtil {
             }
         } else if (storageDevice.getSystemType().equals(Type.hds.toString())) {
             populateHDSAccessProfile(accessProfile, storageDevice, nameSpace);
+        }  else if (storageDevice.getSystemType().equals(
+                Type.ceph.toString())) {
+            accessProfile.setSystemType(storageDevice.getSystemType());
+            accessProfile.setIpAddress(storageDevice.getSmisProviderIP());
+            accessProfile.setUserName(storageDevice.getSmisUserName());
+            accessProfile.setserialID(storageDevice.getSerialNumber());
+            accessProfile.setPassword(storageDevice.getSmisPassword());
+            accessProfile.setLastSampleTime(0L);
         } else if (StorageSystem.Type.isDriverManagedStorageSystem(storageDevice.getSystemType())) {
             if (StorageSystem.Type.isProviderStorageSystem(storageDevice.getSystemType())) {
                 injectDiscoveryProfile(accessProfile, storageDevice);
@@ -567,9 +615,15 @@ public class DataCollectionJobUtil {
                 accessProfile.setPassword(storageDevice.getPassword());
                 accessProfile.setPortNumber(storageDevice.getPortNumber());
                 accessProfile.setLastSampleTime(0L);
-                if (null != nameSpace) {
-                    accessProfile.setnamespace(nameSpace);
-                }
+            }
+            if (null != nameSpace) {
+                accessProfile.setnamespace(nameSpace);
+            }
+        } else if (storageDevice.getSystemType().equals(
+                Type.unity.toString())) {
+            populateUnityAccessProfileForSystem(accessProfile, storageDevice);
+            if (null != nameSpace) {
+                accessProfile.setnamespace(nameSpace);
             }
         } else {
             throw new RuntimeException("populateAccessProfile: Device type unknown : "
@@ -633,6 +687,34 @@ public class DataCollectionJobUtil {
 
     }
 
+    /**
+     * Populate access profile for storage system.
+     * If it has active provider, it will populate the access profile from provider info,
+     * otherwise, it will populate the access profile from the storage system.
+     * @param accessProfile
+     * @param storageDevice
+     */
+    private void populateUnityAccessProfileForSystem(AccessProfile accessProfile, StorageSystem storageDevice) {
+        URI providerUri = storageDevice.getActiveProviderURI();
+        if (!NullColumnValueGetter.isNullURI(providerUri)) {
+            StorageProvider provider = _dbClient.queryObject(StorageProvider.class, providerUri);
+            accessProfile.setSystemType(storageDevice.getSystemType());
+            accessProfile.setIpAddress(provider.getIPAddress());
+            accessProfile.setUserName(provider.getUserName());
+            accessProfile.setPassword(provider.getPassword());
+            accessProfile.setserialID(storageDevice.getSerialNumber());
+            accessProfile.setPortNumber(provider.getPortNumber());
+            accessProfile.setLastSampleTime(0L);
+        } else {
+            accessProfile.setSystemType(storageDevice.getSystemType());
+            accessProfile.setIpAddress(storageDevice.getIpAddress());
+            accessProfile.setUserName(storageDevice.getUsername());
+            accessProfile.setPassword(storageDevice.getPassword());
+            accessProfile.setserialID(storageDevice.getSerialNumber());
+            accessProfile.setPortNumber(storageDevice.getPortNumber());
+            accessProfile.setLastSampleTime(0L);
+        }
+    }
     /**
      * If storageDevice is not AMS, use embedded provider else HCS ipAddress.
      * 

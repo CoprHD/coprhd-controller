@@ -41,6 +41,7 @@ import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup;
+import com.emc.storageos.db.client.model.RemoteDirectorGroup.SupportedCopyModes;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
@@ -408,8 +409,12 @@ public class SRDFUtils implements SmisConstants {
             for (String nativeGuid : nativeGuids) {
                 group.getVolumes().remove(nativeGuid);
             }
-            dbClient.persistObject(group);
         }
+        if (group.getVolumes() == null || group.getVolumes().isEmpty()) {
+            group.setSupportedCopyMode(SupportedCopyModes.ALL.toString());
+            log.info("RDF Group {} copyMode has been changed to ALL", group.getId());
+        }
+        dbClient.updateObject(group);
     }
 
     private Function<CIMObjectPath, SynchronizedVolumePair> toSynchronizedVolumePairFn() {

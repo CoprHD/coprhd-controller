@@ -49,7 +49,7 @@ public class HealthMonitor {
      * @return The stats response
      */
     public StatsRestRep getStats() {
-        return getStats(null, null);
+        return getStats(null, null, null);
     }
 
     /**
@@ -64,7 +64,10 @@ public class HealthMonitor {
      * API Call: GET /monitor/stats
      * 
      * @return The stats response
+     * @deprecated Replaced by
+     * @see #getStats(List, List, Integer)
      */
+    @Deprecated
     public StatsRestRep getStats(List<String> nodeIds, Integer interval) {
         UriBuilder builder = client.uriBuilder(MONITOR_STATS_URL);
         addQueryParam(builder, NODE_ID_PARAM, nodeIds);
@@ -86,9 +89,14 @@ public class HealthMonitor {
      *
      * @return The stats response
      */
-    public StatsRestRep getStatsByNodeName(List<String> nodeNames, Integer interval) {
+    public StatsRestRep getStats(List<String> nodeIds, List<String> nodeNames, Integer interval) {
         UriBuilder builder = client.uriBuilder(MONITOR_STATS_URL);
-        addQueryParam(builder, NODE_NAME_PARAM, nodeNames);
+        if ((nodeIds != null) && (!nodeIds.isEmpty())) {
+            addQueryParam(builder, NODE_ID_PARAM, nodeIds);
+        }
+        if ((nodeNames != null) && (!nodeNames.isEmpty())) {
+            addQueryParam(builder, NODE_NAME_PARAM, nodeNames);
+        }
         addQueryParam(builder, INTERVAL_PARAM, interval);
 
         return client.getURI(StatsRestRep.class, builder.build());
@@ -109,7 +117,7 @@ public class HealthMonitor {
      * @return The health response
      */
     public HealthRestRep getHealth() {
-        return getHealth(null);
+        return getHealth(null, null);
     }
 
     /**
@@ -126,7 +134,10 @@ public class HealthMonitor {
      * 
      * @param nodeIds Node ids for which health stats are collected.
      * @return The health response
+     * @deprecated Replaced by
+     * @see #getHealth(List, List)
      */
+    @Deprecated
     public HealthRestRep getHealth(List<String> nodeIds) {
         UriBuilder builder = client.uriBuilder(MONITOR_HEALTH_URL);
         addQueryParam(builder, NODE_ID_PARAM, nodeIds);
@@ -146,12 +157,18 @@ public class HealthMonitor {
      * <p>
      * API Call: GET /monitor/health
      *
+     * @param nodeIds Node ids for which health stats are collected.
      * @param nodeNames Node names for which health stats are collected.
      * @return The health response
      */
-    public HealthRestRep getHealthByNodeName(List<String> nodeNames) {
+    public HealthRestRep getHealth(List<String> nodeIds, List<String> nodeNames) {
         UriBuilder builder = client.uriBuilder(MONITOR_HEALTH_URL);
-        addQueryParam(builder, NODE_NAME_PARAM, nodeNames);
+        if ((nodeIds != null) && (!nodeIds.isEmpty())) {
+            addQueryParam(builder, NODE_ID_PARAM, nodeIds);
+        }
+        if ((nodeNames != null) && (!nodeNames.isEmpty())) {
+            addQueryParam(builder, NODE_NAME_PARAM, nodeNames);
+        }
 
         return client.getURI(HealthRestRep.class, builder.build());
     }
@@ -165,7 +182,10 @@ public class HealthMonitor {
      * @param nodeIds Node ids for which diagnostic results are collected.
      * @param verbose If true, will run command with -v option.
      * @return The diagnostic test results
+     * @deprecated Replaced by
+     * @see #getDiagnostics(List, List, boolean)
      */
+    @Deprecated
     public DiagnosticsRestRep getDiagnostics(List<String> nodeIds, boolean verbose) {
         UriBuilder builder = client.uriBuilder(MONITOR_DIAGNOSTICS_URL);
         addQueryParam(builder, NODE_ID_PARAM, nodeIds);
@@ -182,13 +202,19 @@ public class HealthMonitor {
      * <p>
      * API Call: GET /monitor/diagnostics
      *
+     * @param nodeIds Node names for which diagnostic results are collected.
      * @param nodeNames Node names for which diagnostic results are collected.
      * @param verbose If true, will run command with -v option.
      * @return The diagnostic test results
      */
-    public DiagnosticsRestRep getDiagnosticsByNodeName(List<String> nodeNames, boolean verbose) {
+    public DiagnosticsRestRep getDiagnostics(List<String> nodeIds, List<String> nodeNames, boolean verbose) {
         UriBuilder builder = client.uriBuilder(MONITOR_DIAGNOSTICS_URL);
-        addQueryParam(builder, NODE_NAME_PARAM, nodeNames);
+        if ((nodeIds != null) && (!nodeIds.isEmpty())) {
+            addQueryParam(builder, NODE_ID_PARAM, nodeIds);
+        }
+        if ((nodeNames != null) && (!nodeNames.isEmpty())) {
+            addQueryParam(builder, NODE_NAME_PARAM, nodeNames);
+        }
         if (verbose) {
             addQueryParam(builder, VERBOSE_PARAM, VERBOSE);
         }
@@ -199,12 +225,27 @@ public class HealthMonitor {
     /**
      * Gets the diagnostic results for all virtual machines in a ViPR
      * controller appliance. Non-verbose.
-     * 
+     *
      * @param nodeIds Node ids for which diagnostic results are collected.
      * @return
+     * @deprecated Replaced by
+     * @see #getDiagnostics(List, List)
      */
+    @Deprecated
     public DiagnosticsRestRep getDiagnostics(List<String> nodeIds) {
         return getDiagnostics(nodeIds, false);
+    }
+
+    /**
+     * Gets the diagnostic results for all virtual machines in a ViPR
+     * controller appliance. Non-verbose.
+     *
+     * @param nodeIds Node ids for which diagnostic results are collected.
+     * @param nodeNames Node names for which diagnostic results are collected.
+     * @return
+     */
+    public DiagnosticsRestRep getDiagnostics(List<String> nodeIds, List<String> nodeNames) {
+        return getDiagnostics(nodeIds, nodeNames, false);
     }
 
     /**

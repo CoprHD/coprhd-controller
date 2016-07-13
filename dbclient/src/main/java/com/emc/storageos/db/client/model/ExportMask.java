@@ -261,7 +261,7 @@ public class ExportMask extends DataObject {
                 // OR
                 // - it is not the LUN_UNASSIGNED value
                 if (!_volumes.containsKey(entry.getKey().toString()) ||
-                        hlu != ExportGroup.LUN_UNASSIGNED) {
+                        (hlu != null && hlu != ExportGroup.LUN_UNASSIGNED)) {
                     _volumes.put(entry.getKey().toString(), hlu.toString());
                 }
             }

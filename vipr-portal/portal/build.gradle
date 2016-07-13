@@ -56,7 +56,7 @@ dependencies {
             project(":vipr-client"),
             "org.lesscss:lesscss:1.7.0.1.1"
     webjar "org.webjars:jquery:1.11.1",
-           "org.webjars:angularjs:1.2.18",
+           "org.webjars:angularjs:1.2.21",
            "org.webjars:datatables:1.9.4",
            "org.webjars:momentjs:2.8.2",
            "org.webjars:chosen:1.1.0",

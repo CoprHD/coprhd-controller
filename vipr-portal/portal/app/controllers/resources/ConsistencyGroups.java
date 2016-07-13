@@ -170,13 +170,7 @@ public class ConsistencyGroups extends Controller {
 
 		public void validate(String formName) {
 			Validation.valid(formName, this);
-			if (!validateCGName(this.name)) {
-				Validation.addError(formName + ".name", "consistencyGroups.invalid.name.error");
-			}
 		}
 
-		private static boolean validateCGName(String cgName) {
-			return CommonFormValidator.isAlphaNumericOrUnderscoreUnordered(cgName);
-		}
 	}
 }

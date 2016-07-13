@@ -8,7 +8,6 @@ import com.datastax.driver.core.BatchStatement;
 import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.querybuilder.Delete;
 import com.datastax.driver.core.utils.UUIDs;
 import com.emc.storageos.db.client.model.NamedURI;
@@ -48,6 +47,8 @@ public class RowMutatorDS {
 
     private static final String updateRecordFormat = "UPDATE \"%s\" SET value = ? WHERE key = ? AND column1 = ? AND column2 = ? AND column3 = ? AND column4 = ?";
     private static final String updateIndexFormat = "UPDATE \"%s\" SET value = ? WHERE key = ? AND column1 = ? AND column2 = ? AND column3 = ? AND column4 = ? AND column5 = ?";
+    private static final String insertTimeSeriesFormat = "INSERT INTO \"%s\" (key, column1, value) VALUES(?, ?, ?) USING TTL ?";
+    private static final String insertSchemaRecordFormat = "INSERT INTO \"%s\" (key, column1, value) VALUES(?, ?, ?)";
 
     public RowMutatorDS(DbClientContext context) {
         this.context = context;
@@ -122,6 +123,25 @@ public class RowMutatorDS {
     public void execute() {
         context.getSession().execute(atomicBatch);
         //todo executeWithRetry
+    }
+    
+    public void insertTimeSeriesColumn(String tableName, String rowKey, UUID uuid, Object val, Integer ttl) {
+        PreparedStatement insertPrepared = context.getPreparedStatement(String.format(insertTimeSeriesFormat, tableName));
+        BoundStatement insert = insertPrepared.bind();
+        insert.setString(0, rowKey);
+        insert.setUUID(1, uuid);
+        insert.setBytes(2, getByteBufferFromPrimitiveValue(val));
+        insert.setInt(3, ttl);
+        atomicBatch.add(insert);
+    }
+    
+    public void insertSchemaRecord(String tableName, String rowKey, String column, Object val) {
+        PreparedStatement insertPrepared = context.getPreparedStatement(String.format(insertSchemaRecordFormat, tableName));
+        BoundStatement insert = insertPrepared.bind();
+        insert.setString(0, rowKey);
+        insert.setString(1, column);
+        insert.setBytes(2, getByteBufferFromPrimitiveValue(val));
+        atomicBatch.add(insert);
     }
 
     public static ByteBuffer getByteBufferFromPrimitiveValue(Object val) {

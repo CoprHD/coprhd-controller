@@ -1384,6 +1384,7 @@ public class DbClientImpl implements DbClient {
             ColumnMutation mutation = getLocalKeyspace().prepareColumnMutation(type.getCf(),
                     rowId,
                     columnName);
+
             // quorum is not required since there should be no duplicates
             // for reads, clients should expect read-after-write is
             // not guaranteed for time series data.

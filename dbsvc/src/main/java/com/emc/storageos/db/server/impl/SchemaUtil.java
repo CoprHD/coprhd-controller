@@ -893,10 +893,7 @@ public class SchemaUtil {
         }
     }
 
-    /**
-     * Check if default Storage System Types are already added into DB, if not initialize
-     */
-    private boolean checkForStorageSystemType(DbClient dbClient) {
+    private void checkAndInitStorageSystemTypes(DbClient dbClient) {
         boolean storageTypeExist = true;
         List<URI> storageTypes = dbClient.queryByType(StorageSystemType.class, true);
 
@@ -915,7 +912,10 @@ public class SchemaUtil {
                 storageTypeExist = false;
             }
         }
-        return storageTypeExist;
+        if (storageTypeExist) {
+            return;
+        }
+        StorageSystemTypesInitUtils.initializeStorageSystemTypes(dbClient);
     }
 
     /**
@@ -957,9 +957,7 @@ public class SchemaUtil {
                     // insert local user's password history if not exist for local db
                     insertPasswordHistory(dbClient);
                     // Check if we have native Storage System in DB
-                    if (!checkForStorageSystemType(dbClient)) {
-                        StorageSystemTypesInitUtils.initializeStorageSystemTypes(dbClient);
-                    }
+                    checkAndInitStorageSystemTypes(dbClient);
                 }
 
                 done = true;

@@ -5,6 +5,7 @@
 package models;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
@@ -187,27 +188,26 @@ public class StorageSystemTypes {
     }
 
     public static List<StringOption> getBlockStorageOptions() {
-        String alltypes = "all";
-        List<StringOption> storageoptions = new ArrayList<StringOption>();
-        // Add NONE option
-        storageoptions.add(new StringOption("NONE", "none"));
+        List<StringOption> options = new ArrayList<StringOption>(Arrays.asList(StringOption.NONE_OPTION));
 
-        StorageSystemTypeList storagetypelist = StorageSystemTypeUtils.getAllStorageSystemTypes(alltypes);
-        for (StorageSystemTypeRestRep storagetypeRest : storagetypelist.getStorageSystemTypes()) {
-            if (storagetypeRest.getStorageTypeType().equalsIgnoreCase("block")) {
-                if (storagetypeRest.getIsSmiProvider()) {
-                    if( (StringUtils.equals(SCALEIO, storagetypeRest.getStorageTypeName())
-                        || StringUtils.equals(IBMXIV, storagetypeRest.getStorageTypeName())
-                        || StringUtils.equals(XTREMIO, storagetypeRest.getStorageTypeName())) ) {
-                        storageoptions.add(new StringOption(storagetypeRest.getStorageTypeName(), storagetypeRest.getStorageTypeDispName()));
-                    }
-                }
-                else {
-                    storageoptions.add(new StringOption(storagetypeRest.getStorageTypeName(), storagetypeRest.getStorageTypeDispName()));
-                }
+        StorageSystemTypeList typeList = StorageSystemTypeUtils.getAllStorageSystemTypes(StorageSystemTypeUtils.ALL_TYPE);
+        for (StorageSystemTypeRestRep type : typeList.getStorageSystemTypes()) {
+            // ignore those whose type is not block
+            if (!StorageSystemTypeUtils.BLOCK_TYPE.equalsIgnoreCase(type.getStorageTypeType())) {
+                continue;
+            }
+            // no need further check for non-SMIS providers
+            if (!type.getIsSmiProvider()) {
+                options.add(new StringOption(type.getStorageTypeName(), type.getStorageTypeDispName()));
+                continue;
+            }
+            if ((StringUtils.equals(SCALEIO, type.getStorageTypeName())
+                    || StringUtils.equals(IBMXIV, type.getStorageTypeName())
+                    || StringUtils.equals(XTREMIO, type.getStorageTypeName()))) {
+                options.add(new StringOption(type.getStorageTypeName(), type.getStorageTypeDispName()));
             }
         }
-        return storageoptions;
+        return options;
     }
 
     public static List<StringOption> getFileStorageOptions() {

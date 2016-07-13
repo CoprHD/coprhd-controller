@@ -19,7 +19,10 @@ import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.multipart.MultiPart;
 
 public class StorageSystemTypeUtils {
-    
+
+    public static final String ALL_TYPE = "all";
+    public static final String BLOCK_TYPE = "block";
+
     private StorageSystemTypeUtils() {
     }
 

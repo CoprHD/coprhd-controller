@@ -113,6 +113,7 @@ $(document).ready(function() {
 	disableTypeScaleIOAPI();
 	disableRequired();
 });
+
 function disableTypeScaleIOAPI() {
 	var providerType = '${smisProvider.interfaceType}';
 	if (providerType == 'scaleioapi') {
@@ -122,13 +123,13 @@ function disableTypeScaleIOAPI() {
 
 function disableRequired() {
 	var editMode = #{get 'editMode'/};
-	if(editMode) {		
+	if(editMode) {	
 		$('#smisProvider_hyperScaleUserControlGroup').removeClass('required');
 		$('#smisProvider_hyperScalePasswordControlGroup').removeClass('required');
 		$('#smisProvider_hyperScaleConfPasswdControlGroup').removeClass('required');
 		$('#smisProvider_hyperScaleHostControlGroup').removeClass('required');
 		$('#smisProvider_hyperScalePortControlGroup').removeClass('required');
-		
+		window.setInterval(disableRequired,500);
 	}
 	
 }

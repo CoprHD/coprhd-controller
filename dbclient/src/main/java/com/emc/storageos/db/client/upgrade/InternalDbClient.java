@@ -9,13 +9,14 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.SimpleStatement;
+import com.datastax.driver.core.TableMetadata;
+import com.datastax.driver.core.exceptions.DriverException;
 import com.emc.storageos.db.client.constraint.DecommissionedConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.impl.ColumnField;
@@ -32,9 +33,7 @@ import com.emc.storageos.db.client.model.SchemaRecord;
 import com.emc.storageos.db.client.util.KeyspaceUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.netflix.astyanax.MutationBatch;
-import com.netflix.astyanax.connectionpool.OperationResult;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
-import com.netflix.astyanax.ddl.SchemaChangeResult;
 
 /**
  * Internal db client used for upgrade migrations
@@ -259,13 +258,20 @@ public class InternalDbClient extends DbClientImpl {
 
     public void rebuildCf(String cf) {
         try {
-            Properties props = getLocalKeyspace().getColumnFamilyProperties(cf);
-            OperationResult<SchemaChangeResult> dropCFResult = getLocalKeyspace().dropColumnFamily(cf);
-            waitForSchemaChange(dropCFResult);
+            DbClientContext dbClientContext = this.getLocalContext();
+            TableMetadata tableMatadata = dbClientContext.getCassandraCluster().getMetadata().
+            getKeyspace(String.format("\"%s\"", dbClientContext.getKeyspaceName())).
+            getTable(String.format("\"%s\"", cf));
+            
+            String createTableQuery = tableMatadata.asCQLQuery();
+            
+            dbClientContext.getSession().execute(String.format("DROP TABLE IF EXISTS \"%s\"", cf));
+            dbClientContext.waitForSchemaAgreement();
+            
             // bloom filter can not be 0 starting at version 1.2. Otherwise CF create throws an exception
             // see CASSANDRA-5013
             // In this case set value for Bloom Filter as 0.01 which is the default value for SizeTieredCompactionStrategy
-            String value = (String) props.get("bloom_filter_fp_chance");
+            String value = String.valueOf(tableMatadata.getOptions().getBloomFilterFalsePositiveChance());
             double fpValue;
             if (value == null || value.isEmpty()) {
                 value = "0.01";
@@ -283,10 +289,10 @@ public class InternalDbClient extends DbClientImpl {
                 value = Double.toString(fpValue);
             }
             log.info("Setting value for Bloom Filter to " + value);
-            props.setProperty("bloom_filter_fp_chance", value);
-            OperationResult<SchemaChangeResult> createCFResult = getLocalKeyspace().createColumnFamily(props);
-            waitForSchemaChange(createCFResult);
-        } catch (ConnectionException connEx) {
+            createTableQuery = createTableQuery + " and bloom_filter_fp_chance = " + value;
+            dbClientContext.getSession().execute(createTableQuery);
+            dbClientContext.waitForSchemaAgreement();
+        } catch (DriverException connEx) {
             log.error("Failed to recreate columnFamily : " + cf);
             DatabaseException.retryables.connectionFailed(connEx);
         }
@@ -365,29 +371,5 @@ public class InternalDbClient extends DbClientImpl {
         } catch (final IllegalAccessException e) {
             throw DatabaseException.fatals.queryFailed(e);
         }
-    }
-
-    private void waitForSchemaChange(final OperationResult<SchemaChangeResult> result) {
-        String schemaVersion = result.getResult().getSchemaId();
-        long start = System.currentTimeMillis();
-
-        while (System.currentTimeMillis() - start < MAX_SCHEMA_WAIT_MS) {
-            Map<String, List<String>> versions;
-            try {
-                versions = getLocalKeyspace().describeSchemaVersions();
-            } catch (final ConnectionException e) {
-                throw DatabaseException.retryables.connectionFailed(e);
-            }
-            if (versions.size() == 1 && versions.containsKey(schemaVersion)) {
-                log.info("schema version sync to: {} done", schemaVersion);
-                return;
-            }
-            try {
-                Thread.sleep(RETRY_INTERVAL);
-            } catch (InterruptedException e) {
-                log.warn("DB keyspace verification interrupted, ignore", e);
-            }
-        }
-        log.warn("Unable to sync schema version {}", schemaVersion);
     }
 }

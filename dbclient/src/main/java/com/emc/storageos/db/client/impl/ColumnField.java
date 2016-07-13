@@ -50,8 +50,6 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Ttl;
 import com.emc.storageos.db.client.model.AggregatedIndex;
 import com.emc.storageos.db.exceptions.DatabaseException;
-import com.netflix.astyanax.model.ByteBufferRange;
-import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.serializers.StringSerializer;
 
@@ -259,38 +257,6 @@ public class ColumnField {
         } else {
             return getPrefixIndexRowKey(label.getLabel());
         }
-    }
-
-    /**
-     * Build column slice range for given prefix
-     * 
-     * @param prefix
-     * @return
-     */
-    public ByteBufferRange buildPrefixRange(String prefix, int pageSize) {
-        String target = prefix.toLowerCase();
-        return CompositeColumnNameSerializer.get().buildRange()
-                .withPrefix(_parentType.getDataObjectClass().getSimpleName())
-                .greaterThanEquals(target)
-                .lessThanEquals(target + Character.MAX_VALUE)
-                .limit(pageSize)
-                .build();
-    }
-
-    /**
-     * Build column slice range for given string
-     * 
-     * @param prefix
-     * @return
-     */
-    public ByteBufferRange buildMatchRange(String prefix, int pageSize) {
-        String target = prefix.toLowerCase();
-        return CompositeColumnNameSerializer.get().buildRange()
-                .withPrefix(_parentType.getDataObjectClass().getSimpleName())
-                .greaterThanEquals(target)
-                .lessThanEquals(target)
-                .limit(pageSize)
-                .build();
     }
 
     /**

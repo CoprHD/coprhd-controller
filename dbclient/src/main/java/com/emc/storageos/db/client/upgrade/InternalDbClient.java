@@ -122,9 +122,9 @@ public class InternalDbClient extends DbClientImpl {
 
     public void persistSchemaRecord(SchemaRecord record) throws DatabaseException {
         try {
-            MutationBatch batch = getLocalKeyspace().prepareMutationBatch();
+            RowMutatorDS mutator = new RowMutatorDS(getLocalContext());
             SchemaRecordType type = TypeMap.getSchemaRecordType();
-            type.serialize(batch, record);
+            type.serialize(mutator, record);
         } catch (ConnectionException e) {
             throw DatabaseException.retryables.connectionFailed(e);
         }

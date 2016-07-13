@@ -26,6 +26,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
+import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.utils.UUIDs;
 import org.apache.cassandra.serializers.BooleanSerializer;
 import org.apache.cassandra.utils.UUIDGen;
@@ -96,7 +97,6 @@ import com.netflix.astyanax.connectionpool.OperationResult;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnFamily;
-import com.netflix.astyanax.model.ConsistencyLevel;
 import com.netflix.astyanax.model.Row;
 import com.netflix.astyanax.model.Rows;
 import com.netflix.astyanax.util.TimeUUIDUtils;
@@ -1345,28 +1345,21 @@ public class DbClientImpl implements DbClient {
     @Override
     public <T extends TimeSeriesSerializer.DataPoint> String insertTimeSeries(
             Class<? extends TimeSeries> tsType, T... data) {
-        try {
-            // time series are always in the local keyspace
-            MutationBatch batch = getLocalKeyspace().prepareMutationBatch();
-            batch.lockCurrentTimestamp();
-            // quorum is not required since there should be no duplicates
-            // for reads, clients should expect read-after-write is
-            // not guaranteed for time series data.
-            TimeSeriesType<T> type = TypeMap.getTimeSeriesType(tsType);
-            String rowId = type.getRowId();
-            batch.setConsistencyLevel(ConsistencyLevel.CL_ONE);
-            ColumnListMutation<UUID> columns = batch.withRow(type.getCf(), rowId);
-
-            for (int i = 0; i < data.length; i++) {
-                columns.putColumn(TimeUUIDUtils.getUniqueTimeUUIDinMillis(),
-                        type.getSerializer().serialize(data[i]),
-                        type.getTtl());
-            }
-            batch.execute();
-            return rowId;
-        } catch (ConnectionException e) {
-            throw DatabaseException.retryables.connectionFailed(e);
+        // time series are always in the local keyspace
+        RowMutatorDS mutator = new RowMutatorDS(getLocalContext());
+        // todo check batch.lockCurrentTimestamp();
+        // quorum is not required since there should be no duplicates
+        // for reads, clients should expect read-after-write is
+        // not guaranteed for time series data.
+        TimeSeriesType<T> type = TypeMap.getTimeSeriesType(tsType);
+        String rowId = type.getRowId();
+        mutator.setWriteCL(ConsistencyLevel.ONE);
+        for (T entry : data) {
+            mutator.insertTimeSeriesColumn(type.getCf().getName(), rowId, TimeUUIDUtils.getUniqueTimeUUIDinMillis(),
+                    type.getSerializer().serialize(entry), type.getTtl());
         }
+        mutator.execute();
+        return rowId;
     }
 
     @Override
@@ -1376,24 +1369,19 @@ public class DbClientImpl implements DbClient {
             throw new IllegalArgumentException("Invalid timezone");
         }
 
-        try {
-            TimeSeriesType<T> type = TypeMap.getTimeSeriesType(tsType);
-            String rowId = type.getRowId(time);
-            UUID columnName = UUIDGen.getTimeUUID(time.getMillis());
-            // time series are always in the local keyspace
-            ColumnMutation mutation = getLocalKeyspace().prepareColumnMutation(type.getCf(),
-                    rowId,
-                    columnName);
+        TimeSeriesType<T> type = TypeMap.getTimeSeriesType(tsType);
+        String rowId = type.getRowId(time);
+        UUID timeUUID = UUIDGen.getTimeUUID(time.getMillis());
+        // time series are always in the local keyspace
+        RowMutatorDS mutator = new RowMutatorDS(getLocalContext());
 
-            // quorum is not required since there should be no duplicates
-            // for reads, clients should expect read-after-write is
-            // not guaranteed for time series data.
-            mutation.setConsistencyLevel(ConsistencyLevel.CL_ONE);
-            mutation.putValue(type.getSerializer().serialize(data), type.getTtl()).execute();
-            return rowId;
-        } catch (ConnectionException e) {
-            throw DatabaseException.retryables.connectionFailed(e);
-        }
+        // quorum is not required since there should be no duplicates
+        // for reads, clients should expect read-after-write is
+        // not guaranteed for time series data.
+        mutator.setWriteCL(ConsistencyLevel.ONE);
+        mutator.insertTimeSeriesColumn(type.getCf().getName(), rowId, timeUUID, type.getSerializer().serialize(data), type.getTtl());
+        mutator.execute();
+        return rowId;
     }
 
     @Override
@@ -1433,7 +1421,7 @@ public class DbClientImpl implements DbClient {
                     _log.info("Query String: {}", queryString);
                     
                     PreparedStatement queryStatement = context.getPreparedStatement(queryString.toString());
-                    queryStatement.setConsistencyLevel(com.datastax.driver.core.ConsistencyLevel.LOCAL_ONE);
+                    queryStatement.setConsistencyLevel(ConsistencyLevel.ONE);
                     
                     BoundStatement bindStatement = queryStatement.bind(rowKey);
                     bindStatement.setFetchSize(DEFAULT_TS_PAGE_SIZE);

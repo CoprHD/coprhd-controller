@@ -54,8 +54,6 @@ public class RowMutatorDS {
         this.context = context;
         this.atomicBatch = new BatchStatement();
         this.timeUUID = UUIDs.timeBased();
-        atomicBatch.setConsistencyLevel(writeCL);
-
         /*
          * will consider codeRegistry later.
          * CodecRegistry codecRegistry = CodecRegistry.DEFAULT_INSTANCE;
@@ -121,6 +119,7 @@ public class RowMutatorDS {
     }
 
     public void execute() {
+        atomicBatch.setConsistencyLevel(writeCL);
         context.getSession().execute(atomicBatch);
         //todo executeWithRetry
     }

@@ -279,7 +279,7 @@ public class StorageProviders extends ViprResourceController {
                 try {
                     url = new URL("https",this.hyperScaleHost, Integer.parseInt(this.hyperScalePort),"");
                 }catch(Exception e) {
-                    e.getMessage();
+                    flash.error("Unable to parse secondary URL");
                 }
                 this.secondaryURL = url.toString();
             }
@@ -302,13 +302,17 @@ public class StorageProviders extends ViprResourceController {
             this.secretKey = ""; // the platform will never return the real key
             this.hyperScaleUser = storageProvider.getSecondaryUsername();
             this.hyperScalePassword = ""; // the platform will never return the real password
-            try {
-                url = new URL(this.secondaryURL);
-            } catch(Exception e) {
-                e.getMessage();
+            if(!StringUtils.isEmpty(secondaryURL)) {
+                try {
+                    url = new URL(this.secondaryURL);
+                } catch(Exception e) {
+                    flash.error("Unable to parse secondary URL");
+                }
+                if(null!=url) {
+                    this.hyperScaleHost = url.getHost();
+                    this.hyperScalePort = Integer.toString(url.getPort());
+                }
             }
-            this.hyperScaleHost = url.getHost();
-            this.hyperScalePort = Integer.toString(url.getPort());
             if (isScaleIOApi()) {
                 this.secondaryUsername = this.userName;
                 this.secondaryPassword = this.password;

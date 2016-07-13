@@ -118,13 +118,10 @@
 </div>
 <script>
 $(document).ready(function() {
-	disableTypeScaleIOAPI();
+	disableInterfaceType();
 	disableRequired();
 });
 
-function disableTypeScaleIOAPI() {
-	disableInterfaceType();
-}
 function disableInterfaceType() {
 	var providerType = '${smisProvider.interfaceType}';
 	if (providerType == 'scaleioapi' || providerType == 'ceph') {

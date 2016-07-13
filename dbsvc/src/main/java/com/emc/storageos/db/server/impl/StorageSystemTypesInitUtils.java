@@ -379,16 +379,13 @@ public class StorageSystemTypesInitUtils {
         unity.setStorageTypeDispName(DISPLAY_NAME_MAP.get(UNITY));
         unity.setStorageTypeType(StorageSystemType.META_TYPE.BLOCK_AND_FILE.toString().toLowerCase());
         unity.setIsSmiProvider(false);
-        unity.setIsDefaultSsl(true); // need to confirm
-        // isDefaultMDM field
-        // isOnlyMDM field
-        // isElementMgr field
-        // isSecretKey field
+        unity.setIsDefaultSsl(true);
+
         if (SSL_PORT_MAP.get(UNITY) != null) {
             unity.setSslPort(SSL_PORT_MAP.get(UNITY));
         }
-        // nonSslPort field
-        // driverClassName field
+
+        unity.setDriverClassName(StorageSystemType.META_TYPE.BLOCK_AND_FILE.toString().toLowerCase());
         dbClient.createObject(unity);
     }
 

@@ -58,7 +58,6 @@ import com.emc.storageos.db.client.impl.DataObjectType;
 import com.emc.storageos.db.client.impl.DbClientContext;
 import com.emc.storageos.db.client.impl.IndexCleaner;
 import com.emc.storageos.db.client.impl.IndexCleanupList;
-import com.emc.storageos.db.client.impl.RowMutator;
 import com.emc.storageos.db.client.impl.TimeSeriesType;
 import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.model.AuthnProvider;

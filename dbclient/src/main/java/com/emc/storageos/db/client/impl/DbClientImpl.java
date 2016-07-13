@@ -26,7 +26,9 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
+import com.datastax.driver.core.utils.UUIDs;
 import org.apache.cassandra.serializers.BooleanSerializer;
+import org.apache.cassandra.utils.UUIDGen;
 import org.apache.commons.lang.StringUtils;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
@@ -1377,7 +1379,7 @@ public class DbClientImpl implements DbClient {
         try {
             TimeSeriesType<T> type = TypeMap.getTimeSeriesType(tsType);
             String rowId = type.getRowId(time);
-            UUID columnName = TimeUUIDUtils.getTimeUUID(time.getMillis());
+            UUID columnName = UUIDGen.getTimeUUID(time.getMillis());
             // time series are always in the local keyspace
             ColumnMutation mutation = getLocalKeyspace().prepareColumnMutation(type.getCf(),
                     rowId,

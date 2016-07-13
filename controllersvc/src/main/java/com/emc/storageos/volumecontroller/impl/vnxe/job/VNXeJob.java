@@ -246,9 +246,14 @@ public class VNXeJob extends Job implements Serializable {
      * @param dbClient
      * @param vnxeApiClient
      * @param storagePoolUri
+     * @param reservedCapacityVolumesIds The volumes reserved capacity in the pool that needs to be removed
      */
-    public static void updateStoragePoolCapacity(DbClient dbClient, VNXeApiClient vnxeApiClient, URI storagePoolUri) {
+    public static void updateStoragePoolCapacity(DbClient dbClient, VNXeApiClient vnxeApiClient, URI storagePoolUri, 
+            List<String> reservedCapacityVolumeIds) {
         StoragePool storagePool = dbClient.queryObject(StoragePool.class, storagePoolUri);
+        if (reservedCapacityVolumeIds != null && !reservedCapacityVolumeIds.isEmpty()) {
+            storagePool.removeReservedCapacityForVolumes(reservedCapacityVolumeIds);
+        }
         String poolNativeId = storagePool.getNativeId();
         VNXePool pool = vnxeApiClient.getPool(poolNativeId);
         storagePool.setFreeCapacity(VNXeUtils.convertDoubleSizeToViPRLong(pool.getSizeFree()));

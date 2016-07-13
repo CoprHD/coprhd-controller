@@ -851,7 +851,7 @@ public class BlockSnapshotSessionManager {
         _dbClient.createTaskOpStatus(BlockSnapshotSession.class, snapSession.getId(), taskId, snapSessionOp);
         snapSession.getOpStatus().put(taskId, snapSessionOp);
 
-        if (snapSession.hasConsistencyGroup()) {
+        if (snapSession.hasConsistencyGroup() && NullColumnValueGetter.isNotNullValue(snapSession.getReplicationGroupInstance())) {
             addConsistencyGroupTasks(snapSessionSourceObjs, taskList, taskId, getDeleteResourceOperationTypeEnum(snapSession));
         } else {
             taskList.addTask(toTask(snapSession, taskId, snapSessionOp));

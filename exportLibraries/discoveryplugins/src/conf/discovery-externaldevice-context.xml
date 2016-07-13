@@ -25,6 +25,8 @@
              <map>
                 <!-- <entry key="scaleiosystem" value-ref="scaleioDriver"/> -->
                 <entry key="driversystem" value-ref="storageDriverSimulator"/>
+                <entry key="providersystem" value-ref="storageDriverSimulator"/>
+                <entry key="driverprovider" value-ref="storageDriverSimulator"/>
             </map>
         </property>
     </bean>

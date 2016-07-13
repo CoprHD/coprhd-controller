@@ -11,11 +11,11 @@ import com.emc.storageos.storagedriver.model.VolumeClone;
 
 /**
  * This DriverTask derived class should be returned when a storage driver request
- * to create a group clone will be completed asynchronously. The clones managed and
+ * to restore from clone will be completed asynchronously. The clones managed and
  * returned by this task should contain the updated clone data when the task
  * completes successfully.
  */
-public class CreateGroupCloneDriverTask extends DriverTask {
+public class RestoreFromCloneDriverTask extends DriverTask {
     
     // A reference to the clones associated with the task.
     private  List<VolumeClone> _volumeClones;
@@ -24,17 +24,17 @@ public class CreateGroupCloneDriverTask extends DriverTask {
      * Constructor
      * 
      * @param taskId The unique ID of the task.
-     * @param volumeClones The clones to be created by the task.
+     * @param volumeClones The clones to be restored by the task.
      */
-    public CreateGroupCloneDriverTask(String taskId, List<VolumeClone> volumeClones) {
+    public RestoreFromCloneDriverTask(String taskId, List<VolumeClone> volumeClones) {
         super(taskId);
         _volumeClones = volumeClones;
     }
     
     /**
-     * Get the clones created by the task.
+     * Get the clones restored by the task.
      * 
-     * @return The clones created by the task.
+     * @return The clones restored by the task.
      */
     public List<VolumeClone> getClones() {
         return _volumeClones;

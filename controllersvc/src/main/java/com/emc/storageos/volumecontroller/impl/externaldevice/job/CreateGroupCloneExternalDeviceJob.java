@@ -13,8 +13,8 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.storagedriver.DriverTask;
-import com.emc.storageos.storagedriver.DriverTask.TaskStatus;
 import com.emc.storageos.storagedriver.model.VolumeClone;
 import com.emc.storageos.storagedriver.task.CreateVolumeCloneDriverTask;
 import com.emc.storageos.volumecontroller.TaskCompleter;
@@ -66,7 +66,7 @@ public class CreateGroupCloneExternalDeviceJob extends ExternalDeviceJob {
             Volume volume = dbClient.queryObject(Volume.class, volumeURI);
             if (volume == null) {
                 s_logger.error(String.format("Failed to find volume %s", volumeURI));
-                // Exception?
+                throw DeviceControllerException.exceptions.objectNotFound(volumeURI);
             }
             
             // We need the associated source volume for the ViPR clone
@@ -81,7 +81,7 @@ public class CreateGroupCloneExternalDeviceJob extends ExternalDeviceJob {
             List<VolumeClone> updatedClones = createCloneDriverTask.getClones();
             for (VolumeClone updatedClone: updatedClones) {
                 if (updatedClone.getParentId().equals(assocSourceVolumeNativeId)) {
-                    ExternalDeviceUtils.updateGroupVolumeFromClone(volume, updatedClone, _cgURI, dbClient);
+                    ExternalDeviceUtils.updateNewlyCreatedGroupClone(volume, updatedClone, _cgURI, dbClient);
                     updatedVolumes.add(volume);
                     break;
                 }
@@ -109,15 +109,5 @@ public class CreateGroupCloneExternalDeviceJob extends ExternalDeviceJob {
             }
         }
         dbClient.updateObject(volumes);
-    }
-    
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    protected boolean isTaskSuccessful(TaskStatus taskStatus) {
-        // Since clones are created one at a time, the task is successful
-        // only it is is TaskStatus.READY.
-        return (TaskStatus.READY == taskStatus);
     }
 }

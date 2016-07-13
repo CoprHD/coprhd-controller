@@ -145,19 +145,21 @@ abstract public class ExternalDeviceJob extends Job implements Serializable {
     
     /**
      * Determines if the passed status indicates the task was successful.
-     * Override in derived classes as appropriate. 
+     * Override in derived classes as appropriate. When overridden be sure
+     * to consider isTaskFailed as well.
      * 
      * @param taskStatus The task status.
      * 
      * @return true if the task is successful, false otherwise.
      */
     protected boolean isTaskSuccessful(TaskStatus taskStatus) {
-        return (TaskStatus.READY == taskStatus || TaskStatus.PARTIALLY_FAILED == taskStatus);
+        return (TaskStatus.READY == taskStatus);
     }
     
     /**
      * Determines if the passed status indicates the task failed.
-     * Override in derived classes as appropriate. 
+     * Override in derived classes as appropriate. When overridden 
+     * be sure to consider isTaskSuccessful as well.
      * 
      * @param taskStatus The task status.
      * 
@@ -166,7 +168,8 @@ abstract public class ExternalDeviceJob extends Job implements Serializable {
     protected boolean isTaskFailed(TaskStatus taskStatus) {
         return (TaskStatus.FAILED == taskStatus
                 ||TaskStatus.ABORTED == taskStatus
-                || TaskStatus.WARNING == taskStatus);
+                || TaskStatus.WARNING == taskStatus
+                || TaskStatus.PARTIALLY_FAILED == taskStatus);
     }    
 
     /**

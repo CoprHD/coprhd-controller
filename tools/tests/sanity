@@ -1681,27 +1681,21 @@ srdf_setup_once()
     tenant_setup
     run blockconsistencygroup create $SRDF_PROJECT $CONSISTENCY_GROUP_SRDF
     run blockconsistencygroup create $SRDF_PROJECT ${CONSISTENCY_GROUP_SRDF}v3
-    networksystem show $BROCADE_NETWORK &> /dev/null && return $?
-    networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
     
-	# smisprovider show $SRDF_VMAXA_SMIS_DEV &> /dev/null && return $?
-    # smisprovider create $SRDF_VMAXA_SMIS_DEV $SRDF_VMAXA_SMIS_IP $SRDF_VMAXA_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $SRDF_VMAXA_SMIS_SSL
-    # smisprovider show $SRDF_VMAXB_SMIS_DEV &> /dev/null && return $?
-    # smisprovider create $SRDF_VMAXB_SMIS_DEV $SRDF_VMAXB_SMIS_IP $SRDF_VMAXB_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $SRDF_VMAXB_SMIS_SSL
     smisprovider show $SRDF_V3_VMAXA_SMIS_DEV &> /dev/null && return $?
-    smisprovider create $SRDF_V3_VMAXA_SMIS_DEV $SRDF_V3_VMAXA_SMIS_IP $SRDF_V3_VMAXA_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $SRDF_V3_VMAXA_SMIS_SSL
+    run smisprovider create $SRDF_V3_VMAXA_SMIS_DEV $SRDF_V3_VMAXA_SMIS_IP $SRDF_V3_VMAXA_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $SRDF_V3_VMAXA_SMIS_SSL
     smisprovider show $SRDF_V3_VMAXB_SMIS_DEV &> /dev/null && return $?
-    smisprovider create $SRDF_V3_VMAXB_SMIS_DEV $SRDF_V3_VMAXB_SMIS_IP $SRDF_V3_VMAXB_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $SRDF_V3_VMAXB_SMIS_SSL
+    run smisprovider create $SRDF_V3_VMAXB_SMIS_DEV $SRDF_V3_VMAXB_SMIS_IP $SRDF_V3_VMAXB_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $SRDF_V3_VMAXB_SMIS_SSL
 
     # Adding additional array in order to test pool matching.
     # smisprovider show $VMAX_SMIS_DEV &> /dev/null && return $?
     # smisprovider create $VMAX_SMIS_DEV $VMAX_SMIS_IP $VMAX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX_SMIS_SSL
     smisprovider show $VNX_SMIS_DEV &> /dev/null && return $?
-    smisprovider create $VNX_SMIS_DEV $VNX_SMIS_IP $VNX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VNX_SMIS_SSL
+    run smisprovider create $VNX_SMIS_DEV $VNX_SMIS_IP $VNX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VNX_SMIS_SSL
 
-    storagedevice discover_all --ignore_error
-    discoveredsystem show $SRDF_VMAXA_NATIVEGUID &> /dev/null && return $?
-    discoveredsystem show $SRDF_VMAXB_NATIVEGUID &> /dev/null && return $?
+    run storagedevice discover_all --ignore_error
+    #discoveredsystem show $SRDF_VMAXA_NATIVEGUID &> /dev/null && return $?
+    #discoveredsystem show $SRDF_VMAXB_NATIVEGUID &> /dev/null && return $?
     discoveredsystem show $SRDF_V3_VMAXA_NATIVEGUID &> /dev/null && return $?
     discoveredsystem show $SRDF_V3_VMAXB_NATIVEGUID &> /dev/null && return $?
 }
@@ -1818,7 +1812,7 @@ srdf_v3_cos_setup()
                          --system_type vmax			
     
     run cos update block $COS_VMAXBLOCK_V3_SRDF_TARGET --storage ${SRDF_V3_VMAXB_NATIVEGUID}
-    run cos update block $COS_VMAXBLOCK_V3_SRDF_TARGET --storage ${SRDF_V3_VMAXA_NATIVEGUID}
+    #run cos update block $COS_VMAXBLOCK_V3_SRDF_TARGET --storage ${SRDF_V3_VMAXA_NATIVEGUID}
     run cos allow $COS_VMAXBLOCK_V3_SRDF_TARGET block $TENANT
     
     cos show ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active block &> /dev/null && return $?
@@ -1834,7 +1828,7 @@ srdf_v3_cos_setup()
 			 --srdf "${V3_SRDF_VARRAY}:${COS_VMAXBLOCK_V3_SRDF_TARGET}:ACTIVE"
 
     run cos update block ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active --storage ${SRDF_V3_VMAXA_NATIVEGUID}
-    run cos update block ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active --storage ${SRDF_V3_VMAXB_NATIVEGUID}
+    #run cos update block ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active --storage ${SRDF_V3_VMAXB_NATIVEGUID}
     run cos allow ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active block $TENANT 
 	
 	
@@ -1853,7 +1847,7 @@ srdf_v3_cos_setup()
 			 --srdf "${V3_SRDF_VARRAY}:${COS_VMAXBLOCK_V3_SRDF_TARGET}:ASYNCHRONOUS"
 
     run cos update block ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_async --storage ${SRDF_V3_VMAXA_NATIVEGUID}
-    run cos update block ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_async --storage ${SRDF_V3_VMAXB_NATIVEGUID}
+    #run cos update block ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_async --storage ${SRDF_V3_VMAXB_NATIVEGUID}
     run cos allow ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_async block $TENANT 
 	
 	## SYNCHRONOUS
@@ -1871,7 +1865,7 @@ srdf_v3_cos_setup()
 			 --srdf "${V3_SRDF_VARRAY}:${COS_VMAXBLOCK_V3_SRDF_TARGET}:SYNCHRONOUS"
 
     run cos update block ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_sync --storage ${SRDF_V3_VMAXA_NATIVEGUID}
-    run cos update block ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_sync --storage ${SRDF_V3_VMAXB_NATIVEGUID}
+    #run cos update block ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_sync --storage ${SRDF_V3_VMAXB_NATIVEGUID}
     run cos allow ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_sync block $TENANT 
 	
 	
@@ -2172,6 +2166,7 @@ consistencygroup_block_cos_setup()
     run cos create block $VNX_COS_GROUP                       \
 	--description 'Consistency-Group-Block-VNX-CoS' true   \
                             --protocols FC iSCSI       \
+							--system_type vnxblock     \
                             --numpaths 1               \
                             --max_snapshots 10         \
                             --provisionType 'Thin'     \
@@ -2185,6 +2180,7 @@ consistencygroup_block_cos_setup()
     run cos create block $VMAX_COS_GROUP                       \
 	--description 'Consistency-Group-Block-VMAX-CoS' true   \
                             --protocols FC iSCSI       \
+							--system_type vmax         \
                             --numpaths 1               \
                             --max_snapshots 10         \
                             --provisionType 'Thin'     \
@@ -7762,9 +7758,14 @@ blockmirror_single_mirror()
 
     echo "Listing active mirrors"
     run blockmirror list $PROJECT/${mirrortest_vol}
-
-    echo "Deactivating source volume"
-    run volume delete $PROJECT/${mirrortest_vol} --wait
+	
+	echo "Pause a sigle mirror" 
+	run blockmirror pause $PROJECT/${mirrortest_vol}
+	
+	echo "Deactivating a sigle mirror" 
+	run blockmirror deactivate $PROJECT/${mirrortest_vol} "foo"
+    echo "Deleting all volumes in project"
+    run volume delete $PROJECT --project --wait
 }
 
 blockmirror_attach_mirror_with_optional()
@@ -7779,9 +7780,15 @@ blockmirror_attach_mirror_with_optional()
 
     echo "Listing active mirrors"
     run blockmirror list $PROJECT/${mirrortest_vol}
+	
+	echo "Pause a active mirror" 
+	run blockmirror pause $PROJECT/${mirrortest_vol}
+	
+	echo "Deactivating a active mirror" 
+	run blockmirror deactivate $PROJECT/${mirrortest_vol} "foo"
     
-    echo "Deactivating source volume"
-    run volume delete $PROJECT/${mirrortest_vol} --wait
+    echo "Deleting all volumes in project"
+    run volume delete $PROJECT --project --wait
 }
 
 blockmirror_attach_2mirrors()
@@ -7796,9 +7803,16 @@ blockmirror_attach_2mirrors()
 
     echo "Listing active mirrors"
     run blockmirror list $PROJECT/${mirrortest_vol}
+	
+	echo "Pause a active mirror" 
+	run blockmirror pause $PROJECT/${mirrortest_vol}
+	
+	echo "Deactivating a active mirror" 
+	run blockmirror deactivate $PROJECT/${mirrortest_vol} "foo-1"
+	run blockmirror deactivate $PROJECT/${mirrortest_vol} "foo-2"
     
-    echo "Deactivating source volume and all mirrors"
-    run volume delete $PROJECT/${mirrortest_vol} --wait
+    echo "Deleting all volumes in project"
+    run volume delete $PROJECT --project --wait
 }
 
 blockmirror_detach_mirror_all()
@@ -7814,17 +7828,21 @@ blockmirror_detach_mirror_all()
     echo "Attaching first mirror"
     run blockmirror attach $PROJECT/${mirrortest_vol} "foo" 1 
 
-    echo "Attaching second mirror"
-    run blockmirror attach $PROJECT/${mirrortest_vol} "bar" 1 
+    # COP-23516 
+    #echo "Attaching second mirror"
+    #run blockmirror attach $PROJECT/${mirrortest_vol} "bar" 1 
 
     echo "Listing active mirrors"
     run blockmirror list $PROJECT/${mirrortest_vol}
+	
+	echo "Pause a active mirror" 
+	run blockmirror pause $PROJECT/${mirrortest_vol}
 
     echo "Detaching all mirrors"
     run blockmirror detach $PROJECT/${mirrortest_vol}
-    
-    echo "Deactivating source volume and all mirrors"
-    run volume delete $PROJECT/${mirrortest_vol} --wait
+	
+    echo "Deleting all volumes in project"
+    run volume delete $PROJECT --project --wait
 }
 
 blockmirror_pause_resume_all()
@@ -7848,9 +7866,15 @@ blockmirror_pause_resume_all()
 
     echo "Listing resumed mirrors"
     run blockmirror list $PROJECT/${mirrortest_vol}
+	
+	echo "Pause a active mirror" 
+	run blockmirror pause $PROJECT/${mirrortest_vol}
 
-    echo "Deactivating source volume and all mirrors"
-    run volume delete $PROJECT/${mirrortest_vol} --wait
+    echo "Detaching all mirrors"
+    run blockmirror detach $PROJECT/${mirrortest_vol}
+	
+    echo "Deleting all volumes in project"
+    run volume delete $PROJECT --project --wait
 }
 
 blockmirror_vpool_change()
@@ -7868,9 +7892,15 @@ blockmirror_vpool_change()
 
     echo "Listing mirrors"
     run blockmirror list $PROJECT/${mirrortest_vol}
+	
+	echo "Pause a active mirror" 
+	run blockmirror pause $PROJECT/${mirrortest_vol}
 
-    echo "Deactivating source volume and all mirrors"
-    run volume delete $PROJECT/${mirrortest_vol} --wait
+    echo "Detaching active mirror"
+    run blockmirror detach $PROJECT/${mirrortest_vol}
+	
+	echo "Deleting all volumes in project"
+    run volume delete $PROJECT --project --wait
 }
 
 blockmirror_vnx()
@@ -7934,10 +7964,13 @@ blockmirror_group_mirrors()
     echo "Listing group mirrors"
     run blockmirror list $PROJECT/${mirrortest_vol}1
     run blockmirror list $PROJECT/${mirrortest_vol}2
+	
+	echo "Pausing group mirrors"
+    run blockmirror pause $PROJECT/${mirrortest_vol}1
 
     echo "Deactivating group mirrors"
     run blockmirror deactivate $PROJECT/${mirrortest_vol}1 ${mirrortest_vol}1-${group_mirror}
-
+	
     echo "Listing group mirrors"
     run blockmirror list $PROJECT/${mirrortest_vol}1
     run blockmirror list $PROJECT/${mirrortest_vol}2
@@ -7951,19 +7984,14 @@ blockmirror_group_mirrors()
 
     echo "Detaching group mirrors"
     run blockmirror detach $PROJECT/${mirrortest_vol}1
+	
 
     echo "Listing group mirrors"
     run blockmirror list $PROJECT/${mirrortest_vol}1
     run blockmirror list $PROJECT/${mirrortest_vol}2
 
-    echo "Deleting promoted volumes"
-    run volume delete $PROJECT/${mirrortest_vol}1-${group_mirror}1 --wait
-    run volume delete $PROJECT/${mirrortest_vol}2-${group_mirror}1 --wait
-
-    echo "Deactivating source volumes"
-    run volume delete $PROJECT/${mirrortest_vol}1 --wait
-    echo "delete $PROJECT/${mirrortest_vol}2"
-    run volume delete $PROJECT/${mirrortest_vol}2 --wait
+    echo "Deleting all volumes in project"
+    run volume delete $PROJECT --project --wait
 }
 
 blockmirror_tests()
@@ -7973,7 +8001,7 @@ blockmirror_tests()
     # quick_block_tests $VNXEXPORT_GROUP $VNXEXPORT_GROUP_HOST $VNX_VOLUME $COS_VNXBLOCK
     blockmirror_single_mirror
     blockmirror_attach_mirror_with_optional
-    blockmirror_attach_2mirrors
+    # blockmirror_attach_2mirrors
     blockmirror_detach_mirror_all
     blockmirror_pause_resume_all
     blockmirror_vpool_change

@@ -1087,8 +1087,9 @@ public class HDSExportOperations implements ExportMaskOperations {
                     // User should make sure that all volumes should have same HLU across all target HSD's.
                     VolumeURIHLU[] volumeURIHLUs = getVolumeURIHLUFromExportMask(exportMask);
                     if (0 < volumeURIHLUs.length) {
+                        List<URI> portList = new ArrayList<>(newTargetPorts);
                         hsdsToCreate = processTargetPortsToFormHSDs(hdsApiClient, storage,
-                                targetURIList, hostName, exportMask, hostModeInfo, systemObjectID);
+                                portList, hostName, exportMask, hostModeInfo, systemObjectID);
                         // Step 1: Create all HSD's using batch operation.
                         List<HostStorageDomain> hsdResponseList = hdsApiClient
                                 .getHDSBatchApiExportManager().addHostStorageDomains(

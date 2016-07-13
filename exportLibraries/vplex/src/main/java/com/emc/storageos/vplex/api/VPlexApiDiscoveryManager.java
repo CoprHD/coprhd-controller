@@ -304,8 +304,7 @@ public class VPlexApiDiscoveryManager {
      * 
      * @param shallow true to get just the name and path for each cluster, false
      *            to get additional info about the systems and volumes.
-     * 
-     * @param isItlsRequired true to get the storage volume ITLs, false otherwise.
+     * @param getStorageVolumeAtts true to get the storage volume attributes, false otherwise.
      * 
      * @return A list of VPlexClusterInfo specifying the info for the VPlex
      *         clusters.
@@ -314,7 +313,7 @@ public class VPlexApiDiscoveryManager {
      *             an error occurs processing the response.
      */
 
-    List<VPlexClusterInfo> getClusterInfo(boolean shallow, boolean isItlsRequired)
+    List<VPlexClusterInfo> getClusterInfo(boolean shallow, boolean getStorageVolumeAtts)
             throws VPlexApiException {
 
         // Get the URI for the cluster info request and make the request.
@@ -344,7 +343,7 @@ public class VPlexApiDiscoveryManager {
                     String clusterName = clusterInfo.getName();
                     clusterInfo.setStorageSystemInfo(getStorageSystemInfoForCluster(clusterName));
                     clusterInfo.setSystemVolumeInfo(getSystemVolumeInfoForCluster(clusterName));
-                    clusterInfo.setStorageVolumeInfo(getStorageVolumeInfoForCluster(clusterName, isItlsRequired));
+                    clusterInfo.setStorageVolumeInfo(getStorageVolumeInfoForCluster(clusterName, getStorageVolumeAtts));
                 }
             }
 
@@ -1179,11 +1178,12 @@ public class VPlexApiDiscoveryManager {
      * 
      * @return A list of VPlexStorageVolumeInfo specifying the storage volume
      *         info for the cluster with the passed name.
+     * @param getStorageVolumeAtts true to get the storage volume attributes, false otherwise.
      * 
      * @throws VPlexApiException If a VPlex request returns a failed status or
      *             an error occurs processing the response.
      */
-    private List<VPlexStorageVolumeInfo> getStorageVolumeInfoForCluster(String clusterName, boolean isITLFetch)
+    private List<VPlexStorageVolumeInfo> getStorageVolumeInfoForCluster(String clusterName, boolean getStorageVolumeAtts)
             throws VPlexApiException {
 
         // Get the URI for the storage volume info request and make the request.
@@ -1192,7 +1192,7 @@ public class VPlexApiDiscoveryManager {
         uriBuilder.append(clusterName);
 
         String responseJsonFormat = null;
-        if (isITLFetch) {
+        if (getStorageVolumeAtts) {
             uriBuilder.append(VPlexApiConstants.URI_STORAGE_VOLUMES_DETAILS.toString());
             responseJsonFormat = VPlexApiConstants.ACCEPT_JSON_FORMAT_1;
         } else {
@@ -1214,7 +1214,7 @@ public class VPlexApiDiscoveryManager {
 
         // Successful Response
         try {
-            if (isITLFetch) {
+            if (getStorageVolumeAtts) {
                 return VPlexApiUtils.getResourcesFromResponseContext(
                         uriBuilder.toString(), responseStr, VPlexStorageVolumeInfo.class);
             } else {
@@ -3948,4 +3948,39 @@ public class VPlexApiDiscoveryManager {
         return customData;
     }
 
+    /**
+     * Gets the backend storage volumes used by the passed device on the passed cluster.
+     * 
+     * @param deviceName The device name.
+     * @param locality Whether the device is local or distributed.
+     * @param clusterName The cluster name.
+     * @param hasMirror Whether or not the device has a mirror.
+     * 
+     * @return The list of VPlexStorageVolumeInfo representing the backend storage volumes.
+     */
+    public List<VPlexStorageVolumeInfo> getBackendVolumesForDeviceOnCluster(String supportingDeviceName,
+            String locality, String clusterName, boolean hasMirror) {
+        // Get the storage volumes for the supporting device. Note that even 
+        // though we pass a cluster name, for a distributed device, this will
+        // get the volumes on both clusters.
+        List<VPlexStorageVolumeInfo> svInfoList = getStorageVolumesForDevice(
+                supportingDeviceName, locality, clusterName, hasMirror);
+        
+        // The storage volumes so returned do not specify the cluster, so we
+        // need to determine that for each volume and then eliminate those
+        // that are not on the passed cluster.
+        Iterator<VPlexStorageVolumeInfo> svInfoIter = svInfoList.iterator();
+        while (svInfoIter.hasNext()) {
+            VPlexStorageVolumeInfo svInfo = svInfoIter.next();
+            VPlexStorageVolumeInfo svInfoWithCluster = findStorageVolume(svInfo.getName());
+            s_logger.info("Cluster for {} is {}", svInfo.getWwn(), svInfoWithCluster.getClusterId());
+            if (!svInfoWithCluster.getClusterId().equals(clusterName)) {
+                svInfoIter.remove();
+            } else {
+                svInfo.setClusterId(clusterName);
+            }
+        }
+        
+        return svInfoList;
+    }
 }

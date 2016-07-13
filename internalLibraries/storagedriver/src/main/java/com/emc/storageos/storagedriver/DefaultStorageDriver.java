@@ -4,6 +4,15 @@
  */
 package com.emc.storageos.storagedriver;
 
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import org.apache.commons.lang.mutable.MutableBoolean;
+import org.apache.commons.lang.mutable.MutableInt;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.storagedriver.model.Initiator;
 import com.emc.storageos.storagedriver.model.StorageHostComponent;
 import com.emc.storageos.storagedriver.model.StorageObject;
@@ -19,14 +28,6 @@ import com.emc.storageos.storagedriver.model.VolumeSnapshot;
 import com.emc.storageos.storagedriver.model.remotereplication.RemoteReplicationSet;
 import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
-import org.apache.commons.lang.mutable.MutableBoolean;
-import org.apache.commons.lang.mutable.MutableInt;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
 
 /**
  * Default, not-supported, implementation of SDK driver methods.
@@ -470,7 +471,7 @@ public class DefaultStorageDriver extends AbstractStorageDriver implements Block
     }
 
     @Override
-    public DriverTask discoverStorageSystem(List<StorageSystem> storageSystems) {
+    public DriverTask discoverStorageSystem(StorageSystem storageSystem) {
         String driverName = this.getClass().getSimpleName();
         String taskId = String.format("%s+%s+%s", driverName, "discoverStorageSystem", UUID.randomUUID().toString());
         DriverTask task = new DefaultDriverTask(taskId);
@@ -524,7 +525,7 @@ public class DefaultStorageDriver extends AbstractStorageDriver implements Block
     @Override
     public DriverTask discoverStorageProvider(StorageProvider storageProvider, List<StorageSystem> storageSystems) {
         String driverName = this.getClass().getSimpleName();
-        String taskId = String.format("%s+%s+%s", driverName, "discoverStorageProvider", UUID.randomUUID().toString());
+        String taskId = String.format("%s+%s+%s", driverName, "discover-storage-provider", UUID.randomUUID().toString());
         DriverTask task = new DefaultDriverTask(taskId);
         task.setStatus(DriverTask.TaskStatus.FAILED);
 
@@ -568,5 +569,13 @@ public class DefaultStorageDriver extends AbstractStorageDriver implements Block
         _log.warn(msg);
         task.setMessage(msg);
         return task;
+    }
+
+    @Override
+        public boolean validateStorageProviderConnection(StorageProvider storageProvider) {
+        String driverName = this.getClass().getSimpleName();
+        String msg = String.format("%s: %s --- operation is not supported.", driverName, "validateStorageProviderConnection");
+        _log.warn(msg);
+        throw new UnsupportedOperationException(msg);
     }
 }

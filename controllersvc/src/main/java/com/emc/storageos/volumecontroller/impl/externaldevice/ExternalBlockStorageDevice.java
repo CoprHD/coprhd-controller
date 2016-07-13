@@ -22,12 +22,15 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
@@ -35,6 +38,7 @@ import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.exceptions.DeviceControllerException;
+import com.emc.storageos.hds.HDSConstants;
 import com.emc.storageos.storagedriver.AbstractStorageDriver;
 import com.emc.storageos.storagedriver.BlockStorageDriver;
 import com.emc.storageos.storagedriver.DriverTask;
@@ -464,26 +468,42 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
                               TaskCompleter taskCompleter) {
         Volume cloneObject = null;
         try {
-            cloneObject = dbClient.queryObject(Volume.class, clone);
-            Volume sourceVolume = dbClient.queryObject(Volume.class, volume);
-
-            List<VolumeClone> driverClones = new ArrayList<>();
-            // Prepare driver clone
+        	cloneObject = dbClient.queryObject(Volume.class, clone);
+            BlockObject sourceVolume = BlockObject.fetch(dbClient, volume);
             VolumeClone driverClone = new VolumeClone();
+            
+            if (sourceVolume instanceof Volume) {
+            	driverClone.setSourceType(VolumeClone.SourceType.VOLUME);
+            } else if (sourceVolume instanceof BlockSnapshot) {
+            	driverClone.setSourceType(VolumeClone.SourceType.SNAPSHOT);
+            } else {
+                cloneObject.setInactive(true);
+                dbClient.updateObject(cloneObject);
+                String errorMsg = String.format("doCreateClone -- Failed to create volume clone: unexpected source type %s .",
+                        sourceVolume.getClass().getSimpleName());
+                _log.error(errorMsg);
+                ServiceError serviceError = ExternalDeviceException.errors.createVolumeCloneFailed("doCreateClone", errorMsg);
+                taskCompleter.error(dbClient, serviceError);
+                return;
+            }
+            // Prepare driver clone
             driverClone.setParentId(sourceVolume.getNativeId());
             driverClone.setStorageSystemId(storageSystem.getNativeId());
             driverClone.setDisplayName(cloneObject.getLabel());
             driverClone.setRequestedCapacity(cloneObject.getCapacity());
             driverClone.setThinlyProvisioned(cloneObject.getThinlyProvisioned());
-            driverClones.add(driverClone);
 
             // Call driver
             BlockStorageDriver driver = getDriver(storageSystem.getSystemType());
-            DriverTask task = driver.createVolumeClone(Collections.unmodifiableList(driverClones), null);
+            DriverTask task ;
+        	List<VolumeClone> driverClones = new ArrayList<>();
+        	driverClones.add(driverClone);
+        	task = driver.createVolumeClone(Collections.unmodifiableList(driverClones), null);
+        	
             // todo: need to implement support for async case.
             if (task.getStatus() == DriverTask.TaskStatus.READY) {
                 // Update clone
-                VolumeClone driverCloneResult = driverClones.get(0);
+            	VolumeClone driverCloneResult = driverClones.get(0);
                 cloneObject.setNativeId(driverCloneResult.getNativeId());
                 cloneObject.setWWN(driverCloneResult.getWwn());
                 cloneObject.setDeviceLabel(driverCloneResult.getDeviceLabel());
@@ -493,7 +513,6 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
                 cloneObject.setAllocatedCapacity(driverCloneResult.getAllocatedCapacity());
                 cloneObject.setInactive(false);
                 dbClient.updateObject(cloneObject);
-
                 String msg = String.format("doCreateClone -- Created volume clone: %s .", task.getMessage());
                 _log.info(msg);
                 taskCompleter.ready(dbClient);
@@ -1527,4 +1546,55 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice implem
     public void synchronize(RemoteReplicationArgument replicationArgument, TaskCompleter taskCompleter) {
 
     }
+
+    public boolean validateStorageProviderConnection(String ipAddress, Integer portNumber) {
+        // call driver to validate provider connection
+        boolean isConnectionValid = false;
+        try {
+            StringBuffer providerID = new StringBuffer(ipAddress).append(
+                    HDSConstants.HYPHEN_OPERATOR).append(portNumber);
+            _log.info("Request to validate connection to provider, ID: {}", providerID);
+
+            URIQueryResultList providerUriList = new URIQueryResultList();
+            dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                            .getStorageProviderByProviderIDConstraint(providerID.toString()),
+                    providerUriList);
+            if (providerUriList.iterator().hasNext()) {
+                StorageProvider storageProvider = dbClient.queryObject(StorageProvider.class,
+                        providerUriList.iterator().next());
+
+                // get driver for the provider
+                BlockStorageDriver driver = getDriver(storageProvider.getInterfaceType());
+                String username = storageProvider.getUserName();
+                String password = storageProvider.getPassword();
+                String hostName = storageProvider.getIPAddress();
+                Integer providerPortNumber = storageProvider.getPortNumber();
+                String providerType = storageProvider.getInterfaceType();
+                Boolean useSsl = storageProvider.getUseSSL();
+                String msg = String.format("Storage provider info: type: %s, host: %s, port: %s, user: %s, useSsl: %s",
+                        providerType, hostName, providerPortNumber, username, useSsl);
+                _log.info(msg);
+
+                com.emc.storageos.storagedriver.model.StorageProvider driverProvider =
+                        new com.emc.storageos.storagedriver.model.StorageProvider();
+                // initialize driver provider
+                driverProvider.setProviderHost(hostName);
+                driverProvider.setPortNumber(providerPortNumber);
+                driverProvider.setUsername(username);
+                driverProvider.setPassword(password);
+                driverProvider.setUseSSL(useSsl);
+                driverProvider.setProviderType(providerType);
+
+                isConnectionValid = driver.validateStorageProviderConnection(driverProvider);
+            } else {
+               String msg = String.format("Cannot find provider with ID: %s ", providerID);
+            }
+        } catch (Exception ex) {
+            _log.error(
+                    "Problem in checking provider live connection with IP address and port: {}/{} due to: ",
+                    ipAddress, portNumber, ex);
+        }
+        return isConnectionValid;
+    }
+
 }

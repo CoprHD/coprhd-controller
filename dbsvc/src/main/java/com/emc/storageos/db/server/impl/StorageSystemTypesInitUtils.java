@@ -112,6 +112,7 @@ public class StorageSystemTypesInitUtils {
         DISPLAY_NAME_MAP.put(DATA_DOMAIN, "Data Domain");
         DISPLAY_NAME_MAP.put(ECS, "EMC Elastic Cloud Storage");
         DISPLAY_NAME_MAP.put(UNITY, "EMC Unity");
+        DISPLAY_NAME_MAP.put(CEPH, "Block Storage powered by Ceph");
 
         DISPLAY_NAME_MAP.put(SMIS, "Storage Provider for EMC VMAX or VNX Block");
         DISPLAY_NAME_MAP.put(HITACHI_PROVIDER, "Storage Provider for Hitachi storage systems");
@@ -174,6 +175,7 @@ public class StorageSystemTypesInitUtils {
         STORAGE_PROVIDER_MAP.put(DATA_DOMAIN, "Storage Provider for Data Domain Management Center");
         STORAGE_PROVIDER_MAP.put(IBMXIV, "Storage Provider for IBM XIV");
         STORAGE_PROVIDER_MAP.put(XTREMIO, "Storage Provider for EMC XtremIO");
+        STORAGE_PROVIDER_MAP.put(CEPH, "Block Storage powered by Ceph");
     }
 
     public StorageSystemTypesInitUtils(DbClient dbClient) {

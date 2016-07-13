@@ -76,11 +76,11 @@ public class StorageProviderTypes {
         StorageSystemTypeList storagetypelist = StorageSystemTypeUtils.getAllStorageSystemTypes(ALL_TYPE);
         for (StorageSystemTypeRestRep storagetypeRest : storagetypelist.getStorageSystemTypes()) {
             if (storagetypeRest.getIsSmiProvider()) {
-                if(!StringUtils.equals(SCALEIO, storagetypeRest.getStorageTypeName())) {
+                if (!StringUtils.equals(SCALEIO, storagetypeRest.getStorageTypeName())) {
                     allproviders.add(new StringOption(storagetypeRest.getStorageTypeName(),
                             storagetypeRest.getStorageTypeDispName()));
-        }
-    }
+                }
+            }
         }
         return allproviders;
     }

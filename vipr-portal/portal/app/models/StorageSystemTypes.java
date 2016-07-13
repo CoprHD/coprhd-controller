@@ -170,7 +170,8 @@ public class StorageSystemTypes {
             if (type.getIsSmiProvider() && !StringUtils.equals(VPLEX, typeName)
                     && !StringUtils.equals(SCALEIOAPI, typeName)
                     && !StringUtils.equals(IBMXIV, typeName)
-                    && !StringUtils.equals(XTREMIO, typeName)) {
+                    && !StringUtils.equals(XTREMIO, typeName)
+                    && !StringUtils.equals(CEPH, typeName)) {
                 continue;
             }
 
@@ -206,7 +207,8 @@ public class StorageSystemTypes {
             }
             if ((StringUtils.equals(SCALEIO, type.getStorageTypeName())
                     || StringUtils.equals(IBMXIV, type.getStorageTypeName())
-                    || StringUtils.equals(XTREMIO, type.getStorageTypeName()))) {
+                    || StringUtils.equals(XTREMIO, type.getStorageTypeName()))
+                    || StringUtils.equals(CEPH, type.getStorageTypeName())) {
                 options.add(new StringOption(type.getStorageTypeName(), type.getStorageTypeDispName()));
             }
         }

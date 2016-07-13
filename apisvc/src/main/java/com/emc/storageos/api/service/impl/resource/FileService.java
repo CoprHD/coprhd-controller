@@ -35,6 +35,7 @@ import javax.ws.rs.core.MediaType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.sa.machinetags.MachineTagUtils;
 import com.emc.storageos.api.mapper.functions.MapFileShare;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.placement.FilePlacementManager;
@@ -52,6 +53,7 @@ import com.emc.storageos.api.service.impl.response.ProjOwnedResRepFilter;
 import com.emc.storageos.api.service.impl.response.ResRepFilter;
 import com.emc.storageos.api.service.impl.response.RestLinkFactory;
 import com.emc.storageos.api.service.impl.response.SearchedResRepList;
+import com.emc.storageos.computesystemcontroller.ComputeSystemController;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
@@ -77,6 +79,7 @@ import com.emc.storageos.db.client.model.QuotaDirectory.SecurityStyles;
 import com.emc.storageos.db.client.model.SMBFileShare;
 import com.emc.storageos.db.client.model.SMBShareMap;
 import com.emc.storageos.db.client.model.SchedulePolicy;
+import com.emc.storageos.db.client.model.ScopedLabel;
 import com.emc.storageos.db.client.model.Snapshot;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
@@ -121,13 +124,17 @@ import com.emc.storageos.model.file.FileSystemDeleteParam;
 import com.emc.storageos.model.file.FileSystemExpandParam;
 import com.emc.storageos.model.file.FileSystemExportList;
 import com.emc.storageos.model.file.FileSystemExportParam;
+import com.emc.storageos.model.file.FileSystemMountParam;
 import com.emc.storageos.model.file.FileSystemParam;
 import com.emc.storageos.model.file.FileSystemReplicationSettings;
 import com.emc.storageos.model.file.FileSystemShareList;
 import com.emc.storageos.model.file.FileSystemShareParam;
 import com.emc.storageos.model.file.FileSystemSnapshotParam;
+import com.emc.storageos.model.file.FileSystemUnmountParam;
 import com.emc.storageos.model.file.FileSystemUpdateParam;
 import com.emc.storageos.model.file.FileSystemVirtualPoolChangeParam;
+import com.emc.storageos.model.file.MountInfo;
+import com.emc.storageos.model.file.MountInfoList;
 import com.emc.storageos.model.file.NfsACLs;
 import com.emc.storageos.model.file.QuotaDirectoryCreateParam;
 import com.emc.storageos.model.file.QuotaDirectoryList;
@@ -158,6 +165,7 @@ import com.emc.storageos.volumecontroller.FileSMBShare;
 import com.emc.storageos.volumecontroller.FileShareExport;
 import com.emc.storageos.volumecontroller.FileShareExport.Permissions;
 import com.emc.storageos.volumecontroller.FileShareExport.SecurityTypes;
+import com.emc.storageos.volumecontroller.FileShareMountInfo;
 import com.emc.storageos.volumecontroller.FileShareQuotaDirectory;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
@@ -3999,6 +4007,160 @@ public class FileService extends TaskResourceService {
         }
 
         return false;
+    }
+
+    /**
+     * Perform a mount operation for a file system
+     * <p>
+     * NOTE: This is an asynchronous operation.
+     * 
+     * @param id
+     *            the URN of a ViPR File system
+     * @param param
+     *            File system mount parameters
+     * @brief mount a FS
+     * @return Task resource representation
+     * @throws InternalException
+     */
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/mount")
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
+    public TaskResourceRep mountExport(@PathParam("id") URI id, FileSystemMountParam param)
+            throws InternalException {
+        _log.info("FileService::mount Request recieved {}", id);
+
+        String task = UUID.randomUUID().toString();
+
+        ArgValidator.checkFieldUriType(id, FileShare.class, "id");
+
+        // Get the FileSystem object from the URN
+        FileShare fs = queryResource(id);
+        ArgValidator.checkEntity(fs, id, isIdEmbeddedInURL(id));
+
+        fs.setOpStatus(new OpStatusMap());
+
+        Operation op = new Operation();
+        op.setResourceType(ResourceOperationTypeEnum.MOUNT_NFS_EXPORT);
+        fs.getOpStatus().createTaskStatus(task, op);
+        _dbClient.updateObject(fs);
+
+        FileShareMountInfo mInfo = new FileShareMountInfo(param);
+
+        // Now get ready to make calls into the controller
+        ComputeSystemController controller = getController(ComputeSystemController.class, null);
+        try {
+            controller.mountDevice(param.getHost(), id, param.getSubDir(), param.getSecurity(), param.getPath(), "nfs");
+        } catch (InternalException e) {
+            // TODO
+            // treating all controller exceptions as internal error for now. controller
+            // should discriminate between validation problems vs. internal errors
+            throw e;
+        }
+
+        auditOp(OperationTypeEnum.MOUNT_NFS_EXPORT, true, AuditLogManager.AUDITOP_BEGIN,
+                fs.getName(), fs.getId().toString(), param.getHost().toString(), param.getSubDir(), param.getPath());
+
+        fs = _dbClient.queryObject(FileShare.class, id);
+        _log.debug("FileService::Mount Before sending response, FS ID : {}, Taks : {} ; Status {}", fs.getOpStatus().get(task), fs
+                .getOpStatus().get(task).getStatus());
+
+        return toTask(fs, task, op);
+    }
+
+    /**
+     * Get list of mounts for the specified file system.
+     * 
+     * @param id
+     *            the URN of a ViPR File system
+     * @brief List file system mounts
+     * @return List of file system mounts.
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/mount")
+    @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
+    public MountInfoList getMountList(@PathParam("id") URI id) {
+
+        _log.info(String.format("Get list of quota directories for file system: %1$s", id));
+        ArgValidator.checkFieldUriType(id, FileShare.class, "id");
+        MountInfoList mountList = new MountInfoList();
+        mountList.setMountList(getAllMounts(id));
+        return mountList;
+    }
+
+    /**
+     * Deactivate Quota directory of file system, this will move the
+     * Quota directory to a "marked-for-delete" state
+     * <p>
+     * NOTE: This is an asynchronous operation.
+     * 
+     * @param id
+     *            the URN of the QuotaDirectory
+     * @param param
+     *            QuotaDirectory delete param for optional force delete
+     * @brief Delete file system Quota Dir
+     * @return Task resource representation
+     * @throws com.emc.storageos.svcs.errorhandling.resources.InternalException
+     */
+
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/unmount")
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
+    public TaskResourceRep unmountExport(@PathParam("id") URI id, FileSystemUnmountParam param)
+            throws InternalException {
+
+        _log.info("FileService::unmount export Request recieved {}", id);
+        String task = UUID.randomUUID().toString();
+        ArgValidator.checkFieldUriType(id, QuotaDirectory.class, "id");
+        FileShare fs = queryResource(id);
+        ArgValidator.checkEntity(fs, id, isIdEmbeddedInURL(id));
+
+        // <TODO> Implement Force delete option when shares and exports for Quota Directory are supported
+
+        Operation op = new Operation();
+        op.setResourceType(ResourceOperationTypeEnum.UNMOUNT_NFS_EXPORT);
+
+        fs.setOpStatus(new OpStatusMap());
+        fs.getOpStatus().createTaskStatus(task, op);
+        _dbClient.updateObject(fs);
+
+        // Now get ready to make calls into the controller
+
+        ComputeSystemController controller = getController(ComputeSystemController.class, null);
+        try {
+            controller.unmountDevice(param.getHostId(), id, param.getDestinationPath(), param.getType());
+            // If delete operation is successful, then remove obj from ViPR db by setting inactive=true
+
+        } catch (InternalException e) {
+            // treating all controller exceptions as internal error for now. controller
+            // should discriminate between validation problems vs. internal errors
+
+            throw e;
+        }
+
+        auditOp(OperationTypeEnum.UNMOUNT_NFS_EXPORT, true, AuditLogManager.AUDITOP_BEGIN, param.getHostId(), param.getType(),
+                param.getDestinationPath());
+
+        fs = _dbClient.queryObject(FileShare.class, fs.getId());
+        _log.debug("FileService::unmount Before sending response, FS ID : {}, Taks : {} ; Status {}", fs.getOpStatus().get(task),
+                fs.getOpStatus().get(task).getStatus());
+
+        return toTask(fs, task, op);
+    }
+
+    private List<MountInfo> getAllMounts(URI resId) {
+        List<String> mountTags = new ArrayList<String>();
+        FileShare fs = _dbClient.queryObject(FileShare.class, resId);
+        if (fs.getTag() != null) {
+            for (ScopedLabel label : fs.getTag()) { // TODO filter tags for nfs
+                mountTags.add(label.getLabel());
+            }
+        }
+        return MachineTagUtils.convertNFSTagsToMounts(mountTags);
     }
 
 }

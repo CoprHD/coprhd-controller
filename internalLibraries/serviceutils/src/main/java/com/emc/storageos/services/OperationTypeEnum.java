@@ -503,7 +503,13 @@ public enum OperationTypeEnum {
     STANDBY_DEGRADE("DEGRADE STANDBY", "", "operation that marks standby as degraded"),
     STANDBY_REJOIN("STANDBY REJOIN VDC FROM STANDBY_DEGRADED STATE", "", "operation that marks standby has rejoined vdc rom degraded state"),
     UPDATE_SITE("UPDATE SITE", "", "operation to update site information"),
-    CREATE_SCHEDULE_POLICY("SchedulePolicyCreated", "", "create schedule policy.");
+    CREATE_SCHEDULE_POLICY("SchedulePolicyCreated", "", "create schedule policy."),
+    
+    /* Filesystem Mount Operations*/
+    
+    MOUNT_NFS_EXPORT("MOUNT NFS EXPORT", "mount nfs export operation failed", "mount nfs export operation"),
+    UNMOUNT_NFS_EXPORT("UNMOUNT NFS EXPORT", "unmount nfs operation failed", "unmount nfs export operation"),
+    LIST_MOUNTED_EXPORTS("LIST MOUNTED EXPORTS", "list mounted nfs operation failed", "list mounted exports operation");
 
     private final String _evType;
     private final String _fail_evType;

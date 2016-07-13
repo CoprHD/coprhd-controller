@@ -1,4 +1,4 @@
-package com.emc.sa.service.linux.file;
+package com.emc.storageos.model.file;
 
 import java.net.URI;
 

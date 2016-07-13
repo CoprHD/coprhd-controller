@@ -21,12 +21,12 @@ import org.apache.log4j.Logger;
 
 import com.emc.sa.machinetags.vmware.DatastoreMachineTag;
 import com.emc.sa.machinetags.vmware.VMwareDatastoreTagger;
-import com.emc.sa.service.linux.file.MountInfo;
 import com.emc.sa.service.vipr.ViPRExecutionUtils;
 import com.emc.sa.util.ResourceType;
 import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.emc.storageos.model.file.FileShareRestRep;
+import com.emc.storageos.model.file.MountInfo;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.ProjectResources;
 import com.google.common.collect.Maps;

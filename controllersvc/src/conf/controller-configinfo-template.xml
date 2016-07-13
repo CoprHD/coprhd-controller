@@ -55,6 +55,9 @@
         <entry key="Scanner-scaleio" value="discovery-scaleio-context.xml"/>
         <entry key="Discovery-scaleio-unmanaged_volumes" value="discovery-scaleio-context.xml"/>
         <entry key="Metering-scaleio" value="discovery-scaleio-context.xml"/>
+        <entry key="ArrayAffinity-xtremio-host" value="discovery-xtremio-context.xml" />
+        <entry key="ArrayAffinity-xtremio" value="discovery-xtremio-context.xml" />
+        
         <entry key="Discovery-xtremio-all" value="discovery-xtremio-context.xml"/>
         <entry key="Discovery-xtremio-unmanaged_volumes" value="discovery-xtremio-context.xml"/>
         <entry key="Scanner-xtremio" value="discovery-xtremio-context.xml"/>

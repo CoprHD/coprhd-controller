@@ -80,6 +80,7 @@ class DataCollectionJobInvoker {
                 if (_accessProfile.getProps() != null) {
                     String host = _accessProfile.getProps().get(Constants.HOST);
                     if (StringUtils.isNotEmpty(host)) {
+                        // ArrayAffinity-block-host
                         contextkey = contextkey + "-" + Constants.HOST;
                     }
                 }

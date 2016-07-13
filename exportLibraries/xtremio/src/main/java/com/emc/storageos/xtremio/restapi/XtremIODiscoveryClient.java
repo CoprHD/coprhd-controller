@@ -10,6 +10,7 @@ import com.emc.storageos.xtremio.restapi.model.response.XtremIOConsistencyGroup;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOConsistencyGroupVolInfo;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiator;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiatorGroup;
+import com.emc.storageos.xtremio.restapi.model.response.XtremIOLunMap;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOObjectInfo;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOPort;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOSystem;
@@ -81,6 +82,33 @@ public interface XtremIODiscoveryClient {
      * @throws Exception
      */
     public List<XtremIOObjectInfo> getXtremIOVolumeLinks(String clusterName) throws Exception;
+
+    /**
+     * Get all the lun map and their details for the given cluster.
+     *
+     * @param clusterName
+     * @return lun maps
+     * @throws Exception
+     */
+    public List<XtremIOLunMap> getXtremIOLunMaps(String clusterName) throws Exception;
+
+    /**
+     * Get all the lun map links for the given cluster
+     *
+     * @param clusterName
+     * @return lun map links
+     * @throws Exception
+     */
+    public List<XtremIOObjectInfo> getXtremIOLunMapLinks(String clusterName) throws Exception;
+
+    /**
+     * Get the lun map details for the passed lun map links
+     *
+     * @param clusterName
+     * @return lun maps
+     * @throws Exception
+     */
+    public List<XtremIOLunMap> getXtremIOLunMapsForLinks(List<XtremIOObjectInfo> lunMapLinks, String clusterName) throws Exception;
     
     /**
      * Get all the Consistency groups for a given cluster

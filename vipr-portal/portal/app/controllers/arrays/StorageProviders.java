@@ -63,6 +63,7 @@ public class StorageProviders extends ViprResourceController {
         renderArgs.put("nonSSLStorageSystemList", StorageProviderTypes.getProvidersWithoutSSL());
         renderArgs.put("mdmDefaultStorageProviderList", StorageProviderTypes.getProvidersWithMDM());
         renderArgs.put("mdmonlyProviderList", StorageProviderTypes.getProvidersWithOnlyMDM());
+        renderArgs.put("secretKeyProviderList", StorageProviderTypes.getProvidersWithSecretKey());
         renderArgs.put("elementManagerStorageProviderList", StorageProviderTypes.getProvidersWithEMS());
 
         List<EnumOption> defaultStorageProviderPortMap = StorageProviderTypes.getStoragePortMap();
@@ -228,6 +229,8 @@ public class StorageProviders extends ViprResourceController {
 
         public String secondaryURL;
 
+        
+        public String secretKey;
         @MaxSize(2048)
         public String hyperScaleUser;
 
@@ -243,7 +246,7 @@ public class StorageProviders extends ViprResourceController {
         
         public URL url;
 
-        public StorageProviderForm() {
+        public StorageProviderForm() {        	
         }
 
         public StorageProviderForm(StorageProviderRestRep smisProvider) {
@@ -253,9 +256,13 @@ public class StorageProviders extends ViprResourceController {
         public boolean isNew() {
             return StringUtils.isBlank(id);
         }
-
+        
         public boolean isScaleIOApi() {
             return StorageProviderTypes.isScaleIOApi(interfaceType);
+        }
+
+        public boolean isCeph() {
+            return StorageProviderTypes.isCeph(interfaceType);
         }
 
         public void setXIVParameters() {
@@ -287,6 +294,7 @@ public class StorageProviders extends ViprResourceController {
             this.secondaryPassword = ""; // the platform will never return the real password
             this.secondaryURL = storageProvider.getSecondaryURL();
             this.elementManagerURL = storageProvider.getElementManagerURL();
+            this.secretKey = ""; // the platform will never return the real key
             this.hyperScaleUser = storageProvider.getSecondaryUsername();
             this.hyperScalePassword = ""; // the platform will never return the real password
             try {
@@ -317,37 +325,38 @@ public class StorageProviders extends ViprResourceController {
         public StorageProviderRestRep update() {
             return StorageProviderUtils.update(uri(id), name, ipAddress,
                     portNumber, userName, password, useSSL, interfaceType,
-                    secondaryUsername, secondaryPassword, elementManagerURL, secondaryURL);
+                    secondaryUsername, secondaryPassword, elementManagerURL, secondaryURL, secretKey);
         }
 
         public Task<StorageProviderRestRep> create() {
             Task<StorageProviderRestRep> task = StorageProviderUtils.create(
                     name, ipAddress, portNumber, userName, password, useSSL,
                     interfaceType, secondaryUsername, secondaryPassword,
-                    elementManagerURL, secondaryURL);
+                    elementManagerURL, secondaryURL, secretKey);
             new SaveWaitJob(getViprClient(), task).now();
             return task;
         }
 
         public void validate(String fieldName) {
             Validation.valid(fieldName, this);
-
-            if (isScaleIOApi()) {
+            
+            if (isScaleIOApi() ) {
                 Validation.required(fieldName + ".secondaryPassword",
                         this.secondaryPassword);
                 Validation.required(fieldName + ".secondaryPasswordConfirm",
                         this.secondaryPasswordConfirm);
-            }
-
-            if (isNew() && !isScaleIOApi()) {
-                Validation.required(fieldName + ".userName", this.userName);
+            } else if (isCeph()) {
+            	Validation.required(fieldName + ".userName", this.userName);
+        	   	Validation.required(fieldName + ".secretKey", this.secretKey);
+            } else if (isNew()) {
+            	Validation.required(fieldName + ".userName", this.userName);
+        	   	Validation.required(fieldName + ".password", this.password);
                 Validation.required(fieldName + ".password", this.password);
                 Validation.required(fieldName + ".confirmPassword",
                         this.confirmPassword);
             }
-
-            if (!StringUtils.equals(StringUtils.trim(password),
-                    StringUtils.trim(confirmPassword))) {
+            
+            if (!StringUtils.equals(StringUtils.trim(password), StringUtils.trim(confirmPassword))) {
                 Validation.addError(fieldName + ".confirmPassword",
                         MessagesUtils
                                 .get("smisProvider.confirmPassword.not.match"));
@@ -362,7 +371,7 @@ public class StorageProviders extends ViprResourceController {
                                         .get("smisProvider.secondaryPassword.confirmPassword.not.match"));
             }
         }
-
+        
     }
 
     @SuppressWarnings("rawtypes")

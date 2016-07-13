@@ -21,10 +21,11 @@ import com.sun.jersey.core.util.MultivaluedMapImpl;
 public class HostIpPortRequests extends KHRequests<VNXeHostIpPort> {
     private static final Logger _logger = LoggerFactory.getLogger(FileSystemListRequest.class);
     private static final String URL = "/api/types/hostIPPort/instances";
-
+    private static final String FIELDS = "id,name,type,address,netmask,isIgnored,host";	
     public HostIpPortRequests(KHClient client) {
         super(client);
         _url = URL;
+        _fields = FIELDS;
     }
 
     /**

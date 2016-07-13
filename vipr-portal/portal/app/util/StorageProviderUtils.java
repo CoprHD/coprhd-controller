@@ -71,7 +71,7 @@ public class StorageProviderUtils {
 
     public static Task<StorageProviderRestRep> create(String name, String ipAddress, Integer portNumber, String userName,
             String password, Boolean useSSL, String interfaceType, String secondaryUsername, String secondaryPassword,
-            String elementManagerURL, String secondaryURL) {
+            String elementManagerURL, String secondaryURL, String secretKey) {
         StorageProviderCreateParam update = new StorageProviderCreateParam();
         update.setName(name);
         update.setIpAddress(ipAddress);
@@ -89,13 +89,15 @@ public class StorageProviderUtils {
         	update.setPassword(secondaryPassword);
         	update.setSecondaryUsername(null);
         	update.setSecondaryPassword(null);
+        } else if (StorageProviderTypes.isCeph(interfaceType)) {
+            update.setPassword(secretKey);
         }
         return getViprClient().storageProviders().create(update);
     }
 
     public static StorageProviderRestRep update(URI id, String name, String ipAddress, Integer portNumber,
             String userName, String password, Boolean useSSL, String interfaceType, String secondaryUsername,
-            String secondaryPassword, String elementManagerURL, String secondaryURL) {
+            String secondaryPassword, String elementManagerURL, String secondaryURL, String secretKey) {
         StorageProviderUpdateParam update = new StorageProviderUpdateParam();
         update.setName(name);
         update.setIpAddress(ipAddress);
@@ -113,6 +115,11 @@ public class StorageProviderUtils {
         	update.setPassword(secondaryPassword);
         	update.setSecondaryUsername(null);
         	update.setSecondaryPassword(null);
+        } else if (StorageProviderTypes.isCeph(interfaceType)) {
+            update.setPassword(secretKey);
+            if (id != null) {
+                update.setInterfaceType(null);
+            }
         }
         return getViprClient().storageProviders().update(id, update);
     }

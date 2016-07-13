@@ -94,10 +94,10 @@ public class FileProvider extends BaseAssetOptionsProvider {
     private List<AssetOption> getFileVirtualPools(AssetOptionsContext ctx, URI virtualArray, String... protocols) {
         Collection<FileVirtualPoolRestRep> virtualPools;
         if (virtualArray == null) {
-            virtualPools = api(ctx).fileVpools().getAll();
+            virtualPools = api(ctx).fileVpools().getByTenant(ctx.getTenant());
         }
         else {
-            virtualPools = api(ctx).fileVpools().getByVirtualArray(virtualArray,
+            virtualPools = api(ctx).fileVpools().getByVirtualArrayAndTenant(virtualArray, ctx.getTenant(),
                     new VirtualPoolProtocolFilter<FileVirtualPoolRestRep>(protocols));
         }
         List<AssetOption> options = createBaseResourceOptions(virtualPools);
@@ -495,7 +495,7 @@ public class FileProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getFileTargetVirtualPools(AssetOptionsContext ctx, String vpoolChangeOperation) {
         List<AssetOption> options = Lists.newArrayList();
         
-        List<FileVirtualPoolRestRep> vpoolChanges = api(ctx).fileVpools().getAll();
+        List<FileVirtualPoolRestRep> vpoolChanges = api(ctx).fileVpools().getByTenant(ctx.getTenant());
         
         for (FileVirtualPoolRestRep vpool : vpoolChanges) {
             if (StringUtils.equals(vpool.getFileReplicationType(), FileReplicationType.REMOTE.name()) &&

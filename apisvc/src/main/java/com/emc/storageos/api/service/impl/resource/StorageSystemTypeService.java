@@ -5,8 +5,14 @@
 
 package com.emc.storageos.api.service.impl.resource;
 
+import static com.emc.storageos.api.mapper.SystemsMapper.map;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -19,7 +25,6 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.Consumes;
 
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
@@ -37,17 +42,8 @@ import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
-import com.google.common.collect.Lists;
 import com.sun.jersey.core.header.FormDataContentDisposition;
 import com.sun.jersey.multipart.FormDataParam;
-
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-
-import static com.emc.storageos.api.mapper.SystemsMapper.map;
 
 /**
  * StorageSystemTypes resource implementation
@@ -174,6 +170,7 @@ public class StorageSystemTypeService extends TaskResourceService {
 		ssType.setIsDefaultMDM(addparam.getIsDefaultMDM());
 		ssType.setIsOnlyMDM(addparam.getIsOnlyMDM());
 		ssType.setIsElementMgr(addparam.getIsElementMgr());
+		ssType.setIsSecretKey(addparam.getIsSecretKey());
 
 		_dbClient.createObject(ssType);
 

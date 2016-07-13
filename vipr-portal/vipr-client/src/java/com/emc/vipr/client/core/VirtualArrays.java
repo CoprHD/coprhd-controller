@@ -101,6 +101,30 @@ public class VirtualArrays extends AbstractCoreBulkResources<VirtualArrayRestRep
     }
 
     /**
+     * Lists all virtual arrays of a specific tenant
+     * <p>
+     * API Call: <tt>GET /vdc/varrays</tt>
+     *
+     * @return the list of virtual array references of specific tenant
+     */
+    public List<NamedRelatedResourceRep> listByTenant(URI tenantId) {
+        UriBuilder builder = client.uriBuilder(baseUrl);
+        builder.queryParam(SearchConstants.TENANT_ID_PARAM, tenantId);
+        VirtualArrayList response = client.getURI(VirtualArrayList.class, builder.build());
+        return ResourceUtils.defaultList(response.getVirtualArrays());
+    }
+
+    public List<VirtualArrayRestRep> getByTenant(URI tenantId) {
+        return getByTenant(tenantId, null);
+    }
+
+    public List<VirtualArrayRestRep> getByTenant(URI tenantId, ResourceFilter<VirtualArrayRestRep> filter) {
+        List<NamedRelatedResourceRep> refs = listByTenant(tenantId);
+        return getByRefs(refs, filter);
+    }
+
+
+    /**
      * Gets the list of all virtual arrays. This is a convenience method for: <tt>getByRefs(list())</tt>.
      * 
      * @return the list of virtual arrays.

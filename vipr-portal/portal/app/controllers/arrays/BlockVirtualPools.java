@@ -462,7 +462,8 @@ public class BlockVirtualPools extends ViprResourceController {
         renderArgs.put("protocolsOptions", BlockProtocols.options(
                 BlockProtocols.FC,
                 BlockProtocols.iSCSI,
-                BlockProtocols.ScaleIO
+                BlockProtocols.ScaleIO,
+                BlockProtocols.RBD
                 ));
         renderArgs.put("systemTypeOptions", StorageSystemTypes.getBlockStorageOptions());
 

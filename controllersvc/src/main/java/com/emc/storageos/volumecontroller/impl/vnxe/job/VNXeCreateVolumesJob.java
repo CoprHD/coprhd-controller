@@ -7,6 +7,7 @@ package com.emc.storageos.volumecontroller.impl.vnxe.job;
 
 import java.io.IOException;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 
@@ -63,7 +64,12 @@ public class VNXeCreateVolumesJob extends VNXeJob {
 
             // If terminal state update storage pool capacity
             if (_status == JobStatus.SUCCESS || _status == JobStatus.FAILED) {
-                VNXeJob.updateStoragePoolCapacity(dbClient, vnxeApiClient, storagePool);
+                List<URI> volUris = getTaskCompleter().getIds();
+                List<String> volsInPool = new ArrayList<String>();
+                for (URI voluri : volUris) {
+                    volsInPool.add(voluri.toString());
+                }
+                VNXeJob.updateStoragePoolCapacity(dbClient, vnxeApiClient, storagePool, volsInPool);
             }
             Calendar now = Calendar.getInstance();
             int volumeCount = 0;
@@ -94,7 +100,7 @@ public class VNXeCreateVolumesJob extends VNXeJob {
                 for (URI volId : volIds) {
                     Volume volume = dbClient.queryObject(Volume.class, volId);
                     volume.setInactive(true);
-                    dbClient.persistObject(volume);
+                    dbClient.updateObject(volume);
                     if (logMsgBuilder.length() != 0) {
                         logMsgBuilder.append("\n");
                     }
@@ -141,10 +147,17 @@ public class VNXeCreateVolumesJob extends VNXeJob {
             if (group == null) {
                 group = dbClient.queryObject(BlockConsistencyGroup.class, volume.getConsistencyGroup());
             }
-            String deviceName = group.getCgNameOnStorageSystem(volume.getStorageController());
-            VNXeLun vnxeLun = apiClient.getLunByLunGroup(deviceName, volume.getNativeGuid());
+            String cgId = null;
+            if (apiClient.isUnityClient()) {
+                String cgName = volume.getReplicationGroupInstance();
+                cgId = apiClient.getConsistencyGroupIdByName(cgName);
+            } else {
+                cgId = group.getCgNameOnStorageSystem(volume.getStorageController());
+            }
+            VNXeLun vnxeLun = apiClient.getLunByLunGroup(cgId, volume.getNativeGuid());
             if (vnxeLun != null) {
                 updateVolume(volume, vnxeLun, dbClient);
+                dbClient.updateObject(volume);
 
                 if (logMsgBuilder.length() != 0) {
                     logMsgBuilder.append("\n");
@@ -165,6 +178,6 @@ public class VNXeCreateVolumesJob extends VNXeJob {
         volume.setNativeId(vnxeLun.getId());
         volume.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(dbClient, volume));
         volume.setDeviceLabel(vnxeLun.getName());
-        dbClient.persistObject(volume);
+        dbClient.updateObject(volume);
     }
 }

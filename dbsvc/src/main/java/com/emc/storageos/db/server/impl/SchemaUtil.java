@@ -903,6 +903,7 @@ public class SchemaUtil {
             storageTypeExist = false;
         }
         else {
+            // REFACTOR SHIT HERE!!!!!!!!!!!!!!!!
             //Compare our default-list and data available at DB are in sync
             int dbElementCount = uriList.size();
             HashMap<String, String> defaultDisplayName = StorageSystemTypesInitUtils.initializeDisplayName();

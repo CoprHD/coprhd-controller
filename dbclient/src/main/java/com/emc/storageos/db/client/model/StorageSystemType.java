@@ -11,118 +11,118 @@ package com.emc.storageos.db.client.model;
 @SuppressWarnings("serial")
 @Cf("StorageSystemType")
 public class StorageSystemType extends DataObject {
-	// Name of Storage Type, like VMAX, VNX, Isilion
-	private String storageTypeName;
+    // Name of Storage Type, like VMAX, VNX, Isilion
+    private String storageTypeName;
 
-	// Display Name of Storage Type, like VMAX, VNX, Isilion
-	private String storageTypeDispName;
+    // Display Name of Storage Type, like VMAX, VNX, Isilion
+    private String storageTypeDispName;
 
-	// Storage type like Block, File or Object
-	private String storageTypeType;
+    // Storage type like Block, File or Object
+    private String storageTypeType;
 
-	// Storage array is directly manage by CoprHD or thru SMI: Providers
-	private Boolean isSmiProvider = false;
+    // Storage array is directly manage by CoprHD or thru SMI: Providers
+    private Boolean isSmiProvider = false;
 
-	// Storage array URI in string
-	private String storageTypeId;
+    // Storage array URI in string
+    private String storageTypeId;
 
-	// By default SSL port is enabled
-	private Boolean isDefaultSsl = false;
+    // By default SSL port is enabled
+    private Boolean isDefaultSsl = false;
 
-	private Boolean isDefaultMDM = false;
-	private Boolean isOnlyMDM = false;
-	// Connect to storage array only thru element manager
-	private Boolean isElementMgr = false;
+    private Boolean isDefaultMDM = false;
+    private Boolean isOnlyMDM = false;
+    // Connect to storage array only thru element manager
+    private Boolean isElementMgr = false;
 
-	private Boolean isSecretKey = false;
-	
-	private String sslPort;
-	private String nonSslPort;
-	private String driverClassName;
+    private Boolean isSecretKey = false;
 
-	public static enum storageSupportedType {
-		block, file, object, all
-	}
+    private String sslPort;
+    private String nonSslPort;
+    private String driverClassName;
 
-	@Name("storageTypeName")
-	public String getStorageTypeName() {
-		return storageTypeName;
-	}
+    public static enum storageSupportedType {
+        block, file, object, all
+    }
 
-	public void setStorageTypeName(String name) {
-		this.storageTypeName = name;
-		setChanged("storageTypeName");
-	}
+    @Name("storageTypeName")
+    public String getStorageTypeName() {
+        return storageTypeName;
+    }
 
-	@Name("storageTypeDispName")
-	public String getStorageTypeDispName() {
-		return storageTypeDispName;
-	}
+    public void setStorageTypeName(String name) {
+        this.storageTypeName = name;
+        setChanged("storageTypeName");
+    }
 
-	public void setStorageTypeDispName(String name) {
-		this.storageTypeDispName = name;
-		setChanged("storageTypeDispName");
-	}
+    @Name("storageTypeDispName")
+    public String getStorageTypeDispName() {
+        return storageTypeDispName;
+    }
 
-	@Name("storageTypeType")
-	public String getStorageTypeType() {
-		return storageTypeType;
-	}
+    public void setStorageTypeDispName(String name) {
+        this.storageTypeDispName = name;
+        setChanged("storageTypeDispName");
+    }
 
-	public void setStorageTypeType(String storageTypeType) {
-		this.storageTypeType = storageTypeType;
-		setChanged("storageTypeType");
-	}
+    @Name("storageTypeType")
+    public String getStorageTypeType() {
+        return storageTypeType;
+    }
 
-	@Name("isSmiProvider")
-	public Boolean getIsSmiProvider() {
-		return isSmiProvider;
-	}
+    public void setStorageTypeType(String storageTypeType) {
+        this.storageTypeType = storageTypeType;
+        setChanged("storageTypeType");
+    }
 
-	public void setIsSmiProvider(Boolean isSmiProvider) {
-		this.isSmiProvider = isSmiProvider;
-		setChanged("isSmiProvider");
-	}
+    @Name("isSmiProvider")
+    public Boolean getIsSmiProvider() {
+        return isSmiProvider;
+    }
 
-	@Name("storageTypeId")
-	public String getStorageTypeId() {
-		return storageTypeId;
-	}
+    public void setIsSmiProvider(Boolean isSmiProvider) {
+        this.isSmiProvider = isSmiProvider;
+        setChanged("isSmiProvider");
+    }
 
-	public void setStorageTypeId(String storageId) {
-		this.storageTypeId = storageId;
-		setChanged("storageTypeId");
-	}
+    @Name("storageTypeId")
+    public String getStorageTypeId() {
+        return storageTypeId;
+    }
 
-	@Name("isDefaultSsl")
-	public Boolean getIsDefaultSsl() {
-		return isDefaultSsl;
-	}
+    public void setStorageTypeId(String storageId) {
+        this.storageTypeId = storageId;
+        setChanged("storageTypeId");
+    }
 
-	public void setIsDefaultSsl(Boolean isDefaultSsl) {
-		this.isDefaultSsl = isDefaultSsl;
-		setChanged("isDefaultSsl");
-	}
+    @Name("isDefaultSsl")
+    public Boolean getIsDefaultSsl() {
+        return isDefaultSsl;
+    }
 
-	@Name("isDefaultMDM")
-	public Boolean getIsDefaultMDM() {
-		return isDefaultMDM;
-	}
+    public void setIsDefaultSsl(Boolean isDefaultSsl) {
+        this.isDefaultSsl = isDefaultSsl;
+        setChanged("isDefaultSsl");
+    }
 
-	public void setIsDefaultMDM(Boolean isDefaultMDM) {
-		this.isDefaultMDM = isDefaultMDM;
-		setChanged("isDefaultMDM");
-	}
+    @Name("isDefaultMDM")
+    public Boolean getIsDefaultMDM() {
+        return isDefaultMDM;
+    }
 
-	@Name("isOnlyMDM")
-	public Boolean getIsOnlyMDM() {
-		return isOnlyMDM;
-	}
+    public void setIsDefaultMDM(Boolean isDefaultMDM) {
+        this.isDefaultMDM = isDefaultMDM;
+        setChanged("isDefaultMDM");
+    }
 
-	public void setIsOnlyMDM(Boolean isOnlyMDM) {
-		this.isOnlyMDM = isOnlyMDM;
-		setChanged("isOnlyMDM");
-	}
+    @Name("isOnlyMDM")
+    public Boolean getIsOnlyMDM() {
+        return isOnlyMDM;
+    }
+
+    public void setIsOnlyMDM(Boolean isOnlyMDM) {
+        this.isOnlyMDM = isOnlyMDM;
+        setChanged("isOnlyMDM");
+    }
 
     @Name("isElementMgr")
     public Boolean getIsElementMgr() {
@@ -144,34 +144,34 @@ public class StorageSystemType extends DataObject {
         setChanged("isSecretKey");
     }
 
-	@Name("sslPort")
-	public String getSslPort() {
-		return sslPort;
-	}
+    @Name("sslPort")
+    public String getSslPort() {
+        return sslPort;
+    }
 
-	public void setSslPort(String sslPort) {
-		this.sslPort = sslPort;
-		setChanged("sslPort");
-	}
+    public void setSslPort(String sslPort) {
+        this.sslPort = sslPort;
+        setChanged("sslPort");
+    }
 
-	@Name("nonSslPort")
-	public String getNonSslPort() {
-		return nonSslPort;
-	}
+    @Name("nonSslPort")
+    public String getNonSslPort() {
+        return nonSslPort;
+    }
 
-	public void setNonSslPort(String nonSslPort) {
-		this.nonSslPort = nonSslPort;
-		setChanged("nonSslPort");
-	}
+    public void setNonSslPort(String nonSslPort) {
+        this.nonSslPort = nonSslPort;
+        setChanged("nonSslPort");
+    }
 
-	@Name("driverClassName")
-	public String getDriverClassName() {
-		return driverClassName;
-	}
+    @Name("driverClassName")
+    public String getDriverClassName() {
+        return driverClassName;
+    }
 
-	public void setDriverClassName(String driverClassName) {
-		this.driverClassName = driverClassName;
-		setChanged("driverClassName");
-	}
+    public void setDriverClassName(String driverClassName) {
+        this.driverClassName = driverClassName;
+        setChanged("driverClassName");
+    }
 
 }

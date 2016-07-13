@@ -155,36 +155,38 @@ public class StorageSystemTypes {
         return StringOption.getDisplayValue(type, OPTION_PREFIX);
     }
 
-    public static List<StringOption> getStorageOption() {
-        String alltypes = "all";
+    /**
+     * Inside structure of StringOption is "storage type name: provider name (or storage type display name)
+     */
+    public static List<StringOption> getStorageTypeOptions() {
         HashMap<String, String> arrayProviderMap = StorageSystemTypesInitUtils.arrToProviderDsiplayName();
-        List<StringOption> allproviders = new ArrayList<StringOption>();
-        StorageSystemTypeList storagetypelist = StorageSystemTypeUtils.getAllStorageSystemTypes(alltypes);
+        List<StringOption> options = new ArrayList<StringOption>();
+        StorageSystemTypeList typeList = StorageSystemTypeUtils.getAllStorageSystemTypes(StorageSystemTypeUtils.ALL_TYPE);
 
-        for (StorageSystemTypeRestRep storagetypeRest : storagetypelist.getStorageSystemTypes()) {
-            // Add all storage systems plus VPLEX, SCALEIO, IBMXIV, XTREMIO
-            if (!storagetypeRest.getIsSmiProvider() || StringUtils.equals(VPLEX, storagetypeRest.getStorageTypeName())
-                    || StringUtils.equals(SCALEIOAPI, storagetypeRest.getStorageTypeName())
-                    || StringUtils.equals(IBMXIV, storagetypeRest.getStorageTypeName())
-                    || StringUtils.equals(XTREMIO, storagetypeRest.getStorageTypeName())) {
+        for (StorageSystemTypeRestRep type : typeList.getStorageSystemTypes()) {
+            String typeName = type.getStorageTypeName();
+            // ignore SMIS providers except VPLEX, SCALEIO, IBMXIV, XTREMIO
+            if (type.getIsSmiProvider() && !StringUtils.equals(VPLEX, typeName)
+                    && !StringUtils.equals(SCALEIOAPI, typeName)
+                    && !StringUtils.equals(IBMXIV, typeName)
+                    && !StringUtils.equals(XTREMIO, typeName)) {
+                continue;
+            }
 
-                if (null != arrayProviderMap.get(storagetypeRest.getStorageTypeName())) {
-                    if(StringUtils.equals(VMAX, storagetypeRest.getStorageTypeName())) {
-                        allproviders.add(new StringOption(SMIS, arrayProviderMap.get(storagetypeRest.getStorageTypeName())));
-}
-                    else {
-                        allproviders.add(new StringOption(storagetypeRest.getStorageTypeName(), arrayProviderMap.get(storagetypeRest
-                            .getStorageTypeName())));
-                    }
+            String provider = arrayProviderMap.get(typeName);
+            if (provider != null) {
+                if (StringUtils.equals(VMAX, typeName)) {
+                    // Why use SMIS name instead of using VMAX directly
+                    options.add(new StringOption(SMIS, provider));
+                } else {
+                    options.add(new StringOption(typeName, provider));
                 }
-                else {
-                    if (!StringUtils.equals(VNX_BLOCK, storagetypeRest.getStorageTypeName())) { // VNX block is covered by VMAX
-                        allproviders.add(new StringOption(storagetypeRest.getStorageTypeName(), storagetypeRest.getStorageTypeDispName()));
-                    }
-                }
+            } else if (!StringUtils.equals(VNX_BLOCK, typeName)) { // VNX block is covered by VMAX
+                // Why this judgment should under the prerequisite provider == null?
+                options.add(new StringOption(typeName, type.getStorageTypeDispName()));
             }
         }
-        return allproviders;
+        return options;
     }
 
     public static List<StringOption> getBlockStorageOptions() {

@@ -24,7 +24,7 @@ public class StorageSystemTypesInitUtils {
 
     private static final Logger log = LoggerFactory.getLogger(StorageSystemTypesInitUtils.class);
 
-    private static final String NONE = "NONE";
+//    private static final String NONE = "NONE";
     private static final String ISILON = "isilon";
     private static final String VNX_BLOCK = "vnxblock";
     private static final String VNXe = "vnxe";
@@ -152,17 +152,12 @@ public class StorageSystemTypesInitUtils {
      * 
      */
     private static void createDbStorageTypeMap(DbClient dbClient) {
-        if (dbStorageTypeMap != null) { // Make sure we have empty HashMap
-            dbStorageTypeMap.clear();
-            dbStorageTypeMap = null;
-        }
-
         List<URI> ids = dbClient.queryByType(StorageSystemType.class, true);
-
-        Iterator<StorageSystemType> iter = dbClient.queryIterativeObjects(StorageSystemType.class, ids);
+        Iterator<StorageSystemType> existingTypes = dbClient.queryIterativeObjects(StorageSystemType.class, ids);
         dbStorageTypeMap = new HashMap<String, String>();
-        while (iter.hasNext()) {
-            StorageSystemType ssType = iter.next();
+        while (existingTypes.hasNext()) {
+            StorageSystemType ssType = existingTypes.next();
+            // why only name here
             dbStorageTypeMap.put(ssType.getStorageTypeName(), ssType.getStorageTypeName());
         }
     }

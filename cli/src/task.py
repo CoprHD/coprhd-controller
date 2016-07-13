@@ -90,10 +90,10 @@ def resume_parser(subcommand_parsers, common_parser):
         help='Resume a suspended task')
 
     mandatory_args = resume_parser.add_argument_group('mandatory arguments')
-    mandatory_args.add_argument('-id', '-uri',
-                                metavar='<uri>',
+    mandatory_args.add_argument('-tid', '-taskid',
+                                metavar='<taskid>',
                                 dest='uri',
-                                help='URI of the Task',
+                                help='ID of the Task',
                                 required=True)
 
     resume_parser.set_defaults(func=task_resume)
@@ -129,10 +129,10 @@ def rollback_parser(subcommand_parsers, common_parser):
         help='Rollback a suspended task')
 
     mandatory_args = rollback_parser.add_argument_group('mandatory arguments')
-    mandatory_args.add_argument('-id', '-uri',
-                                metavar='<uri>',
+    mandatory_args.add_argument('-tid', '-taskid',
+                                metavar='<taskid>',
                                 dest='uri',
-                                help='URI of the Task',
+                                help='ID of the Task',
                                 required=True)
 
     rollback_parser.set_defaults(func=task_rollback)

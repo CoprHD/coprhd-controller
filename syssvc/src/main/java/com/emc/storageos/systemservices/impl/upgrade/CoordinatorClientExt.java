@@ -31,9 +31,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
@@ -53,11 +50,9 @@ import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
 import com.emc.storageos.coordinator.client.model.RepositoryInfo;
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
-import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient.LicenseType;
-import com.emc.storageos.coordinator.client.service.DistributedDoubleBarrier;
 import com.emc.storageos.coordinator.client.service.DistributedPersistentLock;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
@@ -66,7 +61,6 @@ import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
 import com.emc.storageos.coordinator.common.impl.ServiceImpl;
 import com.emc.storageos.coordinator.common.impl.ZkConnection;
-import com.emc.storageos.coordinator.common.impl.ZkPath;
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.db.common.DbServiceStatusChecker;
 import com.emc.storageos.model.property.PropertiesMetadata;
@@ -96,10 +90,6 @@ public class CoordinatorClientExt {
             new ImmutableSet.Builder<String>().add("sys").add("control").build();
     
     private static final String URI_INTERNAL_GET_CLUSTER_INFO = "/control/internal/cluster/info";
-    private static final int COODINATOR_MONITORING_INTERVAL = 60; // in seconds
-    private static final int DB_MONITORING_INTERVAL = 60; // in seconds
-    private static final String DR_SWITCH_TO_ZK_OBSERVER_BARRIER = "/config/disasterRecoverySwitchToZkObserver";
-    private static final int DR_SWITCH_BARRIER_TIMEOUT = 180; // barrier timeout in seconds
     private static final int ZK_LEADER_ELECTION_PORT = 2888;
     private static final int DUAL_ZK_LEADER_ELECTION_PORT = 2898;
     
@@ -122,7 +112,6 @@ public class CoordinatorClientExt {
     private int _nodeCount = 0;
     private String _vip;
     private DrUtil drUtil;
-    private volatile boolean stopCoordinatorSvcMonitor; // default to false
     
     private DbServiceStatusChecker statusChecker = null;
     private boolean backCompatPreYoda = true;
@@ -134,8 +123,6 @@ public class CoordinatorClientExt {
     private DrZkHealthMonitor drZkHealthMonitor;
     @Autowired
     private DrDbHealthMonitor drDbHealthMonitor;
-    
-    private DistributedDoubleBarrier switchToZkObserverBarrier;
     
     public CoordinatorClient getCoordinatorClient() {
         return _coordinator;
@@ -638,7 +625,6 @@ public class CoordinatorClientExt {
                     CONTROL_NODE_SYSSVC_ID_PATTERN, siteId);
             final Map<Service, ConfigVersion> controlNodesConfigVersions = getAllNodeInfos(ConfigVersion.class,
                     CONTROL_NODE_SYSSVC_ID_PATTERN, siteId);
-            Site site = drUtil.getSiteFromLocalVdc(siteId);
             ClusterInfo.ClusterState controlNodesState = _coordinator.getControlNodesState(siteId);
 
             // if backCompatPreYoda flag is true, it's still in the middle of yoda upgrade. Probably it is 
@@ -1600,18 +1586,18 @@ public class CoordinatorClientExt {
             _log.info("Can't find active site id or local site is active, set active healthy as false");
         } else {
             Site activeSite = drUtil.getSiteFromLocalVdc(activeSiteId);
-            isActiveSiteLeaderAlive = isActiveSiteZKLeaderAlive(activeSite);
+            isActiveSiteLeaderAlive = isZKLeaderAlive(activeSite);
             isActiveSiteStable =  isActiveSiteStable(activeSite);
             _log.info("Active site ZK is alive: {}, active site stable is :{}", isActiveSiteLeaderAlive, isActiveSiteStable);
         }
         return isActiveSiteLeaderAlive && isActiveSiteStable;
     }
     
-    public boolean isActiveSiteZKLeaderAlive(Site activeSite) {
-        // Check alive coordinatorsvc on active site
-        Collection<String> nodeAddrList = activeSite.getHostIPv4AddressMap().values();
-        if (!activeSite.isUsingIpv4()) {
-            nodeAddrList = activeSite.getHostIPv6AddressMap().values();
+    public boolean isZKLeaderAlive(Site site) {
+        // Check alive coordinatorsvc on given site site
+        Collection<String> nodeAddrList = site.getHostIPv4AddressMap().values();
+        if (!site.isUsingIpv4()) {
+            nodeAddrList = site.getHostIPv6AddressMap().values();
         }
 
         if (nodeAddrList.size() > 1) {

@@ -10,6 +10,8 @@ import java.util.Map;
 
 public class BackupPropertyPage extends CustomPropertyPage {
     private Property externalLocationUrl;
+    private Property externalLocationType;
+    private Property externalLocationDomain;
     private Property externalLocationUsername;
     private Property externalLocationPassword;
     private Property schedulerEnabled;
@@ -21,7 +23,9 @@ public class BackupPropertyPage extends CustomPropertyPage {
     public BackupPropertyPage(Map<String, Property> properties) {
         super("Backup");
         setRenderTemplate("backupPage.html");
+        externalLocationType = addCustomProperty(properties,ConfigProperty.BACKUP_EXTERNAL_TYPE);
         externalLocationUrl = addCustomProperty(properties, ConfigProperty.BACKUP_EXTERNAL_URL);
+        externalLocationDomain = addCustomProperty(properties,ConfigProperty.BACKUP_EXTERNAL_DOMAIN);
         externalLocationUsername = addCustomProperty(properties, ConfigProperty.BACKUP_EXTERNAL_USERNAME);
         externalLocationPassword = addCustomPasswordProperty(properties, ConfigProperty.BACKUP_EXTERNAL_PWD);
         schedulerEnabled = addCustomBooleanProperty(properties, ConfigProperty.BACKUP_SCHEDULER_ENABLE);
@@ -33,6 +37,14 @@ public class BackupPropertyPage extends CustomPropertyPage {
 
     public Property getExternalLocationUrl() {
         return externalLocationUrl;
+    }
+
+    public Property getExternalLocationType() {
+        return externalLocationType;
+    }
+
+    public Property getExternalLocationDomain() {
+        return externalLocationDomain;
     }
 
     public Property getExternalLocationUsername() {

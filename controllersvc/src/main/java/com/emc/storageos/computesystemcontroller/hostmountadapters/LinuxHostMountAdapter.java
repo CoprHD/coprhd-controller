@@ -1,14 +1,9 @@
 package com.emc.storageos.computesystemcontroller.hostmountadapters;
 
-import static com.emc.sa.service.vipr.ViPRExecutionUtils.logInfo;
-
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.emc.sa.machinetags.MachineTagUtils;
-import com.emc.sa.service.linux.LinuxUtils;
-import com.emc.sa.service.linux.file.LinuxFileSupport;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
@@ -20,58 +15,49 @@ import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.ScopedLabel;
 import com.emc.storageos.db.client.model.ScopedLabelSet;
 import com.emc.storageos.model.file.MountInfo;
-import com.iwave.ext.linux.LinuxSystemCLI;
 
 public class LinuxHostMountAdapter extends AbstractMountAdapter {
 
-    public LinuxHostMountAdapter(DbClient _dbClient, CoordinatorClient _coordinator) {
+    MountUtils mountUtils;
+
+    public LinuxHostMountAdapter(DbClient _dbClient, CoordinatorClient _coordinator, Host host) {
         setCoordinator(_coordinator);
         setDbClient(_dbClient);
+        mountUtils = new MountUtils(host);
     }
 
     public void doMount(HostDeviceInputOutput args) {
-        LinuxFileSupport linuxSupport = new LinuxFileSupport(initHost(args.getHostId()));
+
         FileShare fs = dbClient.queryObject(FileShare.class, args.getResId());
         FileExport export = findExport(fs, args.getSubDirectory(), args.getSecurity());
         // Create directory
-        linuxSupport.createDirectory(args.getDestinationMountPath());
+        mountUtils.createDirectory(args.getDestinationMountPath());
         // Add to the /etc/fstab to allow the os to mount on restart
-        linuxSupport.addToFSTab(export.getMountPoint(), args.getDestinationMountPath(), "auto", "nolock,sec=" + args.getSecurity());
+        mountUtils.addToFSTab(export.getMountPoint(), args.getDestinationMountPath(), "auto", "nolock,sec=" + args.getSecurity());
         // Mount the device
-        linuxSupport.mountPath(args.getDestinationMountPath());
+        mountUtils.mountPath(args.getDestinationMountPath());
         // Set the fs tag containing mount info
-        setTag(fs.getId(), MachineTagUtils.generateMountTag(args.getHostId(), args.getDestinationMountPath(),
+        setTag(fs.getId(), mountUtils.generateMountTag(args.getHostId(), args.getDestinationMountPath(),
                 args.getSubDirectory(), args.getSecurity()));
     }
 
     public void doUnmount(HostDeviceInputOutput args) {
-        LinuxFileSupport linuxSupport = new LinuxFileSupport(initHost(args.getHostId()));
         FileShare fs = dbClient.queryObject(FileShare.class, args.getResId());
-        logInfo("linux.mount.file.export.unmount", args.getDestinationMountPath(), linuxSupport.getHostName());
         // unmount the Export
-        linuxSupport.unmountPath(args.getDestinationMountPath());
+        mountUtils.unmountPath(args.getDestinationMountPath());
         // remove from fstab
-        linuxSupport.removeFromFSTab(args.getDestinationMountPath());
+        mountUtils.removeFromFSTab(args.getDestinationMountPath());
         // delete the directory entry if it's empty
-        if (linuxSupport.isDirectoryEmpty(args.getDestinationMountPath())) {
-            linuxSupport.deleteDirectory(args.getDestinationMountPath());
+        if (mountUtils.isDirectoryEmpty(args.getDestinationMountPath())) {
+            mountUtils.deleteDirectory(args.getDestinationMountPath());
         }
         String tag = findTag(args.getHostId().toString(), args.getResId().toString(), args.getDestinationMountPath());
         removeTag(args.getResId(), tag.substring(0, tag.lastIndexOf(";")));
     }
 
     public List<MountInfo> getAllMounts(URI resId) {
-        return MachineTagUtils.convertNFSTagsToMounts(getTags(dbClient.queryObject(FileShare.class, resId)));
+        return mountUtils.convertNFSTagsToMounts(getTags(dbClient.queryObject(FileShare.class, resId)));
 
-    }
-
-    protected LinuxSystemCLI initHost(URI hostId) {
-        Host host = dbClient.queryObject(Host.class, hostId);
-        if (host == null) {
-            throw new IllegalArgumentException("Host " + hostId + " not found");
-        }
-
-        return LinuxUtils.convertHost(host);
     }
 
     public FileExport findExport(FileShare fs, String subDirectory, String securityType) {

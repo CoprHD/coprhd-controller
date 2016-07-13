@@ -1193,7 +1193,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     @Override
     public void mountDevice(URI hostId, URI resId, String subDirectory, String security, String destinationPath, String type) {
         if (URIUtil.isType(resId, FileShare.class) && "nfs".equalsIgnoreCase(type)) {
-            LinuxHostMountAdapter adapter = new LinuxHostMountAdapter(_dbClient, _coordinator);
+            LinuxHostMountAdapter adapter = new LinuxHostMountAdapter(_dbClient, _coordinator, _dbClient.queryObject(Host.class, hostId));
             HostDeviceInputOutput args = new HostDeviceInputOutput();
             args.setSubDirectory(subDirectory);
             args.setHostId(hostId);
@@ -1207,7 +1207,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     @Override
     public void unmountDevice(URI hostId, URI resId, String destinationPath, String type) {
         if (URIUtil.isType(resId, FileShare.class) && "nfs".equalsIgnoreCase(type)) {
-            LinuxHostMountAdapter adapter = new LinuxHostMountAdapter(_dbClient, _coordinator);
+            LinuxHostMountAdapter adapter = new LinuxHostMountAdapter(_dbClient, _coordinator, _dbClient.queryObject(Host.class, hostId));
             HostDeviceInputOutput args = new HostDeviceInputOutput();
             args.setHostId(hostId);
             args.setResId(resId);
@@ -1220,7 +1220,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     @Override
     public List<MountInfo> listAllMounts(URI hostId, URI resId, String type) {
         if (URIUtil.isType(resId, FileShare.class) && "nfs".equalsIgnoreCase(type)) {
-            LinuxHostMountAdapter adapter = new LinuxHostMountAdapter(_dbClient, _coordinator);
+            LinuxHostMountAdapter adapter = new LinuxHostMountAdapter(_dbClient, _coordinator, _dbClient.queryObject(Host.class, hostId));
             return adapter.getAllMounts(resId);
         }
         return null;

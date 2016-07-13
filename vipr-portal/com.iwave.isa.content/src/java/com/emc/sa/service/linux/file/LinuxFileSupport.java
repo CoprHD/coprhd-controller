@@ -5,7 +5,6 @@
 package com.emc.sa.service.linux.file;
 
 import java.net.URI;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -13,11 +12,9 @@ import org.apache.commons.lang.StringUtils;
 
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.service.linux.LinuxUtils;
-import com.emc.sa.service.linux.UnmountBlockVolumeHelper.VolumeSpec;
 import com.emc.sa.service.linux.tasks.AddToFSTab;
 import com.emc.sa.service.linux.tasks.CreateDirectory;
 import com.emc.sa.service.linux.tasks.DeleteDirectory;
-import com.emc.sa.service.linux.tasks.FindMountPointsForVolumes;
 import com.emc.sa.service.linux.tasks.GetDirectoryContents;
 import com.emc.sa.service.linux.tasks.LinuxExecutionTask;
 import com.emc.sa.service.linux.tasks.ListMountPoints;
@@ -75,10 +72,6 @@ public class LinuxFileSupport {
 
     public Map<String, MountPoint> getMountPoints() {
         return execute(new ListMountPoints());
-    }
-
-    public void findMountPoints(List<VolumeSpec> volumes) {
-        execute(new FindMountPointsForVolumes(targetSystem.getHostId(), volumes));
     }
 
     public void createDirectory(String path) {

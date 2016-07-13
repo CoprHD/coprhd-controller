@@ -25,6 +25,10 @@ public class FileSystemMountParam {
     private String security;
     private String path;
 
+    public FileSystemMountParam() {
+
+    }
+
     public FileSystemMountParam(String type, URI host, String subDir, String security, String path) {
         this.type = type;
         this.host = host;

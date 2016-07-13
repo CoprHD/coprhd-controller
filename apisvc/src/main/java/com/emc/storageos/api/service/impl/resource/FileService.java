@@ -35,7 +35,6 @@ import javax.ws.rs.core.MediaType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.sa.machinetags.MachineTagUtils;
 import com.emc.storageos.api.mapper.functions.MapFileShare;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.placement.FilePlacementManager;
@@ -54,6 +53,7 @@ import com.emc.storageos.api.service.impl.response.ResRepFilter;
 import com.emc.storageos.api.service.impl.response.RestLinkFactory;
 import com.emc.storageos.api.service.impl.response.SearchedResRepList;
 import com.emc.storageos.computesystemcontroller.ComputeSystemController;
+import com.emc.storageos.computesystemcontroller.hostmountadapters.MountUtils;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
@@ -4153,6 +4153,7 @@ public class FileService extends TaskResourceService {
     }
 
     private List<MountInfo> getAllMounts(URI resId) {
+        MountUtils mountUtils = new MountUtils();
         List<String> mountTags = new ArrayList<String>();
         FileShare fs = _dbClient.queryObject(FileShare.class, resId);
         if (fs.getTag() != null) {
@@ -4160,7 +4161,7 @@ public class FileService extends TaskResourceService {
                 mountTags.add(label.getLabel());
             }
         }
-        return MachineTagUtils.convertNFSTagsToMounts(mountTags);
+        return mountUtils.convertNFSTagsToMounts(mountTags);
     }
 
 }

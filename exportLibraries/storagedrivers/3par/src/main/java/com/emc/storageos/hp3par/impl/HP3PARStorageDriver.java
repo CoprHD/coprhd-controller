@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang.mutable.MutableBoolean;
 import org.apache.commons.lang.mutable.MutableInt;
@@ -1045,20 +1046,15 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
      * All volumes in the list will be exported to all initiators using recommended ports. If a volume can not be exported to 'n' 
      * initiators the same will be tried with available ports  
      */
-	@Override
-	public DriverTask exportVolumesToInitiators(List<Initiator> initiators, List<StorageVolume> volumes,
-			Map<String, String> volumeToHLUMap, List<StoragePort> recommendedPorts, List<StoragePort> availablePorts,
-			StorageCapabilities capabilities, MutableBoolean usedRecommendedPorts, List<StoragePort> selectedPorts) {
-	    DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_EXPORT_STORAGE_VOLUMES);
-	    _log.info("3PARDriver:exportVolumesToInitiators enter");
-
+	
+	String doHostProcessing(List<Initiator> initiators, List<StorageVolume> volumes) {
 	    String host = null;
 
 	    for (StorageVolume vol : volumes) {
 	        // If required host/cluster should get created in all arrays to which volume belongs
 	        String hostArray = null;
 	        String clustArray = null;
-	        
+
 	        try {
 	            // all initiators belong to same host
 	            if (initiators.get(0).getInitiatorType().equals(Type.Host)) {
@@ -1103,8 +1099,9 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	                    hostArray = initiators.get(0).getHostName();
 	                }
 
-	                // only one thread should create cluster
-	                synchronized (this) {
+	                // only one thread across all nodes should create cluster
+	                String lockName = vol.getStorageSystemId() + vol.getNativeId() + hostArray;
+	                if (this.lockManager.acquireLock(lockName, 10, TimeUnit.MINUTES)) {
 	                    // Check if cluster exists, otherwise create
 	                    HostSetDetailsCommandResult hostsetRes = hp3parApi.getHostSetDetails(clustArray);
 	                    if (hostsetRes == null) {
@@ -1112,8 +1109,8 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	                    } else {
 	                        // if this host is not part of the cluster add it
 	                        boolean present = false;
-	                        for (int index = 0; index < hostsetRes.getSetmembers().size(); index++) {
-	                            if (hostArray.compareTo(hostsetRes.getSetmembers().get(index)) == 0) {
+	                        for (String setMember:hostsetRes.getSetmembers()) {
+	                            if (hostArray.compareTo(setMember) == 0) {
 	                                present = true;
 	                                break;
 	                            }
@@ -1127,7 +1124,11 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 
 	                    // Cluster available
 	                    host = "set:" + clustArray;
-	                } // end synchronized
+	                } else {
+	                    _log.error("3PARDriver:exportVolumesToInitiators error: could not actuire thread lock to create host");
+	                    throw new HP3PARException(
+	                            "3PARDriver:exportVolumesToInitiators error: could not actuire thread lock to create host");
+	                } //lock
 
 	            } else {
 	                _log.error("3PARDriver:exportVolumesToInitiators error: Host/Cluster type not supported");
@@ -1138,15 +1139,30 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	            String msg = String.format("3PARDriver: Unable to export, error: %s", e);
 	            _log.error(msg);
 	            _log.error(CompleteError.getStackTrace(e));
-	            task.setMessage(msg);
-	            task.setStatus(DriverTask.TaskStatus.FAILED);
-	            e.printStackTrace();
-	            return task;
+	            return null;
 	        }
 	    } // for each volume
 
+	    return host;
+	}
+	
+	@Override
+	public DriverTask exportVolumesToInitiators(List<Initiator> initiators, List<StorageVolume> volumes,
+			Map<String, String> volumeToHLUMap, List<StoragePort> recommendedPorts, List<StoragePort> availablePorts,
+			StorageCapabilities capabilities, MutableBoolean usedRecommendedPorts, List<StoragePort> selectedPorts) {
+	    DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_EXPORT_STORAGE_VOLUMES);
+	    _log.info("3PARDriver:exportVolumesToInitiators enter");
+
+	    String host = null;
+	    host = doHostProcessing(initiators, volumes);
+	    if (host == null ) {
+	        task.setMessage("exportVolumesToInitiators error: Processing hosts, Unable to export");
+	        task.setStatus(DriverTask.TaskStatus.FAILED);
+	        return task;
+	    }
+
 	    /*
-	     * Export will be done keeping volumes as the starting point
+	     Export will be done keeping volumes as the starting point
 	     */
 	    Integer totalExport = recommendedPorts.size();
 	    for (StorageVolume vol : volumes) {
@@ -1154,13 +1170,12 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	        Integer hlu = Integer.parseInt(volumeToHLUMap.get(vol.getNativeId()));
 
 	        try {
-	            // volume could belong to different storage system; get specific
-	            // api client;
+	            // volume could belong to different storage system; get specific api client;
 	            HP3PARApi hp3parApi = hp3parUtil.getHP3PARDeviceFromNativeId(vol.getStorageSystemId(), driverRegistry);
 
 	            /*
-	             * export for INDIVIDUAL HOST=exclusive Some code is repeated
-	             * with cluster for simplicity
+	             export for INDIVIDUAL HOST=exclusive 
+	             Some code is repeated with cluster for simplicity
 	             */
 	            if (!host.startsWith("set:")) {
 	                // try with recommended ports
@@ -1180,8 +1195,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	                    if (vlunRes != null && vlunRes.getStatus()) {
 	                        currExport++;
 	                        usedRecommendedPorts.setValue(true);
-	                        // update hlu obtained as lun from 3apr & add the
-	                        // selected port if required
+	                        // update hlu obtained as lun from 3apr & add the selected port if required
 	                        volumeToHLUMap.put(vol.getNativeId(), vlunRes.getAssignedLun());
 	                        if (!selectedPorts.contains(port)) {
 	                            selectedPorts.add(port);
@@ -1213,8 +1227,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	                    if (vlunRes != null && vlunRes.getStatus()) {
 	                        currExport++;
 	                        usedRecommendedPorts.setValue(false);
-	                        // update hlu obtained as lun from 3apr & add the
-	                        // selected port if required
+	                        // update hlu obtained as lun from 3apr & add the selected port if required
 	                        volumeToHLUMap.put(vol.getNativeId(), vlunRes.getAssignedLun());
 	                        if (!selectedPorts.contains(port)) {
 	                            selectedPorts.add(port);
@@ -1233,7 +1246,8 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	                  Hence requests coming for rest of the individual host exports should gracefully exit
 	                 */
 
-	                synchronized (this) {
+	                String lockName = vol.getStorageSystemId() + vol.getNativeId() + host;
+	                if (this.lockManager.acquireLock(lockName, 10, TimeUnit.MINUTES)) {
 	                    /*
 	                      If this is the first request key gets created with export operation. 
 	                      other requests will gracefully exit. key will be removed in unexport.
@@ -1258,8 +1272,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	                        expValue = attributes.get("EXPORT_PATH");
 	                        if (expValue != null && expValue.get(0).compareTo(exportPath) == 0) {
 	                            doExport = false;
-	                            // Already exported, make hlu, port details;
-	                            // gracefully exit
+	                            // Already exported, make hlu, port details; gracefully exit
 	                            lunValue = attributes.get(vol.getNativeId());
 	                            volumeToHLUMap.put(vol.getNativeId(), lunValue.get(0));
 
@@ -1296,15 +1309,13 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 
 	                    if (doExport) {
 	                        /*
-	                         * export volume; for cluster use host set method to
-	                         * export We cannot specify port; determine the
-	                         * individual host ports used
+	                         for cluster use host set method, We cannot specify port; 
+	                         determine the individual host ports used
 	                         */
 	                        VlunResult vlunRes = hp3parApi.createVlun(vol.getNativeId(), hlu, host, null);
 	                        if (vlunRes != null && vlunRes.getStatus()) {
 
-	                            // update hlu obtained as lun from 3apr & add
-	                            // the selected port if required
+	                            // update hlu obtained as lun from 3apr & add the selected port if required
 	                            volumeToHLUMap.put(vol.getNativeId(), vlunRes.getAssignedLun());
 
 	                            String hstArray = get3parHostname(initiators, vol.getStorageSystemId());
@@ -1322,8 +1333,6 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	                                }
 	                            }
 
-	                            // go thru all slectedports. 
-	                            // if anyone is not part of the recommendedPorts set usedRecommendedPorts to false
 	                            usedRecommendedPorts.setValue(true);
 
 	                            for (StoragePort sp : selectedPorts) {
@@ -1355,7 +1364,12 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	                        }
 	                    } // doExport
 
-	                } // end synchronized
+	                } else {
+	                    _log.error("3PARDriver:exportVolumesToInitiators error: could not actuire thread lock for cluster export");
+                        throw new HP3PARException(
+                                "3PARDriver:exportVolumesToInitiators error: could not actuire thread lock for cluster export");
+                    } //lock   
+	                
 	            } // end cluster export
 
 	        } catch (Exception e) {
@@ -1437,7 +1451,6 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 				HP3PARApi hp3parApi = hp3parUtil.getHP3PARDeviceFromNativeId(volume.getStorageSystemId(),
 						driverRegistry);
 
-				initiators.get(0).setInitiatorType(Type.Host); //// TEMP CODING
 				if (initiators.get(0).getInitiatorType().equals(Type.Host)) {
 					// get vlun and port details on this export
 					Integer lun = -1;

@@ -361,11 +361,6 @@ public class StorageSystemTypesInitUtils {
         }
     }
 
-    // TODO
-    private void insertCeph() {
-        
-    }
-
     private void insertUnity() {
         if (dbStorageTypeMap != null && dbStorageTypeMap.contains(UNITY)) {
             log.info("Unity has been in db");

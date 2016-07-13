@@ -23,4 +23,6 @@ public interface AssetOptionsManager {
     public AssetOptionsContext createDefaultContext(StorageOSUser user);
 
     public List<String> getAssetDependencies(String assetType, Set<String> availableTypes);
+
+    public AssetOptionsProvider getProviderForAssetType(String assetType);
 }

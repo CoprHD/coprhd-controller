@@ -139,6 +139,11 @@ public class BaseAssetOptionsProvider extends AnnotatedAssetOptionsProvider {
         return newAssetOption(id.toString(), value, args);
     }
 
+    public boolean useRawLabels(){
+        // for slow providers, when true, skip lookup of friendly option values and use raw value for label
+        return false;
+    }
+
     public static URI uri(String id) {
         return URI.create(id);
     }

@@ -9,7 +9,7 @@
 #
 # Usage: ./xiohelper.sh <NAME_PATTERN> <NUMBER_OF_INITIATORS_EXPECTED> <NUMBER_OF_LUNS_EXPECTED>
 #
-set -x
+# set -x
 
 add_volume_to_mask() {
     serial_number=$1
@@ -60,24 +60,33 @@ verify_export() {
     TMPFILE1=/tmp/verify-${RANDOM}
     TMPFILE2=$TMPFILE1-error
 
-    java -Dproperty.file=${tools_file} -jar ${tools_jar} -vplex $VPLEX_MODE -method get_storage_view -params ${STORAGE_VIEW_NAME} > ${TMPFILE1} 2> ${TMPFILE2}
-    grep -n ${STORAGE_VIEW_NAME} ${TMPFILE1} > /dev/null
-    echo "tempfiles start"
+    java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays vplex -method get_storage_view -params ${STORAGE_VIEW_NAME} > ${TMPFILE1} 2> ${TMPFILE2}
+    echo "-------------- TMPFILE1 start --------------"
     cat $TMPFILE1
+    echo "-------------- TMPFILE1 stop --------------"
+    echo "-------------- TMPFILE2 start --------------"
     cat $TMPFILE2
-    echo "tempfiles stop"
-    if [ $? -ne 0 ]; then
-        if [ "$2" = "gone" ]; then
-            echo "PASSED: Verified Storage View with pattern ${STORAGE_VIEW_NAME} doesn't exist."
-            exit 0;
-        fi
-    	echo "ERROR: I Expected Storage View ${STORAGE_VIEW_NAME}, but could not find it";
-	    exit 1;
-    else
-        if [ "$2" = "gone" ]; then
-            echo "ERROR: Expected Storage View ${STORAGE_VIEW_NAME} to be gone, but it was found"
+    echo "-------------- TMPFILE2 stop --------------"
+    grep -n ${STORAGE_VIEW_NAME} ${TMPFILE1} > /dev/null
+    # 0 if line selected, 1 if no line selected
+    foundIt=$?
+    if [ -s $TMPFILE1 ]; then
+        if [ $foundIt -ne 0 ]; then
+            if [ "$2" = "gone" ]; then
+                echo "PASSED: Verified Storage View with pattern ${STORAGE_VIEW_NAME} doesn't exist."
+                exit 0;
+            fi
+            echo "ERROR: I Expected Storage View ${STORAGE_VIEW_NAME}, but could not find it";
             exit 1;
+        else
+            if [ "$2" = "gone" ]; then
+                echo "ERROR: Expected Storage View ${STORAGE_VIEW_NAME} to be gone, but it was found"
+                exit 1;
+            fi
         fi
+    else
+        echo "ERROR: empty or invalid response from vplex"
+        exit 1;
     fi
 
     num_inits=`grep -Po '(?<="numberOfInitiators":")[^"]*' ${TMPFILE1}`
@@ -110,7 +119,7 @@ verify_export() {
 # Check to see if this is an operational request or a verification of export request
 dir=`pwd`
 tools_file="${dir}/tools.yml"
-tools_jar="${dir}/ArrayTools-1.0-SNAPSHOT.jar"
+tools_jar="${dir}/ArrayTools-1.0.jar"
 
 if [ "$1" = "add_volume_to_mask" ]; then
     shift

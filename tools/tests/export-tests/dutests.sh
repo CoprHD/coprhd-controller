@@ -102,7 +102,7 @@ verify_export() {
     echo "masking view name: $masking_view_name"
 
     # Why is this sleep here?  Please explain.  If it's specific to SMIS, please put in SMIS-specific block
-    sleep 10
+    #sleep 10
     arrayhelper verify_export ${SERIAL_NUMBER} $masking_view_name $*
     if [ $? -ne "0" ]; then
 	if [ -f ${CMD_OUTPUT} ]; then

@@ -4181,10 +4181,11 @@ public class BlockService extends TaskResourceService {
     }
     
     /**
+     * Performs verification on the VPLEX volume to ensure it is a candidate for migration.
      * 
-     * @param volume
-     * @param currentVpool
-     * @param newVpool
+     * @param volume VPLEX volume to check
+     * @param currentVpool The current vpool where the volume is placed
+     * @param newVpool The target vpool where the volume will be placed after migration
      */
     private void verifyVPlexVolumeForDataMigration(Volume volume, VirtualPool currentVpool, VirtualPool newVpool) {
         _log.info(String.format("Verifying that the VPlex volume[%s](%s) qualifies for Data Migration"

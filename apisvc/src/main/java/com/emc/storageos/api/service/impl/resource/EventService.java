@@ -10,6 +10,8 @@ import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URI;
+import java.util.Iterator;
+import java.util.List;
 import java.util.UUID;
 
 import javax.ws.rs.Consumes;
@@ -27,6 +29,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.mapper.DbObjectMapper;
+import com.emc.storageos.api.mapper.functions.MapEvent;
+import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.computesystemcontroller.ComputeSystemController;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
@@ -36,9 +40,11 @@ import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.exceptions.DatabaseException;
+import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.model.event.EventBulkRep;
 import com.emc.storageos.model.event.EventCreateParam;
 import com.emc.storageos.model.event.EventList;
 import com.emc.storageos.model.host.EventRestRep;
@@ -51,7 +57,7 @@ import com.emc.storageos.security.authorization.Role;
 @DefaultPermissions(readRoles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN }, writeRoles = {
         Role.TENANT_ADMIN }, readAcls = { ACL.ANY })
 @Path("/vdc/events")
-public class EventService extends TaskResourceService {
+public class EventService extends TaggedResource {
 
     protected final static Logger _log = LoggerFactory.getLogger(EventService.class);
 
@@ -156,6 +162,53 @@ public class EventService extends TaskResourceService {
         event.setLabel("Label[" + createParam.getMessage() + "]");
         _dbClient.createObject(event);
         return map(event);
+    }
+
+    /**
+     * Retrieve resource representations based on input ids.
+     *
+     * @param param POST data containing the id list.
+     * @brief List data of event resources
+     * @return list of representations.
+     *
+     * @throws DatabaseException When an error occurs querying the database.
+     */
+    @POST
+    @Path("/bulk")
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Override
+    public EventBulkRep getBulkResources(BulkIdParam param) {
+        return (EventBulkRep) super.getBulkResources(param);
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public Class<ActionableEvent> getResourceClass() {
+        return ActionableEvent.class;
+    }
+
+    @Override
+    public EventBulkRep queryBulkResourceReps(List<URI> ids) {
+        Iterator<ActionableEvent> _dbIterator = _dbClient.queryIterativeObjects(getResourceClass(), ids);
+        return new EventBulkRep(BulkList.wrapping(_dbIterator, MapEvent.getInstance()));
+    }
+
+    @Override
+    public EventBulkRep queryFilteredBulkResourceReps(List<URI> ids) {
+        Iterator<ActionableEvent> _dbIterator = _dbClient.queryIterativeObjects(getResourceClass(), ids);
+        BulkList.ResourceFilter filter = new BulkList.EventFilter(getUserFromContext(), _permissionsHelper);
+        return new EventBulkRep(BulkList.wrapping(_dbIterator, MapEvent.getInstance(), filter));
+    }
+
+    @Override
+    protected boolean isZoneLevelResource() {
+        return false;
+    }
+
+    @Override
+    protected boolean isSysAdminReadableResource() {
+        return true;
     }
 
     @GET

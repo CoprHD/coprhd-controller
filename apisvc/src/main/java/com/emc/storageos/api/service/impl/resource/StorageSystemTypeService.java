@@ -115,6 +115,10 @@ public class StorageSystemTypeService extends TaskResourceService {
                 list.getStorageSystemTypes().add(map(ssType));
             }
         }
+        // for debug, should be deleted later
+        for (StorageSystemTypeRestRep item: list.getStorageSystemTypes()) {
+            log.info("\n{}\n", item.toString());
+        }
         return list;
     }
 

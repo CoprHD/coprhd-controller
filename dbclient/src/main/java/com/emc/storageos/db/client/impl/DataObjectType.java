@@ -268,11 +268,11 @@ public class DataObjectType {
      * @param val object to persist
      * @throws DatabaseException
      */
-    public boolean serialize(RowMutatorDS mutator, DataObject val) {
+    public boolean serialize(RowMutator mutator, DataObject val) {
         return serialize(mutator, val, null);
     }
 
-    public boolean serialize(RowMutatorDS mutator, DataObject val, LazyLoader lazyLoader) {
+    public boolean serialize(RowMutator mutator, DataObject val, LazyLoader lazyLoader) {
         if (!_clazz.isInstance(val)) {
             throw new IllegalArgumentException();
         }

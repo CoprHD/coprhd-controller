@@ -42,13 +42,13 @@ public abstract class DbIndex {
     }
 
     abstract boolean addColumn(String recordKey, CompositeColumnName column, Object value, String className,
-            RowMutatorDS mutator, Integer ttl, DataObject obj);
+            RowMutator mutator, Integer ttl, DataObject obj);
 
     abstract boolean removeColumn(String recordKey, CompositeColumnName column, String className,
-            RowMutatorDS mutator, Map<String, List<CompositeColumnName>> fieldColumnMap);
+            RowMutator mutator, Map<String, List<CompositeColumnName>> fieldColumnMap);
 
     boolean removeColumn(String recordKey, CompositeColumnName column, String className,
-                         RowMutatorDS mutator, Map<String, List<CompositeColumnName>> fieldColumnMap,
+                         RowMutator mutator, Map<String, List<CompositeColumnName>> fieldColumnMap,
             DataObject obj) {
         return removeColumn(recordKey, column, className, mutator, fieldColumnMap);
     }

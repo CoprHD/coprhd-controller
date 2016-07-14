@@ -12,11 +12,8 @@ import org.slf4j.LoggerFactory;
 import com.datastax.driver.core.Row;
 import com.emc.storageos.db.client.model.Cf;
 import com.emc.storageos.db.client.model.SchemaRecord;
-import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
-import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnFamily;
-import com.netflix.astyanax.model.ColumnList;
 import com.netflix.astyanax.serializers.StringSerializer;
 
 /**
@@ -48,10 +45,9 @@ public class SchemaRecordType {
         return cf;
     }
 
-    public void serialize(MutationBatch batch, SchemaRecord record) throws ConnectionException {
-        batch.withRow(cf, record.getVersion())
-                .putColumn(SCHEMA_COLUMN_NAME, record.getSchema(), null);
-        batch.execute();
+    public void serialize(RowMutator mutator, SchemaRecord record) throws ConnectionException {
+        mutator.insertSchemaRecord(cf.getName(), record.getVersion(), SCHEMA_COLUMN_NAME, record.getSchema());
+        mutator.execute();
     }
 
     public SchemaRecord deserialize(Row row) {

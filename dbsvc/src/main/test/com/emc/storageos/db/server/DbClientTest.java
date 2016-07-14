@@ -27,8 +27,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import com.emc.storageos.db.client.impl.RowMutatorDS;
-
+import com.emc.storageos.db.client.impl.RowMutator;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.junit.After;
@@ -2165,7 +2164,7 @@ public class DbClientTest extends DbsvcTestBase {
 
     private static class NoBgIndexCleaner extends IndexCleaner {
         @Override
-        public void cleanIndexAsync(final RowMutatorDS mutator,
+        public void cleanIndexAsync(final RowMutator mutator,
                 final DataObjectType doType,
                 final SoftReference<IndexCleanupList> listToCleanRef) {
             // Do nothing

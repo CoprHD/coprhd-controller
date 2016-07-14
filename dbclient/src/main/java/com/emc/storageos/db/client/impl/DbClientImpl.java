@@ -26,7 +26,9 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
+import com.datastax.driver.core.ConsistencyLevel;
 import org.apache.cassandra.serializers.BooleanSerializer;
+import org.apache.cassandra.utils.UUIDGen;
 import org.apache.commons.lang.StringUtils;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
@@ -86,12 +88,7 @@ import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.google.common.base.Joiner;
 import com.google.common.base.Objects;
-import com.netflix.astyanax.ColumnListMutation;
-import com.netflix.astyanax.ColumnMutation;
 import com.netflix.astyanax.Keyspace;
-import com.netflix.astyanax.MutationBatch;
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
-import com.netflix.astyanax.model.ConsistencyLevel;
 import com.netflix.astyanax.util.TimeUUIDUtils;
 
 /**
@@ -464,7 +461,7 @@ public class DbClientImpl implements DbClient {
         if (!cleanList.isEmpty()) {
             boolean retryFailedWriteWithLocalQuorum = shouldRetryFailedWriteWithLocalQuorum(clazz);
             //todo retryFailedWriteWithLocalQuorum
-            RowMutatorDS mutator = new RowMutatorDS(context);
+            RowMutator mutator = new RowMutator(context);
             SoftReference<IndexCleanupList> indexCleanUpRef = new SoftReference<IndexCleanupList>(cleanList);
             _indexCleaner.cleanIndexAsync(mutator, doType, indexCleanUpRef);
         }
@@ -1108,7 +1105,7 @@ public class DbClientImpl implements DbClient {
     protected <T extends DataObject> List<URI> insertNewColumns(DbClientContext context, Collection<T> dataobjects) {
         List<URI> objectsToCleanup = new ArrayList<>();
         // todo retryFailedWriteWithLocalQuorum
-        RowMutatorDS mutator = new RowMutatorDS(context);
+        RowMutator mutator = new RowMutator(context);
         for (T object : dataobjects) {
             checkGeoVersionForMutation(object);
             DataObjectType doType = TypeMap.getDoType(object.getClass());
@@ -1154,7 +1151,7 @@ public class DbClientImpl implements DbClient {
         if (!cleanList.isEmpty()) {
             boolean retryFailedWriteWithLocalQuorum = shouldRetryFailedWriteWithLocalQuorum(clazz);
             //todo retry
-            RowMutatorDS cleanupMutator = new RowMutatorDS(getDbClientContext(clazz));
+            RowMutator cleanupMutator = new RowMutator(getDbClientContext(clazz));
             SoftReference<IndexCleanupList> indexCleanUpRef = new SoftReference<IndexCleanupList>(cleanList);
             _indexCleaner.cleanIndex(cleanupMutator, doType, indexCleanUpRef);
         }
@@ -1332,7 +1329,7 @@ public class DbClientImpl implements DbClient {
         if (!removedList.isEmpty()) {
             boolean retryFailedWriteWithLocalQuorum = shouldRetryFailedWriteWithLocalQuorum(clazz);
             //todo retry
-            RowMutatorDS mutator = new RowMutatorDS(context);
+            RowMutator mutator = new RowMutator(context);
             _indexCleaner.removeColumnAndIndex(mutator, doType, removedList);
         }
     }
@@ -1340,28 +1337,21 @@ public class DbClientImpl implements DbClient {
     @Override
     public <T extends TimeSeriesSerializer.DataPoint> String insertTimeSeries(
             Class<? extends TimeSeries> tsType, T... data) {
-        try {
-            // time series are always in the local keyspace
-            MutationBatch batch = getLocalKeyspace().prepareMutationBatch();
-            batch.lockCurrentTimestamp();
-            // quorum is not required since there should be no duplicates
-            // for reads, clients should expect read-after-write is
-            // not guaranteed for time series data.
-            TimeSeriesType<T> type = TypeMap.getTimeSeriesType(tsType);
-            String rowId = type.getRowId();
-            batch.setConsistencyLevel(ConsistencyLevel.CL_ONE);
-            ColumnListMutation<UUID> columns = batch.withRow(type.getCf(), rowId);
-
-            for (int i = 0; i < data.length; i++) {
-                columns.putColumn(TimeUUIDUtils.getUniqueTimeUUIDinMillis(),
-                        type.getSerializer().serialize(data[i]),
-                        type.getTtl());
-            }
-            batch.execute();
-            return rowId;
-        } catch (ConnectionException e) {
-            throw DatabaseException.retryables.connectionFailed(e);
+        // time series are always in the local keyspace
+        RowMutator mutator = new RowMutator(getLocalContext());
+        // todo check batch.lockCurrentTimestamp();
+        // quorum is not required since there should be no duplicates
+        // for reads, clients should expect read-after-write is
+        // not guaranteed for time series data.
+        TimeSeriesType<T> type = TypeMap.getTimeSeriesType(tsType);
+        String rowId = type.getRowId();
+        mutator.setWriteCL(ConsistencyLevel.ONE);
+        for (T entry : data) {
+            mutator.insertTimeSeriesColumn(type.getCf().getName(), rowId, TimeUUIDUtils.getUniqueTimeUUIDinMillis(),
+                    type.getSerializer().serialize(entry), type.getTtl());
         }
+        mutator.execute();
+        return rowId;
     }
 
     @Override
@@ -1371,23 +1361,19 @@ public class DbClientImpl implements DbClient {
             throw new IllegalArgumentException("Invalid timezone");
         }
 
-        try {
-            TimeSeriesType<T> type = TypeMap.getTimeSeriesType(tsType);
-            String rowId = type.getRowId(time);
-            UUID columnName = TimeUUIDUtils.getTimeUUID(time.getMillis());
-            // time series are always in the local keyspace
-            ColumnMutation mutation = getLocalKeyspace().prepareColumnMutation(type.getCf(),
-                    rowId,
-                    columnName);
-            // quorum is not required since there should be no duplicates
-            // for reads, clients should expect read-after-write is
-            // not guaranteed for time series data.
-            mutation.setConsistencyLevel(ConsistencyLevel.CL_ONE);
-            mutation.putValue(type.getSerializer().serialize(data), type.getTtl()).execute();
-            return rowId;
-        } catch (ConnectionException e) {
-            throw DatabaseException.retryables.connectionFailed(e);
-        }
+        TimeSeriesType<T> type = TypeMap.getTimeSeriesType(tsType);
+        String rowId = type.getRowId(time);
+        UUID timeUUID = UUIDGen.getTimeUUID(time.getMillis());
+        // time series are always in the local keyspace
+        RowMutator mutator = new RowMutator(getLocalContext());
+
+        // quorum is not required since there should be no duplicates
+        // for reads, clients should expect read-after-write is
+        // not guaranteed for time series data.
+        mutator.setWriteCL(ConsistencyLevel.ONE);
+        mutator.insertTimeSeriesColumn(type.getCf().getName(), rowId, timeUUID, type.getSerializer().serialize(data), type.getTtl());
+        mutator.execute();
+        return rowId;
     }
 
     @Override
@@ -1427,7 +1413,7 @@ public class DbClientImpl implements DbClient {
                     _log.info("Query String: {}", queryString);
                     
                     PreparedStatement queryStatement = context.getPreparedStatement(queryString.toString());
-                    queryStatement.setConsistencyLevel(com.datastax.driver.core.ConsistencyLevel.LOCAL_ONE);
+                    queryStatement.setConsistencyLevel(ConsistencyLevel.ONE);
                     
                     BoundStatement bindStatement = queryStatement.bind(rowKey);
                     bindStatement.setFetchSize(DEFAULT_TS_PAGE_SIZE);
@@ -1720,7 +1706,7 @@ public class DbClientImpl implements DbClient {
         return VdcUtil.VdcVersionComparator.compare(_geoVersion, expectVersion) >= 0;
     }
 
-    private void serializeTasks(DataObject dataObject, RowMutatorDS mutator, List<URI> objectsToCleanup) {
+    private void serializeTasks(DataObject dataObject, RowMutator mutator, List<URI> objectsToCleanup) {
         OpStatusMap statusMap = dataObject.getOpStatus();
         if (statusMap == null || statusMap.getChangedKeySet() == null || statusMap.getChangedKeySet().isEmpty()) {
             return;

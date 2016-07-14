@@ -10,6 +10,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import com.emc.storageos.db.client.impl.DbClientContext;
+import com.emc.storageos.db.client.impl.RowMutator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,17 +24,14 @@ import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.impl.ColumnField;
 import com.emc.storageos.db.client.impl.CompositeColumnName;
 import com.emc.storageos.db.client.impl.DataObjectType;
-import com.emc.storageos.db.client.impl.DbClientContext;
 import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.client.impl.RemovedColumnsList;
-import com.emc.storageos.db.client.impl.RowMutatorDS;
 import com.emc.storageos.db.client.impl.SchemaRecordType;
 import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.SchemaRecord;
 import com.emc.storageos.db.client.util.KeyspaceUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
-import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
 /**
@@ -71,7 +70,7 @@ public class InternalDbClient extends DbClientImpl {
             Map<String, List<CompositeColumnName>> removeList = queryRowsWithAColumn(context, batch, doType.getCF().getName(), columnField);
             boolean retryFailedWriteWithLocalQuorum = shouldRetryFailedWriteWithLocalQuorum(clazz);
             //todo retry
-            RowMutatorDS mutator = new RowMutatorDS(context);
+            RowMutator mutator = new RowMutator(context);
             _indexCleaner.removeOldIndex(mutator, doType, removeList, indexCf);
             batch = getNextBatch(recIt);
         }
@@ -118,9 +117,9 @@ public class InternalDbClient extends DbClientImpl {
 
     public void persistSchemaRecord(SchemaRecord record) throws DatabaseException {
         try {
-            MutationBatch batch = getLocalKeyspace().prepareMutationBatch();
+            RowMutator mutator = new RowMutator(getLocalContext());
             SchemaRecordType type = TypeMap.getSchemaRecordType();
-            type.serialize(batch, record);
+            type.serialize(mutator, record);
         } catch (ConnectionException e) {
             throw DatabaseException.retryables.connectionFailed(e);
         }
@@ -243,7 +242,7 @@ public class InternalDbClient extends DbClientImpl {
                     // also we shouldn't overwrite the creation time
                     boolean retryFailedWriteWithLocalQuorum = shouldRetryFailedWriteWithLocalQuorum(clazz);
                     //todo retry
-                    RowMutatorDS mutator = new RowMutatorDS(geoContext);
+                    RowMutator mutator = new RowMutator(geoContext);
                     doType.serialize(mutator, obj);
                     mutator.execute();
                 } catch (final InstantiationException e) {
@@ -333,7 +332,7 @@ public class InternalDbClient extends DbClientImpl {
 
                     if (objects.size() == DEFAULT_PAGE_SIZE) {
                         boolean retryFailedWriteWithLocalQuorum = shouldRetryFailedWriteWithLocalQuorum(clazz);
-                        RowMutatorDS mutator = new RowMutatorDS(context);
+                        RowMutator mutator = new RowMutator(context);
                         _indexCleaner.removeColumnAndIndex(mutator, doType, removedList);
                         updateObject(objects);
                         objects.clear();
@@ -360,7 +359,7 @@ public class InternalDbClient extends DbClientImpl {
 
             if (!objects.isEmpty()) {
                 boolean retryFailedWriteWithLocalQuorum = shouldRetryFailedWriteWithLocalQuorum(clazz);
-                RowMutatorDS mutator = new RowMutatorDS(context);
+                RowMutator mutator = new RowMutator(context);
                 _indexCleaner.removeColumnAndIndex(mutator, doType, removedList);
                 updateObject(objects);
             }

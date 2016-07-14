@@ -28,7 +28,7 @@ public class ScopedLabelDbIndex extends DbIndex {
 
     @Override
     boolean addColumn(String recordKey, CompositeColumnName column, Object value,
-            String className, RowMutatorDS mutator, Integer ttl, DataObject obj) {
+            String className, RowMutator mutator, Integer ttl, DataObject obj) {
         ScopedLabel scopedLabel = (ScopedLabel) value;
         String label = scopedLabel.getLabel();
 
@@ -56,7 +56,7 @@ public class ScopedLabelDbIndex extends DbIndex {
 
     @Override
     boolean removeColumn(String recordKey, CompositeColumnName column, String className,
-                         RowMutatorDS mutator, Map<String, List<CompositeColumnName>> fieldColumnMap) {
+                         RowMutator mutator, Map<String, List<CompositeColumnName>> fieldColumnMap) {
         UUID uuid = column.getTimeUUID();
 
         String text = column.getStringValue();

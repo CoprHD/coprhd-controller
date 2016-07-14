@@ -55,6 +55,7 @@ public class StorageProviders extends ViprResourceController {
     protected static final String UNKNOWN = "SMISProviders.unknown";
     protected static final String DISCOVERY_STARTED = "SMISProviders.introspection";
     private static final int SAVE_WAIT_MILLIS = 300000;
+    private static final String HTTPS = "https";
 
     private static void addReferenceData() {
         renderArgs.put("interfaceTypeOptions", StorageProviderTypes.getProviderOption());
@@ -184,9 +185,9 @@ public class StorageProviders extends ViprResourceController {
         list();
     }
 
-    // Suppressing Sonar violation of Password Hardcoded. Password is not
-    // hardcoded here
-    @SuppressWarnings("squid:S2068")
+    // Suppressing Sonar violation of Password Hardcoded. Password is not hardcoded here
+    // Suppressing sonar violation for need of accessor methods. Accessor methods are not needed and we use public variables
+    @SuppressWarnings("squid:S2068 , ClassVariableVisibilityCheck")
     public static class StorageProviderForm {
 
         public String id;
@@ -277,9 +278,9 @@ public class StorageProviders extends ViprResourceController {
             }
             if (StringUtils.isNotEmpty(this.hyperScaleHost)&&StringUtils.isNotEmpty(this.hyperScalePort)) {
                 try {
-                    url = new URL("https",this.hyperScaleHost, Integer.parseInt(this.hyperScalePort),"");
+                    url = new URL(HTTPS, this.hyperScaleHost, Integer.parseInt(this.hyperScalePort),"");
                 }catch(Exception e) {
-                    flash.error("Unable to parse secondary URL");
+                    flash.error("Unable to parse Hyper Scale Manager URL");
                 }
                 this.secondaryURL = url.toString();
             }
@@ -306,7 +307,7 @@ public class StorageProviders extends ViprResourceController {
                 try {
                     url = new URL(this.secondaryURL);
                 } catch(Exception e) {
-                    flash.error("Unable to parse secondary URL");
+                    flash.error("Unable to parse Hyper Scale Manager URL");
                 }
                 if(null!=url) {
                     this.hyperScaleHost = url.getHost();

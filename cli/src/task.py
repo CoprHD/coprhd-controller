@@ -42,20 +42,20 @@ class Task(object):
         Get the root of the catalog
         '''
 
-    def resume_task_by_uri(self, uri):
+    def resume_task_by_uri(self, taskid):
         command = singletonURIHelperInstance.getUri(
             self.COMPONENT_TYPE,
             "resume")
         (s, h) = common.service_json_request(self.__ipAddr, self.__port, "POST",
-                                             command.format(uri),
+                                             command.format(taskid),
                                              None)
 
-    def rollback_task_by_uri(self, uri):
+    def rollback_task_by_uri(self, taskid):
         command = singletonURIHelperInstance.getUri(
             self.COMPONENT_TYPE,
             "rollback")
         (s, h) = common.service_json_request(self.__ipAddr, self.__port, "POST",
-                                             command.format(uri),
+                                             command.format(taskid),
                                              None)
 
 
@@ -67,7 +67,7 @@ Preprocessor for the task resume operation
 def task_resume(args):
     taskObj = Task(args.ip, args.port)
     try:
-        taskObj.resume_task_by_uri(args.uri)
+        taskObj.resume_task_by_uri(args.taskid)
         return
     except SOSError as e:
         common.format_err_msg_and_raise(
@@ -92,7 +92,7 @@ def resume_parser(subcommand_parsers, common_parser):
     mandatory_args = resume_parser.add_argument_group('mandatory arguments')
     mandatory_args.add_argument('-tid', '-taskid',
                                 metavar='<taskid>',
-                                dest='uri',
+                                dest='taskid',
                                 help='ID of the Task',
                                 required=True)
 
@@ -106,7 +106,7 @@ Preprocessor for the task rollback operation
 def task_rollback(args):
     taskObj = Task(args.ip, args.port)
     try:
-        taskObj.rollback_task_by_uri(args.uri)
+        taskObj.rollback_task_by_uri(args.taskid)
         return
     except SOSError as e:
         common.format_err_msg_and_raise(
@@ -131,7 +131,7 @@ def rollback_parser(subcommand_parsers, common_parser):
     mandatory_args = rollback_parser.add_argument_group('mandatory arguments')
     mandatory_args.add_argument('-tid', '-taskid',
                                 metavar='<taskid>',
-                                dest='uri',
+                                dest='taskid',
                                 help='ID of the Task',
                                 required=True)
 

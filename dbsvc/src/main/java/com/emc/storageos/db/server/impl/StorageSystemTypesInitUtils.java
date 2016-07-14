@@ -242,8 +242,10 @@ public class StorageSystemTypesInitUtils {
             }
 
             if (alreadyExists(type)) {
+                log.info("Meta data for {} already exist", type.getStorageTypeName());
                 continue;
             }
+            log.info("Meta data for {} don't exist or have changed, update", type.getStorageTypeName());
             dbClient.createObject(type);
         }
     }
@@ -279,8 +281,10 @@ public class StorageSystemTypesInitUtils {
             }
 
             if (alreadyExists(type)) {
+                log.info("Meta data for {} already exist", type.getStorageTypeName());
                 continue;
             }
+            log.info("Meta data for {} don't exist or have changed, update", type.getStorageTypeName());
             dbClient.createObject(type);
         }
     }
@@ -319,8 +323,10 @@ public class StorageSystemTypesInitUtils {
             }
 
             if (alreadyExists(type)) {
+                log.info("Meta data for {} already exist", type.getStorageTypeName());
                 continue;
             }
+            log.info("Meta data for {} don't exist or have changed, update", type.getStorageTypeName());
             dbClient.createObject(type);
         }
     }
@@ -359,8 +365,10 @@ public class StorageSystemTypesInitUtils {
             }
 
             if (alreadyExists(type)) {
+                log.info("Meta data for {} already exist", type.getStorageTypeName());
                 continue;
             }
+            log.info("Meta data for {} don't exist or have changed, update", type.getStorageTypeName());
             dbClient.createObject(type);
         }
     }
@@ -381,8 +389,10 @@ public class StorageSystemTypesInitUtils {
         unity.setDriverClassName(StorageSystemType.META_TYPE.BLOCK_AND_FILE.toString().toLowerCase());
 
         if (alreadyExists(unity)) {
+            log.info("Meta data for {} already exist", unity.getStorageTypeName());
             return;
         }
+        log.info("Meta data for {} don't exist or have changed, update", unity.getStorageTypeName());
         dbClient.createObject(unity);
     }
 
@@ -417,8 +427,10 @@ public class StorageSystemTypesInitUtils {
             }
 
             if (alreadyExists(type)) {
+                log.info("Meta data for {} already exist", type.getStorageTypeName());
                 continue;
             }
+            log.info("Meta data for {} don't exist or have changed, update", type.getStorageTypeName());
             dbClient.createObject(type);
         }
     }

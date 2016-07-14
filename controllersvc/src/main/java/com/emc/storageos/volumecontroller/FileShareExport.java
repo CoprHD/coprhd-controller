@@ -47,7 +47,7 @@ public class FileShareExport implements Serializable {
     private String _comments;
     private String _isilonId;
 
-    public static String SEC_SEPARATOR = ",";
+    private static final String SEC_SEPARATOR = ",";
 
     /**
      * Construction of FileShareExport export

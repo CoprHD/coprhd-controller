@@ -2616,7 +2616,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         for (IsilonExport exp : isilonExports) {
             String securityFlavorList = "";
             Set<String> orderedList = new TreeSet<String>();
-            // If export has more than one security flavor;
+            // If export has more than one security flavor
             // store all security flavor separated by comma(,)
             for (String sec : exp.getSecurityFlavors()) {
                 String securityFlavor = sec;

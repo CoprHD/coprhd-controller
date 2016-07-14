@@ -417,7 +417,6 @@
     </bean>
     
     <bean id="3parIngestionHelper" class="com.emc.storageos.hp3par.impl.HP3PARIngestHelper">
-    	<property name="hp3parApiFactory" ref="hp3parApiFactory"/>
     	<property name="hp3parUtil" ref="hp3parUtil"></property>
     </bean>
 

@@ -1487,18 +1487,21 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 
     @Override
     public DriverTask stopManagement(StorageSystem storageSystem) {
+    	_log.info("3PARDriver: stopManagement Running");
         // TODO Auto-generated method stub
         return null;
     }
 
     @Override
     public DriverTask addVolumesToConsistencyGroup(List<StorageVolume> volumes, StorageCapabilities capabilities) {
+    	_log.info("3PARDriver: addVolumesToConsistencyGroup Running");
         // TODO Auto-generated method stub
         return null;
     }
 
     @Override
     public DriverTask removeVolumesFromConsistencyGroup(List<StorageVolume> volumes, StorageCapabilities capabilities) {
+    	_log.info("3PARDriver: removeVolumesFromConsistencyGroup Running");
         // TODO Auto-generated method stub
         return null;
     }

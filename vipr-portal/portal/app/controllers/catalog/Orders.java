@@ -250,6 +250,30 @@ public class Orders extends OrderExecution {
         fetchData(details);
         render(orderId, details);
     }
+    
+    public static void pauseOrder(String orderId, Long lastUpdated){
+        
+        try {
+            getCatalogClient().orders().pauseOrder(uri(orderId));
+        } catch (Exception e) {
+            Logger.error(e, MessagesUtils.get("order.pausedFailed"));
+            flash.error(MessagesUtils.get("order.pausedFailed"));
+            Common.handleError();
+        }
+        receiptContent(orderId,lastUpdated);       
+    }
+    
+    public static void resumeOrder(String orderId, Long lastUpdated){
+        
+        try {
+            getCatalogClient().orders().resumeOrder(uri(orderId));
+        } catch (Exception e) {
+            Logger.error(e, MessagesUtils.get("order.resumeFailed"));
+            flash.error(MessagesUtils.get("order.resumeFailed"));
+            Common.handleError();
+        }
+        receiptContent(orderId,lastUpdated);       
+    }
 
     /**
      * Waits for an update to the order. The lastUpdated value is specified by the receipt page and only once the

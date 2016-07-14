@@ -649,7 +649,7 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
 
                 // Add an RP site -> initiators entry to the protection system
                 StringSet siteInitiators = new StringSet();
-                for(String rpaId : rpaWWNs.keySet()) {
+                for (String rpaId : rpaWWNs.keySet()) {
                     siteInitiators.addAll(rpaWWNs.get(rpaId).keySet());                	
                 }
                 system.putSiteIntitiatorsEntry(site.getInternalSiteName(), siteInitiators);
@@ -660,7 +660,7 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
 
                     boolean foundNetworkForRPCluster = false;
                     
-                    for(Map.Entry<String, String> rpaWWN : rpaWWNs.get(rpaId).entrySet()) {
+                    for (Map.Entry<String, String> rpaWWN : rpaWWNs.get(rpaId).entrySet()) {
 
                         String wwn = rpaWWN.getKey();
 
@@ -885,7 +885,8 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
 
         // Get the rp system's array mappings from the RP client
         BiosCommandResult result = getRPArrayMappings(storageObj);
-        _log.info("discoverProtectionSystem(): after rpa array mappings with result" + result.getCommandStatus());
+        _log.info(String.format("discoverProtectionSystem(): after rpa array mappings with result: [%s] ", 
+                result.getCommandStatus()));
 
         RPSiteArray rpSiteArray = null;
         if (result.getCommandSuccess()) {
@@ -953,7 +954,10 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
                     }
                 }
             }
-
+        } else {
+            _log.warn(String.format("RPA array mappings did not return a successful result, "
+                    + "please check network connectivity for RecoverPoint Protection System [%s](%s)."),
+                    rpSystem.getLabel(), rpSystem.getId());
         }
         _log.info("END RecoverPointProtection.discoveryProtectionSystem()");
     }

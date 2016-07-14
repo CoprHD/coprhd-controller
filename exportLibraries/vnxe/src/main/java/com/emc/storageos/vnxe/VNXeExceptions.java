@@ -32,6 +32,9 @@ public interface VNXeExceptions {
 
     @DeclareServiceCode(ServiceCode.VNXE_DISCOVERY_ERROR)
     public VNXeException discoveryError(final String msg, Throwable t);
+    
+    @DeclareServiceCode(ServiceCode.VNXE_DISCOVERY_ERROR)
+    public VNXeException scanFailed(String ip, Throwable t);
 
     @DeclareServiceCode(ServiceCode.VNXE_COMMAND_ERROR)
     public VNXeException authenticationFailure(String vnxeUri);

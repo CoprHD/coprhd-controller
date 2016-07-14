@@ -1886,6 +1886,7 @@ public class BlockStorageScheduler {
         // This check is needed for arrays with single storage HA domain
         return (!(system.getSystemType().equals(DiscoveredSystemObject.Type.scaleio.name()))
                 && !(system.getSystemType().equals(DiscoveredSystemObject.Type.xtremio.name()))
+                && !(system.getSystemType().equals(DiscoveredSystemObject.Type.ceph.name()))
                 && (HDSUtils.checkForAMSSeries(system) || HDSUtils.checkForHUSSeries(system)));
     }
 

@@ -664,4 +664,9 @@ public class XtremIOV2Client extends XtremIOClient {
         return cgResponse.getContent();
     }
 
+    @Override
+    public boolean isVersion2() {
+        return true;
+    }
+
 }

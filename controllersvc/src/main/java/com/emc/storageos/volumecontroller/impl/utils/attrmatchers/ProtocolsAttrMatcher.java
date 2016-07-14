@@ -202,6 +202,7 @@ public class ProtocolsAttrMatcher extends AttributeMatcher {
         }
         if (Transport.IP.name().equals(transport)) {
             protocols.add(Block.iSCSI.name());
+            protocols.add(Block.RBD.name());
             protocols.add(File.NFS.name());
             protocols.add(File.CIFS.name());
             protocols.add(File.NFSv4.name());
@@ -246,8 +247,9 @@ public class ProtocolsAttrMatcher extends AttributeMatcher {
                 continue;
             }
             String systemType = storageSystem.getSystemType();
-            if (systemType != null && systemType.equalsIgnoreCase(SystemType.vnxe.name())) {
-                // only check on VNXe pools
+            if (systemType != null && (systemType.equalsIgnoreCase(SystemType.vnxe.name())
+                    ||systemType.equalsIgnoreCase(SystemType.unity.name()))) {
+                // only check on VNXe and VNXUnity pools
                 Set<StoragePool> arrayPools = arrayPoolMap.get(arrayId);
                 if (arrayPools != null) {
                     arrayPools.add(pool);

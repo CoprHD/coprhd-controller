@@ -491,7 +491,6 @@ public class Tenants extends ViprResourceController {
         @MinSize(2)
         public String name;
 
-        @Required
         @MaxSize(128)
         @MinSize(2)
         public String description;

@@ -19,6 +19,7 @@
         <property name="backupType" ref="backupType"/>
         <property name="backupContext" ref="backupContext"/>
         <property name="zkDir" ref="zkBackupFolder" />
+        <property name="siteIdFile" ref="siteIdFile" />
         <property name="fileTypeList">
             <list value-type="java.lang.String">
                 <value>log.</value>
@@ -35,6 +36,10 @@
 
     <bean id="zkBackupFolder" class="java.io.File">
         <constructor-arg value="build/data/zk/version-2"/>
+    </bean>
+
+    <bean id="siteIdFile" class="java.io.File">
+        <constructor-arg value="build/data/zk/siteIdFile"/>
     </bean>
 
     <bean id="config" class="com.emc.storageos.coordinator.service.impl.SpringQuorumPeerConfig"

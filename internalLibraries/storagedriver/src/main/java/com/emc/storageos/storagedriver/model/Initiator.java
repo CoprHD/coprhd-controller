@@ -43,6 +43,27 @@ public class Initiator extends StorageObject {
     }
 
     /**
+     * Type of initiator: host initiator, cluster initiator, vplex backend initiator, etc.
+     * For host/cluster export requests initiator type is set to host/cluster respectively
+     * to indicate to driver context of this request.
+     */
+    private Type initiatorType;
+    public static enum Type {
+        Host,
+        Cluster,
+        VPLEX,
+        RP
+    }
+
+    /**
+     * Type of host OS.
+     */
+    private HostOsType hostOsType;
+    public static enum HostOsType {
+        Windows, HPUX, Linux, Esx, AIX, AIXVIO, SUNVCS, No_OS, Other
+    }
+
+    /**
      * The FQDN of the initiator host.
      */
     private String hostName;
@@ -79,6 +100,14 @@ public class Initiator extends StorageObject {
 
     public void setProtocol(Protocol protocol) {
         this.protocol = protocol;
+    }
+
+    public Type getInitiatorType() {
+        return initiatorType;
+    }
+
+    public void setInitiatorType(Type initiatorType) {
+        this.initiatorType = initiatorType;
     }
 
     public String getNetworkMask() {
@@ -119,5 +148,18 @@ public class Initiator extends StorageObject {
 
     public void setNetworkId(String networkId) {
         this.networkId = networkId;
+    }
+
+    public HostOsType getHostOsType() {
+        return hostOsType;
+    }
+
+    public void setHostOsType(HostOsType hostOsType) {
+        this.hostOsType = hostOsType;
+    }
+
+    @Override
+    public String toString() {
+        return "Initiator port: "+ port+"; native id:"+getNativeId();
     }
 }

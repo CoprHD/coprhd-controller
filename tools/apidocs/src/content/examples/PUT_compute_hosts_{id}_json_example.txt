@@ -4,36 +4,34 @@ Content-Type: application/json
 X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
 
 {
-    host_update:{
-        name:'host11Updated',
-        user_name:'admin',
-        password:'nopass',
-        use_ssl:'true',
-        port_number:8080,
-        host_name:'halahost1.lss.emc.com',
-        type:'Other'
-    }
+	"name":"host11Updated",
+	"user_name":"admin",
+	"password":"nopass",
+	"use_ssl":"true",
+	"port_number":8080,
+	"host_name":"halahost1.lss.emc.com",
+	"type":"Other"
 }
 ==RESPONSE 
 HTTP/1.1 202 Accepted
 Content-Type: application/json
 
 {
-   "message": "Operation completed successfully",
-   "op_id": "bc2618f8-e9d0-488d-b04a-c2656e52613e",
-   "resource": {
-      "id": "urn:storageos:Host:584d9dd9-0ef6-4207-8721-6c8b4de94f00:",
-      "link": {
-         "href": "/compute/hosts/urn:storageos:Host:584d9dd9-0ef6-4207-8721-6c8b4de94f00:",
-         "rel": "self"
-      },
-      "name": "host11Updated"
-   },
-   "link": {
-      "href": "/compute/hosts/urn:storageos:Host:584d9dd9-0ef6-4207-8721-6c8b4de94f00:/tasks/bc2618f8-e9d0-488d-b04a-c2656e52613e",
-      "rel": "self"
-   },
-   "start_time": "1380748500785",
-   "state": "ready"
+	"message": "Operation completed successfully",
+	"op_id": "bc2618f8-e9d0-488d-b04a-c2656e52613e",
+	"resource": {
+		"id": "urn:storageos:Host:584d9dd9-0ef6-4207-8721-6c8b4de94f00:",
+		"link": {
+			"href": "/compute/hosts/urn:storageos:Host:584d9dd9-0ef6-4207-8721-6c8b4de94f00:",
+			"rel": "self"
+		},
+		"name": "host11Updated"
+	},
+	"link": {
+		"href": "/compute/hosts/urn:storageos:Host:584d9dd9-0ef6-4207-8721-6c8b4de94f00:/tasks/bc2618f8-e9d0-488d-b04a-c2656e52613e",
+		"rel": "self"
+	},
+	"start_time": "1380748500785",
+	"state": "ready"
 }
 

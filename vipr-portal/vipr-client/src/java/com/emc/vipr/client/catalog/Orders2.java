@@ -200,5 +200,25 @@ public class Orders2 extends AbstractCatalogBulkResources<OrderRestRep> implemen
     public void deactivate(URI id) {
         doDeactivate(id);
     }
+    
+    /**
+     * Pauses a scheduled order
+     * <p>
+     * API Call: <tt>POST /catalog/orders/{id}/pause</tt>
+     * 
+     */
+    public void pauseOrder(URI id) {
+        client.post(String.class, PathConstants.ORDER2_PAUSE, id);
+    }
+    
+    /**
+     * Resumes a paused scheduled order
+     * <p>
+     * API Call: <tt>POST /catalog/orders/{id}/resume</tt>
+     * 
+     */
+    public void resumeOrder(URI id) {
+        client.post(String.class, PathConstants.ORDER2_RESUME, id);
+    }
 
 }

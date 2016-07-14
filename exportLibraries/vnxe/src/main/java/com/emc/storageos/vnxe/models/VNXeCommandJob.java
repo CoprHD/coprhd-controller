@@ -14,6 +14,7 @@ public class VNXeCommandJob extends VNXeBase {
     private int state;
     private String name;
     private ParametersOut parametersOut;
+    private MessageOut messageOut;
 
     public int getProgressPct() {
         return progressPct;
@@ -53,6 +54,14 @@ public class VNXeCommandJob extends VNXeBase {
 
     public void setParametersOut(ParametersOut parametersOut) {
         this.parametersOut = parametersOut;
+    }
+
+    public MessageOut getMessageOut() {
+        return messageOut;
+    }
+
+    public void setMessageOut(MessageOut messageOut) {
+        this.messageOut = messageOut;
     }
 
     public static enum JobStatusEnum {

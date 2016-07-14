@@ -16,6 +16,7 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.api.service.impl.placement.VirtualPoolUtil;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -27,6 +28,7 @@ import com.emc.storageos.db.client.model.VpoolProtectionVarraySettings;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.util.VPlexSrdfUtil;
 import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.google.common.base.Joiner;
@@ -189,8 +191,12 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
                 return null;
             }
 
-            boolean isCovertToDistributed = isVPlexConvertToDistributed(currentVpool, newVpool, notSuppReasonBuff);
-            if (isCovertToDistributed) {
+            boolean isConvertToDistributed = isVPlexConvertToDistributed(currentVpool, newVpool, notSuppReasonBuff);
+            if (isConvertToDistributed && !VirtualPoolUtil.checkMatchingRemoteCopyVarraysettings(currentVpool, newVpool, dbClient)) {
+                isConvertToDistributed = false;
+                notSuppReasonBuff.append("Incompatible Remote Copy Varray Settings");
+            }
+            if (isConvertToDistributed) {
                 URI haVarrayURI = getHaVarrayURI(newVpool, dbClient);
                 URI volumeVarray = volume.getVirtualArray();
                 URI cgURI = volume.getConsistencyGroup();
@@ -449,7 +455,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
 
     /**
      * Returns true if the difference between vpool1 and vpool2 is that vpool2 is
-     * requesting highAvailability.
+     * requesting highAvailability. Note that remoteProtectionSettings are not checked.
      * 
      * @param vpool1 Reference to Vpool to compare.
      * @param vpool2 Reference to Vpool to compare.
@@ -471,7 +477,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
         String[] excluded = new String[] { ACLS, ASSIGNED_STORAGE_POOLS, DESCRIPTION,
                 HA_VARRAY_VPOOL_MAP, LABEL, MATCHED_POOLS, INVALID_MATCHED_POOLS, NUM_PATHS,
                 STATUS, TAGS, CREATION_TIME, THIN_VOLUME_PRE_ALLOCATION_PERCENTAGE,
-                NON_DISRUPTIVE_EXPANSION, AUTO_CROSS_CONNECT_EXPORT, MIRROR_VPOOL };
+                NON_DISRUPTIVE_EXPANSION, AUTO_CROSS_CONNECT_EXPORT, MIRROR_VPOOL, REMOTECOPY_VARRAY_SETTINGS };
         Map<String, Change> changes = analyzeChanges(vpool1, vpool2, null, excluded, null);
 
         // Note that we assume vpool1 is for a non-vplex volume and
@@ -553,7 +559,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
 
     /**
      * Returns true iff the only difference is converting from a vplex_local to
-     * vplex_distributed.
+     * vplex_distributed. Note that remoteProtectionSettings are not checked.
      * 
      * @param vpool1 A reference to a Vpool
      * @param vpool2 A reference to a Vpool
@@ -569,7 +575,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
         s_logger.info(String.format("Checking isVPlexConvertToDistributed from [%s] to [%s]...", vpool1.getLabel(), vpool2.getLabel()));
         String[] excluded = new String[] { ASSIGNED_STORAGE_POOLS, DESCRIPTION,
                 HA_VARRAY_VPOOL_MAP, LABEL, MATCHED_POOLS, INVALID_MATCHED_POOLS, NUM_PATHS,
-                STATUS, TAGS, CREATION_TIME, NON_DISRUPTIVE_EXPANSION };
+                STATUS, TAGS, CREATION_TIME, NON_DISRUPTIVE_EXPANSION, REMOTECOPY_VARRAY_SETTINGS };
         Map<String, Change> changes = analyzeChanges(vpool1, vpool2, null, excluded, null);
 
         // changes.size() needs to be greater than 1, because at least
@@ -658,9 +664,18 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
             return false;
         }
 
-        // Not supported yet, will be in the future
+        // Adding RP+VPLEX/MetroPoint protection to a non-VPLEX volume is not supported
         if (!VirtualPool.vPoolSpecifiesHighAvailability(currentVpool) && VirtualPool.vPoolSpecifiesRPVPlex(newVpool)) {
-            notSuppReasonBuff.append("Can't add RecoverPoint Protection directly to non-VPLEX volume. Import to VPLEX first.");
+            notSuppReasonBuff.append("Can't add RecoverPoint+VPLEX Protection directly to non-VPLEX volume. Import to VPLEX first.");
+            return false;
+        }
+        
+        // Adding MetroPoint protection to a VPLEX Local volume is not supported
+        if (VirtualPool.vPoolSpecifiesHighAvailability(currentVpool) 
+                && !VirtualPool.vPoolSpecifiesHighAvailabilityDistributed(currentVpool) 
+                && VirtualPool.vPoolSpecifiesMetroPoint(newVpool)) {
+            notSuppReasonBuff.append("Can't add MetroPoint Protection directly to VPLEX Local volume. "
+                    + "Upgrade from VPLEX Local to VPLEX Distributed first.");
             return false;
         }
 
@@ -688,23 +703,18 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
             return false;
         }
 
-        // Check for RP+VPLEX case where we would protect a VPLEX Virtual Volume as long
+        // Check for RP+VPLEX/MP case where we would protect a VPLEX Virtual Volume as long
         // as the new vpool specifies HA and Protection both.
         if (VirtualPool.vPoolSpecifiesHighAvailability(currentVpool)
-                && VirtualPool.vPoolSpecifiesRPVPlex(newVpool)
-                && !VirtualPool.vPoolSpecifiesMetroPoint(newVpool)) {
+                && (VirtualPool.vPoolSpecifiesRPVPlex(newVpool) 
+                        || VirtualPool.vPoolSpecifiesMetroPoint(newVpool))) {
             VirtualPoolChangeOperationEnum op = vplexCommonChecks(volume, currentVpool, newVpool, dbClient, notSuppReasonBuff, include);
 
             if (op == null || !op.equals(VirtualPoolChangeOperationEnum.RP_PROTECTED)) {
                 return false;
             }
         }
-
-        // Not supported yet, will be in the future
-        if (VirtualPool.vPoolSpecifiesMetroPoint(newVpool)) {
-            return false;
-        }
-
+        
         return true;
     }
 
@@ -1159,9 +1169,11 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
                 && VirtualPool.vPoolSpecifiesHighAvailability(newVpool)) {
             // check backend volume's pool with new vPool's pools
             Volume backendSrcVolume = VPlexUtil.getVPLEXBackendVolume(volume, true, dbClient, false);
-            s_logger.info("VPLEX backend Source Volume {}, new vPool {}", backendSrcVolume.getId(), newVpool.getId());
             if (backendSrcVolume != null) {
+                s_logger.info("VPLEX backend Source Volume {}, new vPool {}", backendSrcVolume.getId(), newVpool.getId());
                 vPoolHasVolumePool = doesNewVpoolContainsVolumePool(backendSrcVolume.getPool(), newVpool);
+            } else {
+                s_logger.warn("backend source volume could not be found for VPLEX volume " + volume.forDisplay());
             }
             // check backend distributed volume's pool with new HA vPool's pools
             if (VirtualPool.vPoolSpecifiesHighAvailabilityDistributed(currentVpool)

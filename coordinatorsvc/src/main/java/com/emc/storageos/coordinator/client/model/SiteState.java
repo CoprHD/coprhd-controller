@@ -200,6 +200,16 @@ public enum SiteState {
     },
 
     /**
+     *  Standby site. Syncing incremental data to standby
+     */
+    STANDBY_INCR_SYNCING {
+        @Override
+        public boolean isDROperationOngoing() {
+            return false;
+        }
+    },
+
+    /**
      *  Standby site. Resuming
      */
     STANDBY_RESUMING {
@@ -213,7 +223,7 @@ public enum SiteState {
             return SiteInfo.DR_OP_RESUME_STANDBY;
         }
     },
-
+    
     /**
      *  Unrecoverable error for this standby site
      */

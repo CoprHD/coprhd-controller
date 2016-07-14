@@ -26,4 +26,7 @@ public interface WorkflowExceptions {
     @DeclareServiceCode(ServiceCode.WORKFLOW_TERMINATED_DR_FAILOVER)
     public WorkflowException workflowTerminatedForFailover(String uri);
     
+    @DeclareServiceCode(ServiceCode.WORKFLOW_CONSTRUCTION_ERROR)
+    public WorkflowException workflowConstructionError(String reason);
+    
 }

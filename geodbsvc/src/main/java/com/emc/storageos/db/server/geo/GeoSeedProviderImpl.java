@@ -154,7 +154,7 @@ public class GeoSeedProviderImpl implements SeedProvider {
             seeds.addAll(getAllActiveNodes(configs));
         }
         else {
-            seeds.add(getNonAutoBootNode(configs));
+            seeds.addAll(getNonAutoBootOrOtherActiveNode(configs));
         }
     }
 
@@ -192,20 +192,27 @@ public class GeoSeedProviderImpl implements SeedProvider {
         return ipAddrs;
     }
 
-    private String getNonAutoBootNode(List<Configuration> configs) {
+    private List<String> getNonAutoBootOrOtherActiveNode(List<Configuration> configs) {
+        List<String> ipAddrs = new ArrayList<>();
         for (Configuration config : configs) {
-            if (isAutoBootNode(config)) {
-                continue;
+            if (!isAutoBootNode(config) || isOtherActiveNode(config)) {
+                ipAddrs.add(getIpAddrFromConfig(config));
             }
-
-            return getIpAddrFromConfig(config);
         }
-        throw new IllegalStateException("Cannot find a node with autoboot set to false");
+        if (ipAddrs.isEmpty()) {
+            throw new IllegalStateException("Cannot find a node with autoboot set to false");
+        }
+        return ipAddrs;
     }
 
     private boolean isAutoBootNode(Configuration config) {
         String value = config.getConfig(DbConfigConstants.AUTOBOOT);
         return value != null && Boolean.parseBoolean(value);
+    }
+
+    private boolean isOtherActiveNode(Configuration config) {
+        String currentId = coordinator.getInetAddessLookupMap().getNodeId();
+        return !config.getConfig(DbConfigConstants.NODE_ID).equals(currentId) && Boolean.parseBoolean(config.getConfig(DbConfigConstants.JOINED));
     }
 
     private String getIpAddrFromConfig(Configuration config) {

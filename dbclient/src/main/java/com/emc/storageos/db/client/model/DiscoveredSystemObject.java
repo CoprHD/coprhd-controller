@@ -74,11 +74,11 @@ public class DiscoveredSystemObject extends DiscoveredDataObject {
     }
 
     public boolean storageSystemIsFile() {
-        return Type.isFileStorageSystem(_systemType);
+        return _systemType != null && Type.isFileStorageSystem(_systemType);
     }
 
     public boolean isStorageSystemManagedByProvider() {
-        return Type.isProviderStorageSystem(_systemType);
+        return _systemType != null && Type.isProviderStorageSystem(_systemType);
     }
 
     public void setDiscoveryStatus(String status) {

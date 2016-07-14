@@ -65,6 +65,8 @@ public class DiscoveredDataObject extends DataObject {
         static public Type scaleio = new Type("scaleio", types.values().size());
         static public Type xtremio = new Type("xtremio", types.values().size());
         static public Type ecs = new Type("ecs", types.values().size());
+        static public Type ceph = new Type("ceph", types.values().size());
+        static public Type unity = new Type("unity", types.values().size());
 
         private String name;
         private int ordinal;
@@ -111,7 +113,7 @@ public class DiscoveredDataObject extends DataObject {
                 types.put(typeName, new Type(typeName, types.values().size()));
                 return types.get(typeName);
             } else {
-                throw new IllegalArgumentException("Class "+ Type.class.getSimpleName() + "does not have member: " +typeName);
+                throw new IllegalArgumentException("Class "+ Type.class.getSimpleName() + " does not have member: " +typeName);
             }
         }
 
@@ -121,7 +123,12 @@ public class DiscoveredDataObject extends DataObject {
 
 
         static public boolean isDriverManagedStorageSystem(String storageType) {
-            return storageDriverManager != null && storageDriverManager.isDriverManaged(storageType);
+            return (storageDriverManager != null && storageDriverManager.isDriverManaged(storageType)
+                    && !storageDriverManager.isProvider(storageType));
+        }
+
+        static public boolean isDriverManagedStorageProvider(String providerType) {
+            return storageDriverManager != null && storageDriverManager.isProvider(providerType);
         }
 
         static public boolean isFileStorageSystem(String storageType) {
@@ -146,7 +153,8 @@ public class DiscoveredDataObject extends DataObject {
                         type.equals(vplex) ||
                         type.equals(ibmxiv) ||
                         type.equals(xtremio) ||
-                        type.equals(scaleio);
+                        type.equals(scaleio) ||
+                        type.equals(ceph);
             }
         }
 
@@ -163,7 +171,7 @@ public class DiscoveredDataObject extends DataObject {
                 return storageDriverManager.isBlockStorageSystem(storageType);
             } else {
                 Type type = Type.valueOf(storageType);
-                return (type.equals(vnxblock) || type.equals(vmax) || type.equals(vnxe) || type.equals(hds) || type.equals(ibmxiv) || type.equals(xtremio) || type.equals(scaleio));
+                return (type.equals(vnxblock) || type.equals(vmax) || type.equals(vnxe) || type.equals(hds) || type.equals(ibmxiv) || type.equals(xtremio) || type.equals(scaleio) || type.equals(ceph) || type.equals(unity));
             }
         }
 

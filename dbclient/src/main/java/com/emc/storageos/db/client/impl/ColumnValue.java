@@ -43,7 +43,6 @@ public class ColumnValue {
     public static void setEncryptedStringField(CompositeColumnName compositeColumnName,
             PropertyDescriptor pd, Object obj, EncryptionProvider provider) {
         
-        // TODO DATASTAX need to verify
         byte[] encrypted = compositeColumnName.getValue().array();
         String val = provider.decrypt(encrypted);
         try {

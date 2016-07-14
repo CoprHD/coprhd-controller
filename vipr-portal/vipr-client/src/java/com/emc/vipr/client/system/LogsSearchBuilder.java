@@ -18,6 +18,7 @@ import com.emc.vipr.model.sys.logging.LogMessage;
 public class LogsSearchBuilder {
     private final Logs logs;
     private Set<String> nodeIds;
+    private Set<String> nodeNames;
     private Set<String> logNames;
     private Integer severity;
     private String start;
@@ -41,6 +42,22 @@ public class LogsSearchBuilder {
         nodeIds = new LinkedHashSet<String>();
         if (values != null) {
             nodeIds.addAll(values);
+        }
+        return this;
+    }
+
+    public LogsSearchBuilder nodeNames(String... values) {
+        nodeNames = new LinkedHashSet<String>();
+        for (String value : values) {
+            nodeNames.add(value);
+        }
+        return this;
+    }
+
+    public LogsSearchBuilder nodeNames(Collection<String> values) {
+        nodeNames = new LinkedHashSet<String>();
+        if (values != null) {
+            nodeNames.addAll(values);
         }
         return this;
     }
@@ -123,18 +140,18 @@ public class LogsSearchBuilder {
     }
 
     public List<LogMessage> run() {
-        return logs.get(nodeIds, logNames, severity, start, end, regex, maxCount);
+        return logs.get(nodeIds, nodeNames, logNames, severity, start, end, regex, maxCount);
     }
 
     public InputStream stream() {
-        return logs.getAsStream(nodeIds, logNames, severity, start, end, regex, maxCount);
+        return logs.getAsStream(nodeIds, nodeNames, logNames, severity, start, end, regex, maxCount);
     }
 
     public InputStream text() {
-        return logs.getAsText(nodeIds, logNames, severity, start, end, regex, maxCount);
+        return logs.getAsText(nodeIds, nodeNames, logNames, severity, start, end, regex, maxCount);
     }
 
     public void items(ItemProcessor<LogMessage> processor) {
-        logs.getAsItems(processor, nodeIds, logNames, severity, start, end, regex, maxCount);
+        logs.getAsItems(processor, nodeIds, nodeNames, logNames, severity, start, end, regex, maxCount);
     }
 }

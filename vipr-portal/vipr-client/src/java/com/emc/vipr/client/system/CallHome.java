@@ -74,7 +74,7 @@ public class CallHome {
      * @return The system service task
      */
     public TaskResourceRep sendAlert(String start, String end, EventParameters eventParameters) {
-        return sendAlert(null,null,null,null,null,start,end,null,null,false,eventParameters);
+        return sendAlert(null, null, null, null, null, null, start, end, null, null, false, eventParameters);
     }
 
     /**
@@ -103,7 +103,10 @@ public class CallHome {
      * @param multipleRequests If true, will run multiple requests at same time.
      * @param eventParameters The event parameters
      * @return The system service task
+     * @deprecated Replaced by
+     * @see #sendAlert(String, Integer, List, List, List, Integer, String, String, String, Integer, boolean, EventParameters)
      */
+    @Deprecated
     public TaskResourceRep sendAlert(String source, Integer eventId, List<String> nodeIds,
             List<String> logNames, Integer severity, String start, String end, String msgRegex,
             Integer maxCount, boolean multipleRequests, EventParameters eventParameters) {
@@ -135,6 +138,8 @@ public class CallHome {
      * @param source The service from which this API is invoked. Allowed values:
      *            CONTROLLER, OBJECT Default: CONTROLLER
      * @param eventId Event id for these alerts Allowed values: 999, 599 Default: 999
+     * @param nodeIds The ids of the nodes for which log data is collected.
+     *            Allowed values: standalone,syssvc-node1,syssvc-node2 etc
      * @param nodeNames The names of the nodes for which log data is collected.
      *            Allowed values: Current values of node_x_name properties
      * @param logNames The names of the log files to process.
@@ -153,14 +158,19 @@ public class CallHome {
      * @param eventParameters The event parameters
      * @return The system service task
      */
-    public TaskResourceRep sendAlertByNodeName(String source, Integer eventId, List<String> nodeNames,
+    public TaskResourceRep sendAlert(String source, Integer eventId, List<String> nodeIds, List<String> nodeNames,
                                      List<String> logNames, Integer severity, String start, String end, String msgRegex,
                                      Integer maxCount, boolean multipleRequests, EventParameters eventParameters) {
 
         UriBuilder builder = client.uriBuilder(CALLHOME_ALERT_URL);
         addQueryParam(builder, SOURCE_PARAM, source);
         addQueryParam(builder, EVENT_ID_PARAM, eventId);
-        addQueryParam(builder, NODE_NAME_PARAM, nodeNames);
+        if ((nodeIds != null) && (!nodeIds.isEmpty())) {
+            addQueryParam(builder, NODE_ID_PARAM, nodeIds);
+        }
+        if ((nodeNames != null) && (!nodeNames.isEmpty())) {
+            addQueryParam(builder, NODE_NAME_PARAM, nodeNames);
+        }
         addQueryParam(builder, LOG_NAME_PARAM, logNames);
         addQueryParam(builder, SEVERITY_PARAM, severity);
         addQueryParam(builder, START_TIME_PARAM, start);

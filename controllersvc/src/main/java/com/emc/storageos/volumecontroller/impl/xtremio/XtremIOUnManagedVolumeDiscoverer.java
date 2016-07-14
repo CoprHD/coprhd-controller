@@ -583,8 +583,8 @@ public class XtremIOUnManagedVolumeDiscoverer {
                 List<UnManagedVolume> hostUnManagedVols = igUnmanagedVolumesMap.get(igName);
                 if (hostUnManagedVols != null) {
                     for (UnManagedVolume hostUnManagedVol : hostUnManagedVols) {
-                        hostUnManagedVol.setInitiatorNetworkIds(knownNetworkIdSet);
-                        hostUnManagedVol.setInitiatorUris(knownIniSet);
+                        hostUnManagedVol.getInitiatorNetworkIds().addAll(knownNetworkIdSet);
+                        hostUnManagedVol.getInitiatorUris().addAll(knownIniSet);
                         hostUnManagedVol.getUnmanagedExportMasks().add(mask.getId().toString());
 
                         if (isVplexBackendMask) {

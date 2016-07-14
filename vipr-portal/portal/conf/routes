@@ -73,6 +73,7 @@ POST  /config                                    infra.ConfigProperties.saveProp
 POST  /config/validateMail                       infra.ConfigProperties.validateMailSettings
 GET   /config/passwords                          infra.ConfigProperties.passwords
 POST  /config/passwords                          infra.ConfigProperties.changePassword
+POST  /config/validateExternalServer             infra.ConfigProperties.validateExternalSettings
 
 GET   /cluster/ipInfo                            infra.ClusterInfo.clusterIpInfo
 POST  /cluster/ipReconfig                        infra.ClusterInfo.ipReconfig

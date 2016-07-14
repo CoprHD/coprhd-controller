@@ -116,7 +116,7 @@ public class ExternalDeviceCommunicationInterface extends
 
     @Override
     public void collectStatisticsInformation(AccessProfile accessProfile) throws BaseCollectionException {
-       // todo
+        // todo
         _log.info("Entering {}", Thread.currentThread().getStackTrace()[1].getMethodName());
         _log.info("Collect statistic information for external device of type {} is not supported", accessProfile.getSystemType());
         _log.info("Exiting {}", Thread.currentThread().getStackTrace()[1].getMethodName());

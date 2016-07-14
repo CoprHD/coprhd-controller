@@ -4,26 +4,23 @@
  */
 package com.emc.vipr.client.system;
 
+import com.emc.vipr.client.impl.RestClient;
 import static com.emc.vipr.client.impl.jersey.ClientUtils.addQueryParam;
 import static com.emc.vipr.client.system.impl.PathConstants.CLUSER_IP_INFO_URL;
 import static com.emc.vipr.client.system.impl.PathConstants.CLUSER_IP_RECONFIG_STATUS_URL;
 import static com.emc.vipr.client.system.impl.PathConstants.CLUSER_IP_RECONFIG_URL;
+import static com.emc.vipr.client.system.impl.PathConstants.CLUSTER_DB_HEALTH_STATUS_URL;
 import static com.emc.vipr.client.system.impl.PathConstants.CLUSTER_NODE_RECOVERY_URL;
 import static com.emc.vipr.client.system.impl.PathConstants.CONTROL_POWER_OFF_CLUSTER_URL;
 import static com.emc.vipr.client.system.impl.PathConstants.CONTROL_REBOOT_NODE_URL;
 import static com.emc.vipr.client.system.impl.PathConstants.CONTROL_RESTART_URL;
-import static com.emc.vipr.client.system.impl.PathConstants.CLUSTER_DB_HEALTH_STATUS_URL;
-
-import javax.ws.rs.core.UriBuilder;
-
-import com.emc.vipr.client.impl.RestClient;
 import com.emc.vipr.model.sys.ipreconfig.ClusterIpInfo;
 import com.emc.vipr.model.sys.ipreconfig.ClusterNetworkReconfigStatus;
 import com.emc.vipr.model.sys.recovery.DbRepairStatus;
 import com.emc.vipr.model.sys.recovery.RecoveryStatus;
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.UniformInterfaceException;
-
+import javax.ws.rs.core.UriBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,8 +49,26 @@ public class Control {
      * 
      * @param nodeId Virtual machine id
      * @param name Service name
+     * @deprecated Replaced by
+     * @see #restartServiceByNodeId(String, String)
      */
+    @Deprecated
     public void restartService(String nodeId, String name) {
+        UriBuilder builder = client.uriBuilder(CONTROL_RESTART_URL);
+        addQueryParam(builder, NODE_ID_PARAM, nodeId);
+        addQueryParam(builder, NAME_PARAM, name);
+        client.postURI(String.class, builder.build());
+    }
+
+    /**
+     * Restart a service on a virtual machine by node id.
+     * <p>
+     * API Call: POST /control/service/restart
+     *
+     * @param nodeId Virtual machine id
+     * @param name Service name
+     */
+    public void restartServiceByNodeId(String nodeId, String name) {
         UriBuilder builder = client.uriBuilder(CONTROL_RESTART_URL);
         addQueryParam(builder, NODE_ID_PARAM, nodeId);
         addQueryParam(builder, NAME_PARAM, name);
@@ -81,8 +96,24 @@ public class Control {
      * API Call: POST /control/node/reboot
      * 
      * @param nodeId Virtual machine id
+     * @deprecated Replaced by
+     * @see #rebootNodeByNodeId(String)
      */
+    @Deprecated
     public void rebootNode(String nodeId) {
+        UriBuilder builder = client.uriBuilder(CONTROL_REBOOT_NODE_URL);
+        addQueryParam(builder, NODE_ID_PARAM, nodeId);
+        client.postURI(String.class, builder.build());
+    }
+
+    /**
+     * Reboot a virtual machine by node id.
+     * <p>
+     * API Call: POST /control/node/reboot
+     *
+     * @param nodeId Virtual machine id
+     */
+    public void rebootNodeByNodeId(String nodeId) {
         UriBuilder builder = client.uriBuilder(CONTROL_REBOOT_NODE_URL);
         addQueryParam(builder, NODE_ID_PARAM, nodeId);
         client.postURI(String.class, builder.build());

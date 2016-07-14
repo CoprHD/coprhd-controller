@@ -59,14 +59,14 @@ public class VNXeDeleteVolumesJob extends VNXeJob {
             // If terminal state update storage pool capacity
             if (_status == JobStatus.SUCCESS || _status == JobStatus.FAILED) {
                 for (URI poolURI : poolURIs) {
-                    VNXeJob.updateStoragePoolCapacity(dbClient, vnxeApiClient, poolURI);
+                    VNXeJob.updateStoragePoolCapacity(dbClient, vnxeApiClient, poolURI, null);
                 }
             }
             if (_status == JobStatus.SUCCESS) {
                 for (Volume volume : volumes) {
                     volume.setInactive(true);
                     volume.setConsistencyGroup(NullColumnValueGetter.getNullURI());
-                    dbClient.updateAndReindexObject(volume);
+                    dbClient.updateObject(volume);
                     if (logMsgBuilder.length() != 0) {
                         logMsgBuilder.append("\n");
                     }

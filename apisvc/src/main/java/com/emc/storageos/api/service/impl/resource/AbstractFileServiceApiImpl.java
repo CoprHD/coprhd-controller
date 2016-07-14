@@ -29,9 +29,13 @@ import com.emc.storageos.fileorchestrationcontroller.FileDescriptor;
 import com.emc.storageos.fileorchestrationcontroller.FileOrchestrationController;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.model.file.CifsShareACLUpdateParams;
+import com.emc.storageos.model.file.FileExportUpdateParams;
 import com.emc.storageos.model.file.FileSystemParam;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
+import com.emc.storageos.volumecontroller.FileSMBShare;
+import com.emc.storageos.volumecontroller.FileShareExport;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
@@ -139,7 +143,7 @@ public abstract class AbstractFileServiceApiImpl<T> implements FileServiceApi {
             VirtualArray varray, VirtualPool vpool, TenantOrg tenantOrg, DataObject.Flag[] flags,
             List<Recommendation> recommendations, TaskList taskList,
             String task, VirtualPoolCapabilityValuesWrapper vpoolCapabilities)
-            throws InternalException {
+                    throws InternalException {
         throw APIException.methodNotAllowed.notSupported();
 
     }
@@ -217,5 +221,56 @@ public abstract class AbstractFileServiceApiImpl<T> implements FileServiceApi {
 
         // place the expand filesystem call in queue
         controller.expandFileSystem(fileDescriptors, taskId);
+    }
+
+    @Override
+    public void share(URI storageSystem, URI fileSystem, FileSMBShare smbShare, String taskId) throws InternalException {
+        FileOrchestrationController controller = getController(FileOrchestrationController.class,
+                FileOrchestrationController.FILE_ORCHESTRATION_DEVICE);
+        controller.createCIFSShare(storageSystem, fileSystem, smbShare, taskId);
+    }
+
+    @Override
+    public void export(URI storage, URI fsURI, List<FileShareExport> exports, String opId) throws InternalException {
+        FileOrchestrationController controller = getController(FileOrchestrationController.class,
+                FileOrchestrationController.FILE_ORCHESTRATION_DEVICE);
+        controller.createNFSExport(storage, fsURI, exports, opId);
+    }
+
+    @Override
+    public void updateExportRules(URI storage, URI fsURI, FileExportUpdateParams param, String opId)
+            throws InternalException {
+        FileOrchestrationController controller = getController(FileOrchestrationController.class,
+                FileOrchestrationController.FILE_ORCHESTRATION_DEVICE);
+        controller.updateExportRules(storage, fsURI, param, opId);
+    }
+
+    @Override
+    public void updateShareACLs(URI storage, URI fsURI, String shareName, CifsShareACLUpdateParams param, String opId)
+            throws InternalException {
+        FileOrchestrationController controller = getController(FileOrchestrationController.class,
+                FileOrchestrationController.FILE_ORCHESTRATION_DEVICE);
+        controller.updateShareACLs(storage, fsURI, shareName, param, opId);
+    }
+
+    @Override
+    public void snapshotFS(URI storage, URI snapshot, URI fsURI, String opId) throws InternalException {
+        FileOrchestrationController controller = getController(FileOrchestrationController.class,
+                FileOrchestrationController.FILE_ORCHESTRATION_DEVICE);
+        controller.snapshotFS(storage, snapshot, fsURI, opId);
+    }
+
+    @Override
+    public void deleteShare(URI storage, URI uri, FileSMBShare fileSMBShare, String task) {
+        FileOrchestrationController controller = getController(FileOrchestrationController.class,
+                FileOrchestrationController.FILE_ORCHESTRATION_DEVICE);
+        controller.deleteShare(storage, uri, fileSMBShare, task);
+    }
+
+    @Override
+    public void deleteExportRules(URI storage, URI uri, boolean allDirs, String subDirs, String taskId) {
+        FileOrchestrationController controller = getController(FileOrchestrationController.class,
+                FileOrchestrationController.FILE_ORCHESTRATION_DEVICE);
+        controller.deleteExportRules(storage, uri, allDirs, subDirs, taskId);
     }
 }

@@ -335,34 +335,39 @@ public class VNXUnityUnManagedObjectDiscoverer {
         
         List<VNXeFileSystemSnap> snapShots = apiClient.getFileSystemSnaps(fileSystemId);
         
-        
                 
-        if(umfs.getHasShares()){
-            
-         
-            
-        }
-        if(umfs.getHasExports()){
-            
-            
-        }
-        
-   
-       
        for(VNXeFileSystemSnap snapShot : snapShots){
          UnManagedSnapshot umfsSnapshot = new UnManagedSnapshot();
          
             umfsSnapshot.setName(snapShot.getName());
-            umfsSnapshot.setParent(umfs.get);
+            umfsSnapshot.setParent(umfs.getParent());
             umfsSnapshot.setProject(umfs.getProject());
             umfsSnapshot.setStoragePoolUri(umfs.getStoragePoolUri());
             umfsSnapshot.setSupportedVpoolUris(umfs.getSupportedVpoolUris());
             umfsSnapshot.setHasExports(snapShot.getIsShared());
             
-           
-           
        }
        
+        
+    }
+    
+    public void discoverSnapShotShares(String snapShotId, AccessProfile accessProfile){
+        VNXeApiClient apiClient = getVnxUnityClient(accessProfile);
+        List<VNXeCifsShare> snapShotCifShare;
+        List<VNXeNfsShare> snapShotNfsShare;
+        
+        snapShotCifShare= apiClient.getCifsSharesForSnap(snapShotId);
+        snapShotNfsShare = apiClient.getNfsSharesForSnap(snapShotId);
+        
+        if(null!=snapShotCifShare && !snapShotCifShare.isEmpty()){
+            
+            
+        }
+        
+        if(null!=snapShotNfsShare && !snapShotNfsShare.isEmpty()){
+            
+            
+        }
         
     }
 

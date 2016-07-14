@@ -5,6 +5,7 @@
 package com.emc.storageos.db.client.model.UnManagedDiscoveredObjects;
 
 import com.emc.storageos.db.client.model.Name;
+import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObject;
 
@@ -12,101 +13,101 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObject;
  * Base data object for file shares and snapshots
  */
 public abstract class UnManagedFileObject extends UnManagedDiscoveredObject {
+    
+    
+    // timestamp
+    private String _timestamp;
 
-    // mount path used by hosts for this file share
-    protected String _mountPath;
+    // file share or volume this snapshot is associated with
+    private NamedURI _parent;
 
-    // path of the file object
-    protected String _path;
+    // Project the snapshot was associated to
+    private NamedURI _project;
 
-    // FSExports
-    protected UnManagedFSExportMap fsUnManagedExportMap;
+    // native device ID to be indexed - this field is not exposed to client
+    private String _nativeId;
 
-    // SMB Shares. SMB share name should be unique across SMB server
-    protected UnManagedSMBShareMap unManagedSmbShareMap;
+    // native device ID to be indexed - this field is not exposed to client
+    private String _nativeGuid;
 
-    // these will include things like
-    // thinProvisioned->Y/N, ALU->1,2,3, and raidLevel->RAID-1,RAID-6+2
-    // may include volumeGroup->name for mapping multiple volumes
-    protected StringMap _extensions;
+    // RO Checkpoint baseline associated with a created Snapshot from a fileshare
+    private String _checkpointBaseline;
 
-    /**
-     * Get mount path
-     * 
-     * @return
-     */
-    @Name("mountPath")
-    public String getMountPath() {
-        return _mountPath;
+    // Generated name
+    private String _name;
+    
+    
+    @Name("timestamp")
+    public String getTimestamp() {
+        return _timestamp;
     }
 
-    /**
-     * Set mount path
-     * 
-     * @param mountPath
-     */
-    public void setMountPath(String mountPath) {
-        _mountPath = mountPath;
-        setChanged("mountPath");
+    public void setTimestamp(String timestamp) {
+        this._timestamp = timestamp;
+        setChanged("timestamp");
+    }
+    
+    @Name("parent")
+    public NamedURI getParent() {
+        return _parent;
     }
 
-    /**
-     * Get path
-     * 
-     * @return
-     */
-    @Name("path")
-    public String getPath() {
-        return _path;
+    public void setParent(NamedURI parent) {
+        _parent = parent;
+        setChanged("parent");
+    }
+    
+    @Name("nativeId")
+    public String getNativeId() {
+        return _nativeId;
     }
 
-    /**
-     * Set path
-     * 
-     * @param path
-     */
-    public void setPath(String path) {
-        _path = path;
-        setChanged("path");
+    public void setNativeId(String nativeId) {
+        this._nativeId = nativeId;
+        setChanged("nativeId");
+    }
+    
+    @Name("nativeGuid")
+    public String getNativeGuid() {
+        return _nativeGuid;
     }
 
-    @Name("export")
-    public UnManagedFSExportMap getFsUnManagedExportMap() {
-        return fsUnManagedExportMap;
+    public void setNativeGuid(String nativeGuid) {
+        this._nativeGuid = nativeGuid;
+        setChanged("nativeGuid");
     }
 
-    public void setFsUnManagedExportMap(UnManagedFSExportMap fsUnManagedExportMap) {
-        this.fsUnManagedExportMap = fsUnManagedExportMap;
+    
+    @Name("project")
+    public NamedURI getProject() {
+        return _project;
     }
 
-    @Name("smbShare")
-    public UnManagedSMBShareMap getUnManagedSmbShareMap() {
-        return unManagedSmbShareMap;
+    public void setProject(NamedURI project) {
+        _project = project;
+        setChanged("project");
     }
 
-    public void setUnManagedSmbShareMap(UnManagedSMBShareMap unManagedSmbShareMap) {
-        this.unManagedSmbShareMap = unManagedSmbShareMap;
+    @Name("name")
+    public String getName() {
+        return _name;
     }
 
-    /**
-     * Get extensions map
-     * 
-     * @return
-     */
-    @Name("extensions")
-    public StringMap getExtensions() {
-        return _extensions;
+    public void setName(String name) {
+        this._name = name;
+        setChanged("name");
     }
 
-    /**
-     * Set extensions map - overwrites existing one
-     * 
-     * @param map StringMap of extensions to set
-     */
-    public void setExtensions(StringMap map) {
-        _extensions = map;
+    @Name("checkpointbaseline")
+    public String getCheckpointBaseline() {
+        return _checkpointBaseline;
     }
 
+    public void setCheckpointBaseline(String checkpointBaseline) {
+        this._checkpointBaseline = checkpointBaseline;
+        setChanged("checkpointbaseline");
+    }
+  
     @Override
     public String canBeDeleted() {
         if (fsUnManagedExportMap != null && !fsUnManagedExportMap.isEmpty()) {

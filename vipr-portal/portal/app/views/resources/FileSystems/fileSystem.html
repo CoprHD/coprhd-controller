@@ -107,12 +107,12 @@
        <div class="container-fluid">
            <div class="row">
                 <control-group v-field='rule.security' labelWidth="1">
-                    <select-one options="secOpt" ng-disabled="edit"></select-one>
+                    <select-many options="secOpt" ng-disabled="edit"></select-many> {{rule.security}}
                 </control-group>
            </div>
            <div class="row">
                 <control-group v-field='rule.anon' labelWidth="1" required >
-                    <input-text></input-text>
+                    <input-text ng-disabled="edit"></input-text>
                 </control-group>
            </div>
            <div class="row" ng-show="!edit">

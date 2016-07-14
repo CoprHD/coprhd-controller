@@ -270,7 +270,9 @@ angular.module("portalApp").controller({
     		$scope.rule.subDir = "";
     		if (edit) {
     			$scope.exportPath = path;
-    			$scope.rule.security = sec;
+    			//$scope.rule.security = ["sys","krb5","krb5i"];
+    			$scope.rule.security = sec.split(",");
+    			//$scope.rule.security = sec;
         		$scope.rule.anon = anon;
         		var data = {params: { id: id, path: path, sec: sec} };
         		if (window.location.pathname.indexOf("resources.filesnapshots") > -1) {
@@ -279,7 +281,7 @@ angular.module("portalApp").controller({
         			$http.get(routes.FileSystems_fileSystemExportsJson(), data).success(setData);
         		}
     		} else {
-    			$scope.rule.security = "sys";
+    			$scope.rule.security = ["sys"];
         		$scope.rule.anon = "root";
         		$scope.rule.endpoints = [];
         		$scope.rule.endpoints.push(angular.copy($scope.add));
@@ -302,7 +304,30 @@ angular.module("portalApp").controller({
     			}
     		});
     		$scope.rule.anon = newVal.anon;
-    		$scope.rule.security = newVal.security;
+    		//$scope.rule.security = newVal.security.split(",");
+    		//$scope.rule.security = ["sys", "krb5"];
+    		
+   		if(newVal.security === undefined){
+    			console.log("Valu undefined");
+    			$scope.rule.security = [];
+    		}else {
+    			var temp2Array ;
+    			var arrayTemp =[];
+    			
+    			if (newVal.security instanceof Array ){
+    				temp2Array = newVal.security;
+    			}else {
+    				
+        			temp2Array = newVal.security.split(",");
+    			}
+    			
+    			for(var i=0; i< temp2Array.length; i++ ){
+    				arrayTemp.push(temp2Array[i].toString());
+    			}
+            	//$scope.rule.security = newVal.security.split(","); 	
+    			$scope.rule.security = arrayTemp;
+    		}
+    		
     		$scope.rule.subDir = newVal.subDir;
     		$scope.ro = ro.toString();
     		$scope.rw = rw.toString();

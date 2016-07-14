@@ -29,19 +29,23 @@ public class FileSystemSnapRequests extends KHRequests<VNXeFileSystemSnap> {
     private static final String URL_RESTORE = "/action/restore";
     private static final String URL_V31 = "/api/types/snap/instances";
     private static final String URL_INSTANCE_V31 = "/api/instances/snap/";
+    private static final String FIELDS="id,name,creationTime";
 
     public FileSystemSnapRequests(KHClient client, String softwareVersion) {
         super(client);
         if (!VNXeUtils.isHigherVersion(softwareVersion, VNXeConstants.VNXE_BASE_SOFT_VER)) {
             _url = URL;
+//            _fields=FIELDS;
         } else {
             _url = URL_V31;
+//            _fields=FIELDS;
         }
     }
 
     public FileSystemSnapRequests(KHClient client) {
         super(client);
         _url = URL;
+//        _fields=FIELDS;
     }
 
     /**

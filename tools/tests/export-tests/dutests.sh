@@ -381,6 +381,15 @@ runcmd() {
     else
 	$cmd 2>&1
     fi
+    if [ $? -ne "0" ]; then
+	if [ -f ${CMD_OUTPUT} ]; then
+	    cat ${CMD_OUTPUT}
+	fi
+	echo There was a failure
+	VERIFY_EXPORT_FAIL_COUNT=`expr $VERIFY_EXPORT_FAIL_COUNT + 1`
+        #cleanup
+	finish
+    fi
 }
 
 #counterpart for run
@@ -407,14 +416,16 @@ fail(){
 
 pwwn()
 {
+    WWN=${WWN:-0}
     idx=$1
-    echo 10:${macaddr}:${idx}
+    echo 1${WWN}:${macaddr}:${idx}
 }
 
 nwwn()
 {
+    WWN=${WWN:-0}
     idx=$1
-    echo 20:${macaddr}:${idx}
+    echo 2${WWN}:${macaddr}:${idx}
 }
 
 setup_yaml() {
@@ -1020,15 +1031,17 @@ test_3() {
     task=${answersarray[0]}
     workflow=${answersarray[1]}
 
+    HIJACK=du-hijack-volume-${RANDOM}
+
     # Create another volume that we will inventory-only delete
-    runcmd volume create du-hijack-volume ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 1
-    device_id=`volume show ${PROJECT}/du-hijack-volume | grep native_id | awk '{print $2}' | cut -c2-6`
+    runcmd volume create ${HIJACK} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 1
+    device_id=`volume show ${PROJECT}/${HIJACK} | grep native_id | awk '{print $2}' | cut -c2-6`
 
     if [ "$SS" = "xio" ]; then
-        device_id=`volume show ${PROJECT}/du-hijack-volume | grep device_label | awk '{print $2}' | cut -d '"' -f2`
+        device_id=`volume show ${PROJECT}/${HIJACK} | grep device_label | awk '{print $2}' | cut -d '"' -f2`
     fi
 
-    runcmd volume delete ${PROJECT}/du-hijack-volume --vipronly
+    runcmd volume delete ${PROJECT}/${HIJACK} --vipronly
 
     # Add the volume to the mask (done differently per array type)
     arrayhelper add_volume_to_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
@@ -1126,6 +1139,9 @@ test_4() {
     # Follow the task.  It should fail because of Poka Yoke validation
     echo "*** Following the export_group delete task to verify it FAILS because of the additional initiator"
     fail task follow $task
+
+    # Verify the mask wasn't touched
+    verify_export ${expname}1 ${HOST1} 3 1
 
     # Now remove the initiator from the export mask
     arrayhelper remove_initiator_from_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
@@ -1281,15 +1297,17 @@ test_6() {
     task=${answersarray[0]}
     workflow=${answersarray[1]}
 
+    HIJACK=du-hijack-volume-${RANDOM}
+
     # Create another volume that we will inventory-only delete
-    runcmd volume create du-hijack-volume ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 1
-    device_id=`volume show ${PROJECT}/du-hijack-volume | grep native_id | awk '{print $2}' | cut -c2-6`
+    runcmd volume create ${HIJACK} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 1
+    device_id=`volume show ${PROJECT}/${HIJACK} | grep native_id | awk '{print $2}' | cut -c2-6`
 
     if [ "$SS" = "xio" ]; then
-        device_id=`volume show ${PROJECT}/du-hijack-volume | grep device_label | awk '{print $2}' | cut -d '"' -f2`
+        device_id=`volume show ${PROJECT}/${HIJACK} | grep device_label | awk '{print $2}' | cut -d '"' -f2`
     fi
 
-    runcmd volume delete ${PROJECT}/du-hijack-volume --vipronly
+    runcmd volume delete ${PROJECT}/${HIJACK} --vipronly
 
     # Add the volume to the mask (done differently per array type)
     arrayhelper add_volume_to_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
@@ -1366,7 +1384,8 @@ test_7() {
     verify_export ${expname}1 ${HOST1} 2 1
 
     # Create another volume, but don't export it through ViPR (yet)
-    volname="hijack-t7"
+    volname=du-hijack-volume-${RANDOM}
+
     runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 1
     device_id=`volume show ${PROJECT}/${volname} | grep native_id | awk '{print $2}' | cut -c2-6`
 
@@ -2078,15 +2097,17 @@ test_16() {
     # Strip out colons for array helper command
     h1pi2=`echo ${H1PI2} | sed 's/://g'`
 
+    HIJACK=du-hijack-volume-${RANDOM}
+
     # Create another volume that we will inventory-only delete
-    runcmd volume create du-hijack-volume ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 1
-    device_id=`volume show ${PROJECT}/du-hijack-volume | grep native_id | awk '{print $2}' | cut -c2-6`
+    runcmd volume create ${HIJACK} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 1
+    device_id=`volume show ${PROJECT}/${HIJACK} | grep native_id | awk '{print $2}' | cut -c2-6`
 
     if [ "$SS" = "xio" ]; then
-        device_id=`volume show ${PROJECT}/du-hijack-volume | grep device_label | awk '{print $2}' | cut -d '"' -f2`
+        device_id=`volume show ${PROJECT}/${HIJACK} | grep device_label | awk '{print $2}' | cut -d '"' -f2`
     fi
 
-    runcmd volume delete ${PROJECT}/du-hijack-volume --vipronly
+    runcmd volume delete ${PROJECT}/${HIJACK} --vipronly
 
     # 4. Create the storage group (different name) with the unmanaged volume with host
     arrayhelper create_export_mask ${SERIAL_NUMBER} ${device_id} ${H1PI1}

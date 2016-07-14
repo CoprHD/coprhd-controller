@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.auth;
 
+import com.emc.storageos.auth.impl.LdapFailureHandler;
 import org.apache.commons.httpclient.Credentials;
 
 public interface StorageOSAuthenticationHandler {
@@ -23,4 +24,10 @@ public interface StorageOSAuthenticationHandler {
      * @return true if the credentials are supported
      */
     public boolean supports(final Credentials credentials);
+
+    /**
+     * Set the failure handler which will be invoked when provider connection has issue.
+     * @param failureHandler
+     */
+    public void setFailureHandler(LdapFailureHandler failureHandler);
 }

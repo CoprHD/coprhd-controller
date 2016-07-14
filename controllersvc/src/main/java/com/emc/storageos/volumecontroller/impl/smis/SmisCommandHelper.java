@@ -4036,15 +4036,20 @@ public class SmisCommandHelper implements SmisConstants {
      * @return
      */
     public String generateGroupName(Set<String> existingGroupNames, String storageGroupName) {
-        String result = storageGroupName;
+        // replace "+" in the group name with "-" to make sure that we do not hit limitation on vmax3 for group names with
+        // "+" and do not return false positive here for such a mask. For example, mask with "+"s does not exist on array, but
+        // when we replace "+"s bu "_"s we hit the existing mask on device.
+        String storageGroupNameTemp = storageGroupName.replaceAll(Constants.SMIS_PLUS_REGEX, Constants.HYPHEN);
+        _log.info("Converted storage group name from {} to {} .", storageGroupName, storageGroupNameTemp);
+        String result = storageGroupNameTemp;
         // Is 'storageGroupName' already in the list of existing names?
-        if (existingGroupNames.contains(storageGroupName)) {
+        if (existingGroupNames.contains(storageGroupNameTemp)) {
             // Yes -- name is already in the existing group name list. We're going to have to generate a unique name by using an appended
             // numeric index. The format will be storageGroupName_<[N]>, where N is a number between 1 and the size of existingGroupNames.
             int size = existingGroupNames.size();
             for (int index = 1; index <= size; index++) {
                 // Generate an indexed name ...
-                result = String.format("%s_%d", storageGroupName, index);
+                result = String.format("%s_%d", storageGroupNameTemp, index);
                 // If the indexed name does not exist, then exit the loop and return 'result'
                 if (!existingGroupNames.contains(result)) {
                     break;
@@ -4052,7 +4057,7 @@ public class SmisCommandHelper implements SmisConstants {
             }
         }
         _log.info(String.format("generateGroupName(existingGroupNames.size = %d, %s), returning %s", existingGroupNames.size(),
-                storageGroupName, result));
+                storageGroupNameTemp, result));
         return result;
     }
 
@@ -7335,5 +7340,31 @@ public class SmisCommandHelper implements SmisConstants {
         } catch (Exception e) {
             _log.error("Encountered an error while trying to set the volume name", e);
         } 
+    }
+
+    /**
+     * Get the SMI-S input arguments for setting the Initiator Alias.
+     * @param shidPath A reference to the HardwareID.
+     * @param initiatorAlias The alias that needs to be set
+     * @return An array of CIMArgument
+     */
+    public CIMArgument[] getEMCInitiatorAliasSetArgs(CIMObjectPath shidPath, String initiatorAlias)
+            throws Exception {
+        return new CIMArgument[] {
+                _cimArgument.reference(CP_EXISTING_STORAGEID, shidPath),
+                _cimArgument.string(CP_ALIAS_STORAGEID, initiatorAlias)
+        };
+    }
+
+    /**
+     * Get the SMI-S input arguments for getting the Initiator Alias.
+     * @param shidPath A reference to the existing HardwareID.
+     * @return An array of CIMArgument
+     */
+    public CIMArgument[] getEMCInitiatorAliasGetArgs(CIMObjectPath shidPath)
+            throws Exception {
+        return new CIMArgument[] {
+                _cimArgument.reference(CP_EXISTING_STORAGEID, shidPath)
+        };
     }
 }

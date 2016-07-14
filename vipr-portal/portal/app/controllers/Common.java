@@ -111,6 +111,13 @@ public class Common extends Controller {
     @Before(priority = 0)
     public static void xssCheck() {
         for (String param : params.all().keySet()) {
+
+            // skip xss sanitation for fields which name contains password
+            if (param.toLowerCase().contains("password")) {
+                Logger.debug("skip sanitation for " + param);
+                return;
+            }
+
             String[] data = params.getAll(param);
 
             if ((data != null) && (data.length > 0)) {

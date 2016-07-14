@@ -59,6 +59,11 @@ public class XtremIOV1Client extends XtremIOClient {
     }
 
     @Override
+    public boolean isVersion2() {
+        return false;
+    }
+
+    @Override
     public List<XtremIOVolume> getXtremIOVolumesForLinks(List<XtremIOObjectInfo> volumeLinks, String clusterName) throws Exception {
         List<XtremIOVolume> volumeList = new ArrayList<XtremIOVolume>();
         for (XtremIOObjectInfo volumeInfo : volumeLinks) {

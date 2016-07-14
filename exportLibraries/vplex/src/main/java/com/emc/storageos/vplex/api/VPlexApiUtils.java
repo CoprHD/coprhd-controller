@@ -44,10 +44,10 @@ public class VPlexApiUtils {
     static String formatWWN(String rawWWN) {
 
         if (rawWWN != null) {
-        // trim off the REGISTERED_ prefix if it's present
-        if (rawWWN.toUpperCase().startsWith(VPlexApiConstants.REGISTERED_INITIATOR_PREFIX)){
-            rawWWN = rawWWN.substring(VPlexApiConstants.REGISTERED_INITIATOR_PREFIX.length());
-        }
+            // trim off the REGISTERED_ prefix if it's present
+            if (rawWWN.toUpperCase().startsWith(VPlexApiConstants.REGISTERED_INITIATOR_PREFIX)){
+                rawWWN = rawWWN.substring(VPlexApiConstants.REGISTERED_INITIATOR_PREFIX.length());
+            }
 
             return rawWWN.substring(2).toUpperCase();
         }
@@ -382,7 +382,7 @@ public class VPlexApiUtils {
         if (!deviceHasDefaultNamingConvention(supportingDeviceName, isDistributed, claimedVolumeNames)) {
             s_logger.info("Supporting device {} does conform to default naming convention", supportingDeviceName);
             return false;
-        }
+}
         
         // The volume name must end with the expected virtual volume suffix.
         if (!volumeName.endsWith(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX)) {

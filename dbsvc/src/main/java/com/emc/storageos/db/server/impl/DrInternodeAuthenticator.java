@@ -11,7 +11,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import com.emc.storageos.model.property.PropertyConstants;
 import org.apache.cassandra.auth.IInternodeAuthenticator;
 import org.apache.cassandra.exceptions.ConfigurationException;
 import org.slf4j.Logger;
@@ -28,13 +27,15 @@ import com.emc.storageos.coordinator.client.service.DrUtil;
 public class DrInternodeAuthenticator implements IInternodeAuthenticator {
     private static final Logger log = LoggerFactory.getLogger(DrInternodeAuthenticator.class);
 
-    private boolean isDegraded; // default to false
+    private boolean isStandbyDegraded; // default to false
+    private boolean isStandbyPaused; // default to false
+    private boolean isActiveDegraded; // default to false
     private List<InetAddress> localAddresses = new ArrayList<>();
 
     @Override
     public boolean authenticate(InetAddress remoteAddress, int remotePort)
     {
-        if (!isDegraded || localAddresses.contains(remoteAddress)) {
+        if (!(isStandbyDegraded || isStandbyPaused || isActiveDegraded) || localAddresses.contains(remoteAddress)) {
             log.info("Allow internode communication for {}", remoteAddress);
             return true;
         } else {
@@ -54,8 +55,14 @@ public class DrInternodeAuthenticator implements IInternodeAuthenticator {
         DrUtil drUtil = new DrUtil(coordinatorClient);
         Site localSite = drUtil.getLocalSite();
 
-        isDegraded = localSite.getState().equals(SiteState.STANDBY_DEGRADED)
+        isStandbyDegraded = localSite.getState().equals(SiteState.STANDBY_DEGRADED)
                 || localSite.getState().equals(SiteState.STANDBY_DEGRADING);
+        
+        isStandbyPaused = localSite.getState().equals(SiteState.STANDBY_PAUSING) 
+                || localSite.getState().equals(SiteState.STANDBY_PAUSED);
+
+        isActiveDegraded = localSite.getState().equals(SiteState.ACTIVE_DEGRADED);
+        
         Collection<String> nodeAddrList = localSite.getHostIPv4AddressMap().values();
         if (!localSite.isUsingIpv4()) {
             nodeAddrList = localSite.getHostIPv6AddressMap().values();

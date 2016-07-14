@@ -5,7 +5,10 @@
 package com.emc.storageos.auth.ldap;
 
 import com.emc.storageos.auth.AuthenticationManager.ValidationFailureReason;
+import com.emc.storageos.auth.impl.LdapFailureHandler;
 import com.emc.storageos.auth.StorageOSPersonAttributeDao;
+import com.emc.storageos.auth.impl.LdapOrADServer;
+import com.emc.storageos.auth.impl.LdapServerList;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
@@ -22,6 +25,7 @@ import com.emc.storageos.security.authorization.BasePermissionsHelper.UserMappin
 import com.emc.storageos.security.authorization.BasePermissionsHelper.UserMappingAttribute;
 import com.emc.storageos.security.exceptions.SecurityException;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.svcs.errorhandling.resources.UnauthorizedException;
 import com.google.common.collect.Lists;
 import org.apache.commons.httpclient.Credentials;
 import org.apache.commons.httpclient.UsernamePasswordCredentials;
@@ -34,7 +38,6 @@ import org.springframework.ldap.AuthenticationException;
 import org.springframework.ldap.CommunicationException;
 import org.springframework.ldap.SizeLimitExceededException;
 import org.springframework.ldap.core.AttributesMapper;
-import org.springframework.ldap.core.ContextSource;
 import org.springframework.ldap.core.LdapTemplate;
 import org.springframework.ldap.filter.*;
 import org.springframework.util.Assert;
@@ -69,9 +72,7 @@ public class StorageOSLdapPersonAttributeDao implements StorageOSPersonAttribute
     /**
      * The LdapTemplate to use to execute queries on the DirContext
      */
-    private LdapTemplate _ldapTemplate;
     private String _baseDN;
-    private ContextSource _contextSource;
     private SearchControls _searchControls = new SearchControls();
     private GroupWhiteList _groupWhiteList = GroupWhiteList.SID;
     private DbClient _dbClient;
@@ -84,6 +85,8 @@ public class StorageOSLdapPersonAttributeDao implements StorageOSPersonAttribute
     private int _maxPageSize = 1000;
 
     private ProvidersType _type;
+    private LdapFailureHandler _failureHandler = new LdapFailureHandler();
+    private LdapServerList _ldapServers;
 
     public StorageOSLdapPersonAttributeDao() {
         super();
@@ -106,37 +109,6 @@ public class StorageOSLdapPersonAttributeDao implements StorageOSPersonAttribute
         } else {
             this._baseDN = baseDN;
         }
-    }
-
-    /**
-     * @return The ContextSource to get DirContext objects for queries from.
-     */
-    public ContextSource getContextSource() {
-        return this._contextSource;
-    }
-
-    /**
-     * @param contextSource
-     *            The ContextSource to get DirContext objects for queries from.
-     */
-    public synchronized void setContextSource(final ContextSource contextSource) {
-        Assert.notNull(contextSource, "contextSource can not be null");
-        this._contextSource = contextSource;
-        this._ldapTemplate = new LdapTemplate(this._contextSource);
-        this._ldapTemplate.setIgnorePartialResultException(true);
-    }
-
-    /**
-     * Sets the LdapTemplate, and thus the ContextSource (implicitly).
-     * 
-     * @param ldapTemplate
-     *            the LdapTemplate to query the LDAP server from. CANNOT be
-     *            NULL.
-     */
-    public synchronized void setLdapTemplate(final LdapTemplate ldapTemplate) {
-        Assert.notNull(ldapTemplate, "ldapTemplate cannot be null");
-        this._ldapTemplate = ldapTemplate;
-        this._contextSource = this._ldapTemplate.getContextSource();
     }
 
     public SearchControls getSearchControls() {
@@ -465,6 +437,15 @@ public class StorageOSLdapPersonAttributeDao implements StorageOSPersonAttribute
     }
 
     /**
+     * @see com.emc.storageos.auth.StorageOSPersonAttributeDao#setFailureHandler(LdapFailureHandler)
+     * @param failureHandler
+     */
+    @Override
+    public void setFailureHandler(LdapFailureHandler failureHandler) {
+        _failureHandler = failureHandler;
+    }
+
+    /**
      * Search for the user in LDAP and create a StorageOSUserDAO and also
      * Map the user to tenant(s)
      * 
@@ -692,17 +673,39 @@ public class StorageOSLdapPersonAttributeDao implements StorageOSPersonAttribute
             final SearchControls searchControls, final AttributesMapper mapper,
             ValidationFailureReason[] failureReason) {
         try {
-            return _ldapTemplate.search(base, ldapQuery, searchControls, mapper);
-        } catch (CommunicationException e) {
-            // all caught exceptions must return null. Spring LDAP returns empty list for empty search result.
-            _log.error("Caught communication exception connecting to ldap server", e);
-            failureReason[0] = ValidationFailureReason.LDAP_CONNECTION_FAILED;
-            return null;
+            _log.debug("Ldap query to get user's attributes is {}", ldapQuery);
+            return doLdapSearch(base, ldapQuery, searchControls, mapper);
         } catch (AuthenticationException e) {
             _log.error("Caught authentication exception connecting to ldap server", e);
             failureReason[0] = ValidationFailureReason.LDAP_MANAGER_AUTH_FAILED;
             return null;
         }
+    }
+
+    private List doLdapSearch(String base, String ldapQuery, SearchControls searchControls, AttributesMapper mapper) {
+        List<LdapOrADServer> connectedServers = _ldapServers.getConnectedServers();
+        for (LdapOrADServer server : connectedServers) {
+            try {
+                return doLdapSearchOnSingleServer(base, ldapQuery, searchControls, mapper, server);
+            } catch (CommunicationException e) {
+                _failureHandler.handle(_ldapServers, server);
+                _log.info("Failed to connect to all AD/Ldap servers.", e);
+            }
+        }
+
+        // Going here means attempts on all servers failed
+        throw UnauthorizedException.unauthorized.ldapCommunicationException();
+    }
+
+    private List doLdapSearchOnSingleServer(String base, String ldapQuery, SearchControls searchControls, AttributesMapper mapper, LdapOrADServer server) {
+        LdapTemplate ldapTemplate = buildLdapTeamplate(server);
+        return ldapTemplate.search(base, ldapQuery, searchControls, mapper);
+    }
+
+    private LdapTemplate buildLdapTeamplate(LdapOrADServer server) {
+        LdapTemplate ldapTemplate = new LdapTemplate(server.getContextSource());
+        ldapTemplate.setIgnorePartialResultException(true);
+        return ldapTemplate;
     }
 
     /**
@@ -1108,6 +1111,10 @@ public class StorageOSLdapPersonAttributeDao implements StorageOSPersonAttribute
         queryGroupResults = safeLdapSearch(_baseDN, queryBuilder.encode(), groupSearchControls, mapper, failureReason);
 
         return queryGroupResults;
+    }
+
+    public void setLdapServers(LdapServerList ldapServers) {
+        _ldapServers = ldapServers;
     }
 
     /**

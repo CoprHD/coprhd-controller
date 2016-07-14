@@ -80,6 +80,10 @@ public class ModelExtensions extends JavaExtensions {
     public static boolean isRejected(OrderRestRep order) {
         return isStatus(order, OrderStatus.REJECTED);
     }
+    
+    public static boolean isPaused(OrderRestRep order) {
+        return isStatus(order, OrderStatus.PAUSED);
+    }
 
     public static boolean isStatus(OrderRestRep order, OrderStatus status) {
         return status.name().equals(order.getOrderStatus());

@@ -16,8 +16,8 @@ public class VolumeSnapshot extends StorageBlockObject {
     // use consistencyGroup for snapshot snapset.
     // snapSetId. Type: Input/Output.
     // Should be set to the same value for all consistency group  snapshots taken at the same time.
-   @Deprecated
-   private String snapSetId;
+    @Deprecated
+    private String snapSetId;
    
    private String label;
 
@@ -80,3 +80,4 @@ public class VolumeSnapshot extends StorageBlockObject {
 		return label;
 	}
 }
+

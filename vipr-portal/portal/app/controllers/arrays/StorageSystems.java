@@ -21,40 +21,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
-import models.BlockProtocols;
-import models.PoolTypes;
-import models.RegistrationStatus;
-import models.StorageProviderTypes;
-import models.StorageSystemTypes;
-import models.datatable.StoragePoolDataTable;
-import models.datatable.StoragePoolDataTable.StoragePoolInfo;
-import models.datatable.StoragePortDataTable;
-import models.datatable.StoragePortDataTable.StoragePortInfo;
-import models.datatable.StorageSystemDataTable;
-import models.datatable.StorageSystemDataTable.StorageSystemInfo;
-import models.datatable.VirtualNasServerDataTable;
-import models.datatable.VirtualNasServerDataTable.VirtualNasServerInfo;
-
 import org.apache.commons.lang.StringUtils;
-
-import play.data.binding.As;
-import play.data.validation.Max;
-import play.data.validation.MaxSize;
-import play.data.validation.Min;
-import play.data.validation.MinSize;
-import play.data.validation.Required;
-import play.data.validation.Validation;
-import play.mvc.With;
-import util.EnumOption;
-import util.MessagesUtils;
-import util.StoragePoolUtils;
-import util.StoragePortUtils;
-import util.StorageSystemUtils;
-import util.StringOption;
-import util.TenantUtils;
-import util.VCenterUtils;
-import util.datatable.DataTablesSupport;
-import util.validation.HostNameOrIpAddress;
 
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.util.EndpointUtility;
@@ -81,6 +48,37 @@ import controllers.deadbolt.Restrict;
 import controllers.deadbolt.Restrictions;
 import controllers.util.FlashException;
 import controllers.util.ViprResourceController;
+import models.BlockProtocols;
+import models.PoolTypes;
+import models.RegistrationStatus;
+import models.StorageProviderTypes;
+import models.StorageSystemTypes;
+import models.datatable.StoragePoolDataTable;
+import models.datatable.StoragePoolDataTable.StoragePoolInfo;
+import models.datatable.StoragePortDataTable;
+import models.datatable.StoragePortDataTable.StoragePortInfo;
+import models.datatable.StorageSystemDataTable;
+import models.datatable.StorageSystemDataTable.StorageSystemInfo;
+import models.datatable.VirtualNasServerDataTable;
+import models.datatable.VirtualNasServerDataTable.VirtualNasServerInfo;
+import play.data.binding.As;
+import play.data.validation.Max;
+import play.data.validation.MaxSize;
+import play.data.validation.Min;
+import play.data.validation.MinSize;
+import play.data.validation.Required;
+import play.data.validation.Validation;
+import play.mvc.With;
+import util.EnumOption;
+import util.MessagesUtils;
+import util.StoragePoolUtils;
+import util.StoragePortUtils;
+import util.StorageSystemUtils;
+import util.StringOption;
+import util.TenantUtils;
+import util.VCenterUtils;
+import util.datatable.DataTablesSupport;
+import util.validation.HostNameOrIpAddress;
 
 @With(Common.class)
 @Restrictions({ @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
@@ -102,9 +100,9 @@ public class StorageSystems extends ViprResourceController {
     private static final String EXPECTED_GEO_VERSION_FOR_VNAS_SUPPORT = "2.4";
 
     private static void addReferenceData() {
-        renderArgs.put("storageArrayTypeList", StorageSystemTypes.getStorageOption());
+        renderArgs.put("storageArrayTypeList", StorageSystemTypes.getStorageTypeOptions());
         renderArgs.put("smisStorageSystemTypeList", StorageProviderTypes.getProviderOption());
-        renderArgs.put("nonSmisStorageSystemTypeList", StorageSystemTypes.getStorageOption());
+        renderArgs.put("nonSmisStorageSystemTypeList", StorageSystemTypes.getStorageTypeOptions());
         renderArgs.put("sslDefaultStorageSystemList", StorageProviderTypes.getProvidersWithSSL());
         renderArgs.put("nonSSLStorageSystemList", StorageProviderTypes.getProvidersWithoutSSL());
 
@@ -114,6 +112,7 @@ public class StorageSystems extends ViprResourceController {
         renderArgs.put("vnxfileStorageSystemType", StorageSystemTypes.VNX_FILE);
         renderArgs.put("scaleIOStorageSystemType", StorageSystemTypes.SCALEIO);
         renderArgs.put("scaleIOApiStorageSystemType", StorageSystemTypes.SCALEIOAPI);
+        renderArgs.put("cephStorageSystemType", StorageSystemTypes.CEPH);
     }
 
     public static void list() {
@@ -160,7 +159,7 @@ public class StorageSystems extends ViprResourceController {
         StorageSystemForm storageArray = new StorageSystemForm();
         // put all "initial create only" defaults here rather than field
         // initializers
-        storageArray.type = StorageSystemTypes.VNX_BLOCK;
+        storageArray.type = StorageSystemTypes.VMAX;
         storageArray.useSSL = true;
         storageArray.userName = "";
         storageArray.smisProviderUseSSL = false;
@@ -773,6 +772,8 @@ public class StorageSystems extends ViprResourceController {
 
         public String elementManagerURL;
 
+        public String secretKey;
+
         public boolean useSSL;
 
         public Integer resourceLimit;
@@ -885,6 +886,10 @@ public class StorageSystems extends ViprResourceController {
                 storageArray.setPassword(secondaryPassword);
             }
 
+            if (isCeph()) {
+                storageArray.setPassword(StringUtils.trimToNull(secretKey));
+            }
+
             return StorageSystemUtils.update(id, storageArray);
         }
 
@@ -925,6 +930,7 @@ public class StorageSystems extends ViprResourceController {
             storageProviderForm.secondaryUsername = this.secondaryUsername;
             storageProviderForm.secondaryPassword = this.secondaryPassword;
             storageProviderForm.elementManagerURL = this.elementManagerURL;
+            storageProviderForm.secretKey = this.secretKey;
 
             return storageProviderForm.create();
         }
@@ -952,7 +958,10 @@ public class StorageSystems extends ViprResourceController {
             }
 
             if (isNew()) {
-                if (isScaleIOApi()) {
+                if (isCeph()) {
+                    Validation.required(fieldName + ".userName", this.userName);
+                    Validation.required(fieldName + ".secretKey", this.secretKey);
+                } else if (isScaleIOApi()) {
                     Validation.required(fieldName + ".secondaryUsername",
                             this.secondaryUsername);
                     Validation.required(fieldName + ".secondaryPassword",
@@ -1043,6 +1052,10 @@ public class StorageSystems extends ViprResourceController {
 
         private boolean isIsilon() {
             return StorageSystemTypes.isIsilon(type);
+        }
+
+        private boolean isCeph() {
+            return StorageSystemTypes.isCeph(type);
         }
     }
 

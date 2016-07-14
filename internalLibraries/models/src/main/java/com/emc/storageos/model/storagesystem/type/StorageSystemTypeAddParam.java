@@ -6,7 +6,6 @@ package com.emc.storageos.model.storagesystem.type;
 
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement(name = "storagesystem_type_add")
@@ -25,6 +24,7 @@ public class StorageSystemTypeAddParam {
     private String nonSslPort;
     private String sslPort;
     private String driverClassName;
+    private boolean isSecretKey = false;
 
     public StorageSystemTypeAddParam() {
     }
@@ -130,6 +130,17 @@ public class StorageSystemTypeAddParam {
     }
 
     /**
+     * Whether the Storage System Type uses a secret key.  This applies to Ceph.
+     */
+    public boolean getIsSecretKey() {
+        return isSecretKey;
+    }
+
+    public void setIsSecretKey(boolean isSecretKey) {
+        this.isSecretKey = isSecretKey;
+    }
+
+    /**
      * SSL port number, if SSL is supported and enabled
      */
     public String getSslPort() {
@@ -181,8 +192,9 @@ public class StorageSystemTypeAddParam {
         builder.append(sslPort);
         builder.append(", driverClassName=");
         builder.append(driverClassName);
+        builder.append(", isSecretKey=");
+        builder.append(isSecretKey);
         builder.append("]");
         return builder.toString();
     }
-
 }

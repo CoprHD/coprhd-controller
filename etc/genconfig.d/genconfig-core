@@ -210,13 +210,25 @@ _gen_ssh_authkeys2() {
 }
 
 # This method returns the configured ip address of this machine
+# input:
+#    $1 - "ipv6" to get local ipv6 address.
+#         empty or other value, get effective local ip.
 _get_local_ip() {
+    local ip_type=$1
+
     local nodeid="${_GENCONFIG_node_id}"
     local nodenum=${nodeid#vipr}
     local var="_GENCONFIG_network_${nodenum}_ipaddr"
     local var6="_GENCONFIG_network_${nodenum}_ipaddr6"
-    local ipaddr="${!var}"
-    [[ -z "${ipaddr}" || "${ipaddr}" == "0.0.0.0" ]] && ipaddr=$(_get_ipv6_uncompressed "${!var6}")
+
+    local ipaddr=""
+    if [ "${ip_type}" == "ipv6" ] ; then
+        ipaddr=$(_get_ipv6_uncompressed "${!var6}")
+    else
+        ipaddr="${!var}"
+        [[ -z "${ipaddr}" || "${ipaddr}" == "0.0.0.0" ]] && ipaddr=$(_get_ipv6_uncompressed "${!var6}")
+    fi
+
     echo "${ipaddr}"
 }
 
@@ -224,9 +236,12 @@ _get_local_ip() {
 # input:
 #    $1 - vdc id
 #    $2 - site id
+#    $3 - "ipv6" to get ipv6 addresses.
+#         empty or other value, get effective ips.
 _get_ips_in_specified_site() {
     local vdc_id=$1
     local site_id=$2
+    local ip_type=$3
     local ips=""
     local var=""
     local var6=""
@@ -244,10 +259,17 @@ _get_ips_in_specified_site() {
             var="_GENCONFIG_vdc_${vdc_id}_${site_id}_network_${i}_ipaddr"
             var6="_GENCONFIG_vdc_${vdc_id}_${site_id}_network_${i}_ipaddr6"
         fi
-        local ipaddr="${!var}"
+
+        local ipaddr=""
+        if [ "${ip_type}" == "ipv6" ] ; then
+            ipaddr=$(_get_ipv6_uncompressed "${!var6}")
+        else
+            ipaddr="${!var}"
+            [[ -z "${ipaddr}" || "${ipaddr}" == "0.0.0.0" ]] && ipaddr=$(_get_ipv6_uncompressed "${!var6}")
+        fi
+
         # remove ipv6's brackets, if had.
         ipaddr=$(echo ${ipaddr} | sed -e 's/^\[//' -e 's/\]$//')
-        [[ -z "${ipaddr}" || "${ipaddr}" == "0.0.0.0" ]] && ipaddr=$(_get_ipv6_uncompressed "${!var6}")
         ips="${ips} ${ipaddr}"
     done
 

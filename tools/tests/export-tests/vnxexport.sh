@@ -215,7 +215,7 @@ setup() {
 }
 
 set_cluster() {
-    CLUSTERID=`cluster list ${TENANT} | perl -nle 'printf("urn:storageos:Cluster:%s\n", $1) if (m#urn:storageos:Cluster:(.*?).,#);'`
+    CLUSTERID=`cluster list ${TENANT} | grep Cluster | gawk '{ print $4 }'`
 }
 
 set_hosts() {

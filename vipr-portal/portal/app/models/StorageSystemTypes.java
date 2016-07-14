@@ -4,19 +4,15 @@
  */
 package models;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import org.apache.commons.lang.StringUtils;
-
 import com.emc.storageos.db.server.impl.StorageSystemTypesInitUtils;
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeList;
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeRestRep;
 import com.google.common.collect.Lists;
-
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import org.apache.commons.lang.StringUtils;
 import util.StorageSystemTypeUtils;
 import util.StringOption;
 
@@ -205,7 +201,7 @@ public class StorageSystemTypes {
             String provider = arrayProviderMap.get(typeName);
             if (provider != null) {
                 if (StringUtils.equals(VMAX, typeName)) {
-                    options.add(new StringOption(VMAX, provider));
+                    options.add(new StringOption(SMIS, provider));
                 } 
                 else if (StringUtils.equals(XTREMIO, typeName)) {
                     options.add(new StringOption(XTREMIO, provider));

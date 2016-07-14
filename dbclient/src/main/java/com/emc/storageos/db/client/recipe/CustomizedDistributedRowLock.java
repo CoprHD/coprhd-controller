@@ -5,24 +5,27 @@
 
 package com.emc.storageos.db.client.recipe;
 
+import java.nio.ByteBuffer;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.cassandra.serializers.LongSerializer;
+
+import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.ConsistencyLevel;
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.Row;
 import com.emc.storageos.db.client.impl.DbClientContext;
 import com.emc.storageos.db.client.impl.RowMutator;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnFamily;
-import com.netflix.astyanax.model.ColumnMap;
 import com.netflix.astyanax.retry.RetryPolicy;
 import com.netflix.astyanax.retry.RunOnce;
-import com.netflix.astyanax.serializers.ByteBufferSerializer;
-import com.netflix.astyanax.serializers.LongSerializer;
 import com.netflix.astyanax.util.TimeUUIDUtils;
 import com.netflix.astyanax.recipes.locks.BusyLockException;
 import com.netflix.astyanax.recipes.locks.StaleLockException;
@@ -58,7 +61,7 @@ public class CustomizedDistributedRowLock<K> {
     private String lockColumn = null;
     private String lockId = null;
     private Set<String> locksToDelete = Sets.newHashSet();
-    private ColumnMap<String> columns = null;
+    private Map<String, ByteBuffer> columns = null;
     private Integer ttl = null;                           // Units in seconds
     private boolean readDataColumns = false;
     private RetryPolicy backoffPolicy = RunOnce.get();
@@ -207,7 +210,7 @@ public class CustomizedDistributedRowLock<K> {
      * 
      * @throws Exception
      */
-    public ColumnMap<String> acquireLockAndReadRow() throws Exception {
+    public Map<String, ByteBuffer> acquireLockAndReadRow() throws Exception {
         withDataColumns(true);
         acquire();
         return getDataColumns();
@@ -302,46 +305,41 @@ public class CustomizedDistributedRowLock<K> {
     private Map<String, Long> readLockColumns(boolean readDataColumns) throws Exception {
         Map<String, Long> result = Maps.newLinkedHashMap();
 
-        /*TODO Yuan please take a look
         ConsistencyLevel read_consistencyLevel = consistencyLevel;
         // CASSANDRA actually does not support EACH_QUORUM for read which is meaningless as well.
-        if (consistencyLevel == ConsistencyLevel.CL_EACH_QUORUM) {
-            read_consistencyLevel = ConsistencyLevel.CL_LOCAL_QUORUM;
+        if (consistencyLevel == ConsistencyLevel.EACH_QUORUM) {
+            read_consistencyLevel = ConsistencyLevel.LOCAL_QUORUM;
         }
 
         // Read all the columns
         if (readDataColumns) {
-            columns = new OrderedColumnMap<String>();
-            ColumnList<String> lockResult = keyspace
-                    .prepareQuery(columnFamily)
-                    .setConsistencyLevel(read_consistencyLevel)
-                    .getKey(key)
-                    .execute()
-                    .getResult();
+            columns = new HashMap<String, ByteBuffer>();
+            String queryString = String.format("select * from \"%s\" where key=?", columnFamily.getName());
+            BoundStatement statement = context.getSession().prepare(queryString).bind(key);
+            statement.setConsistencyLevel(read_consistencyLevel);
+            ResultSet resultSet = context.getSession().execute(statement);
 
-            for (Column<String> c : lockResult) {
-                if (c.getName().startsWith(prefix)) {
-                    result.put(c.getName(), readTimeoutValue(c));
+            for (Row row : resultSet) {
+                String column1 = row.getString(1); 
+                if (column1.startsWith(prefix)) {
+                    result.put(column1, LongSerializer.instance.deserialize(row.getBytes(2)));
                 } else {
-                    columns.add(c);
+                    columns.put(column1, row.getBytes(2));
                 }
             }
         }
         // Read only the lock columns
         else {
-            ColumnList<String> lockResult = keyspace
-                    .prepareQuery(columnFamily)
-                    .setConsistencyLevel(read_consistencyLevel)
-                    .getKey(key)
-                    .withColumnRange(new RangeBuilder().setStart(prefix + "\u0000").setEnd(prefix + "\uFFFF").build())
-                    .execute()
-                    .getResult();
+            String queryString = String.format("select * from \"%s\" where key=? and column1=?", columnFamily.getName());
+            BoundStatement statement = context.getSession().prepare(queryString).bind(key, prefix);
+            statement.setConsistencyLevel(read_consistencyLevel);
+            ResultSet resultSet = context.getSession().execute(statement);
 
-            for (Column<String> c : lockResult) {
-                result.put(c.getName(), readTimeoutValue(c));
+            for (Row row : resultSet) {
+                result.put(row.getString(1), LongSerializer.instance.deserialize(row.getBytes(2)));
             }
 
-        }*/
+        }
         return result;
     }
 
@@ -430,21 +428,6 @@ public class CustomizedDistributedRowLock<K> {
     }
 
     /**
-     * Read the expiration time from the column value
-     * 
-     * @param column
-     */
-    public long readTimeoutValue(Column<?> column) {
-        if (columnFamily.getDefaultValueSerializer() == ByteBufferSerializer.get() ||
-                columnFamily.getDefaultValueSerializer() == LongSerializer.get()) {
-            return column.getLongValue();
-        }
-        else {
-            return Long.parseLong(column.getStringValue());
-        }
-    }
-
-    /**
      * Fill a mutation that will release the locks. This may be used from a
      * separate recipe to release multiple locks.
      * 
@@ -463,7 +446,7 @@ public class CustomizedDistributedRowLock<K> {
         lockColumn = null;
     }
 
-    public ColumnMap<String> getDataColumns() {
+    public Map<String, ByteBuffer> getDataColumns() {
         return columns;
     }
 

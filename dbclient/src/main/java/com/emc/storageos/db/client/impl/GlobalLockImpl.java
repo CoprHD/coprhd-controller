@@ -5,10 +5,14 @@
 
 package com.emc.storageos.db.client.impl;
 
+import java.nio.ByteBuffer;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import com.datastax.driver.core.ConsistencyLevel;
+
+import org.apache.cassandra.serializers.UTF8Serializer;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.utils.EnsurePath;
 import org.apache.curator.utils.ZKPaths;
@@ -23,7 +27,6 @@ import com.emc.storageos.db.client.GlobalLockItf;
 import com.emc.storageos.db.client.model.GlobalLock;
 import com.emc.storageos.db.client.recipe.CustomizedDistributedRowLock;
 import com.netflix.astyanax.model.ColumnFamily;
-import com.netflix.astyanax.model.ColumnMap;
 import com.netflix.astyanax.recipes.locks.BusyLockException;
 import com.netflix.astyanax.recipes.locks.StaleLockException;
 import com.netflix.astyanax.retry.BoundedExponentialBackoff;
@@ -136,11 +139,11 @@ public class GlobalLockImpl implements GlobalLockItf {
 
         RowMutator mutator = new RowMutator(_context);
         try {
-            ColumnMap<String> columns = _cpDistRowlock.acquireLockAndReadRow();
+            Map<String, ByteBuffer> columns = _cpDistRowlock.acquireLockAndReadRow();
 
-            String currMode = columns.getString(GlobalLock.GL_MODE_COLUMN, null);
-            String currOwner = columns.getString(GlobalLock.GL_OWNER_COLUMN, null);
-            String currExpiration = columns.getString(GlobalLock.GL_EXPIRATION_COLUMN, null);
+            String currMode = retrieveStrignValue(columns, GlobalLock.GL_MODE_COLUMN, null);
+            String currOwner = retrieveStrignValue(columns, GlobalLock.GL_OWNER_COLUMN, null);
+            String currExpiration = retrieveStrignValue(columns, GlobalLock.GL_EXPIRATION_COLUMN, null);
 
             if (currMode != null && !currMode.equals(_mode.toString())) {
                 errMsg = String.format("The global lock %s has been acquired by incompatible mode %s.", _name, currMode);
@@ -225,10 +228,10 @@ public class GlobalLockImpl implements GlobalLockItf {
 
         RowMutator mutator = new RowMutator(_context);
         try {
-            ColumnMap<String> columns = _cpDistRowlock.acquireLockAndReadRow();
+            Map<String, ByteBuffer> columns = _cpDistRowlock.acquireLockAndReadRow();
 
-            String currMode = columns.getString(GlobalLock.GL_MODE_COLUMN, null);
-            String currOwner = columns.getString(GlobalLock.GL_OWNER_COLUMN, null);
+            String currMode = retrieveStrignValue(columns, GlobalLock.GL_MODE_COLUMN, null);
+            String currOwner = retrieveStrignValue(columns, GlobalLock.GL_OWNER_COLUMN, null);
 
             if (currMode == null || currOwner == null) {
                 // the lock is not active; return true
@@ -321,10 +324,10 @@ public class GlobalLockImpl implements GlobalLockItf {
         _log.info("querying the current owner of global lock {} ...", _name);
         String currOwner = null;
         try {
-            ColumnMap<String> columns = _cpDistRowlock.acquireLockAndReadRow();
+            Map<String, ByteBuffer> columns = _cpDistRowlock.acquireLockAndReadRow();
 
-            currOwner = columns.getString(GlobalLock.GL_OWNER_COLUMN, null);
-            String currExpiration = columns.getString(GlobalLock.GL_EXPIRATION_COLUMN, null);
+            currOwner = retrieveStrignValue(columns, GlobalLock.GL_OWNER_COLUMN, null);
+            String currExpiration = retrieveStrignValue(columns, GlobalLock.GL_EXPIRATION_COLUMN, null);
 
             long curTimeMicros = System.currentTimeMillis();
             if (currExpiration != null) {
@@ -432,5 +435,12 @@ public class GlobalLockImpl implements GlobalLockItf {
 
     public String getErrorMessage() {
         return errMsg;
+    }
+    
+    private String retrieveStrignValue(Map<String, ByteBuffer> map, String key, String defaultValue) {
+        if (!map.containsKey(key))
+            return defaultValue;
+        
+        return UTF8Serializer.instance.deserialize(map.get(key));
     }
 }

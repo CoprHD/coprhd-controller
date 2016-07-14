@@ -507,7 +507,9 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
     public DriverTask createVolumeClone(List<VolumeClone> clones, StorageCapabilities capabilities) {
         CreateVolumeCloneSimulatorOperation createCloneSimulatorOperation = new CreateVolumeCloneSimulatorOperation(clones);
         if (simulateAsynchronousResponses) {
-            return createCloneSimulatorOperation.getDriverTask();
+            DriverTask driverTask = createCloneSimulatorOperation.getDriverTask();
+            taskOperationMap.put(driverTask.getTaskId(), createCloneSimulatorOperation);
+            return driverTask;
         } else if (simulateFailures) {
             String failMsg = createCloneSimulatorOperation.getFailureMessage();
             return createCloneSimulatorOperation.doFailure(failMsg);

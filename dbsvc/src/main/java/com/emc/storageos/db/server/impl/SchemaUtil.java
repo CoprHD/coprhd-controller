@@ -95,6 +95,7 @@ public class SchemaUtil {
     private static final String DB_BOOTSTRAP_LOCK = "dbbootstrap";
     private static final String VDC_NODE_PREFIX = "node";
     private static final String GEODB_BOOTSTRAP_LOCK = "geodbbootstrap";
+    private static final String SORAGE_SYSTEM_TYPE_INIT_LOCK = "storagesystemtypeinitlock";
 
     private static final int DEFAULT_REPLICATION_FACTOR = 1;
     private static final int MAX_REPLICATION_FACTOR = 5;
@@ -894,8 +895,29 @@ public class SchemaUtil {
     }
 
     public void checkAndInitStorageSystemTypes(DbClient dbClient) {
-        StorageSystemTypesInitUtils utils = new StorageSystemTypesInitUtils(dbClient);
-        utils.initializeStorageSystemTypes();
+        if (onStandby) {
+            _log.info("Skip StorageSystemType CF initialization on standby site");
+            return;
+        }
+        InterProcessLock lock = null;
+        try {
+            lock = _coordinator.getLock(SORAGE_SYSTEM_TYPE_INIT_LOCK);
+            _log.info("StorageSystemType check - waiting for StorageSystemType CF init lock");
+            lock.acquire();
+
+            StorageSystemTypesInitUtils utils = new StorageSystemTypesInitUtils(dbClient);
+            utils.initializeStorageSystemTypes();
+        } catch (Exception e) {
+           _log.warn("Exception happend when trying to acquire lock", e);
+        } finally {
+            if (lock != null) {
+                try {
+                    lock.release();
+                } catch (Exception e) {
+                    _log.error("Fail to release lock", e);
+                }
+            }
+        }
     }
 
     /**

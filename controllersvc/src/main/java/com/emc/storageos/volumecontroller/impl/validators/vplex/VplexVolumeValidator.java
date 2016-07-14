@@ -62,6 +62,7 @@ public class VplexVolumeValidator extends AbstractVplexValidator {
 	public void validateVolume(Volume virtualVolume, boolean delete, boolean remediate, ValCk... checks) {
 	    List<ValCk> checkList = Arrays.asList(checks);
 	    String volumeId = String.format("%s (%s)(%s)", virtualVolume.getLabel(), virtualVolume.getNativeGuid(), virtualVolume.getId());
+	    log.info("Initiating Vplex Volume validation: " + volumeId);
 	    VPlexVirtualVolumeInfo vvinfo = null;
 	    try {
 	        vvinfo = client.findVirtualVolumeAndUpdateInfo(virtualVolume.getDeviceLabel());
@@ -118,6 +119,7 @@ public class VplexVolumeValidator extends AbstractVplexValidator {
 	            // If we are deleting we won't error if it's just not there.
 	            logger.logDiff(volumeId, "virtual-volume", virtualVolume.getDeviceLabel(), "no corresponding virtual volume information");
 	        }
+	        log.info("Vplex Validation complete (no vvinfo found); " + volumeId);
 	        return;
 	    }
 
@@ -166,6 +168,7 @@ public class VplexVolumeValidator extends AbstractVplexValidator {
 	        }
 
 	    }
+        log.info("Vplex Validation complete; " + volumeId);
 
 	}
 	

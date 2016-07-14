@@ -3131,6 +3131,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     _log.warn("ExportMask {} is already inactive, so there's "
                             + "no need to delete it off the VPLEX", exportMask.getMaskName());
                 } else {
+                    List<URI> volumeURIs = StringSetUtil.stringSetToUriList(exportMask.getVolumes().keySet());
+                    List<URI> initiatorURIs = StringSetUtil.stringSetToUriList(exportMask.getInitiators());
+                    List<Initiator> initiators = _dbClient.queryObject(Initiator.class, initiatorURIs);
+                    validator.vplex().exportMaskDelete(vplex, exportMask, volumeURIs, initiators).validate();
                     // note: there's a chance if the existing storage view originally had only
                     // storage ports configured in it, then it would be deleted by this
                     _log.info("removing this export mask from VPLEX: " + exportMask.getMaskName());
@@ -3160,6 +3164,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         } catch (VPlexApiException vae) {
             _log.error("Exception deleting ExportMask: " + exportMaskURI, vae);
             WorkflowStepCompleter.stepFailed(stepId, vae);
+        } catch (DeviceControllerException ex) {
+            _log.error("Exception deleting ExportMask: " + exportMaskURI, ex);
+            WorkflowStepCompleter.stepFailed(stepId, ex);
         } catch (Exception ex) {
             _log.error("Exception deleting ExportMask: " + exportMaskURI, ex);
             ServiceError svcError = VPlexApiException.errors.deleteStorageViewFailed(ex);

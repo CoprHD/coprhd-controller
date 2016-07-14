@@ -32,7 +32,7 @@ public class DiscoverStorageProviderOperation extends OperationImpl {
 
     @Override
     public boolean isMatch(String name, Object... parameters) {
-        if ("discoverStorageSystem".equals(name)) {
+        if ("discoverStorageProvider".equals(name)) {
             this.storageProvider = (StorageProvider) parameters[0];
             this.storageSystems = (List<StorageSystem>) parameters[1];
             if (this.storageSystems == null) {

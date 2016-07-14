@@ -46,6 +46,10 @@ public class WorkflowStep extends DataObject {
     private Date startTime;
     /** Time step reached a terminal state */
     private Date endTime;
+    /** serialized Workflow.Method for execution */
+    private byte[] executeMethodData;
+    /** serialized Workflow.Method for rollback */
+    private byte[] rollbackMethodData;
 
     @Name("workflow")
     @RelationIndex(cf = "RelationIndex", type = Workflow.class)
@@ -197,4 +201,24 @@ public class WorkflowStep extends DataObject {
         this.endTime = endTime;
         setChanged("endTime");
     }
+
+    @Name("executeMethodData")
+    public byte[] getExecuteMethodData() {
+                return executeMethodData;
+            }
+
+    public void setExecuteMethodData(byte[] executeMethodData) {
+                this.executeMethodData = executeMethodData;
+                setChanged("executeMethodData");
+            }
+
+    @Name("rollbackMethodData")
+    public byte[] getRollbackMethodData() {
+                return rollbackMethodData;
+            }
+
+    public void setRollbackMethodData(byte[] rollbackMethodData) {
+                this.rollbackMethodData = rollbackMethodData;
+                setChanged("rollbackMethodData");
+            }
 }

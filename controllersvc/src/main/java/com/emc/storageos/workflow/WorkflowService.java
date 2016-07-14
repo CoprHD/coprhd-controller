@@ -12,6 +12,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -29,11 +30,18 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.Controller;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DistributedDataManager;
+import com.emc.storageos.coordinator.client.service.impl.GenericSerializer;
 import com.emc.storageos.coordinator.common.impl.ZkPath;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.Task;
+import com.emc.storageos.db.client.model.WorkflowStep;
+import com.emc.storageos.db.client.model.WorkflowStepData;
 import com.emc.storageos.db.client.model.util.TaskUtils;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.exceptions.DeviceControllerException;
@@ -306,12 +314,43 @@ public class WorkflowService {
      * @param data -- A Java Serializable object.
      */
     public void storeStepData(String stepId, Object data) {
-        String path = getZKStepDataPath(stepId);
-        try {
-            _dataManager.putData(path, data);
-        } catch (Exception ex) {
-            _log.error("Can't save step state for path: " + path, ex);
+        Workflow workflow = getWorkflowFromStepId(stepId);
+        if (workflow == null) {
+            throw WorkflowException.exceptions.workflowNotFound(stepId);
         }
+        WorkflowStepData dataRecord = getWorkflowStepData(workflow.getWorkflowURI(), stepId);
+        boolean created = false;
+        if (dataRecord == null) {
+            dataRecord = new WorkflowStepData();
+            dataRecord.setId(URIUtil.createId(WorkflowStepData.class));
+            dataRecord.setWorkflowId(workflow.getWorkflowURI());
+            dataRecord.setStepId(stepId);
+            created = true;
+        }
+        dataRecord.setData(GenericSerializer.serialize(data));
+        if (created) {
+            _dbClient.createObject(dataRecord);
+        } else {
+            _dbClient.updateObject(dataRecord);
+        }
+    }
+    
+    /**
+     * Returns a WorkflowStepData from database based on workflowURI and stepId
+     * @param workflowURI
+     * @param stepId
+     * @return WorkflowStepData
+     */
+    private WorkflowStepData getWorkflowStepData(URI workflowURI, String stepId) {
+        AlternateIdConstraint constraint = AlternateIdConstraint.Factory.getWorkflowStepDataByStep(stepId);
+        List<WorkflowStepData> dataRecords = 
+                CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, WorkflowStepData.class, constraint);
+        for (WorkflowStepData dataRecord : dataRecords) {
+            if (dataRecord.getWorkflowId().equals(workflowURI) && dataRecord.getStepId().equals(stepId)) {
+                return dataRecord;
+            }
+        }
+        return null;
     }
 
     /**
@@ -322,14 +361,25 @@ public class WorkflowService {
      * @throws Exception
      */
     public Object loadStepData(String stepId) {
-        String path = getZKStepDataPath(stepId);
         try {
-            Object data = _dataManager.getData(path, false);
+            Workflow workflow = getWorkflowFromStepId(stepId);
+            if (workflow == null) {
+                throw WorkflowException.exceptions.workflowNotFound(stepId);
+            }
+            String path = getZKStepDataPath(stepId);
+            Stat stat = _dataManager.checkExists(path);
+            if (stat != null) {
+                // Legacy path for old workflows
+                Object data = _dataManager.getData(path, false);
+                return data;
+            }
+            WorkflowStepData stepData = getWorkflowStepData(workflow.getWorkflowURI(), stepId);
+            Object data = GenericSerializer.deserialize(stepData.getData());
             return data;
         } catch (Exception ex) {
-            _log.error("Can't load step state for path: " + path);
-            return null;
+            _log.error("Can't load step state for step: " + stepId);
         }
+        return null;
     }
 
     @Deprecated
@@ -584,18 +634,14 @@ public class WorkflowService {
         String id = workflow.getOrchTaskId();
         try {
             destroyNestedWorkflows(workflow);
+            
             // Remove all the Step data nodes.
-            for (Step step : workflow.getStepMap().values()) {
-                String dataPath = getZKStepDataPath(step.stepId);
-                Stat stat = _dataManager.checkExists(dataPath);
-                if (stat != null) {
-                    _dataManager.removeNode(dataPath);
-                }
+            List<WorkflowStepData> dataRecords = CustomQueryUtility.queryActiveResourcesByRelation(
+                    _dbClient, workflow.getWorkflowURI(), WorkflowStepData.class, "workflow");
+            if (dataRecords != null && !dataRecords.isEmpty()) {
+                _dbClient.markForDeletion(dataRecords);
             }
-            // Destroy workflow data under /workflow/stepdata/{workflowId} directory
-            String workflowDataPath = String.format(_zkStepDataPath, workflow.getWorkflowURI().toString());
-            _dataManager.removeNode(workflowDataPath, true);
-
+            
             // Destroy the workflow under /workflow/workflows
             String path = getZKWorkflowPath(workflow);
             Stat stat = _dataManager.checkExists(path);
@@ -666,8 +712,14 @@ public class WorkflowService {
      */
     private void persistWorkflowStep(Workflow workflow, Step step)
             throws WorkflowException {
+        Workflow.Method executeMethod = step.executeMethod;
+        Workflow.Method rollbackMethod = step.rollbackMethod;
         try {
             logStep(workflow, step);
+            // Temporarily null out the executeMethod, and rollbackMethod.
+            // These will no longer be saved in ZK.
+            step.executeMethod = null;
+            step.rollbackMethod = null;
             // Make sure the workflow path exists.
             String workflowPath = getZKWorkflowPath(workflow);
             Stat stat = _dataManager.checkExists(workflowPath);
@@ -685,6 +737,9 @@ public class WorkflowService {
             _log.debug("Created step path: " + path);
         } catch (Exception ex) {
             throw new WorkflowException("Cannot persist step in ZK", ex);
+        } finally {
+            step.executeMethod = executeMethod;
+            step.rollbackMethod = rollbackMethod;
         }
     }
 
@@ -735,6 +790,7 @@ public class WorkflowService {
                     continue;
                 }
                 Step step = (Step) stepObj;
+                restoreStepDataFromDB(step);
                 workflow.getStepMap().put(step.stepId, step);
                 if (step.stepGroup != null) {
                     if (workflow.getStepGroupMap().get(step.stepGroup) == null) {
@@ -1212,6 +1268,12 @@ public class WorkflowService {
             logStep.setStepGroup(step.stepGroup);
             logStep.setStepId(step.stepId);
             logStep.setWaitFor(step.waitFor);
+            byte[] executeMethodData = GenericSerializer.serialize(step.executeMethod);
+            logStep.setExecuteMethodData(executeMethodData);
+            if (step.rollbackMethod != null) {
+                byte[] rollbackMethodData = GenericSerializer.serialize(step.rollbackMethod);
+                logStep.setRollbackMethodData(rollbackMethodData);
+            }
             if (created) {
                 _dbClient.createObject(logStep);
             } else {
@@ -1219,6 +1281,25 @@ public class WorkflowService {
             }
         } catch (DatabaseException ex) {
             _log.error("Cannot persist Cassandra WorkflowEntry record");
+        }
+    }
+    
+    /**
+     * Restores the large data in a Step that was saved away in Cassandra.
+     * @param step -- Step to be restored
+     */
+    private void restoreStepDataFromDB(Step step) {
+        com.emc.storageos.db.client.model.WorkflowStep logStep =
+           _dbClient.queryObject(WorkflowStep.class, step.workflowStepURI);
+        if (logStep.getExecuteMethodData() != null) {
+            Workflow.Method executeMethod = (Workflow.Method) 
+                    GenericSerializer.deserialize(logStep.getExecuteMethodData());
+            step.executeMethod = executeMethod;
+        }
+        if (logStep.getRollbackMethodData() != null) {
+            Workflow.Method rollbackMethod = (Workflow.Method) 
+                    GenericSerializer.deserialize(logStep.getRollbackMethodData());
+            step.rollbackMethod = rollbackMethod;
         }
     }
 

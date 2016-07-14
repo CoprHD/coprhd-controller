@@ -149,6 +149,12 @@ arrayhelper() {
         pattern=$4
 	arrayhelper_initiator_mask_operation $operation $serial_number $pwwn $pattern
 	;;
+    create_export_mask)
+        device_id=$3
+	pwwn=$4
+	name=$5
+	arrayhelper_create_export_mask_operation $operation $serial_number $device_id $pwwn $name
+	;;
     delete_volume)
 	device_id=$3
 	arrayhelper_delete_volume $operation $serial_number $device_id
@@ -162,6 +168,27 @@ arrayhelper() {
         echo "ERROR: Invalid operation $operation specified to arrayhelper."
 	exit
 	;;
+    esac
+}
+
+# Call the appropriate storage array helper script to perform masking operations
+# outside of the controller.
+#
+arrayhelper_create_export_mask_operation() {
+    operation=$1
+    serial_number=$2
+    device_id=$3
+    pwwn=$4
+    maskname=$5
+
+    case $SS in
+    vnx)
+         runcmd navihelper.sh $operation $array_ip $device_id $pwwn $maskname
+	 ;;
+    default)
+         echo "ERROR: Invalid platform specified in storage_type: $storage_type"
+	 exit
+	 ;;
     esac
 }
 
@@ -416,6 +443,7 @@ fail(){
 
 pwwn()
 {
+    # Note, for VNX, the array tooling relies on the first number being "1", please don't change that for dutests on VNX.  Thanks!
     WWN=${WWN:-0}
     idx=$1
     echo 1${WWN}:${macaddr}:${idx}
@@ -482,6 +510,13 @@ prerun_setup() {
     then
 	array_ip=${VNXB_IP}
     fi
+}
+
+# Reset all of the system properties so settings are back to normal
+reset_system_props() {
+    set_suspend_on_class_method "none"
+    set_suspend_on_error false
+    set_artificial_failure "none"
 }
 
 vnx_setup() {
@@ -792,6 +827,18 @@ setup() {
     runcmd volume create ${VOLNAME} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 2
 }
 
+set_suspend_on_error() {
+    runcmd syssvc $SANITY_CONFIG_FILE localhost set_prop workflow_suspend_on_error $1
+}
+
+set_suspend_on_class_method() {
+    runcmd syssvc $SANITY_CONFIG_FILE localhost set_prop workflow_suspend_on_class_method "$1"
+}
+
+set_artificial_failure() {
+    runcmd syssvc $SANITY_CONFIG_FILE localhost set_prop artificial_failure "$1"
+}
+
 # Verify no masks
 #
 # Makes sure there are no masks on the array before running tests
@@ -812,6 +859,7 @@ verify_nomasks() {
 #
 test_0() {
     echot "Test 0 Begins"
+    reset_system_props
     expname=${EXPORT_GROUP_NAME}t0
     set_suspend_on_class_method "none"
     verify_export ${expname}1 ${HOST1} gone
@@ -826,18 +874,6 @@ test_0() {
     verify_export ${expname}2 ${HOST2} gone
 }
 
-set_suspend_on_error() {
-    runcmd syssvc $SANITY_CONFIG_FILE localhost set_prop workflow_suspend_on_error $1
-}
-
-set_suspend_on_class_method() {
-    runcmd syssvc $SANITY_CONFIG_FILE localhost set_prop workflow_suspend_on_class_method "$1"
-}
-
-set_artificial_failure() {
-    runcmd syssvc $SANITY_CONFIG_FILE localhost set_prop artificial_failure "$1"
-}
-
 # Suspend/Resume base test 1
 #
 # This tests top-level workflow suspension.  It's the simplest form of suspend/resume for a workflow.
@@ -847,8 +883,8 @@ test_1() {
     expname=${EXPORT_GROUP_NAME}t1
 
     # Turn on suspend of export after orchestration
+    reset_system_props
     set_suspend_on_class_method ExportWorkflowEntryPoints.exportGroupCreate
-    set_suspend_on_error false
 
     # Verify there is no mask
     verify_export ${expname}1 ${HOST1} gone
@@ -878,7 +914,6 @@ test_1() {
 
     # Turn on suspend of export after orchestration
     set_suspend_on_class_method ExportWorkflowEntryPoints.exportGroupDelete
-    set_suspend_on_error false
 
     # Run the export group command
     echo === export_group delete $PROJECT/${expname}1
@@ -915,8 +950,8 @@ test_2() {
     verify_export ${expname}1 ${HOST1} gone
 
     # Turn on suspend of export after orchestration
+    reset_system_props
     set_suspend_on_class_method MaskingWorkflowEntryPoints.doExportGroupCreate
-    set_suspend_on_error false
 
     # Run the export group command
     echo === export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
@@ -950,7 +985,6 @@ test_2() {
 
     # Turn on suspend of export after orchestration
     set_suspend_on_class_method MaskingWorkflowEntryPoints.doExportGroupDelete
-    set_suspend_on_error false
 
     # Run the export group command
     echo === export_group delete $PROJECT/${expname}1
@@ -1003,9 +1037,7 @@ test_3() {
     # Make sure we start clean; no masking view on the array
     verify_export ${expname}1 ${HOST1} gone
 
-    # Turn on suspend of export after orchestration
-    set_suspend_on_class_method "none"
-    set_suspend_on_error false
+    reset_system_props
 
     # Create the mask with the 1 volume
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
@@ -1095,9 +1127,7 @@ test_4() {
     # Make sure we start clean; no masking view on the array
     verify_export ${expname}1 ${HOST1} gone
 
-    # Turn on suspend of export after orchestration
-    set_suspend_on_class_method "none"
-    set_suspend_on_error false
+    reset_system_props
 
     # Create the mask with the 1 volume
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
@@ -1179,9 +1209,7 @@ test_5() {
     # Make sure we start clean; no masking view on the array
     verify_export ${expname}1 ${HOST1} gone
 
-    # Turn on suspend of export after orchestration
-    set_suspend_on_class_method "none"
-    set_suspend_on_error false
+    reset_system_props
 
     # Create the mask with the 1 volume
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2" --hosts "${HOST1}"
@@ -1266,9 +1294,7 @@ test_6() {
     # Make sure we start clean; no masking view on the array
     verify_export ${expname}1 ${HOST1} gone
 
-    # Turn on suspend of export after orchestration
-    set_suspend_on_class_method "none"
-    set_suspend_on_error false
+    reset_system_props
 
     # Create the mask with the 1 volume
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
@@ -1373,9 +1399,7 @@ test_7() {
     # Make sure we start clean; no masking view on the array
     verify_export ${expname}1 ${HOST1} gone
 
-    # Turn on suspend of export after orchestration
-    set_suspend_on_class_method "none"
-    set_suspend_on_error false
+    reset_system_props
 
     # Create the mask with the 1 volume
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
@@ -1435,9 +1459,7 @@ test_8() {
     # Make sure we start clean; no masking view on the array
     verify_export ${expname}1 ${HOST1} gone
 
-    # Turn on suspend of export after orchestration
-    set_suspend_on_class_method "none"
-    set_suspend_on_error false
+    reset_system_props
 
     # Create the mask with the 1 volume
     runcmd export_group create $PROJECT ${expname}1 $NH --type Exclusive --volspec ${PROJECT}/${VOLNAME}-1 --inits "${HOST1}/${H1PI1}"
@@ -1465,9 +1487,6 @@ test_8() {
 
     # Make sure it really did kill off the mask
     verify_export ${expname}1 ${HOST1} gone
-
-    # Delete the volume we created
-    runcmd volume delete ${PROJECT}/${volname} --wait
 }
 
 # DU Prevention Validation Test 9
@@ -1490,9 +1509,7 @@ test_9() {
     # Make sure we start clean; no masking view on the array
     verify_export ${expname}1 ${HOST1} gone
 
-    # Turn on suspend of export after orchestration
-    set_suspend_on_class_method "none"
-    set_suspend_on_error false
+    reset_system_props
 
     # Create the mask with the 1 volume
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
@@ -1540,7 +1557,7 @@ test_9() {
 
     # Follow the task.
     echo "*** Following the export_group update task to verify it PASSES passively because the volume is already there"
-    task follow $task
+    runcmd task follow $task
 
     # Verify the mask is "normal" after that command
     verify_export ${expname}1 ${HOST1} 2 2
@@ -1571,10 +1588,7 @@ test_10() {
     # Make sure we start clean; no masking view on the array
     verify_export ${expname}1 ${HOST1} gone
 
-    # Turn on suspend of export after orchestration
-    set_suspend_on_class_method "none"
-    set_suspend_on_error false
-    set_artificial_failure "none"
+    reset_system_props
 
     # Create the mask with the 1 volume
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
@@ -1639,10 +1653,7 @@ test_11() {
     # Make sure we start clean; no masking view on the array
     verify_export ${expname}1 ${HOST1} gone
 
-    # Turn on suspend of export after orchestration
-    set_suspend_on_class_method "none"
-    set_suspend_on_error false
-    set_artificial_failure "none"
+    reset_system_props
 
     # Create the mask with the 1 volume
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
@@ -1726,7 +1737,9 @@ test_11() {
 test_12() {
     echot "Test 12: Volume gets reclaimed outside of ViPR"
     expname=${EXPORT_GROUP_NAME}t12
-    volname="${HOST}-dutest-oktodelete-t12"
+    volname="${HOST1}-dutest-oktodelete-t12"
+
+    reset_system_props
 
     # Create a new volume that ViPR knows about
     runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 1
@@ -1737,7 +1750,7 @@ test_12() {
     dbupdate Volume wwn ${volume_uri} 60000970000FFFFFFFF2533030314233
 
     # Now try to delete the volume, it should fail
-    fail volume delete ${PROJECT}/${volname}
+    fail volume delete ${PROJECT}/${volname} --wait
 
     # Now try to expand the volume, it should fail
     fail volume expand ${PROJECT}/${volname} 2GB
@@ -1774,10 +1787,7 @@ test_13() {
     # Make sure we start clean; no masking view on the array
     verify_export ${expname}1 ${HOST1} gone
 
-    # Turn on suspend of export after orchestration
-    set_suspend_on_class_method "none"
-    set_suspend_on_error false
-    set_artificial_failure "none"
+    reset_system_props
 
     # Create the mask with the 1 volume
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
@@ -1860,10 +1870,7 @@ test_14() {
     # Make sure we start clean; no masking view on the array
     verify_export ${expname}1 ${HOST1} gone
 
-    # Turn on suspend of export after orchestration
-    set_suspend_on_class_method "none"
-    set_suspend_on_error false
-    set_artificial_failure "none"
+    reset_system_props
 
     # Create the mask with the 1 volume
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
@@ -1878,7 +1885,7 @@ test_14() {
     verify_export ${expname}1 ${HOST1} 1 1
 
     # Create another volume that we will inventory-only delete
-    volname="${HOST}-dutest-oktodelete-t14"
+    volname="${HOST1}-dutest-oktodelete-t14"
     runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 1
     device_id=`volume show ${PROJECT}/${volname} | grep native_id | awk '{print $2}' | cut -c2-6`
 
@@ -1968,10 +1975,7 @@ test_15() {
     # Make sure we start clean; no masking view on the array
     verify_export ${expname}1 ${HOST1} gone
 
-    # Turn on suspend of export after orchestration
-    set_suspend_on_class_method "none"
-    set_suspend_on_error false
-    set_artificial_failure none
+    reset_system_props
 
     # Create the mask with the 1 volume
     runcmd export_group create $PROJECT ${expname}1 $NH --type Exclusive --volspec ${PROJECT}/${VOLNAME}-1 --inits "${HOST1}/${H1PI1}"
@@ -2068,13 +2072,16 @@ test_16() {
 	return
     fi
 
+    SGNAME=${HOST1}-du-steal
+
     # Make sure we start clean; no masking view on the array
     verify_export ${expname}1 ${HOST1} gone
+    verify_export ${SGNAME} -exact- gone
+
+    reset_system_props
 
     # Turn on suspend of export after orchestration
     set_suspend_on_class_method ExportWorkflowEntryPoints.exportGroupCreate
-    set_suspend_on_error false
-    set_artificial_failure none
 
     # Run the export group command TODO: Do this more elegantly
     echo === export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
@@ -2110,10 +2117,10 @@ test_16() {
     runcmd volume delete ${PROJECT}/${HIJACK} --vipronly
 
     # 4. Create the storage group (different name) with the unmanaged volume with host
-    arrayhelper create_export_mask ${SERIAL_NUMBER} ${device_id} ${H1PI1}
+    arrayhelper create_export_mask ${SERIAL_NUMBER} ${device_id} ${h1pi2} ${SGNAME}
 
-    # Verify the mask has the new initiator in it
-    verify_export ${expname}1 ${HOST1} 2 1
+    # Verify the storage group was created
+    verify_export ${SGNAME} -exact- 1 1
 
     # Resume the workflow
     runcmd workflow resume $workflow
@@ -2126,18 +2133,18 @@ test_16() {
     verify_export ${expname}1 ${HOST1} 2 1
 
     # shut off suspensions/failures
-    set_suspend_on_class_method "none"
-    set_artificial_failure none
-
-    # Delete the export group
-    runcmd export_group delete $PROJECT/${expname}1
+    reset_system_props
 
     # Make sure it really did kill off the mask
     verify_export ${expname}1 ${HOST1} gone
 
-    # TODO: Delete the mask we created
+    # Delete the mask we created
+    arrayhelper remove_initiator_from_mask ${SERIAL_NUMBER} ${h1pi2} ${SGNAME}
+    arrayhelper delete_export_mask ${SERIAL_NUMBER} ${SGNAME}
+    verify_export ${SGNAME} -exact- gone
 
-    # TODO: Delete the volume we created
+    # Delete the volume we created
+    arrayhelper delete_volume ${SERIAL_NUMBER} ${device_id}
 }
 
 cleanup() {

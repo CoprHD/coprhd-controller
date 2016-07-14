@@ -25,7 +25,8 @@ def task_follow(args):
     elif (tr['state'] == 'ready'):
 	print 'Task finished successfully'
     else:
-	print 'Task create failed.'
+	print 'Task failed.'
+	sys.exit(1);
 	    
 def task_delete(args):
     bourne.connect(args.ip)

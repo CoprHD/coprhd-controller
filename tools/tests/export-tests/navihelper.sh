@@ -106,7 +106,8 @@ add_initiator_to_mask() {
     sgname=`grep ${SG_PATTERN} /tmp/verify.txt | awk -F: '{print $2}' | awk '{print $1}'`
 
     # register a fake host (maybe add a check to see if it's already there?)
-    /opt/Navisphere/bin/naviseccli -User bourne -Password bourne -Scope 0 -Address $VNX_SP_IP storagegroup -setpath -gname ${sgname} -hbauid ${pwwn}:$(echo $pwwn | sed 's/11/22/g') -sp a -spport 0 -arraycommpath 1 -failovermode 4 -host dutest_fakehost -ip 11.22.33.44 -o > /tmp/navisechelper.out
+    # This requires that the first number of the WWN is "1"
+    /opt/Navisphere/bin/naviseccli -User bourne -Password bourne -Scope 0 -Address $VNX_SP_IP storagegroup -setpath -gname ${sgname} -hbauid $(echo $pwwn | sed 's/^1/2/g'):${pwwn} -sp a -spport 0 -arraycommpath 1 -failovermode 4 -host dutest_fakehost -ip 11.22.33.44 -o > /tmp/navisechelper.out
     if [ $? -ne 0 ]; then
 	echo "Failed to add the initiator to the mask."
     fi
@@ -133,6 +134,41 @@ remove_initiator_from_mask() {
     if [ $? -ne 0 ]; then
 	echo "Failed to remove the initiator from the mask."
     fi
+}
+
+create_storage_group() {
+    VNX_SP_IP=$1
+    device_id=$(echo $2 | sed 's/^0*//')
+    pwwn=$(echo $3 | awk '{print substr($0,1,2),":",substr($0,3,2),":",substr($0,5,2),":",substr($0,7,2),":",substr($0,9,2),":",substr($0,11,2),":",substr($0,13,2),":",substr($0,15,2)}' | sed 's/ //g')
+    sgname=$4
+
+    /opt/Navisphere/bin/naviseccli -User bourne -Password bourne -Scope 0 -Address $VNX_SP_IP storagegroup -create -gname ${sgname} > /tmp/navisechelper.out
+
+    # Add the volume
+    add_volume_to_mask ${VNX_SP_IP} ${device_id} ${sgname}
+
+    # Add the initiator
+    add_initiator_to_mask ${VNX_SP_IP} $3 ${sgname}
+}
+
+delete_storage_group() {
+    VNX_SP_IP=$1
+    SG_PATTERN=$2
+
+    set -x
+    /opt/Navisphere/bin/naviseccli -User bourne -Password bourne -Scope 0 -Address $VNX_SP_IP storagegroup -list > /tmp/verify.txt
+
+    hits=`grep -n ${SG_PATTERN} /tmp/verify.txt | wc -l`
+    if [ ${hits} -gt 1 ]
+	then
+	echo "ERROR: Expected storage group ${SG_PATTERN}, but found more than one that fit that pattern!"
+	exit 1;
+    fi
+
+    sgname=`grep ${SG_PATTERN} /tmp/verify.txt | awk -F: '{print $2}' | awk '{print $1}'`
+
+    /opt/Navisphere/bin/naviseccli -User bourne -Password bourne -Scope 0 -Address $VNX_SP_IP storagegroup -destroy -o -gname ${sgname} > /tmp/navisechelper.out
+    set +x
 }
 
 delete_volume() {
@@ -170,7 +206,7 @@ verify_export() {
 	if [ "$2" = "gone" ]
 	    then
 	    echo "ERROR: Expected storage group ${SG_PATTERN} to be gone, but it was found"
-	    exit;
+	    exit 1;
 	fi
     fi
 
@@ -244,6 +280,12 @@ elif [ "$1" = "delete_volume" ]; then
 elif [ "$1" = "delete_mask" ]; then
     shift
     delete_mask $1 $2
+elif [ "$1" = "create_export_mask" ]; then
+    shift
+    create_storage_group $1 $2 $3 $4
+elif [ "$1" = "delete_export_mask" ]; then
+    shift
+    delete_storage_group $1 $2
 else
     verify_export $*
 fi

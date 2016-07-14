@@ -1320,10 +1320,11 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                             Map<URI, List<URI>> maskToInitiatorsMap = new HashMap<URI, List<URI>>();
                             maskToInitiatorsMap.put(exportMask.getId(), new ArrayList<URI>(initiatorsToRemove));
 
+                            List<URI> maskVolumeURIs = ExportMaskUtils.getVolumeURIs(exportMask);
                             previousStep = generateDeviceSpecificRemoveInitiatorsWorkflow(
                                     workflow, previousStep, exportGroup, exportMask,
                                     storage, maskToInitiatorsMap,
-                                    null, new ArrayList<URI>(initiatorsToRemove), deleteEntireMask ? false : true); // see comment below
+                                    maskVolumeURIs, new ArrayList<URI>(initiatorsToRemove), deleteEntireMask ? false : true); // see comment below
                             // Don't delete the target ports if we're deleting the entire mask anyway.
                             // This is because we're removing initiators from an export mask that impacts other export masks.
                             // The end result of removing these initiators is to remove initiators that ViPR added

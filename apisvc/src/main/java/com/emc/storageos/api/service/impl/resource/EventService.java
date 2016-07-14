@@ -104,9 +104,9 @@ public class EventService extends TaggedResource {
         ActionableEvent event = queryObject(ActionableEvent.class, id, false);
         // check the user permissions
         verifyAuthorizedInTenantOrg(event.getTenant(), getUserFromContext());
+        TaskList taskList = new TaskList();
 
         try {
-            TaskList taskList = new TaskList();
             ActionableEvent.Method eventMethod = ActionableEvent.Method.deserialize(event.getMethod());
             Method m = getMethod(EventService.class, eventMethod.getOrchestrationMethod());
             TaskResourceRep result = (TaskResourceRep) m.invoke(this, eventMethod.getArgs());
@@ -123,7 +123,7 @@ public class EventService extends TaggedResource {
         } catch (InvocationTargetException e) {
             _log.error(e.getMessage(), e.getStackTrace());
         }
-        return new TaskResourceRep();
+        return taskList;
     }
 
     public TaskResourceRep detachHostStorage(String hostIdStr, boolean deactivateOnComplete, boolean deactivateBootVolume) {

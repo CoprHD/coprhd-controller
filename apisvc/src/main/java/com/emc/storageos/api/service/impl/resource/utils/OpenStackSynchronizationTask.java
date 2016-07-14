@@ -96,7 +96,7 @@ public class OpenStackSynchronizationTask extends ResourceService {
     }
 
     /**
-     * Reschedule synchronization task with given interval.
+     * Reschedule synchronization task with given interval. Previous task is canceled and a new one is scheduled.
      *
      * @param newInterval New interval delay between each execution in seconds.
      */
@@ -113,7 +113,7 @@ public class OpenStackSynchronizationTask extends ResourceService {
     }
 
     /**
-     * Retrieves Keystone Authentication Provider from CoprHD.
+     * Retrieves Keystone Authentication Provider from CoprHD database.
      *
      * @return Keystone Authentication Provider.
      */
@@ -122,6 +122,13 @@ public class OpenStackSynchronizationTask extends ResourceService {
         return _keystoneUtilsService.getKeystoneProvider();
     }
 
+    /**
+     * Retrieves interval value of Sync Task from Keystone Authentication Provider.
+     *
+     * @param keystoneProvider Keystone Authentication Provider.
+     *
+     * @return OpenStack Synchronization Task interval.
+     */
     public int getTaskInterval() {
 
         AuthnProvider keystoneProvider = getKeystoneProvider();
@@ -162,7 +169,8 @@ public class OpenStackSynchronizationTask extends ResourceService {
     }
 
     /**
-     * Finds CoprHD Tenants with OpenStack ID that are different from their reflection in OpenStack. Those Tenants needs to be updated.
+     * Finds CoprHD Tenants with OpenStack ID that are different from their reflection in OpenStack.
+     * Those found Tenants need to be updated.
      *
      * @param osTenantList List of OpenStack Tenants.
      * @param coprhdTenantList List of CoprHD Tenants related to OpenStack.
@@ -245,7 +253,7 @@ public class OpenStackSynchronizationTask extends ResourceService {
     }
 
     /**
-     * Compares OpenStack Tenant with CoprHD Tenant (both needs to have the same OpenStack ID).
+     * Compares OpenStack Tenant with CoprHD Tenant (both need to have same OpenStack ID).
      *
      * @param osTenant OpenStack Tenant.
      * @param coprhdTenant CoprHD Tenant related to OpenStack.
@@ -277,10 +285,11 @@ public class OpenStackSynchronizationTask extends ResourceService {
 
     /**
      * Creates a CoprHD Tenant for given OpenStack Tenant.
+     * Sends internal POST API call to InternalTenantsService in order to create Tenant.
      *
      * @param tenant OpenStack Tenant.
      *
-     * @return URI ow newly created Tenant.
+     * @return URI of newly created Tenant.
      */
     public URI createTenant(TenantV2 tenant) {
 
@@ -291,11 +300,12 @@ public class OpenStackSynchronizationTask extends ResourceService {
 
     /**
      * Creates a CoprHD Project for given Tenant.
+     * Sends internal POST API call to InternalTenantsService in order to create Project.
      *
      * @param tenantOrgId ID of the Project owner.
      * @param tenant OpenStack Tenant.
      *
-     * @return URI ow newly created Project.
+     * @return URI of newly created Project.
      */
     public URI createProject(URI tenantOrgId, TenantV2 tenant) {
 
@@ -306,7 +316,7 @@ public class OpenStackSynchronizationTask extends ResourceService {
     }
 
     /**
-     * Starts synchronization between CoprHD and OpenStack Tenants.
+     * Starts synchronization between CoprHD and OpenStack Tenants (i.e. starts Synchronization Task).
      *
      * @param interval Task interval.
      */

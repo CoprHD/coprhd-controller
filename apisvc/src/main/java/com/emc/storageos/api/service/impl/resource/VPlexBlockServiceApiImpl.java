@@ -463,6 +463,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             for (int i = 0; i < varrayURIs.size(); i++) {
                 varrayVolumeURIs[varrayCount][i] = varrayURIs.get(i);
             }
+            varrayCount++;
         }
 
         // Prepare Bourne volumes to represent the highly available virtual

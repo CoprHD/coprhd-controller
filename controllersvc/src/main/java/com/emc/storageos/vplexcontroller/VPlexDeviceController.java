@@ -147,6 +147,8 @@ import com.emc.storageos.volumecontroller.impl.job.QueueJob;
 import com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
+import com.emc.storageos.volumecontroller.impl.validators.ValCk;
+import com.emc.storageos.volumecontroller.impl.validators.ValidatorFactory;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
 import com.emc.storageos.volumecontroller.placement.ExportPathUpdater;
 import com.emc.storageos.vplex.api.VPlexApiClient;
@@ -359,6 +361,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private BlockOrchestrationDeviceController _blockOrchestrationController;
     private NetworkDeviceController _networkDeviceController;
     private BlockStorageScheduler _blockScheduler;
+    private ValidatorFactory validator;
     private static volatile VPlexDeviceController _instance;
     private ExportWorkflowUtils _exportWfUtils;
     private NetworkScheduler _networkScheduler;
@@ -1109,8 +1112,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // are in the VPLEX_STEP step group, which subsequent steps will wait on.
             // This allows operation for delete virtual volumes in each Vplex to operate in parellel, 
             // but subsequent steps will wait on all the delete virtual volumes operations to complete.
-            String deleteWaitFor = waitFor;
             for (URI vplexURI : vplexMap.keySet()) {
+                String nextStepWaitFor = waitFor;
                 StorageSystem vplexSystem = getDataObject(StorageSystem.class, vplexURI, _dbClient);
                 // First validate that the backend volumes for these VPLEX volumes are
                 // the actual volumes used by the VPLEX volume on the VPLEX system. We
@@ -1119,17 +1122,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // want to delete a backend volume that may in fact be used some other
                 // VPLEX volume.
                 List<URI> vplexVolumeURIs = VolumeDescriptor.getVolumeURIs(vplexMap.get(vplexURI));
-                
-                // If there are VPlex Volumes fronting SRDF targets, handle them.
-                // They will need to be removed from the CG that represents the SRDF targets.
-                List<URI> volsForTargetCG = VPlexSrdfUtil.returnVplexSrdfTargets(_dbClient, vplexVolumeURIs);
-                if (!volsForTargetCG.isEmpty()) {
-                    URI volURI = volsForTargetCG.get(0);
-                    Volume vol = VPlexControllerUtils.getDataObject(Volume.class, volURI, _dbClient);
-                    ConsistencyGroupManager consistencyGroupManager = getConsistencyGroupManager(vol);
-                    deleteWaitFor = consistencyGroupManager.addStepsForRemovingVolumesFromSRDFTargetCG(
-                            workflow, vplexSystem, volsForTargetCG, deleteWaitFor);
-                }
                 
                 for (URI vplexVolumeURI : vplexVolumeURIs) {
                     Volume vplexVolume = _dbClient.queryObject(Volume.class, vplexVolumeURI);
@@ -1161,14 +1153,26 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         }
                     }
                     
-                    createWorkflowStepToValidateVPlexVolume(workflow, vplexSystem, vplexVolumeURI, deleteWaitFor);
-                    deleteWaitFor = VALIDATE_VPLEX_VOLUME_STEP;
+                    createWorkflowStepToValidateVPlexVolume(workflow, vplexSystem, vplexVolumeURI, waitFor);
+                    nextStepWaitFor = VALIDATE_VPLEX_VOLUME_STEP;
                 }
+                
+                // If there are VPlex Volumes fronting SRDF targets, handle them.
+                // They will need to be removed from the CG that represents the SRDF targets.
+                List<URI> volsForTargetCG = VPlexSrdfUtil.returnVplexSrdfTargets(_dbClient, vplexVolumeURIs);
+                if (!volsForTargetCG.isEmpty()) {
+                    URI volURI = volsForTargetCG.get(0);
+                    Volume vol = VPlexControllerUtils.getDataObject(Volume.class, volURI, _dbClient);
+                    ConsistencyGroupManager consistencyGroupManager = getConsistencyGroupManager(vol);
+                    nextStepWaitFor = consistencyGroupManager.addStepsForRemovingVolumesFromSRDFTargetCG(
+                            workflow, vplexSystem, volsForTargetCG, nextStepWaitFor);
+                }
+                
 
                 workflow.createStep(VPLEX_STEP,
                         String.format("Delete VPlex Virtual Volumes:%n%s",
                                 BlockDeviceController.getVolumesMsg(_dbClient, vplexVolumeURIs)),
-                        deleteWaitFor, vplexURI,
+                        nextStepWaitFor, vplexURI,
                         DiscoveredDataObject.Type.vplex.name(), this.getClass(),
                         deleteVirtualVolumesMethod(vplexURI, vplexVolumeURIs, doNotFullyDeleteVolumeList),
                         rollbackMethodNullMethod(), null);
@@ -3409,6 +3413,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 opId);
         boolean hasSteps = false;
         try {
+            validator.volumeURIs(volumeURIs, false, false, ValCk.ID);
             Workflow workflow = _workflowService.getNewWorkflow(this, EXPORT_GROUP_REMOVE_VOLUMES, false, opId, null);
             StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
             ExportGroup exportGroup = getDataObject(ExportGroup.class, exportURI, _dbClient);
@@ -12689,5 +12694,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     public String addStepsForPreCreateReplica(Workflow workflow, String waitFor, List<VolumeDescriptor> volumeDescriptors, String taskId)
             throws InternalException {
         return waitFor;
+    }
+
+    public void setValidator(ValidatorFactory validator) {
+        this.validator = validator;
     }
 }

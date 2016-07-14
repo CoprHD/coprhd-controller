@@ -288,7 +288,7 @@ public class TaskService extends TaggedResource {
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{taskId}/resume")
-    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN }, acls = { ACL.OWN })
+    @CheckPermission(roles = { Role.TENANT_ADMIN, Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN }, acls = { ACL.OWN, ACL.ALL })
     public Response resumeTask(@PathParam("taskId") URI taskId) {
         Task task = queryResource(taskId);
 
@@ -319,7 +319,7 @@ public class TaskService extends TaggedResource {
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{taskId}/rollback")
-    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN }, acls = { ACL.OWN })
+    @CheckPermission(roles = { Role.TENANT_ADMIN, Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN }, acls = { ACL.OWN, ACL.ALL })
     public Response rollbackTask(@PathParam("taskId") URI taskId) {
         Task task = queryResource(taskId);
 

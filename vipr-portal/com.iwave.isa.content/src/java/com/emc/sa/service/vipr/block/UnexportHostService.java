@@ -53,6 +53,15 @@ public class UnexportHostService extends ViPRService {
         if (volumes.size() < volumeIds.size()) {
             logWarn("unexport.host.service.not.found", volumeIds.size(), volumes.size());
         }
+        for (ExportGroupRestRep export : exports) {
+            for (BlockObjectRestRep volume : volumes) {
+                URI volumeId = ResourceUtils.id(volume);
+                if (BlockStorageUtils.isVolumeInExportGroup(export, volumeId)
+                        && StringUtils.equalsIgnoreCase(export.getType(), ExportGroupType.Cluster.name())) {
+                    ExecutionUtils.fail("failTask.UnexportHostService.clusterExport", args(), args(export.getName()));
+                }
+            }
+        }
     }
 
     @Override
@@ -73,12 +82,8 @@ public class UnexportHostService extends ViPRService {
             }
 
             if (!exportedVolumeIds.isEmpty()) {
-                if (StringUtils.equalsIgnoreCase(export.getType(), ExportGroupType.Cluster.name())) {
-                    logInfo("unexport.host.service.cluster.export.skip", exportName);
-                } else {
-                    logInfo("unexport.host.service.volume.remove", exportedVolumeIds.size(), exportName);
-                    BlockStorageUtils.removeBlockResourcesFromExport(exportedVolumeIds, exportId);
-                }
+                logInfo("unexport.host.service.volume.remove", exportedVolumeIds.size(), exportName);
+                BlockStorageUtils.removeBlockResourcesFromExport(exportedVolumeIds, exportId);
             } else {
                 logDebug("unexport.host.service.volume.skip", exportName);
             }

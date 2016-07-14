@@ -146,11 +146,11 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
         Workflow.Method maskingExecuteMethod = new Workflow.Method(
                 "doExportGroupAddInitiators", storageURI, exportGroupURI,
-                exportMaskURI, initiatorURIs, newTargetURIs, exportTaskCompleter);
+                exportMaskURI, new ArrayList<URI>(volumeURIs), initiatorURIs, newTargetURIs, exportTaskCompleter);
 
         Workflow.Method rollbackMethod = new Workflow.Method(
                 "rollbackExportGroupAddInitiators", storageURI, exportGroupURI,
-                exportMaskURI, initiatorURIs, maskingStep);
+                exportMaskURI, new ArrayList<URI>(volumeURIs), initiatorURIs, maskingStep);
 
         maskingStep = workflow.createStep(EXPORT_GROUP_MASKING_TASK,
                 String.format("Adding initiators to mask %s (%s)",

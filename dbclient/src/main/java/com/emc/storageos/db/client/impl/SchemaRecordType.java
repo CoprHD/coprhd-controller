@@ -45,7 +45,7 @@ public class SchemaRecordType {
         return cf;
     }
 
-    public void serialize(RowMutatorDS mutator, SchemaRecord record) throws ConnectionException {
+    public void serialize(RowMutator mutator, SchemaRecord record) throws ConnectionException {
         mutator.insertSchemaRecord(cf.getName(), record.getVersion(), SCHEMA_COLUMN_NAME, record.getSchema());
         mutator.execute();
     }

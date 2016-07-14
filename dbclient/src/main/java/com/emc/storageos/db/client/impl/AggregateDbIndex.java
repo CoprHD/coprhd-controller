@@ -6,8 +6,6 @@ package com.emc.storageos.db.client.impl;
 
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.NamedURI;
-import com.netflix.astyanax.ColumnListMutation;
-import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnFamily;
 import org.apache.commons.lang3.StringUtils;
 import java.util.*;
@@ -52,7 +50,7 @@ public class AggregateDbIndex extends DbIndex {
 
     @Override
     boolean addColumn(String recordKey, CompositeColumnName column, Object value,
-            String className, RowMutatorDS mutator, Integer ttl, DataObject obj) {
+            String className, RowMutator mutator, Integer ttl, DataObject obj) {
 
         IndexColumnName indexEntry = new IndexColumnName(fieldName, recordKey, (UUID) null);
 
@@ -77,7 +75,7 @@ public class AggregateDbIndex extends DbIndex {
 
     @Override
     boolean removeColumn(String recordKey, CompositeColumnName column, String className,
-                         RowMutatorDS mutator, Map<String, List<CompositeColumnName>> fieldColumnMap) {
+                         RowMutator mutator, Map<String, List<CompositeColumnName>> fieldColumnMap) {
 
         IndexColumnName indexField = new IndexColumnName(fieldName, recordKey, column.getTimeUUID());
 
@@ -102,7 +100,7 @@ public class AggregateDbIndex extends DbIndex {
 
     @Override
     boolean removeColumn(String recordKey, CompositeColumnName column, String className,
-                         RowMutatorDS mutator, Map<String, List<CompositeColumnName>> fieldColumnMap,
+                         RowMutator mutator, Map<String, List<CompositeColumnName>> fieldColumnMap,
                          DataObject obj) {
 
         IndexColumnName indexField = new IndexColumnName(fieldName, recordKey, (UUID) null);

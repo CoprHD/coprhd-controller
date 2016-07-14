@@ -32,11 +32,8 @@ import java.util.UUID;
 
 import static com.datastax.driver.core.querybuilder.QueryBuilder.*;
 
-/**
- * Will rename to RowMutator same as previous after the Astyanax is removed.
- */
-public class RowMutatorDS {
-    private static final Logger log = LoggerFactory.getLogger(RowMutatorDS.class);
+public class RowMutator {
+    private static final Logger log = LoggerFactory.getLogger(RowMutator.class);
 
     private DbClientContext context;
     private BatchStatement atomicBatch;
@@ -50,7 +47,7 @@ public class RowMutatorDS {
     private static final String insertTimeSeriesFormat = "INSERT INTO \"%s\" (key, column1, value) VALUES(?, ?, ?) USING TTL ?";
     private static final String insertSchemaRecordFormat = "INSERT INTO \"%s\" (key, column1, value) VALUES(?, ?, ?)";
 
-    public RowMutatorDS(DbClientContext context) {
+    public RowMutator(DbClientContext context) {
         this.context = context;
         this.atomicBatch = new BatchStatement();
         this.timeUUID = UUIDs.timeBased();

@@ -50,7 +50,6 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Ttl;
 import com.emc.storageos.db.client.model.AggregatedIndex;
 import com.emc.storageos.db.exceptions.DatabaseException;
-import com.netflix.astyanax.ColumnListMutation;
 import com.netflix.astyanax.model.ByteBufferRange;
 import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnFamily;
@@ -357,7 +356,7 @@ public class ColumnField {
      * @param mutator row mutator that holds remove queries
      * @param fieldColumnMap column map for the record. it might need to remove indexes for dependent fields
      */
-    public boolean removeColumn(String recordKey, CompositeColumnName column, RowMutatorDS mutator,
+    public boolean removeColumn(String recordKey, CompositeColumnName column, RowMutator mutator,
             Map<String, List<CompositeColumnName>> fieldColumnMap) {
         // remove record
         mutator.deleteRecordColumn(_parentType.getCF().getName(), recordKey, column);
@@ -370,7 +369,7 @@ public class ColumnField {
         return _index.removeColumn(recordKey, column, _parentType.getDataObjectClass().getSimpleName(), mutator, fieldColumnMap);
     }
 
-    private void addDeletionMark(String tableName, String recordKey, CompositeColumnName colName, RowMutatorDS mutator) {
+    private void addDeletionMark(String tableName, String recordKey, CompositeColumnName colName, RowMutator mutator) {
         addColumn(tableName, recordKey, colName, null, mutator);
     }
 
@@ -378,11 +377,11 @@ public class ColumnField {
         return !column.getValue().hasRemaining();
     }
 
-    private boolean removeColumn(String recordKey, CompositeColumnName column, RowMutatorDS mutator) {
+    private boolean removeColumn(String recordKey, CompositeColumnName column, RowMutator mutator) {
         return removeColumn(recordKey, column, mutator, null);
     }
 
-    public boolean removeIndex(String recordKey, CompositeColumnName column, RowMutatorDS mutator,
+    public boolean removeIndex(String recordKey, CompositeColumnName column, RowMutator mutator,
             Map<String, List<CompositeColumnName>> fieldColumnMap,
             DataObject obj) {
 
@@ -390,7 +389,7 @@ public class ColumnField {
         return _index.removeColumn(recordKey, column, _parentType.getDataObjectClass().getSimpleName(), mutator, fieldColumnMap, obj);
     }
 
-    public boolean removeIndex(String recordKey, CompositeColumnName column, RowMutatorDS mutator,
+    public boolean removeIndex(String recordKey, CompositeColumnName column, RowMutator mutator,
             Map<String, List<CompositeColumnName>> fieldColumnMap) {
 
         // remove index
@@ -398,7 +397,7 @@ public class ColumnField {
     }
 
     private boolean addColumn(String tableName, String recordKey, CompositeColumnName column, Object val,
-            RowMutatorDS mutator, DataObject obj) {
+            RowMutator mutator, DataObject obj) {
         if (_encrypt && _parentType.getEncryptionProvider() != null) {
             val = _parentType.getEncryptionProvider().encrypt((String) val);
         }
@@ -417,7 +416,7 @@ public class ColumnField {
     }
 
     private boolean addColumn(String tableName, String recordKey, CompositeColumnName column, Object val,
-            RowMutatorDS mutator) {
+            RowMutator mutator) {
         return addColumn(tableName, recordKey, column, val, mutator, null);
     }
 
@@ -430,7 +429,7 @@ public class ColumnField {
      * @return boolean
      * @throws DatabaseException
      */
-    public boolean serialize(String tableName, DataObject obj, RowMutatorDS mutator) {
+    public boolean serialize(String tableName, DataObject obj, RowMutator mutator) {
         try {
             String id = obj.getId().toString();
 
@@ -578,7 +577,7 @@ public class ColumnField {
      * @param mutator row mutator with timestamp
      * @return
      */
-    private CompositeColumnName getColumnName(String two, String three, RowMutatorDS mutator) {
+    private CompositeColumnName getColumnName(String two, String three, RowMutator mutator) {
         switch (_colType) {
             case Id: {
                 return compositeName;
@@ -638,7 +637,7 @@ public class ColumnField {
      * @param mutator
      * @return
      */
-    private CompositeColumnName getColumnName(String two, RowMutatorDS mutator) {
+    private CompositeColumnName getColumnName(String two, RowMutator mutator) {
         return getColumnName(two, null, mutator);
     }
 

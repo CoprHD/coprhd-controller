@@ -12,7 +12,7 @@ import java.util.Map;
 import java.util.Properties;
 
 import com.emc.storageos.db.client.impl.DbClientContext;
-import com.emc.storageos.db.client.impl.RowMutatorDS;
+import com.emc.storageos.db.client.impl.RowMutator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,7 +31,6 @@ import com.emc.storageos.db.client.model.SchemaRecord;
 import com.emc.storageos.db.client.util.KeyspaceUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.netflix.astyanax.Keyspace;
-import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.connectionpool.OperationResult;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.ddl.SchemaChangeResult;
@@ -75,7 +74,7 @@ public class InternalDbClient extends DbClientImpl {
             Map<String, List<CompositeColumnName>> removeList = queryRowsWithAColumn(context, batch, doType.getCF().getName(), columnField);
             boolean retryFailedWriteWithLocalQuorum = shouldRetryFailedWriteWithLocalQuorum(clazz);
             //todo retry
-            RowMutatorDS mutator = new RowMutatorDS(context);
+            RowMutator mutator = new RowMutator(context);
             _indexCleaner.removeOldIndex(mutator, doType, removeList, indexCf);
             batch = getNextBatch(recIt);
         }
@@ -122,7 +121,7 @@ public class InternalDbClient extends DbClientImpl {
 
     public void persistSchemaRecord(SchemaRecord record) throws DatabaseException {
         try {
-            RowMutatorDS mutator = new RowMutatorDS(getLocalContext());
+            RowMutator mutator = new RowMutator(getLocalContext());
             SchemaRecordType type = TypeMap.getSchemaRecordType();
             type.serialize(mutator, record);
         } catch (ConnectionException e) {
@@ -247,7 +246,7 @@ public class InternalDbClient extends DbClientImpl {
                     // also we shouldn't overwrite the creation time
                     boolean retryFailedWriteWithLocalQuorum = shouldRetryFailedWriteWithLocalQuorum(clazz);
                     //todo retry
-                    RowMutatorDS mutator = new RowMutatorDS(geoContext);
+                    RowMutator mutator = new RowMutator(geoContext);
                     doType.serialize(mutator, obj);
                     mutator.execute();
                 } catch (final InstantiationException e) {
@@ -333,7 +332,7 @@ public class InternalDbClient extends DbClientImpl {
 
                     if (objects.size() == DEFAULT_PAGE_SIZE) {
                         boolean retryFailedWriteWithLocalQuorum = shouldRetryFailedWriteWithLocalQuorum(clazz);
-                        RowMutatorDS mutator = new RowMutatorDS(context);
+                        RowMutator mutator = new RowMutator(context);
                         _indexCleaner.removeColumnAndIndex(mutator, doType, removedList);
                         updateObject(objects);
                         objects.clear();
@@ -360,7 +359,7 @@ public class InternalDbClient extends DbClientImpl {
 
             if (!objects.isEmpty()) {
                 boolean retryFailedWriteWithLocalQuorum = shouldRetryFailedWriteWithLocalQuorum(clazz);
-                RowMutatorDS mutator = new RowMutatorDS(context);
+                RowMutator mutator = new RowMutator(context);
                 _indexCleaner.removeColumnAndIndex(mutator, doType, removedList);
                 updateObject(objects);
             }

@@ -27,7 +27,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
 import com.datastax.driver.core.ConsistencyLevel;
-import com.datastax.driver.core.utils.UUIDs;
 import org.apache.cassandra.serializers.BooleanSerializer;
 import org.apache.cassandra.utils.UUIDGen;
 import org.apache.commons.lang.StringUtils;
@@ -89,18 +88,13 @@ import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.google.common.base.Joiner;
 import com.google.common.base.Objects;
-import com.netflix.astyanax.ColumnListMutation;
-import com.netflix.astyanax.ColumnMutation;
 import com.netflix.astyanax.Keyspace;
-import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.connectionpool.OperationResult;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
-import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.model.Row;
 import com.netflix.astyanax.model.Rows;
 import com.netflix.astyanax.util.TimeUUIDUtils;
-import org.springframework.util.CollectionUtils;
 
 /**
  * Default database client implementation
@@ -472,7 +466,7 @@ public class DbClientImpl implements DbClient {
         if (!cleanList.isEmpty()) {
             boolean retryFailedWriteWithLocalQuorum = shouldRetryFailedWriteWithLocalQuorum(clazz);
             //todo retryFailedWriteWithLocalQuorum
-            RowMutatorDS mutator = new RowMutatorDS(context);
+            RowMutator mutator = new RowMutator(context);
             SoftReference<IndexCleanupList> indexCleanUpRef = new SoftReference<IndexCleanupList>(cleanList);
             _indexCleaner.cleanIndexAsync(mutator, doType, indexCleanUpRef);
         }
@@ -1116,7 +1110,7 @@ public class DbClientImpl implements DbClient {
     protected <T extends DataObject> List<URI> insertNewColumns(DbClientContext context, Collection<T> dataobjects) {
         List<URI> objectsToCleanup = new ArrayList<>();
         // todo retryFailedWriteWithLocalQuorum
-        RowMutatorDS mutator = new RowMutatorDS(context);
+        RowMutator mutator = new RowMutator(context);
         for (T object : dataobjects) {
             checkGeoVersionForMutation(object);
             DataObjectType doType = TypeMap.getDoType(object.getClass());
@@ -1161,7 +1155,7 @@ public class DbClientImpl implements DbClient {
         if (!cleanList.isEmpty()) {
             boolean retryFailedWriteWithLocalQuorum = shouldRetryFailedWriteWithLocalQuorum(clazz);
             //todo retry
-            RowMutatorDS cleanupMutator = new RowMutatorDS(getDbClientContext(clazz));
+            RowMutator cleanupMutator = new RowMutator(getDbClientContext(clazz));
             SoftReference<IndexCleanupList> indexCleanUpRef = new SoftReference<IndexCleanupList>(cleanList);
             _indexCleaner.cleanIndex(cleanupMutator, doType, indexCleanUpRef);
         }
@@ -1337,7 +1331,7 @@ public class DbClientImpl implements DbClient {
         if (!removedList.isEmpty()) {
             boolean retryFailedWriteWithLocalQuorum = shouldRetryFailedWriteWithLocalQuorum(clazz);
             //todo retry
-            RowMutatorDS mutator = new RowMutatorDS(context);
+            RowMutator mutator = new RowMutator(context);
             _indexCleaner.removeColumnAndIndex(mutator, doType, removedList);
         }
     }
@@ -1346,7 +1340,7 @@ public class DbClientImpl implements DbClient {
     public <T extends TimeSeriesSerializer.DataPoint> String insertTimeSeries(
             Class<? extends TimeSeries> tsType, T... data) {
         // time series are always in the local keyspace
-        RowMutatorDS mutator = new RowMutatorDS(getLocalContext());
+        RowMutator mutator = new RowMutator(getLocalContext());
         // todo check batch.lockCurrentTimestamp();
         // quorum is not required since there should be no duplicates
         // for reads, clients should expect read-after-write is
@@ -1373,7 +1367,7 @@ public class DbClientImpl implements DbClient {
         String rowId = type.getRowId(time);
         UUID timeUUID = UUIDGen.getTimeUUID(time.getMillis());
         // time series are always in the local keyspace
-        RowMutatorDS mutator = new RowMutatorDS(getLocalContext());
+        RowMutator mutator = new RowMutator(getLocalContext());
 
         // quorum is not required since there should be no duplicates
         // for reads, clients should expect read-after-write is
@@ -1782,7 +1776,7 @@ public class DbClientImpl implements DbClient {
         return VdcUtil.VdcVersionComparator.compare(_geoVersion, expectVersion) >= 0;
     }
 
-    private void serializeTasks(DataObject dataObject, RowMutatorDS mutator, List<URI> objectsToCleanup) {
+    private void serializeTasks(DataObject dataObject, RowMutator mutator, List<URI> objectsToCleanup) {
         OpStatusMap statusMap = dataObject.getOpStatus();
         if (statusMap == null || statusMap.getChangedKeySet() == null || statusMap.getChangedKeySet().isEmpty()) {
             return;

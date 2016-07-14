@@ -157,12 +157,12 @@ public class HP3PARIngestHelper {
 
 					if (objVolMember.getCopyType() == copyType.VIRTUAL_COPY.getValue()) {
 						_log.info("objVolMember.getBaseId() is {}", objVolMember.getBaseId());
-						ancestorId = vvolAncestryMap.get(objVolMember.getBaseId()).get(0);
+						ancestorName = vvolAncestryMap.get(objVolMember.getId()).get(0);
 					} else if (objVolMember.getCopyType() == copyType.PHYSICAL_COPY.getValue()) {
 						_log.info("objVolMember.getBaseId() is {}", objVolMember.getPhysParentId());
-						ancestorId = vvolAncestryMap.get(objVolMember.getPhysParentId()).get(0);
+						ancestorName = vvolAncestryMap.get(objVolMember.getId()).get(0);
 					}
-					ancestorName = vvolNamesMap.get(ancestorId);
+					//ancestorName = vvolNamesMap.get(ancestorId);
 					if (vvolAssociations.containsKey(ancestorName)) {
 						_log.info("IN THE IF COND ADDING TO THE LIST OF CHILDREN {}", objVolMember.getName());
 						ArrayList<String> listOfChildren = (ArrayList<String>) vvolAssociations.get(ancestorName);
@@ -245,25 +245,15 @@ public class HP3PARIngestHelper {
 		try {
 			Map<String, List<String>> vvolAssociations = registry.getDriverAttributesForKey(HP3PARConstants.DRIVER_NAME,
 					volume.getStorageSystemId() + "____VVOL_ASSOCIATIONS");
-			;
-
+			
 			_log.info("vvolAssociations is {}", vvolAssociations.toString());
 
 			HP3PARApi hp3parApi = hp3parUtil.getHP3PARDeviceFromNativeId(volume.getStorageSystemId(), registry);
-			// VolumesCommandResult snapsResult =
-			// hp3parApi.getSnapshotsOfVolume(volume.getNativeId());
 
 			ArrayList<String> listOfChildVols = null;
-
-			if (vvolAssociations.containsKey(volume.getStorageSystemId())) {
-				listOfChildVols = (ArrayList<String>) vvolAssociations.get(volume.getNativeId());
-			} else {
-				return snapshots;
-			}
-
+			listOfChildVols = (ArrayList<String>) vvolAssociations.get(volume.getNativeId());
+			
 			_log.info("listOfChildVols.size()  is {}", listOfChildVols.size());
-
-			// for (int i = 0; i < snapsResult.getTotal(); i++) {
 			for (int i = 0; i < listOfChildVols.size(); i++) {
 				// VolumeMember is the data structure used for representation of
 				// the HP3PAR virtual volume
@@ -273,24 +263,25 @@ public class HP3PARIngestHelper {
 				VolumeSnapshot driverSnapshot = new VolumeSnapshot();
 
 				VolumeDetailsCommandResult resultSnap = hp3parApi.getVolumeDetails(childName);
-
-				driverSnapshot.setParentId(volume.getNativeId());
-				driverSnapshot.setNativeId(resultSnap.getName());
-				driverSnapshot.setDeviceLabel(resultSnap.getName());
-				driverSnapshot.setStorageSystemId(volume.getStorageSystemId());
-				driverSnapshot.setAccessStatus(StorageObject.AccessStatus.READ_ONLY);
-
-				if (volume.getConsistencyGroup() != null) {
-					driverSnapshot.setConsistencyGroup(volume.getConsistencyGroup());
+				if (resultSnap.getCopyType() == copyType.VIRTUAL_COPY.getValue()) {
+					driverSnapshot.setParentId(volume.getNativeId());
+					driverSnapshot.setNativeId(resultSnap.getName());
+					driverSnapshot.setDeviceLabel(resultSnap.getName());
+					driverSnapshot.setStorageSystemId(volume.getStorageSystemId());
+					driverSnapshot.setAccessStatus(StorageObject.AccessStatus.READ_ONLY);
+	
+					if (volume.getConsistencyGroup() != null) {
+						driverSnapshot.setConsistencyGroup(volume.getConsistencyGroup());
+					}
+	
+					driverSnapshot.setWwn(resultSnap.getWwn());
+	
+					// TODO: We need to have more clarity on provisioned and
+					// allocated sizes
+					driverSnapshot.setAllocatedCapacity(resultSnap.getSizeMiB() * HP3PARConstants.MEGA_BYTE);
+					driverSnapshot.setProvisionedCapacity(resultSnap.getSizeMiB() * HP3PARConstants.MEGA_BYTE);
+					snapshots.add(driverSnapshot);
 				}
-
-				driverSnapshot.setWwn(resultSnap.getWwn());
-
-				// TODO: We need to have more clarity on provisioned and
-				// allocated sizes
-				driverSnapshot.setAllocatedCapacity(resultSnap.getSizeMiB() * HP3PARConstants.MEGA_BYTE);
-				driverSnapshot.setProvisionedCapacity(resultSnap.getSizeMiB() * HP3PARConstants.MEGA_BYTE);
-				snapshots.add(driverSnapshot);
 			}
 			_log.info("3PARDriver: getVolumeSnapshots Leaving");
 			return snapshots;
@@ -327,12 +318,8 @@ public class HP3PARIngestHelper {
 			HashMap<String, ArrayList<VolumeMember>> volMappings = null;
 			ArrayList<String> listOfChildVols = null;
 
-			if (vvolAssociations.containsKey(volume.getStorageSystemId())) {
-				listOfChildVols = (ArrayList<String>) vvolAssociations.get(volume.getNativeId());
-			} else {
-				return clones;
-			}
-
+			listOfChildVols = (ArrayList<String>) vvolAssociations.get(volume.getNativeId());
+			
 			_log.info("listOfChildVols.size()  is {}", listOfChildVols.size());
 
 			for (int i = 0; i < listOfChildVols.size(); i++) {

@@ -300,6 +300,7 @@ public class CustomizedDistributedRowLock<K> {
      * Read all the lock columns. Will also ready data columns if withDataColumns(true) was called
      * 
      * @param readDataColumns
+     * @return
      * @throws Exception
      */
     private Map<String, Long> readLockColumns(boolean readDataColumns) throws Exception {
@@ -313,14 +314,14 @@ public class CustomizedDistributedRowLock<K> {
 
         // Read all the columns
         if (readDataColumns) {
-            columns = new HashMap<String, ByteBuffer>();
+            columns = new HashMap<>();
             String queryString = String.format("select * from \"%s\" where key=?", columnFamily.getName());
             BoundStatement statement = context.getSession().prepare(queryString).bind(key);
             statement.setConsistencyLevel(read_consistencyLevel);
             ResultSet resultSet = context.getSession().execute(statement);
 
             for (Row row : resultSet) {
-                String column1 = row.getString(1); 
+                String column1 = row.getString(1);
                 if (column1.startsWith(prefix)) {
                     result.put(column1, LongSerializer.instance.deserialize(row.getBytes(2)));
                 } else {

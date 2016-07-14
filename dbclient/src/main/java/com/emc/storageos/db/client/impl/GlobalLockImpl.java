@@ -141,9 +141,9 @@ public class GlobalLockImpl implements GlobalLockItf {
         try {
             Map<String, ByteBuffer> columns = _cpDistRowlock.acquireLockAndReadRow();
 
-            String currMode = retrieveStrignValue(columns, GlobalLock.GL_MODE_COLUMN, null);
-            String currOwner = retrieveStrignValue(columns, GlobalLock.GL_OWNER_COLUMN, null);
-            String currExpiration = retrieveStrignValue(columns, GlobalLock.GL_EXPIRATION_COLUMN, null);
+            String currMode = retrieveStringValue(columns, GlobalLock.GL_MODE_COLUMN, null);
+            String currOwner = retrieveStringValue(columns, GlobalLock.GL_OWNER_COLUMN, null);
+            String currExpiration = retrieveStringValue(columns, GlobalLock.GL_EXPIRATION_COLUMN, null);
 
             if (currMode != null && !currMode.equals(_mode.toString())) {
                 errMsg = String.format("The global lock %s has been acquired by incompatible mode %s.", _name, currMode);
@@ -230,8 +230,8 @@ public class GlobalLockImpl implements GlobalLockItf {
         try {
             Map<String, ByteBuffer> columns = _cpDistRowlock.acquireLockAndReadRow();
 
-            String currMode = retrieveStrignValue(columns, GlobalLock.GL_MODE_COLUMN, null);
-            String currOwner = retrieveStrignValue(columns, GlobalLock.GL_OWNER_COLUMN, null);
+            String currMode = retrieveStringValue(columns, GlobalLock.GL_MODE_COLUMN, null);
+            String currOwner = retrieveStringValue(columns, GlobalLock.GL_OWNER_COLUMN, null);
 
             if (currMode == null || currOwner == null) {
                 // the lock is not active; return true
@@ -326,8 +326,8 @@ public class GlobalLockImpl implements GlobalLockItf {
         try {
             Map<String, ByteBuffer> columns = _cpDistRowlock.acquireLockAndReadRow();
 
-            currOwner = retrieveStrignValue(columns, GlobalLock.GL_OWNER_COLUMN, null);
-            String currExpiration = retrieveStrignValue(columns, GlobalLock.GL_EXPIRATION_COLUMN, null);
+            currOwner = retrieveStringValue(columns, GlobalLock.GL_OWNER_COLUMN, null);
+            String currExpiration = retrieveStringValue(columns, GlobalLock.GL_EXPIRATION_COLUMN, null);
 
             long curTimeMicros = System.currentTimeMillis();
             if (currExpiration != null) {
@@ -437,7 +437,7 @@ public class GlobalLockImpl implements GlobalLockItf {
         return errMsg;
     }
     
-    private String retrieveStrignValue(Map<String, ByteBuffer> map, String key, String defaultValue) {
+    public static String retrieveStringValue(Map<String, ByteBuffer> map, String key, String defaultValue) {
         if (!map.containsKey(key))
             return defaultValue;
         

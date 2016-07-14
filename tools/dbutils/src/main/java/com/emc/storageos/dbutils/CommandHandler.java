@@ -5,6 +5,7 @@
 
 package com.emc.storageos.dbutils;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
@@ -12,10 +13,18 @@ import java.util.List;
 import java.util.Map;
 import java.text.SimpleDateFormat;
 
+import com.datastax.driver.core.BoundStatement;
+import com.datastax.driver.core.ConsistencyLevel;
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.Row;
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.db.client.impl.DbCheckerFileWriter;
+import com.emc.storageos.db.client.impl.DbClientContext;
+import com.emc.storageos.db.client.impl.GlobalLockImpl;
+import com.emc.storageos.db.client.impl.RowMutator;
 import com.emc.storageos.management.jmx.recovery.DbManagerOps;
 
+import com.netflix.astyanax.model.ColumnFamily;
 import org.apache.commons.lang3.StringUtils;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
@@ -26,9 +35,6 @@ import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.model.GlobalLock;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 import com.google.common.base.Joiner;
-import com.netflix.astyanax.Keyspace;
-import com.netflix.astyanax.MutationBatch;
-import com.netflix.astyanax.model.*;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -429,7 +435,7 @@ public abstract class CommandHandler {
         String _owner = null;
         long _timeout = 0;
 
-        Keyspace _keyspace = null;                   // geo keyspace
+        DbClientContext _context = null;             // geo context
         ColumnFamily<String, String> _cf = null;     // global lock CF
 
         public GlobalLockHandler(String[] args) {
@@ -464,41 +470,39 @@ public abstract class CommandHandler {
 
         @Override
         public void process(DBClient _client) throws Exception {
-            _keyspace = _client.getGeoDbContext().getKeyspace();
+            _context = _client.getGeoDbContext();
             _cf = TypeMap.getGlobalLockType().getCf();
-            MutationBatch m = _keyspace.prepareMutationBatch();
+            RowMutator mutator = new RowMutator(_context);
 
             if (cmd.equalsIgnoreCase(CMD_CREATE)) {
                 try {
-                    m.withRow(_cf, _name).putColumn(GlobalLock.GL_MODE_COLUMN, _mode.toString());
-                    m.withRow(_cf, _name).putColumn(GlobalLock.GL_OWNER_COLUMN, _owner);
+                    mutator.insertGlobalLockRecord(_cf.getName(), _name, GlobalLock.GL_MODE_COLUMN, _mode.toString(), null);
+                    mutator.insertGlobalLockRecord(_cf.getName(), _name, GlobalLock.GL_OWNER_COLUMN, _owner, null);
                     long curTimeMicros = System.currentTimeMillis();
                     long exprirationTime = (_timeout == 0) ? 0 : curTimeMicros + _timeout;
-                    m.withRow(_cf, _name).putColumn(GlobalLock.GL_EXPIRATION_COLUMN, String.valueOf(exprirationTime));
-
-                    m.setConsistencyLevel(ConsistencyLevel.CL_EACH_QUORUM);
-                    m.execute();
+                    mutator.insertGlobalLockRecord(_cf.getName(), _name, GlobalLock.GL_EXPIRATION_COLUMN, String.valueOf(exprirationTime), null);
+                    
+                    mutator.setWriteCL(ConsistencyLevel.EACH_QUORUM);
+                    mutator.execute();
                 } catch (Exception e) {
                     System.out.println(String.format("Failed to create global lock %s due to unexpected exception.", _name));
                     throw e;
                 }
                 System.out.println(String.format("Succeed to create global lock %s.", _name));
             } else if (cmd.equalsIgnoreCase(CMD_READ)) {
-                ColumnMap<String> columns = new OrderedColumnMap<String>();
+                Map<String, ByteBuffer> columns = new HashMap<>();
 
-                ColumnList<String> colList = _keyspace
-                        .prepareQuery(_cf)
-                        .setConsistencyLevel(ConsistencyLevel.CL_LOCAL_QUORUM)
-                        .getKey(_name)
-                        .execute()
-                        .getResult();
-                for (Column<String> c : colList) {
-                    columns.add(c);
+                String queryString = String.format("select * from \"%s\" where key=?", _cf.getName());
+                BoundStatement statement = _context.getSession().prepare(queryString).bind(_name);
+                statement.setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM);
+                ResultSet resultSet = _context.getSession().execute(statement);
+                for (Row row : resultSet) {
+                    columns.put(row.getString(1), row.getBytes(2));
                 }
-                _mode = columns.getString(GlobalLock.GL_MODE_COLUMN, null);
-                _owner = columns.getString(GlobalLock.GL_OWNER_COLUMN, null);
+                _mode = GlobalLockImpl.retrieveStringValue(columns, GlobalLock.GL_MODE_COLUMN, null);
+                _owner = GlobalLockImpl.retrieveStringValue(columns, GlobalLock.GL_OWNER_COLUMN, null);
 
-                String currExpiration = columns.getString(GlobalLock.GL_EXPIRATION_COLUMN, null);
+                String currExpiration = GlobalLockImpl.retrieveStringValue(columns, GlobalLock.GL_EXPIRATION_COLUMN, null);
                 long curTimeMicros = System.currentTimeMillis();
                 String expiredInfo = "";
                 if (currExpiration != null) {
@@ -520,11 +524,11 @@ public abstract class CommandHandler {
                 }
             } else if (cmd.equalsIgnoreCase(CMD_DELETE)) {
                 try {
-                    m.withRow(_cf, _name).deleteColumn(GlobalLock.GL_MODE_COLUMN);
-                    m.withRow(_cf, _name).deleteColumn(GlobalLock.GL_OWNER_COLUMN);
-                    m.withRow(_cf, _name).deleteColumn(GlobalLock.GL_EXPIRATION_COLUMN);
-                    m.setConsistencyLevel(ConsistencyLevel.CL_EACH_QUORUM);
-                    m.execute();
+                    mutator.deleteGlobalLockRecord(_cf.getName(), _name, GlobalLock.GL_MODE_COLUMN);
+                    mutator.deleteGlobalLockRecord(_cf.getName(), _name, GlobalLock.GL_OWNER_COLUMN);
+                    mutator.deleteGlobalLockRecord(_cf.getName(), _name, GlobalLock.GL_EXPIRATION_COLUMN);
+                    mutator.setWriteCL(ConsistencyLevel.EACH_QUORUM);
+                    mutator.execute();
                 } catch (Exception e) {
                     System.out.println(String.format("Failed to remove global lock %s due to unexpected exception.", _name));
                     throw e;

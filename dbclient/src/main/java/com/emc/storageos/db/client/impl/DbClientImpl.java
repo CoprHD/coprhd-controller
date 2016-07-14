@@ -1133,7 +1133,7 @@ public class DbClientImpl implements DbClient {
         IndexCleanupList cleanList = new IndexCleanupList();
         for (String rowKey : rows.keySet()) {
             List<CompositeColumnName> columns = rows.get(rowKey);
-            if (columns.size() == 0) {
+            if (columns.isEmpty()) {
                 continue;
             }
             doType.deserialize(clazz, rowKey, columns, cleanList, new LazyLoader(this));

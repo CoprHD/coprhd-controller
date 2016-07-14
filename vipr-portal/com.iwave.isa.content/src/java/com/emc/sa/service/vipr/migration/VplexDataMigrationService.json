@@ -30,7 +30,8 @@
     
     displayJournals: {
       type: "assetType.vipr.displayJournals",
-      required: "false",      
+      initialValue: "no",
+      required: "false",   
       lockable: true
     }
   }

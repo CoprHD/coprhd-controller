@@ -465,10 +465,10 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     }
 
     @Asset("migrationTargetVirtualPool")
-    @AssetDependencies({ "project", "blockVirtualPool", "vplexMigrationChangeOperation" })
+    @AssetDependencies({ "project", "blockVirtualPool", "vplexMigrationChangeOperation", "displayJournals" })
     public List<AssetOption> getMigrationTargetVirtualPools(AssetOptionsContext ctx, URI projectId, URI virtualPoolId,
-            String vpoolChangeOperation) {
-        return getTargetVirtualPoolsForVpool(ctx, projectId, virtualPoolId, vpoolChangeOperation, null);
+            String vpoolChangeOperation, String displayJournals) {
+        return getTargetVirtualPoolsForVpool(ctx, projectId, virtualPoolId, vpoolChangeOperation, null, displayJournals);
     }
 
     @Asset("mobilityMigrationTargetVirtualPool")
@@ -560,11 +560,19 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         info("No filtered volumes selected, returning empty list.");
         return Collections.emptyList();
     }
-
+    
     @Asset("targetVirtualPool")
     @AssetDependencies({ "project", "blockVirtualPool", "virtualPoolChangeOperation", "virtualPoolChangeVolumeWithSourceFilter" })
     public List<AssetOption> getTargetVirtualPoolsForVpool(AssetOptionsContext ctx, URI projectId, URI virtualPoolId,
-            String vpoolChangeOperation, String filteredVolumes) {        
+            String vpoolChangeOperation, String filteredVolumes) {                
+        return getTargetVirtualPoolsForVpool(ctx, projectId, virtualPoolId, vpoolChangeOperation, filteredVolumes, null);
+    }
+    
+    @Asset("targetVirtualPool")
+    @AssetDependencies({ "project", "blockVirtualPool", "virtualPoolChangeOperation", 
+                            "virtualPoolChangeVolumeWithSourceFilter", "displayJournals" })
+    public List<AssetOption> getTargetVirtualPoolsForVpool(AssetOptionsContext ctx, URI projectId, URI virtualPoolId,
+            String vpoolChangeOperation, String filteredVolumes, String displayJournals) {       
         List<URI> volumeIds = Lists.newArrayList();
         if (filteredVolumes != null && !filteredVolumes.isEmpty()) {
             // Best case we are passed in the volumes selected by the user
@@ -578,7 +586,12 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         } else {
             // Worst case we need to get the volumes from the API.
             info("Loading all volumes for vpool: %s", virtualPoolId.toString());
-            List<VolumeRestRep> volumes = listSourceVolumes(api(ctx), projectId, new VirtualPoolFilter(virtualPoolId));
+            List<VolumeRestRep> volumes = null;
+            if (YES_VALUE.equals(displayJournals)) {
+                volumes = listJournalVolumes(api(ctx), projectId, new VirtualPoolFilter(virtualPoolId));
+            } else {
+                volumes = listSourceVolumes(api(ctx), projectId, new VirtualPoolFilter(virtualPoolId));
+            }
             for (VolumeRestRep volume : volumes) {
                 volumeIds.add(volume.getId());
             }

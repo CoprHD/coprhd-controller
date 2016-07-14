@@ -1320,7 +1320,7 @@ public class RPHelper {
                 // If the personality type matches any of the passed in personality
                 // types, we can return true.
                 for (PersonalityTypes type : types) {
-                    if (vplexVirtualVolume.getPersonality().equals(type.name())) {
+                    if (vplexVirtualVolume.checkPersonality(type)) {
                         return true;
                     }
                 }

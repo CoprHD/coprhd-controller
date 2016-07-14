@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import com.emc.storageos.util.ExportUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -589,19 +590,9 @@ public class MaskingWorkflowEntryPoints implements Controller {
             List<Initiator> initiators = _dbClient
                     .queryObject(Initiator.class, initiatorURIs);
 
-            List<URI> targetPorts = _blockScheduler.getRemoveInitiatorStoragePorts(exportMask,
-                    initiators);
+            List<URI> targetPorts = ExportUtils.getRemoveInitiatorStoragePorts(exportMask, initiators, _dbClient);
             getDevice(storage).doExportRemoveInitiators(storage, exportMask,
                     volumeURIs, initiators, removeTargets ? targetPorts : null, taskCompleter);
-
-            // TODO - move this to the completer
-            if (targetPorts != null && !targetPorts.isEmpty()) {
-                for (URI targetPort : targetPorts) {
-                    exportMask.removeTarget(targetPort);
-                }
-                _dbClient.updateObject(exportMask);
-            }
-
             _log.info(String.format("%s end", call));
         } catch (final InternalException e) {
             _log.info(call + " Encountered an exception", e);

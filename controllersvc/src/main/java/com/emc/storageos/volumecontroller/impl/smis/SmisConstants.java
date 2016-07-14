@@ -96,6 +96,7 @@ public interface SmisConstants {
     static final int COPY_METHODOLOGY_FULL_COPY = 3;
     static final long REPLICATION_DATA_SYNC_TYPE = 8;
     static final long DEVICES_SYNC_TYPE = 3;
+    static final long MASKING_SYNC_TYPE = 7;
 
     static final String SE_REPLICATIONSETTING_DATA = "SE_ReplicationSettingData";
     static final String CP_REPLICATIONSETTING_DATA = "ReplicationSettingData";

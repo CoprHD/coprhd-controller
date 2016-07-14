@@ -4,6 +4,8 @@
  */
 package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis;
 
+import static com.emc.storageos.db.client.util.CustomQueryUtility.queryActiveResourcesByAltId;
+
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Date;
@@ -17,7 +19,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import com.emc.storageos.services.util.StorageDriverManager;
 import org.apache.curator.framework.recipes.leader.LeaderSelector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,7 +39,9 @@ import com.emc.storageos.db.client.model.ProtectionSystem;
 import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StorageSystem.Discovery_Namespaces;
+import com.emc.storageos.db.client.model.StorageSystemType;
 import com.emc.storageos.db.client.model.Vcenter;
+import com.emc.storageos.db.client.model.remotereplication.RemoteReplicationConfigProvider;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
@@ -46,6 +49,7 @@ import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.hds.api.HDSApiFactory;
 import com.emc.storageos.model.property.PropertyConstants;
 import com.emc.storageos.services.util.PlatformUtils;
+import com.emc.storageos.services.util.StorageDriverManager;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.ceph.CephUtils;
 import com.emc.storageos.volumecontroller.impl.cinder.CinderUtils;
@@ -494,38 +498,46 @@ public class DataCollectionJobScheduler {
 
         _logger.info("Started scheduling discovery jobs for remote replication configuration.");
         ArrayList<DataCollectionJob> jobs = new ArrayList<>();
-        List<URI> driverManagedStorageSystemTypeUris = new ArrayList<>();
-        Set<String> driverManagedStorageSystemTypes = new HashSet<>();
+        Set<URI> rrConfigProviderUris = new HashSet<>();
+        Set<RemoteReplicationConfigProvider> newRrConfigProviders = new HashSet<>();
+        Set<String> rrConfigProvidersTypes = new HashSet<>();
 
-        // todo change to read "StorageSystemType" table (waiting for 3.2 merge) and all other references to array type change to storage system type
-        List<URI> storageSystemTypes = _dbClient.queryByType(StorageSystem.class, true);
+        List<URI> storageSystemTypes = _dbClient.queryByType(StorageSystemType.class, true);
         for (URI storageSystemTypeUri : storageSystemTypes) {
-            StorageSystem storageSystemType = _dbClient.queryObject(StorageSystem.class, storageSystemTypeUri);
-            if (driverManager.isDriverManaged(storageSystemType.getSystemType())) {
-                // todo temp waiting for merge 3.2 -> master
-                if (!driverManagedStorageSystemTypes.contains(storageSystemType.getSystemType())) {
-                    driverManagedStorageSystemTypeUris.add(storageSystemTypeUri);
-                    driverManagedStorageSystemTypes.add(storageSystemType.getSystemType());
-                }
+            // Check if we already have RemoteReplicationConfigProvider for this type
+            List<RemoteReplicationConfigProvider> rrConfigProviders =
+                    queryActiveResourcesByAltId(_dbClient, RemoteReplicationConfigProvider.class, "storageSystemType", storageSystemTypeUri.toString());
+            if (rrConfigProviders.isEmpty()) {
+                // create new provider for storage system type
+                StorageSystemType storageSystemType = _dbClient.queryObject(StorageSystemType.class, storageSystemTypeUri);
+                RemoteReplicationConfigProvider newProvider = new RemoteReplicationConfigProvider();
+                newProvider.setId(URIUtil.createId(RemoteReplicationConfigProvider.class));
+                newProvider.setStorageSystemType(storageSystemType.getId().toString());
+                newProvider.setSystemType(storageSystemType.getStorageTypeName());
+                // todo check if need to set other properties. perhaps separate init() method
+                _dbClient.createObject(newProvider);
+                rrConfigProviderUris.add(newProvider.getId());
+                rrConfigProvidersTypes.add(newProvider.getSystemType());
+            } else {
+                // provider already exists
+                rrConfigProviderUris.add(rrConfigProviders.get(0).getId());
+                rrConfigProvidersTypes.add(rrConfigProviders.get(0).getSystemType());
             }
         }
-
-        _logger.info("Driver managed storage system types in database: {} .", driverManagedStorageSystemTypes);
+        _logger.info("Remote Replication config provider types in database: {} .", rrConfigProvidersTypes);
 
         String jobType = ControllerServiceImpl.RR_DISCOVERY;
-        if (!driverManagedStorageSystemTypeUris.isEmpty()) {
-            Iterator<URI> storageSystemTypeUris = driverManagedStorageSystemTypeUris.iterator();
-            while (storageSystemTypeUris.hasNext()) {
-                URI storageSystemTypeUri = storageSystemTypeUris.next();
+        if (!rrConfigProviderUris.isEmpty()) {
+            for (URI rrConfigProviderUri : rrConfigProviderUris) {
                 String taskId = UUID.randomUUID().toString();
-                DiscoverTaskCompleter completer = new DiscoverTaskCompleter(StorageSystem.class, storageSystemTypeUri, taskId, jobType);
+                DiscoverTaskCompleter completer = new DiscoverTaskCompleter(RemoteReplicationConfigProvider.class, rrConfigProviderUri, taskId, jobType);
                 DataCollectionJob job = new DataCollectionDiscoverJob(completer, DataCollectionJob.JobOrigin.SCHEDULER,
                         Discovery_Namespaces.REMOTE_REPLICATION_CONFIGURATION.toString());
                 jobs.add(job);
             }
             scheduleMultipleJobs(jobs, ControllerServiceImpl.Lock.getLock(jobType));
         } else {
-            _logger.info("No driver managed storage system types were found in database.");
+            _logger.info("No remote config providers were found in database.");
         }
     }
 
@@ -575,7 +587,6 @@ public class DataCollectionJobScheduler {
         for (DataCollectionJob job : jobs) {
             try {
                 DataCollectionTaskCompleter completer = job.getCompleter();
-                // todo: revisit after StorageSystemType table is merged --- there is no system for rr discovery jobs.
                 DiscoveredSystemObject system = (DiscoveredSystemObject)
                         _dbClient.queryObject(completer.getType(), completer.getId());
                 if (isDataCollectionJobSchedulingNeeded(system,
@@ -693,7 +704,6 @@ public class DataCollectionJobScheduler {
             return false;
         }
 
-        // todo: temp waiting for StorageSystemType table merge.
         if (ControllerServiceImpl.RR_DISCOVERY.equalsIgnoreCase(type)) {
             return true;
         }

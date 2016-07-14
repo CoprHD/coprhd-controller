@@ -295,10 +295,8 @@ class URIHelper(object):
         
     def __fillTaskMap(self):
         self.TASK_URIS_MAP["resume"] = self.URI_TASK_RESUME_ID
-
-    def __fillTaskMap(self):
         self.TASK_URIS_MAP["rollback"] = self.URI_TASK_ROLLBACK_ID
-        
+
     def __fillFileSharesMap(self):
         self.FILESHARE_URIS_MAP["tasks_list"] = self.URI_FILESHARE_TASK_LIST
         self.FILESHARE_URIS_MAP["task"] = self.URI_FILESHARE_TASK

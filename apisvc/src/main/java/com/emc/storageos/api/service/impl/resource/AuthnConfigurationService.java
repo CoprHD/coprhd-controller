@@ -40,13 +40,11 @@ import javax.ws.rs.core.Response;
 import com.emc.storageos.api.service.impl.resource.utils.OpenStackSynchronizationTask;
 import com.emc.storageos.cinder.CinderConstants;
 import com.emc.storageos.db.client.model.*;
-import com.emc.storageos.keystone.restapi.model.response.*;
 import com.emc.storageos.keystone.restapi.utils.KeystoneUtils;
 import com.emc.storageos.model.project.ProjectElement;
 import com.emc.storageos.model.project.ProjectParam;
 import com.emc.storageos.model.tenant.TenantOrgRestRep;
 import com.emc.storageos.model.tenant.TenantCreateParam;
-import com.emc.storageos.model.tenant.UserMappingAttributeParam;
 import com.emc.storageos.model.tenant.UserMappingParam;
 import com.emc.storageos.security.authorization.*;
 import com.emc.storageos.security.authorization.Role;
@@ -66,7 +64,6 @@ import com.emc.storageos.db.client.model.AuthnProvider.ProvidersType;
 import com.emc.storageos.db.client.model.AuthnProvider.SearchScope;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
-import com.emc.storageos.keystone.restapi.KeystoneApiClient;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.auth.AuthnCreateParam;
 import com.emc.storageos.model.auth.AuthnProviderBaseParam;
@@ -232,7 +229,7 @@ public class AuthnConfigurationService extends TaggedResource {
             // If the checkbox is checked, then register CoprHD.
             if(provider.getAutoRegCoprHDNImportOSProjects()){
                 _keystoneUtils.registerCoprhdInKeystone(provider.getManagerDN(), provider.getServerUrls(), provider.getManagerPassword());
-                String interval = _openStackSynchronizationTask.getSynchronizationOptionsInterval(provider);
+                String interval = _openStackSynchronizationTask.getIntervalFromTenantSyncSet(provider.getTenantsSynchronizationOptions());
                 // Set default interval time when chosen interval is lower than minimal value.
                 if (Integer.parseInt(interval) < OpenStackSynchronizationTask.MIN_INTERVAL_DELAY) {
                     provider.getTenantsSynchronizationOptions().remove(interval);
@@ -455,7 +452,7 @@ public class AuthnConfigurationService extends TaggedResource {
         int synchronizationInterval = OpenStackSynchronizationTask.DEFAULT_INTERVAL_DELAY;
         if (isAutoRegistered) {
             synchronizationInterval = Integer
-                    .parseInt(_openStackSynchronizationTask.getIntervalFromStringSet(provider.getTenantsSynchronizationOptions()));
+                    .parseInt(_openStackSynchronizationTask.getIntervalFromTenantSyncSet(provider.getTenantsSynchronizationOptions()));
         }
         // if the configured domain has tenant then we can't update
         // that domain.
@@ -469,7 +466,7 @@ public class AuthnConfigurationService extends TaggedResource {
         provider.setManagerPassword(getPassword(provider, oldPassword));
 
         int newSynchronizationInterval = Integer
-                .parseInt(_openStackSynchronizationTask.getIntervalFromStringSet(provider.getTenantsSynchronizationOptions()));
+                .parseInt(_openStackSynchronizationTask.getIntervalFromTenantSyncSet(provider.getTenantsSynchronizationOptions()));
 
         // Whenever new interval value is below minimum, then set default interval time for keystone auth provider.
         if (newSynchronizationInterval < OpenStackSynchronizationTask.MIN_INTERVAL_DELAY) {
@@ -491,7 +488,7 @@ public class AuthnConfigurationService extends TaggedResource {
         persistProfileAndNotifyChange(provider, false);
 
         int syncInterval = Integer
-                .parseInt(_openStackSynchronizationTask.getIntervalFromStringSet(provider.getTenantsSynchronizationOptions()));
+                .parseInt(_openStackSynchronizationTask.getIntervalFromTenantSyncSet(provider.getTenantsSynchronizationOptions()));
 
         if (provider.getAutoRegCoprHDNImportOSProjects() && !isAutoRegistered) {
             _keystoneUtils.registerCoprhdInKeystone(provider.getManagerDN(), provider.getServerUrls(), provider.getManagerPassword());

@@ -102,7 +102,7 @@ public class OpenStackSynchronizationTask extends ResourceService {
      */
     public void rescheduleTask(int newInterval) {
 
-        if (newInterval >= MIN_INTERVAL_DELAY && synchronizationTask != null) {
+        if (synchronizationTask != null && newInterval >= MIN_INTERVAL_DELAY) {
             synchronizationTask.cancel(false);
             synchronizationTask = _dataCollectionExecutorService
                     .scheduleAtFixedRate(new SynchronizationScheduler(), newInterval, newInterval, TimeUnit.SECONDS);
@@ -129,33 +129,20 @@ public class OpenStackSynchronizationTask extends ResourceService {
      *
      * @return OpenStack Synchronization Task interval.
      */
-    public int getTaskInterval() {
-
-        AuthnProvider keystoneProvider = getKeystoneProvider();
-        int interval = DEFAULT_INTERVAL_DELAY;
+    public int getTaskInterval(AuthnProvider keystoneProvider) {
 
         if (keystoneProvider != null && keystoneProvider.getTenantsSynchronizationOptions() != null) {
 
-            String taskInterval = getSynchronizationOptionsInterval(keystoneProvider);
+            String taskInterval = getIntervalFromTenantSyncSet(keystoneProvider.getTenantsSynchronizationOptions());
             if (taskInterval != null) {
-                interval = Integer.parseInt(taskInterval);
+                return Integer.parseInt(taskInterval);
             }
         }
 
-        return interval;
+        throw APIException.internalServerErrors.targetIsNullOrEmpty("keystone provider or tenantsSynchronizationOptions");
     }
 
-    public String getSynchronizationOptionsInterval(AuthnProvider keystoneProvider) {
-
-        if (keystoneProvider != null && keystoneProvider.getTenantsSynchronizationOptions() != null) {
-            return getIntervalFromStringSet(keystoneProvider.getTenantsSynchronizationOptions());
-        }
-
-        // Return default interval when getTenantsSynchronizationOptions() does not contain interval.
-        return null;
-    }
-
-    public String getIntervalFromStringSet(StringSet tenantsSynchronizationOptions) {
+    public String getIntervalFromTenantSyncSet(StringSet tenantsSynchronizationOptions) {
 
         for (String option : tenantsSynchronizationOptions) {
             // There is only ADDITION, DELETION and interval in this StringSet.
@@ -242,12 +229,11 @@ public class OpenStackSynchronizationTask extends ResourceService {
 
             _dbClient.updateObject(osTenant);
 
-            return osTenant;
+        } else {
+            osTenant = _keystoneUtilsService.mapToOsTenant(tenant);
+            osTenant.setId(URIUtil.createId(OSTenant.class));
+            _dbClient.createObject(osTenant);
         }
-
-        osTenant = _keystoneUtilsService.mapToOsTenant(tenant);
-        osTenant.setId(URIUtil.createId(OSTenant.class));
-        _dbClient.createObject(osTenant);
 
         return osTenant;
     }
@@ -271,16 +257,6 @@ public class OpenStackSynchronizationTask extends ResourceService {
         }
 
         return true;
-    }
-
-    /**
-     * Checks if Keystone Authentication Provider exists in CoprHD.
-     *
-     * @return True if Keystone Authentication Provider exists, false otherwise.
-     */
-    public boolean doesKeystoneProviderExist() {
-
-        return getKeystoneProvider() != null;
     }
 
     /**

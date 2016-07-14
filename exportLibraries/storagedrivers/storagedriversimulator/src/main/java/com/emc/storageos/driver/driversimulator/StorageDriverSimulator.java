@@ -15,15 +15,15 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import com.emc.storageos.storagedriver.DefaultStorageDriver;
 import org.apache.commons.lang.mutable.MutableBoolean;
 import org.apache.commons.lang.mutable.MutableInt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.storagedriver.AbstractStorageDriver;
+import com.emc.storageos.driver.driversimulator.operations.CreateVolumeCloneSimulatorOperation;
+import com.emc.storageos.driver.driversimulator.operations.DriverSimulatorOperation;
 import com.emc.storageos.storagedriver.BlockStorageDriver;
-import com.emc.storageos.storagedriver.DefaultDriverTask;
+import com.emc.storageos.storagedriver.DefaultStorageDriver;
 import com.emc.storageos.storagedriver.DriverTask;
 import com.emc.storageos.storagedriver.HostExportInfo;
 import com.emc.storageos.storagedriver.RegistrationData;
@@ -47,7 +47,7 @@ import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
 public class StorageDriverSimulator extends DefaultStorageDriver implements BlockStorageDriver {
 
     private static final Logger _log = LoggerFactory.getLogger(StorageDriverSimulator.class);
-    private static final String DRIVER_NAME = "SimulatorDriver";
+    public static final String DRIVER_NAME = "SimulatorDriver";
     private static final int NUMBER_OF_VOLUME_PAGES = 3;
     private static final int NUMBER_OF_VOLUMES_ON_PAGE = 2;
     private static final int NUMBER_OF_CLONES_FOR_VOLUME = 2;
@@ -56,6 +56,10 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
     private static final boolean SNAPS_IN_CG = true;
     private static final boolean CLONES_IN_CG = true;
     private static final boolean GENERATE_EXPORT_DATA = true;
+    private Boolean simulateAsynchronousResponses = false;
+    private Boolean simulateFailures = false;
+    private Integer maxAsynchronousLookups = 5;
+    private Map<String, DriverSimulatorOperation> taskOperationMap = new HashMap<String, DriverSimulatorOperation>();
 
     private static Integer portIndex = 0;
     private static Map<String, Integer> systemNameToPortIndexName = new HashMap<>();
@@ -91,6 +95,18 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
     }
 
     //StorageDriver implementation
+    
+    public void setSimulateAsynchronousResponses(Boolean simAsynchronous) {
+        simulateAsynchronousResponses = simAsynchronous;
+    }
+
+    public void setSimulateFailures(Boolean simFailures) {
+        simulateFailures = simFailures;
+    }
+
+    public void setMaxAsynchronousLookups(Integer maxAsyncLookups) {
+        maxAsynchronousLookups = maxAsyncLookups;
+    }
 
     @Override
     public RegistrationData getRegistrationData() {
@@ -100,7 +116,29 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
 
     @Override
     public DriverTask getTask(String taskId) {
-        return null;
+        if (!taskOperationMap.containsKey(taskId)) {
+            _log.error("Invalid task Id {}", taskId);
+            return null;
+        }
+        
+        DriverSimulatorOperation taskOperation = taskOperationMap.get(taskId);
+        if (taskOperation.getLookupCount() < maxAsynchronousLookups) {            
+            taskOperation.incrementLookupCount();
+            _log.info("This is lookup {} for task {}", taskOperation.getLookupCount(), taskId);
+        } else {
+            taskOperationMap.remove(taskId);
+            if (simulateFailures) {
+                _log.info("Simulating asynchronous failure for task {} of type {}", taskId, taskOperation.getType());
+                taskOperation.doFailure(null);
+            } else {
+                _log.info("Simulating asynchronous success for task {} of type {}", taskId, taskOperation.getType());
+                taskOperation.updateOnAsynchronousSuccess();
+                String successMsg = taskOperation.getSuccessMessage();
+                taskOperation.doSuccess(successMsg);
+            }
+        }
+        
+        return taskOperation.getDriverTask();
     }
 
     @Override
@@ -467,24 +505,17 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
 
     @Override
     public DriverTask createVolumeClone(List<VolumeClone> clones, StorageCapabilities capabilities) {
-        for (VolumeClone clone : clones) {
-            clone.setNativeId("clone-" + clone.getParentId() + clone.getDisplayName());
-            clone.setWwn(String.format("%s%s", clone.getStorageSystemId(), clone.getNativeId()));
-            clone.setReplicationState(VolumeClone.ReplicationState.SYNCHRONIZED);
-            clone.setProvisionedCapacity(clone.getRequestedCapacity());
-            clone.setAllocatedCapacity(clone.getRequestedCapacity());
-            clone.setDeviceLabel(clone.getNativeId());
+        CreateVolumeCloneSimulatorOperation createCloneSimulatorOperation = new CreateVolumeCloneSimulatorOperation(clones);
+        if (simulateAsynchronousResponses) {
+            return createCloneSimulatorOperation.getDriverTask();
+        } else if (simulateFailures) {
+            String failMsg = createCloneSimulatorOperation.getFailureMessage();
+            return createCloneSimulatorOperation.doFailure(failMsg);
+        } else {
+            createCloneSimulatorOperation.updateCloneInfo(clones);
+            String successMsg = createCloneSimulatorOperation.getSuccessMessage(clones);
+            return createCloneSimulatorOperation.doSuccess(successMsg);
         }
-        String taskType = "create-volume-clone";
-        String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
-        DriverTask task = new DriverSimulatorTask(taskId);
-        task.setStatus(DriverTask.TaskStatus.READY);
-
-        String msg = String.format("StorageDriver: createVolumeClone information for storage system %s, clone nativeIds %s - end",
-                clones.get(0).getStorageSystemId(), clones.toString());
-        _log.info(msg);
-        task.setMessage(msg);
-        return task;
     }
 
     @Override

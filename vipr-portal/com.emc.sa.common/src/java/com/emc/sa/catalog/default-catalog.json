@@ -670,13 +670,13 @@
       ]
     },
     {
-      "title": "rackhdservices.title",
-      "image": "icon_rackhd.png",
-      "description": "rackhdservices.description",
+      "title": "oe_services.title",
+      "image": "icon_orchestration.png",
+      "description": "oe_services.description",
       "services": [
         {
-          "image": "icon_rackhd.png",
-          "baseService": "RackHdService"
+          "image": "icon_orchestration.png",
+          "baseService": "OrchestrationService"
         }
       ]
     } 

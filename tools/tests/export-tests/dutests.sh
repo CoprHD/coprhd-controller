@@ -149,6 +149,12 @@ arrayhelper() {
         pattern=$4
 	arrayhelper_initiator_mask_operation $operation $serial_number $pwwn $pattern
 	;;
+    create_export_mask)
+        device_id=$3
+	pwwn=$4
+	name=$5
+	arrayhelper_create_export_mask_operation $operation $serial_number $device_id $pwwn $name
+	;;
     delete_volume)
 	device_id=$3
 	arrayhelper_delete_volume $operation $serial_number $device_id
@@ -162,6 +168,27 @@ arrayhelper() {
         echo "ERROR: Invalid operation $operation specified to arrayhelper."
 	exit
 	;;
+    esac
+}
+
+# Call the appropriate storage array helper script to perform masking operations
+# outside of the controller.
+#
+arrayhelper_create_export_mask_operation() {
+    operation=$1
+    serial_number=$2
+    device_id=$3
+    pwwn=$4
+    maskname=$5
+
+    case $SS in
+    vnx)
+         runcmd navihelper.sh $operation $array_ip $device_id $pwwn $maskname
+	 ;;
+    default)
+         echo "ERROR: Invalid platform specified in storage_type: $storage_type"
+	 exit
+	 ;;
     esac
 }
 
@@ -2045,8 +2072,11 @@ test_16() {
 	return
     fi
 
+    SGNAME=${HOST1}-du-steal
+
     # Make sure we start clean; no masking view on the array
     verify_export ${expname}1 ${HOST1} gone
+    verify_export ${SGNAME} -exact- gone
 
     reset_system_props
 
@@ -2087,10 +2117,10 @@ test_16() {
     runcmd volume delete ${PROJECT}/${HIJACK} --vipronly
 
     # 4. Create the storage group (different name) with the unmanaged volume with host
-    arrayhelper create_export_mask ${SERIAL_NUMBER} ${device_id} ${H1PI1}
+    arrayhelper create_export_mask ${SERIAL_NUMBER} ${device_id} ${h1pi2} ${SGNAME}
 
-    # Verify the mask has the new initiator in it
-    verify_export ${expname}1 ${HOST1} 2 1
+    # Verify the storage group was created
+    verify_export ${SGNAME} -exact- 1 1
 
     # Resume the workflow
     runcmd workflow resume $workflow
@@ -2103,18 +2133,18 @@ test_16() {
     verify_export ${expname}1 ${HOST1} 2 1
 
     # shut off suspensions/failures
-    set_suspend_on_class_method "none"
-    set_artificial_failure none
-
-    # Delete the export group
-    runcmd export_group delete $PROJECT/${expname}1
+    reset_system_props
 
     # Make sure it really did kill off the mask
     verify_export ${expname}1 ${HOST1} gone
 
-    # TODO: Delete the mask we created
+    # Delete the mask we created
+    arrayhelper remove_initiator_from_mask ${SERIAL_NUMBER} ${h1pi2} ${SGNAME}
+    arrayhelper delete_export_mask ${SERIAL_NUMBER} ${SGNAME}
+    verify_export ${SGNAME} -exact- gone
 
-    # TODO: Delete the volume we created
+    # Delete the volume we created
+    arrayhelper delete_volume ${SERIAL_NUMBER} ${device_id}
 }
 
 cleanup() {

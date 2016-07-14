@@ -37,7 +37,7 @@ public class ScheduledEventMapper {
 
         ScheduledEventRestRep to = new ScheduledEventRestRep();
         mapDataObjectFields(from, to);
-       if (from.getCatalogServiceId() != null) {
+        if (from.getCatalogServiceId() != null) {
             to.setCatalogService(toRelatedResource(ResourceTypeEnum.CATALOG_SERVICE, from.getCatalogServiceId()));
         }
         if (from.getExecutionWindowId() != null) {
@@ -52,27 +52,5 @@ public class ScheduledEventMapper {
         }
         return to;
     }
-
-    public static ScheduledEvent createNewObject(URI tenantId, URI scheduledEventId, ScheduledEventCreateParam param) {
-        ScheduledEvent newObject = new ScheduledEvent();
-        newObject.setId(scheduledEventId);
-        newObject.setTenant(tenantId.toString());
-        newObject.setCatalogServiceId(param.getOrderCreateParam().getCatalogService());
-        newObject.setEventType(param.getScheduleInfo().getReoccurrence() == 1 ? ScheduledEventType.ONCE : ScheduledEventType.REOCCURRENCE);
-        newObject.setEventStatus(ScheduledEventStatus.PENDING);
-
-        try {
-            newObject.setScheduleInfo(new String(Base64.encodeBase64(param.getScheduleInfo().serialize()), UTF_8));
-        } catch (Exception e) {
-            log.error(e.getMessage(), e);
-        }
-
-        return newObject;
-    }
-
-    public static void updateObject(Order object, OrderCommonParam param) {
-
-    }
-
 
 }

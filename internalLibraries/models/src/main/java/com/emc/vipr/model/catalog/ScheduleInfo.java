@@ -10,36 +10,58 @@ import java.io.*;
 import java.util.List;
 
 /*
- * Schedule Info for ScheduledEvent (a set of orders)
+ * Schedule Info for ScheduledEvent (will launch a set of orders)
  * Note: all the time here is UTC.
  */
 public class ScheduleInfo implements Serializable {
-    // start hour and minute of the date
-    private Integer hourOfDay;
-    private Integer minuteOfHour;
-    private Integer durationLength;  // in minutes
+    public static final String HOUR_OF_DAY = "hourOfDay";
+    public static final String MINUTE_OF_HOUR = "mintueOfHour";
+    public static final String DURATION_LENGTH = "durationLength";
+    public static final String CYCLE_TYPE = "cycleType";
+    public static final String CYCLE_FREQUENCE = "cycleFrequency";
+    public static final String SECTIONS_IN_CYCLE = "sectionsInCycle";
+    public static final String START_DATE = "startDate";
+    public static final String REOCCURRENCE = "reoccurrence";
+    public static final String END_DATE = "endDate";
+    public static final String DATE_EXCEPTIONS = "dateExceptions";
 
-    private String cycleType; // Minutely, Hourly, Daily, Weekly, Monthly, Yearly
+    public static final String FULL_DAYTIME_FORMAT = "yyyy/MM/dd hh:mm:ss";
+    public static final String FULL_DAY_FORMAT = "yyyy/MM/dd";
+
+    // start hour and minute of the date
+    private Integer hourOfDay;        // [0..23)
+    private Integer minuteOfHour;    // [0..59)
+    private Integer durationLength;  // in minutes [1..60*24]
+
+    private ScheduleCycleType cycleType; // Minutely, Hourly, Daily, Weekly, Monthly, Yearly
 
     // frequency for each cycle; e.g. 2 for every 2 hours, if the cycleType is Hourly
-    private Integer cycleFrequency;
+    private Integer cycleFrequency;  // [1..)
 
     // For each cycle, user might want to schedule multiple times in several sub sections.
-    // e.g. 0,1,6 for Weekly meaning Sun, Mon and Sat for that Week
-    private List<Integer> sectionsInCycle;
+    // Format: numeric string.
+    //    For MINUTELY, meaning minute level execution. sectionsInCycle would be empty.
+    //    For HOURLY, normally the set is empty meaning execution time would be minuteOfHour in the hour.
+    //               while if the set, e.g, is [10, 59], it means execution 3 times at 10m, 59m in the hour.
+    //    For DAILY, normally the set is empty meaning execution time would be hourOfDay:minuteOfHour in the day.
+    //               while if the set, e.g, is [0, 5, 23], it means execution 3 times at 00:minuteOfHour, 05:minuteOfHour and 23:minuteOfHour in the day.
+    //    For WEEKLY: e.g set [0,1,2,6] meaning hourOfDay:minuteOfHour at Sun, Mon and Sat of the week
+    //    For MONTHLY: e.g set [1,12] meaning hourOfDay:minuteOfHour at 1th, 12th of the month
+    //    For YEARLY: e.g. set [02/29, 07/31] meanning hourOfDay:minuteOfHour at Feb 29th and Jul 31th of the year
+    private List<String> sectionsInCycle;    // singe sub section for now
 
-    private String startDate;  // the start date
+    private String startDate;  // the start date. Format: "yyyy/MM/dd"
 
     // number of reoccurrence (1 for ONCE event)
-    private Integer reoccurrence;
+    private Integer reoccurrence;     // [1..)
 
-    private String endDate;  // the end date
+    private String endDate;  // the end date; not used for now
 
     // date exceptions for the schedule policy
-    // date format: yyyymmddhhmm
+    // date format: "yyyy/MM/dd hh:mm:ss"
     private List<String> dateExceptions;
 
-    @XmlElement(name = "hourOfDay", required = true)
+    @XmlElement(name = HOUR_OF_DAY)
     public Integer getHourOfDay() {
         return hourOfDay;
     }
@@ -48,7 +70,7 @@ public class ScheduleInfo implements Serializable {
         this.hourOfDay = hourOfDay;
     }
 
-    @XmlElement(name = "minuteOfHour", required = true)
+    @XmlElement(name = MINUTE_OF_HOUR, required = true)
     public Integer getMinuteOfHour() {
         return minuteOfHour;
     }
@@ -57,7 +79,7 @@ public class ScheduleInfo implements Serializable {
         this.minuteOfHour = minuteOfHour;
     }
 
-    @XmlElement(name = "durationLength", required = true)
+    @XmlElement(name = DURATION_LENGTH, required = true)
     public Integer getDurationLength() {
         return durationLength;
     }
@@ -66,16 +88,16 @@ public class ScheduleInfo implements Serializable {
         this.durationLength = durationLength;
     }
 
-    @XmlElement(name = "cycleType", required = true)
-    public String getCycleType() {
+    @XmlElement(name = CYCLE_TYPE, required = true)
+    public ScheduleCycleType getCycleType() {
         return cycleType;
     }
 
-    public void setCycleType(String cycleType) {
+    public void setCycleType(ScheduleCycleType cycleType) {
         this.cycleType = cycleType;
     }
 
-    @XmlElement(name = "cycleFrequency")
+    @XmlElement(name = CYCLE_FREQUENCE)
     public Integer getCycleFrequency() {
         return cycleFrequency;
     }
@@ -84,17 +106,17 @@ public class ScheduleInfo implements Serializable {
         this.cycleFrequency = cycleFrequency;
     }
 
-    @XmlElementWrapper(name = "sectionsInCycle")
+    @XmlElementWrapper(name = SECTIONS_IN_CYCLE)
     @XmlElement(name = "section")
-    public List<Integer> getSectionsInCycle() {
+    public List<String> getSectionsInCycle() {
         return sectionsInCycle;
     }
 
-    public void setSectionsInCycle(List<Integer> sectionsInCycle) {
+    public void setSectionsInCycle(List<String> sectionsInCycle) {
         this.sectionsInCycle = sectionsInCycle;
     }
 
-    @XmlElement(name = "startDate", required = true)
+    @XmlElement(name = START_DATE, required = true)
     public String getStartDate() {
         return startDate;
     }
@@ -103,7 +125,7 @@ public class ScheduleInfo implements Serializable {
         this.startDate = startDate;
     }
 
-    @XmlElement(name = "reoccurrence")
+    @XmlElement(name = REOCCURRENCE, required = true)
     public Integer getReoccurrence() {
         return reoccurrence;
     }
@@ -112,7 +134,7 @@ public class ScheduleInfo implements Serializable {
         this.reoccurrence = reoccurrence;
     }
 
-    @XmlElement(name = "endDate")
+    @XmlElement(name = END_DATE)
     public String getEndDate() {
         return endDate;
     }
@@ -121,7 +143,7 @@ public class ScheduleInfo implements Serializable {
         this.endDate = endDate;
     }
 
-    @XmlElementWrapper(name = "dateExceptions")
+    @XmlElementWrapper(name = DATE_EXCEPTIONS)
     @XmlElement(name = "dateException")
     public List<String> getDateExceptions() {
         return dateExceptions;

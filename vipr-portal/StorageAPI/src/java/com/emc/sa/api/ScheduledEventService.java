@@ -10,6 +10,8 @@ import static com.emc.storageos.db.client.URIUtil.asString;
 import static com.emc.storageos.db.client.URIUtil.uri;
 
 import java.net.URI;
+import java.nio.charset.Charset;
+import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -20,7 +22,11 @@ import javax.ws.rs.core.Response;
 
 import com.emc.sa.model.dao.ModelClient;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.model.NamedURI;
+import org.apache.commons.codec.binary.*;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.sa.api.utils.ValidationUtils;
@@ -54,6 +60,8 @@ import com.emc.sa.api.OrderService;
         writeRoles = {})
 @Path("/catalog/events")
 public class ScheduledEventService extends CatalogTaggedResourceService {
+    private static final Logger log = LoggerFactory.getLogger(ScheduledEventService.class);
+    private static Charset UTF_8 = Charset.forName("UTF-8");
 
     private static final String DATE_TIME_FORMAT = "yyyy-MM-dd_HH:mm:ss";
 
@@ -112,32 +120,193 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
 
         ArgValidator.checkFieldNotNull(createParam.getOrderCreateParam().getCatalogService(), "catalogService");
         CatalogService catalogService = catalogServiceManager.getCatalogServiceById(createParam.getOrderCreateParam().getCatalogService());
+        /* TODO: uncomment it back
         if (catalogService == null) {
             throw APIException.badRequests.orderServiceNotFound(
                     asString(createParam.getOrderCreateParam().getCatalogService()));
+        }                                  */
+
+        validateParam(createParam);
+
+        ScheduledEvent newObject = null;
+        try {
+            newObject = createScheduledEvent(tenantId, createParam, catalogService);
+        } catch (Exception e) {
+            log.error(e.getMessage(), e);
         }
 
+        return map(newObject);
+    }
+
+    private void validateParam(ScheduledEventCreateParam param) {
+        ScheduleInfo scheduleInfo = param.getScheduleInfo();
+
+        if (scheduleInfo.getHourOfDay() < 0 || scheduleInfo.getHourOfDay() > 23) {
+            throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.HOUR_OF_DAY);
+        }
+        if (scheduleInfo.getMinuteOfHour() < 0 || scheduleInfo.getMinuteOfHour() > 59) {
+            throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.MINUTE_OF_HOUR);
+        }
+        if (scheduleInfo.getDurationLength() < 1 || scheduleInfo.getHourOfDay() > 60*24) {
+            throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.DURATION_LENGTH);
+        }
+        if (scheduleInfo.getCycleFrequency() < 1 ) {
+            throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.CYCLE_FREQUENCE);
+        }
+
+        switch (scheduleInfo.getCycleType()) {
+            case MONTHLY:
+                if (scheduleInfo.getSectionsInCycle().size() != 1) {
+                    throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.SECTIONS_IN_CYCLE);
+                }
+                int day = Integer.valueOf(scheduleInfo.getSectionsInCycle().get(0));
+                if (day < 1 || day > 31) {
+                    throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.SECTIONS_IN_CYCLE);
+                }
+                break;
+            case WEEKLY:
+                if (scheduleInfo.getSectionsInCycle().size() != 1) {
+                    throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.SECTIONS_IN_CYCLE);
+                }
+                int dayOfWeek = Integer.valueOf(scheduleInfo.getSectionsInCycle().get(0));
+                if (dayOfWeek < 1 || dayOfWeek > 7) {
+                    throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.SECTIONS_IN_CYCLE);
+                }
+                break;
+            case DAILY:
+            case HOURLY:
+            case MINUTELY:
+                if (scheduleInfo.getSectionsInCycle().size() != 0) {
+                    throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.SECTIONS_IN_CYCLE);
+                }
+                break;
+            default:
+                throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.CYCLE_TYPE);
+        }
+
+        try {
+            DateFormat formatter = new SimpleDateFormat(ScheduleInfo.FULL_DAY_FORMAT);
+            Date date = formatter.parse(scheduleInfo.getStartDate());
+        } catch (Exception e) {
+            throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.START_DATE);
+        }
+
+        if (scheduleInfo.getReoccurrence() < 1 ) {
+            throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.REOCCURRENCE);
+        }
+
+        /* TODO: exceptions for edit  */
+    }
+
+    private ScheduledEvent createScheduledEvent(URI tenantId, ScheduledEventCreateParam param, CatalogService catalogService) throws Exception{
         URI scheduledEventId = URIUtil.createId(ScheduledEvent.class);
-        ScheduledEvent newObject = createNewObject(tenantId, scheduledEventId, createParam);
+        param.getOrderCreateParam().setScheduledEventId(scheduledEventId);
+        param.getOrderCreateParam().setScheduledTime(convertCalendarToStr(getFirstScheduledTime(param.getScheduleInfo())));
+
+        OrderRestRep restRep = orderService.createOrder(param.getOrderCreateParam());
+
+        ScheduledEvent newObject = new ScheduledEvent();
+        newObject.setId(scheduledEventId);
+        newObject.setTenant(tenantId.toString());
+        newObject.setCatalogServiceId(param.getOrderCreateParam().getCatalogService());
+        newObject.setEventType(param.getScheduleInfo().getReoccurrence() == 1 ? ScheduledEventType.ONCE : ScheduledEventType.REOCCURRENCE);
+        newObject.setEventStatus(ScheduledEventStatus.PENDING);
+        newObject.setLatestOrderId(restRep.getId());
+
+        newObject.setScheduleInfo(new String(org.apache.commons.codec.binary.Base64.encodeBase64(param.getScheduleInfo().serialize()), UTF_8));
+
         if (catalogService.getExecutionWindowRequired()) {
             newObject.setExecutionWindowId(catalogService.getDefaultExecutionWindowId());
         } else {
-            // TODO: set to global one
-        }
-
-        if (catalogService.getApprovalRequired() == false) {
-            newObject.setEventStatus(ScheduledEventStatus.APPROVED);
+            newObject.setExecutionWindowId(new NamedURI(ExecutionWindow.INFINITE, "INFINITE"));
         }
 
         client.save(newObject);
 
-        createParam.getOrderCreateParam().setScheduledEventId(scheduledEventId);
-        OrderRestRep restRep = orderService.createOrder(createParam.getOrderCreateParam());
+        //auditOpSuccess(OperationTypeEnum.CREATE_SCHEDULED_EVENT, order.auditParameters());
+        return newObject;
+    }
 
-        newObject.setLatestOrderId(restRep.getId());
-        client.save(newObject);
+    private String convertCalendarToStr(Calendar cal) throws Exception {
+        SimpleDateFormat format = new SimpleDateFormat(ScheduleInfo.FULL_DAYTIME_FORMAT);
+        String formatted = format.format(cal.getTime());
+        log.info("converted calendar time:%s", formatted);
+        return formatted;
+    }
 
-        return map(newObject);
+    private Calendar getFirstScheduledTime(ScheduleInfo scheduleInfo) throws Exception{
+
+        DateFormat formatter = new SimpleDateFormat(ScheduleInfo.FULL_DAY_FORMAT);
+        Date date = formatter.parse(scheduleInfo.getStartDate());
+
+        Calendar startTime = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+        startTime.setTime(date);
+        startTime.set(Calendar.HOUR_OF_DAY, scheduleInfo.getHourOfDay());
+        startTime.set(Calendar.MINUTE, scheduleInfo.getMinuteOfHour());
+        startTime.set(Calendar.SECOND, 0);
+        log.info("startTime: %s", startTime.toString());
+
+        Calendar currTZTime = Calendar.getInstance();
+        Calendar currTime = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+        currTime.setTimeInMillis(currTZTime.getTimeInMillis());
+        log.info("currTime: %s", currTime.toString());
+
+        Calendar initTime = startTime.before(currTime)? currTime:startTime;
+        log.info("initTime: %s", initTime.toString());
+
+        int year = initTime.get(Calendar.YEAR);
+        int month = initTime.get(Calendar.MONTH);
+        int day = initTime.get(Calendar.DAY_OF_MONTH);
+        int hour = scheduleInfo.getHourOfDay();
+        int min = scheduleInfo.getMinuteOfHour();
+        switch (scheduleInfo.getCycleType()) {
+            case MONTHLY:
+                day = Integer.valueOf(scheduleInfo.getSectionsInCycle().get(0));
+                break;
+/*            case WEEKLY:
+                day = Integer.valueOf(scheduleInfo.getSectionsInCycle().get(0));
+                break;                                                          */
+            case DAILY:
+            case HOURLY:
+            case MINUTELY:
+                break;
+            default:
+                log.error("not expected schedule cycle.");
+        }
+
+        Calendar scheduledTime = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+        scheduledTime.set(year, month, day, hour, min);
+        log.info("scheduledTime: %s", scheduledTime.toString());
+
+        while (scheduledTime.before(initTime)) {
+            scheduledTime = getNextScheduledTime(scheduledTime, scheduleInfo);
+            log.info("scheduledTime in loop: %s", scheduledTime.toString());
+        }
+
+        return scheduledTime;
+    }
+
+    private Calendar getNextScheduledTime(Calendar scheduledTime, ScheduleInfo scheduleInfo) {
+        switch (scheduleInfo.getCycleType()) {
+            case MONTHLY:
+                scheduledTime.add(Calendar.MONTH, scheduleInfo.getCycleFrequency());
+                break;
+            case WEEKLY:
+                scheduledTime.add(Calendar.WEEK_OF_MONTH, scheduleInfo.getCycleFrequency());
+                break;
+            case DAILY:
+                scheduledTime.add(Calendar.DAY_OF_MONTH, scheduleInfo.getCycleFrequency());
+                break;
+            case HOURLY:
+                scheduledTime.add(Calendar.HOUR_OF_DAY, scheduleInfo.getCycleFrequency());
+                break;
+            case MINUTELY:
+                scheduledTime.add(Calendar.MINUTE, scheduleInfo.getCycleFrequency());
+                break;
+            default:
+                log.error("not expected schedule cycle.");
+        }
+        return scheduledTime;
     }
 
     @GET
@@ -152,6 +321,8 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
 
         return map(scheduledEvent);
     }
+
+
 
     private ScheduledEvent getScheduledEventById(URI id, boolean checkInactive) {
         ScheduledEvent scheduledEvent = client.scheduledEvents().findById(id);

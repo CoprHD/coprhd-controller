@@ -26,6 +26,7 @@ public class Order extends ModelObject implements TenantDataObject {
     public static final String TENANT = TenantDataObject.TENANT_COLUMN_NAME;
     public static final String ORDER_NUMBER = "orderNumber";
     public static final String SCHEDULED_EVENT_ID = "scheduledEventId";
+    public static final String SCHEDULED_TIME = "scheduledTime";
 
     /** User friendly Order number */
     private String orderNumber;
@@ -51,6 +52,8 @@ public class Order extends ModelObject implements TenantDataObject {
     private String tenant;
 
     private URI scheduledEventId;
+
+    private String scheduledTime; // Format: "yyyy/MM/dd hh:mm:ss"
 
     /**
      * Field used for indexing updated time
@@ -169,6 +172,16 @@ public class Order extends ModelObject implements TenantDataObject {
     public void setScheduledEventId(URI scheduledEventId) {
         this.scheduledEventId = scheduledEventId;
         setChanged(SCHEDULED_EVENT_ID);
+    }
+
+    @Name(SCHEDULED_TIME)
+    public String getScheduledTime() {
+        return scheduledTime;
+    }
+
+    public void setScheduledTime(String scheduledTime) {
+        this.scheduledTime = scheduledTime;
+        setChanged(SCHEDULED_TIME);
     }
 
     @Override

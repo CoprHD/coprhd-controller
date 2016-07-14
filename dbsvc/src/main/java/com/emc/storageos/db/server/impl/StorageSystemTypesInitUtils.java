@@ -204,6 +204,7 @@ public class StorageSystemTypesInitUtils {
             } else {
                 // If it exists but has changed, should remove and re-create
                 dbClient.removeObject(existingType);
+                existingTypes.remove(existingType.getStorageTypeName());
             }
         }
         return false;

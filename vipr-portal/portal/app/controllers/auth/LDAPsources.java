@@ -99,8 +99,12 @@ public class LDAPsources extends ViprResourceController {
         renderArgs.put("adType", AuthSourceType.ad);
 
         renderArgs.put("ldapType", AuthSourceType.ldap);
+
         renderArgs.put("keyStoneType", AuthSourceType.keystone);
         renderArgs.put("keystoneServerURL", KEYSTONE_SERVER_URL);
+
+        renderArgs.put("samlIdpType", AuthSourceType.samlidp);
+
         renderArgs.put("searchScopeTypeList", SearchScopes.options(SearchScopes.ONELEVEL, SearchScopes.SUBTREE));
 
         renderArgs.put("showLdapGroup", VCenterUtils.checkCompatibleVDCVersion(EXPECTED_GEO_VERSION_FOR_LDAP_GROUP_SUPPORT));
@@ -108,8 +112,7 @@ public class LDAPsources extends ViprResourceController {
 
     /**
      * if it was not redirect from another page, clean flash
-     * 
-     * @param redirect
+     *
      */
     public static void list() {
         renderArgs.put("dataTable", new LDAPsourcesDataTable());
@@ -208,39 +211,23 @@ public class LDAPsources extends ViprResourceController {
 
         @Required
         public String mode;
-
         public String description;
-
         public Boolean disable;
         
         public Boolean autoRegCoprHDNImportOSProjects;
 
         @Required
         public List<String> domains;
-
         public List<String> groupObjectClasses;
-
         public List<String> groupMemberAttributes;
-
         public String groupAttribute;
-
         public List<String> groupWhiteListValues;
-
-        @Required
         public String managerDn;
-
         public String managerPassword;
-
-       
         public String searchBase;
-
-        
         public String searchFilter;
-
-       
         public String searchScope;
-
-        @Required
+        public String idpMetadataUrl;
         public List<String> serverUrls;
 
         public LDAPsourcesForm() {
@@ -286,6 +273,7 @@ public class LDAPsources extends ViprResourceController {
             this.searchScope = ldapSources.getSearchScope();
             this.groupObjectClasses = Lists.newArrayList(ldapSources.getGroupObjectClasses());
             this.groupMemberAttributes = Lists.newArrayList(ldapSources.getGroupMemberAttributes());
+            this.idpMetadataUrl = ldapSources.getSamlIdpMetadataUrl();
         }
 
         public AuthnProviderRestRep save() {
@@ -319,6 +307,8 @@ public class LDAPsources extends ViprResourceController {
 
             param.setGroupObjectClassChanges(getGroupObjectClassChanges(provider));
             param.setGroupMemberAttributeChanges(getGroupMemberAttributeChanges(provider));
+
+            param.setSamlIdpMetadataUrl(this.idpMetadataUrl);
 
             if (isGroupAttributeBlankOrNull(provider.getGroupAttribute())) {
                 param.setGroupAttribute(this.groupAttribute);
@@ -411,6 +401,7 @@ public class LDAPsources extends ViprResourceController {
             param.getGroupWhitelistValues().addAll(parseMultiLineInput(this.groupWhiteListValues.get(0)));
             param.getGroupObjectClasses().addAll(parseMultiLineInput(this.groupObjectClasses.get(0)));
             param.getGroupMemberAttributes().addAll(parseMultiLineInput(this.groupMemberAttributes.get(0)));
+            param.setSamlIdpMetadataUrl(this.idpMetadataUrl);
 
             return AuthnProviderUtils.create(param);
         }
@@ -418,32 +409,39 @@ public class LDAPsources extends ViprResourceController {
         public void validate(String fieldName) {
             Validation.valid(fieldName, this);
 
-        	if (StringUtils.equals(AuthSourceType.ad.name(), mode)) {
-                Validation.required(fieldName + ".groupAttribute", groupAttribute);
-            }
-            Validation.required(fieldName + ".domains", parseMultiLineInput(this.domains.get(0)));
-            Validation.required(fieldName + ".serverUrls", parseMultiLineInput(this.serverUrls.get(0)));
 
-            if (isNew()) {
-                Validation.required(fieldName + ".managerPassword", this.managerPassword);
-            }
-        	if (!StringUtils.equals(AuthSourceType.keystone.name(), mode)) {
-
-            if (StringUtils.lastIndexOf(this.searchFilter, "=") < 0) {
-                Validation.addError(fieldName + ".searchFilter",
-                        MessagesUtils.get("ldapSources.searchFilter.equalsRequired"));
-            }
-            else {
-                String afterEquals = StringUtils.substringAfterLast(this.searchFilter, "=");
-                if (StringUtils.contains(afterEquals, "%u") == false
-                        && StringUtils.contains(afterEquals, "%U") == false) {
-                    Validation.addError(fieldName + ".searchFilter",
-                            MessagesUtils.get("ldapSources.searchFilter.variableRequired"));
+            if (!StringUtils.equals(AuthSourceType.samlidp.name(), mode)) {
+                if (StringUtils.equals(AuthSourceType.ad.name(), mode)) {
+                    Validation.required(fieldName + ".groupAttribute", groupAttribute);
                 }
-            }
 
-            validateLDAPGroupProperties(fieldName);
-        	}
+                Validation.required(fieldName + ".domains", parseMultiLineInput(this.domains.get(0)));
+                Validation.required(fieldName + ".serverUrls", parseMultiLineInput(this.serverUrls.get(0)));
+
+                if (isNew()) {
+                    Validation.required(fieldName + ".managerPassword", this.managerPassword);
+                }
+
+                Validation.required(fieldName + ".managerDn", this.managerDn);
+
+                if (!StringUtils.equals(AuthSourceType.keystone.name(), mode)) {
+                    if (StringUtils.lastIndexOf(this.searchFilter, "=") < 0) {
+                        Validation.addError(fieldName + ".searchFilter",
+                                MessagesUtils.get("ldapSources.searchFilter.equalsRequired"));
+                    } else {
+                        String afterEquals = StringUtils.substringAfterLast(this.searchFilter, "=");
+                        if (StringUtils.contains(afterEquals, "%u") == false
+                                && StringUtils.contains(afterEquals, "%U") == false) {
+                            Validation.addError(fieldName + ".searchFilter",
+                                    MessagesUtils.get("ldapSources.searchFilter.variableRequired"));
+                        }
+                    }
+
+                    validateLDAPGroupProperties(fieldName);
+                }
+            } else {
+                Validation.required(fieldName + ".idpMetadataUrl", this.idpMetadataUrl);
+            }
         }
 
         private void validateLDAPGroupProperties(String fieldName) {

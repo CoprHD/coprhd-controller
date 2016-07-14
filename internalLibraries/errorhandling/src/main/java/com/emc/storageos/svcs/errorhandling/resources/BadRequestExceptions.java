@@ -2927,6 +2927,9 @@ public interface BadRequestExceptions {
     public BadRequestException cannotDeleteMirrorFileShareTargetWithActiveSource(URI target, URI source);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException unableToFindSamlSPMetadata(String path);
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException associatedPolicyTenantMismatch(URI fp, URI fs);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)

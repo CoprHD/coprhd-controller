@@ -429,6 +429,7 @@ public class ImmutableAuthenticationProviders {
             final AuthnProvider authenticationConfiguration,
             final Map<String, String> environmentProperties,
             String serverUrl) {
+
         LdapContextSource contextSource = new LdapContextSource();
         contextSource.setAnonymousReadOnly(false);
         contextSource.setPooled(false);
@@ -458,7 +459,7 @@ public class ImmutableAuthenticationProviders {
             }
         }
         if (null != environmentProperties) {
-            contextSource.setBaseEnvironmentProperties(environmentProperties);
+            // contextSource.setBaseEnvironmentProperties(environmentProperties);
         }
         try {
             contextSource.afterPropertiesSet();
@@ -484,6 +485,7 @@ public class ImmutableAuthenticationProviders {
             CoordinatorClient coordinator, AuthnProvider authProvider, int timeout, String url) {
 
         Map<String, String> environmentProperties = new HashMap<String, String>();
+
         environmentProperties.put("java.naming.security.authentication",
                 "simple");
         if (authProvider.getMode().equalsIgnoreCase(AuthnProvider.ProvidersType.ad.toString())) {

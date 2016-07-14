@@ -124,6 +124,8 @@ public abstract class AuthnProviderBaseParam {
      */
     private Boolean validateCertificates;
 
+    private String idpMetadataUrl;
+
     public AuthnProviderBaseParam() {
     }
 
@@ -132,7 +134,7 @@ public abstract class AuthnProviderBaseParam {
             String managerDn, String managerPassword, String searchBase,
             String searchFilter, String searchScope, String searchAttributeKey,
             String groupAttribute, Integer maxPageSize,
-            Boolean validateCertificates) {
+            Boolean validateCertificates, String idpMetadataUrl) {
         this.mode = mode;
         this.label = label;
         this.description = description;
@@ -146,6 +148,7 @@ public abstract class AuthnProviderBaseParam {
         this.groupAttribute = groupAttribute;
         this.maxPageSize = maxPageSize;
         this.validateCertificates = validateCertificates;
+        this.idpMetadataUrl = idpMetadataUrl;
     }
 
     @XmlElement
@@ -194,7 +197,8 @@ public abstract class AuthnProviderBaseParam {
         this.autoRegCoprHDNImportOSProjects = autoRegCoprHDNImportOSProjects;
     }
 
-    @XmlElement(name = "manager_dn")
+    @XmlElement(name = "manager_dn", required = false, nillable = true)
+
     @JsonProperty("manager_dn")
     public String getManagerDn() {
         return managerDn;
@@ -204,7 +208,7 @@ public abstract class AuthnProviderBaseParam {
         this.managerDn = managerDn;
     }
 
-    @XmlElement(name = "manager_password")
+    @XmlElement(name = "manager_password", required = false, nillable = true)
     @JsonProperty("manager_password")
     public String getManagerPassword() {
         return managerPassword;
@@ -244,7 +248,7 @@ public abstract class AuthnProviderBaseParam {
         this.searchScope = searchScope;
     }
 
-    @XmlElement(name = "group_attribute")
+    @XmlElement(name = "group_attribute", required = false, nillable = true)
     @JsonProperty("group_attribute")
     public String getGroupAttribute() {
         return groupAttribute;
@@ -276,6 +280,16 @@ public abstract class AuthnProviderBaseParam {
         this.validateCertificates = validateCertificates;
     }
 
+    @XmlElement(name = "idp_metadata_url", required = false, nillable = true)
+    @JsonProperty("idp_metadata_url")
+    public String getSamlIdpMetadataUrl() {
+        return idpMetadataUrl;
+    }
+
+    public void setSamlIdpMetadataUrl(String idpMetadataUrl) {
+        this.idpMetadataUrl = idpMetadataUrl;
+    }
+
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
@@ -301,6 +315,8 @@ public abstract class AuthnProviderBaseParam {
         sb.append(groupAttribute);
         sb.append(", max_page_size=");
         sb.append(maxPageSize);
+        sb.append(", idpMetadataUrl=");
+        sb.append(idpMetadataUrl);
 
         sb.append("]");
         return sb.toString();

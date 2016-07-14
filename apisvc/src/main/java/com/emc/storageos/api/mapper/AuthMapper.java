@@ -50,6 +50,7 @@ public class AuthMapper {
         to.setMaxPageSize(from.getMaxPageSize());
         to.setGroupObjectClasses(from.getGroupObjectClassNames());
         to.setGroupMemberAttributes(from.getGroupMemberAttributeTypeNames());
+        to.setSamlIdpMetadataUrl(from.getSamlIdpMetadataUrl());
         return to;
     }
 
@@ -127,6 +128,8 @@ public class AuthMapper {
             ss.addAll(from.getGroupMemberAttributes());
             authn.setGroupMemberAttributeTypeNames(ss);
         }
+
+        authn.setSamlIdpMetadataUrl(from.getSamlIdpMetadataUrl());
 
         return authn;
     }

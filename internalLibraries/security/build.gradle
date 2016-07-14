@@ -4,6 +4,8 @@ dependencies {
             library(commons_codec),
             library(owasp_esapi),
             library(jsoup),
+            library(spring_saml),
+            library(open_saml),
             project(":geomodels"),
             project(":coordinatorsvc"),
             project(":dbclient"),

@@ -26,6 +26,12 @@ dependencies {
 			library(httpclient4),
             library(jersey),
             library(commons_codec),
+            library(spring_saml),
+            library(open_saml),
+            library(apache_velocity),
+            library(apache_xml_sec),
+            library(bouncy_castle),
+            library(common_collections),
 
             project(":dbsvc"),
             project(":security"),

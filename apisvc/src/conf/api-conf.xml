@@ -727,6 +727,8 @@
                     <property name="coordinator" ref="coordinator"/>
                     <property name="keystoneUtils" ref="keystoneUtils"/>
                     <property name="tenantsService" ref="tenantsService"/>
+                    <property name="keystoneFactory" ref="keystoneFactory"/>
+                    <property name="metadataManagerInitializer" ref="metadataManagerInitializer"/>
                 </bean>
                 <bean class="com.emc.storageos.api.service.impl.resource.WorkflowService">
                     <property name="dbClient" ref="dbclient"/>
@@ -897,5 +899,8 @@
   </bean>
   
   <bean id="sysUtils" class="com.emc.storageos.services.util.SysUtils" />
+
+    <!-- Initialization of MetadataManager initializer-->
+    <bean id="metadataManagerInitializer" class="com.emc.storageos.security.helpers.MetadataManagerInitializer"/>
 </beans>
 

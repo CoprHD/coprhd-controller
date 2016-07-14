@@ -893,30 +893,7 @@ public class SchemaUtil {
         }
     }
 
-    private void checkAndInitStorageSystemTypes(DbClient dbClient) {
-        boolean storageTypeExist = true;
-        List<URI> storageTypes = dbClient.queryByType(StorageSystemType.class, true);
-
-        ArrayList<URI> uriList = Lists.newArrayList(storageTypes.iterator());
-
-        if (uriList.isEmpty()) {
-            storageTypeExist = false;
-        }
-        else {
-            // This part would definitely need to refactor since the logic doesn't quite make sense
-            // For time-being consideration, fix other bug first.
-            //Compare our default-list and data available at DB are in sync
-            int dbElementCount = uriList.size();
-            Map<String, String> defaultDisplayName = StorageSystemTypesInitUtils.getDisplayNames();
-            int defaultCount = defaultDisplayName.size();
-            if(dbElementCount < defaultCount) {
-                // This means default list and data at DB are not in sync, so insert again
-                storageTypeExist = false;
-            }
-        }
-        if (storageTypeExist) {
-            return;
-        }
+    public void checkAndInitStorageSystemTypes(DbClient dbClient) {
         StorageSystemTypesInitUtils utils = new StorageSystemTypesInitUtils(dbClient);
         utils.initializeStorageSystemTypes();
     }
@@ -959,8 +936,6 @@ public class SchemaUtil {
                     insertVdcVersion(dbClient);
                     // insert local user's password history if not exist for local db
                     insertPasswordHistory(dbClient);
-                    // Check if we have native Storage System in DB
-                    checkAndInitStorageSystemTypes(dbClient);
                 }
 
                 done = true;

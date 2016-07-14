@@ -1184,7 +1184,7 @@ public class MDSDialog extends SSHDialog {
      * 
      * @param zonesetName
      * @param vsanId
-     * @paran no - true for removing zoneset, false otherwise
+     * @param no - true for removing zoneset, false otherwise
      * @throws NetworkDeviceControllerException
      */
     public void zonesetNameVsan(String zonesetName, Integer vsanId, boolean no) throws NetworkDeviceControllerException {

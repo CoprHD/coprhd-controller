@@ -398,7 +398,7 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
                         dialog.zonesetMember(zoneName, false);
                     }
                 }
-                //dialog.config();
+
                 dialog.exitToConfig();
                 commitZones(dialog, vsanId, activateZones ? activeZoneset : null);
                 dialog.copyRunningConfigToStartupFabric();
@@ -839,9 +839,7 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
         // Activate the active zoneset.
         if (activeZoneset != null) {
             dialog.zonesetActivate(activeZoneset.getName(), vsanId, false);
-        } else {
-        	 activeZoneset = getActiveZoneset(dialog, vsanId);
-        }
+        } 
         
         // dialog.exitToConfig(); -- no need for exitToConfig, because activate zoneset would exit
         // If enhanced zoning is enabled, we will be in a session, and we must commit.

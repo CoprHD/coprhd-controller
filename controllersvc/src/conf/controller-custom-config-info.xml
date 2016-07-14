@@ -58,6 +58,12 @@
                 <ref bean="nasDynamicPerformancePlacementEnabled"/>
                 <ref bean="nasUsePhysicalNASForProvisioning"/>
                 <ref bean="nasShareVNASWithMultipleProjects"/>
+                <ref bean="isilonPathCustomization"/>
+                <ref bean="isilonSystemAccessZoneNameSpace"/>
+                <ref bean="isilonUnmanagedFileSystemLocations"/>
+                <ref bean="volumeNamingEnabled"/>
+                <ref bean="volumeNamingProvisionNoExport"/>
+                <ref bean="volumeNamingProvisionWithExport"/>
             </list>
         </property>
     </bean>
@@ -661,6 +667,114 @@
         </property>
     </bean>
     
+    <bean id="volumeNamingEnabled" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+        <property name="name" value="VolumeNamingEnabled"/>
+        <property name="configType" value="SimpleValue"/>
+        <property name="type" value="Boolean"/>
+        <property name="scope">
+            <map>
+                <entry key="systemType" value="vplex"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="vplex" value="false"/>
+            </map>
+        </property>
+    </bean>
+    
+    <bean id="volumeNamingProvisionNoExport" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+        <property name="name" value="VolumeNamingProvisionNoExport"/>
+        <property name="configType" value="CustomName"/>
+        <property name="type" value="String"/>
+        <property name="dataSourceVariables">
+            <map>
+                <entry key-ref="volumeLabel" value="true"/>
+                <entry key-ref="volumeWwn" value="false"/>
+                <entry key-ref="projectName" value="false"/>
+                <entry key-ref="tenantName" value="false"/>
+            </map>
+        </property>
+        <property name="scope">
+            <map>
+                <entry key="global" value="default"/>
+                <entry key="systemType" value="vplex"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="default" value="{volume_label}"/>
+            </map>
+        </property>
+        <property name="constraints">
+            <list>
+                <ref bean="illegalCharsConstraint"/>
+                <ref bean="illegalFirstCharConstraint"/>
+                <ref bean="maxLengthConstraint"/>
+            </list>
+        </property>
+    </bean>
+    
+    <bean id="volumeNamingProvisionWithExport" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+        <property name="name" value="VolumeNamingProvisionWithExport"/>
+        <property name="configType" value="CustomName"/>
+        <property name="type" value="String"/>
+        <property name="dataSourceVariables">
+            <map>
+                <entry key-ref="volumeLabel" value="true"/>
+                <entry key-ref="volumeWwn" value="false"/>
+                <entry key-ref="projectName" value="false"/>
+                <entry key-ref="tenantName" value="false"/>
+                <entry key-ref="exportName" value="false"/>
+            </map>
+        </property>
+        <property name="scope">
+            <map>
+                <entry key="global" value="default"/>
+                <entry key="systemType" value="vplex"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="default" value="{volume_label}"/>
+            </map>
+        </property>
+        <property name="constraints">
+            <list>
+                <ref bean="illegalCharsConstraint"/>
+                <ref bean="illegalFirstCharConstraint"/>
+                <ref bean="maxLengthConstraint"/>
+            </list>
+        </property>
+    </bean>
+        
+    <bean id="volumeLabel" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
+        <property name="sourceClass" value="com.emc.storageos.db.client.model.Volume"/>
+        <property name="displayName" value="volume_label"/>
+        <property name="propertyName" value="label"/>
+        <property name="sample" value="volumeABC"/>
+    </bean>
+
+    <bean id="volumeWwn" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
+        <property name="sourceClass" value="com.emc.storageos.db.client.model.Volume"/>
+        <property name="displayName" value="volume_wwn"/>
+        <property name="propertyName" value="wwn"/>
+        <property name="sample" value="6006016050413800F488C80792A8E511"/>
+    </bean>
+
+    <bean id="tenantName" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
+        <property name="sourceClass" value="com.emc.storageos.db.client.model.TenantOrg"/>
+        <property name="displayName" value="tenant_name"/>
+        <property name="propertyName" value="label"/>
+        <property name="sample" value="AbcGroup"/>
+    </bean>
+    
+    <bean id="exportName" class="com.emc.storageos.customconfigcontroller.ComputedDataSourceVariable">
+        <property name="displayName" value="export_name"/>
+        <property name="computedPropertyName" value="exportName"/>
+        <property name="sample" value="abdHost"/>
+    </bean>
+    
     <bean id="portAllocationInitiatorCeiling" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
     	<property name="name" value="PortAllocationInitiatorCeiling"/>
         <property name="configType" value="SimpleValue"/>
@@ -668,7 +782,7 @@
         <property name="scope">
             <map>
                 <entry key="global" value="default"/>
-                <entry key="systemType" value="vnxblock,vmax,hds"/>
+                <entry key="systemType" value="vnxblock,vmax,hds,vplex"/>
             </map>
         </property>
         <property name="defaultValues">
@@ -690,7 +804,7 @@
         <property name="scope">
             <map>
                 <entry key="global" value="default"/>
-                <entry key="systemType" value="vnxblock,vmax,hds"/>
+                <entry key="systemType" value="vnxblock,vmax,hds,vplex"/>
             </map>
         </property>
         <property name="defaultValues">
@@ -713,7 +827,7 @@
         <property name="scope">
             <map>
                 <entry key="global" value="default"/>
-                <entry key="systemType" value="vnxblock,vmax,hds"/>
+                <entry key="systemType" value="vnxblock,vmax,hds,vplex"/>
             </map>
         </property>
         <property name="defaultValues">
@@ -736,7 +850,7 @@
         <property name="scope">
             <map>
                 <entry key="global" value="default"/>
-                <entry key="systemType" value="vnxblock,vmax"/>
+                <entry key="systemType" value="vnxblock,vmax,vplex"/>
             </map>
         </property>
         <property name="defaultValues">
@@ -759,7 +873,7 @@
         <property name="scope">
             <map>
                 <entry key="global" value="default"/>
-                <entry key="systemType" value="vnxblock,vmax,hds"/>
+                <entry key="systemType" value="vnxblock,vmax,hds,vplex"/>
             </map>
         </property>
         <property name="defaultValues">
@@ -782,7 +896,7 @@
         <property name="scope">
             <map>
                 <entry key="global" value="default"/>
-                <entry key="systemType" value="vnxblock,vmax,hds"/>
+                <entry key="systemType" value="vnxblock,vmax,hds,vplex"/>
             </map>
         </property>
         <property name="defaultValues">
@@ -845,6 +959,85 @@
             <map>
                 <entry key="default" value="true"/>
             </map>
+        </property>
+    </bean>
+    
+    <bean id="isilonPathCustomization" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+        <property name="name" value="IsilonPathCustomization"/>
+        <property name="configType" value="CustomName"/>
+        <property name="type" value="String"/>
+        <property name="dataSourceVariables">
+            <map>
+                <entry key-ref="isilonClusterName" value="false"/>
+                <entry key-ref="projectName" value="true"/>
+                <entry key-ref="tenantName" value="true"/>
+                <entry key-ref="vpoolName" value="true"/>
+            </map>
+        </property>
+        <property name="scope">
+            <map>
+         <entry key="systemType" value="isilon"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="isilon" value="{vpool_name.FIRST(32)}/{tenant_name.FIRST(32)}/{project_name.FIRST(32)}"/>                    
+            </map>
+        </property>
+        <property name="constraints">
+            <list>
+                <ref bean="isilonPathIllegalCharsConstraint"/>
+            </list>
+        </property>
+        
+    </bean>
+    
+    <bean id="isilonSystemAccessZoneNameSpace" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+        <property name="name" value="IsilonSystemAccessZoneNameSpace"/>
+        <property name="configType" value="SimpleValue"/>
+        <property name="type" value="String"/>
+        <property name="scope">
+            <map>
+         <entry key="systemType" value="isilon"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="isilon" value="vipr"/>                    
+            </map>
+        </property>
+        <property name="constraints">
+            <list>
+                <ref bean="illegalCharsConstraint"/>
+            </list>
+        </property>
+    </bean>
+    
+     <bean id="isilonUnmanagedFileSystemLocations" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+        <property name="name" value="IsilonUnmanagedFileSystemLocations"/>
+        <property name="configType" value="CustomName"/>
+        <property name="type" value="String"/>
+        <property name="dataSourceVariables">
+            <map>
+                <entry key-ref="systemAccessZone" value="false"/>
+                <entry key-ref="userAccessZone" value="false"/>
+                <entry key-ref="customDirPath" value="false"/>
+            </map>
+        </property>
+        <property name="scope">
+            <map>
+         <entry key="systemType" value="isilon"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="isilon" value="{system_access_zone},{user_access_zone},/ifs/sos/"/>                    
+            </map>
+        </property>
+        <property name="constraints">
+            <list>
+                <ref bean="isilonDirLocationsIllegalCharsConstraint"/>
+            </list>
         </property>
     </bean>
     
@@ -1144,6 +1337,35 @@
         <property name="sample" value="clusterABC"/>
     </bean>  
     
+    <bean id="isilonClusterName" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
+        <property name="displayName" value="isilon_cluster_name"/>
+        <property name="sample" value="clusterABC"/>
+    </bean> 
+    
+    <bean id="systemAccessZone" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
+        <property name="displayName" value="system_access_zone"/>
+        <property name="sample" value="/ifs/vipr"/>
+    </bean>
+    
+    <bean id="userAccessZone" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
+        <property name="displayName" value="user_access_zone"/>
+        <property name="sample" value="/ifs/zoneA,/ifs/zoneB"/>
+    </bean> 
+    
+    <!-- customDirPath bean is added as workaround,it do not include any predefine path.-->
+    <!-- custom_dir_path variable should be used when no other variable is used in path.-->
+    <bean id="customDirPath" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
+        <property name="displayName" value="custom_dir_path"/>
+        <property name="sample" value=","/>
+    </bean>
+    
+    <bean id="vpoolName" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
+        <property name="sourceClass" value="com.emc.storageos.db.client.model.VirtualPool"/>
+        <property name="displayName" value="vpool_name"/>
+        <property name="propertyName" value="label"/>
+        <property name="sample" value="vpoolABC"/>
+    </bean>
+    
      <bean id="autoTieringPolicy" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
         <property name="sourceClass" value="com.emc.storageos.db.client.model.AutoTieringPolicy"/>
         <property name="displayName" value="auto_tiering_policy_name"/>
@@ -1192,9 +1414,10 @@
                 <entry key="default" value="\\s+|[^a-zA-Z0-9_#@+-]"/>
                 <entry key="hds" value="[^]a-zA-Z0-9_#@!$='`~&#37;&amp;+\[^.-]"/>
                 <entry key="xtremio" value="[^a-zA-Z0-9_#@!$~+&#37;^.*:?|-]"/>
+                <entry key="vplex" value="[^a-zA-Z0-9_-]"/>
             </map>
         </property>
-        <property name="description" value="Valid characters are letters, numbers and _ # @ + -"/>
+        <property name="description" value="The default valid characters are letters, numbers and _ # @ + -"/>
         <property name="replacementMap">
             <map>
                 <entry key="default" value=""/>
@@ -1232,15 +1455,46 @@
         </property>   
         <property name="name" value="IllegalCharsConstraint"/> 
     </bean>
+  
+    <bean id="isilonPathIllegalCharsConstraint" class="com.emc.storageos.customconfigcontroller.IllegalCharsConstraint">
+        <property name="illegalCharsRegexMap">
+            <map>
+                <entry key="default" value="[^A-Za-z0-9_\-/]"/>
+            </map>
+        </property>
+        <property name="description" value="Valid characters are letters, numbers, forward slash and _"/>
+        <property name="replacementMap">
+            <map>
+                <entry key="default" value=""/>
+            </map>
+        </property>   
+        <property name="name" value="IllegalCharsConstraint"/> 
+    </bean>
+    
+    <bean id="isilonDirLocationsIllegalCharsConstraint" class="com.emc.storageos.customconfigcontroller.IllegalCharsConstraint">
+        <property name="illegalCharsRegexMap">
+            <map>
+                <entry key="default" value="[^A-Za-z0-9_\-,/]"/>
+            </map>
+        </property>
+        <property name="description" value="Enter the Path for directories(comma separated) .Access zone directories are automatically included.Valid characters are letters, numbers ,comma,forward slash, dash @ and _"/>
+        <property name="replacementMap">
+            <map>
+                <entry key="default" value=""/>
+            </map>
+        </property>   
+        <property name="name" value="IllegalCharsConstraint"/> 
+    </bean> 
     
     <bean id="illegalFirstCharConstraint" class="com.emc.storageos.customconfigcontroller.IllegalFirstCharConstraint">
         <property name="illegalCharsRegexMap">
             <map>
-                <entry key="mds" value=" "/>
                 <entry key="default" value="[^A-Za-z]"/>
+                <entry key="mds" value=" "/>
+                <entry key="vplex" value="[^A-Za-z_]"/>
             </map>
         </property>
-        <property name="description" value="Valid first characters are letters for Brocade"/>
+        <property name="description" value="The default valid first characters are all upper and lower case letters."/>
         <property name="replacementMap">
             <map>
                 <entry key="mds" value=""/>
@@ -1254,9 +1508,10 @@
         <property name="maxLengthMap">
             <map>
                 <entry key="default" value="64"/>
+                <entry key="vplex" value="63"/>
             </map>
         </property>
-        <property name="description" value="The maximum length is 64 characters."/>
+        <property name="description" value="The default maximum length is 64 characters."/>
     	<property name="name" value="MaxLengthConstraint"/>
     </bean>
     

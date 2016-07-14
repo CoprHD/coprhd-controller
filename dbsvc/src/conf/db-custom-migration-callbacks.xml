@@ -119,6 +119,12 @@
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.VirtualNASMultipleProjectsAssociationMigration"/>
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.XtremioBlockSnapshotReplicationGroupInstanceMigration"/>
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.BlockSnapshotSessionMigration"/>
+                <bean class="com.emc.storageos.db.client.upgrade.callbacks.SRDFVolumesInCGMigration"/>
+            </list>
+        </entry>
+        <entry key="3.0">
+            <list>
+                <bean class="com.emc.storageos.db.client.upgrade.callbacks.SRDFVolumesInCGMigration"/>
             </list>
         </entry>
     </util:map>

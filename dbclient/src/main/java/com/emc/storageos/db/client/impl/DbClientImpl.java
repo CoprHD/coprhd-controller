@@ -27,6 +27,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
 import com.datastax.driver.core.ConsistencyLevel;
+
 import org.apache.cassandra.serializers.BooleanSerializer;
 import org.apache.cassandra.utils.UUIDGen;
 import org.apache.commons.lang.StringUtils;
@@ -40,6 +41,7 @@ import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.exceptions.DriverException;
+import com.datastax.driver.core.utils.UUIDs;
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.DbVersionInfo;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
@@ -89,7 +91,6 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.google.common.base.Joiner;
 import com.google.common.base.Objects;
 import com.netflix.astyanax.Keyspace;
-import com.netflix.astyanax.util.TimeUUIDUtils;
 
 /**
  * Default database client implementation
@@ -304,29 +305,8 @@ public class DbClientImpl implements DbClient {
         ctx.init(hostSupplier);
     }
 
-    /**
-     * returns the keyspace for the local context
-     * 
-     * @return
-     */
-    protected Keyspace getLocalKeyspace() {
-        return localContext.getKeyspace();
-    }
-
     protected Keyspace getGeoKeyspace() {
         return geoContext.getKeyspace();
-    }
-
-    /**
-     * returns either local or geo keyspace depending on class annotation of clazz,
-     * for query requests only
-     *
-     * @deprecated
-     * @param clazz
-     * @return
-     */
-    protected <T extends DataObject> Keyspace getKeyspace(Class<T> clazz) {
-        return getDbClientContext(clazz).getKeyspace();
     }
     
     protected Session getSession(DataObject dataObj) {
@@ -1335,7 +1315,7 @@ public class DbClientImpl implements DbClient {
         String rowId = type.getRowId();
         mutator.setWriteCL(ConsistencyLevel.ONE);
         for (T entry : data) {
-            mutator.insertTimeSeriesColumn(type.getCf().getName(), rowId, TimeUUIDUtils.getUniqueTimeUUIDinMillis(),
+            mutator.insertTimeSeriesColumn(type.getCf().getName(), rowId, UUIDs.timeBased(),
                     type.getSerializer().serialize(entry), type.getTtl());
         }
         mutator.execute();

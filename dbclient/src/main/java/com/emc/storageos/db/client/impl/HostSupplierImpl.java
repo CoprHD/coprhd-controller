@@ -11,7 +11,6 @@ import com.emc.storageos.coordinator.exceptions.RetryableCoordinatorException;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.Service;
 import com.google.common.base.Supplier;
-import com.netflix.astyanax.connectionpool.Host;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,7 +22,7 @@ import java.util.*;
  * Plugs into astyanax connection pool for host discovery. It's implemented using
  * coordinator db service information
  */
-public class HostSupplierImpl implements Supplier<List<Host>> {
+public class HostSupplierImpl implements Supplier<List<CassandraHost>> {
     private static final Logger _log = LoggerFactory.getLogger(HostSupplierImpl.class);
     private static final int SLEEP_BETWEEN_RETRY = 10000; // 10 sec
     private static final int NUM_RETRY_COUNT = 60; // total wait time 10 minutes
@@ -59,9 +58,9 @@ public class HostSupplierImpl implements Supplier<List<Host>> {
     }
     
     @Override
-    public List<Host> get() {
+    public List<CassandraHost> get() {
         int sleepDuration = SLEEP_BETWEEN_RETRY;
-        List<Host> hosts = null;
+        List<CassandraHost> hosts = null;
         for (int i = 1; i <= NUM_RETRY_COUNT; i++) {
             try {
                 hosts = internalGet();
@@ -83,12 +82,12 @@ public class HostSupplierImpl implements Supplier<List<Host>> {
         return hosts;
     }
 
-    public List<Host> internalGet() {
+    public List<CassandraHost> internalGet() {
         try {
             _log.debug("getting hosts for " + dbSvcName + "; version = " + _version);
             boolean isGeodb = Constants.GEODBSVC_NAME.equals(dbSvcName);
             List<Service> service = _coordinator.locateAllServices(dbSvcName, _version, (String) null, null);
-            List<Host> hostList = new ArrayList<Host>(service.size());
+            List<CassandraHost> hostList = new ArrayList<CassandraHost>(service.size());
 
             for (int i = 0; i < service.size(); i++) {
                 Service svc = service.get(i);
@@ -98,8 +97,7 @@ public class HostSupplierImpl implements Supplier<List<Host>> {
                 }
                 URI hostUri = svc.getEndpoint();
                 _log.debug("Found " + svc.getName() + "; host = " + hostUri.getHost() + "; port = " + hostUri.getPort());
-                hostList.add(new Host(String.format(
-                        "%1$s:%2$d", hostUri.getHost(), hostUri.getPort()), hostUri.getPort()));
+                hostList.add(new CassandraHost(hostUri.getHost(), hostUri.getPort()));
             }
             _log.debug("dbsvc endpoint refreshed");
             return hostList;

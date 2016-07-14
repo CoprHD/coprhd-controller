@@ -122,7 +122,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
     @Override
     public String addStepsForCreateFileSystems(Workflow workflow,
             String waitFor, List<FileDescriptor> filesystems, String taskId)
-            throws InternalException {
+                    throws InternalException {
 
         List<FileDescriptor> fileDescriptors = FileDescriptor.filterByType(filesystems,
                 new FileDescriptor.Type[] { FileDescriptor.Type.FILE_MIRROR_SOURCE,
@@ -146,7 +146,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
     @Override
     public String addStepsForDeleteFileSystems(Workflow workflow,
             String waitFor, List<FileDescriptor> filesystems, String taskId)
-            throws InternalException {
+                    throws InternalException {
         List<FileDescriptor> sourceDescriptors = FileDescriptor.filterByType(
                 filesystems, FileDescriptor.Type.FILE_MIRROR_SOURCE);
         if (sourceDescriptors.isEmpty()) {
@@ -163,7 +163,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
     @Override
     public String addStepsForExpandFileSystems(Workflow workflow,
             String waitFor, List<FileDescriptor> fileDescriptors, String taskId)
-            throws InternalException {
+                    throws InternalException {
         // TBD
         return null;
     }
@@ -870,6 +870,52 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
             if (null != completer) {
                 completer.error(dbClient, error);
             }
+        }
+    }
+
+    /**
+     * Common method used to create Controller methods that would be executed by workflow service
+     * 
+     * @param workflow
+     * @param stepGroup
+     * @param waitFor - String
+     * @param methodName - Name of the method to be executed
+     * @param stepId - String unique id of the step
+     * @param stepDescription - String description of the step
+     * @param storage - URI of the StorageSystem
+     * @param args - Parameters of the method that has to be executed by workflow
+     * @return waitForStep
+     */
+    public String createMethod(Workflow workflow, String stepGroup, String waitFor, String methodName, String stepId,
+            String stepDescription, URI storage, Object[] args) {
+        StorageSystem system = this.dbClient.queryObject(StorageSystem.class, storage);
+        Workflow.Method method = new Workflow.Method(methodName, args);
+        String waitForStep = workflow.createStep(stepGroup, stepDescription, waitFor, storage, system.getSystemType(), getClass(), method,
+                null, stepId);
+        return waitForStep;
+    }
+
+    /**
+     * Fail over Work flow Method
+     * 
+     * @param storage
+     * @param fileshareURI
+     * @param completer
+     * @param opId
+     */
+    public void failoverFileSystem(URI storage, URI fileshareURI, TaskCompleter completer, String opId) {
+        try {
+            StorageSystem system = this.dbClient.queryObject(StorageSystem.class, storage);
+            FileShare fileShare = this.dbClient.queryObject(FileShare.class, fileshareURI);
+            WorkflowStepCompleter.stepExecuting(opId);
+            log.info("Execution of Failover Job Started");
+            getRemoteMirrorDevice(system).doFailoverLink(system, fileShare, completer, fileShare.getLabel());
+        } catch (Exception e) {
+            ServiceError error = DeviceControllerException.errors.jobFailed(e);
+            if (null != completer) {
+                completer.error(this.dbClient, error);
+            }
+            WorkflowStepCompleter.stepFailed(opId, error);
         }
     }
 }

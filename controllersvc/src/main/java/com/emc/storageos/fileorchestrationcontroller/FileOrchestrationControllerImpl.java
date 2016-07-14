@@ -8,6 +8,7 @@ import java.net.URI;
 import java.util.List;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.file.CifsShareACLUpdateParams;
 import com.emc.storageos.model.file.FileExportUpdateParams;
@@ -81,6 +82,11 @@ public class FileOrchestrationControllerImpl implements FileOrchestrationControl
     @Override
     public void deleteExportRules(URI storage, URI uri, boolean allDirs, String subDirs, String taskId) throws ControllerException {
         execOrchestration("deleteExportRules", storage, uri, allDirs, subDirs, taskId);
+    }
+
+    @Override
+    public void fileSystemFailoverWorkflow(URI fsURI, StoragePort nfsPort, StoragePort cifsPort, String taskId) throws ControllerException {
+        execOrchestration("fileSystemFailoverWorkflow", fsURI, nfsPort, cifsPort, taskId);
     }
 
     // getter and setter methods

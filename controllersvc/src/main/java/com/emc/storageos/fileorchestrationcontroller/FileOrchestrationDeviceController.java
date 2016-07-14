@@ -6,6 +6,7 @@ package com.emc.storageos.fileorchestrationcontroller;
 
 import java.io.Serializable;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -16,7 +17,10 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.FileObject;
 import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.SMBShareMap;
 import com.emc.storageos.db.client.model.Snapshot;
+import com.emc.storageos.db.client.model.StoragePort;
+import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.filereplicationcontroller.FileReplicationDeviceController;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
@@ -40,13 +44,13 @@ import com.emc.storageos.workflow.WorkflowException;
 import com.emc.storageos.workflow.WorkflowService;
 
 public class FileOrchestrationDeviceController implements FileOrchestrationController, Controller {
-    private static final Logger s_logger = LoggerFactory.getLogger(FileOrchestrationDeviceController.class);
+    protected static final Logger s_logger = LoggerFactory.getLogger(FileOrchestrationDeviceController.class);
 
-    private static DbClient s_dbClient;
-    private WorkflowService _workflowService;
-    private static FileDeviceController _fileDeviceController;
-    private static FileReplicationDeviceController _fileReplicationDeviceController;
-    private ControllerLockingService _locker;
+    protected static DbClient s_dbClient;
+    protected WorkflowService _workflowService;
+    protected static FileDeviceController _fileDeviceController;
+    protected static FileReplicationDeviceController _fileReplicationDeviceController;
+    protected ControllerLockingService _locker;
 
     static final String CREATE_FILESYSTEMS_WF_NAME = "CREATE_FILESYSTEMS_WORKFLOW";
     static final String DELETE_FILESYSTEMS_WF_NAME = "DELETE_FILESYSTEMS_WORKFLOW";
@@ -60,13 +64,15 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     static final String CREATE_FILESYSTEM_SNAPSHOT_WF_NAME = "CREATE_FILESYSTEM_SNAPSHOT_WORKFLOW";
     static final String DELETE_FILESYSTEM_CIFS_SHARE_WF_NAME = "DELETE_FILESYSTEM_CIFS_SHARE_WORKFLOW";
     static final String DELETE_FILESYSTEM_EXPORT_RULES_WF_NAME = "DELETE_FILESYSTEM_EXPORT_RULES_WORKFLOW";
-    private static final String CREATE_FILESYSTEM_EXPORT_METHOD = "export";
-    private static final String CREATE_FILESYSTEM_SHARE_METHOD = "share";
-    private static final String UPDATE_FILESYSTEM_SHARE_ACLS_METHOD = "updateShareACLs";
-    private static final String UPDATE_FILESYSTEM_EXPORT_RULES_METHOD = "updateExportRules";
-    private static final String CREATE_FILESYSTEM_SNAPSHOT_METHOD = "snapshotFS";
-    private static final String DELETE_FILESYSTEM_SHARE_METHOD = "deleteShare";
-    private static final String DELETE_FILESYSTEM_EXPORT_RULES = "deleteExportRules";
+    static final String FAILOVER_FILESYSTEMS_WF_NAME = "FAILOVER_FILESYSTEM_WORKFLOW";
+    protected static final String CREATE_FILESYSTEM_EXPORT_METHOD = "export";
+    protected static final String CREATE_FILESYSTEM_SHARE_METHOD = "share";
+    protected static final String UPDATE_FILESYSTEM_SHARE_ACLS_METHOD = "updateShareACLs";
+    protected static final String UPDATE_FILESYSTEM_EXPORT_RULES_METHOD = "updateExportRules";
+    protected static final String CREATE_FILESYSTEM_SNAPSHOT_METHOD = "snapshotFS";
+    protected static final String DELETE_FILESYSTEM_SHARE_METHOD = "deleteShare";
+    protected static final String DELETE_FILESYSTEM_EXPORT_RULES = "deleteExportRules";
+    protected static final String FAILOVER_FILE_SYSTEM_METH = "failoverFileSystem";
 
     /*
      * (non-Javadoc)
@@ -566,5 +572,49 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             completer.error(s_dbClient, _locker, serviceError);
         }
 
+    }
+
+    @Override
+    public void fileSystemFailoverWorkflow(URI fsURI, StoragePort nfsPort, StoragePort cifsPort, String taskId) throws ControllerException {
+        FileWorkflowCompleter completer = null;
+        Workflow workflow = null;
+        try {
+            FileShare sourceFileShare = s_dbClient.queryObject(FileShare.class, fsURI);
+            List<String> targetfileUris = new ArrayList<String>();
+            targetfileUris.addAll(sourceFileShare.getMirrorfsTargets());
+            FileShare targetFileShare = s_dbClient.queryObject(FileShare.class, URI.create(targetfileUris.get(0)));
+            StorageSystem systemTarget = s_dbClient.queryObject(StorageSystem.class, targetFileShare.getStorageDevice());
+
+            completer = new FileWorkflowCompleter(fsURI, taskId);
+            workflow = this._workflowService.getNewWorkflow(this, FAILOVER_FILESYSTEMS_WF_NAME, false, taskId);
+
+            // Step1: Fail over to Target Cluster
+            String waitForFailover = FileFailoverOrchestration.failoverFileSystem(workflow, systemTarget.getId(), sourceFileShare,
+                    targetFileShare);
+
+            // Step2: Replicate CIFS share and ACLs to Target Cluster.
+            SMBShareMap smbShareMap = sourceFileShare.getSMBFileShares();
+            if (smbShareMap != null && cifsPort != null) {
+                String waitForShareStepGroup = FileFailoverOrchestration.replicateCIFSsharesToTarget(workflow, systemTarget.getId(),
+                        sourceFileShare, targetFileShare, smbShareMap, cifsPort, waitForFailover);
+            }
+
+            // Step3: Replicate NFS export to Target Cluster.
+            // FSExportMap nfsExportMap = sourceFileShare.getFsExports();
+            // if (nfsExportMap != null && nfsPort != null) {
+            // FileFailoverOrchestration.replicateNFSExportsToTarget(workflow, systemTarget.getId(), targetFileShare, nfsExportMap,
+            // nfsPort, waitForFailover);
+            // }
+
+            String successMessage = "Failover FileSystem successful for: " + sourceFileShare.getLabel();
+            workflow.executePlan(completer, successMessage);
+
+        } catch (Exception ex) {
+            s_logger.error("Could not failover filesystems: " + fsURI, ex);
+            String opName = ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILOVER.getName();
+            ServiceError serviceError = DeviceControllerException.errors.createFileSharesFailed(
+                    fsURI.toString(), opName, ex);
+            completer.error(s_dbClient, this._locker, serviceError);
+        }
     }
 }

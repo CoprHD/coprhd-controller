@@ -48,6 +48,7 @@ import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
+import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.event.EventBulkRep;
 import com.emc.storageos.model.event.EventCreateParam;
@@ -99,18 +100,20 @@ public class EventService extends TaggedResource {
     @POST
     @Path("/{id}/approve")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public TaskResourceRep approveEvent(@PathParam("id") URI id) throws DatabaseException {
+    public TaskList approveEvent(@PathParam("id") URI id) throws DatabaseException {
         ActionableEvent event = queryObject(ActionableEvent.class, id, false);
         // check the user permissions
         verifyAuthorizedInTenantOrg(event.getTenant(), getUserFromContext());
 
         try {
+            TaskList taskList = new TaskList();
             ActionableEvent.Method eventMethod = ActionableEvent.Method.deserialize(event.getMethod());
             Method m = getMethod(EventService.class, eventMethod.getOrchestrationMethod());
             TaskResourceRep result = (TaskResourceRep) m.invoke(this, eventMethod.getArgs());
             event.setEventStatus(ActionableEvent.Status.approved.name());
             _dbClient.updateObject(event);
-            return result;
+            taskList.addTask(result);
+            return taskList;
         } catch (SecurityException e) {
             _log.error(e.getMessage(), e.getStackTrace());
         } catch (IllegalAccessException e) {

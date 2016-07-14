@@ -14,6 +14,7 @@ import javax.ws.rs.core.UriBuilder;
 
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.NamedRelatedResourceRep;
+import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.event.EventBulkRep;
 import com.emc.storageos.model.event.EventCreateParam;
 import com.emc.storageos.model.event.EventList;
@@ -55,8 +56,8 @@ public class Events extends AbstractCoreBulkResources<EventRestRep>implements Te
         doDeactivate(id);
     }
 
-    public void approve(URI id) {
-        client.post(String.class, this.getIdUrl() + "/approve", id);
+    public TaskList approve(URI id) {
+        return client.post(TaskList.class, this.getIdUrl() + "/approve", id);
     }
 
     public void decline(URI id) {

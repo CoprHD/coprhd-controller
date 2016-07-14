@@ -33,7 +33,7 @@
 
 Usage()
 {
-    echo 'Usage: dutests.sh <sanity conf file path> [setup|delete] [vmax | vnx | vplex [local | distributed] | xtremio | unity]  [test1 test2 ...]'
+    echo 'Usage: dutests.sh <sanity conf file path> [setup|delete] [vmax2 | vmax3 | vnx | vplex [local | distributed] | xtremio | unity]  [test1 test2 ...]'
     echo ' [setup]: Run on a new ViPR database, creates SMIS, host, initiators, vpools, varray, volumes'
     echo ' [delete]: Will exports and volumes'
     exit 2
@@ -80,7 +80,7 @@ verify_export() {
         fi
     fi
 
-    if [ "$SS" = "vmax" -o "$SS" = "vnx" ]; then
+    if [ "$SS" = "vmax2" -o "$SS" = "vmax3" -o "$SS" = "vnx" ]; then
 	masking_view_name="${cluster_name_if_any}${host_name}_${SERIAL_NUMBER: -3}"
     elif [ "$SS" = "xio" ]; then
         masking_view_name=$host_name
@@ -100,7 +100,7 @@ verify_export() {
     fi
 
     # Why is this sleep here?  Please explain.  If it's specific to SMIS, please put in SMIS-specific block
-    if [ "${SS}" = "vmax" ]; then
+    if [ "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]; then
 	sleep 10
     fi
 
@@ -202,7 +202,7 @@ arrayhelper_volume_mask_operation() {
     pattern=$4
 
     case $SS in
-    vmax)
+    vmax2|vmax3)
          runcmd symhelper.sh $operation $serial_number $device_id $pattern
 	 ;;
     vnx)
@@ -231,7 +231,7 @@ arrayhelper_initiator_mask_operation() {
     pattern=$4
 
     case $SS in
-    vmax)
+    vmax2|vmax3)
          runcmd symhelper.sh $operation $serial_number $pwwn $pattern
 	 ;;
     vnx)
@@ -259,7 +259,7 @@ arrayhelper_delete_volume() {
     device_id=$3
 
     case $SS in
-    vmax)
+    vmax2|vmax3)
          runcmd symhelper.sh $operation $serial_number $device_id
 	 ;;
     vnx)
@@ -286,7 +286,7 @@ arrayhelper_verify_export() {
     shift 2
 
     case $SS in
-    vmax)
+    vmax2|vmax3)
          runcmd symhelper.sh $serial_number $masking_view_name $*
 	 ;;
     vnx)
@@ -576,7 +576,41 @@ unity_setup()
     runcmd cos update block $VPOOL_BASE --storage ${UNITY_NATIVEGUID}
 }
 
-vmax_setup() {
+vmax2_setup() {
+    SMISPASS=0
+    # do this only once
+    echo "Setting up SMIS for VMAX2"
+
+    runcmd smisprovider create VMAX2-PROVIDER $VMAX2_SMIS_IP $VMAX2_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX2_SMIS_SSL
+    runcmd storagedevice discover_all --ignore_error
+
+    runcmd storagepool update $VMAX2_NATIVEGUID --type block --volume_type THIN_ONLY
+    runcmd storagepool update $VMAX2_NATIVEGUID --type block --volume_type THICK_ONLY
+
+    setup_varray
+
+    runcmd storagepool update $VMAX2_NATIVEGUID --nhadd $NH --type block
+    runcmd storageport update $VMAX2_NATIVEGUID FC --tzone $NH/$FC_ZONE_A
+
+    common_setup
+
+    seed=`date "+%H%M%S%N"`
+    runcmd storageport update ${VMAX2_NATIVEGUID} FC --tzone $NH/$FC_ZONE_A
+        
+    SERIAL_NUMBER=`storagedevice list | grep COMPLETE | awk '{print $2}' | awk -F+ '{print $2}'`
+    
+    runcmd cos create block ${VPOOL_BASE}	\
+	--description Base true                 \
+	--protocols FC 			                \
+	--numpaths 1				            \
+	--provisionType 'Thin'			        \
+	--max_snapshots 10                      \
+	--neighborhoods $NH                    
+
+    runcmd cos update block $VPOOL_BASE --storage ${VMAX2_NATIVEGUID}
+}
+
+vmax3_setup() {
     SMISPASS=0
     # do this only once
     echo "Setting up SMIS for VMAX3"
@@ -787,7 +821,7 @@ setup() {
     # Increase allocation percentage
     syssvc $SANITY_CONFIG_FILE localhost set_prop controller_max_thin_pool_subscription_percentage 600
 
-    if [ "${SS}" = "vmax" ]; then
+    if [ "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]; then
         which symhelper.sh
         if [ $? -ne 0 ]; then
             echo Could not find symhelper.sh path. Please add the directory where the script exists to the path
@@ -805,6 +839,11 @@ setup() {
         if [ $symapi_entry -ne 0 ]; then
             sed -e "/SYMAPI_SERVER/d" -i /usr/emc/API/symapi/config/netcnfg
         fi    
+
+	if [ "${SS}" = "vmax2" ]; then
+	    VMAX_SMIS_IP=${VMAX2_SMIS_IP}
+	fi
+
         echo "SYMAPI_SERVER - TCPIP  $VMAX_SMIS_IP - 2707 ANY" >> /usr/emc/API/symapi/config/netcnfg
         echo "Added entry into /usr/emc/API/symapi/config/netcnfg"
 
@@ -861,7 +900,6 @@ test_0() {
     echot "Test 0 Begins"
     reset_system_props
     expname=${EXPORT_GROUP_NAME}t0
-    set_suspend_on_class_method "none"
     verify_export ${expname}1 ${HOST1} gone
     verify_export ${expname}2 ${HOST2} gone
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
@@ -2227,7 +2265,7 @@ SS=${1}
 shift
 
 case $SS in
-    vmax|vnx|xio|unity)
+    vmax2|vmax3|vnx|xio|unity)
     ;;
     vplex)
         # set local or distributed mode

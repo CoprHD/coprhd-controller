@@ -1342,7 +1342,7 @@ public class MDSDialog extends SSHDialog {
      * @throws NetworkDeviceControllerException
      */
     public void waitForZoneCommit(Integer vsanId) throws NetworkDeviceControllerException {
-        _log.info(MessageFormat.format("Host: {0}, Port: {1} -BEGIN waitForZoneCommit",
+        _log.info(MessageFormat.format("Host: {0}, Port: {1} - BEGIN waitForZoneCommit",
                 new Object[] { getSession().getSession().getHost(), getSession().getSession().getPort() }));
 
         SSHPrompt[] prompts = { SSHPrompt.MDS_POUND, SSHPrompt.MDS_CONFIG };
@@ -1388,7 +1388,7 @@ public class MDSDialog extends SSHDialog {
             }
         }
 
-        _log.info(MessageFormat.format("Host: {0}, Port: {1} -END waitForZoneCommit",
+        _log.info(MessageFormat.format("Host: {0}, Port: {1} - END waitForZoneCommit",
                 new Object[] { getSession().getSession().getHost(), getSession().getSession().getPort() }));
     }
 
@@ -1398,7 +1398,7 @@ public class MDSDialog extends SSHDialog {
      * @throws NetworkDeviceControllerException
      */
     public void copyRunningConfigToStartup() throws NetworkDeviceControllerException {
-        _log.info(MessageFormat.format("Host: {0}, Port: {1} -BEGIN copyRunningConfigToStartup",
+        _log.info(MessageFormat.format("Host: {0}, Port: {1} - BEGIN copyRunningConfigToStartup",
                 new Object[] { getSession().getSession().getHost(), getSession().getSession().getPort() }));
 
         if (!inConfigMode) {
@@ -1414,7 +1414,7 @@ public class MDSDialog extends SSHDialog {
         lastPrompt = sendWaitFor(payload, defaultTimeout, prompts, buf);
         String[] lines = getLines(buf);
 
-        _log.info(MessageFormat.format("Host: {0}, Port: {1} -END copyRunningConfigToStartup",
+        _log.info(MessageFormat.format("Host: {0}, Port: {1} - END copyRunningConfigToStartup",
                 new Object[] { getSession().getSession().getHost(), getSession().getSession().getPort() }));
 
     }
@@ -1508,7 +1508,7 @@ public class MDSDialog extends SSHDialog {
      * @throws NetworkDeviceControllerException
      */
     public void copyRunningConfigToStartupFabric() throws NetworkDeviceControllerException {
-        _log.info(MessageFormat.format("Host: {0}, Port: {1} -BEGIN copyRunningConfigToStartupFabric",
+        _log.info(MessageFormat.format("Host: {0}, Port: {1} - BEGIN copyRunningConfigToStartupFabric",
                 new Object[] { getSession().getSession().getHost(), getSession().getSession().getPort() }));
 
         if (!inConfigMode) {
@@ -1548,7 +1548,7 @@ public class MDSDialog extends SSHDialog {
             }
         }
 
-        _log.info(MessageFormat.format("Host: {0}, Port: {1} -END copyRunningConfigToStartupFabric",
+        _log.info(MessageFormat.format("Host: {0}, Port: {1} - END copyRunningConfigToStartupFabric",
                 new Object[] { getSession().getSession().getHost(), getSession().getSession().getPort() }));
     }
 
@@ -1633,7 +1633,7 @@ public class MDSDialog extends SSHDialog {
      */
     private void ivrZoneName(boolean isZoneset, String zoneName, boolean isActivate, boolean isRemove)
             throws NetworkDeviceControllerException {
-        _log.info(MessageFormat.format("Host: {0}, Port: {1} -BEGIN Configure {2}: {3} - Remove {4}",
+        _log.info(MessageFormat.format("Host: {0}, Port: {1} - BEGIN Configure {2}: {3} - Remove {4}",
                 new Object[] { getSession().getSession().getHost(), getSession().getSession().getPort(), isZoneset ? "zoneset" : "zone",
                         zoneName, isRemove }));
 
@@ -1703,7 +1703,7 @@ public class MDSDialog extends SSHDialog {
             throw new NetworkDeviceControllerException(errorMessage + ": " + zoneName);
         }
 
-        _log.info(MessageFormat.format("Host: {0}, Port: {1} -END Configure {2}: {3} - Remove {4}",
+        _log.info(MessageFormat.format("Host: {0}, Port: {1} - END Configure {2}: {3} - Remove {4}",
                 new Object[] { getSession().getSession().getHost(), getSession().getSession().getPort(), isZoneset ? "zoneset" : "zone",
                         zoneName, isRemove }));
     }
@@ -1810,7 +1810,7 @@ public class MDSDialog extends SSHDialog {
      * @throws NetworkDeviceControllerException
      */
     public void ivrCommit() throws NetworkDeviceControllerException {
-        _log.info(MessageFormat.format("Host: {0}, Port: {1} -BEGIN ivrCommit",
+        _log.info(MessageFormat.format("Host: {0}, Port: {1} - BEGIN ivrCommit",
                 new Object[] { getSession().getSession().getHost(), getSession().getSession().getPort() }));
 
         SSHPrompt[] prompts = { SSHPrompt.MDS_CONFIG, SSHPrompt.MDS_CONFIG_IVR_ZONE, SSHPrompt.MDS_CONFIG_IVR_ZONESET };
@@ -1826,7 +1826,7 @@ public class MDSDialog extends SSHDialog {
         lastPrompt = sendWaitFor(payload, defaultTimeout, prompts, buf);
         inSession = false;
 
-        _log.info(MessageFormat.format("Host: {0}, Port: {1} -END ivrCommit",
+        _log.info(MessageFormat.format("Host: {0}, Port: {1} - END ivrCommit",
                 new Object[] { getSession().getSession().getHost(), getSession().getSession().getPort() }));
 
     }
@@ -1837,7 +1837,7 @@ public class MDSDialog extends SSHDialog {
      * @throws NetworkDeviceControllerException
      */
     public void waitForIvrZonesetActivate() throws NetworkDeviceControllerException {
-        _log.info(MessageFormat.format("Host: {0}, Port: {1} -BEGIN waitForIvrZonesetActivate",
+        _log.info(MessageFormat.format("Host: {0}, Port: {1} - BEGIN waitForIvrZonesetActivate",
                 new Object[] { getSession().getSession().getHost(), getSession().getSession().getPort() }));
 
         _log.info("Waiting for ivr zoneset to activate");

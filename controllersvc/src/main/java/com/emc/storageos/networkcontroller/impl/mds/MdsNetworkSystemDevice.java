@@ -36,10 +36,6 @@ import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.google.common.collect.Sets;
 
-/**
- * @author sreekb
- *
- */
 public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements NetworkSystemDevice {
     private static final Logger _log = LoggerFactory.getLogger(MdsNetworkSystemDevice.class);
     private static final String MDS_ROUTED_INDICATOR = "Virtual Device";
@@ -388,6 +384,7 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
                 }
             }
             
+            //If there was any changes to the zones, do a clone of the zoneset.
             if (doZonesetClone) {
             	zonesetClone(dialog, vsanId, activeZoneset);
             }

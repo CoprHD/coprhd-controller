@@ -131,7 +131,8 @@ public class ActionableEvent extends DataObject implements TenantResource {
         setChanged("resource");
     }
 
-    @Name("status")
+    @Name("eventStatus")
+    @AggregatedIndex(cf = "AggregatedIndex", groupBy = "tenant")
     public String getStatus() {
         return status;
     }

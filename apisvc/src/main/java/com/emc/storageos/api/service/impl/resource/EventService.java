@@ -35,6 +35,9 @@ import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.computesystemcontroller.ComputeSystemController;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.constraint.AggregatedConstraint;
+import com.emc.storageos.db.client.constraint.AggregationQueryResultList;
+import com.emc.storageos.db.client.constraint.Constraint;
 import com.emc.storageos.db.client.model.ActionableEvent;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Host;
@@ -50,6 +53,7 @@ import com.emc.storageos.model.event.EventBulkRep;
 import com.emc.storageos.model.event.EventCreateParam;
 import com.emc.storageos.model.event.EventList;
 import com.emc.storageos.model.host.EventRestRep;
+import com.emc.storageos.model.tasks.EventStatsRestRep;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.CheckPermission;
@@ -64,6 +68,7 @@ public class EventService extends TaggedResource {
     protected final static Logger _log = LoggerFactory.getLogger(EventService.class);
 
     private static final String EVENT_SERVICE_TYPE = "event";
+    private static final String TENANT_QUERY_PARAM = "tenant";
 
     @Override
     public String getServiceType() {
@@ -240,6 +245,36 @@ public class EventService extends TaggedResource {
         EventList list = new EventList();
         list.setEvents(DbObjectMapper.map(ResourceTypeEnum.EVENT, listChildren(tenantId, ActionableEvent.class, "label", "tenant")));
         return list;
+    }
+
+    @GET
+    @Path("/stats")
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    public EventStatsRestRep getStats(@QueryParam(TENANT_QUERY_PARAM) URI tenantId) {
+        verifyAuthorizedInTenantOrg(tenantId, getUserFromContext());
+
+        int approved = 0;
+        int declined = 0;
+        int pending = 0;
+        Constraint constraint = AggregatedConstraint.Factory.getAggregationConstraint(ActionableEvent.class, "tenant",
+                tenantId.toString(), "eventStatus");
+        AggregationQueryResultList queryResults = new AggregationQueryResultList();
+
+        _dbClient.queryByConstraint(constraint, queryResults);
+
+        Iterator<AggregationQueryResultList.AggregatedEntry> it = queryResults.iterator();
+        while (it.hasNext()) {
+            AggregationQueryResultList.AggregatedEntry entry = it.next();
+            if (entry.getValue().equals(ActionableEvent.Status.approved.name())) {
+                approved++;
+            } else if (entry.getValue().equals(ActionableEvent.Status.declined.name())) {
+                declined++;
+            } else {
+                pending++;
+            }
+        }
+
+        return new EventStatsRestRep(pending, approved, declined);
     }
 
     public static EventRestRep map(ActionableEvent from) {

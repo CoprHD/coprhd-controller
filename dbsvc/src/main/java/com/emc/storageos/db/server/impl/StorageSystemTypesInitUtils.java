@@ -198,7 +198,7 @@ public class StorageSystemTypesInitUtils {
      */
     private boolean alreadyExists(StorageSystemType type) {
         if (existingTypes.containsKey(type.getStorageTypeName())) {
-            StorageSystemType existingType = existingTypes.get(type);
+            StorageSystemType existingType = existingTypes.get(type.getStorageTypeName());
             if (existingType.equals(type)) {
                 return true;
             } else {

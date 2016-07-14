@@ -3210,6 +3210,11 @@ resources.noprojects=There are no projects configured.  Please try with filter b
 resources.noprojectsapplications=There are no projects nor applications configured.  No data will be displayed on this page until a project or an application is added.
 resources.noapplications=There are no applications configured.  Please try with filter by Projects.
 
+resources.events=Events
+resources.events.approved=Approved
+resources.events.pending=Pending
+resources.events.declined=Declined
+
 resources.tasks=Tasks
 resources.task=Task Details
 resources.tasks.description=Description

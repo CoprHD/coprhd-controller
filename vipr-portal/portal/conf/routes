@@ -86,6 +86,14 @@ GET   /tasks/updatedTasks                        Tasks.getUpdatedTasks
 GET   /tasks/detailsJson                         Tasks.detailsJson
 GET   /tasks/countSummary                        Tasks.getCountSummary
 
+GET   /events/all								  Events.listAll
+GET   /events/activeCount                         Events.getActiveCount
+GET   /events/recentTasks                         Events.getRecentTasks
+GET   /events/updatedTasks                        Events.getUpdatedTasks
+GET   /events/detailsJson                         Events.detailsJson
+GET   /events/countSummary                        Events.getCountSummary
+
+
 ## Infrastructure UI
 
 GET     /storagesystems/edit/{id}                arrays.StorageSystems.edit

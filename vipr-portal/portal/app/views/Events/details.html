@@ -1,0 +1,185 @@
+#{extends 'main.html' /}
+
+#{set navSelected: ['nav.storage', 'nav.tasks'] /}
+#{set 'title'}&{'resources.task'}#{/set}
+
+
+#{breadcrumb.container}
+  #{breadcrumb.item @listAll(task?.tenant == null)}&{'resources.tasks'}#{/breadcrumb.item}
+  #{breadcrumb.item active:true}#{get 'title'/}#{/breadcrumb.item}
+#{/breadcrumb.container}
+
+<style>
+.btn {
+margin-bottom: 5px;
+}
+</style>
+<script>
+    var taskDetails = ${taskSummaryJson.raw()}
+</script>
+
+<div class="clear"/>
+#{alerts disappear:true/}
+<div id="taskDetails" class="tasks-container" style="margin-bottom: 2em;" ng-controller="taskDetailsCtrl">
+  #{if task}
+  
+    <div class="form-header">
+      <div class="description">
+        <h2>#{icon 'tasks'/} &{'tasks.task'} {{task.name | titleCase}}</h2>
+      </div>
+      <div style="clear:both"></div>
+    </div>  
+    
+    <div class="pull-right">
+
+          <a class="btn btn-danger" href="@{deleteEvent(task.id)}"><span class="glyphicon glyphicon-trash"></span> &{'resources.tasks.deleteTask'}</a><br/>
+          <a class="btn" href="@{approveEvent(task.id)}"><span class="glyphicon glyphicon-trash"></span> &{'resources.tasks.approveEvent'}</a><br/>
+          <a class="btn" href="@{declineEvent(task.id)}"><span class="glyphicon glyphicon-trash"></span> &{'resources.tasks.declineEvent'}</a><br/>
+
+    </div>
+    
+    <dl class="dl-horizontal smallColumn">
+    
+      <dt>&{'tasks.id'}:</dt>
+      <dd>{{task.id}}&nbsp;</dd>
+
+      <dt>&{'tasks.name'}:</dt>
+      <dd>{{task.name}}&nbsp;</dd>
+
+      <dt>&{'tasks.resource'}:</dt>
+      <dd><v-resource-link id="{{task.resourceId}}">{{task.resourceName}}</v-resource-link>&nbsp;</dd>
+
+      <dt ng-show="task.message">&{'tasks.message'}:</dt>
+      <dd ng-show="task.message">{{task.message}}&nbsp;</dd>
+
+      <dt>&{'tasks.start'}:</dt>
+      <dd id="start">{{getLocalDateTime($('#start'),task.startDate)}}&nbsp;</dd>
+
+      <span ng-show="task.endDate">
+      <dt>&{'tasks.created'}:</dt>
+      <dd id="end">{{getLocalDateTime($('#end'),task.created)}}&nbsp;</dd>
+      </span>
+
+      <dt>&{'tasks.elapsed'}:</dt>
+      <dd>{{task.elapsedTime | timeAgoInWords}}&nbsp;</dd>
+
+      <span ng-show="task.queueName">
+        <dt>&{'tasks.queueName'}:</dt>
+        <dd>{{task.queueName}}&nbsp;</dd>
+
+        <dt>&{'tasks.queuedElapsed'}:</dt>
+        <dd>{{task.queuedElapsedTime | timeAgoInWords}}&nbsp;</dd>
+      </span>
+
+      <span ng-if="task.workflowId">
+          <dt>&{'tasks.workflowId'}:</dt>
+          <dd>{{task.workflowId}}&nbsp;</dd>
+      </span>
+
+      <span ng-show="task.orderId">
+        <dt>&{'tasks.orderId'}:</dt>
+        <dd><a ng-click="viewOrder();" href="#"><span ng-show="task.orderNumber">{{task.orderNumber}}</span><span ng-hide="task.orderNumber">&{'tasks.viewOrder'}</span></a></dd>
+      </span>
+    </dl>
+    
+   <div class="alert alert-danger" ng-show="task.isError">
+    <span style="font-weight: bold;">Error {{task.serviceCode_error}}:  {{task.serviceCode_errorDesc}}</span>
+    <br/>
+    {{task.serviceCode_message}}<br/>
+   </div>
+    
+  #{/if}
+  #{else}
+    <p id="alerts_info" class="alert alert-danger">
+        &{'tasks.notfound',taskId}
+    </p>
+  #{/else}
+</div>
+
+#{set 'moreScripts'}
+#{get 'moreScripts' /}
+<script type="text/javascript">
+function renderTime(o, val) {
+  var time_ms = o.aData.timeMillis;
+  if (time_ms) {
+	  return render.localDate(o,time_ms)
+  }
+  return "";
+}
+
+function renderSeverity(o, val) {
+  var severity = o.aData.severity;
+  if (severity) {
+    severity = severity.toUpperCase();
+    subClass = ""
+	if ("FATAL" == severity) {
+      subClass = "label-danger"
+	}
+	else if ("EMERG" == severity) {
+	  subClass = "label-danger"
+	}
+	else if ("ALERT" == severity) {
+	  subClass = "label-danger"
+	}
+	else if ("CRIT" == severity) {
+	  subClass = "label-danger"
+	}
+	else if ("ERROR" == severity) {
+	  subClass = "label-danger"
+	}
+	else if ("WARN" == severity) {
+	  subClass = "label-warning"
+	}
+	else if ("NOTICE" == severity) {
+	  subClass = "label-warning"
+	}				
+	else if ("INFO" == severity) {
+	  subClass = "label-info"
+	}
+	else if ("DEBUG" == severity) {
+	  subClass = ""
+	}
+	else if ("TRACE" == severity) {
+	  subClass = ""
+	}				
+	else {
+	  subClass = "label-inverse"
+	}   
+	
+	return "<div style='width:50px' class='text-center label " + subClass + "'>" + severity + "</div>"
+  }
+}
+
+function renderMessage(o, val) {
+  var message = o.aData.message;
+  if (message) {
+    return "<div class='log-message'>" + escapeHTML(message) + "</div>";
+  }
+  return ""; 
+}
+
+function renderDetails(data) {
+  var details = "<dl class='dl-horizontal'><dt>&{'system.logs.nodeId'}</dt><dd>" + data.node_id + "</dd>";
+
+  details += "<dt>&{'system.logs.nodeName'}</dt><dd>" + data.node_name + "</dd>";
+  
+  if (data["thread"]) {
+	details += "<dt>&{'system.logs.thread'}</dt><dd>" + data.thread + "</dd>";
+  }
+  if (data["class"]) {
+    details += "<dt>&{'system.logs.class'}</dt><dd>" + data["clazz"] + ":" + data.line + "</dd></dl>";
+  }
+  details += "<pre style='margin:15px;'>" + escapeHTML(data["message"]) + "</pre>";
+  return details;
+}
+  
+function escapeHTML(s) {
+  if (s) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+  return "";
+}  
+
+</script>
+
+#{/set}

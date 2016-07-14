@@ -4346,6 +4346,62 @@ public class SmisCommandHelper implements SmisConstants {
         }
     }
 
+    /**
+     * FIXME
+     * This method is a temporary alternative to the one below and
+     * removes the initial waiting time (~3 minutes) before refreshing.
+     *
+     * The wait time is deemed unnecessary because the Provider will attempt
+     * to consolidate its sync requests.
+     *
+     * Still, there appears to be a requirement for waiting an arbitrary amount of
+     * time *after* the refresh call in order for subsequent associator calls to
+     * get correct data.
+     *
+     * @param storage
+     * @return
+     * @throws WBEMException
+     */
+    public Object callRefreshSystem(StorageSystem storage) throws WBEMException {
+        Object result = null;
+        String lockKey = String.format("callRefreshSystem-%s",
+                storage.getId().toString());
+
+        try {
+            if (_locker.acquireLock(lockKey, MAX_REFRESH_LOCK_WAIT_TIME)) {
+                CIMObjectPath seSystemRegistrationSvc = getRegistrationService(storage);
+                UnsignedInteger32[] syncType = new UnsignedInteger32[] {
+                        new UnsignedInteger32(REPLICATION_DATA_SYNC_TYPE),
+                        new UnsignedInteger32(DEVICES_SYNC_TYPE),
+                        new UnsignedInteger32(MASKING_SYNC_TYPE)
+                };
+                CIMObjectPath[] systems = new CIMObjectPath[] {
+                        _cimPath.getStorageSystem(storage)
+                };
+                CIMArgument[] refreshArgs = new CIMArgument[] {
+                        _cimArgument.uint32Array(CP_SYNC_TYPE, syncType),
+                        _cimArgument.referenceArray(CP_SYSTEMS, systems)
+                };
+                CIMArgument[] outArgs = new CIMArgument[5];
+                result = invokeMethod(storage, seSystemRegistrationSvc,
+                        EMC_REFRESH_SYSTEM, refreshArgs, outArgs);
+                long currentMillis = Calendar.getInstance().getTimeInMillis();
+                storage.setLastRefresh(currentMillis);
+                _dbClient.updateObject(storage);
+
+                pauseThread(30000);
+
+                _log.info(String.format("Did EMCRefresh against StorageSystem %s. " +
+                                "Last refresh set to %d", storage.getNativeGuid(),
+                        currentMillis));
+            }
+        } finally {
+            _locker.releaseLock(lockKey);
+        }
+
+        return result;
+    }
+
     public Object callRefreshSystem(StorageSystem storage,
             SimpleFunction toCallAfterRefresh)
                     throws WBEMException {

@@ -55,12 +55,9 @@ public class VmaxSystemValidatorFactory implements StorageSystemValidatorFactory
                                       Collection<URI> volumeURIList,
                                       Collection<Initiator> initiatorList) {
         AbstractVmaxValidator volumes = new ExportMaskVolumesValidator(storage, exportMask, volumeURIList);
-        volumes.setFactory(this);
-        volumes.setLogger(new ValidatorLogger());
-
         AbstractVmaxValidator initiators = new InitiatorsValidator(storage, exportMask.getId(), initiatorList);
-        initiators.setFactory(this);
-        initiators.setLogger(new ValidatorLogger());
+
+        configureValidators(volumes, initiators);
 
         ChainingValidator chain = new ChainingValidator();
         chain.addValidator(volumes);
@@ -73,13 +70,34 @@ public class VmaxSystemValidatorFactory implements StorageSystemValidatorFactory
     public Validator removeVolumes(StorageSystem storage, URI exportMaskURI,
                                    Collection<Initiator> initiators) {
         AbstractVmaxValidator validator = new InitiatorsValidator(storage, exportMaskURI, initiators);
-        validator.setFactory(this);
+        configureValidators(validator);
+
         return validator;
     }
 
     @Override
+    public Validator removeInitiators(StorageSystem storage, ExportMask exportMask, Collection<URI> volumeURIList) {
+        AbstractVmaxValidator volumes = new ExportMaskVolumesValidator(storage, exportMask, volumeURIList);
+        configureValidators(volumes);
+
+        return volumes;
+    }
+
+    @Override
     public List<Volume> volumes(StorageSystem storageSystem, List<Volume> volumes, boolean delete, boolean remediate,
-                                StringBuilder msgs, ValCk[] checks) {
+                                 ValCk[] checks) {
         return null;
+    }
+
+    /**
+     * Common configuration for VMAX validators to keep things DRY.
+     *
+     * @param validators
+     */
+    private void configureValidators(AbstractVmaxValidator... validators) {
+        for (AbstractVmaxValidator validator : validators) {
+            validator.setFactory(this);
+            validator.setLogger(new ValidatorLogger());
+        }
     }
 }

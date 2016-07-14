@@ -15,8 +15,10 @@ import java.net.URI;
 import java.util.Collection;
 import java.util.List;
 
+import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnInitiatorToPortName;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CP_INSTANCE_ID;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CP_SE_STORAGE_HARDWARE_ID;
+import static com.google.common.collect.Collections2.transform;
 
 /**
  * Vmax validator for validating there are no additional initiators in the export mask
@@ -42,26 +44,27 @@ public class InitiatorsValidator extends AbstractVmaxValidator {
 
         ExportMask exportMask = getDbClient().queryObject(ExportMask.class, exportMaskURI);
         CIMObjectPath maskingViewPath = getCimPath().getMaskingViewPath(storage, exportMask.getMaskName());
+        Collection<String> iniPorts = transform(initiators, fctnInitiatorToPortName());
 
-        log.info("ViPR has initiators: {}", Joiner.on(',').join(initiators));
+        log.info("ViPR has initiators: {}", Joiner.on(',').join(iniPorts));
         CloseableIterator<CIMObjectPath> assocInitiators = null;
 
         try {
-            getHelper().callRefreshSystem(storage, null, true);
+            getHelper().callRefreshSystem(storage);
             assocInitiators = getHelper().getAssociatorNames(storage, maskingViewPath, null, CP_SE_STORAGE_HARDWARE_ID, null, null);
 
             List<String> smisInitiators = Lists.newArrayList();
             while (assocInitiators.hasNext()) {
                 CIMObjectPath assocInitiator = assocInitiators.next();
                 String id = (String) assocInitiator.getKeyValue(CP_INSTANCE_ID);
-                smisInitiators.add(id);
+                smisInitiators.add(normalizePort(id));
             }
 
             log.info("{} has initiators: {}", storage.getSerialNumber(), Joiner.on(',').join(smisInitiators));
-            if (smisInitiators.size() > initiators.size()) {
+            if (smisInitiators.size() > iniPorts.size()) {
                 String smisJoined = Joiner.on(',').join(smisInitiators);
                 getLogger().logDiff(exportMask.getId().toString(), "initiators",
-                        Joiner.on(',').join(initiators), smisJoined);
+                        Joiner.on(',').join(iniPorts), smisJoined);
                 throw new RuntimeException("Unknown additional initiators were found: " + smisJoined);
             }
         } catch (WBEMException e) {
@@ -78,5 +81,9 @@ public class InitiatorsValidator extends AbstractVmaxValidator {
         }
 
         return true;
+    }
+
+    private String normalizePort(String smisPort) {
+        return smisPort.replace("W-+-", "");
     }
 }

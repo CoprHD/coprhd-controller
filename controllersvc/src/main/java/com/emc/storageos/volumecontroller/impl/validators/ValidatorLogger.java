@@ -12,14 +12,6 @@ public class ValidatorLogger {
     public ValidatorLogger() {
     }
 
-    public ValidatorLogger(Logger log) {
-        this.log = log;
-    }
-
-    public void setLog(Logger log) {
-        this.log = log;
-    }
-
     /**
      * Log a discrepency in the data.
      * @param id -- Identity of the domain object
@@ -31,5 +23,21 @@ public class ValidatorLogger {
         String msg = String.format("id: %s field: %s db: %s hw: %s", id, field, db, hw);
         msgs.append(msg + "\n");
         log.info(msg);
+    } 
+    
+    public ValidatorLogger(Logger log) {
+        this.log = log;
+    }
+
+    public void setLog(Logger log) {
+        this.log = log;
+    }
+
+    public StringBuilder getMsgs() {
+        return msgs;
+    }
+    
+    public boolean hasErrors() {
+        return msgs.length() > 0;
     }
 }

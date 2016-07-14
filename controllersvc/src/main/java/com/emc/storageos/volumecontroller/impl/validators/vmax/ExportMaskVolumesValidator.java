@@ -30,13 +30,13 @@ public class ExportMaskVolumesValidator extends AbstractVmaxValidator {
 
     private StorageSystem storage;
     private ExportMask exportMask;
-    private Collection<URI> volumeURIs;
+    private Collection<URI> expectedVolumeURIs;
 
     public ExportMaskVolumesValidator(StorageSystem storage, ExportMask exportMask,
-                                      Collection<URI> volumeURIList) {
+                                      Collection<URI> expectedVolumeURIs) {
         this.storage = storage;
         this.exportMask = exportMask;
-        this.volumeURIs = volumeURIList;
+        this.expectedVolumeURIs = expectedVolumeURIs;
     }
 
     @Override
@@ -46,9 +46,9 @@ public class ExportMaskVolumesValidator extends AbstractVmaxValidator {
         List<String> failureReasons = Lists.newArrayList();
 
         getLogger().setLog(log);
-        getHelper().callRefreshSystem(storage, null, true);
+        getHelper().callRefreshSystem(storage);
 
-        List<Volume> volumes = getDbClient().queryObject(Volume.class, volumeURIs);
+        List<Volume> volumes = queryExpectedVolumes();
         Collection<String> viprIds = transform(volumes, fctnBlockObjectToNativeID());
         log.info("ViPR has volumes: {}", Joiner.on(",").join(viprIds));
         CloseableIterator<CIMObjectPath> associatedVolumes = null;
@@ -89,5 +89,12 @@ public class ExportMaskVolumesValidator extends AbstractVmaxValidator {
         }
 
         return true;
+    }
+
+    private List<Volume> queryExpectedVolumes() {
+        if (expectedVolumeURIs == null || expectedVolumeURIs.isEmpty()) {
+            return Lists.newArrayList();
+        }
+        return getDbClient().queryObject(Volume.class, expectedVolumeURIs);
     }
 }

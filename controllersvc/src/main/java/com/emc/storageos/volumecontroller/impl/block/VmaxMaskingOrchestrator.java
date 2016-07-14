@@ -737,8 +737,9 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
                     ExportMaskRemoveInitiatorCompleter exportTaskCompleter = new ExportMaskRemoveInitiatorCompleter(exportGroupURI,
                             mask.getId(), initiatorsToRemove, null);
+                    List<URI> volumeURIs = ExportMaskUtils.getVolumeURIs(mask);
                     previousStep = generateExportMaskRemoveInitiatorsWorkflow(workflow, previousStep, storage,
-                            exportGroup, mask, null, initiatorsToRemoveOnStorage, true, exportTaskCompleter);
+                            exportGroup, mask, volumeURIs, initiatorsToRemoveOnStorage, true, exportTaskCompleter);
                     anyOperationsToDo = true;
                 }
 

@@ -39,6 +39,7 @@ public class SAMLUtil {
 
     //private static String IDP = "lglw9040.lss.emc.com";
     private static String IDP = "lglou242.lss.emc.com";
+    private static String LOCALHOST = "lglw1104.lss.emc.com";
 
     static String arsUrl = "http://" + IDP + ":8080/openam/ArtifactResolver/metaAlias/idp";
     private static final Logger _log = LoggerFactory.getLogger(SAMLUtil.class);
@@ -95,7 +96,7 @@ public class SAMLUtil {
         ArtifactResolve artifactResolve = SAMLUtil.buildSAMLObjectWithDefaultName(ArtifactResolve.class);
 
         Issuer issuer = SAMLUtil.buildSAMLObjectWithDefaultName(Issuer.class);
-        issuer.setValue("http://lglw1102.lss.emc.com"); // todo configurable
+        issuer.setValue("http://" + LOCALHOST); // todo configurable
         artifactResolve.setIssuer(issuer);
         artifactResolve.setIssueInstant(new DateTime());
 
@@ -154,7 +155,7 @@ public class SAMLUtil {
             // create Issuer
             IssuerBuilder issuerBuilder = new IssuerBuilder();
             Issuer issuer = issuerBuilder.buildObject("urn:oasis:names:tc:SAML:2.0:assertion", "Issuer", "saml" );
-            issuer.setValue("http://lglw1102.lss.emc.com");
+            issuer.setValue("http://" + LOCALHOST);
 
             //Create NameIDPolicy
             NameIDPolicyBuilder nameIdPolicyBuilder = new NameIDPolicyBuilder();
@@ -163,7 +164,7 @@ public class SAMLUtil {
             //nameIdPolicy.setFormat("urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified");
             nameIdPolicy.setFormat("urn:oasis:names:tc:SAML:2.0:nameid-format:transient");
             //nameIdPolicy.setFormat("urn:oasis:names:tc:SAML:2.0:nameid-format:persistent");
-            nameIdPolicy.setSPNameQualifier("http://lglw1102.lss.emc.com");
+            nameIdPolicy.setSPNameQualifier("http://" + LOCALHOST);
             nameIdPolicy.setAllowCreate(true);
 
             //Create AuthnContextClassRef
@@ -192,7 +193,7 @@ public class SAMLUtil {
             authRequest.setIsPassive(false);
             authRequest.setIssueInstant(issueInstant);
             authRequest.setProtocolBinding("urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Artifact");
-            authRequest.setAssertionConsumerServiceURL("https://lglw1102.lss.emc.com:4443/samllogin");
+            authRequest.setAssertionConsumerServiceURL("https://" + LOCALHOST + ":4443/samllogin");
             authRequest.setIssuer(issuer);
             authRequest.setNameIDPolicy(nameIdPolicy);
             authRequest.setRequestedAuthnContext(requestedAuthnContext);

@@ -297,7 +297,7 @@ public class Security extends Controller {
                 String url = null;
                 // if parameters contain "using-idp", re-direct to Idp
                 if (request.params._contains("using-idp")) {
-                    url = SAMLUtil.generateSAMLRequest();
+                    url = SAMLUtil.generateSAMLRequest() + "&RelayState=" + service;
                     //url = String.format("http://lglw9040.lss.emc.com:8080/openam/SSORedirect/metaAlias/idp?SAMLRequest=%s", samlrequest);
                     Logger.info("Redirecting to IDP login page %s", url);
                 } else {

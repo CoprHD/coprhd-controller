@@ -867,11 +867,15 @@ public class AuthenticationResource {
     @Path("samllogin")
     public Response samllogin(@Context HttpServletRequest request,
                               @Context HttpServletResponse servletResponse,
-                              @QueryParam("SAMLart") String artifact) throws IOException {
+                              @QueryParam("SAMLart") String artifact,
+                              @QueryParam("RelayState") String relaystate
+                              ) throws IOException {
 
         // get SAML subject information from artifact
-        String updatedService = "https://lglw1102.lss.emc.com/dashboard";
+        String updatedService = relaystate;
+
         _log.info("get SAMLart=" + artifact);
+        _log.info("get SAMLart=" + relaystate);
 
 
         //String username = "demo@emc.com";

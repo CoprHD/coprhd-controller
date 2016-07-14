@@ -1,5 +1,6 @@
 package com.emc.storageos.driver.driversimulator.operations;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -23,7 +24,9 @@ public class CreateVolumeCloneSimulatorOperation extends BaseDriverSimulatorOper
     }
     
     public void updateCloneInfo(List<VolumeClone> clones) {
+        _log.info("*****************update clones");
         for (VolumeClone clone : clones) {
+            _log.info("*****************update clone");
             clone.setNativeId("clone-" + clone.getParentId() + clone.getDisplayName());
             clone.setWwn(String.format("%s%s", clone.getStorageSystemId(), clone.getNativeId()));
             clone.setReplicationState(VolumeClone.ReplicationState.SYNCHRONIZED);
@@ -36,7 +39,14 @@ public class CreateVolumeCloneSimulatorOperation extends BaseDriverSimulatorOper
     @Override
     public void updateOnAsynchronousSuccess() {
         CreateVolumeCloneDriverTask createCloneTask = (CreateVolumeCloneDriverTask)_task;
-        updateCloneInfo(createCloneTask.getClones());
+        List<VolumeClone> clones = new ArrayList<VolumeClone>();
+        _log.info("************** task clones {}", createCloneTask.getClones());
+        clones.addAll(createCloneTask.getClones());
+        _log.info("************** clones {}", clones);
+        updateCloneInfo(clones);
+        _log.info("************** clones2 {}", clones);
+        createCloneTask.setClones(clones);
+        _log.info("************** task clones2 {}", createCloneTask.getClones());        
     }    
     
     @SuppressWarnings("unchecked")

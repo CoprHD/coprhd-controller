@@ -39,6 +39,15 @@ public class CreateVolumeCloneDriverTask extends DriverTask {
     public List<VolumeClone> getClones() {
         return _volumeClones;
     }
+    
+    /**
+     * Get the clones created by the task.
+     * 
+     * @param clones The clones created by the task.
+     */
+    public void setClones(List<VolumeClone> clones) {
+        _volumeClones = clones;
+    }    
 
     /**
      * {@inheritDoc}

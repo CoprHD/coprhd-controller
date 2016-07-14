@@ -16,25 +16,25 @@ import com.emc.storageos.model.NamedRelatedResourceRep;
 @XmlRootElement(name = "storagesystem_types")
 public class StorageSystemTypeList {
 
-	private List<StorageSystemTypeRestRep> storagesystem_types;
+    private List<StorageSystemTypeRestRep> storageSystemTypes;
 
-	public StorageSystemTypeList() {
-	}
+    public StorageSystemTypeList() {
+    }
 
-	public StorageSystemTypeList(List<StorageSystemTypeRestRep> storageTypes) {
-		this.storagesystem_types = storageTypes;
-	}
+    public StorageSystemTypeList(List<StorageSystemTypeRestRep> storageTypes) {
+        this.storageSystemTypes = storageTypes;
+    }
 
-	@XmlElement(name = "storagesystem_type")
-	public List<StorageSystemTypeRestRep> getStorageSystemTypes() {
-		if (storagesystem_types == null) {
-			storagesystem_types = new ArrayList<StorageSystemTypeRestRep>();
-		}
-		return storagesystem_types;
-	}
+    @XmlElement(name = "storagesystem_type")
+    public List<StorageSystemTypeRestRep> getStorageSystemTypes() {
+        if (storageSystemTypes == null) {
+            storageSystemTypes = new ArrayList<StorageSystemTypeRestRep>();
+        }
+        return storageSystemTypes;
+    }
 
-	public void setStorageSystemTypes(List<StorageSystemTypeRestRep> storageTypes) {
-		this.storagesystem_types = storageTypes;
-	}
+    public void setStorageSystemTypes(List<StorageSystemTypeRestRep> storageTypes) {
+        this.storageSystemTypes = storageTypes;
+    }
 
 }

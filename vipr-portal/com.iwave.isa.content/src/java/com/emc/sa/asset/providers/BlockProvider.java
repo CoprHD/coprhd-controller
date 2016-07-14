@@ -865,6 +865,13 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     }
 
     @Asset("blockVirtualPool")
+    @AssetDependencies({ "blockVirtualArray" })
+    public List<AssetOption> getVirtualPoolsForBlockVirtualArray(AssetOptionsContext ctx, URI virtualArray) {
+        debug("getting getVirtualPoolsForBlockVirtualArray(virtualArray=%s)", virtualArray);
+        return getVirtualPoolsForVirtualArray(ctx, virtualArray);
+    }
+
+    @Asset("blockVirtualPool")
     @AssetDependencies({ "virtualArrayByConsistencyGroup" })
     public List<AssetOption> getVirtualPoolsForVirtualArrayByCG(AssetOptionsContext ctx, URI virtualArray) {
         return getVirtualPoolsForVirtualArray(ctx, virtualArray);

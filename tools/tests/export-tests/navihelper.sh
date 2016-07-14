@@ -11,7 +11,7 @@
 #
 # set -x
 
-## Convenience method for deleting a mask outside of ViPR (including the storage group)
+## Convenience method for deleting a mask outside of ViPR
 delete_mask() {
     serial_number=$1
     sid=${serial_number: -3}
@@ -43,89 +43,141 @@ delete_mask() {
 }
 
 add_volume_to_mask() {
-    serial_number=$1
-    sid=${serial_number: -3}
+    VNX_SP_IP=$1
     device_id=$2
-    pattern=$3
+    SG_PATTERN=$3
 
-    echo "add_volume_to_mask for VNX not supported yet"
-    return -1
+    /opt/Navisphere/bin/naviseccli -User bourne -Password bourne -Scope 0 -Address $VNX_SP_IP storagegroup -list > /tmp/verify.txt
 
-    # Find out where the volume ended up, thanks to ViPR (formalize this!)
-    /opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} list -type storage -dev ${device_id}
-    if [ $? -ne 0 ]; then
-	echo "Volume ${serial_number}_${device_id} was not found in another SG, skipping removal step"
-    else
-	sg_short_id=`/opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} list -type storage -dev ${device_id} | grep ViPR_Optimized | cut -c1-31`
-	sg_long_id=`/opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} list -type storage -detail -v | grep ${sg_short_id} | awk -F: '{print $2}' | awk '{print $1}' | sed -e 's/^[[:space:]]*//'`
-
-        # Remove the volume from the storage group it is in
-	/opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} -type storage -name $sg_long_id remove dev ${device_id}
+    hits=`grep -n ${SG_PATTERN} /tmp/verify.txt | wc -l`
+    if [ ${hits} -gt 1 ]
+	then
+	echo "ERROR: Expected storage group ${SG_PATTERN}, but found more than one that fit that pattern!"
+	exit 1;
     fi
 
-    # Add it to the storage group ViPR knows about
-    # TODO: I've seen storage groups sneak in over tests...make sure only storage group is found
-    sg_short_id=`/opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} list -type storage | grep ${pattern}_${sid}_SG | cut -c1-31`
-    sg_long_id=`/opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} list -type storage -detail -v | grep ${sg_short_id} | awk -F: '{print $2}' | awk '{print $1}' | sed -e 's/^[[:space:]]*//'`
-
-    # Add the volume into the storage group we specify with the pattern
-    /opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} -type storage -name $sg_long_id add dev ${device_id}
+    sgname=`grep ${SG_PATTERN} /tmp/verify.txt | awk -F: '{print $2}' | awk '{print $1}'`
+    
+    /opt/Navisphere/bin/naviseccli -User bourne -Password bourne -Scope 0 -Address $VNX_SP_IP storagegroup -addhlu -gname ${sgname} -alu ${device_id} -hlu 250 > /tmp/navisechelper.out
 }
 
 remove_volume_from_mask() {
-    serial_number=$1
-    sid=${serial_number: -3}
-    device_id=$2
-    pattern=$3
+    VNX_SP_IP=$1
+    device_id=$(echo $2 | sed 's/^0*//')
+    SG_PATTERN=$3
 
-    echo "remove_volume_from_mask for VNX not supported yet"
-    return -1
+    /opt/Navisphere/bin/naviseccli -User bourne -Password bourne -Scope 0 -Address $VNX_SP_IP storagegroup -list > /tmp/verify.txt
 
-    # Add it to the storage group ViPR knows about
-    sg_short_id=`/opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} list -type storage | grep ${pattern}_${sid}_SG | cut -c1-31`
-    sg_long_id=`/opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} list -type storage -detail -v | grep ${sg_short_id} | awk -F: '{print $2}' | awk '{print $1}' | sed -e 's/^[[:space:]]*//'`
-    /opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} -type storage -name $sg_long_id remove dev ${device_id}
+    hits=`grep -n ${SG_PATTERN} /tmp/verify.txt | wc -l`
+    if [ ${hits} -gt 1 ]
+	then
+	echo "ERROR: Expected storage group ${SG_PATTERN}, but found more than one that fit that pattern!"
+	exit 1;
+    fi
+
+    sgname=`grep ${SG_PATTERN} /tmp/verify.txt | awk -F: '{print $2}' | awk '{print $1}'`
+    
+    # Find the volume's device ID, get its HLU
+    sgline=`grep -n ${SG_PATTERN} /tmp/verify.txt | awk -F: '{print $1}'`
+
+    sgblocksize=`tail -n +${sgline} /tmp/verify.txt | grep -n Shareable | head -1 | awk -F: '{print $1}'`
+    sgblocksize=`expr ${sgblocksize} + 1`
+    sgblockstart=`expr ${sgline} + ${sgblocksize} - 1`
+    head -${sgblockstart} /tmp/verify.txt | tail -${sgblocksize} > /tmp/verify2.txt
+    hlunumber=`grep ${device_id} /tmp/verify2.txt | awk '{print $1}'`
+
+    /opt/Navisphere/bin/naviseccli -User bourne -Password bourne -Scope 0 -Address $VNX_SP_IP storagegroup -removehlu -o -gname ${sgname} -hlu ${hlunumber} > /tmp/navisechelper.out
 }
 
 add_initiator_to_mask() {
-    serial_number=$1
-    sid=${serial_number: -3}
-    pwwn=$2
-    pattern=$3
-    echo "add_initiator_to_mask for VNX not supported yet"
-    return -1
+    VNX_SP_IP=$1
+    pwwn=$(echo $2 | awk '{print substr($0,1,2),":",substr($0,3,2),":",substr($0,5,2),":",substr($0,7,2),":",substr($0,9,2),":",substr($0,11,2),":",substr($0,13,2),":",substr($0,15,2)}' | sed 's/ //g')
+    SG_PATTERN=$3
 
-    # Find the initiator group that contains the pattern sent in
-    /opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} list -type initiator | grep ${pattern}_${sid}_IG
+    /opt/Navisphere/bin/naviseccli -User bourne -Password bourne -Scope 0 -Address $VNX_SP_IP storagegroup -list > /tmp/verify.txt
+
+    hits=`grep -n ${SG_PATTERN} /tmp/verify.txt | wc -l`
+    if [ ${hits} -gt 1 ]
+	then
+	echo "ERROR: Expected storage group ${SG_PATTERN}, but found more than one that fit that pattern!"
+	exit 1;
+    fi
+
+    sgname=`grep ${SG_PATTERN} /tmp/verify.txt | awk -F: '{print $2}' | awk '{print $1}'`
+
+    # register a fake host (maybe add a check to see if it's already there?)
+    # This requires that the first number of the WWN is "1"
+    /opt/Navisphere/bin/naviseccli -User bourne -Password bourne -Scope 0 -Address $VNX_SP_IP storagegroup -setpath -gname ${sgname} -hbauid $(echo $pwwn | sed 's/^1/2/g'):${pwwn} -sp a -spport 0 -arraycommpath 1 -failovermode 4 -host dutest_fakehost -ip 11.22.33.44 -o > /tmp/navisechelper.out
     if [ $? -ne 0 ]; then
-	echo "Initiator group ${pattern}_${sid}_IG was not found.  Not able to add to it."
-    else
-	# dd the initiator to the IG, which in turn adds it to the visibility of the mask
-	/opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} -type initiator -name ${pattern}_${sid}_IG add -wwn ${pwwn}
+	echo "Failed to add the initiator to the mask."
     fi
 }
 
 remove_initiator_from_mask() {
-    serial_number=$1
-    sid=${serial_number: -3}
-    pwwn=$2
-    pattern=$3
-    echo "remove_initiator_from_mask for VNX not supported yet"
-    return -1
+    VNX_SP_IP=$1
+    pwwn=$(echo $2 | awk '{print substr($0,1,2),":",substr($0,3,2),":",substr($0,5,2),":",substr($0,7,2),":",substr($0,9,2),":",substr($0,11,2),":",substr($0,13,2),":",substr($0,15,2)}' | sed 's/ //g')
+    SG_PATTERN=$3
 
-    # Find the initiator group that contains the pattern sent in
-    /opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} list -type initiator | grep ${pattern}_${sid}_IG
+    /opt/Navisphere/bin/naviseccli -User bourne -Password bourne -Scope 0 -Address $VNX_SP_IP storagegroup -list > /tmp/verify.txt
+
+    hits=`grep -n ${SG_PATTERN} /tmp/verify.txt | wc -l`
+    if [ ${hits} -gt 1 ]
+	then
+	echo "ERROR: Expected storage group ${SG_PATTERN}, but found more than one that fit that pattern!"
+	exit 1;
+    fi
+
+    sgname=`grep ${SG_PATTERN} /tmp/verify.txt | awk -F: '{print $2}' | awk '{print $1}'`
+
+    # register a fake host (maybe add a check to see if it's already there?)
+    /opt/Navisphere/bin/naviseccli -User bourne -Password bourne -Scope 0 -Address $VNX_SP_IP storagegroup -disconnecthost -gname ${sgname} -o -host dutest_fakehost > /tmp/navisechelper.out
     if [ $? -ne 0 ]; then
-	echo "Initiator group ${pattern}_${sid}_IG was not found.  Not able to add to it."
-    else
-	# dd the initiator to the IG, which in turn adds it to the visibility of the mask
-	/opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} -type initiator -name ${pattern}_${sid}_IG remove -wwn ${pwwn}
+	echo "Failed to remove the initiator from the mask."
     fi
 }
 
+create_storage_group() {
+    VNX_SP_IP=$1
+    device_id=$(echo $2 | sed 's/^0*//')
+    pwwn=$(echo $3 | awk '{print substr($0,1,2),":",substr($0,3,2),":",substr($0,5,2),":",substr($0,7,2),":",substr($0,9,2),":",substr($0,11,2),":",substr($0,13,2),":",substr($0,15,2)}' | sed 's/ //g')
+    sgname=$4
+
+    /opt/Navisphere/bin/naviseccli -User bourne -Password bourne -Scope 0 -Address $VNX_SP_IP storagegroup -create -gname ${sgname} > /tmp/navisechelper.out
+
+    # Add the volume
+    add_volume_to_mask ${VNX_SP_IP} ${device_id} ${sgname}
+
+    # Add the initiator
+    add_initiator_to_mask ${VNX_SP_IP} $3 ${sgname}
+}
+
+delete_storage_group() {
+    VNX_SP_IP=$1
+    SG_PATTERN=$2
+
+    set -x
+    /opt/Navisphere/bin/naviseccli -User bourne -Password bourne -Scope 0 -Address $VNX_SP_IP storagegroup -list > /tmp/verify.txt
+
+    hits=`grep -n ${SG_PATTERN} /tmp/verify.txt | wc -l`
+    if [ ${hits} -gt 1 ]
+	then
+	echo "ERROR: Expected storage group ${SG_PATTERN}, but found more than one that fit that pattern!"
+	exit 1;
+    fi
+
+    sgname=`grep ${SG_PATTERN} /tmp/verify.txt | awk -F: '{print $2}' | awk '{print $1}'`
+
+    /opt/Navisphere/bin/naviseccli -User bourne -Password bourne -Scope 0 -Address $VNX_SP_IP storagegroup -destroy -o -gname ${sgname} > /tmp/navisechelper.out
+    set +x
+}
+
 delete_volume() {
-    echo "Delete volume for VNX not yet supported";
-    sleep 30
+    VNX_SP_IP=$1
+    device_id=$(echo $2 | sed 's/^0*//')
+    /opt/Navisphere/bin/naviseccli -User bourne -Password bourne -Scope 0 -Address $VNX_SP_IP -o lun -destroy -l ${device_id} > /tmp/navisechelper.out
+    if [ $? -ne 0 ]; then
+	echo "Failed to delete the LUN"
+    fi
 }
 
 verify_export() {
@@ -154,7 +206,7 @@ verify_export() {
 	if [ "$2" = "gone" ]
 	    then
 	    echo "ERROR: Expected storage group ${SG_PATTERN} to be gone, but it was found"
-	    exit;
+	    exit 1;
 	fi
     fi
 
@@ -171,7 +223,7 @@ verify_export() {
     sgblocksize=`expr ${sgblocksize} + 1`
     sgblockstart=`expr ${sgline} + ${sgblocksize} - 1`
     head -${sgblockstart} /tmp/verify.txt | tail -${sgblocksize} > /tmp/verify2.txt
-    num_inits=`grep "$INITIATOR_PATTERN" /tmp/verify2.txt | awk '{print $1}' | sort -u | wc -l | awk '{print $1}'`
+    num_inits=`grep -e "SP [AB]" /tmp/verify2.txt | awk '{print $1}' | sort -u | wc -l | awk '{print $1}'`
     # The verify2.txt file should have something like this:
     #
     # HLU/ALU Pairs:
@@ -228,6 +280,12 @@ elif [ "$1" = "delete_volume" ]; then
 elif [ "$1" = "delete_mask" ]; then
     shift
     delete_mask $1 $2
+elif [ "$1" = "create_export_mask" ]; then
+    shift
+    create_storage_group $1 $2 $3 $4
+elif [ "$1" = "delete_export_mask" ]; then
+    shift
+    delete_storage_group $1 $2
 else
     verify_export $*
 fi

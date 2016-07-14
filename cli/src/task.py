@@ -42,12 +42,20 @@ class Task(object):
         Get the root of the catalog
         '''
 
-    def resume_task_by_uri(self, uri):
+    def resume_task_by_uri(self, taskid):
         command = singletonURIHelperInstance.getUri(
             self.COMPONENT_TYPE,
             "resume")
         (s, h) = common.service_json_request(self.__ipAddr, self.__port, "POST",
-                                             command.format(uri),
+                                             command.format(taskid),
+                                             None)
+
+    def rollback_task_by_uri(self, taskid):
+        command = singletonURIHelperInstance.getUri(
+            self.COMPONENT_TYPE,
+            "rollback")
+        (s, h) = common.service_json_request(self.__ipAddr, self.__port, "POST",
+                                             command.format(taskid),
                                              None)
 
 
@@ -59,7 +67,7 @@ Preprocessor for the task resume operation
 def task_resume(args):
     taskObj = Task(args.ip, args.port)
     try:
-        taskObj.resume_task_by_uri(args.uri)
+        taskObj.resume_task_by_uri(args.taskid)
         return
     except SOSError as e:
         common.format_err_msg_and_raise(
@@ -82,13 +90,52 @@ def resume_parser(subcommand_parsers, common_parser):
         help='Resume a suspended task')
 
     mandatory_args = resume_parser.add_argument_group('mandatory arguments')
-    mandatory_args.add_argument('-id', '-uri',
-                                metavar='<uri>',
-                                dest='uri',
-                                help='URI of the Task',
+    mandatory_args.add_argument('-tid', '-taskid',
+                                metavar='<taskid>',
+                                dest='taskid',
+                                help='ID of the Task',
                                 required=True)
 
     resume_parser.set_defaults(func=task_resume)
+
+'''
+Preprocessor for the task rollback operation
+'''
+
+
+def task_rollback(args):
+    taskObj = Task(args.ip, args.port)
+    try:
+        taskObj.rollback_task_by_uri(args.taskid)
+        return
+    except SOSError as e:
+        common.format_err_msg_and_raise(
+            "rollback",
+            "task",
+            e.err_text,
+            e.err_code)
+
+    return
+
+
+# rollback command parser
+
+def rollback_parser(subcommand_parsers, common_parser):
+    rollback_parser = subcommand_parsers.add_parser(
+        'rollback',
+        description='ViPR Task rollback CLI usage',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Rollback a suspended task')
+
+    mandatory_args = rollback_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-tid', '-taskid',
+                                metavar='<taskid>',
+                                dest='taskid',
+                                help='ID of the Task',
+                                required=True)
+
+    rollback_parser.set_defaults(func=task_rollback)
 
 #
 # Tasks Main parser routine
@@ -105,4 +152,7 @@ def task_parser(parent_subparser, common_parser):
 
     # resume parser
     resume_parser(subcommand_parsers, common_parser)
+
+    # rollback parser
+    rollback_parser(subcommand_parsers, common_parser)
 

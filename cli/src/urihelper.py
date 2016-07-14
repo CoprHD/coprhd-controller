@@ -115,6 +115,7 @@ class URIHelper(object):
     URI_TASK = "/vdc/tasks"
     URI_TASK_ID = URI_TASK + "/{0}"
     URI_TASK_RESUME_ID = URI_TASK_ID + "/resume"
+    URI_TASK_ROLLBACK_ID = URI_TASK_ID + "/rollback"
 
     '''
     Project module map and its uris
@@ -294,7 +295,8 @@ class URIHelper(object):
         
     def __fillTaskMap(self):
         self.TASK_URIS_MAP["resume"] = self.URI_TASK_RESUME_ID
-        
+        self.TASK_URIS_MAP["rollback"] = self.URI_TASK_ROLLBACK_ID
+
     def __fillFileSharesMap(self):
         self.FILESHARE_URIS_MAP["tasks_list"] = self.URI_FILESHARE_TASK_LIST
         self.FILESHARE_URIS_MAP["task"] = self.URI_FILESHARE_TASK

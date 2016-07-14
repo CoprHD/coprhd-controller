@@ -1985,6 +1985,7 @@ storageArray.ipAddress=IP Address
 storageArray.ipAddress.help=Enter the IP address of the system.
 storageArray.smisProvider=Storage Provider
 storageArray.smisProviderIpAddress=Storage Provider Host
+storageArray.xtremProviderIpAddress=XtremIO Management Server IP/Hostname
 storageArray.smisProviderIpAddress.help=In most situations, the Storage Provider Host will match the Host used for discovery
 storageArray.vnxFileIPAddress=Control Station IP
 storageArray.vnxFileIPAddress.help=Enter the IP address of the Control Station

@@ -5,29 +5,24 @@
 
 package com.emc.storageos.db.client.recipe;
 
-import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import com.datastax.driver.core.ConsistencyLevel;
+import com.emc.storageos.db.client.impl.DbClientContext;
+import com.emc.storageos.db.client.impl.RowMutator;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import com.netflix.astyanax.ColumnListMutation;
-import com.netflix.astyanax.Keyspace;
-import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnFamily;
-import com.netflix.astyanax.model.ColumnList;
 import com.netflix.astyanax.model.ColumnMap;
-import com.netflix.astyanax.model.ConsistencyLevel;
-import com.netflix.astyanax.model.OrderedColumnMap;
 import com.netflix.astyanax.retry.RetryPolicy;
 import com.netflix.astyanax.retry.RunOnce;
 import com.netflix.astyanax.serializers.ByteBufferSerializer;
 import com.netflix.astyanax.serializers.LongSerializer;
-import com.netflix.astyanax.util.RangeBuilder;
 import com.netflix.astyanax.util.TimeUUIDUtils;
 import com.netflix.astyanax.recipes.locks.BusyLockException;
 import com.netflix.astyanax.recipes.locks.StaleLockException;
@@ -52,13 +47,13 @@ public class CustomizedDistributedRowLock<K> {
     public static final String DEFAULT_LOCK_PREFIX = "_LOCK_";
 
     private final ColumnFamily<K, String> columnFamily; // The column family for data and lock
-    private final Keyspace keyspace;                  // The keyspace
     private final K key;                       // Key being locked
+    private final DbClientContext context;
 
     private long timeout = LOCK_TIMEOUT;                   // Timeout after which the lock expires. Units defined by timeoutUnits.
     private TimeUnit timeoutUnits = DEFAULT_OPERATION_TIMEOUT_UNITS;
     private String prefix = DEFAULT_LOCK_PREFIX;            // Prefix to identify the lock columns
-    private ConsistencyLevel consistencyLevel = ConsistencyLevel.CL_LOCAL_QUORUM;
+    private ConsistencyLevel consistencyLevel = ConsistencyLevel.LOCAL_QUORUM;
     private boolean failOnStaleLock = false;
     private String lockColumn = null;
     private String lockId = null;
@@ -70,8 +65,8 @@ public class CustomizedDistributedRowLock<K> {
     private long acquireTime = 0;
     private int retryCount = 0;
 
-    public CustomizedDistributedRowLock(Keyspace keyspace, ColumnFamily<K, String> columnFamily, K key) {
-        this.keyspace = keyspace;
+    public CustomizedDistributedRowLock(DbClientContext context, ColumnFamily<K, String> columnFamily, K key) {
+        this.context = context;
         this.columnFamily = columnFamily;
         this.key = key;
         this.lockId = TimeUUIDUtils.getUniqueTimeUUIDinMicros().toString();
@@ -187,9 +182,10 @@ public class CustomizedDistributedRowLock<K> {
             try {
                 long curTimeMicros = getCurrentTimeMicros();
 
-                MutationBatch m = keyspace.prepareMutationBatch().setConsistencyLevel(consistencyLevel);
-                fillLockMutation(m, curTimeMicros, ttl);
-                m.execute();
+                RowMutator mutator = new RowMutator(context);
+                mutator.setWriteCL(consistencyLevel);
+                fillLockMutation(mutator, curTimeMicros, ttl);
+                mutator.execute();
 
                 verifyLock(curTimeMicros);
                 acquireTime = System.currentTimeMillis();
@@ -253,9 +249,10 @@ public class CustomizedDistributedRowLock<K> {
      */
     public void release() throws Exception {
         if (!locksToDelete.isEmpty() || lockColumn != null) {
-            MutationBatch m = keyspace.prepareMutationBatch().setConsistencyLevel(consistencyLevel);
-            fillReleaseMutation(m, false);
-            m.execute();
+            RowMutator mutator = new RowMutator(context);
+            mutator.setWriteCL(consistencyLevel);
+            fillReleaseMutation(mutator, false);
+            mutator.execute();
         }
     }
 
@@ -266,11 +263,11 @@ public class CustomizedDistributedRowLock<K> {
      * @param m
      * @throws Exception
      */
-    public void releaseWithMutation(MutationBatch m) throws Exception {
-        releaseWithMutation(m, false);
+    public void releaseWithMutation(RowMutator mutator) throws Exception {
+        releaseWithMutation(mutator, false);
     }
 
-    public boolean releaseWithMutation(MutationBatch m, boolean force) throws Exception {
+    public boolean releaseWithMutation(RowMutator mutator, boolean force) throws Exception {
         long elapsed = System.currentTimeMillis() - acquireTime;
         boolean isStale = false;
         if (timeout > 0 && elapsed > TimeUnit.MILLISECONDS.convert(timeout, this.timeoutUnits)) {
@@ -280,9 +277,9 @@ public class CustomizedDistributedRowLock<K> {
             }
         }
 
-        m.setConsistencyLevel(consistencyLevel);
-        fillReleaseMutation(m, false);
-        m.execute();
+        mutator.setWriteCL(consistencyLevel);
+        fillReleaseMutation(mutator, false);
+        mutator.execute();
 
         return isStale;
     }
@@ -305,6 +302,7 @@ public class CustomizedDistributedRowLock<K> {
     private Map<String, Long> readLockColumns(boolean readDataColumns) throws Exception {
         Map<String, Long> result = Maps.newLinkedHashMap();
 
+        /*TODO Yuan please take a look
         ConsistencyLevel read_consistencyLevel = consistencyLevel;
         // CASSANDRA actually does not support EACH_QUORUM for read which is meaningless as well.
         if (consistencyLevel == ConsistencyLevel.CL_EACH_QUORUM) {
@@ -343,7 +341,7 @@ public class CustomizedDistributedRowLock<K> {
                 result.put(c.getName(), readTimeoutValue(c));
             }
 
-        }
+        }*/
         return result;
     }
 
@@ -382,15 +380,15 @@ public class CustomizedDistributedRowLock<K> {
     public Map<String, Long> releaseLocks(boolean force) throws Exception {
         Map<String, Long> locksToDelete = readLockColumns();
 
-        MutationBatch m = keyspace.prepareMutationBatch().setConsistencyLevel(consistencyLevel);
-        ColumnListMutation<String> row = m.withRow(columnFamily, key);
+        RowMutator mutator = new RowMutator(context);
+        mutator.setWriteCL(consistencyLevel);
         long now = getCurrentTimeMicros();
         for (Entry<String, Long> c : locksToDelete.entrySet()) {
             if (force || (c.getValue() > 0 && c.getValue() < now)) {
-                row.deleteColumn(c.getKey());
+                mutator.deleteGlobalLockRecord(columnFamily.getName(), (String) key, c.getKey());
             }
         }
-        m.execute();
+        mutator.execute();
 
         return locksToDelete;
     }
@@ -407,11 +405,12 @@ public class CustomizedDistributedRowLock<K> {
      * is executed externally but should be used with extreme caution to ensure
      * the lock is properly released
      * 
-     * @param m
+     * @param mutator
      * @param time
      * @param ttl
+     * @return
      */
-    public String fillLockMutation(MutationBatch m, Long time, Integer ttl) {
+    public String fillLockMutation(RowMutator mutator, Long time, Integer ttl) {
         if (lockColumn != null) {
             if (!lockColumn.equals(prefix + lockId)) {
                 throw new IllegalStateException("Can't change prefix or lockId after acquiring the lock");
@@ -425,23 +424,9 @@ public class CustomizedDistributedRowLock<K> {
                 ? Long.valueOf(0)
                 : time + TimeUnit.MICROSECONDS.convert(timeout, timeoutUnits);
 
-        m.withRow(columnFamily, key).putColumn(lockColumn, generateTimeoutValue(timeoutValue), ttl);
+        //todo actually the 'key' is always being String, after remove columnFamily, we can remove <K>
+        mutator.insertGlobalLockRecord(columnFamily.getName(), (String)key, lockColumn, timeoutValue, ttl);
         return lockColumn;
-    }
-
-    /**
-     * Generate the expire time value to put in the column value.
-     * 
-     * @param timeout
-     */
-    private ByteBuffer generateTimeoutValue(long timeout) {
-        if (columnFamily.getDefaultValueSerializer() == ByteBufferSerializer.get() ||
-                columnFamily.getDefaultValueSerializer() == LongSerializer.get()) {
-            return LongSerializer.get().toByteBuffer(timeout);
-        }
-        else {
-            return columnFamily.getDefaultValueSerializer().fromString(Long.toString(timeout));
-        }
     }
 
     /**
@@ -463,16 +448,16 @@ public class CustomizedDistributedRowLock<K> {
      * Fill a mutation that will release the locks. This may be used from a
      * separate recipe to release multiple locks.
      * 
-     * @param m
+     * @param mutator
+     * @param excludeCurrentLock
      */
-    public void fillReleaseMutation(MutationBatch m, boolean excludeCurrentLock) {
+    public void fillReleaseMutation(RowMutator mutator, boolean excludeCurrentLock) {
         // Add the deletes to the end of the mutation
-        ColumnListMutation<String> row = m.withRow(columnFamily, key);
         for (String c : locksToDelete) {
-            row.deleteColumn(c);
+            mutator.deleteGlobalLockRecord(columnFamily.getName(), (String) key, c);
         }
         if (!excludeCurrentLock && lockColumn != null) {
-            row.deleteColumn(lockColumn);
+            mutator.deleteGlobalLockRecord(columnFamily.getName(), (String) key, lockColumn);
         }
         locksToDelete.clear();
         lockColumn = null;
@@ -484,10 +469,6 @@ public class CustomizedDistributedRowLock<K> {
 
     public K getKey() {
         return key;
-    }
-
-    public Keyspace getKeyspace() {
-        return keyspace;
     }
 
     public ConsistencyLevel getConsistencyLevel() {

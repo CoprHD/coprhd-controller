@@ -37,15 +37,16 @@ public class RowMutator {
 
     private DbClientContext context;
     private BatchStatement atomicBatch;
+    private UUID timeUUID;
 
     private ConsistencyLevel writeCL = ConsistencyLevel.EACH_QUORUM; // default
-
-    private UUID timeUUID;
+    private final int defaultTTL = 0;
 
     private static final String updateRecordFormat = "UPDATE \"%s\" SET value = ? WHERE key = ? AND column1 = ? AND column2 = ? AND column3 = ? AND column4 = ?";
     private static final String updateIndexFormat = "UPDATE \"%s\" SET value = ? WHERE key = ? AND column1 = ? AND column2 = ? AND column3 = ? AND column4 = ? AND column5 = ?";
     private static final String insertTimeSeriesFormat = "INSERT INTO \"%s\" (key, column1, value) VALUES(?, ?, ?) USING TTL ?";
     private static final String insertSchemaRecordFormat = "INSERT INTO \"%s\" (key, column1, value) VALUES(?, ?, ?)";
+    private static final String insertGlobalLockFormat = "INSERT INTO \"%s\" (key, column1, value) VALUES(?, ?, ?) USING TTL ?";
 
     public RowMutator(DbClientContext context) {
         this.context = context;
@@ -138,6 +139,21 @@ public class RowMutator {
         insert.setString(1, column);
         insert.setBytes(2, getByteBufferFromPrimitiveValue(val));
         atomicBatch.add(insert);
+    }
+    
+    public void insertGlobalLockRecord(String tableName, String rowKey, String column, Object val, Integer ttl) {
+        PreparedStatement insertPrepared = context.getPreparedStatement(String.format(insertGlobalLockFormat, tableName));
+        BoundStatement insert = insertPrepared.bind();
+        insert.setString(0, rowKey);
+        insert.setString(1, column);
+        insert.setBytes(2, getByteBufferFromPrimitiveValue(val));
+        insert.setInt(3, ttl == null ? defaultTTL : ttl);
+        atomicBatch.add(insert);
+    }
+    
+    public void deleteGlobalLockRecord(String tableName, String rowKey, String column) {
+        Delete.Where deleteRecord = delete().from(String.format("\"%s\"", tableName)).where(eq("key", rowKey)).and(eq("column1", column));
+        atomicBatch.add(deleteRecord);
     }
 
     public static ByteBuffer getByteBufferFromPrimitiveValue(Object val) {

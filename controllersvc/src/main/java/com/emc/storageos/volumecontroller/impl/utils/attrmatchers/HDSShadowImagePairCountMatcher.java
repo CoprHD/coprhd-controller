@@ -66,7 +66,7 @@ public class HDSShadowImagePairCountMatcher extends AttributeMatcher {
         logger.info(Joiner.on("\t").join(getNativeGuidFromPools(filteredPoolList)));
 
         if (CollectionUtils.isEmpty(filteredPoolList)) {
-            errorMessage.append("No HDS Storage pool found for HDS replica creation. ");
+            errorMessage.append("No matching HDS Storage pool found for HDS replica creation. ");
             logger.error(errorMessage.toString());
         }
 

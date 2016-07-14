@@ -78,7 +78,7 @@ public class RaidLevelMatcher extends ConditionalAttributeMatcher {
             }
         }
         if (CollectionUtils.isEmpty(filteredPoolList)) {
-            errorMessage.append(String.format("No matching pools for the given raid levels : %s. ", raidLevels));
+            errorMessage.append(String.format("No matching storage pool found for the given raid levels : %s. ", raidLevels));
             _logger.error(errorMessage.toString());
         }
 

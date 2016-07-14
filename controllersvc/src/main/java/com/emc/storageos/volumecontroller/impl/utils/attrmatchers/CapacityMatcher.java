@@ -78,7 +78,7 @@ public class CapacityMatcher extends AttributeMatcher {
         }
 
         if (CollectionUtils.isEmpty(filteredPoolList)) {
-            errorMessage.append("No available free space. ");
+            errorMessage.append("No storage pool is having available free space. ");
             _log.error(errorMessage.toString());
         }
         _log.info("Pools Matching capacity Ended :" + Joiner.on("\t").join(getNativeGuidFromPools(filteredPoolList)));

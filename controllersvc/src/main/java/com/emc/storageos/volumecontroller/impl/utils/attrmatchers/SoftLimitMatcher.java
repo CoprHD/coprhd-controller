@@ -40,7 +40,7 @@ public class SoftLimitMatcher extends AttributeMatcher {
         }
 
         if (CollectionUtils.isEmpty(filteredPools)) {
-            errorMessage.append("No Matching pools found with support soft limit. ");
+            errorMessage.append("No matching storage pool found with support soft limit. ");
             _logger.error(errorMessage.toString());
         }
 

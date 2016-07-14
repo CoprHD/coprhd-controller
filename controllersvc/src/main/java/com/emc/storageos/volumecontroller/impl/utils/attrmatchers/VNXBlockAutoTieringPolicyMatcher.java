@@ -84,7 +84,7 @@ public class VNXBlockAutoTieringPolicyMatcher extends AttributeMatcher {
         List<StoragePool> filteredPoolList = returnMatchedVNXPoolsForGivenAutoTieringPolicy(pools, autoTieringPolicyName);
 
         if (CollectionUtils.isEmpty(filteredPoolList)) {
-            errorMessage.append(String.format("Storage Pools are not available for VNX fast policy %s. ", autoTieringPolicyName));
+            errorMessage.append(String.format("No matching storage pools found for the VNX fast policy %s. ", autoTieringPolicyName));
             _logger.info(errorMessage.toString());
         }
 

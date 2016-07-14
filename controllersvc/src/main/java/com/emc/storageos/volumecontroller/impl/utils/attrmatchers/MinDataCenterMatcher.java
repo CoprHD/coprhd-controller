@@ -52,7 +52,7 @@ public class MinDataCenterMatcher extends AttributeMatcher {
             }
         }
         if (CollectionUtils.isEmpty(filteredPoolList)) {
-            errorMessage.append(String.format("No matching object storage pools found due to minimum data center %d. ", minDataCenters));
+            errorMessage.append(String.format("No matching object storage pool found due to minimum data center %d. ", minDataCenters));
             _logger.error(errorMessage.toString());
         }
         _logger.info("Pools Matching Minimum Data Centers Ended : {}, {}", minDataCenters,

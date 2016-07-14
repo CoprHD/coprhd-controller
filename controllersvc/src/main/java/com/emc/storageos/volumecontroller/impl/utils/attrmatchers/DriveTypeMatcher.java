@@ -71,7 +71,7 @@ public class DriveTypeMatcher extends ConditionalAttributeMatcher {
         }
 
         if (CollectionUtils.isEmpty(filteredPools)) {
-            errorMessage.append(String.format("No matching pools found for the drive type %s. ", desiredInitialDriveType));
+            errorMessage.append(String.format("No matching storage pool found for the drive type %s. ", desiredInitialDriveType));
             _logger.error(errorMessage.toString());
         }
         _logger.info("Drive Type Matcher Ended : {}, {}", desiredInitialDriveType,

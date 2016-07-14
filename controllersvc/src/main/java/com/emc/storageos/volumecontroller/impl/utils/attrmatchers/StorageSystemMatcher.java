@@ -61,7 +61,7 @@ public class StorageSystemMatcher extends AttributeMatcher {
         _logger.info("{} pools are matching with systems after matching.",
                 matchedPools.size());
         if (CollectionUtils.isEmpty(matchedPools)) {
-            errorMessage.append(String.format("No matching storage pools for the Storage systems : %s. ", systems));
+            errorMessage.append(String.format("No matching storage pool for the Storage systems : %s. ", systems));
             _logger.error(errorMessage.toString());
         }
 

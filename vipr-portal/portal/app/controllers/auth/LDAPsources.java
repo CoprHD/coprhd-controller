@@ -75,7 +75,8 @@ public class LDAPsources extends ViprResourceController {
 
     private static Logger log = LoggerFactory.getLogger(LDAPsources.class);
 
-    private static String authnProviderName = "";
+    private static String authProviderName = "";
+    private static Boolean authProviderAutoReg = false;
     protected static final String SAVED = "LDAPsources.saved";
     protected static final String DELETED = "LDAPsources.deleted";
     protected static final String FAILED = "LDAPsources.failed";
@@ -87,7 +88,10 @@ public class LDAPsources extends ViprResourceController {
     private static final String KEYSTONE_SERVER_URL = CinderConstants.HTTP_URL + "[IP Address]" + CinderConstants.COLON
             + CinderConstants.OS_ADMIN_PORT
             + CinderConstants.REST_API_VERSION_2;
-    private static final String DEFAULT_INTERVAL = "900";
+    // Interval delay between each execution in seconds.
+    private static final String DEFAULT_INTERVAL_DELAY = "900";
+    // Minimum interval in seconds.
+    public static final int MIN_INTERVAL_DELAY = 10;
 
     //
     // Add reference data so that they can be reference in html template
@@ -102,7 +106,7 @@ public class LDAPsources extends ViprResourceController {
         renderArgs.put("ldapType", AuthSourceType.ldap);
         renderArgs.put("keyStoneType", AuthSourceType.keystone);
         renderArgs.put("keystoneServerURL", KEYSTONE_SERVER_URL);
-        renderArgs.put("defaultInterval", DEFAULT_INTERVAL);
+        renderArgs.put("defaultInterval", DEFAULT_INTERVAL_DELAY);
         renderArgs.put("searchScopeTypeList", SearchScopes.options(SearchScopes.ONELEVEL, SearchScopes.SUBTREE));
         renderArgs.put("tenantsOptions", TenantsSynchronizationOptions.options(TenantsSynchronizationOptions.ADDITION, TenantsSynchronizationOptions.DELETION));
         renderArgs.put("showLdapGroup", VCenterUtils.checkCompatibleVDCVersion(EXPECTED_GEO_VERSION_FOR_LDAP_GROUP_SUPPORT));
@@ -197,6 +201,7 @@ public class LDAPsources extends ViprResourceController {
             list();
         }
 
+        authProviderAutoReg = authnProvider.getAutoRegCoprHDNImportOSProjects();
         edit(new LDAPsourcesForm(authnProvider));
     }
 
@@ -215,7 +220,7 @@ public class LDAPsources extends ViprResourceController {
 
         OpenStackTenantsUtils.addOpenStackTenants(params);
 
-        flash.success(MessagesUtils.get(SAVED, authnProviderName));
+        flash.success(MessagesUtils.get(SAVED, authProviderName));
         list();
     }
 
@@ -227,11 +232,11 @@ public class LDAPsources extends ViprResourceController {
         }
 
         AuthnProviderRestRep authnProvider = ldapSources.save();
-        authnProviderName = ldapSources.name;
+        authProviderName = ldapSources.name;
 
         flash.success(MessagesUtils.get(SAVED, ldapSources.name));
 
-        if (ldapSources.autoRegCoprHDNImportOSProjects) {
+        if (ldapSources.autoRegCoprHDNImportOSProjects && !authProviderAutoReg) {
             renderArgs.put("showDialog", "true");
             edit(new LDAPsourcesForm(authnProvider));
         }
@@ -316,6 +321,7 @@ public class LDAPsources extends ViprResourceController {
             renderArgs.put("groupMemberAttributesString", StringUtils.join(this.groupMemberAttributes, "\n"));
             renderArgs.put("readOnlyGroupAttribute", !isGroupAttributeBlankOrNull(this.groupAttribute));
             renderArgs.put("readOnlyCheckboxForAutomaticRegistration", this.autoRegCoprHDNImportOSProjects);
+            renderArgs.put("readOnlySynchronizationInterval", this.synchronizationInterval);
         }
 
         public boolean isNew() {
@@ -525,6 +531,16 @@ public class LDAPsources extends ViprResourceController {
             if (isNew()) {
                 Validation.required(fieldName + ".managerPassword", this.managerPassword);
             }
+
+            if (this.autoRegCoprHDNImportOSProjects ) {
+                Validation.required(fieldName + ".synchronizationInterval", this.synchronizationInterval);
+                if (!StringUtils.isNumeric(this.synchronizationInterval) ||
+                        (StringUtils.isNumeric(this.synchronizationInterval) && (Integer.parseInt(this.synchronizationInterval)) < MIN_INTERVAL_DELAY)){
+                    Validation.addError(fieldName + ".synchronizationInterval",
+                            MessagesUtils.get("ldapSources.synchronizationInterval.integerRequired"));
+                }
+            }
+
         	if (!StringUtils.equals(AuthSourceType.keystone.name(), mode)) {
 
             if (StringUtils.lastIndexOf(this.searchFilter, "=") < 0) {

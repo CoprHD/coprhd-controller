@@ -127,4 +127,8 @@ public class OpenStackTenants extends AbstractCoreResources<OpenStackTenantParam
     public CoprhdOsTenantListRestRep registerOpenStackTenants(OpenStackTenantListParam list) {
         return client.post(CoprhdOsTenantListRestRep.class, list, baseUrl);
     }
+
+    public void synchronizeOpenStackTenants() {
+        client.put(String.class, OS_TENANTS_URL + "/sync");
+    }
 }

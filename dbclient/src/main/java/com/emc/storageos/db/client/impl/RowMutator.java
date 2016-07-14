@@ -1,175 +1,193 @@
 /*
- * Copyright (c) 2012 EMC Corporation
+ * Copyright (c) 2016 EMC Corporation
  * All Rights Reserved
  */
-
 package com.emc.storageos.db.client.impl;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
-
+import com.datastax.driver.core.BatchStatement;
+import com.datastax.driver.core.BoundStatement;
+import com.datastax.driver.core.ConsistencyLevel;
+import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.querybuilder.Delete;
+import com.datastax.driver.core.utils.UUIDs;
+import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.ScopedLabel;
+import com.emc.storageos.db.exceptions.DatabaseException;
+import org.apache.cassandra.serializers.BooleanSerializer;
+import org.apache.cassandra.serializers.DoubleSerializer;
+import org.apache.cassandra.serializers.FloatSerializer;
+import org.apache.cassandra.serializers.Int32Serializer;
+import org.apache.cassandra.serializers.LongSerializer;
+import org.apache.cassandra.serializers.UTF8Serializer;
+import org.apache.cassandra.utils.ByteBufferUtil;
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.db.exceptions.DatabaseException;
-import com.netflix.astyanax.ColumnListMutation;
-import com.netflix.astyanax.Keyspace;
-import com.netflix.astyanax.MutationBatch;
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
-import com.netflix.astyanax.connectionpool.exceptions.OperationTimeoutException;
-import com.netflix.astyanax.connectionpool.exceptions.TimeoutException;
-import com.netflix.astyanax.connectionpool.exceptions.TokenRangeOfflineException;
-import com.netflix.astyanax.impl.AstyanaxConfigurationImpl;
-import com.netflix.astyanax.model.ColumnFamily;
-import com.netflix.astyanax.model.ConsistencyLevel;
-import com.netflix.astyanax.util.TimeUUIDUtils;
+import java.net.URI;
+import java.nio.ByteBuffer;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.UUID;
 
-/**
- * Encapsulates batch queries for record and index updates
- */
+import static com.datastax.driver.core.querybuilder.QueryBuilder.*;
 
-/**
- * @deprecated
- */
 public class RowMutator {
     private static final Logger log = LoggerFactory.getLogger(RowMutator.class);
-    
-    private Map<String, Map<String, ColumnListMutation<CompositeColumnName>>> _cfRowMap;
-    private Map<String, Map<String, ColumnListMutation<IndexColumnName>>> _cfIndexMap;
-    private UUID _timeUUID;
-    private long _timeStamp;
-    private MutationBatch _recordMutator;
-    private MutationBatch _indexMutator;
-    private Keyspace keyspace;
-    private boolean retryFailedWriteWithLocalQuorum = false;
-    
-    /**
-     * Construct RowMutator instance for for index CF and object CF updates
-     * 
-     * @param keyspace - cassandra keyspace object
-     * @param retryWithLocalQuorum - true - retry once with LOCAL_QUORUM for write failure 
-     */
-    public RowMutator(Keyspace keyspace, boolean retryWithLocalQuorum) {
-        this.keyspace = keyspace;
-        _timeUUID = TimeUUIDUtils.getUniqueTimeUUIDinMicros();
-        _timeStamp = TimeUUIDUtils.getMicrosTimeFromUUID(_timeUUID);
 
-        _recordMutator = keyspace.prepareMutationBatch();
-        _indexMutator = keyspace.prepareMutationBatch();
-        _recordMutator.setTimestamp(_timeStamp);
-        _indexMutator.setTimestamp(_timeStamp);
+    private DbClientContext context;
+    private BatchStatement atomicBatch;
 
-        _cfRowMap = new HashMap<String, Map<String, ColumnListMutation<CompositeColumnName>>>();
-        _cfIndexMap = new HashMap<String, Map<String, ColumnListMutation<IndexColumnName>>>();
-        
-        this.retryFailedWriteWithLocalQuorum = retryWithLocalQuorum;
+    private ConsistencyLevel writeCL = ConsistencyLevel.EACH_QUORUM; // default
+
+    private UUID timeUUID;
+
+    private static final String updateRecordFormat = "UPDATE \"%s\" SET value = ? WHERE key = ? AND column1 = ? AND column2 = ? AND column3 = ? AND column4 = ?";
+    private static final String updateIndexFormat = "UPDATE \"%s\" SET value = ? WHERE key = ? AND column1 = ? AND column2 = ? AND column3 = ? AND column4 = ? AND column5 = ?";
+    private static final String insertTimeSeriesFormat = "INSERT INTO \"%s\" (key, column1, value) VALUES(?, ?, ?) USING TTL ?";
+    private static final String insertSchemaRecordFormat = "INSERT INTO \"%s\" (key, column1, value) VALUES(?, ?, ?)";
+
+    public RowMutator(DbClientContext context) {
+        this.context = context;
+        this.atomicBatch = new BatchStatement();
+        this.timeUUID = UUIDs.timeBased();
+        /*
+         * will consider codeRegistry later.
+         * CodecRegistry codecRegistry = CodecRegistry.DEFAULT_INSTANCE;
+         * add more customized codec
+         * codecRegistry.register();
+         */
+    }
+
+    public void insertRecordColumn(String tableName, String recordKey, CompositeColumnName column, Object val) {
+        // todo consider 'ttl'
+        PreparedStatement insertPrepared = context.getPreparedStatement(String.format(updateRecordFormat, tableName));
+        BoundStatement insert = insertPrepared.bind();
+        insert.setString("key", recordKey);
+        // For PRIMARY KEY (key, column1, column2, column3, column4), the primary key cannot be null
+        insert.setString("column1", column.getOne() == null ? StringUtils.EMPTY : column.getOne());
+        insert.setString("column2", column.getTwo() == null ? StringUtils.EMPTY : column.getTwo());
+        insert.setString("column3", column.getThree() == null ? StringUtils.EMPTY : column.getThree());
+        // todo when column4 is null, "Invalid null value for clustering key part column4" exception will be thrown, so we set column4 with timeBased() not empty. But previously Astyanax allows column4 is null
+        insert.setUUID("column4", column.getTimeUUID() == null ? UUIDs.timeBased() : column.getTimeUUID());
+        ByteBuffer blobVal = getByteBufferFromPrimitiveValue(val);
+        insert.setBytes("value", blobVal);
+        atomicBatch.add(insert);
+    }
+
+    public void insertIndexColumn(String tableName, String indexRowKey, IndexColumnName column, Object val) {
+        PreparedStatement insertPrepared = context.getPreparedStatement(String.format(updateIndexFormat, tableName));
+        BoundStatement insert = insertPrepared.bind();
+        insert.setString("key", indexRowKey);
+        // For PRIMARY KEY (key, column1, column2, column3, column4, column5), the primary key cannot be null
+        insert.setString("column1", column.getOne() == null ? StringUtils.EMPTY : column.getOne());
+        insert.setString("column2", column.getTwo() == null ? StringUtils.EMPTY : column.getTwo());
+        insert.setString("column3", column.getThree() == null ? StringUtils.EMPTY : column.getThree());
+        insert.setString("column4", column.getFour() == null ? StringUtils.EMPTY : column.getFour());
+        insert.setUUID("column5", column.getTimeUUID() == null ? UUIDs.timeBased() : column.getTimeUUID());
+        ByteBuffer blobVal = getByteBufferFromPrimitiveValue(val);
+        insert.setBytes("value", blobVal);
+        atomicBatch.add(insert);
+    }
+
+    public void deleteRecordColumn(String tableName, String recordKey, CompositeColumnName column) {
+        Delete.Where deleteRecord = delete().from(String.format("\"%s\"", tableName)).where(eq("key", recordKey))
+                .and(eq("column1", column.getOne() == null ? StringUtils.EMPTY : column.getOne()))
+                .and(eq("column2", column.getTwo() == null ? StringUtils.EMPTY : column.getTwo()))
+                .and(eq("column3", column.getThree() == null ? StringUtils.EMPTY : column.getThree()));
+        UUID uuidColumn = column.getTimeUUID();
+        if (uuidColumn != null) {
+            deleteRecord.and(eq("column4", uuidColumn));
+        }
+        atomicBatch.add(deleteRecord);
+    }
+
+    public void deleteIndexColumn(String tableName, String indexRowKey, IndexColumnName column) {
+        Delete.Where deleteIndex = delete().from(String.format("\"%s\"", tableName)).where(eq("key", indexRowKey))
+                .and(eq("column1", column.getOne() == null ? StringUtils.EMPTY : column.getOne()))
+                .and(eq("column2", column.getTwo() == null ? StringUtils.EMPTY : column.getTwo()))
+                .and(eq("column3", column.getThree() == null ? StringUtils.EMPTY : column.getThree()))
+                .and(eq("column4", column.getFour() == null ? StringUtils.EMPTY : column.getFour()));
+        UUID uuidColumn = column.getTimeUUID();
+        if (uuidColumn != null) {
+            deleteIndex.and(eq("column5", uuidColumn));
+        }
+        atomicBatch.add(deleteIndex);
+    }
+
+    public void execute() {
+        atomicBatch.setConsistencyLevel(writeCL);
+        context.getSession().execute(atomicBatch);
+        //todo executeWithRetry
+    }
+    
+    public void insertTimeSeriesColumn(String tableName, String rowKey, UUID uuid, Object val, Integer ttl) {
+        PreparedStatement insertPrepared = context.getPreparedStatement(String.format(insertTimeSeriesFormat, tableName));
+        BoundStatement insert = insertPrepared.bind();
+        insert.setString(0, rowKey);
+        insert.setUUID(1, uuid);
+        insert.setBytes(2, getByteBufferFromPrimitiveValue(val));
+        insert.setInt(3, ttl);
+        atomicBatch.add(insert);
+    }
+    
+    public void insertSchemaRecord(String tableName, String rowKey, String column, Object val) {
+        PreparedStatement insertPrepared = context.getPreparedStatement(String.format(insertSchemaRecordFormat, tableName));
+        BoundStatement insert = insertPrepared.bind();
+        insert.setString(0, rowKey);
+        insert.setString(1, column);
+        insert.setBytes(2, getByteBufferFromPrimitiveValue(val));
+        atomicBatch.add(insert);
+    }
+
+    public static ByteBuffer getByteBufferFromPrimitiveValue(Object val) {
+        if (val == null) {
+            return ByteBufferUtil.EMPTY_BYTE_BUFFER;
+        }
+        ByteBuffer blobVal = null;
+        Class valClass = val.getClass();
+        if (valClass == byte[].class) {
+            blobVal = ByteBuffer.wrap((byte[]) val);
+        } else if (valClass == String.class ||
+                valClass == URI.class ||
+                valClass == NamedURI.class ||
+                valClass == ScopedLabel.class) {
+            blobVal = UTF8Serializer.instance.serialize(val.toString());
+        } else if (valClass == Byte.class) {
+            blobVal = Int32Serializer.instance.serialize((Byte) val & 0xff);
+        } else if (valClass == Boolean.class) {
+            blobVal = BooleanSerializer.instance.serialize((Boolean) val);
+        } else if (valClass == Short.class) {
+            blobVal = ByteBuffer.allocate(2);
+            blobVal.putShort((Short) val);
+        } else if (valClass == Integer.class) {
+            blobVal = Int32Serializer.instance.serialize((Integer) val);
+        } else if (valClass == Long.class) {
+            blobVal = LongSerializer.instance.serialize((Long) val);
+        } else if (valClass == Float.class) {
+            blobVal = FloatSerializer.instance.serialize((Float) val);
+        } else if (valClass == Double.class) {
+            blobVal = DoubleSerializer.instance.serialize((Double) val);
+        } else if (valClass == Date.class) {
+            blobVal = LongSerializer.instance.serialize(((Date) val).getTime());
+        } else if (val instanceof Calendar) {
+            long timestamp = ((Calendar) val).getTimeInMillis();
+            blobVal = LongSerializer.instance.serialize(timestamp);
+        } else if (valClass.isEnum()) {
+            blobVal = UTF8Serializer.instance.serialize(((Enum<?>) val).name());
+        } else {
+            throw DatabaseException.fatals.serializationFailedUnsupportedType(val);
+        }
+
+        return blobVal;
+    }
+
+    public void setWriteCL(ConsistencyLevel writeCL) {
+        this.writeCL = writeCL;
     }
 
     public UUID getTimeUUID() {
-        return _timeUUID;
+        return timeUUID;
     }
 
-    public long getTimeStamp() {
-        return _timeStamp;
-    }
-
-    /**
-     * Get record row for given CF
-     * 
-     * @param cf
-     * @param key
-     * @return
-     */
-    public ColumnListMutation<CompositeColumnName> getRecordColumnList(
-            ColumnFamily<String, CompositeColumnName> cf, String key) {
-        Map<String, ColumnListMutation<CompositeColumnName>> rowMap = _cfRowMap.get(cf.getName());
-        if (rowMap == null) {
-            rowMap = new HashMap<String, ColumnListMutation<CompositeColumnName>>();
-            _cfRowMap.put(cf.getName(), rowMap);
-        }
-        ColumnListMutation<CompositeColumnName> row = rowMap.get(key);
-        if (row == null) {
-            row = _recordMutator.withRow(cf, key);
-            rowMap.put(key, row);
-        }
-        return row;
-    }
-
-    /***
-     * Get index row for given CF
-     * 
-     * @param cf
-     * @param key
-     * @return
-     */
-    public ColumnListMutation<IndexColumnName> getIndexColumnList(
-            ColumnFamily<String, IndexColumnName> cf, String key) {
-        Map<String, ColumnListMutation<IndexColumnName>> rowMap = _cfIndexMap.get(cf.getName());
-        if (rowMap == null) {
-            rowMap = new HashMap<String, ColumnListMutation<IndexColumnName>>();
-            _cfIndexMap.put(cf.getName(), rowMap);
-        }
-        ColumnListMutation<IndexColumnName> row = rowMap.get(key);
-        if (row == null) {
-            row = _indexMutator.withRow(cf, key);
-            rowMap.put(key, row);
-        }
-        return row;
-    }
-
-    /**
-     * Updates record first and index second. This is used for insertion
-     */
-    public void executeRecordFirst() {
-        try {
-            executeMutatorWithRetry(_recordMutator);
-            executeMutatorWithRetry(_indexMutator);
-        } catch (ConnectionException e) {
-            throw DatabaseException.retryables.connectionFailed(e);
-        }
-    }
-
-    /**
-     * Updates index first and record second. This is used for deletion.
-     */
-    public void executeIndexFirst() {
-        try {
-            executeMutatorWithRetry(_indexMutator);
-            executeMutatorWithRetry(_recordMutator);
-        } catch (ConnectionException e) {
-            throw DatabaseException.retryables.connectionFailed(e);
-        }
-    }
-    
-    /**
-     * Retry with LOCAL_QUORUM if remote site is not reachable. See DbClientContext.checkAndResetConsistencyLevel on
-     * how the consistency level is changed back after remote site is available again later.
-     * 
-     * It is supposed to happen on active site only.
-     * 
-     * @param mutator
-     * @throws ConnectionException
-     */
-    private void executeMutatorWithRetry(MutationBatch mutator) throws ConnectionException{
-        if (!mutator.isEmpty()) {
-            try {
-                mutator.execute();
-            } catch (TimeoutException | TokenRangeOfflineException | OperationTimeoutException ex) {
-                // change consistency level and retry once with LOCAL_QUORUM
-                ConsistencyLevel currentConsistencyLevel = keyspace.getConfig().getDefaultWriteConsistencyLevel();
-                if (retryFailedWriteWithLocalQuorum && currentConsistencyLevel.equals(ConsistencyLevel.CL_EACH_QUORUM)) {
-                    mutator.setConsistencyLevel(ConsistencyLevel.CL_LOCAL_QUORUM);
-                    mutator.execute();
-                    log.info("Reduce write consistency level to CL_LOCAL_QUORUM");
-                    ((AstyanaxConfigurationImpl)keyspace.getConfig()).setDefaultWriteConsistencyLevel(ConsistencyLevel.CL_LOCAL_QUORUM);
-                    _indexMutator.setConsistencyLevel(ConsistencyLevel.CL_LOCAL_QUORUM);
-                    _recordMutator.setConsistencyLevel(ConsistencyLevel.CL_LOCAL_QUORUM);
-                } else {
-                    throw ex;
-                }
-            }
-        }
-    }
-    
 }

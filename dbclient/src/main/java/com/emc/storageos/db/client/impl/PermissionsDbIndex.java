@@ -29,7 +29,7 @@ public class PermissionsDbIndex extends DbIndex {
 
     @Override
     boolean addColumn(String recordKey, CompositeColumnName column, Object value,
-            String className, RowMutatorDS mutator, Integer ttl, DataObject obj) {
+            String className, RowMutator mutator, Integer ttl, DataObject obj) {
         String indexRowKey = getRowKey(column, value);
         IndexColumnName indexEntry = new IndexColumnName(className, recordKey, value.toString(), mutator.getTimeUUID());
 
@@ -39,7 +39,7 @@ public class PermissionsDbIndex extends DbIndex {
 
     @Override
     boolean removeColumn(String recordKey, CompositeColumnName column, String className,
-                         RowMutatorDS mutator, Map<String, List<CompositeColumnName>> fieldColumnMap) {
+                         RowMutator mutator, Map<String, List<CompositeColumnName>> fieldColumnMap) {
         String rowKey = getRowKey(column);
         UUID uuid = column.getTimeUUID();
         IndexColumnName indexEntry = new IndexColumnName(className, recordKey, column.getStringValue(), uuid);

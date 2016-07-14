@@ -120,8 +120,7 @@ public class IndexCleanupList implements IndexColumnList {
 
                 for (CompositeColumnName col : colMap.values()) {
                     // All indexed fields except "inactive" itself need to be removed
-                    if (!col.getOne().equals("inactive")
-                            && !ColumnField.isDeletionMark(col)) {
+                    if (!col.getOne().equals("inactive") && !ColumnField.isDeletionMark(col)) {
                         cols.add(col);
                     }
                 }

@@ -9,14 +9,16 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 
 import com.emc.storageos.db.client.impl.DbClientContext;
-import com.emc.storageos.db.client.impl.RowMutatorDS;
+import com.emc.storageos.db.client.impl.RowMutator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.SimpleStatement;
+import com.datastax.driver.core.TableMetadata;
+import com.datastax.driver.core.exceptions.DriverException;
 import com.emc.storageos.db.client.constraint.DecommissionedConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.impl.ColumnField;
@@ -30,14 +32,7 @@ import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.SchemaRecord;
 import com.emc.storageos.db.client.util.KeyspaceUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
-import com.netflix.astyanax.Keyspace;
-import com.netflix.astyanax.MutationBatch;
-import com.netflix.astyanax.connectionpool.OperationResult;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
-import com.netflix.astyanax.ddl.SchemaChangeResult;
-import com.netflix.astyanax.model.Column;
-import com.netflix.astyanax.model.Row;
-import com.netflix.astyanax.model.Rows;
 
 /**
  * Internal db client used for upgrade migrations
@@ -75,7 +70,7 @@ public class InternalDbClient extends DbClientImpl {
             Map<String, List<CompositeColumnName>> removeList = queryRowsWithAColumn(context, batch, doType.getCF().getName(), columnField);
             boolean retryFailedWriteWithLocalQuorum = shouldRetryFailedWriteWithLocalQuorum(clazz);
             //todo retry
-            RowMutatorDS mutator = new RowMutatorDS(context);
+            RowMutator mutator = new RowMutator(context);
             _indexCleaner.removeOldIndex(mutator, doType, removeList, indexCf);
             batch = getNextBatch(recIt);
         }
@@ -122,9 +117,9 @@ public class InternalDbClient extends DbClientImpl {
 
     public void persistSchemaRecord(SchemaRecord record) throws DatabaseException {
         try {
-            MutationBatch batch = getLocalKeyspace().prepareMutationBatch();
+            RowMutator mutator = new RowMutator(getLocalContext());
             SchemaRecordType type = TypeMap.getSchemaRecordType();
-            type.serialize(batch, record);
+            type.serialize(mutator, record);
         } catch (ConnectionException e) {
             throw DatabaseException.retryables.connectionFailed(e);
         }
@@ -247,7 +242,7 @@ public class InternalDbClient extends DbClientImpl {
                     // also we shouldn't overwrite the creation time
                     boolean retryFailedWriteWithLocalQuorum = shouldRetryFailedWriteWithLocalQuorum(clazz);
                     //todo retry
-                    RowMutatorDS mutator = new RowMutatorDS(geoContext);
+                    RowMutator mutator = new RowMutator(geoContext);
                     doType.serialize(mutator, obj);
                     mutator.execute();
                 } catch (final InstantiationException e) {
@@ -262,13 +257,20 @@ public class InternalDbClient extends DbClientImpl {
 
     public void rebuildCf(String cf) {
         try {
-            Properties props = getLocalKeyspace().getColumnFamilyProperties(cf);
-            OperationResult<SchemaChangeResult> dropCFResult = getLocalKeyspace().dropColumnFamily(cf);
-            waitForSchemaChange(dropCFResult);
+            DbClientContext dbClientContext = this.getLocalContext();
+            TableMetadata tableMatadata = dbClientContext.getCassandraCluster().getMetadata().
+            getKeyspace(String.format("\"%s\"", dbClientContext.getKeyspaceName())).
+            getTable(String.format("\"%s\"", cf));
+            
+            String createTableQuery = tableMatadata.asCQLQuery();
+            
+            dbClientContext.getSession().execute(String.format("DROP TABLE IF EXISTS \"%s\"", cf));
+            dbClientContext.waitForSchemaAgreement();
+            
             // bloom filter can not be 0 starting at version 1.2. Otherwise CF create throws an exception
             // see CASSANDRA-5013
             // In this case set value for Bloom Filter as 0.01 which is the default value for SizeTieredCompactionStrategy
-            String value = (String) props.get("bloom_filter_fp_chance");
+            String value = String.valueOf(tableMatadata.getOptions().getBloomFilterFalsePositiveChance());
             double fpValue;
             if (value == null || value.isEmpty()) {
                 value = "0.01";
@@ -286,10 +288,10 @@ public class InternalDbClient extends DbClientImpl {
                 value = Double.toString(fpValue);
             }
             log.info("Setting value for Bloom Filter to " + value);
-            props.setProperty("bloom_filter_fp_chance", value);
-            OperationResult<SchemaChangeResult> createCFResult = getLocalKeyspace().createColumnFamily(props);
-            waitForSchemaChange(createCFResult);
-        } catch (ConnectionException connEx) {
+            createTableQuery = createTableQuery + " and bloom_filter_fp_chance = " + value;
+            dbClientContext.getSession().execute(createTableQuery);
+            dbClientContext.waitForSchemaAgreement();
+        } catch (DriverException connEx) {
             log.error("Failed to recreate columnFamily : " + cf);
             DatabaseException.retryables.connectionFailed(connEx);
         }
@@ -302,44 +304,42 @@ public class InternalDbClient extends DbClientImpl {
         }
         try {
             DbClientContext context = getDbClientContext(clazz);
-            OperationResult<Rows<String, CompositeColumnName>> result =
-                    ks.prepareQuery(doType.getCF()).getAllRows().setRowLimit(DEFAULT_PAGE_SIZE).execute();
-            Iterator<Row<String, CompositeColumnName>> it = result.getResult().iterator();
+            
+            String queryString = String.format("select * from \"%s\"", doType.getCF().getName());
+            SimpleStatement statement = new SimpleStatement(queryString);
+            statement.setFetchSize(DEFAULT_PAGE_SIZE);
+            ResultSet resultSet = context.getSession().execute(statement);
+            Map<String, List<CompositeColumnName>> result = toColumnMap(resultSet);
+            
             RemovedColumnsList removedList = new RemovedColumnsList();
             List<DataObject> objects = new ArrayList<>(DEFAULT_PAGE_SIZE);
-            String key = null;
             Exception lastEx = null;
 
-            while (it.hasNext()) {
+            for (String rowKey : result.keySet()) {
                 try {
-                    Row<String, CompositeColumnName> row = it.next();
-                    if (row.getColumns().size() == 0) {
-                        continue;
-                    }
-                    key = row.getKey();
-                    DataObject obj = DataObject.createInstance(clazz, URI.create(key));
+                    DataObject obj = DataObject.createInstance(clazz, URI.create(rowKey));
                     obj.trackChanges();
                     objects.add(obj);
-                    Iterator<Column<CompositeColumnName>> columnIterator = row.getColumns().iterator();
+                    Iterator<CompositeColumnName> columnIterator = result.get(rowKey).iterator();
                     while (columnIterator.hasNext()) {
-                        Column<CompositeColumnName> column = columnIterator.next();
-                        ColumnField columnField = setFields.get(column.getName().getOne());
+                        CompositeColumnName column = columnIterator.next();
+                        ColumnField columnField = setFields.get(column.getOne());
                         if (columnField != null) {
                             columnField.deserialize(column, obj);
-                            removedList.add(key, column.getName());
+                            removedList.add(rowKey, column);
                         }
                     }
 
                     if (objects.size() == DEFAULT_PAGE_SIZE) {
                         boolean retryFailedWriteWithLocalQuorum = shouldRetryFailedWriteWithLocalQuorum(clazz);
-                        RowMutatorDS mutator = new RowMutatorDS(context);
+                        RowMutator mutator = new RowMutator(context);
                         _indexCleaner.removeColumnAndIndex(mutator, doType, removedList);
                         updateObject(objects);
                         objects.clear();
                         removedList.clear();
                     }
                 } catch (Exception e) {
-                    String message = String.format("DB migration failed reason: reset data key='%s'", key);
+                    String message = String.format("DB migration failed reason: reset data key='%s'", rowKey);
 
                     log.error(message);
                     log.error("e=", e);
@@ -359,7 +359,7 @@ public class InternalDbClient extends DbClientImpl {
 
             if (!objects.isEmpty()) {
                 boolean retryFailedWriteWithLocalQuorum = shouldRetryFailedWriteWithLocalQuorum(clazz);
-                RowMutatorDS mutator = new RowMutatorDS(context);
+                RowMutator mutator = new RowMutator(context);
                 _indexCleaner.removeColumnAndIndex(mutator, doType, removedList);
                 updateObject(objects);
             }
@@ -370,29 +370,5 @@ public class InternalDbClient extends DbClientImpl {
         } catch (final IllegalAccessException e) {
             throw DatabaseException.fatals.queryFailed(e);
         }
-    }
-
-    private void waitForSchemaChange(final OperationResult<SchemaChangeResult> result) {
-        String schemaVersion = result.getResult().getSchemaId();
-        long start = System.currentTimeMillis();
-
-        while (System.currentTimeMillis() - start < MAX_SCHEMA_WAIT_MS) {
-            Map<String, List<String>> versions;
-            try {
-                versions = getLocalKeyspace().describeSchemaVersions();
-            } catch (final ConnectionException e) {
-                throw DatabaseException.retryables.connectionFailed(e);
-            }
-            if (versions.size() == 1 && versions.containsKey(schemaVersion)) {
-                log.info("schema version sync to: {} done", schemaVersion);
-                return;
-            }
-            try {
-                Thread.sleep(RETRY_INTERVAL);
-            } catch (InterruptedException e) {
-                log.warn("DB keyspace verification interrupted, ignore", e);
-            }
-        }
-        log.warn("Unable to sync schema version {}", schemaVersion);
     }
 }

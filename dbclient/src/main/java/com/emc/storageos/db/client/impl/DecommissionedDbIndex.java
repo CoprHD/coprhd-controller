@@ -8,7 +8,6 @@ import java.util.Map;
 import java.util.List;
 import java.util.UUID;
 
-import org.apache.cassandra.serializers.BooleanSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,7 +22,7 @@ public class DecommissionedDbIndex extends DbIndex {
 
     @Override
     boolean addColumn(String recordKey, CompositeColumnName column, Object value,
-            String className, RowMutatorDS mutator, Integer ttl, DataObject obj) {
+            String className, RowMutator mutator, Integer ttl, DataObject obj) {
 
         String indexRowKey = className;
         IndexColumnName indexEntry = new IndexColumnName(value.toString(), recordKey, mutator.getTimeUUID());
@@ -34,10 +33,10 @@ public class DecommissionedDbIndex extends DbIndex {
 
     @Override
     boolean removeColumn(String recordKey, CompositeColumnName column, String className,
-                         RowMutatorDS mutator, Map<String, List<CompositeColumnName>> fieldColumnMap) {
+                         RowMutator mutator, Map<String, List<CompositeColumnName>> fieldColumnMap) {
         String rowKey = className;
         UUID uuid = column.getTimeUUID();
-        Boolean val = BooleanSerializer.instance.deserialize(column.getValue());
+        Boolean val = column.getBooleanValue();
 
         mutator.deleteIndexColumn(indexCF.getName(), rowKey, new IndexColumnName(val.toString(), recordKey, uuid));
         return true;

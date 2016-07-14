@@ -9,7 +9,6 @@ import java.util.List;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import com.emc.storageos.db.client.model.*;
 
 public class AltIdDbIndex extends DbIndex {
@@ -21,7 +20,7 @@ public class AltIdDbIndex extends DbIndex {
 
     @Override
     boolean addColumn(String recordKey, CompositeColumnName column, Object value,
-            String className, RowMutatorDS mutator, Integer ttl, DataObject obj) {
+            String className, RowMutator mutator, Integer ttl, DataObject obj) {
         if (value.toString().isEmpty()) {
             // empty string in alternate id field, ignore and continue
             _log.warn("Empty string in altenate id field: {}", fieldName);
@@ -38,7 +37,7 @@ public class AltIdDbIndex extends DbIndex {
 
     @Override
     boolean removeColumn(String recordKey, CompositeColumnName column, String className,
-                         RowMutatorDS mutator, Map<String, List<CompositeColumnName>> fieldColumnMap) {
+                         RowMutator mutator, Map<String, List<CompositeColumnName>> fieldColumnMap) {
         UUID uuid = column.getTimeUUID();
         String rowKey = getRowKey(column);
 

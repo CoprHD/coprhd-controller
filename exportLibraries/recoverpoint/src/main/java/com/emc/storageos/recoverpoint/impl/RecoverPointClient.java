@@ -1799,8 +1799,9 @@ public class RecoverPointClient {
             Set<RPCopy> copies = rpcg.getCopies();
             for (RPCopy copy : copies) {
                 ConsistencyGroupCopyState copyState = imageManager.getCopyState(functionalAPI, copy.getCGGroupCopyUID());
-                if (copyState != null && copyState.getAccessedImage() != null && copyState.getAccessedImage().getDescription() != null &&
-                        copyState.getAccessedImage().getDescription().equals(request.getEmName())) {
+                if (request.getEmName() == null || request.getEmName().isEmpty() || 
+                        (copyState != null && copyState.getAccessedImage() != null && copyState.getAccessedImage().getDescription() != null &&
+                        copyState.getAccessedImage().getDescription().equals(request.getEmName()))) {
                     imageManager.disableCGCopy(functionalAPI, copy.getCGGroupCopyUID());
                 }
             }

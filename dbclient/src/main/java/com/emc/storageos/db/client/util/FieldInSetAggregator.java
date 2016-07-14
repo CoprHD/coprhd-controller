@@ -7,8 +7,6 @@ package com.emc.storageos.db.client.util;
 import com.emc.storageos.db.client.DbAggregatorItf;
 import com.emc.storageos.db.client.impl.*;
 import com.emc.storageos.db.client.model.DataObject;
-import com.netflix.astyanax.model.Column;
-import com.netflix.astyanax.model.Row;
 
 import java.net.URISyntaxException;
 import java.util.*;

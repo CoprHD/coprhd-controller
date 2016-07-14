@@ -50,10 +50,6 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Ttl;
 import com.emc.storageos.db.client.model.AggregatedIndex;
 import com.emc.storageos.db.exceptions.DatabaseException;
-import com.netflix.astyanax.ColumnListMutation;
-import com.netflix.astyanax.model.ByteBufferRange;
-import com.netflix.astyanax.model.Column;
-import com.netflix.astyanax.serializers.StringSerializer;
 
 /**
  * Column / data object field type metadata
@@ -262,52 +258,12 @@ public class ColumnField {
     }
 
     /**
-     * Build column slice range for given prefix
-     * 
-     * @param prefix
-     * @return
-     */
-    public ByteBufferRange buildPrefixRange(String prefix, int pageSize) {
-        String target = prefix.toLowerCase();
-        return CompositeColumnNameSerializer.get().buildRange()
-                .withPrefix(_parentType.getDataObjectClass().getSimpleName())
-                .greaterThanEquals(target)
-                .lessThanEquals(target + Character.MAX_VALUE)
-                .limit(pageSize)
-                .build();
-    }
-
-    /**
-     * Build column slice range for given string
-     * 
-     * @param prefix
-     * @return
-     */
-    public ByteBufferRange buildMatchRange(String prefix, int pageSize) {
-        String target = prefix.toLowerCase();
-        return CompositeColumnNameSerializer.get().buildRange()
-                .withPrefix(_parentType.getDataObjectClass().getSimpleName())
-                .greaterThanEquals(target)
-                .lessThanEquals(target)
-                .limit(pageSize)
-                .build();
-    }
-
-    /**
      * Deserializes column into object field
      * 
      * @param column column to deserialize
      * @param obj object containing this field
      * @throws DatabaseException
      */
-    public void deserialize(Column<CompositeColumnName> column, Object obj) {
-        if (_encrypt && _parentType.getEncryptionProvider() != null) {
-            deserializeEncryptedColumn(column, obj, _parentType.getEncryptionProvider());
-        } else {
-            ColumnValue.setField(column, _property, obj);
-        }
-    }
-    
     public void deserialize(CompositeColumnName compositeColumnName, Object obj) {
         if (_encrypt && _parentType.getEncryptionProvider() != null) {
             deserializeEncryptedColumn(compositeColumnName, obj, _parentType.getEncryptionProvider());
@@ -324,18 +280,6 @@ public class ColumnField {
      * @param encryptionProvider the encryption provider used to decrypt the column
      * @throws DatabaseException
      */
-    public void deserializeEncryptedColumn(Column<CompositeColumnName> column, Object obj,
-            EncryptionProvider encryptionProvider) {
-        if (!_encrypt) {
-            throw new IllegalArgumentException("column is not encrypted");
-        }
-
-        if (encryptionProvider == null) {
-            throw new IllegalArgumentException("null encryption provider");
-        }
-        ColumnValue.setEncryptedStringField(column, _property, obj, encryptionProvider);
-    }
-    
     public void deserializeEncryptedColumn(CompositeColumnName compositeColumnName, Object obj,
             EncryptionProvider encryptionProvider) {
         if (!_encrypt) {
@@ -356,7 +300,7 @@ public class ColumnField {
      * @param mutator row mutator that holds remove queries
      * @param fieldColumnMap column map for the record. it might need to remove indexes for dependent fields
      */
-    public boolean removeColumn(String recordKey, CompositeColumnName column, RowMutatorDS mutator,
+    public boolean removeColumn(String recordKey, CompositeColumnName column, RowMutator mutator,
             Map<String, List<CompositeColumnName>> fieldColumnMap) {
         // remove record
         mutator.deleteRecordColumn(_parentType.getCF().getName(), recordKey, column);
@@ -369,7 +313,7 @@ public class ColumnField {
         return _index.removeColumn(recordKey, column, _parentType.getDataObjectClass().getSimpleName(), mutator, fieldColumnMap);
     }
 
-    private void addDeletionMark(String tableName, String recordKey, CompositeColumnName colName, RowMutatorDS mutator) {
+    private void addDeletionMark(String tableName, String recordKey, CompositeColumnName colName, RowMutator mutator) {
         addColumn(tableName, recordKey, colName, null, mutator);
     }
 
@@ -377,11 +321,11 @@ public class ColumnField {
         return !column.getValue().hasRemaining();
     }
 
-    private boolean removeColumn(String recordKey, CompositeColumnName column, RowMutatorDS mutator) {
+    private boolean removeColumn(String recordKey, CompositeColumnName column, RowMutator mutator) {
         return removeColumn(recordKey, column, mutator, null);
     }
 
-    public boolean removeIndex(String recordKey, CompositeColumnName column, RowMutatorDS mutator,
+    public boolean removeIndex(String recordKey, CompositeColumnName column, RowMutator mutator,
             Map<String, List<CompositeColumnName>> fieldColumnMap,
             DataObject obj) {
 
@@ -389,7 +333,7 @@ public class ColumnField {
         return _index.removeColumn(recordKey, column, _parentType.getDataObjectClass().getSimpleName(), mutator, fieldColumnMap, obj);
     }
 
-    public boolean removeIndex(String recordKey, CompositeColumnName column, RowMutatorDS mutator,
+    public boolean removeIndex(String recordKey, CompositeColumnName column, RowMutator mutator,
             Map<String, List<CompositeColumnName>> fieldColumnMap) {
 
         // remove index
@@ -397,7 +341,7 @@ public class ColumnField {
     }
 
     private boolean addColumn(String tableName, String recordKey, CompositeColumnName column, Object val,
-            RowMutatorDS mutator, DataObject obj) {
+            RowMutator mutator, DataObject obj) {
         if (_encrypt && _parentType.getEncryptionProvider() != null) {
             val = _parentType.getEncryptionProvider().encrypt((String) val);
         }
@@ -416,7 +360,7 @@ public class ColumnField {
     }
 
     private boolean addColumn(String tableName, String recordKey, CompositeColumnName column, Object val,
-            RowMutatorDS mutator) {
+            RowMutator mutator) {
         return addColumn(tableName, recordKey, column, val, mutator, null);
     }
 
@@ -429,7 +373,7 @@ public class ColumnField {
      * @return boolean
      * @throws DatabaseException
      */
-    public boolean serialize(String tableName, DataObject obj, RowMutatorDS mutator) {
+    public boolean serialize(String tableName, DataObject obj, RowMutator mutator) {
         try {
             String id = obj.getId().toString();
 
@@ -577,7 +521,7 @@ public class ColumnField {
      * @param mutator row mutator with timestamp
      * @return
      */
-    private CompositeColumnName getColumnName(String two, String three, RowMutatorDS mutator) {
+    private CompositeColumnName getColumnName(String two, String three, RowMutator mutator) {
         switch (_colType) {
             case Id: {
                 return compositeName;
@@ -637,7 +581,7 @@ public class ColumnField {
      * @param mutator
      * @return
      */
-    private CompositeColumnName getColumnName(String two, RowMutatorDS mutator) {
+    private CompositeColumnName getColumnName(String two, RowMutator mutator) {
         return getColumnName(two, null, mutator);
     }
 

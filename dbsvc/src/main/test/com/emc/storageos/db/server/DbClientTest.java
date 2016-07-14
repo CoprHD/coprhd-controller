@@ -27,7 +27,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import com.emc.storageos.db.client.impl.RowMutatorDS;
+import com.emc.storageos.db.client.impl.RowMutator;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.junit.After;
@@ -58,7 +58,6 @@ import com.emc.storageos.db.client.impl.DataObjectType;
 import com.emc.storageos.db.client.impl.DbClientContext;
 import com.emc.storageos.db.client.impl.IndexCleaner;
 import com.emc.storageos.db.client.impl.IndexCleanupList;
-import com.emc.storageos.db.client.impl.RowMutator;
 import com.emc.storageos.db.client.impl.TimeSeriesType;
 import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.model.AuthnProvider;
@@ -90,8 +89,6 @@ import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.SumPrimitiveFieldAggregator;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
-import com.netflix.astyanax.Keyspace;
-import com.netflix.astyanax.model.Rows;
 
 /**
  * DB client tests
@@ -2167,7 +2164,7 @@ public class DbClientTest extends DbsvcTestBase {
 
     private static class NoBgIndexCleaner extends IndexCleaner {
         @Override
-        public void cleanIndexAsync(final RowMutatorDS mutator,
+        public void cleanIndexAsync(final RowMutator mutator,
                 final DataObjectType doType,
                 final SoftReference<IndexCleanupList> listToCleanRef) {
             // Do nothing
@@ -2261,7 +2258,7 @@ public class DbClientTest extends DbsvcTestBase {
         }*/
 
         @Override
-        protected <T extends DataObject> Rows<String, CompositeColumnName> fetchNewest(Class<? extends T> clazz, Keyspace ks,
+        protected <T extends DataObject> Map<String, List<CompositeColumnName>> fetchNewest(Class<? extends T> clazz, DbClientContext context,
                 List<URI> objectsToCleanup)
                 throws DatabaseException {
             StepLock stepLock = this.threadStepLock == null ? null : this.threadStepLock.get();
@@ -2270,7 +2267,7 @@ public class DbClientTest extends DbsvcTestBase {
             }
 
             try {
-                return super.fetchNewest(clazz, ks, objectsToCleanup);
+                return super.fetchNewest(clazz, context, objectsToCleanup);
             } finally {
                 if (stepLock != null) {
                     stepLock.ackStep(StepLock.Step.FetchNewestColumns);
@@ -2280,7 +2277,7 @@ public class DbClientTest extends DbsvcTestBase {
 
         // Override default implementation to
         @Override
-        protected <T extends DataObject> void cleanupOldColumns(Class<? extends T> clazz, Rows<String, CompositeColumnName> rows)
+        protected <T extends DataObject> void cleanupOldColumns(Class<? extends T> clazz, Map<String, List<CompositeColumnName>> rows)
                 throws DatabaseException {
             StepLock stepLock = this.threadStepLock == null ? null : this.threadStepLock.get();
             if (stepLock != null) {

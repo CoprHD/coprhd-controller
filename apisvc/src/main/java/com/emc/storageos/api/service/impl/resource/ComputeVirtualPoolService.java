@@ -19,16 +19,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import javax.ws.rs.Consumes;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
+import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.emc.storageos.db.client.model.*;
+import com.emc.storageos.model.NamedRelatedResourceRep;
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,14 +38,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.model.ComputeElement;
-import com.emc.storageos.db.client.model.ComputeVirtualPool;
-import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
-import com.emc.storageos.db.client.model.Host;
-import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.model.UCSServiceProfileTemplate;
-import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.RelatedResourceRep;
@@ -161,24 +151,60 @@ public class ComputeVirtualPoolService extends TaggedResource {
      */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public ComputeVirtualPoolList getComputeVirtualPool() {
+    public ComputeVirtualPoolList getComputeVirtualPool(
+            @DefaultValue("") @QueryParam(TENANT_ID_QUERY_PARAM) String tenantId) {
         List<URI> ids = _dbClient.queryByType(ComputeVirtualPool.class, true);
         ComputeVirtualPoolList list = new ComputeVirtualPoolList();
+
+        // if input tenant is not empty, but user have no access to it, an exception will be thrown.
+        TenantOrg tenant_input = null;
+        if (!StringUtils.isEmpty(tenantId)) {
+            tenant_input = getTenantIfHaveAccess(tenantId);
+        }
+
         StorageOSUser user = getUserFromContext();
-        URI tenant = URI.create(user.getTenantId());
         Iterator<ComputeVirtualPool> iter = _dbClient.queryIterativeObjects(ComputeVirtualPool.class, ids);
+        List<ComputeVirtualPool> vpoolObjects = new ArrayList<>();
         while (iter.hasNext()) {
-            ComputeVirtualPool vpool = iter.next();
-            if (!_permissionsHelper.userHasGivenRole(user, null, Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR)) {
-                // filter by only authorized to us
-                if (_permissionsHelper.tenantHasUsageACL(tenant, vpool)) {
-                    // this is an allowed ComputeVirtualPool, add it to the list
-                    list.getComputeVirtualPool().add(toNamedRelatedResource(vpool));
+            vpoolObjects.add(iter.next());
+        }
+
+        // full list if role is {Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR} AND no tenant restriction from input
+        // else only return the list, which input tenant has access.
+        if (_permissionsHelper.userHasGivenRole(user,
+                null, Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR)) {
+            for (ComputeVirtualPool virtualPool : vpoolObjects) {
+                if (tenant_input == null || _permissionsHelper.tenantHasUsageACL(tenant_input.getId(), virtualPool)) {
+                    list.getComputeVirtualPool().add(toNamedRelatedResource(virtualPool));
                 }
+            }
+        } else {
+            // otherwise, filter by only authorized to use
+            URI tenant = null;
+            if (tenant_input == null) {
+                tenant = URI.create(user.getTenantId());
             } else {
-                list.getComputeVirtualPool().add(toNamedRelatedResource(vpool));
+                tenant = tenant_input.getId();
+            }
+
+            for (ComputeVirtualPool virtualPool : vpoolObjects) {
+                if (_permissionsHelper.tenantHasUsageACL(tenant, virtualPool)) {
+                    list.getComputeVirtualPool().add(toNamedRelatedResource(virtualPool));
+
+                }
+            }
+
+            // if no tenant specified in request, also adding vpools which sub-tenants of the user have access to.
+            if (tenant_input == null) {
+                List<URI> subtenants = _permissionsHelper.getSubtenantsWithRoles(user);
+                for (ComputeVirtualPool virtualPool : vpoolObjects) {
+                    if (_permissionsHelper.tenantHasUsageACL(subtenants, virtualPool)) {
+                        list.getComputeVirtualPool().add(toNamedRelatedResource(virtualPool));
+                    }
+                }
             }
         }
+
         return list;
     }
 

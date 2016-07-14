@@ -25,7 +25,7 @@ public class PrefixDbIndex extends DbIndex {
 
     @Override
     boolean addColumn(String recordKey, CompositeColumnName column, Object value,
-            String className, RowMutatorDS mutator, Integer ttl, DataObject obj) {
+            String className, RowMutator mutator, Integer ttl, DataObject obj) {
         String text = (String) value;
         if (text.isEmpty() || text.length() < minPrefixChars) {
             _log.warn("String too short in prefix index field: {}", fieldName);
@@ -41,7 +41,7 @@ public class PrefixDbIndex extends DbIndex {
 
     @Override
     boolean removeColumn(String recordKey, CompositeColumnName column, String className,
-                         RowMutatorDS mutator, Map<String, List<CompositeColumnName>> fieldColumnMap) {
+                         RowMutator mutator, Map<String, List<CompositeColumnName>> fieldColumnMap) {
         String text = column.getStringValue();
         if (text.isEmpty() || text.length() < minPrefixChars) {
             _log.warn("String too short in prefix index field: {}, value: {}", fieldName, text);

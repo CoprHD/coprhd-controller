@@ -41,7 +41,7 @@ public class IndexCleaner {
      * @param doType
      * @param listToClean
      */
-    public void cleanIndex(RowMutatorDS mutator, DataObjectType doType, SoftReference<IndexCleanupList> listToCleanRef) {
+    public void cleanIndex(RowMutator mutator, DataObjectType doType, SoftReference<IndexCleanupList> listToCleanRef) {
         /*
          * We use SoftReference here instead of Strong Reference to avoid OOM in huge concurrent requests,
          * Objects hold by SoftReference will be cleared if low memory. refer to:CTRL-10228 for detail.
@@ -60,8 +60,7 @@ public class IndexCleaner {
 
             String rowKey = entry.getKey();
             List<CompositeColumnName> cols = entry.getValue();
-            for (int i = 0; i < cols.size(); i++) {
-                CompositeColumnName column = cols.get(i);
+            for (CompositeColumnName column : cols) {
                 ColumnField field = doType.getColumnField(column.getOne());
                 field.removeColumn(rowKey, column, mutator, listToClean.getAllColumns(rowKey));
                 for (ColumnField depField : field.getDependentFields()) {
@@ -80,17 +79,12 @@ public class IndexCleaner {
         mutator.execute();
     }
 
-    public void removeColumnAndIndex(RowMutatorDS mutator, DataObjectType doType, RemovedColumnsList listToClean) {
-
+    public void removeColumnAndIndex(RowMutator mutator, DataObjectType doType, RemovedColumnsList listToClean) {
         Map<String, List<CompositeColumnName>> cleanList = listToClean.getColumnsToClean();
-        Iterator<Map.Entry<String, List<CompositeColumnName>>> entryIt = cleanList.entrySet().iterator();
-        while (entryIt.hasNext()) {
-            Map.Entry<String, List<CompositeColumnName>> entry = entryIt.next();
-
+        for (Map.Entry<String, List<CompositeColumnName>> entry : cleanList.entrySet()) {
             String rowKey = entry.getKey();
             List<CompositeColumnName> cols = entry.getValue();
-            for (int i = 0; i < cols.size(); i++) {
-                CompositeColumnName column = cols.get(i);
+            for (CompositeColumnName column : cols) {
                 ColumnField field = doType.getColumnField(column.getOne());
                 field.removeColumn(rowKey, column, mutator, listToClean.getAllColumns(rowKey));
             }
@@ -99,7 +93,7 @@ public class IndexCleaner {
         mutator.execute();
     }
 
-    public void removeIndexOfInactiveObjects(RowMutatorDS mutator, DataObjectType doType, IndexCleanupList indexCleanList,
+    public void removeIndexOfInactiveObjects(RowMutator mutator, DataObjectType doType, IndexCleanupList indexCleanList,
             boolean forChangedObjectsOnly) {
         // Get list of columns to cleanup for objects has changes on their indexed fields
         Map<String, List<CompositeColumnName>> indexesToClean = indexCleanList.getIndexesToClean(forChangedObjectsOnly);
@@ -133,7 +127,7 @@ public class IndexCleaner {
      * @param cleanList
      * @param oldIndexCf
      */
-    public void removeOldIndex(RowMutatorDS mutator, DataObjectType doType, Map<String, List<CompositeColumnName>> cleanList,
+    public void removeOldIndex(RowMutator mutator, DataObjectType doType, Map<String, List<CompositeColumnName>> cleanList,
             String oldIndexCf) {
         Iterator<Map.Entry<String, List<CompositeColumnName>>> entryIt = cleanList.entrySet().iterator();
         while (entryIt.hasNext()) {
@@ -162,7 +156,7 @@ public class IndexCleaner {
      * @param doType
      * @param listToClean
      */
-    public void cleanIndexAsync(final RowMutatorDS mutator,
+    public void cleanIndexAsync(final RowMutator mutator,
             final DataObjectType doType,
             final SoftReference<IndexCleanupList> listToCleanRef) {
         _indexCleanerExe.submit(new Callable<Object>() {

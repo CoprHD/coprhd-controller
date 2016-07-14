@@ -29,11 +29,24 @@ import com.netflix.astyanax.serializers.ByteBufferSerializer;
 import com.netflix.astyanax.serializers.LongSerializer;
 import com.netflix.astyanax.util.RangeBuilder;
 import com.netflix.astyanax.util.TimeUUIDUtils;
-import com.netflix.astyanax.recipes.locks.DistributedRowLock;
 import com.netflix.astyanax.recipes.locks.BusyLockException;
 import com.netflix.astyanax.recipes.locks.StaleLockException;
 
-public class CustomizedDistributedRowLock<K> implements DistributedRowLock {
+/**
+ * Internal DistributedRowLock to acquiring and release a row lock
+ *
+ * Usage:
+ *
+ * CustomizedDistributedRowLock lock = new CustomizedDistributedRowLock(...); try {
+ * lock.acquire(); // Do something ... } catch (BusyLockException) { // The lock
+ * was already taken by a different process } catch (StaleLockException) { //
+ * The row has a stale lock that needs to be addressed // This is usually caused
+ * when no column TTL is set and the client // crashed before releasing the
+ * lock. The DistributedRowLock should // have the option to auto delete stale
+ * locks. } finally { lock.release(); }
+ *
+ */
+public class CustomizedDistributedRowLock<K> {
     public static final int LOCK_TIMEOUT = 60;
     public static final TimeUnit DEFAULT_OPERATION_TIMEOUT_UNITS = TimeUnit.MINUTES;
     public static final String DEFAULT_LOCK_PREFIX = "_LOCK_";
@@ -163,7 +176,6 @@ public class CustomizedDistributedRowLock<K> implements DistributedRowLock {
      * 
      * @throws Exception
      */
-    @Override
     public void acquire() throws Exception {
 
         Preconditions.checkArgument(ttl == null || TimeUnit.SECONDS.convert(timeout, timeoutUnits) < ttl, "Timeout " + timeout
@@ -239,7 +251,6 @@ public class CustomizedDistributedRowLock<K> implements DistributedRowLock {
     /**
      * Release the lock by releasing this and any other stale lock columns
      */
-    @Override
     public void release() throws Exception {
         if (!locksToDelete.isEmpty() || lockColumn != null) {
             MutationBatch m = keyspace.prepareMutationBatch().setConsistencyLevel(consistencyLevel);

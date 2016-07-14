@@ -129,48 +129,32 @@ public class VPlexClusterInfo extends VPlexResourceInfo {
      * @return A reference to the VPlexStorageVolumeInfo for the requested volume or null if not found.
      */
     public VPlexStorageVolumeInfo getStorageVolume(VolumeInfo volumeInfo) {
-        String storageVolumeName = volumeInfo.getVolumeWWN().toLowerCase();
         String storageSystemNativeGuid = volumeInfo.getStorageSystemNativeGuid();
-        
-        String storageVolumeWWN = volumeInfo.getVolumeWWN();
-        List<String> backendVolumeItlsList = volumeInfo.getITLs();
-        
-        s_logger.info("Find volume {} in cluster", storageVolumeName);
-        for (VPlexStorageVolumeInfo storageVolumeInfo : storageVolumeInfoList) {
-            String clusterVolumeName = storageVolumeInfo.getName();
-            s_logger.info("Cluster volume name is {}", clusterVolumeName);
-            int startIndex = clusterVolumeName.indexOf(':') + 1;
-            if (startIndex != -1) {
-                clusterVolumeName = clusterVolumeName.substring(startIndex);
-                s_logger.info("Trimmed cluster volume name is {}", clusterVolumeName);
-                if (storageSystemNativeGuid.contains(VPlexApiConstants.HDS_SYSTEM)
-                        && clusterVolumeName.toLowerCase().endsWith(storageVolumeWWN.toLowerCase())) {
-                    s_logger.info("Found HDS volume {}", storageVolumeName);
-                    return storageVolumeInfo;
-                } else if (storageVolumeName.equals(clusterVolumeName)) {
-                    s_logger.info("Found volume {}", storageVolumeName);
-                    return storageVolumeInfo;
-                } else {
-                    // This path is Currently for Cinder only
-                    // Example list - [50001442b0037911-500000e0da0e0721-8, 50001442b0037913-500000e0da0e0731-8,
-                    // 50001442b0037912-500000e0da0e0720-8, 50001442b0037910-500000e0da0e0730-8]                    
-                    List<String> vplexVolItls = storageVolumeInfo.getItls();
-                    if (null != vplexVolItls && !vplexVolItls.isEmpty()) {
-                        for(String itlPair : backendVolumeItlsList) {
-                            //If any one of the pair matches, that is the volume to be considered
-                            if (vplexVolItls.contains(itlPair.trim().toLowerCase())) {
-                                s_logger.info("Found volume '{}' using ITL lookup", storageVolumeName);
-                                return storageVolumeInfo;
-                            }
+        String volumeWWN = volumeInfo.getVolumeWWN();
+        List<String> volumeItlsList = volumeInfo.getITLs();
+        s_logger.info(String.format("Getting storage volume with native info [%s : %s : %s]", storageSystemNativeGuid, volumeWWN, volumeItlsList));
+        for (VPlexStorageVolumeInfo clusterStorageVolumeInfo : storageVolumeInfoList) {
+            String clusterVolumeWWN = clusterStorageVolumeInfo.getWwn();
+            List<String> clusterVolumeItls = clusterStorageVolumeInfo.getItls();
+            s_logger.info(String.format("Cluster storage volume info [%s : %s : %s]", clusterStorageVolumeInfo.getName(), clusterVolumeWWN, clusterVolumeItls));
+            if ((null != volumeItlsList) && (!volumeItlsList.isEmpty())) { 
+                if ((null != clusterVolumeItls) && (!clusterVolumeItls.isEmpty())) {
+                    for (String itlPair : volumeItlsList) {
+                        // If any one of the pair matches that is the volume.
+                        if (clusterVolumeItls.contains(itlPair.trim().toLowerCase())) {
+                            return clusterStorageVolumeInfo;
                         }
                     }
                 }
-            } else if (storageVolumeName.equals(clusterVolumeName)) {
-                // This matching means, the volume has been claimed already
-                s_logger.info("Found volume {}", storageVolumeName);
-                return storageVolumeInfo;
+            } else if (storageSystemNativeGuid.contains(VPlexApiConstants.HDS_SYSTEM)) {
+                if (clusterVolumeWWN.endsWith(volumeWWN.toLowerCase())) {
+                    return clusterStorageVolumeInfo;
+                }
+            } else if (clusterVolumeWWN.equals(volumeWWN.toLowerCase())) {
+                return clusterStorageVolumeInfo;
             }
         }
+        
         return null;
     }
     

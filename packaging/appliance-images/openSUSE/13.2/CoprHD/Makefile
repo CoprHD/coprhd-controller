@@ -74,6 +74,7 @@ downloadRPM:
 	zypper $(ZYPPER_PARAMS) addrepo --name suse-13.2-network --no-gpgcheck http://download.opensuse.org/repositories/network:/utilities/openSUSE_13.2 suse-13.2-network
 	zypper $(ZYPPER_PARAMS) addrepo --name suse-13.2-filesystems-ceph --no-gpgcheck http://download.opensuse.org/repositories/filesystems:/ceph:/Unstable/openSUSE_13.2 suse-13.2-filesystems-ceph
 	zypper $(ZYPPER_PARAMS) addrepo --name suse-13.2-electronics --no-gpgcheck http://download.opensuse.org/repositories/electronics/openSUSE_13.2 suse-13.2-electronics
+	zypper $(ZYPPER_PARAMS) addrepo --name suse-13.2-containers --no-gpgcheck http://download.opensuse.org/repositories/Virtualization:/containers/openSUSE_13.2 suse-13.2-containers
 	zypper $(ZYPPER_PARAMS) modifyrepo --priority  3 suse-13.2-oss
 	zypper $(ZYPPER_PARAMS) modifyrepo --priority  2 suse-13.2-monitoring
 	zypper $(ZYPPER_PARAMS) modifyrepo --priority  2 suse-13.2-seife
@@ -81,8 +82,9 @@ downloadRPM:
 	zypper $(ZYPPER_PARAMS) modifyrepo --priority  4 suse-13.2-network
 	zypper $(ZYPPER_PARAMS) modifyrepo --priority  4 suse-13.2-filesystems-ceph
 	zypper $(ZYPPER_PARAMS) modifyrepo --priority  4 suse-13.2-electronics
+	zypper $(ZYPPER_PARAMS) modifyrepo --priority  4 suse-13.2-containers
 	zypper $(ZYPPER_PARAMS) refresh
-	zypper $(ZYPPER_PARAMS) download atop ca-certificates-cacert fbiterm fribidi GeoIP GeoIP-data java-1_8_0-openjdk-devel keepalived libGeoIP1 libserf-devel ndisc6 openssh-fips perl-Tk python-cjson python-gpgme python-iniparse python-py python-requests python-setools setools-libs sipcalc sshpass strongswan strongswan-ipsec strongswan-libs0 sysstat yum boost-license1_58_0 libboost_system1_58_0 libboost_thread1_58_0 librados2 librbd1
+	zypper $(ZYPPER_PARAMS) download atop ca-certificates-cacert fbiterm fribidi GeoIP GeoIP-data java-1_8_0-openjdk-devel keepalived libGeoIP1 libserf-devel ndisc6 openssh-fips perl-Tk python-cjson python-gpgme python-iniparse python-py python-requests python-setools setools-libs sipcalc sshpass strongswan strongswan-ipsec strongswan-libs0 sysstat yum boost-license1_58_0 libboost_system1_58_0 libboost_thread1_58_0 librados2 librbd1 docker
 	zypper $(ZYPPER_PARAMS) addrepo --name suse-13.2-oss-update --no-gpgcheck http://download.opensuse.org/repositories/openSUSE:/13.2:/Update/standard suse-13.2-oss-update
 	zypper $(ZYPPER_PARAMS) modifyrepo --priority  1 suse-13.2-oss-update
 	zypper $(ZYPPER_PARAMS) refresh

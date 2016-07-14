@@ -24,6 +24,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.emc.storageos.services.util.StorageDriverManager;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -82,6 +83,9 @@ import com.emc.storageos.vplexcontroller.VPlexController;
 public class StorageProviderService extends TaskResourceService {
     private static final Logger log = LoggerFactory.getLogger(StorageProviderService.class);
     private static final String EVENT_SERVICE_TYPE = "provider";
+
+    private static StorageDriverManager storageDriverManager = (StorageDriverManager)StorageDriverManager.
+            getApplicationContext().getBean(StorageDriverManager.STORAGE_DRIVER_MANAGER);
 
     private static class ScanJobExec implements AsyncTaskExecutorIntf {
 
@@ -213,8 +217,11 @@ public class StorageProviderService extends TaskResourceService {
         ArgValidator.checkFieldNotEmpty(param.getUserName(), "user_name");
         ArgValidator.checkFieldNotEmpty(param.getPassword(), "password");
         ArgValidator.checkFieldRange(param.getPortNumber(), 1, 65535, "port_number");
-        ArgValidator.checkFieldValueFromEnum(param.getInterfaceType(), "interface_type",
-                StorageProvider.InterfaceType.class);
+        if (storageDriverManager == null || !storageDriverManager.isDriverManaged(param.getInterfaceType())) {
+            // check this only for providers which are not managed by drivers
+            ArgValidator.checkFieldValueFromEnum(param.getInterfaceType(), "interface_type",
+                    StorageProvider.InterfaceType.class);
+        }
         String providerKey = param.getIpAddress() + "-" + param.getPortNumber();
         List<StorageProvider> providers = CustomQueryUtility.getActiveStorageProvidersByProviderId(_dbClient, providerKey);
         if (providers != null && !providers.isEmpty()) {

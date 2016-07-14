@@ -132,6 +132,7 @@ import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.google.common.collect.Table;
 import com.google.common.collect.Table.Cell;
+import com.emc.storageos.services.util.StorageDriverManager;
 
 @Path("/block/consistency-groups")
 @DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, readAcls = { ACL.OWN,
@@ -1314,6 +1315,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             final BlockConsistencyGroupUpdate param) {
         // Get the consistency group.
         BlockConsistencyGroup consistencyGroup = (BlockConsistencyGroup) queryResource(id);
+        StorageDriverManager storageDriverManager = (StorageDriverManager)StorageDriverManager.getApplicationContext().getBean(StorageDriverManager.STORAGE_DRIVER_MANAGER);
 
         // Verify a volume was specified to be added or removed.
         if (!param.hasEitherAddOrRemoveVolumes()) {
@@ -1338,16 +1340,18 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         // IBMXIV, XtremIO, VPlex, VNX, ScaleIO, and VMax volumes only
         String systemType = cgStorageSystem.getSystemType();
-        if (!systemType.equals(DiscoveredDataObject.Type.vplex.name())
-                && !systemType.equals(DiscoveredDataObject.Type.vnxblock.name())
-                && !systemType.equals(DiscoveredDataObject.Type.vmax.name())
-                && !systemType.equals(DiscoveredDataObject.Type.vnxe.name())
-                && !systemType.equals(DiscoveredDataObject.Type.unity.name())
-                && !systemType.equals(DiscoveredDataObject.Type.ibmxiv.name())
-                && !systemType.equals(DiscoveredDataObject.Type.scaleio.name())
-                && !systemType.equals(DiscoveredDataObject.Type.xtremio.name())) {
-            throw APIException.methodNotAllowed.notSupported();
-        }
+        if(!storageDriverManager.isDriverManaged(cgStorageSystem.getSystemType())) {
+	        if (!systemType.equals(DiscoveredDataObject.Type.vplex.name())
+	                && !systemType.equals(DiscoveredDataObject.Type.vnxblock.name())
+	                && !systemType.equals(DiscoveredDataObject.Type.vmax.name())
+	                && !systemType.equals(DiscoveredDataObject.Type.vnxe.name())
+	                && !systemType.equals(DiscoveredDataObject.Type.unity.name())
+	                && !systemType.equals(DiscoveredDataObject.Type.ibmxiv.name())
+	                && !systemType.equals(DiscoveredDataObject.Type.scaleio.name())
+	                && !systemType.equals(DiscoveredDataObject.Type.xtremio.name())) {
+	            throw APIException.methodNotAllowed.notSupported();
+	        }
+        }    
 
         // Get the specific BlockServiceApiImpl based on the storage system type.
         BlockServiceApi blockServiceApiImpl = getBlockServiceImpl(cgStorageSystem);

@@ -73,6 +73,7 @@ POST  /config                                    infra.ConfigProperties.saveProp
 POST  /config/validateMail                       infra.ConfigProperties.validateMailSettings
 GET   /config/passwords                          infra.ConfigProperties.passwords
 POST  /config/passwords                          infra.ConfigProperties.changePassword
+POST  /config/validateExternalServer             infra.ConfigProperties.validateExternalSettings
 
 GET   /cluster/ipInfo                            infra.ClusterInfo.clusterIpInfo
 POST  /cluster/ipReconfig                        infra.ClusterInfo.ipReconfig
@@ -99,6 +100,11 @@ GET     /storagearrays/edit/{id}                arrays.StorageSystems.edit
 *       /storagearrays/pools/{id}               arrays.StorageSystems.pools
 *       /storagearrays/ports/{id}               arrays.StorageSystems.ports
 *       /storagearrays/{action}                 arrays.StorageSystems.{action}
+
+GET     /storagesystemtype/edit/{id}           arrays.StorageSystemTypes.edit
+GET     /storagesystemtype/list				   arrays.StorageSystemTypes.list
+*       /storagesystemtype/{action}			   arrays.StorageSystemTypes.{action}
+
 
 GET     /dataprotectionsystems/edit/{id}        arrays.DataProtectionSystems.edit
 *       /dataprotectionsystems/{action}         arrays.DataProtectionSystems.{action}

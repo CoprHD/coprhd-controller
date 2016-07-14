@@ -3831,9 +3831,10 @@ public class PlacementTests extends DbsvcTestBase {
     }
 
     /*
-     * Metropoint placement - 2 local copies, one on each side
+     * MetroPoint placement - 2 local copies, one on each side
+     * 
+     * NOTE: Force negative MP CDP test by following instructions labeled with "NEGATIVE-TEST"
      */
-
     @Test
     public void testPlacementRpMetropointCdp() {
 
@@ -4049,17 +4050,27 @@ public class PlacementTests extends DbsvcTestBase {
         }
         initiatorsSiteMap.put("site3", wwnSite3);
 
-        StringSet storSystems = new StringSet();
+        StringSet storageSystems = new StringSet();
 
-        storSystems.add(ProtectionSystem.generateAssociatedStorageSystem("site1", "vplex1cluster1"));
-        storSystems.add(ProtectionSystem.generateAssociatedStorageSystem("site1", vnxStorageSystem1.getSerialNumber()));
-        storSystems.add(ProtectionSystem.generateAssociatedStorageSystem("site1", vmaxStorageSystem1.getSerialNumber()));
-        storSystems.add(ProtectionSystem.generateAssociatedStorageSystem("site1", vnxStorageSystem3.getSerialNumber()));
-        storSystems.add(ProtectionSystem.generateAssociatedStorageSystem("site1", vmaxStorageSystem3.getSerialNumber()));
+        storageSystems.add(ProtectionSystem.generateAssociatedStorageSystem("site1", "vplex1cluster1"));
+        storageSystems.add(ProtectionSystem.generateAssociatedStorageSystem("site1", vnxStorageSystem1.getSerialNumber()));
+        storageSystems.add(ProtectionSystem.generateAssociatedStorageSystem("site1", vmaxStorageSystem1.getSerialNumber()));
+        //////////////////////////////////////////////////////////////////
+        // NEGATIVE-TEST Step 1/2: 
+        // Change vmaxStorageSystem3 and vnxStorageSystem3 to site3 visibility below.
+        // What this will do is allow site1 to place to site3 as a REMOTE copy but will be invalid for a 
+        // MP CDP setup as there is no LOCAL copy on the Active Source side.
+        // 
+        // Need to ensure that the VPLEX is not fronting the Storage Systems, see Step 2/2.
+        //
+        // Result: Placement should exhaust it's options and fail.
+        //////////////////////////////////////////////////////////////////
+        storageSystems.add(ProtectionSystem.generateAssociatedStorageSystem("site1", vnxStorageSystem3.getSerialNumber()));
+        storageSystems.add(ProtectionSystem.generateAssociatedStorageSystem("site1", vmaxStorageSystem3.getSerialNumber()));
 
-        storSystems.add(ProtectionSystem.generateAssociatedStorageSystem("site2", "vplex1cluster2"));
-        storSystems.add(ProtectionSystem.generateAssociatedStorageSystem("site2", vnxStorageSystem2.getSerialNumber()));
-        storSystems.add(ProtectionSystem.generateAssociatedStorageSystem("site2", vmaxStorageSystem2.getSerialNumber()));
+        storageSystems.add(ProtectionSystem.generateAssociatedStorageSystem("site2", "vplex1cluster2"));
+        storageSystems.add(ProtectionSystem.generateAssociatedStorageSystem("site2", vnxStorageSystem2.getSerialNumber()));
+        storageSystems.add(ProtectionSystem.generateAssociatedStorageSystem("site2", vmaxStorageSystem2.getSerialNumber()));
 
         StringSetMap rpVisibleSystems = new StringSetMap();
         StringSet storageIds = new StringSet();
@@ -4085,7 +4096,7 @@ public class PlacementTests extends DbsvcTestBase {
         siteVolCnt.put("site2", "10");
 
         ProtectionSystem rpSystem = PlacementTestUtils.createProtectionSystem(_dbClient, "rp", "rp1", "site1", "site2", "site3", "IP",
-                initiatorsSiteMap, storSystems, rpVisibleSystems, Long.valueOf("3221225472"), Long.valueOf("2"), siteVolCap, siteVolCnt);
+                initiatorsSiteMap, storageSystems, rpVisibleSystems, Long.valueOf("3221225472"), Long.valueOf("2"), siteVolCap, siteVolCnt);
 
         // RP Site Array objects
         RPSiteArray rpSiteArray1 = new RPSiteArray();
@@ -4138,10 +4149,10 @@ public class PlacementTests extends DbsvcTestBase {
         // StoragePool haPool6 = PlacementTestUtils.createStoragePool(_dbClient, haVarray, vmaxStorageSystem2, "Hapool6", "HaPool6",
         // Long.valueOf(1024 * 1024 * 1), Long.valueOf(1024 * 1024 * 1), 100, 100,
         // StoragePool.SupportedResourceTypes.THIN_ONLY.toString());
-
         StoragePool haPool6 = PlacementTestUtils.createStoragePool(_dbClient, haVarray, vmaxStorageSystem3, "Hapool6", "HaPool6",
                 Long.valueOf(SIZE_GB * 100), Long.valueOf(SIZE_GB * 300), 100, 100,
                 StoragePool.SupportedResourceTypes.THIN_ONLY.toString());
+        
         // Create a storage pool for vmax3
         StoragePool tgtPool7 = PlacementTestUtils.createStoragePool(_dbClient, srcVarray, vmaxStorageSystem3, "TgtPool7", "TgtPool7",
                 Long.valueOf(SIZE_GB * 300), Long.valueOf(SIZE_GB * 300), 300, 300,
@@ -4243,6 +4254,13 @@ public class PlacementTests extends DbsvcTestBase {
         mpActiveTgtVpool.setLabel("mpTargetVpool");
         mpActiveTgtVpool.setSupportedProvisioningType(VirtualPool.ProvisioningType.Thin.name());
         mpActiveTgtVpool.setDriveType(SupportedDriveTypes.FC.name());
+        //////////////////////////////////////////////////////////////////
+        // NEGATIVE-TEST Step 2/2: 
+        // Comment out the below setHighAvailability() line so that this vpool is not 
+        // fronted by the VPLEX and will need to rely on the Storage System connectivity.
+        //
+        // Result: Placement should exhaust it's options and fail.
+        //////////////////////////////////////////////////////////////////
         mpActiveTgtVpool.setHighAvailability(VirtualPool.HighAvailabilityType.vplex_local.name());
         matchedPools = new StringSet();
         matchedPools.add(tgtPool7.getId().toString());
@@ -4293,23 +4311,25 @@ public class PlacementTests extends DbsvcTestBase {
         vavpMap.put(haVarray.getId().toString(), haVpool.getId().toString());
         mpSrcVpool.setHaVarrayVpoolMap(vavpMap);
         mpSrcVpool.setMetroPoint(true);
-
+                
+        // Active Source Local Target
         VpoolProtectionVarraySettings activeProtectionSettings = new VpoolProtectionVarraySettings();
         activeProtectionSettings.setVirtualPool(mpActiveTgtVpool.getId());
         activeProtectionSettings.setJournalVpool(mpActiveTgtVpool.getId());
         activeProtectionSettings.setId(URI.create("activeProtectionSettings"));
         _dbClient.createObject(activeProtectionSettings);
 
-        StringMap protectionVarray = new StringMap();
-        protectionVarray.put(srcVarray.getId().toString(), activeProtectionSettings.getId().toString());
-
+        // Standby Source Local Target
         VpoolProtectionVarraySettings standbyProtectionSettings = new VpoolProtectionVarraySettings();
         standbyProtectionSettings.setVirtualPool(mpStandbyTgtVpool.getId());
         standbyProtectionSettings.setJournalVpool(mpStandbyTgtVpool.getId());
         standbyProtectionSettings.setId(URI.create("standbyProtectionSettings"));
         _dbClient.createObject(standbyProtectionSettings);
 
-        protectionVarray.put(haVarray.getId().toString(), standbyProtectionSettings.getId().toString());
+        // Define the targets
+        StringMap protectionVarray = new StringMap();
+        protectionVarray.put(srcVarray.getId().toString(), activeProtectionSettings.getId().toString());
+        protectionVarray.put(haVarray.getId().toString(), standbyProtectionSettings.getId().toString());        
         mpSrcVpool.setProtectionVarraySettings(protectionVarray);
 
         mpSrcVpool.setRpCopyMode("SYNCHRONOUS");
@@ -5546,7 +5566,4 @@ public class PlacementTests extends DbsvcTestBase {
         _log.info(rec.toString(_dbClient));
 
     }
-    
-    
-
 }

@@ -28,7 +28,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
-import org.eclipse.jetty.util.log.Log;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -68,7 +67,6 @@ import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.NamedURI;
-import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
@@ -131,14 +129,11 @@ import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.volumecontroller.impl.xtremio.prov.utils.XtremIOProvUtils;
 import com.emc.storageos.vplexcontroller.VPlexController;
-import com.emc.vipr.client.core.util.VirtualPoolUtils;
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
-
-import javassist.bytecode.Descriptor;
 
 /**
  * Implementation of the {@link BlockServiceApi} when the VirtualPool specifies that created
@@ -509,6 +504,18 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     VolumeDescriptor.Type.VPLEX_VIRT_VOLUME, vplexStorageSystemURI, volumeId,
                     null, consistencyGroup == null ? null : consistencyGroup.getId(),
                     vPoolCapabilities, volume.getCapacity());
+            
+            // Set the compute resource in the descriptor if the volume to be created will be exported
+            // to a host/cluster after it has been created so that the compute resource name can be 
+            // included in the volume name if the custom volume naming is so configured. Do not set the
+            // compute resource if the descriptor is for an SRDF target as the target is not exported
+            // to the compute resource.
+            URI computeResourceURI = param.getComputeResource();
+            if ((computeResourceURI != null) && (!srdfCopy)) {
+                s_logger.info(String.format("Volume %s - will be exported to Host/Cluster: %s", volume.getLabel(),
+                        computeResourceURI.toString()));
+                descriptor.setComputeResource(computeResourceURI);
+            }
             descriptors.add(descriptor);
         }
 
@@ -2122,6 +2129,14 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             Iterator<URI> resultsIter = queryResults.iterator();
             while (resultsIter.hasNext()) {
                 newVarrayStoragePorts.add(resultsIter.next());
+            }
+            
+            URIQueryResultList connectedResults = new URIQueryResultList();
+            _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                    .getImplicitVirtualArrayStoragePortsConstraint(newVarrayId), connectedResults);
+            Iterator<URI> iter = connectedResults.iterator();
+            while (iter.hasNext()) {
+                newVarrayStoragePorts.add(iter.next());
             }
             if (!newVarrayStoragePorts.containsAll(storagePorts)) {
                 s_logger.info("The volume is exported, but the exported target storage ports are not all in the target virtual array");

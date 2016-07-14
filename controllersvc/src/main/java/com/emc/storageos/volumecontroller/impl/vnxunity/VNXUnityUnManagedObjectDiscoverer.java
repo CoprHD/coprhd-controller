@@ -419,8 +419,8 @@ public class VNXUnityUnManagedObjectDiscoverer {
             log.info("Discovered fS export {}", exp.toString());
 
             VNXeFileSystem fs = null;
-            if (exp.getParentFilesystem() != null) {
-                fs = apiClient.getFileSystemByFSId(exp.getParentFilesystem().getId());
+            if (exp.getFilesystem() != null) {
+                fs = apiClient.getFileSystemByFSId(exp.getFilesystem().getId());
                 String fsNativeGuid = NativeGUIDGenerator.generateNativeGuid(
                         storageSystem.getSystemType(), storageSystem.getSerialNumber(), fs.getId());
 
@@ -667,6 +667,7 @@ public class VNXUnityUnManagedObjectDiscoverer {
             UnManagedSMBFileShare unManagedSMBFileShare = new UnManagedSMBFileShare();
 
             unManagedSMBFileShare.setName(shareName);
+            unManagedSMBFileShare.setNativeId(exp.getId());
             unManagedSMBFileShare.setMountPoint(mountPoint);
             unManagedSMBFileShare.setMaxUsers(Integer.parseInt(CIFS_MAX_USERS));
             unManagedSMBFileShare.setPortGroup(storagePort.getPortGroup());
@@ -1567,7 +1568,7 @@ public class VNXUnityUnManagedObjectDiscoverer {
 
             unManagedVolume = createUnManagedVolumeForSnap(unManagedVolume, unManagedVolumeNatvieGuid, lun, system,
                     dbClient, hostVolumesMap, snapDetail);
-            populateSnapInfo(unManagedVolume, snapDetail, parentGUID, parentMatchedVPools, cgName);
+            populateSnapInfo(unManagedVolume, snapDetail, parentGUID, parentMatchedVPools);
             snapsets.add(unManagedVolumeNatvieGuid);
             unManagedVolumesReturnedFromProvider.add(unManagedVolume.getId());
 
@@ -1697,10 +1698,9 @@ public class VNXUnityUnManagedObjectDiscoverer {
      * @param snap
      * @param parentVolumeNatvieGuid
      * @param parentMatchedVPools
-     * @param cgName
      */
     private void populateSnapInfo(UnManagedVolume unManagedVolume, Snap snap, String parentVolumeNatvieGuid,
-            StringSet parentMatchedVPools, String cgName) {
+            StringSet parentMatchedVPools) {
         log.info(String.format("populate snap:", snap.getName()));
         unManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.IS_SNAP_SHOT.toString(), Boolean.TRUE.toString());
 
@@ -1721,9 +1721,10 @@ public class VNXUnityUnManagedObjectDiscoverer {
         techType.add(BlockSnapshot.TechnologyType.NATIVE.toString());
         unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.TECHNOLOGY_TYPE.toString(), techType);
 
-        if (cgName != null && !cgName.isEmpty()) {
+        VNXeBase snapGroup = snap.getSnapGroup();
+        if (snapGroup != null) {
             unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.SNAPSHOT_CONSISTENCY_GROUP_NAME.toString(),
-                    cgName);
+                snapGroup.getId());
         }
 
         log.debug("Matched Pools : {}", Joiner.on("\t").join(parentMatchedVPools));

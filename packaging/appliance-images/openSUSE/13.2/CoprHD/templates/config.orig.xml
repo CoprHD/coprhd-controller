@@ -68,6 +68,7 @@
         <package name="createrepo"/>
         <package name="curl"/>
         <package name="dhcpcd"/>
+        <package name="docker"/>
         <package name="expect"/>
         <package name="fontconfig"/>
         <package name="fonts-config"/>

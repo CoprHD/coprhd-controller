@@ -288,7 +288,7 @@ public class SMICommunicationInterface extends ExtendedCommunicationInterfaceImp
             
             // Validate Secondary URL for its availability
             if (Type.ibmxiv.name().equals(accessProfile.getSystemType())) {
-                validateManagementURL(providerObj.getElementManagerURL(), providerObj.getSecondaryUsername(),
+                validateManagementURL(providerObj.getSecondaryURL(), providerObj.getSecondaryUsername(),
                         providerObj.getSecondaryPassword());
             }
 

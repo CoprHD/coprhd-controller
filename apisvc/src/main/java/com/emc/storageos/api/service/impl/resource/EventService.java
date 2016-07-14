@@ -108,7 +108,7 @@ public class EventService extends TaggedResource {
             ActionableEvent.Method eventMethod = ActionableEvent.Method.deserialize(event.getMethod());
             Method m = getMethod(EventService.class, eventMethod.getOrchestrationMethod());
             TaskResourceRep result = (TaskResourceRep) m.invoke(this, eventMethod.getArgs());
-            event.setStatus(ActionableEvent.Status.approved.name());
+            event.setEventStatus(ActionableEvent.Status.approved.name());
             _dbClient.updateObject(event);
             return result;
         } catch (SecurityException e) {
@@ -152,7 +152,7 @@ public class EventService extends TaggedResource {
         verifyAuthorizedInTenantOrg(event.getTenant(), getUserFromContext());
         // this.getController(clazz, hw);
 
-        event.setStatus(ActionableEvent.Status.declined.name());
+        event.setEventStatus(ActionableEvent.Status.declined.name());
         // TODO decline the event
         _dbClient.updateObject(event);
         return Response.ok().build();
@@ -168,7 +168,7 @@ public class EventService extends TaggedResource {
         event.setId(URIUtil.createId(ActionableEvent.class));
         event.setTenant(tenant.getId());
         event.setMessage(createParam.getMessage());
-        event.setStatus(ActionableEvent.Status.pending.name());
+        event.setEventStatus(ActionableEvent.Status.pending.name());
         event.setResource(new NamedURI(createParam.getResource().getId(), createParam.getResource().getName()));
         com.emc.storageos.db.client.model.ActionableEvent.Method method = new ActionableEvent.Method(
                 createParam.getOrchestrationMethod(), createParam.getParameters().toArray());
@@ -284,7 +284,7 @@ public class EventService extends TaggedResource {
         EventRestRep to = new EventRestRep();
         to.setName(from.getLabel());
         to.setMessage(from.getMessage());
-        to.setStatus(from.getStatus());
+        to.setStatus(from.getEventStatus());
         to.setResource(toNamedRelatedResource(from.getResource()));
         to.setTenant(toRelatedResource(ResourceTypeEnum.TENANT, from.getTenant()));
         DbObjectMapper.mapDataObjectFields(from, to);

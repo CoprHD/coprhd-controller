@@ -50,7 +50,7 @@ public class ActionableEvent extends DataObject implements TenantResource {
     private String _message;
     private String _controllerClass;
     private NamedURI resource;
-    private String status;
+    private String eventStatus;
     private URI _tenant;
     private byte[] _method;
 
@@ -133,13 +133,13 @@ public class ActionableEvent extends DataObject implements TenantResource {
 
     @Name("eventStatus")
     @AggregatedIndex(cf = "AggregatedIndex", groupBy = "tenant")
-    public String getStatus() {
-        return status;
+    public String getEventStatus() {
+        return eventStatus;
     }
 
-    public void setStatus(String status) {
-        this.status = status;
-        setChanged("status");
+    public void setEventStatus(String eventStatus) {
+        this.eventStatus = eventStatus;
+        setChanged("eventStatus");
     }
 
 }

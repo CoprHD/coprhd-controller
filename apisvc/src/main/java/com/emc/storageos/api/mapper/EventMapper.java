@@ -22,7 +22,7 @@ public class EventMapper {
         mapDataObjectFields(from, to);
         to.setTenant(toRelatedResource(ResourceTypeEnum.TENANT, from.getTenant()));
         to.setResource(toNamedRelatedResource(from.getResource()));
-        to.setStatus(from.getStatus());
+        to.setStatus(from.getEventStatus());
         return to;
     }
 

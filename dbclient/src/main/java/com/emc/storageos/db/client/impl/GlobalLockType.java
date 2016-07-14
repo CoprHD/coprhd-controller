@@ -5,7 +5,6 @@
 
 package com.emc.storageos.db.client.impl;
 
-import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnFamily;
@@ -46,11 +45,11 @@ public class GlobalLockType {
         return cf;
     }
 
-    public void serialize(MutationBatch batch, GlobalLock glock) throws ConnectionException {
-        batch.withRow(cf, glock.getName()).putColumn(GlobalLock.GL_MODE_COLUMN, glock.getMode(), null);
-        batch.withRow(cf, glock.getName()).putColumn(GlobalLock.GL_OWNER_COLUMN, glock.getOwner(), null);
-        batch.withRow(cf, glock.getName()).putColumn(GlobalLock.GL_EXPIRATION_COLUMN, glock.getExpirationTime(), null);
-        batch.execute();
+    public void serialize(RowMutator mutator, GlobalLock glock) throws ConnectionException {
+        mutator.insertGlobalLockRecord(cf.getName(), glock.getName(), GlobalLock.GL_MODE_COLUMN, glock.getMode(), null);
+        mutator.insertGlobalLockRecord(cf.getName(), glock.getName(), GlobalLock.GL_OWNER_COLUMN, glock.getOwner(), null);
+        mutator.insertGlobalLockRecord(cf.getName(), glock.getName(), GlobalLock.GL_EXPIRATION_COLUMN, glock.getExpirationTime(), null);
+        mutator.execute();
     }
 
     public GlobalLock deserialize(Row<String, String> row) {

@@ -685,15 +685,19 @@ public class KeystoneUtils {
      */
     public OSTenant mapToOsTenant(TenantV2 tenant) {
 
-        OSTenant osTenant = new OSTenant();
-        osTenant.setOsId(tenant.getId());
-        // Check whether description is null or empty.
-        osTenant.setDescription(getProperTenantDescription(tenant.getDescription()));
-        osTenant.setName(tenant.getName());
-        osTenant.setEnabled(Boolean.parseBoolean(tenant.getEnabled()));
-        osTenant.setExcluded(DEFAULT_EXCLUDED_TENANT_OPTION);
+        if (tenant != null) {
+            OSTenant osTenant = new OSTenant();
+            osTenant.setOsId(tenant.getId());
+            // Check whether description is null or empty.
+            osTenant.setDescription(getProperTenantDescription(tenant.getDescription()));
+            osTenant.setName(tenant.getName());
+            osTenant.setEnabled(Boolean.parseBoolean(tenant.getEnabled()));
+            osTenant.setExcluded(DEFAULT_EXCLUDED_TENANT_OPTION);
 
-        return osTenant;
+            return osTenant;
+        }
+
+        throw APIException.internalServerErrors.targetIsNullOrEmpty("TenantV2");
     }
 
     /**

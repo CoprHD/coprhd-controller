@@ -1,5 +1,6 @@
 ---
 - hosts: localhost 
+  gather_facts: False
   tasks: 
   - name: Touch/create file {{ ansibleResultFile }}
     file: path="{{ ansibleResultFile }}" state=touch mode="u=rw,g=r,o=r" 

@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -2176,5 +2177,42 @@ public class MDSDialog extends SSHDialog {
             }
         }
         return zone;
+    }
+ 
+    /**
+     * Populate routedEndpoints based on ivr zone information.
+     * 
+     * @param routedEndpoints
+     * @return
+     */
+    public void populateConnectionByIvrZone(Map<String, Set<String>> routedEndpoints) {
+    	List<IvrZone> ivrZones = this.showIvrZones(false);
+    	for (IvrZone ivrZone : ivrZones) {
+    		for (IvrZoneMember zoneMember : ivrZone.getMembers()) {
+    			Integer vsanId = zoneMember.getVsanId();
+    			Map<Integer, String> idWwnMap = getVsanWwns(vsanId);
+    			String fabricWwn = idWwnMap.get(vsanId);
+    			if (fabricWwn == null) {
+    				continue;
+    			}
+                Set<String> netRoutedEndpoints = routedEndpoints.get(fabricWwn.toUpperCase());
+                if (netRoutedEndpoints == null) {
+                    netRoutedEndpoints = new HashSet<String>();
+                    routedEndpoints.put(fabricWwn.toUpperCase(), netRoutedEndpoints);
+                }
+                Set<String> connectedPwwns = this.getOtherMemberPwwn(ivrZone.getMembers(), zoneMember.getPwwn());
+                netRoutedEndpoints.addAll(connectedPwwns);
+    		}
+    	}
+    }
+    
+    private Set<String> getOtherMemberPwwn(List<IvrZoneMember> ivrZoneMembers, String pwwn) {
+    	Set<String> otherPwwns = new HashSet<String>();
+    	for (IvrZoneMember member : ivrZoneMembers) {
+    		if (!member.getPwwn().equals(pwwn)) {
+    			otherPwwns.add(member.getPwwn());
+    		}
+    	}
+    	return otherPwwns;
     }
 }

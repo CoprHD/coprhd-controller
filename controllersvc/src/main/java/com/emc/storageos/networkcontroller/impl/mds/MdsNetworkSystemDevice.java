@@ -35,7 +35,6 @@ import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.google.common.collect.Sets;
-import com.sun.xml.internal.ws.policy.privateutil.PolicyUtils.Collections;
 
 public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements NetworkSystemDevice {
     private static final Logger _log = LoggerFactory.getLogger(MdsNetworkSystemDevice.class);
@@ -136,6 +135,7 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
                     itr.remove();
                 }
             }
+            dialog.populateConnectionByIvrZone(routedEndpoints);
             return connections;
         } catch (Exception ex) {
             _log.error("Cannot read FCNS database from device: " + network.getLabel() + ": " + ex.getLocalizedMessage());

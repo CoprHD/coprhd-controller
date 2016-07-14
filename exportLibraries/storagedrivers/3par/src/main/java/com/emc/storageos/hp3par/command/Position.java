@@ -27,4 +27,9 @@ public class Position {
     public void setCardPort(Integer cardPort) {
         this.cardPort = cardPort;
     }
+    
+    @Override
+    public String toString() {
+        return "Position [node=" + node + ", slot=" + slot + ", cardPort=" + cardPort + "]";
+    }
 }

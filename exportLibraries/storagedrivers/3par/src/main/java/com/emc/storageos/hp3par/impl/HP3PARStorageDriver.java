@@ -1041,7 +1041,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
      * initiators the same will be tried with available ports  
      */
 	
-	String doHostProcessing(List<Initiator> initiators, List<StorageVolume> volumes) {
+	private String doHostProcessing(List<Initiator> initiators, List<StorageVolume> volumes) {
 	    String host = null;
 
 	    for (StorageVolume vol : volumes) {
@@ -1118,10 +1118,11 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 
 	                    // Cluster available
 	                    host = "set:" + clustArray;
+	                    this.lockManager.releaseLock(lockName);
 	                } else {
-	                    _log.error("3PARDriver:exportVolumesToInitiators error: could not actuire thread lock to create host");
+	                    _log.error("3PARDriver:exportVolumesToInitiators error: could not acquire thread lock to create cluster");
 	                    throw new HP3PARException(
-	                            "3PARDriver:exportVolumesToInitiators error: could not actuire thread lock to create host");
+	                            "3PARDriver:exportVolumesToInitiators error: could not acquire thread lock to create cluster");
 	                } //lock
 
 	            } else {
@@ -1358,8 +1359,9 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	                        }
 	                    } // doExport
 
+	                    this.lockManager.releaseLock(lockName);
 	                } else {
-	                    _log.error("3PARDriver:exportVolumesToInitiators error: could not actuire thread lock for cluster export");
+	                    _log.error("3PARDriver:exportVolumesToInitiators error: could not acquire thread lock for cluster export");
                         throw new HP3PARException(
                                 "3PARDriver:exportVolumesToInitiators error: could not actuire thread lock for cluster export");
                     } //lock   

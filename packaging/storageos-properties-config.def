@@ -1818,8 +1818,8 @@
     },
     {
         key : "controller_mds_clone_zoneset",
-        label : "Clone Cisco Zone Sets",
-        description : "Clone Cisco zone sets before committing zone set changes",
+        label : "Clone Cisco Zonesets",
+        description : "Clone Cisco zoneset before committing zoning changes",
         type : "string",
         allowedValues : ( "true", "false" ),
         userConfigurable : true,
@@ -1833,8 +1833,8 @@
     },
     {
         key : "controller_mds_allow_zoneset_commit",
-        label : "Allow Cisco Zone Set Commmit",
-        description : "Allow Cisco zone sets to be committed if zone set clone fails",
+        label : "Allow Cisco Zone changes",
+        description : "Allow Cisco zoning changes to be committed if zoneset clone fails",
         type : "string",
         allowedValues : ( "true", "false" ),
         userConfigurable : true,

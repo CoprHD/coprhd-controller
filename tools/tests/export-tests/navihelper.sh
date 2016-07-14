@@ -106,7 +106,8 @@ add_initiator_to_mask() {
     sgname=`grep ${SG_PATTERN} /tmp/verify.txt | awk -F: '{print $2}' | awk '{print $1}'`
 
     # register a fake host (maybe add a check to see if it's already there?)
-    /opt/Navisphere/bin/naviseccli -User bourne -Password bourne -Scope 0 -Address $VNX_SP_IP storagegroup -setpath -gname ${sgname} -hbauid ${pwwn}:$(echo $pwwn | sed 's/11/22/g') -sp a -spport 0 -arraycommpath 1 -failovermode 4 -host dutest_fakehost -ip 11.22.33.44 -o > /tmp/navisechelper.out
+    # This requires that the first number of the WWN is "1"
+    /opt/Navisphere/bin/naviseccli -User bourne -Password bourne -Scope 0 -Address $VNX_SP_IP storagegroup -setpath -gname ${sgname} -hbauid $(echo $pwwn | sed 's/^1/2/g'):${pwwn} -sp a -spport 0 -arraycommpath 1 -failovermode 4 -host dutest_fakehost -ip 11.22.33.44 -o > /tmp/navisechelper.out
     if [ $? -ne 0 ]; then
 	echo "Failed to add the initiator to the mask."
     fi
@@ -170,7 +171,7 @@ verify_export() {
 	if [ "$2" = "gone" ]
 	    then
 	    echo "ERROR: Expected storage group ${SG_PATTERN} to be gone, but it was found"
-	    exit;
+	    exit 1;
 	fi
     fi
 

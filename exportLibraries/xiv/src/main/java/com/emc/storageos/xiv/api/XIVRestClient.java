@@ -33,6 +33,8 @@ import com.sun.jersey.api.client.filter.LoggingFilter;
 public class XIVRestClient extends StandardRestClient {
 
     private static Logger _log = LoggerFactory.getLogger(XIVRestClient.class);
+    private static final int RETRY_NUMBER = 5;
+    private static final int DELATY_NUMBER = 1000;
     private static final String ERROR_CODE = "httpStatusCode";
 
     private static final String SEPARATOR = ":";
@@ -58,6 +60,7 @@ public class XIVRestClient extends StandardRestClient {
 
     private static String INSTANCE_URL = "/:{1}";
     private static String SEARCH_URL = "?{1}={2}";
+    private static String SYSTEMS_URL = "/xiv/v2/systems";
     private static String CLUSTER_URL = "/xiv/v2/:{0}/clusters";
     private static String HOST_URL = "/xiv/v2/:{0}/hosts";
     private static String HOST_PORT_URL = "/xiv/v2/:{0}/host_ports";
@@ -246,6 +249,32 @@ public class XIVRestClient extends StandardRestClient {
     }
 
     /**
+     * Check if the instance specified in URI is available on XIV system. If not available wait for a minute and then retry.
+     * Retry at-least RETRY_NUMBER times before declaring the instance was not available on Array
+     * 
+     * @param uri Instance URI
+     * @throws Exception If error occurs during execution. Throws Resource not found exception after RETRY_NUMBER tries.
+     */
+    private void checkAvailability(final String uri) throws Exception {
+        boolean availabe = findAvailability(getInstance(uri));
+        int counter = 1;
+        while(!availabe && counter < RETRY_NUMBER) {
+            try {
+                Thread.sleep(DELATY_NUMBER);
+            } catch(InterruptedException ex) {
+                Thread.currentThread().interrupt();
+            }
+            availabe = findAvailability(getInstance(uri));
+            counter++;
+        }
+
+        //Check availability after RETRY_NUMBER
+        if(!availabe){
+            throw XIVRestException.exceptions.resourceNotFound(uri); 
+        }
+    }
+
+    /**
      * Find if the instance specified in URI is available on XIV system
      * 
      * @param uri Instance URI
@@ -282,7 +311,7 @@ public class XIVRestClient extends StandardRestClient {
             response = get(_base.resolve(uri));
             instance = response.getEntity(JSONObject.class);
         } catch (Exception e) {
-            throw XIVRestException.exceptions.xivRestRequestFailure(uri, response.getStatus());
+            throw XIVRestException.exceptions.xivRestRequestFailure(uri, e.getMessage());
         }
         return instance;
     }
@@ -304,7 +333,7 @@ public class XIVRestClient extends StandardRestClient {
             JSONObject arrayClusters = response.getEntity(JSONObject.class);
             failureStatus.validate(arrayClusters);
         } catch (Exception e) {
-            throw XIVRestException.exceptions.xivRestRequestFailure(uri.toString(), response.getStatus());
+            throw XIVRestException.exceptions.xivRestRequestFailure(uri.toString(), e.getMessage());
         }
         return failureStatus;
     }
@@ -503,8 +532,11 @@ public class XIVRestClient extends StandardRestClient {
      * @throws Exception Exception Exception Exception If error occurs during execution
      */
     public boolean exportVolume(final String xivSystem, final String exportType, final String exportName, final String volumeName,
-            final String lunID)
-            throws Exception {
+            final String lunID) throws Exception {
+        
+        //Check if Volume is present on Array before proceeding.
+        checkAvailability(MessageFormat.format(VOLUME_INSTANCE_URL, xivSystem, volumeName));
+        
         boolean isAvailable = findAvailability(
                 MessageFormat.format(EXPORT_VOLUME_INSTANCE_URL, xivSystem, exportType.toLowerCase(), exportName, volumeName));
         if (isAvailable) {
@@ -754,6 +786,10 @@ public class XIVRestClient extends StandardRestClient {
             }
         }
         return containerName;
+    }
+    
+    public boolean getSystemsAvailability() throws Exception {
+        return findAvailability(SYSTEMS_URL);
     }
 
 }

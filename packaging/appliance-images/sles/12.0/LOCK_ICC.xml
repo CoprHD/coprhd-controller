@@ -364,7 +364,6 @@
 <target name="libboost_program_options1_54_0"      depends="libboost_program_options1_54_0-1.54.0-10.5_1"/>
 <target name="libboost_python1_54_0"               depends="libboost_python1_54_0-1.54.0-15.1_1"/>
 <target name="libboost_random1_54_0"               depends="libboost_random1_54_0-1.54.0-15.1_1"/>
-<target name="libboost_regex1_54_0"                depends="libboost_regex1_54_0-1.54.0-10.5_1"/>
 <target name="libboost_serialization1_54_0"        depends="libboost_serialization1_54_0-1.54.0-15.1_1"/>
 <target name="libboost_regex1_54_0"                depends="libboost_regex1_54_0-1.54.0-10.5_1"/>
 <target name="libboost_signals1_54_0"              depends="libboost_signals1_54_0-1.54.0-10.5_1"/>

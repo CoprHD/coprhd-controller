@@ -18,6 +18,9 @@ public class RemoteReplicationGroup extends DataObject {
     // native id of this group
     private String nativeId;
 
+    // If replication group is reachable
+    private Boolean reachable;
+
     private String displayName;
 
     // source storage system of this group
@@ -42,6 +45,17 @@ public class RemoteReplicationGroup extends DataObject {
 
     public void setNativeId(String nativeId) {
         this.nativeId = nativeId;
+        setChanged("nativeId");
+    }
+
+    @Name("reachable")
+    public Boolean getReachableStatus() {
+        return reachable == null ? false : reachable;
+    }
+
+    public void setReachableStatus(final Boolean reachable) {
+        this.reachable = reachable;
+        setChanged("reachable");
     }
 
     @Name("displayName")
@@ -51,6 +65,7 @@ public class RemoteReplicationGroup extends DataObject {
 
     public void setDisplayName(String displayName) {
         this.displayName = displayName;
+        setChanged("displayName");
     }
 
     @Name("sourceSystemGuid")
@@ -60,6 +75,7 @@ public class RemoteReplicationGroup extends DataObject {
 
     public void setSourceSystemGuid(String sourceSystemGuid) {
         this.sourceSystemGuid = sourceSystemGuid;
+        setChanged("sourceSystemGuid");
     }
 
     @Name("targetSystemGuid")
@@ -69,6 +85,7 @@ public class RemoteReplicationGroup extends DataObject {
 
     public void setTargetSystemGuid(String targetSystemGuid) {
         this.targetSystemGuid = targetSystemGuid;
+        setChanged("targetSystemGuid");
     }
 
     @Name("replicationMode")
@@ -78,6 +95,7 @@ public class RemoteReplicationGroup extends DataObject {
 
     public void setReplicationMode(RemoteReplicationSet.ReplicationMode replicationMode) {
         this.replicationMode = replicationMode;
+        setChanged("replicationMode");
     }
 
     @Name("replicationState")
@@ -87,6 +105,7 @@ public class RemoteReplicationGroup extends DataObject {
 
     public void setReplicationState(RemoteReplicationSet.ReplicationState replicationState) {
         this.replicationState = replicationState;
+        setChanged("replicationState");
     }
 
     @RelationIndex(cf = "RelationIndex", type = RemoteReplicationSet.class)
@@ -97,6 +116,7 @@ public class RemoteReplicationGroup extends DataObject {
 
     public void setReplicationSet(URI replicationSet) {
         this.replicationSet = replicationSet;
+        setChanged("replicationSet");
     }
 
 }

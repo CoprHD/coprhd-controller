@@ -951,24 +951,29 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
     public DriverTask discoverStorageProvider(StorageProvider storageProvider, List<StorageSystem> storageSystems) {
 
         storageProvider.setIsSupportedVersion(true);
+        storageProvider.setNativeId(storageProvider.getProviderHost());
         StorageSystem providerSystem = new StorageSystem();
         providerSystem.setSystemType("providersystem");
-        providerSystem.setNativeId("providerSystem-1");
-        providerSystem.setSerialNumber("1234567-1");
+        providerSystem.setNativeId(storageProvider.getNativeId() + "-" + "providerSystem-1");
+        providerSystem.setSerialNumber(storageProvider.getNativeId() + "-" + "1234567-1");
         providerSystem.setFirmwareVersion("1.2.3");
         storageSystems.add(providerSystem);
 
         providerSystem = new StorageSystem();
+        storageProvider.setNativeId(storageProvider.getProviderHost());
+        providerSystem = new StorageSystem();
         providerSystem.setSystemType("providersystem");
-        providerSystem.setNativeId("providerSystem-2");
-        providerSystem.setSerialNumber("1234567-2");
+        providerSystem.setNativeId(storageProvider.getNativeId() + "-" + "providerSystem-2");
+        providerSystem.setSerialNumber(storageProvider.getNativeId() + "-" + "1234567-2");;
         providerSystem.setFirmwareVersion("1.2.3");
         storageSystems.add(providerSystem);
 
         providerSystem = new StorageSystem();
+        storageProvider.setNativeId(storageProvider.getProviderHost());
+        providerSystem = new StorageSystem();
         providerSystem.setSystemType("providersystem");
-        providerSystem.setNativeId("providerSystem-3");
-        providerSystem.setSerialNumber("1234567-3");
+        providerSystem.setNativeId(storageProvider.getNativeId()+"-"+"providerSystem-3");
+        providerSystem.setSerialNumber(storageProvider.getNativeId()+"-"+"1234567-3");
         providerSystem.setFirmwareVersion("1.2.3");
         storageSystems.add(providerSystem);
 

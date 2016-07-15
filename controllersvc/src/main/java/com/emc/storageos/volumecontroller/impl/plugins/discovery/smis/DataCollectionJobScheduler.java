@@ -504,24 +504,28 @@ public class DataCollectionJobScheduler {
 
         List<URI> storageSystemTypes = _dbClient.queryByType(StorageSystemType.class, true);
         for (URI storageSystemTypeUri : storageSystemTypes) {
-            // Check if we already have RemoteReplicationConfigProvider for this type
-            List<RemoteReplicationConfigProvider> rrConfigProviders =
-                    queryActiveResourcesByAltId(_dbClient, RemoteReplicationConfigProvider.class, "storageSystemType", storageSystemTypeUri.toString());
-            if (rrConfigProviders.isEmpty()) {
-                // create new provider for storage system type
-                StorageSystemType storageSystemType = _dbClient.queryObject(StorageSystemType.class, storageSystemTypeUri);
-                RemoteReplicationConfigProvider newProvider = new RemoteReplicationConfigProvider();
-                newProvider.setId(URIUtil.createId(RemoteReplicationConfigProvider.class));
-                newProvider.setStorageSystemType(storageSystemType.getId().toString());
-                newProvider.setSystemType(storageSystemType.getStorageTypeName());
-                // todo check if need to set other properties. perhaps separate init() method
-                _dbClient.createObject(newProvider);
-                rrConfigProviderUris.add(newProvider.getId());
-                rrConfigProvidersTypes.add(newProvider.getSystemType());
-            } else {
-                // provider already exists
-                rrConfigProviderUris.add(rrConfigProviders.get(0).getId());
-                rrConfigProvidersTypes.add(rrConfigProviders.get(0).getSystemType());
+            StorageSystemType storageSystemType = _dbClient.queryObject(StorageSystemType.class, storageSystemTypeUri);
+            if (driverManager.isDriverManaged(storageSystemType.getStorageTypeName()) &&
+                    !driverManager.isProvider(storageSystemType.getStorageTypeName())) {
+                // Discover only driver managed storage systems.
+                // Check if we already have RemoteReplicationConfigProvider for this type
+                List<RemoteReplicationConfigProvider> rrConfigProviders =
+                        queryActiveResourcesByAltId(_dbClient, RemoteReplicationConfigProvider.class, "storageSystemType", storageSystemTypeUri.toString());
+                if (rrConfigProviders.isEmpty()) {
+                    // create new provider for storage system type
+                    RemoteReplicationConfigProvider newProvider = new RemoteReplicationConfigProvider();
+                    newProvider.setId(URIUtil.createId(RemoteReplicationConfigProvider.class));
+                    newProvider.setStorageSystemType(storageSystemType.getId().toString());
+                    newProvider.setSystemType(storageSystemType.getStorageTypeName());
+                    // todo check if need to set other properties. perhaps separate init() method
+                    _dbClient.createObject(newProvider);
+                    rrConfigProviderUris.add(newProvider.getId());
+                    rrConfigProvidersTypes.add(newProvider.getSystemType());
+                } else {
+                    // provider already exists
+                    rrConfigProviderUris.add(rrConfigProviders.get(0).getId());
+                    rrConfigProvidersTypes.add(rrConfigProviders.get(0).getSystemType());
+                }
             }
         }
         _logger.info("Remote Replication config provider types in database: {} .", rrConfigProvidersTypes);
@@ -606,7 +610,7 @@ public class DataCollectionJobScheduler {
                     }
                 }
             } catch (Exception e) {
-                _logger.error("Failed to enqueue {} Job  {}", job.getType(), e.getMessage());
+                _logger.error("Failed to enqueue {} Job  {}", job.getType(), e.getMessage(), e);
                 if (!job.isSchedulerJob()) {
                     try {
                         job.setTaskError(_dbClient,

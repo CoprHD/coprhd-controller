@@ -659,21 +659,31 @@ public class ExternalDeviceCommunicationInterface extends
     private void discoverRemoteReplicationConfiguration(DiscoveryDriver driver, String storageSystemType) {
 
         List<String> systemNativeIds = new ArrayList<>();
-        // get all systems of the required type
+        Set<String> providerNativeIds = new HashSet<>();
+        // get all systems of the required type  and get all their providers, so we can send this information to driver
         List<URI> systemUris = _dbClient.queryByType(com.emc.storageos.db.client.model.StorageSystem.class, true);
         for (URI systemUri : systemUris) {
             com.emc.storageos.db.client.model.StorageSystem system =
                     _dbClient.queryObject(com.emc.storageos.db.client.model.StorageSystem.class, systemUri);
             if (system != null && system.getSystemType().equalsIgnoreCase(storageSystemType)) {
                 systemNativeIds.add(system.getNativeId());
+                // get active provider for this system
+                if (!URIUtil.isNull(system.getActiveProviderURI())) {
+                    com.emc.storageos.db.client.model.StorageProvider provider =
+                            (com.emc.storageos.db.client.model.StorageProvider)_dbClient.queryObject(system.getActiveProviderURI());
+                    if (provider.getNativeId() != null) {
+                        providerNativeIds.add(provider.getNativeId());
+                    }
+                }
             }
         }
 
-        _log.info("Discover remote replication configuration for the following systems of type {} : {}", storageSystemType, systemNativeIds);
+        _log.info("Discover remote replication configuration for the following systems of type {} : {}, providers for these systems: {}",
+                storageSystemType, systemNativeIds, providerNativeIds);
 
         // call the driver to discover remote configuration
         List<RemoteReplicationSet> driverRemoteReplicationSets = new ArrayList<>();
-        DriverTask task = driver.discoverRemoteReplicationSets(systemNativeIds, driverRemoteReplicationSets);
+        DriverTask task = driver.discoverRemoteReplicationSets(systemNativeIds, new ArrayList<>(providerNativeIds), driverRemoteReplicationSets);
         // process discovery results.
         // todo: need to implement support for async case.
         if (task.getStatus() == DriverTask.TaskStatus.READY)  {

@@ -26,7 +26,7 @@ public class RemoteReplicationConfigProvider extends DiscoveredSystemObject {
     }
 
     public void setStorageSystemType(String storageSystemType) {
-        storageSystemType = storageSystemType;
+        this.storageSystemType = storageSystemType;
         setChanged("storageSystemType");
     }
 }

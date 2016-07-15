@@ -559,7 +559,8 @@ public class DefaultStorageDriver extends AbstractStorageDriver implements Block
         throw new UnsupportedOperationException(msg);
     }
 
-    public DriverTask discoverRemoteReplicationSets(List<String> storageSystemNativeIds, List<RemoteReplicationSet> remoteReplicationSets) {
+    public DriverTask discoverRemoteReplicationSets(List<String> storageSystemNativeIds, List<String> storageProviderNativeIds,
+                                                    List<RemoteReplicationSet> remoteReplicationSets) {
         String driverName = this.getClass().getSimpleName();
         String taskId = String.format("%s+%s+%s", driverName, "discoverRemoteReplicationSets", UUID.randomUUID().toString());
         DriverTask task = new DefaultDriverTask(taskId);

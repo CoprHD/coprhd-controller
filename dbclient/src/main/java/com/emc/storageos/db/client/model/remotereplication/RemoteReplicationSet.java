@@ -20,6 +20,9 @@ public class RemoteReplicationSet extends DataObject {
     // native id of replication set
     private String nativeId;
 
+    // If replication set is reachable
+    private Boolean reachable;
+
     // index this field.
     private String storageSystemType;
     private String displayName;
@@ -88,6 +91,16 @@ public class RemoteReplicationSet extends DataObject {
         setChanged("nativeId");
     }
 
+    @Name("reachable")
+    public Boolean getReachableStatus() {
+        return reachable == null ? false : reachable;
+    }
+
+    public void setReachableStatus(final Boolean reachable) {
+        this.reachable = reachable;
+        setChanged("reachable");
+    }
+
     @AlternateId("AltIdIndex")
     @Name("storageSystemType")
     public String getStorageSystemType() {
@@ -104,7 +117,6 @@ public class RemoteReplicationSet extends DataObject {
     public String getDisplayName() {
         return displayName;
     }
-
 
     public void setDisplayName(String displayName) {
         this.displayName = displayName;

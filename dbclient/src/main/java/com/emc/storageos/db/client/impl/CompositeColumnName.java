@@ -8,7 +8,6 @@ package com.emc.storageos.db.client.impl;
 import java.nio.ByteBuffer;
 import java.util.UUID;
 
-import com.netflix.astyanax.annotations.Component;
 import org.apache.cassandra.serializers.BooleanSerializer;
 import org.apache.cassandra.serializers.UTF8Serializer;
 
@@ -17,15 +16,10 @@ import org.apache.cassandra.serializers.UTF8Serializer;
  */
 public class CompositeColumnName {
     private String rowKey;
-    
-    private @Component(ordinal = 0)
-    String _one;
-    private @Component(ordinal = 1)
-    String _two;
-    private @Component(ordinal = 2)
-    String _three;
-    private @Component(ordinal = 3)
-    UUID _timeUUID;
+    private String _one;
+    private String _two;
+    private String _three;
+    private UUID _timeUUID;
 
     private ByteBuffer value;
 

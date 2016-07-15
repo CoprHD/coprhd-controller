@@ -91,7 +91,6 @@ import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.google.common.base.Joiner;
 import com.google.common.base.Objects;
-import com.netflix.astyanax.Keyspace;
 
 /**
  * Default database client implementation
@@ -304,10 +303,6 @@ public class DbClientImpl implements DbClient {
         hostSupplier.setCoordinatorClient(_coordinator);
         hostSupplier.setDbSvcName(dbSvcName);
         ctx.init(hostSupplier);
-    }
-
-    protected Keyspace getGeoKeyspace() {
-        return geoContext.getKeyspace();
     }
     
     protected Session getSession(DataObject dataObj) {

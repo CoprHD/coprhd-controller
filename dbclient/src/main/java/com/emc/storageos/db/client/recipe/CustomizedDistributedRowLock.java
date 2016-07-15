@@ -12,23 +12,19 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import com.datastax.driver.core.utils.UUIDs;
 import org.apache.cassandra.serializers.LongSerializer;
 
 import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
+import com.emc.storageos.db.client.impl.ColumnFamilyDefinition;
 import com.emc.storageos.db.client.impl.DbClientContext;
 import com.emc.storageos.db.client.impl.RowMutator;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import com.netflix.astyanax.model.ColumnFamily;
-import com.netflix.astyanax.retry.RetryPolicy;
-import com.netflix.astyanax.retry.RunOnce;
-import com.netflix.astyanax.util.TimeUUIDUtils;
-import com.netflix.astyanax.recipes.locks.BusyLockException;
-import com.netflix.astyanax.recipes.locks.StaleLockException;
 
 /**
  * Internal DistributedRowLock to acquiring and release a row lock
@@ -49,7 +45,7 @@ public class CustomizedDistributedRowLock<K> {
     public static final TimeUnit DEFAULT_OPERATION_TIMEOUT_UNITS = TimeUnit.MINUTES;
     public static final String DEFAULT_LOCK_PREFIX = "_LOCK_";
 
-    private final ColumnFamily<K, String> columnFamily; // The column family for data and lock
+    private final ColumnFamilyDefinition columnFamily; // The column family for data and lock
     private final K key;                       // Key being locked
     private final DbClientContext context;
 
@@ -64,15 +60,15 @@ public class CustomizedDistributedRowLock<K> {
     private Map<String, ByteBuffer> columns = null;
     private Integer ttl = null;                           // Units in seconds
     private boolean readDataColumns = false;
-    private RetryPolicy backoffPolicy = RunOnce.get();
+    private SleepingRetryPolicy backoffPolicy = SleepingRetryPolicy.RunOnce.get();
     private long acquireTime = 0;
     private int retryCount = 0;
 
-    public CustomizedDistributedRowLock(DbClientContext context, ColumnFamily<K, String> columnFamily, K key) {
+    public CustomizedDistributedRowLock(DbClientContext context, ColumnFamilyDefinition columnFamily, K key) {
         this.context = context;
         this.columnFamily = columnFamily;
         this.key = key;
-        this.lockId = TimeUUIDUtils.getUniqueTimeUUIDinMicros().toString();
+        this.lockId = UUIDs.timeBased().toString();
     }
 
     /**
@@ -163,7 +159,7 @@ public class CustomizedDistributedRowLock<K> {
         return this;
     }
 
-    public CustomizedDistributedRowLock<K> withBackoff(RetryPolicy policy) {
+    public CustomizedDistributedRowLock<K> withBackoff(SleepingRetryPolicy policy) {
         this.backoffPolicy = policy;
         return this;
     }
@@ -179,7 +175,7 @@ public class CustomizedDistributedRowLock<K> {
         Preconditions.checkArgument(ttl == null || TimeUnit.SECONDS.convert(timeout, timeoutUnits) < ttl, "Timeout " + timeout
                 + " must be less than TTL " + ttl);
 
-        RetryPolicy retry = backoffPolicy.duplicate();
+        SleepingRetryPolicy retry = backoffPolicy.duplicate();
         retryCount = 0;
         while (true) {
             try {
@@ -473,6 +469,34 @@ public class CustomizedDistributedRowLock<K> {
 
     public int getRetryCount() {
         return retryCount;
+    }
+    
+    public static class BusyLockException extends Exception {
+        public BusyLockException(Exception e) {
+            super(e);
+        }
+
+        public BusyLockException(String message, Exception e) {
+            super(message, e);
+        }
+
+        public BusyLockException(String message) {
+            super(message);
+        }
+    }
+
+    public static class StaleLockException extends Exception {
+        public StaleLockException(Exception e) {
+            super(e);
+        }
+
+        public StaleLockException(String message, Exception e) {
+            super(message, e);
+        }
+
+        public StaleLockException(String message) {
+            super(message);
+        }
     }
 
 }

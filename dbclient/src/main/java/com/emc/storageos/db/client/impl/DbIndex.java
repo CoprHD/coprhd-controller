@@ -4,8 +4,6 @@
  */
 package com.emc.storageos.db.client.impl;
 
-import com.netflix.astyanax.model.ColumnFamily;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.model.DataObject;
@@ -17,11 +15,11 @@ public abstract class DbIndex {
     private static final Logger _log = LoggerFactory.getLogger(DbIndex.class);
 
     protected String fieldName;
-    protected ColumnFamily<String, IndexColumnName> indexCF;
+    protected ColumnFamilyDefinition indexCF;
 
     protected boolean indexByKey = false;
 
-    DbIndex(ColumnFamily<String, IndexColumnName> indexCF) {
+    DbIndex(ColumnFamilyDefinition indexCF) {
         this.indexCF = indexCF;
     }
 
@@ -33,11 +31,11 @@ public abstract class DbIndex {
         this.indexByKey = indexByKey;
     }
 
-    ColumnFamily<String, IndexColumnName> getIndexCF() {
+    ColumnFamilyDefinition getIndexCF() {
         return indexCF;
     }
 
-    public void setIndexCF(ColumnFamily<String, IndexColumnName> cf) {
+    public void setIndexCF(ColumnFamilyDefinition cf) {
         indexCF = cf;
     }
 

@@ -30,8 +30,6 @@ import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.EncryptionProvider;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.exceptions.DatabaseException;
-import com.netflix.astyanax.model.ColumnFamily;
-import com.netflix.astyanax.serializers.StringSerializer;
 
 import javassist.CannotCompileException;
 import javassist.ClassPool;
@@ -45,7 +43,7 @@ import javassist.NotFoundException;
  */
 public class DataObjectType {
     private static final Logger _log = LoggerFactory.getLogger(DataObjectType.class);
-    private ColumnFamily<String, CompositeColumnName> _cf;
+    private ColumnFamilyDefinition _cf;
     private Class<? extends DataObject> _clazz;
     private ColumnField _idField;
     private Map<String, ColumnField> _columnFieldMap = new HashMap<String, ColumnField>();
@@ -104,7 +102,7 @@ public class DataObjectType {
      * 
      * @return
      */
-    public ColumnFamily<String, CompositeColumnName> getCF() {
+    public ColumnFamilyDefinition getCF() {
         return _cf;
     }
 
@@ -151,9 +149,8 @@ public class DataObjectType {
      */
     private void init() {
         String cfName = _clazz.getAnnotation(Cf.class).value();
-        _cf = new ColumnFamily<String, CompositeColumnName>(cfName,
-                StringSerializer.get(),
-                CompositeColumnNameSerializer.get());
+        _cf = new ColumnFamilyDefinition(cfName, ColumnFamilyDefinition.ComparatorType.CompositeType,
+                ColumnFamilyDefinition.DATA_CF_COMPARATOR_NAME);
         BeanInfo bInfo;
         try {
             bInfo = Introspector.getBeanInfo(_clazz);

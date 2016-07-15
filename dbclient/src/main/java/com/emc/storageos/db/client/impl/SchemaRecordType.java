@@ -13,8 +13,6 @@ import com.datastax.driver.core.Row;
 import com.datastax.driver.core.exceptions.ConnectionException;
 import com.emc.storageos.db.client.model.Cf;
 import com.emc.storageos.db.client.model.SchemaRecord;
-import com.netflix.astyanax.model.ColumnFamily;
-import com.netflix.astyanax.serializers.StringSerializer;
 
 /**
  * Encapsulate schema information
@@ -24,7 +22,7 @@ public class SchemaRecordType {
 
     private static final String SCHEMA_COLUMN_NAME = "schema";
     private final Class type = SchemaRecord.class;
-    private ColumnFamily<String, String> cf;
+    private ColumnFamilyDefinition cf;
 
     /**
      * Constructor
@@ -32,8 +30,8 @@ public class SchemaRecordType {
      * @param clazz
      */
     public SchemaRecordType() {
-        cf = new ColumnFamily<String, String>(((Cf) type.getAnnotation(Cf.class)).value(),
-                StringSerializer.get(), StringSerializer.get());
+        cf = new ColumnFamilyDefinition(((Cf) type.getAnnotation(Cf.class)).value(),
+                ColumnFamilyDefinition.ComparatorType.ByteBuffer);
     }
 
     /**
@@ -41,7 +39,7 @@ public class SchemaRecordType {
      * 
      * @return
      */
-    public ColumnFamily<String, String> getCf() {
+    public ColumnFamilyDefinition getCf() {
         return cf;
     }
 

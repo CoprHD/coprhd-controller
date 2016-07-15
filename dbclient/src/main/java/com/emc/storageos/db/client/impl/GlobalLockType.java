@@ -5,15 +5,10 @@
 
 package com.emc.storageos.db.client.impl;
 
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
-import com.netflix.astyanax.model.Column;
-import com.netflix.astyanax.model.ColumnFamily;
-import com.netflix.astyanax.model.ColumnList;
-import com.netflix.astyanax.model.Row;
-import com.netflix.astyanax.serializers.StringSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.datastax.driver.core.exceptions.ConnectionException;
 import com.emc.storageos.db.client.model.Cf;
 import com.emc.storageos.db.client.model.GlobalLock;
 
@@ -24,7 +19,7 @@ public class GlobalLockType {
     private static final Logger log = LoggerFactory.getLogger(GlobalLockType.class);
 
     private final Class type = GlobalLock.class;
-    private ColumnFamily<String, String> cf;
+    private ColumnFamilyDefinition cf;
 
     /**
      * Constructor
@@ -32,8 +27,8 @@ public class GlobalLockType {
      * @param clazz
      */
     public GlobalLockType() {
-        cf = new ColumnFamily<String, String>(((Cf) type.getAnnotation(Cf.class)).value(),
-                StringSerializer.get(), StringSerializer.get());
+        cf = new ColumnFamilyDefinition(((Cf) type.getAnnotation(Cf.class)).value(),
+                ColumnFamilyDefinition.ComparatorType.ByteBuffer);
     }
 
     /**
@@ -41,7 +36,7 @@ public class GlobalLockType {
      * 
      * @return
      */
-    public ColumnFamily<String, String> getCf() {
+    public ColumnFamilyDefinition getCf() {
         return cf;
     }
 
@@ -52,26 +47,8 @@ public class GlobalLockType {
         mutator.execute();
     }
 
-    public GlobalLock deserialize(Row<String, String> row) {
-        if (row == null) {
-            return null;
-        }
-
-        ColumnList<String> columnList = row.getColumns();
-        if (columnList == null || columnList.isEmpty()) {
-            return null;
-        }
-
-        Column<String> mode = columnList.getColumnByName(GlobalLock.GL_MODE_COLUMN);
-        Column<String> owner = columnList.getColumnByName(GlobalLock.GL_OWNER_COLUMN);
-        Column<String> expiration = columnList.getColumnByName(GlobalLock.GL_EXPIRATION_COLUMN);
-
-        GlobalLock glock = new GlobalLock();
-        glock.setName(row.getKey());
-        glock.setMode(mode.getStringValue());
-        glock.setOwner(owner.getStringValue());
-        glock.setExpirationTime(expiration.getStringValue());
-
-        return glock;
+    public GlobalLock deserialize() {
+        log.warn("GlobalLockType.deserialize has been called and return null");
+        return null;
     }
 }

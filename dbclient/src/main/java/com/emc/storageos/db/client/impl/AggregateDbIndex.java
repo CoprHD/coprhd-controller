@@ -6,7 +6,6 @@ package com.emc.storageos.db.client.impl;
 
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.NamedURI;
-import com.netflix.astyanax.model.ColumnFamily;
 import org.apache.commons.lang3.StringUtils;
 import java.util.*;
 
@@ -15,11 +14,11 @@ public class AggregateDbIndex extends DbIndex {
     private String[] groupBy;
     private Map<String, ColumnField> groupByFields;
 
-    AggregateDbIndex(ColumnFamily<String, IndexColumnName> indexCF) {
+    AggregateDbIndex(ColumnFamilyDefinition indexCF) {
         super(indexCF);
     }
 
-    AggregateDbIndex(ColumnFamily<String, IndexColumnName> indexCF, String groupBy, boolean global) {
+    AggregateDbIndex(ColumnFamilyDefinition indexCF, String groupBy, boolean global) {
         super(indexCF);
         this.groupGlobal = global;
         if (StringUtils.isEmpty(groupBy)) {

@@ -7,8 +7,6 @@ package com.emc.storageos.db.client.impl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.netflix.astyanax.model.ColumnFamily;
-
 import com.emc.storageos.db.client.model.*;
 
 import java.util.List;
@@ -20,7 +18,7 @@ public class PrefixDbIndex extends DbIndex {
     // minimum number of characters required for prefix indexing
     private int minPrefixChars;
 
-    PrefixDbIndex(ColumnFamily<String, IndexColumnName> indexCF, int minChars) {
+    PrefixDbIndex(ColumnFamilyDefinition indexCF, int minChars) {
         super(indexCF);
         minPrefixChars = minChars;
     }

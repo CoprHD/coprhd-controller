@@ -11,14 +11,12 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.netflix.astyanax.model.ColumnFamily;
-
 import com.emc.storageos.db.client.model.*;
 
 public class DecommissionedDbIndex extends DbIndex {
     private static final Logger _log = LoggerFactory.getLogger(DecommissionedDbIndex.class);
 
-    DecommissionedDbIndex(ColumnFamily<String, IndexColumnName> indexCF) {
+    DecommissionedDbIndex(ColumnFamilyDefinition indexCF) {
         super(indexCF);
     }
 

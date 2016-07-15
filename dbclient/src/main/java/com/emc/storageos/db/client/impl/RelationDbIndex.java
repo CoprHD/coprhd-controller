@@ -12,14 +12,12 @@ import java.net.URI;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.netflix.astyanax.model.ColumnFamily;
-
 import com.emc.storageos.db.client.model.*;
 
 public class RelationDbIndex extends DbIndex {
     private static final Logger _log = LoggerFactory.getLogger(RelationIndex.class);
 
-    RelationDbIndex(ColumnFamily<String, IndexColumnName> indexCF) {
+    RelationDbIndex(ColumnFamilyDefinition indexCF) {
         super(indexCF);
     }
 

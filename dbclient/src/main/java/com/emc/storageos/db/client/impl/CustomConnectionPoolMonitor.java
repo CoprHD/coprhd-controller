@@ -12,13 +12,12 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
-import com.netflix.astyanax.connectionpool.impl.CountingConnectionPoolMonitor;
-
 /**
+ * @Deprecated
  * class extends CountingConnectionPoolMonitor for monitoring client operations
  */
-public class CustomConnectionPoolMonitor extends CountingConnectionPoolMonitor {
-    private static final Logger _log = LoggerFactory.getLogger(CustomConnectionPoolMonitor.class);
+public class CustomConnectionPoolMonitor {
+    /*private static final Logger _log = LoggerFactory.getLogger(CustomConnectionPoolMonitor.class);
     static final int BUSY_CONNECTION_THRESHOLD = 50;
     static final int SUCCESS_OP_COUNT_THRESHOLD = 5 * 1000;
     private long _monitorIntervalSeconds = 1000; // every min
@@ -73,6 +72,6 @@ public class CustomConnectionPoolMonitor extends CountingConnectionPoolMonitor {
     private String dumpStats() {
         return super.toString();
     }
-    
+    */
     
 }

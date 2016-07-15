@@ -24,7 +24,6 @@ import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.management.jmx.recovery.DbManagerOps;
 import com.emc.vipr.model.sys.recovery.DbRepairStatus;
-import com.netflix.astyanax.Keyspace;
 import org.apache.cassandra.locator.EndpointSnitchInfoMBean;
 import org.apache.cassandra.service.StorageServiceMBean;
 import org.slf4j.Logger;
@@ -62,28 +61,6 @@ public class InternalDbClient extends DbClientImpl {
     @Deprecated
     public String getMyVdcId() {
         return VdcUtil.getLocalShortVdcId();
-    }
-
-    protected Keyspace getGeoKeyspace() {
-        if (geoContext != null && !geoContext.isInitDone()) {
-            setupContext(geoContext, Constants.GEODBSVC_NAME);
-        }
-        return geoContext.getKeyspace();
-    }
-
-    protected <T extends DataObject> Keyspace getKeyspace(Class<T> clazz) {
-        DbClientContext ctx = null;
-        if (localContext == null || geoContext == null) {
-            throw new IllegalStateException();
-        }
-        ctx = KeyspaceUtil.isGlobal(clazz) ? geoContext : localContext;
-        if (!ctx.isInitDone()) {
-            String serviceName = ctx.equals(geoContext) ? Constants.GEODBSVC_NAME : Constants.DBSVC_NAME;
-            log.info("Initialize db context {}", serviceName);
-            setupContext(ctx, serviceName);
-        }
-
-        return ctx.getKeyspace();
     }
 
     /**

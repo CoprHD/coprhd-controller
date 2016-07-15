@@ -18,13 +18,13 @@ import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.emc.storageos.coordinator.client.model.Constants;
+import com.emc.storageos.db.client.impl.ColumnFamilyDefinition;
 import com.emc.storageos.db.client.impl.DbCheckerFileWriter;
 import com.emc.storageos.db.client.impl.DbClientContext;
 import com.emc.storageos.db.client.impl.GlobalLockImpl;
 import com.emc.storageos.db.client.impl.RowMutator;
 import com.emc.storageos.management.jmx.recovery.DbManagerOps;
 
-import com.netflix.astyanax.model.ColumnFamily;
 import org.apache.commons.lang3.StringUtils;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
@@ -435,8 +435,8 @@ public abstract class CommandHandler {
         String _owner = null;
         long _timeout = 0;
 
+        ColumnFamilyDefinition _cf = null;     // global lock C
         DbClientContext _context = null;             // geo context
-        ColumnFamily<String, String> _cf = null;     // global lock CF
 
         public GlobalLockHandler(String[] args) {
             if (args.length < 2) {

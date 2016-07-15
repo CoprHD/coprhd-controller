@@ -144,7 +144,8 @@ public class ExecutionWindowHelper {
     }
 
      private int getWindowStartHourMin() {
-         return getHourMin(window.getHourOfDayInUTC(), window.getMinuteOfHourInUTC());
+         // TODO: current execution window does not set minute.
+         return getHourMin(window.getHourOfDayInUTC(), 0);
      }
 
     private int getWindowEndHourMin() {

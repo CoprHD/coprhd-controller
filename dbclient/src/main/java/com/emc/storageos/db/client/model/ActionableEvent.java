@@ -14,7 +14,8 @@ public class ActionableEvent extends DataObject implements TenantResource {
     private NamedURI resource;
     private String eventStatus;
     private URI tenant;
-    private byte[] method;
+    private byte[] approveMethod;
+    private byte[] declineMethod;
 
     public enum Status {
         pending, approved, declined
@@ -30,14 +31,24 @@ public class ActionableEvent extends DataObject implements TenantResource {
         setChanged("description");
     }
 
-    @Name("method")
-    public byte[] getMethod() {
-        return method;
+    @Name("approveMethod")
+    public byte[] getApproveMethod() {
+        return approveMethod;
     }
 
-    public void setMethod(byte[] method) {
-        this.method = method;
-        setChanged("method");
+    public void setApproveMethod(byte[] declineMethod) {
+        this.declineMethod = approveMethod;
+        setChanged("approveMethod");
+    }
+
+    @Name("declineMethod")
+    public byte[] getDeclineMethod() {
+        return declineMethod;
+    }
+
+    public void setDeclineMethod(byte[] declineMethod) {
+        this.declineMethod = declineMethod;
+        setChanged("declineMethod");
     }
 
     /*
@@ -106,24 +117,24 @@ public class ActionableEvent extends DataObject implements TenantResource {
 
     public static class Method implements Serializable {
 
-        protected String method;
+        protected String methodName;
         protected Object[] args;
 
-        public Method(String orchestrationMethod, Object[] args) {
-            this.method = orchestrationMethod;
+        public Method(String methodName, Object[] args) {
+            this.methodName = methodName;
             this.args = args;
         }
 
-        public String getMethod() {
-            return this.method;
+        public String getMethodName() {
+            return this.methodName;
+        }
+
+        public void setMethodName(String methodName) {
+            this.methodName = methodName;
         }
 
         public Object[] getArgs() {
             return this.args;
-        }
-
-        public void setMethod(String name) {
-            this.method = name;
         }
 
         public void setArgs(Object... args) {

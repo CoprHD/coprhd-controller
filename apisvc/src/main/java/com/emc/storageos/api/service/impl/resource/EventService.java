@@ -99,20 +99,30 @@ public class EventService extends TaggedResource {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public TaskList approveEvent(@PathParam("id") URI id) throws DatabaseException {
         ActionableEvent event = queryObject(ActionableEvent.class, id, false);
-        // check the user permissions
         verifyAuthorizedInTenantOrg(event.getTenant(), getUserFromContext());
 
         if (!StringUtils.equalsIgnoreCase(event.getEventStatus(), ActionableEvent.Status.pending.name())) {
             throw APIException.badRequests.eventCannotBeApproved(event.getEventStatus());
         }
 
+        return executeEventMethod(event, true);
+    }
+
+    public TaskList executeEventMethod(ActionableEvent event, boolean approve) {
         TaskList taskList = new TaskList();
 
+        byte[] method = approve ? event.getApproveMethod() : event.getDeclineMethod();
+        String eventStatus = approve ? ActionableEvent.Status.approved.name() : ActionableEvent.Status.declined.name();
+
+        ActionableEvent.Method eventMethod = ActionableEvent.Method.deserialize(method);
+        if (eventMethod == null) {
+            return taskList;
+        }
+
         try {
-            ActionableEvent.Method eventMethod = ActionableEvent.Method.deserialize(event.getMethod());
-            Method m = getMethod(EventService.class, eventMethod.getMethod());
-            TaskResourceRep result = (TaskResourceRep) m.invoke(this, eventMethod.getArgs());
-            event.setEventStatus(ActionableEvent.Status.approved.name());
+            Method classMethod = getMethod(EventService.class, eventMethod.getMethodName());
+            TaskResourceRep result = (TaskResourceRep) classMethod.invoke(this, eventMethod.getArgs());
+            event.setEventStatus(eventStatus);
             _dbClient.updateObject(event);
             taskList.addTask(result);
             return taskList;
@@ -152,20 +162,15 @@ public class EventService extends TaggedResource {
     @POST
     @Path("/{id}/decline")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public Response declineEvent(@PathParam("id") URI id) throws DatabaseException {
+    public TaskList declineEvent(@PathParam("id") URI id) throws DatabaseException {
         ActionableEvent event = queryObject(ActionableEvent.class, id, false);
-        // check the user permissions
         verifyAuthorizedInTenantOrg(event.getTenant(), getUserFromContext());
-        // this.getController(clazz, hw);
 
         if (!StringUtils.equalsIgnoreCase(event.getEventStatus(), ActionableEvent.Status.pending.name())) {
             throw APIException.badRequests.eventCannotBeDeclined(event.getEventStatus());
         }
 
-        event.setEventStatus(ActionableEvent.Status.declined.name());
-        // TODO decline the event
-        _dbClient.updateObject(event);
-        return Response.ok().build();
+        return executeEventMethod(event, false);
     }
 
     /**

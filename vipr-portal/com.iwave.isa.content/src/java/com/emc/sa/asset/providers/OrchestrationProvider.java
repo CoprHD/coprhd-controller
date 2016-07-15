@@ -186,6 +186,7 @@ public class OrchestrationProvider extends BaseAssetOptionsProvider {
         parentAssetParams.put("ProxyToken", api(ctx).auth().proxyToken());
         
         // Start the OE workflow to get options
+        info("OE Provider calling " + apiUrl + "with body " + makePostBody());
         String workflowResponse = OrchestrationUtils.makeRestCall(apiUrl,
                 makePostBody(),restClient);
 

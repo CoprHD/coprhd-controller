@@ -1,7 +1,4 @@
 
-  - name: Getting ViPR creds from include file
-    include: playbook-vipr-creds.yml
-
   - name: Login to ViPR
     uri:
       url: https://{{ host_address }}:{{ api_port }}/login

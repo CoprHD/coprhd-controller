@@ -5,13 +5,10 @@
 
 package com.emc.storageos.db.client.impl;
 
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
-import com.netflix.astyanax.model.Column;
-import com.netflix.astyanax.model.ColumnList;
-import com.netflix.astyanax.model.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.datastax.driver.core.exceptions.ConnectionException;
 import com.emc.storageos.db.client.model.Cf;
 import com.emc.storageos.db.client.model.GlobalLock;
 
@@ -50,26 +47,8 @@ public class GlobalLockType {
         mutator.execute();
     }
 
-    public GlobalLock deserialize(Row<String, String> row) {
-        if (row == null) {
-            return null;
-        }
-
-        ColumnList<String> columnList = row.getColumns();
-        if (columnList == null || columnList.isEmpty()) {
-            return null;
-        }
-
-        Column<String> mode = columnList.getColumnByName(GlobalLock.GL_MODE_COLUMN);
-        Column<String> owner = columnList.getColumnByName(GlobalLock.GL_OWNER_COLUMN);
-        Column<String> expiration = columnList.getColumnByName(GlobalLock.GL_EXPIRATION_COLUMN);
-
-        GlobalLock glock = new GlobalLock();
-        glock.setName(row.getKey());
-        glock.setMode(mode.getStringValue());
-        glock.setOwner(owner.getStringValue());
-        glock.setExpirationTime(expiration.getStringValue());
-
-        return glock;
+    public GlobalLock deserialize() {
+        log.warn("GlobalLockType.deserialize has been called and return null");
+        return null;
     }
 }

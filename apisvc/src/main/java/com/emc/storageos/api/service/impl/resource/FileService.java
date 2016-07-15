@@ -774,8 +774,6 @@ public class FileService extends TaskResourceService {
         FileShare fs = queryResource(id);
         String task = UUID.randomUUID().toString();
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
-        FileController controller = getController(FileController.class,
-                device.getSystemType());
 
         ArgValidator.checkEntity(fs, id, isIdEmbeddedInURL(id));
 
@@ -830,8 +828,8 @@ public class FileService extends TaskResourceService {
         Operation op = _dbClient.createTaskOpStatus(FileShare.class, fs.getId(),
                 task, ResourceOperationTypeEnum.EXPORT_FILE_SYSTEM);
         op.setDescription("Filesystem export");
-        controller.export(device.getId(), fs.getId(), Arrays.asList(export), task);
-
+        FileServiceApi fileServiceApi = getFileShareServiceImpl(fs, _dbClient);
+        fileServiceApi.export(device.getId(), fs.getId(), Arrays.asList(export), task);
         auditOp(OperationTypeEnum.EXPORT_FILE_SYSTEM, true, AuditLogManager.AUDITOP_BEGIN,
                 fs.getId().toString(), device.getId().toString(), export.getClients(), param.getSecurityType(),
                 param.getPermissions(), param.getRootUserMapping(), param.getProtocol());
@@ -1329,8 +1327,6 @@ public class FileService extends TaskResourceService {
         ArgValidator.checkFieldNotEmpty(param.getShareName(), "name");
         FileShare fs = queryResource(id);
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
-        FileController controller = getController(FileController.class,
-                device.getSystemType());
 
         String task = UUID.randomUUID().toString();
 
@@ -1394,7 +1390,8 @@ public class FileService extends TaskResourceService {
 
         Operation op = _dbClient.createTaskOpStatus(FileShare.class, fs.getId(),
                 task, ResourceOperationTypeEnum.CREATE_FILE_SYSTEM_SHARE);
-        controller.share(device.getId(), fs.getId(), smbShare, task);
+        FileServiceApi fileServiceApi = getFileShareServiceImpl(fs, _dbClient);
+        fileServiceApi.share(device.getId(), fs.getId(), smbShare, task);
         auditOp(OperationTypeEnum.CREATE_FILE_SYSTEM_SHARE, true, AuditLogManager.AUDITOP_BEGIN,
                 smbShare.getName(), smbShare.getPermissionType(), smbShare.getPermission(),
                 smbShare.getMaxUsers(), smbShare.getDescription(), fs.getId().toString());
@@ -1439,14 +1436,14 @@ public class FileService extends TaskResourceService {
         _log.info("Deleteing SMBShare {}", shareName);
 
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
-        FileController controller = getController(FileController.class,
-                device.getSystemType());
+
         Operation op = _dbClient.createTaskOpStatus(FileShare.class, fs.getId(),
                 task, ResourceOperationTypeEnum.DELETE_FILE_SYSTEM_SHARE);
         FileSMBShare fileSMBShare = new FileSMBShare(shareName, smbShare.getDescription(), smbShare.getPermissionType(),
                 smbShare.getPermission(), Integer.toString(smbShare.getMaxUsers()), smbShare.getNativeId(), smbShare.getPath());
         fileSMBShare.setStoragePortGroup(smbShare.getPortGroup());
-        controller.deleteShare(device.getId(), fs.getId(), fileSMBShare, task);
+        FileServiceApi fileServiceApi = getFileShareServiceImpl(fs, _dbClient);
+        fileServiceApi.deleteShare(device.getId(), fs.getId(), fileSMBShare, task);
         auditOp(OperationTypeEnum.DELETE_FILE_SYSTEM_SHARE, true, AuditLogManager.AUDITOP_BEGIN,
                 smbShare.getName(), smbShare.getPermissionType(), smbShare.getPermission(),
                 smbShare.getMaxUsers(), smbShare.getDescription(), fs.getId().toString());
@@ -1500,8 +1497,6 @@ public class FileService extends TaskResourceService {
         ArgValidator.checkFieldUriType(id, FileShare.class, "id");
         FileShare fs = queryResource(id);
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
-        FileController controller = getController(FileController.class,
-                device.getSystemType());
         ArgValidator.checkEntity(fs, id, isIdEmbeddedInURL(id));
 
         VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());
@@ -1554,7 +1549,8 @@ public class FileService extends TaskResourceService {
 
         // send request to controller
         try {
-            controller.snapshotFS(device.getId(), snap.getId(), fs.getId(), task);
+            FileServiceApi fileServiceApi = getFileShareServiceImpl(fs, _dbClient);
+            fileServiceApi.snapshotFS(device.getId(), snap.getId(), fs.getId(), task);
         } catch (InternalException e) {
             snap.setInactive(true);
             _dbClient.persistObject(snap);
@@ -2052,7 +2048,6 @@ public class FileService extends TaskResourceService {
         }
 
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
-        FileController controller = getController(FileController.class, device.getSystemType());
 
         String path = fs.getPath();
         _log.info("Export path found {} ", path);
@@ -2071,8 +2066,8 @@ public class FileService extends TaskResourceService {
             exportVerificationUtility.verifyExports(fs, null, param);
 
             _log.info("No Errors found proceeding further {}, {}, {}", new Object[] { _dbClient, fs, param });
-
-            controller.updateExportRules(device.getId(), fs.getId(), param, task);
+            FileServiceApi fileServiceApi = getFileShareServiceImpl(fs, _dbClient);
+            fileServiceApi.updateExportRules(device.getId(), fs.getId(), param, task);
 
             auditOp(OperationTypeEnum.UPDATE_EXPORT_RULES_FILE_SYSTEM, true, AuditLogManager.AUDITOP_BEGIN,
                     fs.getId().toString(), device.getId().toString(), param);
@@ -2122,7 +2117,6 @@ public class FileService extends TaskResourceService {
         ArgValidator.checkEntity(fs, id, isIdEmbeddedInURL(id));
 
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
-        FileController controller = getController(FileController.class, device.getSystemType());
 
         String path = fs.getPath();
         _log.info("Export path found {} ", path);
@@ -2151,8 +2145,8 @@ public class FileService extends TaskResourceService {
         op.setDescription("Filesystem unexport");
 
         try {
-
-            controller.deleteExportRules(device.getId(), fs.getId(), allDirs, subDir, task);
+            FileServiceApi fileServiceApi = getFileShareServiceImpl(fs, _dbClient);
+            fileServiceApi.deleteExportRules(device.getId(), fs.getId(), allDirs, subDir, task);
 
             auditOp(OperationTypeEnum.UNEXPORT_FILE_SYSTEM, true, AuditLogManager.AUDITOP_BEGIN,
                     fs.getId().toString(), device.getId().toString(), allDirs, subDir);
@@ -2285,13 +2279,12 @@ public class FileService extends TaskResourceService {
 
         _log.info("Request payload verified. No errors found.");
 
-        FileController controller = getController(FileController.class, device.getSystemType());
-
         Operation op = _dbClient.createTaskOpStatus(FileShare.class, fs.getId(),
                 task, ResourceOperationTypeEnum.UPDATE_FILE_SYSTEM_SHARE_ACL);
         op.setDescription("Update file system share ACLs");
 
-        controller.updateShareACLs(device.getId(), fs.getId(), shareName, param, task);
+        FileServiceApi fileServiceApi = getFileShareServiceImpl(fs, _dbClient);
+        fileServiceApi.updateShareACLs(device.getId(), fs.getId(), shareName, param, task);
 
         auditOp(OperationTypeEnum.UPDATE_FILE_SYSTEM_SHARE_ACL, true, AuditLogManager.AUDITOP_BEGIN,
                 fs.getId().toString(), device.getId().toString(), param);

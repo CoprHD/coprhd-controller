@@ -13,17 +13,28 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.Controller;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.model.FileObject;
+import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.Snapshot;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.filereplicationcontroller.FileReplicationDeviceController;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
+import com.emc.storageos.model.file.CifsShareACLUpdateParams;
+import com.emc.storageos.model.file.FileExportUpdateParams;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.ControllerLockingService;
+import com.emc.storageos.volumecontroller.FileSMBShare;
+import com.emc.storageos.volumecontroller.FileShareExport;
+import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.FileDeviceController;
 import com.emc.storageos.volumecontroller.impl.file.CreateMirrorFileSystemsCompleter;
 import com.emc.storageos.volumecontroller.impl.file.FileCreateWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.file.FileDeleteWorkflowCompleter;
+import com.emc.storageos.volumecontroller.impl.file.FileSnapshotWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.file.FileWorkflowCompleter;
+import com.emc.storageos.volumecontroller.impl.vnxe.job.VNXeFSSnapshotTaskCompleter;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowException;
 import com.emc.storageos.workflow.WorkflowService;
@@ -41,7 +52,21 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     static final String DELETE_FILESYSTEMS_WF_NAME = "DELETE_FILESYSTEMS_WORKFLOW";
     static final String EXPAND_FILESYSTEMS_WF_NAME = "EXPAND_FILESYSTEMS_WORKFLOW";
     static final String CHANGE_FILESYSTEMS_VPOOL_WF_NAME = "CHANGE_FILESYSTEMS_VPOOL_WORKFLOW";
-    static final String CREATE_MIRROR_FILESYSTEMS_WF_NAME = "CREATE_MIRROR_FILESYSTEMS_WF_NAME";
+    static final String CREATE_MIRROR_FILESYSTEMS_WF_NAME = "CREATE_MIRROR_FILESYSTEMS_WORKFLOW";
+    static final String CREATE_FILESYSTEM_CIFS_SHARE_WF_NAME = "CREATE_FILESYSTEM_CIFS_SHARE_WORKFLOW";
+    static final String CREATE_FILESYSTEM_NFS_EXPORT_WF_NAME = "CREATE_FILESYSTEM_NFS_EXPORT_WORKFLOW";
+    static final String UPDATE_FILESYSTEM_EXPORT_RULES_WF_NAME = "UPDATE_FILESYSTEM_EXPORT_RULES_WORKFLOW";
+    static final String UPDATE_FILESYSTEM_CIFS_SHARE_ACLS_WF_NAME = "UPDATE_FILESYSTEM_CIFS_SHARE_ACLS_WORKFLOW";
+    static final String CREATE_FILESYSTEM_SNAPSHOT_WF_NAME = "CREATE_FILESYSTEM_SNAPSHOT_WORKFLOW";
+    static final String DELETE_FILESYSTEM_CIFS_SHARE_WF_NAME = "DELETE_FILESYSTEM_CIFS_SHARE_WORKFLOW";
+    static final String DELETE_FILESYSTEM_EXPORT_RULES_WF_NAME = "DELETE_FILESYSTEM_EXPORT_RULES_WORKFLOW";
+    private static final String CREATE_FILESYSTEM_EXPORT_METHOD = "export";
+    private static final String CREATE_FILESYSTEM_SHARE_METHOD = "share";
+    private static final String UPDATE_FILESYSTEM_SHARE_ACLS_METHOD = "updateShareACLs";
+    private static final String UPDATE_FILESYSTEM_EXPORT_RULES_METHOD = "updateExportRules";
+    private static final String CREATE_FILESYSTEM_SNAPSHOT_METHOD = "snapshotFS";
+    private static final String DELETE_FILESYSTEM_SHARE_METHOD = "deleteShare";
+    private static final String DELETE_FILESYSTEM_EXPORT_RULES = "deleteExportRules";
 
     /*
      * (non-Javadoc)
@@ -245,13 +270,9 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
 
     @SuppressWarnings("serial")
     public static class WorkflowCallback implements Workflow.WorkflowCallbackHandler, Serializable {
-        @SuppressWarnings("unchecked")
         @Override
         public void workflowComplete(Workflow workflow, Object[] args)
                 throws WorkflowException {
-            List<URI> filesystems = (List<URI>) args[0];
-            // String msg = FileDeviceController.getFileSharesMsg(_dbClient, filesystems);
-            // s_logger.info("Processed FileShares:\n" + msg);
         }
     }
 
@@ -276,7 +297,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     }
 
     public void setDbClient(DbClient dbClient) {
-        this.s_dbClient = dbClient;
+        FileOrchestrationDeviceController.s_dbClient = dbClient;
     }
 
     public void setLocker(ControllerLockingService locker) {
@@ -288,7 +309,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     }
 
     public void setFileDeviceController(FileDeviceController fileDeviceController) {
-        this._fileDeviceController = fileDeviceController;
+        FileOrchestrationDeviceController._fileDeviceController = fileDeviceController;
     }
 
     public FileReplicationDeviceController getFileReplicationFileDeviceController() {
@@ -296,6 +317,254 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     }
 
     public void setFileReplicationDeviceController(FileReplicationDeviceController fileReplicationDeviceController) {
-        this._fileReplicationDeviceController = fileReplicationDeviceController;
+        FileOrchestrationDeviceController._fileReplicationDeviceController = fileReplicationDeviceController;
+    }
+
+    @Override
+    public void createCIFSShare(URI storageSystem, URI uri, FileSMBShare smbShare, String taskId) throws ControllerException {
+        FileObject fileObj = null;
+        String stepDescription = null;
+        String successMessage = null;
+        String opName = null;
+        TaskCompleter completer = null;
+        if (URIUtil.isType(uri, FileShare.class)) {
+            completer = new FileWorkflowCompleter(uri, taskId);
+            fileObj = s_dbClient.queryObject(FileShare.class, uri);
+            stepDescription = "Creating CIFS Share : " + smbShare.getName() + " for FileSystem : " + fileObj.getLabel();
+            successMessage = "CIFS Share creation for FileSystem :" + fileObj.getLabel() + " finished successfully";
+            opName = ResourceOperationTypeEnum.CREATE_FILE_SYSTEM_SHARE.getName();
+        } else {
+            completer = new FileSnapshotWorkflowCompleter(uri, taskId);
+            fileObj = s_dbClient.queryObject(Snapshot.class, uri);
+            stepDescription = "Creating CIFS Share : " + smbShare.getName() + " for Snapshot :" + fileObj.getLabel();
+            successMessage = "CIFS Share creation for Snapshot :" + fileObj.getLabel() + " finished successfully";
+            opName = ResourceOperationTypeEnum.CREATE_FILE_SNAPSHOT_SHARE.getName();
+        }
+        try {
+            Workflow workflow = _workflowService.getNewWorkflow(this, CREATE_FILESYSTEM_CIFS_SHARE_WF_NAME, false, taskId);
+            String shareStep = workflow.createStepId();
+            Object[] args = new Object[] { storageSystem, uri, smbShare };
+            _fileDeviceController.createMethod(workflow, null, CREATE_FILESYSTEM_SHARE_METHOD, shareStep, stepDescription, storageSystem,
+                    args);
+            workflow.executePlan(completer, successMessage);
+        } catch (Exception ex) {
+            s_logger.error("Could not create CIFS share for filesystem/Snapshot: " + uri + " " + fileObj.getLabel(), ex);
+            ServiceError serviceError = DeviceControllerException.errors.createFileSharesFailed(
+                    fileObj.toString(), opName, ex);
+            completer.error(s_dbClient, _locker, serviceError);
+        }
+    }
+
+    @Override
+    public void createNFSExport(URI storage, URI uri, List<FileShareExport> exports, String opId) throws ControllerException {
+        FileObject fileObj = null;
+        String stepDescription = null;
+        String successMessage = null;
+        String opName = null;
+        TaskCompleter completer = null;
+
+        if (URIUtil.isType(uri, FileShare.class)) {
+            completer = new FileWorkflowCompleter(uri, opId);
+            fileObj = s_dbClient.queryObject(FileShare.class, uri);
+            stepDescription = "Creating NFS Export for File System :" + fileObj.getLabel();
+            successMessage = "NFS Export creation for FileSystem :" + fileObj.getLabel() + " finished successfully";
+            opName = ResourceOperationTypeEnum.EXPORT_FILE_SYSTEM.getName();
+
+        } else {
+            completer = new FileSnapshotWorkflowCompleter(uri, opId);
+            fileObj = s_dbClient.queryObject(Snapshot.class, uri);
+            stepDescription = "Creating NFS Export for FileSystem Snapshot :" + fileObj.getLabel();
+            successMessage = "NFS Export creation for FileSystem Snapshot :" + fileObj.getLabel() + " finished successfully";
+            opName = ResourceOperationTypeEnum.EXPORT_FILE_SNAPSHOT.getName();
+        }
+        try {
+            Workflow workflow = _workflowService.getNewWorkflow(this, CREATE_FILESYSTEM_NFS_EXPORT_WF_NAME, false, opId);
+            String exportStep = workflow.createStepId();
+            Object[] args = new Object[] { storage, uri, exports };
+            _fileDeviceController.createMethod(workflow, null, CREATE_FILESYSTEM_EXPORT_METHOD, exportStep, stepDescription, storage, args);
+            workflow.executePlan(completer, successMessage);
+        } catch (Exception ex) {
+            s_logger.error("Could not create NFS Export for filesystem/Snapshot: " + uri + " " + fileObj.getLabel(), ex);
+            ServiceError serviceError = DeviceControllerException.errors.exportFileShareFailed(
+                    fileObj.toString(), opName, ex);
+            completer.error(s_dbClient, _locker, serviceError);
+        }
+    }
+
+    @Override
+    public void updateExportRules(URI storage, URI uri, FileExportUpdateParams param, String opId) throws ControllerException {
+        FileObject fileObj = null;
+        String stepDescription = null;
+        String successMessage = null;
+        String opName = null;
+        TaskCompleter completer = null;
+
+        if (URIUtil.isType(uri, FileShare.class)) {
+            completer = new FileWorkflowCompleter(uri, opId);
+            fileObj = s_dbClient.queryObject(FileShare.class, uri);
+            stepDescription = "Updating File System : " + fileObj.getLabel() + " Export Rules: " + param.toString();
+            successMessage = "File System: " + fileObj.getLabel() + " Export Rule updated successfully";
+            opName = ResourceOperationTypeEnum.UPDATE_EXPORT_RULES_FILE_SYSTEM.getName();
+
+        } else {
+            completer = new FileSnapshotWorkflowCompleter(uri, opId);
+            fileObj = s_dbClient.queryObject(Snapshot.class, uri);
+            stepDescription = "Updating FileSystem Snapshot : " + fileObj.getLabel() + " Export Rules: " + param.toString();
+            successMessage = "FileSystem Snapshot : " + fileObj.getLabel() + " Export Rule updated successfully";
+            opName = ResourceOperationTypeEnum.UPDATE_EXPORT_RULES_FILE_SNAPSHOT.getName();
+        }
+        try {
+            Workflow workflow = _workflowService.getNewWorkflow(this, UPDATE_FILESYSTEM_EXPORT_RULES_WF_NAME, false, opId);
+            String exportRuleUpdateStep = workflow.createStepId();
+            Object[] args = new Object[] { storage, uri, param };
+            _fileDeviceController.createMethod(workflow, null, UPDATE_FILESYSTEM_EXPORT_RULES_METHOD, exportRuleUpdateStep, stepDescription,
+                    storage, args);
+            workflow.executePlan(completer, successMessage);
+
+        } catch (Exception ex) {
+            s_logger.error("Could not update NFS Export Rules for filesystem/Snapshot: " + uri + " " + fileObj.getLabel(), ex);
+            ServiceError serviceError = DeviceControllerException.errors.updateFileShareExportRulesFailed(
+                    fileObj.toString(), opName, ex);
+            completer.error(s_dbClient, _locker, serviceError);
+        }
+    }
+
+    @Override
+    public void updateShareACLs(URI storage, URI uri, String shareName, CifsShareACLUpdateParams param, String opId)
+            throws ControllerException {
+        FileObject fileObj = null;
+        String stepDescription = null;
+        String successMessage = null;
+        String opName = null;
+        TaskCompleter completer = null;
+
+        if (URIUtil.isType(uri, FileShare.class)) {
+            completer = new FileWorkflowCompleter(uri, opId);
+            fileObj = s_dbClient.queryObject(FileShare.class, uri);
+            stepDescription = "Updating File System : " + fileObj.getLabel() + " CIFS Share: " + shareName + " ACLs " + param.toString();
+            successMessage = "File System: " + fileObj.getLabel() + " CIFS Share ACLs updated successfully";
+            opName = ResourceOperationTypeEnum.UPDATE_FILE_SYSTEM_SHARE_ACL.getName();
+
+        } else {
+            completer = new FileSnapshotWorkflowCompleter(uri, opId);
+            fileObj = s_dbClient.queryObject(Snapshot.class, uri);
+            stepDescription = "Updating FileSystem Snapshot : " + fileObj.getLabel() + " CIFS Share: " + shareName + " ACLs "
+                    + param.toString();
+            successMessage = "File System Snapshot : " + fileObj.getLabel() + " CIFS Share ACLs updated successfully";
+            opName = ResourceOperationTypeEnum.UPDATE_FILE_SNAPSHOT_SHARE_ACL.getName();
+        }
+        try {
+            Workflow workflow = _workflowService.getNewWorkflow(this, UPDATE_FILESYSTEM_CIFS_SHARE_ACLS_WF_NAME, false, opId);
+            String shareACLUpdateStep = workflow.createStepId();
+            Object[] args = new Object[] { storage, uri, shareName, param };
+            _fileDeviceController.createMethod(workflow, null, UPDATE_FILESYSTEM_SHARE_ACLS_METHOD, shareACLUpdateStep, stepDescription,
+                    storage,
+                    args);
+            workflow.executePlan(completer, successMessage);
+        } catch (Exception ex) {
+            s_logger.error("Could not update CIFS Share ACLs for filesystem/Snapshot: " + uri + " " + fileObj.getLabel(), ex);
+            ServiceError serviceError = DeviceControllerException.errors.updateFileShareCIFSACLsFailed(
+                    fileObj.toString(), opName, ex);
+            completer.error(s_dbClient, _locker, serviceError);
+        }
+    }
+
+    @Override
+    public void snapshotFS(URI storage, URI snapshot, URI fsURI, String opId) throws ControllerException {
+        FileShare fileShare = s_dbClient.queryObject(FileShare.class, fsURI);
+        // Using VNXeFSSnapshotTaskCompleter as it will serve the purpose..
+        VNXeFSSnapshotTaskCompleter completer = new VNXeFSSnapshotTaskCompleter(Snapshot.class, snapshot, opId);
+        Workflow workflow = null;
+        try {
+            workflow = _workflowService.getNewWorkflow(this, CREATE_FILESYSTEM_SNAPSHOT_WF_NAME, false, opId);
+            String snapshotFSStep = workflow.createStepId();
+            String stepDescription = "Creating File System Snapshot :" + fileShare.getLabel();
+            Object[] args = new Object[] { storage, snapshot, fsURI };
+            _fileDeviceController.createMethod(workflow, null, CREATE_FILESYSTEM_SNAPSHOT_METHOD, snapshotFSStep, stepDescription, storage,
+                    args);
+            String successMessage = "File System: " + fileShare.getLabel() + " snapshot " + snapshot.toString() + " created successfully";
+            workflow.executePlan(completer, successMessage);
+
+        } catch (Exception ex) {
+            s_logger.error("Could not create snapshot for filesystem: " + fsURI + " " + fileShare.getLabel(), ex);
+            String opName = ResourceOperationTypeEnum.CREATE_FILE_SYSTEM_SNAPSHOT.getName();
+            ServiceError serviceError = DeviceControllerException.errors.createFileSystemSnapshotFailed(fsURI.toString(), opName, ex);
+            completer.error(s_dbClient, _locker, serviceError);
+        }
+    }
+
+    @Override
+    public void deleteShare(URI storage, URI uri, FileSMBShare fileSMBShare, String opId) throws ControllerException {
+        FileObject fileObj = null;
+        String stepDescription = null;
+        String successMessage = null;
+        String opName = null;
+        TaskCompleter completer = null;
+
+        if (URIUtil.isType(uri, FileShare.class)) {
+            completer = new FileWorkflowCompleter(uri, opId);
+            fileObj = s_dbClient.queryObject(FileShare.class, uri);
+            stepDescription = "Deleting CIFS Share : " + fileSMBShare.getName() + " for FileSystem : " + fileObj.getLabel();
+            successMessage = "Deleting CIFS Share : " + fileSMBShare.getName() + " for FileSystem : " + fileObj.getLabel()
+                    + " finished successfully.";
+            opName = ResourceOperationTypeEnum.DELETE_FILE_SYSTEM_SHARE.getName();
+
+        } else {
+            completer = new FileSnapshotWorkflowCompleter(uri, opId);
+            fileObj = s_dbClient.queryObject(Snapshot.class, uri);
+            stepDescription = "Deleting CIFS Share : " + fileSMBShare.getName() + " for FileSystem Snapshot : " + fileObj.getLabel();
+            successMessage = "Deleting CIFS Share : " + fileSMBShare.getName() + " for FileSystem Snapshot : " + fileObj.getLabel()
+                    + " finished successfully.";
+            opName = ResourceOperationTypeEnum.DELETE_FILE_SNAPSHOT_SHARE.getName();
+        }
+        try {
+            Workflow workflow = _workflowService.getNewWorkflow(this, DELETE_FILESYSTEM_CIFS_SHARE_WF_NAME, false, opId);
+            String sharedeleteStep = workflow.createStepId();
+            Object[] args = new Object[] { storage, uri, fileSMBShare };
+            _fileDeviceController.createMethod(workflow, null, DELETE_FILESYSTEM_SHARE_METHOD, sharedeleteStep, stepDescription, storage,
+                    args);
+            workflow.executePlan(completer, successMessage);
+        } catch (Exception ex) {
+            s_logger.error("Could not delete CIFS Share for filesystem/Snapshot: " + uri + " " + fileObj.getLabel(), ex);
+            ServiceError serviceError = DeviceControllerException.errors.deleteCIFSShareFailed(fileObj.toString(), opName, ex);
+            completer.error(s_dbClient, _locker, serviceError);
+        }
+    }
+
+    @Override
+    public void deleteExportRules(URI storage, URI uri, boolean allDirs, String subDirs, String opId) throws ControllerException {
+        FileObject fileObj = null;
+        String stepDescription = null;
+        String successMessage = null;
+        String opName = null;
+        TaskCompleter completer = null;
+
+        if (URIUtil.isType(uri, FileShare.class)) {
+            completer = new FileWorkflowCompleter(uri, opId);
+            fileObj = s_dbClient.queryObject(FileShare.class, uri);
+            stepDescription = "Deleting Export Rules for File System : " + fileObj.getLabel();
+            successMessage = "Deleting Export Rules for File System : " + fileObj.getLabel() + " finished successfully.";
+            opName = ResourceOperationTypeEnum.UNEXPORT_FILE_SYSTEM.getName();
+
+        } else {
+            completer = new FileSnapshotWorkflowCompleter(uri, opId);
+            fileObj = s_dbClient.queryObject(Snapshot.class, uri);
+            stepDescription = "Deleting Export Rules for File System Snapshot : " + fileObj.getLabel();
+            successMessage = "Deleting Export Rules for File System Snapshot : " + fileObj.getLabel() + " finished successfully.";
+            opName = ResourceOperationTypeEnum.UNEXPORT_FILE_SNAPSHOT.getName();
+        }
+        try {
+            Workflow workflow = _workflowService.getNewWorkflow(this, DELETE_FILESYSTEM_EXPORT_RULES_WF_NAME, false, opId);
+            String exportdeleteStep = workflow.createStepId();
+            Object[] args = new Object[] { storage, uri, allDirs, subDirs };
+            _fileDeviceController.createMethod(workflow, null, DELETE_FILESYSTEM_EXPORT_RULES, exportdeleteStep, stepDescription, storage,
+                    args);
+            workflow.executePlan(completer, successMessage);
+        } catch (Exception ex) {
+            s_logger.error("Could not delete export rules for filesystem/Snapshot: " + uri + " " + fileObj.getLabel(), ex);
+            ServiceError serviceError = DeviceControllerException.errors.deleteExportRuleFailed(fileObj.toString(), opName, ex);
+            completer.error(s_dbClient, _locker, serviceError);
+        }
+
     }
 }

@@ -12,18 +12,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.emc.storageos.db.client.URIUtil;
-import org.apache.commons.lang.ObjectUtils;
-import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.ActionableEvent;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DataObject;
@@ -35,6 +34,7 @@ import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.IpInterface;
+import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
@@ -643,5 +643,40 @@ public class ComputeSystemHelper {
             }
         }
         return false;
+    }
+
+    /**
+     * Creates an actionable event and persists to the database
+     * 
+     * @param dbClient db client
+     * @param tenant the tenant that owns the event
+     * @param description the description of what the event will do
+     * @param resource the resource that owns the event (host, cluster, etc)
+     * @param approveMethod the method to invoke when approving the event
+     * @param approveParameters the parameters to pass to the approve method
+     * @param declineMethod the method to invoke when declining the event
+     * @param declineParameters the parameters to pass to the decline method
+     */
+    public static void createActionableEvent(DbClient dbClient, URI tenant, String description, DataObject resource,
+            String approveMethod, Object[] approveParameters, String declineMethod,
+            Object[] declineParameters) {
+        ActionableEvent event = new ActionableEvent();
+        event.setId(URIUtil.createId(ActionableEvent.class));
+        event.setTenant(tenant);
+        event.setDescription(description);
+        event.setEventStatus(ActionableEvent.Status.pending.name());
+        event.setResource(new NamedURI(resource.getId(), resource.getLabel()));
+        if (approveMethod != null) {
+            com.emc.storageos.db.client.model.ActionableEvent.Method method = new ActionableEvent.Method(
+                    approveMethod, approveParameters);
+            event.setApproveMethod(method.serialize());
+        }
+        if (declineMethod != null) {
+            com.emc.storageos.db.client.model.ActionableEvent.Method method = new ActionableEvent.Method(
+                    declineMethod, declineParameters);
+            event.setDeclineMethod(method.serialize());
+        }
+        event.setLabel("Label [" + description + "]");
+        dbClient.createObject(event);
     }
 }

@@ -34,13 +34,6 @@ import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
-import com.netflix.astyanax.AstyanaxContext;
-import com.netflix.astyanax.Cluster;
-import com.netflix.astyanax.Keyspace;
-import com.netflix.astyanax.connectionpool.Host;
-import com.netflix.astyanax.impl.AstyanaxConfigurationImpl;
-import com.netflix.astyanax.model.ConsistencyLevel;
-import com.netflix.astyanax.retry.RetryPolicy;
 
 public class DbClientContext {
 
@@ -74,14 +67,8 @@ public class DbClientContext {
     private int maxConnectionsPerHost = DEFAULT_MAX_CONNECTIONS_PER_HOST;
     private int svcListPoolIntervalSec = DEFAULT_SVCLIST_POLL_INTERVAL_SEC;
     private long monitorIntervalSecs = DEFAULT_CONNECTION_POOL_MONITOR_INTERVAL;
-    private RetryPolicy retryPolicy = new QueryRetryPolicy(MAX_QUERY_RETRY, QUERY_RETRY_SLEEP_MS);
     private String keyspaceName = LOCAL_KEYSPACE_NAME;
     private String clusterName = LOCAL_CLUSTER_NAME;
-
-    private AstyanaxContext<Keyspace> keyspaceContext;
-    private Keyspace keyspace;
-    private AstyanaxContext<Cluster> clusterContext;
-    private Cluster cluster;
 
     private boolean initDone = false;
     private String cipherSuite;
@@ -120,30 +107,12 @@ public class DbClientContext {
     public boolean isClientToNodeEncrypted() {
         return isClientToNodeEncrypted;
     }
-
-    public Keyspace getKeyspace() {
-        if (keyspaceContext == null) {
-            throw new IllegalStateException();
-        }
-        return keyspace;
-    }
     
     public com.datastax.driver.core.Cluster getCassandraCluster() {
         if (cassandraCluster == null) {
             initClusterContext();
         }
         return cassandraCluster;
-    }
-
-    public void setHosts(Collection<Host> hosts) {
-        if (keyspaceContext == null) {
-            throw new IllegalStateException();
-        }
-        keyspaceContext.getConnectionPool().setHosts(hosts);
-    }
-
-    public int getPort() {
-        return keyspaceContext.getConnectionPoolConfiguration().getPort();
     }
 
     public boolean isRetryFailedWriteWithLocalQuorum() {
@@ -173,10 +142,6 @@ public class DbClientContext {
 
     public void setSvcListPoolIntervalSec(int svcListPoolIntervalSec) {
         this.svcListPoolIntervalSec = svcListPoolIntervalSec;
-    }
-
-    public void setRetryPolicy(RetryPolicy retryPolicy) {
-        this.retryPolicy = retryPolicy;
     }
 
     /**
@@ -423,18 +388,6 @@ public class DbClientContext {
     }
 
     public synchronized void stop() {
-        if (keyspaceContext == null) {
-            throw new IllegalStateException();
-        }
-
-        keyspaceContext.shutdown();
-        keyspaceContext = null;
-
-        if (clusterContext != null) {
-            clusterContext.shutdown();
-            clusterContext = null;
-        }
-        
         if (cassandraSession != null) {
             cassandraSession.close();
         }
@@ -636,8 +589,8 @@ public class DbClientContext {
     }
 
     private void checkAndResetConsistencyLevel(DrUtil drUtil, String svcName) {
-        
-        if (isRetryFailedWriteWithLocalQuorum() && drUtil.isMultivdc()) {
+        // TODO rewrite these codes with Java driver later
+        /*if (isRetryFailedWriteWithLocalQuorum() && drUtil.isMultivdc()) {
             log.info("Disable retry for write failure in multiple vdc configuration");
             setRetryFailedWriteWithLocalQuorum(false);
             return;
@@ -664,7 +617,7 @@ public class DbClientContext {
         }
         log.info("Service {} of quorum nodes on all standby sites are up. Reset default write consistency level back to EACH_QUORUM", svcName);
         AstyanaxConfigurationImpl config = (AstyanaxConfigurationImpl)keyspaceContext.getAstyanaxConfiguration();
-        config.setDefaultWriteConsistencyLevel(ConsistencyLevel.CL_EACH_QUORUM);
+        config.setDefaultWriteConsistencyLevel(ConsistencyLevel.CL_EACH_QUORUM);*/
     }
     
     protected int getNativeTransportPort() {

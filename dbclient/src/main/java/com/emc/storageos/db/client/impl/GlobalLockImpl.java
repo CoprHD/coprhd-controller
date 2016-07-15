@@ -26,9 +26,8 @@ import com.emc.storageos.coordinator.common.impl.ZkPath;
 import com.emc.storageos.db.client.GlobalLockItf;
 import com.emc.storageos.db.client.model.GlobalLock;
 import com.emc.storageos.db.client.recipe.CustomizedDistributedRowLock;
-import com.netflix.astyanax.model.ColumnFamily;
-import com.netflix.astyanax.recipes.locks.BusyLockException;
-import com.netflix.astyanax.recipes.locks.StaleLockException;
+import com.emc.storageos.db.client.recipe.CustomizedDistributedRowLock.BusyLockException;
+import com.emc.storageos.db.client.recipe.CustomizedDistributedRowLock.StaleLockException;
 import com.netflix.astyanax.retry.BoundedExponentialBackoff;
 
 /**

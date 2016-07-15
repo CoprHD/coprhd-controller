@@ -27,8 +27,6 @@ import com.google.common.collect.Sets;
 import com.netflix.astyanax.retry.RetryPolicy;
 import com.netflix.astyanax.retry.RunOnce;
 import com.netflix.astyanax.util.TimeUUIDUtils;
-import com.netflix.astyanax.recipes.locks.BusyLockException;
-import com.netflix.astyanax.recipes.locks.StaleLockException;
 
 /**
  * Internal DistributedRowLock to acquiring and release a row lock
@@ -473,6 +471,34 @@ public class CustomizedDistributedRowLock<K> {
 
     public int getRetryCount() {
         return retryCount;
+    }
+    
+    public class BusyLockException extends Exception {
+        public BusyLockException(Exception e) {
+            super(e);
+        }
+
+        public BusyLockException(String message, Exception e) {
+            super(message, e);
+        }
+
+        public BusyLockException(String message) {
+            super(message);
+        }
+    }
+
+    public class StaleLockException extends Exception {
+        public StaleLockException(Exception e) {
+            super(e);
+        }
+
+        public StaleLockException(String message, Exception e) {
+            super(message, e);
+        }
+
+        public StaleLockException(String message) {
+            super(message);
+        }
     }
 
 }

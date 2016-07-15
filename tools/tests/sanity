@@ -745,7 +745,7 @@ zone_setup()
     #
     # set up zone for cisco switch simulator
     #
-    if [ $QUICK -eq 1  -o $VPLEX_QUICK_PARAM = "quick" ]; then
+    if [ $QUICK -eq 1  -o "${VPLEX_QUICK_PARAM}" = "quick" ]; then
         cisco_mds_quick_setup_once
     elif [ $DISCOVER_SAN -eq 1 ]; then
         brocade_setup_once
@@ -5892,7 +5892,7 @@ common_setup()
     if [ "${RP_INGESTTESTS}" = "0" -o "${RP_INGESTTESTS}" = "" ]; then
 
         # If we're running physical, DISCOVER_SAN needs to be on for physical configurations.
-	if [ $QUICK -eq 0  -o $VPLEX_QUICK_PARAM = "quick" ]; then
+	if [ $QUICK -eq 0  -o "${VPLEX_QUICK_PARAM}" = "quick" ]; then
 	    secho "Turning on DISCOVER_SAN because we are testing physical"
 	    DISCOVER_SAN=1
 	fi

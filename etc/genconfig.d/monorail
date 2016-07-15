@@ -11,6 +11,13 @@
 
 _get_monorail_props() {
     _get_props network_ipaddr_service network_vip_service
+
+    local cluster_nodes=""
+    for i in ${_GENCONFIG_node_indexes} ; do
+    	local name="_GENCONFIG_network_${i}_ipaddr_service"
+        cluster_nodes=${cluster_nodes}${!name}","
+    done
+    echo "mongo_nodes=${cluster_nodes%?}" 
 }
 
 _genconfig_exec _gen_template_cluster    /etc/monorail/config.json  $(_get_monorail_props)

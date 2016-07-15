@@ -29,7 +29,7 @@
     "httpsEnabled": false,
     "httpsKey": "data/dev-key.pem",
     "httpsPfx": null,
-    "mongo": "mongodb://localhost/pxe",
+    "mongo": "mongodb://${mongo_nodes}/pxe",
     "sharedKey": "qxfO2D3tIJsZACu7UA6Fbw0avowo8r79ALzn+WeuC8M=",
     "statsd": "127.0.0.1:8125",
     "syslogBindAddress": "${network_ipaddr_service}",

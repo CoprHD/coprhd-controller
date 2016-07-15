@@ -19,6 +19,7 @@ import org.apache.commons.lang.mutable.MutableBoolean;
 import org.apache.commons.lang.mutable.MutableInt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
@@ -95,15 +96,25 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
         hostToInitiatorPortIdMap.put(pageToHostMap.get(2).get(0), new ArrayList<>(Arrays.asList("50:06:01:61:36:68:10:81", "50:06:01:61:36:68:10:82")));
     }
     
-    private static SimulatorConfiguration simulatorConfig;
     static
     {
-        ApplicationContext context = new ClassPathXmlApplicationContext(new String[] { SIMULATOR_CONF_FILE });
-        simulatorConfig = (SimulatorConfiguration) context.getBean(CONFIG_BEAN_NAME);       
+        ApplicationContext context = new ClassPathXmlApplicationContext(SIMULATOR_CONF_FILE);
     }
 
     //StorageDriver implementation
 
+    private ApplicationContext parentApplicationContext;
+    private SimulatorConfiguration simulatorConfig;
+
+    public StorageDriverSimulator() {
+        ApplicationContext context = new ClassPathXmlApplicationContext(new String[] {SIMULATOR_CONF_FILE}, parentApplicationContext);
+        simulatorConfig = (SimulatorConfiguration) context.getBean(CONFIG_BEAN_NAME);
+    }
+    
+    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+        this.parentApplicationContext = applicationContext;
+    }
+    
     @Override
     public RegistrationData getRegistrationData() {
         RegistrationData registrationData = new RegistrationData("driverSimulator", "driversystem", null);

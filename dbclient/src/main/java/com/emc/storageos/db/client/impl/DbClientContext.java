@@ -224,6 +224,7 @@ public class DbClientContext {
         }
         cassandraCluster = com.datastax.driver.core.Cluster
                 .builder()
+                .withRetryPolicy(new ViPRRetryPolicy(10, 1000))
                 .addContactPoints(contactPoints).withPort(getNativeTransportPort()).build();
         cassandraCluster.getConfiguration().getQueryOptions().setConsistencyLevel(com.datastax.driver.core.ConsistencyLevel.LOCAL_QUORUM);
         cassandraSession = cassandraCluster.connect("\"" + keyspaceName + "\"");

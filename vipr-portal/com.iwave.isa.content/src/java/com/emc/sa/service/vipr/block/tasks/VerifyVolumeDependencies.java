@@ -11,7 +11,9 @@ import java.util.List;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
 
 /**
- * 
+ * Task that verifies dependencies on a list of volumes. An illegal state exception will be thrown if any 
+ * volume contain dependencies (snapshot, snapshot session, full copy, continuous copy)
+ *
  * @author cormij4
  *
  */
@@ -29,6 +31,7 @@ public class VerifyVolumeDependencies extends ViPRExecutionTask<Void> {
     public void execute() throws Exception {
         List<DependencyType> dependencies = new ArrayList<DependencyType>();
         for (URI id : this.volumeIds) {
+            // List to gather dependencies
             List<String> dependencyType = new ArrayList<String>();
             
             if (!getClient().blockSnapshots().getByVolume(id).isEmpty()) {
@@ -43,6 +46,8 @@ public class VerifyVolumeDependencies extends ViPRExecutionTask<Void> {
             if (!getClient().blockVolumes().getContinuousCopies(id).isEmpty()) {
                 dependencyType.add(getMessage(DependencyType.CONTINUOUS_COPY));
             }
+
+            // If we have dependencies, get volume name so that display information is relevant
             if (!dependencyType.isEmpty()) {
                 String volName = getClient().blockVolumes().get(id).getName();
                 for (String type : dependencyType) {
@@ -56,21 +61,26 @@ public class VerifyVolumeDependencies extends ViPRExecutionTask<Void> {
         }
     }
     
+    /**
+     * Private helper class to help display the different dependency type for a volume
+     *
+     * @author cormij4
+     *
+     */
     private class DependencyType {
-        public static final String SNAPSHOT = "Snapshot";
-        public static final String SNAPSHOT_SESSION = "SnapshotSession";
-        public static final String FULL_COPY = "FullCopy";
-        public static final String CONTINUOUS_COPY = "ContinuousCopy";
-        
-        
+        public static final String SNAPSHOT = "VerifyVolumeDependencies.Snapshot";
+        public static final String SNAPSHOT_SESSION = "VerifyVolumeDependencies.SnapshotSession";
+        public static final String FULL_COPY = "VerifyVolumeDependencies.FullCopy";
+        public static final String CONTINUOUS_COPY = "VerifyVolumeDependencies.ContinuousCopy";
+
         public String type;
         public String volumeName;
-        
+
         public DependencyType(String type, String name) {
             this.type = type;
             this.volumeName = name;
         }
-        
+
         public String toString() {
             return volumeName + " - " + this.type;
         }

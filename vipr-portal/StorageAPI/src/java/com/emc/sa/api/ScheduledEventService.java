@@ -122,7 +122,6 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
 
         ArgValidator.checkFieldNotNull(createParam.getOrderCreateParam().getCatalogService(), "catalogService");
         CatalogService catalogService = catalogServiceManager.getCatalogServiceById(createParam.getOrderCreateParam().getCatalogService());
-        /* TODO: uncomment it back */
         if (catalogService == null) {
             throw APIException.badRequests.orderServiceNotFound(
                     asString(createParam.getOrderCreateParam().getCatalogService()));
@@ -203,15 +202,13 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
         /* TODO: exceptions for edit  */
     }
 
+
+
     private String match(ScheduleInfo scheduleInfo, ExecutionWindow window) {
         String msg="";
 
-        if ((scheduleInfo.getHourOfDay() < window.getHourOfDayInUTC() ||
-             scheduleInfo.getHourOfDay() == window.getHourOfDayInUTC() &&
-             scheduleInfo.getMinuteOfHour() < window.getMinuteOfHourInUTC()) ||
-            (scheduleInfo.getHourOfDay() > window.getHourOfDayInUTC() ||
-             scheduleInfo.getHourOfDay() == window.getHourOfDayInUTC() &&
-             scheduleInfo.getMinuteOfHour() > window.getMinuteOfHourInUTC()))   {
+        ExecutionWindowHelper windowHelper = new ExecutionWindowHelper(window);
+        if (!windowHelper.inHourMinWindow(scheduleInfo.getHourOfDay(), scheduleInfo.getMinuteOfHour())) {
             msg = "Schedule hour/minute info does not match with execution window.";
             return msg;
         }
@@ -254,8 +251,9 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
     private ScheduledEvent createScheduledEvent(URI tenantId, ScheduledEventCreateParam param, CatalogService catalogService) throws Exception{
         if (catalogService.getExecutionWindowRequired()) {
             ExecutionWindow executionWindow = client.findById(catalogService.getDefaultExecutionWindowId().getURI());
-            if (!match(param.getScheduleInfo(), executionWindow).isEmpty()) {
-                throw APIException.badRequests.schduleInfoNotMatchWithExecutionWindow();
+            String msg = match(param.getScheduleInfo(), executionWindow);
+            if (!msg.isEmpty()) {
+                throw APIException.badRequests.schduleInfoNotMatchWithExecutionWindow(msg);
             }
         }
 

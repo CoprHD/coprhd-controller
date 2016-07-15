@@ -2994,5 +2994,5 @@ public interface BadRequestExceptions {
     public BadRequestException schduleInfoInvalid(final String field);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException schduleInfoNotMatchWithExecutionWindow();
+    public BadRequestException schduleInfoNotMatchWithExecutionWindow(final String field);
 }

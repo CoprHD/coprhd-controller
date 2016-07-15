@@ -62,6 +62,7 @@ import com.emc.storageos.db.client.model.ProjectResource;
 import com.emc.storageos.db.client.model.ProjectResourceSnapshot;
 import com.emc.storageos.db.client.model.PropertyListDataObject;
 import com.emc.storageos.db.client.model.StorageOSUserDAO;
+import com.emc.storageos.db.client.model.StorageSystemType;
 import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.TenantResource;
@@ -117,9 +118,9 @@ public class DbClientImpl implements DbClient {
     private static final int DEFAULT_BATCH_SIZE = 1000;
     protected static final int DEFAULT_PAGE_SIZE = 100;
     
-    static private final List<Class<? extends DataObject>> excludeClasses = Arrays.asList(
-            Token.class, StorageOSUserDAO.class, VirtualDataCenter.class,
-            PropertyListDataObject.class, PasswordHistory.class, CustomConfig.class, VdcVersion.class);
+    static private final List<Class<? extends DataObject>> excludeClasses = Arrays.asList(Token.class,
+            StorageOSUserDAO.class, VirtualDataCenter.class, PropertyListDataObject.class, PasswordHistory.class,
+            CustomConfig.class, VdcVersion.class, StorageSystemType.class);
 
     protected DbClientContext localContext;
     protected DbClientContext geoContext;

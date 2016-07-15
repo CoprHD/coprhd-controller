@@ -113,13 +113,15 @@ set_undo()
                 cnt=-1
                 # Figure out if there was a --count parameter, which
                 # would be the indication of a multi-volume create
-                for i in $all_params
+                while [[ $# > 1 ]]
                 do
+                    i=$@
                     check_cnt=`echo $i | perl -nle 'if(m#--count\s*={0,1}\s*(\d+)#) { print $1 } else { print 0 }'`
                     if [ "$check_cnt" -ne "0" ]; then
                         cnt=$check_cnt
                         break;
                     fi
+                    shift
                 done
                 # If cnt = -1, then this is an ordinary volume create.
                 # If cnt is not -1, then this a multi-volume create
@@ -129,15 +131,23 @@ set_undo()
                     index=1;
                     while [ "$index" -le "$cnt" ];
                     do
-                        put_on_undo_stack $first delete $fourth/${third}-${index} --wait
+                        if [[ $all != "" ]]; then
+                            all="${all},"
+                        fi
+                        all="${all}${fourth}/${third}-${index}"
                         index=`expr $index + 1`
                     done
+                    put_on_undo_stack $first delete $all --wait
+                    all=""
                 fi
             elif [ "$second" = full_copy ]; then
                 project=`echo $fourth | cut -d '/' -f1`
                 put_on_undo_stack $first delete $project/$third --wait
             elif [ "$second" = delete ]; then
-                remove_from_undo_stack $first $second $third
+                for i in ${third//,/ }
+                do
+                    echo "remove_from_undo_stack ${first} ${second} ${i}"
+                done
             fi
             ;;
         blocksnapshot)
@@ -196,13 +206,6 @@ set_undo()
         objcos)
             # objcos create name --description "descr"
             # objcos delete name 
-            if [ "$second" = create ]; then
-                put_on_undo_stack $first delete $third
-            elif [ "$second" = delete ]; then
-                remove_from_undo_stack $first $second $third
-            fi
-            ;;
-        protectionsystem)
             if [ "$second" = create ]; then
                 put_on_undo_stack $first delete $third
             elif [ "$second" = delete ]; then

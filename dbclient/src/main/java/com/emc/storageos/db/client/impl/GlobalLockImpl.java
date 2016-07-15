@@ -5,9 +5,14 @@
 
 package com.emc.storageos.db.client.impl;
 
+import java.nio.ByteBuffer;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import com.datastax.driver.core.ConsistencyLevel;
+
+import org.apache.cassandra.serializers.UTF8Serializer;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.utils.EnsurePath;
 import org.apache.curator.utils.ZKPaths;
@@ -21,11 +26,7 @@ import com.emc.storageos.coordinator.common.impl.ZkPath;
 import com.emc.storageos.db.client.GlobalLockItf;
 import com.emc.storageos.db.client.model.GlobalLock;
 import com.emc.storageos.db.client.recipe.CustomizedDistributedRowLock;
-import com.netflix.astyanax.Keyspace;
-import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.model.ColumnFamily;
-import com.netflix.astyanax.model.ColumnMap;
-import com.netflix.astyanax.model.ConsistencyLevel;
 import com.netflix.astyanax.recipes.locks.BusyLockException;
 import com.netflix.astyanax.recipes.locks.StaleLockException;
 import com.netflix.astyanax.retry.BoundedExponentialBackoff;
@@ -57,8 +58,8 @@ public class GlobalLockImpl implements GlobalLockItf {
     private String _vdc = null;
 
     private final DbClientImpl _dbClient;	        // db client
-    private final Keyspace _keyspace;			    // geo keyspace
-    private final ColumnFamily<String, String> _cf;	// global lock CF
+    private final DbClientContext _context;         // geo context
+    private final ColumnFamilyDefinition _cf;	// global lock CF
 
     // internal distributed row lock
     private CustomizedDistributedRowLock<String> _cpDistRowlock = null;
@@ -96,11 +97,11 @@ public class GlobalLockImpl implements GlobalLockItf {
         _vdc = vdc;
 
         _dbClient = dbClient;
-        _keyspace = _dbClient.getGeoKeyspace();
+        _context = _dbClient.getGeoContext();
         _cf = TypeMap.getGlobalLockType().getCf();
-        _cpDistRowlock = new CustomizedDistributedRowLock<String>(_keyspace, _cf, _name)
+        _cpDistRowlock = new CustomizedDistributedRowLock<String>(_context, _cf, _name)
                 .withBackoff(new BoundedExponentialBackoff(250, 10000, 10))
-                .withConsistencyLevel(ConsistencyLevel.CL_EACH_QUORUM)
+                .withConsistencyLevel(ConsistencyLevel.EACH_QUORUM)
                 .expireLockAfter(CustomizedDistributedRowLock_Timeout, TimeUnit.SECONDS);
 
         if (!_mode.equals(GlobalLock.GL_Mode.GL_NodeSvcShared_MODE)) {
@@ -136,13 +137,13 @@ public class GlobalLockImpl implements GlobalLockItf {
         _log.info("{} is acquiring global lock {} ...", localOwner, _name);
         boolean bLockAcquired = false;
 
-        MutationBatch m = _keyspace.prepareMutationBatch();
+        RowMutator mutator = new RowMutator(_context);
         try {
-            ColumnMap<String> columns = _cpDistRowlock.acquireLockAndReadRow();
+            Map<String, ByteBuffer> columns = _cpDistRowlock.acquireLockAndReadRow();
 
-            String currMode = columns.getString(GlobalLock.GL_MODE_COLUMN, null);
-            String currOwner = columns.getString(GlobalLock.GL_OWNER_COLUMN, null);
-            String currExpiration = columns.getString(GlobalLock.GL_EXPIRATION_COLUMN, null);
+            String currMode = retrieveStringValue(columns, GlobalLock.GL_MODE_COLUMN, null);
+            String currOwner = retrieveStringValue(columns, GlobalLock.GL_OWNER_COLUMN, null);
+            String currExpiration = retrieveStringValue(columns, GlobalLock.GL_EXPIRATION_COLUMN, null);
 
             if (currMode != null && !currMode.equals(_mode.toString())) {
                 errMsg = String.format("The global lock %s has been acquired by incompatible mode %s.", _name, currMode);
@@ -168,17 +169,17 @@ public class GlobalLockImpl implements GlobalLockItf {
                 }
             }
 
-            m.withRow(_cf, _name).putColumn(GlobalLock.GL_MODE_COLUMN, _mode.toString());
-            m.withRow(_cf, _name).putColumn(GlobalLock.GL_OWNER_COLUMN, globalOwner);
+            mutator.insertGlobalLockRecord(_cf.getName(), _name, GlobalLock.GL_MODE_COLUMN, _mode.toString(), null);
+            mutator.insertGlobalLockRecord(_cf.getName(), _name, GlobalLock.GL_OWNER_COLUMN, globalOwner, null);
             long expirationTime = (_timeout == 0) ? 0 : curTimeMicros + _timeout;
-            m.withRow(_cf, _name).putColumn(GlobalLock.GL_EXPIRATION_COLUMN, String.valueOf(expirationTime));
+            mutator.insertGlobalLockRecord(_cf.getName(), _name, GlobalLock.GL_EXPIRATION_COLUMN, String.valueOf(expirationTime), null);
 
             // add global lock holder in current vdc ZK
             if (!_mode.equals(GlobalLock.GL_Mode.GL_NodeSvcShared_MODE)) {
                 addLocalHolder(localOwner);
             }
 
-            _cpDistRowlock.releaseWithMutation(m);
+            _cpDistRowlock.releaseWithMutation(mutator);
 
             bLockAcquired = true;
         } catch (StaleLockException e) {
@@ -225,12 +226,12 @@ public class GlobalLockImpl implements GlobalLockItf {
 
         boolean bLockReleased = false;
 
-        MutationBatch m = _keyspace.prepareMutationBatch();
+        RowMutator mutator = new RowMutator(_context);
         try {
-            ColumnMap<String> columns = _cpDistRowlock.acquireLockAndReadRow();
+            Map<String, ByteBuffer> columns = _cpDistRowlock.acquireLockAndReadRow();
 
-            String currMode = columns.getString(GlobalLock.GL_MODE_COLUMN, null);
-            String currOwner = columns.getString(GlobalLock.GL_OWNER_COLUMN, null);
+            String currMode = retrieveStringValue(columns, GlobalLock.GL_MODE_COLUMN, null);
+            String currOwner = retrieveStringValue(columns, GlobalLock.GL_OWNER_COLUMN, null);
 
             if (currMode == null || currOwner == null) {
                 // the lock is not active; return true
@@ -261,10 +262,10 @@ public class GlobalLockImpl implements GlobalLockItf {
             }
 
             if (_mode.equals(GlobalLock.GL_Mode.GL_NodeSvcShared_MODE) || getLocalHolderNumber() == 0) {
-                m.withRow(_cf, _name).deleteColumn(GlobalLock.GL_MODE_COLUMN);
-                m.withRow(_cf, _name).deleteColumn(GlobalLock.GL_OWNER_COLUMN);
-                m.withRow(_cf, _name).deleteColumn(GlobalLock.GL_EXPIRATION_COLUMN);
-                _cpDistRowlock.releaseWithMutation(m);
+                mutator.deleteGlobalLockRecord(_cf.getName(), _name, GlobalLock.GL_MODE_COLUMN);
+                mutator.deleteGlobalLockRecord(_cf.getName(), _name, GlobalLock.GL_OWNER_COLUMN);
+                mutator.deleteGlobalLockRecord(_cf.getName(), _name, GlobalLock.GL_EXPIRATION_COLUMN);
+                _cpDistRowlock.releaseWithMutation(mutator);
                 _log.info("{} released global lock {} successfully.", localOwner, _name);
             } else {
                 // avoid releasing global lock if it is still hold by others
@@ -323,10 +324,10 @@ public class GlobalLockImpl implements GlobalLockItf {
         _log.info("querying the current owner of global lock {} ...", _name);
         String currOwner = null;
         try {
-            ColumnMap<String> columns = _cpDistRowlock.acquireLockAndReadRow();
+            Map<String, ByteBuffer> columns = _cpDistRowlock.acquireLockAndReadRow();
 
-            currOwner = columns.getString(GlobalLock.GL_OWNER_COLUMN, null);
-            String currExpiration = columns.getString(GlobalLock.GL_EXPIRATION_COLUMN, null);
+            currOwner = retrieveStringValue(columns, GlobalLock.GL_OWNER_COLUMN, null);
+            String currExpiration = retrieveStringValue(columns, GlobalLock.GL_EXPIRATION_COLUMN, null);
 
             long curTimeMicros = System.currentTimeMillis();
             if (currExpiration != null) {
@@ -434,5 +435,12 @@ public class GlobalLockImpl implements GlobalLockItf {
 
     public String getErrorMessage() {
         return errMsg;
+    }
+    
+    public static String retrieveStringValue(Map<String, ByteBuffer> map, String key, String defaultValue) {
+        if (!map.containsKey(key))
+            return defaultValue;
+        
+        return UTF8Serializer.instance.deserialize(map.get(key));
     }
 }

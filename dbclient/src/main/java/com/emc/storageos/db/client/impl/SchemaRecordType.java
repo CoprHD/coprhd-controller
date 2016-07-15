@@ -10,9 +10,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.datastax.driver.core.Row;
+import com.datastax.driver.core.exceptions.ConnectionException;
 import com.emc.storageos.db.client.model.Cf;
 import com.emc.storageos.db.client.model.SchemaRecord;
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
 /**
  * Encapsulate schema information

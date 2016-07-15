@@ -12,12 +12,14 @@ import java.util.Map;
 
 import com.emc.storageos.db.client.impl.DbClientContext;
 import com.emc.storageos.db.client.impl.RowMutator;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.SimpleStatement;
 import com.datastax.driver.core.TableMetadata;
+import com.datastax.driver.core.exceptions.ConnectionException;
 import com.datastax.driver.core.exceptions.DriverException;
 import com.emc.storageos.db.client.constraint.DecommissionedConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
@@ -32,7 +34,6 @@ import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.SchemaRecord;
 import com.emc.storageos.db.client.util.KeyspaceUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
 /**
  * Internal db client used for upgrade migrations
@@ -120,7 +121,7 @@ public class InternalDbClient extends DbClientImpl {
             RowMutator mutator = new RowMutator(getLocalContext());
             SchemaRecordType type = TypeMap.getSchemaRecordType();
             type.serialize(mutator, record);
-        } catch (ConnectionException e) {
+        } catch (DriverException e) {
             throw DatabaseException.retryables.connectionFailed(e);
         }
     }
@@ -133,7 +134,7 @@ public class InternalDbClient extends DbClientImpl {
             ResultSet resultSet = this.getLocalContext().getSession().execute(queryString);
             
             return type.deserialize(resultSet.one());
-        } catch (com.datastax.driver.core.exceptions.ConnectionException e) {
+        } catch (ConnectionException e) {
             throw DatabaseException.retryables.connectionFailed(e);
         }
     }

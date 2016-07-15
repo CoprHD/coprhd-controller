@@ -14,12 +14,12 @@ import org.slf4j.LoggerFactory;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.exceptions.DriverException;
+import com.datastax.driver.core.utils.UUIDs;
 import com.emc.storageos.db.client.constraint.DecommissionedConstraint;
 import com.emc.storageos.db.client.impl.ColumnField;
 import com.emc.storageos.db.client.impl.IndexColumnName;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.NoInactiveIndex;
-import com.netflix.astyanax.util.TimeUUIDUtils;
 
 /**
  * Constrained query to get list of decommissioned object URIs of a given type
@@ -102,7 +102,7 @@ public class DecommissionedConstraintImpl extends ConstraintImpl implements Deco
 
                 @Override
                 public boolean filter(IndexColumnName column) {
-                    long timeMarked = TimeUUIDUtils.getMicrosTimeFromUUID(column.getTimeUUID());
+                    long timeMarked = UUIDs.unixTimestamp(UUIDs.timeBased()) * 1000;
                     if (_timeToStartFrom >= timeMarked) {
                         return true;
                     }

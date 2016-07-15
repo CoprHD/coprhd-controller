@@ -235,8 +235,7 @@ public class DataObjectType {
             Iterator<CompositeColumnName> it = rows.iterator();
             while (it.hasNext()) {
                 CompositeColumnName compositeColumnName = it.next();
-                // TODO java driver: clean up list
-                //cleanupList.add(key, column);
+                cleanupList.add(key, compositeColumnName);
                 
                 ColumnField columnField = _columnFieldMap.get(compositeColumnName.getOne());
                 if (columnField != null) {

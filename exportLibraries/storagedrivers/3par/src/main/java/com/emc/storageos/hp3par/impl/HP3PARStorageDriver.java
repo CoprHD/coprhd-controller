@@ -731,6 +731,27 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 		return false;
 	}
 
+    @Override
+    public DriverTask stopManagement(StorageSystem storageSystem) {
+        _log.info("3PARDriver: stopManagement Running");
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public DriverTask addVolumesToConsistencyGroup(List<StorageVolume> volumes, StorageCapabilities capabilities) {
+        _log.info("3PARDriver: addVolumesToConsistencyGroup Running");
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public DriverTask removeVolumesFromConsistencyGroup(List<StorageVolume> volumes, StorageCapabilities capabilities) {
+        _log.info("3PARDriver: removeVolumesFromConsistencyGroup Running");
+        // TODO Auto-generated method stub
+        return null;
+    }
+    
 	public HP3PARIngestHelper getIngestHelper() {
 		return ingestHelper;
 	}
@@ -779,24 +800,21 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 		this.hp3parUtil = hp3parUtil;
 	}
 
-    @Override
-    public DriverTask stopManagement(StorageSystem storageSystem) {
-    	_log.info("3PARDriver: stopManagement Running");
-        // TODO Auto-generated method stub
-        return null;
+    public HP3PARProvisioningHelper getProvHelper() {
+        return provHelper;
     }
 
-    @Override
-    public DriverTask addVolumesToConsistencyGroup(List<StorageVolume> volumes, StorageCapabilities capabilities) {
-    	_log.info("3PARDriver: addVolumesToConsistencyGroup Running");
-        // TODO Auto-generated method stub
-        return null;
+    public void setProvHelper(HP3PARProvisioningHelper provHelper) {
+        this.provHelper = provHelper;
     }
 
-    @Override
-    public DriverTask removeVolumesFromConsistencyGroup(List<StorageVolume> volumes, StorageCapabilities capabilities) {
-    	_log.info("3PARDriver: removeVolumesFromConsistencyGroup Running");
-        // TODO Auto-generated method stub
-        return null;
+    public HP3PARExpUnexpHelper getExpunexpHelper() {
+        return expunexpHelper;
     }
+
+    public void setExpunexpHelper(HP3PARExpUnexpHelper expunexpHelper) {
+        this.expunexpHelper = expunexpHelper;
+    }
+
+
 }

@@ -521,7 +521,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                 // create a job to monitor the progress of the request and update the clone 
                 // volume and call the completer as appropriate based on the result of the request.
                 CreateVolumeCloneExternalDeviceJob job = new CreateVolumeCloneExternalDeviceJob(
-                        storageSystem.getId(), volume, task.getTaskId(), taskCompleter);
+                        storageSystem.getId(), clone, task.getTaskId(), taskCompleter);
                 ControllerServiceImpl.enqueueJob(new QueueJob(job));
             } else if (task.getStatus() == DriverTask.TaskStatus.READY) {
                 // Update clone

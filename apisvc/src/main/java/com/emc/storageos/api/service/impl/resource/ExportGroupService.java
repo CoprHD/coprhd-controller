@@ -81,6 +81,7 @@ import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
+import com.emc.storageos.db.client.model.VirtualMachine;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
@@ -976,7 +977,7 @@ public class ExportGroupService extends TaskResourceService {
      * @param storageSystems the storage systems the export group has block object in
      * @param clusters the list of clusters to validate
      * @param hosts the list of hosts to validate
-     * @param hosts the list of virtual machines to validate
+     * @param virtualMachines the list of virtual machines to validate
      * @param initiators the list of initiators to validate
      * @param volumes The list of volumes being exported (used to calculate numPaths)
      * @param pathParam Optional ExportPathParameters block (ignored if null)
@@ -1013,6 +1014,15 @@ public class ExportGroupService extends TaskResourceService {
                 allHosts.add(host.getId());
             }
         }
+        if (virtualMachines != null && !virtualMachines.isEmpty()) {
+            for (URI vmUri : clusters) {
+                // validate the virtual machine
+                VirtualMachine vm = queryObject(VirtualMachine.class, vmUri, true);
+                validateVMData(vm, exportGroup, storageSystems, project, allInitiators);
+                exportGroup.addVirtualMachine(vm);
+            }
+        }
+
         if (clusters != null && !clusters.isEmpty()) {
             for (URI clusterUri : clusters) {
                 // validate the cluster
@@ -1149,6 +1159,48 @@ public class ExportGroupService extends TaskResourceService {
     }
 
     /**
+     * Validates that the virtual machine belongs to same tenant org and/or project as the export group.
+     * Also validates that the virtual machine has connectivity to all the storage systems that the
+     * export group has block objects in.
+     *
+     * @param vm the virtual machine being validated
+     * @param exportGroup the export group where the host will be added
+     * @param storageSystems the storage systems the export group has block objects in.
+     * @param project the export group project
+     * @param initiators the list of initiators to be updated with the vm initiators.
+     */
+    private void validateVMData(VirtualMachine vm, ExportGroup exportGroup,
+            Collection<URI> storageSystems, Project project,
+            List<URI> initiators) {
+        // if the host is in a project
+        if (!NullColumnValueGetter.isNullURI(vm.getProject())) {
+            // validate it is in the same project as the as the export group,
+            if (!vm.getProject().equals(project.getId())) {
+                throw APIException.badRequests.invalidParameterExportGroupHostAssignedToDifferentProject(vm.getVMName(),
+                        project.getLabel());
+            }
+        } else {
+            // validate the VM is in the same tenant Org as the as the export group,
+            if (!vm.getTenant().equals(project.getTenantOrg().getURI())) {
+                throw APIException.badRequests.invalidParameterExportGroupHostAssignedToDifferentTenant(vm.getVMName(),
+                        project.getLabel());
+            }
+        }
+        // get VM connected initiators
+        List<URI> vmInitiators = getVirtualMachineConnectedInitiators(vm, storageSystems, exportGroup);
+        if (vmInitiators.isEmpty()) {
+            throw APIException.badRequests.noIntiatorsConnectedToVolumes();
+        }
+
+        for (URI uri : vmInitiators) {
+            if (!initiators.contains(uri)) {
+                initiators.add(uri);
+            }
+        }
+        _log.info("VirtualMachine {} was validated successfully.", vm.getId().toString());
+    }
+
+    /**
      * Validates that a cluster is in the same tenant org and/or project as the export group.
      * Also makes sure that all hosts in the cluster have connectivity to all storage systems
      * the export group has block objects in.
@@ -1200,6 +1252,30 @@ public class ExportGroupService extends TaskResourceService {
             Collection<URI> storageSystems, ExportGroup exportGroup) {
         List<URI> initiators = new ArrayList<URI>();
         List<Initiator> hostInitiators = getChildren(host.getId(), Initiator.class, "host");
+        for (Initiator initiator : hostInitiators) {
+            if (initiator.getRegistrationStatus().equals(RegistrationStatus.REGISTERED.toString())
+                    && hasConnectivityToAllSystems(initiator, storageSystems,
+                            exportGroup)) {
+                initiators.add(initiator.getId());
+            }
+        }
+        return initiators;
+    }
+
+    /**
+     * For a given set of storage arrays, find the registered initiators on a virtual machine that
+     * can connect to all the storage arrays given the possible varrays.
+     *
+     * @param vm the virtual machine
+     * @param storageSystems the set of arrays
+     * @exportGroup - ExportGroup used to determine the Varrays
+     * @return the list of initiators that have connectivity to all the storage
+     *         systems via the varray.
+     */
+    private List<URI> getVirtualMachineConnectedInitiators(VirtualMachine vm,
+            Collection<URI> storageSystems, ExportGroup exportGroup) {
+        List<URI> initiators = new ArrayList<URI>();
+        List<Initiator> hostInitiators = getChildren(vm.getId(), Initiator.class, "virtualMachine");
         for (Initiator initiator : hostInitiators) {
             if (initiator.getRegistrationStatus().equals(RegistrationStatus.REGISTERED.toString())
                     && hasConnectivityToAllSystems(initiator, storageSystems,

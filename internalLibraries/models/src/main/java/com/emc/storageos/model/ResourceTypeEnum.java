@@ -45,6 +45,7 @@ public enum ResourceTypeEnum {
     WORKFLOW("workflow", "/vdc/workflows"),
     WORKFLOW_STEP("workflow_step", "/vdc/workflows/steps"),
     HOST("host", "/compute/hosts"),
+    VIRTUALMACHINE("host", "/compute/virtualmachines"),
     VCENTER("vcenter", "/compute/vcenters"),
     CLUSTER("cluster", "/compute/clusters"),
     INITIATOR("initiator", "/compute/initiators"),
@@ -81,7 +82,6 @@ public enum ResourceTypeEnum {
     BLOCK_SNAPSHOT_SESSION("block_snapshot_session", "/block/snapshot-sessions"),
     SCHEDULE_POLICY("schedule_policy", "/schedule-policies"),
     OBJECT_NAMESPACE("object_namespaces", "/vdc/object-namespaces");
-    
 
     private final String type;
     private final String service;

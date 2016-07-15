@@ -97,4 +97,12 @@ public interface ComputeSystemController extends Controller {
     public void synchronizeSharedExports(URI clusterId, String taskId)
             throws ControllerException;
 
+    public void removeVirtualMachinesFromExport(List<URI> asList, URI oldClusterURI, String taskId);
+
+    public void addVirtualMachinesToExport(List<URI> asList, URI cluster, String taskId, URI oldClusterURI);
+
+    public void setVirtualMachineSanBootTargets(URI id, URI bootVolume);
+
+    public void detachVirtualMachineStorage(URI id, boolean b, boolean deactivateBootVolume, String taskId);
+
 }

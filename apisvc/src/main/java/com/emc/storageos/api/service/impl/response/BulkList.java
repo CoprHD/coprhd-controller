@@ -34,6 +34,7 @@ import com.emc.storageos.db.client.model.UserGroup;
 import com.emc.storageos.db.client.model.Vcenter;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
 import com.emc.storageos.db.client.model.VirtualArray;
+import com.emc.storageos.db.client.model.VirtualMachine;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.VirtualPool.Type;
 import com.emc.storageos.db.client.model.Volume;
@@ -482,6 +483,23 @@ public class BulkList<T> implements List<T> {
 
         @Override
         public boolean isAccessible(Host resource) {
+            if (NullColumnValueGetter.isNullURI(resource.getTenant())) {
+                return false;
+            }
+            return isTenantResourceAccessible(resource.getTenant());
+        }
+    }
+
+    public static class VirtualMachineFilter
+            extends TenantResourceFilter<VirtualMachine> {
+
+        public VirtualMachineFilter(StorageOSUser user,
+                PermissionsHelper permissionsHelper) {
+            super(user, permissionsHelper);
+        }
+
+        @Override
+        public boolean isAccessible(VirtualMachine resource) {
             if (NullColumnValueGetter.isNullURI(resource.getTenant())) {
                 return false;
             }

@@ -12,13 +12,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.emc.storageos.db.client.URIUtil;
-import org.apache.commons.lang.ObjectUtils;
-import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
@@ -38,6 +36,7 @@ import com.emc.storageos.db.client.model.IpInterface;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
+import com.emc.storageos.db.client.model.VirtualMachine;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.DataObjectUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -267,6 +266,31 @@ public class ComputeSystemHelper {
     }
 
     /**
+     * Checks if the vm has initiators in use by export groups or ip interfaces in use
+     * by file exports.
+     * 
+     * @param hostId the vm to be checked
+     * @return true if the vm has has initiators in use by export groups or ip interfaces in use
+     *         by file exports.
+     */
+    public static boolean isVirtualMachineInUse(DbClient dbClient, URI hostId) {
+        List<Initiator> initiators =
+                CustomQueryUtility.queryActiveResourcesByConstraint(dbClient, Initiator.class,
+                        ContainmentConstraint.Factory.getContainedObjectsConstraint(hostId, Initiator.class, "host"));
+        for (Initiator initiator : initiators) {
+            if (isInitiatorInUse(dbClient, initiator.getId().toString())) {
+                return true;
+            }
+        }
+        List<String> ipEndpoints = getIpInterfaceEndpoints(dbClient, hostId);
+        if (isHostIpInterfacesInUse(dbClient, ipEndpoints, hostId)) {
+            return true;
+        }
+
+        return !findExportsByHost(dbClient, hostId.toString()).isEmpty();
+    }
+
+    /**
      * Checks if the cluster has any export
      * 
      * @param cluster the cluster to be checked
@@ -378,7 +402,7 @@ public class ComputeSystemHelper {
         if (!NullColumnValueGetter.isNullURI(host.getProject())) {
             fileShares = CustomQueryUtility.queryActiveResourcesByRelation(
                     dbClient, host.getProject(), FileShare.class, "project");
-        } else if (!NullColumnValueGetter.isNullURI(host.getTenant())){
+        } else if (!NullColumnValueGetter.isNullURI(host.getTenant())) {
             fileShares = CustomQueryUtility.queryActiveResourcesByRelation(
                     dbClient, host.getTenant(), FileShare.class, "tenant");
         }
@@ -555,6 +579,19 @@ public class ComputeSystemHelper {
     }
 
     /**
+     * 
+     * @param dbClient
+     * @param vm
+     */
+    public static void updateInitiatorVirtualMachineName(DbClient dbClient, VirtualMachine vm) {
+        List<Initiator> initiators = ComputeSystemHelper.queryInitiators(dbClient, vm.getId());
+        for (Initiator initiator : initiators) {
+            initiator.setHostName(vm.getHostName());
+        }
+        dbClient.persistObject(initiators);
+    }
+
+    /**
      * Updates the vCenterDataCenter and its Clusters and Hosts to the new tenantId.
      *
      * @param dbClient dbClient to make the DB queries.
@@ -566,10 +603,10 @@ public class ComputeSystemHelper {
             return;
         }
 
-        if(!NullColumnValueGetter.isNullURI(dataCenter.getTenant()) &&
+        if (!NullColumnValueGetter.isNullURI(dataCenter.getTenant()) &&
                 isDataCenterInUse(dbClient, dataCenter.getId())) {
-            //Since vCenterDataCenter contains some exports,
-            //dont allow the update.
+            // Since vCenterDataCenter contains some exports,
+            // dont allow the update.
             Set<String> tenants = new HashSet<String>();
             tenants.add(dataCenter.getTenant().toString());
             throw APIException.badRequests.cannotRemoveTenant("vCenterDataCenter", dataCenter.getLabel(), tenants);

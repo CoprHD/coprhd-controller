@@ -292,11 +292,13 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         return waitFor;
     }
 
+    @Override
     public void addInitiatorToExport(URI hostId, URI initId, String taskId) throws ControllerException {
         List<URI> uris = Lists.newArrayList(initId);
         addInitiatorsToExport(hostId, uris, taskId);
     }
 
+    @Override
     public void addInitiatorsToExport(URI hostId, List<URI> initiators, String taskId) throws ControllerException {
         TaskCompleter completer = null;
         try {
@@ -315,11 +317,13 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         }
     }
 
+    @Override
     public void removeInitiatorFromExport(URI hostId, URI initId, String taskId) throws ControllerException {
         List<URI> uris = Lists.newArrayList(initId);
         removeInitiatorsFromExport(hostId, uris, taskId);
     }
 
+    @Override
     public void removeInitiatorsFromExport(URI hostId, List<URI> initiators, String taskId) throws ControllerException {
         TaskCompleter completer = null;
         try {
@@ -376,6 +380,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         }
     }
 
+    @Override
     public void addHostsToExport(List<URI> hostIds, URI clusterId, String taskId, URI oldCluster) throws ControllerException {
         TaskCompleter completer = null;
         try {
@@ -400,6 +405,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         }
     }
 
+    @Override
     public void removeHostsFromExport(List<URI> hostIds, URI clusterId, String taskId) throws ControllerException {
         TaskCompleter completer = null;
         try {
@@ -420,6 +426,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         }
     }
 
+    @Override
     public void removeIpInterfaceFromFileShare(URI hostId, URI ipId, String taskId) throws ControllerException {
         TaskCompleter completer = null;
         try {
@@ -1167,5 +1174,29 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                         .setSanBootTarget(computeElement.getComputeSystem(), computeElement.getId(), hostId, volumeId, false);
             }
         }
+    }
+
+    @Override
+    public void removeVirtualMachinesFromExport(List<URI> asList, URI oldClusterURI, String taskId) {
+        // TODO Auto-generated method stub
+
+    }
+
+    @Override
+    public void addVirtualMachinesToExport(List<URI> asList, URI cluster, String taskId, URI oldClusterURI) {
+        // TODO Auto-generated method stub
+
+    }
+
+    @Override
+    public void setVirtualMachineSanBootTargets(URI id, URI bootVolume) {
+        // TODO Auto-generated method stub
+
+    }
+
+    @Override
+    public void detachVirtualMachineStorage(URI id, boolean b, boolean deactivateBootVolume, String taskId) {
+        // TODO Auto-generated method stub
+
     }
 }

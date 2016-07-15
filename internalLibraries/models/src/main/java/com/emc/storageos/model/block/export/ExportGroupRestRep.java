@@ -4,19 +4,23 @@
  */
 package com.emc.storageos.model.block.export;
 
-import com.emc.storageos.model.DataObjectRestRep;
-import com.emc.storageos.model.RelatedResourceRep;
-import org.codehaus.jackson.annotate.JsonProperty;
-import com.emc.storageos.model.host.HostRestRep;
-import com.emc.storageos.model.host.InitiatorRestRep;
-import com.emc.storageos.model.host.cluster.ClusterRestRep;
+import java.util.ArrayList;
+import java.util.List;
+
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
-import java.util.ArrayList;
-import java.util.List;
+
+import org.codehaus.jackson.annotate.JsonProperty;
+
+import com.emc.storageos.model.DataObjectRestRep;
+import com.emc.storageos.model.RelatedResourceRep;
+import com.emc.storageos.model.host.HostRestRep;
+import com.emc.storageos.model.host.InitiatorRestRep;
+import com.emc.storageos.model.host.VirtualMachineRestRep;
+import com.emc.storageos.model.host.cluster.ClusterRestRep;
 
 @XmlRootElement(name = "block_export")
 @XmlAccessorType(XmlAccessType.PROPERTY)
@@ -24,6 +28,7 @@ public class ExportGroupRestRep extends DataObjectRestRep {
     private List<ExportBlockParam> volumes;
     private List<InitiatorRestRep> initiators;
     private List<HostRestRep> hosts;
+    private List<VirtualMachineRestRep> vms;
     private List<ClusterRestRep> clusters;
     private RelatedResourceRep project;
     private RelatedResourceRep tenant;
@@ -144,6 +149,18 @@ public class ExportGroupRestRep extends DataObjectRestRep {
             hosts = new ArrayList<HostRestRep>();
         }
         return hosts;
+    }
+
+    @XmlElementWrapper
+    /**
+     * List of hosts in the block export.
+     */
+    @XmlElement(name = "virtualmachine")
+    public List<VirtualMachineRestRep> getVMs() {
+        if (vms == null) {
+            vms = new ArrayList<VirtualMachineRestRep>();
+        }
+        return vms;
     }
 
     public void setHosts(List<HostRestRep> hosts) {

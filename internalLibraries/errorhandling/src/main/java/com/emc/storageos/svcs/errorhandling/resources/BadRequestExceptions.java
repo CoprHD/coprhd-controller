@@ -2993,4 +2993,24 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotDeleteSRDFTargetVolume(final String label);
 
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public Exception resourcedoesNotBelongToVirtualMachineTenantOrg(final String label);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public Exception invalidParameterClusterNotInVirtualMachineProject(final String label);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public Exception virtualMachineProjectChangeNotAllowed(final String label);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public Exception invalidVirtualMachineConnection(final String label);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public Exception invalidVirtualMachineConnection();
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public Exception cannotUpdateVirtualMachine(final String label);
+
+    public Exception cannotDetachStorageForVirtualMachine(String string);
+
 }

@@ -94,6 +94,8 @@ public interface SmisConstants {
     static final int MODE_SYNCHRONOUS = 2;
     static final int RELINK_TARGET_VALUE = 0x8001;
     static final int COPY_METHODOLOGY_FULL_COPY = 3;
+    static final long REPLICATION_DATA_SYNC_TYPE = 8;
+    static final long DEVICES_SYNC_TYPE = 3;
 
     static final String SE_REPLICATIONSETTING_DATA = "SE_ReplicationSettingData";
     static final String CP_REPLICATIONSETTING_DATA = "ReplicationSettingData";
@@ -412,6 +414,12 @@ public interface SmisConstants {
     // Host IO Limit for VMAX
     static final String EMC_MAX_BANDWIDTH = "EMCMaximumBandwidth";
     static final String EMC_MAX_IO = "EMCMaximumIO";
+
+    // Initiator Alias
+    static final String CP_EXISTING_STORAGEID = "ExistingStorageID";
+    static final String CP_ALIAS_STORAGEID = "AliasStorageID";
+    static final String INITIATOR_ALIAS_SET = "EMCInitiatorAliasSet";
+    static final String INITIATOR_ALIAS_GET = "EMCInitiatorAliasGet";
 
     // Array of Property String (PS) constants
     static final String[] PS_HOST_IO = new String[] {

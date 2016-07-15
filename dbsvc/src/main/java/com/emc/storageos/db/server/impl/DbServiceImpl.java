@@ -37,6 +37,7 @@ import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.DbOfflineEventInfo;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
+import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
@@ -104,7 +105,11 @@ public class DbServiceImpl implements DbService {
     @Autowired
     private DbManager dbMgr;
 
-    /**
+    public void setDbMgr(DbManager dbMgr) {
+		this.dbMgr = dbMgr;
+	}
+
+	/**
      * Set db client
      */
     public void setDbClient(DbClientImpl dbClient) {
@@ -298,13 +303,39 @@ public class DbServiceImpl implements DbService {
     }
 
     private void removeStaleServiceConfiguration() {
+        boolean isGeoDBSvc = isGeoDbsvc();
+        boolean resetAutoBootFlag = false;
+
         String configKind = _coordinator.getDbConfigPath(_serviceInfo.getName());
         List<Configuration> configs = _coordinator.queryAllConfiguration(_coordinator.getSiteId(), configKind);
+
         for (Configuration config : configs) {
             if (isStaleConfiguration(config)) {
-                _coordinator.removeServiceConfiguration(_coordinator.getSiteId(), config);
-                _log.info("Remove stale config, id: {}", config.getId());
+                boolean autoboot = Boolean.parseBoolean(config.getConfig(DbConfigConstants.AUTOBOOT));
+                String configId = config.getId();
+
+                if (isGeoDBSvc && !autoboot && (configId.equals("geodb-4") || configId.equals("geodb-5"))) {
+                    // for geodbsvc, if restore with the backup of 5 nodes to 3 nodes and the backup is made
+                    // on the cluster that the 'autoboot=false' is set on vipr4 or vipr5
+                    // we should set the autoboot=false on the current node or no node with autoboot=false
+
+                    // TODO:This is a temporary/safest solution in Yoda, we'll provide a better soltuion post Yoda
+                    resetAutoBootFlag = true;
+                }
+
+                if (isStaleConfiguration(config)) {
+                    _coordinator.removeServiceConfiguration(_coordinator.getSiteId(), config);
+                    _log.info("Remove stale db config, id: {}", config.getId());
+                }
+
             }
+        }
+
+        if (resetAutoBootFlag) {
+            _log.info("set autoboot flag to false on {}", _serviceInfo.getId());
+            Configuration config = _coordinator.queryConfiguration(_coordinator.getSiteId(), configKind, _serviceInfo.getId());
+            config.setConfig(DbConfigConstants.AUTOBOOT, Boolean.FALSE.toString());
+            _coordinator.persistServiceConfiguration(_coordinator.getSiteId(), config);
         }
     }
 
@@ -423,7 +454,7 @@ public class DbServiceImpl implements DbService {
         }
 
         Long offlineTime = dbOfflineEventInfo.getOfflineTimeInMS(localNodeId);
-        if (offlineTime != null && offlineTime >= MAX_SERVICE_OUTAGE_TIME) {
+        if (!isDirEmpty && offlineTime != null && offlineTime >= MAX_SERVICE_OUTAGE_TIME) {
             String errMsg = String.format("This node is offline for more than %s days. It may bring stale data into " +
                     "database, so the service cannot continue to boot. Please poweroff this node and follow our " +
                     "node recovery procedure to recover this node", offlineTime/TimeUtils.DAYS);
@@ -568,7 +599,8 @@ public class DbServiceImpl implements DbService {
 
             // Check if service is allowed to get started by querying db offline info to avoid bringing back stale data.
             // Skipping hibernate mode for node recovery procedure to recover the overdue node.
-            if (mode.type != StartupMode.StartupModeType.HIBERNATE_MODE) {
+            int nodeCount = ((CoordinatorClientImpl)_coordinator).getNodeCount();
+            if (nodeCount != 1 && mode.type != StartupMode.StartupModeType.HIBERNATE_MODE) {
                 checkDBOfflineInfo();
             }
 
@@ -634,6 +666,8 @@ public class DbServiceImpl implements DbService {
         if (!isGeoDbsvc()) {
             _schemaUtil.checkAndSetupBootStrapInfo(_dbClient);
         }
+        
+        dbMgr.init();
         
         if (_handler.run()) {
             // Setup the bootstrap info root tenant, if root tenant migrated from local db, then skip it

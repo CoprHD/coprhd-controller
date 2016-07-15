@@ -7,6 +7,7 @@ package com.emc.storageos.management.backup;
 
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.services.util.LoggingUtils;
+import com.emc.storageos.coordinator.client.service.DrUtil;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,5 +69,12 @@ public abstract class BackupTestBase {
         } finally {
             backupManager.setBackupHandler(backupHandler);
         }
+    }
+}
+
+ class FakeDrUtil extends DrUtil {
+    @Override
+    public boolean isStandby() {
+        return false;
     }
 }

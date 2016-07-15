@@ -665,16 +665,22 @@ public class KeystoneUtils {
      * @param projectId CoprHD Project ID.
      * @param osTenantId OpenStack Tenant ID.
      * @param coprhdTenantId CoprHD Tenant ID.
+     * @return Updated project.
      */
-    public void tagProjectWithOpenstackId(URI projectId, String osTenantId, String coprhdTenantId) {
+    public Project tagProjectWithOpenstackId(URI projectId, String osTenantId, String coprhdTenantId) {
 
         // Tag project with OpenStack tenant_id
         Project project = _dbClient.queryObject(Project.class, projectId);
-        ScopedLabelSet tagSet = new ScopedLabelSet();
-        ScopedLabel tagLabel = new ScopedLabel(coprhdTenantId, osTenantId);
-        tagSet.add(tagLabel);
-        project.setTag(tagSet);
-        _dbClient.updateObject(project);
+        if (project != null) {
+            ScopedLabelSet tagSet = new ScopedLabelSet();
+            ScopedLabel tagLabel = new ScopedLabel(coprhdTenantId, osTenantId);
+            tagSet.add(tagLabel);
+            project.setTag(tagSet);
+            _dbClient.updateObject(project);
+            return project;
+        }
+
+        throw APIException.internalServerErrors.targetIsNullOrEmpty("Project with id: " + projectId);
     }
 
     /**
@@ -685,15 +691,19 @@ public class KeystoneUtils {
      */
     public OSTenant mapToOsTenant(TenantV2 tenant) {
 
-        OSTenant osTenant = new OSTenant();
-        osTenant.setOsId(tenant.getId());
-        // Check whether description is null or empty.
-        osTenant.setDescription(getProperTenantDescription(tenant.getDescription()));
-        osTenant.setName(tenant.getName());
-        osTenant.setEnabled(Boolean.parseBoolean(tenant.getEnabled()));
-        osTenant.setExcluded(DEFAULT_EXCLUDED_TENANT_OPTION);
+        if (tenant != null) {
+            OSTenant osTenant = new OSTenant();
+            osTenant.setOsId(tenant.getId());
+            // Check whether description is null or empty.
+            osTenant.setDescription(getProperTenantDescription(tenant.getDescription()));
+            osTenant.setName(tenant.getName());
+            osTenant.setEnabled(Boolean.parseBoolean(tenant.getEnabled()));
+            osTenant.setExcluded(DEFAULT_EXCLUDED_TENANT_OPTION);
 
-        return osTenant;
+            return osTenant;
+        }
+
+        throw APIException.internalServerErrors.targetIsNullOrEmpty("TenantV2");
     }
 
     /**

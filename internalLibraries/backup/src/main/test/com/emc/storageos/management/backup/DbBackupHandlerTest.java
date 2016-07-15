@@ -15,9 +15,6 @@ import java.io.File;
 import java.io.FilenameFilter;
 import java.util.UUID;
 
-// This test fails on public build servers and coverage servers because it is not "self-contained" and relies on external
-// services to be running.  Therefore it is Ignored by default. COP-19800
-@Ignore
 public class DbBackupHandlerTest extends BackupTestBase {
 
     private static DbBackupHandler dbBackupHandler;

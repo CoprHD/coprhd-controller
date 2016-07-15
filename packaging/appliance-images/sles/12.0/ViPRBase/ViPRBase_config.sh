@@ -133,6 +133,9 @@ echo "End: Creating the storageos directory"
 systemctl disable wickedd-dhcp4
 systemctl disable wickedd-dhcp6
 
+#Enable docker service
+systemctl enable docker
+
 # Removed the floppy 
 echo "blacklist floppy" > /etc/modprobe.d/blacklist-floppy.conf
 

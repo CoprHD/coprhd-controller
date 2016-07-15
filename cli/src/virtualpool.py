@@ -32,6 +32,8 @@ class VirtualPool(object):
 
     URI_VPOOL = "/{0}/vpools"
     URI_VPOOL_BY_VDC_ID = "/{0}/vpools?vdc-id={1}"
+    URI_VPOOL_BY_VDC_ID_AND_TENANT_ID = "/{0}/vpools?vdc-id={1}&tenant-id={2}"
+    URI_VPOOL_BY_TENANT_ID = "/{0}/vpools?tenant-id={1}"
     URI_VPOOL_SHOW = URI_VPOOL + "/{1}"
     URI_VPOOL_STORAGEPOOL = URI_VPOOL_SHOW + "/storage-pools"
     URI_VPOOL_ACL = URI_VPOOL_SHOW + "/acl"
@@ -60,17 +62,28 @@ class VirtualPool(object):
         self.__ipAddr = ipAddr
         self.__port = port
 
-    def vpool_list_uris(self, vpooltype, vdcname=None):
+    def vpool_list_uris(self, vpooltype, vdcname=None, tenant=None):
         '''
         This function will give us the list of VPool uris
         separated by comma.
         '''
         vdcuri = None
         vdcrestapi = None
-        if(vdcname != None):
-            vdcrestapi = self.URI_VPOOL_BY_VDC_ID.format(vpooltype, vdcname)
+
+        if(tenant != None):
+            from tenant import Tenant
+            tenant_obj = Tenant(self.__ipAddr, self.__port)
+            tenanturi = tenant_obj.tenant_query(tenant)
+            if(vdcname != None):
+                vdcrestapi = self.URI_VPOOL_BY_VDC_ID_AND_TENANT_ID.format(vpooltype, vdcname, tenanturi)
+            else:
+                vdcrestapi = self.URI_VPOOL_BY_TENANT_ID.format(vpooltype, tenanturi)
         else:
-            vdcrestapi = self.URI_VPOOL.format(vpooltype)
+            if(vdcname != None):
+                vdcrestapi = self.URI_VPOOL_BY_VDC_ID.format(vpooltype, vdcname)
+            else:
+                vdcrestapi = self.URI_VPOOL.format(vpooltype)
+
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port,
             "GET", vdcrestapi, None)
@@ -78,12 +91,12 @@ class VirtualPool(object):
         o = common.json_decode(s)
         return o['virtualpool']
 
-    def vpool_list(self, vpooltype, vdcname=None):
+    def vpool_list(self, vpooltype, vdcname=None, tenant=None):
         '''
         this function is wrapper to the vpool_list_uris
         to give the list of vpool uris.
         '''
-        uris = self.vpool_list_uris(vpooltype, vdcname)
+        uris = self.vpool_list_uris(vpooltype, vdcname, tenant)
         return uris
 
     def vpool_show_uri(self, vpooltype, uri, xml=False):
@@ -1989,6 +2002,11 @@ def list_parser(subcommand_parsers, common_parser):
                             metavar='<vdcname>',
                             dest='vdcname')
 
+    list_parser.add_argument('-tenant', '-tn',
+                            help='name of Tenant',
+                            dest='tenant',
+                            metavar='<tenant>')
+
 
 def vpool_list(args):
     obj = VirtualPool(args.ip, args.port)
@@ -2003,10 +2021,9 @@ def vpool_list(args):
             type = 'file'
 
         output = []
-        uris = obj.vpool_list(type, args.vdcname)
+        uris = obj.vpool_list(type, args.vdcname, args.tenant)
         if(len(uris) > 0):
             for item in obj.vpool_list_by_hrefs(uris):
-
                 if (type is 'block' or type is 'file'):
                     # append quota attributes
                     quota_obj.append_quota_attributes(type + "_vpool",

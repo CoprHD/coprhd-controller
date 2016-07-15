@@ -41,6 +41,7 @@ import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup;
+import com.emc.storageos.db.client.model.RemoteDirectorGroup.SupportedCopyModes;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
@@ -408,8 +409,12 @@ public class SRDFUtils implements SmisConstants {
             for (String nativeGuid : nativeGuids) {
                 group.getVolumes().remove(nativeGuid);
             }
-            dbClient.persistObject(group);
         }
+        if (group.getVolumes() == null || group.getVolumes().isEmpty()) {
+            group.setSupportedCopyMode(SupportedCopyModes.ALL.toString());
+            log.info("RDF Group {} copyMode has been changed to ALL", group.getId());
+        }
+        dbClient.updateObject(group);
     }
 
     private Function<CIMObjectPath, SynchronizedVolumePair> toSynchronizedVolumePairFn() {
@@ -810,5 +815,29 @@ public class SRDFUtils implements SmisConstants {
         log.info("volume list size {}", volumeList.size());
         return volumeList;
     }
+    
+    /**
+     * Given a source consistency group (SRDF), find the corresponding target CG if there is one.
+     * @param dbClient -- Database handle
+     * @param sourceCG -- URI of source CG
+     * @return -- URI of target CG if found, null otherwise
+     */
+    public static URI getTargetVolumeCGFromSourceCG(DbClient dbClient, URI sourceCG) {
+        List<Volume> sourceVolumes = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient, Volume.class,
+                AlternateIdConstraint.Factory.getBlockObjectsByConsistencyGroup(sourceCG.toString()));
 
+        for (Volume sourceVolume : sourceVolumes) {
+            if (sourceVolume.getSrdfTargets() != null) {
+                for (String target : sourceVolume.getSrdfTargets()) {
+                    if (NullColumnValueGetter.isNotNullValue(target)) {
+                        Volume targetVolume = dbClient.queryObject(Volume.class, URI.create(target));
+                        if (!NullColumnValueGetter.isNullURI(targetVolume.getConsistencyGroup())) {
+                            return targetVolume.getConsistencyGroup();
+                        }
+                    }
+                }
+            }
+        }
+        return null;
+    }
 }

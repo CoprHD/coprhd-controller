@@ -98,7 +98,11 @@ public class AuditLogQueryResult implements TimeSeriesQueryResult<AuditLog> {
 
     private boolean filterByUser(AuditLog auditLog) {
         String user = _request.getUser();
-        return (user != null && !user.isEmpty() && !user.equalsIgnoreCase(auditLog.getUserId().toString()));
+        if (user == null || user.isEmpty()) return false; 
+        if (auditLog.getUserId() != null) {
+            return (!user.equalsIgnoreCase(auditLog.getUserId().toString()));
+        }
+        return true;
     }
 
     private boolean filterByResult(AuditLog auditLog) {

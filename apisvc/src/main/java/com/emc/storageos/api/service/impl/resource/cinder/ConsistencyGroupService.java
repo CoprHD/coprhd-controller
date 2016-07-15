@@ -31,7 +31,7 @@ import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.api.service.impl.resource.BlockService;
 import com.emc.storageos.api.service.impl.resource.BlockServiceApi;
 import com.emc.storageos.api.service.impl.resource.utils.CinderApiUtils;
-import com.emc.storageos.cinder.CinderConstants.ComponentStatus;
+import com.emc.storageos.cinder.CinderConstants;
 import com.emc.storageos.cinder.model.ConsistencyGroupCreateRequest;
 import com.emc.storageos.cinder.model.ConsistencyGroupCreateResponse;
 import com.emc.storageos.cinder.model.ConsistencyGroupDeleteRequest;
@@ -107,7 +107,7 @@ public class ConsistencyGroupService extends AbstractConsistencyGroupService {
                     "Bad Request : There is no consistency group exist, please retry with correct consistency group id");
         } else {
             ConsistencyGroupDetail response = getConsistencyGroupDetail(blockConsistencyGroup);
-            return CinderApiUtils.getCinderResponse(response, header, true);
+            return CinderApiUtils.getCinderResponse(response, header, true,CinderConstants.STATUS_OK);
         }
 
     }
@@ -139,7 +139,7 @@ public class ConsistencyGroupService extends AbstractConsistencyGroupService {
                 }
             }
         }
-        return CinderApiUtils.getCinderResponse(cgsResponse, header, false);
+        return CinderApiUtils.getCinderResponse(cgsResponse, header, false,CinderConstants.STATUS_OK);
     }
 
     /**
@@ -204,7 +204,7 @@ public class ConsistencyGroupService extends AbstractConsistencyGroupService {
 
             cgResponse.id = CinderApiUtils.splitString(consistencyGroup.getId().toString(), ":", 3);
             cgResponse.name = consistencyGroup.getLabel();
-            return CinderApiUtils.getCinderResponse(cgResponse, header, true);
+            return CinderApiUtils.getCinderResponse(cgResponse, header, true,CinderConstants.STATUS_OK);
         } else {
             return CinderApiUtils.createErrorResponse(400, "Bad Request : can't create consistency group due to invalid argument");
         }
@@ -266,7 +266,7 @@ public class ConsistencyGroupService extends AbstractConsistencyGroupService {
                     if (volume.getExtensions() == null) {
                         volume.setExtensions(new StringMap());
                     }
-                    volume.getExtensions().put("status", ComponentStatus.DELETING.getStatus().toLowerCase());
+                    volume.getExtensions().put("status", CinderConstants.ComponentStatus.DELETING.getStatus().toLowerCase());
                     volume.setInactive(true);
                     _dbClient.updateObject(volume);
                 }

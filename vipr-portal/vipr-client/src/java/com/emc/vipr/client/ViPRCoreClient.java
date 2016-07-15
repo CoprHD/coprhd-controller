@@ -357,10 +357,13 @@ public class ViPRCoreClient {
 
     public ApplicationSupport application() {
         return new ApplicationSupport(client);
-
     }
     
     public ObjectNamespaces objectNamespace() {
         return new ObjectNamespaces(this, client);
+    }
+    
+    public StorageSystemType storageSystemType() {
+    	return new StorageSystemType(client);
     }
 }

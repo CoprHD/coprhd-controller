@@ -187,7 +187,7 @@ public class KeystoneService extends TaskResourceService {
             if (_openStackSynchronizationTask.getSynchronizationTask() == null) {
                 // Do not create Tenants and Projects once synchronization task is running.
                 _authService.createTenantsAndProjectsForAutomaticKeystoneRegistration();
-                _openStackSynchronizationTask.startSynchronizationTask(_openStackSynchronizationTask.getTaskInterval());
+                _openStackSynchronizationTask.startSynchronizationTask(_openStackSynchronizationTask.getTaskInterval(keystoneProvider));
             }
         }
 

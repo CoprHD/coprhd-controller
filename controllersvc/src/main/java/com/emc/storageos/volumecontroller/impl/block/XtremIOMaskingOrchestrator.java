@@ -307,7 +307,7 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                     previousStep = generateZoningDeleteWorkflow(workflow, previousStep,
                             exportGroup, exportMaskstoDelete);
                     for (ExportMask exportMask : exportMaskstoDelete) {
-                        generateExportMaskDeleteWorkflow(workflow, previousStep, storage,
+                    	previousStep = generateExportMaskDeleteWorkflow(workflow, previousStep, storage,
                                 exportGroup, exportMask, null);
                     }
                 }
@@ -572,8 +572,9 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                     }
                 }
                 if (!exportMaskDelete.isEmpty()) {
+                	String previousStep = zoningStep;
                     for (ExportMask exportMask : exportMaskDelete) {
-                        generateExportMaskDeleteWorkflow(workflow, zoningStep, storage,
+                    	previousStep = generateExportMaskDeleteWorkflow(workflow, previousStep, storage,
                                 exportGroup, exportMask, null);
                     }
                 }

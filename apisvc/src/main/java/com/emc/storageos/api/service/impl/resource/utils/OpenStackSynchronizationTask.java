@@ -96,13 +96,13 @@ public class OpenStackSynchronizationTask extends ResourceService {
     }
 
     /**
-     * Reschedule synchronization task with given interval.
+     * Reschedule synchronization task with given interval. Previous task is canceled and a new one is scheduled.
      *
      * @param newInterval New interval delay between each execution in seconds.
      */
     public void rescheduleTask(int newInterval) {
 
-        if (newInterval >= MIN_INTERVAL_DELAY && synchronizationTask != null) {
+        if (synchronizationTask != null && newInterval >= MIN_INTERVAL_DELAY) {
             synchronizationTask.cancel(false);
             synchronizationTask = _dataCollectionExecutorService
                     .scheduleAtFixedRate(new SynchronizationScheduler(), newInterval, newInterval, TimeUnit.SECONDS);
@@ -113,7 +113,7 @@ public class OpenStackSynchronizationTask extends ResourceService {
     }
 
     /**
-     * Retrieves Keystone Authentication Provider from CoprHD.
+     * Retrieves Keystone Authentication Provider from CoprHD database.
      *
      * @return Keystone Authentication Provider.
      */
@@ -122,33 +122,27 @@ public class OpenStackSynchronizationTask extends ResourceService {
         return _keystoneUtilsService.getKeystoneProvider();
     }
 
-    public int getTaskInterval() {
-
-        AuthnProvider keystoneProvider = getKeystoneProvider();
-        int interval = DEFAULT_INTERVAL_DELAY;
+    /**
+     * Retrieves interval value of Sync Task from Keystone Authentication Provider.
+     *
+     * @param keystoneProvider Keystone Authentication Provider.
+     *
+     * @return OpenStack Synchronization Task interval.
+     */
+    public int getTaskInterval(AuthnProvider keystoneProvider) {
 
         if (keystoneProvider != null && keystoneProvider.getTenantsSynchronizationOptions() != null) {
 
-            String taskInterval = getSynchronizationOptionsInterval(keystoneProvider);
+            String taskInterval = getIntervalFromTenantSyncSet(keystoneProvider.getTenantsSynchronizationOptions());
             if (taskInterval != null) {
-                interval = Integer.parseInt(taskInterval);
+                return Integer.parseInt(taskInterval);
             }
         }
 
-        return interval;
+        throw APIException.internalServerErrors.targetIsNullOrEmpty("keystone provider or tenantsSynchronizationOptions");
     }
 
-    public String getSynchronizationOptionsInterval(AuthnProvider keystoneProvider) {
-
-        if (keystoneProvider != null && keystoneProvider.getTenantsSynchronizationOptions() != null) {
-            return getIntervalFromStringSet(keystoneProvider.getTenantsSynchronizationOptions());
-        }
-
-        // Return default interval when getTenantsSynchronizationOptions() does not contain interval.
-        return null;
-    }
-
-    public String getIntervalFromStringSet(StringSet tenantsSynchronizationOptions) {
+    public String getIntervalFromTenantSyncSet(StringSet tenantsSynchronizationOptions) {
 
         for (String option : tenantsSynchronizationOptions) {
             // There is only ADDITION, DELETION and interval in this StringSet.
@@ -162,7 +156,8 @@ public class OpenStackSynchronizationTask extends ResourceService {
     }
 
     /**
-     * Finds CoprHD Tenants with OpenStack ID that are different from their reflection in OpenStack. Those Tenants needs to be updated.
+     * Finds CoprHD Tenants with OpenStack ID that are different from their reflection in OpenStack.
+     * Those found Tenants need to be updated.
      *
      * @param osTenantList List of OpenStack Tenants.
      * @param coprhdTenantList List of CoprHD Tenants related to OpenStack.
@@ -234,18 +229,17 @@ public class OpenStackSynchronizationTask extends ResourceService {
 
             _dbClient.updateObject(osTenant);
 
-            return osTenant;
+        } else {
+            osTenant = _keystoneUtilsService.mapToOsTenant(tenant);
+            osTenant.setId(URIUtil.createId(OSTenant.class));
+            _dbClient.createObject(osTenant);
         }
-
-        osTenant = _keystoneUtilsService.mapToOsTenant(tenant);
-        osTenant.setId(URIUtil.createId(OSTenant.class));
-        _dbClient.createObject(osTenant);
 
         return osTenant;
     }
 
     /**
-     * Compares OpenStack Tenant with CoprHD Tenant (both needs to have the same OpenStack ID).
+     * Compares OpenStack Tenant with CoprHD Tenant (both need to have same OpenStack ID).
      *
      * @param osTenant OpenStack Tenant.
      * @param coprhdTenant CoprHD Tenant related to OpenStack.
@@ -266,21 +260,12 @@ public class OpenStackSynchronizationTask extends ResourceService {
     }
 
     /**
-     * Checks if Keystone Authentication Provider exists in CoprHD.
-     *
-     * @return True if Keystone Authentication Provider exists, false otherwise.
-     */
-    public boolean doesKeystoneProviderExist() {
-
-        return getKeystoneProvider() != null;
-    }
-
-    /**
      * Creates a CoprHD Tenant for given OpenStack Tenant.
+     * Sends internal POST API call to InternalTenantsService in order to create Tenant.
      *
      * @param tenant OpenStack Tenant.
      *
-     * @return URI ow newly created Tenant.
+     * @return URI of newly created Tenant.
      */
     public URI createTenant(TenantV2 tenant) {
 
@@ -291,11 +276,12 @@ public class OpenStackSynchronizationTask extends ResourceService {
 
     /**
      * Creates a CoprHD Project for given Tenant.
+     * Sends internal POST API call to InternalTenantsService in order to create Project.
      *
      * @param tenantOrgId ID of the Project owner.
      * @param tenant OpenStack Tenant.
      *
-     * @return URI ow newly created Project.
+     * @return URI of newly created Project.
      */
     public URI createProject(URI tenantOrgId, TenantV2 tenant) {
 
@@ -306,7 +292,7 @@ public class OpenStackSynchronizationTask extends ResourceService {
     }
 
     /**
-     * Starts synchronization between CoprHD and OpenStack Tenants.
+     * Starts synchronization between CoprHD and OpenStack Tenants (i.e. starts Synchronization Task).
      *
      * @param interval Task interval.
      */

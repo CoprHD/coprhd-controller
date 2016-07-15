@@ -68,7 +68,7 @@ public class ConsistencyGroupUtils {
         if (snapshotSessionObj != null) {
             URI consistencyGroupId = snapshotSessionObj.getConsistencyGroup();
 
-            if (!isNullURI(consistencyGroupId)) {
+            if (!isNullURI(consistencyGroupId) && NullColumnValueGetter.isNotNullValue(snapshotSessionObj.getReplicationGroupInstance())) {
                 return dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroupId);
             }
         }
@@ -101,7 +101,7 @@ public class ConsistencyGroupUtils {
         BlockConsistencyGroup cgResult = null;
         BlockSnapshot snapshot = snapshots.get(0);
 
-        if (snapshot != null && !isNullURI(snapshot.getConsistencyGroup()) && 
+        if (snapshot != null && !isNullURI(snapshot.getConsistencyGroup()) &&
                 getSourceConsistencyGroupName(snapshot, dbClient) != null) {
             cgResult = dbClient.queryObject(BlockConsistencyGroup.class, snapshot.getConsistencyGroup());
         }
@@ -128,14 +128,14 @@ public class ConsistencyGroupUtils {
                 volume = dbClient.queryObject(Volume.class, volume.getAssociatedSourceVolume());
             }
         }
-        
+
         if (volume == null || NullColumnValueGetter.isNullValue(volume.getReplicationGroupInstance())) {
             return null;
         }
-                
+
         return volume.getReplicationGroupInstance();
     }
-    
+
     /**
      * Returns true, if a snapshot in the given list of snapshots is in a consistency group, false otherwise.
      *

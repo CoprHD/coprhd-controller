@@ -11,6 +11,7 @@ import static com.google.common.collect.Collections2.transform;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -23,6 +24,8 @@ import java.util.UUID;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
+import com.google.common.base.Strings;
+import com.google.common.collect.Sets;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -266,12 +269,10 @@ public class BlockServiceUtils {
                 return true;
             }
 
-            // Application support: Allow volumes to be added/removed to/from CG for VPLEX and RP
-            // when the backend volume is VMAX/VNX/XtremIO
-            if (volume.getApplication(dbClient) != null && storage.deviceIsType(Type.vplex)) {
-                // Adding new VPLEX volume to CG which is part to Application, has to be done in 2 steps.
-                // Step-1: Create volume - backend volume will not be added to RG.
-                // Step-2: Add to Application - backend volume will be added to RG and clone will be created for it.
+            if (storage.deviceIsType(Type.vplex)) {
+                Set<Type> applicationSupported = Sets.newHashSet(Type.vmax, Type.vnxblock, Type.xtremio);
+                Set<Type> backendSystemTypes = new HashSet<>();
+
                 if (volume.getAssociatedVolumes() != null && !volume.getAssociatedVolumes().isEmpty()) {
                     for (String associatedVolumeId : volume.getAssociatedVolumes()) {
                         Volume associatedVolume = dbClient.queryObject(Volume.class,
@@ -279,16 +280,23 @@ public class BlockServiceUtils {
                         if (associatedVolume != null) {
                             StorageSystem backendSystem = dbClient.queryObject(StorageSystem.class,
                                     associatedVolume.getStorageController());
-                            if (backendSystem == null ||
-                                    !(backendSystem.deviceIsType(Type.vmax) || backendSystem.deviceIsType(Type.vnxblock)
-                                    || backendSystem.deviceIsType(Type.xtremio))) {
-                                return false;   // one of the backend volume does not meet the criteria
+                            if (backendSystem != null && !Strings.isNullOrEmpty(backendSystem.getSystemType())) {
+                                backendSystemTypes.add(Type.valueOf(backendSystem.getSystemType()));
                             }
                         }
                     }
-                    // all backend volumes have met the criteria
-                    return true;
                 }
+
+                // Application support: Allow volumes to be added/removed to/from CG for VPLEX and RP
+                // when the backend volume is VMAX/VNX/XtremIO
+                if (volume.getApplication(dbClient) != null) {
+                    // Returns true, if any backendSystemTypes are in the supported set for applications
+                    return !Collections.disjoint(applicationSupported, backendSystemTypes);
+                } else {
+                    // Returns true, for VPLEX&VMAX scenarios
+                    return backendSystemTypes.contains(Type.vmax);
+                }
+
             }
         }
 

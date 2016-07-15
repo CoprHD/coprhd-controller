@@ -117,7 +117,7 @@ public class VNXeSnapshotOperation extends VNXeOperations implements SnapshotOpe
                 // is idempotent.
                 snap.setInactive(true);
                 snap.setIsSyncActive(false);
-                _dbClient.persistObject(snap);
+                _dbClient.updateObject(snap);
                 taskCompleter.ready(_dbClient);
             }
 

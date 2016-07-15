@@ -95,7 +95,7 @@ public class SchemaUtil {
     private static final String DB_BOOTSTRAP_LOCK = "dbbootstrap";
     private static final String VDC_NODE_PREFIX = "node";
     private static final String GEODB_BOOTSTRAP_LOCK = "geodbbootstrap";
-    private static final String SORAGE_SYSTEM_TYPE_INIT_LOCK = "storagesystemtypeinitlock";
+    private static final String STORAGE_SYSTEM_TYPE_INIT_LOCK = "storagesystemtypeinitlock";
 
     private static final int DEFAULT_REPLICATION_FACTOR = 1;
     private static final int MAX_REPLICATION_FACTOR = 5;
@@ -901,7 +901,7 @@ public class SchemaUtil {
         }
         InterProcessLock lock = null;
         try {
-            lock = _coordinator.getLock(SORAGE_SYSTEM_TYPE_INIT_LOCK);
+            lock = _coordinator.getLock(STORAGE_SYSTEM_TYPE_INIT_LOCK);
             _log.info("StorageSystemType check - waiting for StorageSystemType CF init lock");
             lock.acquire();
 

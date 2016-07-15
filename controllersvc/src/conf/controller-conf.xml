@@ -451,7 +451,7 @@
         </bean>
     -->
     <bean id="storageDriverSimulator" class="com.emc.storageos.driver.driversimulator.StorageDriverSimulator">
-            <property name="simulateAsynchronousResponses" value="true"/>
+            <property name="simulateAsynchronousResponses" value="false"/>
             <property name="simulateFailures" value="false"/>
             <property name="maxAsynchronousLookups" value="5"/>
     </bean>

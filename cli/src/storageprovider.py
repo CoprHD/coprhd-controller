@@ -458,7 +458,7 @@ def storageprovider_show(args):
                 TableGenerator(
                         resultfinal, [
                             'provider_id', 'name', 'interface',
-                            'ip_address', 'port_number','hyperscale_host','hyperscale_port']).printTable()
+                            'ip_address', 'port_number', 'hyperscale_host', 'hyperscale_port']).printTable()
             else :
                 TableGenerator(
                         resultfinal, [

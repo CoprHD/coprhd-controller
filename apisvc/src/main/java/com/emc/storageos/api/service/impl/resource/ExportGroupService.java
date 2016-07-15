@@ -1176,13 +1176,13 @@ public class ExportGroupService extends TaskResourceService {
         if (!NullColumnValueGetter.isNullURI(vm.getProject())) {
             // validate it is in the same project as the as the export group,
             if (!vm.getProject().equals(project.getId())) {
-                throw APIException.badRequests.invalidParameterExportGroupHostAssignedToDifferentProject(vm.getVMName(),
+                throw APIException.badRequests.invalidParameterExportGroupHostAssignedToDifferentProject(vm.getHostName(),
                         project.getLabel());
             }
         } else {
             // validate the VM is in the same tenant Org as the as the export group,
             if (!vm.getTenant().equals(project.getTenantOrg().getURI())) {
-                throw APIException.badRequests.invalidParameterExportGroupHostAssignedToDifferentTenant(vm.getVMName(),
+                throw APIException.badRequests.invalidParameterExportGroupHostAssignedToDifferentTenant(vm.getHostName(),
                         project.getLabel());
             }
         }

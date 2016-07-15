@@ -10,71 +10,33 @@ import java.net.URI;
 @Cf("Event")
 public class ActionableEvent extends DataObject implements TenantResource {
 
-    public static class Method implements Serializable {
-
-        private static final long serialVersionUID = 1L;
-        protected String orchestrationMethod;
-        protected Object[] args;
-
-        public Method(String orchestrationMethod, Object[] args) {
-            this.orchestrationMethod = orchestrationMethod;
-            this.args = args;
-        }
-
-        public String getOrchestrationMethod() {
-            return this.orchestrationMethod;
-        }
-
-        public Object[] getArgs() {
-            return this.args;
-        }
-
-        public void setOrchestrationMethod(String name) {
-            this.orchestrationMethod = name;
-        }
-
-        public void setArgs(Object... args) {
-            this.args = args;
-        }
-
-        public byte[] serialize() {
-            return com.emc.storageos.coordinator.client.service.impl.GenericSerializer.serialize(this);
-        }
-
-        public static Method deserialize(byte[] array) {
-            return (Method) com.emc.storageos.coordinator.client.service.impl.GenericSerializer.deserialize(array);
-        }
-
-    }
-
-    private String _message;
-    private String _controllerClass;
+    private String description;
     private NamedURI resource;
     private String eventStatus;
-    private URI _tenant;
-    private byte[] _method;
+    private URI tenant;
+    private byte[] method;
 
     public enum Status {
         pending, approved, declined
     }
 
-    @Name("message")
-    public String getMessage() {
-        return _message;
+    @Name("description")
+    public String getDescription() {
+        return description;
     }
 
-    public void setMessage(String message) {
-        this._message = message;
-        setChanged("message");
+    public void setDescription(String description) {
+        this.description = description;
+        setChanged("description");
     }
 
     @Name("method")
     public byte[] getMethod() {
-        return _method;
+        return method;
     }
 
     public void setMethod(byte[] method) {
-        this._method = method;
+        this.method = method;
         setChanged("method");
     }
 
@@ -87,7 +49,7 @@ public class ActionableEvent extends DataObject implements TenantResource {
     @RelationIndex(cf = "RelationIndex", type = TenantOrg.class)
     @Name("tenant")
     public URI getTenant() {
-        return _tenant;
+        return tenant;
     }
 
     /*
@@ -97,7 +59,7 @@ public class ActionableEvent extends DataObject implements TenantResource {
      */
     @Override
     public void setTenant(URI tenant) {
-        _tenant = tenant;
+        this.tenant = tenant;
         setChanged("tenant");
     }
 
@@ -108,7 +70,7 @@ public class ActionableEvent extends DataObject implements TenantResource {
      */
     @Override
     public Object[] auditParameters() {
-        return new Object[] { getMessage(), getTenant(), getId() };
+        return new Object[] { getDescription(), getTenant(), getId() };
     }
 
     /*
@@ -140,6 +102,42 @@ public class ActionableEvent extends DataObject implements TenantResource {
     public void setEventStatus(String eventStatus) {
         this.eventStatus = eventStatus;
         setChanged("eventStatus");
+    }
+
+    public static class Method implements Serializable {
+
+        protected String method;
+        protected Object[] args;
+
+        public Method(String orchestrationMethod, Object[] args) {
+            this.method = orchestrationMethod;
+            this.args = args;
+        }
+
+        public String getMethod() {
+            return this.method;
+        }
+
+        public Object[] getArgs() {
+            return this.args;
+        }
+
+        public void setMethod(String name) {
+            this.method = name;
+        }
+
+        public void setArgs(Object... args) {
+            this.args = args;
+        }
+
+        public byte[] serialize() {
+            return com.emc.storageos.coordinator.client.service.impl.GenericSerializer.serialize(this);
+        }
+
+        public static Method deserialize(byte[] array) {
+            return (Method) com.emc.storageos.coordinator.client.service.impl.GenericSerializer.deserialize(array);
+        }
+
     }
 
 }

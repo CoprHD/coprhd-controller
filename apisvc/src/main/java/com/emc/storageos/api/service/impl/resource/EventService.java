@@ -34,14 +34,12 @@ import com.emc.storageos.api.mapper.functions.MapEvent;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.computesystemcontroller.ComputeSystemController;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AggregatedConstraint;
 import com.emc.storageos.db.client.constraint.AggregationQueryResultList;
 import com.emc.storageos.db.client.constraint.Constraint;
 import com.emc.storageos.db.client.model.ActionableEvent;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Host;
-import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.exceptions.DatabaseException;
@@ -51,13 +49,11 @@ import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.event.EventBulkRep;
-import com.emc.storageos.model.event.EventCreateParam;
 import com.emc.storageos.model.event.EventList;
 import com.emc.storageos.model.host.EventRestRep;
 import com.emc.storageos.model.tasks.EventStatsRestRep;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.ACL;
-import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 
@@ -108,7 +104,7 @@ public class EventService extends TaggedResource {
 
         try {
             ActionableEvent.Method eventMethod = ActionableEvent.Method.deserialize(event.getMethod());
-            Method m = getMethod(EventService.class, eventMethod.getOrchestrationMethod());
+            Method m = getMethod(EventService.class, eventMethod.getMethod());
             TaskResourceRep result = (TaskResourceRep) m.invoke(this, eventMethod.getArgs());
             event.setEventStatus(ActionableEvent.Status.approved.name());
             _dbClient.updateObject(event);
@@ -159,26 +155,6 @@ public class EventService extends TaggedResource {
         // TODO decline the event
         _dbClient.updateObject(event);
         return Response.ok().build();
-    }
-
-    @POST
-    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = { Role.TENANT_ADMIN })
-    public EventRestRep createEvent(EventCreateParam createParam) {
-        TenantOrg tenant = getTenantById(createParam.getTenant(), true);
-        ActionableEvent event = new ActionableEvent();
-        event.setId(URIUtil.createId(ActionableEvent.class));
-        event.setTenant(tenant.getId());
-        event.setMessage(createParam.getMessage());
-        event.setEventStatus(ActionableEvent.Status.pending.name());
-        event.setResource(new NamedURI(createParam.getResource().getId(), createParam.getResource().getName()));
-        com.emc.storageos.db.client.model.ActionableEvent.Method method = new ActionableEvent.Method(
-                createParam.getOrchestrationMethod(), createParam.getParameters().toArray());
-        event.setMethod(method.serialize());
-        event.setLabel("Label[" + createParam.getMessage() + "]");
-        _dbClient.createObject(event);
-        return map(event);
     }
 
     /**
@@ -286,7 +262,7 @@ public class EventService extends TaggedResource {
         }
         EventRestRep to = new EventRestRep();
         to.setName(from.getLabel());
-        to.setMessage(from.getMessage());
+        to.setMessage(from.getDescription());
         to.setStatus(from.getEventStatus());
         to.setResource(toNamedRelatedResource(from.getResource()));
         to.setTenant(toRelatedResource(ResourceTypeEnum.TENANT, from.getTenant()));
@@ -313,20 +289,4 @@ public class EventService extends TaggedResource {
     protected ResourceTypeEnum getResourceType() {
         return ResourceTypeEnum.EVENT;
     }
-
-    /**
-     * Get tenant object from id
-     * 
-     * @param id the URN of a ViPR tenant
-     * @return
-     */
-    private TenantOrg getTenantById(URI id, boolean checkInactive) {
-        if (id == null) {
-            return null;
-        }
-        TenantOrg org = _permissionsHelper.getObjectById(id, TenantOrg.class);
-        ArgValidator.checkEntity(org, id, isIdEmbeddedInURL(id), checkInactive);
-        return org;
-    }
-
 }

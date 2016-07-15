@@ -16,7 +16,6 @@ import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.event.EventBulkRep;
-import com.emc.storageos.model.event.EventCreateParam;
 import com.emc.storageos.model.event.EventList;
 import com.emc.storageos.model.host.EventRestRep;
 import com.emc.storageos.model.tasks.EventStatsRestRep;
@@ -82,10 +81,6 @@ public class Events extends AbstractCoreBulkResources<EventRestRep>implements Te
         if (tenantId != null) {
             builder.queryParam(TENANT_PARAM, tenantId);
         }
-    }
-
-    public EventRestRep create(EventCreateParam input) {
-        return client.post(EventRestRep.class, input, PathConstants.EVENT_URL);
     }
 
     @Override

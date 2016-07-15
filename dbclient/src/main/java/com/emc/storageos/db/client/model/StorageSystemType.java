@@ -18,7 +18,7 @@ public class StorageSystemType extends DataObject {
     private String storageTypeDispName;
 
     // Storage type like Block, File or Object
-    private String storageTypeType;
+    private String metaType;
 
     // Storage array is directly manage by CoprHD or thru SMI: Providers
     private Boolean isSmiProvider = false;
@@ -65,13 +65,13 @@ public class StorageSystemType extends DataObject {
         setChanged("storageTypeDispName");
     }
 
-    @Name("storageTypeType")
-    public String getStorageTypeType() {
-        return storageTypeType;
+    @Name("metaType")
+    public String getMetaType() {
+        return metaType;
     }
 
     public void setStorageTypeType(String storageTypeType) {
-        this.storageTypeType = storageTypeType;
+        this.metaType = storageTypeType;
         setChanged("storageTypeType");
     }
 
@@ -175,4 +175,28 @@ public class StorageSystemType extends DataObject {
         setChanged("driverClassName");
     }
 
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + ((storageTypeName == null) ? 0 : storageTypeName.hashCode());
+        return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
+        if (getClass() != obj.getClass())
+            return false;
+        StorageSystemType other = (StorageSystemType) obj;
+        if (storageTypeName == null) {
+            if (other.storageTypeName != null)
+                return false;
+        } else if (!storageTypeName.equals(other.storageTypeName))
+            return false;
+        return true;
+    }
 }

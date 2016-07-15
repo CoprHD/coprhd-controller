@@ -42,7 +42,7 @@ public class StorageSystemTypeDataTable extends DataTable {
             this.id = storageSysType.getStorageTypeId();
             this.name = storageSysType.getStorageTypeName();
             this.storageSystemTypeDisplayName = storageSysType.getStorageTypeDispName();
-            this.storageSystemTypeType = storageSysType.getStorageTypeType();
+            this.storageSystemTypeType = storageSysType.getMetaType();
             this.portNumber = storageSysType.getNonSslPort();
             this.sslPortNumber = storageSysType.getSslPort();
             this.useSSL = storageSysType.getIsDefaultSsl();

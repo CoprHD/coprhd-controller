@@ -5,14 +5,13 @@
 
 package com.emc.storageos.db.client.impl;
 
-import com.netflix.astyanax.retry.RetryPolicy;
-import com.netflix.astyanax.retry.SleepingRetryPolicy;
 
 /**
+ * @Deprecated
  * Retry policy that sleeps given amount of ms between query attempts
  */
-public class QueryRetryPolicy extends SleepingRetryPolicy {
-    private final long _sleepMs;
+public class QueryRetryPolicy {
+    /*private final long _sleepMs;
 
     public QueryRetryPolicy(int maxRetry, long sleepMs) {
         super(maxRetry);
@@ -27,5 +26,5 @@ public class QueryRetryPolicy extends SleepingRetryPolicy {
     @Override
     public RetryPolicy duplicate() {
         return new QueryRetryPolicy(getMax(), _sleepMs);
-    }
+    }*/
 }

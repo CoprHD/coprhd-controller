@@ -5,7 +5,6 @@
 
 package com.emc.storageos.db.client.impl;
 
-import com.netflix.astyanax.annotations.Component;
 
 import java.nio.ByteBuffer;
 import java.util.UUID;
@@ -14,16 +13,11 @@ import java.util.UUID;
  * Composite column name for all index entries
  */
 public class IndexColumnName {
-    private @Component(ordinal = 0)
-    String _one;
-    private @Component(ordinal = 1)
-    String _two;
-    private @Component(ordinal = 2)
-    String _three;
-    private @Component(ordinal = 3)
-    String _four;
-    private @Component(ordinal = 4)
-    UUID _timeUUID;
+    private String _one;
+    private String _two;
+    private String _three;
+    private String _four;
+    private UUID _timeUUID;
     
     private ByteBuffer value;
 

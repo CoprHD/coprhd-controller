@@ -34,7 +34,7 @@ public class XIVRestClient extends StandardRestClient {
 
     private static Logger _log = LoggerFactory.getLogger(XIVRestClient.class);
     private static final int RETRY_NUMBER = 5;
-    private static final int DELATY_NUMBER = 1000;
+    private static final int DELAY_NUMBER = 60000;
     private static final String ERROR_CODE = "httpStatusCode";
 
     private static final String SEPARATOR = ":";
@@ -260,7 +260,8 @@ public class XIVRestClient extends StandardRestClient {
         int counter = 1;
         while(!availabe && counter < RETRY_NUMBER) {
             try {
-                Thread.sleep(DELATY_NUMBER);
+            	_log.warn("Resource {} not found on Array. Waiting for a minute to check availability. Count : {}", uri, counter);
+                Thread.sleep(DELAY_NUMBER);
             } catch(InterruptedException ex) {
                 Thread.currentThread().interrupt();
             }

@@ -25,7 +25,7 @@ public class ScheduleInfo implements Serializable {
     public static final String END_DATE = "endDate";
     public static final String DATE_EXCEPTIONS = "dateExceptions";
 
-    public static final String FULL_DAYTIME_FORMAT = "yyyy/MM/dd hh:mm:ss";
+    public static final String FULL_DAYTIME_FORMAT = "yyyy/MM/dd HH:mm:ss";
     public static final String FULL_DAY_FORMAT = "yyyy/MM/dd";
 
     // start hour and minute of the date
@@ -45,7 +45,7 @@ public class ScheduleInfo implements Serializable {
     //               while if the set, e.g, is [10, 59], it means execution 3 times at 10m, 59m in the hour.
     //    For DAILY, normally the set is empty meaning execution time would be hourOfDay:minuteOfHour in the day.
     //               while if the set, e.g, is [0, 5, 23], it means execution 3 times at 00:minuteOfHour, 05:minuteOfHour and 23:minuteOfHour in the day.
-    //    For WEEKLY: e.g set [0,1,2,6] meaning hourOfDay:minuteOfHour at Sun, Mon and Sat of the week
+    //    For WEEKLY: e.g set [1,5,7] meaning hourOfDay:minuteOfHour at Mon, Fri and Sun of the week
     //    For MONTHLY: e.g set [1,12] meaning hourOfDay:minuteOfHour at 1th, 12th of the month
     //    For YEARLY: e.g. set [02/29, 07/31] meanning hourOfDay:minuteOfHour at Feb 29th and Jul 31th of the year
     private List<String> sectionsInCycle;    // singe sub section for now
@@ -58,7 +58,7 @@ public class ScheduleInfo implements Serializable {
     private String endDate;  // the end date; not used for now
 
     // date exceptions for the schedule policy
-    // date format: "yyyy/MM/dd hh:mm:ss"
+    // date format: "yyyy/MM/dd HH:mm:ss"
     private List<String> dateExceptions;
 
     @XmlElement(name = HOUR_OF_DAY)

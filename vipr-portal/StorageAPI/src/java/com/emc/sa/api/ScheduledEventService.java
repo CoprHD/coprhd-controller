@@ -21,6 +21,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import com.emc.sa.model.dao.ModelClient;
+import com.emc.sa.model.util.ExecutionWindowHelper;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
@@ -202,7 +203,62 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
         /* TODO: exceptions for edit  */
     }
 
+    private String match(ScheduleInfo scheduleInfo, ExecutionWindow window) {
+        String msg="";
+
+        if ((scheduleInfo.getHourOfDay() < window.getHourOfDayInUTC() ||
+             scheduleInfo.getHourOfDay() == window.getHourOfDayInUTC() &&
+             scheduleInfo.getMinuteOfHour() < window.getMinuteOfHourInUTC()) ||
+            (scheduleInfo.getHourOfDay() > window.getHourOfDayInUTC() ||
+             scheduleInfo.getHourOfDay() == window.getHourOfDayInUTC() &&
+             scheduleInfo.getMinuteOfHour() > window.getMinuteOfHourInUTC()))   {
+            msg = "Schedule hour/minute info does not match with execution window.";
+            return msg;
+        }
+
+        switch (scheduleInfo.getCycleType()) {
+            case MINUTELY:
+            case HOURLY:
+                log.warn("Not all of the orders would be scheduled due to schedule cycle type {}", scheduleInfo.getCycleType());
+                break;
+            case DAILY:
+                if (!window.getExecutionWindowType().equals(ExecutionWindowType.DAILY)) {
+                    msg = "Schedule cycle type has conflicts with execution window.";
+                }
+                break;
+            case WEEKLY:
+                if (window.getExecutionWindowType().equals(ExecutionWindowType.MONTHLY)) {
+                    msg = "Schedule cycle type has conflicts with execution window.";
+                } else {
+                    if (window.getDayOfWeek() != Integer.valueOf(scheduleInfo.getSectionsInCycle().get(0))) {
+                        msg = "Scheduled date has conflicts with execution window.";
+                    }
+                }
+                break;
+            case MONTHLY:
+                if (window.getExecutionWindowType().equals(ExecutionWindowType.WEEKLY)) {
+                    msg = "Schedule cycle type has conflicts with execution window.";
+                } else if (window.getExecutionWindowType().equals(ExecutionWindowType.MONTHLY)) {
+                    if (window.getDayOfMonth() != Integer.valueOf(scheduleInfo.getSectionsInCycle().get(0))) {
+                        msg = "Scheduled date has conflicts with execution window.";
+                    }
+                }
+                break;
+            default:
+                log.error("not expected schedule cycle.");
+        }
+
+        return msg;
+    }
+
     private ScheduledEvent createScheduledEvent(URI tenantId, ScheduledEventCreateParam param, CatalogService catalogService) throws Exception{
+        if (catalogService.getExecutionWindowRequired()) {
+            ExecutionWindow executionWindow = client.findById(catalogService.getDefaultExecutionWindowId().getURI());
+            if (!match(param.getScheduleInfo(), executionWindow).isEmpty()) {
+                throw APIException.badRequests.schduleInfoNotMatchWithExecutionWindow();
+            }
+        }
+
         URI scheduledEventId = URIUtil.createId(ScheduledEvent.class);
         param.getOrderCreateParam().setScheduledEventId(scheduledEventId);
         param.getOrderCreateParam().setScheduledTime(convertCalendarToStr(getFirstScheduledTime(param.getScheduleInfo())));
@@ -215,7 +271,8 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
         newObject.setCatalogServiceId(param.getOrderCreateParam().getCatalogService());
         newObject.setEventType(param.getScheduleInfo().getReoccurrence() == 1 ? ScheduledEventType.ONCE : ScheduledEventType.REOCCURRENCE);
         if (catalogService.getApprovalRequired()) {
-            newObject.setEventStatus(ScheduledEventStatus.PENDING);
+            newObject.setEventStatus(ScheduledEventStatus.APPROVAL);
+            // TODO: send event for approve requirement
         } else {
             newObject.setEventStatus(ScheduledEventStatus.APPROVED);
         }
@@ -236,7 +293,7 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
     private String convertCalendarToStr(Calendar cal) throws Exception {
         SimpleDateFormat format = new SimpleDateFormat(ScheduleInfo.FULL_DAYTIME_FORMAT);
         String formatted = format.format(cal.getTime());
-        log.info("converted calendar time:%s", formatted);
+        log.info("converted calendar time:{}", formatted);
         return formatted;
     }
 
@@ -266,13 +323,21 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
         int day = initTime.get(Calendar.DAY_OF_MONTH);
         int hour = scheduleInfo.getHourOfDay();
         int min = scheduleInfo.getMinuteOfHour();
+
+        Calendar scheduledTime = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+        startTime.setTimeZone(TimeZone.getTimeZone("UTC"));
+        scheduledTime.set(year, month, day, hour, min, 0);
+
         switch (scheduleInfo.getCycleType()) {
             case MONTHLY:
                 day = Integer.valueOf(scheduleInfo.getSectionsInCycle().get(0));
+                scheduledTime.set(Calendar.DAY_OF_MONTH, day);
                 break;
-/*            case WEEKLY:
+            case WEEKLY:
                 day = Integer.valueOf(scheduleInfo.getSectionsInCycle().get(0));
-                break;                                                          */
+                int daysDiff = (day%7 + 1) - scheduledTime.get(Calendar.DAY_OF_WEEK); // java dayOfWeek starts from Sun.
+                scheduledTime.add(Calendar.DAY_OF_WEEK, daysDiff);
+                break;
             case DAILY:
             case HOURLY:
             case MINUTELY:
@@ -281,14 +346,11 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
                 log.error("not expected schedule cycle.");
         }
 
-        Calendar scheduledTime = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-        startTime.setTimeZone(TimeZone.getTimeZone("UTC"));
-        scheduledTime.set(year, month, day, hour, min);
-        log.info("scheduledTime: %s", scheduledTime.toString());
+        log.info("scheduledTime: {}", scheduledTime.toString());
 
         while (scheduledTime.before(initTime)) {
             scheduledTime = getNextScheduledTime(scheduledTime, scheduleInfo);
-            log.info("scheduledTime in loop: %s", scheduledTime.toString());
+            log.info("scheduledTime in loop: {}", scheduledTime.toString());
         }
 
         return scheduledTime;
@@ -329,8 +391,6 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
 
         return map(scheduledEvent);
     }
-
-
 
     private ScheduledEvent getScheduledEventById(URI id, boolean checkInactive) {
         ScheduledEvent scheduledEvent = client.scheduledEvents().findById(id);

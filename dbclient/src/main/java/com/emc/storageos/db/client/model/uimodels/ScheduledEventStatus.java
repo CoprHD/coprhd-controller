@@ -5,5 +5,5 @@
 package com.emc.storageos.db.client.model.uimodels;
 
 public enum ScheduledEventStatus {
-    PENDING, APPROVED, REJECTED, FINISHED, CANCELLED
+    APPROVAL, APPROVED, REJECTED, FINISHED, CANCELLED
 }

@@ -529,7 +529,7 @@ public class OrderManagerImpl implements OrderManager {
         }
 
         if (order.getScheduledEventId() != null) {
-            // orders always need to be scheduled via scheduledEvent.
+            // scheduledEvent always requires orders to be scheduled.
             scheduleOrder(order, service);
         } else if (Boolean.TRUE.equals(service.getExecutionWindowRequired())) {
             // direct orders would be executed in the next execution window.

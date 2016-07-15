@@ -59,7 +59,7 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
     private static final boolean SNAPS_IN_CG = true;
     private static final boolean CLONES_IN_CG = true;
     private static final boolean GENERATE_EXPORT_DATA = true;
-    private static final String SIMULATOR_CONF_FILE = "simulator-conf";
+    private static final String SIMULATOR_CONF_FILE = "simulator-conf.xml";
     private static final String CONFIG_BEAN_NAME = "simulatorConfig";
     private Map<String, DriverSimulatorOperation> taskOperationMap = new HashMap<String, DriverSimulatorOperation>();
 

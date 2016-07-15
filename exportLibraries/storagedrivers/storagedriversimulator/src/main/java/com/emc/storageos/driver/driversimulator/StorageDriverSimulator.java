@@ -61,8 +61,10 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
     private static final boolean GENERATE_EXPORT_DATA = true;
     private static final String SIMULATOR_CONF_FILE = "simulator-conf.xml";
     private static final String CONFIG_BEAN_NAME = "simulatorConfig";
-    private Map<String, DriverSimulatorOperation> taskOperationMap = new HashMap<String, DriverSimulatorOperation>();
 
+    private ApplicationContext parentApplicationContext;
+    private SimulatorConfiguration simulatorConfig;
+    private Map<String, DriverSimulatorOperation> taskOperationMap = new HashMap<String, DriverSimulatorOperation>();
     private static Integer portIndex = 0;
     private static Map<String, Integer> systemNameToPortIndexName = new HashMap<>();
 
@@ -96,15 +98,7 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
         hostToInitiatorPortIdMap.put(pageToHostMap.get(2).get(0), new ArrayList<>(Arrays.asList("50:06:01:61:36:68:10:81", "50:06:01:61:36:68:10:82")));
     }
     
-    static
-    {
-        ApplicationContext context = new ClassPathXmlApplicationContext(SIMULATOR_CONF_FILE);
-    }
-
     //StorageDriver implementation
-
-    private ApplicationContext parentApplicationContext;
-    private SimulatorConfiguration simulatorConfig;
 
     public StorageDriverSimulator() {
         ApplicationContext context = new ClassPathXmlApplicationContext(new String[] {SIMULATOR_CONF_FILE}, parentApplicationContext);

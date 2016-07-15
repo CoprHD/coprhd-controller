@@ -4,12 +4,12 @@
  */
 package com.emc.storageos.db.server.upgrade.util.callbacks2;
 
+import com.datastax.driver.core.exceptions.DriverException;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.server.upgrade.util.BaseTestCustomMigrationCallback;
 import com.emc.storageos.db.server.upgrade.util.models.updated2.Resource3;
 import com.emc.storageos.db.server.upgrade.util.models.updated2.Resource6;
 import com.emc.storageos.db.exceptions.DatabaseException;
-import com.netflix.astyanax.connectionpool.exceptions.OperationException;
 
 import java.net.URI;
 import java.util.Iterator;
@@ -33,7 +33,7 @@ public class Resource3NewFlagsInitializer extends BaseTestCustomMigrationCallbac
         // check if we need to inject
         if (injectFault) {
             faultInjected = true;
-            throw DatabaseException.retryables.operationFailed(new OperationException("Custom callback execuction error. Injected fault"));
+            throw DatabaseException.retryables.operationFailed(new DriverException("Custom callback execuction error. Injected fault"));
         }
 
         // check if we need to inject

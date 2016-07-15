@@ -5,7 +5,6 @@
 
 package com.emc.storageos.db.client.impl;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -29,6 +28,7 @@ import com.datastax.driver.core.Session;
 import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.TableMetadata;
 import com.datastax.driver.core.WriteType;
+import com.datastax.driver.core.exceptions.ConnectionException;
 import com.datastax.driver.core.exceptions.DriverException;
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteState;
@@ -38,17 +38,9 @@ import com.netflix.astyanax.AstyanaxContext;
 import com.netflix.astyanax.Cluster;
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.connectionpool.Host;
-import com.netflix.astyanax.connectionpool.SSLConnectionContext;
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
-import com.netflix.astyanax.connectionpool.impl.ConnectionPoolConfigurationImpl;
-import com.netflix.astyanax.connectionpool.impl.ConnectionPoolType;
-import com.netflix.astyanax.ddl.KeyspaceDefinition;
 import com.netflix.astyanax.impl.AstyanaxConfigurationImpl;
 import com.netflix.astyanax.model.ConsistencyLevel;
-import com.netflix.astyanax.partitioner.Murmur3Partitioner;
-import com.netflix.astyanax.partitioner.Partitioner;
 import com.netflix.astyanax.retry.RetryPolicy;
-import com.netflix.astyanax.thrift.ThriftFamilyFactory;
 
 public class DbClientContext {
 
@@ -134,20 +126,6 @@ public class DbClientContext {
             throw new IllegalStateException();
         }
         return keyspace;
-    }
-
-    public AstyanaxContext<Cluster> getClusterContext() {
-        if (clusterContext == null) {
-            initClusterContext();
-        }
-        return clusterContext;
-    }
-
-    public Cluster getCluster() {
-        if (clusterContext == null) {
-            initClusterContext();
-        }
-        return cluster;
     }
     
     public com.datastax.driver.core.Cluster getCassandraCluster() {
@@ -245,48 +223,14 @@ public class DbClientContext {
     public void init(final HostSupplierImpl hostSupplier) {
         String svcName = hostSupplier.getDbSvcName();
         log.info("Initializing hosts for {}", svcName);
-        List<Host> hosts = hostSupplier.get();
+        List<CassandraHost> hosts = hostSupplier.get();
         if ((hosts != null) && (hosts.isEmpty())) {
             throw new IllegalStateException(String.format("DbClientContext.init() : host list in hostsupplier for %s is empty", svcName));
         } else {
             int hostCount = hosts == null ? 0 : hosts.size();
             log.info(String.format("number of hosts in the hostsupplier for %s is %d", svcName, hostCount));
         }
-        Partitioner murmur3partitioner = Murmur3Partitioner.get();
-        Map<String, Partitioner> partitioners = new HashMap<>();
-        partitioners.put("org.apache.cassandra.dht.Murmur3Partitioner.class.getCanonicalName()",
-                murmur3partitioner);
-
-        ConsistencyLevel readCL = ConsistencyLevel.CL_LOCAL_QUORUM;
-        ConsistencyLevel writeCL = ConsistencyLevel.CL_EACH_QUORUM;
-
-        ConnectionPoolConfigurationImpl cfg = new ConnectionPoolConfigurationImpl(DEFAULT_CN_POOL_NANE).setMaxConns(maxConnections)
-                .setMaxConnsPerHost(maxConnectionsPerHost).setConnectTimeout(DEFAULT_CONN_TIMEOUT)
-                .setMaxBlockedThreadsPerHost(DEFAULT_MAX_BLOCKED_THREADS).setPartitioner(murmur3partitioner);
-
-        log.info("The client to node is encrypted={}", isClientToNodeEncrypted);
-        if (isClientToNodeEncrypted) {
-            SSLConnectionContext sslContext = getSSLConnectionContext();
-            cfg.setSSLConnectionContext(sslContext);
-        }
-
-        // TODO revisit it to see if we need set different retry policy, timeout, discovery delay etc for geodb
-        keyspaceContext = new AstyanaxContext.Builder().withHostSupplier(hostSupplier)
-                .forCluster(clusterName)
-                .forKeyspace(keyspaceName)
-                .withAstyanaxConfiguration(
-                        new AstyanaxConfigurationImpl().setConnectionPoolType(ConnectionPoolType.ROUND_ROBIN)
-                                .setDiscoveryDelayInSeconds(svcListPoolIntervalSec)
-                                .setDefaultReadConsistencyLevel(readCL)
-                                .setDefaultWriteConsistencyLevel(writeCL)
-                                .setTargetCassandraVersion("2.0").setPartitioners(partitioners)
-                                .setRetryPolicy(retryPolicy))
-                .withConnectionPoolConfiguration(cfg)
-                .withConnectionPoolMonitor(new CustomConnectionPoolMonitor(monitorIntervalSecs))
-                .buildKeyspace(ThriftFamilyFactory.getInstance());
-        keyspaceContext.start();
-        keyspace = keyspaceContext.getClient();
-
+        
         // Check and reset default write consistency level
         final DrUtil drUtil = new DrUtil(hostSupplier.getCoordinatorClient());
         if (drUtil.isMultivdc()) {
@@ -311,11 +255,12 @@ public class DbClientContext {
         // init java driver
         String[] contactPoints = new String[hosts.size()];
         for (int i = 0; i < hosts.size(); i++) {
-            contactPoints[i] = hosts.get(i).getHostName();
+            contactPoints[i] = hosts.get(i).getHost();
         }
         cassandraCluster = com.datastax.driver.core.Cluster
                 .builder()
                 .addContactPoints(contactPoints).withPort(getNativeTransportPort()).build();
+        cassandraCluster.getConfiguration().getQueryOptions().setConsistencyLevel(com.datastax.driver.core.ConsistencyLevel.LOCAL_QUORUM);
         cassandraSession = cassandraCluster.connect("\"" + keyspaceName + "\"");
         
         initDone = true;
@@ -457,27 +402,6 @@ public class DbClientContext {
      * while init() depends on dbclient which in turn depends on dbsvc.
      */
     private void initClusterContext() {
-        int port = getThriftPort();
-
-        ConnectionPoolConfigurationImpl cfg = new ConnectionPoolConfigurationImpl(clusterName)
-                .setMaxConnsPerHost(1)
-                .setSeeds(String.format("%1$s:%2$d", LOCAL_HOST, port));
-
-        if (isClientToNodeEncrypted()) {
-            SSLConnectionContext sslContext = getSSLConnectionContext();
-            cfg.setSSLConnectionContext(sslContext);
-        }
-
-        clusterContext = new AstyanaxContext.Builder()
-                .forCluster(clusterName)
-                .forKeyspace(getKeyspaceName())
-                .withAstyanaxConfiguration(new AstyanaxConfigurationImpl()
-                        .setRetryPolicy(new QueryRetryPolicy(10, 1000)))
-                .withConnectionPoolConfiguration(cfg)
-                .buildCluster(ThriftFamilyFactory.getInstance());
-        clusterContext.start();
-        cluster = clusterContext.getClient();
-
         String[] contactPoints = {LOCAL_HOST};
         cassandraCluster = initConnection(contactPoints);
         String keyspaceString = String.format("\"%s\"", keyspaceName);
@@ -496,18 +420,6 @@ public class DbClientContext {
      */
     public boolean isGeoDbsvc() {
         return getKeyspaceName().equals(GEO_KEYSPACE_NAME);
-    }
-
-    protected int getThriftPort() {
-        int port = isGeoDbsvc() ? GEODB_THRIFT_PORT : DB_THRIFT_PORT;
-        return port;
-    }
-
-    public SSLConnectionContext getSSLConnectionContext() {
-        List<String> cipherSuites = new ArrayList<>(1);
-        cipherSuites.add(cipherSuite);
-
-        return new SSLConnectionContext(trustStoreFile, trustStorePassword, SSLConnectionContext.DEFAULT_SSL_PROTOCOL, cipherSuites);
     }
 
     public synchronized void stop() {
@@ -543,19 +455,13 @@ public class DbClientContext {
      */
     public void setCassandraStrategyOptions(Map<String, String> strategyOptions, boolean wait) {
         try {
-            Cluster cluster = getCluster();
-            KeyspaceDefinition kd = cluster.describeKeyspace(keyspaceName);
-    
-            KeyspaceDefinition update = cluster.makeKeyspaceDefinition();
-            update.setName(getKeyspaceName());
-            update.setStrategyClass(KEYSPACE_NETWORK_TOPOLOGY_STRATEGY);
-            update.setStrategyOptions(strategyOptions);
-
+            KeyspaceMetadata keyspaceMetadata = getKeyspaceMetaData();
+            
             // ensure a schema agreement before updating the strategy options
             // or else it's destined to fail due to SchemaDisagreementException
             boolean hasUnreachableNodes = ensureSchemaAgreement();
 
-            if (kd != null) {
+            if (keyspaceMetadata != null) {
                 updateKeySpace(strategyOptions, "alter");
             } else {
                 updateKeySpace(strategyOptions, "create");

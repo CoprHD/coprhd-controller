@@ -6,8 +6,6 @@
 package com.emc.storageos.db.server;
 
 import static org.junit.Assert.fail;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
 
 import java.beans.Introspector;
 import java.io.File;
@@ -59,8 +57,6 @@ import com.emc.storageos.db.server.impl.SchemaUtil;
 import com.emc.storageos.db.server.upgrade.MockMigrationHandler;
 import com.emc.storageos.db.server.util.StubBeaconImpl;
 import com.emc.storageos.db.server.util.StubCoordinatorClientImpl;
-import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator;
-import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator.SignatureKeyType;
 import com.emc.storageos.security.geo.GeoDependencyChecker;
 import com.emc.storageos.security.password.PasswordUtils;
 import com.emc.storageos.services.util.JmxServerWrapper;
@@ -376,10 +372,7 @@ public class DbsvcTestBase {
     }
     
     static class MockDbClientContext extends DbClientContext {
-        @Override
-        public int getThriftPort() {
-            return 9160;
-        }
+        
     }
     
     static class MockDbManager extends DbManager {

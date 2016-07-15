@@ -11,8 +11,6 @@ import java.beans.PropertyDescriptor;
 import java.net.URI;
 import java.util.*;
 
-import com.netflix.astyanax.util.TimeUUIDUtils;
-
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -20,6 +18,7 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.datastax.driver.core.utils.UUIDs;
 import com.emc.storageos.db.TestDBClientUtils;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
@@ -548,7 +547,7 @@ public class PersistingChangesTest extends DbsvcTestBase {
         Assert.assertTrue(gotUris.contains(tenant.getId()));
         Assert.assertTrue(gotUris.contains(tenant2.getId()));
         // test time slicing - 1
-        long nowTimeUsec = TimeUUIDUtils.getMicrosTimeFromUUID(TimeUUIDUtils.getUniqueTimeUUIDinMicros());
+        long nowTimeUsec = UUIDs.unixTimestamp(UUIDs.timeBased()) * 1000;
         list = new URIQueryResultList();
         this.dbClient.queryByConstraint(
                 DecommissionedConstraint.Factory.getDecommissionedObjectsConstraint(

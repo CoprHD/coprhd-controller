@@ -135,4 +135,12 @@ public class HP3PARCloneHelper {
 		return task;
 	}
 
+	public HP3PARUtil getHp3parUtil() {
+		return hp3parUtil;
+	}
+
+	public void setHp3parUtil(HP3PARUtil hp3parUtil) {
+		this.hp3parUtil = hp3parUtil;
+	}
+
 }

@@ -1477,6 +1477,22 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 		this.snapshotHelper = snapshotHelper;
 	}
 
+	public HP3PARCloneHelper getCloneHelper() {
+		return cloneHelper;
+	}
+
+	public void setCloneHelper(HP3PARCloneHelper cloneHelper) {
+		this.cloneHelper = cloneHelper;
+	}
+
+	public HP3PARCGHelper getCgHelper() {
+		return cgHelper;
+	}
+
+	public void setCgHelper(HP3PARCGHelper cgHelper) {
+		this.cgHelper = cgHelper;
+	}
+
 	public HP3PARUtil getHp3parUtil() {
 		return hp3parUtil;
 	}

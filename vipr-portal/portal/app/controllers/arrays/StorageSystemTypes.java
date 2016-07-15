@@ -211,7 +211,7 @@ public class StorageSystemTypes extends ViprResourceController {
             this.id = storageSysType.getStorageTypeId();
             this.name = storageSysType.getStorageTypeName();
             this.storageSystemTypeDisplayName = storageSysType.getStorageTypeDispName();
-            this.storageSystemTypeType = storageSysType.getStorageTypeType();
+            this.storageSystemTypeType = storageSysType.getMetaType();
             if (null != storageSysType.getNonSslPort()) {
                 this.portNumber = storageSysType.getNonSslPort();
             }

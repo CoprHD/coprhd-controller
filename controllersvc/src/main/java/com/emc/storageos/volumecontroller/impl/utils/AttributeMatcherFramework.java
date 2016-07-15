@@ -61,8 +61,9 @@ public class AttributeMatcherFramework implements ApplicationContextAware {
      * @param cos : vpool
      * @param objValueToCompare : volumeParam container values.
      * @param dbClient
-     * @param matcherGroupName : groupName to execute the matchers.
-     *            matchers are grouped by its relativity
+     * @param matcherGroupName : groupName to execute the matchers.matchers are grouped by its relativity
+     * @param errorMessage : will contain error message
+     * @return Returns list of matched StoragePool instances
      */
     public List<StoragePool> matchAttributes(List<StoragePool> allPools, Map<String, Object> attributeMap,
             DbClient dbClient, CoordinatorClient coordinator, String matcherGroupName, StringBuffer errorMessage) {

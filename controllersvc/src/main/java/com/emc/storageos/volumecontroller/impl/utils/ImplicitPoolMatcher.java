@@ -66,24 +66,27 @@ public class ImplicitPoolMatcher {
     /**
      * Match all the Storage Pools in a StorageSystem to All Virtual Pools.
      * 
-     * @param storageSystem
+     * @param storageSystemURI
+     * @param dbClient
+     * @param coordinator
+     * @param errorMessage
      */
     public static void matchStorageSystemPoolsToVPools(URI storageSystemURI,
-            DbClient _dbClient, CoordinatorClient _coordinator, StringBuffer errorMessage) {
+            DbClient dbClient, CoordinatorClient coordinator, StringBuffer errorMessage) {
         URIQueryResultList storagePoolURIs = new URIQueryResultList();
-        _dbClient.queryByConstraint(ContainmentConstraint.Factory
+        dbClient.queryByConstraint(ContainmentConstraint.Factory
                 .getStorageDeviceStoragePoolConstraint(storageSystemURI),
                 storagePoolURIs);
         List<StoragePool> storagePools = new ArrayList<StoragePool>();
         while (storagePoolURIs.iterator().hasNext()) {
             URI storagePoolURI = storagePoolURIs.iterator().next();
-            StoragePool storagePool = _dbClient.queryObject(StoragePool.class, storagePoolURI);
+            StoragePool storagePool = dbClient.queryObject(StoragePool.class, storagePoolURI);
             if (storagePool != null && !storagePool.getInactive()) {
                 storagePools.add(storagePool);
             }
         }
         ImplicitPoolMatcher.matchModifiedStoragePoolsWithAllVirtualPool(
-                storagePools, _dbClient, _coordinator, errorMessage);
+                storagePools, dbClient, coordinator, errorMessage);
     }
 
     /**
@@ -127,8 +130,10 @@ public class ImplicitPoolMatcher {
      *            : modified pools of the discovered system.
      * @param dbClient
      *            : dbClient instance.
+     * @param coordinator
      * @param systemId
      *            : system id.
+     * @param errorMessage
      * @throws Exception
      */
     public static void matchModifiedStoragePoolsWithAllVpool(List<StoragePool> systemModifiedPools, DbClient dbClient,
@@ -189,6 +194,8 @@ public class ImplicitPoolMatcher {
      *            : List of pools updated.
      * @param dbClient
      *            : dbClient instance.
+     * @param coordinator
+     * @param errorMessage
      */
     public static void matchModifiedStoragePoolsWithAllVirtualPool(List<StoragePool> updatedPoolList,
             DbClient dbClient, CoordinatorClient coordinator, StringBuffer errorMessage) {
@@ -207,11 +214,13 @@ public class ImplicitPoolMatcher {
 
     /**
      * Matches given set of virtual pools with list of storage pools.
+     * 
      * @param updatedPoolList list of storage pools
      * @param vpoolURIs list of virtual pools
      * @param dbClient
      * @param coordinator
      * @param matcherGroupName group name of attribute matchers
+     * @param errorMessage Error Message instance
      */
     public static void matchModifiedStoragePoolsWithVirtualPools(List<StoragePool> updatedPoolList, List<URI> vpoolURIs,
             DbClient dbClient, CoordinatorClient coordinator, String matcherGroupName, StringBuffer errorMessage) {
@@ -237,6 +246,7 @@ public class ImplicitPoolMatcher {
      *            : pools to match.
      * @param dbClient
      * @param matcherGroupName group name of attribute matchers to run
+     * @param errorMessage
      */
     public static void matchvPoolWithStoragePools(VirtualPool vpool, List<StoragePool> pools, DbClient dbClient,
             CoordinatorClient coordinator, String matcherGroupName, StringBuffer errorMessage) {
@@ -374,7 +384,9 @@ public class ImplicitPoolMatcher {
      * @param vpool
      *            : List of VirtualPool
      * @param dbClient
-     * @return
+     * @param coordinator
+     * @param errorMessage
+     * @return {@link Void}
      * @throws IOException
      */
     public static void matchVirtualPoolWithAllStoragePools(VirtualPool vpool, DbClient dbClient, CoordinatorClient coordinator,

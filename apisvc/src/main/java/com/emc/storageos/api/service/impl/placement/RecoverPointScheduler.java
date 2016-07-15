@@ -687,6 +687,7 @@ public class RecoverPointScheduler implements Scheduler {
      * @param haVpool - HA Virtual Pool, in case of VPLEX HA
      * @param project - Project
      * @param capabilities - Virtual Pool capabilities
+     * @param attributeMap - Contains attribute map instances
      * @return List of storage pools matching the above criteria and has visibility to a VPLEX storage system
      */
     private List<StoragePool> getMatchingPools(VirtualArray varray, VirtualPool vpool, VirtualArray haVarray, VirtualPool haVpool,
@@ -712,14 +713,15 @@ public class RecoverPointScheduler implements Scheduler {
         return candidateStoragePools;
     }
        
-    /** 
-     * Determines the available VPLEX visible storage pools. 
+    /**
+     * Determines the available VPLEX visible storage pools.
      * 
      * @param srcVarray - Source Virtual Array
      * @param srcVpool - Source Virtual Pool
      * @param haVarray - HA Virtual Array, in case of VPLEX HA
      * @param haVpool - HA Virtual Pool, in case of VPLEX HA
      * @param capabilities - Virtual Pool capabilities
+     * @param attributeMap - Contains attribute map instances
      * @return List of storage pools matching the above criteria and has visibility to a VPLEX storage system
      */
     private Map<String, List<StoragePool>> getVplexMatchingPools(VirtualArray srcVarray, VirtualPool srcVpool,

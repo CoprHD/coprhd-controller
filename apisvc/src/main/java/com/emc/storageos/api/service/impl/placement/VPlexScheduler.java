@@ -874,7 +874,7 @@ public class VPlexScheduler implements Scheduler {
      * @param virtualArray The desired varray.
      * @param storageSystemURI The desired storage system, or null.
      * @param virtualPool The required CoS.
-     * 
+     * @param attributeMap
      * @return A list of storage pools.
      */
     protected List<StoragePool> getMatchingPools(VirtualArray virtualArray,
@@ -895,7 +895,7 @@ public class VPlexScheduler implements Scheduler {
      * @param excludeStorageSystemURI The storage system that should be excluded or null.
      * @param vpool The required virtual pool.
      * @param capabilities The virtual pool capabilities.
-     * 
+     * @param attributeMap
      * @return A list of storage pools.
      */
     protected List<StoragePool> getMatchingPools(VirtualArray varray,

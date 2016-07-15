@@ -1227,6 +1227,7 @@ public class SRDFScheduler implements Scheduler {
      * @param capabilities
      *            capabilities
      * @param attributeMap
+     *            attributeMap
      * @return A list of matching storage pools and varray mapping
      */
     private Map<VirtualArray, List<StoragePool>> getMatchingPools(final List<VirtualArray> varrays,

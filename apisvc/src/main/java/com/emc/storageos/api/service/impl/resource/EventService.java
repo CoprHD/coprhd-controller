@@ -56,6 +56,7 @@ import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 @DefaultPermissions(readRoles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN }, writeRoles = {
         Role.TENANT_ADMIN }, readAcls = { ACL.ANY })
@@ -100,6 +101,11 @@ public class EventService extends TaggedResource {
         ActionableEvent event = queryObject(ActionableEvent.class, id, false);
         // check the user permissions
         verifyAuthorizedInTenantOrg(event.getTenant(), getUserFromContext());
+
+        if (!StringUtils.equalsIgnoreCase(event.getEventStatus(), ActionableEvent.Status.pending.name())) {
+            throw APIException.badRequests.eventCannotBeApproved(event.getEventStatus());
+        }
+
         TaskList taskList = new TaskList();
 
         try {
@@ -110,6 +116,7 @@ public class EventService extends TaggedResource {
             _dbClient.updateObject(event);
             taskList.addTask(result);
             return taskList;
+            // TODO add and throw api exceptions for following exceptions
         } catch (SecurityException e) {
             _log.error(e.getMessage(), e.getStackTrace());
         } catch (IllegalAccessException e) {
@@ -150,6 +157,10 @@ public class EventService extends TaggedResource {
         // check the user permissions
         verifyAuthorizedInTenantOrg(event.getTenant(), getUserFromContext());
         // this.getController(clazz, hw);
+
+        if (!StringUtils.equalsIgnoreCase(event.getEventStatus(), ActionableEvent.Status.pending.name())) {
+            throw APIException.badRequests.eventCannotBeDeclined(event.getEventStatus());
+        }
 
         event.setEventStatus(ActionableEvent.Status.declined.name());
         // TODO decline the event

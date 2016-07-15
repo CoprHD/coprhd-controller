@@ -85,4 +85,11 @@ public class VirtualLun {
 	public void setActive(boolean active) {
 		this.active = active;
 	}		
+	
+	@Override
+	public String toString() {
+	    return String.format("Hostname:" + getHostname() +"  PortPos:"+ getPortPos()
+	    					+" RemoteName:"+ getRemoteName() + " VolumeWWN"+ getVolumeWWN()
+	    					+" VolumeName:"+ getVolumeName() + " Type:"+getType());
+	}
 }

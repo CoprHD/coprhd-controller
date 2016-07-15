@@ -13,7 +13,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class StorageSystemTypeAddParam {
 
     private String storageTypeName;
-    private String storageTypeType;
+    private String metaType;
     private String storageTypeId;
     private boolean isSmiProvider = false;
     private boolean isDefaultSsl = false;
@@ -55,12 +55,12 @@ public class StorageSystemTypeAddParam {
     /**
      * Storage System Type type, example file, block and object
      */
-    public String getStorageTypeType() {
-        return storageTypeType;
+    public String getMetaType() {
+        return metaType;
     }
 
-    public void setStorageTypeType(String storageType) {
-        this.storageTypeType = storageType;
+    public void setMetaType(String metaType) {
+        this.metaType = metaType;
     }
 
     /**
@@ -180,8 +180,8 @@ public class StorageSystemTypeAddParam {
         builder.append(storageTypeId);
         builder.append(", storageTypeName=");
         builder.append(storageTypeName);
-        builder.append(", storageTypeType=");
-        builder.append(storageTypeType);
+        builder.append(", metaType=");
+        builder.append(metaType);
         builder.append(", isSmiProvider=");
         builder.append(isSmiProvider);
         builder.append(", isDefaultSsl=");

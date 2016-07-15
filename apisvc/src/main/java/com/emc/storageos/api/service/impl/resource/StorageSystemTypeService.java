@@ -140,7 +140,7 @@ public class StorageSystemTypeService extends TaskResourceService {
         ArgValidator.checkFieldNotEmpty(addparam.getStorageTypeName(), "storageTypeName");
         checkDuplicateLabel(StorageSystemType.class, addparam.getStorageTypeName());
 
-        ArgValidator.checkFieldNotEmpty(addparam.getStorageTypeType(), "storageTypeType");
+        ArgValidator.checkFieldNotEmpty(addparam.getMetaType(), "storageTypeType");
 
         ArgValidator.checkFieldNotEmpty(addparam.getDriverClassName(), "driverClassName");
 
@@ -156,7 +156,7 @@ public class StorageSystemTypeService extends TaskResourceService {
         ssType.setStorageTypeId(ssTyeUri.toString());
 
         ssType.setStorageTypeName(addparam.getStorageTypeName());
-        ssType.setMetaType(addparam.getStorageTypeType());
+        ssType.setMetaType(addparam.getMetaType());
         ssType.setDriverClassName(addparam.getDriverClassName());
 
         if (addparam.getStorageTypeDispName() != null) {

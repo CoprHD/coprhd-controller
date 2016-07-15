@@ -245,7 +245,7 @@ public class StorageSystemTypes extends ViprResourceController {
             StorageSystemTypeAddParam addParams = new StorageSystemTypeAddParam();
             addParams.setStorageTypeName(name);
             addParams.setStorageTypeDispName(storageSystemTypeDisplayName);
-            addParams.setStorageTypeType(storageSystemTypeType);
+            addParams.setMetaType(storageSystemTypeType);
             addParams.setDriverClassName(driverClassName);
 
             if (isProvider != null) {

@@ -129,7 +129,8 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
             taskOperationMap.remove(taskId);
             if (simulateFailures) {
                 _log.info("Simulating asynchronous failure for task {} of type {}", taskId, taskOperation.getType());
-                taskOperation.doFailure(null);
+                String errorMsg = taskOperation.getFailureMessage();
+                taskOperation.doFailure(errorMsg);
             } else {
                 _log.info("Simulating asynchronous success for task {} of type {}", taskId, taskOperation.getType());
                 taskOperation.updateOnAsynchronousSuccess();

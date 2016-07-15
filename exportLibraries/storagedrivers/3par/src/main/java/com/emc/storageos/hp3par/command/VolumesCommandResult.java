@@ -8,7 +8,7 @@ import java.util.ArrayList;
 
 public class VolumesCommandResult {
     private Integer total;
-    private ArrayList<VolumeMember> members;
+    private ArrayList<VolumeDetailsCommandResult> members;
     private ArrayList<Links> links;
     
     public ArrayList<Links> getLinks() {
@@ -23,10 +23,10 @@ public class VolumesCommandResult {
     public void setTotal(Integer total) {
         this.total = total;
     }
-    public ArrayList<VolumeMember> getMembers() {
+    public ArrayList<VolumeDetailsCommandResult> getMembers() {
         return members;
     }
-    public void setMembers(ArrayList<VolumeMember> members) {
+    public void setMembers(ArrayList<VolumeDetailsCommandResult> members) {
         this.members = members;
     }
 }

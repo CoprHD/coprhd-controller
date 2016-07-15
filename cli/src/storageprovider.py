@@ -36,7 +36,7 @@ class StorageProvider(object):
 
     def create(
             self, name, ip_address, port, user_name, passwd,
-            use_ssl, interface, sio_cli, element_manager_url, secondary_username, secondary_password):
+            use_ssl, interface, sio_cli, element_manager_url, secondary_username, secondary_password, secondary_url):
 
         body = json.dumps(
             {
@@ -50,7 +50,8 @@ class StorageProvider(object):
                 'sio_cli': sio_cli,
                 'element_manager_url': element_manager_url,
                 'secondary_username': secondary_username,
-                'secondary_password': secondary_password
+                'secondary_password': secondary_password,
+                'secondary_url': secondary_url
             }
         )
 
@@ -85,6 +86,14 @@ class StorageProvider(object):
         device_uri = self.query_by_name(name)
         return self.show_by_uri(device_uri, xml)
 
+    def portremoval(self, url):
+        from urlparse import urlparse
+        parsed  = urlparse(url)
+        result = []
+        result.append(parsed.hostname)
+        result.append(parsed.port)
+        return result
+
     def scan(self):
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port,
@@ -94,7 +103,7 @@ class StorageProvider(object):
         return o
 
     def update(self, name, new_name, ip_address, port, user_name, passwd,
-            use_ssl, interface, element_manager_url, secondary_username, secondary_password):
+            use_ssl, interface, element_manager_url, secondary_username, secondary_password, secondary_url):
         storageprovider_uri = self.query_by_name(name)
 
         body = json.dumps(
@@ -108,7 +117,8 @@ class StorageProvider(object):
                 'interface_type': interface,
                 'element_manager_url': element_manager_url,
                 'secondary_username': secondary_username,
-                'secondary_password': secondary_password
+                'secondary_password': secondary_password,
+                'secondary_url': secondary_url
             }
         )
 
@@ -188,6 +198,7 @@ def create_parser(subcommand_parsers, common_parser):
         conflict_handler='resolve',
         help='Creates a storage provider')
     mandatory_args = create_parser.add_argument_group('mandatory arguments')
+    mandatory_args_xiv = create_parser.add_argument_group("Additional mandatory argument for xiv")
     mandatory_args.add_argument('-n', '-name',
                                 help='Name of storage provider',
                                 metavar='<name>',
@@ -231,6 +242,18 @@ def create_parser(subcommand_parsers, common_parser):
                                dest='secondary_username',
                                metavar='<Secondary Username>',
                                help='Specify a secondary username to be used')
+    mandatory_args_xiv.add_argument('-secondary_username',
+                               dest='secondary_username',
+                               metavar='<Secondary Username>',
+                               help='Specify a secondary username to be used')
+    mandatory_args_xiv.add_argument('-hyperScaleHost',
+                               dest='hyperScaleHost',
+                               metavar = '<Hyper Scale Manager Host>',
+                               help='Hyper Scale Manager IP')
+    mandatory_args_xiv.add_argument('-hyperScalePort',
+                               dest='hyperScalePort',
+                               metavar='<Hyper Scale Manager Port>',
+                               help='Hyper Scale Manager Port')
     create_parser.set_defaults(func=storageprovider_create)
 
 
@@ -254,10 +277,10 @@ def storageprovider_create(args):
     try:
         if (not args.usessl):
             args.usessl = False
-
+        secondary_url = "https://"+args.hyperScaleHost+":"+args.hyperScalePort;
         res = obj.create(args.name, args.providerip, args.providerport,
                          args.user, passwd, args.usessl, args.interface, args.sio_cli, args.element_manager_url,
-                         args.secondary_username, secondary_password)
+                         args.secondary_username, secondary_password, secondary_url)
     except SOSError as e:
         common.format_err_msg_and_raise(
             "create",
@@ -319,6 +342,14 @@ def update_parser(subcommand_parsers, common_parser):
                                dest='secondary_username',
                                metavar='<Secondary Username>',
                                help='Specify a secondary username to be used')
+    update_parser.add_argument('-hyperScaleHost',
+                               dest='hyperScaleHost',
+                               metavar = '<secondary_url>',
+                               help='Hyper Scale Manager IP')
+    update_parser.add_argument('-hyperScalePort',
+                               dest='hyperScalePort',
+                               metavar='<secondary_url>',
+                               help='Hyper Scale Manager Port')
     update_parser.set_defaults(func=storageprovider_update)
 
 
@@ -341,13 +372,14 @@ def storageprovider_update(args):
             args.usessl = False
             
         secondary_password = None
+        secondary_url = "https://"+args.hyperScaleHost+":"+args.hyperScalePort;
         if (args.secondary_username and len(args.secondary_username) > 0):
             secondary_password = common.get_password("secondary password")
 
         res = obj.update(args.name, args.newname, args.providerip,
                          args.providerport, args.user, passwd,
                          args.usessl, args.interface, args.element_manager_url,
-                         args.secondary_username, secondary_password)
+                         args.secondary_username, secondary_password, secondary_url)
     except SOSError as e:
         common.format_err_msg_and_raise(
             "update",
@@ -406,12 +438,32 @@ def show_parser(subcommand_parsers, common_parser):
 
 def storageprovider_show(args):
     obj = StorageProvider(args.ip, args.port)
+    from common import TableGenerator
     try:
+        resultfinal = []
+        hyperScale = []
         output = obj.show(args.name, args.xml)
         if(args.xml):
             return common.format_xml(output)
+        if("secondary_url" in output):
+            hyperScale = obj.portremoval(output["secondary_url"])
+            output["hyperscale_host"] = hyperScale[0]
+            output["hyperscale_port"] = hyperScale[1]
+        if ("provider_id" not in output):
+            print "Provider ID not there"
+            return []
         else:
-            return common.format_json_object(output)
+            resultfinal.append(output)
+            if("secondary_url" in output):
+                TableGenerator(
+                        resultfinal, [
+                            'provider_id', 'name', 'interface',
+                            'ip_address', 'port_number','hyperscale_host','hyperscale_port']).printTable()
+            else :
+                TableGenerator(
+                        resultfinal, [
+                            'provider_id', 'name', 'interface',
+                            'ip_address', 'port_number']).printTable()
     except SOSError as e:
         common.format_err_msg_and_raise(
             "show",

@@ -1,11 +1,4 @@
 
-  - name: include vipr specific settings
-    include: playbook-vipr-creds.yml
-
-  - name: setting host address to inventory hostname if not set already
-    set_fact: host_address="{{ inventory_hostname }}"
-    when: host_address is undefined
-
     # for convenience, default to POST if body defined
   - name: defaulting REST method to POST
     set_fact: method="POST"

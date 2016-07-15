@@ -1,6 +1,3 @@
     # user defined facts
-  - name: Setting ViPR login credentials
-    set_fact: login_user="xxxx"
-  - set_fact: login_password="xxxx"
-  - set_fact: host_address="10.0.0.0"
-  - set_fact: api_port="4443" 
+  - name: Setting ViPR constants
+    set_fact: api_port="4443"

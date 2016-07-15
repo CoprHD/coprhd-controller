@@ -20,7 +20,7 @@ import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
 
 public class VerifyVolumeDependencies extends ViPRExecutionTask<Void> {
 
-    public List<URI> volumeIds;
+    private List<URI> volumeIds;
     
     public VerifyVolumeDependencies(List<URI> ids) {
         this.volumeIds = ids;
@@ -73,8 +73,8 @@ public class VerifyVolumeDependencies extends ViPRExecutionTask<Void> {
         public static final String FULL_COPY = "VerifyVolumeDependencies.FullCopy";
         public static final String CONTINUOUS_COPY = "VerifyVolumeDependencies.ContinuousCopy";
 
-        public String type;
-        public String volumeName;
+        private String type;
+        private String volumeName;
 
         public DependencyType(String type, String name) {
             this.type = type;

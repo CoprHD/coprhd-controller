@@ -92,14 +92,12 @@ ETCFILES_COMMON = \
     ${ETCDIR}/nginx/orchestration-southbound-server-dual-template.conf \
     ${ETCDIR}/nginx/orchestration-southbound-server-IPv4-template.conf \
     ${ETCDIR}/nginx/orchestration-southbound-server-IPv6-template.conf \
-    ${ETCDIR}/nginx/rabbitmq-server-common.conf \
-    ${ETCDIR}/nginx/rabbitmq-server-dual-template.conf \
-    ${ETCDIR}/nginx/rabbitmq-server-IPv4-template.conf \
-    ${ETCDIR}/nginx/rabbitmq-server-IPv6-template.conf \
     $(ETCDIR)/nginx/nginx.wrapper \
     $(ETCDIR)/nginx/locations.conf \
     $(ETCDIR)/nginx/upstream-template.conf \
     $(ETCDIR)/nginx/upstream.conf \
+    ${ETCDIR}/nginx/tcp-upstream-template.conf \
+    ${ETCDIR}/nginx/tcp-upstream.conf \
     $(ETCDIR)/nginx/portal-error.conf \
     $(ETCDIR)/nginx/api-error.conf \
     $(ETCDIR)/nginx/error/html/400.html \

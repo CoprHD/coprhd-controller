@@ -182,13 +182,11 @@ fi
 %config /etc/nginx/orchestration-southbound-server-dual-template.conf
 %config /etc/nginx/orchestration-southbound-server-IPv4-template.conf
 %config /etc/nginx/orchestration-southbound-server-IPv6-template.conf
-%config /etc/nginx/rabbitmq-server-common.conf
-%config /etc/nginx/rabbitmq-server-dual-template.conf
-%config /etc/nginx/rabbitmq-server-IPv4-template.conf
-%config /etc/nginx/rabbitmq-server-IPv6-template.conf
 %config /etc/nginx/locations.conf
 %config /etc/nginx/upstream.conf
 %config /etc/nginx/upstream-template.conf
+%config /etc/nginx/tcp-upstream.conf
+%config /etc/nginx/tcp-upstream-template.conf
 /etc/nginx/api-error.conf
 /etc/nginx/portal-error.conf
 %attr(100,root,root) /etc/nginx/nginx.wrapper

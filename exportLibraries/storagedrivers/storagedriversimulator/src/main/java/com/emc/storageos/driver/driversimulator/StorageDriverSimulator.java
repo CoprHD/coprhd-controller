@@ -19,6 +19,8 @@ import org.apache.commons.lang.mutable.MutableBoolean;
 import org.apache.commons.lang.mutable.MutableInt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 import com.emc.storageos.driver.driversimulator.operations.CreateVolumeCloneSimulatorOperation;
 import com.emc.storageos.driver.driversimulator.operations.DriverSimulatorOperation;
@@ -56,9 +58,8 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
     private static final boolean SNAPS_IN_CG = true;
     private static final boolean CLONES_IN_CG = true;
     private static final boolean GENERATE_EXPORT_DATA = true;
-    private Boolean simulateAsynchronousResponses = false;
-    private Boolean simulateFailures = false;
-    private Integer maxAsynchronousLookups = 5;
+    private static final String SIMULATOR_CONF_FILE = "simulator-conf";
+    private static final String CONFIG_BEAN_NAME = "simulatorConfig";
     private Map<String, DriverSimulatorOperation> taskOperationMap = new HashMap<String, DriverSimulatorOperation>();
 
     private static Integer portIndex = 0;
@@ -93,20 +94,15 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
         hostToInitiatorPortIdMap.put(pageToHostMap.get(1).get(0), new ArrayList<>(Arrays.asList("50:06:01:61:36:68:09:81", "50:06:01:61:36:68:09:82")));
         hostToInitiatorPortIdMap.put(pageToHostMap.get(2).get(0), new ArrayList<>(Arrays.asList("50:06:01:61:36:68:10:81", "50:06:01:61:36:68:10:82")));
     }
+    
+    private static SimulatorConfiguration simulatorConfig;
+    static
+    {
+        ApplicationContext context = new ClassPathXmlApplicationContext(new String[] { SIMULATOR_CONF_FILE });
+        simulatorConfig = (SimulatorConfiguration) context.getBean(CONFIG_BEAN_NAME);       
+    }
 
     //StorageDriver implementation
-    
-    public void setSimulateAsynchronousResponses(Boolean simAsynchronous) {
-        simulateAsynchronousResponses = simAsynchronous;
-    }
-
-    public void setSimulateFailures(Boolean simFailures) {
-        simulateFailures = simFailures;
-    }
-
-    public void setMaxAsynchronousLookups(Integer maxAsyncLookups) {
-        maxAsynchronousLookups = maxAsyncLookups;
-    }
 
     @Override
     public RegistrationData getRegistrationData() {
@@ -122,12 +118,12 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
         }
         
         DriverSimulatorOperation taskOperation = taskOperationMap.get(taskId);
-        if (taskOperation.getLookupCount() < maxAsynchronousLookups) {            
+        if (taskOperation.getLookupCount() < simulatorConfig.getMaxAsynchronousLookups()) {            
             taskOperation.incrementLookupCount();
             _log.info("This is lookup {} for task {}", taskOperation.getLookupCount(), taskId);
         } else {
             taskOperationMap.remove(taskId);
-            if (simulateFailures) {
+            if (simulatorConfig.getSimulateFailures()) {
                 _log.info("Simulating asynchronous failure for task {} of type {}", taskId, taskOperation.getType());
                 String errorMsg = taskOperation.getFailureMessage();
                 taskOperation.doFailure(errorMsg);
@@ -507,11 +503,11 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
     @Override
     public DriverTask createVolumeClone(List<VolumeClone> clones, StorageCapabilities capabilities) {
         CreateVolumeCloneSimulatorOperation createCloneSimulatorOperation = new CreateVolumeCloneSimulatorOperation(clones);
-        if (simulateAsynchronousResponses) {
+        if (simulatorConfig.getSimulateAsynchronousResponses()) {
             DriverTask driverTask = createCloneSimulatorOperation.getDriverTask();
             taskOperationMap.put(driverTask.getTaskId(), createCloneSimulatorOperation);
             return driverTask;
-        } else if (simulateFailures) {
+        } else if (simulatorConfig.getSimulateFailures()) {
             String failMsg = createCloneSimulatorOperation.getFailureMessage();
             return createCloneSimulatorOperation.doFailure(failMsg);
         } else {

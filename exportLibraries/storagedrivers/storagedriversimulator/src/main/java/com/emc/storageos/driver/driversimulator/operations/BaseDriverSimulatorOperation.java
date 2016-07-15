@@ -3,6 +3,10 @@ package com.emc.storageos.driver.driversimulator.operations;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/*
+ * Copyright (c) 2016 EMC Corporation
+ * All Rights Reserved
+ */
 import com.emc.storageos.storagedriver.DriverTask;
 
 abstract public class BaseDriverSimulatorOperation implements DriverSimulatorOperation {

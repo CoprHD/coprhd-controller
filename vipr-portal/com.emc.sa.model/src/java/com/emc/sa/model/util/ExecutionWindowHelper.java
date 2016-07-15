@@ -144,13 +144,14 @@ public class ExecutionWindowHelper {
     }
 
      private int getWindowStartHourMin() {
-         // TODO: current execution window does not set minute.
-         return getHourMin(window.getHourOfDayInUTC(), 0);
+         int hour = window.getHourOfDayInUTC() != null ? window.getHourOfDayInUTC() : 0;
+         int minute = window.getMinuteOfHourInUTC() != null ? window.getMinuteOfHourInUTC() : 0;
+         return getHourMin(hour, minute);
      }
 
     private int getWindowEndHourMin() {
-        int hour = window.getHourOfDayInUTC();
-        int min = window.getMinuteOfHourInUTC();
+        int hour = window.getHourOfDayInUTC() != null ? window.getHourOfDayInUTC() : 0;
+        int minute = window.getMinuteOfHourInUTC() != null ? window.getMinuteOfHourInUTC() : 0;
 
         switch (ExecutionWindowLengthType.valueOf(window.getExecutionWindowLengthType())) {
             case DAYS:

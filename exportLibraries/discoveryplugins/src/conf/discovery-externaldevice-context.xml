@@ -17,6 +17,8 @@
     	<property name="snapshotHelper" ref="3parSnapshotHelper"></property>
     	<property name="cloneHelper" ref="3parCloneHelper"></property>
     	<property name="cgHelper" ref="3parCGHelper"></property>
+    	<property name="provHelper" ref="3parProvHelper"/>
+    	<property name="expunexpHelper" ref="3parExpUnexpHelper"/>
     </bean>
     
     <bean id="3parIngestionHelper" class="com.emc.storageos.hp3par.impl.HP3PARIngestHelper">
@@ -45,6 +47,13 @@
 		<property name="hp3parApiFactory" ref="hp3parApiFactory"/>
 	</bean>
 
+	<bean id="3parProvHelper" class="com.emc.storageos.hp3par.impl.HP3PARProvisioningHelper">
+    	<property name="hp3parUtil" ref="hp3parUtil"></property>
+    </bean>
+    
+    <bean id="3parExpUnexpHelper" class="com.emc.storageos.hp3par.impl.HP3PARExpUnexpHelper">
+    	<property name="hp3parUtil" ref="hp3parUtil"></property>
+    </bean>
 
     <bean id="unManagedVolumeDiscoverer" class="com.emc.storageos.volumecontroller.impl.externaldevice.ExternalDeviceUnManagedVolumeDiscoverer">
         <property name="networkDeviceController" ref="networkDeviceController"/>

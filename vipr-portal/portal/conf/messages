@@ -1597,15 +1597,17 @@ approvalConfig.approvalUrl=Approval Service URL
 approvalConfig.approvalUrl.help=URL to an external service to receive approval notifications
 
 keystoneProvider.title=OpenStack Synchronization Options
-keystoneProvider.addTenants=Synchronize Tenants
-keystoneProvider.addTenants.description=Select Tenants to synchronize with OpenStack
+keystoneProvider.addRemoveTenants=Add/Remove OpenStack Tenants from CoprHD
+keystoneProvider.addTenants=Add OpenStack Tenants to CoprHD
+keystoneProvider.removeTenants=Remove OpenStack Tenants from CoprHD
 keystoneProvider.synchronizationInterval=Synchronization interval
 keystoneProvider.synchronizationInterval.description=Synchronization interval provided in seconds. The value should be greater than 10 seconds. Default value is 900 s
 keystoneProvider.tenantsSynchronizationOptions =Tenants synchronization options
 keystoneProvider.updated=Tenants successfully updated
-osTenants.name=Name
-osTenants.description=Description
-osTenants.includedStatus=Included
+osTenantsToAdd.name=Name
+osTenantsToAdd.description=Description
+osTenantsToRemove.name=Name
+osTenantsToRemove.description=Description
 
 Introspection.Started=%s assets added to the discovery queue.
 

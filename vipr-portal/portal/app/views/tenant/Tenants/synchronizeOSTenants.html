@@ -1,18 +1,36 @@
-#{DataTable.formAction @synchronizeOSTenants(), id:'synchronizeForm', table:'osTenants'/}
-#{Modal.dialog id:'synchronizeOSTenants'}
+#{DataTable.formActionForTwoTables @synchronizeOSTenants(), id:'synchronizeForm',
+  tableWithTenantsToAdd:'osTenantsToAdd', tableWithTenantsToRemove:'osTenantsToRemove'/}
+#{Modal.dialog id:'synchronizeOSTenants', cssClass:'widest'}
+  #{Modal.header}
+    <h4 class="modal-title">&{'keystoneProvider.addRemoveTenants'}</h4>
+  #{/Modal.header}
   #{form @synchronizeOSTenants(), id:'synchronizeForm', class:'form form-horizontal'}
     #{Modal.body}
-      #{DataTable.header titleKey:'keystoneProvider.addTenants', descriptionKey:'keystoneProvider.addTenants.description', hideAlerts:true/}
-      #{DataTable.table id: 'osTenants',
-                        dataTable: osTenants,
-                        source: @tenantsListJson(),
-                        selectable: true,
-                        options:['iDisplayLength': '5']/}
+    <div class="row">
+        <div class="col-sm-6">
+          <h5 class="">&{'keystoneProvider.addTenants'}</h5>
+          #{DataTable.table id: 'osTenantsToAdd',
+                            dataTable: osTenantsToAdd,
+                            source: @tenantsListToAddJson(),
+                            selectable: true,
+                            options:['iDisplayLength': '5']/}
+        </div>
+
+        <div class="col-sm-6">
+          <h5 class="">&{'keystoneProvider.removeTenants'}</h5>
+          #{DataTable.table id: 'osTenantsToRemove',
+                            dataTable: osTenantsToRemove,
+                            source: @tenantsListToRemoveJson(),
+                            selectable: true,
+                            options:['iDisplayLength': '5']/}
+        </div>
+    </div>
     #{/Modal.body}
-      #{Modal.buttonBar}
-        #{Form.button name:'button.synchronize', class:'info', dropdown:false, submit:'synchronizeForm',
-                      data:['enabled':'selected', 'table':'osTenants']/}
-      #{/Modal.buttonBar}
+      #{Modal.footer}
+        #{Modal.buttonBar}
+          #{Form.button name:'button.save', class:'primary', dropdown:false, submit:'synchronizeForm'/}
+        #{/Modal.buttonBar}
+      #{/Modal.footer}
   #{/form}
 #{/Modal.dialog}
 

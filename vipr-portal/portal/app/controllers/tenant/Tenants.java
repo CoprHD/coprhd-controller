@@ -75,7 +75,8 @@ public class Tenants extends ViprResourceController {
             renderArgs.put("tenantsOptions",
                     TenantsSynchronizationOptions.options(TenantsSynchronizationOptions.ADDITION, TenantsSynchronizationOptions.DELETION));
             renderArgs.put("interval", getInterval(authnProvider));
-            renderArgs.put("osTenants", new KeystoneSynchronizationTenantsDataTable());
+            renderArgs.put("osTenantsToAdd", new KeystoneSynchronizationTenantsDataTable());
+            renderArgs.put("osTenantsToRemove", new KeystoneSynchronizationTenantsDataTable());
             render(dataTable, keystoneProvider);
         }
         render(dataTable);
@@ -135,15 +136,27 @@ public class Tenants extends ViprResourceController {
     /**
      * Gets the list of OpenStack tenants.
      */
-    public static void tenantsListJson() {
+    public static void tenantsListToAddJson() {
         OpenStackTenantsUtils.synchronizeOpenStackTenants();
         List<OpenStackTenantsDataTable.OpenStackTenant> tenants = Lists.newArrayList();
         for (CoprhdOsTenant tenant : OpenStackTenantsUtils.getOpenStackTenantsFromDataBase()) {
-            tenants.add(new OpenStackTenantsDataTable.OpenStackTenant(tenant));
+            if(tenant.getExcluded()) {
+                tenants.add(new OpenStackTenantsDataTable.OpenStackTenant(tenant));
+            }
         }
         renderJSON(DataTablesSupport.createJSON(tenants, params));
     }
 
+    public static void tenantsListToRemoveJson() {
+        OpenStackTenantsUtils.synchronizeOpenStackTenants();
+        List<OpenStackTenantsDataTable.OpenStackTenant> tenants = Lists.newArrayList();
+        for (CoprhdOsTenant tenant : OpenStackTenantsUtils.getOpenStackTenantsFromDataBase()) {
+            if(!tenant.getExcluded()) {
+                tenants.add(new OpenStackTenantsDataTable.OpenStackTenant(tenant));
+            }
+        }
+        renderJSON(DataTablesSupport.createJSON(tenants, params));
+    }
     public static boolean isKeystoneAuthnProviderCreated() {
         AuthnProviderRestRep authnProvider = AuthnProviderUtils.getKeystoneAuthProvider();
         if (authnProvider != null && authnProvider.getAutoRegCoprHDNImportOSProjects() == true) {

@@ -599,7 +599,6 @@ public class LDAPsources extends ViprResourceController {
 
     public static class LDAPSourcesTenantsDataTable extends OpenStackTenantsDataTable {
         public LDAPSourcesTenantsDataTable() {
-            alterColumn("includedStatus").hidden();
             alterColumn("name").setRenderFunction(null);
         }
     }

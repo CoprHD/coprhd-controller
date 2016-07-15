@@ -24,7 +24,6 @@ public class OpenStackTenantsDataTable extends DataTable {
 
     public OpenStackTenantsDataTable() {
         addColumn("name");
-        addColumn("includedStatus").setRenderFunction("render.includeStatus");
         addColumn("description");
         sortAll();
         setDefaultSortField("name");
@@ -37,7 +36,6 @@ public class OpenStackTenantsDataTable extends DataTable {
         public String description;
         public boolean enabled;
         public boolean exclude;
-        public boolean includedStatus;
 
         public OpenStackTenant(OpenStackTenantParam tenant) {
             this.id = tenant.getOsId();
@@ -46,7 +44,6 @@ public class OpenStackTenantsDataTable extends DataTable {
             this.description = tenant.getDescription();
             this.enabled = tenant.getEnabled();
             this.exclude = tenant.getExcluded();
-            this.includedStatus = !tenant.getExcluded();
         }
 
         public OpenStackTenant(CoprhdOsTenant tenant) {
@@ -56,7 +53,6 @@ public class OpenStackTenantsDataTable extends DataTable {
             this.description = tenant.getDescription();
             this.enabled = tenant.getEnabled();
             this.exclude = tenant.getExcluded();
-            this.includedStatus = !tenant.getExcluded();
         }
     }
 }

@@ -111,7 +111,7 @@ public class StorageSystemTypeService extends TaskResourceService {
             if (ssType.getStorageTypeId() == null) {
                 ssType.setStorageTypeId(ssType.getId().toString());
             }
-            if (StringUtils.equals(ALL_TYPE, type) || StringUtils.equals(type, ssType.getStorageTypeType())) {
+            if (StringUtils.equals(ALL_TYPE, type) || StringUtils.equals(type, ssType.getMetaType())) {
                 list.getStorageSystemTypes().add(map(ssType));
             }
         }
@@ -181,7 +181,7 @@ public class StorageSystemTypeService extends TaskResourceService {
         _dbClient.createObject(ssType);
 
         auditOp(OperationTypeEnum.ADD_STORAGE_SYSTEM_TYPE, true, AuditLogManager.AUDITOP_BEGIN,
-                ssType.getId().toString(), ssType.getStorageTypeName(), ssType.getStorageTypeType());
+                ssType.getId().toString(), ssType.getStorageTypeName(), ssType.getMetaType());
         return map(ssType);
     }
 
@@ -213,7 +213,7 @@ public class StorageSystemTypeService extends TaskResourceService {
             _dbClient.markForDeletion(sstype);
 
             auditOp(OperationTypeEnum.REMOVE_STORAGE_SYSTEM_TYPE, true, AuditLogManager.AUDITOP_BEGIN,
-                    sstype.getId().toString(), sstype.getStorageTypeName(), sstype.getStorageTypeType());
+                    sstype.getId().toString(), sstype.getStorageTypeName(), sstype.getMetaType());
             return Response.ok().build();
         } else {
             return Response.status(403).build();

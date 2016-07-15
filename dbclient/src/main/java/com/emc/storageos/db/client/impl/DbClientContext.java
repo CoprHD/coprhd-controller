@@ -16,6 +16,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.policies.RetryPolicy;
 import org.apache.cassandra.service.StorageProxy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -231,7 +233,7 @@ public class DbClientContext {
         initDone = true;
     }
 
-    public class ViPRRetryPolicy implements com.datastax.driver.core.policies.RetryPolicy {
+    public class ViPRRetryPolicy implements RetryPolicy {
         private int maxRetry;
         private int sleepInMS;
 
@@ -298,8 +300,8 @@ public class DbClientContext {
         }
     }
 
-    private com.datastax.driver.core.Cluster initConnection(String[] contactPoints) {
-        return com.datastax.driver.core.Cluster
+    private Cluster initConnection(String[] contactPoints) {
+        return Cluster
                 .builder()
                 .addContactPoints(contactPoints).withPort(getNativeTransportPort())
                 .withClusterName(clusterName)

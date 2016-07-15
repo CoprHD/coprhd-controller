@@ -12,6 +12,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import com.datastax.driver.core.utils.UUIDs;
 import org.apache.cassandra.serializers.LongSerializer;
 
 import com.datastax.driver.core.BoundStatement;
@@ -24,9 +25,6 @@ import com.emc.storageos.db.client.impl.RowMutator;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import com.netflix.astyanax.retry.RetryPolicy;
-import com.netflix.astyanax.retry.RunOnce;
-import com.netflix.astyanax.util.TimeUUIDUtils;
 
 /**
  * Internal DistributedRowLock to acquiring and release a row lock
@@ -62,7 +60,7 @@ public class CustomizedDistributedRowLock<K> {
     private Map<String, ByteBuffer> columns = null;
     private Integer ttl = null;                           // Units in seconds
     private boolean readDataColumns = false;
-    private RetryPolicy backoffPolicy = RunOnce.get();
+    private SleepingRetryPolicy backoffPolicy = SleepingRetryPolicy.RunOnce.get();
     private long acquireTime = 0;
     private int retryCount = 0;
 
@@ -70,7 +68,7 @@ public class CustomizedDistributedRowLock<K> {
         this.context = context;
         this.columnFamily = columnFamily;
         this.key = key;
-        this.lockId = TimeUUIDUtils.getUniqueTimeUUIDinMicros().toString();
+        this.lockId = UUIDs.timeBased().toString();
     }
 
     /**
@@ -161,7 +159,7 @@ public class CustomizedDistributedRowLock<K> {
         return this;
     }
 
-    public CustomizedDistributedRowLock<K> withBackoff(RetryPolicy policy) {
+    public CustomizedDistributedRowLock<K> withBackoff(SleepingRetryPolicy policy) {
         this.backoffPolicy = policy;
         return this;
     }
@@ -177,7 +175,7 @@ public class CustomizedDistributedRowLock<K> {
         Preconditions.checkArgument(ttl == null || TimeUnit.SECONDS.convert(timeout, timeoutUnits) < ttl, "Timeout " + timeout
                 + " must be less than TTL " + ttl);
 
-        RetryPolicy retry = backoffPolicy.duplicate();
+        SleepingRetryPolicy retry = backoffPolicy.duplicate();
         retryCount = 0;
         while (true) {
             try {
@@ -473,7 +471,7 @@ public class CustomizedDistributedRowLock<K> {
         return retryCount;
     }
     
-    public class BusyLockException extends Exception {
+    public static class BusyLockException extends Exception {
         public BusyLockException(Exception e) {
             super(e);
         }
@@ -487,7 +485,7 @@ public class CustomizedDistributedRowLock<K> {
         }
     }
 
-    public class StaleLockException extends Exception {
+    public static class StaleLockException extends Exception {
         public StaleLockException(Exception e) {
             super(e);
         }

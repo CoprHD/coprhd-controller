@@ -12,6 +12,7 @@ import java.util.concurrent.TimeUnit;
 
 import com.datastax.driver.core.ConsistencyLevel;
 
+import com.emc.storageos.db.client.recipe.SleepingRetryPolicy;
 import org.apache.cassandra.serializers.UTF8Serializer;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.utils.EnsurePath;
@@ -28,7 +29,6 @@ import com.emc.storageos.db.client.model.GlobalLock;
 import com.emc.storageos.db.client.recipe.CustomizedDistributedRowLock;
 import com.emc.storageos.db.client.recipe.CustomizedDistributedRowLock.BusyLockException;
 import com.emc.storageos.db.client.recipe.CustomizedDistributedRowLock.StaleLockException;
-import com.netflix.astyanax.retry.BoundedExponentialBackoff;
 
 /**
  * Cassandra and ZK backed distributed global lock implementation.
@@ -99,7 +99,7 @@ public class GlobalLockImpl implements GlobalLockItf {
         _context = _dbClient.getGeoContext();
         _cf = TypeMap.getGlobalLockType().getCf();
         _cpDistRowlock = new CustomizedDistributedRowLock<String>(_context, _cf, _name)
-                .withBackoff(new BoundedExponentialBackoff(250, 10000, 10))
+                .withBackoff(new SleepingRetryPolicy.BoundedExponentialBackoff(250, 10000, 10))
                 .withConsistencyLevel(ConsistencyLevel.EACH_QUORUM)
                 .expireLockAfter(CustomizedDistributedRowLock_Timeout, TimeUnit.SECONDS);
 

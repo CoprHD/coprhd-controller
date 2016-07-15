@@ -35,6 +35,7 @@ public class ExportGroup extends DataObject implements ProjectResource {
     // BlockSnapshots can belong to ExportGroups
     private StringSet _initiators;
     private StringSet _hosts;
+    private StringSet _virtualMachines;
     private StringSet _clusters;
     private NamedURI _tenant;
     private StringSet _exportMasks;         // export-mask uris for all exports that
@@ -289,6 +290,30 @@ public class ExportGroup extends DataObject implements ProjectResource {
         StringSet clusters = getClusters();
         if (clusters != null) {
             clusters.remove(cluster.getId().toString());
+        }
+    }
+
+    @Name("virtualMachines")
+    @AlternateId("ExportGroupVirtualMachines")
+    public StringSet getVirtualMachines() {
+        return _virtualMachines;
+    }
+
+    public void setVirtualMachines(StringSet virtualMachines) {
+        this._virtualMachines = virtualMachines;
+    }
+
+    public void addVirtualMachine(VirtualMachine vm) {
+        if (getVirtualMachines() == null) {
+            setVirtualMachines(new StringSet());
+        }
+        getVirtualMachines().add(vm.getId().toString());
+    }
+
+    public void removeVirtualMachine(VirtualMachine vm) {
+        StringSet vms = getVirtualMachines();
+        if (vms != null) {
+            vms.remove(vm.getId().toString());
         }
     }
 

@@ -23,6 +23,7 @@ import javax.ws.rs.core.Response;
 import com.emc.sa.model.dao.ModelClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
 import org.apache.commons.codec.binary.*;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -120,17 +121,20 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
 
         ArgValidator.checkFieldNotNull(createParam.getOrderCreateParam().getCatalogService(), "catalogService");
         CatalogService catalogService = catalogServiceManager.getCatalogServiceById(createParam.getOrderCreateParam().getCatalogService());
-        /* TODO: uncomment it back
+        /* TODO: uncomment it back */
         if (catalogService == null) {
             throw APIException.badRequests.orderServiceNotFound(
                     asString(createParam.getOrderCreateParam().getCatalogService()));
-        }                                  */
+        }
 
         validateParam(createParam);
 
         ScheduledEvent newObject = null;
         try {
             newObject = createScheduledEvent(tenantId, createParam, catalogService);
+        } catch (APIException ex){
+            log.error(ex.getMessage(), ex);
+            throw ex;
         } catch (Exception e) {
             log.error(e.getMessage(), e);
         }
@@ -210,16 +214,18 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
         newObject.setTenant(tenantId.toString());
         newObject.setCatalogServiceId(param.getOrderCreateParam().getCatalogService());
         newObject.setEventType(param.getScheduleInfo().getReoccurrence() == 1 ? ScheduledEventType.ONCE : ScheduledEventType.REOCCURRENCE);
-        newObject.setEventStatus(ScheduledEventStatus.PENDING);
-        newObject.setLatestOrderId(restRep.getId());
-
+        if (catalogService.getApprovalRequired()) {
+            newObject.setEventStatus(ScheduledEventStatus.PENDING);
+        } else {
+            newObject.setEventStatus(ScheduledEventStatus.APPROVED);
+        }
         newObject.setScheduleInfo(new String(org.apache.commons.codec.binary.Base64.encodeBase64(param.getScheduleInfo().serialize()), UTF_8));
-
         if (catalogService.getExecutionWindowRequired()) {
             newObject.setExecutionWindowId(catalogService.getDefaultExecutionWindowId());
         } else {
             newObject.setExecutionWindowId(new NamedURI(ExecutionWindow.INFINITE, "INFINITE"));
         }
+        newObject.setLatestOrderId(restRep.getId());
 
         client.save(newObject);
 
@@ -240,19 +246,20 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
         Date date = formatter.parse(scheduleInfo.getStartDate());
 
         Calendar startTime = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+        startTime.setTimeZone(TimeZone.getTimeZone("UTC"));
         startTime.setTime(date);
         startTime.set(Calendar.HOUR_OF_DAY, scheduleInfo.getHourOfDay());
         startTime.set(Calendar.MINUTE, scheduleInfo.getMinuteOfHour());
         startTime.set(Calendar.SECOND, 0);
-        log.info("startTime: %s", startTime.toString());
+        log.info("startTime: {}", startTime.toString());
 
         Calendar currTZTime = Calendar.getInstance();
         Calendar currTime = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
         currTime.setTimeInMillis(currTZTime.getTimeInMillis());
-        log.info("currTime: %s", currTime.toString());
+        log.info("currTime: {}", currTime.toString());
 
         Calendar initTime = startTime.before(currTime)? currTime:startTime;
-        log.info("initTime: %s", initTime.toString());
+        log.info("initTime: {}", initTime.toString());
 
         int year = initTime.get(Calendar.YEAR);
         int month = initTime.get(Calendar.MONTH);
@@ -275,6 +282,7 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
         }
 
         Calendar scheduledTime = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+        startTime.setTimeZone(TimeZone.getTimeZone("UTC"));
         scheduledTime.set(year, month, day, hour, min);
         log.info("scheduledTime: %s", scheduledTime.toString());
 

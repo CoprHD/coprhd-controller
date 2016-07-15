@@ -15,7 +15,7 @@ import java.util.List;
  */
 public class ScheduleInfo implements Serializable {
     public static final String HOUR_OF_DAY = "hourOfDay";
-    public static final String MINUTE_OF_HOUR = "mintueOfHour";
+    public static final String MINUTE_OF_HOUR = "minuteOfHour";
     public static final String DURATION_LENGTH = "durationLength";
     public static final String CYCLE_TYPE = "cycleType";
     public static final String CYCLE_FREQUENCE = "cycleFrequency";

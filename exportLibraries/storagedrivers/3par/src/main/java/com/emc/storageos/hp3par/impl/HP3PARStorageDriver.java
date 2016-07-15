@@ -1093,9 +1093,11 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	                    hostArray = initiators.get(0).getHostName();
 	                }
 
-	                // only one thread across all nodes should create cluster
-	                String lockName = vol.getStorageSystemId() + vol.getNativeId() + hostArray;
-	                if (this.lockManager.acquireLock(lockName, 10, TimeUnit.MINUTES)) {
+	                // only one thread across all nodes should create cluster; 
+	                // TBD: lock acquisition is having issues, synch is used
+	                //String lockName = vol.getStorageSystemId() + vol.getNativeId() + hostArray;
+	                //if (this.lockManager.acquireLock(lockName, 10, TimeUnit.MINUTES)) {
+	                synchronized (this) {
 	                    // Check if cluster exists, otherwise create
 	                    HostSetDetailsCommandResult hostsetRes = hp3parApi.getHostSetDetails(clustArray);
 	                    if (hostsetRes == null) {
@@ -1118,12 +1120,8 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 
 	                    // Cluster available
 	                    host = "set:" + clustArray;
-	                    this.lockManager.releaseLock(lockName);
-	                } else {
-	                    _log.error("3PARDriver:exportVolumesToInitiators error: could not acquire thread lock to create cluster");
-	                    throw new HP3PARException(
-	                            "3PARDriver:exportVolumesToInitiators error: could not acquire thread lock to create cluster");
-	                } //lock
+	                    //this.lockManager.releaseLock(lockName);
+	                }
 
 	            } else {
 	                _log.error("3PARDriver:exportVolumesToInitiators error: Host/Cluster type not supported");
@@ -1241,8 +1239,8 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	                  Hence requests coming for rest of the individual host exports should gracefully exit
 	                 */
 
-	                String lockName = vol.getStorageSystemId() + vol.getNativeId() + host;
-	                if (this.lockManager.acquireLock(lockName, 10, TimeUnit.MINUTES)) {
+	                //TBD: lock to be used once issue is resolved
+	                synchronized(this) {
 	                    /*
 	                      If this is the first request key gets created with export operation. 
 	                      other requests will gracefully exit. key will be removed in unexport.
@@ -1359,12 +1357,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	                        }
 	                    } // doExport
 
-	                    this.lockManager.releaseLock(lockName);
-	                } else {
-	                    _log.error("3PARDriver:exportVolumesToInitiators error: could not acquire thread lock for cluster export");
-                        throw new HP3PARException(
-                                "3PARDriver:exportVolumesToInitiators error: could not actuire thread lock for cluster export");
-                    } //lock   
+	                }
 	                
 	            } // end cluster export
 
@@ -1412,128 +1405,128 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
      */
 	@Override
 	public DriverTask unexportVolumesFromInitiators(List<Initiator> initiators, List<StorageVolume> volumes) {
-		DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_UNEXPORT_STORAGE_VOLUMES);
-		_log.info("3PARDriver:unexportVolumesFromInitiators enter");
+	    DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_UNEXPORT_STORAGE_VOLUMES);
+	    _log.info("3PARDriver:unexportVolumesFromInitiators enter");
 
-		// All initiators belong to same host
-		String host = null;
-		int totalUnexport = 0;
+	    String host = null;
+	    Boolean fullSuccess = true;
 
-		try {
-			if (initiators.isEmpty() || volumes.isEmpty()) {
-				_log.error("3PARDriver:unexportVolumesFromInitiators error blank initiator and/or volumes");
-				throw new HP3PARException("3PARDriver:unexportVolumesFromInitiators error blank initiator and/or volumes");
-			}
+	    if (initiators.isEmpty() || volumes.isEmpty()) {
+	        String msg = "3PARDriver:unexportVolumesFromInitiators error blank initiator and/or volumes";
+	        _log.error(msg);
+	        task.setMessage(msg);
+	        task.setStatus(DriverTask.TaskStatus.FAILED);
+	        return task;
+	    }
 
-			host = get3parHostname(initiators, volumes.get(0).getStorageSystemId());
-			if (host == null) {
-				_log.error("3PARDriver:unexportVolumesFromInitiators error in processing host name");
-				throw new HP3PARException("3PARDriver:unexportVolumesFromInitiators error in processing host name");
-			}
-		} catch (Exception e) {
-			String msg = String.format("3PARDriver:unexportVolumesFromInitiators error : %s", e);
-			_log.error(msg);
-			_log.error(CompleteError.getStackTrace(e));
-			task.setMessage(msg);
-			task.setStatus(DriverTask.TaskStatus.FAILED);
-			e.printStackTrace();
-			return task;
-		}
+	    // unexport each volume
+	    for (StorageVolume volume : volumes) {
+	        try {
+	            // get Api client for volume specific array
+	            HP3PARApi hp3parApi = hp3parUtil.getHP3PARDeviceFromNativeId(volume.getStorageSystemId(),
+	                    driverRegistry);
+	            // TBD: Efficiency; use query method
+	            VirtualLunsList vlunRes = hp3parApi.getAllVlunDetails();
 
-		// unexport each volume
-		for (StorageVolume volume : volumes) {
-			try {
-				// get Api client for volume specific array
-				HP3PARApi hp3parApi = hp3parUtil.getHP3PARDeviceFromNativeId(volume.getStorageSystemId(),
-						driverRegistry);
+	            for (Initiator init : initiators) {
 
-				if (initiators.get(0).getInitiatorType().equals(Type.Host)) {
-					// get vlun and port details on this export
-					Integer lun = -1;
-					Position pos = null;
-					VirtualLunsList vlunRes = hp3parApi.getAllVlunDetails();
+	                // TBD: Efficiency; Initiator & host name to be stored in hash-map
+	                ArrayList<Initiator> initList = new ArrayList<>();
+	                initList.add(init);
+	                host = get3parHostname(initList, volume.getStorageSystemId());
+	                if (host == null) {
+	                    fullSuccess = false;
+	                    String message = String.format(
+                                "3PARDriver:unexportVolumesFromInitiators for " + "storage system %s, volume %s initiator %s",
+                                volume.getStorageSystemId(), volume.getNativeId(), init.getPort());
+	                    _log.warn(message);
+	                    task.setMessage(message);
+	                    task.setStatus(DriverTask.TaskStatus.PARTIALLY_FAILED);
+	                    continue;
+	                }
 
-					for (VirtualLun vLun:vlunRes.getMembers()) {
+	                if (init.getInitiatorType().equals(Type.Host)) {
+	                    // get vlun and port details on this export
+	                    Integer lun = -1;
+	                    Position pos = null;
+	                    String hostPortId = init.getPort();//host port
+	                    hostPortId = hostPortId.replace(":", "");
 
-						for (Initiator init : initiators) {
-							String portId = init.getPort();
-							portId = portId.replace(":", "");
-							if (volume.getNativeId().compareTo(vLun.getVolumeName()) != 0 || (!vLun.isActive())
-									|| portId.compareToIgnoreCase(vLun.getRemoteName()) != 0) {
-								continue;
-							}
+	                    for (VirtualLun vLun:vlunRes.getMembers()) {
 
-							lun = vLun.getLun();
-							pos = vLun.getPortPos();
+	                        if (volume.getNativeId().compareTo(vLun.getVolumeName()) != 0 || (!vLun.isActive())
+	                                || hostPortId.compareToIgnoreCase(vLun.getRemoteName()) != 0) {
+	                            continue;
+	                        }
 
-							String message = String.format(
-									"3PARDriver:unexportVolumesFromInitiators for "
-											+ "storage system %s, volume %s host %s hlu %s port %s",
-									volume.getStorageSystemId(), volume.getNativeId(), host, lun.toString(),
-									pos.toString());
-							_log.info(message);
+	                        lun = vLun.getLun();
+	                        pos = vLun.getPortPos();
 
-							// Each vlun will have required info
-							String posStr = String.format("%s:%s:%s", pos.getNode(), pos.getSlot(), pos.getCardPort());
-							hp3parApi.deleteVlun(volume.getNativeId(), lun.toString(), host, posStr);
-							totalUnexport++;
-						} // end for init
-					}
-				} else if (initiators.get(0).getInitiatorType().equals(Type.Cluster)) {
-				    // cluster unexport
+	                        String message = String.format(
+	                                "3PARDriver:unexportVolumesFromInitiators for "
+	                                        + "storage system %s, volume %s host %s hlu %s port %s",
+	                                        volume.getStorageSystemId(), volume.getNativeId(), host, lun.toString(),
+	                                        pos.toString());
+	                        _log.info(message);
 
-					String clusterName = "set:" + initiators.get(0).getClusterName();
-					String exportPath = volume.getStorageSystemId() + volume.getNativeId() + clusterName;
-					Map<String, List<String>> attributes = new HashMap<>();
-					List<String> expValue = new ArrayList<>();
-					List<String> lunValue = new ArrayList<>();
-					boolean regPresent = false;
+	                        String posStr = String.format("%s:%s:%s", pos.getNode(), pos.getSlot(), pos.getCardPort());
+	                        hp3parApi.deleteVlun(volume.getNativeId(), lun.toString(), host, posStr);
+	                    }
+	                } else if (init.getInitiatorType().equals(Type.Cluster)) {
 
-					String message = String.format(
-							"3PARDriver:unexportVolumesFromInitiators for " + "storage system %s, volume %s Cluster %s",
-							volume.getStorageSystemId(), volume.getNativeId(), clusterName);
+	                    // cluster unexport
+	                    String clusterName = "set:" + initiators.get(0).getClusterName();
+	                    String exportPath = volume.getStorageSystemId() + volume.getNativeId() + clusterName;
+	                    Map<String, List<String>> attributes = new HashMap<>();
+	                    List<String> expValue = new ArrayList<>();
+	                    List<String> lunValue = new ArrayList<>();
+	                    boolean regPresent = false;
 
-					attributes = this.driverRegistry.getDriverAttributesForKey(HP3PARConstants.DRIVER_NAME, exportPath);
+	                    String message = String.format(
+	                            "3PARDriver:unexportVolumesFromInitiators for " + "storage system %s, volume %s Cluster %s",
+	                            volume.getStorageSystemId(), volume.getNativeId(), clusterName);
 
-					if (attributes != null) {
-						expValue = attributes.get("EXPORT_PATH");
-						if (expValue != null && expValue.get(0).compareTo(exportPath) == 0) {
-							lunValue = attributes.get(volume.getNativeId());
-							regPresent = true;
+	                    attributes = this.driverRegistry.getDriverAttributesForKey(HP3PARConstants.DRIVER_NAME, exportPath);
 
-							_log.info(message);
-							/*
-							 * below operations are assumed to autonomic
-							 */
-							hp3parApi.deleteVlun(volume.getNativeId(), lunValue.get(0), clusterName, null);
-							this.driverRegistry.clearDriverAttributesForKey(HP3PARConstants.DRIVER_NAME, exportPath);
-							totalUnexport++;
-						}
-					}
+	                    if (attributes != null) {
+	                        expValue = attributes.get("EXPORT_PATH");
+	                        if (expValue != null && expValue.get(0).compareTo(exportPath) == 0) {
+	                            lunValue = attributes.get(volume.getNativeId());
+	                            regPresent = true;
 
-					if (!regPresent) {
-						// gracefully exit, nothing to be done
-						_log.info("3PARDriver: Already unexported, exiting gracefully" + message);
-						totalUnexport++;
-					}
-				} // if cluster
+	                            _log.info(message);
+	                            /*
+	                             * below operations are assumed to autonomic
+	                             */
+	                            hp3parApi.deleteVlun(volume.getNativeId(), lunValue.get(0), clusterName, null);
+	                            this.driverRegistry.clearDriverAttributesForKey(HP3PARConstants.DRIVER_NAME, exportPath);
+	                        }
+	                    }
 
-			} catch (Exception e) {
-				String msg = String.format("3PARDriver: Unable to unexport few volumes, error: %s", e);
-				_log.error(msg);
-				_log.error(CompleteError.getStackTrace(e));
-				task.setMessage(msg);
-				task.setStatus(DriverTask.TaskStatus.PARTIALLY_FAILED);
-				e.printStackTrace();
-			}
-		} // for each volume
+	                    if (!regPresent) {
+	                        // gracefully exit, nothing to be done
+	                        _log.info("3PARDriver: Already unexported, exiting gracefully" + message);
+	                    }
+	                } // if cluster
+	            } // for each initiator
 
-		if (totalUnexport == volumes.size()) {
-			task.setStatus(DriverTask.TaskStatus.READY);
-		}
+	        } catch (Exception e) {
+	            String msg = String.format("3PARDriver: Unable to unexport few volumes, error: %s", e);
+	            _log.error(msg);
+	            _log.error(CompleteError.getStackTrace(e));
+	            task.setMessage(msg);
+	            task.setStatus(DriverTask.TaskStatus.PARTIALLY_FAILED);
+	            e.printStackTrace();
+	            fullSuccess = false;
+	        }
+	    } // for each volume
 
-		_log.info("3PARDriver:unexportVolumesFromInitiatorss leave");
-		return task;
+	    if (fullSuccess) {
+	        task.setStatus(DriverTask.TaskStatus.READY);
+	    }
+
+	    _log.info("3PARDriver:unexportVolumesFromInitiatorss leave");
+	    return task;
 	}
 
 	/**

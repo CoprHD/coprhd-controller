@@ -53,6 +53,7 @@ import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.common.PartitionManager;
+import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.vnxe.VNXeApiClient;
 import com.emc.storageos.vnxe.VNXeApiClientFactory;
@@ -826,6 +827,9 @@ public class VNXUnityUnManagedObjectDiscoverer {
 
         unManagedVolumeCharacteristics.put(SupportedVolumeCharacterstics.IS_VOLUME_EXPORTED.toString(), isVolumeExported.toString());
 
+        unManagedVolumeCharacteristics.put(SupportedVolumeCharacterstics.IS_NONRP_EXPORTED.toString(), Boolean.FALSE.toString());
+        unManagedVolumeCharacteristics.put(SupportedVolumeCharacterstics.IS_RECOVERPOINT_ENABLED.toString(), Boolean.FALSE.toString());
+        
         StringSet deviceLabel = new StringSet();
         deviceLabel.add(lun.getName());
         unManagedVolumeInformation.put(SupportedVolumeInformation.DEVICE_LABEL.toString(),
@@ -1394,6 +1398,7 @@ public class VNXUnityUnManagedObjectDiscoverer {
             List<VNXeBase> fcInits = host.getFcHostInitiators();
             List<VNXeBase> iScsiInits = host.getIscsiHostInitiators();
             boolean isVplexHost = false;
+            boolean isRPHost = false;
             if (fcInits != null && !fcInits.isEmpty()) {
                 for (VNXeBase init : fcInits) {
                     VNXeHostInitiator initiator = apiClient.getHostInitiator(init.getId());
@@ -1414,6 +1419,11 @@ public class VNXUnityUnManagedObjectDiscoverer {
                         isVplexHost = true;
                     }
                 }
+            }
+            if (!matchedFCInitiators.isEmpty() && ExportUtils.checkIfInitiatorsForRP(matchedFCInitiators)) {
+                log.info("host {} contains RP initiators, "
+                        + "so this mask contains RP protected volumes", host.getName());
+                isRPHost = true;
             }
             if (iScsiInits != null && !iScsiInits.isEmpty()) {
                 for (VNXeBase init : iScsiInits) {
@@ -1448,6 +1458,18 @@ public class VNXUnityUnManagedObjectDiscoverer {
                             hostUnManagedVol.getLabel());
                     hostUnManagedVol.putVolumeCharacterstics(
                             SupportedVolumeCharacterstics.IS_VPLEX_BACKEND_VOLUME.toString(),
+                            Boolean.TRUE.toString());
+                }
+                if (isRPHost) {
+                    log.info("unmanaged volume {} is an RP volume", hostUnManagedVol.getLabel());
+                    hostUnManagedVol.putVolumeCharacterstics(
+                            SupportedVolumeCharacterstics.IS_RECOVERPOINT_ENABLED.toString(),
+                            Boolean.TRUE.toString());
+                } else {
+                    log.info("unmanaged volume {} is exported to something other than RP.  Marking IS_NONRP_EXPORTED.",
+                            hostUnManagedVol.forDisplay());
+                    hostUnManagedVol.putVolumeCharacterstics(
+                            SupportedVolumeCharacterstics.IS_NONRP_EXPORTED.toString(),
                             Boolean.TRUE.toString());
                 }
                 mask.getUnmanagedVolumeUris().add(hostUnManagedVol.getId().toString());

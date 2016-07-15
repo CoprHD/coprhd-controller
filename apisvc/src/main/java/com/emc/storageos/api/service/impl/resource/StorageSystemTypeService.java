@@ -156,7 +156,7 @@ public class StorageSystemTypeService extends TaskResourceService {
         ssType.setStorageTypeId(ssTyeUri.toString());
 
         ssType.setStorageTypeName(addparam.getStorageTypeName());
-        ssType.setStorageTypeType(addparam.getStorageTypeType());
+        ssType.setMetaType(addparam.getStorageTypeType());
         ssType.setDriverClassName(addparam.getDriverClassName());
 
         if (addparam.getStorageTypeDispName() != null) {

@@ -70,7 +70,7 @@ public class StorageSystemType extends DataObject {
         return metaType;
     }
 
-    public void setStorageTypeType(String storageTypeType) {
+    public void setMetaType(String storageTypeType) {
         this.metaType = storageTypeType;
         setChanged("storageTypeType");
     }

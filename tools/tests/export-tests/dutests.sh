@@ -29,12 +29,12 @@
 #      "After the previous export_group command, I expect mask "billhost1" to have 2 initiators and 2 LUNs in it..."
 # - Exports are cleaned at the end of the script, and since remove is just as complicated, verifications are done there as well.
 #
-# set -x
+#set -x
 
 Usage()
 {
-    echo 'Usage: dutests.sh <sanity conf file path> [setup|delete] [vmax2 | vmax3 | vnx | vplex [local | distributed] | xtremio | unity]  [test1 test2 ...]'
-    echo ' [setup]: Run on a new ViPR database, creates SMIS, host, initiators, vpools, varray, volumes'
+    echo 'Usage: dutests.sh <sanity conf file path> [setuphw|setupsim|delete] [vmax2 | vmax3 | vnx | vplex [local | distributed] | xtremio | unity]  [test1 test2 ...]'
+    echo ' [setuphw|setupsim]: Run on a new ViPR database, creates SMIS, host, initiators, vpools, varray, volumes'
     echo ' [delete]: Will exports and volumes'
     exit 2
 }
@@ -88,10 +88,7 @@ verify_export() {
         # TODO figure out how to account for vplex cluster (V1_ or V2_)
         # also, the 3-char serial number suffix needs to be based on actual vplex cluster id,
         # not just splitting the string and praying...
-        echo "serialNumSplitOnColon: "
         serialNumSplitOnColon=(${SERIAL_NUMBER//:/ })
-        echo $serialNumSplitOnColon
-        echo "host name: ${host_name}"
         masking_view_name="V1_${CLUSTER}_${host_name}_${serialNumSplitOnColon[0]: -3}"
     fi
 
@@ -164,7 +161,7 @@ arrayhelper() {
 	shift 3
 	arrayhelper_verify_export $serial_number $masking_view_name $*
 	;;
-    default)
+    *)
         echo "ERROR: Invalid operation $operation specified to arrayhelper."
 	exit
 	;;
@@ -458,21 +455,27 @@ nwwn()
 
 setup_yaml() {
     dir=`pwd`
-    tools_file="${dir}/tools/tests/export-tests/tools.yml"
+    tools_file="${dir}/tools.yml"
     if [ -f "$tools_file" ]; then
 	echo "stale $tools_file found. Deleting it."
 	rm $tools_file
     fi
+
+    if [ "${storage_password}" = "" ]; then
+	echo "storage_password is not set.  Cannot make a valid tools.yml file without a storage_password"
+	exit;
+    fi
+
     # create the yml file to be used for array tooling
     touch $tools_file
-    storage_type=`storagedevice list | grep COMPLETE | awk '{print $1}'`
-    storage_name=`storagedevice list | grep COMPLETE | awk '{print $2}'`
+    storage_type=`storagedevice list | grep COMPLETE | grep ${SS:0:3} | awk '{print $1}'`
+    storage_name=`storagedevice list | grep COMPLETE | grep ${SS:0:3} | awk '{print $2}'`
     storage_version=`storagedevice show ${storage_name} | grep firmware_version | awk '{print $2}' | cut -d '"' -f2`
     storage_ip=`storagedevice show ${storage_name} | grep smis_provider_ip | awk '{print $2}' | cut -d '"' -f2`
     storage_port=`storagedevice show ${storage_name} | grep smis_port_number | awk '{print $2}' | cut -d ',' -f1`
     storage_user=`storagedevice show ${storage_name} | grep smis_user_name | awk '{print $2}' | cut -d '"' -f2`
     ##update tools.yml file with the array details
-    printf 'array:\n  %s:\n  - ip: %s:%s\n    id: %s\n    username: %s\n    password: %s\n    version: %s' "$storage_type" "$storage_ip" "$storage_port" "$SERIAL_NUMBER" "$storage_user" "$storage_password" "$storage_version" >>$tools_file
+    printf 'array:\n  %s:\n  - ip: %s:%s\n    id: %s\n    username: %s\n    password: %s\n    version: %s' "$storage_type" "$storage_ip" "$storage_port" "$SERIAL_NUMBER" "$storage_user" "$storage_password" "$storage_version" >> $tools_file
 
 }
 
@@ -493,9 +496,9 @@ login() {
        CLUSTER=cl${BASENUM}
 
        # figure out what type of array we're running against
-       storage_type=`storagedevice list | grep COMPLETE | awk '{print $1}'`
+       storage_type=`storagedevice list | grep COMPLETE | grep ${SS:0:3} | awk '{print $1}'`
        echo "Found storage type is: $storage_type"
-       SERIAL_NUMBER=`storagedevice list | grep COMPLETE | awk '{print $2}' | awk -F+ '{print $2}'`
+       SERIAL_NUMBER=`storagedevice list | grep COMPLETE | grep ${SS:0:3} | awk '{print $2}' | awk -F+ '{print $2}'`
        echo "Serial number is: $SERIAL_NUMBER"
        if [ "${storage_type}" = "xtremio" ]
        then
@@ -644,44 +647,144 @@ vmax3_setup() {
     runcmd cos update block $VPOOL_BASE --storage ${VMAX_NATIVEGUID}
 }
 
+vplex_sim_setup() {
+    secho "Setting up VPLEX environment connected to simulators on: ${VPLEX_SIM_IP}"
+
+    # Discover the Brocade SAN switch.
+    secho "Configuring MDS/Cisco Simulator using SSH on: $VPLEX_SIM_MDS_IP"
+    FABRIC_SIMULATOR=fabric-sim
+    runcmd networksystem create $FABRIC_SIMULATOR  mds --devip $VPLEX_SIM_MDS_IP --devport 22 --username $VPLEX_SIM_MDS_USER --password $VPLEX_SIM_MDS_PW
+
+    # Discover the storage systems 
+    secho "Discovering back-end storage arrays using ECOM/SMIS simulator on: $VPLEX_SIM_SMIS_IP..."
+    runcmd smisprovider create $VPLEX_SIM_SMIS_DEV_NAME $VPLEX_SIM_SMIS_IP $VPLEX_VMAX_SMIS_SIM_PORT $VPLEX_SIM_SMIS_USER "$VPLEX_SIM_SMIS_PASSWD" false
+
+    secho "Discovering VPLEX using simulator on: ${VPLEX_SIM_IP}..."
+    runcmd storageprovider create $VPLEX_SIM_DEV_NAME $VPLEX_SIM_IP 443 $VPLEX_SIM_USER "$VPLEX_SIM_PASSWD" vplex
+    runcmd storagedevice discover_all
+
+    VPLEX_GUID=$VPLEX_SIM_VPLEX_GUID
+    CLUSTER1NET_NAME=$CLUSTER1NET_SIM_NAME
+    CLUSTER2NET_NAME=$CLUSTER2NET_SIM_NAME
+
+    VPLEX_VARRAY1=$NH
+    FC_ZONE_A=${CLUSTER1NET_NAME}
+    secho "Setting up the VPLEX cluster-1 virtual array $VPLEX_VARRAY1"
+    # Setup the varrays. $NH contains VPLEX cluster-1 and $NH2 contains VPLEX cluster-2.
+    runcmd neighborhood create $VPLEX_VARRAY1
+    runcmd transportzone assign $FC_ZONE_A $VPLEX_VARRAY1
+    runcmd transportzone create $FC_ZONE_A $VPLEX_VARRAY1 --type FC
+    runcmd storageport update $VPLEX_SIM_VPLEX_GUID FC --group director-1-1-A --addvarrays $NH
+    runcmd storageport update $VPLEX_SIM_VPLEX_GUID FC --group director-1-1-B --addvarrays $NH
+    # The arrays are assigned to individual varrays as well.
+    runcmd storageport update $VPLEX_SIM_VMAX1_NATIVEGUID FC --addvarrays $NH
+    runcmd storageport update $VPLEX_SIM_VMAX2_NATIVEGUID FC --addvarrays $NH
+    runcmd storageport update $VPLEX_SIM_VMAX3_NATIVEGUID FC --addvarrays $NH
+
+
+    VPLEX_VARRAY2=$NH2
+    FC_ZONE_B=${CLUSTER2NET_NAME}
+    secho "Setting up the VPLEX cluster-2 virtual array $VPLEX_VARRAY2"
+    runcmd neighborhood create $VPLEX_VARRAY2
+    runcmd transportzone assign $FC_ZONE_B $VPLEX_VARRAY2
+    runcmd transportzone create $FC_ZONE_B $VPLEX_VARRAY2 --type FC
+    runcmd storageport update $VPLEX_GUID FC --group director-2-1-A --addvarrays $VPLEX_VARRAY2
+    runcmd storageport update $VPLEX_GUID FC --group director-2-1-B --addvarrays $VPLEX_VARRAY2
+    runcmd storageport update $VPLEX_SIM_VMAX4_NATIVEGUID FC --addvarrays $NH2
+    runcmd storageport update $VPLEX_SIM_VMAX5_NATIVEGUID FC --addvarrays $NH2
+    if [[ "$VPLEX_MODE" = "distributed" ]]; then
+	runcmd storageport update $VPLEX_VMAX_NATIVEGUID FC --addvarrays $VPLEX_VARRAY2
+    fi
+    
+    common_setup
+
+    SERIAL_NUMBER=$VPLEX_GUID
+
+    case "$VPLEX_MODE" in 
+        local)
+            secho "Setting up the virtual pool for local VPLEX provisioning"
+            runcmd cos create block $VPOOL_BASE true                            \
+                             --description 'vpool-for-vplex-local-volumes'      \
+                             --protocols FC                                     \
+                             --numpaths 2                                       \
+                             --provisionType 'Thin'                             \
+                             --highavailability vplex_local                     \
+                             --neighborhoods $VPLEX_VARRAY1                     \
+                             --max_snapshots 1                                  \
+                             --max_mirrors 0                                    \
+                             --expandable false 
+
+            runcmd cos update block $VPOOL_BASE --storage $VPLEX_SIM_VMAX1_NATIVEGUID
+            runcmd cos update block $VPOOL_BASE --storage $VPLEX_SIM_VMAX2_NATIVEGUID
+            runcmd cos update block $VPOOL_BASE --storage $VPLEX_SIM_VMAX3_NATIVEGUID
+        ;;
+        distributed)
+            secho "Setting up the virtual pool for distributed VPLEX provisioning"
+            runcmd cos create block $VPOOL_BASE true                                \
+                             --description 'vpool-for-vplex-distributed-volumes'    \
+                             --protocols FC                                         \
+                             --numpaths 2                                           \
+                             --provisionType 'Thin'                                 \
+                             --highavailability vplex_distributed                   \
+                             --neighborhoods $VPLEX_VARRAY1 $VPLEX_VARRAY2          \
+                             --haNeighborhood $VPLEX_VARRAY2                        \
+                             --max_snapshots 1                                      \
+                             --max_mirrors 0                                        \
+                             --expandable false
+
+            runcmd cos update block $VPOOL_BASE --storage $VPLEX_SIM_VMAX4_NATIVEGUID
+            runcmd cos update block $VPOOL_BASE --storage $VPLEX_SIM_VMAX5_NATIVEGUID
+        ;;
+        *)
+            secho "Invalid VPLEX_MODE: $VPLEX_MODE (should be 'local' or 'distributed')"
+            Usage
+        ;;
+    esac
+}
+
 vplex_setup() {
+    storage_password=${VPLEX_PASSWD}
+    if [ "${SIM}" -eq 1 ]; then
+	vplex_sim_setup
+	return
+    fi
 
     secho "Discovering Brocade SAN Switch ..."
     runcmd networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
     sleep 30
 
-	secho "Discovering VPLEX Storage Assets"
-	storageprovider show $VPLEX_DEV_NAME &> /dev/null && return $?
-	runcmd storageprovider create $VPLEX_DEV_NAME $VPLEX_IP 443 $VPLEX_USER "$VPLEX_PASSWD" vplex
-	runcmd smisprovider create $VPLEX_VNX1_SMIS_DEV_NAME $VPLEX_VNX1_SMIS_IP 5989 $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" true
-	runcmd smisprovider create $VPLEX_VNX2_SMIS_DEV_NAME $VPLEX_VNX2_SMIS_IP 5989 $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" true
-	if [[ "$VPLEX_MODE" = "distributed" ]]; then
+    secho "Discovering VPLEX Storage Assets"
+    storageprovider show $VPLEX_DEV_NAME &> /dev/null && return $?
+    runcmd storageprovider create $VPLEX_DEV_NAME $VPLEX_IP 443 $VPLEX_USER "$VPLEX_PASSWD" vplex
+    runcmd smisprovider create $VPLEX_VNX1_SMIS_DEV_NAME $VPLEX_VNX1_SMIS_IP 5989 $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" true
+    runcmd smisprovider create $VPLEX_VNX2_SMIS_DEV_NAME $VPLEX_VNX2_SMIS_IP 5989 $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" true
+    if [[ "$VPLEX_MODE" = "distributed" ]]; then
 	runcmd smisprovider create $VPLEX_VMAX_SMIS_DEV_NAME $VPLEX_VMAX_SMIS_IP 5989 $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" true
-	fi
-	
-	runcmd storagedevice discover_all
+    fi
+    
+    runcmd storagedevice discover_all
 
     VPLEX_VARRAY1=$NH
-	secho "Setting up the VPLEX cluster-1 virtual array $VPLEX_VARRAY1"
+    FC_ZONE_A=${CLUSTER1NET_NAME}
+    secho "Setting up the VPLEX cluster-1 virtual array $VPLEX_VARRAY1"
     runcmd neighborhood create $VPLEX_VARRAY1
-    runcmd transportzone assign FABRIC_losam082-fabric $VPLEX_VARRAY1
-    FC_ZONE_A=FABRIC_losam082-fabric
+    runcmd transportzone assign $FC_ZONE_A $VPLEX_VARRAY1
     runcmd transportzone create $FC_ZONE_A $VPLEX_VARRAY1 --type FC
-	runcmd storageport update $VPLEX_GUID FC --group director-1-1-A --addvarrays $VPLEX_VARRAY1
-	runcmd storageport update $VPLEX_GUID FC --group director-1-1-B --addvarrays $VPLEX_VARRAY1
-	runcmd storageport update $VPLEX_VNX1_NATIVEGUID FC --addvarrays $VPLEX_VARRAY1
-	runcmd storageport update $VPLEX_VNX2_NATIVEGUID FC --addvarrays $VPLEX_VARRAY1
-	
+    runcmd storageport update $VPLEX_GUID FC --group director-1-1-A --addvarrays $VPLEX_VARRAY1
+    runcmd storageport update $VPLEX_GUID FC --group director-1-1-B --addvarrays $VPLEX_VARRAY1
+    runcmd storageport update $VPLEX_VNX1_NATIVEGUID FC --addvarrays $VPLEX_VARRAY1
+    runcmd storageport update $VPLEX_VNX2_NATIVEGUID FC --addvarrays $VPLEX_VARRAY1
+    
     VPLEX_VARRAY2=$NH2
+    FC_ZONE_B=${CLUSTER2NET_NAME}
     secho "Setting up the VPLEX cluster-2 virtual array $VPLEX_VARRAY2"
     runcmd neighborhood create $VPLEX_VARRAY2
-    runcmd transportzone assign FABRIC_vplex154nbr2 $VPLEX_VARRAY2
-    FC_ZONE_B=FABRIC_vplex154nbr2
+    runcmd transportzone assign $FC_ZONE_B $VPLEX_VARRAY2
     runcmd transportzone create $FC_ZONE_B $VPLEX_VARRAY2 --type FC
     runcmd storageport update $VPLEX_GUID FC --group director-2-1-A --addvarrays $VPLEX_VARRAY2
     runcmd storageport update $VPLEX_GUID FC --group director-2-1-B --addvarrays $VPLEX_VARRAY2
-	if [[ "$VPLEX_MODE" = "distributed" ]]; then
-    runcmd storageport update $VPLEX_VMAX_NATIVEGUID FC --addvarrays $VPLEX_VARRAY2
+    if [[ "$VPLEX_MODE" = "distributed" ]]; then
+	runcmd storageport update $VPLEX_VMAX_NATIVEGUID FC --addvarrays $VPLEX_VARRAY2
     fi
     
     common_setup
@@ -2230,8 +2333,6 @@ randwwn() {
 # -    M A I N
 # ============================================================
 
-login
-
 H1PI1=`pwwn 00`
 H1NI1=`nwwn 00`
 H1PI2=`pwwn 01`
@@ -2250,19 +2351,26 @@ H3NI2=`nwwn 05`
 # Delete and setup are optional
 if [ "$1" = "delete" ]
 then
+    login
     cleanup
     finish
 fi
 
 setup=0;
-if [ "$1" = "setup" ]
+if [ "$1" = "setuphw" ]
 then
     setup=1;
     shift 1;
-fi;
+elif [ "$1" = "setupsim" ]; then
+    SIM=1;
+    setup=1;
+    shift 1;
+fi
 
 SS=${1}
 shift
+
+login
 
 case $SS in
     vmax2|vmax3|vnx|xio|unity)
@@ -2290,11 +2398,11 @@ fi
 if [ ${setup} -eq 1 ]
 then
     setup
+    if [ "$SS" = "xio" -o "$SS" = "vplex" ]; then
+	setup_yaml;
+    fi
 fi
 
-if [ "$SS" = "xio" -o "$SS" = "vplex" ]; then
-    setup_yaml;
-fi
 
 # setup required by all runs, even ones where setup was already done.
 prerun_setup;
@@ -2315,10 +2423,10 @@ then
 fi
 
 # Passing tests:
-test_0;
-test_1;
-test_2;
-test_3;
+for num in "0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16"
+do
+  test_${num}
+done
 exit;
 
 # for now, run "delete" separately to clean up your resources.  Once things are stable, we'll turn this back on.

@@ -7,20 +7,29 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.volumecontroller.impl.smis.CIMObjectPathFactory;
 import com.emc.storageos.volumecontroller.impl.smis.SmisCommandHelper;
-import com.emc.storageos.volumecontroller.impl.validators.StorageSystemValidatorFactory;
 import com.emc.storageos.volumecontroller.impl.validators.ChainingValidator;
+import com.emc.storageos.volumecontroller.impl.validators.DefaultValidator;
+import com.emc.storageos.volumecontroller.impl.validators.StorageSystemValidatorFactory;
 import com.emc.storageos.volumecontroller.impl.validators.ValCk;
 import com.emc.storageos.volumecontroller.impl.validators.Validator;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorLogger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 import java.util.Collection;
 import java.util.List;
 
 /**
- * Factory class for creating Vmax-specific validators.
+ * Factory class for creating Vmax-specific validators.  The theme for each factory method is
+ * to create a {@link ValidatorLogger} instance to share with any new {@link Validator}
+ * instances.  Each validator can use this logger to report validation failures.
+ * {@link DefaultValidator} and {@link ChainingValidator} will throw an exception if the logger
+ * holds any errors.
  */
 public class VmaxSystemValidatorFactory implements StorageSystemValidatorFactory {
+
+    private static final Logger log = LoggerFactory.getLogger(VmaxSystemValidatorFactory.class);
 
     private DbClient dbClient;
     private CIMObjectPathFactory cimPath;
@@ -54,33 +63,36 @@ public class VmaxSystemValidatorFactory implements StorageSystemValidatorFactory
     public Validator exportMaskDelete(StorageSystem storage, ExportMask exportMask,
                                       Collection<URI> volumeURIList,
                                       Collection<Initiator> initiatorList) {
+        ValidatorLogger sharedLogger = createValidatorLogger();
         AbstractVmaxValidator volumes = new ExportMaskVolumesValidator(storage, exportMask, volumeURIList);
-        AbstractVmaxValidator initiators = new InitiatorsValidator(storage, exportMask.getId(), initiatorList);
+        AbstractVmaxValidator initiators = new InitiatorsValidator(storage, exportMask, initiatorList);
+        configureValidators(sharedLogger, volumes, initiators);
 
-        configureValidators(volumes, initiators);
-
-        ChainingValidator chain = new ChainingValidator();
+        ChainingValidator chain = new ChainingValidator(sharedLogger, "Export Mask");
         chain.addValidator(volumes);
         chain.addValidator(initiators);
-
         return chain;
     }
 
     @Override
     public Validator removeVolumes(StorageSystem storage, URI exportMaskURI,
                                    Collection<Initiator> initiators) {
-        AbstractVmaxValidator validator = new InitiatorsValidator(storage, exportMaskURI, initiators);
-        configureValidators(validator);
+        ExportMask exportMask = dbClient.queryObject(ExportMask.class, exportMaskURI);  // FIXME
 
-        return validator;
+        ValidatorLogger sharedLogger = createValidatorLogger();
+        AbstractVmaxValidator validator = new InitiatorsValidator(storage, exportMask, initiators);
+        configureValidators(sharedLogger, validator);
+
+        return new DefaultValidator(validator, sharedLogger, "Export Mask");
     }
 
     @Override
     public Validator removeInitiators(StorageSystem storage, ExportMask exportMask, Collection<URI> volumeURIList) {
-        AbstractVmaxValidator volumes = new ExportMaskVolumesValidator(storage, exportMask, volumeURIList);
-        configureValidators(volumes);
+        ValidatorLogger sharedLogger = createValidatorLogger();
+        AbstractVmaxValidator validator = new ExportMaskVolumesValidator(storage, exportMask, volumeURIList);
+        configureValidators(sharedLogger, validator);
 
-        return volumes;
+        return new DefaultValidator(validator, sharedLogger, "Export Mask");
     }
 
     @Override
@@ -92,12 +104,17 @@ public class VmaxSystemValidatorFactory implements StorageSystemValidatorFactory
     /**
      * Common configuration for VMAX validators to keep things DRY.
      *
+     * @param logger
      * @param validators
      */
-    private void configureValidators(AbstractVmaxValidator... validators) {
+    private void configureValidators(ValidatorLogger logger, AbstractVmaxValidator... validators) {
         for (AbstractVmaxValidator validator : validators) {
             validator.setFactory(this);
-            validator.setLogger(new ValidatorLogger());
+            validator.setLogger(logger);
         }
+    }
+
+    private ValidatorLogger createValidatorLogger() {
+        return new ValidatorLogger(log);
     }
 }

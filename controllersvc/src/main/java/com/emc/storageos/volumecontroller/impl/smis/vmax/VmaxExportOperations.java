@@ -393,7 +393,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
                 List<URI> volumeURIs = ExportMaskUtils.getVolumeURIs(exportMask);
 
-                validator.vmax().exportMaskDelete(storage, exportMask,  volumeURIList, initiatorList).validate();
+                validator.exportMaskDelete(storage, exportMask,  volumeURIList, initiatorList).validate();
 
                 if (!deleteMaskingView(storage, exportMaskURI, childGroupsByFast, taskCompleter)) {
                     // Could not delete the MaskingView. Error should be stuffed by the
@@ -1108,7 +1108,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 _log.info("removeVolumes: impacted initiators: {}", Joiner.on(",").join(initiatorList));
             }
 
-            validator.vmax().removeVolumes(storage, exportMaskURI, initiatorList).validate();
+            validator.removeVolumes(storage, exportMaskURI, initiatorList).validate();
 
             boolean isVmax3 = storage.checkIfVmax3();
             WBEMClient client = _helper.getConnection(storage).getCimClient();
@@ -1549,7 +1549,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     _log.info("Removing initiators ...");
 
                     ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
-                    validator.vmax().removeInitiators(storage, exportMask, volumeURIList).validate();
+                    validator.removeInitiators(storage, exportMask, volumeURIList).validate();
 
                     // Create a mapping of the InitiatorPort String to Initiator.
                     Map<String, Initiator> nameToInitiator = new HashMap<String, Initiator>();

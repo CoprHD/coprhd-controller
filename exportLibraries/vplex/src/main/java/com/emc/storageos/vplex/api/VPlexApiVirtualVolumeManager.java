@@ -252,8 +252,6 @@ public class VPlexApiVirtualVolumeManager {
             List<VPlexDeviceInfo> localDevices = discoveryMgr.findLocalDevices(extentInfoList);
 
             VPlexVirtualVolumeInfo vplexVolumeInfo = findVirtualVolumeAndUpdateInfo(virtualVolume.getName(), discoveryMgr);
-            virtualVolume.setThinCapable(vplexVolumeInfo.getThinCapable());
-            virtualVolume.setThinEnabled(vplexVolumeInfo.getThinEnabled());
 
             String sourceDeviceName = vplexVolumeInfo.getSupportingDevice();
 
@@ -300,6 +298,11 @@ public class VPlexApiVirtualVolumeManager {
                 s_logger.info("Added {} as a mirror to the device {}", localDevices
                         .get(0).getPath(), sourceDevicePath);
             }
+
+            // update the vplexVolumeInfo object so we can tell if thin-capability changed
+            vplexVolumeInfo = findVirtualVolumeAndUpdateInfo(virtualVolume.getName(), discoveryMgr);
+            virtualVolume.setThinCapable(vplexVolumeInfo.getThinCapable());
+            virtualVolume.setThinEnabled(vplexVolumeInfo.getThinEnabled());
 
             // return mirror device
             return localDevices.get(0);

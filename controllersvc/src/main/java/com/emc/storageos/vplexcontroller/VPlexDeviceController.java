@@ -8027,6 +8027,14 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             _workflowService.storeStepData(stepId, stepData);
             _log.info("Detached the mirror");
 
+            // update thinly provisioned property if it changed
+            VPlexVirtualVolumeInfo vvInfo = client.findVirtualVolumeAndUpdateInfo(vplexVolumeName);
+            if (vvInfo.isThinEnabled() != vplexVolume.getThinlyProvisioned()) {
+                _log.info("Thin provisioned setting changed after mirror operation to " + vvInfo.isThinEnabled());
+                vplexVolume.setThinlyProvisioned(vvInfo.isThinEnabled());
+                _dbClient.updateObject(vplexVolume);
+            }
+
             // Update workflow step state to success.
             WorkflowStepCompleter.stepSucceded(stepId);
             _log.info("Updated workflow step state to success");
@@ -9669,6 +9677,19 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             if (vplexMirror.getDeviceLabel() != null) {
                 // Call to delete mirror device
                 client.deleteLocalDevice(vplexMirror.getDeviceLabel());
+
+                // update thinly provisioned property if it changed
+                if (vplexMirror.getSource() != null && vplexMirror.getSource().getURI() != null) {
+                    _log.info("Checking if thinly provisioned property changed after mirror operation...");
+                    Volume vplexVolume = getDataObject(Volume.class, vplexMirrorURI, _dbClient);
+                    String vplexVolumeName = vplexVolume.getDeviceLabel();
+                    VPlexVirtualVolumeInfo vvInfo = client.findVirtualVolumeAndUpdateInfo(vplexVolumeName);
+                    if (vvInfo.isThinEnabled() != vplexVolume.getThinlyProvisioned()) {
+                        _log.info("Thin provisioned setting changed after mirror operation to " + vvInfo.isThinEnabled());
+                        vplexVolume.setThinlyProvisioned(vvInfo.isThinEnabled());
+                        _dbClient.updateObject(vplexVolume);
+                    }
+                }
 
                 // Record VPLEX mirror delete event.
                 recordBourneVplexMirrorEvent(vplexMirrorURI,

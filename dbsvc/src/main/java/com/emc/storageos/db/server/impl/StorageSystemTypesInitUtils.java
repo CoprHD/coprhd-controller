@@ -218,7 +218,7 @@ public class StorageSystemTypesInitUtils {
             type.setStorageTypeId(ssTyeUri.toString());
             type.setStorageTypeName(file);
             type.setStorageTypeDispName(DISPLAY_NAME_MAP.get(file));
-            type.setStorageTypeType(StorageSystemType.META_TYPE.FILE.toString().toLowerCase());
+            type.setMetaType(StorageSystemType.META_TYPE.FILE.toString().toLowerCase());
             type.setDriverClassName("file");
             type.setIsSmiProvider(false);
 
@@ -259,7 +259,7 @@ public class StorageSystemTypesInitUtils {
             type.setStorageTypeId(ssTypeUri.toString());
             type.setStorageTypeName(provider);
             type.setStorageTypeDispName(DISPLAY_NAME_MAP.get(provider));
-            type.setStorageTypeType(StorageSystemType.META_TYPE.FILE.toString().toLowerCase());
+            type.setMetaType(StorageSystemType.META_TYPE.FILE.toString().toLowerCase());
             type.setDriverClassName("file");
             type.setIsSmiProvider(true);
             if (DEFAULT_SSL_ENABLE_MAP.get(provider) != null) {
@@ -298,7 +298,7 @@ public class StorageSystemTypesInitUtils {
             type.setStorageTypeId(ssTyeUri.toString());
             type.setStorageTypeName(block);
             type.setStorageTypeDispName(DISPLAY_NAME_MAP.get(block));
-            type.setStorageTypeType(StorageSystemType.META_TYPE.BLOCK.toString().toLowerCase());
+            type.setMetaType(StorageSystemType.META_TYPE.BLOCK.toString().toLowerCase());
             type.setDriverClassName("block");
             type.setIsSmiProvider(false);
             if (DEFAULT_SSL_ENABLE_MAP.get(block) != null) {
@@ -340,7 +340,7 @@ public class StorageSystemTypesInitUtils {
             type.setStorageTypeId(ssTyeUri.toString());
             type.setStorageTypeName(provider);
             type.setStorageTypeDispName(DISPLAY_NAME_MAP.get(provider));
-            type.setStorageTypeType(StorageSystemType.META_TYPE.BLOCK.toString().toLowerCase());
+            type.setMetaType(StorageSystemType.META_TYPE.BLOCK.toString().toLowerCase());
             type.setDriverClassName("block");
             type.setIsSmiProvider(true);
             if (DEFAULT_SSL_ENABLE_MAP.get(provider) != null) {
@@ -381,7 +381,7 @@ public class StorageSystemTypesInitUtils {
         unity.setStorageTypeId(unityUri.toString());
         unity.setStorageTypeName(UNITY);
         unity.setStorageTypeDispName(DISPLAY_NAME_MAP.get(UNITY));
-        unity.setStorageTypeType(StorageSystemType.META_TYPE.BLOCK_AND_FILE.toString().toLowerCase());
+        unity.setMetaType(StorageSystemType.META_TYPE.BLOCK_AND_FILE.toString().toLowerCase());
         unity.setIsSmiProvider(false);
         unity.setIsDefaultSsl(true);
         if (SSL_PORT_MAP.get(UNITY) != null) {
@@ -405,7 +405,7 @@ public class StorageSystemTypesInitUtils {
             type.setStorageTypeId(ssTyeUri.toString());
             type.setStorageTypeName(object);
             type.setStorageTypeDispName(DISPLAY_NAME_MAP.get(object));
-            type.setStorageTypeType(StorageSystemType.META_TYPE.OBJECT.toString().toLowerCase());
+            type.setMetaType(StorageSystemType.META_TYPE.OBJECT.toString().toLowerCase());
             type.setDriverClassName("object");
             type.setIsSmiProvider(false);
             if (DEFAULT_SSL_ENABLE_MAP.get(object) != null) {

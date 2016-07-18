@@ -9156,6 +9156,8 @@ dr_multisite_tests()
     # Below codes are used to test failover to ACTIVE_DEGRADED site
     # power off site A, then failover to site C, then power on site A and wait it to be ACTIVE_DEGRADED, then failover to it, and wait it to be ACTIVE
     # step1: poweroff site A, wait site C to be stable and paused
+    # Comment these lines out because we don't support failover to site of ACTIVE_DEGRADED state in X-wing, thus no need for sanity
+<<"COMMENT"
     echo "step1: poweroff site $DR_SITE_A_NAME ..."
     stop_vdc_services "$DR_SITE_A_IP"
     echo "Sleep 1m to wait standby ZK switch to participant"
@@ -9207,6 +9209,7 @@ dr_multisite_tests()
 
     echo "Wait site state to be PRIAMRY after failover"
     dr waitforstate $active_site ACTIVE 30 600 --ip "${DR_SITE_A_IP}"
+COMMENT
     #disabling pipefail option to pipe exit codes
     set +o pipefail
 }

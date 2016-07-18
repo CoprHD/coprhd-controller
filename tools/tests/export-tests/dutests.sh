@@ -681,21 +681,23 @@ vplex_sim_setup() {
     runcmd storageport update $VPLEX_SIM_VMAX2_NATIVEGUID FC --addvarrays $NH
     runcmd storageport update $VPLEX_SIM_VMAX3_NATIVEGUID FC --addvarrays $NH
 
-
-    VPLEX_VARRAY2=$NH2
-    FC_ZONE_B=${CLUSTER2NET_NAME}
-    secho "Setting up the VPLEX cluster-2 virtual array $VPLEX_VARRAY2"
-    runcmd neighborhood create $VPLEX_VARRAY2
-    runcmd transportzone assign $FC_ZONE_B $VPLEX_VARRAY2
-    runcmd transportzone create $FC_ZONE_B $VPLEX_VARRAY2 --type FC
-    runcmd storageport update $VPLEX_GUID FC --group director-2-1-A --addvarrays $VPLEX_VARRAY2
-    runcmd storageport update $VPLEX_GUID FC --group director-2-1-B --addvarrays $VPLEX_VARRAY2
-    runcmd storageport update $VPLEX_SIM_VMAX4_NATIVEGUID FC --addvarrays $NH2
-    runcmd storageport update $VPLEX_SIM_VMAX5_NATIVEGUID FC --addvarrays $NH2
-    if [[ "$VPLEX_MODE" = "distributed" ]]; then
+    if [ "${VPLEX_MODE}" = "distributed" ]; then
+	VPLEX_VARRAY2=$NH2
+	FC_ZONE_B=${CLUSTER2NET_NAME}
+	secho "Setting up the VPLEX cluster-2 virtual array $VPLEX_VARRAY2"
+	runcmd neighborhood create $VPLEX_VARRAY2
+	runcmd transportzone assign $FC_ZONE_B $VPLEX_VARRAY2
+	runcmd transportzone create $FC_ZONE_B $VPLEX_VARRAY2 --type FC
+	runcmd storageport update $VPLEX_GUID FC --group director-2-1-A --addvarrays $VPLEX_VARRAY2
+	runcmd storageport update $VPLEX_GUID FC --group director-2-1-B --addvarrays $VPLEX_VARRAY2
+	runcmd storageport update $VPLEX_SIM_VMAX4_NATIVEGUID FC --addvarrays $NH2
+	runcmd storageport update $VPLEX_SIM_VMAX5_NATIVEGUID FC --addvarrays $NH2
 	runcmd storageport update $VPLEX_VMAX_NATIVEGUID FC --addvarrays $VPLEX_VARRAY2
+    else
+	runcmd storagedevice deregister $VPLEX_SIM_VMAX4_NATIVEGUID
+	runcmd storagedevice deregister $VPLEX_SIM_VMAX5_NATIVEGUID
     fi
-    
+
     common_setup
 
     SERIAL_NUMBER=$VPLEX_GUID
@@ -775,16 +777,18 @@ vplex_setup() {
     runcmd storageport update $VPLEX_VNX1_NATIVEGUID FC --addvarrays $VPLEX_VARRAY1
     runcmd storageport update $VPLEX_VNX2_NATIVEGUID FC --addvarrays $VPLEX_VARRAY1
     
-    VPLEX_VARRAY2=$NH2
-    FC_ZONE_B=${CLUSTER2NET_NAME}
-    secho "Setting up the VPLEX cluster-2 virtual array $VPLEX_VARRAY2"
-    runcmd neighborhood create $VPLEX_VARRAY2
-    runcmd transportzone assign $FC_ZONE_B $VPLEX_VARRAY2
-    runcmd transportzone create $FC_ZONE_B $VPLEX_VARRAY2 --type FC
-    runcmd storageport update $VPLEX_GUID FC --group director-2-1-A --addvarrays $VPLEX_VARRAY2
-    runcmd storageport update $VPLEX_GUID FC --group director-2-1-B --addvarrays $VPLEX_VARRAY2
-    if [[ "$VPLEX_MODE" = "distributed" ]]; then
+    if [ "${VPLEX_MODE}" = "distributed" ]; then
+	VPLEX_VARRAY2=$NH2
+	FC_ZONE_B=${CLUSTER2NET_NAME}
+	secho "Setting up the VPLEX cluster-2 virtual array $VPLEX_VARRAY2"
+	runcmd neighborhood create $VPLEX_VARRAY2
+	runcmd transportzone assign $FC_ZONE_B $VPLEX_VARRAY2
+	runcmd transportzone create $FC_ZONE_B $VPLEX_VARRAY2 --type FC
+	runcmd storageport update $VPLEX_GUID FC --group director-2-1-A --addvarrays $VPLEX_VARRAY2
+	runcmd storageport update $VPLEX_GUID FC --group director-2-1-B --addvarrays $VPLEX_VARRAY2
 	runcmd storageport update $VPLEX_VMAX_NATIVEGUID FC --addvarrays $VPLEX_VARRAY2
+    else
+	runcmd storagedevice deregister $VPLEX_VMAX_NATIVEGUID
     fi
     
     common_setup

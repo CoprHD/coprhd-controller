@@ -16,7 +16,7 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.storagedriver.DriverTask;
 import com.emc.storageos.storagedriver.model.VolumeClone;
-import com.emc.storageos.storagedriver.task.RestoreFromGroupCloneDriverTask;
+import com.emc.storageos.storagedriver.task.RestoreFromCloneDriverTask;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.externaldevice.ExternalDeviceUtils;
 
@@ -66,7 +66,7 @@ public class RestoreFromGroupCloneExternalDeviceJob extends ExternalDeviceJob {
             }
             
             // Update the ViPR clone with the driver clone information.
-            RestoreFromGroupCloneDriverTask restoreDriverTask = (RestoreFromGroupCloneDriverTask) driverTask;
+            RestoreFromCloneDriverTask restoreDriverTask = (RestoreFromCloneDriverTask) driverTask;
             List<VolumeClone> updatedClones = restoreDriverTask.getClones();
             for (VolumeClone updatedClone: updatedClones) {
                 if (ExternalDeviceUtils.isVolumeExternalDeviceClone(volume, updatedClone, dbClient)) {

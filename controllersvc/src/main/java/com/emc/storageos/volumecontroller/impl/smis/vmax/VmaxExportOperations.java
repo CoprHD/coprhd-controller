@@ -1770,6 +1770,26 @@ public class VmaxExportOperations implements ExportMaskOperations {
                         // Find all the initiators associated with the MaskingView and add them
                         List<String> portNames = _helper.getInitiatorsFromLunMaskingInstance(client, instance);
                         Set<Initiator> allInitiators = ExportUtils.getInitiators(portNames, _dbClient);
+
+                        for (String portName : portNames) {
+                            String portNetworkId = Initiator.toPortNetworkId(portName);
+                            URIQueryResultList initList = new URIQueryResultList();
+                            _dbClient.queryByConstraint(
+                                    AlternateIdConstraint.Factory.getInitiatorPortInitiatorConstraint(portNetworkId),
+                                    initList);
+                            Iterator<URI> inits = initList.iterator();
+                            while (inits.hasNext()) {
+                                URI init = inits.next();
+                                Initiator obj = _dbClient.queryObject(Initiator.class, init);
+                                if (!exportMask.getUserAddedInitiators().containsKey(portName)) {
+                                    exportMask.addToUserCreatedInitiators(obj);
+                                    exportMask.addInitiator(obj);
+                                    _log.info("Adding managed initiator:{} to mask:{}", obj.getInitiatorPort(),
+                                            exportMask.getId());
+                                }
+                            }
+                        }
+
                         exportMask.addToExistingInitiatorsIfAbsent(portNames);
                         exportMask.addInitiators(allInitiators);
 

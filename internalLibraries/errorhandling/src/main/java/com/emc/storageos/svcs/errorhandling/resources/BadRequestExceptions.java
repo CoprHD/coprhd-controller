@@ -76,6 +76,9 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotDiscoverUnmanagedResourcesForUnsupportedSystem();
 
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cannotDiscoverArrayAffinityForUnsupportedSystem(String type);
+
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException cannotExpandMirrorsUsingMetaVolumes();
 

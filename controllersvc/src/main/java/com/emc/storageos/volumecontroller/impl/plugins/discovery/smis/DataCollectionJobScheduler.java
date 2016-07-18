@@ -414,7 +414,8 @@ public class DataCollectionJobScheduler {
             Iterator<StorageSystem> storageSystems = _dbClient.queryIterativeObjects(StorageSystem.class, systemURIs, true);
             while (storageSystems.hasNext()) {
                 StorageSystem system = storageSystems.next();
-                if (system.deviceIsType(Type.vmax) || system.deviceIsType(Type.vnxblock) || system.deviceIsType(Type.xtremio)) {
+                if (system.deviceIsType(Type.vmax) || system.deviceIsType(Type.vnxblock) || system.deviceIsType(Type.xtremio) ||
+                        system.deviceIsType(Type.unity)) {
                     systems.add(system);
                 }
             }
@@ -427,20 +428,25 @@ public class DataCollectionJobScheduler {
                 }
              });
 
-             for (StorageSystem system : systems) {
-                StorageProvider provider = _dbClient.queryObject(StorageProvider.class,
-                        system.getActiveProviderURI());
-                if (provider != null && !provider.getInactive()) {
-                    List<URI> systemIds = providerToSystemsMap.get(provider.getId());
-                    if (systemIds == null) {
-                        systemIds = new ArrayList<URI>();
-                        providerToSystemsMap.put(provider.getId(), systemIds);
-                    }
+            for (StorageSystem system : systems) {
+                if (system.deviceIsType(Type.unity)) {
+                    List<URI> systemIds = new ArrayList<URI>();
                     systemIds.add(system.getId());
+                    providerToSystemsMap.put(system.getId(), systemIds);
+                } else {
+                    StorageProvider provider = _dbClient.queryObject(StorageProvider.class,
+                            system.getActiveProviderURI());
+                    if (provider != null && !provider.getInactive()) {
+                        List<URI> systemIds = providerToSystemsMap.get(provider.getId());
+                        if (systemIds == null) {
+                            systemIds = new ArrayList<URI>();
+                            providerToSystemsMap.put(provider.getId(), systemIds);
+                        }
+                        systemIds.add(system.getId());
+                    }
                 }
             }
-        }
-        else {
+        } else {
             addToList(allSystemsURIs, _dbClient.queryByType(StorageSystem.class, true).iterator());
             addToList(allSystemsURIs, _dbClient.queryByType(ProtectionSystem.class, true).iterator());
         }

@@ -1,18 +1,29 @@
-<collapse title="&{'scheduler.title'}">
+<collapse title="&{'schedulerTitle'}">
    <div class="form-group">
-     <label class="control-label col-sm-3" for="schedulerEnabled">&{"scheduler.enabled"}:</label>
+     <label class="control-label col-sm-3" for="schedulerEnabled">&{"schedulerEnabled"}:</label>
      <div class="col-sm-6 controls">
 	     <div class="row col-gap-sm">
 	        <div class="col-xs-3">
 	        	<input type="checkbox" id="schedulerEnabled" name="schedulerEnabled" value="{{schedulerEnabled}}" ng-model="schedulerEnabled"/>
 	        </div>
 	     </div>
-	     <span class="help-block">&{"scheduler.enabled.helpText"}</span>
+     </div>
+   </div>
+   
+  <div class="form-group" ng-if="isSchedulerEnabled()">
+     <label class="control-label col-sm-3" for="schedulerStartDate">&{"schedulerStartDate"}:</label>
+     <div class="col-sm-6 controls">
+	     <div class="row col-gap-sm">
+	        <div class="col-xs-3">
+	        	<input type="text" id="schedulerStartDate"  name="schedulerStartDate" class="form-control" 
+	        	   ng-model="schedulerStartDate" min="1"/>
+	        </div>
+	     </div>
      </div>
    </div>
    
    <div class="form-group" ng-if="isSchedulerEnabled()">
-     <label class="control-label col-sm-3">&{"scheduler.startTime"}:</label>
+     <label class="control-label col-sm-3">&{"schedulerStartTime"}:</label>
      <div class="col-sm-5 controls">
 	     <div class="row col-gap-sm">
 	        <div class="col-xs-2">
@@ -31,12 +42,12 @@
 	           </select>
 	        </div>
 	     </div>
-     <span class="help-block">&{"scheduler.startTime.helpText"}</span>	
+     <span class="help-block">&{"schedulerStartTimeHelpText"}</span>	
      </div>
    </div>
    
    <div class="form-group" ng-if="isSchedulerEnabled()">
-     <label class="control-label col-sm-3" for="schedulerCycleFrequency">&{"scheduler.repeat"}:</label>
+     <label class="control-label col-sm-3" for="schedulerCycleFrequency">&{"schedulerCycleFrequency"}:</label>
      <div class="col-sm-6 controls">
 	     <div class="row col-gap-sm">
 	        <div class="col-xs-3">
@@ -48,38 +59,38 @@
    </div>
    
  <div class="form-group" ng-if="isSchedulerEnabled()">
-   <label class="control-label col-sm-3" for="schedulerCycleType">&{"scheduler.schedulerCycleType"}:</label>
+   <label class="control-label col-sm-3" for="schedulerCycleType">&{"schedulerSchedulerCycleType"}:</label>
    <div class="col-sm-6 controls">
         <div class="radio">
          <label>
    	       <input type="radio" id="schedulerCycleType" name="schedulerCycleType"  
    	           value="1" ng-model="schedulerCycleType"/>
-   	        &{"scheduler.minutely"}  
+   	        &{"schedulerMinutely"}  
    	      </label>
    	   </div>  
        <div class="radio">
          <label>
    	       <input type="radio" id="schedulerCycleType" name="schedulerCycleType"  
    	           value="2" ng-model="schedulerCycleType"/>
-   	        &{"scheduler.hourly"}  
+   	        &{"schedulerHourly"}  
    	      </label>
    	   </div>  
        <div class="radio">
          <label>
    	       <input type="radio" id="schedulerCycleType" name="schedulerCycleType"  
    	          value="3" ng-model="schedulerCycleType"/>
-   	        &{"scheduler.daily"}  
+   	        &{"schedulerDaily"}  
    	      </label>
    	   </div>   
    	   <div class="radio">
 	   	   <label>
 		   	   <input type="radio" id="schedulerCycleType" name="schedulerCycleType" 
 		   	      value="4" ng-model="schedulerCycleType"/>
-		   	      &{"scheduler.weekly"} 
+		   	      &{"schedulerWeekly"} 
 		   </label>
 	   	   <div class="row col-gap-none">
 	          <div class="col-xs-3 col-xs-offset-1">
-	            <label class="control-label" for="schedulerDayOfWeek">&{'scheduler.dayOfWeek'}:</label>
+	            <label class="control-label" for="schedulerDayOfWeek"><b>&{'schedulerDayOfWeek'}:</b></label>
 	          </div>
 	          <div class="col-xs-3"> 
 	             <select id="schedulerDayOfWeek" name="schedulerDayOfWeek" ng-model="schedulerDayOfWeek" class="form-control" >
@@ -95,11 +106,11 @@
 	   	   <label>
 	   	   <input type="radio" id="schedulerCycleType" name="schedulerCycleType" 
 	   	      value="5" ng-model="schedulerCycleType"/>
-	   	      &{"scheduler.monthly"}
+	   	      &{"schedulerMonthly"}
 	   	   </label>   
 	   	   <div class="row col-gap-none">
 	          <div class="col-xs-3 col-xs-offset-1">
-	            <label class="control-label" for="schedulerDayOfMonth">&{'scheduler.dayOfMonth'}:</label>
+	            <label class="control-label" for="schedulerDayOfMonth"><b>&{'schedulerDayOfMonth'}:</b></label>
 	          </div>
 	          <div class="col-xs-3">
 	           	<select id="schedulerDayOfMonth" name="schedulerDayOfMonth" ng-model="schedulerDayOfMonth" class="form-control" >
@@ -114,14 +125,14 @@
  </div>  
  
  <div class="form-group" ng-if="isSchedulerEnabled()">
-     <label class="control-label col-sm-3" for="schedulerRange">&{"scheduler.recurrence"}:</label>
+     <label class="control-label col-sm-3" for="schedulerRange">&{"schedulerRecurrence"}:</label>
      
     <div class="col-sm-6 controls">
          <div class="radio">
 	   	   <label>
 	   	   <input type="radio" id="schedulerRecurrence" name="schedulerRecurrence" 
 	   	      value="1" ng-model="schedulerRecurrence"/>
-	   	      &{"scheduler.onlyonce"}
+	   	      &{"schedulerOnlyonce"}
 	   	   </label>   
 	   	 </div>
 
@@ -129,7 +140,7 @@
 	   	   <label>
 	   	   <input type="radio" id="schedulerRecurrence" name="schedulerRecurrence" 
 	   	      value="-1" ng-model="schedulerRecurrence"/>
-	   	      &{"scheduler.indefinitely"}
+	   	      &{"schedulerIndefinitely"}
 	   	   </label>   
 	   	 </div>
 	   	 
@@ -137,7 +148,7 @@
 	   	   <label>
 		   	   <input type="radio" id="schedulerRecurrence" name="schedulerRecurrence" 
 		   	      value="0" ng-model="schedulerRecurrence"/>
-		   	      &{"scheduler.endAfterRecurrences"} 
+		   	      &{"schedulerEndAfterRecurrences"} 
 		   </label>
 	   	   <div class="row col-gap-none">
 	          <div class="col-xs-2"> 

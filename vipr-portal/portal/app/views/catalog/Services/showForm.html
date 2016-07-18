@@ -114,8 +114,9 @@
           
           <button-bar>
             <button type="submit" class="btn btn-primary" ng-disabled="disableSubmitButton()" v-submit-form>
-                <span v-icon=shopping-cart ng-if="! isSchedulerEnabled()" >&{"service.order"}</span>
-                <span v-icon=shopping-cart ng-if="isSchedulerEnabled()" >&{"service.schedule"}</span>
+                <span v-icon=shopping-cart></span>
+                <span ng-if="!isSchedulerEnabled()" >&{"service.order"}</span>
+                <span ng-if="isSchedulerEnabled()" >&{"service.schedule"}</span>
             </button>
             #{Form.button name:'service.cancel', icon:'trash', href:backUrl /}
           </button-bar>

@@ -211,7 +211,7 @@ angular.module("portalApp").controller({
         
         // Set default values for scheduler
         $scope.schedulerHourOfDay = '01';
-        $scope.schedulerMinutesOfHour = '0';
+        $scope.schedulerMinuteOfHour = '0';
         $scope.schedulerCycleFrequency = 1;
         $scope.schedulerCycleType = 1;
         $scope.schedulerRangeOfRecurrence = 1;

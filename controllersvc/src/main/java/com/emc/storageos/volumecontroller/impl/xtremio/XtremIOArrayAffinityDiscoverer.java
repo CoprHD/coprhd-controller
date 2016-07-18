@@ -28,6 +28,7 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.plugins.common.Constants;
+import com.emc.storageos.plugins.common.PartitionManager;
 import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.export.ArrayAffinityDiscoveryUtils;
@@ -50,6 +51,7 @@ import com.google.common.collect.Sets;
  */
 public class XtremIOArrayAffinityDiscoverer {
     private static final Logger log = LoggerFactory.getLogger(XtremIOArrayAffinityDiscoverer.class);
+    private static final String HOST = "Host";
 
     private XtremIOClientFactory xtremioRestClientFactory;
 
@@ -101,27 +103,28 @@ public class XtremIOArrayAffinityDiscoverer {
         }
         log.info("List of IGs found {}",
                 Joiner.on(",").join(groupInitiatorsByIG.asMap().entrySet()));
-
-        // map of IG name to Volume names mapped
-        Map<String, Set<String>> igToVolumesMap = getIgToVolumesMap(xtremIOClient, xioClusterName);
-
         Set<String> igNames = groupInitiatorsByIG.keySet();
-        Set<String> volumeNames = getVolumesForHost(igNames, igToVolumesMap);
-        // consider only unmanaged volumes
-        filterKnownVolumes(system, dbClient, xtremIOClient, xioClusterName, volumeNames);
+        if (!igNames.isEmpty()) {
+            // map of IG name to Volume names mapped
+            Map<String, Set<String>> igToVolumesMap = getIgToVolumesMap(xtremIOClient, xioClusterName);
 
-        // get storage pool for matching volumes
-        if (!volumeNames.isEmpty()) {
-            log.info("UnManaged Volumes found for this Host: {}", volumeNames);
-            // As XtremIO array has only one storage pool, add the pool directly.
-            // get the storage pool associated with the XtremIO system
-            StoragePool storagePool = XtremIOProvUtils.getXtremIOStoragePool(system.getId(), dbClient);
-            if (storagePool != null) {
-                String maskType = getMaskTypeForHost(xtremIOClient, xioClusterName, groupInitiatorsByIG, null, igNames, volumeNames);
-                ArrayAffinityDiscoveryUtils.addPoolToPreferredPoolMap(preferredPoolMap, storagePool.getId().toString(), maskType);
+            Set<String> volumeNames = getVolumesForHost(igNames, igToVolumesMap);
+            // consider only unmanaged volumes
+            filterKnownVolumes(system, dbClient, xtremIOClient, xioClusterName, volumeNames);
+
+            // get storage pool for matching volumes
+            if (!volumeNames.isEmpty()) {
+                log.info("UnManaged Volumes found for this Host: {}", volumeNames);
+                // As XtremIO array has only one storage pool, add the pool directly.
+                // get the storage pool associated with the XtremIO system
+                StoragePool storagePool = XtremIOProvUtils.getXtremIOStoragePool(system.getId(), dbClient);
+                if (storagePool != null) {
+                    String maskType = getMaskTypeForHost(xtremIOClient, xioClusterName, groupInitiatorsByIG, null, igNames, volumeNames);
+                    ArrayAffinityDiscoveryUtils.addPoolToPreferredPoolMap(preferredPoolMap, storagePool.getId().toString(), maskType);
+                }
+            } else {
+                log.info("No UnManaged Volumes found for this Host");
             }
-        } else {
-            log.info("No UnManaged Volumes found for this Host");
         }
 
         return preferredPoolMap;
@@ -131,13 +134,15 @@ public class XtremIOArrayAffinityDiscoverer {
      * Gets the volumes for the given host's IGs.
      */
     private Set<String> getVolumesForHost(Set<String> igNames, Map<String, Set<String>> igToVolumesMap) throws Exception {
-        log.info("Querying volumes for IGs {}", igNames.toArray());
         Set<String> volumeNames = new HashSet<String>();
-        for (String igName : igNames) {
-            Set<String> igVolumes = igToVolumesMap.get(igName);
-            log.info("Volumes {} found for IG {}", igVolumes, igName);
-            if (igVolumes != null) {
-                volumeNames.addAll(igVolumes);
+        if (igNames != null) {
+            log.info("Querying volumes for IGs {}", igNames.toArray());
+            for (String igName : igNames) {
+                Set<String> igVolumes = igToVolumesMap.get(igName);
+                log.info("Volumes {} found for IG {}", igVolumes, igName);
+                if (igVolumes != null) {
+                    volumeNames.addAll(igVolumes);
+                }
             }
         }
         return volumeNames;
@@ -278,13 +283,14 @@ public class XtremIOArrayAffinityDiscoverer {
      *
      * @param system the system
      * @param dbClient the db client
+     * @param partitionManager
      * @throws Exception the exception
      */
-    public void findAndUpdatePreferredPools(StorageSystem system, DbClient dbClient) throws Exception {
+    public void findAndUpdatePreferredPools(StorageSystem system, DbClient dbClient, PartitionManager partitionManager) throws Exception {
         /**
          * Get all initiators on array,
          * Group initiators by IG, also maintain a map of Host to IGs, and a map of IG to Hosts.
-         * For each Host entry in the map:
+         * For each Host in the DB:
          * - Find if any of its IG has volumes,
          * - Find the mask type for the host.
          */
@@ -340,19 +346,21 @@ public class XtremIOArrayAffinityDiscoverer {
         // get the storage pool associated with the XtremIO system
         StoragePool storagePool = XtremIOProvUtils.getXtremIOStoragePool(system.getId(), dbClient);
         List<Host> hostsToUpdate = new ArrayList<Host>();
-        for (URI hostId : hostToIGNamesMap.keySet()) {
-            Host host = dbClient.queryObject(Host.class, hostId);
-            if (host != null) {
+        List<URI> hostURIs = dbClient.queryByType(Host.class, true);
+        Iterator<Host> hosts = dbClient.queryIterativeObjectFields(Host.class, ArrayAffinityDiscoveryUtils.HOST_PROPERTIES, hostURIs);
+        while (hosts.hasNext()) {
+            Host host = hosts.next();
+            if (host != null && !host.getInactive()) {
                 log.info("Processing Host {}", host.getLabel());
                 Map<String, String> preferredPoolMap = new HashMap<String, String>();
-                Set<String> volumeNames = getVolumesForHost(hostToIGNamesMap.get(hostId), igToVolumesMap);
+                Set<String> volumeNames = getVolumesForHost(hostToIGNamesMap.get(host.getId()), igToVolumesMap);
                 // consider only unmanaged volumes
                 filterKnownVolumes(system, dbClient, xtremIOClient, xioClusterName, volumeNames);
                 if (!volumeNames.isEmpty()) {
                     log.info("UnManaged Volumes found for this Host: {}", volumeNames);
                     if (storagePool != null) {
                         String maskType = getMaskTypeForHost(xtremIOClient, xioClusterName,
-                                igNameToInitiatorsMap, igNameToHostsMap, hostToIGNamesMap.get(hostId), volumeNames);
+                                igNameToInitiatorsMap, igNameToHostsMap, hostToIGNamesMap.get(host.getId()), volumeNames);
                         ArrayAffinityDiscoveryUtils.addPoolToPreferredPoolMap(preferredPoolMap,
                                 storagePool.getId().toString(), maskType);
                     }
@@ -367,7 +375,7 @@ public class XtremIOArrayAffinityDiscoverer {
             }
         }
         if (!hostsToUpdate.isEmpty()) {
-            dbClient.updateObject(hostsToUpdate);
+            partitionManager.updateAndReIndexInBatches(hostsToUpdate, Constants.DEFAULT_PARTITION_SIZE, dbClient, HOST);
         }
     }
 }

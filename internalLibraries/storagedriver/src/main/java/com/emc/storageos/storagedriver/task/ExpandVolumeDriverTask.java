@@ -16,17 +16,22 @@ import com.emc.storageos.storagedriver.model.StorageVolume;
 public class ExpandVolumeDriverTask extends DriverTask {
     
     // A reference to the storage volume associated with the task.
-    private  StorageVolume _deviceVolume;
+    private StorageVolume _deviceVolume;
+    
+    // The requested new capacity
+    private long _newCapacity;
     
     /**
      * Constructor
      * 
      * @param taskId The unique ID of the task.
      * @param deviceVolume A reference to the storage volume expanded by the task.
+     * @param newCapacity The requested new capacity.
      */
-    public ExpandVolumeDriverTask(String taskId, StorageVolume deviceVolume) {
+    public ExpandVolumeDriverTask(String taskId, StorageVolume deviceVolume, long newCapacity) {
         super(taskId);
         _deviceVolume = deviceVolume;
+        _newCapacity = newCapacity;
     }
     
     /**
@@ -37,6 +42,15 @@ public class ExpandVolumeDriverTask extends DriverTask {
     public StorageVolume getStorageVolume() {
         return _deviceVolume;
     }
+    
+    /**
+     * Get the requested new capacity for the volume.
+     * 
+     * @return The requested new capacity.
+     */
+    public long getExpandedCapacity() {
+        return _newCapacity;
+    }    
 
     /**
      * {@inheritDoc}

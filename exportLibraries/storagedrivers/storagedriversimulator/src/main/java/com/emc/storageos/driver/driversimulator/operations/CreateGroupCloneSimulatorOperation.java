@@ -16,17 +16,34 @@ import com.emc.storageos.storagedriver.model.VolumeClone;
 import com.emc.storageos.storagedriver.model.VolumeConsistencyGroup;
 import com.emc.storageos.storagedriver.task.CreateGroupCloneDriverTask;
 
+/**
+ * A simulator operation to manage the creation of a consistency group clone.
+ */
 public class CreateGroupCloneSimulatorOperation extends BaseDriverSimulatorOperation {
     
-    private static final String OP_NAME = "create-group-clone";
+    // The name of the operation.
+    private static final String OP_NAME = "expand-storage-volumes";
     
+    // A reference to a logger.
     private static final Logger _log = LoggerFactory.getLogger(CreateGroupCloneSimulatorOperation.class);
     
+    /**
+     * Constructor.
+     * 
+     * @param consistencyGroup A reference to the consistency group.
+     * @param clones A list of the clones to be created.
+     */
     public CreateGroupCloneSimulatorOperation(VolumeConsistencyGroup consistencyGroup, List<VolumeClone> clones) {
         super(OP_NAME);
         createDriverTask(consistencyGroup, clones);
     }
     
+    /**
+     * Update the clone information after successfully being created.
+     * 
+     * @param consistencyGroup A reference to the consistency group.
+     * @param clones A list of the clones to be updated.
+     */
     public void updateGroupCloneInfo(VolumeConsistencyGroup consistencyGroup, List<VolumeClone> clones) {
         String cloneTimestamp = Long.toString(System.currentTimeMillis());
         for (VolumeClone clone : clones) {
@@ -68,6 +85,12 @@ public class CreateGroupCloneSimulatorOperation extends BaseDriverSimulatorOpera
         return "StorageDriver: createGroupClone simulated failure";
     }
         
+    /**
+     * Create the create consistency group clone task that is returned by the request.
+     * 
+     * @param consistencyGroup A reference to the consistency group.
+     * @param clones A list of the clones to be created.
+     */
     private void createDriverTask(VolumeConsistencyGroup consistencyGroup, List<VolumeClone> clones) {
         String taskId = String.format("%s+%s+%s", StorageDriverSimulator.DRIVER_NAME, OP_NAME, UUID.randomUUID().toString());
         _log.info("Creating task {} for operation of type {}", taskId, OP_NAME);

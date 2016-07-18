@@ -15,17 +15,32 @@ import com.emc.storageos.storagedriver.DriverTask;
 import com.emc.storageos.storagedriver.model.VolumeClone;
 import com.emc.storageos.storagedriver.task.CreateVolumeCloneDriverTask;
 
+/**
+ * A simulator operation to manage the creation of a storage volume clone.
+ */
 public class CreateVolumeCloneSimulatorOperation extends BaseDriverSimulatorOperation {
     
+    // The name of the operation.
     private static final String OP_NAME = "create-volume-clone";
     
+    // A reference to a logger.
     private static final Logger _log = LoggerFactory.getLogger(CreateVolumeCloneSimulatorOperation.class);
     
+    /**
+     * Constructor.
+     * 
+     * @param clones A list of the clones to be created.
+     */
     public CreateVolumeCloneSimulatorOperation(List<VolumeClone> clones) {
         super(OP_NAME);
         createDriverTask(clones);
     }
     
+    /**
+     * Update the clone information after successfully being created.
+     * 
+     * @param clones A list of the clones to be updated.
+     */
     public void updateCloneInfo(List<VolumeClone> clones) {
         for (VolumeClone clone : clones) {
             clone.setNativeId("clone-" + clone.getParentId() + clone.getDisplayName());
@@ -63,6 +78,11 @@ public class CreateVolumeCloneSimulatorOperation extends BaseDriverSimulatorOper
         return "StorageDriver: createVolumeClone simulated failure";
     }
         
+    /**
+     * Create the create volume clone task that is returned by the request.
+     * 
+     * @param clones A list of the clones to be created.
+     */
     private void createDriverTask(List<VolumeClone> clones) {
         String taskId = String.format("%s+%s+%s", StorageDriverSimulator.DRIVER_NAME, OP_NAME, UUID.randomUUID().toString());
         _log.info("Creating task {} for operation of type {}", taskId, OP_NAME);

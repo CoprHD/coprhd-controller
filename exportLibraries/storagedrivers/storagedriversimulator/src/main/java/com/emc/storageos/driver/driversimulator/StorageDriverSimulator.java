@@ -26,6 +26,7 @@ import org.springframework.context.support.ClassPathXmlApplicationContext;
 import com.emc.storageos.driver.driversimulator.operations.CreateGroupCloneSimulatorOperation;
 import com.emc.storageos.driver.driversimulator.operations.CreateVolumeCloneSimulatorOperation;
 import com.emc.storageos.driver.driversimulator.operations.DriverSimulatorOperation;
+import com.emc.storageos.driver.driversimulator.operations.ExpandVolumeSimulatorOperation;
 import com.emc.storageos.storagedriver.BlockStorageDriver;
 import com.emc.storageos.storagedriver.DefaultStorageDriver;
 import com.emc.storageos.storagedriver.DriverTask;
@@ -400,18 +401,19 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
 
     @Override
     public DriverTask expandVolume(StorageVolume volume, long newCapacity) {
-        String taskType = "expand-storage-volumes";
-        String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
-        volume.setRequestedCapacity(newCapacity);
-        volume.setProvisionedCapacity(newCapacity);
-        volume.setAllocatedCapacity(newCapacity);
-        DriverTask task = new DriverSimulatorTask(taskId);
-        task.setStatus(DriverTask.TaskStatus.READY);
-
-        _log.info("StorageDriver: expandVolume information for storage system {}, volume nativeId {}," +
-                        " new capacity {} - end",
-                volume.getStorageSystemId(), volume.toString(), volume.getRequestedCapacity());
-        return task;
+        ExpandVolumeSimulatorOperation expandVolumeSimulatorOperation = new ExpandVolumeSimulatorOperation(volume, newCapacity);
+        if (simulatorConfig.getSimulateAsynchronousResponses()) {
+            DriverTask driverTask = expandVolumeSimulatorOperation.getDriverTask();
+            taskOperationMap.put(driverTask.getTaskId(), expandVolumeSimulatorOperation);
+            return driverTask;
+        } else if (simulatorConfig.getSimulateFailures()) {
+            String failMsg = expandVolumeSimulatorOperation.getFailureMessage();
+            return expandVolumeSimulatorOperation.doFailure(failMsg);
+        } else {
+            expandVolumeSimulatorOperation.updateVolumeInfo(volume, newCapacity);
+            String successMsg = expandVolumeSimulatorOperation.getSuccessMessage(volume);
+            return expandVolumeSimulatorOperation.doSuccess(successMsg);
+        }
     }
 
     @Override

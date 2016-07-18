@@ -46,6 +46,7 @@ public class ModelClient {
     private ExecutionWindowFinder executionWindowDAO;
     private OrderFinder orderModelDAO;
     private OrderParameterFinder orderParameterDAO;
+    private ScheduledEventFinder scheduledEventModelDAO;
     private RecentServiceFinder recentServiceDAO;
     private VCenterFinder vcenterDAO;
     private VirtualMachineFinder virtualMachineDAO;
@@ -232,6 +233,13 @@ public class ModelClient {
             orderParameterDAO = new OrderParameterFinder(client);
         }
         return orderParameterDAO;
+    }
+
+    public ScheduledEventFinder scheduledEvents() {
+        if (scheduledEventModelDAO == null) {
+            scheduledEventModelDAO = new ScheduledEventFinder(client);
+        }
+        return scheduledEventModelDAO;
     }
 
     @Deprecated

@@ -309,6 +309,10 @@ public enum OperationTypeEnum {
     UPDATE_CATALOG_PREFERENCES("UPDATE CATALOG PREFERENCES", "", "operation to update catalog preferences"),
     UPDATE_USER_PREFERENCES("UPDATE USER PREFERENCES", "", "operation to update user preferences"),
 
+    CREATE_SCHEDULED_EVENT("CRAETE SCHEDULED_EVENT", "", "operation to create a scheduled event"),
+    UPDATE_SCHEDULED_EVENT("UPDATE SCHEDULED_EVENT", "", "operation to update a scheduled event"),
+    DELETE_SCHEDULED_EVENT("DELETE SCHEDULED_EVENT", "", "operation to delete a scheduled event"),
+
     CREATE_ORDER("CRAETE ORDER", "", "operation to create a order"),
     UPDATE_ORDER("UPDATE ORDER", "", "operation to update a order"),
     DELETE_ORDER("DELETE ORDER", "", "operation to delete a order"),

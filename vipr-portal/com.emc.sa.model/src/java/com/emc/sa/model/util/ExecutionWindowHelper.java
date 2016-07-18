@@ -136,6 +136,63 @@ public class ExecutionWindowHelper {
     }
 
     /**
+     * 48 hours time representation
+     * @return
+     */
+    private int getHourMin(int hour, int min) {
+        return Integer.valueOf(String.format("%02d%02d", hour, min));
+    }
+
+     private int getWindowStartHourMin() {
+         int hour = window.getHourOfDayInUTC() != null ? window.getHourOfDayInUTC() : 0;
+         int min = window.getMinuteOfHourInUTC() != null ? window.getMinuteOfHourInUTC() : 0;
+         return getHourMin(hour, min);
+     }
+
+    private int getWindowEndHourMin() {
+        int hour = window.getHourOfDayInUTC() != null ? window.getHourOfDayInUTC() : 0;
+        int min = window.getMinuteOfHourInUTC() != null ? window.getMinuteOfHourInUTC() : 0;
+
+        switch (ExecutionWindowLengthType.valueOf(window.getExecutionWindowLengthType())) {
+            case DAYS:
+                // maximum execution window is 24hours
+                hour += 24;
+                break;
+            case HOURS:
+                hour += window.getExecutionWindowLength();
+                break;
+            case MINUTES:
+                hour += window.getExecutionWindowLength()/60;
+                min += window.getExecutionWindowLength()%60;
+                if (min>=60) {
+                    hour ++;
+                    min -= 60;
+                }
+                break;
+        }
+
+        return getHourMin(hour, min);
+    }
+
+    public boolean inHourMinWindow(int hour, int min) {
+        int targetTime = getHourMin(hour, min);
+
+        int startTime, endTime;
+        startTime = getWindowStartHourMin();
+        endTime = getWindowEndHourMin();
+
+        if (targetTime >= startTime && targetTime <= endTime) {
+            return true;
+        }
+        // might in the 2nd day.
+        targetTime += 2400;
+        if ( targetTime >= startTime && targetTime <= endTime) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
      * Adjusts the start time to the correct day of the week for a weekly window.
      * 
      * @param startTime

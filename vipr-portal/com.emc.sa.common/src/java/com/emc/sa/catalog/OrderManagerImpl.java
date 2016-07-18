@@ -525,11 +525,16 @@ public class OrderManagerImpl implements OrderManager {
     private void processPendingOrder(Order order, CatalogService service) {
         if (Boolean.TRUE.equals(service.getApprovalRequired())) {
             requireApproval(order, service);
+            return;
         }
-        else if (Boolean.TRUE.equals(service.getExecutionWindowRequired())) {
+
+        if (order.getScheduledEventId() != null) {
+            // scheduledEvent always requires orders to be scheduled.
             scheduleOrder(order, service);
-        }
-        else {
+        } else if (Boolean.TRUE.equals(service.getExecutionWindowRequired())) {
+            // direct orders would be executed in the next execution window.
+            scheduleOrder(order, service);
+        } else {
             submitOrderToQueue(order);
         }
     }
@@ -550,13 +555,16 @@ public class OrderManagerImpl implements OrderManager {
     private void processApprovedOrder(Order order, CatalogService service) {
         ApprovalRequest approval = approvalManager.findFirstApprovalsByOrderId(order.getId());
         notificationManager.notifyUserOfApprovalStatus(order, service, approval);
-        if (Boolean.TRUE.equals(service.getExecutionWindowRequired())) {
+
+        if (order.getScheduledEventId() != null) {
+            // orders always need to be scheduled via scheduledEvent.
             scheduleOrder(order, service);
-        }
-        else {
+        } else if (Boolean.TRUE.equals(service.getExecutionWindowRequired())) {
+            // direct orders would be executed in the next execution window.
+            scheduleOrder(order, service);
+        } else {
             submitOrderToQueue(order);
         }
-
     }
 
     private void processRejectedOrder(Order order, CatalogService service) {

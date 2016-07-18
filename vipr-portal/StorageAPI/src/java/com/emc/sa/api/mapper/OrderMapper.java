@@ -138,6 +138,12 @@ public class OrderMapper {
         newObject.setId(URIUtil.createId(Order.class));
         newObject.setTenant(tenantId.toString());
         newObject.setCatalogServiceId(param.getCatalogService());
+        if (param.getScheduledEventId() != null) {
+            newObject.setScheduledEventId(param.getScheduledEventId());
+        }
+        if (param.getScheduledTime() != null) {
+            newObject.setScheduledTime(param.getScheduledTime());
+        }
 
         updateObject(newObject, param);
 

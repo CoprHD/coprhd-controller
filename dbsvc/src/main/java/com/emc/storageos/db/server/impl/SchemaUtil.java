@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 
 import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.gms.Gossiper;
@@ -57,7 +58,6 @@ import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.model.LongMap;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.PasswordHistory;
-import com.emc.storageos.db.client.model.StorageSystemType;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VdcVersion;
@@ -69,7 +69,6 @@ import com.emc.storageos.db.common.DbServiceStatusChecker;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.security.password.PasswordUtils;
-import com.google.common.collect.Lists;
 
 /**
  * Utility class for initializing DB schema from model classes
@@ -81,6 +80,7 @@ public class SchemaUtil {
     private static final String VDC_NODE_PREFIX = "node";
     private static final String GEODB_BOOTSTRAP_LOCK = "geodbbootstrap";
     private static final String STORAGE_SYSTEM_TYPE_INIT_LOCK = "storagesystemtypeinitlock";
+    private static final int CREATE_TABLE_CONCURRENT_ASYC_TASK_COUNT = 20;
 
     private static final int DEFAULT_REPLICATION_FACTOR = 1;
     private static final int MAX_REPLICATION_FACTOR = 5;
@@ -275,7 +275,7 @@ public class SchemaUtil {
 
             }catch (DriverException e) {
                 _log.warn("Unable to verify DB keyspace, will retry in {} secs", retryIntervalSecs, e);
-            } catch (InterruptedException e) {
+            } catch (InterruptedException | ExecutionException e) {
                 _log.warn("DB keyspace verification interrupted, will retry in {} secs", retryIntervalSecs, e);
             } catch (IllegalStateException e) {
                 _log.warn("IllegalStateException: ", e);
@@ -294,7 +294,7 @@ public class SchemaUtil {
         }
     }
 
-    private boolean checkAndInitSchemaOnActive(KeyspaceMetadata kd, boolean waitForSchema) throws InterruptedException,
+    private boolean checkAndInitSchemaOnActive(KeyspaceMetadata kd, boolean waitForSchema) throws InterruptedException, ExecutionException,
             ConnectionException {
         _log.info("try scan and setup db ...");
         if (kd == null) {
@@ -561,11 +561,15 @@ public class SchemaUtil {
      * CF's are created on the fly.
      *
      */
-    public void checkCf() throws InterruptedException {
+    public void checkCf() throws InterruptedException, ExecutionException {
         // Get default GC grace period for all index CFs in local DB
         Integer indexGcGrace = isGeoDbsvc() ? null : getIntProperty(DbClientImpl.DB_CASSANDRA_INDEX_GC_GRACE_PERIOD, null);
         KeyspaceMetadata keyspaceMetaData = clientContext.getKeyspaceMetaData();
-
+        
+        // create talbe with CQL is slow (each create table will cost about 3 seconds)
+        // as workaround, create tables with asyc tasks
+        List<String> updateTableQueryStrigList = new ArrayList<String>();
+        
         boolean waitForSchema = false;
         for (ColumnFamilyDefinition cf : getCfMap().values()) {
             ColumnFamilyDefinition.ComparatorType comparatorType = cf.getComparatorType();
@@ -611,7 +615,12 @@ public class SchemaUtil {
                 }
 
                 int gc = cfGcGrace != null ? cfGcGrace.intValue() : 0;
-                clientContext.createCF(cf.getName(), gc, compactionStrategy, schema, primaryKey);
+                updateTableQueryStrigList.add(generateCreateTableCQL(cf.getName(), gc, compactionStrategy, schema, primaryKey, clientContext.getKeyspaceName()));
+                
+                if (updateTableQueryStrigList.size() >= CREATE_TABLE_CONCURRENT_ASYC_TASK_COUNT) {
+                    clientContext.createCFAsyc(updateTableQueryStrigList);
+                }
+                
                 waitForSchema = true;
             } else {
                 boolean modified = false;
@@ -661,9 +670,16 @@ public class SchemaUtil {
                 }
 
                 if (modified) {
-                    clientContext.updateTable(cfd, compactionStrategy, gcGrace);
+                    if (updateTableQueryStrigList.size() >= CREATE_TABLE_CONCURRENT_ASYC_TASK_COUNT) {
+                        updateTableQueryStrigList.add(generateAlterTableCQL(cfd, compactionStrategy, gcGrace, clientContext.getKeyspaceName()));
+                        clientContext.createCFAsyc(updateTableQueryStrigList);
+                    }
                 }
             }
+        }
+        
+        if (updateTableQueryStrigList.size() > 0 ) {
+            clientContext.createCFAsyc(updateTableQueryStrigList);
         }
 
         if (waitForSchema) {
@@ -1085,5 +1101,49 @@ public class SchemaUtil {
     public void setDrUtil(DrUtil drUtil) {
         this.drUtil = drUtil;
         onStandby = drUtil.isStandby();
+    }
+    
+    private String generateCreateTableCQL(String cfName, int gcPeriod, String compactionStrategy, String schema, String primaryKey, String keyspaceName) {
+        StringBuilder createCF = new StringBuilder(String.format("CREATE TABLE \"%s\".\"%s\" (%s,PRIMARY KEY (%s)) WITH COMPACT STORAGE AND " +
+                                "speculative_retry = 'NONE' AND "+
+                                "compaction = { 'class' : '%s' }",
+                        keyspaceName, cfName, schema, primaryKey, compactionStrategy));
+        if (gcPeriod != 0) {
+            createCF.append(" AND gc_grace_seconds = ");
+            createCF.append(gcPeriod);
+        }
+        
+        createCF.append(";");
+        return createCF.toString();
+    }
+    
+    private String generateAlterTableCQL(TableMetadata cfd, String compactionStrategy, int gcGrace, String keyspaceName) {
+        if (compactionStrategy == null && gcGrace <=0) {
+            throw new IllegalArgumentException("compactionStrategy should not be null or gcGrace should >0");
+        }
+
+        String updateTable= String.format("ALTER TABLE \"%s\".\"%s\" with ", keyspaceName, cfd.getName());
+        StringBuilder builder = new StringBuilder(updateTable);
+
+        if (compactionStrategy != null) {
+            builder.append("compaction = { 'class' : '");
+            builder.append(compactionStrategy);
+            builder.append("' }");
+        }
+
+        if (gcGrace > 0) {
+            if (compactionStrategy != null) {
+                builder.append(" AND ");
+            }else {
+                builder.append(" gc_grace_seconds=");
+                builder.append(gcGrace);
+            }
+        }
+
+        builder.append(";");
+
+        String alterStatement = builder.toString();
+        _log.info("alter statement={}", alterStatement);
+        return alterStatement;
     }
 }

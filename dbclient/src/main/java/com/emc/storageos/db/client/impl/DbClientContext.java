@@ -5,19 +5,21 @@
 
 package com.emc.storageos.db.client.impl;
 
-import java.util.Collection;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.policies.RetryPolicy;
+
 import org.apache.cassandra.service.StorageProxy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,15 +27,13 @@ import org.slf4j.LoggerFactory;
 import com.datastax.driver.core.KeyspaceMetadata;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.Statement;
-import com.datastax.driver.core.TableMetadata;
 import com.datastax.driver.core.WriteType;
 import com.datastax.driver.core.exceptions.ConnectionException;
 import com.datastax.driver.core.exceptions.DriverException;
-import com.emc.storageos.coordinator.client.model.Site;
-import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
 
@@ -317,52 +317,19 @@ public class DbClientContext {
         return cassandraCluster.getMetadata().getKeyspace("\"" + keyspaceName + "\"");
     }
 
-    public void createCF(String cfName, int gcPeriod, String compactionStrategy, String schema, String primaryKey) {
-        String createCF = String.format("CREATE TABLE \"%s\".\"%s\" (%s,PRIMARY KEY (%s)) WITH COMPACT STORAGE AND " +
-                                "speculative_retry = 'NONE' AND "+
-                                "compaction = { 'class' : '%s' }",
-                        keyspaceName, cfName, schema, primaryKey, compactionStrategy);
-        if (gcPeriod != 0) {
-            createCF +=" AND gc_grace_seconds = ";
-            createCF += gcPeriod;
+    public void createCFAsyc(List<String> cqlList) throws InterruptedException, ExecutionException {
+        
+        List<ResultSetFuture> futures = new ArrayList<ResultSetFuture>();
+        for (String cql : cqlList) {
+            futures.add(cassandraSession.executeAsync(cql));
         }
-        createCF +=";";
 
-        log.info("createCF={}", createCF);
-
-        cassandraSession.execute(createCF);
+        for (ResultSetFuture future : futures) {
+            future.get();
+        }
     }
 
-    public void updateTable(TableMetadata cfd, String compactionStrategy, int gcGrace) {
-        if (compactionStrategy == null && gcGrace <=0) {
-            throw new IllegalArgumentException("compactionStrategy should not be null or gcGrace should >0");
-        }
-
-        String updateTable= String.format("ALTER TABLE \"%s\".\"%s\" with ", keyspaceName, cfd.getName());
-        StringBuilder builder = new StringBuilder(updateTable);
-
-        if (compactionStrategy != null) {
-            builder.append("compaction = { 'class' : '");
-            builder.append(compactionStrategy);
-            builder.append("' }");
-        }
-
-        if (gcGrace > 0) {
-            if (compactionStrategy != null) {
-                builder.append(" AND ");
-            }else {
-                builder.append(" gc_grace_seconds=");
-                builder.append(gcGrace);
-            }
-        }
-
-        builder.append(";");
-
-        String alterStatement = builder.toString();
-        log.info("alter statement={}", alterStatement);
-
-        cassandraSession.execute(alterStatement);
-    }
+    
 
     /**
      * Initialize the cluster context and cluster instances.

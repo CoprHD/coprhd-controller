@@ -142,6 +142,7 @@ elif [ ${SS} = "backuprestore" ]; then
     fi
     echo AUTH=$AUTH
 elif [ ${SS} = "unity_file" ]; then
+    # Unity tests cannot be run with sanity ldap configuration. So use local authentication.
     AUTH=local
     echo AUTH=$AUTH
 else
@@ -10639,7 +10640,9 @@ discover_unity()
     discoveredsystem create $UNITY_DEV unity $UNITY_IP $UNITY_PORT $UNITY_USER $UNITY_PW --serialno=$UNITY_SN
     storagedevice list
 }
-
+#Separated out unity_file_setup and tests from unity block tests since unity_file tests require different setup.
+#Nas server domain validation does not allow viprsanity.com domain which is added by default for all other tests.
+#Unity file side tests will run with local authentication
 unity_file_setup()
 {
      unity_common_setup

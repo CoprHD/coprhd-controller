@@ -1,3 +1,7 @@
+/*
+ * Copyright 2016 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.hp3par.utils;
 
 import java.net.URI;

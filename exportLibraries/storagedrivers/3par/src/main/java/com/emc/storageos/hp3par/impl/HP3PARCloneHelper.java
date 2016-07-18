@@ -43,8 +43,7 @@ public class HP3PARCloneHelper {
 				// Actual size of the volume in array
 				clone.setProvisionedCapacity(volResult.getSizeMiB() * HP3PARConstants.MEGA_BYTE);
 				clone.setWwn(volResult.getWwn());
-				clone.setNativeId(clone.getDisplayName()); // required for
-															// volume delete
+				clone.setNativeId(clone.getNativeId()); // required for volume delete
 				clone.setDeviceLabel(clone.getDisplayName());
 				clone.setAccessStatus(clone.getAccessStatus());
 				clone.setReplicationState(VolumeClone.ReplicationState.SYNCHRONIZED);
@@ -120,7 +119,7 @@ public class HP3PARCloneHelper {
 						driverRegistry);
 
 				// Delete physical copy
-				hp3parApi.deletePhysicalCopy(clone.getNativeId());
+				hp3parApi.deletePhysicalCopy(clone.getDeviceLabel());
 
 				task.setStatus(DriverTask.TaskStatus.READY);
 				_log.info("3PARDriver: deleteVolumeClone for storage system native id {}, volume clone name {} - end",

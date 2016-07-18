@@ -524,7 +524,7 @@ prerun_setup() {
 
     # The actual steps that the orchestration generates varies depending on the device type
     if [ "${SS}" != "vplex" ]; then
-	exportCreateDeviceStep=VPlexDeviceController.createStorageView
+	exportCreateDeviceStep=MaskingWorkflowEntryPoints.doExportGroupCreate
 	exportAddVolumesDeviceStep=
 	exportRemoveVolumesDeviceStep=
 	exportAddInitiatorsDeviceStep=
@@ -532,7 +532,7 @@ prerun_setup() {
 	exportDeleteDeviceStep=
     else
 	# VPLEX-specific entrypoints
-	exportCreateDeviceStep=MaskingWorkflowEntryPoints.doExportGroupCreate
+	exportCreateDeviceStep=VPlexDeviceController.createStorageView
 	exportAddVolumesDeviceStep=
 	exportRemoveVolumesDeviceStep=
 	exportAddInitiatorsDeviceStep=

@@ -516,28 +516,28 @@ prerun_setup() {
 
     # All export operations orchestration go through the same entry-points
     exportCreateOrchStep=ExportWorkflowEntryPoints.exportGroupCreate
-    exportAddVolumesOrchStep=
-    exportRemoveVolumesOrchStep=
-    exportAddInitiatorsOrchStep=
-    exportRemoveInitiatorsOrchStep=
-    exportDeleteOrchStep=
+    exportAddVolumesOrchStep=ExportWorkflowEntryPoints.exportAddVolumes
+    exportRemoveVolumesOrchStep=ExportWorkflowEntryPoints.exportRemoveVolumes
+    exportAddInitiatorsOrchStep=ExportWorkflowEntryPoints.exportAddInitiators
+    exportRemoveInitiatorsOrchStep=ExportWorkflowEntryPoints.exportRemoveInitiators
+    exportDeleteOrchStep=ExportWorkflowEntryPoints.exportGroupDelete
 
     # The actual steps that the orchestration generates varies depending on the device type
     if [ "${SS}" != "vplex" ]; then
 	exportCreateDeviceStep=MaskingWorkflowEntryPoints.doExportGroupCreate
-	exportAddVolumesDeviceStep=
-	exportRemoveVolumesDeviceStep=
-	exportAddInitiatorsDeviceStep=
-	exportRemoveInitiatorsDeviceStep=
-	exportDeleteDeviceStep=
+	exportAddVolumesDeviceStep=MaskingWorkflowEntryPoints.doExportGroupAddVolumes
+	exportRemoveVolumesDeviceStep=MaskingWorkflowEntryPoints.doExportGroupRemoveVolumes
+	exportAddInitiatorsDeviceStep=MaskingWorkflowEntryPoints.doExportGroupAddInitiators
+	exportRemoveInitiatorsDeviceStep=MaskingWorkflowEntryPoints.doExportGroupRemoveInitiators
+	exportDeleteDeviceStep=MaskingWorkflowEntryPoints.doExportGroupDelete
     else
 	# VPLEX-specific entrypoints
 	exportCreateDeviceStep=VPlexDeviceController.createStorageView
-	exportAddVolumesDeviceStep=
-	exportRemoveVolumesDeviceStep=
-	exportAddInitiatorsDeviceStep=
-	exportRemoveInitiatorsDeviceStep=
-	exportDeleteDeviceStep=
+	exportAddVolumesDeviceStep=VPlexDeviceController.exportMaskAddVolumes
+	exportRemoveVolumesDeviceStep=VPlexDeviceController.storageViewRemoveVolumes
+	exportAddInitiatorsDeviceStep=VPlexDeviceController.storageViewAddInitiators
+	exportRemoveInitiatorsDeviceStep=VPlexDeviceController.storageViewRemoveInitiators
+	exportDeleteDeviceStep=VPlexDeviceController.deleteStorageView
     fi
 }
 
@@ -1084,7 +1084,7 @@ test_1() {
     verify_export ${expname}1 ${HOST1} 2 1
 
     # Turn on suspend of export after orchestration
-    set_suspend_on_class_method ExportWorkflowEntryPoints.exportGroupDelete
+    set_suspend_on_class_method ${exportDeleteOrchStep}
 
     # Run the export group command
     echo === export_group delete $PROJECT/${expname}1
@@ -1155,7 +1155,7 @@ test_2() {
     verify_export ${expname}1 ${HOST1} 2 1
 
     # Turn on suspend of export after orchestration
-    set_suspend_on_class_method MaskingWorkflowEntryPoints.doExportGroupDelete
+    set_suspend_on_class_method ${exportDeleteDeviceStep}
 
     # Run the export group command
     echo === export_group delete $PROJECT/${expname}1
@@ -1214,7 +1214,7 @@ test_3() {
     runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
 
     # Turn on suspend of export after orchestration
-    set_suspend_on_class_method ExportWorkflowEntryPoints.exportGroupDelete
+    set_suspend_on_class_method ${exportDeleteDeviceStep}
 
     # Run the export group command TODO: Do this more elegantly
     echo === export_group delete $PROJECT/${expname}1
@@ -1306,7 +1306,7 @@ test_4() {
     verify_export ${expname}1 ${HOST1} 2 1
 
     # Turn on suspend of export after orchestration
-    set_suspend_on_class_method ExportWorkflowEntryPoints.exportGroupDelete
+    set_suspend_on_class_method ${exportDeleteOrchStep}
 
     # Run the export group command TODO: Do this more elegantly
     echo === export_group delete $PROJECT/${expname}1
@@ -1388,7 +1388,7 @@ test_5() {
     verify_export ${expname}1 ${HOST1} 2 2
 
     # Turn on suspend of export after orchestration
-    set_suspend_on_class_method ExportWorkflowEntryPoints.exportRemoveVolumes
+    set_suspend_on_class_method ${exportRemoveVolumesOrchStep}
 
     # Run the export group command TODO: Do this more elegantly
     echo === export_group update $PROJECT/${expname}1 --remVols ${PROJECT}/${VOLNAME}-2
@@ -1474,7 +1474,7 @@ test_6() {
     verify_export ${expname}1 ${HOST1} 2 1
 
     # Turn on suspend of export after orchestration
-    set_suspend_on_class_method ExportWorkflowEntryPoints.exportRemoveInitiators
+    set_suspend_on_class_method ${exportRemoveInitiatorsOrchStep}
 
     # Run the export group command TODO: Do this more elegantly
     echo === export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}
@@ -1689,7 +1689,7 @@ test_9() {
     verify_export ${expname}1 ${HOST1} 2 1
 
     # Turn on suspend of export after orchestration
-    set_suspend_on_class_method MaskingWorkflowEntryPoints.doExportGroupAddVolumes
+    set_suspend_on_class_method ${exportAddVolumesDeviceStep}
 
     # Run the export group command TODO: Do this more elegantly
     echo === export_group update $PROJECT/${expname}1 --addVols ${PROJECT}/${VOLNAME}-2
@@ -1841,7 +1841,7 @@ test_11() {
     fi
 
     # Turn on suspend of export after orchestration
-    set_suspend_on_class_method MaskingWorkflowEntryPoints.doExportGroupAddVolumes
+    set_suspend_on_class_method ${exportAddVolumesDeviceStep}
 
     # Run the export group command TODO: Do this more elegantly
     echo === export_group update $PROJECT/${expname}1 --addVols ${PROJECT}/${VOLNAME}-2
@@ -1967,7 +1967,7 @@ test_13() {
     verify_export ${expname}1 ${HOST1} 2 1
 
     # Turn on suspend of export after orchestration
-    set_suspend_on_class_method MaskingWorkflowEntryPoints.doExportGroupAddVolumes
+    set_suspend_on_class_method ${exportAddVolumesDeviceStep}
     set_artificial_failure failure_002_late_in_add_volume_to_mask
 
     # Run the export group command TODO: Do this more elegantly
@@ -2068,7 +2068,7 @@ test_14() {
     runcmd volume delete ${PROJECT}/${volname} --vipronly
 
     # Turn on suspend of export after orchestration
-    set_suspend_on_class_method MaskingWorkflowEntryPoints.doExportGroupAddInitiators
+    set_suspend_on_class_method ${exportAddInitiatorsDeviceStep}
     set_artificial_failure failure_003_late_in_add_initiator_to_mask
 
     # Run the export group command TODO: Do this more elegantly
@@ -2155,7 +2155,7 @@ test_15() {
     verify_export ${expname}1 ${HOST1} 1 1
 
     # Turn on suspend of export after orchestration
-    set_suspend_on_class_method MaskingWorkflowEntryPoints.doExportGroupAddInitiators
+    set_suspend_on_class_method ${exportAddInitiatorsDeviceStep}
     set_artificial_failure failure_003_late_in_add_initiator_to_mask
 
     # Run the export group command TODO: Do this more elegantly
@@ -2252,7 +2252,7 @@ test_16() {
     reset_system_props
 
     # Turn on suspend of export after orchestration
-    set_suspend_on_class_method ExportWorkflowEntryPoints.exportGroupCreate
+    set_suspend_on_class_method ${exportCreateOrchStep}
 
     # Run the export group command TODO: Do this more elegantly
     echo === export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"

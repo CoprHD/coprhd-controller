@@ -20,7 +20,7 @@ import com.emc.storageos.model.valid.Range;
 public abstract class VirtualMachineParam {
 
     private String type;
-    private String virtualMachineName;
+    private String hostName;
     private String osVersion;
 
     private String name;
@@ -60,18 +60,18 @@ public abstract class VirtualMachineParam {
     }
 
     /**
-     * The short or fully qualified virtualMachine name or IP address of the virtualMachine management interface.
+     * The short or fully qualified host name or IP address of the host management interface.
      * 
      */
-    @XmlElement(name = "virtual_machine_name", required = false)
+    @XmlElement(name = "host_name", required = false)
     @Endpoint(type = Endpoint.EndpointType.HOST)
-    @JsonProperty("virtual_machine_name")
-    public String getVirtualMachineName() {
-        return virtualMachineName;
+    @JsonProperty("host_name")
+    public String getHostName() {
+        return hostName;
     }
 
-    public void setVirtualMachineName(String virtualMachineName) {
-        this.virtualMachineName = virtualMachineName;
+    public void setHostName(String hostName) {
+        this.hostName = hostName;
     }
 
     /**

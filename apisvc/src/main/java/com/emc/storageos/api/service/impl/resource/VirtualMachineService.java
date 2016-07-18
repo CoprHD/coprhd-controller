@@ -4,16 +4,24 @@
  */
 package com.emc.storageos.api.service.impl.resource;
 
+import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 import static com.emc.storageos.api.mapper.VirtualMachineMapper.map;
 
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.UUID;
 
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
 import org.slf4j.Logger;
@@ -22,29 +30,38 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.api.mapper.functions.MapVirtualMachine;
 import com.emc.storageos.api.service.impl.resource.utils.AsyncTaskExecutorIntf;
+import com.emc.storageos.api.service.impl.resource.utils.DiscoveredObjectTaskScheduler;
 import com.emc.storageos.api.service.impl.resource.utils.VirtualMachineConnectionValidator;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.computesystemcontroller.ComputeSystemController;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.DataCollectionJobStatus;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
+import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
-import com.emc.storageos.db.client.model.Task;
+import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
 import com.emc.storageos.db.client.model.VirtualMachine;
 import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.EndpointUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
+import com.emc.storageos.model.TaskList;
+import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.host.VirtualMachineBulkRep;
+import com.emc.storageos.model.host.VirtualMachineCreateParam;
 import com.emc.storageos.model.host.VirtualMachineParam;
 import com.emc.storageos.model.host.VirtualMachineRestRep;
 import com.emc.storageos.security.authorization.ACL;
+import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
+import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.ControllerException;
@@ -121,143 +138,40 @@ public class VirtualMachineService extends TaskResourceService {
     }
 
     /**
-     * Updates one or more of the virtualMachine attributes. Discovery is initiated
-     * after the virtualMachine is updated.
+     * Creates a new host for the tenant organization. Discovery is initiated
+     * after the host is created.
      *
-     * @param id the URN of a ViPR VirtualMachine
-     * @param updateParam the parameter that has the attributes to be
-     *            updated.
-     * @brief Update VirtualMachine Attributes
-     * @return the virtualMachine discovery async task representation.
+     * @param createParam
+     *            the parameter that has the type and attribute of the host to
+     *            be created.
+     * @prereq none
+     * @brief Create host
+     * @return the host discovery async task representation.
      */
-
-    /**
-     * Validates the create/update virtualMachine input data
-     *
-     * @param virtualMachineParam the input parameter
-     * @param virtualMachine the virtualMachine being updated in case of update operation.
-     *            This parameter must be null for create operations.n
-     * @throws Exception
-     */
-    protected void validateVirtualMachineData(VirtualMachineParam virtualMachineParam, URI tenanUri, VirtualMachine virtualMachine,
-            Boolean validateConnection) throws Exception {
-        Cluster cluster = null;
-        VcenterDataCenter dataCenter = null;
-        Project project = null;
-        Volume volume = null;
-
-        // validate the virtualMachine type
-        if (virtualMachineParam.getType() != null) {
-            ArgValidator.checkFieldValueFromEnum(virtualMachineParam.getType(), "Type", VirtualMachine.HostType.class);
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.TENANT_ADMIN })
+    public TaskResourceRep createVM(VirtualMachineCreateParam createParam,
+            @QueryParam("validate_connection") @DefaultValue("false") final Boolean validateConnection) {
+        // This is mostly to validate the tenant
+        URI tid = createParam.getTenant();
+        if ((tid == null) || tid.toString().isEmpty()) {
+            _log.error("The tenant id is missing");
+            throw APIException.badRequests.requiredParameterMissingOrEmpty("tenant");
         }
 
-        // validate the project is present, active, and in the same tenant org
-        if (!NullColumnValueGetter.isNullURI(virtualMachineParam.getProject())) {
-            project = queryObject(Project.class, virtualMachineParam.getProject(), true);
-            if (!project.getTenantOrg().getURI().equals(tenanUri)) {
-                throw APIException.badRequests.resourcedoesNotBelongToVirtualMachineTenantOrg("project");
-            }
-        }
-        if (!NullColumnValueGetter.isNullURI(virtualMachineParam.getBootVolume())) {
-            volume = queryObject(Volume.class, virtualMachineParam.getBootVolume(), true);
-            if (!volume.getTenant().getURI().equals(tenanUri)) {
-                throw APIException.badRequests.resourcedoesNotBelongToVirtualMachineTenantOrg("boot volume");
-            }
-        }
-        // validate the cluster is present, active, and in the same tenant org
-        if (!NullColumnValueGetter.isNullURI(virtualMachineParam.getCluster())) {
-            cluster = queryObject(Cluster.class, virtualMachineParam.getCluster(),
-                    true);
-            if (!cluster.getTenant().equals(tenanUri)) {
-                throw APIException.badRequests.resourcedoesNotBelongToVirtualMachineTenantOrg("cluster");
-            }
-        }
-        // validate the data center is present, active, and in the same tenant org
-        if (!NullColumnValueGetter.isNullURI(virtualMachineParam.getVcenterDataCenter())) {
-            dataCenter = queryObject(VcenterDataCenter.class, virtualMachineParam.getVcenterDataCenter(),
-                    true);
-            if (!dataCenter.getTenant().equals(tenanUri)) {
-                throw APIException.badRequests.resourcedoesNotBelongToVirtualMachineTenantOrg("data center");
-            }
-        }
-        if (cluster != null) {
-            if (dataCenter != null) {
-                // check the cluster and data center are consistent
-                if (!dataCenter.getId().equals(cluster.getVcenterDataCenter())) {
-                    throw APIException.badRequests.invalidParameterClusterNotInDataCenter(cluster.getLabel(), dataCenter.getLabel());
-                }
-            } else if (project != null) {
-                // check the cluster and data center are consistent
-                if (!project.getId().equals(cluster.getProject())) {
-                    throw APIException.badRequests.invalidParameterClusterNotInVirtualMachineProject(cluster.getLabel());
-                }
-            }
-        }
-        // check the virtualMachine name is not a duplicate
-        if (virtualMachine == null || (virtualMachineParam.getVirtualMachineName() != null &&
-                !virtualMachineParam.getVirtualMachineName().equals(virtualMachine.getHostName()))) {
-            checkDuplicateAltId(VirtualMachine.class, "virtualMachineName",
-                    EndpointUtility.changeCase(virtualMachineParam.getVirtualMachineName()), "virtualMachine");
-        }
-        // check the virtualMachine label is not a duplicate
-        if (virtualMachine == null || (virtualMachineParam.getName() != null &&
-                !virtualMachineParam.getName().equals(virtualMachine.getLabel()))) {
-            checkDuplicateLabel(VirtualMachine.class, virtualMachineParam.getName());
-        }
-        // If the virtualMachine project is being changed, check for active exports
-        if (virtualMachine != null && !areEqual(virtualMachine.getProject(), virtualMachineParam.getProject())) {
-            if (ComputeSystemHelper.isVirtualMachineInUse(_dbClient, virtualMachine.getId())) {
-                throw APIException.badRequests.virtualMachineProjectChangeNotAllowed(virtualMachine.getHostName());
-            }
-        }
+        TenantOrg tenant = _permissionsHelper.getObjectById(tid, TenantOrg.class);
+        ArgValidator.checkEntity(tenant, tid, isIdEmbeddedInURL(tid), true);
 
-        // Find out if the virtualMachine should be discoverable by checking input and current values
-        Boolean discoverable = virtualMachineParam.getDiscoverable() == null ?
-                (virtualMachine == null ? Boolean.FALSE : virtualMachine.getDiscoverable()) :
-                virtualMachineParam.getDiscoverable();
+        validateVMData(createParam, tid, null, validateConnection);
 
-        // If discoverable, ensure username and password are set in the current virtualMachine or parameters
-        if (discoverable != null && discoverable) {
-            String username = virtualMachineParam.getUserName() == null ?
-                    (virtualMachine == null ? null : virtualMachine.getUsername()) :
-                    virtualMachineParam.getUserName();
-            String password = virtualMachineParam.getPassword() == null ?
-                    (virtualMachine == null ? null : virtualMachine.getPassword()) :
-                    virtualMachineParam.getPassword();
-            ArgValidator.checkFieldNotNull(username, "username");
-            ArgValidator.checkFieldNotNull(password, "password");
-
-            VirtualMachine.HostType virtualMachineType = VirtualMachine.HostType
-                    .valueOf(virtualMachineParam.getType() == null ?
-                            (virtualMachine == null ? null : virtualMachine.getType()) :
-                            virtualMachineParam.getType());
-
-            if (virtualMachineType != null && virtualMachineType == VirtualMachine.HostType.Windows) {
-                Integer portNumber = virtualMachineParam.getPortNumber() == null ?
-                        (virtualMachine == null ? null : virtualMachine.getPortNumber()) :
-                        virtualMachineParam.getPortNumber();
-
-                ArgValidator.checkFieldNotNull(portNumber, "port_number");
-            }
-        }
-
-        if (validateConnection != null && validateConnection == true) {
-            if (!VirtualMachineConnectionValidator.isHostConnectionValid(virtualMachineParam, virtualMachine)) {
-                throw APIException.badRequests.invalidVirtualMachineConnection();
-            }
-        }
-    }
-
-    private boolean virtualMachineHasPendingTasks(URI id) {
-        boolean hasPendingTasks = false;
-        List<Task> taskList = TaskUtils.findResourceTasks(_dbClient, id);
-        for (Task task : taskList) {
-            if (task.isPending()) {
-                hasPendingTasks = true;
-                break;
-            }
-        }
-        return hasPendingTasks;
+        // Create the host
+        VirtualMachine vm = createNewVM(tenant, createParam);
+        vm.setRegistrationStatus(RegistrationStatus.REGISTERED.toString());
+        _dbClient.createObject(vm);
+        auditOp(OperationTypeEnum.CREATE_VIRTUAL_MACHINE, true, null, vm.auditParameters());
+        return doDiscoverVM(vm);
     }
 
     @Override
@@ -309,68 +223,235 @@ public class VirtualMachineService extends TaskResourceService {
     }
 
     /**
-     * Populate an instance of virtualMachine with the provided virtualMachine parameter
+     * Validates the create/update host input data
      *
-     * @param virtualMachine the virtualMachine to be populated
-     * @param param the parameter that contains the virtualMachine attributes.
+     * @param vmParam the input parameter
+     * @param vm the host being updated in case of update operation.
+     *            This parameter must be null for create operations.n
      */
-    private void populateVirtualMachineData(VirtualMachine virtualMachine, VirtualMachineParam param) {
-        if (param.getName() != null) {
-            virtualMachine.setLabel(param.getName());
+    protected void validateVMData(VirtualMachineParam vmParam, URI tenanUri, VirtualMachine vm, Boolean validateConnection) {
+        Cluster cluster = null;
+        VcenterDataCenter dataCenter = null;
+        Project project = null;
+        Volume volume = null;
+
+        // validate the host type
+        if (vmParam.getType() != null) {
+            ArgValidator.checkFieldValueFromEnum(vmParam.getType(), "Type", VirtualMachine.HostType.class);
         }
-        if (param.getVirtualMachineName() != null) {
-            virtualMachine.setHostName(param.getVirtualMachineName());
+
+        // validate the project is present, active, and in the same tenant org
+        if (!NullColumnValueGetter.isNullURI(vmParam.getProject())) {
+            project = queryObject(Project.class, vmParam.getProject(), true);
+            if (!project.getTenantOrg().getURI().equals(tenanUri)) {
+                throw APIException.badRequests.resourcedoesNotBelongToHostTenantOrg("project");
+            }
+        }
+        if (!NullColumnValueGetter.isNullURI(vmParam.getBootVolume())) {
+            volume = queryObject(Volume.class, vmParam.getBootVolume(), true);
+            if (!volume.getTenant().getURI().equals(tenanUri)) {
+                throw APIException.badRequests.resourcedoesNotBelongToHostTenantOrg("boot volume");
+            }
+        }
+        // validate the cluster is present, active, and in the same tenant org
+        if (!NullColumnValueGetter.isNullURI(vmParam.getCluster())) {
+            cluster = queryObject(Cluster.class, vmParam.getCluster(),
+                    true);
+            if (!cluster.getTenant().equals(tenanUri)) {
+                throw APIException.badRequests.resourcedoesNotBelongToHostTenantOrg("cluster");
+            }
+        }
+        // validate the data center is present, active, and in the same tenant org
+        if (!NullColumnValueGetter.isNullURI(vmParam.getVcenterDataCenter())) {
+            dataCenter = queryObject(VcenterDataCenter.class, vmParam.getVcenterDataCenter(),
+                    true);
+            if (!dataCenter.getTenant().equals(tenanUri)) {
+                throw APIException.badRequests.resourcedoesNotBelongToHostTenantOrg("data center");
+            }
+        }
+        if (cluster != null) {
+            if (dataCenter != null) {
+                // check the cluster and data center are consistent
+                if (!dataCenter.getId().equals(cluster.getVcenterDataCenter())) {
+                    throw APIException.badRequests.invalidParameterClusterNotInDataCenter(cluster.getLabel(), dataCenter.getLabel());
+                }
+            } else if (project != null) {
+                // check the cluster and data center are consistent
+                if (!project.getId().equals(cluster.getProject())) {
+                    throw APIException.badRequests.invalidParameterClusterNotInHostProject(cluster.getLabel());
+                }
+            }
+        }
+        // check the host name is not a duplicate
+        if (vm == null || (vmParam.getHostName() != null &&
+                !vmParam.getHostName().equals(vm.getHostName()))) {
+            checkDuplicateAltId(VirtualMachine.class, "hostName", EndpointUtility.changeCase(vmParam.getHostName()), "host");
+        }
+        // check the host label is not a duplicate
+        if (vm == null || (vmParam.getName() != null &&
+                !vmParam.getName().equals(vm.getLabel()))) {
+            checkDuplicateLabel(VirtualMachine.class, vmParam.getName());
+        }
+        // If the host project is being changed, check for active exports
+        if (vm != null && !areEqual(vm.getProject(), vmParam.getProject())) {
+            if (ComputeSystemHelper.isHostInUse(_dbClient, vm.getId())) {
+                throw APIException.badRequests.hostProjectChangeNotAllowed(vm.getHostName());
+            }
+        }
+
+        // Find out if the host should be discoverable by checking input and current values
+        Boolean discoverable = vmParam.getDiscoverable() == null ?
+                (vm == null ? Boolean.FALSE : vm.getDiscoverable()) :
+                vmParam.getDiscoverable();
+
+        // If discoverable, ensure username and password are set in the current host or parameters
+        if (discoverable != null && discoverable) {
+            String username = vmParam.getUserName() == null ?
+                    (vm == null ? null : vm.getUsername()) :
+                    vmParam.getUserName();
+            String password = vmParam.getPassword() == null ?
+                    (vm == null ? null : vm.getPassword()) :
+                    vmParam.getPassword();
+            ArgValidator.checkFieldNotNull(username, "username");
+            ArgValidator.checkFieldNotNull(password, "password");
+
+            VirtualMachine.HostType hostType = VirtualMachine.HostType.valueOf(vmParam.getType() == null ?
+                    (vm == null ? null : vm.getType()) :
+                    vmParam.getType());
+
+            if (hostType != null && hostType == VirtualMachine.HostType.Windows) {
+                Integer portNumber = vmParam.getPortNumber() == null ?
+                        (vm == null ? null : vm.getPortNumber()) :
+                        vmParam.getPortNumber();
+
+                ArgValidator.checkFieldNotNull(portNumber, "port_number");
+            }
+        }
+
+        if (validateConnection != null && validateConnection == true) {
+            if (!VirtualMachineConnectionValidator.isVMConnectionValid(vmParam, vm)) {
+                throw APIException.badRequests.invalidHostConnection();
+            }
+        }
+    }
+
+    /**
+     * Creates a new instance of host.
+     *
+     * @param tenant the host parent tenant organization
+     * @param param the input parameter containing the host attributes
+     * @return an instance of {@link Host}
+     */
+    protected VirtualMachine createNewVM(TenantOrg tenant, VirtualMachineParam param) {
+        VirtualMachine vm = new VirtualMachine();
+        vm.setId(URIUtil.createId(VirtualMachine.class));
+        vm.setTenant(tenant.getId());
+        populateVMData(vm, param);
+        if (!NullColumnValueGetter.isNullURI(vm.getCluster())) {
+            Cluster cluster = _dbClient.queryObject(Cluster.class, vm.getCluster());
+            if (ComputeSystemHelper.isClusterInExport(_dbClient, vm.getCluster()) && cluster.getAutoExportEnabled()) {
+                String taskId = UUID.randomUUID().toString();
+                ComputeSystemController controller = getController(ComputeSystemController.class, null);
+                controller.addHostsToExport(Arrays.asList(vm.getId()), vm.getCluster(), taskId, null);
+            } else {
+                ComputeSystemHelper.updateInitiatorClusterName(_dbClient, vm.getCluster(), vm.getId());
+            }
+        }
+
+        return vm;
+    }
+
+    /**
+     * Populate an instance of host with the provided virtual machine parameter
+     *
+     * @param vm the virtual machine to be populated
+     * @param param the parameter that contains the host attributes.
+     */
+    private void populateVMData(VirtualMachine vm, VirtualMachineParam param) {
+        if (param.getName() != null) {
+            vm.setLabel(param.getName());
+        }
+        if (param.getHostName() != null) {
+            vm.setHostName(param.getHostName());
         }
         if (param.getCluster() != null) {
-            virtualMachine.setCluster(param.getCluster());
+            vm.setCluster(param.getCluster());
         }
         if (param.getOsVersion() != null) {
-            virtualMachine.setOsVersion(param.getOsVersion());
+            vm.setOsVersion(param.getOsVersion());
         }
         if (param.getUserName() != null) {
-            virtualMachine.setUsername(param.getUserName());
+            vm.setUsername(param.getUserName());
         }
         if (param.getPassword() != null) {
-            virtualMachine.setPassword(param.getPassword());
+            vm.setPassword(param.getPassword());
         }
         if (param.getPortNumber() != null) {
-            virtualMachine.setPortNumber(param.getPortNumber());
+            vm.setPortNumber(param.getPortNumber());
         }
         if (param.getUseSsl() != null) {
-            virtualMachine.setUseSSL(param.getUseSsl());
+            vm.setUseSSL(param.getUseSsl());
         }
         if (param.getType() != null) {
-            virtualMachine.setType(param.getType());
+            vm.setType(param.getType());
         }
         if (param.getDiscoverable() != null) {
-            virtualMachine.setDiscoverable(param.getDiscoverable());
+            vm.setDiscoverable(param.getDiscoverable());
         }
-        // Commented out because virtualMachine project is not currently used
-        // if (param.project != null) {
-        // virtualMachine.setProject(NullColumnValueGetter.isNullURI(param.project) ?
-        // NullColumnValueGetter.getNullURI() : param.project);
-        // }
+
         if (param.getVcenterDataCenter() != null) {
-            virtualMachine.setVcenterDataCenter(NullColumnValueGetter.isNullURI(param.getVcenterDataCenter()) ?
+            vm.setVcenterDataCenter(NullColumnValueGetter.isNullURI(param.getVcenterDataCenter()) ?
                     NullColumnValueGetter.getNullURI() : param.getVcenterDataCenter());
         }
         Cluster cluster = null;
-        // make sure virtualMachine data is consistent with the cluster
+        // make sure virtual machine data is consistent with the cluster
         if (!NullColumnValueGetter.isNullURI(param.getCluster())) {
             cluster = queryObject(Cluster.class, param.getCluster(), true);
             if (!NullColumnValueGetter.isNullURI(cluster.getVcenterDataCenter())) {
-                virtualMachine.setVcenterDataCenter(cluster.getVcenterDataCenter());
+                vm.setVcenterDataCenter(cluster.getVcenterDataCenter());
             }
             if (!NullColumnValueGetter.isNullURI(cluster.getProject())) {
-                virtualMachine.setProject(cluster.getProject());
+                vm.setProject(cluster.getProject());
             }
         }
 
         if (param.getBootVolume() != null) {
-            virtualMachine.setBootVolumeId(NullColumnValueGetter.isNullURI(param.getBootVolume()) ? NullColumnValueGetter
+            vm.setBootVolumeId(NullColumnValueGetter.isNullURI(param.getBootVolume()) ? NullColumnValueGetter
                     .getNullURI() : param.getBootVolume());
         }
 
+    }
+
+    /**
+     * Virtual Machine Discovery
+     *
+     * @param the Virtual Machine to be discovered.
+     *            provided, a new taskId is generated.
+     * @return the task used to track the discovery job
+     */
+    protected TaskResourceRep doDiscoverVM(VirtualMachine vm) {
+        String taskId = UUID.randomUUID().toString();
+        if (vm.getDiscoverable() != null && !vm.getDiscoverable()) {
+            vm.setDiscoveryStatus(DataCollectionJobStatus.COMPLETE.name());
+            _dbClient.updateObject(vm);
+        }
+        if ((vm.getDiscoverable() == null || vm.getDiscoverable())) {
+            ComputeSystemController controller = getController(ComputeSystemController.class, "host");
+            DiscoveredObjectTaskScheduler scheduler = new DiscoveredObjectTaskScheduler(
+                    _dbClient, new DiscoverJobExec(controller));
+            ArrayList<AsyncTask> tasks = new ArrayList<AsyncTask>(1);
+            tasks.add(new AsyncTask(VirtualMachine.class, vm.getId(), taskId));
+
+            TaskList taskList = scheduler.scheduleAsyncTasks(tasks);
+            return taskList.getTaskList().iterator().next();
+        } else {
+            // if not discoverable, manually create a ready task
+            Operation op = new Operation();
+            op.setResourceType(ResourceOperationTypeEnum.DISCOVER_VIRTUAL_MACHINE);
+            op.ready("Virtual machine is not discoverable");
+            _dbClient.createTaskOpStatus(VirtualMachine.class, vm.getId(), taskId, op);
+            return toTask(vm, taskId, op);
+        }
     }
 
 }

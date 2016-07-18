@@ -178,7 +178,8 @@ public enum OperationTypeEnum {
     START_FILE_MIRROR("FileSystemMirrorStart", "FileSystemMirrorStartFailed", "FileSystemMirror Start"),
     REFRESH_FILE_MIRROR("FileSystemMirrorRefresh", "FileSystemMirrorRefreshFailed", "FileSystemMirror Refresh"),
     RESYNC_FILE_MIRROR("FileSystemMirrorResync", "FileSystemMirrorResyncFailed", "FileSystemMirror Resync"),
-    MODIFY_FILE_MIRROR_RPO("UPDATE FILE SHARE REPLICATION RPO", "FileSystemMirrorModifyRPOFailed", "operation to update filesystem replication RPO"),
+    MODIFY_FILE_MIRROR_RPO("UPDATE FILE SHARE REPLICATION RPO", "FileSystemMirrorModifyRPOFailed",
+            "operation to update filesystem replication RPO"),
 
     CREATE_BUCKET("BucketCreated", "BucketCreateFailed", "Bucket created"),
     DELETE_BUCKET("BucketDeleted", "BucketDeleteFailed", "Bucket deleted"),
@@ -317,6 +318,11 @@ public enum OperationTypeEnum {
     UPDATE_HOST("UPDATE HOST", "", "operation to update a compute host."),
     DELETE_HOST("DELETE HOST", "", "operation to delete a compute host."),
     DETACH_HOST_STORAGE("DELETE HOST STORAGE", "", "operation to detach storage from a compute host."),
+
+    CREATE_VIRTUAL_MACHINE("CREATE VIRTUAL MACHINE", "", "operation to create a compute virtual machine."),
+    UPDATE_VIRTUAL_MACHINE("UPDATE VIRTUAL MACHINE", "", "operation to update a compute virtual machine."),
+    DELETE_VIRTUAL_MACHINE("DELETE VIRTUAL MACHINE", "", "operation to delete a compute virtual machine."),
+    DETACH_VIRTUAL_MACHINE_STORAGE("DELETE VIRTUAL MACHINE STORAGE", "", "operation to detach storage from a  virtual machine."),
 
     CREATE_CLUSTER("CREATE CLUSTER", "", "operation to create a cluster."),
     UPDATE_CLUSTER("UPDATE CLUSTER", "", "operation to update a cluster."),
@@ -457,10 +463,12 @@ public enum OperationTypeEnum {
             "VolumeGroupFullCopy Resynchronize"),
 
     CREATE_VOLUME_GROUP_SNAPSHOT("VolumeGroupSnapshotCreated", "VolumeGroupSnapshotCreateFailed", "VolumeGroupSnapshot Create"),
-    ACTIVATE_VOLUME_GROUP_SNAPSHOT("VolumeGroupSnapshotActivated", "VolumeGroupSnapshotActivateFailed", "VolumeGroupSnapshot Activate"),   
-    DEACTIVATE_VOLUME_GROUP_SNAPSHOT("VolumeGroupSnapshotDeactivated", "VolumeGroupSnapshotDeactivateFailed", "VolumeGroupSnapshot Deactivate"),
+    ACTIVATE_VOLUME_GROUP_SNAPSHOT("VolumeGroupSnapshotActivated", "VolumeGroupSnapshotActivateFailed", "VolumeGroupSnapshot Activate"),
+    DEACTIVATE_VOLUME_GROUP_SNAPSHOT("VolumeGroupSnapshotDeactivated", "VolumeGroupSnapshotDeactivateFailed",
+            "VolumeGroupSnapshot Deactivate"),
     RESTORE_VOLUME_GROUP_SNAPSHOT("VolumeGroupSnapshotRestored", "VolumeGroupSnapshotRestoreFailed", "VolumeGroupSnapshot Restored"),
-    RESYNCHRONIZE_VOLUME_GROUP_SNAPSHOT("VolumeGroupSnapshotResynchronized", "VolumeGroupSnapshotResynchronizeFailed", "VolumeGroupSnapshot Resynchronize"),
+    RESYNCHRONIZE_VOLUME_GROUP_SNAPSHOT("VolumeGroupSnapshotResynchronized", "VolumeGroupSnapshotResynchronizeFailed",
+            "VolumeGroupSnapshot Resynchronize"),
 
     CREATE_VOLUME_GROUP_SNAPSHOT_SESSION("VolumeGroupSnapshotSessionCreated", "VolumeGroupSnapshotSessionCreateFailed",
             "VolumeGroupSnapshotSession Create"),

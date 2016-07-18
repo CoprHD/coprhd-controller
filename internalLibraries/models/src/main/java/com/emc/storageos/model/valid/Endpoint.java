@@ -35,6 +35,7 @@ public @interface Endpoint {
         IP("IP address"), // any IP port: IPV6 or IPV4
         HOSTNAME("host name"), // any host name short or fully qualified
         HOST("IP address or host name"), // any host address IPV4, IPV6 or hostname
+        VIRTUAL_MACHINE("IP address or virtual machine name"), // any host address IPV4, IPV6 or hostname
         ANY("Network address"); // any valid end point: WWN, IQN, EUI, IPV4 or IPV6
 
         private EndpointType(String description) {

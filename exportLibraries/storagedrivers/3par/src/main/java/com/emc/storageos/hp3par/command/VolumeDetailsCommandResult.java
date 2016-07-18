@@ -125,6 +125,8 @@ public class VolumeDetailsCommandResult {
     public String getAllValues() {
     	String allValues = "name " + name +
     					   "\n copyOf " + copyOf + 
+    					   "\n basdId " + baseId + 
+    					   "\n physParentId " + physParentId +
     					   "\n uuid " + uuid +
     					   "\n wwn" + wwn +
     					   "\n sizeMiB " + sizeMiB +

@@ -89,8 +89,8 @@ verify_export() {
         exit 1;
     fi
 
-    num_inits=`grep -Po '(?<="numberOfInitiators":")[^"]*' ${TMPFILE1}`
-    num_luns=`grep -Po '(?<="numberOfVolumes":")[^"]*' ${TMPFILE1}`
+    num_inits=`grep numberOfInitiators ${TMPFILE1} | awk -F: '{print $2}'`
+    num_luns=`grep numberOfVolumes ${TMPFILE1} | awk -F: '{print $2}'`
     echo "num_inits is ${num_inits}"
     echo "num_luns is ${num_luns}"
     failed=false

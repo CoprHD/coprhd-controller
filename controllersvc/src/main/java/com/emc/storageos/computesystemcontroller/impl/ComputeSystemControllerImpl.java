@@ -1076,22 +1076,23 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             for (URI hostId : deletedHosts) {
 
                 Host host = _dbClient.queryObject(Host.class, hostId);
-                List<Initiator> hostInitiators = ComputeSystemHelper.queryInitiators(_dbClient, host.getId());
-                Collection<URI> hostInitiatorIds = Collections2.transform(hostInitiators, CommonTransformerFunctions.fctnDataObjectToID());
+                // List<Initiator> hostInitiators = ComputeSystemHelper.queryInitiators(_dbClient, host.getId());
+                // Collection<URI> hostInitiatorIds = Collections2.transform(hostInitiators,
+                // CommonTransformerFunctions.fctnDataObjectToID());
 
-                for (ExportGroup export : getExportGroups(host.getId(), hostInitiators)) {
-                    // do not unexport volumes from exclusive or initiator exports if the host has a boot volume id
-                    boolean isBootVolumeExport = (export.forHost() || export.forInitiator())
-                            && !NullColumnValueGetter.isNullURI(host.getBootVolumeId())
-                            && export.hasBlockObject(host.getBootVolumeId());
-                    if (!isBootVolumeExport) {
-                        ComputeSystemHelper.createActionableEvent(_dbClient, host.getTenant(), "Delete host " + hostId, host,
-                                "detachHostStorage", new Object[] { hostId, true, true }, null, null);
-                        // ExportGroupState egh = getExportGroupState(exportGroups, export);
-                        // egh.removeHost(host.getId());
-                        // egh.removeInitiators(hostInitiatorIds);
-                    }
-                }
+                // for (ExportGroup export : getExportGroups(host.getId(), hostInitiators)) {
+                // do not unexport volumes from exclusive or initiator exports if the host has a boot volume id
+                // boolean isBootVolumeExport = (export.forHost() || export.forInitiator())
+                // && !NullColumnValueGetter.isNullURI(host.getBootVolumeId())
+                // && export.hasBlockObject(host.getBootVolumeId());
+                // if (!isBootVolumeExport) {
+                ComputeSystemHelper.createActionableEvent(_dbClient, host.getTenant(), "Delete host " + hostId, host,
+                        "detachHostStorage", new Object[] { hostId, true, true }, null, null);
+                // ExportGroupState egh = getExportGroupState(exportGroups, export);
+                // egh.removeHost(host.getId());
+                // egh.removeInitiators(hostInitiatorIds);
+                // }
+                // }
 
             }
 

@@ -16,7 +16,7 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.storagedriver.DriverTask;
 import com.emc.storageos.storagedriver.model.VolumeClone;
-import com.emc.storageos.storagedriver.task.CreateVolumeCloneDriverTask;
+import com.emc.storageos.storagedriver.task.CreateGroupCloneDriverTask;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.externaldevice.ExternalDeviceUtils;
 
@@ -70,7 +70,7 @@ public class CreateGroupCloneExternalDeviceJob extends ExternalDeviceJob {
             }
             
             // Update the ViPR clone with the driver clone information.
-            CreateVolumeCloneDriverTask createCloneDriverTask = (CreateVolumeCloneDriverTask) driverTask;
+            CreateGroupCloneDriverTask createCloneDriverTask = (CreateGroupCloneDriverTask) driverTask;
             List<VolumeClone> updatedClones = createCloneDriverTask.getClones();
             for (VolumeClone updatedClone: updatedClones) {
                 if (ExternalDeviceUtils.isVolumeExternalDeviceClone(volume, updatedClone, dbClient)) {
@@ -95,7 +95,6 @@ public class CreateGroupCloneExternalDeviceJob extends ExternalDeviceJob {
             Volume volume = dbClient.queryObject(Volume.class, volumeURI);
             if (volume == null) {
                 s_logger.error(String.format("Failed to find volume %s", volumeURI));
-                // Exception?
             } else {
                 volume.setInactive(true);
                 volumes.add(volume);

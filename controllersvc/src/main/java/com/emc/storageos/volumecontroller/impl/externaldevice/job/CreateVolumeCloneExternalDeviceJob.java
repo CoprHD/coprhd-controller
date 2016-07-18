@@ -78,7 +78,6 @@ public class CreateVolumeCloneExternalDeviceJob extends ExternalDeviceJob {
         Volume volume = dbClient.queryObject(Volume.class, _volumeURI);
         if (volume == null) {
             s_logger.error(String.format("Failed to find volume %s", _volumeURI));
-            // Exception?
         } else {
             volume.setInactive(true);
             dbClient.updateObject(volume);

@@ -532,8 +532,6 @@ public class HP3PARExpUnexpHelper {
 
                     // only one thread across all nodes should create cluster; 
                     // TBD: lock acquisition is having issues, synch is used
-                    //String lockName = vol.getStorageSystemId() + vol.getNativeId() + hostArray;
-                    //if (this.lockManager.acquireLock(lockName, 10, TimeUnit.MINUTES)) {
                     synchronized (this) {
                         // Check if cluster exists, otherwise create
                         HostSetDetailsCommandResult hostsetRes = hp3parApi.getHostSetDetails(clustArray);
@@ -557,7 +555,6 @@ public class HP3PARExpUnexpHelper {
 
                         // Cluster available
                         host = "set:" + clustArray;
-                        //this.lockManager.releaseLock(lockName);
                     }
 
                 } else {

@@ -9702,28 +9702,31 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     if (vplexMirror.getSource() != null && vplexMirror.getSource().getURI() != null) {
                         _log.info("Checking if thinly provisioned property changed after mirror operation...");
                         Volume vplexVolume = getDataObject(Volume.class, vplexMirror.getSource().getURI(), _dbClient);
-                        String vplexVolumeName = vplexVolume.getDeviceLabel();
-                        VPlexVirtualVolumeInfo virtualVolumeInfo = client.findVirtualVolumeAndUpdateInfo(vplexVolumeName);
-                        if (vplexVolume != null && virtualVolumeInfo != null) {
-                            if (VPlexApiConstants.TRUE.equalsIgnoreCase(virtualVolumeInfo.getThinCapable())) {
-                                VirtualPool vpool = getDataObject(VirtualPool.class, vplexVolume.getVirtualPool(), _dbClient);
-                                if (vpool != null) {
-                                    boolean doEnableThin = 
-                                            VirtualPool.ProvisioningType.Thin.toString().equalsIgnoreCase(
-                                                    vpool.getSupportedProvisioningType());
-                                    if (doEnableThin) {
-                                        // api client call will update thin-enabled on virtualVolumeInfo object, if it succeeds
-                                        client.setVirtualVolumeThinEnabled(virtualVolumeInfo);
+                        if (vplexVolume != null) {
+                            String vplexVolumeName = vplexVolume.getDeviceLabel();
+                            VPlexVirtualVolumeInfo virtualVolumeInfo = client.findVirtualVolumeAndUpdateInfo(vplexVolumeName);
+                            if (virtualVolumeInfo != null) {
+                                if (VPlexApiConstants.TRUE.equalsIgnoreCase(virtualVolumeInfo.getThinCapable())) {
+                                    VirtualPool vpool = getDataObject(VirtualPool.class, vplexVolume.getVirtualPool(), _dbClient);
+                                    if (vpool != null) {
+                                        boolean doEnableThin = 
+                                                VirtualPool.ProvisioningType.Thin.toString().equalsIgnoreCase(
+                                                        vpool.getSupportedProvisioningType());
+                                        if (doEnableThin) {
+                                            // api client call will update thin-enabled on virtualVolumeInfo object, if it succeeds
+                                            client.setVirtualVolumeThinEnabled(virtualVolumeInfo);
+                                        }
                                     }
                                 }
-                            }
-                            if (virtualVolumeInfo.isThinEnabled() != vplexVolume.getThinlyProvisioned()) {
-                                _log.info("Thin provisioned setting changed after mirror operation to " + virtualVolumeInfo.isThinEnabled());
-                                vplexVolume.setThinlyProvisioned(virtualVolumeInfo.isThinEnabled());
-                                _dbClient.updateObject(vplexVolume);
+                                if (virtualVolumeInfo.isThinEnabled() != vplexVolume.getThinlyProvisioned()) {
+                                    _log.info("Thin provisioned setting changed after mirror operation to " + virtualVolumeInfo.isThinEnabled());
+                                    vplexVolume.setThinlyProvisioned(virtualVolumeInfo.isThinEnabled());
+                                    _dbClient.updateObject(vplexVolume);
+                                }
                             }
                         }
-                    }                }
+                    }
+                }
 
                 // Record VPLEX mirror delete event.
                 recordBourneVplexMirrorEvent(vplexMirrorURI,

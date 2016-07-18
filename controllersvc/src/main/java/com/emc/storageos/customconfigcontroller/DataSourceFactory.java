@@ -5,7 +5,9 @@
 
 package com.emc.storageos.customconfigcontroller;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import com.emc.storageos.db.client.DbModelClient;
@@ -17,6 +19,9 @@ import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.TenantOrg;
+import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.DataObjectUtils;
 import com.google.common.base.Strings;
 
@@ -282,6 +287,75 @@ public class DataSourceFactory {
         }
         return createDataSource(CustomConfigConstants.XTREMIO_CLUSTER_INITIATOR_GROUP_FOLDER_NAME,
                 new DataObject[] { cluster, storageSystem });
+
+    }
+    
+    /**
+     * Creates a datasource that can be used to populate the custom name for a volume.
+     * 
+     * @param project A reference to the volume's project.
+     * @param tenant A reference to the passed project's tenant.
+     * @param volumeLabel The user supplied volume label.
+     * @param volumeWWN The volume WWN.
+     * @param exportName The host or cluster name or null.
+     * @param configName The name of the custom configuration.
+     * 
+     * @return A reference to the created DataSource instance.
+     */
+    public DataSource createCustomVolumeNameDataSource(Project project, TenantOrg tenant, String volumeLabel,
+            String volumeWWN, String exportName, String configName) {
+        // Create a list of the DataObjects for the datasource to be created
+        // and add the passed project and tenant to the list.
+        List<DataObject> dataObjectsList = new ArrayList<>();
+        dataObjectsList.add(project);
+        dataObjectsList.add(tenant);
+        
+        // Create a Volume instance and populate those components of the datasource
+        // that come from a Volume. Add the volume to the DataObjects list.
+        Volume volume = new Volume();
+        volume.setLabel(volumeLabel);
+        volume.setWWN(volumeWWN);
+        dataObjectsList.add(volume);
+        
+        // Add the host or cluster name if specified as a computed value since
+        // we do not know if this is a host or cluster export.
+        Map<String, String> computedValueMap = new HashMap<String, String>();
+        if (exportName != null) {
+            computedValueMap.put(CustomConfigConstants.CUSTOM_VOLUME_EXPORT_NAME, exportName);
+        }
+        
+        // Create the datasource.
+        DataObject[] dataObjects = new DataObject[dataObjectsList.size()];
+        return createDataSource(configName, dataObjectsList.toArray(dataObjects), computedValueMap);
+    }    
+
+    /**
+     * Create a data source object for resolving Isilon file system path
+     * 
+     * @param project the project that the file system will be created under.
+     * @param vPool the virtual pool on file system will be created on.
+     * @param tenant the tenant by which file system is created by.
+     * @param storageSystem the storageSystem that the file system will be created on.
+     * @return a data source populated with the properties
+     */
+    public DataSource createIsilonFileSystemPathDataSource(Project project, VirtualPool vPool, TenantOrg tenant,
+            StorageSystem storageSystem) {
+
+        return createDataSource(CustomConfigConstants.ISILON_PATH_CUSTOMIZATION,
+                new DataObject[] { project, vPool, tenant, storageSystem });
+
+    }
+
+    /**
+     * Create a data source object for resolving Isilon unmanaged file system locations
+     * 
+     * @param storageSystem the storageSystem that the file system will be created on.
+     * @return a data source populated with the properties
+     */
+    public DataSource createIsilonUnmanagedFileSystemLocationsDataSource(StorageSystem storageSystem) {
+
+        return createDataSource(CustomConfigConstants.ISILON_UNMANAGED_FILE_SYSTEM_LOCATIONS,
+                new DataObject[] { storageSystem });
 
     }
 

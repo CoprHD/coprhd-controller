@@ -17,8 +17,8 @@ import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.exceptions.DeviceControllerException;
-import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.services.OperationTypeEnum;
+import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 
 public class ExportRemoveVolumeCompleter extends ExportTaskCompleter {
     private static final Logger _log = LoggerFactory.getLogger(ExportRemoveVolumeCompleter.class);
@@ -76,7 +76,7 @@ public class ExportRemoveVolumeCompleter extends ExportTaskCompleter {
                     break;
             }
             exportGroup.getOpStatus().updateTaskStatus(getOpId(), operation);
-            dbClient.persistObject(exportGroup);
+            dbClient.updateObject(exportGroup);
 
             _log.info(String.format("Done ExportMaskRemoveVolume - Id: %s, OpId: %s, status: %s",
                     getId().toString(), getOpId(), status.name()));

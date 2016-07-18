@@ -755,10 +755,8 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
      * @return a task for monitoring the progress of the operation. *
      */
 
-    public Tasks<FileShareRestRep> failBackContinousCopies(URI id, FileReplicationParam param) {
-        UriBuilder builder = client.uriBuilder(getIdUrl() + "/protection/continuous-copies/failback");
-        URI targetUri = builder.build(id);
-        return postTasks(param, targetUri.getPath());
+    public Tasks<FileShareRestRep> failBackContinousCopies(URI id, FileReplicationParam input) {
+    	return postTasks(input, getContinuousCopiesUrl() + "/failback", id);
     }
 
     /**

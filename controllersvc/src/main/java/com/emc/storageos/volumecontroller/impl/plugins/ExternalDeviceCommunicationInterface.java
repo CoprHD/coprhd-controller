@@ -170,6 +170,8 @@ public class ExternalDeviceCommunicationInterface extends
             // todo: need to implement support for async case.
             if (task.getStatus() == DriverTask.TaskStatus.READY) {
                 // process results, populate cache
+                _log.info("Scan: scanned provider: nativeId --- {}", driverProvider.getNativeId());
+                storageProvider.setNativeId(driverProvider.getNativeId());
                 _log.info("Scan: found {} systems for provider {}", systems.size(), accessProfile.getSystemId());
 
                 //update provider with scan info
@@ -188,8 +190,7 @@ public class ExternalDeviceCommunicationInterface extends
                 Map<String, StorageSystemViewObject> storageSystemsCache = accessProfile.getCache();
                 for (StorageSystem driverStorageSystem : systems) {
                     String systemType = driverStorageSystem.getSystemType();
-                    String nativeGuid = NativeGUIDGenerator.generateNativeGuid(accessProfile.getSystemType(),
-                            driverStorageSystem.getNativeId());
+                    String nativeGuid = NativeGUIDGenerator.generateNativeGuid(systemType, driverStorageSystem.getNativeId());
                     StorageSystemViewObject storageSystemView = storageSystemsCache.get(nativeGuid);
                     if (storageSystemView == null) {
                         storageSystemView = new StorageSystemViewObject();
@@ -198,7 +199,7 @@ public class ExternalDeviceCommunicationInterface extends
                     storageSystemView.addprovider(accessProfile.getSystemId().toString());
                     storageSystemView.setProperty(StorageSystemViewObject.SERIAL_NUMBER, driverStorageSystem.getSerialNumber());
                     storageSystemView.setProperty(StorageSystemViewObject.VERSION, driverStorageSystem.getFirmwareVersion());
-                    storageSystemView.setProperty(StorageSystemViewObject.STORAGE_NAME, nativeGuid);
+                    storageSystemView.setProperty(StorageSystemViewObject.STORAGE_NAME, driverStorageSystem.getNativeId());
                     storageSystemsCache.put(nativeGuid, storageSystemView);
                     _log.info(String.format("Info for storage system %s (provider ip %s): type: %s, nativeGuid: %s",
                             driverStorageSystem.getSerialNumber(), accessProfile.getIpAddress(), systemType, nativeGuid));
@@ -346,9 +347,17 @@ public class ExternalDeviceCommunicationInterface extends
 
         com.emc.storageos.db.client.model.StorageSystem storageSystem =
                 _dbClient.queryObject(com.emc.storageos.db.client.model.StorageSystem.class, accessProfile.getSystemId());
-        // TODO: temporary label is used to identify storage system by name when multiple systems are managed by provider at
-        // the provided endpoint.
+
         driverStorageSystem.setSystemName(storageSystem.getLabel());
+
+        // could be already populated by scan
+        if (storageSystem.getSerialNumber() != null) {
+            driverStorageSystem.setSerialNumber(storageSystem.getSerialNumber());
+        }
+        // could be already populated by scan
+        if (storageSystem.getNativeId() != null) {
+            driverStorageSystem.setNativeId(storageSystem.getNativeId());
+        }
 
         try {
             _log.info("discoverStorageSystem information for storage system {}, name {} - start",

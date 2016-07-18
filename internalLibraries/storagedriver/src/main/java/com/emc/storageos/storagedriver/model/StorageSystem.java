@@ -17,7 +17,7 @@ public class StorageSystem extends StorageObject {
     // system name, ex: los123.lss.emc.com . Type: Input.
     private String systemName;
 
-    // serial number.
+    // serial number. Type: Input/Output.
     private String serialNumber;
 
     // device OS/firmware major version

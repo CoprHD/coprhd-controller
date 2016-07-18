@@ -952,14 +952,15 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
 
         storageProvider.setIsSupportedVersion(true);
         storageProvider.setNativeId(storageProvider.getProviderHost());
+
         StorageSystem providerSystem = new StorageSystem();
         providerSystem.setSystemType("providersystem");
+        // to distinguish between systems from different providers of the same type
         providerSystem.setNativeId(storageProvider.getNativeId() + "-" + "providerSystem-1");
         providerSystem.setSerialNumber(storageProvider.getNativeId() + "-" + "1234567-1");
         providerSystem.setFirmwareVersion("1.2.3");
         storageSystems.add(providerSystem);
 
-        providerSystem = new StorageSystem();
         storageProvider.setNativeId(storageProvider.getProviderHost());
         providerSystem = new StorageSystem();
         providerSystem.setSystemType("providersystem");
@@ -968,7 +969,6 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
         providerSystem.setFirmwareVersion("1.2.3");
         storageSystems.add(providerSystem);
 
-        providerSystem = new StorageSystem();
         storageProvider.setNativeId(storageProvider.getProviderHost());
         providerSystem = new StorageSystem();
         providerSystem.setSystemType("providersystem");

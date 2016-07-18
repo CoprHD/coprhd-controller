@@ -1395,12 +1395,13 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         }
         for (Table.Cell<URI, String, List<Volume>> cell : groupVolumes.cellSet()) {
             List<Volume> volumesInRGRequest = cell.getValue();
-            List<Volume> rgVolumes = getVolumesInSameReplicationGroup(cell.getColumnKey(), cell.getRowKey());
+            Volume firstVolume = volumesInRGRequest.get(0);
+            
+            List<Volume> rgVolumes = getVolumesInSameReplicationGroup(cell.getColumnKey(), cell.getRowKey(), firstVolume.getPersonality());
             if (volumesInRGRequest.size() != rgVolumes.size()) {
                 throw APIException.badRequests.cantChangeVpoolNotAllCGVolumes();
             }
-            
-            Volume firstVolume = volumesInRGRequest.get(0);
+                        
             BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, firstVolume.getConsistencyGroup());
             URI systemURI = firstVolume.getStorageController();
 
@@ -4163,9 +4164,10 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      *
      * @param groupName The replication group name
      * @param storageSystemUri The backend storage system URI
+     * @param personality Optional argument to filter on volume personality
      * @return The list of Vplex virtual volumes
      */
-    private List<Volume> getVolumesInSameReplicationGroup(String groupName, URI storageSystemUri) {
+    private List<Volume> getVolumesInSameReplicationGroup(String groupName, URI storageSystemUri, String personality) {
         List<Volume> vplexVols = new ArrayList<Volume>();
         // Get all backend volumes with the same replication group name
         List<Volume> volumes = CustomQueryUtility
@@ -4180,11 +4182,10 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                                 getVolumesByAssociatedId(volume.getId().toString()));
                 if (vplexVolumes != null && !vplexVolumes.isEmpty()) {
                     Volume vplexVol = vplexVolumes.get(0);
-                    if (!vplexVol.checkForRp() || vplexVol.checkPersonality(Volume.PersonalityTypes.SOURCE.name())) {
+                    if ((personality == null) || vplexVol.checkPersonality(personality)) {
                         vplexVols.add(vplexVol);
                     }
                 }
-
             }
         }
         return vplexVols;
@@ -4193,10 +4194,10 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
     /**
      * Check if all VPlex volumes whose backend volume RG that the backendVol belongs to are in the allVolumes set
      *
-     * @param backnedVol
-     * @param allVolumes
+     * @param backnedVol Backend volume to get the RG name
+     * @param allVolumes All volumes to compare against
      * @param checkedRGMap a map contained RG that has been checked
-     * @return boolean
+     * @return boolean True is all the volumes are in the same request, false otherwise.
      */
     public boolean checkAllVPlexVolsInRequest(Volume backendVol, Set<URI> allVolumes, Map<String, Boolean> checkedRGMap) {
         String rgName = backendVol.getReplicationGroupInstance();
@@ -4207,7 +4208,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             return checkedRGMap.get(key);
         } else {
             boolean containAll = true;
-            List<Volume> rgVolumes = getVolumesInSameReplicationGroup(rgName, storageSystemUri);
+            Volume firstVolume = _dbClient.queryObject(Volume.class, allVolumes.iterator().next());
+            List<Volume> rgVolumes = getVolumesInSameReplicationGroup(rgName, storageSystemUri, firstVolume.getPersonality());
             for (Volume vol : rgVolumes) {
                 if (vol != null && !vol.getInactive()) {
                     if (!allVolumes.contains(vol.getId())) {

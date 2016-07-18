@@ -13,7 +13,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang.mutable.MutableBoolean;
 import org.apache.commons.lang.mutable.MutableInt;
@@ -23,31 +22,17 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.hp3par.command.CPGCommandResult;
 import com.emc.storageos.hp3par.command.CPGMember;
 import com.emc.storageos.hp3par.command.ConsistencyGroupResult;
-import com.emc.storageos.hp3par.command.FcPath;
-import com.emc.storageos.hp3par.command.HostCommandResult;
-import com.emc.storageos.hp3par.command.HostMember;
-import com.emc.storageos.hp3par.command.HostSetDetailsCommandResult;
-import com.emc.storageos.hp3par.command.ISCSIPath;
-import com.emc.storageos.hp3par.command.Position;
 import com.emc.storageos.hp3par.command.SystemCommandResult;
-import com.emc.storageos.hp3par.command.VVSetCloneList.VVSetVolumeClone;
-import com.emc.storageos.hp3par.command.VirtualLun;
-import com.emc.storageos.hp3par.command.VirtualLunsList;
-import com.emc.storageos.hp3par.command.VlunResult;
-import com.emc.storageos.hp3par.command.VolumeDetailsCommandResult;
 import com.emc.storageos.hp3par.connection.HP3PARApiFactory;
 import com.emc.storageos.hp3par.utils.CompleteError;
 import com.emc.storageos.hp3par.utils.HP3PARConstants;
 import com.emc.storageos.hp3par.utils.HP3PARUtil;
-import com.emc.storageos.hp3par.utils.SanUtils;
 import com.emc.storageos.storagedriver.AbstractStorageDriver;
 import com.emc.storageos.storagedriver.BlockStorageDriver;
 import com.emc.storageos.storagedriver.DriverTask;
 import com.emc.storageos.storagedriver.HostExportInfo;
 import com.emc.storageos.storagedriver.RegistrationData;
 import com.emc.storageos.storagedriver.model.Initiator;
-import com.emc.storageos.storagedriver.model.Initiator.HostOsType;
-import com.emc.storageos.storagedriver.model.Initiator.Type;
 import com.emc.storageos.storagedriver.model.StorageHostComponent;
 import com.emc.storageos.storagedriver.model.StorageObject;
 import com.emc.storageos.storagedriver.model.StorageObject.AccessStatus;
@@ -333,9 +318,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	@Override
 	public DriverTask getStorageVolumes(StorageSystem storageSystem, List<StorageVolume> storageVolumes,
 			MutableInt token) {
-		_log.info("3PARDriver: getStorageVolumes Running ");
 		DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_GET_STORAGE_VOLUMES);
-		_log.info("3PARDriver: getStorageVolumes Leaving");
 		return ingestHelper.getStorageVolumes(storageSystem, storageVolumes, token, task, this.driverRegistry);
 	}
 

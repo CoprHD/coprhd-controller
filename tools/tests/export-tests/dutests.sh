@@ -513,6 +513,32 @@ prerun_setup() {
     then
 	array_ip=${VNXB_IP}
     fi
+
+    # All export operations orchestration go through the same entry-points
+    exportCreateOrchStep=ExportWorkflowEntryPoints.exportGroupCreate
+    exportAddVolumesOrchStep=
+    exportRemoveVolumesOrchStep=
+    exportAddInitiatorsOrchStep=
+    exportRemoveInitiatorsOrchStep=
+    exportDeleteOrchStep=
+
+    # The actual steps that the orchestration generates varies depending on the device type
+    if [ "${SS}" != "vplex" ]; then
+	exportCreateDeviceStep=VPlexDeviceController.createStorageView
+	exportAddVolumesDeviceStep=
+	exportRemoveVolumesDeviceStep=
+	exportAddInitiatorsDeviceStep=
+	exportRemoveInitiatorsDeviceStep=
+	exportDeleteDeviceStep=
+    else
+	# VPLEX-specific entrypoints
+	exportCreateDeviceStep=MaskingWorkflowEntryPoints.doExportGroupCreate
+	exportAddVolumesDeviceStep=
+	exportRemoveVolumesDeviceStep=
+	exportAddInitiatorsDeviceStep=
+	exportRemoveInitiatorsDeviceStep=
+	exportDeleteDeviceStep=
+    fi
 }
 
 # Reset all of the system properties so settings are back to normal
@@ -1029,7 +1055,7 @@ test_1() {
 
     # Turn on suspend of export after orchestration
     reset_system_props
-    set_suspend_on_class_method ExportWorkflowEntryPoints.exportGroupCreate
+    set_suspend_on_class_method ${exportCreateOrchStep}
 
     # Verify there is no mask
     verify_export ${expname}1 ${HOST1} gone
@@ -1096,7 +1122,7 @@ test_2() {
 
     # Turn on suspend of export after orchestration
     reset_system_props
-    set_suspend_on_class_method MaskingWorkflowEntryPoints.doExportGroupCreate
+    set_suspend_on_class_method ${exportCreateDeviceStep}
 
     # Run the export group command
     echo === export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"

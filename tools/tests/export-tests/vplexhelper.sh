@@ -61,12 +61,6 @@ verify_export() {
     TMPFILE2=$TMPFILE1-error
 
     java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays vplex -method get_storage_view -params ${STORAGE_VIEW_NAME} > ${TMPFILE1} 2> ${TMPFILE2}
-    echo "-------------- TMPFILE1 start --------------"
-    cat $TMPFILE1
-    echo "-------------- TMPFILE1 stop --------------"
-    echo "-------------- TMPFILE2 start --------------"
-    cat $TMPFILE2
-    echo "-------------- TMPFILE2 stop --------------"
     grep -n ${STORAGE_VIEW_NAME} ${TMPFILE1} > /dev/null
     # 0 if line selected, 1 if no line selected
     foundIt=$?
@@ -89,10 +83,8 @@ verify_export() {
         exit 1;
     fi
 
-    num_inits=`grep -Po '(?<="numberOfInitiators":")[^"]*' ${TMPFILE1}`
-    num_luns=`grep -Po '(?<="numberOfVolumes":")[^"]*' ${TMPFILE1}`
-    echo "num_inits is ${num_inits}"
-    echo "num_luns is ${num_luns}"
+    num_inits=`grep numberOfInitiators ${TMPFILE1} | awk -F: '{print $2}'`
+    num_luns=`grep numberOfVolumes ${TMPFILE1} | awk -F: '{print $2}'`
     failed=false
 
     if [ ${num_inits} -ne ${NUM_INITIATORS} ]

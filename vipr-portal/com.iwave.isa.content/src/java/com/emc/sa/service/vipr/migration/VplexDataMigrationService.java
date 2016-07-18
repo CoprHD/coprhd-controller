@@ -3,6 +3,7 @@ package com.emc.sa.service.vipr.migration;
 import java.net.URI;
 import java.util.List;
 
+import com.emc.sa.asset.providers.BlockProvider;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.ServiceParams;
@@ -31,7 +32,11 @@ public class VplexDataMigrationService extends ViPRService {
 
     @Override
     public void execute() throws Exception {
-        Tasks<VolumeRestRep> tasks = execute(new ChangeBlockVolumeVirtualPool(uris(volumeIds), targetVirtualPool, consistencyGroup));
+        boolean forceFlag = false;
+        if (BlockProvider.YES_VALUE.equals(displayJournals)) {
+            forceFlag = true;
+        }
+        Tasks<VolumeRestRep> tasks = execute(new ChangeBlockVolumeVirtualPool(uris(volumeIds), targetVirtualPool, consistencyGroup, forceFlag));
         addAffectedResources(tasks);
     }
 }

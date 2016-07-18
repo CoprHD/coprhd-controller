@@ -1570,28 +1570,8 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
                 return false;
             }
 
-//            // If validMigrations is not null, initialize the structure.
-//            // This will be used to keep track of valid migrations for SOURCE, TARGET,
-//            // and METADATA.
-//            if (validMigrations != null) {
-//                validMigrations.put(Volume.PersonalityTypes.SOURCE, new HashMap<URI, URI>());
-//                validMigrations.put(Volume.PersonalityTypes.TARGET, new HashMap<URI, URI>());
-//                validMigrations.put(Volume.PersonalityTypes.METADATA, new HashMap<URI, URI>());
-//            }
-
-            // Keep track of the potential Source migrations
+            // Keep track of all the potential migrations
             List<RPVPlexMigration> potentialMigrations = new ArrayList<RPVPlexMigration>();
-//            // Keep track of the potential Target migrations
-//            List<RPVPlexMigration> targetMigrations = new ArrayList<RPVPlexMigration>();
-//            // Keep track of the potential Journal migrations
-//            List<RPVPlexMigration> journalMigrations = new ArrayList<RPVPlexMigration>();
-
-//            // Store all the potential candidates for migrations
-//            Map<Volume.PersonalityTypes, Map<VirtualPool, VirtualPool>> candidatesForMigration 
-//                                                    = new HashMap<Volume.PersonalityTypes, Map<VirtualPool, VirtualPool>>();
-//            candidatesForMigration.put(Volume.PersonalityTypes.SOURCE, sourceMigrations);
-//            candidatesForMigration.put(Volume.PersonalityTypes.TARGET, targetMigrations);
-//            candidatesForMigration.put(Volume.PersonalityTypes.METADATA, journalMigrations);
 
             // The Source is always a potential candidate for migration
             potentialMigrations.add(new RPVPlexMigration(Volume.PersonalityTypes.SOURCE, 

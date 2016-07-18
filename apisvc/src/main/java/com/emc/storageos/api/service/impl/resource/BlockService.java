@@ -3255,7 +3255,7 @@ public class BlockService extends TaskResourceService {
             _log.info("Checking on volume: {}", volume.getId());
 
             // Don't operate on VPLEX backend or RP Journal volumes.
-            BlockServiceUtils.validateNotAnInternalBlockObject(volume, false);
+            BlockServiceUtils.validateNotAnInternalBlockObject(volume, param.getForceFlag());
 
             // Don't operate on ingested volumes.
             VolumeIngestionUtil.checkOperationSupportedOnIngestedVolume(volume,
@@ -4021,6 +4021,17 @@ public class BlockService extends TaskResourceService {
                         new Object[] { newVpool.getId() });
             } else {
                 notSuppReasonBuff.setLength(0);
+                // If this a RP+VPLEX Journal check to see if a straight up VPLEX Data migration is
+                // allowed.
+                //
+                // RP+VPLEX Journals are normally hidden in the UI since they are internal volumes, however they 
+                // can been exposed in the Migration Services catalog to support RP+VPLEX Data Migrations.
+                if (volume.checkPersonality(Volume.PersonalityTypes.METADATA)) {
+                    if (VirtualPoolChangeAnalyzer.vpoolChangeRequiresMigration(currentVpool, newVpool)) {
+                        verifyVPlexVolumeForDataMigration(volume, currentVpool, newVpool);
+                        return;
+                    }
+                }
                 // Check to see if this is a RP protected VPLEX volume and
                 // if the request is trying to remove RP protection.
                 if (volume.checkForRp()

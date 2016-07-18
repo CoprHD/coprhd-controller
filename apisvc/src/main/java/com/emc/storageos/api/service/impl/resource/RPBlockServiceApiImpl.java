@@ -2163,13 +2163,26 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         
         StringBuffer notSuppReasonBuff = new StringBuffer();
         notSuppReasonBuff.setLength(0);
+        
+        // Get the first volume for the change vpool operation
         Volume firstVolume =  volumes.get(0);
         
+        // Get the current vpool from the first volume
         VirtualPool currentVpool = _dbClient.queryObject(VirtualPool.class, firstVolume.getVirtualPool());
 
+        // Container for RP+VPLEX migrations (if there are any)
         List<RPVPlexMigration> validMigrations = new ArrayList<RPVPlexMigration>();
         
-        if (firstVolume.checkForRp()
+        if (firstVolume.checkForRp() && firstVolume.checkPersonality(Volume.PersonalityTypes.METADATA)) {
+            boolean vplex = RPHelper.isVPlexVolume(firstVolume);
+            if (vplex) {
+                if (VirtualPoolChangeAnalyzer.vpoolChangeRequiresMigration(currentVpool, vpool)) {
+                    // Allow the VPLEX Data Migration operation for the RP+VPLEX Journal 
+                    // to proceed via the VPLEX Block Service.
+                    vplexBlockServiceApiImpl.changeVolumeVirtualPool(volumes, vpool, vpoolChangeParam, taskId);
+                }
+            } 
+        } else if (firstVolume.checkForRp()
                 && !VirtualPool.vPoolSpecifiesProtection(vpool)) {
             removeProtection(volumes, vpool, taskId);
         } else if (VirtualPoolChangeAnalyzer.isSupportedRPVPlexMigrationVirtualPoolChange(firstVolume, currentVpool, vpool,
@@ -2977,6 +2990,21 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
         List<VirtualPoolChangeOperationEnum> allowedOperations = new ArrayList<VirtualPoolChangeOperationEnum>();
 
+        // If this a RP+VPLEX Journal check to see if a straight up VPLEX Data migration is
+        // allowed.
+        //
+        // RP+VPLEX Journals are normally hidden in the UI since they are internal volumes, however they 
+        // can been exposed in the Migration Services catalog to support RP+VPLEX Data Migrations.
+        if (volume.checkPersonality(Volume.PersonalityTypes.METADATA)) {
+            boolean vplex = RPHelper.isVPlexVolume(volume);
+            if (vplex) {
+                if (VirtualPoolChangeAnalyzer.vpoolChangeRequiresMigration(currentVpool, newVpool)) {
+                    // Allow the VPLEX Data Migration operation
+                    allowedOperations.add(VirtualPoolChangeOperationEnum.VPLEX_DATA_MIGRATION);
+                }
+            }
+        }
+        
         // Doesn't matter if this is VPLEX or not, if we have a
         // protected volume and we're looking to move to an unprotected
         // state return the RP_REMOVE_PROTECTION as the allowed operation

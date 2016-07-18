@@ -22,7 +22,7 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
  */
 class ArrayAffinityTasksSchedulingThread implements Runnable {
 
-    private static final Logger _log = LoggerFactory.getLogger(ArrayAffinityTasksSchedulingThread.class);
+    private static final Logger logger = LoggerFactory.getLogger(ArrayAffinityTasksSchedulingThread.class);
     private static int MAX_WAIT_MINUTES_FOR_HOST_DISCOVERY = 20;
     private static int SLEEP_MINUTES = 1;
 
@@ -31,6 +31,12 @@ class ArrayAffinityTasksSchedulingThread implements Runnable {
     private String task;
     private DbClient dbClient;
 
+    /**
+     * @param service
+     * @param hostId
+     * @param task
+     * @param dbClient
+     */
     public ArrayAffinityTasksSchedulingThread(HostService service, URI hostId, String task, DbClient dbClient) {
         this.service = service;
         this.hostId = hostId;
@@ -40,7 +46,7 @@ class ArrayAffinityTasksSchedulingThread implements Runnable {
 
     @Override
     public void run() {
-        _log.info("Starting scheduling thread...");
+        logger.info("Starting scheduling thread...");
 
         try {
             // wait for host discovery completion
@@ -48,9 +54,9 @@ class ArrayAffinityTasksSchedulingThread implements Runnable {
             service.scheduleHostArrayAffinityTasks(hostId, task);
 
         } catch (Exception e) {
-            _log.error("Failed to schedule array affinity tasks for host {} due to {}", hostId, e.getMessage());
+            logger.error("Failed to schedule array affinity tasks for host " + hostId, e);
         }
-        _log.info("Ending scheduling thread...");
+        logger.info("Ending scheduling thread...");
     }
 
     /**
@@ -67,7 +73,7 @@ class ArrayAffinityTasksSchedulingThread implements Runnable {
         try {
             executorService.execute(schedulingThread);
         } catch (Exception e) {
-            _log.error("Failed to schedule array affinity tasks for host {} due to {}", hostId, e.getMessage());
+            logger.error("Failed to schedule array affinity tasks for host " + hostId, e.getMessage());
         }
     }
 
@@ -93,7 +99,7 @@ class ArrayAffinityTasksSchedulingThread implements Runnable {
             }
 
             try {
-                _log.info("Waiting host discovery task {} to finish", task);
+                logger.info("Waiting host discovery task {} to finish", task);
                 Thread.sleep(SLEEP_MINUTES * 60000);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();

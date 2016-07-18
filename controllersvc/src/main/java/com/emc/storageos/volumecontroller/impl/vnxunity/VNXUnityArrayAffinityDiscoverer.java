@@ -42,9 +42,13 @@ import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.export.ArrayAffinityDiscoveryUtils;
 import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
 
+/**
+ * Discover array affinity
+ *
+ */
 public class VNXUnityArrayAffinityDiscoverer {
 
-    private static final Logger _logger = LoggerFactory.getLogger(VNXUnityArrayAffinityDiscoverer.class);
+    private static final Logger logger = LoggerFactory.getLogger(VNXUnityArrayAffinityDiscoverer.class);
     private static final String HOST = "Host";
     private static final int BATCH_SIZE = 100;
 
@@ -54,9 +58,16 @@ public class VNXUnityArrayAffinityDiscoverer {
         this.vnxeApiClientFactory = vnxeApiClientFactory;
     }
 
+    /**
+     * Discover array affinity
+     * @param accessProfile AccesssProfile
+     * @param dbClient DbClient
+     * @param partitionManager PartitionManager
+     * @throws Exception
+     */
     public void discoverArrayAffinity(AccessProfile accessProfile, DbClient dbClient,
             PartitionManager partitionManager) throws Exception {
-        _logger.info("Started array affinity discovery for system {}", accessProfile.getSystemId());
+        logger.info("Started array affinity discovery for system {}", accessProfile.getSystemId());
         VNXeApiClient apiClient = vnxeApiClientFactory.getUnityClient(accessProfile.getIpAddress(),
                 accessProfile.getPortNumber(), accessProfile.getUserName(),
                 accessProfile.getPassword());
@@ -66,17 +77,25 @@ public class VNXUnityArrayAffinityDiscoverer {
         String hostIdStr = accessProfile.getProps().get(Constants.HOST);
         if (hostIdStr != null) {
             // array affinity for a host
+            logger.info("Processing host {}", hostIdStr);
         } else {
             // array affinity for all hosts
             processAllHosts(system, apiClient, dbClient, partitionManager);
         }
     }
 
+    /**
+     * Process all hosts in ViPR DB
+     * @param system
+     * @param apiClient
+     * @param dbClient
+     * @param partitionManager
+     */
     private void processAllHosts(StorageSystem system, VNXeApiClient apiClient, DbClient dbClient, PartitionManager partitionManager) {
         Map<URI, List<String>> hostToVolumesMap = new HashMap<URI, List<String>>();
         Map<String, URI> volumeToPoolMap = new HashMap<String, URI>();
         Map<String, URI> hostIdToHostURIMap = new HashMap<String, URI>();
-        Map<String, List<URI>> volumeToHostsMap = new HashMap<String, List<URI>>();
+        Map<String, Set<URI>> volumeToHostsMap = new HashMap<String, Set<URI>>();
 
         Set<String> serialIds = new HashSet<String>();
         serialIds.add(system.getSerialNumber());
@@ -90,7 +109,7 @@ public class VNXUnityArrayAffinityDiscoverer {
             while (hosts.hasNext()) {
                 Host host = hosts.next();
                 if (host != null && !host.getInactive()) {
-                    _logger.info("Processing host {}", host.getLabel());
+                    logger.info("Processing host {}", host.getLabel());
                     Map<String, String> preferredPoolMap = new HashMap<String, String>();
 
                     // check volumes
@@ -123,12 +142,24 @@ public class VNXUnityArrayAffinityDiscoverer {
                 partitionManager.updateInBatches(hostsToUpdate, BATCH_SIZE, dbClient, HOST);
             }
         } catch (Exception e) {
-            _logger.warn("Exception on updatePreferredSystems {}", e.getMessage());
+            logger.warn("Exception on processAllHosts", e);
         }
     }
 
+    /**
+     * Discover array affinity via LUNs
+     *
+     * @param system
+     * @param apiClient
+     * @param dbClient
+     * @param hostToVolumesMap
+     * @param volumeToHostsMap
+     * @param volumeToPoolMap
+     * @param hostIdToHostURIMap
+     * @throws Exception
+     */
     private void processAllLuns(StorageSystem system, VNXeApiClient apiClient, DbClient dbClient,
-            Map<URI, List<String>> hostToVolumesMap, Map<String, List<URI>> volumeToHostsMap, Map<String, URI> volumeToPoolMap,
+            Map<URI, List<String>> hostToVolumesMap, Map<String, Set<URI>> volumeToHostsMap, Map<String, URI> volumeToPoolMap,
             Map<String, URI> hostIdToHostURIMap) throws Exception {
         List<VNXeLun> luns = apiClient.getAllLuns();
         if (luns != null && !luns.isEmpty()) {
@@ -137,13 +168,13 @@ public class VNXUnityArrayAffinityDiscoverer {
                 String nativeGuid = NativeGUIDGenerator.generateNativeGuidForVolumeOrBlockSnapShot(
                         system.getNativeGuid(), lun.getId());
                 if (DiscoveryUtils.checkStorageVolumeExistsInDB(dbClient, nativeGuid) != null) {
-                    _logger.info("Skipping volume {} as it is already managed by ViPR", nativeGuid);
+                    logger.info("Skipping volume {} as it is already managed by ViPR", nativeGuid);
                 }
 
                 StoragePool pool = getStoragePoolOfUnManagedObject(lun.getPool().getId(), system, pools);
                 if (pool != null) {
                     // the Lun belong to a ViPR host
-                    List<URI> hostURIs = getHostURIs(lun, apiClient, dbClient, hostIdToHostURIMap);
+                    Set<URI> hostURIs = getHostURIs(lun, apiClient, dbClient, hostIdToHostURIMap);
                     volumeToHostsMap.put(lun.getId(), hostURIs);
 
                     for (URI hostURI : hostURIs) {
@@ -157,17 +188,26 @@ public class VNXUnityArrayAffinityDiscoverer {
 
                     volumeToPoolMap.put(lun.getId(), pool.getId());
                 } else {
-                    _logger.error("Skipping volume {} as its storage pool doesn't exist in ViPR",
+                    logger.error("Skipping volume {} as its storage pool doesn't exist in ViPR",
                             lun.getId());
                 }
             }
         } else {
-            _logger.info("No luns found on the system: {}", system.getId());
+            logger.info("No luns found on the system: {}", system.getId());
         }
     }
 
-    private List<URI> getHostURIs(VNXeLun lun, VNXeApiClient apiClient, DbClient dbClient, Map<String, URI> hostIdToHostURIMap) {
-        List<URI> hostURIs = new ArrayList<URI>();
+    /**
+     * Find host URIs that a LUN is exported to
+     *
+     * @param lun
+     * @param apiClient
+     * @param dbClient
+     * @param hostIdToHostURIMap
+     * @return set of host URIs
+     */
+    private Set<URI> getHostURIs(VNXeLun lun, VNXeApiClient apiClient, DbClient dbClient, Map<String, URI> hostIdToHostURIMap) {
+        Set<URI> hostURIs = new HashSet<URI>();
         List<BlockHostAccess> accesses = lun.getHostAccess();
         if (accesses != null && !accesses.isEmpty()) {
             for (BlockHostAccess access : accesses) {
@@ -183,6 +223,15 @@ public class VNXUnityArrayAffinityDiscoverer {
         return hostURIs;
     }
 
+    /**
+     * Find host URI from host Id on array
+     *
+     * @param apiClient
+     * @param hostId
+     * @param dbClient
+     * @param hostIdToHostURIMap
+     * @return host URI or NULL_URI
+     */
     private URI getHostURI(VNXeApiClient apiClient, String hostId, DbClient dbClient, Map<String, URI> hostIdToHostURIMap) {
         if (hostIdToHostURIMap.containsKey(hostId)) {
             return hostIdToHostURIMap.get(hostId);
@@ -202,6 +251,14 @@ public class VNXUnityArrayAffinityDiscoverer {
         return hostURI;
     }
 
+    /**
+     * Find host URI from host initiators on array
+     *
+     * @param initiators
+     * @param apiClient
+     * @param dbClient
+     * @return host URI or null
+     */
     private URI findHostURI(List<VNXeBase> initiators, VNXeApiClient apiClient, DbClient dbClient) {
         if (initiators != null && !initiators.isEmpty()) {
             for (VNXeBase init : initiators) {
@@ -224,6 +281,13 @@ public class VNXUnityArrayAffinityDiscoverer {
         return null;
     }
 
+    /**
+     * Construct pool's native GUID to storage pool object map
+     *
+     * @param storageSystem
+     * @param dbClient
+     * @return map of pool's native GUID to storage pool object
+     */
     private Map<String, StoragePool> getStoragePoolMap(StorageSystem storageSystem, DbClient dbClient) {
         URIQueryResultList storagePoolURIs = new URIQueryResultList();
         dbClient.queryByConstraint(ContainmentConstraint.Factory
@@ -246,7 +310,7 @@ public class VNXUnityArrayAffinityDiscoverer {
      * @param storageResource
      * @param system
      * @param dbClient
-     * @return
+     * @return storage pool
      * @throws IOException
      */
     private StoragePool getStoragePoolOfUnManagedObject(String poolNativeId,

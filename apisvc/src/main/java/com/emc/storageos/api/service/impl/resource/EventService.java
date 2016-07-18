@@ -139,8 +139,7 @@ public class EventService extends TaggedResource {
         return taskList;
     }
 
-    public TaskResourceRep detachHostStorage(String hostIdStr, boolean deactivateOnComplete, boolean deactivateBootVolume) {
-        URI hostId = URI.create(hostIdStr);
+    public TaskResourceRep detachHostStorage(URI hostId, boolean deactivateOnComplete, boolean deactivateBootVolume) {
         ComputeSystemController computeController = getController(ComputeSystemController.class, null);
         Host host = _dbClient.queryObject(Host.class, hostId);
         String taskId = UUID.randomUUID().toString();

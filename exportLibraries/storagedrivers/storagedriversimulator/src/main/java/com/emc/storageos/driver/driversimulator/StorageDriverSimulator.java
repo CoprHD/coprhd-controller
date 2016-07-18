@@ -28,6 +28,7 @@ import com.emc.storageos.driver.driversimulator.operations.CreateVolumeCloneSimu
 import com.emc.storageos.driver.driversimulator.operations.DriverSimulatorOperation;
 import com.emc.storageos.driver.driversimulator.operations.ExpandVolumeSimulatorOperation;
 import com.emc.storageos.driver.driversimulator.operations.RestoreFromCloneSimulatorOperation;
+import com.emc.storageos.driver.driversimulator.operations.RestoreFromSnapshotSimulatorOperation;
 import com.emc.storageos.storagedriver.BlockStorageDriver;
 import com.emc.storageos.storagedriver.DefaultStorageDriver;
 import com.emc.storageos.storagedriver.DriverTask;
@@ -483,16 +484,18 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
 
     @Override
     public DriverTask restoreSnapshot(List<VolumeSnapshot> snapshots) {
-        String taskType = "restore-snapshot";
-        String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
-        DriverTask task = new DriverSimulatorTask(taskId);
-        task.setStatus(DriverTask.TaskStatus.READY);
-        String msg = String.format("StorageDriver: restoreSnapshot for storage system %s, " +
-                        "snapshots nativeId %s, snap group %s - end",
-                snapshots.get(0).getStorageSystemId(), snapshots.toString(), snapshots.get(0).getConsistencyGroup());
-        _log.info(msg);
-        task.setMessage(msg);
-        return task;
+        RestoreFromSnapshotSimulatorOperation restoreSnapshotSimulatorOperation = new RestoreFromSnapshotSimulatorOperation(snapshots);
+        if (simulatorConfig.getSimulateAsynchronousResponses()) {
+            DriverTask driverTask = restoreSnapshotSimulatorOperation.getDriverTask();
+            taskOperationMap.put(driverTask.getTaskId(), restoreSnapshotSimulatorOperation);
+            return driverTask;
+        } else if (simulatorConfig.getSimulateFailures()) {
+            String failMsg = restoreSnapshotSimulatorOperation.getFailureMessage();
+            return restoreSnapshotSimulatorOperation.doFailure(failMsg);
+        } else {
+            String successMsg = restoreSnapshotSimulatorOperation.getSuccessMessage(snapshots);
+            return restoreSnapshotSimulatorOperation.doSuccess(successMsg);
+        }        
     }
 
     @Override

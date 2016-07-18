@@ -152,6 +152,11 @@
         <property name="coordinator" ref="coordinator"/>
     </bean>
     
+    <bean id="vmService" class="com.emc.storageos.api.service.impl.resource.VirtualMachineService">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="coordinator" ref="coordinator"/>
+    </bean>
+    
     <bean id="vcenterService" class="com.emc.storageos.api.service.impl.resource.VcenterService">
         <property name="dbClient" ref="dbclient"/>
         <property name="coordinator" ref="coordinator"/>
@@ -486,6 +491,7 @@
                 <ref bean="tenantService"/>
                 <ref bean="tenantsService"/>
                 <ref bean="hostService"/>
+                <ref bean="vmService"/>
                 <ref bean="computeSystemService"/>
                 <ref bean="computeVirtualPoolService"/>
                 <ref bean="computeElementService"/>

@@ -43,7 +43,7 @@ public class VirtualMachineCreateParam extends VirtualMachineParam {
      */
     @Override
     @XmlElement(name = "host_name", required = true)
-    @Endpoint(type = Endpoint.EndpointType.VIRTUAL_MACHINE)
+    @Endpoint(type = Endpoint.EndpointType.HOST)
     @JsonProperty("host_name")
     public String getHostName() {
         return super.getHostName();

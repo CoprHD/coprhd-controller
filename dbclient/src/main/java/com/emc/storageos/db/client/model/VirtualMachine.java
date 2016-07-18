@@ -11,4 +11,12 @@ package com.emc.storageos.db.client.model;
 @Cf("VirtualMachine")
 public class VirtualMachine extends Host {
 
+    public String getVmName() {
+        return super.getHostName();
+    }
+
+    public void setVmName(String vm) {
+        super.setHostName(vm);
+    }
+
 }

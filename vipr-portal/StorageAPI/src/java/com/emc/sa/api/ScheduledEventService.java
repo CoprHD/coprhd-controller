@@ -219,12 +219,12 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
                 log.warn("Not all of the orders would be scheduled due to schedule cycle type {}", scheduleInfo.getCycleType());
                 break;
             case DAILY:
-                if (!window.getExecutionWindowType().equals(ExecutionWindowType.DAILY)) {
+                if (!window.getExecutionWindowType().equals(ExecutionWindowType.DAILY.name())) {
                     msg = "Schedule cycle type has conflicts with execution window.";
                 }
                 break;
             case WEEKLY:
-                if (window.getExecutionWindowType().equals(ExecutionWindowType.MONTHLY)) {
+                if (window.getExecutionWindowType().equals(ExecutionWindowType.MONTHLY.name())) {
                     msg = "Schedule cycle type has conflicts with execution window.";
                 } else {
                     if (window.getDayOfWeek() != Integer.valueOf(scheduleInfo.getSectionsInCycle().get(0))) {
@@ -233,9 +233,9 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
                 }
                 break;
             case MONTHLY:
-                if (window.getExecutionWindowType().equals(ExecutionWindowType.WEEKLY)) {
+                if (window.getExecutionWindowType().equals(ExecutionWindowType.WEEKLY.name())) {
                     msg = "Schedule cycle type has conflicts with execution window.";
-                } else if (window.getExecutionWindowType().equals(ExecutionWindowType.MONTHLY)) {
+                } else if (window.getExecutionWindowType().equals(ExecutionWindowType.MONTHLY.name())) {
                     if (window.getDayOfMonth() != Integer.valueOf(scheduleInfo.getSectionsInCycle().get(0))) {
                         msg = "Scheduled date has conflicts with execution window.";
                     }

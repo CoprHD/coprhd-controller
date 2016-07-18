@@ -17,11 +17,17 @@
         class="com.emc.storageos.volumecontroller.impl.xtremio.XtremIOArrayAffinityDiscoverer">
         <property name="xtremioRestClientFactory" ref="xtremioRestClientFactory" />
     </bean>
+        
+    <bean id="metricsCollector"
+        class="com.emc.storageos.volumecontroller.impl.plugins.metering.xtremio.XtremIOMetricsCollector">
+        <property name="xtremioRestClientFactory" ref="xtremioRestClientFactory" />
+    </bean>
     
     <bean id="xtremio" class="com.emc.storageos.volumecontroller.impl.plugins.XtremIOCommunicationInterface">
         <property name="xtremioRestClientFactory" ref="xtremioRestClientFactory"/>
         <property name="unManagedVolumeDiscoverer" ref="unManagedVolumeDiscoverer" />
         <property name="arrayAffinityDiscoverer" ref="arrayAffinityDiscoverer" />
+        <property name="metricsCollector" ref="metricsCollector" />
         <property name="partitionManager" ref="partitionManager" />
     </bean>    
 

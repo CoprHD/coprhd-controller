@@ -53,7 +53,6 @@
         <entry key="Discovery-xtremio-all" value="discovery-xtremio-context.xml"/>
         <entry key="Discovery-xtremio-unmanaged_volumes" value="discovery-xtremio-context.xml"/>
         <entry key="Scanner-xtremio" value="discovery-xtremio-context.xml"/>
-
         <entry key="ArrayAffinity-xtremio-host" value="discovery-xtremio-context.xml" />
         <entry key="ArrayAffinity-xtremio" value="discovery-xtremio-context.xml" />
 

@@ -6,12 +6,9 @@ package com.emc.storageos.volumecontroller.impl.plugins;
 
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
@@ -42,7 +39,7 @@ import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.util.VersionChecker;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.StoragePortAssociationHelper;
-import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.export.ArrayAffinityDiscoveryUtils;
+import com.emc.storageos.volumecontroller.impl.plugins.metering.xtremio.XtremIOMetricsCollector;
 import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
 import com.emc.storageos.volumecontroller.impl.xtremio.XtremIOArrayAffinityDiscoverer;
 import com.emc.storageos.volumecontroller.impl.xtremio.XtremIOUnManagedVolumeDiscoverer;
@@ -67,6 +64,7 @@ public class XtremIOCommunicationInterface extends
     private XtremIOClientFactory xtremioRestClientFactory = null;
     private XtremIOUnManagedVolumeDiscoverer unManagedVolumeDiscoverer;
     private XtremIOArrayAffinityDiscoverer arrayAffinityDiscoverer;
+    private XtremIOMetricsCollector metricsCollector;
 
     public void setXtremioRestClientFactory(
             XtremIOClientFactory xtremioRestClientFactory) {
@@ -81,12 +79,24 @@ public class XtremIOCommunicationInterface extends
         this.arrayAffinityDiscoverer = arrayAffinityDiscoverer;
     }
 
+    public void setMetricsCollector(XtremIOMetricsCollector metricsCollector) {
+        this.metricsCollector = metricsCollector;
+    }
+
     @Override
     public void collectStatisticsInformation(AccessProfile accessProfile)
             throws BaseCollectionException {
-        _logger.info("Start collecting statistics for ip address {}", accessProfile.getIpAddress());
-        _logger.info("Collect statistics for XtremIO not supported.");
-        _logger.info("End collecting statistics for ip address {}", accessProfile.getIpAddress());
+        _logger.info("Start collecting statistics for IP address {}", accessProfile.getIpAddress());
+        try {
+            StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, accessProfile.getSystemId());
+            metricsCollector.collectMetrics(storageSystem, _dbClient);
+        } catch (Exception ex) {
+            _logger.error("Error collecting statistics", ex);
+            throw XtremIOApiException.exceptions.discoveryFailed(accessProfile.getIpAddress());
+        } finally {
+            // TODO check time update, status update, clean up
+        }
+        _logger.info("End collecting statistics for IP address {}", accessProfile.getIpAddress());
     }
 
     @Override

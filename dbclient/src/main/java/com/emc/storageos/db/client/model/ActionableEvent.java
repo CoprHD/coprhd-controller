@@ -36,8 +36,8 @@ public class ActionableEvent extends DataObject implements TenantResource {
         return approveMethod;
     }
 
-    public void setApproveMethod(byte[] declineMethod) {
-        this.declineMethod = approveMethod;
+    public void setApproveMethod(byte[] approveMethod) {
+        this.approveMethod = approveMethod;
         setChanged("approveMethod");
     }
 

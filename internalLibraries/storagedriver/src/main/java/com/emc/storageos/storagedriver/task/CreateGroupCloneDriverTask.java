@@ -8,6 +8,7 @@ import java.util.List;
 
 import com.emc.storageos.storagedriver.DriverTask;
 import com.emc.storageos.storagedriver.model.VolumeClone;
+import com.emc.storageos.storagedriver.model.VolumeConsistencyGroup;
 
 /**
  * This DriverTask derived class should be returned when a storage driver request
@@ -17,6 +18,9 @@ import com.emc.storageos.storagedriver.model.VolumeClone;
  */
 public class CreateGroupCloneDriverTask extends DriverTask {
     
+    // A reference to the volume consistency group.
+    private VolumeConsistencyGroup _consistencyGroup;
+    
     // A reference to the clones associated with the task.
     private  List<VolumeClone> _volumeClones;
     
@@ -24,11 +28,22 @@ public class CreateGroupCloneDriverTask extends DriverTask {
      * Constructor
      * 
      * @param taskId The unique ID of the task.
+     * @param consistencyGroup A reference to the volume consistency group.
      * @param volumeClones The clones to be created by the task.
      */
-    public CreateGroupCloneDriverTask(String taskId, List<VolumeClone> volumeClones) {
+    public CreateGroupCloneDriverTask(String taskId, VolumeConsistencyGroup consistencyGroup, List<VolumeClone> volumeClones) {
         super(taskId);
+        _consistencyGroup = consistencyGroup;
         _volumeClones = volumeClones;
+    }
+    
+    /**
+     * Get the consistency group.
+     * 
+     * @return The consistency group.
+     */
+    public VolumeConsistencyGroup getConsistencyGroup() {
+        return _consistencyGroup;
     }
     
     /**

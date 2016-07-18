@@ -23,6 +23,7 @@ import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
+import com.emc.storageos.driver.driversimulator.operations.CreateGroupCloneSimulatorOperation;
 import com.emc.storageos.driver.driversimulator.operations.CreateVolumeCloneSimulatorOperation;
 import com.emc.storageos.driver.driversimulator.operations.DriverSimulatorOperation;
 import com.emc.storageos.storagedriver.BlockStorageDriver;
@@ -737,27 +738,20 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
 
     @Override
     public DriverTask createConsistencyGroupClone(VolumeConsistencyGroup consistencyGroup, List<VolumeClone> clones, List<CapabilityInstance> capabilities) {
-        String cloneTimestamp = Long.toString(System.currentTimeMillis());
-        for (VolumeClone clone : clones) {
-            clone.setNativeId("clone-" + clone.getParentId() + clone.getDisplayName());
-            clone.setWwn(String.format("%s%s", clone.getStorageSystemId(), clone.getNativeId()));
-            clone.setReplicationState(VolumeClone.ReplicationState.SYNCHRONIZED);
-            clone.setDeviceLabel(clone.getNativeId());
-            clone.setProvisionedCapacity(clone.getRequestedCapacity());
-            clone.setAllocatedCapacity(clone.getRequestedCapacity());
-            clone.setConsistencyGroup(consistencyGroup.getNativeId() + "_clone-" + cloneTimestamp);
+        CreateGroupCloneSimulatorOperation createCloneSimulatorOperation = new CreateGroupCloneSimulatorOperation(consistencyGroup, clones);
+        if (simulatorConfig.getSimulateAsynchronousResponses()) {
+            DriverTask driverTask = createCloneSimulatorOperation.getDriverTask();
+            taskOperationMap.put(driverTask.getTaskId(), createCloneSimulatorOperation);
+            return driverTask;
+        } else if (simulatorConfig.getSimulateFailures()) {
+            String failMsg = createCloneSimulatorOperation.getFailureMessage();
+            return createCloneSimulatorOperation.doFailure(failMsg);
+        } else {
+            createCloneSimulatorOperation.updateGroupCloneInfo(consistencyGroup, clones);
+            String successMsg = createCloneSimulatorOperation.getSuccessMessage(clones);
+            return createCloneSimulatorOperation.doSuccess(successMsg);
         }
-        String taskType = "create-group-clone";
-        String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
-        DriverTask task = new DriverSimulatorTask(taskId);
-        task.setStatus(DriverTask.TaskStatus.READY);
-        task.setMessage("Created clones for consistency group " + clones.get(0).getConsistencyGroup());
-
-        _log.info("StorageDriver: createGroupClone information for storage system {}, clones nativeIds {} - end",
-                clones.get(0).getStorageSystemId(), clones.toString());
-        return task;
     }
-
 
     @Override
     public DriverTask getStorageVolumes(StorageSystem storageSystem, List<StorageVolume> storageVolumes, MutableInt token) {

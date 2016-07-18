@@ -286,7 +286,11 @@ elif [ "$1" = "create_export_mask" ]; then
 elif [ "$1" = "delete_export_mask" ]; then
     shift
     delete_storage_group $1 $2
+elif [ "$1" = "verify_export" ]; then
+    shift
+    verify_export $*
 else
+    # Backward compatibility with vnxexport scripts
     verify_export $*
 fi
 

@@ -5,56 +5,53 @@
 #
 
 # 
-# Quick verification script
+# Script to help manage storage system outside of ViPR.
+# Used to perform various operations.
 #
-# Usage: ./xiohelper.sh <NAME_PATTERN> <NUMBER_OF_INITIATORS_EXPECTED> <NUMBER_OF_LUNS_EXPECTED>
+# Usage: ./xiohelper.sh verify-export <NAME_PATTERN> <NUMBER_OF_INITIATORS_EXPECTED> <NUMBER_OF_LUNS_EXPECTED>
+#        ./xiohelper.sh add_volume_to_mask <DEVICE_ID> <NAME_PATTERN>
+#        ./xiohelper.sh remove_volume_from_mask <DEVICE_ID> <NAME_PATTERN>
+#        ./xiohelper.sh delete_volume <DEVICE_ID>
+#        ./xiohelper.sh add_initiator_to_mask <PWWN> <NAME_PATTERN>
+#        ./xiohelper.sh remove_initiator_from_mask <PWWN> <NAME_PATTERN>
 #
-#set -x
+# set -x
 
 add_volume_to_mask() {
-    serial_number=$1
-    device_id=$2
-    pattern=$3
+    device_id=$1
+    pattern=$2
     java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays xtremio -method add_volume_to_mask -params "${device_id},${pattern}" 
     echo "Added volume ${device_id} to initiator group ${pattern}"
 }
 
 remove_volume_from_mask() {
-    serial_number=$1
-    device_id=$2
-    pattern=$3
+    device_id=$1
+    pattern=$2
     java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays xtremio -method remove_volume_from_mask -params "${device_id},${pattern}"
     echo "Removed volume ${device_id} from initiator group ${pattern}"
 }
 
 delete_volume() {
-    serial_number=$1
-    device_id=$2
+    device_id=$1
     java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays xtremio -method delete_volume -params "${device_id}" 
 }
 
 remove_initiator_from_mask() {
-    serial_number=$1
-    device_id=$2
-    pattern=$3
-    java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays xtremio -method remove_initiator_from_mask -params "${device_id},${pattern}"
+    pwwn=$1
+    pattern=$2
+    java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays xtremio -method remove_initiator_from_mask -params "${pwwn},${pattern}"
 
 }
 
 add_initiator_to_mask() {
-    serial_number=$1
-    device_id=$2
-    pattern=$3
-    java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays xtremio -method add_initiator_to_mask -params "${device_id},${pattern}"
+    pwwn=$1
+    pattern=$2
+    java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays xtremio -method add_initiator_to_mask -params "${pwwn},${pattern}"
 
 }
 
 verify_export() {
-    # First parameter is the serial number
-    SID=$1
-    shift
-
-    # next parameters: Initiator group Name, Number of Initiators, Number of Luns
+    # Parameters: Initiator group Name, Number of Initiators, Number of Luns
     # If checking if the Initiator group does not exist, then parameter $2 should be "gone"
     IG_PATTERN=$1
     NUM_INITIATORS=$2
@@ -127,6 +124,9 @@ elif [ "$1" = "remove_initiator_from_mask" ]; then
 elif [ "$1" = "delete_volume" ]; then
     shift
     delete_volume $1 $2
-else
+elif [ "$1" = "verify_export" ]; then
+    shift
     verify_export $*
+else
+    echo "Usage: $0 [add_volume_to_mask | remove_volume_from_mask | add_initiator_to_mask | remove_initiator_from_mask | delete_volume | verify_export] {params}"
 fi

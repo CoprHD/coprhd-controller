@@ -5,9 +5,15 @@
 #
 
 # 
-# Quick verification script
+# Script to help manage storage system outside of ViPR.
+# Used to perform various operations.
 #
-# Usage: ./symhelper.sh <SID> <NAME_PATTERN> <NUMBER_OF_INITIATORS_EXPECTED> <NUMBER_OF_LUNS_EXPECTED>
+# Usage: ./xiohelper.sh verify-export <SERIAL_NUMBER> <NAME_PATTERN> <NUMBER_OF_INITIATORS_EXPECTED> <NUMBER_OF_LUNS_EXPECTED>
+#        ./xiohelper.sh add_volume_to_mask <SERIAL_NUMBER> <DEVICE_ID> <NAME_PATTERN>
+#        ./xiohelper.sh remove_volume_from_mask <SERIAL_NUMBER> <DEVICE_ID> <NAME_PATTERN>
+#        ./xiohelper.sh delete_volume <SERIAL_NUMBER> <DEVICE_ID>
+#        ./xiohelper.sh add_initiator_to_mask <SERIAL_NUMBER> <PWWN> <NAME_PATTERN>
+#        ./xiohelper.sh remove_initiator_from_mask <SERIAL_NUMBER> <PWWN> <NAME_PATTERN>
 #
 #set -x
 
@@ -202,7 +208,11 @@ elif [ "$1" = "delete_volume" ]; then
 elif [ "$1" = "delete_mask" ]; then
     shift
     delete_mask $1 $2
+elif [ "$1" = "verify_export" ]; then
+    shift
+    verify_export $*
 else
+    # Backward compatibility with vmaxexport scripts
     verify_export $*
 fi
 

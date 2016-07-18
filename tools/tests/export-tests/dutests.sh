@@ -7,27 +7,21 @@
 # DU Validation Tests
 # ===================
 #
-# Requirements:
-# -------------
-# TODO: Fill this in for DU Test
+# This test suite will ensure that the controller catches inconsistencies in export masks on the array that would cause data unavailability otherwise.
+# It does this a few different ways, but the most prevalent is by suspending after orchestration steps are created, changing the mask manually (using
+# array helper scripts) outside of the controller, then resuming the workflow created by the orchestration.  It will also test to make sure rollback
+# acts properly, as well as making sure that if the export mask already contained the requested resources, that the controller passes.
 #
+# Requirements for VMAX:
+# ----------------------
 # - SYMAPI should be installed, which is included in the SMI-S install. Install tars can be found on 
 #   Download the tar file for Linux, untar, run seinstall -install
 # - The provider host should allow for NOSECURE SYMAPI REMOTE access. See https://asdwiki.isus.emc.com:8443/pages/viewpage.action?pageId=28778911 for more information.
 #
-# Make sure if you create an export group where there's already export masks created, that it does the right thing.
-#
-# How to read this script:
-# ------------------------
-# TODO: Fill this in for DU Test
-#
-# - This script builds up one cluster, three hosts, two initiators per host.
-# - Each test will create a series of export groups.
-# - In between each "export_group" command, you'll see a verification script that runs.
-# - The verification script will contact the VMAX to verify the expectations of the command that was run:
-#      ./symhelper <mask-name> <#-Initiators-Expected> <#-LUNs-Expected>
-#      "After the previous export_group command, I expect mask "billhost1" to have 2 initiators and 2 LUNs in it..."
-# - Exports are cleaned at the end of the script, and since remove is just as complicated, verifications are done there as well.
+# Requirements for XtremIO and VPLEX:
+# -----------------------------------
+# - XIO and VPLEX testing requires the ArrayTools.jar file.  For now, see Bill, Tej, or Nathan for this file.
+# - These platforms will create a tools.yml file that the jar file will use based on variables in sanity.conf
 #
 #set -x
 
@@ -159,7 +153,7 @@ arrayhelper() {
     verify_export)
 	masking_view_name=$3
 	shift 3
-	arrayhelper_verify_export $serial_number $masking_view_name $*
+	arrayhelper_verify_export $operation $serial_number $masking_view_name $*
 	;;
     *)
         echo "ERROR: Invalid operation $operation specified to arrayhelper."
@@ -206,10 +200,10 @@ arrayhelper_volume_mask_operation() {
          runcmd navihelper.sh $operation $array_ip $device_id $pattern
 	 ;;
     xio)
-         runcmd xiohelper.sh $operation $serial_number $device_id $pattern
+         runcmd xiohelper.sh $operation $device_id $pattern
 	 ;;
     vplex)
-         runcmd vplexhelper.sh $operation $serial_number $device_id $pattern
+         runcmd vplexhelper.sh $operation $device_id $pattern
 	 ;;
     default)
          echo "ERROR: Invalid platform specified in storage_type: $storage_type"
@@ -235,10 +229,10 @@ arrayhelper_initiator_mask_operation() {
          runcmd navihelper.sh $operation $array_ip $pwwn $pattern
 	 ;;
     xio)
-         runcmd xiohelper.sh $operation $serial_number $pwwn $pattern
+         runcmd xiohelper.sh $operation $pwwn $pattern
 	 ;;
     vplex)
-         runcmd vplexhelper.sh $operation $serial_number $pwwn $pattern
+         runcmd vplexhelper.sh $operation $pwwn $pattern
 	 ;;
     default)
          echo "ERROR: Invalid platform specified in storage_type: $storage_type"
@@ -263,10 +257,10 @@ arrayhelper_delete_volume() {
          runcmd navihelper.sh $operation $array_ip $device_id
 	 ;;
     xio)
-         runcmd xiohelper.sh $operation $serial_number $device_id
+         runcmd xiohelper.sh $operation $device_id
 	 ;;
     vplex)
-         runcmd vplexhelper.sh $operation $serial_number $device_id
+         runcmd vplexhelper.sh $operation $device_id
 	 ;;
     default)
          echo "ERROR: Invalid platform specified in storage_type: $storage_type"
@@ -278,22 +272,23 @@ arrayhelper_delete_volume() {
 # Call the appropriate storage array helper script to verify export
 #
 arrayhelper_verify_export() {
-    serial_number=$1
-    masking_view_name=$2
-    shift 2
+    operation=$1
+    serial_number=$2
+    masking_view_name=$3
+    shift 3
 
     case $SS in
     vmax2|vmax3)
-         runcmd symhelper.sh $serial_number $masking_view_name $*
+         runcmd symhelper.sh $operation $serial_number $masking_view_name $*
 	 ;;
     vnx)
-         runcmd navihelper.sh $array_ip $macaddr $masking_view_name $*
+         runcmd navihelper.sh $operation $array_ip $macaddr $masking_view_name $*
 	 ;;
     xio)
-         runcmd xiohelper.sh $serial_number $masking_view_name $*
+         runcmd xiohelper.sh $operation $masking_view_name $*
 	 ;;
     vplex)
-         runcmd vplexhelper.sh $serial_number $masking_view_name $*
+         runcmd vplexhelper.sh $operation $masking_view_name $*
 	 ;;
     default)
          echo "ERROR: Invalid platform specified in storage_type: $storage_type"
@@ -538,6 +533,17 @@ prerun_setup() {
 	exportAddInitiatorsDeviceStep=VPlexDeviceController.storageViewAddInitiators
 	exportRemoveInitiatorsDeviceStep=VPlexDeviceController.storageViewRemoveInitiators
 	exportDeleteDeviceStep=VPlexDeviceController.deleteStorageView
+    fi
+}
+
+# get the device ID of a created volume
+get_device_id() {
+    label=$1
+
+    if [ "$SS" = "xio" -o "$SS" = "vplex" ]; then
+        volume show ${label} | grep device_label | awk '{print $2}' | cut -d '"' -f2
+    else
+	volume show ${label} | grep native_id | awk '{print $2}' | cut -c2-6
     fi
 }
 
@@ -1238,11 +1244,9 @@ test_3() {
 
     # Create another volume that we will inventory-only delete
     runcmd volume create ${HIJACK} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 1
-    device_id=`volume show ${PROJECT}/${HIJACK} | grep native_id | awk '{print $2}' | cut -c2-6`
 
-    if [ "$SS" = "xio" ]; then
-        device_id=`volume show ${PROJECT}/${HIJACK} | grep device_label | awk '{print $2}' | cut -d '"' -f2`
-    fi
+    # Get the device ID of the volume we created
+    device_id=`get_device_id ${PROJECT}/${HIJACK}`
 
     runcmd volume delete ${PROJECT}/${HIJACK} --vipronly
 
@@ -1498,11 +1502,9 @@ test_6() {
 
     # Create another volume that we will inventory-only delete
     runcmd volume create ${HIJACK} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 1
-    device_id=`volume show ${PROJECT}/${HIJACK} | grep native_id | awk '{print $2}' | cut -c2-6`
 
-    if [ "$SS" = "xio" ]; then
-        device_id=`volume show ${PROJECT}/${HIJACK} | grep device_label | awk '{print $2}' | cut -d '"' -f2`
-    fi
+    # Get the device ID of the volume we created
+    device_id=`get_device_id ${PROJECT}/${HIJACK}`
 
     runcmd volume delete ${PROJECT}/${HIJACK} --vipronly
 
@@ -1582,11 +1584,9 @@ test_7() {
     volname=du-hijack-volume-${RANDOM}
 
     runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 1
-    device_id=`volume show ${PROJECT}/${volname} | grep native_id | awk '{print $2}' | cut -c2-6`
 
-    if [ "$SS" = "xio" ]; then
-        device_id=`volume show ${PROJECT}/${volname} | grep device_label | awk '{print $2}' | cut -d '"' -f2`
-    fi
+    # Get the device ID of the volume we created
+    device_id=`get_device_id ${PROJECT}/${volname}`
 
     # Add the volume to the mask
     arrayhelper add_volume_to_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
@@ -1711,11 +1711,9 @@ test_9() {
 
     # Create another volume, but don't export it through ViPR (yet)
     volname="${VOLNAME}-2"
-    device_id=`volume show ${PROJECT}/${volname} | grep native_id | awk '{print $2}' | cut -c2-6`
 
-    if [ "$SS" = "xio" ]; then
-        device_id=`volume show ${PROJECT}/${volname} | grep device_label | awk '{print $2}' | cut -d '"' -f2`
-    fi
+    # Get the device ID of the volume we created
+    device_id=`get_device_id ${PROJECT}/${volname}`
 
     # Add the volume to the mask
     arrayhelper add_volume_to_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
@@ -1769,11 +1767,9 @@ test_10() {
 
     # Create another volume, but don't export it through ViPR (yet)
     volname="${VOLNAME}-2"
-    device_id=`volume show ${PROJECT}/${volname} | grep native_id | awk '{print $2}' | cut -c2-6`
 
-    if [ "$SS" = "xio" ]; then
-        device_id=`volume show ${PROJECT}/${volname} | grep device_label | awk '{print $2}' | cut -d '"' -f2`
-    fi
+    # Get the device ID of the volume we created
+    device_id=`get_device_id ${PROJECT}/${volname}`
 
     # Add the volume to the mask
     arrayhelper add_volume_to_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
@@ -1834,11 +1830,9 @@ test_11() {
 
     # Find information about volume 2 so we can do stuff to it outside of ViPR
     volname="${VOLNAME}-2"
-    device_id=`volume show ${PROJECT}/${volname} | grep native_id | awk '{print $2}' | cut -c2-6`
 
-    if [ "$SS" = "xio" ]; then
-        device_id=`volume show ${PROJECT}/${volname} | grep device_label | awk '{print $2}' | cut -d '"' -f2`
-    fi
+    # Get the device ID of the volume we created
+    device_id=`get_device_id ${PROJECT}/${volname}`
 
     # Turn on suspend of export after orchestration
     set_suspend_on_class_method ${exportAddVolumesDeviceStep}
@@ -1914,7 +1908,10 @@ test_12() {
 
     # Create a new volume that ViPR knows about
     runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 1
-    device_id=`volume show ${PROJECT}/${volname} | grep native_id | awk '{print $2}' | cut -c2-6`
+
+    # Get the device ID of the volume we created
+    device_id=`get_device_id ${PROJECT}/${volname}`
+
     volume_uri=`volume show ${PROJECT}/${volname} | grep ":Volume:" | grep id | awk -F\" '{print $4}'`
 
     # Now change the WWN in the database of that volume to emulate a delete-and-recreate on the array
@@ -2058,11 +2055,9 @@ test_14() {
     # Create another volume that we will inventory-only delete
     volname="${HOST1}-dutest-oktodelete-t14"
     runcmd volume create ${volname} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 1
-    device_id=`volume show ${PROJECT}/${volname} | grep native_id | awk '{print $2}' | cut -c2-6`
 
-    if [ "$SS" = "xio" ]; then
-        device_id=`volume show ${PROJECT}/${volname} | grep device_label | awk '{print $2}' | cut -d '"' -f2`
-    fi
+    # Get the device ID of the volume we created
+    device_id=`get_device_id ${PROJECT}/${volname}`
     
     # Inventory-only delete the volume so it's not under ViPR management
     runcmd volume delete ${PROJECT}/${volname} --vipronly
@@ -2279,12 +2274,10 @@ test_16() {
 
     # Create another volume that we will inventory-only delete
     runcmd volume create ${HIJACK} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 1
-    device_id=`volume show ${PROJECT}/${HIJACK} | grep native_id | awk '{print $2}' | cut -c2-6`
 
-    if [ "$SS" = "xio" ]; then
-        device_id=`volume show ${PROJECT}/${HIJACK} | grep device_label | awk '{print $2}' | cut -d '"' -f2`
-    fi
-
+    # Get the device ID of the volume we created
+    device_id=`get_device_id ${PROJECT}/${volname}`
+    
     runcmd volume delete ${PROJECT}/${HIJACK} --vipronly
 
     # 4. Create the storage group (different name) with the unmanaged volume with host

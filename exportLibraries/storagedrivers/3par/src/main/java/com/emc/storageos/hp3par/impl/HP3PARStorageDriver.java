@@ -303,9 +303,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 				pool.setPoolServiceType(PoolServiceType.block);
 
 				// Storage object properties
-				pool.setNativeId(currMember.getName()); // SB SDK is not sending
-														// pool name in volume
-														// creation
+				pool.setNativeId(currMember.getName()); // SB SDK is not sending pool name in volume creation
 				pool.setDeviceLabel(currMember.getName());
 				pool.setDisplayName(currMember.getName());
 				storageSystem.setAccessStatus(AccessStatus.READ_WRITE);

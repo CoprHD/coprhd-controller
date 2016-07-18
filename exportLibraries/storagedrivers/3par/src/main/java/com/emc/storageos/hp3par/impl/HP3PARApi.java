@@ -212,8 +212,7 @@ public class HP3PARApi {
                         UserRoleCommandResult.class);
 
                 boolean superUser = false;
-                for (int i = 0; i < roleRes.getPrivileges().size(); i++) {
-                    Privileges currPriv = roleRes.getPrivileges().get(i);
+                for (Privileges currPriv:roleRes.getPrivileges()) {
 
                     if ( (currPriv.getDomain().compareToIgnoreCase("all") == 0) && 
                             (currPriv.getRole().compareToIgnoreCase("super") == 0)) {
@@ -1186,10 +1185,9 @@ public class HP3PARApi {
             if (clientResp != null) {
                 clientResp.close();
             }
-            _log.info("3PARDriver:createHost leave");
+            _log.info("3PARDriver:updateHost leave");
         } //end try/catch/finally
 
-        _log.info("3PARDriver:updateHost leave");
     }
 
     private CompleteError getCompleteResponseDetails(ClientResponse clientResp) {

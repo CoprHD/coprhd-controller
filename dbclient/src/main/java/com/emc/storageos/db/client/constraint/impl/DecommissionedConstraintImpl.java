@@ -102,7 +102,7 @@ public class DecommissionedConstraintImpl extends ConstraintImpl implements Deco
 
                 @Override
                 public boolean filter(IndexColumnName column) {
-                    long timeMarked = UUIDs.unixTimestamp(UUIDs.timeBased()) * 1000;
+                    long timeMarked = UUIDs.unixTimestamp(column.getTimeUUID()) * 1000;
                     if (_timeToStartFrom >= timeMarked) {
                         return true;
                     }

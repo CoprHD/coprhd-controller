@@ -19,11 +19,11 @@ import com.emc.storageos.hp3par.command.ConsistencyGroupsListResult;
 import com.emc.storageos.hp3par.command.VirtualLun;
 import com.emc.storageos.hp3par.command.VirtualLunsList;
 import com.emc.storageos.hp3par.command.VolumeDetailsCommandResult;
-import com.emc.storageos.hp3par.command.VolumeMember;
 import com.emc.storageos.hp3par.command.VolumesCommandResult;
 import com.emc.storageos.hp3par.utils.HP3PARConstants;
 import com.emc.storageos.hp3par.utils.HP3PARConstants.copyType;
 import com.emc.storageos.hp3par.utils.HP3PARUtil;
+import com.emc.storageos.hp3par.utils.SanUtils;
 import com.emc.storageos.storagedriver.DriverTask;
 import com.emc.storageos.storagedriver.HostExportInfo;
 import com.emc.storageos.storagedriver.Registry;
@@ -38,8 +38,7 @@ import com.emc.storageos.storagedriver.model.VolumeSnapshot;
 
 /**
  * 
- * Implements functions to discover the HP 3PAR storage and provide provisioning
- * You can refer super class for method details
+ * Implements ingestion operations of volume, snapshot, clone and their exports.
  *
  */
 public class HP3PARIngestHelper {
@@ -50,7 +49,7 @@ public class HP3PARIngestHelper {
 
 	public DriverTask getStorageVolumes(StorageSystem storageSystem, List<StorageVolume> storageVolumes,
 			MutableInt token, DriverTask task, Registry driverRegistry) {
-
+		_log.info("3PARDriver: getStorageVolumes Running ");
 		Map<String, List<String>> vvolAssociations = new HashMap<String, List<String>>();
 		Map<String, List<String>> vvolAncestryMap = new HashMap<String, List<String>>();
 		HashMap<Long, String> vvolNamesMap = new HashMap<Long, String>();
@@ -64,14 +63,14 @@ public class HP3PARIngestHelper {
 			VolumesCommandResult objStorageVolumes = hp3parApi.getStorageVolumes();
 
 			// first we build HashMap of volume id , volume name
-			for (VolumeMember objVolMember : objStorageVolumes.getMembers()) {				
+			for (VolumeDetailsCommandResult objVolMember : objStorageVolumes.getMembers()) {				
 				vvolNamesMap.put(new Long(objVolMember.getId()), objVolMember.getName());
 			}
 
 			_log.info("vvolNamesMap is {}", vvolNamesMap);
 
-			// first we build HashMap of volume id , volume name
-			for (VolumeMember objVolMember : objStorageVolumes.getMembers()) {				
+			// We build a hashmap of volume names and their respective ancestors.
+			for (VolumeDetailsCommandResult objVolMember : objStorageVolumes.getMembers()) {				
 				if (objVolMember.getCopyType() == HP3PARConstants.copyType.VIRTUAL_COPY.getValue()) {
 					ArrayList<String> arrLst = new ArrayList<String>();
 					arrLst.add(vvolNamesMap.get(objVolMember.getBaseId()));
@@ -84,12 +83,10 @@ public class HP3PARIngestHelper {
 			}
 
 			_log.info("vvolAncestryMap is {}", vvolAncestryMap);
-			_log.info("objStorageVolumes.getTotal() is {}", objStorageVolumes.getTotal());
+			_log.info("Total Volumes returned by API call {}", objStorageVolumes.getTotal());
 
-			for (VolumeMember objVolMember: objStorageVolumes.getMembers()) {							
-				_log.info("objVolMember.getid is {}", objVolMember.getId());
-				_log.info("objVolMember.getbaseid is {}", objVolMember.getBaseId());
-				_log.info("objVolMember.getname is {}", objVolMember.getName());
+			for (VolumeDetailsCommandResult objVolMember: objStorageVolumes.getMembers()) {							
+				_log.info("objVolMember is {}", objVolMember.getAllValues());
 				StorageVolume driverVolume = new StorageVolume();
 				driverVolume.setStorageSystemId(storageSystem.getNativeId());
 				driverVolume.setStoragePoolId(objVolMember.getUserCPG());
@@ -125,20 +122,16 @@ public class HP3PARIngestHelper {
 				// TODO: how much should the thin volume preallocation size be.
 				driverVolume.setThinVolumePreAllocationSize(3000L);
 
-				_log.info("objVolMember.getCopyOf() in getstoragevolumes is {}", objVolMember.getCopyOf());
 				if (objVolMember.getCopyOf() != null) {
-
+					_log.info("skipping adding the volume {} to storagevolumes array", objVolMember.getName());
 				} else {
 					_log.info("Adding to storagevolumes array the volume {}", objVolMember.getName());
 					storageVolumes.add(driverVolume);
 				}
 
 				_log.info("Unmanaged volume info: pool {}, volume {}", driverVolume.getStoragePoolId(), driverVolume);
-				_log.info("objVolMember.getCopyOf() is {}", objVolMember.getCopyOf());
 
 				if (objVolMember.getCopyOf() != null) {					
-					_log.info("objVolMember.getCopyType() {}", objVolMember.getCopyType());
-
 					String ancestorId = null;
 					String ancestorName = null;
 					// Here we see if the current VVOL entity's copyof value
@@ -151,10 +144,8 @@ public class HP3PARIngestHelper {
 					// baseid will point to the id of the volume volumeA.
 
 					if (objVolMember.getCopyType() == copyType.VIRTUAL_COPY.getValue()) {
-						_log.info("objVolMember.getBaseId() is {}", objVolMember.getBaseId());
 						ancestorName = vvolAncestryMap.get(objVolMember.getId()).get(0);
 					} else if (objVolMember.getCopyType() == copyType.PHYSICAL_COPY.getValue()) {
-						_log.info("objVolMember.getPhysParentId() is {}", objVolMember.getPhysParentId());
 						ancestorName = vvolAncestryMap.get(objVolMember.getId()).get(0);
 					}
 					//ancestorName = vvolNamesMap.get(ancestorId);
@@ -166,11 +157,11 @@ public class HP3PARIngestHelper {
 						listOfChildren.add(objVolMember.getName());
 						vvolAssociations.put(ancestorName, listOfChildren);
 					}
-					_log.info("objAncestor name is {}", ancestorName);
-					_log.info("objVolMember being added is {} ", objVolMember.getName());
+					_log.debug("objAncestor name is {}", ancestorName);
+					_log.debug("objVolMember being added is {} ", objVolMember.getName());
 				}
 			}
-			_log.info("THE vvolAssociations BEING RETURNED BY THE GETSTORAGEVOLS IS {}", vvolAssociations);
+			_log.info("The vvolAssociations being returned by GetStorageVolumes is  {}", vvolAssociations);
 			task.setStatus(DriverTask.TaskStatus.READY);
 			driverRegistry.setDriverAttributesForKey(HP3PARConstants.DRIVER_NAME,
 					storageSystem.getNativeId() + "____VVOL_ASSOCIATIONS", vvolAssociations);
@@ -185,6 +176,7 @@ public class HP3PARIngestHelper {
 			task.setStatus(DriverTask.TaskStatus.FAILED);
 			e.printStackTrace();
 		}
+		_log.info("3PARDriver: getStorageVolumes Leaving");
 		return task;
 	}
 
@@ -202,9 +194,7 @@ public class HP3PARIngestHelper {
 		HashMap<String, ArrayList<String>> volumeToVolumeSetMap = new HashMap<String, ArrayList<String>>();
 
 		_log.info("3PARDriver: objConsisGroupSets.getTotal() information is {}", objConsisGroupSets.getTotal());
-		for (Integer index = 0; index < objConsisGroupSets.getTotal(); index++) {
-			ConsistencyGroupResult objConsisGroupResult = objConsisGroupSets.getMembers().get(index);
-
+		for (ConsistencyGroupResult objConsisGroupResult: objConsisGroupSets.getMembers()) {
 			if (objConsisGroupResult.getSetmembers() != null) {
 				for (Integer volIndex = 0; volIndex < objConsisGroupResult.getSetmembers().size(); volIndex++) {
 					String vVolName = objConsisGroupResult.getSetmembers().get(volIndex);
@@ -225,8 +215,8 @@ public class HP3PARIngestHelper {
 
 	/**
 	 * Identifying snapshots of the given parent base volume. NOTE: Intermediate
-	 * physical copies of 3PAR generated from other snapshots/clone are shown as
-	 * clone of base volume itself Need to check this behavior ?
+	 * virtual copies of 3PAR generated from other snapshots/clone are shown as
+	 * snapshots of base volume itself
 	 */
 	public List<VolumeSnapshot> getVolumeSnapshots(StorageVolume volume, Registry registry) {
 		_log.info("3PARDriver: getVolumeSnapshots Running ");
@@ -245,7 +235,7 @@ public class HP3PARIngestHelper {
 			
 			_log.info("listOfChildVols.size()  is {}", listOfChildVols.size());
 			for (String childName:listOfChildVols) {
-				// VolumeMember is the data structure used for representation of
+				// VolumeDetailsCommandResult is the data structure used for representation of
 				// the HP3PAR virtual volume				
 				// VolumeSnapshot is the CoprHD southbound freamework's
 				// datastructure
@@ -287,7 +277,7 @@ public class HP3PARIngestHelper {
 	/**
 	 * Identifying clones of the given parent base volume. NOTE: Intermediate
 	 * physical copies of 3PAR generated from other snapshots/clone are shown as
-	 * clone of base volume itself Need to check this behavior ?
+	 * clone of base volume itself
 	 */
 	public List<VolumeClone> getVolumeClones(StorageVolume volume, Registry registry) {
 		_log.info("3PARDriver: getVolumeClones Running ");
@@ -298,21 +288,17 @@ public class HP3PARIngestHelper {
 					volume.getStorageSystemId() + "____VVOL_ASSOCIATIONS");
 			;
 
-			_log.info("vvolAssociations is {}", vvolAssociations.toString());
+			_log.debug("vvolAssociations is {}", vvolAssociations.toString());
 
 			HP3PARApi hp3parApi = hp3parUtil.getHP3PARDeviceFromNativeId(volume.getStorageSystemId(), registry);
 			// VolumesCommandResult snapsResult =
 			// hp3parApi.getClonesOfVolume(volume.getNativeId());
 
-			HashMap<String, ArrayList<VolumeMember>> volMappings = null;
 			ArrayList<String> listOfChildVols = null;
-
 			listOfChildVols = (ArrayList<String>) vvolAssociations.get(volume.getNativeId());
-			
-			_log.info("listOfChildVols.size()  is {}", listOfChildVols.size());
-
+						
 			for (String childName:listOfChildVols) {
-				// VolumeMember is the data structure used for representation of
+				// VolumeDetailsCommandResult is the data structure used for representation of
 				// the HP3PAR virtual volume				
 				VolumeDetailsCommandResult objClone = hp3parApi.getVolumeDetails(childName);
 				if (objClone.getCopyType() == copyType.PHYSICAL_COPY.getValue()) {
@@ -360,6 +346,7 @@ public class HP3PARIngestHelper {
 	 * with export to HostName
 	 */
 	public Map<String, HostExportInfo> getVolumeExportInfoForHosts(StorageVolume volume, Registry registry) {
+		_log.info("Getting volume export info for the volume {}",volume.getNativeId());
 		return getBlockObjectExportInfoForHosts(volume.getStorageSystemId(), volume.getWwn(), volume.getNativeId(),
 				volume, registry);
 	}
@@ -398,9 +385,7 @@ public class HP3PARIngestHelper {
 			// node:portpos:cardport
 			// combination of the VLUN
 			List<StoragePort> storPortsOfStorage = new ArrayList<>();
-			hp3parUtil.discoverStoragePortsById(storageSystemId, storPortsOfStorage, registry);
-			_log.info("storPortsOfStorage are {}", storPortsOfStorage);
-
+			hp3parUtil.discoverStoragePortsById(storageSystemId, storPortsOfStorage, registry);			
 			
 			// process the vlun information by iterating through the vluns
 			// and then for each vlun, we create the appropriate key:value pair
@@ -411,7 +396,7 @@ public class HP3PARIngestHelper {
 					continue;
 				}
 
-				_log.info("objVirtualLun.toString() {}",objVirtualLun.toString());
+				_log.debug("objVirtualLun.toString() {}",objVirtualLun.toString());
 
 				List<String> volumeIds = new ArrayList<>();
 				List<Initiator> initiators = new ArrayList<Initiator>();
@@ -425,14 +410,7 @@ public class HP3PARIngestHelper {
 				// hp3par returns remote name in the format like
 				// 10000000C98F5C79.
 				// we now convert this to the format 10:00:00:00:C9:8F:5C:79
-				String portId = objVirtualLun.getRemoteName().substring(0, 2) + ":"
-						+ objVirtualLun.getRemoteName().substring(2, 4) + ":"
-						+ objVirtualLun.getRemoteName().substring(4, 6) + ":"
-						+ objVirtualLun.getRemoteName().substring(6, 8) + ":"
-						+ objVirtualLun.getRemoteName().substring(8, 10) + ":"
-						+ objVirtualLun.getRemoteName().substring(10, 12) + ":"
-						+ objVirtualLun.getRemoteName().substring(12, 14) + ":"
-						+ objVirtualLun.getRemoteName().substring(14, 16);
+				String portId = SanUtils.formatWWN(objVirtualLun.getRemoteName());
 				
 				String nativeId = String.format("%s:%s:%s", objVirtualLun.getPortPos().getNode(),
 						objVirtualLun.getPortPos().getSlot(), objVirtualLun.getPortPos().getCardPort());
@@ -469,7 +447,7 @@ public class HP3PARIngestHelper {
 
 				resultMap.put(objVirtualLun.getHostname(), exportInfo);
 			}
-			_log.info("RESULTMAP FROM GETVOLUMEEXPORTINFO {}", resultMap);
+			_log.info("Resultmap of GetVolumeExportInfo {}", resultMap);
 			_log.info("3PARDriver: Leaving getBlockObjectExportInfoForHosts");
 			return resultMap;
 		} catch (Exception e) {

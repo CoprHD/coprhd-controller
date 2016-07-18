@@ -1520,7 +1520,6 @@ public class HP3PARApi {
         _log.info("getVLunsOfVolume path is {}", path);
         
         try {
-	    _log.info("BEFORE GET CALL");
             clientResp = get(path);
             if (clientResp == null) {
                 _log.error("3PARDriver: getVLunsOfVolume There is no response from 3PAR");

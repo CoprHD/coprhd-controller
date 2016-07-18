@@ -14,9 +14,44 @@ public class VolumeDetailsCommandResult {
     private int copyType;
 	private String userCPG;
     private String snapCPG;
+    private String id;
+	private Long baseId;
+	private Long physParentId;
+	private boolean readOnly;	
+	private int state;
     
     
-    public String getUserCPG() {
+    public String getId() {
+		return id;
+	}
+	public void setId(String id) {
+		this.id = id;
+	}
+	public Long getBaseId() {
+		return baseId;
+	}
+	public void setBaseId(Long baseId) {
+		this.baseId = baseId;
+	}
+	public Long getPhysParentId() {
+		return physParentId;
+	}
+	public void setPhysParentId(Long physParentId) {
+		this.physParentId = physParentId;
+	}
+	public boolean isReadOnly() {
+		return readOnly;
+	}
+	public void setReadOnly(boolean readOnly) {
+		this.readOnly = readOnly;
+	}
+	public int getState() {
+		return state;
+	}
+	public void setState(int state) {
+		this.state = state;
+	}
+	public String getUserCPG() {
 		return userCPG;
 	}
 	public void setUserCPG(String userCPG) {
@@ -90,6 +125,8 @@ public class VolumeDetailsCommandResult {
     public String getAllValues() {
     	String allValues = "name " + name +
     					   "\n copyOf " + copyOf + 
+    					   "\n basdId " + baseId + 
+    					   "\n physParentId " + physParentId +
     					   "\n uuid " + uuid +
     					   "\n wwn" + wwn +
     					   "\n sizeMiB " + sizeMiB +

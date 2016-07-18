@@ -1,3 +1,7 @@
+/*
+ * Copyright 2016 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.hp3par.impl;
 
 import java.util.HashMap;
@@ -59,7 +63,7 @@ public class HP3PARCGHelper {
 					consistencyGroup.getDisplayName(), consistencyGroup.getStorageSystemId(), e.getMessage());
 			_log.error(msg);
 			task.setMessage(msg);
-			task.setStatus(DriverTask.TaskStatus.PARTIALLY_FAILED);
+			task.setStatus(DriverTask.TaskStatus.FAILED);
 			e.printStackTrace();
 		}
 
@@ -93,7 +97,7 @@ public class HP3PARCGHelper {
 					consistencyGroup.getStorageSystemId(), e.getMessage());
 			_log.error(msg);
 			task.setMessage(msg);
-			task.setStatus(DriverTask.TaskStatus.PARTIALLY_FAILED);
+			task.setStatus(DriverTask.TaskStatus.FAILED);
 			e.printStackTrace();
 		}
 
@@ -120,7 +124,7 @@ public class HP3PARCGHelper {
 
 				// native id = null ,
 				_log.info(
-						"3PARDriver: createConsistencyGroupSnapshot for volume native id {}, snap shot name generated is {} - start",
+						"3PARDriver: createConsistencyGroupSnapshot for volume native id {}, snap shot name generated is {} ",
 						snap.getParentId(), snap.getDisplayName());
 
 				if (snap.getAccessStatus() != AccessStatus.READ_ONLY) {
@@ -152,7 +156,7 @@ public class HP3PARCGHelper {
 
 				String snapshotCreated = VVsetSnapshotName + volumeNumber;
 				_log.info(
-						"3PARDriver: createConsistencyGroupSnapshot snapshotCreated {}, volumeNumber {} , snapVolumeCount {} - start",
+						"3PARDriver: createConsistencyGroupSnapshot snapshotCreated {}, volumeNumber {} , snapVolumeCount {} ",
 						snapshotCreated, volumeNumber, snapVolumeCount);
 
 				volResult = hp3parApi.getVolumeDetails(VVsetSnapshotName + volumeNumber);
@@ -179,12 +183,11 @@ public class HP3PARCGHelper {
 								// snap.setAccessStatus(volResult.getAccessStatus());
 								snap.setDisplayName(volResult.getName());
 
-								_log.info("createConsistencyGroupSnapshot volResult name {} wwn {} ",
-										volResult.getName(), volResult.getWwn());
 								_log.info(
-										"createConsistencyGroupSnapshot Snapshot system native id {}, Parent Volume {}, access status {}, display name {}, native Name {}, DeviceLabel {} - After",
+										"createConsistencyGroupSnapshot Snapshot system native id {}, Parent Volume {}, access status {}, display name {},"
+										+ " native Name {}, DeviceLabel {}, wwn {} - After",
 										snap.getStorageSystemId(), snap.getParentId(), snap.getAccessStatus(),
-										snap.getDisplayName(), snap.getNativeId(), snap.getDeviceLabel());
+										snap.getDisplayName(), snap.getNativeId(), snap.getDeviceLabel(), snap.getWwn());
 							}
 
 						}
@@ -197,7 +200,7 @@ public class HP3PARCGHelper {
 					_log.info("3PARDriver: createConsistencyGroupSnapshot volResult is null");
 
 				}
-				volumeNumber = volumeNumber + 1;
+				volumeNumber++;
 			}
 
 			task.setStatus(DriverTask.TaskStatus.READY);
@@ -295,7 +298,7 @@ public class HP3PARCGHelper {
 
 				// native id = null ,
 				_log.info(
-						"3PARDriver: createConsistencyGroupClone generated clone parent id {}, display name {} - start",
+						"3PARDriver: createConsistencyGroupClone generated clone parent id {}, display name {} ",
 						clone.getParentId(), clone.getDisplayName());
 
 				String generatedCloneName = clone.getDisplayName();
@@ -317,17 +320,7 @@ public class HP3PARCGHelper {
 
 			_log.info("3PARDriver: createConsistencyGroupClone outPut of CG clone result  {} ", result.toString());
 
-			int volumeNumber = 0;
-			int cloneVolumeCount = result.length;
-
-			/**
-			 * for each volume clone result returned find corresponding clone
-			 * object and set its value and commit it
-			 */
-			// ArrayList<VVSetVolumeClone> createdClones =
-			// result.getClonesInfo();
-
-			// for (VVSetVolumeClone cloneCreated : createdClones) {
+			
 			for (VVSetVolumeClone cloneCreated : result) {
 				VolumeClone clone = clonesMap.get(cloneCreated.getParent());
 
@@ -339,7 +332,7 @@ public class HP3PARCGHelper {
 				_log.info("createConsistencyGroupClone cloneCreated All values {} ", volResult.getAllValues());
 
 				clone.setWwn(volResult.getWwn());
-				clone.setNativeId(volResult.getName());
+				clone.setNativeId(volResult.getId());
 				clone.setDeviceLabel(volResult.getName());
 				clone.setLabel(volResult.getName());
 				// snap.setAccessStatus(volResult.getAccessStatus());

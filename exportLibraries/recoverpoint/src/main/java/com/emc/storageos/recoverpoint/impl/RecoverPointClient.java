@@ -1812,7 +1812,9 @@ public class RecoverPointClient {
             Set<RPCopy> copies = rpcg.getCopies();
             for (RPCopy copy : copies) {
                 ConsistencyGroupCopyState copyState = imageManager.getCopyState(functionalAPI, copy.getCGGroupCopyUID());
-                if (request.getEmName() == null || request.getEmName().isEmpty() || 
+                if (request.getEmName() == null
+                        || request.getEmName().isEmpty()
+                        ||
                         (copyState != null && copyState.getAccessedImage() != null && copyState.getAccessedImage().getDescription() != null &&
                         copyState.getAccessedImage().getDescription().equals(request.getEmName()))) {
                     imageManager.disableCGCopy(functionalAPI, copy.getCGGroupCopyUID());
@@ -2078,7 +2080,7 @@ public class RecoverPointClient {
      * Gets the RP cluster name corresponding to the given ClusterUID.
      *
      * @param clusterID the cluster id used to find the corresponding name
-     * @return the cluster name
+     * @return the cluster name or null if not found
      * @throws FunctionalAPIActionFailedException_Exception
      * @throws FunctionalAPIInternalError_Exception
      */

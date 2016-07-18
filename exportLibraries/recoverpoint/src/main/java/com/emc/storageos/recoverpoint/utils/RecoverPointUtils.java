@@ -350,7 +350,7 @@ public class RecoverPointUtils {
      *
      * @param firstCopy the first copy in the comparison
      * @param secondCopy the second copy in the comparison.
-     * @return
+     * @return true if the copies are equals, false otherwise.
      */
     public static boolean copiesEqual(ConsistencyGroupCopyUID firstCopy, ConsistencyGroupCopyUID secondCopy) {
         if (firstCopy != null && secondCopy != null) {
@@ -680,7 +680,7 @@ public class RecoverPointUtils {
      *
      * @param impl the established connection to an appliance
      * @param cgCopyUID the consistency group copy id
-     * @return
+     * @return the copy settings for the consistency group copy id or null if not found
      * @throws FunctionalAPIActionFailedException_Exception
      * @throws FunctionalAPIInternalError_Exception
      */

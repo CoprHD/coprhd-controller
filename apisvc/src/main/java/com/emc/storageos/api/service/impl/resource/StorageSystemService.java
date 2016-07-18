@@ -782,28 +782,31 @@ public class StorageSystemService extends TaskResourceService {
         ArrayList<AsyncTask> tasks = new ArrayList<AsyncTask>(1);
         String taskId = UUID.randomUUID().toString();
         if (Discovery_Namespaces.ARRAY_AFFINITY.name().equalsIgnoreCase(namespace)) {
+            if (!storageSystem.deviceIsType(Type.vmax) && !storageSystem.deviceIsType(Type.vnxblock) && !storageSystem.deviceIsType(Type.xtremio) &&
+                    !storageSystem.deviceIsType(Type.unity)) {
+                throw APIException.badRequests.cannotDiscoverArrayAffinityForUnsupportedSystem(storageSystem.getSystemType());
+            }
+
             scheduler = new DiscoveredObjectTaskScheduler(
                     _dbClient, new ArrayAffinityJobExec(controller));
             URI providerURI = storageSystem.getActiveProviderURI();
             List<URI> systemIds = new ArrayList<URI>();
             systemIds.add(id);
-            List<URI> sysURIs = _dbClient.queryByType(StorageSystem.class, true);
-            Iterator<StorageSystem> storageSystems = _dbClient.queryIterativeObjects(StorageSystem.class, sysURIs);
-            while (storageSystems.hasNext()) {
-                StorageSystem systemObj = storageSystems.next();
-                String task = UUID.randomUUID().toString();
-                if (systemObj == null) {
-                    _log.warn("StorageSystem is no longer in the DB. It could have been deleted or decommissioned");
-                    continue;
-                }
 
-                if (!systemObj.deviceIsType(Type.vmax) && !systemObj.deviceIsType(Type.vnxblock) && !systemObj.deviceIsType(Type.xtremio)) {
-                    _log.info("Skip unsupported system {}", systemObj.getLabel());
-                    continue;
-                }
+            if (storageSystem.deviceIsType(Type.vmax) || storageSystem.deviceIsType(Type.vnxblock) || storageSystem.deviceIsType(Type.xtremio)) {
+                List<URI> sysURIs = _dbClient.queryByType(StorageSystem.class, true);
+                Iterator<StorageSystem> storageSystems = _dbClient.queryIterativeObjects(StorageSystem.class, sysURIs);
+                while (storageSystems.hasNext()) {
+                    StorageSystem systemObj = storageSystems.next();
+                    String task = UUID.randomUUID().toString();
+                    if (systemObj == null) {
+                        _log.warn("StorageSystem is no longer in the DB. It could have been deleted or decommissioned");
+                        continue;
+                    }
 
-                if (providerURI.equals(systemObj.getActiveProviderURI()) && !id.equals(systemObj.getId())) {
-                    systemIds.add(systemObj.getId());
+                    if (providerURI.equals(systemObj.getActiveProviderURI()) && !id.equals(systemObj.getId())) {
+                        systemIds.add(systemObj.getId());
+                    }
                 }
             }
 
@@ -2021,7 +2024,8 @@ public class StorageSystemService extends TaskResourceService {
         if (Discovery_Namespaces.ARRAY_AFFINITY.name().equalsIgnoreCase(nameSpace)) {
             if (Type.vmax.name().equalsIgnoreCase(storageSystem.getSystemType()) ||
                     Type.vnxblock.name().equalsIgnoreCase(storageSystem.getSystemType()) ||
-                    Type.xtremio.name().equalsIgnoreCase(storageSystem.getSystemType())) {
+                    Type.xtremio.name().equalsIgnoreCase(storageSystem.getSystemType()) ||
+                    Type.unity.name().equalsIgnoreCase(storageSystem.getSystemType())) {
                 return true;
             }
 

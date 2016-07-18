@@ -420,33 +420,38 @@ public class HostService extends TaskResourceService {
                 continue;
             }
 
-            if (!systemObj.deviceIsType(Type.vmax) && !systemObj.deviceIsType(Type.vnxblock) && !systemObj.deviceIsType(Type.xtremio)) {
+            if (systemObj.deviceIsType(Type.vmax) || systemObj.deviceIsType(Type.vnxblock) || systemObj.deviceIsType(Type.xtremio)) {
+                if (systemObj.getActiveProviderURI() == null
+                        || NullColumnValueGetter.getNullURI().equals(systemObj.getActiveProviderURI())) {
+                    _log.info("Skipping {} Job : StorageSystem {} does not have an active provider",
+                            jobType, systemObj.getLabel());
+                    continue;
+                }
+
+                StorageProvider provider = _dbClient.queryObject(StorageProvider.class,
+                        systemObj.getActiveProviderURI());
+                if (provider == null || provider.getInactive()) {
+                    _log.info("Skipping {} Job : StorageSystem {} does not have a valid active provider",
+                            jobType, systemObj.getLabel());
+                    continue;
+                }
+
+                List<URI> systemIds = providerToSystemsMap.get(provider.getId());
+                if (systemIds == null) {
+                    systemIds = new ArrayList<URI>();
+                    providerToSystemsMap.put(provider.getId(), systemIds);
+                    providerToSystemTypeMap.put(provider.getId(), systemObj.getSystemType());
+                }
+                systemIds.add(systemObj.getId());
+            } else if (systemObj.deviceIsType(Type.unity)) {
+                List<URI> systemIds = new ArrayList<URI>();
+                systemIds.add(systemObj.getId());
+                providerToSystemsMap.put(systemObj.getId(), systemIds);
+                providerToSystemTypeMap.put(systemObj.getId(), systemObj.getSystemType());
+            } else {
                 _log.info("Skip unsupported system {}", systemObj.getLabel());
                 continue;
             }
-
-            if (systemObj.getActiveProviderURI() == null
-                    || NullColumnValueGetter.getNullURI().equals(systemObj.getActiveProviderURI())) {
-                _log.info("Skipping {} Job : StorageSystem {} does not have an active provider",
-                        jobType, systemObj.getLabel());
-                continue;
-            }
-
-            StorageProvider provider = _dbClient.queryObject(StorageProvider.class,
-                    systemObj.getActiveProviderURI());
-            if (provider == null || provider.getInactive()) {
-                _log.info("Skipping {} Job : StorageSystem {} does not have a valid active provider",
-                        jobType, systemObj.getLabel());
-                continue;
-            }
-
-            List<URI> systemIds = providerToSystemsMap.get(provider.getId());
-            if (systemIds == null) {
-                systemIds = new ArrayList<URI>();
-                providerToSystemsMap.put(provider.getId(), systemIds);
-                providerToSystemTypeMap.put(provider.getId(), systemObj.getSystemType());
-            }
-            systemIds.add(systemObj.getId());
         }
 
         for (Map.Entry<URI, List<URI>> entry : providerToSystemsMap.entrySet()) {

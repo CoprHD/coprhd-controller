@@ -2512,6 +2512,7 @@ public class VPlexApiVirtualVolumeManager {
     public boolean setVirtualVolumeThinEnabled(VPlexVirtualVolumeInfo virtualVolumeInfo) {
         ClientResponse response = null;
         try {
+            // set thin enabled to false by default on the out-param until we get a successful response
             virtualVolumeInfo.setThinEnabled(VPlexApiConstants.FALSE);
             s_logger.info("Requesting thin-enabled flag set to true on virtual volume " + virtualVolumeInfo.getName());
             URI requestURI = _vplexApiClient.getBaseURI().resolve(VPlexApiConstants.URI_SET_THIN_ENABLED_VIRTUAL_VOLUME);
@@ -2534,6 +2535,7 @@ public class VPlexApiVirtualVolumeManager {
                     return false;
                 }
             }
+            // if it got this far, we can assume thin-enabled and thin-capable are both true
             virtualVolumeInfo.setThinEnabled(VPlexApiConstants.TRUE);
             virtualVolumeInfo.setThinCapable(VPlexApiConstants.TRUE);
             s_logger.info("Successfully executed set-thin-enabled command");

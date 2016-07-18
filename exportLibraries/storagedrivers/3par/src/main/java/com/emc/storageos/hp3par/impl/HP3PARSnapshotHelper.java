@@ -20,16 +20,18 @@ import com.emc.storageos.storagedriver.model.StorageObject.AccessStatus;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
 
 public class HP3PARSnapshotHelper {
-	
+
 	private static final Logger _log = LoggerFactory.getLogger(HP3PARSnapshotHelper.class);
 	private HP3PARUtil hp3parUtil;
-	
-	public DriverTask createVolumeSnapshot(List<VolumeSnapshot> snapshots, StorageCapabilities capabilities, DriverTask task, Registry driverRegistry) {
+
+	public DriverTask createVolumeSnapshot(List<VolumeSnapshot> snapshots, StorageCapabilities capabilities,
+			DriverTask task, Registry driverRegistry) {
 
 		for (VolumeSnapshot snap : snapshots) {
 			try {
 				// native id = null ,
-				_log.info("3PARDriver: createVolumeSnapshot for storage system native id {}, snapshot name {}, parent id {}- start",
+				_log.info(
+						"3PARDriver: createVolumeSnapshot for storage system native id {}, snapshot name {}, parent id {}- start",
 						snap.getNativeId(), snap.getDisplayName(), snap.getParentId());
 				Boolean readOnly = true;
 
@@ -104,7 +106,6 @@ public class HP3PARSnapshotHelper {
 
 	public DriverTask deleteVolumeSnapshot(List<VolumeSnapshot> snapshots, DriverTask task, Registry driverRegistry) {
 
-
 		// For each requested volume snapshot (in one or more 3par system)
 		for (VolumeSnapshot snap : snapshots) {
 			try {
@@ -142,6 +143,5 @@ public class HP3PARSnapshotHelper {
 	public void setHp3parUtil(HP3PARUtil hp3parUtil) {
 		this.hp3parUtil = hp3parUtil;
 	}
-
 
 }

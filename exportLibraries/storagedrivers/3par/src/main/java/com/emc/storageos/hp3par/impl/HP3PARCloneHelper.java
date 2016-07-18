@@ -25,15 +25,22 @@ public class HP3PARCloneHelper {
 	
 	public DriverTask createVolumeClone(List<VolumeClone> clones, StorageCapabilities capabilities, DriverTask task, Registry driverRegistry) {
 
+		String storageSystemId = null;
+		HP3PARApi hp3parApi = null;
 		for (VolumeClone clone : clones) {
 			try {
 				// native id = null ,
 				_log.info(
 						"3PARDriver: createVolumeClone for storage system native id {}, clone parent name {} , clone name {} - start",
 						clone.toString(), clone.getParentId(), clone.getDisplayName());
+
+				String localStorageSystemId = clone.getStorageSystemId();
 				// get Api client
-				HP3PARApi hp3parApi = hp3parUtil.getHP3PARDeviceFromNativeId(clone.getStorageSystemId(),
-						driverRegistry);
+				if (storageSystemId == null || storageSystemId != localStorageSystemId) {
+					storageSystemId = localStorageSystemId;
+					hp3parApi = hp3parUtil.getHP3PARDeviceFromNativeId(localStorageSystemId,
+							driverRegistry);
+				}
 				VolumeDetailsCommandResult volResult = null;
 
 				// Create volume clone
@@ -43,7 +50,8 @@ public class HP3PARCloneHelper {
 				// Actual size of the volume in array
 				clone.setProvisionedCapacity(volResult.getSizeMiB() * HP3PARConstants.MEGA_BYTE);
 				clone.setWwn(volResult.getWwn());
-				clone.setNativeId(clone.getNativeId()); // required for volume delete
+				clone.setNativeId(clone.getNativeId()); // required for volume
+														// delete
 				clone.setDeviceLabel(clone.getDisplayName());
 				clone.setAccessStatus(clone.getAccessStatus());
 				clone.setReplicationState(VolumeClone.ReplicationState.SYNCHRONIZED);
@@ -69,6 +77,9 @@ public class HP3PARCloneHelper {
 
 	public DriverTask restoreFromClone(List<VolumeClone> clones, Registry driverRegistry, DriverTask task) {
 
+		String storageSystemId = null;
+		HP3PARApi hp3parApi = null;
+
 		// Executing restore for each requested volume clone (in one or more
 		// 3par system)
 		for (VolumeClone clone : clones) {
@@ -77,9 +88,13 @@ public class HP3PARCloneHelper {
 						"3PARDriver: restoreFromClone for storage system system id {}, clone name {} , native id {}  - start",
 						clone.getStorageSystemId(), clone.getDisplayName(), clone.getNativeId());
 
+				String localStorageSystemId = clone.getStorageSystemId();
 				// get Api client
-				HP3PARApi hp3parApi = hp3parUtil.getHP3PARDeviceFromNativeId(clone.getStorageSystemId(),
-						driverRegistry);
+				if (storageSystemId == null || storageSystemId != localStorageSystemId) {
+					storageSystemId = localStorageSystemId;
+					hp3parApi = hp3parUtil.getHP3PARDeviceFromNativeId(localStorageSystemId,
+							driverRegistry);
+				}
 
 				// restore virtual copy
 				hp3parApi.restorePhysicalCopy(clone.getNativeId());
@@ -106,6 +121,8 @@ public class HP3PARCloneHelper {
 
 	public DriverTask deleteVolumeClone(List<VolumeClone> clones, DriverTask task, Registry driverRegistry) {
 
+		String storageSystemId = null;
+		HP3PARApi hp3parApi = null;
 
 		// For each requested volume snapshot (in one or more 3par system)
 		for (VolumeClone clone : clones) {
@@ -114,9 +131,13 @@ public class HP3PARCloneHelper {
 						"3PARDriver: deleteVolumeClone for storage system native id {}, volume clone name {} , native id {} - start",
 						clone.getStorageSystemId(), clone.getDisplayName(), clone.getNativeId());
 
+				String localStorageSystemId = clone.getStorageSystemId();
 				// get Api client
-				HP3PARApi hp3parApi = hp3parUtil.getHP3PARDeviceFromNativeId(clone.getStorageSystemId(),
-						driverRegistry);
+				if (storageSystemId == null || storageSystemId != localStorageSystemId) {
+					storageSystemId = localStorageSystemId;
+					hp3parApi = hp3parUtil.getHP3PARDeviceFromNativeId(localStorageSystemId,
+							driverRegistry);
+				}
 
 				// Delete physical copy
 				hp3parApi.deletePhysicalCopy(clone.getDeviceLabel());

@@ -957,22 +957,22 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         TaskCompleter completer = null;
         try {
 
-            Iterator<URI> it = deletedHosts.iterator();
-            while (it.hasNext()) {
-                URI deletedHost = it.next();
-                Host host = _dbClient.queryObject(Host.class, deletedHost);
-                if (!NullColumnValueGetter.isNullURI(host.getCluster())) {
-                    Cluster cluster = _dbClient.queryObject(Cluster.class, host.getCluster());
-                    if (ComputeSystemHelper.isHostInUse(_dbClient, host.getId()) && !cluster.getAutoExportEnabled()) {
-                        _log.info(String.format("Unable to delete host %s. Belongs to cluster %s which has auto export disabled.",
-                                host.getId(),
-                                cluster.getId()));
-                        it.remove();
-                    }
-                }
-            }
+            // Iterator<URI> it = deletedHosts.iterator();
+            // while (it.hasNext()) {
+            // URI deletedHost = it.next();
+            // Host host = _dbClient.queryObject(Host.class, deletedHost);
+            // if (!NullColumnValueGetter.isNullURI(host.getCluster())) {
+            // Cluster cluster = _dbClient.queryObject(Cluster.class, host.getCluster());
+            // if (ComputeSystemHelper.isHostInUse(_dbClient, host.getId()) && !cluster.getAutoExportEnabled()) {
+            // _log.info(String.format("Unable to delete host %s. Belongs to cluster %s which has auto export disabled.",
+            // host.getId(),
+            // cluster.getId()));
+            // it.remove();
+            // }
+            // }
+            // }
 
-            completer = new ProcessHostChangesCompleter(changes, deletedHosts, deletedClusters, taskId);
+            completer = new ProcessHostChangesCompleter(changes, deletedClusters, taskId);
             Workflow workflow = _workflowService.getNewWorkflow(this, HOST_CHANGES_WF_NAME, true, taskId, null);
             String waitFor = null;
 
@@ -1085,9 +1085,11 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                             && !NullColumnValueGetter.isNullURI(host.getBootVolumeId())
                             && export.hasBlockObject(host.getBootVolumeId());
                     if (!isBootVolumeExport) {
-                        ExportGroupState egh = getExportGroupState(exportGroups, export);
-                        egh.removeHost(host.getId());
-                        egh.removeInitiators(hostInitiatorIds);
+                        ComputeSystemHelper.createActionableEvent(_dbClient, host.getTenant(), "Delete host " + hostId, host,
+                                "detachHostStorage", new Object[] { hostId, true, true }, null, null);
+                        // ExportGroupState egh = getExportGroupState(exportGroups, export);
+                        // egh.removeHost(host.getId());
+                        // egh.removeInitiators(hostInitiatorIds);
                     }
                 }
 

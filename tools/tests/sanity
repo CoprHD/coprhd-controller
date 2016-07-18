@@ -6,7 +6,7 @@
 
 # ==============================================================
 # Uncomment the below line to get tracing output for this script
-#set -x
+set -x
 
 #Configuration file to be used
 BASEDIR=$(dirname $0)
@@ -16,7 +16,7 @@ Usage()
 {
     echo 'Usage: sanity <configuration_file> <bourne_ip>|<[bourne_ipv6]> {all | snapvx | isilon | vplex | vplexexport | vplexsnap | vnxblock | ingestblock | vnxblock_flex_varray | netapp | netappc | recoverpoint | xtremio | srdf |
  vnxfile | datadomainfile | vnxfile_flex_varray | vmaxblock | hds | vmaxblock_flex_varray | combined_block | blocksnapshot | blockmirror | full_copy | blockconsistencygroup | init | quick |
- errorhandling | vnxe | security | syssvc | audit | monitor | vdc | catalog | recovery | backuprestore backupserver-uri username password | dr | ipsec | ceph} [local|ldap] [<timeslot>] | sanzoning | application | unity'
+ errorhandling | vnxe | security | syssvc | audit | monitor | vdc | catalog | recovery | backuprestore backupserver-uri username password | dr | ipsec | ceph} [local|ldap] [<timeslot>] | sanzoning | application | unity | unity_file '
     echo 'E.g.:  sanity conf/sanity.conf 137.69.169.21 all'
     echo 'E.g.:  sanity ~/.sanity/sanity.conf 137.69.169.21 isilon'
     echo 'Note: IPv6 needs to be square bracket surrounded. E.g.:  sanity [2620:0:170:2842::180] security'
@@ -141,6 +141,9 @@ elif [ ${SS} = "backuprestore" ]; then
 	AUTH=ldap
     fi
     echo AUTH=$AUTH
+elif [ ${SS} = "unity_file" ]; then
+    AUTH=local
+    echo AUTH=$AUTH
 else
     # By default, we're not running quick sanity
     if [ ${SS} = "quick" ]; then
@@ -166,7 +169,7 @@ do
 done
 
 case $SS in
-    all|snapvx|isilon|vplex|vplexexport|vplexsnap|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxfile_flex_varray|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore|sanzoning|dr|ipsec|application|driversystem|ceph|unity)
+    all|snapvx|isilon|vplex|vplexexport|vplexsnap|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxfile_flex_varray|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore|sanzoning|dr|ipsec|application|driversystem|ceph|unity|unity_file)
     ;;
 
     # These tests are handled by sanity integration tests written with the code
@@ -292,6 +295,7 @@ SHORTENED_HOST=`hostname`
 : ${TENANT=$SHORTENED_HOST}
 : ${PROJECT=sanity}
 : ${SRDF_PROJECT=dontuseme}
+: ${UNITY_PROJECT=unity}
 
 SVCUSER=svcuser
 
@@ -359,6 +363,7 @@ LOCAL_SECURE_LDAP_USER_USERNAME_WITH_SPACES='       secureLdapViPRUser1@'${LOCAL
 COS_VNXFILE=cosvnxf
 COS_VNXE=cosvnxe
 COS_UNITY=cosunity
+COS_UNITY_CIFS=cosunitycifs
 COS_ISIFILE=cosisi
 COS_NETAPP=cosnetappf
 COS_NETAPPC=cosnetappcf
@@ -463,6 +468,7 @@ VNXE_DEV=vnxe_device
 VNXE_NATIVEGUID=VNXE+$VNXE_SN
 VNXE_SMBFILESHARE1=cifs1$(date +%Y%m%d%H%M%S) 
 
+
 #
 # Ceph cluster configuration
 #
@@ -476,6 +482,7 @@ CEPH_EXPORT_GROUP_NAME=EXPCephGroup${RANDOM}
 #
 UNITY_DEV=unity_device
 UNITY_NATIVEGUID=UNITY+$UNITY_SN
+UNITY_SMBFILESHARE1=sanity_cifs1$(date +%Y%m%d%H%M%S) 
 
 #
 # DataDomain file device configuration
@@ -590,8 +597,8 @@ FSEXP_DEFAULT_EPS="$FSEXP1 $FSEXP2 $FSEXP3"
 SNAPEXP_DEFAULT_EPS="www.emc.com www.abc.com www.amazon.com"
 FS_VNXE_SIZE=2000000000
 FS_VNXE_EXPAND_SIZE=3000000000
-FS_UNITY_SIZE=3000000000
-FS_UNITY_EXPAND_SIZE=4000000000
+FS_UNITY_SIZE=4000000000
+FS_UNITY_EXPAND_SIZE=5000000000
 
 
 # Alternate configuration file for alternate hardware/variables
@@ -6170,7 +6177,7 @@ file_tests()
         run fileshare search --name $(echo $fsname | head -c 2)
         run fileshare search --name $(echo $fsname | head -c 2) --project $projectid
 
-        run fileshare tag $PROJECT/${fsname} $TAG
+        run fileshare tag ${PROJECT}/${fsname} $TAG
         run fileshare search --tag $SEARCH_PREFIX 
     fi
 
@@ -6298,6 +6305,16 @@ file_tests()
             run snapshot unexport $PROJECT/$fsname-$datetime-2 $PROJECT/$fsname
             run snapshot delete $PROJECT/$fsname-$datetime-2 $PROJECT/$fsname
         fi
+
+        if [ $cos = $COS_UNITY ] ; then
+            run snapshot create $PROJECT/$fsname $fsname-$datetime-2
+            run snapshot restore $PROJECT/$fsname-$datetime-2 $PROJECT/$fsname
+            run snapshot export $PROJECT/$fsname-$datetime-2 $PROJECT/$fsname $snap_exp_args
+            run snapshot show $PROJECT/$fsname-$datetime-2 $PROJECT/$fsname
+            run snapshot unexport $PROJECT/$fsname-$datetime-2 $PROJECT/$fsname
+            run snapshot delete $PROJECT/$fsname-$datetime-2 $PROJECT/$fsname
+        fi
+
         
     done
 
@@ -6386,6 +6403,16 @@ file_tests()
         run fileshare show $PROJECT/$fsname
         run fileshare unshare $PROJECT/$fsname $VNXE_SMBFILESHARE1 
     fi
+
+   if [ $cos = $COS_UNITY ] ; then
+        fscifs=filesysCifs-$datetime
+        run fileshare create $fscifs $PROJECT $NH $COS_UNITY_CIFS $FS_SIZEMB
+        run fileshare share $PROJECT/$fscifs  $UNITY_SMBFILESHARE1 --description 'New_SMB_Share'
+        run fileshare show $PROJECT/$fscifs
+        run fileshare unshare $PROJECT/$fscifs $UNITY_SMBFILESHARE1 
+        run fileshare delete $PROJECT/$fscifs
+    fi
+
     
     if [ $cos = $COS_ISIFILE ] ; then
         run snapshot delete $PROJECT/$fsname-$datetime $PROJECT/$fsname
@@ -9989,7 +10016,7 @@ fail(){
 
 trap '_failure $LINENO' ERR INT
 set -E
-if [ "$3" != "vdc" ] && [ "$3" != "dr" ] && [ "$3" != "backuprestore" ]; then
+if [ "$3" != "vdc" ] && [ "$3" != "dr" ] && [ "$3" != "backuprestore" ] && [ "$3" != "unity_file" ]; then
     common_setup	
 fi
 
@@ -10573,6 +10600,92 @@ ceph_tests()
     ceph_test_export
 }
 
+unity_common_setup()
+{
+     login_nd_configure_smtp_nd_add_licenses
+
+     run syssvc $CONFIG_FILE "$BOURNE_IP" set_prop system_proxyuser_encpassword ${SYSADMIN_PASSWORD}
+
+     ROOT_TENANT=`tenant root|tail -1`
+
+     unity_project_setup
+     unity_nh_setup
+
+     secho "Setup ACLs on neighborhood for $ROOT_TENANT"
+     run neighborhood allow $NH $ROOT_TENANT
+
+     secho "Creating transport zone"
+     run transportzone create $IP_ZONE $NH --type IP
+
+}
+unity_project_setup()
+{
+     secho "Creating project for unity"
+     project show $UNITY_PROJECT &> /dev/null && return $?
+     run project create $UNITY_PROJECT --tenant $ROOT_TENANT
+}
+unity_nh_setup()
+{
+    secho "Creating neighborhood for unity"
+    neighborhood show $NH  &> /dev/null && return $?
+    run neighborhood create $NH
+
+}
+
+discover_unity()
+{
+    secho "Starting storage system create"
+    storagedevice show $UNITY_DEV &> /dev/null && return $?
+    discoveredsystem create $UNITY_DEV unity $UNITY_IP $UNITY_PORT $UNITY_USER $UNITY_PW --serialno=$UNITY_SN
+    storagedevice list
+}
+
+unity_file_setup()
+{
+     unity_common_setup
+
+     discover_unity 
+     unity_file_cos_setup
+
+     storagepool update $UNITY_NATIVEGUID --type file
+     storageport update $UNITY_NATIVEGUID IP --tzone nh/iptz
+     run cos update file $COS_UNITY --storage $UNITY_NATIVEGUID
+     run transportzone add $NH/$IP_ZONE $UNITY_IP_ENDPOINT1
+     run storagedevice discover_all
+}
+unity_file_tests()
+{
+    FS_SIZEMB=$FS_UNITY_SIZE;
+    FS_SIZE=$FS_UNITY_SIZE;
+    FS_EXPAND_SIZE=$FS_UNITY_EXPAND_SIZE;
+    PROJECT=$UNITY_PROJECT;
+    file_tests $COS_UNITY default
+
+}
+
+unity_file_cos_setup()
+{
+     secho "Setting up Unity File Virtual Pools"
+
+     run cos create file $COS_UNITY                               \
+         --description 'Virtual-Pool-for-unity-file' true \
+                         --protocols NFS --max_snapshots 10    \
+                         --provisionType 'Thin' \
+                         --neighborhoods $NH
+    
+
+    run cos create file $COS_UNITY_CIFS                               \
+         --description 'Virtual-Pool-for-unity-file' true \
+                         --protocols CIFS --max_snapshots 10    \
+                         --provisionType 'Thin' \
+                         --neighborhoods $NH
+
+    ROOT_TENANT=`tenant root|tail -1`
+    run cos allow $COS_UNITY file $ROOT_TENANT
+    run cos allow $COS_UNITY_CIFS file $ROOT_TENANT
+
+}
+
 unity_setup()
 {
     networksystem show $BROCADE_NETWORK &> /dev/null && return $?
@@ -10582,6 +10695,9 @@ unity_setup()
     storagedevice list
 
     project_setup
+     neighborhood show $NH  &> /dev/null && return $?
+
+    run neighborhood create $NH
 
     secho "Setup ACLs on neighborhood for $TENANT"
     run neighborhood allow $NH $TENANT
@@ -10593,20 +10709,15 @@ unity_setup()
     unity_cos_setup
     run cos update block $COS_UNITYBLOCK_CG --storage $UNITY_NATIVEGUID
 
-    storagepool update $UNITY_NATIVEGUID --type file
-    storageport update $UNITY_NATIVEGUID IP --tzone nh/iptz
-    run cos update file $COS_UNITY --storage $UNITY_NATIVEGUID
-    run transportzone add $NH/$IP_ZONE $UNITY_IP_ENDPOINT1
-    run storagedevice discover_all
+   
 }
+
+
 
 unity_tests()
 {
-    FS_SIZEMB=$FS_UNITY_SIZE;
-    FS_SIZE=$FS_UNITY_SIZE;
-    FS_EXPAND_SIZE=$FS_UNITY_EXPAND_SIZE;
-    file_tests $COS_UNITY default
 
+    unity_file_tests
 
     vol1=unity1-${RANDOM};
     vol2=unity-cg-${RANDOM};
@@ -10652,16 +10763,7 @@ unity_tests()
 
 unity_cos_setup()
 {
-    secho "setting up Unity Virtual Pool"
-
-    run cos create file $COS_UNITY                               \
-         --description 'Virtual-Pool-for-unity-file' true \
-                         --protocols NFS CIFS --max_snapshots 10    \
-                         --provisionType 'Thin' \
-                         --neighborhoods $NH
-    ROOT_TENANT=`tenant root|tail -1`
-    run cos allow $COS_UNITY file $ROOT_TENANT
-
+    secho "Setting up Unity Virtual Pools"
     
     run cos create block $COS_UNITYBLOCK_CG                            \
 	--description 'Virtual-Pool-for-unity-block-cg' true         \

@@ -3705,6 +3705,7 @@ approval.message=Message
 service.order=Order
 service.preview=Preview
 service.cancel=Cancel
+service.schedule=Schedule Order
 
 service.assetError=Failed to retrieve options for field '%s': %s
 service.nextExecutionWindow=This service will be scheduled to run in the next available Execution Window.  Currently, <span style="font-weight:bold;">%s</span> is the next window scheduled to run at <span style="font-weight:bold;">%s</span>.
@@ -4565,3 +4566,22 @@ mobilityGroupResources.virtualPool=Virtual Pool
 mobilityGroupResources.type=Type
 mobilityGroupResources.hostname=Hostname
 mobilityGroupResources.tenant=Tenant
+
+scheduler.title=Scheduler
+scheduler.enabled=Enable Scheduler
+scheduler.startDate=Start Date
+scheduler.startTime=Start Time
+scheduler.startTime.helpText=(HH:MM)
+scheduler.cycleFrequency=Recur every
+scheduler.cycleType=Frequency
+scheduler.minutely=Minutely
+scheduler.hourly=Hourly
+scheduler.daily=Daily
+scheduler.monthly=Monthly
+scheduler.weekly=Weekly
+scheduler.dayOfWeek=Day of Week
+scheduler.dayOfMonth=Day of Month
+scheduler.recurrence=Recurrence
+scheduler.onlyonce=Only Once
+scheduler.indefinitely=Indefinitely
+scheduler.endAfterRecurrences=End after recurrences

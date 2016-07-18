@@ -1,0 +1,151 @@
+<collapse title="&{'scheduler.title'}">
+   <div class="form-group">
+     <label class="control-label col-sm-3" for="schedulerEnabled">&{"scheduler.enabled"}:</label>
+     <div class="col-sm-6 controls">
+	     <div class="row col-gap-sm">
+	        <div class="col-xs-3">
+	        	<input type="checkbox" id="schedulerEnabled" name="schedulerEnabled" value="{{schedulerEnabled}}" ng-model="schedulerEnabled"/>
+	        </div>
+	     </div>
+     </div>
+   </div>
+   
+   <div class="form-group" ng-if="isSchedulerEnabled()">
+     <label class="control-label col-sm-3">&{"scheduler.startTime"}:</label>
+     <div class="col-sm-5 controls">
+	     <div class="row col-gap-sm">
+	        <div class="col-xs-2">
+           		<select id="schedulerHourOfDay" name="schedulerHourOfDay" ng-model="schedulerHourOfDay" class="form-control">
+		           <option ng-repeat="x in ['00', '01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23']" 
+		                   value="{{x}}">
+		              {{x}}
+		           </option>
+          	 	</select>
+       		 </div>
+       		 
+       		 <div class="col-xs-2">
+         	   <select id="schedulerMinuteOfHour" name="schedulerMinuteOfHour" ng-model="schedulerMinuteOfHour" class="form-control">
+		           <option value="0">00</option>
+		           <option value="30">30</option>
+	           </select>
+	        </div>
+	     </div>
+     <span class="help-block">&{"scheduler.startTime.helpText"}</span>	
+     </div>
+   </div>
+   
+   <div class="form-group" ng-if="isSchedulerEnabled()">
+     <label class="control-label col-sm-3" for="schedulerCycleFrequency">&{"scheduler.cycleFrequency"}:</label>
+     <div class="col-sm-6 controls">
+	     <div class="row col-gap-sm">
+	        <div class="col-xs-3">
+	        	<input type="number" id="schedulerCycleFrequency" name="schedulerCycleFrequency" class="form-control" 
+	        	   ng-model="schedulerCycleFrequency" min="1"/>
+	        </div>
+	     </div>
+     </div>
+   </div>
+   
+ <div class="form-group" ng-if="isSchedulerEnabled()">
+   <label class="control-label col-sm-3" for="schedulerCycleType">&{"scheduler.cycleType"}:</label>
+   <div class="col-sm-6 controls">
+        <div class="radio">
+         <label>
+   	       <input type="radio" id="schedulerCycleType" name="schedulerCycleType"  
+   	           value="1" ng-model="schedulerCycleType"/>
+   	        &{"scheduler.minutely"}  
+   	      </label>
+   	   </div>  
+       <div class="radio">
+         <label>
+   	       <input type="radio" id="schedulerCycleType" name="schedulerCycleType"  
+   	           value="2" ng-model="schedulerCycleType"/>
+   	        &{"scheduler.hourly"}  
+   	      </label>
+   	   </div>  
+       <div class="radio">
+         <label>
+   	       <input type="radio" id="schedulerCycleType" name="schedulerCycleType"  
+   	          value="3" ng-model="schedulerCycleType"/>
+   	        &{"scheduler.daily"}  
+   	      </label>
+   	   </div>   
+   	   <div class="radio">
+	   	   <label>
+		   	   <input type="radio" id="schedulerCycleType" name="schedulerCycleType" 
+		   	      value="4" ng-model="schedulerCycleType"/>
+		   	      &{"scheduler.weekly"} 
+		   </label>
+	   	   <div class="row col-gap-none">
+	          <div class="col-xs-3 col-xs-offset-1">
+	            <label class="control-label" for="schedulerDayOfWeek"><b>&{'scheduler.dayOfWeek'}:</b></label>
+	          </div>
+	          <div class="col-xs-3"> 
+	             <select id="schedulerDayOfWeek" name="schedulerDayOfWeek" ng-model="schedulerDayOfWeek" class="form-control" >
+		           <option value="{{k}}" ng-repeat="(k, v) in {1: 'Monday', 2: 'Tuesday', 3: 'Wednesday', 4: 'Thursday', 5: 'Friday', 6: 'Saturday', 7: 'Sunday' }"> 
+		             {{v}}
+		           </option>
+	          	 </select>
+	          </div>
+	        </div>
+   	   </div>
+   	   
+   	   <div class="radio">
+	   	   <label>
+	   	   <input type="radio" id="schedulerCycleType" name="schedulerCycleType" 
+	   	      value="5" ng-model="schedulerCycleType"/>
+	   	      &{"scheduler.monthly"}
+	   	   </label>   
+	   	   <div class="row col-gap-none">
+	          <div class="col-xs-3 col-xs-offset-1">
+	            <label class="control-label" for="schedulerDayOfMonth"><b>&{'scheduler.dayOfMonth'}:</b></label>
+	          </div>
+	          <div class="col-xs-3">
+	           	<select id="schedulerDayOfMonth" name="schedulerDayOfMonth" ng-model="schedulerDayOfMonth" class="form-control" >
+		           <option value="{{x}}" ng-repeat="x in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31]"> 
+		             {{x}}
+		           </option>
+	          	 </select>
+	          </div>
+	        </div> 
+        </div>   
+   </div>
+ </div>  
+ 
+ <div class="form-group" ng-if="isSchedulerEnabled()">
+     <label class="control-label col-sm-3" for="schedulerRange">&{"scheduler.recurrence"}:</label>
+     
+    <div class="col-sm-6 controls">
+         <div class="radio">
+	   	   <label>
+	   	   <input type="radio" id="schedulerRecurrence" name="schedulerRecurrence" 
+	   	      value="1" ng-model="schedulerRecurrence"/>
+	   	      &{"scheduler.onlyonce"}
+	   	   </label>   
+	   	 </div>
+
+         <div class="radio">
+	   	   <label>
+	   	   <input type="radio" id="schedulerRecurrence" name="schedulerRecurrence" 
+	   	      value="-1" ng-model="schedulerRecurrence"/>
+	   	      &{"scheduler.indefinitely"}
+	   	   </label>   
+	   	 </div>
+	   	 
+	   	 <div class="radio">
+	   	   <label>
+		   	   <input type="radio" id="schedulerRecurrence" name="schedulerRecurrence" 
+		   	      value="0" ng-model="schedulerRecurrence"/>
+		   	      &{"scheduler.endAfterRecurrences"} 
+		   </label>
+	   	   <div class="row col-gap-none">
+	          <div class="col-xs-2"> 
+	             <input type="number" id="schedulerRangeOfRecurrence" name="schedulerRangeOfRecurrence" class="form-control" 
+	        	   ng-model="schedulerRangeOfRecurrences" min="0"/>
+	          </div>
+ 	        </div>
+   	     </div> 
+   	     
+      </div>
+    </div>
+</collapse>

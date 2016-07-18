@@ -97,6 +97,10 @@
             </div>
           </div>
   
+   		  #{if service.schedulerAllowed}
+  		    #{Services.scheduler /}
+  		  #{/if}
+  		  
           <div ng-show="serviceDescriptor.destructive" class="alert alert-warning">
             <span class="label label-warning"><i v-icon='exclamation-sign'></i></span>
             {{'service.destructive' | t}}
@@ -109,7 +113,10 @@
           #{/if}
           
           <button-bar>
-            <button type="submit" class="btn btn-primary" ng-disabled="disableSubmitButton()" v-submit-form><span v-icon=shopping-cart></span> &{"service.order"}</button>
+            <button type="submit" class="btn btn-primary" ng-disabled="disableSubmitButton()" v-submit-form>
+                <span v-icon=shopping-cart ng-if="! isSchedulerEnabled()" >&{"service.order"}</span>
+                <span v-icon=shopping-cart ng-if="isSchedulerEnabled()" >&{"service.schedule"}</span>
+            </button>
             #{Form.button name:'service.cancel', icon:'trash', href:backUrl /}
           </button-bar>
 

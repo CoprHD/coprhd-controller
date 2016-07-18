@@ -230,6 +230,7 @@ public class OrderExecution extends Controller {
                 orderParameters.add(createOrderParameter(field, value));
             }
         }
+        addSchedulerOptions(orderParameters);
         order.setParameters(orderParameters);
         return order;
     }
@@ -249,5 +250,27 @@ public class OrderExecution extends Controller {
             parameter.setEncrypted(true);
         }
         return parameter;
+    }
+    
+    private static void addSchedulerOptions(List<Parameter> orderParameters) {
+        if (!params._contains("schedulerEnabled")) {
+            params.put("schedulerEnabled", "false");
+        }
+        addSchedulerOptionToOrderParameter(orderParameters, "schedulerEnabled");
+        addSchedulerOptionToOrderParameter(orderParameters, "schedulerCycleFrequency");
+        addSchedulerOptionToOrderParameter(orderParameters, "schedulerCycleType");
+        addSchedulerOptionToOrderParameter(orderParameters, "schedulerSectionsInCycle");
+        addSchedulerOptionToOrderParameter(orderParameters, "schedulerHourOfDay");
+        addSchedulerOptionToOrderParameter(orderParameters, "schedulerMinuteOfHour");
+        addSchedulerOptionToOrderParameter(orderParameters, "schedulerStartDate");
+        addSchedulerOptionToOrderParameter(orderParameters, "schedulerRecurrence");
+    }
+    
+    private static void addSchedulerOptionToOrderParameter(List<Parameter> orderParameters, String paramName) {
+        Parameter parameter = new Parameter();
+        parameter.setLabel(paramName);
+        parameter.setValue(params.get(paramName));
+        parameter.setUserInput(true);
+        orderParameters.add(parameter);
     }
 }

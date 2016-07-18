@@ -209,6 +209,19 @@ angular.module("portalApp").controller({
           $scope[value.name] = value;
         });
         
+        // Set default values for scheduler
+        $scope.schedulerHourOfDay = '01';
+        $scope.schedulerMinutesOfHour = '0';
+        $scope.schedulerCycleFrequency = 1;
+        $scope.schedulerCycleType = 1;
+        $scope.schedulerRangeOfRecurrence = 1;
+        $scope.schedulerRecurrence = 1;
+        $scope.schedulerDayOfWeek = 1
+        $scope.schedulerDayOfMonth = 1
+        $scope.isSchedulerEnabled = function() {
+           return $scope.schedulerEnabled;
+        };
+        
         $scope.disableSubmitButton = function() {
                 // find all the required fields, and all the password verify fields
         	var passwordVerifyFields = [];

@@ -10,6 +10,7 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.sa.engine.ExecutionUtils;
+import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.AbstractExecutionService;
 import com.emc.sa.model.dao.ModelClient;
 import com.emc.sa.service.vipr.tasks.AcquireHostLock;
@@ -36,6 +37,26 @@ public abstract class ViPRService extends AbstractExecutionService {
 
     private ViPRCoreClient client;
 
+    /**
+     * Scheduler parameters for this order
+     */
+    @Param(value = "schedulerEnabled", required = true)
+    protected Boolean schedulerEnabled;
+    @Param(value = "schedulerHourOfDay", required = false)
+    protected Integer schedulerHourOfDay;
+    @Param(value = "schedulerMinuteOfHour", required = false)
+    protected Integer schedulerMinuteOfHour;
+    @Param(value = "schedulerCycleType", required = false)
+    protected Integer schedulerCycleType;
+    @Param(value = "schedulerCycleFrequency", required = false)
+    protected Integer schedulerCycleFrequency;
+    @Param(value = "schedulerSectionsInCycle", required = false)
+    protected String schedulerSectionsInCycle;
+    @Param(value = "schedulerRecurrence", required = false)
+    protected Integer schedulerRecurrence;
+    @Param(value = "schedulerStartDate", required = false)
+    protected String schedulerStartDate;
+    
     private List<String> locks = Lists.newArrayList();
 
     public ModelClient getModelClient() {

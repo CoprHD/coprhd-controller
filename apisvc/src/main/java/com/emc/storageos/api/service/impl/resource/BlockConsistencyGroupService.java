@@ -122,7 +122,7 @@ import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
-import com.emc.storageos.srdfcontroller.SRDFController;
+import com.emc.storageos.services.util.StorageDriverManager;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCodeException;
@@ -132,7 +132,6 @@ import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.google.common.collect.Table;
 import com.google.common.collect.Table.Cell;
-import com.emc.storageos.services.util.StorageDriverManager;
 
 @Path("/block/consistency-groups")
 @DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, readAcls = { ACL.OWN,
@@ -309,8 +308,8 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         BlockServiceApi blockServiceApiImpl = getBlockServiceImpl(consistencyGroup);
 
         // Get the CG volumes
-        List<Volume> volumes = BlockConsistencyGroupUtils.getActiveVolumesInCG(consistencyGroup, 
-                                _dbClient, null);
+        List<Volume> volumes = BlockConsistencyGroupUtils.getActiveVolumesInCG(consistencyGroup,
+                _dbClient, null);
 
         // If no volumes, just return the consistency group
         if (volumes.isEmpty()) {
@@ -467,8 +466,8 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             final BlockConsistencyGroup consistencyGroup) {
         // If the consistency group is active and not created we can delete it,
         // otherwise we cannot.
-        return (!consistencyGroup.getInactive() && !consistencyGroup.created() 
-                && !consistencyGroup.getTypes().contains(BlockConsistencyGroup.Types.VPLEX.name()));
+        return (!consistencyGroup.getInactive() && !consistencyGroup.created()
+        && !consistencyGroup.getTypes().contains(BlockConsistencyGroup.Types.VPLEX.name()));
     }
 
     /**
@@ -1315,7 +1314,8 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             final BlockConsistencyGroupUpdate param) {
         // Get the consistency group.
         BlockConsistencyGroup consistencyGroup = (BlockConsistencyGroup) queryResource(id);
-        StorageDriverManager storageDriverManager = (StorageDriverManager)StorageDriverManager.getApplicationContext().getBean(StorageDriverManager.STORAGE_DRIVER_MANAGER);
+        StorageDriverManager storageDriverManager = (StorageDriverManager) StorageDriverManager.getApplicationContext().getBean(
+                StorageDriverManager.STORAGE_DRIVER_MANAGER);
 
         // Verify a volume was specified to be added or removed.
         if (!param.hasEitherAddOrRemoveVolumes()) {
@@ -1340,18 +1340,18 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         // IBMXIV, XtremIO, VPlex, VNX, ScaleIO, and VMax volumes only
         String systemType = cgStorageSystem.getSystemType();
-        if(!storageDriverManager.isDriverManaged(cgStorageSystem.getSystemType())) {
-	        if (!systemType.equals(DiscoveredDataObject.Type.vplex.name())
-	                && !systemType.equals(DiscoveredDataObject.Type.vnxblock.name())
-	                && !systemType.equals(DiscoveredDataObject.Type.vmax.name())
-	                && !systemType.equals(DiscoveredDataObject.Type.vnxe.name())
-	                && !systemType.equals(DiscoveredDataObject.Type.unity.name())
-	                && !systemType.equals(DiscoveredDataObject.Type.ibmxiv.name())
-	                && !systemType.equals(DiscoveredDataObject.Type.scaleio.name())
-	                && !systemType.equals(DiscoveredDataObject.Type.xtremio.name())) {
-	            throw APIException.methodNotAllowed.notSupported();
-	        }
-        }    
+        if (!storageDriverManager.isDriverManaged(cgStorageSystem.getSystemType())) {
+            if (!systemType.equals(DiscoveredDataObject.Type.vplex.name())
+                    && !systemType.equals(DiscoveredDataObject.Type.vnxblock.name())
+                    && !systemType.equals(DiscoveredDataObject.Type.vmax.name())
+                    && !systemType.equals(DiscoveredDataObject.Type.vnxe.name())
+                    && !systemType.equals(DiscoveredDataObject.Type.unity.name())
+                    && !systemType.equals(DiscoveredDataObject.Type.ibmxiv.name())
+                    && !systemType.equals(DiscoveredDataObject.Type.scaleio.name())
+                    && !systemType.equals(DiscoveredDataObject.Type.xtremio.name())) {
+                throw APIException.methodNotAllowed.notSupported();
+            }
+        }
 
         // Get the specific BlockServiceApiImpl based on the storage system type.
         BlockServiceApi blockServiceApiImpl = getBlockServiceImpl(cgStorageSystem);
@@ -2224,7 +2224,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             taskResp = performProtectionAction(id, copy, ProtectionOp.CHANGE_ACCESS_MODE.getRestOp());
             taskList.getTaskList().add(taskResp);
         } else if (copy.getType().equalsIgnoreCase(TechnologyType.SRDF.toString())) {
-            _log.info("Changing access mode is currently not supported for SRDF.  Returning empty task list (no-op).");
+            _log.warn("Changing access mode is currently not supported for SRDF.  Returning empty task list (no-op).");
             return taskList;
         } else {
             throw APIException.badRequests.invalidCopyType(copy.getType());
@@ -2475,8 +2475,8 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         StorageSystem system = _dbClient.queryObject(StorageSystem.class,
                 targetVolume.getStorageController());
-        ProtectionOrchestrationController controller = 
-                getController(ProtectionOrchestrationController.class, 
+        ProtectionOrchestrationController controller =
+                getController(ProtectionOrchestrationController.class,
                         ProtectionOrchestrationController.PROTECTION_ORCHESTRATION_DEVICE);
 
         // Create a new duplicate copy of the original copy. Update the copyId field to be the

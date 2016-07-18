@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.emc.storageos.model.vpool.BlockVirtualPoolRestRep;
 import org.springframework.stereotype.Component;
 
 import com.emc.sa.asset.AssetOptionsContext;
@@ -69,6 +70,7 @@ public class VirtualArrayProvider extends BaseAssetOptionsProvider {
         }
 
         List<VirtualArrayRestRep> virtualArrays = client.varrays().getByIds(ResourceUtils.uris(virtualArrayIds));
+        filterByContextTenant(virtualArrays, client.varrays().getByTenant(context.getTenant()));
         return createBaseResourceOptions(virtualArrays);
     }
 
@@ -76,6 +78,12 @@ public class VirtualArrayProvider extends BaseAssetOptionsProvider {
     @AssetDependencies({ "linuxHost" })
     public List<AssetOption> getVirtualArrayForLinux(AssetOptionsContext context, URI linuxHostOrCluster) {
         return getVirtualArray(context, linuxHostOrCluster);
+    }
+
+    @Asset("virtualArray")
+    @AssetDependencies({ "aixHost" })
+    public List<AssetOption> getVirtualArrayForAix(AssetOptionsContext context, URI aixHostOrCluster) {
+        return getVirtualArray(context, aixHostOrCluster);
     }
 
     @Asset("virtualArray")
@@ -107,7 +115,14 @@ public class VirtualArrayProvider extends BaseAssetOptionsProvider {
         // partially connected to the cluster
         List<AssetOption> fullyConnectedOptions = new ArrayList<>();
         List<AssetOption> partiallyConnectedOptions = new ArrayList<>();
+
+        List<VirtualArrayRestRep> varraysByTenant = client.varrays().getByTenant(context.getTenant());
+
         for (VirtualArrayRestRep varray : allVirtualArrays.values()) {
+            if (!contains(varray.getId(), varraysByTenant)) {
+                continue;
+            }
+
             boolean fullyConnected = virtualArrays.containsKey(varray.getId());
             if (fullyConnected) {
                 fullyConnectedOptions.add(new AssetOption(varray.getId(), varray.getName()));
@@ -140,6 +155,51 @@ public class VirtualArrayProvider extends BaseAssetOptionsProvider {
         for (FileVirtualPoolRestRep vpool : client.fileVpools().getByTenant(context.getTenant())) {
             varrayIds.addAll(ResourceUtils.refIds(vpool.getVirtualArrays()));
         }
+        filterByContextTenant(varrayIds, client.varrays().getByTenant(context.getTenant()));
         return createBaseResourceOptions(client.varrays().getByIds(varrayIds));
+    }
+
+    @Asset("blockVirtualArray")
+    public List<AssetOption> getBlockVirtualArrays(AssetOptionsContext context) {
+        ViPRCoreClient client = api(context);
+        // Get the set of virtual arrays that are associated with block vpools
+        Set<URI> varrayIds = new HashSet<>();
+        for (BlockVirtualPoolRestRep vpool : client.blockVpools().getByTenant(context.getTenant())) {
+            varrayIds.addAll(ResourceUtils.refIds(vpool.getVirtualArrays()));
+        }
+        filterByContextTenant(varrayIds, client.varrays().getByTenant(context.getTenant()));
+        return createBaseResourceOptions(client.varrays().getByIds(varrayIds));
+    }
+
+
+    /**
+     * remove any varrays, which context's tenant doesn't have access to, from inputArrays
+     *
+     * @param inputArrays
+     */
+    private void filterByContextTenant(List<VirtualArrayRestRep> inputArrays, List<VirtualArrayRestRep> virtualArraysByTenant) {
+        for (VirtualArrayRestRep rep : inputArrays) {
+            if (!contains(rep.getId(), virtualArraysByTenant)) {
+                inputArrays.remove(rep);
+            }
+        }
+    }
+
+    private void filterByContextTenant(Set<URI> inputArrays,  List<VirtualArrayRestRep> virtualArraysByTenant) {
+        for (URI rep : inputArrays) {
+            if (!contains(rep, virtualArraysByTenant)) {
+                inputArrays.remove(rep);
+            }
+        }
+    }
+
+    private boolean contains(URI varrayID, List<VirtualArrayRestRep> varrayList) {
+        for (VirtualArrayRestRep rep : varrayList) {
+            if (rep.getId().toString().equalsIgnoreCase(varrayID.toString())) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

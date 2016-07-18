@@ -507,6 +507,8 @@ public enum OperationTypeEnum {
     STANDBY_DEGRADE("DEGRADE STANDBY", "", "operation that marks standby as degraded"),
     STANDBY_REJOIN("STANDBY REJOIN VDC FROM STANDBY_DEGRADED STATE", "", "operation that marks standby has rejoined vdc rom degraded state"),
     UPDATE_SITE("UPDATE SITE", "", "operation to update site information"),
+    ADD_STORAGE_SYSTEM_TYPE("ADD STORAGE SYSTEM TYPE", "", "operation to initiate adding a new storage system type"),
+    REMOVE_STORAGE_SYSTEM_TYPE("REMOVE STORAGE SYSTEM TYPE", "", "operation to initiate removing a storage system type"),
     CREATE_SCHEDULE_POLICY("SchedulePolicyCreated", "", "create schedule policy.");
 
     private final String _evType;

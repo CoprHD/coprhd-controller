@@ -19,6 +19,7 @@ import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
@@ -30,6 +31,13 @@ import org.apache.zookeeper.data.Stat;
 import org.apache.zookeeper.ZooKeeper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.emc.storageos.coordinator.client.model.Constants;
+import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
+import com.emc.storageos.coordinator.client.model.SiteInfo;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.coordinator.client.service.DrUtil;
+import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
 
 /**
  * Handle commands about Zookeeper and output some human readable information.
@@ -74,6 +82,24 @@ public class ZkCmdHandler implements Watcher {
         ByteArrayOutputStream memStream = new ByteArrayOutputStream();
         IOUtils.copy(System.in, memStream);
         zk.setData(nodePath, memStream.toByteArray(), -1);
+    }
+
+    public void rollbackDataRevision() throws Exception {
+        DrUtil drUtil = new DrUtil(ZKUtil.getCoordinatorClient());
+        LocalRepository localRepository = LocalRepository.getInstance();
+        PropertyInfoExt localDataRevisionProps = localRepository.getDataRevisionPropertyInfo();
+        String prevRevision = localDataRevisionProps.getProperty(Constants.KEY_PREV_DATA_REVISION);
+        log.info("Previous data revision at local {}", prevRevision);
+        if (StringUtils.isNotEmpty(prevRevision)) {
+            long rollbackTargetRevision = Long.parseLong(prevRevision);
+            drUtil.updateVdcTargetVersion(drUtil.getLocalSite().getUuid(), SiteInfo.DR_OP_CHANGE_DATA_REVISION,
+                    DrUtil.newVdcConfigVersion(), rollbackTargetRevision);
+            log.info("Manual rollback to {} has been triggered", rollbackTargetRevision);
+            System.out.println(String.format("Rollback to %s has been initiated successfully", prevRevision));
+        } else {
+            log.warn("No valid previous revision found. Skip rollback");
+            System.out.println("Can't find viable previous data revision. Rollback oparation has been aborted");
+        }
     }
 
     public void tuneDrConfig(String key, String value) throws Exception {

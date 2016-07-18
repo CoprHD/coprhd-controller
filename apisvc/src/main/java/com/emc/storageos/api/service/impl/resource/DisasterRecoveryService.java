@@ -239,7 +239,7 @@ public class DisasterRecoveryService {
             }
 
             // sync site related info with to be added standby site
-            long dataRevision = System.currentTimeMillis();
+            long dataRevision = vdcConfigVersion;
             List<Site> allStandbySites = new ArrayList<>();
             allStandbySites.add(standbySite);
             allStandbySites.addAll(existingSites);
@@ -908,7 +908,7 @@ public class DisasterRecoveryService {
                     log.error("Re-init the target standby", uuid);
 
                     // init the to-be resumed standby site
-                    long dataRevision = System.currentTimeMillis();
+                    long dataRevision = vdcTargetVersion;
                     List<Site> standbySites = drUtil.listStandbySites();
                     SiteConfigParam configParam = prepareSiteConfigParam(standbySites, ipsecConfig.getPreSharedKey(),
                             uuid, dataRevision, vdcTargetVersion, secretKey);
@@ -1070,7 +1070,7 @@ public class DisasterRecoveryService {
                     SiteInfo siteTargetInfo = coordinator.getTargetInfo(siteUuid, SiteInfo.class);
                     String resumeSiteOperation = siteTargetInfo.getActionRequired();
                     if (resumeSiteOperation.equals(SiteInfo.DR_OP_CHANGE_DATA_REVISION)) {
-                        long dataRevision = System.currentTimeMillis();
+                        long dataRevision = vdcTargetVersion;
                         drUtil.updateVdcTargetVersion(siteUuid, resumeSiteOperation, vdcTargetVersion, dataRevision);
                         continue;
                     }
@@ -1182,7 +1182,7 @@ public class DisasterRecoveryService {
             drUtil.recordDrOperationStatus(oldActiveSite.getUuid(), InterState.SWITCHINGOVER_ACTIVE);
 
             // trigger reconfig
-            long vdcConfigVersion = System.currentTimeMillis(); // a version for all sites.
+            long vdcConfigVersion = DrUtil.newVdcConfigVersion(); // a version for all sites.
             for (Site eachSite : drUtil.listSites()) {
                 if (!eachSite.getUuid().equals(uuid) && eachSite.getState() == SiteState.STANDBY_PAUSED) {
                     try (InternalSiteServiceClient client = new InternalSiteServiceClient(eachSite)) {

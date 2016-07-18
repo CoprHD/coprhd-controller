@@ -27,6 +27,7 @@ import com.emc.storageos.driver.driversimulator.operations.CreateGroupCloneSimul
 import com.emc.storageos.driver.driversimulator.operations.CreateVolumeCloneSimulatorOperation;
 import com.emc.storageos.driver.driversimulator.operations.DriverSimulatorOperation;
 import com.emc.storageos.driver.driversimulator.operations.ExpandVolumeSimulatorOperation;
+import com.emc.storageos.driver.driversimulator.operations.RestoreFromCloneSimulatorOperation;
 import com.emc.storageos.storagedriver.BlockStorageDriver;
 import com.emc.storageos.storagedriver.DefaultStorageDriver;
 import com.emc.storageos.storagedriver.DriverTask;
@@ -541,17 +542,19 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
 
     @Override
     public DriverTask restoreFromClone(List<VolumeClone> clones) {
-        String taskType = "restore-volume-clones";
-        String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
-        DriverTask task = new DriverSimulatorTask(taskId);
-        task.setStatus(DriverTask.TaskStatus.READY);
-        String msg = String.format("StorageDriver: restoreFromClone : clones %s ", clones);
-        for (VolumeClone clone : clones) {
-            clone.setReplicationState(VolumeClone.ReplicationState.RESTORED);
-        }
-        _log.info(msg);
-        task.setMessage(msg);
-        return task;
+        RestoreFromCloneSimulatorOperation restoreCloneSimulatorOperation = new RestoreFromCloneSimulatorOperation(clones);
+        if (simulatorConfig.getSimulateAsynchronousResponses()) {
+            DriverTask driverTask = restoreCloneSimulatorOperation.getDriverTask();
+            taskOperationMap.put(driverTask.getTaskId(), restoreCloneSimulatorOperation);
+            return driverTask;
+        } else if (simulatorConfig.getSimulateFailures()) {
+            String failMsg = restoreCloneSimulatorOperation.getFailureMessage();
+            return restoreCloneSimulatorOperation.doFailure(failMsg);
+        } else {
+            restoreCloneSimulatorOperation.updateCloneInfo(clones);
+            String successMsg = restoreCloneSimulatorOperation.getSuccessMessage(clones);
+            return restoreCloneSimulatorOperation.doSuccess(successMsg);
+        }        
     }
 
 

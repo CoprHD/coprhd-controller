@@ -48,7 +48,7 @@ public class MaxResourcesMatcher extends AttributeMatcher {
             }
         }
         if (CollectionUtils.isEmpty(filteredPoolList)) {
-            errorMessage.append("Reached Pool/System maximum resources limit. ");
+            errorMessage.append("Reached Virtual Pool/System maximum resources limit. ");
             _log.error(errorMessage.toString());
         }
         _log.info("Pools Matching max resources Ended: {}", Joiner.on("\t").join(getNativeGuidFromPools(filteredPoolList)));

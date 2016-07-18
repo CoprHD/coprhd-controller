@@ -40,7 +40,7 @@ public class SRDFMetroMatcher extends AttributeMatcher {
             StringBuffer errorMessage) {
         List<StoragePool> matchedPools = filterPoolsForSRDFActiveMode(pools);
         if (CollectionUtils.isEmpty(matchedPools)) {
-            errorMessage.append("No matching storage pool found for SRDF ACTIVE pair creation. ");
+            errorMessage.append("No matching storage pool found for SRDF ACTIVE pair creation, the backend arrays are not SRDF capable ");
             _logger.error(errorMessage.toString());
         }
         return matchedPools;

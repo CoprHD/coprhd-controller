@@ -11463,11 +11463,6 @@ unity_cos_setup()
                          --multiVolumeConsistency 
 }
 
-# set DO_TESTS_ONLY to 1 if setup does not need to be re-run
-DO_TESTS_ONLY=${DO_TESTS_ONLY:-0}
-if [ $DO_TESTS_ONLY -eq 0 ]; then
-    ${SS}_setup
-fi
 custvolname_setup()
 {
     echo "Executing custom volume name setup"
@@ -11592,7 +11587,11 @@ custvolname_vplex_tests()
     echo "Completed custom volume name tests"
 }
 
-${SS}_setup
+# set DO_TESTS_ONLY to 1 if setup does not need to be re-run
+DO_TESTS_ONLY=${DO_TESTS_ONLY:-0}
+if [ $DO_TESTS_ONLY -eq 0 ]; then
+    ${SS}_setup
+fi
 if [ $DO_SETUP_ONLY -eq 0 ]; then
     ${SS}_tests
 fi

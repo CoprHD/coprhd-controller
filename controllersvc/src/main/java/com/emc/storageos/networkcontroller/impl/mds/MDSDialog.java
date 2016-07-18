@@ -54,7 +54,7 @@ public class MDSDialog extends SSHDialog {
     private static final Logger _log = LoggerFactory.getLogger(MDSDialog.class);
     private final String wwnRegex = "([0-9A-Fa-f][0-9A-Fa-f]:){7}[0-9A-Fa-f][0-9A-Fa-f]";
     private final static Integer sessionLockRetryMax = 5;
-
+    private final static String IVR_ZONENAME_PREFIX = "IVRZ_";
     public MDSDialog(SSHSession session, Integer defaultTimeout) {
         super(session, defaultTimeout);
     }
@@ -2108,16 +2108,57 @@ public class MDSDialog extends SSHDialog {
      */
     public List<Zone> showZones(Collection<String> zoneNames, boolean excludeAliases) {
         List<Zone> zones = new ArrayList<Zone>();
+        Zone zone = null;
         if (zoneNames != null && !zoneNames.isEmpty()) {
             Map<String, String> aliasDatabase = showDeviceAliasDatabase();
             for (String zoneName : zoneNames) {
-                Zone zone = showZone(zoneName, aliasDatabase, excludeAliases);
+            	//it's ivr zone 
+            	if (zoneName.startsWith(IVR_ZONENAME_PREFIX)) {
+            		_log.info("zone=" + zoneName + " is an ivr zone");
+            		zone = showIvrZone(zoneName.substring(IVR_ZONENAME_PREFIX.length()));
+            		_log.info("ivr zone info dump:" + zone.getLogString());
+            	} else {
+                    zone = showZone(zoneName, aliasDatabase, excludeAliases);
+            	}
                 zones.add(zone);
             }
         }
         return zones;
     }
+    
+    /**
+     * Get Zone and its members for given ivr zone name.
+     * 
+     * @param zoneName
+     * @return zone
+     * @throws NetworkDeviceControllerException
+     */
+    private Zone showIvrZone(String zoneName) {
+    	Zone zone = new Zone(zoneName);
+        SSHPrompt[] prompts = { SSHPrompt.POUND, SSHPrompt.GREATER_THAN };
+        StringBuilder buf = new StringBuilder();
+        String payload = MessageFormat.format(MDSDialogProperties.getString("MDSDialog.ivr.show.zoneName.cmd"), zoneName);
 
+        sendWaitFor(payload, defaultTimeout, prompts, buf);
+        String[] lines = getLines(buf);
+        ZoneMember member = null;
+        String[] regex = {
+                MDSDialogProperties.getString("MDSDialog.ivr.showZoneset.zone.member.match")
+        };
+        String[] groups = new String[10];
+        for (String line : lines) {
+            int index = match(line, regex, groups);
+            member = new ZoneMember(ZoneMember.ConnectivityMemberType.WWPN);
+            switch (index) {
+                case 0:
+                    member.setAddress(groups[0]); 
+                    zone.getMembers().add(member);
+                    break;
+            }
+        }
+        return zone;
+    	
+    }
     /**
      * Get Zone and its members for given zone name. Besure to resolve device alias if present.
      * 

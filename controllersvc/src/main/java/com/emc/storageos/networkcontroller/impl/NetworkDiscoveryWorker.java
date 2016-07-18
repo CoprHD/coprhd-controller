@@ -487,22 +487,14 @@ public class NetworkDiscoveryWorker {
         // for each network, get the list of routed ports and locate them in other networks
         StringSet routedNetworks = null;
         Network routedNetwork = null;
-    	for (Map.Entry<String, Set<String>> entry : routedEndpoints.entrySet()) {
-    		_log.info("henryd: routedEndpoints network pwwn=" + entry.getKey());
-    		for (String pwwn : entry.getValue()) {
-    			_log.info("henryd: routedEndpoints endpoint pwwn=" + pwwn);
-    		}
-    	}
 
         // get the current networks from the database
         Map<URI, Network> allNetworks = DataObjectUtils.toMap(getCurrentTransportZones());
         for (Network network : updatedNetworks) {
             // if this network has any routed endpoints
-        	String wwn = NetworkUtil.getNetworkWwn(network);
-        	_log.info("henryd: network wwn=" + wwn);
-            Set<String> netRoutedEndpoints = routedEndpoints.get(wwn);
+            Set<String> netRoutedEndpoints = routedEndpoints.get(NetworkUtil.getNetworkWwn(network));
             if (netRoutedEndpoints == null || netRoutedEndpoints.isEmpty()) {
-                _log.info("No routed endpoint in network {}", network.getNativeGuid());
+                _log.debug("No routed endpoint in network {}", network.getNativeGuid());
                 network.setRoutedNetworks(null);
             } else {
                 _log.info("Found {} routed endpoint in network {}", netRoutedEndpoints, network.getNativeGuid());
@@ -747,4 +739,5 @@ public class NetworkDiscoveryWorker {
             _log.error("Failed to record event. Event description: {}. Error: {}.", description, ex);
         }
     }
+
 }

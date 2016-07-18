@@ -1899,10 +1899,9 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
 
             dialog = setUpDialog(networkSystem);
             for (String endpointWwn : endpointsWwn) {
+            	_log.info("get zone for pwwn=" + endpointWwn);
                 Collection<String> zoneNames = dialog.showZoneNamesForPwwn(endpointWwn, vsanId, true);
                 List<Zone> zones = dialog.showZones(zoneNames, true);
-                List<Zone> ivrZones = this.getIvrZonesForPwwn(dialog, endpointWwn);
-                zones.addAll(ivrZones);
                 zoneMap.put(endpointWwn, zones);
             }
             return zoneMap;
@@ -1912,36 +1911,5 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
         } finally {
             disconnect(dialog);
         }
-    }
-    
-    private List<Zone> getIvrZonesForPwwn(MDSDialog dialog, String pwwn) {
-    	List<Zone> zones = new ArrayList<Zone>();
-    	List<IvrZone> allIvrZones = dialog.showIvrZones(false);
-    	for (IvrZone ivrZone : allIvrZones) {
-    		if (containPwwn(ivrZone, pwwn)) {
-    			zones.add(convert2Zone(ivrZone));
-    		}
-    	}
-    	return zones;
-    }
-    
-    private Zone convert2Zone(IvrZone ivrZone) {
-    	ZoneMember member = null;
-    	Zone zone = new Zone(ivrZone.getName());
-    	for (IvrZoneMember ivrZoneMember : ivrZone.getMembers()) {
-    		member = new ZoneMember(ZoneMember.ConnectivityMemberType.WWPN);
-    		member.setAddress(ivrZoneMember.getPwwn());
-    		zone.getMembers().add(member);
-    	}
-    	return zone;
-	}
-
-	private boolean containPwwn(IvrZone ivrZone, String pwwn) {
-    	for (IvrZoneMember member : ivrZone.getMembers()) {
-    		if (member.getPwwn().equals(pwwn)) {
-    			return true;
-    		}
-    	}
-    	return false;
     }
 }

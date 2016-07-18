@@ -11,13 +11,12 @@ import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;
 
+import com.emc.storageos.model.storagesystem.type.StorageSystemTypeList;
+import com.emc.storageos.model.storagesystem.type.StorageSystemTypeRestRep;
+
 import util.EnumOption;
 import util.StorageSystemTypeUtils;
 import util.StringOption;
-
-import com.emc.storageos.model.storagesystem.type.StorageSystemTypeList;
-import com.emc.storageos.model.storagesystem.type.StorageSystemTypeRestRep;
-import com.google.common.collect.Lists;
 
 public class StorageProviderTypes {
     private static final String OPTION_PREFIX = "storageProvider.interfaceType";
@@ -35,6 +34,7 @@ public class StorageProviderTypes {
     public static final String DATA_DOMAIN = "ddmc";
     public static final String IBMXIV = "ibmxiv";
     public static final String XTREMIO = "xtremio";
+    public static final String CEPH = "ceph";
 
     private static final Map<String, String> fromStorageArrayTypeMap = new HashMap<String, String>() {
         private static final long serialVersionUID = -8628274587467033626L;
@@ -51,11 +51,16 @@ public class StorageProviderTypes {
             put(StorageSystemTypes.DATA_DOMAIN, DATA_DOMAIN);
             put(StorageSystemTypes.IBMXIV, IBMXIV);
             put(StorageSystemTypes.XTREMIO, XTREMIO);
+            put(StorageSystemTypes.CEPH, CEPH);
         }
     };
 
     public static boolean isScaleIOApi(String type) {
-        return SCALEIOAPI.equals(type);
+    	return SCALEIOAPI.equals(type);
+    }
+
+    public static boolean isCeph(String type) {
+    	return CEPH.equals(type);
     }
 
     public static String fromStorageArrayType(String storageArrayType) {
@@ -71,7 +76,7 @@ public class StorageProviderTypes {
         StorageSystemTypeList storagetypelist = StorageSystemTypeUtils.getAllStorageSystemTypes(ALL_TYPE);
         for (StorageSystemTypeRestRep storagetypeRest : storagetypelist.getStorageSystemTypes()) {
             if (storagetypeRest.getIsSmiProvider()) {
-                if(!StringUtils.equals(SCALEIO, storagetypeRest.getStorageTypeName())) {
+                if (!StringUtils.equals(SCALEIO, storagetypeRest.getStorageTypeName())) {
                     allproviders.add(new StringOption(storagetypeRest.getStorageTypeName(),
                             storagetypeRest.getStorageTypeDispName()));
                 }
@@ -87,8 +92,8 @@ public class StorageProviderTypes {
             if (storagetypeRest.getIsDefaultSsl()) {
                 allproviders.add(new StringOption(storagetypeRest.getStorageTypeName(),
                         storagetypeRest.getStorageTypeDispName()));
-            }
-        }
+    }
+}
 
         return allproviders;
     }
@@ -137,6 +142,19 @@ public class StorageProviderTypes {
         StorageSystemTypeList storagetypelist = StorageSystemTypeUtils.getAllStorageSystemTypes(ALL_TYPE);
         for (StorageSystemTypeRestRep storagetypeRest : storagetypelist.getStorageSystemTypes()) {
             if (storagetypeRest.getIsElementMgr()) {
+                allproviders.add(new StringOption(storagetypeRest.getStorageTypeName(),
+                        storagetypeRest.getStorageTypeDispName()));
+            }
+        }
+
+        return allproviders;
+    }
+
+    public static Object getProvidersWithSecretKey() {
+        List<StringOption> allproviders = new ArrayList<StringOption>();
+        StorageSystemTypeList storagetypelist = StorageSystemTypeUtils.getAllStorageSystemTypes(ALL_TYPE);
+        for (StorageSystemTypeRestRep storagetypeRest : storagetypelist.getStorageSystemTypes()) {
+            if (storagetypeRest.getIsSecretKey()) {
                 allproviders.add(new StringOption(storagetypeRest.getStorageTypeName(),
                         storagetypeRest.getStorageTypeDispName()));
             }

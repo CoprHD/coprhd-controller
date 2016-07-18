@@ -43,6 +43,7 @@ import com.emc.sa.machinetags.MachineTagUtils;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.sa.util.ResourceType;
 import com.emc.sa.util.StringComparator;
+import com.emc.sa.util.TextUtils;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
@@ -184,6 +185,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     private static final String VOLUME_TYPE = "Volume";
 
     private static final String NONE_TYPE = "None";
+    private static final String IBMXIV_SYSTEM_TYPE = "ibmxiv";
 
     public static boolean isExclusiveStorage(String storageType) {
         return EXCLUSIVE_STORAGE.equals(storageType);
@@ -319,12 +321,39 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         return createVolumeOptions(null, volumes);
     }
 
+    @Asset("unexportedSourceBlockVolumeWithDeletion")
+    @AssetDependencies({ "project", "deletionType" })
+    public List<AssetOption> getUnexportedSourceVolumesWithDeletion(final AssetOptionsContext ctx, URI project, String deletionType) {
+        debug("getting unexported source block volumes (project=%s)", project);
+        final ViPRCoreClient client = api(ctx);
+        Set<URI> volumeIds = new HashSet<URI>(getExportedVolumeIds(ctx, project));
+        UnexportedBlockResourceFilter<VolumeRestRep> unexportedFilter = new UnexportedBlockResourceFilter<VolumeRestRep>(
+                volumeIds);
+        List<VolumeRestRep> volumes = client.blockVolumes().findByProject(project, unexportedFilter/*.and(sourceTargetVolumesFilter)*/);
+        return createVolumeOptions(null, volumes);
+    }
+
     @Asset("exportedBlockVolume")
     @AssetDependencies("project")
     public List<AssetOption> getExportedVolumes(AssetOptionsContext ctx, URI project) {
         debug("getting source block volumes (project=%s)", project);
         final ViPRCoreClient client = api(ctx);
         // Filter volumes that are not RP Metadata
+        List<URI> volumeIds = getExportedVolumeIds(ctx, project);
+        FilterChain<VolumeRestRep> filter = new FilterChain<VolumeRestRep>(RecoverPointPersonalityFilter.METADATA.not());
+        List<VolumeRestRep> volumes = client.blockVolumes().getByIds(volumeIds, filter);
+        return createVolumeWithVarrayOptions(client, volumes);
+    }
+
+    /**
+     * Return a list of all exported volume ids for a given project id.
+     *
+     * @param ctx asset option content
+     * @param project id
+     * @return list of exported volume ids
+     */
+    private List<URI> getExportedVolumeIds(AssetOptionsContext ctx, URI project) {
+        final ViPRCoreClient client = api(ctx);
         List<URI> volumeIds = Lists.newArrayList();
         for (ExportGroupRestRep export : client.blockExports().findByProject(project)) {
             for (ExportBlockParam resource : export.getVolumes()) {
@@ -333,9 +362,8 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                 }
             }
         }
-        FilterChain<VolumeRestRep> filter = new FilterChain<VolumeRestRep>(RecoverPointPersonalityFilter.METADATA.not());
-        List<VolumeRestRep> volumes = client.blockVolumes().getByIds(volumeIds, filter);
-        return createVolumeWithVarrayOptions(client, volumes);
+        
+        return volumeIds;
     }
 
     @Asset("deletionType")
@@ -415,7 +443,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getTargetVplexVolumeVirtualArrays(AssetOptionsContext ctx, URI projectId) {
         ViPRCoreClient client = api(ctx);
         List<AssetOption> targets = Lists.newArrayList();
-        for (VirtualArrayRestRep varray : client.varrays().getAll()) {
+        for (VirtualArrayRestRep varray : client.varrays().getByTenant(ctx.getTenant())) {
             targets.add(createBaseResourceOption(varray));
         }
         return targets;
@@ -425,12 +453,12 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @AssetDependencies({ "project", "blockVirtualPool", "vplexMigrationChangeOperation" })
     public List<AssetOption> getMigrationTargetVirtualPools(AssetOptionsContext ctx, URI projectId, URI virtualPoolId,
             String vpoolChangeOperation) {
-        return getTargetVirtualPoolsForVpool(ctx, projectId, virtualPoolId, vpoolChangeOperation);
+        return getTargetVirtualPoolsForVpool(ctx, projectId, virtualPoolId, vpoolChangeOperation, null);
     }
 
     @Asset("mobilityMigrationTargetVirtualPool")
     public List<AssetOption> getMobilityMigrationTargetVirtualPools(AssetOptionsContext ctx) {
-        return this.createBaseResourceOptions(api(ctx).blockVpools().getAll());
+        return this.createBaseResourceOptions(api(ctx).blockVpools().getByTenant(ctx.getTenant()));
     }
 
     @Asset("journalCopyName")
@@ -504,11 +532,43 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @AssetDependencies({ "project", "blockVirtualPool", "virtualPoolChangeOperation" })
     public List<AssetOption> getTargetVirtualPoolsForVpool(AssetOptionsContext ctx, URI projectId, URI virtualPoolId,
             String vpoolChangeOperation) {
-        List<VolumeRestRep> volumes = listSourceVolumes(api(ctx), projectId, new VirtualPoolFilter(virtualPoolId));
+        // This is an intermediate asset that is evaluated while waiting for the "virtualPoolChangeVolumeWithSourceFilter"
+        // asset dependency to be filled in by the user. The desired behaviour is that the below "targetVirtualPool" 
+        // asset with the dependency on "virtualPoolChangeVolumeWithSourceFilter" will be fired instead.
+        //
+        // The "virtualPoolChangeVolumeWithSourceFilter" asset is a select-many component. When there
+        // are NO values selected, the asset is not sent down at all and this "targetVirtualPool" asset will 
+        // be evaluated instead and return an empty list. 
+        //
+        // Once the user selects at least 1 volume in the "virtualPoolChangeVolumeWithSourceFilter" asset then the below 
+        // "targetVirtualPool" asset will be evaluated and the drop down will be populated.
+        info("No filtered volumes selected, returning empty list.");
+        return Collections.emptyList();
+    }
+
+    @Asset("targetVirtualPool")
+    @AssetDependencies({ "project", "blockVirtualPool", "virtualPoolChangeOperation", "virtualPoolChangeVolumeWithSourceFilter" })
+    public List<AssetOption> getTargetVirtualPoolsForVpool(AssetOptionsContext ctx, URI projectId, URI virtualPoolId,
+            String vpoolChangeOperation, String filteredVolumes) {        
         List<URI> volumeIds = Lists.newArrayList();
-        for (VolumeRestRep volume : volumes) {
-            volumeIds.add(volume.getId());
+        if (filteredVolumes != null && !filteredVolumes.isEmpty()) {
+            // Best case we are passed in the volumes selected by the user
+            // as comma delimited string so we do not have to load them from 
+            // the API.
+            info("Filtered volumes selected by user: %s", filteredVolumes);
+            List<String> parsedVolumeIds = TextUtils.parseCSV(filteredVolumes);            
+            for (String id : parsedVolumeIds) {
+                volumeIds.add(uri(id));
+            }
+        } else {
+            // Worst case we need to get the volumes from the API.
+            info("Loading all volumes for vpool: %s", virtualPoolId.toString());
+            List<VolumeRestRep> volumes = listSourceVolumes(api(ctx), projectId, new VirtualPoolFilter(virtualPoolId));
+            for (VolumeRestRep volume : volumes) {
+                volumeIds.add(volume.getId());
+            }
         }
+        
         if (CollectionUtils.isNotEmpty(volumeIds)) {
             BulkIdParam input = new BulkIdParam();
             input.setIds(volumeIds);
@@ -663,8 +723,13 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getBlockContinuousCopy(AssetOptionsContext ctx, URI hostOrClusterId, URI projectId, URI volume) {
         // get a list of all continuous copies that are in this project that are not exported to the given host/cluster
         Set<URI> exportedBlockResources = getExportedVolumes(api(ctx), projectId, hostOrClusterId, null);
-        UnexportedBlockResourceFilter<BlockMirrorRestRep> unexportedCopyFilter =
-                new UnexportedBlockResourceFilter<BlockMirrorRestRep>(exportedBlockResources);
+        FilterChain<BlockMirrorRestRep> unexportedCopyFilter = new UnexportedBlockResourceFilter<BlockMirrorRestRep>(exportedBlockResources)
+                .and(new DefaultResourceFilter<BlockMirrorRestRep>() {
+                    @Override
+                    public boolean acceptId(URI id) {
+                        return ResourceType.isType(ResourceType.BLOCK_CONTINUOUS_COPY, id);
+                    }
+                });
         return getContinuousCopyOptionsForProject(ctx, projectId, volume, unexportedCopyFilter);
     }
     
@@ -673,19 +738,21 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getExportedBlockContinuousCopyByVolume(AssetOptionsContext ctx, URI project, URI volume) {
         debug("getting exported blockContinuousCopy (project=%s) (parent=%s)", project, volume);
         final ViPRCoreClient client = api(ctx);
-        List<URI> copyIds = Lists.newArrayList();
+        Set<URI> exportedMirrors = new HashSet<URI>();
         for (ExportGroupRestRep export : client.blockExports().findByProject(project)) {
             for (ExportBlockParam resource : export.getVolumes()) {
                 if (ResourceType.isType(ResourceType.BLOCK_CONTINUOUS_COPY, resource.getId())) {
-                    copyIds.add(resource.getId());
+                    exportedMirrors.add(resource.getId());
                 }
             }
         }
-        List<BlockMirrorRestRep> copies = Lists.newArrayList();
-        for (URI id: copyIds) {
-            copies.add(client.blockVolumes().getContinuousCopy(volume, id));
-        }
-        return createVolumeOptions(client, copies);
+
+        ExportedBlockResourceFilter<BlockMirrorRestRep> exportedMirrorFilter =
+                new ExportedBlockResourceFilter<BlockMirrorRestRep>(exportedMirrors);
+
+        List<BlockMirrorRestRep> mirrors = client.blockVolumes().getContinuousCopies(volume, exportedMirrorFilter);
+
+        return createVolumeOptions(client, mirrors);
     }
 
     @Asset("vplexVolumeWithSnapshots")
@@ -752,10 +819,26 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     }
 
+    public static class ExportedBlockResourceFilter<T extends BlockObjectRestRep> extends DefaultResourceFilter<T> {
+
+        /** The list of block resources ids that have been exported */
+        private final Set<URI> exportedBlockResources;
+
+        public ExportedBlockResourceFilter(Set<URI> exportedBlockResources) {
+            this.exportedBlockResources = exportedBlockResources;
+        }
+
+        @Override
+        public boolean acceptId(URI resourceId) {
+            // accept this volume if it has been exported
+            return exportedBlockResources.contains(resourceId);
+        }
+    }
+
     @Asset("blockVirtualPool")
     public List<AssetOption> getBlockVirtualPools(AssetOptionsContext ctx) {
         debug("getting blockVirtualPools");
-        return createBaseResourceOptions(api(ctx).blockVpools().getAll());
+        return createBaseResourceOptions(api(ctx).blockVpools().getByTenant(ctx.getTenant()));
     }
 
     @Asset("blockVirtualPoolFilter")
@@ -776,8 +859,16 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @AssetDependencies({ "virtualArray" })
     public List<AssetOption> getVirtualPoolsForVirtualArray(AssetOptionsContext ctx, URI virtualArray) {
         debug("getting virtualPoolsForVirtualArray(virtualArray=%s)", virtualArray);
-        List<BlockVirtualPoolRestRep> virtualPools = api(ctx).blockVpools().getByVirtualArray(virtualArray);
+        List<BlockVirtualPoolRestRep> virtualPools =
+                api(ctx).blockVpools().getByVirtualArrayAndTenant(virtualArray,ctx.getTenant());
         return createVirtualPoolResourceOptions(virtualPools);
+    }
+
+    @Asset("blockVirtualPool")
+    @AssetDependencies({ "blockVirtualArray" })
+    public List<AssetOption> getVirtualPoolsForBlockVirtualArray(AssetOptionsContext ctx, URI virtualArray) {
+        debug("getting getVirtualPoolsForBlockVirtualArray(virtualArray=%s)", virtualArray);
+        return getVirtualPoolsForVirtualArray(ctx, virtualArray);
     }
 
     @Asset("blockVirtualPool")
@@ -2059,6 +2150,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                     .search()
                     .byProject(project)
                     .run();
+
             return createBaseResourceOptions(consistencyGroups);
         }
     }
@@ -2660,7 +2752,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
             @Override
             public boolean accept(VolumeRestRep item) {
-                return !isInConsistencyGroup(item);
+                return !isInConsistencyGroup(item) || isIBMXIVVolume(item);
             }
         });
     }
@@ -3268,5 +3360,15 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             }
             return false;
         }
+    }
+
+    /**
+     * Check if volume is an IBM XIV volume
+     *
+     * @param vol VolumeRestRep instance to be checked.
+     * @return true if the volume is an IBM XIV volume, false otherwise
+     */
+    private boolean isIBMXIVVolume(VolumeRestRep vol) {
+        return vol != null && IBMXIV_SYSTEM_TYPE.equals(vol.getSystemType());
     }
 }

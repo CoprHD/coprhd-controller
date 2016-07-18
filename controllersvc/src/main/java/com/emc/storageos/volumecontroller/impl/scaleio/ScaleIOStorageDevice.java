@@ -64,6 +64,7 @@ import com.google.common.collect.Multimap;
 public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
     private static final Logger log = LoggerFactory.getLogger(ScaleIOStorageDevice.class);
     private static final String VOLUME_NOT_MAPPED_TO_SDC = "Volume not mapped to SDC";
+    private static final String VOLUME_NOT_MAPPED_TO_SDC_V2 = "volume is not mapped to SDC";
     private static final String VOLUME_NOT_MAPPED_TO_SCSI = "Volume not mapped to SCSI Initiator";
     private static final String ALREADY_MAPPED_TO = "already mapped to";
 
@@ -768,7 +769,8 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
             scaleIOHandle.unMapVolumeToSDC(volumeId, sdcId);
         } catch (Exception e) {
             String error = e.getMessage();
-            if (!error.contains(VOLUME_NOT_MAPPED_TO_SDC)) {
+            if (!error.toLowerCase().contains(VOLUME_NOT_MAPPED_TO_SDC.toLowerCase())  && 
+            		!error.toLowerCase().contains(VOLUME_NOT_MAPPED_TO_SDC_V2.toLowerCase()) ){
                 ServiceCoded code =
                         DeviceControllerErrors.scaleio.unmapVolumeToClientFailed(volumeId, sdcId, error);
                 completer.error(dbClient, code);

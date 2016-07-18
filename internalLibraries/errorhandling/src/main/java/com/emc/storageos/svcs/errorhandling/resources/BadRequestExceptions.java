@@ -18,10 +18,8 @@ import com.emc.storageos.svcs.errorhandling.annotations.MessageBundle;
  * This interface holds all the methods used to create an error condition that will be associated
  * with an HTTP status of Bad Request (400)
  * <p/>
- * Remember to add the English message associated to the method in BadRequestExceptions.properties and use the
- * annotation
- * {@link DeclareServiceCode} to set the service code associated to this error condition. You may need to create a new
- * service code if there
+ * Remember to add the English message associated to the method in BadRequestExceptions.properties and use the annotation
+ * {@link DeclareServiceCode} to set the service code associated to this error condition. You may need to create a new service code if there
  * is no an existing one suitable for your error condition.
  * <p/>
  * For more information or to see an example, check the Developers Guide section in the Error Handling Wiki page:
@@ -856,8 +854,9 @@ public interface BadRequestExceptions {
     public BadRequestException failedToLoadKeyFromString(final Throwable e);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException trustStoreUpdatePartialSuccess(final int nAdd, final int nFailToAdd, final List<Integer> failedParse, final List<Integer> expired,
-                                                              final int nRemove, final int nFailToRemove, final List<Integer> notInTrustStore);
+    public BadRequestException trustStoreUpdatePartialSuccess(final int nAdd, final int nFailToAdd, final List<Integer> failedParse,
+            final List<Integer> expired,
+            final int nRemove, final int nFailToRemove, final List<Integer> notInTrustStore);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID_URI)
     public BadRequestException invalidSeverityInURI(final String severity, final String severities);
@@ -971,10 +970,10 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_NO_PLACEMENT_FOUND)
     public BadRequestException noMatchingStoragePoolsForVpoolAndVarrays(
             final String vpoolLabel, final Set<String> varrayLabel);
-    
+
     @DeclareServiceCode(ServiceCode.API_NO_PLACEMENT_FOUND)
     public BadRequestException noMatchingHighAvailabilityStoragePools(final String vpool, final String varray);
-    
+
     @DeclareServiceCode(ServiceCode.API_NO_PLACEMENT_FOUND)
     public BadRequestException noVplexLocalRecommendationFromSubScheduler(
             final String subScheduler, final String vpool, final String varray);
@@ -2195,6 +2194,9 @@ public interface BadRequestExceptions {
     public BadRequestException exportExists(String operatioName, String exportDetails);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException storageDoesNotSupportMulSecRule(String operatioName, String systemType, String exportDetails);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException missingInputTypeFound(String type, String opName);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
@@ -2359,6 +2361,9 @@ public interface BadRequestExceptions {
     public BadRequestException duplicateExportGroupProjectAndVarray(final String egName);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException duplicateRpBookMarkExport(final String rpCopy, final String cgName);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException incompatibleGeoVersions(final String version, final String feature);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
@@ -2369,6 +2374,9 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotDeleteAuthnProviderWithUserGroup(final int numResources, final Set<URI> resourceIDs);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException fullCopyInternalError(final String operation);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException invalidFullCopySource(final String copySourceId);
@@ -2814,6 +2822,12 @@ public interface BadRequestExceptions {
     public BadRequestException multipleSetNamesProvided(final String replicaType);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException invalidApplicationCopyOperationInput(final String replicaType);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException invalidCopySetNamesProvided(final String copySetName, final String replicaType);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException noHAVolumeFoundForVPLEX(final String volumeName);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
@@ -2966,19 +2980,19 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException addRecoverPointProtectionRequiresCG();
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException vplexNotSupportedWithSRDFActive();
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException vplexDistributedNotSupportedOnSRDFTarget();
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException srdfNotSupportedOnHighAvailabilityVpool();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException snapshotRestoreNotSupported();
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotExpandTargetVirtualVolume(final String label);
     

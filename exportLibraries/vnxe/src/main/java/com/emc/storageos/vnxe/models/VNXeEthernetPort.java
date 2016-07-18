@@ -13,6 +13,7 @@ public class VNXeEthernetPort extends VNXeBase {
     private List<Integer> operationalStatus;
     private Health health;
     private VNXeBase storageProcessorId;
+    private VNXeBase storageProcessor;
     private boolean needsReplacement;
     private String name;
     private int portNumber;
@@ -52,6 +53,15 @@ public class VNXeEthernetPort extends VNXeBase {
     public void setStorageProcessorId(VNXeBase storageProcessorId) {
         this.storageProcessorId = storageProcessorId;
     }
+
+    public VNXeBase getStorageProcessor() {
+        return storageProcessor;
+    }
+
+    public void setStorageProcessor(VNXeBase storageProcessor) {
+        this.storageProcessor = storageProcessor;
+    }
+
 
     public boolean getIsNeedsReplacement() {
         return needsReplacement;

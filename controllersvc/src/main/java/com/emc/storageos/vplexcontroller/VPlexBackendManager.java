@@ -19,6 +19,7 @@ import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
@@ -76,6 +77,7 @@ public class VPlexBackendManager {
     private BlockStorageScheduler _blockStorageScheduler;
     private NetworkDeviceController _networkDeviceController;
     private VPlexApiLockManager _vplexApiLockManager;
+    private CoordinatorClient _coordinator;
     private URI _projectURI, _tenantURI;
     private static final Logger _log = LoggerFactory.getLogger(VPlexBackendManager.class);
     private static final int INITIATOR_LIMIT = 32;    // maximum initiators to an array
@@ -132,7 +134,7 @@ public class VPlexBackendManager {
     public VPlexBackendManager(DbClient dbClient, VPlexDeviceController vplexDeviceController,
             BlockDeviceController blockDeviceController,
             BlockStorageScheduler blockStorageScheduler, NetworkDeviceController networkDeviceController,
-            URI projectURI, URI tenantURI, VPlexApiLockManager vplexApiLockManager) {
+            URI projectURI, URI tenantURI, VPlexApiLockManager vplexApiLockManager, CoordinatorClient coordinator) {
         this._dbClient = dbClient;
         this._vplexDeviceController = vplexDeviceController;
         this._blockDeviceController = blockDeviceController;
@@ -141,6 +143,7 @@ public class VPlexBackendManager {
         this._projectURI = projectURI;
         this._tenantURI = tenantURI;
         this._vplexApiLockManager = vplexApiLockManager;
+        this._coordinator = coordinator;
     }
 
     /**
@@ -348,7 +351,7 @@ public class VPlexBackendManager {
             _log.info(logMsg);
             if (VPlexBackEndOrchestratorUtil.validateExportMask(varrayURI,
                     _initiatorPortMap, mask, invalidMasks,
-                    _directorToInitiatorIds, _idToInitiatorMap, _dbClient, _portWwnToClusterMap)) {
+                    _directorToInitiatorIds, _idToInitiatorMap, _dbClient, _coordinator, _portWwnToClusterMap)) {
                 maskSet.put(mask.getId(), mask);
                 placementDescriptor.placeVolumes(mask.getId(), volumeMap);
             }
@@ -886,7 +889,7 @@ public class VPlexBackendManager {
     }
 
     /**
-     * For storage system types = [vnxblock, vnxe, openstack]
+     * For storage system types = [vnxblock, vnxe, vnxunity, openstack]
      * Masking should be done first and zoning step
      * has to be performed after the masking.
      * 
@@ -896,6 +899,7 @@ public class VPlexBackendManager {
     private boolean isMaskingFirst(StorageSystem array) {
         return (array.getSystemType().equals(DiscoveredDataObject.Type.vnxblock.name())
                 || array.getSystemType().equals(DiscoveredDataObject.Type.vnxe.name())
+                || array.getSystemType().equals(DiscoveredDataObject.Type.unity.name())
                 || array.getSystemType().equals(DiscoveredDataObject.Type.openstack.name()));
 
     }
@@ -1306,7 +1310,7 @@ public class VPlexBackendManager {
                     (mask.getCreatedBySystem() ? "ViPR created" : "Externally created")));
             // No necessary to skip here for Openstack, as cinder backend orchestrator returns the empty set
             if (VPlexBackEndOrchestratorUtil.validateExportMask(varrayURI, _initiatorPortMap, mask, invalidMasks,
-                    _directorToInitiatorIds, _idToInitiatorMap, _dbClient, _portWwnToClusterMap)) {
+                    _directorToInitiatorIds, _idToInitiatorMap, _dbClient, _coordinator, _portWwnToClusterMap)) {
                 if (mask.getCreatedBySystem()) {
                     viprCreatedMasks = true;
                 } else {

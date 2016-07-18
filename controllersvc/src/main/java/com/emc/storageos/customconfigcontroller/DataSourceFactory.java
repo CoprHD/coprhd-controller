@@ -297,14 +297,13 @@ public class DataSourceFactory {
      * @param tenant A reference to the passed project's tenant.
      * @param volumeLabel The user supplied volume label.
      * @param volumeWWN The volume WWN.
-     * @param volumeNativeId The native id of the volume.
      * @param exportName The host or cluster name or null.
      * @param configName The name of the custom configuration.
      * 
      * @return A reference to the created DataSource instance.
      */
     public DataSource createCustomVolumeNameDataSource(Project project, TenantOrg tenant, String volumeLabel,
-            String volumeWWN, String volumeNativeId, String exportName, String configName) {
+            String volumeWWN, String exportName, String configName) {
         // Create a list of the DataObjects for the datasource to be created
         // and add the passed project and tenant to the list.
         List<DataObject> dataObjectsList = new ArrayList<>();
@@ -316,7 +315,6 @@ public class DataSourceFactory {
         Volume volume = new Volume();
         volume.setLabel(volumeLabel);
         volume.setWWN(volumeWWN);
-        volume.setNativeId(volumeNativeId);
         dataObjectsList.add(volume);
         
         // Add the host or cluster name if specified as a computed value since

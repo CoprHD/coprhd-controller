@@ -47,7 +47,6 @@ public class CustomVolumeNamingUtils {
      * @param tenant A reference to the project's tenant.
      * @param volumeLabel The user specified volume name.
      * @param volumeWWN The WWN for the volume.
-     * @param volumeNativeId The native Id of the volume.
      * @param hostOrClusterName The name of the host or cluster to which the volume will be exported, or null.
      * @param dataSourceFactory A reference to a data source factory.
      * @param customConfigName The name of the volume naming custom configuration.
@@ -56,13 +55,13 @@ public class CustomVolumeNamingUtils {
      * @return A reference to the created data source or null on error.
      */
     public static DataSource getCustomConfigDataSource(Project project, TenantOrg tenant, String volumeLabel, String volumeWWN,
-            String volumeNativeId, String hostOrClusterName, DataSourceFactory dataSourceFactory, String customConfigName, 
+            String hostOrClusterName, DataSourceFactory dataSourceFactory, String customConfigName, 
             DbClient dbClient) {
         DataSource dataSource = null;
         try {
             // Create the data source.
             dataSource = dataSourceFactory.createCustomVolumeNameDataSource(project, tenant, volumeLabel,
-                    volumeWWN, volumeNativeId, hostOrClusterName, customConfigName);
+                    volumeWWN, hostOrClusterName, customConfigName);
         } catch (Exception e) {
             s_logger.warn(String.format("Error creating the custom volume name datasource for volume %s", volumeLabel), e);
         }

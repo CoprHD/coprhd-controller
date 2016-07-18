@@ -12,6 +12,7 @@ import static controllers.Common.copyRenderArgsToAngular;
 import static util.BourneUtil.getViprClient;
 
 import java.net.URI;
+import java.net.URL;
 import java.util.List;
 import java.util.Set;
 
@@ -54,6 +55,7 @@ public class StorageProviders extends ViprResourceController {
     protected static final String UNKNOWN = "SMISProviders.unknown";
     protected static final String DISCOVERY_STARTED = "SMISProviders.introspection";
     private static final int SAVE_WAIT_MILLIS = 300000;
+    private static final String HTTPS = "https";
 
     private static void addReferenceData() {
         renderArgs.put("interfaceTypeOptions", StorageProviderTypes.getProviderOption());
@@ -62,6 +64,7 @@ public class StorageProviders extends ViprResourceController {
         renderArgs.put("nonSSLStorageSystemList", StorageProviderTypes.getProvidersWithoutSSL());
         renderArgs.put("mdmDefaultStorageProviderList", StorageProviderTypes.getProvidersWithMDM());
         renderArgs.put("mdmonlyProviderList", StorageProviderTypes.getProvidersWithOnlyMDM());
+        renderArgs.put("secretKeyProviderList", StorageProviderTypes.getProvidersWithSecretKey());
         renderArgs.put("elementManagerStorageProviderList", StorageProviderTypes.getProvidersWithEMS());
 
         List<EnumOption> defaultStorageProviderPortMap = StorageProviderTypes.getStoragePortMap();
@@ -182,9 +185,9 @@ public class StorageProviders extends ViprResourceController {
         list();
     }
 
-    // Suppressing Sonar violation of Password Hardcoded. Password is not
-    // hardcoded here
-    @SuppressWarnings("squid:S2068")
+    // Suppressing Sonar violation of Password Hardcoded. Password is not hardcoded here
+    // Suppressing sonar violation for need of accessor methods. Accessor methods are not needed and we use public variables
+    @SuppressWarnings("squid:S2068 , ClassVariableVisibilityCheck")
     public static class StorageProviderForm {
 
         public String id;
@@ -225,6 +228,10 @@ public class StorageProviders extends ViprResourceController {
 
         public String elementManagerURL;
 
+        public String secondaryURL;
+
+        
+        public String secretKey;
         @MaxSize(2048)
         public String hyperScaleUser;
 
@@ -234,9 +241,13 @@ public class StorageProviders extends ViprResourceController {
         @MaxSize(2048)
         public String hyperScaleConfPasswd = "";
 
-        public String hyperScaleURL;
+        public String hyperScaleHost;
 
-        public StorageProviderForm() {
+        public String hyperScalePort;
+        
+        public URL url;
+
+        public StorageProviderForm() {        	
         }
 
         public StorageProviderForm(StorageProviderRestRep smisProvider) {
@@ -246,9 +257,13 @@ public class StorageProviders extends ViprResourceController {
         public boolean isNew() {
             return StringUtils.isBlank(id);
         }
-
+        
         public boolean isScaleIOApi() {
             return StorageProviderTypes.isScaleIOApi(interfaceType);
+        }
+
+        public boolean isCeph() {
+            return StorageProviderTypes.isCeph(interfaceType);
         }
 
         public void setXIVParameters() {
@@ -261,8 +276,13 @@ public class StorageProviders extends ViprResourceController {
             if (StringUtils.isNotEmpty(this.hyperScaleConfPasswd)) {
                 this.secondaryPasswordConfirm = this.hyperScaleConfPasswd;
             }
-            if (StringUtils.isNotEmpty(this.hyperScaleURL)) {
-                this.elementManagerURL = this.hyperScaleURL;
+            if (StringUtils.isNotEmpty(this.hyperScaleHost)&&StringUtils.isNotEmpty(this.hyperScalePort)) {
+                try {
+                    url = new URL(HTTPS, this.hyperScaleHost, Integer.parseInt(this.hyperScalePort),"");
+                }catch(Exception e) {
+                    flash.error("Unable to parse Hyper Scale Manager URL");
+                }
+                this.secondaryURL = url.toString();
             }
         }
 
@@ -278,10 +298,22 @@ public class StorageProviders extends ViprResourceController {
             this.interfaceType = storageProvider.getInterface();
             this.secondaryUsername = storageProvider.getSecondaryUsername();
             this.secondaryPassword = ""; // the platform will never return the real password
+            this.secondaryURL = storageProvider.getSecondaryURL();
             this.elementManagerURL = storageProvider.getElementManagerURL();
+            this.secretKey = ""; // the platform will never return the real key
             this.hyperScaleUser = storageProvider.getSecondaryUsername();
             this.hyperScalePassword = ""; // the platform will never return the real password
-            this.hyperScaleURL = storageProvider.getElementManagerURL();
+            if(!StringUtils.isEmpty(secondaryURL)) {
+                try {
+                    url = new URL(this.secondaryURL);
+                } catch(Exception e) {
+                    flash.error("Unable to parse Hyper Scale Manager URL");
+                }
+                if(null!=url) {
+                    this.hyperScaleHost = url.getHost();
+                    this.hyperScalePort = Integer.toString(url.getPort());
+                }
+            }
             if (isScaleIOApi()) {
                 this.secondaryUsername = this.userName;
                 this.secondaryPassword = this.password;
@@ -303,37 +335,38 @@ public class StorageProviders extends ViprResourceController {
         public StorageProviderRestRep update() {
             return StorageProviderUtils.update(uri(id), name, ipAddress,
                     portNumber, userName, password, useSSL, interfaceType,
-                    secondaryUsername, secondaryPassword, elementManagerURL);
+                    secondaryUsername, secondaryPassword, elementManagerURL, secondaryURL, secretKey);
         }
 
         public Task<StorageProviderRestRep> create() {
             Task<StorageProviderRestRep> task = StorageProviderUtils.create(
                     name, ipAddress, portNumber, userName, password, useSSL,
                     interfaceType, secondaryUsername, secondaryPassword,
-                    elementManagerURL);
+                    elementManagerURL, secondaryURL, secretKey);
             new SaveWaitJob(getViprClient(), task).now();
             return task;
         }
 
         public void validate(String fieldName) {
             Validation.valid(fieldName, this);
-
-            if (isScaleIOApi()) {
+            
+            if (isScaleIOApi() ) {
                 Validation.required(fieldName + ".secondaryPassword",
                         this.secondaryPassword);
                 Validation.required(fieldName + ".secondaryPasswordConfirm",
                         this.secondaryPasswordConfirm);
-            }
-
-            if (isNew() && !isScaleIOApi()) {
-                Validation.required(fieldName + ".userName", this.userName);
+            } else if (isCeph()) {
+            	Validation.required(fieldName + ".userName", this.userName);
+        	   	Validation.required(fieldName + ".secretKey", this.secretKey);
+            } else if (isNew()) {
+            	Validation.required(fieldName + ".userName", this.userName);
+        	   	Validation.required(fieldName + ".password", this.password);
                 Validation.required(fieldName + ".password", this.password);
                 Validation.required(fieldName + ".confirmPassword",
                         this.confirmPassword);
             }
-
-            if (!StringUtils.equals(StringUtils.trim(password),
-                    StringUtils.trim(confirmPassword))) {
+            
+            if (!StringUtils.equals(StringUtils.trim(password), StringUtils.trim(confirmPassword))) {
                 Validation.addError(fieldName + ".confirmPassword",
                         MessagesUtils
                                 .get("smisProvider.confirmPassword.not.match"));
@@ -348,7 +381,7 @@ public class StorageProviders extends ViprResourceController {
                                         .get("smisProvider.secondaryPassword.confirmPassword.not.match"));
             }
         }
-
+        
     }
 
     @SuppressWarnings("rawtypes")

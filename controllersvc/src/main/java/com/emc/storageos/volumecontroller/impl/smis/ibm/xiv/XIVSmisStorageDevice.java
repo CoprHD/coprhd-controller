@@ -105,7 +105,7 @@ import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValues
 public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
     private static final Logger _log = LoggerFactory
             .getLogger(XIVSmisStorageDevice.class);
-    private static final String EMTPY_CG_NAME = " ";
+    private static final String EMPTY_CG_NAME = " ";
     private DbClient _dbClient;
     protected XIVSmisCommandHelper _helper;
     private IBMCIMObjectPathFactory _cimPath;
@@ -623,7 +623,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
         try {
             List<BlockSnapshot> snapshots = _dbClient.queryObject(
                     BlockSnapshot.class, snapshotList);
-            if (inReplicationGroup(snapshots)) {
+            if (ControllerUtils.checkSnapshotsInConsistencyGroup(snapshots, _dbClient, taskCompleter)) {
                 _snapshotOperations.createGroupSnapshots(storage, snapshotList,
                         createInactive, readOnly, taskCompleter);
             } else {
@@ -649,7 +649,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
         try {
             List<BlockSnapshot> snapshots = _dbClient.queryObject(
                     BlockSnapshot.class, Arrays.asList(snapshot));
-            if (inReplicationGroup(snapshots)) {
+            if (ControllerUtils.checkSnapshotsInConsistencyGroup(snapshots, _dbClient, taskCompleter)) {
                 _snapshotOperations.restoreGroupSnapshots(storage, volume,
                         snapshot, taskCompleter);
             } else {
@@ -674,7 +674,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
         try {
             List<BlockSnapshot> snapshots = _dbClient.queryObject(
                     BlockSnapshot.class, Arrays.asList(snapshot));
-            if (inReplicationGroup(snapshots)) {
+            if (ControllerUtils.checkSnapshotsInConsistencyGroup(snapshots, _dbClient, taskCompleter)) {
                 _snapshotOperations.deleteGroupSnapshots(storage, snapshot,
                         taskCompleter);
             } else {
@@ -717,7 +717,8 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
      * (non-Javadoc)
      * 
      * @see
-     * com.emc.storageos.volumecontroller.AbstractBlockStorageDevice#doCreateConsistencyGroup(com.emc.storageos.db.client.model.StorageSystem
+     * com.emc.storageos.volumecontroller.AbstractBlockStorageDevice#doCreateConsistencyGroup(com.emc.storageos.db.client.model.
+     * StorageSystem
      * , java.net.URI, com.emc.storageos.volumecontroller.TaskCompleter)
      * 
      * Note: this won't create CG on array side, it just associate CG with array
@@ -751,7 +752,8 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
                 return;
             }
 
-            consistencyGroup.addSystemConsistencyGroup(storage.getId().toString(), EMTPY_CG_NAME);
+            // CG has not really been created on array side yet, but to ViPR it is created
+            consistencyGroup.addSystemConsistencyGroup(storage.getId().toString(), EMPTY_CG_NAME);
             consistencyGroup.setStorageController(storage.getId());
             consistencyGroup.addConsistencyGroupTypes(Types.LOCAL.name());
             _dbClient.persistObject(consistencyGroup);
@@ -766,7 +768,8 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
 
     @Override
     public void doDeleteConsistencyGroup(final StorageSystem storage,
-            final URI consistencyGroupId, String replicationGroupName, Boolean keepRGName, Boolean markInactive, final TaskCompleter taskCompleter)
+            final URI consistencyGroupId, String replicationGroupName, Boolean keepRGName, Boolean markInactive,
+            final TaskCompleter taskCompleter)
             throws DeviceControllerException {
         BlockConsistencyGroup consistencyGroup = _dbClient.queryObject(
                 BlockConsistencyGroup.class, consistencyGroupId);
@@ -774,7 +777,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
             // Check if the consistency group does exist
             String groupName = _helper
                     .getConsistencyGroupName(consistencyGroup, storage);
-            if (!groupName.equals(EMTPY_CG_NAME)) {
+            if (groupName != null && !groupName.equals(EMPTY_CG_NAME)) {
                 CIMObjectPath cgPath = _cimPath.getConsistencyGroupPath(
                         storage, groupName);
                 CIMInstance cgPathInstance = _helper.checkExists(storage,
@@ -790,7 +793,10 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
                 }
             }
             // Set the consistency group to inactive
-            consistencyGroup.removeSystemConsistencyGroup(storage.getId().toString(), groupName);
+            if (groupName != null) {
+                consistencyGroup.removeSystemConsistencyGroup(storage.getId().toString(), groupName);
+            }
+
             if (markInactive) {
                 consistencyGroup.setInactive(true);
             }
@@ -805,10 +811,10 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
             taskCompleter.error(_dbClient, error);
         }
     }
-    
+
     @Override
     public void doDeleteConsistencyGroup(StorageSystem storage, final URI consistencyGroupId,
-            String replicationGroupName, Boolean keepRGName, Boolean markInactive, 
+            String replicationGroupName, Boolean keepRGName, Boolean markInactive,
             String sourceReplicationGroup, final TaskCompleter taskCompleter) throws DeviceControllerException {
         doDeleteConsistencyGroup(storage, consistencyGroupId, replicationGroupName, keepRGName, markInactive, taskCompleter);
     }
@@ -979,31 +985,6 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
     }
 
     /**
-     * Given a list of BlockSnapshot objects, determine if they were created as
-     * part of a consistency group.
-     *
-     * @param snapshotList
-     *            [required] - List of BlockSnapshot objects
-     * @return true if the BlockSnapshots were created as part of volume
-     *         consistency group.
-     */
-    private boolean inReplicationGroup(final List<BlockSnapshot> snapshotList) {
-        boolean isCgCreate = false;
-        if (snapshotList.size() == 1) {
-            BlockSnapshot snapshot = snapshotList.get(0);
-            URI cgUri = snapshot.getConsistencyGroup();
-            if (cgUri != null) {
-                final BlockConsistencyGroup group = _dbClient.queryObject(
-                        BlockConsistencyGroup.class, cgUri);
-                isCgCreate = group != null;
-            }
-        } else if (snapshotList.size() > 1) {
-            isCgCreate = true;
-        }
-        return isCgCreate;
-    }
-
-    /**
      * Method will remove the volume from the consistency group to which it
      * currently belongs.
      *
@@ -1075,8 +1056,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
                         .consistencyGroupNotFound(consistencyGroup.getLabel(),
                                 consistencyGroup.getCgNameOnStorageSystem(storageSystem
                                         .getId()));
-            }
-            else {
+            } else {
                 _log.info("Skipping addVolumesToCG: Volumes are not part of a consistency group");
                 return;
             }
@@ -1084,7 +1064,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
 
         String groupName = _helper.getConsistencyGroupName(consistencyGroup,
                 storageSystem);
-        if (groupName.equals(EMTPY_CG_NAME)) { // may also check if CG
+        if (groupName.equals(EMPTY_CG_NAME)) { // may also check if CG
                                                // instance
             // exists on array, or not, if
             // not, re-create it here
@@ -1107,7 +1087,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
             // somehow, removing before adding won't work
             consistencyGroup.addSystemConsistencyGroup(storageSystem.getId().toString(), deviceName);
             consistencyGroup.removeSystemConsistencyGroup(storageSystem.getId()
-                    .toString(), EMTPY_CG_NAME);
+                    .toString(), EMPTY_CG_NAME);
             _dbClient.persistObject(consistencyGroup);
         } else {
             // existing CG, add volumes to the CG
@@ -1174,8 +1154,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
             _log.info("Exception on getCGMembers: " + e.getMessage());
             if (removeMembersException != null) {
                 throw removeMembersException;
-            }
-            else {
+            } else {
                 throw e;
             }
         }
@@ -1220,12 +1199,12 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
      * {@inheritDoc}
      */
     @Override
-    public Map<URI, List<String>> doFindHostHLUs(StorageSystem storage, List<URI> hostURIs, TaskCompleter completer) throws DeviceControllerException {
-    	Map<URI, List<String>> hostToHLUMap = new HashMap<URI, List<String>>();
+    public Map<URI, List<Integer>> doFindHostHLUs(StorageSystem storage, List<URI> hostURIs) throws DeviceControllerException {
+        Map<URI, List<Integer>> hostToHLUMap = new HashMap<URI, List<Integer>>();
 
         for (URI hostURI : hostURIs) {
-        	List<String> hostHLUs = new ArrayList<String>();
-        	hostToHLUMap.put(hostURI, hostHLUs);
+            List<Integer> hostHLUs = new ArrayList<Integer>();
+            hostToHLUMap.put(hostURI, hostHLUs);
             Host host = _dbClient.queryObject(Host.class, hostURI);
             String label = host.getLabel();
 
@@ -1238,18 +1217,22 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
 
                 CloseableIterator<CIMInstance> seForPCItr = null;
                 try {
-                	seForPCItr = _helper.getReferenceInstances(storage, specificCollectionPath, "IBMTSDS_ProtocolControllerForSEUnit", null, new String[] { "DeviceNumber" });
+                    seForPCItr = _helper.getReferenceInstances(storage, specificCollectionPath, "IBMTSDS_ProtocolControllerForSEUnit", null,
+                            new String[] { "DeviceNumber" });
 
                     while (seForPCItr.hasNext()) {
                         CIMInstance instance = seForPCItr.next();
-                        hostHLUs.add(CIMPropertyFactory.getPropertyValue(instance, "DeviceNumber"));
+                        final String deviceNumber = CIMPropertyFactory.getPropertyValue(instance, "DeviceNumber");
+                        if(null != deviceNumber && !deviceNumber.isEmpty()){
+                        	hostHLUs.add(Integer.parseInt(deviceNumber));
+                        }
                     }
                     _log.info("HLU list for Host {} : {}", label, hostHLUs);
                 } catch (WBEMException e) {
-                	_log.error("Error occured during retrieval of HLUs for a Host",e);
+                    DeviceControllerException.exceptions.smis.hluRetrivalfailed("Error occured during retrieval of HLUs for a Host", e);
                 } finally {
-                	if (seForPCItr != null) {
-                		seForPCItr.close();
+                    if (seForPCItr != null) {
+                        seForPCItr.close();
                     }
                 }
             }

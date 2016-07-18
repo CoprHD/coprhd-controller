@@ -5,6 +5,7 @@
 
 package com.emc.storageos.exceptions;
 
+import com.emc.storageos.ceph.CephErrors;
 import com.emc.storageos.cinder.errorhandling.CinderErrors;
 import com.emc.storageos.datadomain.restapi.errorhandling.DataDomainApiErrors;
 import com.emc.storageos.hds.HDSErrors;
@@ -78,6 +79,9 @@ public interface DeviceControllerErrors {
 
     /** Holds the methods used to create VNXe related error conditions */
     public static final VNXeErrors vnxe = ExceptionMessagesProxy.create(VNXeErrors.class);
+
+    /** Holds the methods used to create Ceph related error conditions */
+    public static final CephErrors ceph = ExceptionMessagesProxy.create(CephErrors.class);
 
     public static final DeviceDataCollectionErrors dataCollectionErrors = ExceptionMessagesProxy.create(DeviceDataCollectionErrors.class);
 
@@ -160,9 +164,8 @@ public interface DeviceControllerErrors {
     @DeclareServiceCode(ServiceCode.CONTROLLER_MIXING_CLUSTERED_AND_NON_CLUSTERED_INITIATORS)
     public ServiceError mixingClusteredAndNonClusteredInitiators();
 
-    @DeclareServiceCode(ServiceCode
-            .CONTROLLER_NON_CLUSTER_EXPORT_WITH_INITIATORS_IN_DIFFERENT_IGS)
-            public ServiceError nonClusterExportWithInitiatorsInDifferentExistingIGs();
+    @DeclareServiceCode(ServiceCode.CONTROLLER_NON_CLUSTER_EXPORT_WITH_INITIATORS_IN_DIFFERENT_IGS)
+    public ServiceError nonClusterExportWithInitiatorsInDifferentExistingIGs();
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_EXISTING_IG_HAS_DIFFERENT_PORTS)
     public ServiceError existingInitiatorGroupHasDifferentPorts(String name);
@@ -191,7 +194,7 @@ public interface DeviceControllerErrors {
     @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
     public ServiceError changeVirtualArrayFailed(final String volUris,
             final String operationName, final Throwable cause);
-    
+
     @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
     public ServiceError createFileSharesFailed(final String fsUris, final String operationName, final Throwable cause);
 
@@ -202,6 +205,23 @@ public interface DeviceControllerErrors {
     public ServiceError expandFileShareFailed(final String fsUris, final String operationName, final Throwable cause);
     
     @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
-    public ServiceError voluemExportNotPossible(final String volume, final int hlu, final Throwable cause);
+    public ServiceError volumeReachedMaxExports(final String volume, final int hlu, final Throwable cause);
 
+    @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
+    public ServiceError exportFileShareFailed(final String fsUris, final String operationName, final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
+    public ServiceError updateFileShareExportRulesFailed(final String fsUris, final String operationName, final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
+    public ServiceError updateFileShareCIFSACLsFailed(final String fsUris, final String operationName, final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
+    public ServiceError createFileSystemSnapshotFailed(final String fsUris, final String operationName, final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
+    public ServiceError deleteExportRuleFailed(final String fsUris, final String operationName, final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
+    public ServiceError deleteCIFSShareFailed(final String fsUris, final String operationName, final Throwable cause);
 }

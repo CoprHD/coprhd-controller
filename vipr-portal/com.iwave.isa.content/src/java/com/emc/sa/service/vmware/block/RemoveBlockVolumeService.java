@@ -60,6 +60,9 @@ public class RemoveBlockVolumeService extends VMwareHostService {
         }
 
         BlockStorageUtils.removeBlockResources(uris(volumeIds), deletionType);
+
+        vmware.refreshStorage(host, cluster);
+
         // form is always passing hostId, never clusterId - need to figure out which it is.
         String hostOrClusterId = BlockStorageUtils.getHostOrClusterId(hostId);
         if (hostOrClusterId != null) {

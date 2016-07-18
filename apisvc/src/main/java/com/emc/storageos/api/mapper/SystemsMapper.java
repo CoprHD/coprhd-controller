@@ -127,6 +127,7 @@ public class SystemsMapper {
 		to.setRegistrationStatus(from.getRegistrationStatus());
 		to.setSecondaryUsername(from.getSecondaryUsername());
 		to.setElementManagerURL(from.getElementManagerURL());
+		to.setSecondaryURL(from.getSecondaryURL());
 		return to;
 	}
 
@@ -437,7 +438,7 @@ public class SystemsMapper {
 			return null;
 		}
 		to.setStorageTypeName(from.getStorageTypeName());
-		to.setStorageTypeType(from.getStorageTypeType());
+		to.setMetaType(from.getMetaType());
 		to.setIsSmiProvider(from.getIsSmiProvider());
 		to.setStorageTypeId(from.getStorageTypeId());
 		to.setStorageTypeDispName(from.getStorageTypeDispName());
@@ -448,6 +449,7 @@ public class SystemsMapper {
 		to.setNonSslPort(from.getNonSslPort());
 		to.setSslPort(from.getSslPort());
 		to.setDriverClassName(from.getDriverClassName());
+        to.setIsSecretKey(from.getIsSecretKey());
 
 		return to;
 	}
@@ -458,7 +460,7 @@ public class SystemsMapper {
 		}
 		StorageSystemTypeRestRep to = new StorageSystemTypeRestRep();
 		to.setStorageTypeName(from.getStorageTypeName());
-		to.setStorageTypeType(from.getStorageTypeType());
+		to.setMetaType(from.getMetaType());
 		to.setIsSmiProvider(from.getIsSmiProvider());
 		to.setStorageTypeId(from.getStorageTypeId());
 		to.setStorageTypeDispName(from.getStorageTypeDispName());
@@ -469,6 +471,7 @@ public class SystemsMapper {
 		to.setNonSslPort(from.getNonSslPort());
 		to.setSslPort(from.getSslPort());
 		to.setDriverClassName(from.getDriverClassName());
+        to.setIsSecretKey(from.getIsSecretKey());
 
 		return to;
 	}

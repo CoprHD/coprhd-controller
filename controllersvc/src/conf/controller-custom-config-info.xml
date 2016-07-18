@@ -690,7 +690,6 @@
         <property name="dataSourceVariables">
             <map>
                 <entry key-ref="volumeLabel" value="true"/>
-                <entry key-ref="volumeNativeId" value="false"/>
                 <entry key-ref="volumeWwn" value="false"/>
                 <entry key-ref="projectName" value="false"/>
                 <entry key-ref="tenantName" value="false"/>
@@ -723,7 +722,6 @@
         <property name="dataSourceVariables">
             <map>
                 <entry key-ref="volumeLabel" value="true"/>
-                <entry key-ref="volumeNativeId" value="false"/>
                 <entry key-ref="volumeWwn" value="false"/>
                 <entry key-ref="projectName" value="false"/>
                 <entry key-ref="tenantName" value="false"/>
@@ -757,13 +755,6 @@
         <property name="sample" value="volumeABC"/>
     </bean>
 
-    <bean id="volumeNativeId" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
-        <property name="sourceClass" value="com.emc.storageos.db.client.model.Volume"/>
-        <property name="displayName" value="volume_native_id"/>
-        <property name="propertyName" value="nativeId"/>
-        <property name="sample" value="01370"/>
-    </bean>
-    
     <bean id="volumeWwn" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
         <property name="sourceClass" value="com.emc.storageos.db.client.model.Volume"/>
         <property name="displayName" value="volume_wwn"/>
@@ -1030,7 +1021,7 @@
             <map>
                 <entry key-ref="systemAccessZone" value="false"/>
                 <entry key-ref="userAccessZone" value="false"/>
-                 <entry key-ref="noAccessZone" value="false"/>
+                <entry key-ref="customDirPath" value="false"/>
             </map>
         </property>
         <property name="scope">
@@ -1361,10 +1352,10 @@
         <property name="sample" value="/ifs/zoneA,/ifs/zoneB"/>
     </bean> 
     
-    <!-- noAccessZone bean is added as workaround,it do not include any predefine path.-->
-    <!-- no_access_zone variable should be used when no other variable is used in path.-->
-    <bean id="noAccessZone" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
-        <property name="displayName" value="no_access_zone"/>
+    <!-- customDirPath bean is added as workaround,it do not include any predefine path.-->
+    <!-- custom_dir_path variable should be used when no other variable is used in path.-->
+    <bean id="customDirPath" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
+        <property name="displayName" value="custom_dir_path"/>
         <property name="sample" value=","/>
     </bean>
     

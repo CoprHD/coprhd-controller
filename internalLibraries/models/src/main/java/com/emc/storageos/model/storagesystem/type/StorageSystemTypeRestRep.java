@@ -9,6 +9,7 @@ import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+
 import com.emc.storageos.model.DataObjectRestRep;
 
 @XmlAccessorType(XmlAccessType.PROPERTY)
@@ -16,7 +17,7 @@ import com.emc.storageos.model.DataObjectRestRep;
 public class StorageSystemTypeRestRep extends DataObjectRestRep {
 
     private String storageTypeName;
-    private String storageTypeType;
+    private String metaType;
     private String storageTypeId;
     private boolean isSmiProvider = false;
     private boolean isDefaultSsl = false;
@@ -27,7 +28,8 @@ public class StorageSystemTypeRestRep extends DataObjectRestRep {
     private String nonSslPort;
     private String sslPort;
     private String driverClassName;
-
+    private boolean isSecretKey = false;
+    
     public StorageSystemTypeRestRep() {
     }
 
@@ -59,13 +61,13 @@ public class StorageSystemTypeRestRep extends DataObjectRestRep {
     /**
      * Storage System Type type, example file, block and object
      */
-    @XmlElement(name = "storage_type_type")
-    public String getStorageTypeType() {
-        return storageTypeType;
+    @XmlElement(name = "meta_type")
+    public String getMetaType() {
+        return metaType;
     }
 
-    public void setStorageTypeType(String storageType) {
-        this.storageTypeType = storageType;
+    public void setMetaType(String metaType) {
+        this.metaType = metaType;
     }
 
     /**
@@ -141,6 +143,18 @@ public class StorageSystemTypeRestRep extends DataObjectRestRep {
     }
 
     /**
+     * Whether the Storage System Type has a secret key.
+     */
+    @XmlElement(name = "is_secret_key")
+    public boolean getIsSecretKey() {
+        return isSecretKey;
+    }
+
+    public void setIsSecretKey(boolean isSecretKey) {
+        this.isSecretKey = isSecretKey;
+    }
+    
+    /**
      * SSL port number, if SSL is supported and enabled
      */
     @XmlElement(name = "ssl_port")
@@ -164,6 +178,7 @@ public class StorageSystemTypeRestRep extends DataObjectRestRep {
         this.nonSslPort = nonSslPort;
     }
 
+
     /**
      * Storage System Type driver class name. This class is defined in South Bound SDK of CoprHD that device driver developer should
      * implement.
@@ -185,7 +200,7 @@ public class StorageSystemTypeRestRep extends DataObjectRestRep {
         builder.append(", storage_type_name=");
         builder.append(storageTypeName);
         builder.append(", storage_type_type=");
-        builder.append(storageTypeType);
+        builder.append(metaType);
         builder.append(", isSmiProvider=");
         builder.append(isSmiProvider);
         builder.append(", isDefaultSsl=");
@@ -199,4 +214,5 @@ public class StorageSystemTypeRestRep extends DataObjectRestRep {
         builder.append("]");
         return builder.toString();
     }
+
 }

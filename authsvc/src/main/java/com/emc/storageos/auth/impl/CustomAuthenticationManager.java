@@ -45,6 +45,7 @@ public class CustomAuthenticationManager implements AuthenticationManager {
     private CoordinatorClient _coordinator;
     private AuthenticationProvider _localAuthenticationProvider;
     private final ProviderConfigUpdater _updaterRunnable = new ProviderConfigUpdater();
+    private LdapProviderMonitor _ldapProviderMonitor;
 
     @Autowired
     protected TokenManager _tokenManager;
@@ -311,12 +312,16 @@ public class CustomAuthenticationManager implements AuthenticationManager {
         thread.setName("ProviderConfigUpdater");
         _updaterRunnable.wakeup();
         thread.start();
+
+        _ldapProviderMonitor = new LdapProviderMonitor(_coordinator, _dbClient, _authNProviders);
+        _ldapProviderMonitor.start();
     }
 
     @Override
     public void shutdown() {
         _updaterRunnable.shutdown();
         _updaterRunnable.wakeup();
+        _ldapProviderMonitor.stop();
     }
 
     @Override
@@ -464,6 +469,7 @@ public class CustomAuthenticationManager implements AuthenticationManager {
                                         providers);
                         _lastReloadTime = timeNow;
                         updateLastKnown(providers);
+                        _ldapProviderMonitor.setAuthnProviders(_authNProviders);
                         _log.info("Done authn provider config reload. lastReloadTime {}", _lastReloadTime);
                     }
                     // sleep and check for updates

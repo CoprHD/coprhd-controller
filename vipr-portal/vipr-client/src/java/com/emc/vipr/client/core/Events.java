@@ -72,9 +72,7 @@ public class Events extends AbstractCoreBulkResources<EventRestRep>implements Te
 
         URI uri = builder.build();
 
-        EventStatsRestRep events = client.resource(uri).get(EventStatsRestRep.class);
-        events.setDeclined(100);
-        return events;
+        return client.resource(uri).get(EventStatsRestRep.class);
     }
 
     private void addTenant(UriBuilder builder, URI tenantId) {

@@ -2116,7 +2116,10 @@ public class MDSDialog extends SSHDialog {
             	if (zoneName.startsWith(IVR_ZONENAME_PREFIX)) {
             		_log.info("zone=" + zoneName + " is an ivr zone");
             		zone = showIvrZone(zoneName.substring(IVR_ZONENAME_PREFIX.length()));
-            		_log.info("ivr zone info dump:" + zone.getLogString());
+            		_log.info("ivr zone name:" + zone.getName());
+            		for (ZoneMember member : zone.getMembers()) {
+            			_log.info("zone member address=" + member.getAddress());
+            		}
             	} else {
                     zone = showZone(zoneName, aliasDatabase, excludeAliases);
             	}
@@ -2139,6 +2142,7 @@ public class MDSDialog extends SSHDialog {
         StringBuilder buf = new StringBuilder();
         String payload = MessageFormat.format(MDSDialogProperties.getString("MDSDialog.ivr.show.zoneName.cmd"), zoneName);
 
+	_log.info("showIvrZone command=" + payload);
         sendWaitFor(payload, defaultTimeout, prompts, buf);
         String[] lines = getLines(buf);
         ZoneMember member = null;

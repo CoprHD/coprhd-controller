@@ -474,17 +474,21 @@ setup_yaml() {
 	exit;
     fi
 
+    sstype=${SS:0:3}
+    if [ "${SS}" = "xio" ]; then
+	sstype="xtremio"
+    fi
+
     # create the yml file to be used for array tooling
     touch $tools_file
-    storage_type=`storagedevice list | grep COMPLETE | grep ${SS:0:3} | awk '{print $1}'`
-    storage_name=`storagedevice list | grep COMPLETE | grep ${SS:0:3} | awk '{print $2}'`
+    storage_type=`storagedevice list | grep COMPLETE | grep ${sstype} | awk '{print $1}'`
+    storage_name=`storagedevice list | grep COMPLETE | grep ${sstype} | awk '{print $2}'`
     storage_version=`storagedevice show ${storage_name} | grep firmware_version | awk '{print $2}' | cut -d '"' -f2`
     storage_ip=`storagedevice show ${storage_name} | grep smis_provider_ip | awk '{print $2}' | cut -d '"' -f2`
     storage_port=`storagedevice show ${storage_name} | grep smis_port_number | awk '{print $2}' | cut -d ',' -f1`
     storage_user=`storagedevice show ${storage_name} | grep smis_user_name | awk '{print $2}' | cut -d '"' -f2`
     ##update tools.yml file with the array details
     printf 'array:\n  %s:\n  - ip: %s:%s\n    id: %s\n    username: %s\n    password: %s\n    version: %s' "$storage_type" "$storage_ip" "$storage_port" "$SERIAL_NUMBER" "$storage_user" "$storage_password" "$storage_version" >> $tools_file
-
 }
 
 login() {
@@ -728,22 +732,17 @@ vplex_sim_setup() {
     runcmd storageport update $VPLEX_SIM_VMAX2_NATIVEGUID FC --addvarrays $NH
     runcmd storageport update $VPLEX_SIM_VMAX3_NATIVEGUID FC --addvarrays $NH
 
-    if [ "${VPLEX_MODE}" = "distributed" ]; then
-	VPLEX_VARRAY2=$NH2
-	FC_ZONE_B=${CLUSTER2NET_NAME}
-	secho "Setting up the VPLEX cluster-2 virtual array $VPLEX_VARRAY2"
-	runcmd neighborhood create $VPLEX_VARRAY2
-	runcmd transportzone assign $FC_ZONE_B $VPLEX_VARRAY2
-	runcmd transportzone create $FC_ZONE_B $VPLEX_VARRAY2 --type FC
-	runcmd storageport update $VPLEX_GUID FC --group director-2-1-A --addvarrays $VPLEX_VARRAY2
-	runcmd storageport update $VPLEX_GUID FC --group director-2-1-B --addvarrays $VPLEX_VARRAY2
-	runcmd storageport update $VPLEX_SIM_VMAX4_NATIVEGUID FC --addvarrays $NH2
-	runcmd storageport update $VPLEX_SIM_VMAX5_NATIVEGUID FC --addvarrays $NH2
-	runcmd storageport update $VPLEX_VMAX_NATIVEGUID FC --addvarrays $VPLEX_VARRAY2
-    else
-	runcmd storagedevice deregister $VPLEX_SIM_VMAX4_NATIVEGUID
-	runcmd storagedevice deregister $VPLEX_SIM_VMAX5_NATIVEGUID
-    fi
+    VPLEX_VARRAY2=$NH2
+    FC_ZONE_B=${CLUSTER2NET_NAME}
+    secho "Setting up the VPLEX cluster-2 virtual array $VPLEX_VARRAY2"
+    runcmd neighborhood create $VPLEX_VARRAY2
+    runcmd transportzone assign $FC_ZONE_B $VPLEX_VARRAY2
+    runcmd transportzone create $FC_ZONE_B $VPLEX_VARRAY2 --type FC
+    runcmd storageport update $VPLEX_GUID FC --group director-2-1-A --addvarrays $VPLEX_VARRAY2
+    runcmd storageport update $VPLEX_GUID FC --group director-2-1-B --addvarrays $VPLEX_VARRAY2
+    runcmd storageport update $VPLEX_SIM_VMAX4_NATIVEGUID FC --addvarrays $NH2
+    runcmd storageport update $VPLEX_SIM_VMAX5_NATIVEGUID FC --addvarrays $NH2
+    runcmd storageport update $VPLEX_VMAX_NATIVEGUID FC --addvarrays $VPLEX_VARRAY2
 
     common_setup
 
@@ -807,9 +806,7 @@ vplex_setup() {
     runcmd storageprovider create $VPLEX_DEV_NAME $VPLEX_IP 443 $VPLEX_USER "$VPLEX_PASSWD" vplex
     runcmd smisprovider create $VPLEX_VNX1_SMIS_DEV_NAME $VPLEX_VNX1_SMIS_IP 5989 $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" true
     runcmd smisprovider create $VPLEX_VNX2_SMIS_DEV_NAME $VPLEX_VNX2_SMIS_IP 5989 $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" true
-    if [[ "$VPLEX_MODE" = "distributed" ]]; then
-	runcmd smisprovider create $VPLEX_VMAX_SMIS_DEV_NAME $VPLEX_VMAX_SMIS_IP 5989 $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" true
-    fi
+    runcmd smisprovider create $VPLEX_VMAX_SMIS_DEV_NAME $VPLEX_VMAX_SMIS_IP 5989 $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" true
     
     runcmd storagedevice discover_all
 
@@ -824,19 +821,15 @@ vplex_setup() {
     runcmd storageport update $VPLEX_VNX1_NATIVEGUID FC --addvarrays $VPLEX_VARRAY1
     runcmd storageport update $VPLEX_VNX2_NATIVEGUID FC --addvarrays $VPLEX_VARRAY1
     
-    if [ "${VPLEX_MODE}" = "distributed" ]; then
-	VPLEX_VARRAY2=$NH2
-	FC_ZONE_B=${CLUSTER2NET_NAME}
-	secho "Setting up the VPLEX cluster-2 virtual array $VPLEX_VARRAY2"
-	runcmd neighborhood create $VPLEX_VARRAY2
-	runcmd transportzone assign $FC_ZONE_B $VPLEX_VARRAY2
-	runcmd transportzone create $FC_ZONE_B $VPLEX_VARRAY2 --type FC
-	runcmd storageport update $VPLEX_GUID FC --group director-2-1-A --addvarrays $VPLEX_VARRAY2
-	runcmd storageport update $VPLEX_GUID FC --group director-2-1-B --addvarrays $VPLEX_VARRAY2
-	runcmd storageport update $VPLEX_VMAX_NATIVEGUID FC --addvarrays $VPLEX_VARRAY2
-    else
-	runcmd storagedevice deregister $VPLEX_VMAX_NATIVEGUID
-    fi
+    VPLEX_VARRAY2=$NH2
+    FC_ZONE_B=${CLUSTER2NET_NAME}
+    secho "Setting up the VPLEX cluster-2 virtual array $VPLEX_VARRAY2"
+    runcmd neighborhood create $VPLEX_VARRAY2
+    runcmd transportzone assign $FC_ZONE_B $VPLEX_VARRAY2
+    runcmd transportzone create $FC_ZONE_B $VPLEX_VARRAY2 --type FC
+    runcmd storageport update $VPLEX_GUID FC --group director-2-1-A --addvarrays $VPLEX_VARRAY2
+    runcmd storageport update $VPLEX_GUID FC --group director-2-1-B --addvarrays $VPLEX_VARRAY2
+    runcmd storageport update $VPLEX_VMAX_NATIVEGUID FC --addvarrays $VPLEX_VARRAY2
     
     common_setup
 
@@ -1237,6 +1230,17 @@ test_3() {
     # Turn on suspend of export after orchestration
     set_suspend_on_class_method ${exportDeleteDeviceStep}
 
+    # Create the volume and inventory-only delete it so we can use it later.
+    HIJACK=du-hijack-volume-${RANDOM}
+
+    # Create another volume that we will inventory-only delete
+    runcmd volume create ${HIJACK} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 1
+
+    # Get the device ID of the volume we created
+    device_id=`get_device_id ${PROJECT}/${HIJACK}`
+
+    runcmd volume delete ${PROJECT}/${HIJACK} --vipronly
+
     # Run the export group command TODO: Do this more elegantly
     echo === export_group delete $PROJECT/${expname}1
     resultcmd=`export_group delete $PROJECT/${expname}1`
@@ -1254,16 +1258,6 @@ test_3() {
     answersarray=($taskworkflow)
     task=${answersarray[0]}
     workflow=${answersarray[1]}
-
-    HIJACK=du-hijack-volume-${RANDOM}
-
-    # Create another volume that we will inventory-only delete
-    runcmd volume create ${HIJACK} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 1
-
-    # Get the device ID of the volume we created
-    device_id=`get_device_id ${PROJECT}/${HIJACK}`
-
-    runcmd volume delete ${PROJECT}/${HIJACK} --vipronly
 
     # Add the volume to the mask (done differently per array type)
     arrayhelper add_volume_to_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
@@ -1492,6 +1486,16 @@ test_6() {
     # Verify the mask has been created
     verify_export ${expname}1 ${HOST1} 2 1
 
+    HIJACK=du-hijack-volume-${RANDOM}
+
+    # Create another volume that we will inventory-only delete
+    runcmd volume create ${HIJACK} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 1
+
+    # Get the device ID of the volume we created
+    device_id=`get_device_id ${PROJECT}/${HIJACK}`
+
+    runcmd volume delete ${PROJECT}/${HIJACK} --vipronly
+
     # Turn on suspend of export after orchestration
     set_suspend_on_class_method ${exportRemoveInitiatorsOrchStep}
 
@@ -1512,16 +1516,6 @@ test_6() {
     answersarray=($taskworkflow)
     task=${answersarray[0]}
     workflow=${answersarray[1]}
-
-    HIJACK=du-hijack-volume-${RANDOM}
-
-    # Create another volume that we will inventory-only delete
-    runcmd volume create ${HIJACK} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 1
-
-    # Get the device ID of the volume we created
-    device_id=`get_device_id ${PROJECT}/${HIJACK}`
-
-    runcmd volume delete ${PROJECT}/${HIJACK} --vipronly
 
     # Add the volume to the mask (done differently per array type)
     arrayhelper add_volume_to_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
@@ -2264,6 +2258,16 @@ test_16() {
     # Turn on suspend of export after orchestration
     set_suspend_on_class_method ${exportCreateOrchStep}
 
+    HIJACK=du-hijack-volume-${RANDOM}
+
+    # Create another volume that we will inventory-only delete
+    runcmd volume create ${HIJACK} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 1
+
+    # Get the device ID of the volume we created
+    device_id=`get_device_id ${PROJECT}/${volname}`
+    
+    runcmd volume delete ${PROJECT}/${HIJACK} --vipronly
+
     # Run the export group command TODO: Do this more elegantly
     echo === export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
     resultcmd=`export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"`
@@ -2284,16 +2288,6 @@ test_16() {
 
     # Strip out colons for array helper command
     h1pi2=`echo ${H1PI2} | sed 's/://g'`
-
-    HIJACK=du-hijack-volume-${RANDOM}
-
-    # Create another volume that we will inventory-only delete
-    runcmd volume create ${HIJACK} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 1
-
-    # Get the device ID of the volume we created
-    device_id=`get_device_id ${PROJECT}/${volname}`
-    
-    runcmd volume delete ${PROJECT}/${HIJACK} --vipronly
 
     # 4. Create the storage group (different name) with the unmanaged volume with host
     arrayhelper create_export_mask ${SERIAL_NUMBER} ${device_id} ${h1pi2} ${SGNAME}
@@ -2395,14 +2389,21 @@ then
 fi
 
 setup=0;
-if [ "$1" = "setuphw" ]
+if [ "$1" = "setuphw" -o "$1" = "setup" ]
 then
+    echo "Setting up testing based on real hardware"
     setup=1;
     shift 1;
 elif [ "$1" = "setupsim" ]; then
-    SIM=1;
-    setup=1;
-    shift 1;
+    if [ "$SS" = "xio" -o "$SS" = "vplex" ]; then
+	echo "Setting up testing based on simulators"
+	SIM=1;
+	setup=1;
+	shift 1;
+    else
+	echo "Simulator-based testing of this suite is not supported on ${SS} due to lack of CLI/arraytools support to ${SS} provider/simulator"
+	exit 1
+    fi
 fi
 
 SS=${1}

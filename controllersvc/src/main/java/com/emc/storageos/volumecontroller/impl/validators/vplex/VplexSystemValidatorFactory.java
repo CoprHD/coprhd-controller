@@ -39,24 +39,26 @@ public class VplexSystemValidatorFactory implements StorageSystemValidatorFactor
     public void setDbClient(DbClient dbClient) {
         this.dbClient = dbClient;
     }
-    
+
     /**
      * Verify storage system connectivity
+     * 
      * @param storageSystem
      */
     private void checkVplexConnectivity(StorageSystem storageSystem) {
         try {
             client = VPlexControllerUtils.getVPlexAPIClient(VPlexApiFactory.getInstance(), storageSystem, dbClient);
         } catch (URISyntaxException ex) {
-            log.error("Could connect to VPLEX: " + storageSystem.getLabel(), ex);
+            log.error("Couldn't connect to VPLEX: " + storageSystem.getLabel(), ex);
         } catch (Exception ex) {
-            log.error("Could connect to VPLEX: " + storageSystem.getLabel(), ex);
+            log.error("Couldn't connect to VPLEX: " + storageSystem.getLabel(), ex);
             throw ex;
         }
     }
 
     @Override
-    public Validator exportMaskDelete(StorageSystem storage, ExportMask exportMask, Collection<URI> volumeURIList, Collection<Initiator> initiatorList) {
+    public Validator exportMaskDelete(StorageSystem storage, ExportMask exportMask, Collection<URI> volumeURIList,
+            Collection<Initiator> initiatorList) {
         checkVplexConnectivity(storage);
         logger = new ValidatorLogger(log);
         VplexExportMaskValidator validator = new VplexExportMaskValidator(dbClient, logger, storage, exportMask);
@@ -91,14 +93,14 @@ public class VplexSystemValidatorFactory implements StorageSystemValidatorFactor
 
     @Override
     public List<Volume> volumes(StorageSystem storageSystem, List<Volume> volumes, boolean delete, boolean remediate,
-                                ValCk[] checks) {
+            ValCk[] checks) {
         checkVplexConnectivity(storageSystem);
         try {
             logger = new ValidatorLogger(log);
             VplexVolumeValidator vplexVolumeValidator = new VplexVolumeValidator(dbClient, logger);
             vplexVolumeValidator.validateVolumes(storageSystem, volumes, delete, remediate, checks);
             if (logger.hasErrors()) {
-                throw DeviceControllerException.exceptions.validationError("vplex volume(s)", 
+                throw DeviceControllerException.exceptions.validationError("vplex volume(s)",
                         logger.getMsgs().toString(), ValidatorLogger.INVENTORY_DELETE_VOLUME);
             }
         } catch (Exception ex) {

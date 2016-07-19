@@ -4167,7 +4167,8 @@ public class BlockService extends TaskResourceService {
         } else if (DiscoveredDataObject.Type.vmax.name().equals(systemType)
                 || DiscoveredDataObject.Type.vnxblock.name().equals(systemType)
                 || DiscoveredDataObject.Type.hds.name().equals(systemType)
-                || DiscoveredDataObject.Type.xtremio.name().equals(systemType)) {
+                || DiscoveredDataObject.Type.xtremio.name().equals(systemType)
+                || DiscoveredDataObject.Type.ibmxiv.name().equals(systemType)) {
             if (VirtualPool.vPoolSpecifiesHighAvailability(newVpool)) {
                 // VNX/VMAX import to VPLEX cases
                 notSuppReasonBuff.setLength(0);

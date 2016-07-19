@@ -396,12 +396,14 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
             URI exportGroupURI,
             URI exportMaskURI,
             Map<URI, Integer> volumeMap,
+            List<URI> initiatorURIs,
             TaskCompleter completer) {
         return new Workflow.Method("createOrAddVolumesToExportMask",
                 arrayURI,
                 exportGroupURI,
                 exportMaskURI,
                 volumeMap,
+                initiatorURIs,
                 completer);
     }
 
@@ -410,6 +412,7 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
             URI exportGroupURI,
             URI exportMaskURI,
             Map<URI, Integer> volumeMap,
+            List<URI> initiatorURIs,
             TaskCompleter completer,
             String stepId) {
         _log.debug("START - createOrAddVolumesToExportMask");
@@ -441,22 +444,20 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
             // Refresh the ExportMask
             BlockStorageDevice device = _blockController.getDevice(array.getSystemType());
 
+            List<Initiator> initiators = new ArrayList<Initiator>();
+            for (String initiatorId : exportMask.getInitiators()) {
+                Initiator initiator = _dbClient.queryObject(Initiator.class,
+                        URI.create(initiatorId));
+                if (initiator != null) {
+                    initiators.add(initiator);
+                }
+            }
+
             if (!exportMask.hasAnyVolumes()) {
                 /*
                  * We are creating this ExportMask on the hardware! (Maybe not
                  * the first time though...)
-                 * 
-                 * Fetch the Initiators
                  */
-                List<Initiator> initiators = new ArrayList<Initiator>();
-                for (String initiatorId : exportMask.getInitiators()) {
-                    Initiator initiator = _dbClient.queryObject(Initiator.class,
-                            URI.create(initiatorId));
-                    if (initiator != null) {
-                        initiators.add(initiator);
-                    }
-                }
-
                 // Fetch the targets
                 List<URI> targets = new ArrayList<URI>();
                 for (String targetId : exportMask.getStoragePorts()) {
@@ -478,7 +479,7 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
             } else {
                 _log.debug(String.format("Calling doExportAddVolumes on the device %s",
                         array.getId().toString()));
-                device.doExportAddVolumes(array, exportMask, null, volumeMap, completer);
+                device.doExportAddVolumes(array, exportMask, initiators, volumeMap, completer);
             }
 
         } catch (Exception ex) {

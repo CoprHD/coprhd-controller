@@ -48,9 +48,9 @@ public class VplexSystemValidatorFactory implements StorageSystemValidatorFactor
         try {
             client = VPlexControllerUtils.getVPlexAPIClient(VPlexApiFactory.getInstance(), storageSystem, dbClient);
         } catch (URISyntaxException ex) {
-            log.error("Could connect to VPLEX: " + storageSystem.getLabel(), ex);
+            log.error("Couldn't connect to VPLEX: " + storageSystem.getLabel(), ex);
         } catch (Exception ex) {
-            log.error("Could connect to VPLEX: " + storageSystem.getLabel(), ex);
+            log.error("Couldn't connect to VPLEX: " + storageSystem.getLabel(), ex);
             throw ex;
         }
     }

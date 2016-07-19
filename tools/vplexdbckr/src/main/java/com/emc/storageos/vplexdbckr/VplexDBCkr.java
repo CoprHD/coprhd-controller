@@ -158,6 +158,44 @@ public class VplexDBCkr {
             dbClient.updateObject(updatedExportMasks);
         }
     }
+	
+	public List<ExportMask> isVolumeExported(URI boURI) {
+        writeLog(String.format("checking block object belong to any export groups %s", boURI));
+		boolean isExported = false;
+		Map<String, ExportMask> exportMaskMap = new HashMap<String, ExportMask>();
+		URIQueryResultList exportGroupURIs = new URIQueryResultList();
+        dbClient.queryByConstraint(ContainmentConstraint.Factory.getBlockObjectExportGroupConstraint(boURI), exportGroupURIs);
+        isExported = exportGroupURIs.iterator().hasNext();
+		if (isExported == false) {
+		 return null;
+		}
+		for (URI exportGroupURI : exportGroupURIs) {
+            //writeLog(String.format("Cleaning block object from export group %s",exportGroupURI));
+			ExportGroup exportGroup = null;
+            exportGroup = dbClient.queryObject(ExportGroup.class, exportGroupURI);
+            if (!exportGroup.hasBlockObject(boURI)) {
+                continue;
+            }
+			
+            StringSet exportMaskIds = exportGroup.getExportMasks();
+			for (String exportMaskId : exportMaskIds) {
+                ExportMask exportMask = null;
+                exportMask = dbClient.queryObject(ExportMask.class, URI.create(exportMaskId));
+                if (exportMask.hasVolume(boURI)) {
+                   if (!exportMaskMap.containsKey(exportMaskId)) {
+				   exportMaskMap.put(exportMaskId, exportMask);
+				   }
+                }
+            }
+	   }
+        if (!exportMaskMap.isEmpty()) {
+            List<ExportMask> updatedExportMasks = new ArrayList<ExportMask>(exportMaskMap.values());
+			return updatedExportMasks;
+        }
+		else {
+		 return null;
+		}
+    }
 
 	public List<VolumeDescriptor> getDescriptorsForVolumesToBeDeleted(URI systemURI,
             List<URI> volumeURIs, String deletionType) {
@@ -206,13 +244,14 @@ public class VplexDBCkr {
 	
 	public void checkVolumesOnVplex(URI vplexSystemURI, boolean deleteInvalidVolumes) {
         URIQueryResultList result = new URIQueryResultList();
-        List<URI> deletevirtualvolumeURIs = new ArrayList<URI>();
+		List<URI> deletevirtualvolumeURIs = new ArrayList<URI>();
 		int nerrors = 0;
 		int invalidVolumeCount = 0;
-        dbClient.queryByConstraint(
+        
+		dbClient.queryByConstraint(
                 ContainmentConstraint.Factory.getStorageDeviceVolumeConstraint(vplexSystemURI), result);
         Iterator<URI> iter = result.iterator();
-        VPlexApiClient client = getVPlexApiClient(vplexSystemURI);
+		VPlexApiClient client = getVPlexApiClient(vplexSystemURI);
         // Get all the virtual volumes. We elect for shallow here as it's quicker-
         // we will spend time below getting details.
         writeLog("Retrieving all virtual volumes... this will take some time...");
@@ -285,7 +324,64 @@ public class VplexDBCkr {
                     nerrors++;
                 }
             }
-		   }
+		    
+			List<ExportMask> exportMaskListInDB = isVolumeExported(volume.getId());
+			if (null != exportMaskListInDB) {
+			for (ExportMask exportMaskInDB : exportMaskListInDB) {
+			 boolean found = false;
+			 boolean storageviewfound = false;
+			 for (VPlexStorageViewInfo storageView : storageViews) {
+			  if (storageView.getName().equals(exportMaskInDB.getMaskName())) {
+			   storageviewfound = true;
+			  for (String volumeNameStr : storageView.getVirtualVolumes()) {
+                String[] tokens = volumeNameStr.split(",");
+                String volumeName = tokens[1];
+                if (volumeName.equals(volume.getDeviceLabel())) {
+			     found = true;
+			     break;
+			    }
+			   }
+			    if(!found) {
+			     writeLog(String.format("ERROR: volume %s is in exportmask %s in viprdb  but not in vplex storageview %s",volume.getDeviceLabel(),exportMaskInDB.getMaskName(),storageView.getName()));
+			     nerrors++;
+				}
+			   break; 
+			  }
+		   	 }
+			 if (!storageviewfound) {
+			  writeLog(String.format("ERROR: volume %s is in exportmask %s in viprdb  but storageview not found in vplex",volume.getDeviceLabel(),exportMaskInDB.getMaskName()));
+			  nerrors++;
+			 }
+			}
+			}
+			
+			for (VPlexStorageViewInfo storageView : storageViews) {
+             writeLog(String.format("Checking Storageview %s",storageView.getName()));
+			 for (String volumeNameStr : storageView.getVirtualVolumes()) {
+          	  String[] tokens = volumeNameStr.split(",");
+              String volumeName = tokens[1];
+              if (volumeName.equals(volume.getDeviceLabel())) {
+			    boolean storageviewfound = false;
+				if (null != exportMaskListInDB) {
+				for (ExportMask exportMaskInDB : exportMaskListInDB) {
+				 if (storageView.getName().equals(exportMaskInDB.getMaskName())) {
+				  storageviewfound = true;
+				  break;
+				 }
+				}
+				}
+				if (!storageviewfound) {
+				 writeLog(String.format("ERROR: volume %s is in vplex storageview %s but not in viprdb exportmask",volumeName,storageView.getName()));
+				 nerrors++;
+		        }
+		
+			  } 
+             }
+            
+			}
+          
+		   
+		 }
 		   
 		if (deleteInvalidVolumes)
 		{
@@ -313,45 +409,30 @@ public class VplexDBCkr {
 		  }
 		  } catch (Exception e) {
                     writeLog(String.format("Exception: while verifying virtual volumes", e));
-          }
+         }
 		  
-		
-	      /*
-		  for (VPlexStorageViewInfo storageView : storageViews) {
-            try {
-			 List<URI> maskUris = dbClient.queryByConstraint(AlternateIdConstraint.Factory.getExportMaskByNameConstraint(storageView.getName()));
-			 writeLog(String.format("Checking Storageview %s",storageView.getName()));
-			 for (String volumeNameStr : storageView.getVirtualVolumes()) {
-              String[] tokens = volumeNameStr.split(",");
-              String volumeName = tokens[1];
-              ExportMask exportMask = null;
-			  boolean found = false;
-			  if (null != maskUris && !maskUris.isEmpty()) {
-              for (URI maskUri : maskUris) {
-                exportMask = dbClient.queryObject(ExportMask.class, maskUri);
-                if (null != exportMask && exportMask.getInitiators() != null && exportMask.getVolumes() != null) {
-				   for (Map.Entry<String, String> entry : exportMask.getVolumes().entrySet()) {
-				      Volume maskvolume = dbClient.queryObject(Volume.class, URIUtil.uri(entry.getKey()));
-					  if (volumeName.equals(maskvolume.getDeviceLabel())) {
-					   writeLog(String.format("devicelabel found %s",volumeName));
-					   found = true;
-					  }
-				    }
-				  }
-                }
-				if(!found)
-				{
-				 writeLog(String.format("ERROR: devicelabel not found %s",volumeName));
-				 nerrors++;
-				}
-               }
-             }
-            } catch (Exception e) {
-                    writeLog(String.format("ERROR: verifying storage view %s %s", storageView.getName(), e));
-            }
-		  }
-		  */
-		  
+		  //List<URI> maskUrislist = new ArrayList<URI>();;
+		  //maskUrislist.add(URI.create("urn:storageos:ExportMask:3742e612-cc93-422b-a1a5-43490e0fe8ea:vdc1"));
+		  //for (URI mskUri : maskUrislist) {
+		    //boolean found = false;
+			//ExportMask exportMaskUri = dbClient.queryObject(ExportMask.class, mskUri);
+            //if (exportMaskUri == null || exportMaskUri.getInactive()) {
+            //    continue;
+            //}
+            //writeLog(String.format("exportMaskUri in ViPR DB is %s", exportMaskUri.getMaskName()));
+			//for (VPlexStorageViewInfo storageView : storageViews) {
+			  //if (storageView.getName().equals(exportMaskUri.getMaskName())) {
+			   //found = true;
+			  //} 
+			//}
+			
+			//if(!found) {
+				// writeLog(String.format("ERROR: exportMask not found in vplex %s",exportMaskUri.getMaskName()));
+				 //nerrors++;
+			//}
+			
+		 // }
+			  
 		writeLog("Total errors for this VPLEX: " + nerrors);
     }
     

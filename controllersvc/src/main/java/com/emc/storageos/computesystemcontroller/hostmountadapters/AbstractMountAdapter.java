@@ -18,6 +18,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.ModelClient;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Host;
+import com.emc.storageos.volumecontroller.ControllerException;
 
 public class AbstractMountAdapter implements HostMountAdapter {
     private Logger log;
@@ -185,5 +186,17 @@ public class AbstractMountAdapter implements HostMountAdapter {
     protected <T extends Controller> T getController(Class<T> clazz, String hw) {
         return coordinator.locateService(
                 clazz, CONTROLLER_SVC, CONTROLLER_SVC_VER, hw, clazz.getSimpleName());
+    }
+
+    @Override
+    public void doMount(HostDeviceInputOutput args) throws ControllerException {
+        // TODO Auto-generated method stub
+
+    }
+
+    @Override
+    public void doUnmount(HostDeviceInputOutput args) throws ControllerException {
+        // TODO Auto-generated method stub
+
     }
 }

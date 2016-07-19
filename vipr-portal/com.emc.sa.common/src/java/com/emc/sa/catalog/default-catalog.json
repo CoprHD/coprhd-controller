@@ -380,6 +380,22 @@
       ]
     },
     {
+      "title": "file.linux.title",
+      "image": "icon_folder.png",
+      "description": "file.linux.description",
+      "services": [
+        {
+          "image": "Service_Change_File_Virtual_Pool.png",
+          "baseService": "LinuxMountNFSExport"
+        },
+        {
+          "image": "Service_Change_File_Virtual_Pool.png",
+          "baseService": "LinuxUnmountNFSExport"
+        }
+            
+      ]
+    },
+    {
       "title": "block.linux.title",
       "image": "icon_linux.png",
       "description": "block.linux.description",

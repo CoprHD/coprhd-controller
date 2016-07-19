@@ -5,7 +5,7 @@ import java.net.URI;
 public class MountInfo {
     private URI hostId;
     private URI fsId;
-    private String mountPoint;
+    private String mountPath;
     private String subDirectory;
     private String securityType;
     private String tag;
@@ -26,12 +26,12 @@ public class MountInfo {
         this.fsId = fsId;
     }
 
-    public String getMountPoint() {
-        return mountPoint;
+    public String getMountPath() {
+        return mountPath;
     }
 
-    public void setMountPoint(String mountPoint) {
-        this.mountPoint = mountPoint;
+    public void setMountPath(String mountPath) {
+        this.mountPath = mountPath;
     }
 
     public String getSubDirectory() {

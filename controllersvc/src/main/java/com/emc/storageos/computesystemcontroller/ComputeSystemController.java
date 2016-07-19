@@ -9,7 +9,6 @@ import java.util.List;
 
 import com.emc.storageos.Controller;
 import com.emc.storageos.computesystemcontroller.impl.adapter.HostStateChange;
-import com.emc.storageos.model.file.MountInfo;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.ControllerException;
@@ -114,10 +113,8 @@ public interface ComputeSystemController extends Controller {
     public void synchronizeSharedExports(URI clusterId, String taskId)
             throws ControllerException;
 
-    public void mountDevice(URI hostId, URI resId, String subDirectory, String security, String destinationPath, String type);
+    public void mountDevice(URI hostId, URI resId, String subDirectory, String security, String mountPath, String fsType, String opId)
+            throws ControllerException;
 
-    public void unmountDevice(URI hostId, URI resId, String destinationPath, String type);
-
-    public List<MountInfo> listAllMounts(URI hostId, URI resId, String type);
-
+    public void unmountDevice(URI hostId, URI resId, String mountPath, String opId) throws ControllerException;
 }

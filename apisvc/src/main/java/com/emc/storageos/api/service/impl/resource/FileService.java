@@ -165,7 +165,6 @@ import com.emc.storageos.volumecontroller.FileSMBShare;
 import com.emc.storageos.volumecontroller.FileShareExport;
 import com.emc.storageos.volumecontroller.FileShareExport.Permissions;
 import com.emc.storageos.volumecontroller.FileShareExport.SecurityTypes;
-import com.emc.storageos.volumecontroller.FileShareMountInfo;
 import com.emc.storageos.volumecontroller.FileShareQuotaDirectory;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
@@ -757,8 +756,7 @@ public class FileService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/exports")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
-    public TaskResourceRep export(@PathParam("id") URI id, FileSystemExportParam param)
-            throws InternalException {
+    public TaskResourceRep export(@PathParam("id") URI id, FileSystemExportParam param) throws InternalException {
 
         _log.info("Export request recieved {}", id);
 
@@ -2034,8 +2032,7 @@ public class FileService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/export")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
-    public TaskResourceRep updateFSExportRules(@PathParam("id") URI id,
-            @QueryParam("subDir") String subDir,
+    public TaskResourceRep updateFSExportRules(@PathParam("id") URI id, @QueryParam("subDir") String subDir,
             FileShareExportUpdateParams param) throws InternalException {
 
         // log input received.
@@ -4027,8 +4024,7 @@ public class FileService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/mount")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
-    public TaskResourceRep mountExport(@PathParam("id") URI id, FileSystemMountParam param)
-            throws InternalException {
+    public TaskResourceRep mountExport(@PathParam("id") URI id, FileSystemMountParam param) throws InternalException {
         _log.info("FileService::mount Request recieved {}", id);
 
         String task = UUID.randomUUID().toString();
@@ -4046,14 +4042,12 @@ public class FileService extends TaskResourceService {
         fs.getOpStatus().createTaskStatus(task, op);
         _dbClient.updateObject(fs);
 
-        FileShareMountInfo mInfo = new FileShareMountInfo(param);
-
         // Now get ready to make calls into the controller
         ComputeSystemController controller = getController(ComputeSystemController.class, null);
         try {
-            controller.mountDevice(param.getHost(), id, param.getSubDir(), param.getSecurity(), param.getPath(), "nfs");
-        } catch (InternalException e) {
-            // TODO
+            controller.mountDevice(param.getHost(), id, param.getSubDir(), param.getSecurity(), param.getPath(),
+                    param.getFsType(), task);
+        } catch (Exception e) {
             // treating all controller exceptions as internal error for now. controller
             // should discriminate between validation problems vs. internal errors
             throw e;
@@ -4091,16 +4085,15 @@ public class FileService extends TaskResourceService {
     }
 
     /**
-     * Deactivate Quota directory of file system, this will move the
-     * Quota directory to a "marked-for-delete" state
+     * unmount an exported filesystem
      * <p>
      * NOTE: This is an asynchronous operation.
      * 
      * @param id
-     *            the URN of the QuotaDirectory
+     *            the URN of the fs
      * @param param
-     *            QuotaDirectory delete param for optional force delete
-     * @brief Delete file system Quota Dir
+     *            FileSystemUnmountParam
+     * @brief unmount fs
      * @return Task resource representation
      * @throws com.emc.storageos.svcs.errorhandling.resources.InternalException
      */
@@ -4115,11 +4108,8 @@ public class FileService extends TaskResourceService {
 
         _log.info("FileService::unmount export Request recieved {}", id);
         String task = UUID.randomUUID().toString();
-        ArgValidator.checkFieldUriType(id, QuotaDirectory.class, "id");
         FileShare fs = queryResource(id);
         ArgValidator.checkEntity(fs, id, isIdEmbeddedInURL(id));
-
-        // <TODO> Implement Force delete option when shares and exports for Quota Directory are supported
 
         Operation op = new Operation();
         op.setResourceType(ResourceOperationTypeEnum.UNMOUNT_NFS_EXPORT);
@@ -4132,8 +4122,7 @@ public class FileService extends TaskResourceService {
 
         ComputeSystemController controller = getController(ComputeSystemController.class, null);
         try {
-            controller.unmountDevice(param.getHostId(), id, param.getDestinationPath(), param.getType());
-            // If delete operation is successful, then remove obj from ViPR db by setting inactive=true
+            controller.unmountDevice(param.getHostId(), id, param.getMountPath(), task);
 
         } catch (InternalException e) {
             // treating all controller exceptions as internal error for now. controller
@@ -4142,8 +4131,7 @@ public class FileService extends TaskResourceService {
             throw e;
         }
 
-        auditOp(OperationTypeEnum.UNMOUNT_NFS_EXPORT, true, AuditLogManager.AUDITOP_BEGIN, param.getHostId(), param.getType(),
-                param.getDestinationPath());
+        auditOp(OperationTypeEnum.UNMOUNT_NFS_EXPORT, true, AuditLogManager.AUDITOP_BEGIN, param.getHostId(), param.getMountPath());
 
         fs = _dbClient.queryObject(FileShare.class, fs.getId());
         _log.debug("FileService::unmount Before sending response, FS ID : {}, Taks : {} ; Status {}", fs.getOpStatus().get(task),
@@ -4157,7 +4145,7 @@ public class FileService extends TaskResourceService {
         List<String> mountTags = new ArrayList<String>();
         FileShare fs = _dbClient.queryObject(FileShare.class, resId);
         if (fs.getTag() != null) {
-            for (ScopedLabel label : fs.getTag()) { // TODO filter tags for nfs
+            for (ScopedLabel label : fs.getTag()) {
                 mountTags.add(label.getLabel());
             }
         }

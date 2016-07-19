@@ -6,28 +6,32 @@ package com.emc.sa.service.linux.file;
 
 import static com.emc.sa.service.vipr.ViPRExecutionUtils.logInfo;
 
+import java.net.URI;
 import java.util.List;
 
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.BindingUtils;
+import com.emc.sa.service.vipr.block.BlockStorageUtils;
+import com.emc.sa.service.vipr.file.FileStorageUtils;
+import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.model.file.MountInfo;
 import com.google.common.collect.Lists;
-import com.iwave.ext.linux.LinuxSystemCLI;
 
 public class UnmountNFSExportHelper {
-    private final LinuxFileSupport linux;
 
     private List<MountInfo> mountList;
 
-    public static UnmountNFSExportHelper createHelper(LinuxSystemCLI linuxSystem) {
-        LinuxFileSupport linuxSupport = new LinuxFileSupport(linuxSystem);
-        UnmountNFSExportHelper unmountNFSExportHelper = new UnmountNFSExportHelper(linuxSupport);
+    private String hostname;
+
+    public static UnmountNFSExportHelper createHelper(URI hostId) {
+        UnmountNFSExportHelper unmountNFSExportHelper = new UnmountNFSExportHelper(hostId);
         BindingUtils.bind(unmountNFSExportHelper, ExecutionUtils.currentContext().getParameters());
         return unmountNFSExportHelper;
     }
 
-    private UnmountNFSExportHelper(LinuxFileSupport linuxSupport) {
-        this.linux = linuxSupport;
+    private UnmountNFSExportHelper(URI hostId) {
+        Host host = BlockStorageUtils.getHost(hostId);
+        this.hostname = host.getHostName();
     }
 
     public void setMounts(List<MountInfo> mountList) {
@@ -37,16 +41,8 @@ public class UnmountNFSExportHelper {
 
     public void unmountExports() {
         for (MountInfo mount : mountList) {
-            logInfo("linux.mount.file.export.unmount", mount.getMountPoint(), linux.getHostName());
-            // unmount the Export
-            linux.unmountPath(mount.getMountPoint());
-            // remove from fstab
-            linux.removeFromFSTab(mount.getMountPoint());
-            // delete the directory entry if it's empty
-            if (linux.isDirectoryEmpty(mount.getMountPoint())) {
-                linux.deleteDirectory(mount.getMountPoint());
-            }
-            linux.removeFSTag(mount.getFsId(), mount.getTag().substring(0, mount.getTag().lastIndexOf(";")));
+            logInfo("linux.mount.file.export.unmount", mount.getMountPath(), hostname);
+            FileStorageUtils.unmountNFSExport(mount.getFsId(), mount.getHostId(), mount.getMountPath());
         }
     }
 }

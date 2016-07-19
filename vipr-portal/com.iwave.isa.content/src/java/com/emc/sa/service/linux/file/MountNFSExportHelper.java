@@ -4,7 +4,7 @@
  */
 package com.emc.sa.service.linux.file;
 
-import static com.emc.sa.service.ServiceParams.DESTINATION_PATH;
+import static com.emc.sa.service.ServiceParams.MOUNT_PATH;
 import static com.emc.sa.service.ServiceParams.SECURITY_TYPE;
 import static com.emc.sa.service.ServiceParams.SUBDIRECTORY;
 import static com.emc.sa.service.vipr.ViPRExecutionUtils.logInfo;
@@ -15,18 +15,22 @@ import java.util.List;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.BindingUtils;
 import com.emc.sa.engine.bind.Param;
-import com.emc.sa.machinetags.MachineTagUtils;
+import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.sa.service.vipr.file.FileStorageUtils;
+import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.model.file.FileShareRestRep;
 import com.emc.storageos.model.file.FileSystemExportParam;
-import com.iwave.ext.linux.LinuxSystemCLI;
+
+/**
+ * 
+ * @author yelkaa
+ *
+ */
 
 public class MountNFSExportHelper {
 
-    private static final String AUTO = "auto";
-
-    @Param(DESTINATION_PATH)
-    protected String destinationPath;
+    @Param(MOUNT_PATH)
+    protected String mountPath;
 
     @Param(SUBDIRECTORY)
     protected String subDirectory;
@@ -34,24 +38,17 @@ public class MountNFSExportHelper {
     @Param(SECURITY_TYPE)
     protected String securityType;
 
-    private final LinuxFileSupport linuxSupport;
     private final String hostname;
 
-    public static MountNFSExportHelper createHelper(LinuxSystemCLI linuxSystem) {
-        LinuxFileSupport linuxSupport = new LinuxFileSupport(linuxSystem);
-        MountNFSExportHelper mountNFSExportHelper = new MountNFSExportHelper(linuxSupport);
+    public static MountNFSExportHelper createHelper(URI hostId) {
+        MountNFSExportHelper mountNFSExportHelper = new MountNFSExportHelper(hostId);
         BindingUtils.bind(mountNFSExportHelper, ExecutionUtils.currentContext().getParameters());
         return mountNFSExportHelper;
     }
 
-    private MountNFSExportHelper(LinuxFileSupport linuxSupport) {
-        this.linuxSupport = linuxSupport;
-        this.hostname = linuxSupport.getHostName();
-    }
-
-    public void precheck() {
-        logInfo("linux.mount.file.export.verify", hostname);
-        linuxSupport.verifyMountPoint(destinationPath);
+    private MountNFSExportHelper(URI hostId) {
+        Host host = BlockStorageUtils.getHost(hostId);
+        this.hostname = host.getHostName();
     }
 
     public FileSystemExportParam findExport(FileShareRestRep fs, String subDirectory, String securityType) {
@@ -73,15 +70,8 @@ public class MountNFSExportHelper {
 
     public void mountExport(FileShareRestRep fs, URI hostId) {
         FileSystemExportParam export = findExport(fs, subDirectory, securityType);
-        logInfo("linux.mount.file.export.mount", export.getMountPoint(), destinationPath, hostname);
-        // Create directory
-        linuxSupport.createDirectory(destinationPath);
-        // Add to the /etc/fstab to allow the os to mount on restart
-        linuxSupport.addToFSTab(export.getMountPoint(), destinationPath, AUTO, "nolock,sec=" + securityType);
-        // Mount the device
-        linuxSupport.mountPath(destinationPath);
-        // Set the fs tag containing mount info
-        linuxSupport.setFSTag(fs.getId().toString(), MachineTagUtils.generateMountTag(hostId, destinationPath, subDirectory, securityType));
+        logInfo("linux.mount.file.export.mount", export.getMountPoint(), mountPath, hostname);
+        FileStorageUtils.mountNfsExport(hostId, fs.getId(), subDirectory, mountPath, securityType, "auto");
         ExecutionUtils.addAffectedResource(fs.getId().toString());
     }
 }

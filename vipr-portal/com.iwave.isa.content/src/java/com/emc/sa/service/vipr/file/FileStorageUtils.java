@@ -54,12 +54,15 @@ import com.emc.sa.service.vipr.file.tasks.GetCifsSharesForFileSystem;
 import com.emc.sa.service.vipr.file.tasks.GetFileSystem;
 import com.emc.sa.service.vipr.file.tasks.GetNfsExportsForFileSnapshot;
 import com.emc.sa.service.vipr.file.tasks.GetNfsExportsForFileSystem;
+import com.emc.sa.service.vipr.file.tasks.GetNfsMountsforFileSystem;
 import com.emc.sa.service.vipr.file.tasks.GetQuotaDirectory;
 import com.emc.sa.service.vipr.file.tasks.GetSharesForFileSnapshot;
+import com.emc.sa.service.vipr.file.tasks.MountFSExport;
 import com.emc.sa.service.vipr.file.tasks.PauseFileContinuousCopy;
 import com.emc.sa.service.vipr.file.tasks.RestoreFileSnapshot;
 import com.emc.sa.service.vipr.file.tasks.SetFileSnapshotShareACL;
 import com.emc.sa.service.vipr.file.tasks.SetFileSystemShareACL;
+import com.emc.sa.service.vipr.file.tasks.UnmountFSExport;
 import com.emc.sa.service.vipr.file.tasks.UpdateFileSnapshotExport;
 import com.emc.sa.service.vipr.file.tasks.UpdateFileSystemExport;
 import com.emc.sa.util.DiskSizeConversionUtils;
@@ -71,6 +74,9 @@ import com.emc.storageos.model.file.FileShareExportUpdateParams;
 import com.emc.storageos.model.file.FileShareRestRep;
 import com.emc.storageos.model.file.FileSnapshotRestRep;
 import com.emc.storageos.model.file.FileSystemExportParam;
+import com.emc.storageos.model.file.FileSystemMountParam;
+import com.emc.storageos.model.file.FileSystemUnmountParam;
+import com.emc.storageos.model.file.MountInfoList;
 import com.emc.storageos.model.file.QuotaDirectoryRestRep;
 import com.emc.storageos.model.file.ShareACL;
 import com.emc.storageos.model.file.ShareACLs;
@@ -564,6 +570,22 @@ public class FileStorageUtils {
 
     public static Task<FileShareRestRep> dissociateFilePolicy(URI fileSystemId, URI filePolicyId) {
         return execute(new DissociateFilePolicyFromFileSystem(fileSystemId, filePolicyId));
+    }
+
+    public static MountInfoList getMountList(URI fileSystemId) {
+        return execute(new GetNfsMountsforFileSystem(fileSystemId));
+    }
+
+    public static Task<FileShareRestRep> mountNfsExport(URI hostId, URI fileSystemId, String subDirectory, String mountPath,
+            String security, String fsType) {
+        FileSystemMountParam param = new FileSystemMountParam(hostId, subDirectory, security, mountPath, fsType);
+        return execute(new MountFSExport(fileSystemId, param));
+    }
+
+    public static Task<FileShareRestRep> unmountNFSExport(URI fileSystemId, URI hostId, String mountPath) {
+
+        FileSystemUnmountParam param = new FileSystemUnmountParam(hostId, mountPath);
+        return execute(new UnmountFSExport(fileSystemId, param));
     }
 
     public static List<String> getInvalidFileACLs(FileSystemACLs[] fileACLs) {

@@ -19,6 +19,7 @@ import org.apache.commons.logging.LogFactory;
 import com.emc.storageos.Controller;
 import com.emc.storageos.computecontroller.impl.ComputeDeviceController;
 import com.emc.storageos.computesystemcontroller.ComputeSystemController;
+import com.emc.storageos.computesystemcontroller.exceptions.ComputeSystemControllerException;
 import com.emc.storageos.computesystemcontroller.hostmountadapters.HostDeviceInputOutput;
 import com.emc.storageos.computesystemcontroller.hostmountadapters.LinuxHostMountAdapter;
 import com.emc.storageos.computesystemcontroller.impl.adapter.ExportGroupState;
@@ -49,7 +50,6 @@ import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.exceptions.ClientControllerException;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
-import com.emc.storageos.model.file.MountInfo;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.ExportUtils;
@@ -1191,38 +1191,46 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     }
 
     @Override
-    public void mountDevice(URI hostId, URI resId, String subDirectory, String security, String destinationPath, String type) {
-        if (URIUtil.isType(resId, FileShare.class) && "nfs".equalsIgnoreCase(type)) {
+    public void mountDevice(URI hostId, URI resId, String subDirectory, String security, String mountPath, String fsType, String opId)
+            throws ControllerException {
+        if (URIUtil.isType(resId, FileShare.class)) { // do check for os type
             LinuxHostMountAdapter adapter = new LinuxHostMountAdapter(_dbClient, _coordinator, _dbClient.queryObject(Host.class, hostId));
             HostDeviceInputOutput args = new HostDeviceInputOutput();
             args.setSubDirectory(subDirectory);
             args.setHostId(hostId);
             args.setResId(resId);
             args.setSecurity(security);
-            args.setDestinationMountPath(destinationPath);
-            adapter.doMount(args);
+            args.setMountPath(mountPath);
+            args.setFsType(fsType);
+            try {
+                adapter.doMount(args);
+                _dbClient.ready(FileShare.class, resId, opId);
+            } catch (InternalException e) {
+                ComputeSystemControllerException exception = ComputeSystemControllerException.exceptions
+                        .unableToMount(_dbClient.queryObject(Host.class, hostId).getType(), e);
+                _dbClient.error(FileShare.class, resId, opId, exception);
+                throw e;
+            }
         }
     }
 
     @Override
-    public void unmountDevice(URI hostId, URI resId, String destinationPath, String type) {
-        if (URIUtil.isType(resId, FileShare.class) && "nfs".equalsIgnoreCase(type)) {
+    public void unmountDevice(URI hostId, URI resId, String mountPath, String opId) throws ControllerException {
+        if (URIUtil.isType(resId, FileShare.class)) { // do check for os type
             LinuxHostMountAdapter adapter = new LinuxHostMountAdapter(_dbClient, _coordinator, _dbClient.queryObject(Host.class, hostId));
             HostDeviceInputOutput args = new HostDeviceInputOutput();
             args.setHostId(hostId);
             args.setResId(resId);
-            args.setDestinationMountPath(destinationPath);
-            adapter.doUnmount(args);
+            args.setMountPath(mountPath);
+            try {
+                adapter.doUnmount(args);
+                _dbClient.ready(FileShare.class, resId, opId);
+            } catch (InternalException e) {
+                ComputeSystemControllerException exception = ComputeSystemControllerException.exceptions
+                        .unableToUnmount(_dbClient.queryObject(Host.class, hostId).getType(), e);
+                _dbClient.error(FileShare.class, resId, opId, exception);
+                throw e;
+            }
         }
-
-    }
-
-    @Override
-    public List<MountInfo> listAllMounts(URI hostId, URI resId, String type) {
-        if (URIUtil.isType(resId, FileShare.class) && "nfs".equalsIgnoreCase(type)) {
-            LinuxHostMountAdapter adapter = new LinuxHostMountAdapter(_dbClient, _coordinator, _dbClient.queryObject(Host.class, hostId));
-            return adapter.getAllMounts(resId);
-        }
-        return null;
     }
 }

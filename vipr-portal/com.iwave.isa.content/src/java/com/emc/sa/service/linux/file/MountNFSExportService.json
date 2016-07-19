@@ -24,7 +24,7 @@
       type:"assetType.vipr.securityType"
     },
         
-    destinationPath:{
+    mountPath:{
       type:"text",
       validation:{
        	regEx:"/[A-Za-z0-9/_\.\-]*"

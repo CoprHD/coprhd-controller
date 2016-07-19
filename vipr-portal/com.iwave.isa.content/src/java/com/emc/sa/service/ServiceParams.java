@@ -154,7 +154,7 @@ public interface ServiceParams {
     public String LINKED_SNAPSHOT_COUNT = "linkedSnapshotCount";
     public String LINKED_SNAPSHOT_COPYMODE = "linkedSnapshotCopyMode";
 
-    public String DESTINATION_PATH = "destinationPath";
+    public String MOUNT_PATH = "mountPath";
     public String SECURITY_TYPE = "securityType";
     public String MOUNTED_NFS_EXPORTS = "mountedNFSExports";
 }

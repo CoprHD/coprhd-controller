@@ -220,8 +220,10 @@ public class MachineTagUtils {
             mountTags.addAll(client.fileSystems().getTags(fsId));
             for (String tag : mountTags) {
                 MountInfo mountInfo = convertNFSTag(tag);
-                mountInfo.setFsId(fsId);
-                results.put(tag, mountInfo);
+                if (mountInfo != null) {
+                    mountInfo.setFsId(fsId);
+                    results.put(tag, mountInfo);
+                }
             }
         }
         return results;
@@ -229,13 +231,13 @@ public class MachineTagUtils {
 
     public static MountInfo convertNFSTag(String tag) {
         MountInfo mountInfo = new MountInfo();
-        if (tag.startsWith("mountNfs")) {
+        if (tag.startsWith("mountNFS")) {
             String[] pieces = StringUtils.trim(tag).split(";");
             if (pieces.length > 1) {
                 mountInfo.setHostId(ViPRExecutionUtils.uri(pieces[1]));
             }
             if (pieces.length > 2) {
-                mountInfo.setMountPoint(pieces[2]);
+                mountInfo.setMountPath(pieces[2]);
             }
             if (pieces.length > 3) {
                 mountInfo.setSubDirectory(pieces[3]);
@@ -247,8 +249,10 @@ public class MachineTagUtils {
                 mountInfo.setFsId(ViPRExecutionUtils.uri(pieces[5]));
             }
             mountInfo.setTag(tag);
+            return mountInfo;
+        } else {
+            return null;
         }
-        return mountInfo;
     }
 
 }

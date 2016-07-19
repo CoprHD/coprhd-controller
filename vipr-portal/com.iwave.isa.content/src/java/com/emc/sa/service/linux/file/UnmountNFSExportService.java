@@ -13,10 +13,11 @@ import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.machinetags.MachineTagUtils;
+import com.emc.sa.service.linux.LinuxService;
 import com.emc.storageos.model.file.MountInfo;
 
 @Service("LinuxUnmountNFSExport")
-public class UnmountNFSExportService extends LinuxFileService {
+public class UnmountNFSExportService extends LinuxService {
 
     @Param(MOUNTED_NFS_EXPORTS)
     protected List<String> mountTags;
@@ -28,7 +29,7 @@ public class UnmountNFSExportService extends LinuxFileService {
     @Override
     public void init() throws Exception {
         super.init();
-        unmountNFSExportHelper = UnmountNFSExportHelper.createHelper(linuxSystem);
+        unmountNFSExportHelper = UnmountNFSExportHelper.createHelper(hostId);
         mountList = new ArrayList<MountInfo>();
     }
 

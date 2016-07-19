@@ -11,10 +11,12 @@ public class HostDeviceInputOutput {
     private URI resId; // Id of the associated resource like fs or vol
     private URI hostId;
     private String type; // cifs, nfs
-    private String destinationMountPath;
-    private String MountPoint;
+    private String mountPath;
+    private String mountPoint;
     private String security;
     private String subDirectory;
+    private String fsType;
+    private Boolean isNFSv4;
 
     public URI getResId() {
         return resId;
@@ -40,20 +42,20 @@ public class HostDeviceInputOutput {
         this.type = type;
     }
 
-    public String getDestinationMountPath() {
-        return destinationMountPath;
+    public String getMountPath() {
+        return mountPath;
     }
 
-    public void setDestinationMountPath(String destinationMountPath) {
-        this.destinationMountPath = destinationMountPath;
+    public void setMountPath(String mountPath) {
+        this.mountPath = mountPath;
     }
 
     public String getMountPoint() {
-        return MountPoint;
+        return mountPoint;
     }
 
     public void setMountPoint(String mountPoint) {
-        MountPoint = mountPoint;
+        this.mountPoint = mountPoint;
     }
 
     public String getSecurity() {
@@ -70,5 +72,21 @@ public class HostDeviceInputOutput {
 
     public void setSubDirectory(String subDirectory) {
         this.subDirectory = subDirectory;
+    }
+
+    public String getFsType() {
+        return fsType;
+    }
+
+    public void setFsType(String fsType) {
+        this.fsType = fsType;
+    }
+
+    public Boolean getIsNFSv4() {
+        return isNFSv4;
+    }
+
+    public void setIsNFSv4(Boolean isNFSv4) {
+        this.isNFSv4 = isNFSv4;
     }
 }

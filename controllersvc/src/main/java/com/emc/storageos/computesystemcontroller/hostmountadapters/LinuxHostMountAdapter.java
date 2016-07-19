@@ -14,7 +14,7 @@ import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.ScopedLabel;
 import com.emc.storageos.db.client.model.ScopedLabelSet;
-import com.emc.storageos.model.file.MountInfo;
+import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 
 public class LinuxHostMountAdapter extends AbstractMountAdapter {
 
@@ -26,44 +26,48 @@ public class LinuxHostMountAdapter extends AbstractMountAdapter {
         mountUtils = new MountUtils(host);
     }
 
-    public void doMount(HostDeviceInputOutput args) {
+    @Override
+    public void doMount(HostDeviceInputOutput args) throws InternalException {
 
         FileShare fs = dbClient.queryObject(FileShare.class, args.getResId());
         FileExport export = findExport(fs, args.getSubDirectory(), args.getSecurity());
-        // Create directory
-        mountUtils.createDirectory(args.getDestinationMountPath());
-        // Add to the /etc/fstab to allow the os to mount on restart
-        mountUtils.addToFSTab(export.getMountPoint(), args.getDestinationMountPath(), "auto", "nolock,sec=" + args.getSecurity());
-        // Mount the device
-        mountUtils.mountPath(args.getDestinationMountPath());
+        String fsType = args.getFsType() == null ? "auto" : args.getFsType();
+        try {
+            // verify mount point
+            mountUtils.verifyMountPoint(args.getMountPath());
+            // Create directory
+            mountUtils.createDirectory(args.getMountPath());
+            // Add to the /etc/fstab to allow the os to mount on restart
+            mountUtils.addToFSTab(args.getMountPath(), export.getMountPoint(), fsType, "nolock,sec=" + args.getSecurity());
+            // Mount the device
+            mountUtils.mountPath(args.getMountPath());
+        } catch (InternalException e) {
+            throw e;
+
+        }
         // Set the fs tag containing mount info
-        setTag(fs.getId(), mountUtils.generateMountTag(args.getHostId(), args.getDestinationMountPath(),
+        setTag(fs.getId(), mountUtils.generateMountTag(args.getHostId(), args.getMountPath(),
                 args.getSubDirectory(), args.getSecurity()));
     }
 
+    @Override
     public void doUnmount(HostDeviceInputOutput args) {
-        FileShare fs = dbClient.queryObject(FileShare.class, args.getResId());
         // unmount the Export
-        mountUtils.unmountPath(args.getDestinationMountPath());
+        mountUtils.unmountPath(args.getMountPath());
         // remove from fstab
-        mountUtils.removeFromFSTab(args.getDestinationMountPath());
+        mountUtils.removeFromFSTab(args.getMountPath());
         // delete the directory entry if it's empty
-        if (mountUtils.isDirectoryEmpty(args.getDestinationMountPath())) {
-            mountUtils.deleteDirectory(args.getDestinationMountPath());
+        if (mountUtils.isDirectoryEmpty(args.getMountPath())) {
+            mountUtils.deleteDirectory(args.getMountPath());
         }
-        String tag = findTag(args.getHostId().toString(), args.getResId().toString(), args.getDestinationMountPath());
-        removeTag(args.getResId(), tag.substring(0, tag.lastIndexOf(";")));
-    }
-
-    public List<MountInfo> getAllMounts(URI resId) {
-        return mountUtils.convertNFSTagsToMounts(getTags(dbClient.queryObject(FileShare.class, resId)));
-
+        String tag = findTag(args.getHostId().toString(), args.getResId().toString(), args.getMountPath());
+        removeTag(args.getResId(), tag);
     }
 
     public FileExport findExport(FileShare fs, String subDirectory, String securityType) {
         List<FileExport> exportList = queryDBFSExports(fs);
         dbClient.queryByType(FileShare.class, true);
-        if (subDirectory.equalsIgnoreCase("!nodir")) {
+        if (subDirectory.equalsIgnoreCase("!nodir") || subDirectory.isEmpty() || subDirectory == null) {
             for (FileExport export : exportList) {
                 if (export.getSubDirectory().isEmpty() && securityType.equals(export.getSecurityType())) {
                     return export;
@@ -107,17 +111,15 @@ public class LinuxHostMountAdapter extends AbstractMountAdapter {
     }
 
     private void removeTag(URI fsId, String tag) {
-        ScopedLabelSet tags = new ScopedLabelSet();
         FileShare fs = dbClient.queryObject(FileShare.class, fsId);
-        tags.add(new ScopedLabel(fs.getTenant().getURI().toString(), tag));
-        fs.getTag().remove(tag);
+        fs.getTag().remove(new ScopedLabel(fs.getTenant().getURI().toString(), tag));
         dbClient.updateObject(fs);
     }
 
-    private String findTag(String hostId, String fsId, String destinationPath) {
+    private String findTag(String hostId, String fsId, String mountPath) {
         List<String> tags = getTags(dbClient.queryObject(FileShare.class, URIUtil.uri(fsId)));
         for (String tag : tags) {
-            if (tag.contains(hostId) && tag.contains(fsId) && tag.contains(destinationPath)) {
+            if (tag.contains(hostId) && tag.contains(mountPath)) {
                 return tag;
             }
         }

@@ -11,11 +11,12 @@ import java.net.URI;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
+import com.emc.sa.service.linux.LinuxService;
 import com.emc.sa.service.vipr.file.FileStorageUtils;
 import com.emc.storageos.model.file.FileShareRestRep;
 
 @Service("LinuxMountNFSExport")
-public class MountNFSExportService extends LinuxFileService {
+public class MountNFSExportService extends LinuxService {
 
     @Param(FILESYSTEM)
     protected URI fsId;
@@ -27,7 +28,7 @@ public class MountNFSExportService extends LinuxFileService {
     @Override
     public void init() throws Exception {
         super.init();
-        mountNFSExportHelper = MountNFSExportHelper.createHelper(linuxSystem);
+        mountNFSExportHelper = MountNFSExportHelper.createHelper(hostId);
     }
 
     @Override
@@ -35,7 +36,6 @@ public class MountNFSExportService extends LinuxFileService {
         super.precheck();
         fs = FileStorageUtils.getFileSystem(fsId);
         acquireHostsLock();
-        mountNFSExportHelper.precheck();
     }
 
     @Override

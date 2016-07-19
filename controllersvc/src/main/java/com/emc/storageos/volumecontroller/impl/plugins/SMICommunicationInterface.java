@@ -553,8 +553,10 @@ public class SMICommunicationInterface extends ExtendedCommunicationInterfaceImp
 
             executor.setKeyMap(_keyMap);
             executor.execute((Namespace) namespaces.getNsList().get(DISCOVER));
+            detailedStatusMessage = String.format("Array Affinity Discovery completed successfully for Storage System: %s",
+                    storageSystemURI.toString());
         } catch (Exception e) {
-            detailedStatusMessage = String.format("Discovery failed for Storage System: %s because %s",
+            detailedStatusMessage = String.format("Array Affinity Discovery failed for Storage System: %s because %s",
                     storageSystemURI.toString(), e.getMessage());
             _logger.error(detailedStatusMessage, e);
             throw new SMIPluginException(detailedStatusMessage);

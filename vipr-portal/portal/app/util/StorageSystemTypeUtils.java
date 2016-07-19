@@ -29,8 +29,8 @@ public class StorageSystemTypeUtils {
     private StorageSystemTypeUtils() {
     }
 
-	public static StorageSystemTypeList getAllStorageSystemTypes(String storageTypetype) {
-		return getViprClient().storageSystemType().listStorageSystemTypeTypes(storageTypetype);
+	public static StorageSystemTypeList getAllStorageSystemTypes(String metaType) {
+		return getViprClient().storageSystemType().listStorageSystemTypes(metaType);
 	}
 
 	public static StorageSystemTypeRestRep getStorageSystemType(String id) {

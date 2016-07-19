@@ -1935,6 +1935,8 @@ smisProvider.secondaryPassword.confirmPassword.not.match=User MDM Password and C
 smisProvider.elementManagerURL=Element Manager URL
 smisProvider.secretKey=Secret key
 smisProvider.hyperScaleURL=Hyper Scale Manager URL
+smisProvider.hyperScaleHost=Hyper Scale Manager Host
+smisProvider.hyperScalePort=Hyper Scale Manager Port
 smisProvider.hyperScaleUser=Hyper Scale Manager User
 smisProvider.hyperScalePassword=Hyper Scale Manager Password
 smisProvider.hyperScaleConfPasswd=Confirm Hyper Scale Manager Password
@@ -2236,7 +2238,7 @@ storagePools.numOfDataCenters=Data Center(s)
 
 # Block Specific
 vpool.placementPolicy=Resource Placement Policy
-vpool.placementPolicy.help=Policy to be used for resource placement of the VirtualPool. Applicable only for VMAX storage systems
+vpool.placementPolicy.help=Policy to be used for resource placement of the VirtualPool. Applicable only for VMAX, VNX Block, Unity and XtremIO storage systems
 
 # Block Specific
 vpool.minPaths=Minimum Paths
@@ -3694,7 +3696,7 @@ storageSystemTypes.name=Name
 storageSystemTypes.storageTypeId=Id
 storageSystemTypes.id=Id
 storageSystemTypes.storageSystemTypeDisplayName=Display Name
-storageSystemTypes.storageSystemTypeType=Type
+storageSystemTypes.metaType=Type
 storageSystemTypes.portNumber=Port Number
 storageSystemTypes.sslPortNumber=SSL Port Number
 storageSystemTypes.isProvider=Is Provider

@@ -49,6 +49,8 @@
         <entry key="Discovery-unity-unmanaged_filesystems" value="discovery-vnxunity-context.xml" />
         <entry key="Scanner-unity" value="discovery-vnxunity-context.xml"/>
 
+        <entry key="ArrayAffinity-unity-host" value="discovery-vnxunity-context.xml" />
+        <entry key="ArrayAffinity-unity" value="discovery-vnxunity-context.xml" />
  
         <entry key="Discovery-xtremio-all" value="discovery-xtremio-context.xml"/>
         <entry key="Discovery-xtremio-unmanaged_volumes" value="discovery-xtremio-context.xml"/>

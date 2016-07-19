@@ -70,18 +70,15 @@ import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StorageSystem.Discovery_Namespaces;
 import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObject.ExportType;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem.SupportedFileSystemCharacterstics;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeCharacterstics;
-import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
-import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
@@ -194,66 +191,13 @@ public class StorageSystemService extends TaskResourceService {
     }
 
     protected static class ArrayAffinityJobExec extends DiscoverJobExec {
-        private static int MAX_WAIT_MINUTES_FOR_HOST_DISCOVERY = 20;
-        private static int SLEEP_MINUTES = 1;
-
-        private URI _hostId;
-        private String _task;
-        private DbClient _dbClient;
-
         ArrayAffinityJobExec(StorageController controller) {
             super(controller);
-        }
-
-        ArrayAffinityJobExec(StorageController controller, URI hostId, String task, DbClient dbClient) {
-            super(controller);
-            _hostId = hostId;
-            _task = task;
-            _dbClient = dbClient;
-        }
-
-        @Override
-        public void executeTasks(AsyncTask[] tasks) throws ControllerException, APIException {
-            waitForTaskCompletion(_hostId, _task, _dbClient);
-            super.executeTasks(tasks);
         }
 
         @Override
         public ResourceOperationTypeEnum getOperation() {
             return ResourceOperationTypeEnum.ARRAYAFFINITY_STORAGE_SYSTEM;
-        }
-
-        private void waitForTaskCompletion(URI resourceId, String task, DbClient dbClient) throws APIException {
-            if (NullColumnValueGetter.isNullURI(resourceId) || StringUtils.isEmpty(task) || dbClient == null) {
-                return;
-            }
-
-            int waitMinutes = 0;
-            while (true) {
-                Task taskObj = TaskUtils.findTaskForRequestId(dbClient, resourceId, task);
-                if (taskObj == null || taskObj.getInactive()) {
-                    return;
-                }
-
-                String status = taskObj.getStatus();
-                if (Task.Status.ready.name().equals(status) || Task.Status.error.name().equals(status)) {
-                    return;
-                }
-
-                if (waitMinutes > MAX_WAIT_MINUTES_FOR_HOST_DISCOVERY) {
-                    throw APIException.badRequests.arrayAffinityTaskNotExecutedWithUnfinishedHostDiscovery(MAX_WAIT_MINUTES_FOR_HOST_DISCOVERY);
-                }
-
-                try {
-                    _log.info("Waiting host discovery task {} to finish", task);
-                    Thread.sleep(SLEEP_MINUTES * 60000);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    throw new RuntimeException(e);
-                }
-
-                waitMinutes += SLEEP_MINUTES;
-            }
         }
     }
 
@@ -782,28 +726,31 @@ public class StorageSystemService extends TaskResourceService {
         ArrayList<AsyncTask> tasks = new ArrayList<AsyncTask>(1);
         String taskId = UUID.randomUUID().toString();
         if (Discovery_Namespaces.ARRAY_AFFINITY.name().equalsIgnoreCase(namespace)) {
+            if (!storageSystem.deviceIsType(Type.vmax) && !storageSystem.deviceIsType(Type.vnxblock) && !storageSystem.deviceIsType(Type.xtremio) &&
+                    !storageSystem.deviceIsType(Type.unity)) {
+                throw APIException.badRequests.cannotDiscoverArrayAffinityForUnsupportedSystem(storageSystem.getSystemType());
+            }
+
             scheduler = new DiscoveredObjectTaskScheduler(
                     _dbClient, new ArrayAffinityJobExec(controller));
             URI providerURI = storageSystem.getActiveProviderURI();
             List<URI> systemIds = new ArrayList<URI>();
             systemIds.add(id);
-            List<URI> sysURIs = _dbClient.queryByType(StorageSystem.class, true);
-            Iterator<StorageSystem> storageSystems = _dbClient.queryIterativeObjects(StorageSystem.class, sysURIs);
-            while (storageSystems.hasNext()) {
-                StorageSystem systemObj = storageSystems.next();
-                String task = UUID.randomUUID().toString();
-                if (systemObj == null) {
-                    _log.warn("StorageSystem is no longer in the DB. It could have been deleted or decommissioned");
-                    continue;
-                }
 
-                if (!systemObj.deviceIsType(Type.vmax) && !systemObj.deviceIsType(Type.vnxblock) && !systemObj.deviceIsType(Type.xtremio)) {
-                    _log.info("Skip unsupported system {}", systemObj.getLabel());
-                    continue;
-                }
+            if (storageSystem.deviceIsType(Type.vmax) || storageSystem.deviceIsType(Type.vnxblock) || storageSystem.deviceIsType(Type.xtremio)) {
+                List<URI> sysURIs = _dbClient.queryByType(StorageSystem.class, true);
+                Iterator<StorageSystem> storageSystems = _dbClient.queryIterativeObjects(StorageSystem.class, sysURIs);
+                while (storageSystems.hasNext()) {
+                    StorageSystem systemObj = storageSystems.next();
+                    String task = UUID.randomUUID().toString();
+                    if (systemObj == null) {
+                        _log.warn("StorageSystem is no longer in the DB. It could have been deleted or decommissioned");
+                        continue;
+                    }
 
-                if (providerURI.equals(systemObj.getActiveProviderURI()) && !id.equals(systemObj.getId())) {
-                    systemIds.add(systemObj.getId());
+                    if (providerURI.equals(systemObj.getActiveProviderURI()) && !id.equals(systemObj.getId())) {
+                        systemIds.add(systemObj.getId());
+                    }
                 }
             }
 
@@ -2021,7 +1968,8 @@ public class StorageSystemService extends TaskResourceService {
         if (Discovery_Namespaces.ARRAY_AFFINITY.name().equalsIgnoreCase(nameSpace)) {
             if (Type.vmax.name().equalsIgnoreCase(storageSystem.getSystemType()) ||
                     Type.vnxblock.name().equalsIgnoreCase(storageSystem.getSystemType()) ||
-                    Type.xtremio.name().equalsIgnoreCase(storageSystem.getSystemType())) {
+                    Type.xtremio.name().equalsIgnoreCase(storageSystem.getSystemType()) ||
+                    Type.unity.name().equalsIgnoreCase(storageSystem.getSystemType())) {
                 return true;
             }
 

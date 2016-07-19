@@ -489,7 +489,7 @@ public class XtremIOCommunicationInterface extends
                         }
                     } else {    // Storage system based array affinity discovery
                         _logger.info("Array Affinity Discovery started for XtremIO system {}", system.getNativeGuid());
-                        arrayAffinityDiscoverer.findAndUpdatePreferredPools(system, _dbClient);
+                        arrayAffinityDiscoverer.findAndUpdatePreferredPools(system, _dbClient, _partitionManager);
                     }
                 } catch (Exception ex) {
                     String errMsg = String.format("Error discovering Array Affinity for XtremIO system %s. Reason: %s",

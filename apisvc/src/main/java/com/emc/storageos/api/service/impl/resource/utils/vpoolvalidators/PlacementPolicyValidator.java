@@ -60,13 +60,15 @@ public class PlacementPolicyValidator extends VirtualPoolValidator<BlockVirtualP
             if (system != null && !VirtualPool.SystemType.NONE.name().equals(system)) {
                 SystemType systemType = SystemType.lookup(system);
                 if (systemType != null && !systemType.equals(SystemType.vmax) &&
-                        !systemType.equals(SystemType.vnxblock) && !systemType.equals(SystemType.xtremio)) {
+                        !systemType.equals(SystemType.vnxblock) && !systemType.equals(SystemType.xtremio) &&
+                        !systemType.equals(SystemType.unity)) {
                     throw APIException.badRequests.unsupportedPlacementPolicy(policyName);
                 }
             }
 
             if (systems != null && !systems.isEmpty() && !systems.contains(VirtualPool.SystemType.NONE.name())) {
-                if (!systems.contains(SystemType.vmax.name()) && !systems.contains(SystemType.vnxblock) && !systems.contains(SystemType.xtremio)) {
+                if (!systems.contains(SystemType.vmax.name()) && !systems.contains(SystemType.vnxblock) && !systems.contains(SystemType.xtremio) &&
+                        !systems.contains(SystemType.unity)) {
                     throw APIException.badRequests.unsupportedPlacementPolicy(policyName);
                 }
             }

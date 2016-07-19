@@ -385,7 +385,7 @@ public class HostService extends TaskResourceService {
             boolean runArrayAffinity = Boolean.valueOf(_customConfigHandler.getComputedCustomConfigValue(
                     CustomConfigConstants.HOST_RESOURCE_RUN_ARRAY_AFFINITY_DISCOVERY, CustomConfigConstants.GLOBAL_KEY, null));
             if (runArrayAffinity) {
-                discoverHostArrayAffinity(host, taskId);
+                ArrayAffinityTasksSchedulingThread.scheduleArrayAffinityTasks(this, _asyncTaskService.getExecutorService(), host.getId(), taskId, _dbClient);
             }
             return taskList.getTaskList().iterator().next();
         } else {
@@ -399,14 +399,12 @@ public class HostService extends TaskResourceService {
     }
 
     /**
-     * Create tasks to discover array affinity for the host
+     * Schedule array affinity tasks for a host
      *
-     * @param host the host whose preferred systems need to be discovered
+     * @param hostId the host whose preferred systems need to be discovered
      * @param hostDiscoveryTaskId task Id of host discovery
-     * @return a list of TaskResourceRep instances
      */
-    private List<TaskResourceRep> discoverHostArrayAffinity(Host host, String hostDiscoveryTaskId) {
-        List<TaskResourceRep> taskResList = new ArrayList<TaskResourceRep>();
+    public void scheduleHostArrayAffinityTasks(URI hostId, String hostDiscoveryTaskId) {
         String jobType = "";
         Map<URI, List<URI>> providerToSystemsMap = new HashMap<URI, List<URI>>();
         Map<URI, String> providerToSystemTypeMap = new HashMap<URI, String>();
@@ -420,48 +418,50 @@ public class HostService extends TaskResourceService {
                 continue;
             }
 
-            if (!systemObj.deviceIsType(Type.vmax) && !systemObj.deviceIsType(Type.vnxblock) && !systemObj.deviceIsType(Type.xtremio)) {
+            if (systemObj.deviceIsType(Type.vmax) || systemObj.deviceIsType(Type.vnxblock) || systemObj.deviceIsType(Type.xtremio)) {
+                if (systemObj.getActiveProviderURI() == null
+                        || NullColumnValueGetter.getNullURI().equals(systemObj.getActiveProviderURI())) {
+                    _log.info("Skipping {} Job : StorageSystem {} does not have an active provider",
+                            jobType, systemObj.getLabel());
+                    continue;
+                }
+
+                StorageProvider provider = _dbClient.queryObject(StorageProvider.class,
+                        systemObj.getActiveProviderURI());
+                if (provider == null || provider.getInactive()) {
+                    _log.info("Skipping {} Job : StorageSystem {} does not have a valid active provider",
+                            jobType, systemObj.getLabel());
+                    continue;
+                }
+
+                List<URI> systemIds = providerToSystemsMap.get(provider.getId());
+                if (systemIds == null) {
+                    systemIds = new ArrayList<URI>();
+                    providerToSystemsMap.put(provider.getId(), systemIds);
+                    providerToSystemTypeMap.put(provider.getId(), systemObj.getSystemType());
+                }
+                systemIds.add(systemObj.getId());
+            } else if (systemObj.deviceIsType(Type.unity)) {
+                List<URI> systemIds = new ArrayList<URI>();
+                systemIds.add(systemObj.getId());
+                providerToSystemsMap.put(systemObj.getId(), systemIds);
+                providerToSystemTypeMap.put(systemObj.getId(), systemObj.getSystemType());
+            } else {
                 _log.info("Skip unsupported system {}", systemObj.getLabel());
                 continue;
             }
-
-            if (systemObj.getActiveProviderURI() == null
-                    || NullColumnValueGetter.getNullURI().equals(systemObj.getActiveProviderURI())) {
-                _log.info("Skipping {} Job : StorageSystem {} does not have an active provider",
-                        jobType, systemObj.getLabel());
-                continue;
-            }
-
-            StorageProvider provider = _dbClient.queryObject(StorageProvider.class,
-                    systemObj.getActiveProviderURI());
-            if (provider == null || provider.getInactive()) {
-                _log.info("Skipping {} Job : StorageSystem {} does not have a valid active provider",
-                        jobType, systemObj.getLabel());
-                continue;
-            }
-
-            List<URI> systemIds = providerToSystemsMap.get(provider.getId());
-            if (systemIds == null) {
-                systemIds = new ArrayList<URI>();
-                providerToSystemsMap.put(provider.getId(), systemIds);
-                providerToSystemTypeMap.put(provider.getId(), systemObj.getSystemType());
-            }
-            systemIds.add(systemObj.getId());
         }
 
         for (Map.Entry<URI, List<URI>> entry : providerToSystemsMap.entrySet()) {
             List<URI> systemIds = entry.getValue();
             BlockController controller = getController(BlockController.class, providerToSystemTypeMap.get(entry.getKey()));
             DiscoveredObjectTaskScheduler scheduler = new DiscoveredObjectTaskScheduler(_dbClient,
-                    new StorageSystemService.ArrayAffinityJobExec(controller, host.getId(), hostDiscoveryTaskId, _dbClient));
+                    new StorageSystemService.ArrayAffinityJobExec(controller));
             ArrayList<AsyncTask> tasks = new ArrayList<AsyncTask>();
             String taskId = UUID.randomUUID().toString();
-            tasks.add(new ArrayAffinityAsyncTask(StorageSystem.class, systemIds, host.getId(), taskId));
-            TaskList taskList = scheduler.scheduleAsyncTasks(tasks);
-            taskResList.addAll(taskList.getTaskList());
+            tasks.add(new ArrayAffinityAsyncTask(StorageSystem.class, systemIds, hostId, taskId));
+            scheduler.scheduleAsyncTasks(tasks);
         }
-
-        return taskResList;
     }
 
     /**

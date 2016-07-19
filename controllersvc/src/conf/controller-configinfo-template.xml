@@ -36,6 +36,8 @@
         <entry key="Metering-unity" value="metering-vnxunity-context.xml" />
         <entry key="Scanner-unity" value="discovery-vnxunity-context.xml"/>
 
+        <entry key="ArrayAffinity-unity-host" value="discovery-vnxunity-context.xml" />
+        <entry key="ArrayAffinity-unity" value="discovery-vnxunity-context.xml" />
 	    
         <entry key="NS_Discovery-mds-all" value="discovery-mds-context.xml" />
         <entry key="NS_Discovery-brocade-all" value="discovery-brocade-context.xml" />

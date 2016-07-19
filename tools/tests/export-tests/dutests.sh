@@ -2161,8 +2161,8 @@ test_15() {
     set_artificial_failure failure_003_late_in_add_initiator_to_mask
 
     # Run the export group command TODO: Do this more elegantly
-    echo === export_group update $PROJECT/${expname}1 --addInits ${HOST1}/${H1PI1}
-    resultcmd=`export_group update $PROJECT/${expname}1 --addInits ${HOST1}/${H1PI1}`
+    echo === export_group update $PROJECT/${expname}1 --addInits ${HOST1}/${H1PI2}
+    resultcmd=`export_group update $PROJECT/${expname}1 --addInits ${HOST1}/${H1PI2}`
 
     if [ $? -ne 0 ]; then
 	echo "export group command failed outright"

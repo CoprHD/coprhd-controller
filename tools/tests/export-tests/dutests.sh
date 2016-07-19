@@ -462,8 +462,8 @@ nwwn()
 }
 
 setup_yaml() {
-    dir=`pwd`
-    tools_file="${dir}/tools.yml"
+    DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+    tools_file="${DIR}/tools.yml"
     if [ -f "$tools_file" ]; then
 	echo "stale $tools_file found. Deleting it."
 	rm $tools_file

@@ -86,7 +86,8 @@ class StorageSystem(object):
     ARRAY_AFFINITY_SYSTEM_LIST = [
         'vmax',
         'vnxblock',
-        'xtremio']
+        'xtremio',
+        'unity']
 
     FILE_SYSTEM_LIST = [
         'isilon',

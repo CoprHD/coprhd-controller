@@ -6,13 +6,9 @@ package com.emc.storageos.volumecontroller.impl.plugins;
 
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,7 +38,6 @@ import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.util.VersionChecker;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.StoragePortAssociationHelper;
-import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.export.ArrayAffinityDiscoveryUtils;
 import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
 import com.emc.storageos.volumecontroller.impl.xtremio.XtremIOArrayAffinityDiscoverer;
 import com.emc.storageos.volumecontroller.impl.xtremio.XtremIOUnManagedVolumeDiscoverer;
@@ -479,7 +474,7 @@ public class XtremIOCommunicationInterface extends
                         }
                     } else {    // Storage system based array affinity discovery
                         _logger.info("Array Affinity Discovery started for XtremIO system {}", system.getNativeGuid());
-                        arrayAffinityDiscoverer.findAndUpdatePreferredPools(system, _dbClient);
+                        arrayAffinityDiscoverer.findAndUpdatePreferredPools(system, _dbClient, _partitionManager);
                     }
                 } catch (Exception ex) {
                     String errMsg = String.format("Error discovering Array Affinity for XtremIO system %s. Reason: %s",

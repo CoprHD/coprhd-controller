@@ -2238,7 +2238,7 @@ storagePools.numOfDataCenters=Data Center(s)
 
 # Block Specific
 vpool.placementPolicy=Resource Placement Policy
-vpool.placementPolicy.help=Policy to be used for resource placement of the VirtualPool. Applicable only for VMAX storage systems
+vpool.placementPolicy.help=Policy to be used for resource placement of the VirtualPool. Applicable only for VMAX, VNX Block, Unity and XtremIO storage systems
 
 # Block Specific
 vpool.minPaths=Minimum Paths

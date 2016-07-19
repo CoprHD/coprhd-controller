@@ -130,12 +130,12 @@ public class Vmaxv3StorageDriver extends DefaultStorageDriver {
     /**
      * Defined in the "DiscoveryDriver" interface.
      * 
-     * @param storageSystems
+     * @param storageSystem
      * @return
      */
     @Override
-    public DriverTask discoverStorageSystem(List<StorageSystem> storageSystems) {
-        return this.execute("discoverStorageSystem", storageSystems);
+    public DriverTask discoverStorageSystem(StorageSystem storageSystem) {
+        return this.execute("discoverStorageSystem", storageSystem);
     }
 
     /**

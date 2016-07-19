@@ -31,7 +31,7 @@ public class DiscoverStorageProviderOperation extends OperationImpl {
      * This value is used to set "systemType" field which is required to pass the check "isProviderStorageSystem()"
      * in the "DiscoveredDataObject.java" class when discovering storage systems.
      */
-    private static final String SYSTEM_TYPE = "vmax";
+    private static final String SYSTEM_TYPE = "vmax3";
 
     private StorageProvider storageProvider;
     private List<StorageSystem> storageSystems;

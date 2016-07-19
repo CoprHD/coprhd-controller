@@ -474,17 +474,21 @@ setup_yaml() {
 	exit;
     fi
 
+    sstype=${SS:0:3}
+    if [ "${SS}" = "xio" ]; then
+	sstype="xtremio"
+    fi
+
     # create the yml file to be used for array tooling
     touch $tools_file
-    storage_type=`storagedevice list | grep COMPLETE | grep ${SS:0:3} | awk '{print $1}'`
-    storage_name=`storagedevice list | grep COMPLETE | grep ${SS:0:3} | awk '{print $2}'`
+    storage_type=`storagedevice list | grep COMPLETE | grep ${sstype} | awk '{print $1}'`
+    storage_name=`storagedevice list | grep COMPLETE | grep ${sstype} | awk '{print $2}'`
     storage_version=`storagedevice show ${storage_name} | grep firmware_version | awk '{print $2}' | cut -d '"' -f2`
     storage_ip=`storagedevice show ${storage_name} | grep smis_provider_ip | awk '{print $2}' | cut -d '"' -f2`
     storage_port=`storagedevice show ${storage_name} | grep smis_port_number | awk '{print $2}' | cut -d ',' -f1`
     storage_user=`storagedevice show ${storage_name} | grep smis_user_name | awk '{print $2}' | cut -d '"' -f2`
     ##update tools.yml file with the array details
     printf 'array:\n  %s:\n  - ip: %s:%s\n    id: %s\n    username: %s\n    password: %s\n    version: %s' "$storage_type" "$storage_ip" "$storage_port" "$SERIAL_NUMBER" "$storage_user" "$storage_password" "$storage_version" >> $tools_file
-
 }
 
 login() {

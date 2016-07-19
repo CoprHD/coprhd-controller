@@ -40,13 +40,13 @@ delete_volume() {
 remove_initiator_from_mask() {
     pwwn=$1
     pattern=$2
-    java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays vplex -method remove_initiator_from_mask -params "${pwwn},${pattern}" > ${TMPFILE1} 2> ${TMPFILE2}
+    java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays vplex -method remove_initiator_from_mask -params "${pwwn},$(echo $pwwn | sed 's/^1/2/g'),${pattern}" > ${TMPFILE1} 2> ${TMPFILE2}
 }
 
 add_initiator_to_mask() {
     pwwn=$1
     pattern=$2
-    java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays vplex -method add_initiator_to_mask -params "${pwwn},${pattern}" > ${TMPFILE1} 2> ${TMPFILE2}
+    java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays vplex -method add_initiator_to_mask -params "${pwwn},$(echo $pwwn | sed 's/^1/2/g'),${pattern}" > ${TMPFILE1} 2> ${TMPFILE2}
 }
 
 verify_export() {

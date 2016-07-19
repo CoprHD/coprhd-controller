@@ -987,11 +987,6 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 URI currentCluster = change.getHost().getCluster();
                 URI oldCluster = change.getOldCluster();
 
-                Cluster oldClusterRef = !NullColumnValueGetter.isNullURI(oldCluster) ? _dbClient.queryObject(Cluster.class, oldCluster)
-                        : null;
-                Cluster currentClusterRef = !NullColumnValueGetter.isNullURI(currentCluster) ? _dbClient.queryObject(Cluster.class,
-                        currentCluster) : null;
-
                 // For every host change (added/removed initiator, cluster change), get all exports that this host
                 // currently belongs to
                 List<Initiator> hostInitiators = ComputeSystemHelper.queryInitiators(_dbClient, hostId);
@@ -1007,13 +1002,9 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                                 newInitiatorObjects);
                         Collection<URI> validInitiatorIds = Collections2.transform(validInitiators,
                                 CommonTransformerFunctions.fctnDataObjectToID());
-                        if (currentClusterRef == null || currentClusterRef.getAutoExportEnabled()) {
-                            egh.addInitiators(validInitiatorIds);
-                            egh.removeInitiators(change.getOldInitiators());
-                        } else {
-                            // prevent old initiators from being deleted by completer
-                            change.getOldInitiators().clear();
-                        }
+                        // TODO add event for changed initiators
+                        egh.addInitiators(validInitiatorIds);
+                        egh.removeInitiators(change.getOldInitiators());
                     }
                 }
 
@@ -1023,7 +1014,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                         && ComputeSystemHelper.isClusterInExport(_dbClient, oldCluster);
 
                 // being removed from a cluster and no longer in a cluster
-                if (isRemovedFromCluster && oldClusterRef.getAutoExportEnabled()) {
+                if (isRemovedFromCluster) {
                     for (ExportGroup export : getSharedExports(oldCluster)) {
                         ExportGroupState egh = getExportGroupState(exportGroups, export);
                         _log.info("Host removed from cluster and no longer in a cluster. Export: " + export.getId() + " Remove Host: "
@@ -1043,9 +1034,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                             && (ComputeSystemHelper.isClusterInExport(_dbClient, oldCluster)
                                     || ComputeSystemHelper.isClusterInExport(_dbClient, currentCluster));
 
-                    if ((isAddedToCluster && currentClusterRef.getAutoExportEnabled())
-                            || (isMovedToDifferentCluster && (currentClusterRef.getAutoExportEnabled() || oldClusterRef
-                                    .getAutoExportEnabled()))) {
+                    if (isAddedToCluster || isMovedToDifferentCluster) {
                         for (ExportGroup export : getSharedExports(currentCluster)) {
                             ExportGroupState egh = getExportGroupState(exportGroups, export);
                             _log.info("Non-clustered being added to a cluster. Export: " + export.getId() + " Add Host: " + hostId
@@ -1059,7 +1048,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                         }
                     }
 
-                    if (isMovedToDifferentCluster && (oldClusterRef.getAutoExportEnabled() || currentClusterRef.getAutoExportEnabled())) {
+                    if (isMovedToDifferentCluster) {
                         for (ExportGroup export : getSharedExports(oldCluster)) {
                             ExportGroupState egh = getExportGroupState(exportGroups, export);
                             _log.info("Removing references to previous cluster. Export: " + export.getId() + " Remove Host: " + hostId
@@ -1099,16 +1088,11 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             _log.info("Number of deleted clusters: " + deletedClusters.size());
 
             for (URI clusterId : deletedClusters) {
-                Cluster cluster = _dbClient.queryObject(Cluster.class, clusterId);
-                if (!cluster.getAutoExportEnabled()) {
-                    _log.info("Cluster " + clusterId + " can not be deleted because it has auto exports disabled");
-                } else {
-                    // the cluster's hosts will already be processed as deletedHosts
-                    List<ExportGroup> clusterExportGroups = getSharedExports(clusterId);
-                    for (ExportGroup export : clusterExportGroups) {
-                        ExportGroupState egh = getExportGroupState(exportGroups, export);
-                        egh.removeCluster(clusterId);
-                    }
+                // the cluster's hosts will already be processed as deletedHosts
+                List<ExportGroup> clusterExportGroups = getSharedExports(clusterId);
+                for (ExportGroup export : clusterExportGroups) {
+                    ExportGroupState egh = getExportGroupState(exportGroups, export);
+                    egh.removeCluster(clusterId);
                 }
             }
 

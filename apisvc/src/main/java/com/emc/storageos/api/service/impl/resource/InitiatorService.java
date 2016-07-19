@@ -181,15 +181,9 @@ public class InitiatorService extends TaskResourceService {
         Operation op = _dbClient.createTaskOpStatus(Initiator.class, initiator.getId(), taskId,
                 ResourceOperationTypeEnum.DELETE_INITIATOR);
 
-        Cluster cluster = getInitiatorCluster(initiator);
-
         if (ComputeSystemHelper.isInitiatorInUse(_dbClient, id.toString())) {
-            if (cluster == null || cluster.getAutoExportEnabled()) {
-                ComputeSystemController controller = getController(ComputeSystemController.class, null);
-                controller.removeInitiatorFromExport(initiator.getHost(), initiator.getId(), taskId);
-            } else {
-                throw APIException.badRequests.initiatorInClusterWithAutoExportDisabled();
-            }
+            ComputeSystemController controller = getController(ComputeSystemController.class, null);
+            controller.removeInitiatorFromExport(initiator.getHost(), initiator.getId(), taskId);
         } else {
             _dbClient.ready(Initiator.class, initiator.getId(), taskId);
             _dbClient.markForDeletion(initiator);

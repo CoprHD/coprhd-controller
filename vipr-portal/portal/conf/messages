@@ -102,6 +102,7 @@ nav.tenantsettings=Tenants
 nav.project=Tenant Groups
 nav.consistencygroups=Consistency Groups
 nav.tasks=Tasks
+nav.events=Events
 # Subnavigation
 nav.vdcs=Virtual Data Centers
 nav.projects=Projects
@@ -3211,9 +3212,13 @@ resources.noprojectsapplications=There are no projects nor applications configur
 resources.noapplications=There are no applications configured.  Please try with filter by Projects.
 
 resources.events=Events
+resources.event=Event
 resources.events.approved=Approved
 resources.events.pending=Pending
 resources.events.declined=Declined
+resources.events.deleteEvent=Delete Event
+resources.events.approveEvent=Approve Event
+resources.events.declineEvent=Decline Event
 
 resources.tasks=Tasks
 resources.task=Task Details

@@ -1,11 +1,11 @@
 #{extends 'main.html' /}
 
-#{set navSelected: ['nav.storage', 'nav.tasks'] /}
-#{set 'title'}&{'resources.task'}#{/set}
+#{set navSelected: ['nav.storage', 'nav.events'] /}
+#{set 'title'}&{'resources.event'}#{/set}
 
 
 #{breadcrumb.container}
-  #{breadcrumb.item @listAll(task?.tenant == null)}&{'resources.tasks'}#{/breadcrumb.item}
+  #{breadcrumb.item @listAll(task?.tenant == null)}&{'resources.events'}#{/breadcrumb.item}
   #{breadcrumb.item active:true}#{get 'title'/}#{/breadcrumb.item}
 #{/breadcrumb.container}
 
@@ -32,9 +32,9 @@ margin-bottom: 5px;
     
     <div class="pull-right">
 
-          <a class="btn btn-danger" href="@{deleteEvent(task.id)}"><span class="glyphicon glyphicon-trash"></span> &{'resources.tasks.deleteTask'}</a><br/>
-          <a class="btn" href="@{approveEvent(task.id)}"><span class="glyphicon glyphicon-trash"></span> &{'resources.tasks.approveEvent'}</a><br/>
-          <a class="btn" href="@{declineEvent(task.id)}"><span class="glyphicon glyphicon-trash"></span> &{'resources.tasks.declineEvent'}</a><br/>
+          <a class="btn btn-danger" href="@{deleteEvent(task.id)}"><span class="glyphicon glyphicon-trash"></span> &{'resources.events.deleteEvent'}</a><br/>
+          <a class="btn btn-default" href="@{approveEvent(task.id)}"><span class="glyphicon"></span> &{'resources.events.approveEvent'}</a><br/>
+          <a class="btn btn-default" href="@{declineEvent(task.id)}"><span class="glyphicon"></span> &{'resources.events.declineEvent'}</a><br/>
 
     </div>
     

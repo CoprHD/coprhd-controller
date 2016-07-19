@@ -2823,4 +2823,18 @@
         controlNodeOnly : true,
         value : "480",
     },
+    {
+        key : "controller_file_operations_lock_timeout",
+        label : "Timeout in seconds",
+        description : "Timeout for VNX file Provisioning Locking",
+        type : "uint32",
+        userConfigurable : true,
+        userMutable : true,
+        advanced : true,
+        tag : "Controller",
+        reconfigRequired : false,
+        rebootRequired : false,
+        controlNodeOnly : false,
+        value : "300",
+    },
 ]

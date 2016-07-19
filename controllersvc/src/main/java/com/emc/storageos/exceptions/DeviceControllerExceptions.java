@@ -281,9 +281,12 @@ public interface DeviceControllerExceptions {
     public DeviceControllerException unableToConnectToStorageDeviceForMonitoringNoDevice(final String storage,
             final String devType);
 
+    @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)
+    public DeviceControllerException failedToAcquireWorkflowLock(String lockName, String operation);
+
     @DeclareServiceCode(ServiceCode.FILE_CONNECTION_ERROR)
-    DeviceControllerException unableToDisconnectStorageDeviceMonitoringDbException(
-            final String storage, final Throwable cause);
+            DeviceControllerException unableToDisconnectStorageDeviceMonitoringDbException(
+                    final String storage, final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.FILE_CONNECTION_ERROR)
     public DeviceControllerException unableToDisconnectStorageDeviceMonitoringDbNullRef(final String storage);
@@ -484,4 +487,8 @@ public interface DeviceControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
     public DeviceControllerException exportGroupInconsistentLunViolation(final String exportGroupName, final String details);
+
+    @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
+    public DeviceControllerException couldNotPerformAliasOperation(final String reason);
+
 }

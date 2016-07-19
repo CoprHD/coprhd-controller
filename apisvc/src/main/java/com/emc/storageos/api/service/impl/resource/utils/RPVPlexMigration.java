@@ -12,7 +12,7 @@ import java.net.URI;
 import com.emc.storageos.db.client.model.VirtualPool;
 
 public class RPVPlexMigration {
-    private Volume.PersonalityTypes personality;
+    private Volume.PersonalityTypes type;
     private Volume.PersonalityTypes subType;
     private URI varrayId;
     private VirtualPool migrateFromVpool;
@@ -22,29 +22,29 @@ public class RPVPlexMigration {
         super();
     }
 
-    public RPVPlexMigration(PersonalityTypes personality, URI varrayId, VirtualPool migrateFromVpool, VirtualPool migrateToVpool) {
+    public RPVPlexMigration(PersonalityTypes type, URI varrayId, VirtualPool migrateFromVpool, VirtualPool migrateToVpool) {
         super();
-        this.personality = personality;
+        this.type = type;
         this.varrayId = varrayId;
         this.migrateFromVpool = migrateFromVpool;
         this.migrateToVpool = migrateToVpool;
     }
     
-    public RPVPlexMigration(PersonalityTypes personality, PersonalityTypes subType, URI varrayId, VirtualPool migrateFromVpool, VirtualPool migrateToVpool) {
+    public RPVPlexMigration(PersonalityTypes type, PersonalityTypes subType, URI varrayId, VirtualPool migrateFromVpool, VirtualPool migrateToVpool) {
         super();
-        this.personality = personality;
+        this.type = type;
         this.subType = subType;
         this.varrayId = varrayId;
         this.migrateFromVpool = migrateFromVpool;
         this.migrateToVpool = migrateToVpool;
     }
 
-    public Volume.PersonalityTypes getPersonality() {
-        return personality;
+    public Volume.PersonalityTypes getType() {
+        return type;
     }
 
-    public void setPersonality(Volume.PersonalityTypes personality) {
-        this.personality = personality;
+    public void setType(Volume.PersonalityTypes type) {
+        this.type = type;
     }
 
     public URI getVarray() {

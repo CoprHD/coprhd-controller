@@ -1732,7 +1732,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
 
             // Iterate over all the potential for migrations (SOURCE, TARGET, METADATA).
             for (RPVPlexMigration migration : potentialMigrations) {
-                Volume.PersonalityTypes personality = migration.getPersonality();
+                Volume.PersonalityTypes type = migration.getType();
                 VirtualPool candidateCurrentVpool = migration.getMigrateFromVpool();
                 VirtualPool candidateNewVpool = migration.getMigrateToVpool();
                 
@@ -1743,8 +1743,8 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
                 
                 String[] include = null;
 
-                if (personality.equals(Volume.PersonalityTypes.SOURCE)
-                        || personality.equals(Volume.PersonalityTypes.TARGET)) {                        
+                if (type.equals(Volume.PersonalityTypes.SOURCE)
+                        || type.equals(Volume.PersonalityTypes.TARGET)) {                        
                     // Ensure these values have NOT changed between ANY of the candidate vpools. If they have,
                     // do not allow the RP+VPLEX migration operation to occur.
                     include = new String[] { TYPE, VARRAYS,
@@ -1773,7 +1773,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
                 Map<String, Change> changes = analyzeChanges(candidateCurrentVpool, candidateNewVpool, include, null, null);
                 if (!changes.isEmpty()) {
                     notSuppReasonBuff
-                            .append(String.format("Changes in the following %s virtual pool are not permitted: ", personality.name()));
+                            .append(String.format("Changes in the following %s virtual pool are not permitted: ", type.name()));
                     fillInNotSupportedReasons(changes, notSuppReasonBuff);
                     return false;
                 }
@@ -1785,7 +1785,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
                 // Determine if VPLEX HA side will be migrated.
                 boolean migrateHAVolume = false;
                 // Ignore HA for Journals as ViPR provisioned RP+VPLEX Journals are always forced to VPLEX Local.
-                if (!personality.equals(Volume.PersonalityTypes.METADATA)) {
+                if (!type.equals(Volume.PersonalityTypes.METADATA)) {
                     VirtualPool candidateCurrentHaVpool = VirtualPoolChangeAnalyzer
                             .getHaVpool(candidateCurrentVpool, dbClient);
                     if (candidateCurrentHaVpool != null) {
@@ -1803,7 +1803,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
                     s_logger.info(String.format("Vpool [%s](%s) is valid for RP+VPLEX %s migrations", 
                             candidateNewVpool.getLabel(),
                             candidateNewVpool.getId(), 
-                            personality.name()));     
+                            type.name()));     
                     
                     // If the validMigrations param is not null then keep track of the valid
                     // migrations found.
@@ -1816,7 +1816,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
                     s_logger.info(String.format("Vpool [%s](%s) is NOT valid for RP+VPLEX %s migrations", 
                             candidateNewVpool.getLabel(),
                             candidateNewVpool.getId(), 
-                            personality.name())); 
+                            type.name())); 
                 }
             }
         }

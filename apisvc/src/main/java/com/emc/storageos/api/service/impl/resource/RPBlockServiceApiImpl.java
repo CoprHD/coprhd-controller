@@ -3934,7 +3934,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         //
         // Group the migrations by personality
         for (RPVPlexMigration migration : validMigrations) {
-            switch (migration.getPersonality()) {
+            switch (migration.getType()) {
                 case SOURCE:    
                     sourceVpoolMigrations.add(migration);
                     break;
@@ -4129,12 +4129,12 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                     if (journalVolume.getVirtualArray().equals(migration.getVarray())
                             && journalVolume.getVirtualPool().equals(migration.getMigrateFromVpool().getId())) {                        
                         // Need to make sure we're migrating the right Journal, so check to make sure the copy names match
-                        boolean sourceJournal = migration.getSubType().equals(Volume.PersonalityTypes.SOURCE) ? true : false;
-                        String copyName = RPHelper.getCgCopyName(_dbClient, cg, migration.getVarray(), sourceJournal);                        
+                        boolean isSourceJournal = migration.getSubType().equals(Volume.PersonalityTypes.SOURCE) ? true : false;
+                        String copyName = RPHelper.getCgCopyName(_dbClient, cg, migration.getVarray(), isSourceJournal);                        
                         if (journalVolume.getRpCopyName().equals(copyName)) {                        
                             journalMigration = migration;
-                        }
-                        break;
+                            break;
+                        }                        
                     }
                 }
                 // If a journal migration exists, add it to the list of journals to migrate and create
@@ -4154,7 +4154,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                     
                     singleMigrations.put(journalVolume, migrateToVpool);
                 } else {
-                    _log.info(String.format("No migration info was found for Jounral volume [%s](%s). Skipping...", 
+                    _log.info(String.format("No migration info was found for Journal volume [%s](%s). Skipping...", 
                             journalVolume.getLabel(), journalVolume.getId()));
                 }
             }

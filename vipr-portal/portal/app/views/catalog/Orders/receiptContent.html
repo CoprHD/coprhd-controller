@@ -85,7 +85,7 @@
     	var lastUpdated = $('#orderDetails #lastUpdated').html();
     	var orderId = '${orderId}';
     	 $("#pauseLink").prop('disabled', true);
-    	 $("#pauseText").text(' &{"service.order.pause"}');
+    	 $("#pauseText").text('  &{"service.order.pause"}');
     	var url = #{jsAction @catalog.Orders.pauseOrder(':orderId', ':lastUpdated') /};
     	 $.post(url({orderId: orderId, lastUpdated: lastUpdated}), function(data) {
              Receipt.update(data);
@@ -100,7 +100,7 @@
     	var lastUpdated = $('#orderDetails #lastUpdated').html();
     	var orderId = '${orderId}';
     	 $("#resumeLink").prop('disabled', true);
-    	 $("#resumeText").text(' &{"service.order.resume"}')
+    	 $("#resumeText").text('  &{"service.order.resume"}')
     	var url = #{jsAction @catalog.Orders.resumeOrder(':orderId', ':lastUpdated') /};
     	 $.post(url({orderId: orderId, lastUpdated: lastUpdated}), function(data) {
              Receipt.update(data);
@@ -177,11 +177,11 @@
       <span id="flowControl">
       %{ isExecuting = details.order.isExecuting() || details.order.isPending() }%
       #{if isExecuting}
-      <a href="#" id="pauseLink" onclick="pauseOrder(); return false;"><span id='opPause' class='btn btn-primary btn-sm'><span class='glyphicon glyphicon-pause'><span id="pauseText"></span></span></span> </a>
+      <a href="#" id="pauseLink" onclick="pauseOrder(); return false;"><span id='opPause' class='btn btn-primary btn-sm'><span class='glyphicon glyphicon-pause'>&{"service.order.pause.label"}<span id="pauseText"></span></span></span> </a>
       #{/if}
        %{ isExecuting = details.order.isPaused() }%
       #{if isExecuting}
-      <a href="#" id="resumeLink" onclick="resumeOrder(); return false;"><span id='opResume' class='btn btn-primary btn-sm'><span class='glyphicon glyphicon-play'><span id="resumeText"></span></span></span>  </a> 
+      <a href="#" id="resumeLink" onclick="resumeOrder(); return false;"><span id='opResume' class='btn btn-primary btn-sm'><span class='glyphicon glyphicon-play'>&{"service.order.resume.label"}<span id="resumeText"></span></span></span>  </a> 
       
       #{/if}
       </span>

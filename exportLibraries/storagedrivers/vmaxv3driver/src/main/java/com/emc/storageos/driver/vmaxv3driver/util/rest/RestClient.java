@@ -62,6 +62,7 @@ public class RestClient {
     }
 
     public RestClient(String scheme, String host, int port, String user, String password) {
+        logger.debug("scheme={}, host={}, port={}, user={}, password={}", scheme, host, port, user, password);
         this.scheme = scheme;
         this.host = host;
         this.port = port;

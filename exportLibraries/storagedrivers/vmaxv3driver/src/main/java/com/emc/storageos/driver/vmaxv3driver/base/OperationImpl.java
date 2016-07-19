@@ -19,6 +19,8 @@ import com.emc.storageos.storagedriver.model.StorageSystem;
  */
 public abstract class OperationImpl implements Operation {
 
+    private static final String DEFAULT_SCHEME = "https";
+
     private Registry registry;
     private LockManager lockManager;
     private RestClient client;
@@ -46,7 +48,10 @@ public abstract class OperationImpl implements Operation {
      * @param storageSystemInput The given StorageSystem instance passed by SB SDK.
      */
     protected void setClient(StorageSystem storageSystemInput) {
-        String scheme = storageSystemInput.getProtocols().get(0);
+        String scheme = DEFAULT_SCHEME;
+        if (storageSystemInput.getProtocols() != null && storageSystemInput.getProtocols().size() > 0) {
+            scheme = storageSystemInput.getProtocols().get(0);
+        }
         String hostName = storageSystemInput.getIpAddress();
         int port = storageSystemInput.getPortNumber();
         String userName = storageSystemInput.getUsername();

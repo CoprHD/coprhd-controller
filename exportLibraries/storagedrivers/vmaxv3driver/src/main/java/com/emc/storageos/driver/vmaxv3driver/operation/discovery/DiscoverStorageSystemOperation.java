@@ -30,6 +30,10 @@ public class DiscoverStorageSystemOperation extends OperationImpl {
     public boolean isMatch(String name, Object... parameters) {
         if ("discoverStorageSystem".equals(name)) {
             this.storageSystem = (StorageSystem) parameters[0];
+            logger.debug("Storage system discovery: nativeId={}, ipAddress={}, portNumber={}, userName={}, " +
+                "password={}, protocols={}, ", storageSystem.getNativeId(), storageSystem.getIpAddress(),
+                storageSystem.getPortNumber(), storageSystem.getUsername(), storageSystem.getPassword(),
+                storageSystem.getProtocols());
             this.setClient(this.storageSystem);
             return true;
         } else {

@@ -223,6 +223,7 @@
         <property name="cimObjectPathFactory" ref="vmaxCIMObjectPathFactoryAdapter"/>
         <property name="nameGenerator" ref="defaultNameGenerator"/>
         <property name="findProviderFactory" ref="vmaxFindProviderFactory"/>
+        <property name="validator" ref="validatorFactory"/>
     </bean>
 
     <bean id="vnxSnapshotOperations" class="com.emc.storageos.volumecontroller.impl.smis.vnx.VnxSnapshotOperations">
@@ -336,6 +337,7 @@
         <property name="smisStorageDevicePreProcessor" ref="storagedevicePreProcessor"/>
         <property name="findProviderFactory" ref="vmaxFindProviderFactory"/>
         <property name="locker" ref="locker"/>
+        <property name="validator" ref="validatorFactory"/>
     </bean>
 
     <bean id="vnxMetaVolumeOperations" class="com.emc.storageos.volumecontroller.impl.smis.SmisMetaVolumeOperations">
@@ -401,6 +403,7 @@
     <bean id="xtremioExportOperationHelper" class="com.emc.storageos.volumecontroller.impl.xtremio.XtremIOExportOperations">
         <property name="dbClient" ref="dbclient"/>
         <property name="xtremioRestClientFactory" ref="xtremioRestClientFactory"/>
+        <property name="validator" ref="validatorFactory"/>
     </bean>
     
     <bean id="xtremioSnapshotOperations" class="com.emc.storageos.volumecontroller.impl.xtremio.XtremIOSnapshotOperations">

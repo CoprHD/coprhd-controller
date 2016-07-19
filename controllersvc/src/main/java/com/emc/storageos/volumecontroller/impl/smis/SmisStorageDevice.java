@@ -28,6 +28,7 @@ import javax.cim.UnsignedInteger16;
 import javax.wbem.CloseableIterator;
 import javax.wbem.WBEMException;
 
+import com.emc.storageos.volumecontroller.impl.validators.ValidatorFactory;
 import com.google.common.collect.Lists;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
@@ -130,6 +131,11 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     private SmisStorageDevicePreProcessor _smisStorageDevicePreProcessor;
     private FindProviderFactory findProviderFactory;
     private ControllerLockingService _locker;
+    private ValidatorFactory validator;
+
+    public void setValidator(ValidatorFactory validator) {
+        this.validator = validator;
+    }
 
     public void setLocker(final ControllerLockingService locker) {
         this._locker = locker;
@@ -547,6 +553,9 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
         MetaVolumeTaskCompleter metaVolumeTaskCompleter = new MetaVolumeTaskCompleter(
                 taskCompleter);
         try {
+
+            validator.expandVolumes(storageSystem, volume).validate();
+
             if (!doesStorageSystemSupportVolumeExpand(storageSystem)) {
                 ServiceError error = DeviceControllerErrors.smis.volumeExpandIsNotSupported(storageSystem.getNativeGuid());
                 taskCompleter.error(_dbClient, error);
@@ -600,6 +609,8 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             Set<Volume> cloneVolumes = new HashSet<Volume>();
 
             _helper.callRefreshSystem(storageSystem, null, false);
+
+            validator.deleteVolumes(storageSystem, volumes).validate();
 
             for (Volume volume : volumes) {
                 logMsgBuilder.append(String.format("%nVolume:%s", volume.getLabel()));

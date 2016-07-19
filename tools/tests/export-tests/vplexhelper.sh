@@ -105,9 +105,9 @@ verify_export() {
 }
 
 # Check to see if this is an operational request or a verification of export request
-dir=`pwd`
-tools_file="${dir}/tools.yml"
-tools_jar="${dir}/ArrayTools-1.0.jar"
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+tools_file="${DIR}/tools.yml"
+tools_jar="${DIR}/ArrayTools.jar"
 
 if [ "$1" = "add_volume_to_mask" ]; then
     shift

@@ -1,6 +1,15 @@
 package com.emc.storageos.volumecontroller.impl.validators.vplex;
 
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.Collection;
+import java.util.List;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -11,17 +20,9 @@ import com.emc.storageos.volumecontroller.impl.validators.ValCk;
 import com.emc.storageos.volumecontroller.impl.validators.Validator;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorLogger;
 import com.emc.storageos.vplex.api.VPlexApiClient;
-import com.emc.storageos.vplex.api.VPlexApiException;
 import com.emc.storageos.vplex.api.VPlexApiFactory;
 import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
 import com.google.common.collect.Lists;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.Collection;
-import java.util.List;
 
 /**
  * Factory for creating Vplex-specific validator instances.
@@ -31,7 +32,7 @@ public class VplexSystemValidatorFactory implements StorageSystemValidatorFactor
     private static final Logger log = LoggerFactory.getLogger(VplexSystemValidatorFactory.class);
     private DbClient dbClient;
 
-    private List<Volume> remediatedVolumes = Lists.newArrayList();
+    private final List<Volume> remediatedVolumes = Lists.newArrayList();
     private VPlexApiClient client;
     private ValidatorLogger logger;
 
@@ -86,6 +87,11 @@ public class VplexSystemValidatorFactory implements StorageSystemValidatorFactor
     }
 
     @Override
+    public Validator deleteVolumes(StorageSystem storage, Collection<Volume> volumes) {
+        return null;
+    }
+
+    @Override
     public List<Volume> volumes(StorageSystem storageSystem, List<Volume> volumes, boolean delete, boolean remediate,
             ValCk[] checks) {
         checkVplexConnectivity(storageSystem);
@@ -102,5 +108,27 @@ public class VplexSystemValidatorFactory implements StorageSystemValidatorFactor
             throw ex;
         }
         return remediatedVolumes;
+    }
+
+    @Override
+    public Validator expandVolumes(StorageSystem storageSystem, Volume volume) {
+        return null;
+    }
+
+    @Override
+    public Validator createSnapshot(StorageSystem storage, BlockSnapshot snapshot, Volume volume) {
+        return null;
+    }
+
+    @Override
+    public Validator addVolumes(StorageSystem storage, URI exportMaskURI, Collection<Initiator> initiators) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public Validator addInitiators(StorageSystem storage, ExportMask exportMask, Collection<URI> volumeURIList) {
+        // TODO Auto-generated method stub
+        return null;
     }
 }

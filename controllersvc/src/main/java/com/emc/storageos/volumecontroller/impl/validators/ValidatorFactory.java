@@ -1,17 +1,18 @@
 package com.emc.storageos.volumecontroller.impl.validators;
 
-import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.model.ExportMask;
-import com.emc.storageos.db.client.model.Initiator;
-import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.model.Volume;
-
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.ExportMask;
+import com.emc.storageos.db.client.model.Initiator;
+import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.Volume;
 
 /**
  * Top-level factory class for building {@link Validator} instances.
@@ -30,12 +31,13 @@ public class ValidatorFactory implements StorageSystemValidatorFactory {
     }
 
     /**
-     * Validates a list of Volumes 
+     * Validates a list of Volumes
+     *
      * @param uris
      * @param delete
      * @param remediate
      * @param checks A list of validation checks to be made (of type ValCk).
-     * @return 
+     * @return
      */
     public List<URI> volumeURIs(List<URI> uris, boolean delete, boolean remediate, ValCk... checks) {
         List<URI> remediatedURIs = new ArrayList<URI>();
@@ -80,6 +82,7 @@ public class ValidatorFactory implements StorageSystemValidatorFactory {
 
     /**
      * Return the Vplex validator factory.
+     *
      * @return VPlexSystemValidatorFactory instance
      */
     public StorageSystemValidatorFactory vplex() {
@@ -88,7 +91,7 @@ public class ValidatorFactory implements StorageSystemValidatorFactory {
 
     @Override
     public Validator exportMaskDelete(StorageSystem storage, ExportMask exportMask, Collection<URI> volumeURIList,
-                                      Collection<Initiator> initiatorList) {
+            Collection<Initiator> initiatorList) {
         return getSystemValidator(storage).exportMaskDelete(storage, exportMask, volumeURIList, initiatorList);
     }
 
@@ -103,13 +106,39 @@ public class ValidatorFactory implements StorageSystemValidatorFactory {
     }
 
     @Override
+    public Validator deleteVolumes(StorageSystem storage, Collection<Volume> volumes) {
+        return getSystemValidator(storage).deleteVolumes(storage, volumes);
+    }
+
+    @Override
     public List<Volume> volumes(StorageSystem storageSystem, List<Volume> volumes, boolean delete, boolean remediate,
-                                ValCk[] checks) {
+            ValCk[] checks) {
         return getSystemValidator(storageSystem).volumes(storageSystem, volumes, delete, remediate, checks);
+    }
+
+    @Override
+    public Validator expandVolumes(StorageSystem storage, Volume volume) {
+        return getSystemValidator(storage).expandVolumes(storage, volume);
+    }
+
+    @Override
+    public Validator createSnapshot(StorageSystem storage, BlockSnapshot snapshot, Volume volume) {
+        return getSystemValidator(storage).createSnapshot(storage, snapshot, volume);
+    }
+
+    @Override
+    public Validator addVolumes(StorageSystem storage, URI exportMaskURI, Collection<Initiator> initiators) {
+        return getSystemValidator(storage).addVolumes(storage, exportMaskURI, initiators);
+    }
+
+    @Override
+    public Validator addInitiators(StorageSystem storage, ExportMask exportMask, Collection<URI> volumeURIList) {
+        return getSystemValidator(storage).addInitiators(storage, exportMask, volumeURIList);
     }
 
     /**
      * Returns the appropriate StorageSystemValidatorFactory based on StorageSystem type.
+     *
      * @param system -- StorageSystem object
      * @return -- StorageSystemValidatorFactory
      */

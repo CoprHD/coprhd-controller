@@ -7,20 +7,27 @@
  */
 package controllers.arrays;
 
+import com.emc.storageos.model.network.NetworkSystemCreate;
+import com.emc.storageos.model.network.NetworkSystemRestRep;
+import com.emc.storageos.model.network.NetworkSystemUpdate;
+import com.emc.vipr.client.Task;
 import static com.emc.vipr.client.core.util.ResourceUtils.uris;
-
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import controllers.Common;
+import controllers.deadbolt.Restrict;
+import controllers.deadbolt.Restrictions;
+import controllers.util.FlashException;
+import controllers.util.ViprResourceController;
 import java.net.URI;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
-
 import models.NetworkSystemTypes;
 import models.RegistrationStatus;
 import models.datatable.SanSwitchDataTable;
 import models.datatable.SanSwitchDataTable.SanSwitchInfo;
-
 import org.apache.commons.lang.StringUtils;
-
 import play.data.binding.As;
 import play.data.validation.MaxSize;
 import play.data.validation.MinSize;
@@ -32,17 +39,6 @@ import util.EnumOption;
 import util.MessagesUtils;
 import util.NetworkSystemUtils;
 import util.validation.HostNameOrIpAddress;
-
-import com.emc.storageos.model.network.NetworkSystemCreate;
-import com.emc.storageos.model.network.NetworkSystemRestRep;
-import com.emc.storageos.model.network.NetworkSystemUpdate;
-import com.emc.vipr.client.Task;
-
-import controllers.Common;
-import controllers.deadbolt.Restrict;
-import controllers.deadbolt.Restrictions;
-import controllers.util.ViprResourceController;
-import controllers.util.FlashException;
 
 @With(Common.class)
 @Restrictions({ @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
@@ -123,9 +119,22 @@ public class SanSwitches extends ViprResourceController {
             Common.handleError();
         }
 
-        sanSwitch.save();
+        Task<?> sanTask = sanSwitch.save();
         flash.success(MessagesUtils.get(SAVED, sanSwitch.name));
-        response.setCookie("guide_fabric", sanSwitch.name);
+
+        JsonObject dataObject = getCookieAsJson("GUIDE_DATA");
+
+        JsonArray fabrics = dataObject.getAsJsonArray("fabrics");
+        if (fabrics == null) {
+            fabrics = new JsonArray();
+        }
+        JsonObject fabric = new JsonObject();
+        fabric.addProperty("id",sanTask.getResourceId().toString());
+        fabric.addProperty("name",sanSwitch.name);
+        fabrics.add(fabric);
+        dataObject.add("fabrics", fabrics);
+        saveJsonAsCookie("GUIDE_DATA", dataObject);
+
 
         list();
     }

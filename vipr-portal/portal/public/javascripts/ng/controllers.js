@@ -1529,9 +1529,9 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                 finishChecking();
                 break;
             case 4:
-                if(checkCookie("GUIDE_DATA")){
+                if(checkCookie(dataCookieKey)){
                     ssid = "";
-                    guide_data=angular.fromJson(readCookie("GUIDE_DATA"));
+                    guide_data=angular.fromJson(readCookie(dataCookieKey));
 
                     if(guide_data){
                         arrayCookie = guide_data.storage_systems;
@@ -1912,11 +1912,8 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
 
     removeGuideCookies = function() {
         eraseCookie(cookieKey);
-        eraseCookie("guide_storageArray");
-        eraseCookie("guide_fabric");
-        eraseCookie("guide_vpool");
+        eraseCookie(dataCookieKey);
         eraseCookie("guide_varray");
-        eraseCookie("guide_project");
     }
 
     saveGuideCookies = function() {
@@ -1969,16 +1966,16 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                 return true;
                 break;
             case 4:
-                if(checkCookie("GUIDE_DATA")){
+                if(checkCookie(dataCookieKey)){
                     ssid = "";
-                    guide_data=angular.fromJson(readCookie("GUIDE_DATA"));
+                    guide_data=angular.fromJson(readCookie(dataCookieKey));
 
                     if(guide_data){
                         arrayCookie = guide_data.storage_systems;
                         if (arrayCookie) {
                             jQuery.each(arrayCookie, function() {
                                 if (ssid){ssid += ","}
-                                ssid += this.name;
+                                ssid += this.id;
                             });
                         }
                     }
@@ -2150,23 +2147,35 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
             else if ($scope.completedSteps > 5){
                 $scope.guide_varray = "Skipped";
             }
-            vpoolCookie = readCookie("guide_vpool");
+            vpoolCookie = guide_data.vpools;
             if (vpoolCookie) {
-                $scope.guide_vpool = vpoolCookie;
+                $scope.guide_vpool = "";
+                jQuery.each(vpoolCookie, function() {
+                    if ($scope.guide_vpool){$scope.guide_vpool += ","}
+                    $scope.guide_vpool += this.name;
+                });
             }
             else if ($scope.completedSteps > 6){
-                $scope.guide_varray = "Skipped";
+                $scope.guide_vpool = "Skipped";
             }
-            fabricCookie = readCookie("guide_fabric");
+            fabricCookie = guide_data.fabrics;
             if (fabricCookie) {
-                $scope.guide_fabric = fabricCookie.replace(/\"/g,'');;
+                $scope.guide_fabric = "";
+                jQuery.each(fabricCookie, function() {
+                    if ($scope.guide_fabric){$scope.guide_fabric += ","}
+                    $scope.guide_fabric += this.name;
+                });
             }
             else if ($scope.completedSteps > 4){
                 $scope.guide_fabric = "Skipped";
             }
-            projectCookie = readCookie("guide_project");
+            projectCookie = guide_data.projects;
             if (projectCookie) {
-                $scope.guide_project = projectCookie;
+                $scope.guide_project = "";
+                jQuery.each(projectCookie, function() {
+                    if ($scope.guide_project){$scope.guide_project += ","}
+                    $scope.guide_project += this.name;
+                });
             }
             else if ($scope.completedSteps > 7){
                 $scope.guide_project = "Skipped";

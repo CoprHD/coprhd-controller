@@ -172,6 +172,9 @@
                                     <div class="steps-incomplete" ng-show="currentStep > completedSteps + 1">
                                         <p class="guide-info">&{'gettingStarted.incompletesteps.text'}</p>
                                     </div>
+                                    <div class="steps-incomplete" ng-show="guideError && completedSteps + 1 == 4">
+                                        <p class="guide-error">{{guideError}}</p>
+                                    </div>
                                 </div>
                             </div>
                             <!-- end guide-textpanel -->
@@ -210,6 +213,9 @@
                                     <div class="steps-incomplete" ng-show="currentStep > completedSteps + 1">
                                         <p class="guide-info">&{'gettingStarted.incompletesteps.text'}</p>
                                     </div>
+                                    <div class="steps-incomplete" ng-show="guideError && completedSteps + 1 == 5">
+                                        <p class="guide-error">{{guideError}}</p>
+                                    </div>
                                 </div>
                             </div>
                             <!-- end guide-textpanel -->
@@ -246,6 +252,9 @@
                                     <button ng-disabled="currentStep > completedSteps + 1" name="singlebutton" class="btn btn-primary" ng-click="runStep();">&{'gettingStarted.virtualarray.button'}</button>
                                     <div class="steps-incomplete" ng-show="currentStep > completedSteps + 1">
                                         <p class="guide-info">&{'gettingStarted.incompletesteps.text'}</p>
+                                    </div>
+                                    <div class="steps-incomplete" ng-show="guideError && completedSteps + 1 == 6">
+                                        <p class="guide-error">{{guideError}}</p>
                                     </div>
                                 </div>
                             </div>
@@ -284,6 +293,9 @@
                                     <div class="steps-incomplete" ng-show="currentStep > completedSteps + 1">
                                         <p class="guide-info">&{'gettingStarted.incompletesteps.text'}</p>
                                     </div>
+                                    <div class="steps-incomplete" ng-show="guideError && completedSteps + 1 == 7">
+                                        <p class="guide-error">{{guideError}}</p>
+                                    </div>
                                 </div>
                             </div>
                             <!-- end guide-textpanel -->
@@ -320,6 +332,9 @@
                                     <button ng-disabled="currentStep > completedSteps + 1" name="singlebutton" class="btn btn-primary" ng-click="runStep();">&{'gettingStarted.project.button'}</button>
                                     <div class="steps-incomplete" ng-show="currentStep > completedSteps + 1">
                                         <p class="guide-info">&{'gettingStarted.incompletesteps.text'}</p>
+                                    </div>
+                                    <div class="steps-incomplete" ng-show="guideError && completedSteps + 1 == 8">
+                                        <p class="guide-error">{{guideError}}</p>
                                     </div>
                                 </div>
                             </div>

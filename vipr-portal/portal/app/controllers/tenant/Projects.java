@@ -6,6 +6,8 @@ package controllers.tenant;
 
 import static com.emc.vipr.client.core.util.ResourceUtils.*;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
 import java.net.URI;
 import java.util.Arrays;
 import java.util.List;
@@ -137,7 +139,18 @@ public class Projects extends ViprResourceController {
         }
 
         flash.success(MessagesUtils.get("projects.saved", project.name));
-        response.setCookie("guide_project", project.name);
+        JsonObject dataObject = getCookieAsJson("GUIDE_DATA");
+
+        JsonArray projects = dataObject.getAsJsonArray("projects");
+        if (projects == null) {
+            projects = new JsonArray();
+        }
+        JsonObject projectObject = new JsonObject();
+        projectObject.addProperty("id",project.id);
+        projectObject.addProperty("name",project.name);
+        projects.add(projectObject);
+        dataObject.add("projects", projects);
+        saveJsonAsCookie("GUIDE_DATA", dataObject);
         if (StringUtils.isNotBlank(project.referrerUrl)) {
             redirect(project.referrerUrl);
         }

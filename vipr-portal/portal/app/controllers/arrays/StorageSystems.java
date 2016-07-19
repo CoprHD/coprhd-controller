@@ -252,12 +252,6 @@ public class StorageSystems extends ViprResourceController {
 
         if (jobject.get("completedSteps").getAsInt() == 3) {
             JsonObject dataObject = getCookieAsJson("GUIDE_DATA");
-            //String cookieValue = "";
-            //Http.Cookie cookie = request.cookies.get("guide_storageArray");
-            //if (cookie != null) {
-            //    cookieValue += cookie.value + ",";
-            //}
-            //cookieValue += sp.getResourceId();
 
             JsonArray storage_systems = dataObject.getAsJsonArray("storage_systems");
             if (storage_systems == null) {

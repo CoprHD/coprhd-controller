@@ -7,10 +7,13 @@ package controllers.arrays;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.systems.StorageSystemRestRep;
+import com.emc.vipr.client.Task;
 import com.emc.vipr.client.core.VirtualArrays;
 import static com.emc.vipr.client.core.util.ResourceUtils.id;
 import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 import static com.emc.vipr.client.core.util.ResourceUtils.uris;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
 import com.sun.org.apache.xpath.internal.operations.Bool;
 import static controllers.Common.angularRenderArgs;
 import static controllers.Common.copyRenderArgsToAngular;
@@ -267,8 +270,21 @@ public class BlockVirtualPools extends ViprResourceController {
             vpool.description = "Virtual Pool for " + name + " Storage";
         }
 
-        if(vpool.save() != null) {
-            response.setCookie("guide_vpool", vpool.name);
+        BlockVirtualPoolRestRep vpoolTask = vpool.save();
+
+        if(vpoolTask != null) {
+            JsonObject dataObject = getCookieAsJson("GUIDE_DATA");
+
+            JsonArray vpools = dataObject.getAsJsonArray("vpools");
+            if (vpools == null) {
+                vpools = new JsonArray();
+            }
+            JsonObject vpoolObject = new JsonObject();
+            vpoolObject.addProperty("id",vpoolTask.getId().toString());
+            vpoolObject.addProperty("name",vpool.name);
+            vpools.add(vpoolObject);
+            dataObject.add("vpools", vpools);
+            saveJsonAsCookie("GUIDE_DATA", dataObject);
         }
         list();
     }

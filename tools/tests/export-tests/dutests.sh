@@ -653,6 +653,7 @@ vmax2_setup() {
 	--numpaths 1				            \
 	--provisionType 'Thin'			        \
 	--max_snapshots 10                      \
+	--expandable true                       \
 	--neighborhoods $NH                    
 
     runcmd cos update block $VPOOL_BASE --storage ${VMAX2_NATIVEGUID}
@@ -687,6 +688,7 @@ vmax3_setup() {
 	--numpaths 1				            \
 	--provisionType 'Thin'			        \
 	--max_snapshots 10                      \
+	--expandable true                       \
 	--neighborhoods $NH                    
 
     runcmd cos update block $VPOOL_BASE --storage ${VMAX_NATIVEGUID}

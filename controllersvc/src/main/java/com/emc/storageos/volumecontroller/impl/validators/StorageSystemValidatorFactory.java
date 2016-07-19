@@ -1,5 +1,6 @@
 package com.emc.storageos.volumecontroller.impl.validators;
 
+import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -49,6 +50,15 @@ public interface StorageSystemValidatorFactory {
     Validator removeInitiators(StorageSystem storage, ExportMask exportMask, Collection<URI> volumeURIList);
 
     /**
+     * Create an {@link Validator} instance for validating a delete volumes operation.
+     *
+     * @param storage
+     * @param volumes
+     * @return
+     */
+    Validator deleteVolumes(StorageSystem storage, Collection<Volume> volumes);
+
+    /**
      * Validates the volumes for a single storage system.
      *
      * @param storageSystem -- Storage System object
@@ -59,4 +69,23 @@ public interface StorageSystemValidatorFactory {
      * @return -- list of any Volumes that were remediated
      */
     List<Volume> volumes(StorageSystem storageSystem, List<Volume> volumes, boolean delete, boolean remediate, ValCk[] checks);
+
+    /**
+     * Create an {@link Validator} instance for validating an expand volume operation.
+     *
+     * @param storageSystem
+     * @param volume
+     * @return
+     */
+    Validator expandVolumes(StorageSystem storageSystem, Volume volume);
+
+    /**
+     * Create an {@link Validator} instance for validating a create snapshot operation.
+     *
+     * @param storage
+     * @param snapshot
+     * @param volume
+     * @return
+     */
+    Validator createSnapshot(StorageSystem storage, BlockSnapshot snapshot, Volume volume);
 }

@@ -1,6 +1,7 @@
 package com.emc.storageos.volumecontroller.impl.validators.vplex;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -84,6 +85,11 @@ public class VplexSystemValidatorFactory implements StorageSystemValidatorFactor
     }
 
     @Override
+    public Validator deleteVolumes(StorageSystem storage, Collection<Volume> volumes) {
+        return null;
+    }
+
+    @Override
     public List<Volume> volumes(StorageSystem storageSystem, List<Volume> volumes, boolean delete, boolean remediate,
                                 ValCk[] checks) {
         checkVplexConnectivity(storageSystem);
@@ -100,5 +106,15 @@ public class VplexSystemValidatorFactory implements StorageSystemValidatorFactor
             throw ex;
         }
         return remediatedVolumes;
+    }
+
+    @Override
+    public Validator expandVolumes(StorageSystem storageSystem, Volume volume) {
+        return null;
+    }
+
+    @Override
+    public Validator createSnapshot(StorageSystem storage, BlockSnapshot snapshot, Volume volume) {
+        return null;
     }
 }

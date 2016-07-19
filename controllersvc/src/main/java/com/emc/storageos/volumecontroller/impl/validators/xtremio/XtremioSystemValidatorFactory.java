@@ -1,6 +1,7 @@
 package com.emc.storageos.volumecontroller.impl.validators.xtremio;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -58,7 +59,22 @@ public class XtremioSystemValidatorFactory implements StorageSystemValidatorFact
     }
 
     @Override
+    public Validator expandVolumes(StorageSystem storageSystem, Volume volume) {
+        return null;
+    }
+
+    @Override
+    public Validator createSnapshot(StorageSystem storage, BlockSnapshot snapshot, Volume volume) {
+        return null;
+    }
+
+    @Override
     public Validator removeInitiators(StorageSystem storage, ExportMask exportMask, Collection<URI> volumeURIList) {
+        return null;
+    }
+
+    @Override
+    public Validator deleteVolumes(StorageSystem storage, Collection<Volume> volumes) {
         return null;
     }
 }

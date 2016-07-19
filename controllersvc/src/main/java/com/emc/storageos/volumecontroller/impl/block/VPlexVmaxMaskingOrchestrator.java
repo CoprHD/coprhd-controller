@@ -336,9 +336,9 @@ public class VPlexVmaxMaskingOrchestrator extends VmaxMaskingOrchestrator
     @Override
     public Workflow.Method createOrAddVolumesToExportMaskMethod(URI arrayURI,
             URI exportGroupURI, URI exportMaskURI,
-            Map<URI, Integer> volumeMap, TaskCompleter completer) {
+            Map<URI, Integer> volumeMap, List<URI> initiatorURIs, TaskCompleter completer) {
         return new Workflow.Method("createOrAddVolumesToExportMask",
-                arrayURI, exportGroupURI, exportMaskURI, volumeMap, completer);
+                arrayURI, exportGroupURI, exportMaskURI, volumeMap, initiatorURIs, completer);
     }
 
     /**
@@ -347,7 +347,7 @@ public class VPlexVmaxMaskingOrchestrator extends VmaxMaskingOrchestrator
      */
     @Override
     public void createOrAddVolumesToExportMask(URI arrayURI, URI exportGroupURI, URI exportMaskURI,
-            Map<URI, Integer> volumeMap, TaskCompleter completer, String stepId) {
+            Map<URI, Integer> volumeMap, List<URI> initiatorURIs2, TaskCompleter completer, String stepId) {
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
             StorageSystem array = _dbClient.queryObject(StorageSystem.class, arrayURI);
@@ -396,7 +396,17 @@ public class VPlexVmaxMaskingOrchestrator extends VmaxMaskingOrchestrator
                 device.doExportCreate(array, exportMask, volumeMap,
                         initiators, targets, completer);
             } else {
-                device.doExportAddVolumes(array, exportMask, null, volumeMap, completer);
+                List<URI> initiatorURIs = new ArrayList<URI>();
+                List<Initiator> initiators = new ArrayList<Initiator>();
+                for (String initiatorId : exportMask.getInitiators()) {
+                    Initiator initiator = _dbClient.queryObject(Initiator.class, URI.create(initiatorId));
+                    if (initiator != null) {
+                        initiators.add(initiator);
+                        initiatorURIs.add(initiator.getId());
+                    }
+                }
+
+                device.doExportAddVolumes(array, exportMask, initiators, volumeMap, completer);
             }
 
         } catch (Exception ex) {

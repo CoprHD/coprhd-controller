@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -97,9 +98,36 @@ public class VmaxSystemValidatorFactory implements StorageSystemValidatorFactory
     }
 
     @Override
+    public Validator deleteVolumes(StorageSystem storage, Collection<Volume> volumes) {
+        ValidatorLogger sharedLogger = createValidatorLogger();
+        AbstractVmaxValidator identity = new ValidateVolumeIdentity(storage, volumes);
+        configureValidators(sharedLogger, identity);
+
+        return new DefaultValidator(identity, sharedLogger, "Volume");
+    }
+
+    @Override
     public List<Volume> volumes(StorageSystem storageSystem, List<Volume> volumes, boolean delete, boolean remediate,
             ValCk[] checks) {
         return null;
+    }
+
+    @Override
+    public Validator expandVolumes(StorageSystem storage, Volume volume) {
+        ValidatorLogger sharedLogger = createValidatorLogger();
+        AbstractVmaxValidator identity = new ValidateVolumeIdentity(storage, Lists.newArrayList(volume));
+        configureValidators(sharedLogger, identity);
+
+        return new DefaultValidator(identity, sharedLogger, "Volume");
+    }
+
+    @Override
+    public Validator createSnapshot(StorageSystem storage, BlockSnapshot snapshot, Volume volume) {
+        ValidatorLogger sharedLogger = createValidatorLogger();
+        AbstractVmaxValidator identity = new ValidateVolumeIdentity(storage, Lists.newArrayList(volume));
+        configureValidators(sharedLogger, identity);
+
+        return new DefaultValidator(identity, sharedLogger, "Volume");
     }
 
     /**

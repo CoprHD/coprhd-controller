@@ -528,6 +528,18 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     VolumeDescriptor.Type.VPLEX_VIRT_VOLUME, vplexStorageSystemURI, volumeId,
                     null, consistencyGroup == null ? null : consistencyGroup.getId(),
                     vPoolCapabilities, volume.getCapacity());
+            
+            // Set the compute resource in the descriptor if the volume to be created will be exported
+            // to a host/cluster after it has been created so that the compute resource name can be 
+            // included in the volume name if the custom volume naming is so configured. Do not set the
+            // compute resource if the descriptor is for an SRDF target as the target is not exported
+            // to the compute resource.
+            URI computeResourceURI = param.getComputeResource();
+            if ((computeResourceURI != null) && (!srdfCopy)) {
+                s_logger.info(String.format("Volume %s - will be exported to Host/Cluster: %s", volume.getLabel(),
+                        computeResourceURI.toString()));
+                descriptor.setComputeResource(computeResourceURI);
+            }
             descriptors.add(descriptor);
         }
 
@@ -3853,8 +3865,10 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     List<Volume> vplexVolumes = CustomQueryUtility.queryActiveResourcesByConstraint(
                             _dbClient, Volume.class, AlternateIdConstraint.Factory.getVolumeByAssociatedVolumesConstraint(
                                     volumesWithSameNativeGuid.get(0).getId().toString()));
+                    String volumeLabel = !vplexVolumes.isEmpty() ? 
+                            vplexVolumes.get(0).getLabel() : volumesWithSameNativeGuid.get(0).getId().toString();
                     throw APIException.badRequests
-                            .cantDeleteSnapshotExposedByVolume(snapshot.forDisplay(), vplexVolumes.get(0).getLabel());
+                            .cantDeleteSnapshotExposedByVolume(snapshot.forDisplay(), volumeLabel);
                 }
             }
         }

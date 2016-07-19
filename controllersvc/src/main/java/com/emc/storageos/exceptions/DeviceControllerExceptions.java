@@ -281,6 +281,9 @@ public interface DeviceControllerExceptions {
     public DeviceControllerException unableToConnectToStorageDeviceForMonitoringNoDevice(final String storage,
             final String devType);
 
+    @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)
+    public DeviceControllerException failedToAcquireWorkflowLock(String lockName, String operation);
+
     @DeclareServiceCode(ServiceCode.FILE_CONNECTION_ERROR)
     DeviceControllerException unableToDisconnectStorageDeviceMonitoringDbException(
             final String storage, final Throwable cause);
@@ -487,4 +490,8 @@ public interface DeviceControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_VALIDATION_EXCEPTION)
     public DeviceControllerException validationError(final String type, final String details, final String remedialAction);
+
+    @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
+    public DeviceControllerException couldNotPerformAliasOperation(final String reason);
+
 }

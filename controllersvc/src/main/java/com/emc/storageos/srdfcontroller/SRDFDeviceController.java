@@ -1076,7 +1076,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             }
         }
 
-        String lastDeleteSRDFMirrorStep = null;
+        String lastDeleteSRDFMirrorStep = waitFor;
         if (!srdfGroupMap.isEmpty()) {
             // Add step to resume each Active SRDF group
             for (URI srdfGroupURI : srdfGroupMap.keySet()) {

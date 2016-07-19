@@ -4,6 +4,7 @@
 #{extends 'main.html' /}
 #{set navSelected: ['nav.assets', 'nav.storageProviders'] /}
 #{set 'title'}&{titleKey}#{/set}
+#{set editMode:smisProvider?.id ? true : false/}
 
 #{breadcrumb.container}
   #{breadcrumb.item @list()}&{'SMISProviders.list.title'}#{/breadcrumb.item}
@@ -23,7 +24,6 @@
     #{/field}
 
     <input type="hidden" name="smisProvider.id" value="{{smisProvider.id}}" ng-if="smisProvider.id">
-
     <fieldset>
       <control-group v-field="smisProvider.name" required>
         <input-text class="initialFocus"></input-text>
@@ -86,10 +86,32 @@
         <input-text></input-text>
       </control-group>
 
+	  
       <control-group v-field="smisProvider.secretKey" required="!editMode" ng-show="isSecretKeyProviderList()">
         <input-password></input-password>
       </control-group>
 
+	  <control-group v-field="smisProvider.hyperScaleUser"  ng-show="smisProvider.interfaceType ==='ibmxiv'" required="!editMode">
+        <input-text></input-text>
+      </control-group>
+            
+      <control-group v-field="smisProvider.hyperScalePassword"  ng-show="smisProvider.interfaceType ==='ibmxiv'" required="!editMode">
+        <input-password></input-password>
+      </control-group>
+
+      <control-group v-field="smisProvider.hyperScaleConfPasswd" ng-show="smisProvider.interfaceType ==='ibmxiv'" required="!editMode">
+        <input-password></input-password>
+      </control-group>      
+      
+
+      <control-group v-field="smisProvider.hyperScaleHost" ng-show="smisProvider.interfaceType ==='ibmxiv'" required="!editMode">
+        <input-text></input-text>
+      </control-group>
+      
+      <control-group v-field="smisProvider.hyperScalePort" ng-show="smisProvider.interfaceType ==='ibmxiv'" required="!editMode">
+        <input-text></input-text>
+      </control-group>
+      
     </fieldset>	
     #{Form.saveCancel cancelHref:referrer/}  
   #{/form}
@@ -97,11 +119,26 @@
 <script>
 $(document).ready(function() {
 	disableInterfaceType();
+	disableRequired();
 });
+
 function disableInterfaceType() {
 	var providerType = '${smisProvider.interfaceType}';
 	if (providerType == 'scaleioapi' || providerType == 'ceph') {
 		$("#smisProvider_interfaceType").attr('disabled',true);
 	}
+}
+
+function disableRequired() {
+	var editMode = #{get 'editMode'/};
+	if(editMode) {	
+		$('#smisProvider_hyperScaleUserControlGroup').removeClass('required');
+		$('#smisProvider_hyperScalePasswordControlGroup').removeClass('required');
+		$('#smisProvider_hyperScaleConfPasswdControlGroup').removeClass('required');
+		$('#smisProvider_hyperScaleHostControlGroup').removeClass('required');
+		$('#smisProvider_hyperScalePortControlGroup').removeClass('required');
+		window.setInterval(disableRequired,500);
+	}
+	
 }
 </script>

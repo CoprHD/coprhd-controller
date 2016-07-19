@@ -105,9 +105,24 @@ public class ValidatorFactory implements StorageSystemValidatorFactory {
     }
 
     @Override
+    public Validator deleteVolumes(StorageSystem storage, Collection<Volume> volumes) {
+        return getSystemValidator(storage).deleteVolumes(storage, volumes);
+    }
+
+    @Override
     public List<Volume> volumes(StorageSystem storageSystem, List<Volume> volumes, boolean delete, boolean remediate,
             ValCk[] checks) {
         return getSystemValidator(storageSystem).volumes(storageSystem, volumes, delete, remediate, checks);
+    }
+
+    @Override
+    public Validator expandVolumes(StorageSystem storage, Volume volume) {
+        return getSystemValidator(storage).expandVolumes(storage, volume);
+    }
+
+    @Override
+    public Validator createSnapshot(StorageSystem storage, BlockSnapshot snapshot, Volume volume) {
+        return getSystemValidator(storage).createSnapshot(storage, snapshot, volume);
     }
 
     @Override

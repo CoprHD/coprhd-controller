@@ -127,13 +127,15 @@ public interface VplexBackEndMaskingOrchestrator extends MaskingOrchestrator {
      *            -- ExportMask URI
      * @param volumeMap
      *            -- Map of Volume URI to HLU Integer
+     * @param initiatorURIs
+     *            -- List of initiators impacted by this operation
      * @param completer
      *            -- TaskCompleter to be fired when complete.
      * @return Workflow.Method
      */
     Workflow.Method createOrAddVolumesToExportMaskMethod(URI arrayURI,
             URI exportGroupURI, URI exportMaskURI,
-            Map<URI, Integer> volumeMap, TaskCompleter completer);
+            Map<URI, Integer> volumeMap, List<URI> initiatorURIs, TaskCompleter completer);
 
     /**
      * Create an ExportMask (VMAX: Masking View, VNX: Storage Group) on the backend array
@@ -147,13 +149,15 @@ public interface VplexBackEndMaskingOrchestrator extends MaskingOrchestrator {
      *            -- ExportMask URI
      * @param volumeMap
      *            -- Map of Volume URI to HLU Integer
+     * @param initiatorURIs
+     *            -- List of initiators impacted by this operation
      * @param completer
      *            -- TaskCompleter to be fired when complete.
      * @param stepId
      *            --Step id of Workflow Step.
      */
     void createOrAddVolumesToExportMask(URI arrayURI, URI exportGroupURI, URI exportMaskURI,
-            Map<URI, Integer> volumeMap, TaskCompleter completer, String stepId);
+            Map<URI, Integer> volumeMap, List<URI> initiatorURIs, TaskCompleter completer, String stepId);
 
     /**
      * Return a Workflow Method for:

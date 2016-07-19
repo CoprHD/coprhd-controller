@@ -27,6 +27,12 @@ public class DiscoverStorageProviderOperation extends OperationImpl {
 
     private static final Logger logger = LoggerFactory.getLogger(DiscoverStorageSystemOperation.class);
 
+    /*
+     * This value is used to set "systemType" field which is required to pass the check "isProviderStorageSystem()"
+     * in the "DiscoveredDataObject.java" class when discovering storage systems.
+     */
+    private static final String SYSTEM_TYPE = "vmax";
+
     private StorageProvider storageProvider;
     private List<StorageSystem> storageSystems;
 
@@ -62,6 +68,8 @@ public class DiscoverStorageProviderOperation extends OperationImpl {
             List<String> arrayIds = new SloprovisioningSymmetrixList().perform(this.getClient());
             for (String arrayId : arrayIds) {
                 StorageSystem storageSystem = new StorageSystem();
+                storageSystem.setSystemName(arrayId);
+                storageSystem.setSystemType(SYSTEM_TYPE);
                 storageSystem.setNativeId(arrayId);
                 storageSystem.setIpAddress(this.storageProvider.getProviderHost());
                 storageSystem.setPortNumber(this.storageProvider.getPortNumber());

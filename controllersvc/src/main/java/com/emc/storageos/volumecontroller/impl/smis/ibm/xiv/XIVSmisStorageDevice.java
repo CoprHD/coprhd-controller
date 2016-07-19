@@ -18,6 +18,7 @@ import javax.cim.CIMInstance;
 import javax.cim.CIMObjectPath;
 import javax.wbem.CloseableIterator;
 import javax.wbem.WBEMException;
+import javax.wbem.client.EnumerateResponse;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,6 +30,7 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.ExportMask;
+import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -715,7 +717,8 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
      * (non-Javadoc)
      * 
      * @see
-     * com.emc.storageos.volumecontroller.AbstractBlockStorageDevice#doCreateConsistencyGroup(com.emc.storageos.db.client.model.StorageSystem
+     * com.emc.storageos.volumecontroller.AbstractBlockStorageDevice#doCreateConsistencyGroup(com.emc.storageos.db.client.model.
+     * StorageSystem
      * , java.net.URI, com.emc.storageos.volumecontroller.TaskCompleter)
      * 
      * Note: this won't create CG on array side, it just associate CG with array
@@ -765,7 +768,8 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
 
     @Override
     public void doDeleteConsistencyGroup(final StorageSystem storage,
-            final URI consistencyGroupId, String replicationGroupName, Boolean keepRGName, Boolean markInactive, final TaskCompleter taskCompleter)
+            final URI consistencyGroupId, String replicationGroupName, Boolean keepRGName, Boolean markInactive,
+            final TaskCompleter taskCompleter)
             throws DeviceControllerException {
         BlockConsistencyGroup consistencyGroup = _dbClient.queryObject(
                 BlockConsistencyGroup.class, consistencyGroupId);
@@ -807,10 +811,10 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
             taskCompleter.error(_dbClient, error);
         }
     }
-    
+
     @Override
     public void doDeleteConsistencyGroup(StorageSystem storage, final URI consistencyGroupId,
-            String replicationGroupName, Boolean keepRGName, Boolean markInactive, 
+            String replicationGroupName, Boolean keepRGName, Boolean markInactive,
             String sourceReplicationGroup, final TaskCompleter taskCompleter) throws DeviceControllerException {
         doDeleteConsistencyGroup(storage, consistencyGroupId, replicationGroupName, keepRGName, markInactive, taskCompleter);
     }
@@ -1052,8 +1056,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
                         .consistencyGroupNotFound(consistencyGroup.getLabel(),
                                 consistencyGroup.getCgNameOnStorageSystem(storageSystem
                                         .getId()));
-            }
-            else {
+            } else {
                 _log.info("Skipping addVolumesToCG: Volumes are not part of a consistency group");
                 return;
             }
@@ -1151,8 +1154,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
             _log.info("Exception on getCGMembers: " + e.getMessage());
             if (removeMembersException != null) {
                 throw removeMembersException;
-            }
-            else {
+            } else {
                 throw e;
             }
         }
@@ -1193,4 +1195,48 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
         return null;
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Map<URI, List<Integer>> doFindHostHLUs(StorageSystem storage, List<URI> hostURIs) throws DeviceControllerException {
+        Map<URI, List<Integer>> hostToHLUMap = new HashMap<URI, List<Integer>>();
+
+        for (URI hostURI : hostURIs) {
+            List<Integer> hostHLUs = new ArrayList<Integer>();
+            hostToHLUMap.put(hostURI, hostHLUs);
+            Host host = _dbClient.queryObject(Host.class, hostURI);
+            String label = host.getLabel();
+
+            String query = String.format("Select * From %s Where ElementName=\"%s\"", "IBMTSDS_SCSIProtocolController", label);
+            CIMObjectPath pcHostPath = CimObjectPathCreator.createInstance("IBMTSDS_SCSIProtocolController", Constants.IBM_NAMESPACE, null);
+            List<CIMInstance> pcInstancesForHost = _helper.executeQuery(storage, pcHostPath, query, "WQL");
+
+            if (!pcInstancesForHost.isEmpty()) {
+                CIMObjectPath specificCollectionPath = pcInstancesForHost.get(0).getObjectPath();
+
+                CloseableIterator<CIMInstance> seForPCItr = null;
+                try {
+                    seForPCItr = _helper.getReferenceInstances(storage, specificCollectionPath, "IBMTSDS_ProtocolControllerForSEUnit", null,
+                            new String[] { "DeviceNumber" });
+
+                    while (seForPCItr.hasNext()) {
+                        CIMInstance instance = seForPCItr.next();
+                        final String deviceNumber = CIMPropertyFactory.getPropertyValue(instance, "DeviceNumber");
+                        if(null != deviceNumber && !deviceNumber.isEmpty()){
+                        	hostHLUs.add(Integer.parseInt(deviceNumber));
+                        }
+                    }
+                    _log.info("HLU list for Host {} : {}", label, hostHLUs);
+                } catch (WBEMException e) {
+                    DeviceControllerException.exceptions.smis.hluRetrivalfailed("Error occured during retrieval of HLUs for a Host", e);
+                } finally {
+                    if (seForPCItr != null) {
+                        seForPCItr.close();
+                    }
+                }
+            }
+        }
+        return hostToHLUMap;
+    }
 }

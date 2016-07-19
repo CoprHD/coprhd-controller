@@ -118,7 +118,8 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
     }
 
     @Override
-    public List<VolumeDescriptor> createVolumesAndDescriptors(List<VolumeDescriptor> descriptors, String volumeLabel, Long size, Project project,
+    public List<VolumeDescriptor> createVolumesAndDescriptors(List<VolumeDescriptor> descriptors, String volumeLabel, Long size,
+            Project project,
             VirtualArray varray, VirtualPool vpool, List<Recommendation> recommendations, TaskList taskList, String task,
             VirtualPoolCapabilityValuesWrapper vpoolCapabilities) {
         // Prepare the Bourne Volumes to be created and associated
@@ -147,6 +148,7 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
     
     /**
      * Retrieves the preparedVolumes from the volume descriptors.
+     * 
      * @param descriptors
      * @return List<Volume>
      */
@@ -229,7 +231,8 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
         if (!DiscoveredDataObject.Type.vmax.name().equals(systemType)
                 && !DiscoveredDataObject.Type.vnxblock.name().equals(systemType)
                 && !DiscoveredDataObject.Type.hds.name().equals(systemType)
-                && !DiscoveredDataObject.Type.xtremio.name().equals(systemType)) {
+                && !DiscoveredDataObject.Type.xtremio.name().equals(systemType)
+                && !DiscoveredDataObject.Type.ibmxiv.name().equals(systemType)) {
             throw APIException.badRequests.changesNotSupportedFor("VirtualPool",
                     format("volumes on storage systems of type {0}", systemType));
         }

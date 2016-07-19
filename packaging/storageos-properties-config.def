@@ -2799,7 +2799,7 @@
         key : "workflow_suspend_on_class_method",
         label : "Suspend on workflow class and method",
         description : "Suspend on a workflow when encounters Class.Method",
-	type : "string",
+        type : "string",
         minLen : 1,
         userConfigurable : false,
         userMutable : true,
@@ -2827,4 +2827,18 @@
         controlNodeOnly : false,
         value : "", 
     }
+    {
+        key : "controller_file_operations_lock_timeout",
+        label : "Timeout in seconds",
+        description : "Timeout for VNX file Provisioning Locking",
+        type : "uint32",
+        userConfigurable : true,
+        userMutable : true,
+        advanced : true,
+        tag : "Controller",
+        reconfigRequired : false,
+        rebootRequired : false,
+        controlNodeOnly : false,
+        value : "300",
+    },
 ]

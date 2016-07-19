@@ -56,6 +56,7 @@ import com.emc.storageos.volumecontroller.impl.block.VPlexBackEndOrchestratorUti
 import com.emc.storageos.volumecontroller.impl.block.VPlexHDSMaskingOrchestrator;
 import com.emc.storageos.volumecontroller.impl.block.VPlexVmaxMaskingOrchestrator;
 import com.emc.storageos.volumecontroller.impl.block.VPlexVnxMaskingOrchestrator;
+import com.emc.storageos.volumecontroller.impl.block.VPlexXIVMaskingOrchestrator;
 import com.emc.storageos.volumecontroller.impl.block.VplexBackEndMaskingOrchestrator;
 import com.emc.storageos.volumecontroller.impl.block.VplexCinderMaskingOrchestrator;
 import com.emc.storageos.volumecontroller.impl.block.VplexXtremIOMaskingOrchestrator;
@@ -173,6 +174,10 @@ public class VPlexBackendManager {
 
         if (system.getSystemType().equals(SystemType.openstack.name())) {
             return new VplexCinderMaskingOrchestrator(_dbClient, _blockDeviceController);
+        }
+
+        if (system.getSystemType().equals(SystemType.ibmxiv.name())) {
+            return new VPlexXIVMaskingOrchestrator(_dbClient, _blockDeviceController);
         }
 
         throw DeviceControllerException.exceptions.unsupportedVPlexArray(
@@ -895,17 +900,18 @@ public class VPlexBackendManager {
             }
         }
 
-        VplexBackEndMaskingOrchestrator orca = getOrch(array);
-        Workflow.Method updateMaskMethod = orca.createOrAddVolumesToExportMaskMethod(
-                array.getId(), exportGroup.getId(), exportMask.getId(), volumeLunIdMap, createCompleter);
-        // TODO DUPP:
-        // 1. Figure out the initiators that are impacted by the operation and add them to these method declarations
-        //
         List<URI> initiatorURIs = new ArrayList<>();
         if (exportMask.getInitiators() != null) {
             initiatorURIs = new ArrayList<URI>(Collections2.transform(exportMask.getInitiators(),
                     CommonTransformerFunctions.FCTN_STRING_TO_URI));
         }
+
+        VplexBackEndMaskingOrchestrator orca = getOrch(array);
+        Workflow.Method updateMaskMethod = orca.createOrAddVolumesToExportMaskMethod(
+                array.getId(), exportGroup.getId(), exportMask.getId(), volumeLunIdMap, initiatorURIs, createCompleter);
+        // TODO DUPP:
+        // 1. Figure out the initiators that are impacted by the operation and add them to these method declarations
+        //
         Workflow.Method rollbackMaskMethod = orca.deleteOrRemoveVolumesFromExportMaskMethod(
                 array.getId(), exportGroup.getId(), exportMask.getId(), volumeList, initiatorURIs, rollbackCompleter);
         workflow.createStep(EXPORT_STEP, "createOrAddVolumesToExportMask: " + exportMask.getMaskName(),

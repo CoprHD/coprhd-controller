@@ -22,6 +22,9 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.AutoTieringPolicy;
+import com.emc.storageos.db.client.model.AutoTieringPolicy.ProvisioningType;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.StorageHADomain;
@@ -44,6 +47,8 @@ import com.emc.storageos.storagedriver.model.StoragePool;
 import com.emc.storageos.storagedriver.model.StoragePort;
 import com.emc.storageos.storagedriver.model.StorageProvider;
 import com.emc.storageos.storagedriver.model.StorageSystem;
+import com.emc.storageos.storagedriver.storagecapabilities.AutoTieringPolicyCapability;
+import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.StoragePortAssociationHelper;
@@ -498,6 +503,23 @@ public class ExternalDeviceCommunicationInterface extends
                     pool.setOperationalStatus(storagePool.getOperationalStatus());
                     pool.addDriveTypes(storagePool.getSupportedDriveTypes());
                     pool.addSupportedRaidLevels(storagePool.getSupportedRaidLevels());
+                    
+                    
+                    List<CapabilityInstance> capabilities = storagePool.getCapabilities();
+                    for (CapabilityInstance capability : capabilities) {
+                        if (!AutoTieringPolicyCapability.CAPABILITY_NAME.equals(capability.getName())) {
+                            continue;
+                        }
+                        
+                        // We have an auto tiering policy for the pool, so set auto tiering enabled.
+                        pool.setAutoTieringEnabled(true);
+                        
+                        // Create or update the aut tiering policy with with this policy id.
+                        createUpdateAutoTierPolicies(storageSystem, pool.getId(), capability);
+                    }             
+                    
+                    
+
 
                 }
                 _log.info("No of newly discovered pools {}", newPools.size());
@@ -530,6 +552,53 @@ public class ExternalDeviceCommunicationInterface extends
             _log.info("Discovery of storage pools of storage system {} of type {} - end", accessProfile.getSystemId(), accessProfile.getSystemType());
         }
 
+    }
+    
+    private void createUpdateAutoTierPolicies(com.emc.storageos.db.client.model.StorageSystem system, URI poolURI, CapabilityInstance capability) {
+        List<String> propValues = capability.getProperty(AutoTieringPolicyCapability.PROPERTY_NAMES.POLICY_ID.name());
+        if (!propValues.isEmpty()) {
+            String policyId = propValues.get(0);
+            String nativeGuid = NativeGUIDGenerator.generateAutoTierPolicyNativeGuid(system.getNativeGuid(),
+                    policyId, NativeGUIDGenerator.AUTO_TIERING_POLICY);
+            AutoTieringPolicy tieringPolicy = checkTieringPolicyExistsInDB(nativeGuid);
+            if (null == tieringPolicy) {
+                tieringPolicy = new AutoTieringPolicy();
+                tieringPolicy.setId(URIUtil.createId(AutoTieringPolicy.class));
+                tieringPolicy.setPolicyName(policyId);
+                tieringPolicy.setStorageSystem(system.getId());
+                tieringPolicy.setNativeGuid(nativeGuid);
+                tieringPolicy.setLabel(policyId);
+                tieringPolicy.setSystemType(system.getSystemType());
+                tieringPolicy.setPolicyEnabled(Boolean.TRUE);
+                tieringPolicy.addPool(poolURI.toString());
+                String provisioingType = ProvisioningType.All.name();
+                propValues = capability.getProperty(AutoTieringPolicyCapability.PROPERTY_NAMES.PROVISIONING_TYPE.name());
+                if (!propValues.isEmpty()) {
+                    provisioingType = propValues.get(0);
+                }
+                tieringPolicy.setProvisioningType(provisioingType);
+                _dbClient.createObject(tieringPolicy);
+            } else {
+                tieringPolicy.addPool(poolURI.toString());
+                _dbClient.updateObject(tieringPolicy);
+            }
+        }
+    }
+
+    private AutoTieringPolicy checkTieringPolicyExistsInDB(String nativeGuid) {
+        AutoTieringPolicy tieringPolicy = null;
+        URIQueryResultList queryResult = new URIQueryResultList();
+        // use NativeGuid to lookup Pools in DB
+        _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                .getAutoTieringPolicyByNativeGuidConstraint(nativeGuid), queryResult);
+        if (queryResult.iterator().hasNext()) {
+            URI tieringPolicyURI = queryResult.iterator().next();
+            if (null != tieringPolicyURI) {
+                tieringPolicy = _dbClient.queryObject(AutoTieringPolicy.class,
+                        tieringPolicyURI);
+            }
+        }
+        return tieringPolicy;
     }
 
     private Map<String, List<com.emc.storageos.db.client.model.StoragePort>> discoverStoragePorts(DiscoveryDriver driver, Set<Network> networksToUpdate,

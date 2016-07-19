@@ -1438,6 +1438,7 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
 
     cookieObject = {};
     cookieKey = "VIPR_START_GUIDE";
+    dataCookieKey = "GUIDE_DATA";
     requiredSteps = 2;
     landingStep = 3;
     maxSteps = 9;
@@ -1528,30 +1529,62 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                 finishChecking();
                 break;
             case 4:
-                $http.get(routes.StorageSystems_list()).then(function (data) {
-                    finished=false;
-                    if (data.data.aaData.length != 0) {
-                        testId = function (ss) {
-                            var promises = ss.map( function (s) {
-                                if (!finished && s.discoveryStatus == "COMPLETE"){
-                                    if(checkCookie("guide_storageArray")){
-                                        finished=true;
-                                        goToNextStep(true);
-                                        finishChecking();
-                                    } else {finishChecking();}
-                                }
+                if(checkCookie("GUIDE_DATA")){
+                    ssid = "";
+                    guide_data=angular.fromJson(readCookie("GUIDE_DATA"));
+
+                    if(guide_data){
+                        arrayCookie = guide_data.storage_systems;
+                        if (arrayCookie) {
+                            jQuery.each(arrayCookie, function() {
+                                if (ssid){ssid += ","}
+                                ssid += this.id;
                             });
-                            $q.all(promises).then(function () {
-                                if(!finished) {
-                                    finishChecking();
-                                }
-                            });
-                        };
-                        return testId(data.data.aaData);
-                    } else {
-                        finishChecking();
+                        }
                     }
-                });
+                    console.log(ssid);
+                    $http.get(routes.StorageProviders_itemsJson({'ids':ssid})).then(function (data) {
+                        failedArray= [];
+                        console.log(data);
+                        if (data.data.length != 0) {
+                            testId = function (ss) {
+                                var promises = ss.map( function (s) {
+                                    if (s.discoveryStatus != "COMPLETE"){
+                                        failedArray.push(s);
+                                        return;
+                                    }
+                                });
+                                $q.all(promises).then(function () {
+                                    console.log("consistency check 1");
+                                    if (failedArray.length > 0) {
+                                        failedNames=[];
+                                        failedArray.forEach( function (failed) {
+                                            ssName = "";
+                                            jQuery.each(arrayCookie, function() {
+                                                if (failed.id == this.id){
+                                                    ssName = this.name;
+                                                    return;
+                                                }
+                                            });
+                                            failedNames.push(ssName);
+                                        });
+                                        $scope.$parent.guideError = "Error: Some Storage Systems failed to discover:\n"+failedNames;
+                                        finishChecking();
+                                    } else {
+                                        console.log("consistency check 3");
+                                        $scope.$parent.completedSteps = 4;
+                                        goToNextStep(true);
+                                    }
+                                });
+                            };
+                            return testId(data.data);
+                        } else {
+                            finishChecking();
+                        }
+                    });
+                } else {
+                    finishChecking();
+                }
                 break;
             case 5:
                 $http.get(routes.SanSwitches_list()).then(function (data) {
@@ -1896,9 +1929,6 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
         createCookie(cookieKey,angular.toJson(cookieObject),'session');
     }
 
-    testFunc = function() {
-    }
-
     $scope.checkStep = function() {
         checkStep($scope.$parent.currentStep);
     }
@@ -1939,30 +1969,56 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                 return true;
                 break;
             case 4:
-                $http.get(routes.StorageSystems_list()).then(function (data) {
-                    finished=false;
-                    if (data.data.aaData.length != 0) {
-                        testId = function (ss) {
-                            var promises = ss.map( function (s) {
-                                if (!finished && s.discoveryStatus == "COMPLETE"){
-                                    if(checkCookie("guide_storageArray")){
-                                        finished=true;
+                if(checkCookie("GUIDE_DATA")){
+                    ssid = "";
+                    guide_data=angular.fromJson(readCookie("GUIDE_DATA"));
+
+                    if(guide_data){
+                        arrayCookie = guide_data.storage_systems;
+                        if (arrayCookie) {
+                            jQuery.each(arrayCookie, function() {
+                                if (ssid){ssid += ","}
+                                ssid += this.name;
+                            });
+                        }
+                    }
+                    console.log(ssid);
+                    $http.get(routes.StorageProviders_itemsJson({'ids':ssid})).then(function (data) {
+                        failedArray= [];
+                        console.log(data);
+                        if (data.data.length != 0) {
+                            testId = function (ss) {
+                                var promises = ss.map( function (s) {
+                                    if (s.discoveryStatus != "COMPLETE"){
+                                        failedArray.push(s);
+                                        return;
+                                    }
+                                });
+                                $q.all(promises).then(function () {
+                                    console.log("consistency check 1");
+                                    if (failedArray.length > 0) {
+                                        failedNames=[];
+                                        failedArray.forEach( function (failed) {
+                                            console.log("consistency check 2");
+                                            failedNames.push(failed.id);
+                                        });
+                                        $scope.$parent.guideError = "Error: Some Storage Systems failed to discover:"+failedNames;
+                                        finishChecking();
+                                    } else {
+                                        console.log("consistency check 3");
                                         $scope.$parent.completedSteps = 4;
                                         return checkStep(5);
-                                    } else {finishChecking();}
-                                }
-                            });
-                            $q.all(promises).then(function () {
-                                if(!finished) {
-                                    finishChecking();
-                                }
-                            });
-                        };
-                        return testId(data.data.aaData);
-                    } else {
-                        finishChecking();
-                    }
-                });
+                                    }
+                                });
+                            };
+                            return testId(data.data);
+                        } else {
+                            finishChecking();
+                        }
+                    });
+                } else {
+                    finishChecking();
+                }
                 break;
             case 5:
                 $http.get(routes.SanSwitches_list()).then(function (data) {
@@ -2073,40 +2129,48 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
         $scope.guide_fabric = "Not Complete";
         $scope.guide_project = "Not Complete";
 
-        arrayCookie = readCookie("guide_storageArray");
-        if (arrayCookie) {
-            $scope.guide_storageArray = arrayCookie.replace(/\"/g,'');
-        }
-        else if ($scope.completedSteps > 3){
-            $scope.guide_storageArray = "Skipped";
-        }
-        varrayCookie = readCookie("guide_varray");
-        if (varrayCookie) {
-            $scope.guide_varray = varrayCookie;
-        }
-        else if ($scope.completedSteps > 5){
-            $scope.guide_varray = "Skipped";
-        }
-        vpoolCookie = readCookie("guide_vpool");
-        if (vpoolCookie) {
-            $scope.guide_vpool = vpoolCookie;
-        }
-        else if ($scope.completedSteps > 6){
-            $scope.guide_varray = "Skipped";
-        }
-        fabricCookie = readCookie("guide_fabric");
-        if (fabricCookie) {
-            $scope.guide_fabric = fabricCookie.replace(/\"/g,'');;
-        }
-        else if ($scope.completedSteps > 4){
-            $scope.guide_fabric = "Skipped";
-        }
-        projectCookie = readCookie("guide_project");
-        if (projectCookie) {
-            $scope.guide_project = projectCookie;
-        }
-        else if ($scope.completedSteps > 7){
-            $scope.guide_project = "Skipped";
+        guide_data=angular.fromJson(readCookie("GUIDE_DATA"));
+
+        if(guide_data){
+            arrayCookie = guide_data.storage_systems;
+            if (arrayCookie) {
+                $scope.guide_storageArray = "";
+                jQuery.each(arrayCookie, function() {
+                    if ($scope.guide_storageArray){$scope.guide_storageArray += ","}
+                    $scope.guide_storageArray += this.name;
+                });
+            }
+            else if ($scope.completedSteps > 3){
+                $scope.guide_storageArray = "Skipped";
+            }
+            varrayCookie = readCookie("guide_varray");
+            if (varrayCookie) {
+                $scope.guide_varray = varrayCookie;
+            }
+            else if ($scope.completedSteps > 5){
+                $scope.guide_varray = "Skipped";
+            }
+            vpoolCookie = readCookie("guide_vpool");
+            if (vpoolCookie) {
+                $scope.guide_vpool = vpoolCookie;
+            }
+            else if ($scope.completedSteps > 6){
+                $scope.guide_varray = "Skipped";
+            }
+            fabricCookie = readCookie("guide_fabric");
+            if (fabricCookie) {
+                $scope.guide_fabric = fabricCookie.replace(/\"/g,'');;
+            }
+            else if ($scope.completedSteps > 4){
+                $scope.guide_fabric = "Skipped";
+            }
+            projectCookie = readCookie("guide_project");
+            if (projectCookie) {
+                $scope.guide_project = projectCookie;
+            }
+            else if ($scope.completedSteps > 7){
+                $scope.guide_project = "Skipped";
+            }
         }
     }
 

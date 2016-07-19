@@ -4,25 +4,6 @@
  */
 package controllers.arrays;
 
-import static com.emc.vipr.client.core.util.ResourceUtils.id;
-import static com.emc.vipr.client.core.util.ResourceUtils.uri;
-import static com.emc.vipr.client.core.util.ResourceUtils.uris;
-import static controllers.security.Security.isProjectAdmin;
-import static controllers.security.Security.isTenantAdmin;
-import static util.BourneUtil.getViprClient;
-
-import java.net.URI;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
-
-import org.apache.commons.lang.StringUtils;
-
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.util.EndpointUtility;
 import com.emc.storageos.model.NamedRelatedResourceRep;
@@ -40,14 +21,33 @@ import com.emc.storageos.model.systems.StorageSystemUpdateRequestParam;
 import com.emc.storageos.model.valid.Endpoint;
 import com.emc.storageos.model.vnas.VirtualNASRestRep;
 import com.emc.vipr.client.Task;
+import static com.emc.vipr.client.core.util.ResourceUtils.id;
+import static com.emc.vipr.client.core.util.ResourceUtils.uri;
+import static com.emc.vipr.client.core.util.ResourceUtils.uris;
 import com.google.common.collect.Lists;
-
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import controllers.Common;
 import controllers.arrays.StorageProviders.StorageProviderForm;
 import controllers.deadbolt.Restrict;
 import controllers.deadbolt.Restrictions;
+import static controllers.security.Security.isProjectAdmin;
+import static controllers.security.Security.isTenantAdmin;
 import controllers.util.FlashException;
 import controllers.util.ViprResourceController;
+import java.net.URI;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 import models.BlockProtocols;
 import models.PoolTypes;
 import models.RegistrationStatus;
@@ -61,6 +61,8 @@ import models.datatable.StorageSystemDataTable;
 import models.datatable.StorageSystemDataTable.StorageSystemInfo;
 import models.datatable.VirtualNasServerDataTable;
 import models.datatable.VirtualNasServerDataTable.VirtualNasServerInfo;
+import org.apache.commons.lang.StringUtils;
+import play.Logger;
 import play.data.binding.As;
 import play.data.validation.Max;
 import play.data.validation.MaxSize;
@@ -68,7 +70,9 @@ import play.data.validation.Min;
 import play.data.validation.MinSize;
 import play.data.validation.Required;
 import play.data.validation.Validation;
+import play.mvc.Http;
 import play.mvc.With;
+import static util.BourneUtil.getViprClient;
 import util.EnumOption;
 import util.MessagesUtils;
 import util.StoragePoolUtils;
@@ -234,21 +238,45 @@ public class StorageSystems extends ViprResourceController {
             Common.handleError();
         }
 
-        storageArray.save();
+        Task<?> sp = storageArray.save();
         String message = storageArray.isStorageProviderManaged()
                 && StringUtils.isEmpty(storageArray.id) ? MessagesUtils.get(
                 SAVED_SMIS, storageArray.name) : MessagesUtils.get(SAVED_ARRAY,
                 storageArray.name);
         flash.success(message);
 
-        // TODO: cleanup referrer
-        //if (StringUtils.isNotEmpty(storageArray.referrerUrl)) {
-        //    redirect(storageArray.referrerUrl);
-        //}
-        if(storageArray != null) {
-            response.setCookie("guide_storageArray", storageArray.name);
+
+
+        //check if checklist is running on this step
+        JsonObject jobject = getCookieAsJson("VIPR_START_GUIDE");
+
+        if (jobject.get("completedSteps").getAsInt() == 3) {
+            JsonObject dataObject = getCookieAsJson("GUIDE_DATA");
+            //String cookieValue = "";
+            //Http.Cookie cookie = request.cookies.get("guide_storageArray");
+            //if (cookie != null) {
+            //    cookieValue += cookie.value + ",";
+            //}
+            //cookieValue += sp.getResourceId();
+
+            JsonArray storage_systems = dataObject.getAsJsonArray("storage_systems");
+            if (storage_systems == null) {
+                storage_systems = new JsonArray();
+            }
+            JsonObject storage = new JsonObject();
+            storage.addProperty("id",sp.getResourceId().toString());
+            storage.addProperty("name",storageArray.name);
+            storage_systems.add(storage);
+            dataObject.add("storage_systems", storage_systems);
+            saveJsonAsCookie("GUIDE_DATA", dataObject);
+            list();
         }
-        list();
+
+        //TODO: cleanup referrer
+        if (StringUtils.isNotEmpty(storageArray.referrerUrl)) {
+            redirect(storageArray.referrerUrl);
+        }
+
     }
 
     public static void delete(@As(",") String[] ids) {

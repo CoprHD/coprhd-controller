@@ -46,6 +46,8 @@ var routes = {
   StorageSystems_edit: #{jsAction @arrays.StorageSystems.edit(':id')/},
   StorageSystems_list: #{jsAction @arrays.StorageSystems.listJson()/},
   StorageSystems_itemDetails: #{jsAction @arrays.StorageSystems.arrayPoolsJson(':id')/},
+  StorageSystems_itemsJson: #{jsAction @arrays.StorageSystems.itemsJson(':ids')/},
+  StorageProviders_itemsJson: #{jsAction @arrays.StorageProviders.itemsJson(':ids')/},
   StorageSystems_getProjectsForNas: #{jsAction @arrays.StorageSystems.getProjectsForNas()/},
   SanSwitches_edit: #{jsAction @arrays.SanSwitches.edit(':id')/},
   SanSwitches_list: #{jsAction @arrays.SanSwitches.listJson()/},

@@ -38,8 +38,8 @@ import com.emc.storageos.volumecontroller.impl.smis.CIMPropertyFactory;
 import com.emc.storageos.volumecontroller.impl.smis.ExportMaskOperationsHelper;
 import com.emc.storageos.volumecontroller.impl.smis.SmisCommandHelper;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
-import com.emc.storageos.volumecontroller.impl.smis.vmax.ExportOperationContext;
 import com.emc.storageos.volumecontroller.impl.smis.vmax.VmaxExportOperationContext;
+import com.emc.storageos.volumecontroller.impl.utils.ExportOperationContext;
 
 /**
  * A VMAX Create Masking View job

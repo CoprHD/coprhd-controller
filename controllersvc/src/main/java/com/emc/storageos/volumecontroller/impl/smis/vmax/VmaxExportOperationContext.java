@@ -6,6 +6,8 @@ package com.emc.storageos.volumecontroller.impl.smis.vmax;
 
 import java.io.Serializable;
 
+import com.emc.storageos.volumecontroller.impl.utils.ExportOperationContext;
+
 /**
  * Class the keeps track of the operations that are in flight for VMAX exports
  */

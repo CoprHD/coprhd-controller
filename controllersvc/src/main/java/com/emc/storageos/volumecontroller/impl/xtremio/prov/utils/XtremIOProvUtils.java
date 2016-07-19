@@ -6,6 +6,7 @@ package com.emc.storageos.volumecontroller.impl.xtremio.prov.utils;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -17,6 +18,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.Host;
+import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -27,12 +29,14 @@ import com.emc.storageos.xtremio.restapi.XtremIOConstants;
 import com.emc.storageos.xtremio.restapi.XtremIOConstants.XTREMIO_ENTITY_TYPE;
 import com.emc.storageos.xtremio.restapi.errorhandling.XtremIOApiException;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOConsistencyGroup;
+import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiator;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiatorGroup;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOObjectInfo;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOSystem;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOTag;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolume;
 import com.google.common.base.Joiner;
+import com.google.common.collect.ArrayListMultimap;
 
 public class XtremIOProvUtils {
 
@@ -489,6 +493,14 @@ public class XtremIOProvUtils {
         return osType;
     }
 
+    /**
+     *
+     * @param igName
+     * @param clusterName
+     * @param client
+     * @return
+     * @throws Exception
+     */
     public static List<XtremIOVolume> getInitiatorGroupVolumes(String igName, String clusterName, XtremIOClient client) throws Exception {
         List<XtremIOVolume> igVolumes = new ArrayList<XtremIOVolume>();
         List<XtremIOObjectInfo> igLunMaps = new ArrayList<XtremIOObjectInfo>();
@@ -514,5 +526,63 @@ public class XtremIOProvUtils {
             igVolumes.add(client.getVolumeByIndex(igLunInfo[0], clusterName));
         }
         return igVolumes;
+    }
+
+    /**
+     *
+     * @param storageSerialNumber
+     * @param initiators
+     * @param initiatorsNotFound
+     * @param xioClusterName
+     * @param client
+     * @return
+     * @throws Exception
+     */
+    public static ArrayListMultimap<String, Initiator> mapInitiatorToInitiatorGroup(String storageSerialNumber,
+            Collection<Initiator> initiators, List<Initiator> initiatorsNotFound, String xioClusterName, XtremIOClient client)
+                    throws Exception {
+        ArrayListMultimap<String, Initiator> initiatorToIGMap = ArrayListMultimap.create();
+        for (Initiator initiator : initiators) {
+            String igName = getIGNameForInitiator(initiator, storageSerialNumber, client, xioClusterName);
+            if (igName == null || igName.isEmpty()) {
+                _log.info("initiator {} - no IG found.", initiator.getLabel(), igName);
+                if (initiatorsNotFound != null) {
+                    initiatorsNotFound.add(initiator);
+                }
+            } else {
+                initiatorToIGMap.put(igName, initiator);
+            }
+        }
+        _log.info("Found {} existing IGs: {} after running selection process",
+                initiatorToIGMap.size(), Joiner.on(",").join(initiatorToIGMap.asMap().entrySet()));
+        return initiatorToIGMap;
+    }
+
+    /**
+     *
+     * @param initiator
+     * @param storageSerialNumber
+     * @param client
+     * @param xioClusterName
+     * @return
+     * @throws Exception
+     */
+    public static String getIGNameForInitiator(Initiator initiator, String storageSerialNumber, XtremIOClient client, String xioClusterName)
+            throws Exception {
+        String igName = null;
+        try {
+            String initiatorName = initiator.getMappedInitiatorName(storageSerialNumber);
+            if (null != initiatorName) {
+                // Get initiator by Name and find IG Group
+                XtremIOInitiator initiatorObj = client.getInitiator(initiatorName, xioClusterName);
+                if (null != initiatorObj) {
+                    igName = initiatorObj.getInitiatorGroup().get(1);
+                }
+            }
+        } catch (Exception e) {
+            _log.warn("Initiator {} already deleted", initiator.getLabel());
+        }
+
+        return igName;
     }
 }

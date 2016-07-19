@@ -1779,29 +1779,13 @@ public class DisasterRecoveryService {
         }
 
         // should be PAUSED, either marked by itself or user
-        // Also allow user to failover to an ACTIVE_DEGRADED site
-        if (standby.getState() != SiteState.STANDBY_PAUSED && standby.getState() != SiteState.ACTIVE_DEGRADED) {
+        // Don't allow failover to site of ACTIVE_DEGRADED state in X-wing
+        if (standby.getState() != SiteState.STANDBY_PAUSED) {
             throw APIException.internalServerErrors.failoverPrecheckFailed(standby.getName(),
                     "Please wait for this site to recognize the Active site is down and automatically switch to a Paused state before failing over.");
         }
 
         precheckForFailover();
-    }
-
-    /**
-     * Reuse /site/internal/list API to check if it can return result correctly
-     * @return true if result can be returned correctly, otherwise return false
-     */
-    private boolean isSiteAvailable(Site site) {
-        try (InternalSiteServiceClient client = new InternalSiteServiceClient(site, coordinator, apiSignatureGenerator)) {
-            SiteList sites = client.getSiteList();
-            if (!sites.getSites().isEmpty()) {
-                return true;
-            }
-        } catch (Exception e) {
-            log.warn("Error happened when trying to get sites from site {} via HMAC way", site.getUuid(), e);
-        }
-        return false;
     }
 
     void precheckForFailover() {

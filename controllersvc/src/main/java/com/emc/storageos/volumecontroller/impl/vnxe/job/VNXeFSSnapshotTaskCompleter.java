@@ -17,6 +17,7 @@ import com.emc.storageos.db.client.model.Snapshot;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.volumecontroller.TaskCompleter;
+import com.emc.storageos.workflow.WorkflowStepCompleter;
 
 public class VNXeFSSnapshotTaskCompleter extends TaskCompleter {
 
@@ -38,16 +39,25 @@ public class VNXeFSSnapshotTaskCompleter extends TaskCompleter {
                 if (fsObj != null) {
                     dbClient.error(FileShare.class, fsObj.getId(), getOpId(), coded);
                 }
+                if (isNotifyWorkflow()) {
+                    WorkflowStepCompleter.stepFailed(getOpId(), coded);
+                }
                 break;
-            default:
+            case ready:
                 dbClient.ready(Snapshot.class, getId(), getOpId());
                 if (fsObj != null) {
                     dbClient.ready(FileShare.class, fsObj.getId(), getOpId());
                 }
+                if (isNotifyWorkflow()) {
+                    WorkflowStepCompleter.stepSucceded(getOpId());
+                }
+                _logger.info("Done Snapshot operation {}, with Status: {}", getOpId(), status.name());
+                break;
+            default:
+                if (isNotifyWorkflow()) {
+                    WorkflowStepCompleter.stepExecuting(getOpId());
+                }
+                break;
         }
-
-        _logger.info("Done Snapshot operation {}, with Status: {}", getOpId(), status.name());
-
     }
-
 }

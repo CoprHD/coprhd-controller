@@ -12,6 +12,7 @@ import static controllers.Common.copyRenderArgsToAngular;
 import static util.BourneUtil.getViprClient;
 
 import java.net.URI;
+import java.net.URL;
 import java.util.List;
 import java.util.Set;
 
@@ -54,6 +55,7 @@ public class StorageProviders extends ViprResourceController {
     protected static final String UNKNOWN = "SMISProviders.unknown";
     protected static final String DISCOVERY_STARTED = "SMISProviders.introspection";
     private static final int SAVE_WAIT_MILLIS = 300000;
+    private static final String HTTPS = "https";
 
     private static void addReferenceData() {
         renderArgs.put("interfaceTypeOptions", StorageProviderTypes.getProviderOption());
@@ -183,9 +185,9 @@ public class StorageProviders extends ViprResourceController {
         list();
     }
 
-    // Suppressing Sonar violation of Password Hardcoded. Password is not
-    // hardcoded here
-    @SuppressWarnings("squid:S2068")
+    // Suppressing Sonar violation of Password Hardcoded. Password is not hardcoded here
+    // Suppressing sonar violation for need of accessor methods. Accessor methods are not needed and we use public variables
+    @SuppressWarnings("squid:S2068 , ClassVariableVisibilityCheck")
     public static class StorageProviderForm {
 
         public String id;
@@ -225,6 +227,9 @@ public class StorageProviders extends ViprResourceController {
         public String secondaryPasswordConfirm = "";
 
         public String elementManagerURL;
+
+        public String secondaryURL;
+
         
         public String secretKey;
         @MaxSize(2048)
@@ -236,7 +241,11 @@ public class StorageProviders extends ViprResourceController {
         @MaxSize(2048)
         public String hyperScaleConfPasswd = "";
 
-        public String hyperScaleURL;
+        public String hyperScaleHost;
+
+        public String hyperScalePort;
+        
+        public URL url;
 
         public StorageProviderForm() {        	
         }
@@ -267,8 +276,13 @@ public class StorageProviders extends ViprResourceController {
             if (StringUtils.isNotEmpty(this.hyperScaleConfPasswd)) {
                 this.secondaryPasswordConfirm = this.hyperScaleConfPasswd;
             }
-            if (StringUtils.isNotEmpty(this.hyperScaleURL)) {
-                this.elementManagerURL = this.hyperScaleURL;
+            if (StringUtils.isNotEmpty(this.hyperScaleHost)&&StringUtils.isNotEmpty(this.hyperScalePort)) {
+                try {
+                    url = new URL(HTTPS, this.hyperScaleHost, Integer.parseInt(this.hyperScalePort),"");
+                }catch(Exception e) {
+                    flash.error("Unable to parse Hyper Scale Manager URL");
+                }
+                this.secondaryURL = url.toString();
             }
         }
 
@@ -284,15 +298,26 @@ public class StorageProviders extends ViprResourceController {
             this.interfaceType = storageProvider.getInterface();
             this.secondaryUsername = storageProvider.getSecondaryUsername();
             this.secondaryPassword = ""; // the platform will never return the real password
+            this.secondaryURL = storageProvider.getSecondaryURL();
             this.elementManagerURL = storageProvider.getElementManagerURL();
             this.secretKey = ""; // the platform will never return the real key
             this.hyperScaleUser = storageProvider.getSecondaryUsername();
             this.hyperScalePassword = ""; // the platform will never return the real password
-            this.hyperScaleURL = storageProvider.getElementManagerURL();
-            if(isScaleIOApi()) {
-            	this.secondaryUsername = this.userName;
-            	this.secondaryPassword = this.password;
-            	this.secondaryPasswordConfirm = this.confirmPassword;
+            if(!StringUtils.isEmpty(secondaryURL)) {
+                try {
+                    url = new URL(this.secondaryURL);
+                } catch(Exception e) {
+                    flash.error("Unable to parse Hyper Scale Manager URL");
+                }
+                if(null!=url) {
+                    this.hyperScaleHost = url.getHost();
+                    this.hyperScalePort = Integer.toString(url.getPort());
+                }
+            }
+            if (isScaleIOApi()) {
+                this.secondaryUsername = this.userName;
+                this.secondaryPassword = this.password;
+                this.secondaryPasswordConfirm = this.confirmPassword;
             }
             setXIVParameters();
 
@@ -307,14 +332,17 @@ public class StorageProviders extends ViprResourceController {
             }
         }
 
-        public StorageProviderRestRep update() {        	
-            return StorageProviderUtils.update(uri(id), name, ipAddress, portNumber, userName,
-                    password, useSSL, interfaceType, secondaryUsername, secondaryPassword, elementManagerURL, secretKey);
+        public StorageProviderRestRep update() {
+            return StorageProviderUtils.update(uri(id), name, ipAddress,
+                    portNumber, userName, password, useSSL, interfaceType,
+                    secondaryUsername, secondaryPassword, elementManagerURL, secondaryURL, secretKey);
         }
 
-        public Task<StorageProviderRestRep> create() {        	
-        	Task<StorageProviderRestRep> task = StorageProviderUtils.create(name, ipAddress, portNumber, userName, password,
-                    useSSL, interfaceType, secondaryUsername, secondaryPassword, elementManagerURL, secretKey);
+        public Task<StorageProviderRestRep> create() {
+            Task<StorageProviderRestRep> task = StorageProviderUtils.create(
+                    name, ipAddress, portNumber, userName, password, useSSL,
+                    interfaceType, secondaryUsername, secondaryPassword,
+                    elementManagerURL, secondaryURL, secretKey);
             new SaveWaitJob(getViprClient(), task).now();
             return task;
         }

@@ -67,7 +67,6 @@ import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.NamedURI;
-import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
@@ -507,9 +506,12 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     vPoolCapabilities, volume.getCapacity());
             
             // Set the compute resource in the descriptor if the volume to be created will be exported
-            // to a host/cluster after it has been created.
+            // to a host/cluster after it has been created so that the compute resource name can be 
+            // included in the volume name if the custom volume naming is so configured. Do not set the
+            // compute resource if the descriptor is for an SRDF target as the target is not exported
+            // to the compute resource.
             URI computeResourceURI = param.getComputeResource();
-            if (computeResourceURI != null) {
+            if ((computeResourceURI != null) && (!srdfCopy)) {
                 s_logger.info(String.format("Volume %s - will be exported to Host/Cluster: %s", volume.getLabel(),
                         computeResourceURI.toString()));
                 descriptor.setComputeResource(computeResourceURI);
@@ -3718,8 +3720,10 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     List<Volume> vplexVolumes = CustomQueryUtility.queryActiveResourcesByConstraint(
                             _dbClient, Volume.class, AlternateIdConstraint.Factory.getVolumeByAssociatedVolumesConstraint(
                                     volumesWithSameNativeGuid.get(0).getId().toString()));
+                    String volumeLabel = !vplexVolumes.isEmpty() ? 
+                            vplexVolumes.get(0).getLabel() : volumesWithSameNativeGuid.get(0).getId().toString();
                     throw APIException.badRequests
-                            .cantDeleteSnapshotExposedByVolume(snapshot.forDisplay(), vplexVolumes.get(0).getLabel());
+                            .cantDeleteSnapshotExposedByVolume(snapshot.forDisplay(), volumeLabel);
                 }
             }
         }

@@ -268,6 +268,7 @@ public class HP3PARIngestHelper {
 			String msg = String.format(
 					"3PARDriver: Unable to get snapshot of volume with storage system %s and volume native id %s; Error: %s.\n",
 					volume.getStorageSystemId(), volume.getNativeId(), e.getMessage());
+			_log.error(msg);
 			e.printStackTrace();
 		}
 		_log.info("3PARDriver: getVolumeSnapshots Leaving");
@@ -286,7 +287,6 @@ public class HP3PARIngestHelper {
 		try {
 			Map<String, List<String>> vvolAssociations = registry.getDriverAttributesForKey(HP3PARConstants.DRIVER_NAME,
 					volume.getStorageSystemId() + "____VVOL_ASSOCIATIONS");
-			;
 
 			_log.debug("vvolAssociations is {}", vvolAssociations.toString());
 
@@ -334,6 +334,7 @@ public class HP3PARIngestHelper {
 			String msg = String.format(
 					"3PARDriver: Unable to get clone of volume with storage system %s and volume native id %s; Error: %s.\n",
 					volume.getStorageSystemId(), volume.getNativeId(), e.getMessage());
+			_log.error(msg);
 			e.printStackTrace();
 		}
 

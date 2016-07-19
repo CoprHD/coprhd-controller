@@ -173,7 +173,7 @@
       <dt>&nbsp;</dt>
       <dd>&nbsp;</dd>
         %{ labelRequired = details.order.isExecuting() || details.order.isPending() || details.order.isPaused() }%
-      <dt class="executionTime" #{if !labelRequired}style="display: none"#{/if}>&{'service.order.pause.resume.label'}:</dt>
+      <dt class="executionTime" #{if labelRequired}style="display: none"#{/if}>&{'service.order.pause.resume.label'}:</dt>
       <dd>
       <span id="flowControl">
       %{ isExecuting = details.order.isExecuting() || details.order.isPending() }%

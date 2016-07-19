@@ -393,7 +393,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
                 List<URI> volumeURIs = ExportMaskUtils.getVolumeURIs(exportMask);
 
-                validator.vmax().exportMaskDelete(storage, exportMask,  volumeURIList, initiatorList).validate();
+                validator.exportMaskDelete(storage, exportMask,  volumeURIList, initiatorList).validate();
 
                 if (!deleteMaskingView(storage, exportMaskURI, childGroupsByFast, taskCompleter)) {
                     // Could not delete the MaskingView. Error should be stuffed by the
@@ -1108,7 +1108,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 _log.info("removeVolumes: impacted initiators: {}", Joiner.on(",").join(initiatorList));
             }
 
-            validator.vmax().removeVolumes(storage, exportMaskURI, initiatorList).validate();
+            validator.removeVolumes(storage, exportMaskURI, initiatorList).validate();
 
             boolean isVmax3 = storage.checkIfVmax3();
             WBEMClient client = _helper.getConnection(storage).getCimClient();
@@ -1549,7 +1549,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     _log.info("Removing initiators ...");
 
                     ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
-                    validator.vmax().removeInitiators(storage, exportMask, volumeURIList).validate();
+                    validator.removeInitiators(storage, exportMask, volumeURIList).validate();
 
                     // Create a mapping of the InitiatorPort String to Initiator.
                     Map<String, Initiator> nameToInitiator = new HashMap<String, Initiator>();
@@ -1770,11 +1770,49 @@ public class VmaxExportOperations implements ExportMaskOperations {
                         // Find all the initiators associated with the MaskingView and add them
                         List<String> portNames = _helper.getInitiatorsFromLunMaskingInstance(client, instance);
                         Set<Initiator> allInitiators = ExportUtils.getInitiators(portNames, _dbClient);
+
+                        for (String portName : portNames) {
+                            String portNetworkId = Initiator.toPortNetworkId(portName);
+                            URIQueryResultList initList = new URIQueryResultList();
+                            _dbClient.queryByConstraint(
+                                    AlternateIdConstraint.Factory.getInitiatorPortInitiatorConstraint(portNetworkId),
+                                    initList);
+                            Iterator<URI> inits = initList.iterator();
+                            while (inits.hasNext()) {
+                                URI init = inits.next();
+                                Initiator obj = _dbClient.queryObject(Initiator.class, init);
+                                if (!exportMask.getUserAddedInitiators().containsKey(portName)) {
+                                    exportMask.addToUserCreatedInitiators(obj);
+                                    exportMask.addInitiator(obj);
+                                    _log.info("Adding managed initiator:{} to mask:{}", obj.getInitiatorPort(),
+                                            exportMask.getId());
+                                }
+                            }
+                        }
+
                         exportMask.addToExistingInitiatorsIfAbsent(portNames);
                         exportMask.addInitiators(allInitiators);
 
                         // Update the tracking containers
                         Map<String, Integer> volumeWWNs = _helper.getVolumesFromLunMaskingInstance(client, instance);
+
+                        for (Entry<String, Integer> entry : volumeWWNs.entrySet()) {
+                            String normalizedWWN = BlockObject.normalizeWWN(entry.getKey());
+                            URIQueryResultList volumeList = new URIQueryResultList();
+                            _dbClient.queryByConstraint(
+                                    AlternateIdConstraint.Factory.getVolumeWwnConstraint(normalizedWWN), volumeList);
+                            Iterator<URI> volumes = volumeList.iterator();
+                            while (volumes.hasNext()) {
+                                URI volume = volumes.next();
+                                Volume obj = _dbClient.queryObject(Volume.class, volume);
+                                if (!exportMask.getUserAddedVolumes().containsKey(normalizedWWN)) {
+                                    exportMask.addToUserCreatedVolumes(obj);
+                                    exportMask.addVolume(volume, entry.getValue());
+                                    _log.info("Adding managed wwn:{} to mask:{}", obj.getWWN(), exportMask.getId());
+                                }
+                            }
+                        }
+
                         exportMask.addToExistingVolumesIfAbsent(volumeWWNs);
 
                         // Grab the storage ports that have been allocated for this

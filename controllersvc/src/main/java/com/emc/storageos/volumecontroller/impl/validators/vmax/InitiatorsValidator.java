@@ -3,84 +3,59 @@ package com.emc.storageos.volumecontroller.impl.validators.vmax;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
-import com.google.common.base.Joiner;
-import com.google.common.collect.Lists;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.google.common.base.Function;
+import com.google.common.collect.Collections2;
+import com.google.common.collect.Sets;
 
-import javax.cim.CIMObjectPath;
-import javax.wbem.CloseableIterator;
-import javax.wbem.WBEMException;
-import java.net.URI;
 import java.util.Collection;
-import java.util.List;
+import java.util.Set;
 
 import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnInitiatorToPortName;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CP_INSTANCE_ID;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CP_SE_STORAGE_HARDWARE_ID;
-import static com.google.common.collect.Collections2.transform;
 
 /**
- * Vmax validator for validating there are no additional initiators in the export mask
- * than what is expected.
+ * This subclass of {@link ExportMaskValidator} will:
+ * 1) Query expected {@link Initiator} instances and transform them into their respective port names.
+ * 2) Query SMI-S for SE_StorageHardwareID.InstanceID instance properties associated with the given export mask
+ *    and normalize them.
  */
-public class InitiatorsValidator extends AbstractVmaxValidator {
+public class InitiatorsValidator extends ExportMaskValidator {
 
-    private static final Logger log = LoggerFactory.getLogger(InitiatorsValidator.class);
-    private StorageSystem storage;
-    private URI exportMaskURI;
-    private Collection<Initiator> initiators;
+    private Collection<Initiator> expectedInitiators;
 
-    public InitiatorsValidator(StorageSystem storage, URI exportMaskURI, Collection<Initiator> initiators) {
-        this.storage = storage;
-        this.exportMaskURI = exportMaskURI;
-        this.initiators = initiators;
+    public InitiatorsValidator(StorageSystem storage, ExportMask exportMask, Collection<Initiator> expectedInitiators) {
+        super(storage, exportMask, "initiators");
+        this.expectedInitiators = expectedInitiators;
     }
 
     @Override
-    public boolean validate() throws Exception {
-        log.info("Validating remove volume operation");
-        getLogger().setLog(log);
+    protected String getAssociatorProperty() {
+        return CP_INSTANCE_ID;
+    }
 
-        ExportMask exportMask = getDbClient().queryObject(ExportMask.class, exportMaskURI);
-        CIMObjectPath maskingViewPath = getCimPath().getMaskingViewPath(storage, exportMask.getMaskName());
-        Collection<String> iniPorts = transform(initiators, fctnInitiatorToPortName());
+    @Override
+    protected String getAssociatorClass() {
+        return CP_SE_STORAGE_HARDWARE_ID;
+    }
 
-        log.info("ViPR has initiators: {}", Joiner.on(',').join(iniPorts));
-        CloseableIterator<CIMObjectPath> assocInitiators = null;
-
-        try {
-            getHelper().callRefreshSystem(storage);
-            assocInitiators = getHelper().getAssociatorNames(storage, maskingViewPath, null, CP_SE_STORAGE_HARDWARE_ID, null, null);
-
-            List<String> smisInitiators = Lists.newArrayList();
-            while (assocInitiators.hasNext()) {
-                CIMObjectPath assocInitiator = assocInitiators.next();
-                String id = (String) assocInitiator.getKeyValue(CP_INSTANCE_ID);
-                smisInitiators.add(normalizePort(id));
+    @Override
+    protected Function<? super String, String> getHardwareTransformer() {
+        return new Function<String, String>() {
+            @Override
+            public String apply(String input) {
+                return normalizePort(input);
             }
+        };
+    }
 
-            log.info("{} has initiators: {}", storage.getSerialNumber(), Joiner.on(',').join(smisInitiators));
-            if (smisInitiators.size() > iniPorts.size()) {
-                String smisJoined = Joiner.on(',').join(smisInitiators);
-                getLogger().logDiff(exportMask.getId().toString(), "initiators",
-                        Joiner.on(',').join(iniPorts), smisJoined);
-                throw new RuntimeException("Unknown additional initiators were found: " + smisJoined);
-            }
-        } catch (WBEMException e) {
-            log.error("Failure occurred whilst validating initiators for export mask {}", exportMask.getMaskName(), e);
-            throw e;
-        } finally {
-            if (assocInitiators != null) {
-                try {
-                    assocInitiators.close();
-                } catch (Exception e) {
-                    // ignore
-                }
-            }
+    @Override
+    protected Set<String> getDatabaseResources() {
+        if (expectedInitiators == null || expectedInitiators.isEmpty()) {
+            return Sets.newHashSet();
         }
-
-        return true;
+        Collection<String> transformed = Collections2.transform(expectedInitiators, fctnInitiatorToPortName());
+        return Sets.newHashSet(transformed);
     }
 
     private String normalizePort(String smisPort) {

@@ -3,98 +3,54 @@ package com.emc.storageos.volumecontroller.impl.validators.vmax;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
-import com.google.common.base.Joiner;
-import com.google.common.collect.Lists;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
+import com.google.common.base.Function;
+import com.google.common.collect.Collections2;
+import com.google.common.collect.Sets;
 
-import javax.cim.CIMObjectPath;
-import javax.wbem.CloseableIterator;
-import javax.wbem.WBEMException;
 import java.net.URI;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 
 import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnBlockObjectToNativeID;
-import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CP_DEVICE_ID;
-import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.STORAGE_VOLUME_CLASS;
-import static com.google.common.collect.Collections2.transform;
 
 /**
- * Vmax validator for validating there are no extra volumes in an export mask than
- * what is expected.
+ * This subclass of {@link ExportMaskValidator} will:
+ * 1) Query expected {@link Volume} instances and transform them into their respective native IDs
+ * 2) Query SMI-S for CIM_StorageVolume.DeviceID instance properties associated to the given export mask.
  */
-public class ExportMaskVolumesValidator extends AbstractVmaxValidator {
+public class ExportMaskVolumesValidator extends ExportMaskValidator {
 
-    private static final Logger log = LoggerFactory.getLogger(ExportMaskVolumesValidator.class);
-
-    private StorageSystem storage;
-    private ExportMask exportMask;
     private Collection<URI> expectedVolumeURIs;
 
-    public ExportMaskVolumesValidator(StorageSystem storage, ExportMask exportMask,
-                                      Collection<URI> expectedVolumeURIs) {
-        this.storage = storage;
-        this.exportMask = exportMask;
+    public ExportMaskVolumesValidator(StorageSystem storage, ExportMask exportMask, Collection<URI> expectedVolumeURIs) {
+        super(storage, exportMask, "volumes");
         this.expectedVolumeURIs = expectedVolumeURIs;
     }
 
     @Override
-    public boolean validate() throws Exception {
-        log.info("Validating export mask delete: {}", exportMask.getMaskName());
-        CIMObjectPath maskingViewPath = getCimPath().getMaskingViewPath(storage, exportMask.getMaskName());
-        List<String> failureReasons = Lists.newArrayList();
-
-        getLogger().setLog(log);
-        getHelper().callRefreshSystem(storage);
-
-        List<Volume> volumes = queryExpectedVolumes();
-        Collection<String> viprIds = transform(volumes, fctnBlockObjectToNativeID());
-        log.info("ViPR has volumes: {}", Joiner.on(",").join(viprIds));
-        CloseableIterator<CIMObjectPath> associatedVolumes = null;
-
-        try {
-            associatedVolumes = getHelper().getAssociatorNames(storage, maskingViewPath, null, STORAGE_VOLUME_CLASS, null, null);
-
-            List<String> smisIds = Lists.newArrayList();
-            while (associatedVolumes.hasNext()) {
-                CIMObjectPath assocVol = associatedVolumes.next();
-                String deviceId = (String) assocVol.getKeyValue(CP_DEVICE_ID);
-                smisIds.add(deviceId);
-            }
-
-            log.info("{} has volumes: {}", storage.getSerialNumber(), Joiner.on(',').join(smisIds));
-            if (smisIds.size() > viprIds.size()) {
-                getLogger().logDiff(exportMask.getId().toString(), "volumes",
-                        Joiner.on(",").join(viprIds), Joiner.on(',').join(smisIds));
-                failureReasons.add("unknown additional volumes were found");
-            }
-        } catch (WBEMException e) {
-            log.error("Failure occurred whilst validating volumes for export mask {}", exportMask.getMaskName(), e);
-            throw e;
-        } finally {
-            if (associatedVolumes != null) {
-                try {
-                    associatedVolumes.close();
-                } catch (Exception e) {
-                    // ignore
-                }
-            }
-        }
-
-        if (!failureReasons.isEmpty()) {
-            String msgFmt = "Preventing deletion of export mask %s: %s.";
-            String msg = String.format(msgFmt, exportMask.getMaskName(), Joiner.on(", ").join(failureReasons));
-            throw new RuntimeException(msg); // TODO Create DUP-specific exception
-        }
-
-        return true;
+    protected String getAssociatorProperty() {
+        return SmisConstants.CP_DEVICE_ID;
     }
 
-    private List<Volume> queryExpectedVolumes() {
+    @Override
+    protected String getAssociatorClass() {
+        return SmisConstants.STORAGE_VOLUME_CLASS;
+    }
+
+    @Override
+    protected Function<? super String, String> getHardwareTransformer() {
+        return null;
+    }
+
+    @Override
+    protected Set<String> getDatabaseResources() {
         if (expectedVolumeURIs == null || expectedVolumeURIs.isEmpty()) {
-            return Lists.newArrayList();
+            return Sets.newHashSet();
         }
-        return getDbClient().queryObject(Volume.class, expectedVolumeURIs);
+        List<Volume> volumes = getDbClient().queryObject(Volume.class, expectedVolumeURIs);
+        Collection<String> transformed = Collections2.transform(volumes, fctnBlockObjectToNativeID());
+        return Sets.newHashSet(transformed);
     }
 }

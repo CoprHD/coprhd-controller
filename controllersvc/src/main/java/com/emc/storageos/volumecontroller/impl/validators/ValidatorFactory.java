@@ -1,19 +1,22 @@
 package com.emc.storageos.volumecontroller.impl.validators;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.ExportMask;
+import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
- * A provider of {@link StorageSystemValidatorFactory} instances across the various storage systems.
+ * Top-level factory class for building {@link Validator} instances.
  */
-public class ValidatorFactory {
+public class ValidatorFactory implements StorageSystemValidatorFactory {
 
     private DbClient dbClient;
     private Map<String, StorageSystemValidatorFactory> systemFactories;
@@ -81,6 +84,28 @@ public class ValidatorFactory {
      */
     public StorageSystemValidatorFactory vplex() {
         return systemFactories.get("vplex");
+    }
+
+    @Override
+    public Validator exportMaskDelete(StorageSystem storage, ExportMask exportMask, Collection<URI> volumeURIList,
+                                      Collection<Initiator> initiatorList) {
+        return getSystemValidator(storage).exportMaskDelete(storage, exportMask, volumeURIList, initiatorList);
+    }
+
+    @Override
+    public Validator removeVolumes(StorageSystem storage, URI exportMaskURI, Collection<Initiator> initiators) {
+        return getSystemValidator(storage).removeVolumes(storage, exportMaskURI, initiators);
+    }
+
+    @Override
+    public Validator removeInitiators(StorageSystem storage, ExportMask exportMask, Collection<URI> volumeURIList) {
+        return getSystemValidator(storage).removeInitiators(storage, exportMask, volumeURIList);
+    }
+
+    @Override
+    public List<Volume> volumes(StorageSystem storageSystem, List<Volume> volumes, boolean delete, boolean remediate,
+                                ValCk[] checks) {
+        return getSystemValidator(storageSystem).volumes(storageSystem, volumes, delete, remediate, checks);
     }
 
     /**

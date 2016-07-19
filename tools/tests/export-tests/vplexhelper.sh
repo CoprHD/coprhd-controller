@@ -5,86 +5,82 @@
 #
 
 # 
-# Quick verification script
+# Script to help manage storage system outside of ViPR.
+# Used to perform various operations.
 #
-# Usage: ./xiohelper.sh <NAME_PATTERN> <NUMBER_OF_INITIATORS_EXPECTED> <NUMBER_OF_LUNS_EXPECTED>
+# Usage: ./vplexhelper.sh verify-export <NAME_PATTERN> <NUMBER_OF_INITIATORS_EXPECTED> <NUMBER_OF_LUNS_EXPECTED>
+#        ./vplexhelper.sh add_volume_to_mask <DEVICE_ID> <NAME_PATTERN>
+#        ./vplexhelper.sh remove_volume_from_mask <DEVICE_ID> <NAME_PATTERN>
+#        ./vplexhelper.sh delete_volume <DEVICE_ID>
+#        ./vplexhelper.sh add_initiator_to_mask <PWWN> <NAME_PATTERN>
+#        ./vplexhelper.sh remove_initiator_from_mask <PWWN> <NAME_PATTERN>
 #
-set -x
+#set -x
+
+TMPFILE1=/tmp/verify-${RANDOM}
+TMPFILE2=$TMPFILE1-error
 
 add_volume_to_mask() {
-    serial_number=$1
-    device_id=$2
-    pattern=$3
-    java -Dproperty.file=${tools_file} -jar ${tools_jar} -vplex $VPLEX_MODE -method add_volume_to_mask -params "${device_id},${pattern}" 
-    echo "Added volume ${device_id} to initiator group ${pattern}"
+    device_id=$1
+    pattern=$2
+    java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays vplex -method add_volume_to_mask -params "${device_id},${pattern}" > ${TMPFILE1} 2> ${TMPFILE2}
 }
 
 remove_volume_from_mask() {
-    serial_number=$1
-    device_id=$2
-    pattern=$3
-    java -Dproperty.file=${tools_file} -jar ${tools_jar} -vplex $VPLEX_MODE -method remove_volume_from_mask -params "${device_id},${pattern}"
-    echo "Removed volume ${device_id} from initiator group ${pattern}"
+    device_id=$1
+    pattern=$2
+    java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays vplex -method remove_volume_from_mask -params "${device_id},${pattern}" > ${TMPFILE1} 2> ${TMPFILE2}
 }
 
 delete_volume() {
-    serial_number=$1
-    device_id=$2
-    java -Dproperty.file=${tools_file} -jar ${tools_jar} -vplex $VPLEX_MODE -method delete_volume -params "${device_id}" 
+    device_id=$1
+    java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays vplex -method delete_volume -params "${device_id}" > ${TMPFILE1} 2> ${TMPFILE2}
 }
 
 remove_initiator_from_mask() {
-    serial_number=$1
-    device_id=$2
-    pattern=$3
-    java -Dproperty.file=${tools_file} -jar ${tools_jar} -vplex $VPLEX_MODE -method remove_initiator_from_mask -params "${device_id},${pattern}"
-
+    pwwn=$1
+    pattern=$2
+    java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays vplex -method remove_initiator_from_mask -params "${pwwn},$(echo $pwwn | sed 's/^1/2/g'),${pattern}" > ${TMPFILE1} 2> ${TMPFILE2}
 }
 
 add_initiator_to_mask() {
-    serial_number=$1
-    device_id=$2
-    pattern=$3
-    java -Dproperty.file=${tools_file} -jar ${tools_jar} -vplex $VPLEX_MODE -method add_initiator_to_mask -params "${device_id},${pattern}"
-
+    pwwn=$1
+    pattern=$2
+    java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays vplex -method add_initiator_to_mask -params "${pwwn},$(echo $pwwn | sed 's/^1/2/g'),${pattern}" > ${TMPFILE1} 2> ${TMPFILE2}
 }
 
 verify_export() {
-    # First parameter is the serial number
-    SID=$1
-    shift
-
-    # next parameters: Initiator group Name, Number of Initiators, Number of Luns
-    # If checking if the Initiator group does not exist, then parameter $2 should be "gone"
-    IG_PATTERN=$1
+    # Parameters: Storage View Name Name, Number of Initiators, Number of Luns
+    # If checking if the Storage View does not exist, then parameter $2 should be "gone"
+    STORAGE_VIEW_NAME=$1
     NUM_INITIATORS=$2
     NUM_LUNS=$3
-    TMPFILE1=/tmp/verify-${RANDOM}
-    TMPFILE2=/dev/null
 
-    java -Dproperty.file=${tools_file} -jar ${tools_jar} -vplex $VPLEX_MODE -method get_initiator_group -params ${IG_PATTERN} > ${TMPFILE1} 2> ${TMPFILE2}
-    grep -n ${IG_PATTERN} ${TMPFILE1} > /dev/null
-    if [ $? -ne 0 ]
-	then
-	if [ "$2" = "gone" ]
-	    then
-	    echo "PASSED: Verified MaskingView with pattern ${IG_PATTERN} doesn't exist."
-	    exit 0;
-	fi
-	echo "ERROR: I Expected MaskingView ${IG_PATTERN}, but could not find it";
-	exit 1;
+    java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays vplex -method get_storage_view -params ${STORAGE_VIEW_NAME} > ${TMPFILE1} 2> ${TMPFILE2}
+    grep -n ${STORAGE_VIEW_NAME} ${TMPFILE1} > /dev/null
+    # 0 if line selected, 1 if no line selected
+    foundIt=$?
+    if [ -s $TMPFILE1 ]; then
+        if [ $foundIt -ne 0 ]; then
+            if [ "$2" = "gone" ]; then
+                echo "PASSED: Verified Storage View with pattern ${STORAGE_VIEW_NAME} doesn't exist."
+                exit 0;
+            fi
+            echo "ERROR: I Expected Storage View ${STORAGE_VIEW_NAME}, but could not find it";
+            exit 1;
+        else
+            if [ "$2" = "gone" ]; then
+                echo "ERROR: Expected Storage View ${STORAGE_VIEW_NAME} to be gone, but it was found"
+                exit 1;
+            fi
+        fi
     else
-	if [ "$2" = "gone" ]
-	    then
-	    echo "ERROR: Expected MaskingView ${IG_PATTERN} to be gone, but it was found"
-	    exit 1;
-	fi
+        echo "ERROR: empty or invalid response from vplex"
+        exit 1;
     fi
 
-    num_inits=`grep -Po '(?<="numberOfInitiators":")[^"]*' ${TMPFILE1}`
-    num_luns=`grep -Po '(?<="numberOfVolumes":")[^"]*' ${TMPFILE1}`
-    echo "num_inits is ${num_inits}"
-    echo "num_luns is ${num_luns}"
+    num_inits=`grep numberOfInitiators ${TMPFILE1} | awk -F: '{print $2}'`
+    num_luns=`grep numberOfVolumes ${TMPFILE1} | awk -F: '{print $2}'`
     failed=false
 
     if [ ${num_inits} -ne ${NUM_INITIATORS} ]
@@ -111,7 +107,8 @@ verify_export() {
 # Check to see if this is an operational request or a verification of export request
 dir=`pwd`
 tools_file="${dir}/tools.yml"
-tools_jar="${dir}/ArrayTools-1.0-SNAPSHOT.jar"
+tools_jar="${dir}/ArrayTools-1.0.jar"
+
 if [ "$1" = "add_volume_to_mask" ]; then
     shift
     add_volume_to_mask $1 $2 $3
@@ -127,6 +124,9 @@ elif [ "$1" = "remove_initiator_from_mask" ]; then
 elif [ "$1" = "delete_volume" ]; then
     shift
     delete_volume $1 $2
-else
+elif [ "$1" = "verify_export" ]; then
+    shift
     verify_export $*
+else
+    echo "Usage: $0 [add_volume_to_mask | remove_volume_from_mask | add_initiator_to_mask | remove_initiator_from_mask | delete_volume | verify_export] {params}"
 fi

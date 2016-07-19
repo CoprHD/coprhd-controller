@@ -8,6 +8,9 @@ import org.slf4j.Logger;
 public class ValidatorLogger {
     private Logger log;
     private StringBuilder msgs = new StringBuilder();
+    
+    public static final String CONTACT_EMC_SUPPORT = "Contact EMC Support";
+    public static final String INVENTORY_DELETE_VOLUME = "Inventory delete the effected volume(s)";
 
     public ValidatorLogger() {
     }
@@ -20,7 +23,7 @@ public class ValidatorLogger {
      * @param hw -- Hardware value
      */
     public void logDiff(String id, String field, String db, String hw) {
-        String msg = String.format("id: %s field: %s db: %s hw: %s", id, field, db, hw);
+        String msg = String.format("id: %s field: %s database: %s hardware: %s", id, field, db, hw);
         msgs.append(msg + "\n");
         log.info(msg);
     } 

@@ -15,7 +15,7 @@
 #        ./xiohelper.sh add_initiator_to_mask <PWWN> <NAME_PATTERN>
 #        ./xiohelper.sh remove_initiator_from_mask <PWWN> <NAME_PATTERN>
 #
-# set -x
+#set -x
 
 add_volume_to_mask() {
     device_id=$1
@@ -106,9 +106,9 @@ verify_export() {
 }
 
 # Check to see if this is an operational request or a verification of export request
-dir=`pwd`
-tools_file="${dir}/tools/tests/export-tests/tools.yml"
-tools_jar="${dir}/tools/tests/export-tests/ArrayTools.jar"
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+tools_file="${DIR}/tools.yml"
+tools_jar="${DIR}/ArrayTools.jar"
 if [ "$1" = "add_volume_to_mask" ]; then
     shift
     add_volume_to_mask $1 $2 $3

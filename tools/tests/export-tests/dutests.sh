@@ -507,10 +507,15 @@ login() {
        HOST3=host3export${BASENUM}
        CLUSTER=cl${BASENUM}
 
+       sstype=${SS:0:3}
+       if [ "${SS}" = "xio" ]; then
+	   sstype="xtremio"
+       fi
+
        # figure out what type of array we're running against
-       storage_type=`storagedevice list | grep COMPLETE | grep ${SS:0:3} | awk '{print $1}'`
+       storage_type=`storagedevice list | grep COMPLETE | grep ${sstype} | awk '{print $1}'`
        echo "Found storage type is: $storage_type"
-       SERIAL_NUMBER=`storagedevice list | grep COMPLETE | grep ${SS:0:3} | awk '{print $2}' | awk -F+ '{print $2}'`
+       SERIAL_NUMBER=`storagedevice list | grep COMPLETE | grep ${sstype} | awk '{print $2}' | awk -F+ '{print $2}'`
        echo "Serial number is: $SERIAL_NUMBER"
        if [ "${storage_type}" = "xtremio" ]
        then

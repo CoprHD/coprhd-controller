@@ -148,24 +148,20 @@ public class OrderManagerImpl implements OrderManager {
         Map<String, String> assetOptions = getAssetValues(serviceDescriptor, orderParameters);
         for (OrderParameter orderParameter : orderParameters) {
             ServiceField serviceField = findServiceField(serviceDescriptor, orderParameter.getLabel());
-            if (serviceField != null) {
-                String friendlyLabel = serviceField.getLabel();
+            String friendlyLabel = serviceField.getLabel();
     
-                StringBuilder friendlyValue = new StringBuilder();
-                List<String> values = TextUtils.parseCSV(orderParameter.getValue());
-                for (String value : values) {
-                    if (friendlyValue.length() > 0) {
-                        friendlyValue.append(",");
-                    }
-                    friendlyValue.append(getFriendlyValue(serviceField, value, assetOptions, user));
+            StringBuilder friendlyValue = new StringBuilder();
+            List<String> values = TextUtils.parseCSV(orderParameter.getValue());
+            for (String value : values) {
+                if (friendlyValue.length() > 0) {
+                    friendlyValue.append(",");
                 }
-    
-                orderParameter.setFriendlyLabel(friendlyLabel);
-                orderParameter.setFriendlyValue(friendlyValue.toString());
-            } else {
-                orderParameter.setFriendlyLabel(orderParameter.getLabel());
-                orderParameter.setFriendlyValue(orderParameter.getValue());
+                friendlyValue.append(getFriendlyValue(serviceField, value, assetOptions, user));
             }
+
+            orderParameter.setFriendlyLabel(friendlyLabel);
+            orderParameter.setFriendlyValue(friendlyValue.toString());
+            
             createOrderParameter(orderParameter);
         }
 

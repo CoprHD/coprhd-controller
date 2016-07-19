@@ -22,7 +22,6 @@ public class CreateApplicationService extends ViPRService {
 
     @Override
     public void execute() throws Exception {
-        logWarn("Get param scheduler enabled " + schedulerEnabled + "Frequency " + this.schedulerCycleFrequency + " hour " + this.schedulerHourOfDay);
         VolumeGroupRestRep application = execute(new CreateApplication(name, description));
         addAffectedResource(application);
     }

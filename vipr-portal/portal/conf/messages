@@ -3072,6 +3072,16 @@ order.executionTaskLogs.detail=Detail
 order.executionTaskLogs.elapsed=Elapsed
 order.viprTasks=Tasks
 
+order.schedule=Schedule
+order.occur=Occurring on
+order.recur=Recurring every
+order.at=at
+order.MINUTELY=minute(s)
+order.HOURLY=hour(s)
+order.DAILY=day(s)
+order.MONTHLY=month(s)
+order.WEEKLY=week(s)
+
 order.host.with.cluster.decoration=%s [cluster: %s]
 
 tags=Tags

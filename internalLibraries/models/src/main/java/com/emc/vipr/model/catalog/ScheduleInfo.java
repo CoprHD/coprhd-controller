@@ -25,8 +25,8 @@ public class ScheduleInfo implements Serializable {
     public static final String END_DATE = "endDate";
     public static final String DATE_EXCEPTIONS = "dateExceptions";
 
-    public static final String FULL_DAYTIME_FORMAT = "yyyy/MM/dd HH:mm:ss";
-    public static final String FULL_DAY_FORMAT = "yyyy/MM/dd";
+    public static final String FULL_DAYTIME_FORMAT = "yyyy-MM-dd HH:mm:ss";
+    public static final String FULL_DAY_FORMAT = "yyyy-MM-dd";
 
     // start hour and minute of the date
     private Integer hourOfDay;        // [0..23)
@@ -52,8 +52,8 @@ public class ScheduleInfo implements Serializable {
 
     private String startDate;  // the start date. Format: "yyyy/MM/dd"
 
-    // number of reoccurrence (1 for ONCE event)
-    private Integer reoccurrence;     // [1..)
+    // number of recurrence (0 for Indefinitely, 1 for ONCE event, others for limited recurrences)
+    private Integer reoccurrence;     // [0..)
 
     private String endDate;  // the end date; not used for now
 

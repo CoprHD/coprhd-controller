@@ -215,8 +215,8 @@ public class HP3PARIngestHelper {
 
 	/**
 	 * Identifying snapshots of the given parent base volume. NOTE: Intermediate
-	 * physical copies of 3PAR generated from other snapshots/clone are shown as
-	 * clone of base volume itself Need to check this behavior ?
+	 * virtual copies of 3PAR generated from other snapshots/clone are shown as
+	 * snapshots of base volume itself
 	 */
 	public List<VolumeSnapshot> getVolumeSnapshots(StorageVolume volume, Registry registry) {
 		_log.info("3PARDriver: getVolumeSnapshots Running ");
@@ -278,7 +278,7 @@ public class HP3PARIngestHelper {
 	/**
 	 * Identifying clones of the given parent base volume. NOTE: Intermediate
 	 * physical copies of 3PAR generated from other snapshots/clone are shown as
-	 * clone of base volume itself Need to check this behavior ?
+	 * clone of base volume itself
 	 */
 	public List<VolumeClone> getVolumeClones(StorageVolume volume, Registry registry) {
 		_log.info("3PARDriver: getVolumeClones Running ");

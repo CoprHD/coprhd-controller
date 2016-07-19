@@ -54,13 +54,13 @@ public class VplexExportMaskValidator extends AbstractVplexValidator implements 
             // This will throw an exception if the cluster name cannot be determined
             String vplexClusterName = VPlexUtil.getVplexClusterName(mask, vplex.getId(), client, dbClient);
             // This will throw an exception if the StorageView cannot be found
-            storageView = client.getStorageView(vplexClusterName, mask.getMaskName()); 
+            storageView = client.getStorageView(vplexClusterName, mask.getMaskName());
             if (volumesToValidate != null) {
                 validateNoAdditionalVolumes(storageView);
             }
             if (initiatorsToValidate != null) {
                 validateNoAdditionalInitiators(storageView);
-            } 
+            }
         } catch (Exception ex) {
             if (storageView == null) {
                 // Not finding the storage view is not an error, so delete can be idempotent
@@ -79,10 +79,11 @@ public class VplexExportMaskValidator extends AbstractVplexValidator implements 
 
         return true;
     }
-    
+
     /**
      * Validates the hardware has no additional volumes than were passed in the volumesToValidate list.
      * Uses the virtualVolumeWWNMap to retrieve the volume WWNs and match against hardware.
+     * 
      * @param storageView -- VPlexStorageViewInfo
      */
     private void validateNoAdditionalVolumes(VPlexStorageViewInfo storageView) {
@@ -107,29 +108,30 @@ public class VplexExportMaskValidator extends AbstractVplexValidator implements 
             logger.logDiff(id, "virtual-volume WWN", "<no matching entry in validation list>", wwn);
         }
     }
-    
+
     /**
      * Validate the hardware has no additional initiators than were passed in the initiatorsToValidate list.
      * Uses the Initiator PWWNs in the Storage View to match against initiator port WWN.
-     * @param storageView  -- VPlexStorageViewInfo
+     * 
+     * @param storageView -- VPlexStorageViewInfo
      */
     private void validateNoAdditionalInitiators(VPlexStorageViewInfo storageView) {
-       Set<String> storageViewPwwns = new HashSet<String>(storageView.getInitiatorPwwns()); 
-       for (Initiator initiator : initiatorsToValidate) {
-           if (initiator == null || initiator.getInactive()) {
-               continue;
-           }
-           String initiatorPwwn = Initiator.normalizePort(initiator.getInitiatorPort());
-           if (storageViewPwwns.contains(initiatorPwwn)) {
-               storageViewPwwns.remove(initiatorPwwn);
-           } else {
-               log.info(String.format("Database initiator %s (%s) not in StorageView", initiator.getId(), initiatorPwwn));
-           }
-       }
-       // Any remaining WWNs in storageViewPwwns had no matching initiator, and therefore are error
-       for (String wwn : storageViewPwwns) {
-           logger.logDiff(id, "initiator port WWN", "<no matching entry in validation list>", wwn);
-       }
+        Set<String> storageViewPwwns = new HashSet<String>(storageView.getInitiatorPwwns());
+        for (Initiator initiator : initiatorsToValidate) {
+            if (initiator == null || initiator.getInactive()) {
+                continue;
+            }
+            String initiatorPwwn = Initiator.normalizePort(initiator.getInitiatorPort());
+            if (storageViewPwwns.contains(initiatorPwwn)) {
+                storageViewPwwns.remove(initiatorPwwn);
+            } else {
+                log.info(String.format("Database initiator %s (%s) not in StorageView", initiator.getId(), initiatorPwwn));
+            }
+        }
+        // Any remaining WWNs in storageViewPwwns had no matching initiator, and therefore are error
+        for (String wwn : storageViewPwwns) {
+            logger.logDiff(id, "initiator port WWN", "<no matching entry in validation list>", wwn);
+        }
     }
 
     public StorageSystem getVplex() {

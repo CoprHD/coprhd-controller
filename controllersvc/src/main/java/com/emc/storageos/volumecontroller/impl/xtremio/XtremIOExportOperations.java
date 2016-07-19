@@ -313,7 +313,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
             _log.info("List of  IGs found {} with size : {}",
                     Joiner.on(",").join(groupInitiatorsByIG.asMap().entrySet()), groupInitiatorsByIG.size());
 
-            XtremIOExportMaskVolumesValidator volumeValidator = (XtremIOExportMaskVolumesValidator) validator.addInitiators(storage,
+            XtremIOExportMaskVolumesValidator volumeValidator = (XtremIOExportMaskVolumesValidator) validator.removeInitiators(storage,
                     exportMask, volumeURIList);
             volumeValidator.setIgNames(groupInitiatorsByIG.keySet());
             volumeValidator.validate();

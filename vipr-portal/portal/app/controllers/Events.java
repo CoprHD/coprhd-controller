@@ -62,21 +62,21 @@ public class Events extends Controller {
     // }
     // };
 
-    public static void listAll(Boolean systemTasks) {
+    public static void listAll(Boolean systemEvents) {
         TenantSelector.addRenderArgs();
 
-        if (systemTasks == null) {
-            systemTasks = Boolean.FALSE;
+        if (systemEvents == null) {
+            systemEvents = Boolean.FALSE;
         }
-        if (systemTasks && Security.isSystemAdminOrRestrictedSystemAdmin() == false) {
+        if (systemEvents && Security.isSystemAdminOrRestrictedSystemAdmin() == false) {
             forbidden();
         }
 
         renderArgs.put("isSystemAdmin", Security.isSystemAdminOrRestrictedSystemAdmin());
-        renderArgs.put("systemTasks", systemTasks);
+        renderArgs.put("systemEvents", systemEvents);
         renderArgs.put("dataTable", new EventsDataTable(true));
 
-        Common.angularRenderArgs().put("tenantId", systemTasks ? "system" : Models.currentAdminTenant());
+        Common.angularRenderArgs().put("tenantId", systemEvents ? "system" : Models.currentAdminTenant());
 
         render();
     }
@@ -97,19 +97,19 @@ public class Events extends Controller {
         renderJSON(toEventSummaries(tasks));
     }
 
-    public static void listAllJson(Long lastUpdated, Boolean systemTasks) {
+    public static void listAllJson(Long lastUpdated, Boolean systemEvents) {
 
-        if (systemTasks == null) {
-            systemTasks = Boolean.FALSE;
+        if (systemEvents == null) {
+            systemEvents = Boolean.FALSE;
         }
-        if (systemTasks && Security.isSystemAdminOrRestrictedSystemAdmin() == false) {
+        if (systemEvents && Security.isSystemAdminOrRestrictedSystemAdmin() == false) {
             forbidden();
         }
 
         ViPRCoreClient client = getViprClient();
         List<EventRestRep> taskResourceReps = null;
         // if (lastUpdated == null) {
-        if (systemTasks) {
+        if (systemEvents) {
             taskResourceReps = client.events().getByRefs(client.events().listByTenant(SYSTEM_TENANT));
         } else {
             taskResourceReps = client.events().getByRefs(client.events().listByTenant(uri(Models.currentAdminTenant())));
@@ -294,7 +294,7 @@ public class Events extends Controller {
 
         public EventSummary(EventRestRep task) {
             id = task.getId();
-            message = task.getMessage();
+            message = task.getDescription();
             name = task.getName();
         }
     }

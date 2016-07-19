@@ -23,6 +23,7 @@ public class EventMapper {
         to.setTenant(toRelatedResource(ResourceTypeEnum.TENANT, from.getTenant()));
         to.setResource(toNamedRelatedResource(from.getResource()));
         to.setStatus(from.getEventStatus());
+        to.setDescription(from.getDescription());
         return to;
     }
 

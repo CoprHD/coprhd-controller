@@ -3,19 +3,19 @@
 #{set navSelected: ['nav.storage', 'nav.events'] /}
 #{set 'title'}&{'resources.events'}#{/set}
 
-<div id="tasks" class="tasks-container">
+<div id="events" class="events-container">
   <div class="content">
 
       <div class="section-header" >
-          <h1>#{icon 'tasks'/} &{'resources.events'}</h1>
+          <h1>#{icon 'events'/} &{'resources.events'}</h1>
       </div>
 
   #{alerts/}
   
   #{if tenants || isSystemAdmin}
-      <ul id="taskTabs" class="nav nav-tabs" role="tablist" style="margin-bottom:1em;">
+      <ul id="eventTabs" class="nav nav-tabs" role="tablist" style="margin-bottom:1em;">
         #{if tenants?.size() > 1}
-          <li class="dropdown #{ifnot systemTasks}active#{/ifnot}">
+          <li class="dropdown #{ifnot systemEvents}active#{/ifnot}">
             <a class="dropdown-toggle" data-toggle="dropdown" href="#">
               %{
                 currentTenantName = tenants.find{it.id.equals(currentTenantId)}.name
@@ -94,7 +94,7 @@
         "sInfoEmpty": "datatable.tasks.empty"
      ]
     }%
-    #{DataTable.table id:'tasks',
+    #{DataTable.table id:'events',
         dataTable:dataTable, 
         source:@Events.listAllJson(), 
         cssClass:'editableRows table-striped',
@@ -111,7 +111,7 @@
   <script type="text/javascript">
     var tenantId = '${tenantId}';
 
-    table.tasks.dataTable.setMaxRows(1000, function(data) {
+    table.events.dataTable.setMaxRows(1000, function(data) {
         var oldestTime = -1;
         var oldestIndex = -1;
 
@@ -133,7 +133,7 @@
     });
     
     function loadServerParams(aoData) {
-      aoData.push({"name": "systemTasks", "value" : ${systemTasks}});
+      aoData.push({"name": "systemTasks", "value" : ${systemEvents}});
     }    
     
   </script>    

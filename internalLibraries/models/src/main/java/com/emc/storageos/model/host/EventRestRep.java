@@ -20,7 +20,7 @@ import com.emc.storageos.model.RelatedResourceRep;
 @XmlAccessorType(XmlAccessType.PROPERTY)
 public class EventRestRep extends DataObjectRestRep {
 
-    private String message;
+    private String description;
     private NamedRelatedResourceRep resource;
     private String status;
 
@@ -38,13 +38,13 @@ public class EventRestRep extends DataObjectRestRep {
         this.tenant = tenant;
     }
 
-    @XmlElement(name = "message")
-    public String getMessage() {
-        return message;
+    @XmlElement(name = "description")
+    public String getDescription() {
+        return description;
     }
 
-    public void setMessage(String message) {
-        this.message = message;
+    public void setDescription(String description) {
+        this.description = description;
     }
 
     @XmlElement(name = "resource")

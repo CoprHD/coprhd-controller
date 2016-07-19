@@ -15,7 +15,6 @@ import util.datatable.DataTable;
 
 public class EventsDataTable extends DataTable {
     // Currently the backend only shows progresses of 0 or 100, so for show this as the miminum progress
-    private static final int MINIMUM_TASK_PROGRESS = 10;
 
     public EventsDataTable() {
         setupTable(false);
@@ -28,8 +27,8 @@ public class EventsDataTable extends DataTable {
     private void setupTable(boolean addResourceColumn) {
         addColumn("systemName").hidden();
         addColumn("id").hidden().setSearchable(false);
+        addColumn("message");
         addColumn("eventStatus");
-        addColumn("name");
         if (addResourceColumn) {
             addColumn("resourceId").setSearchable(false).setRenderFunction("render.taskResource");
             addColumn("resourceName").hidden();
@@ -89,7 +88,7 @@ public class EventsDataTable extends DataTable {
                 this.resourceName = eventRestRep.getResource().getName();
             }
 
-            this.message = eventRestRep.getMessage();
+            this.message = "Message: [ " + eventRestRep.getDescription() + " ]";
 
             // Create Row Link
             Map<String, Object> args = Maps.newHashMap();

@@ -277,7 +277,7 @@ public class EventService extends TaggedResource {
         }
         EventRestRep to = new EventRestRep();
         to.setName(from.getLabel());
-        to.setMessage(from.getDescription());
+        to.setDescription(from.getDescription());
         to.setStatus(from.getEventStatus());
         to.setResource(toNamedRelatedResource(from.getResource()));
         to.setTenant(toRelatedResource(ResourceTypeEnum.TENANT, from.getTenant()));

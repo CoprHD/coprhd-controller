@@ -3245,6 +3245,10 @@ resources.events.declined=Declined
 resources.events.deleteEvent=Delete Event
 resources.events.approveEvent=Approve Event
 resources.events.declineEvent=Decline Event
+events.eventStatus=Status
+events.name=Description
+events.resourceId=Resource
+events.creationTime=Created At
 
 resources.tasks=Tasks
 resources.task=Task Details

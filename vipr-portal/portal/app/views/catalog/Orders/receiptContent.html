@@ -172,16 +172,16 @@
 
       <dt>&nbsp;</dt>
       <dd>&nbsp;</dd>
-      <dt>&nbsp;</dt>
+      <dt>&{'service.order.pause.resume.label'}</dt>
       <dd>
       <span id="flowControl">
       %{ isExecuting = details.order.isExecuting() || details.order.isPending() }%
       #{if isExecuting}
-      <a href="#" id="pauseLink" onclick="pauseOrder(); return false;"><span id='opPause' class='btn btn-primary btn-sm'><span class='glyphicon glyphicon-pause'>&{"service.order.pause.label"}<span id="pauseText"></span></span></span> </a>
+      <a href="#" id="pauseLink" onclick="pauseOrder(); return false;"><span id='opPause' class='btn btn-primary btn-sm'><span class='glyphicon glyphicon-pause'><span id="pauseText"></span></span></span> </a>
       #{/if}
        %{ isExecuting = details.order.isPaused() }%
       #{if isExecuting}
-      <a href="#" id="resumeLink" onclick="resumeOrder(); return false;"><span id='opResume' class='btn btn-primary btn-sm'><span class='glyphicon glyphicon-play'>&{"service.order.resume.label"}<span id="resumeText"></span></span></span>  </a> 
+      <a href="#" id="resumeLink" onclick="resumeOrder(); return false;"><span id='opResume' class='btn btn-primary btn-sm'><span class='glyphicon glyphicon-play'><span id="resumeText"></span></span></span>  </a> 
       
       #{/if}
       </span>

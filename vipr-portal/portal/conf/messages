@@ -3052,8 +3052,7 @@ order.resumeFailed=Your order was unable to be resumed due to an internal error.
 
 service.order.pause=Pausing...
 service.order.resume=Resuming...
-service.order.pause.label=Pause
-service.order.resume.label=Resume
+service.order.pause.resume.label=Pause/Resume
 
 OrderStatus.PENDING=Preparing Order
 OrderStatus.EXECUTING=Executing...

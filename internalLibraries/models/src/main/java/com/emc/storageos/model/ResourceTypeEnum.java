@@ -45,7 +45,7 @@ public enum ResourceTypeEnum {
     WORKFLOW("workflow", "/vdc/workflows"),
     WORKFLOW_STEP("workflow_step", "/vdc/workflows/steps"),
     HOST("host", "/compute/hosts"),
-    VIRTUALMACHINE("host", "/compute/virtualmachines"),
+    VIRTUAL_MACHINE("virtual_machine", "/compute/virtualmachines"),
     VCENTER("vcenter", "/compute/vcenters"),
     CLUSTER("cluster", "/compute/clusters"),
     INITIATOR("initiator", "/compute/initiators"),

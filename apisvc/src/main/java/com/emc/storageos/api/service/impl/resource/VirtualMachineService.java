@@ -80,7 +80,7 @@ public class VirtualMachineService extends TaskResourceService {
     // Logger
     protected final static Logger _log = LoggerFactory.getLogger(VirtualMachineService.class);
 
-    private static final String EVENT_SERVICE_TYPE = "virtualmachine";
+    private static final String EVENT_SERVICE_TYPE = "virtual_machine";
     private static final String BLADE_RESERVATION_LOCK_NAME = "BLADE_RESERVATION_LOCK";
 
     @Autowired
@@ -193,7 +193,7 @@ public class VirtualMachineService extends TaskResourceService {
 
     @Override
     protected ResourceTypeEnum getResourceType() {
-        return ResourceTypeEnum.HOST;
+        return ResourceTypeEnum.VIRTUAL_MACHINE;
     }
 
     @Override

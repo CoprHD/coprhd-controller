@@ -23,6 +23,6 @@ public class MountFSExport extends ViPRExecutionTask<Task<FileShareRestRep>> {
 
     @Override
     public Task<FileShareRestRep> executeTask() throws Exception {
-        return getClient().fileSystems().mount(fileSystemId, input);
+        return getClient().fileSystems().mountNFS(fileSystemId, input);
     }
 }

@@ -23,6 +23,6 @@ public class UnmountFSExport extends ViPRExecutionTask<Task<FileShareRestRep>> {
 
     @Override
     public Task<FileShareRestRep> executeTask() throws Exception {
-        return getClient().fileSystems().unmount(fileSystemId, input);
+        return getClient().fileSystems().unmountNFS(fileSystemId, input);
     }
 }

@@ -472,6 +472,11 @@ URI_ZONE                        = URI_SERVICES_BASE + '/zone/{0}'
 URI_ZONES	                = URI_SERVICES_BASE + '/zone'
 URI_ZONE_CAPACITY               = URI_SERVICES_BASE + '/zone/capacity'
 
+URI_CUSTOMCONFIGS               = URI_SERVICES_BASE + '/config/controller'
+URI_CUSTOMCONFIG                = URI_CUSTOMCONFIGS + '/{0}'
+URI_CUSTOMCONFIG_DELETE         = URI_CUSTOMCONFIG + '/deactivate'
+
+
 URI_REPLICATION_GROUP           = URI_SERVICES_BASE + '/vdc/data-service/vpools/{0}'
 URI_REPLICATION_GROUPS          = URI_SERVICES_BASE + '/vdc/data-service/vpools'
 URI_REPLICATION_EXTEND          = URI_SERVICES_BASE + '/vdc/data-service/vpools/{0}/addvarrays'
@@ -3603,7 +3608,7 @@ class Bourne:
     def volume_exports(self, uri):
         return self.api('GET', URI_VOLUMES_EXPORTS.format(uri))
 
-    def volume_create(self, label, project, neighborhood, cos, size, isThinVolume, count, protocols, protection, consistencyGroup):
+    def volume_create(self, label, project, neighborhood, cos, size, isThinVolume, count, protocols, protection, consistencyGroup, computeResource):
         parms = {
             'name'              : label,
             'varray'      : neighborhood,
@@ -3618,6 +3623,9 @@ class Bourne:
 
         if (consistencyGroup != ''):
             parms['consistency_group'] =  consistencyGroup
+
+        if (computeResource):
+            parms['computeResource'] = computeResource
 
         print "VOLUME CREATE Params = ", parms
         resp = self.api('POST', URI_VOLUME_LIST, parms, {})
@@ -8872,3 +8880,53 @@ class Bourne:
         # complete, then they are all complete.
         task = self.api_sync_2(session_uri, task_opid, self.block_snapshot_session_show_task)
         return (tasklist, task['state'], task['message'])
+
+
+    def customconfig_query(self, name, scopetype, scope, isdefault):
+        if (self.__is_uri(name)):
+            return name
+
+        cclist = self.customconfig_list()
+        for ccrel in cclist:
+            try:
+                if (ccrel['name'] == name):
+                    cc = self.api('GET', ccrel['link']['href'])
+                    ccscope = cc['scope']
+                    ccsysdflt = str(cc['system_default'])
+                    print ccsysdflt
+                    print isdefault
+                    if ((ccscope['type'] == scopetype) and (ccscope['value'] == scope) and (ccsysdflt == isdefault)):
+                        return ccrel['id']
+            except KeyError:
+                print 'No name key'
+        raise Exception('Bad custom configuration name: ' + name)
+
+    def customconfig_list(self):
+        cc_list = self.api('GET', URI_CUSTOMCONFIGS)
+        if (not cc_list):
+            return {}
+        ccs = cc_list['config']
+        if (type(ccs) != list):
+            return [ccs]
+        return ccs
+
+    def customconfig_show(self, uri):
+        return self.api('GET', URI_CUSTOMCONFIG.format(uri))
+
+    def customconfig_delete(self, uri):
+        return self.api('POST', URI_CUSTOMCONFIG_DELETE.format(uri))
+
+    def customconfig_create(self, type, value, scopetype, scope, register):
+        scope = {
+            'type' : scopetype,
+            'value' : scope,
+        }
+
+        parms = {
+            'config_type' : type,
+            'value' : value,
+            'scope' : scope,
+            'registered' : register,
+        }
+
+        return self.api('POST', URI_CUSTOMCONFIGS, parms, {})

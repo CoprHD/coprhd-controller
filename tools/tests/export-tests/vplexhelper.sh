@@ -15,37 +15,38 @@
 #        ./vplexhelper.sh add_initiator_to_mask <PWWN> <NAME_PATTERN>
 #        ./vplexhelper.sh remove_initiator_from_mask <PWWN> <NAME_PATTERN>
 #
-# set -x
+#set -x
+
+TMPFILE1=/tmp/verify-${RANDOM}
+TMPFILE2=$TMPFILE1-error
 
 add_volume_to_mask() {
     device_id=$1
     pattern=$2
-    java -Dproperty.file=${tools_file} -jar ${tools_jar} -vplex $VPLEX_MODE -method add_volume_to_mask -params "${device_id},${pattern}" 
-    echo "Added volume ${device_id} to initiator group ${pattern}"
+    java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays vplex -method add_volume_to_mask -params "${device_id},${pattern}" > ${TMPFILE1} 2> ${TMPFILE2}
 }
 
 remove_volume_from_mask() {
     device_id=$1
     pattern=$2
-    java -Dproperty.file=${tools_file} -jar ${tools_jar} -vplex $VPLEX_MODE -method remove_volume_from_mask -params "${device_id},${pattern}"
-    echo "Removed volume ${device_id} from initiator group ${pattern}"
+    java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays vplex -method remove_volume_from_mask -params "${device_id},${pattern}" > ${TMPFILE1} 2> ${TMPFILE2}
 }
 
 delete_volume() {
     device_id=$1
-    java -Dproperty.file=${tools_file} -jar ${tools_jar} -vplex $VPLEX_MODE -method delete_volume -params "${device_id}" 
+    java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays vplex -method delete_volume -params "${device_id}" > ${TMPFILE1} 2> ${TMPFILE2}
 }
 
 remove_initiator_from_mask() {
     pwwn=$1
     pattern=$2
-    java -Dproperty.file=${tools_file} -jar ${tools_jar} -vplex $VPLEX_MODE -method remove_initiator_from_mask -params "${pwwn},${pattern}"
+    java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays vplex -method remove_initiator_from_mask -params "${pwwn},${pattern}" > ${TMPFILE1} 2> ${TMPFILE2}
 }
 
 add_initiator_to_mask() {
     pwwn=$1
     pattern=$2
-    java -Dproperty.file=${tools_file} -jar ${tools_jar} -vplex $VPLEX_MODE -method add_initiator_to_mask -params "${pwwn},${pattern}"
+    java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays vplex -method add_initiator_to_mask -params "${pwwn},${pattern}" > ${TMPFILE1} 2> ${TMPFILE2}
 }
 
 verify_export() {
@@ -54,8 +55,6 @@ verify_export() {
     STORAGE_VIEW_NAME=$1
     NUM_INITIATORS=$2
     NUM_LUNS=$3
-    TMPFILE1=/tmp/verify-${RANDOM}
-    TMPFILE2=$TMPFILE1-error
 
     java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays vplex -method get_storage_view -params ${STORAGE_VIEW_NAME} > ${TMPFILE1} 2> ${TMPFILE2}
     grep -n ${STORAGE_VIEW_NAME} ${TMPFILE1} > /dev/null

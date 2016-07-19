@@ -49,13 +49,11 @@ if [ "$1"x != "x" ]; then
    fi
 fi
 
-VERIFY_EXPORT_COUNT=0
-VERIFY_EXPORT_FAIL_COUNT=0
-verify_export() {
+# Determine the mask name, given the storage system and other info
+get_masking_view_name() {
     no_host_name=0
     export_name=$1
     host_name=$2
-    shift 2
 
     if [ "$host_name" = "-x-" ]; then
         # The host_name parameter is special, indicating no hostname, so
@@ -90,6 +88,18 @@ verify_export() {
         masking_view_name=$export_name
     fi
 
+    echo ${masking_view_name}
+}
+
+VERIFY_EXPORT_COUNT=0
+VERIFY_EXPORT_FAIL_COUNT=0
+verify_export() {
+    export_name=$1
+    host_name=$2
+    shift 2
+
+    masking_view_name=`get_masking_view_name ${export_name} ${host_name}`
+
     # Why is this sleep here?  Please explain.  If it's specific to SMIS, please put in SMIS-specific block
     if [ "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]; then
 	sleep 10
@@ -102,7 +112,6 @@ verify_export() {
 	fi
 	echo There was a failure
 	VERIFY_EXPORT_FAIL_COUNT=`expr $VERIFY_EXPORT_FAIL_COUNT + 1`
-        #cleanup
 	finish
     fi
     VERIFY_EXPORT_COUNT=`expr $VERIFY_EXPORT_COUNT + 1`
@@ -123,22 +132,26 @@ arrayhelper() {
     add_volume_to_mask)
 	device_id=$3
         pattern=$4
-	arrayhelper_volume_mask_operation $operation $serial_number $device_id $pattern
+	masking_view_name=`get_masking_view_name no-op ${pattern}`
+	arrayhelper_volume_mask_operation $operation $serial_number $device_id $masking_view_name
 	;;
     remove_volume_from_mask)
 	device_id=$3
         pattern=$4
-	arrayhelper_volume_mask_operation $operation $serial_number $device_id $pattern
+	masking_view_name=`get_masking_view_name no-op ${pattern}`
+	arrayhelper_volume_mask_operation $operation $serial_number $device_id $masking_view_name
 	;;
     add_initiator_to_mask)
 	pwwn=$3
         pattern=$4
-	arrayhelper_initiator_mask_operation $operation $serial_number $pwwn $pattern
+	masking_view_name=`get_masking_view_name no-op ${pattern}`
+	arrayhelper_initiator_mask_operation $operation $serial_number $pwwn $masking_view_name
 	;;
     remove_initiator_from_mask)
 	pwwn=$3
         pattern=$4
-	arrayhelper_initiator_mask_operation $operation $serial_number $pwwn $pattern
+	masking_view_name=`get_masking_view_name no-op ${pattern}`
+	arrayhelper_initiator_mask_operation $operation $serial_number $pwwn $masking_view_name
 	;;
     create_export_mask)
         device_id=$3

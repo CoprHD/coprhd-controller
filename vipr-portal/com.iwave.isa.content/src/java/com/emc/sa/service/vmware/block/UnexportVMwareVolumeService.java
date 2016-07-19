@@ -45,9 +45,8 @@ public class UnexportVMwareVolumeService extends VMwareHostService {
     Collection<ExportGroupRestRep> filteredExportGroups;
 
     @Override
-    public void precheck() {
-        vmware.disconnect();
-
+    public void precheck() throws Exception {
+        super.precheck();
         if (BlockStorageUtils.isCluster(hostId)) {
             clusterInstance = BlockStorageUtils.getCluster(hostId);
             exports = BlockStorageUtils.findExportsContainingCluster(hostId, null, null);
@@ -70,11 +69,19 @@ public class UnexportVMwareVolumeService extends VMwareHostService {
         if (volumes.size() < volumeIds.size()) {
             logWarn("unexport.host.service.not.found", volumeIds.size(), volumes.size());
         }
+        for (BlockObjectRestRep volume : volumes) {
+            String datastoreName = KnownMachineTags.getBlockVolumeVMFSDatastore(hostId, volume);
+            if (!StringUtils.isEmpty(datastoreName)) {
+                Datastore datastore = vmware.getDatastore(datacenter.getLabel(), datastoreName);
+                if (datastore != null) {
+                    vmware.verifyDatastoreForRemoval(datastore);
+                }
+            }
+        }
     }
 
     @Override
     public void execute() throws Exception {
-        connectAndInitializeHost();
 
         for (BlockObjectRestRep volume : volumes) {
             String datastoreName = KnownMachineTags.getBlockVolumeVMFSDatastore(hostId, volume);

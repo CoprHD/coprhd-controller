@@ -97,6 +97,7 @@ import com.emc.sa.service.vipr.block.tasks.StartBlockSnapshot;
 import com.emc.sa.service.vipr.block.tasks.StartFullCopy;
 import com.emc.sa.service.vipr.block.tasks.SwapCGContinuousCopies;
 import com.emc.sa.service.vipr.block.tasks.SwapContinuousCopies;
+import com.emc.sa.service.vipr.block.tasks.VerifyVolumeDependencies;
 import com.emc.sa.service.vipr.tasks.GetCluster;
 import com.emc.sa.service.vipr.tasks.GetHost;
 import com.emc.sa.service.vipr.tasks.GetStorageSystem;
@@ -227,6 +228,15 @@ public class BlockStorageUtils {
         return execute(new GetBlockContinuousCopies(uris, parentId));
     }
     
+    /**
+     * Verify that list of volume doesn't contain any dependencies (snapshot, full copies, continuous copy)
+     *
+     * @param volumeIds of the volumes to validate dependencies
+     */
+    public static void verifyVolumeDependencies(List<URI> volumeIds) {
+        execute(new VerifyVolumeDependencies(volumeIds));
+    }
+
     /**
      * Retrieve a list of block resources based on the resource ids provided. This will gather
      * the appropriate resources based on the resource type of the ids provided.

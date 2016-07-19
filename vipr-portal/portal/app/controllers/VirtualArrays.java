@@ -246,7 +246,7 @@ public class VirtualArrays extends ViprResourceController {
 							virtualArray.name = VARRAY_PREFIX + storageSystem.getName();
 							VirtualArrayRestRep varray = virtualArray.save();
 							virtualArray.load(varray);
-							response.setCookie("guide_varray", virtualArray.name );
+							response.setCookie("guide_varray", virtualArray.name);
 							addVarrayStorageSystem(virtualArray.id, storageSystem.getId().toString());
 						}
 					}

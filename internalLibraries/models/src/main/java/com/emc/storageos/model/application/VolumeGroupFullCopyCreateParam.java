@@ -22,6 +22,8 @@ public class VolumeGroupFullCopyCreateParam extends VolumeFullCopyCreateParam {
     private Boolean partial = Boolean.FALSE;
     /** Volume list will be considered only when it is partial. List has to have one Volume from each Array Group */
     private List<URI> volumes;
+    // alternative to partial flag and list of volumes
+    private List<String> subGroups;
 
     public VolumeGroupFullCopyCreateParam() {
     }
@@ -67,5 +69,21 @@ public class VolumeGroupFullCopyCreateParam extends VolumeFullCopyCreateParam {
 
     public void setVolumes(List<URI> volumes) {
         this.volumes = volumes;
+    }
+
+    /**
+     * @return the subGroups
+     */
+    @XmlElementWrapper(required = true, name = "subgroups")
+    @XmlElement(required = false, name = "subgroup")
+    public List<String> getSubGroups() {
+        return subGroups;
+    }
+
+    /**
+     * @param subGroups the subGroups to set
+     */
+    public void setSubGroups(List<String> subGroups) {
+        this.subGroups = subGroups;
     }
 }

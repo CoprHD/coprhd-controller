@@ -178,7 +178,7 @@ public class StorageSystemTypes extends ViprResourceController {
         public String storageSystemTypeDisplayName;
 
         @Required
-        public String storageSystemTypeType;
+        public String metaType;
 
         @Required
         public String portNumber;
@@ -211,7 +211,7 @@ public class StorageSystemTypes extends ViprResourceController {
             this.id = storageSysType.getStorageTypeId();
             this.name = storageSysType.getStorageTypeName();
             this.storageSystemTypeDisplayName = storageSysType.getStorageTypeDispName();
-            this.storageSystemTypeType = storageSysType.getStorageTypeType();
+            this.metaType = storageSysType.getMetaType();
             if (null != storageSysType.getNonSslPort()) {
                 this.portNumber = storageSysType.getNonSslPort();
             }
@@ -245,7 +245,7 @@ public class StorageSystemTypes extends ViprResourceController {
             StorageSystemTypeAddParam addParams = new StorageSystemTypeAddParam();
             addParams.setStorageTypeName(name);
             addParams.setStorageTypeDispName(storageSystemTypeDisplayName);
-            addParams.setStorageTypeType(storageSystemTypeType);
+            addParams.setMetaType(metaType);
             addParams.setDriverClassName(driverClassName);
 
             if (isProvider != null) {

@@ -637,5 +637,4 @@ public class MaskingWorkflowEntryPoints implements Controller {
             taskCompleter.error(_dbClient, serviceError);
         }
     }
-
 }

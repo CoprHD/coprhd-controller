@@ -260,9 +260,9 @@ public class VPlexHDSMaskingOrchestrator extends HDSMaskingOrchestrator
     @Override
     public Workflow.Method createOrAddVolumesToExportMaskMethod(URI arrayURI,
             URI exportGroupURI, URI exportMaskURI,
-            Map<URI, Integer> volumeMap, TaskCompleter completer) {
+            Map<URI, Integer> volumeMap, List<URI> initiatorURIs, TaskCompleter completer) {
         return new Workflow.Method("createOrAddVolumesToExportMask", arrayURI,
-                exportGroupURI, exportMaskURI, volumeMap, completer);
+                exportGroupURI, exportMaskURI, volumeMap, initiatorURIs, completer);
     }
 
     /**
@@ -271,7 +271,7 @@ public class VPlexHDSMaskingOrchestrator extends HDSMaskingOrchestrator
      */
     @Override
     public void createOrAddVolumesToExportMask(URI arrayURI, URI exportGroupURI, URI exportMaskURI,
-            Map<URI, Integer> volumeMap, TaskCompleter completer, String stepId) {
+            Map<URI, Integer> volumeMap, List<URI> initiatorURIs, TaskCompleter completer, String stepId) {
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
             StorageSystem array = _dbClient.queryObject(StorageSystem.class, arrayURI);
@@ -293,19 +293,20 @@ public class VPlexHDSMaskingOrchestrator extends HDSMaskingOrchestrator
                     StringSetUtil.stringSetToUriList(exportMask.getInitiators()), arrayURI);
             getWorkflowService().acquireWorkflowStepLocks(stepId, lockKeys, LockTimeoutValue.get(LockType.VPLEX_BACKEND_EXPORT));
 
+            // Fetch the Initiators
+            List<Initiator> initiators = new ArrayList<Initiator>();
+            for (String initiatorId : exportMask.getInitiators()) {
+                Initiator initiator = _dbClient.queryObject(Initiator.class, URI.create(initiatorId));
+                if (initiator != null) {
+                    initiators.add(initiator);
+                }
+            }
+
             // Refresh the ExportMask
             BlockStorageDevice device = _blockController.getDevice(array.getSystemType());
             exportMask = refreshExportMask(array, device, exportMask);
             if (!exportMask.hasAnyVolumes()) {
                 // We are creating this ExportMask on the hardware! (Maybe not the first time though...)
-                // Fetch the Initiators
-                List<Initiator> initiators = new ArrayList<Initiator>();
-                for (String initiatorId : exportMask.getInitiators()) {
-                    Initiator initiator = _dbClient.queryObject(Initiator.class, URI.create(initiatorId));
-                    if (initiator != null) {
-                        initiators.add(initiator);
-                    }
-                }
                 // Fetch the targets
                 List<URI> targets = new ArrayList<URI>();
                 for (String targetId : exportMask.getStoragePorts()) {
@@ -320,7 +321,7 @@ public class VPlexHDSMaskingOrchestrator extends HDSMaskingOrchestrator
                 device.doExportCreate(array, exportMask, volumeMap,
                         initiators, targets, completer);
             } else {
-                device.doExportAddVolumes(array, exportMask, null, volumeMap, completer);
+                device.doExportAddVolumes(array, exportMask, initiators, volumeMap, completer);
             }
         } catch (Exception ex) {
             _log.error("Failed to create or add volumes to export mask for hds: ", ex);

@@ -27,7 +27,7 @@ public class EventsDataTable extends DataTable {
     private void setupTable(boolean addResourceColumn) {
         addColumn("systemName").hidden();
         addColumn("id").hidden().setSearchable(false);
-        addColumn("message");
+        addColumn("description");
         addColumn("eventStatus");
         if (addResourceColumn) {
             addColumn("resourceId").setSearchable(false).setRenderFunction("render.taskResource");
@@ -63,7 +63,6 @@ public class EventsDataTable extends DataTable {
         public String resourceName;
         public String id;
         public String description;
-        public String message;
         public Long creationTime;
         public String eventStatus;
 
@@ -88,7 +87,7 @@ public class EventsDataTable extends DataTable {
                 this.resourceName = eventRestRep.getResource().getName();
             }
 
-            this.message = "Message: [ " + eventRestRep.getDescription() + " ]";
+            this.description = eventRestRep.getDescription();
 
             // Create Row Link
             Map<String, Object> args = Maps.newHashMap();

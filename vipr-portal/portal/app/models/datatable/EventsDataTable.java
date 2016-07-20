@@ -7,7 +7,7 @@ package models.datatable;
 import java.util.Map;
 
 import com.emc.sa.util.ResourceType;
-import com.emc.storageos.model.host.EventRestRep;
+import com.emc.storageos.model.event.EventRestRep;
 import com.google.common.collect.Maps;
 
 import play.mvc.Router;

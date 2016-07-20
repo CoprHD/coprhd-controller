@@ -6,7 +6,7 @@ package com.emc.storageos.api.mapper.functions;
 
 import com.emc.storageos.api.mapper.EventMapper;
 import com.emc.storageos.db.client.model.ActionableEvent;
-import com.emc.storageos.model.host.EventRestRep;
+import com.emc.storageos.model.event.EventRestRep;
 import com.google.common.base.Function;
 
 public class MapEvent implements Function<ActionableEvent, EventRestRep> {

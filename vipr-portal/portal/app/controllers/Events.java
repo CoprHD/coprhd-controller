@@ -15,8 +15,8 @@ import java.util.List;
 import org.apache.commons.lang.StringUtils;
 
 import com.emc.storageos.model.TaskResourceRep;
-import com.emc.storageos.model.host.EventRestRep;
-import com.emc.storageos.model.tasks.EventStatsRestRep;
+import com.emc.storageos.model.event.EventRestRep;
+import com.emc.storageos.model.event.EventStatsRestRep;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.google.common.collect.Lists;
 

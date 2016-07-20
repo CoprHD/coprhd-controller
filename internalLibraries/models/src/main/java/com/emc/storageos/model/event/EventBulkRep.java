@@ -11,7 +11,6 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
 import com.emc.storageos.model.BulkRestRep;
-import com.emc.storageos.model.host.EventRestRep;
 
 @XmlRootElement(name = "bulk_events")
 public class EventBulkRep extends BulkRestRep {

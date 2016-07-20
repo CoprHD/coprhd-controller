@@ -8,7 +8,7 @@ import static util.BourneUtil.getViprClient;
 
 import java.net.URI;
 
-import com.emc.storageos.model.host.EventRestRep;
+import com.emc.storageos.model.event.EventRestRep;
 import com.emc.vipr.client.exceptions.ViPRHttpException;
 
 public class EventUtils {

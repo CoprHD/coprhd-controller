@@ -10,7 +10,7 @@ import static com.emc.storageos.api.mapper.DbObjectMapper.toRelatedResource;
 
 import com.emc.storageos.db.client.model.ActionableEvent;
 import com.emc.storageos.model.ResourceTypeEnum;
-import com.emc.storageos.model.host.EventRestRep;
+import com.emc.storageos.model.event.EventRestRep;
 
 public class EventMapper {
 

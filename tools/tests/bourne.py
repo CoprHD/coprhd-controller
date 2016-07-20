@@ -349,6 +349,8 @@ URI_INITIATORS                  = URI_SERVICES_BASE   + '/compute/initiators'
 URI_INITIATOR                   = URI_SERVICES_BASE   + '/compute/initiators/{0}'
 URI_INITIATOR_REGISTER          = URI_SERVICES_BASE   + '/compute/initiators/{0}/register'
 URI_INITIATOR_DEREGISTER        = URI_SERVICES_BASE   + '/compute/initiators/{0}/deregister'
+URI_INITIATOR_ALIASGET          = URI_SERVICES_BASE   + "/compute/initiators/{0}/alias/{1}"
+URI_INITIATOR_ALIASSET          = URI_SERVICES_BASE   + "/compute/initiators/{0}/alias"
 URI_INITIATORS_BULKGET          = URI_SERVICES_BASE   + '/compute/initiators/bulk'
 URI_IPINTERFACES                = URI_SERVICES_BASE   + '/compute/ip-interfaces'
 URI_IPINTERFACE                 = URI_SERVICES_BASE   + '/compute/ip-interfaces/{0}'
@@ -8292,6 +8294,17 @@ class Bourne:
     def initiator_deregister(self, name):
         uri = self.initiator_query(name)
         return self.api('POST', URI_INITIATOR_DEREGISTER.format(uri))
+
+    def initiator_aliasget(self, name, systemuri):
+        uri = self.initiator_query(name)
+        return self.api('GET', URI_INITIATOR_ALIASGET.format(uri,systemuri))
+
+    def initiator_aliasset(self, name, systemuri, alias):
+        uri = self.initiator_query(name)
+        params = {'system_uri': systemuri,
+                  'initiator_alias': alias
+                   }
+        return self.api('PUT', URI_INITIATOR_ALIASSET.format(uri), params)
 
     #
     # Compute Resources - host ipinterface

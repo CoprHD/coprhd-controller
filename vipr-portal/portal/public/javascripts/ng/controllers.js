@@ -827,6 +827,18 @@ angular.module("portalApp").controller('taskDetailsCtrl', function($scope, $time
     	return render.localDate(o,datestring);
     }
 });
+
+angular.module("portalApp").controller('eventDetailsCtrl', function($scope, $timeout, $http, $window) {
+    var getEventDetails = function() {
+        $http.get(routes.Events_eventDetailsJson({'eventId':$scope.task.id})).success(function (data) {
+            $scope.event = data;
+        });
+    }
+    $scope.getLocalDateTime = function(o,datestring){
+        return render.localDate(o,datestring);
+    };
+});
+
 angular.module("portalApp").controller("summaryCountCtrl", function($scope, $http, $timeout, $window) {
     $scope.pending = 0;
     $scope.error = 0;
@@ -887,8 +899,8 @@ angular.module("portalApp").controller("summaryEventCountCtrl", function($scope,
     /**
      * Filters the DataTable by entering the filter value into the Datatable Filter Input box
      */
-    $scope.filterTasks = function(state) {
-        window.table.tasks.dataTable.getDataTable().fnFilter(state);
+    $scope.filterEvents = function(state) {
+        window.table.events.dataTable.getDataTable().fnFilter(state);
     }
 
     poller();

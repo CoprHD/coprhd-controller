@@ -3249,6 +3249,11 @@ events.eventStatus=Status
 events.name=Description
 events.resourceId=Resource
 events.creationTime=Created At
+events.event=Event
+events.id=ID
+events.resource=Resource
+events.message=Message
+events.created=Created
 
 resources.tasks=Tasks
 resources.task=Task Details

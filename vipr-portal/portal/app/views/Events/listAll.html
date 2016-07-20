@@ -33,16 +33,16 @@
         #{/if}
         #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN']]}
             #{if tenants?.size() == 1}
-                <li id="tenantTasksTab" #{ifnot systemTasks}class="active"#{/ifnot}><a href="@{listAll()}">&{'resources.tasks.tenant'}</a></li>
+                <li id="tenantEventsTab" #{ifnot systemEvents}class="active"#{/ifnot}><a href="@{listAll()}">&{'resources.tasks.tenant'}</a></li>
             #{/if}
-            <li id="systemTasksTab" #{if systemTasks}class="active"#{/if}><a href="@{listAll(true)}">&{'resources.tasks.system'}</a></li>
+            <li id="systemEventsTab" #{if systemEvents}class="active"#{/if}><a href="@{listAll(true)}">&{'resources.tasks.system'}</a></li>
         #{/deadbolt.restrict}
       </ul>
    #{/if}
    
    <div class="pull-left" style="vertical-align: middle; line-height: 20px;" ng-controller="summaryEventCountCtrl">
       <span class="text-info" style="margin-right:25px">
-          <a href="#" ng-click="filterTasks('pending')" class="no-decoration">
+          <a href="#" ng-click="filterEvents('pending')" class="no-decoration">
             <span style="font-size: 2em;vertical-align: middle;" class="text-info">
                 <span ng-show="dataReady">{{pending}}</span>
                 <span ng-show="!dataReady">--</span>
@@ -51,7 +51,7 @@
           </a>
       </span>
       <span class="text-success" style="margin-right:20px" class="nounderline">
-          <a href="#" ng-click="filterTasks('approved')" class="no-decoration">
+          <a href="#" ng-click="filterEvents('approved')" class="no-decoration">
             <span style="font-size: 2em;vertical-align: middle;" class="text-success">
               <span ng-show="dataReady">{{approved}}</span>
               <span ng-show="!dataReady">--</span>
@@ -60,7 +60,7 @@
           </a>
       </span>
       <span class="text-danger" style="margin-right:20px" >
-        <a href="#" ng-click="filterTasks('declined')" class="no-decoration">
+        <a href="#" ng-click="filterEvents('declined')" class="no-decoration">
           <span style="font-size: 2em;vertical-align: middle;" class="text-danger">
               <span ng-show="dataReady">{{declined}}</span>
               <span ng-show="!dataReady">--</span>
@@ -69,7 +69,7 @@
         </a>
       </span>
       <span class="text-muted" style="margin-right:20px" >
-        <a href="#" ng-click="filterTasks('')" class="no-decoration">
+        <a href="#" ng-click="filterEvents('')" class="no-decoration">
           <span style="font-size: 2em;vertical-align: middle;" class="text-muted">
               <span ng-show="dataReady">{{total}}</span>
               <span ng-show="!dataReady">--</span>
@@ -90,8 +90,8 @@
         "sSearchPlaceHolder": "datatable.placeholder.filter",
         "sInfo": "datatable.task.info",
         "sInfoFiltered" : "datatable.task.filtered",
-        "sEmptyTable" : "datatable.tasks.empty",
-        "sInfoEmpty": "datatable.tasks.empty"
+        "sEmptyTable" : "datatable.events.empty",
+        "sInfoEmpty": "datatable.events.empty"
      ]
     }%
     #{DataTable.table id:'events',
@@ -127,13 +127,13 @@
         return oldestIndex;
     });
 
-    table.tasks.dataTable.afterCreate(function(dataTable) {
+    table.events.dataTable.afterCreate(function(dataTable) {
         var itemsJson = #{jsAction @Events.itemsJson(':ids')/};
         //watchTaskState(dataTable.getDataTable(), itemsJson);
     });
     
     function loadServerParams(aoData) {
-      aoData.push({"name": "systemTasks", "value" : ${systemEvents}});
+      aoData.push({"name": "systemEvents", "value" : ${systemEvents}});
     }    
     
   </script>    

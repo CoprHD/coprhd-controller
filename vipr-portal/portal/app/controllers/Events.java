@@ -219,15 +219,15 @@ public class Events extends Controller {
             listAll(false);
         }
 
-        EventRestRep task = EventUtils.getEvent(uri(eventId));
-        if (task == null) {
+        EventRestRep event = EventUtils.getEvent(uri(eventId));
+        if (event == null) {
             flash.error(MessagesUtils.get(UNKNOWN, eventId));
             listAll(false);
         }
 
-        Common.angularRenderArgs().put("task", getEventSummary(task));
+        Common.angularRenderArgs().put("event", getEventSummary(event));
 
-        render(task);
+        render(event);
     }
 
     public static void detailsJson(String eventId) {
@@ -235,12 +235,12 @@ public class Events extends Controller {
             notFound("Task [" + eventId + "]");
         }
 
-        EventRestRep task = EventUtils.getEvent(uri(eventId));
-        if (task == null) {
+        EventRestRep event = EventUtils.getEvent(uri(eventId));
+        if (event == null) {
             notFound("Task [" + eventId + "]");
         }
 
-        renderJSON(getEventSummary(task));
+        renderJSON(getEventSummary(event));
     }
 
     @Util
@@ -291,11 +291,17 @@ public class Events extends Controller {
         public String opId;
         public String name;
         public String message;
+        public long created;
+        public String resourceName;
+        public URI resourceId;
 
-        public EventSummary(EventRestRep task) {
-            id = task.getId();
-            message = task.getDescription();
-            name = task.getName();
+        public EventSummary(EventRestRep event) {
+            id = event.getId();
+            message = event.getDescription();
+            name = event.getName();
+            created = event.getCreationTime().getTimeInMillis();
+            resourceName = event.getResource().getName();
+            resourceId = event.getResource().getId();
         }
     }
 }

@@ -5,7 +5,7 @@
 
 
 #{breadcrumb.container}
-  #{breadcrumb.item @listAll(task?.tenant == null)}&{'resources.events'}#{/breadcrumb.item}
+  #{breadcrumb.item @listAll(event?.tenant == null)}&{'resources.events'}#{/breadcrumb.item}
   #{breadcrumb.item active:true}#{get 'title'/}#{/breadcrumb.item}
 #{/breadcrumb.container}
 
@@ -15,83 +15,57 @@ margin-bottom: 5px;
 }
 </style>
 <script>
-    var taskDetails = ${taskSummaryJson.raw()}
+    var eventDetails = ${eventSummaryJson.raw()}
 </script>
 
 <div class="clear"/>
 #{alerts disappear:true/}
-<div id="taskDetails" class="tasks-container" style="margin-bottom: 2em;" ng-controller="taskDetailsCtrl">
-  #{if task}
+<div id="eventDetails" class="events-container" style="margin-bottom: 2em;" ng-controller="eventDetailsCtrl">
+  #{if event}
   
     <div class="form-header">
       <div class="description">
-        <h2>#{icon 'tasks'/} &{'tasks.task'} {{task.name | titleCase}}</h2>
+        <h2>#{icon 'events'/} &{'events.event'} {{event.name | titleCase}}</h2>
       </div>
       <div style="clear:both"></div>
     </div>  
     
     <div class="pull-right">
 
-          <a class="btn btn-danger" href="@{deleteEvent(task.id)}"><span class="glyphicon glyphicon-trash"></span> &{'resources.events.deleteEvent'}</a><br/>
-          <a class="btn btn-default" href="@{approveEvent(task.id)}"><span class="glyphicon"></span> &{'resources.events.approveEvent'}</a><br/>
-          <a class="btn btn-default" href="@{declineEvent(task.id)}"><span class="glyphicon"></span> &{'resources.events.declineEvent'}</a><br/>
+          <a class="btn btn-danger" href="@{deleteEvent(event.id)}"><span class="glyphicon glyphicon-trash"></span> &{'resources.events.deleteEvent'}</a><br/>
+          <a class="btn btn-default" href="@{approveEvent(event.id)}"><span class="glyphicon"></span> &{'resources.events.approveEvent'}</a><br/>
+          <a class="btn btn-default" href="@{declineEvent(event.id)}"><span class="glyphicon"></span> &{'resources.events.declineEvent'}</a><br/>
 
     </div>
     
     <dl class="dl-horizontal smallColumn">
     
-      <dt>&{'tasks.id'}:</dt>
-      <dd>{{task.id}}&nbsp;</dd>
+      <dt>&{'events.id'}:</dt>
+      <dd>{{event.id}}&nbsp;</dd>
 
-      <dt>&{'tasks.name'}:</dt>
-      <dd>{{task.name}}&nbsp;</dd>
+      <dt>&{'events.name'}:</dt>
+      <dd>{{event.name}}&nbsp;</dd>
 
-      <dt>&{'tasks.resource'}:</dt>
-      <dd><v-resource-link id="{{task.resourceId}}">{{task.resourceName}}</v-resource-link>&nbsp;</dd>
+      <dt>&{'events.resource'}:</dt>
+      <dd><v-resource-link id="{{event.resourceId}}">{{event.resourceName}}</v-resource-link>&nbsp;</dd>
 
-      <dt ng-show="task.message">&{'tasks.message'}:</dt>
-      <dd ng-show="task.message">{{task.message}}&nbsp;</dd>
+      <dt ng-show="event.message">&{'events.message'}:</dt>
+      <dd ng-show="event.message">{{event.message}}&nbsp;</dd>
 
-      <dt>&{'tasks.start'}:</dt>
-      <dd id="start">{{getLocalDateTime($('#start'),task.startDate)}}&nbsp;</dd>
-
-      <span ng-show="task.endDate">
-      <dt>&{'tasks.created'}:</dt>
-      <dd id="end">{{getLocalDateTime($('#end'),task.created)}}&nbsp;</dd>
-      </span>
-
-      <dt>&{'tasks.elapsed'}:</dt>
-      <dd>{{task.elapsedTime | timeAgoInWords}}&nbsp;</dd>
-
-      <span ng-show="task.queueName">
-        <dt>&{'tasks.queueName'}:</dt>
-        <dd>{{task.queueName}}&nbsp;</dd>
-
-        <dt>&{'tasks.queuedElapsed'}:</dt>
-        <dd>{{task.queuedElapsedTime | timeAgoInWords}}&nbsp;</dd>
-      </span>
-
-      <span ng-if="task.workflowId">
-          <dt>&{'tasks.workflowId'}:</dt>
-          <dd>{{task.workflowId}}&nbsp;</dd>
-      </span>
-
-      <span ng-show="task.orderId">
-        <dt>&{'tasks.orderId'}:</dt>
-        <dd><a ng-click="viewOrder();" href="#"><span ng-show="task.orderNumber">{{task.orderNumber}}</span><span ng-hide="task.orderNumber">&{'tasks.viewOrder'}</span></a></dd>
-      </span>
+      <dt>&{'events.created'}:</dt>
+      <dd id="start">{{getLocalDateTime($('#start'),event.created)}}&nbsp;</dd>
     </dl>
     
-   <div class="alert alert-danger" ng-show="task.isError">
-    <span style="font-weight: bold;">Error {{task.serviceCode_error}}:  {{task.serviceCode_errorDesc}}</span>
+   <div class="alert alert-danger" ng-show="event.isError">
+    <span style="font-weight: bold;">Error {{event.serviceCode_error}}:  {{event.serviceCode_errorDesc}}</span>
     <br/>
-    {{task.serviceCode_message}}<br/>
+    {{event.serviceCode_message}}<br/>
    </div>
     
   #{/if}
   #{else}
     <p id="alerts_info" class="alert alert-danger">
-        &{'tasks.notfound',taskId}
+        &{'events.notfound',eventId}
     </p>
   #{/else}
 </div>

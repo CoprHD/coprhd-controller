@@ -25,7 +25,7 @@ import com.emc.vipr.client.core.impl.PathConstants;
 import com.emc.vipr.client.impl.RestClient;
 
 /**
- * Hosts resources.
+ * Actionable Events
  * <p>
  * Base URL: <tt>/vdc/events</tt>
  */

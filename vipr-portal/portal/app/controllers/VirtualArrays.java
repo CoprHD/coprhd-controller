@@ -7,6 +7,7 @@ package controllers;
 import static com.emc.vipr.client.core.util.ResourceUtils.id;
 import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 import static com.emc.vipr.client.core.util.ResourceUtils.uris;
+import com.google.gson.JsonPrimitive;
 import static controllers.Common.backToReferrer;
 import static controllers.Common.getUserMessage;
 
@@ -14,6 +15,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -113,6 +115,7 @@ public class VirtualArrays extends ViprResourceController {
     private static final String VIPR_START_GUIDE = "VIPR_START_GUIDE";
     private static final String GUIDE_DATA = "GUIDE_DATA";
     private static final String STORAGE_SYSTEMS = "storage_systems";
+    private static final String VARRAYS = "varrays";
 
     /**
      * Simple create and save operation that takes only the name.
@@ -150,7 +153,7 @@ public class VirtualArrays extends ViprResourceController {
 				if (StringUtils.equals(availVarray.getName(), ALL_FLASH_VARRAY)) {
 					existVarrayId = availVarray.getId().toString();
 					isVarrayAvail = true;
-                    response.setCookie("guide_varray", availVarray.getName() );
+                    updateVarrayCookie(availVarray.getName() );
 					break;
 				}
 			}
@@ -183,6 +186,9 @@ public class VirtualArrays extends ViprResourceController {
 							if(StringUtils.equals(XTREMIO, storageSystem.getSystemType())) {
 								ids.add(storageSystem.getId().toString());
 							}
+                            if(StringUtils.equals(VMAX, storageSystem.getSystemType())) {
+                                ids.add(storageSystem.getId().toString());
+                            }
 							if( StringUtils.equals(UNITY, storageSystem.getSystemType()) || StringUtils.equals(VMAX, storageSystem.getSystemType())) {
 								String modelType = storageSystem.getModel();
 								if(modelType != null && modelType.endsWith(SUFFIX_ALL_FLASH) ) {
@@ -206,7 +212,7 @@ public class VirtualArrays extends ViprResourceController {
 
 				VirtualArrayRestRep varray = virtualArray.save();
 				virtualArray.load(varray);
-				response.setCookie("guide_varray", virtualArray.name );
+                updateVarrayCookie(virtualArray.name );
 
 				List<String> ids = Lists.newArrayList();
 				// Read all storage systems
@@ -215,6 +221,9 @@ public class VirtualArrays extends ViprResourceController {
 					if(StringUtils.equals(XTREMIO, storageSystem.getSystemType())) {
 						ids.add(storageSystem.getId().toString());
 					}
+                    if(StringUtils.equals(VMAX, storageSystem.getSystemType())) {
+                        ids.add(storageSystem.getId().toString());
+                    }
 					if( StringUtils.equals(UNITY, storageSystem.getSystemType()) || StringUtils.equals(VMAX, storageSystem.getSystemType())) {
 						String modelType = storageSystem.getModel();
 						if(modelType != null && modelType.endsWith(SUFFIX_ALL_FLASH) ) {
@@ -230,24 +239,26 @@ public class VirtualArrays extends ViprResourceController {
 			// If storage system ids are passed, use them and create virtual arrays
 			JsonObject dataObject = getCookieAsJson(GUIDE_DATA);
 			JsonArray storage_systems = dataObject.getAsJsonArray(STORAGE_SYSTEMS);
-//			if(storage_systems != null ) {
-//				for(Object storageobject : storage_systems) {
-//					JsonObject storage = (JsonObject) storageobject;
-//					String storageid = storage.get("id").toString();
-//
-//					StorageSystemRestRep storageSystem = StorageSystemUtils.getStorageSystem(storageid);
-//					String storagename = storageSystem.getName();
-//
-//					VirtualArrayForm virtualArray = new VirtualArrayForm();
-//					virtualArray.name = VARRAY_PREFIX + storagename;
-//					VirtualArrayRestRep varray = virtualArray.save();
-//					virtualArray.load(varray);
-//					response.setCookie("guide_varray", virtualArray.name );
-//
-//					addVarrayStorageSystem(virtualArray.id, storageid);
-//				}
-//			}
-//			else {
+			if(storage_systems != null ) {
+				for(Object storageobject : storage_systems) {
+					JsonObject storage = (JsonObject) storageobject;
+					String storageid = storage.get("id").toString();
+
+					StorageSystemRestRep storageSystem = StorageSystemUtils.getStorageSystem(storageid);
+					String storagename = storageSystem.getName();
+
+					VirtualArrayForm virtualArray = new VirtualArrayForm();
+					virtualArray.name = VARRAY_PREFIX + storagename;
+					VirtualArrayRestRep varray = virtualArray.save();
+					virtualArray.load(varray);
+
+                    updateVarrayCookie(virtualArray.name);
+					//response.setCookie("guide_varray", virtualArray.name );
+
+					addVarrayStorageSystem(virtualArray.id, storageid);
+				}
+			}
+			else {
 				// Create a storage system map that have virtual arrays attached
 				HashMap<String, String> storageSysVarrayMap = new HashMap<String, String>();
 				for (VirtualArrayRestRep availVarray : VirtualArrayUtils.getVirtualArrays()) {
@@ -264,7 +275,7 @@ public class VirtualArrays extends ViprResourceController {
 							virtualArray.name = VARRAY_PREFIX + storageSystem.getName();
 							VirtualArrayRestRep varray = virtualArray.save();
 							virtualArray.load(varray);
-							response.setCookie("guide_varray", virtualArray.name);
+                            updateVarrayCookie(virtualArray.name);
 
 							addVarrayStorageSystem(virtualArray.id, storageSystem.getId().toString());
 						}
@@ -275,13 +286,13 @@ public class VirtualArrays extends ViprResourceController {
 								virtualArray.name = VARRAY_PREFIX + storageSystem.getName();
 								VirtualArrayRestRep varray = virtualArray.save();
 								virtualArray.load(varray);
-								response.setCookie("guide_varray", virtualArray.name);
+                                updateVarrayCookie(virtualArray.name);
 								addVarrayStorageSystem(virtualArray.id, storageSystem.getId().toString());
 							}
 						}
 					}
 				}
-//			}
+			}
 			list();
 //			// Support three type of varray for mapping VMAX, UNITY, XtremIO
 //			List <String> vmaxids = Lists.newArrayList();
@@ -344,6 +355,17 @@ public class VirtualArrays extends ViprResourceController {
 			list();
 		}
 	}
+
+    private static void updateVarrayCookie(String virtualArray){
+        JsonObject dataObject = getCookieAsJson(GUIDE_DATA);
+        JsonArray varrays = dataObject.getAsJsonArray(VARRAYS);
+        if (varrays == null) {
+            varrays = new JsonArray();
+        }
+        varrays.add(new JsonPrimitive(virtualArray));
+        dataObject.add(VARRAYS, varrays);
+        saveJsonAsCookie(GUIDE_DATA, dataObject);
+    }
 
 
     /**
@@ -941,6 +963,17 @@ public class VirtualArrays extends ViprResourceController {
             items.add(new StorageSystemInfo(storageSystem));
         }
         renderJSON(DataTablesSupport.createJSON(items, params));
+    }
+
+    public static void getConnectedStorage() {
+        List<VirtualArrayRestRep> virtualarrays = VirtualArrayUtils.getVirtualArrays();
+        Set<String> connectedstoragesystems = new HashSet<String>();
+        for (VirtualArrayRestRep virtualarray:virtualarrays) {
+            for (StorageSystemRestRep storageSystem : StorageSystemUtils.getStorageSystemsByVirtualArray(virtualarray.getId().toString())) {
+                connectedstoragesystems.add(storageSystem.getId().toString());
+            }
+        }
+        renderJSON(connectedstoragesystems);
     }
 
     /**

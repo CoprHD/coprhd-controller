@@ -24,9 +24,11 @@ import java.lang.reflect.InvocationTargetException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
+import java.util.Set;
 import jobs.vipr.ConnectedBlockVirtualPoolsCall;
 import jobs.vipr.TenantsCall;
 import jobs.vipr.VirtualArraysCall;
@@ -115,6 +117,34 @@ public class BlockVirtualPools extends ViprResourceController {
             items.add(new VirtualPoolInfo(virtualPool));
         }
         renderJSON(DataTablesSupport.createJSON(items, params));
+    }
+
+    public static void checkDisconnectedStoragePools(@As(",") String[] ids) {
+        List<BlockVirtualPoolRestRep> virtualpools = VirtualPoolUtils.getBlockVirtualPools();
+        Set<String> connectedstoragepools = new HashSet<String>();
+        List<String> failedArrays = new ArrayList<String>();
+        for (BlockVirtualPoolRestRep virtualpool:virtualpools) {
+            if(virtualpool.getUseMatchedPools()) {
+                for (RelatedResourceRep pool : virtualpool.getMatchedStoragePools()) {
+                    connectedstoragepools.add(pool.getId().toString());
+                }
+            } else {
+                for (RelatedResourceRep pool : virtualpool.getAssignedStoragePools()) {
+                    connectedstoragepools.add(pool.getId().toString());
+                }
+            }
+        }
+        for (String id:ids) {
+            List<StoragePoolRestRep> storagepools =StoragePoolUtils.getStoragePools(id);
+            StorageSystemRestRep storageSystem =StorageSystemUtils.getStorageSystem(id);
+            for(StoragePoolRestRep storagepool:storagepools){
+                if(!connectedstoragepools.contains(storagepool.getId().toString())){
+                    failedArrays.add(storageSystem.getName());
+                    break;
+                }
+            }
+        }
+        renderJSON(failedArrays);
     }
 
     public static void duplicate(String ids) {

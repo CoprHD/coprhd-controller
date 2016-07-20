@@ -13,6 +13,7 @@ import static controllers.Common.copyRenderArgsToAngular;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import play.Logger;
 import static util.BourneUtil.getViprClient;
 
 import java.net.URI;
@@ -149,12 +150,13 @@ public class StorageProviders extends ViprResourceController {
             for (NamedRelatedResourceRep storageSystem:storageSystems){
                 StorageSystemRestRep ss = StorageSystemUtils.getStorageSystem(storageSystem.getId());
                 if (ss != null) {
-                    for (StringOption option : models.StorageSystemTypes.getAllFlashStorageTypeOptions()){
-                        if (option.id.equals(ss.getSystemType())){
+                    for (String option : models.StorageSystemTypes.ALL_FLASH_STORAGE_TYPES){
+                        if (option.equals(ss.getSystemType())){
                             Map<String,String> ssMap = new HashMap<String, String>();
                             ssMap.put("id",ss.getId().toString());
                             ssMap.put("name",ss.getName());
                             storagesystemslist.add(ssMap);
+                            break;
                         }
                     }
                 }

@@ -164,6 +164,7 @@ public class Order extends ModelObject implements TenantDataObject {
         setChanged(TENANT);
     }
 
+    @RelationIndex(cf = "RelationIndex", type = ScheduledEvent.class)
     @Name(SCHEDULED_EVENT_ID)
     public URI getScheduledEventId() {
         return scheduledEventId;

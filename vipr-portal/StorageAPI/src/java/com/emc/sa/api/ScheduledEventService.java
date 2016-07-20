@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 EMC Corporation
+ * Copyright (c) 2016 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.sa.api;
@@ -23,7 +23,10 @@ import javax.ws.rs.core.Response;
 import com.emc.sa.model.dao.ModelClient;
 import com.emc.sa.model.util.ExecutionWindowHelper;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
 import org.apache.commons.codec.binary.*;
 import org.apache.commons.lang3.StringUtils;
@@ -64,9 +67,6 @@ import com.emc.sa.api.OrderService;
 public class ScheduledEventService extends CatalogTaggedResourceService {
     private static final Logger log = LoggerFactory.getLogger(ScheduledEventService.class);
     private static Charset UTF_8 = Charset.forName("UTF-8");
-
-    private static final String DATE_TIME_FORMAT = "yyyy-MM-dd_HH:mm:ss";
-
     private static final String EVENT_SERVICE_TYPE = "catalog-event";
 
     @Autowired
@@ -88,11 +88,21 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
         return EVENT_SERVICE_TYPE;
     }
 
+    /**
+     * Query scheduled event resource via its URI.
+     * @param id    scheduled event URI
+     * @return      ScheduledEvent
+     */
     @Override
     protected ScheduledEvent queryResource(URI id) {
         return getScheduledEventById(id, false);
     }
 
+    /**
+     * Get tenant owner of scheduled event
+     * @param id    scheduled event URI
+     * @return      URI of the owner tenant
+     */
     @Override
     protected URI getTenantOwner(URI id) {
         ScheduledEvent event = queryResource(id);
@@ -105,13 +115,18 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
         return ScheduledEvent.class;
     }
 
+    /**
+     * Create a scheduled event for one or a series of future orders.
+     * Also a latest order is created and set to APPROVAL or SCHEDULED status
+     * @param createParam   including schedule time info and order parameters
+     * @return                ScheduledEventRestRep
+     */
     @POST
     @Path("")
     @Consumes({ MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public ScheduledEventRestRep createEvent(ScheduledEventCreateParam createParam) {
         StorageOSUser user = getUserFromContext();
-
         URI tenantId = createParam.getOrderCreateParam().getTenantId();
         if (tenantId != null) {
             verifyAuthorizedInTenantOrg(tenantId, user);
@@ -127,7 +142,7 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
                     asString(createParam.getOrderCreateParam().getCatalogService()));
         }
 
-        validateParam(createParam);
+        validateParam(createParam.getScheduleInfo());
 
         ScheduledEvent newObject = null;
         try {
@@ -142,9 +157,12 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
         return map(newObject);
     }
 
-    private void validateParam(ScheduledEventCreateParam param) {
-        ScheduleInfo scheduleInfo = param.getScheduleInfo();
-
+    /**
+     * Validate schedule time info related parameters.
+     * Order related parameters would be verified later in order creation part.
+     * @param scheduleInfo     Schedule Schema
+     */
+    private void validateParam(ScheduleInfo scheduleInfo) {
         if (scheduleInfo.getHourOfDay() < 0 || scheduleInfo.getHourOfDay() > 23) {
             throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.HOUR_OF_DAY);
         }
@@ -202,8 +220,12 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
         /* TODO: exceptions for edit  */
     }
 
-
-
+    /**
+     * Check if schedule time info is matched with the desired execution window set by admin.
+     * @param scheduleInfo  schedule time info
+     * @param window         desired execution window set by admin
+     * @return                empty for matching, otherwise including detail unmatched reason.
+     */
     private String match(ScheduleInfo scheduleInfo, ExecutionWindow window) {
         String msg="";
 
@@ -248,6 +270,14 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
         return msg;
     }
 
+    /**
+     * Internal main function to create scheduled event.
+     * @param tenantId          owner tenant Id
+     * @param param             scheduled event creation param
+     * @param catalogService   target catalog service
+     * @return                   ScheduledEvent
+     * @throws Exception
+     */
     private ScheduledEvent createScheduledEvent(URI tenantId, ScheduledEventCreateParam param, CatalogService catalogService) throws Exception{
         if (catalogService.getExecutionWindowRequired()) {
             ExecutionWindow executionWindow = client.findById(catalogService.getDefaultExecutionWindowId().getURI());
@@ -288,6 +318,12 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
         return newObject;
     }
 
+    /**
+     * Convert a Calendar to a readable time string.
+     * @param cal
+     * @return
+     * @throws Exception
+     */
     private String convertCalendarToStr(Calendar cal) throws Exception {
         SimpleDateFormat format = new SimpleDateFormat(ScheduleInfo.FULL_DAYTIME_FORMAT);
         String formatted = format.format(cal.getTime());
@@ -295,6 +331,12 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
         return formatted;
     }
 
+    /**
+     * Get the first desired schedule time based on current time, start time and schedule schema
+     * @param scheduleInfo  schedule schema
+     * @return                calendar for the first desired schedule time
+     * @throws Exception
+     */
     private Calendar getFirstScheduledTime(ScheduleInfo scheduleInfo) throws Exception{
 
         DateFormat formatter = new SimpleDateFormat(ScheduleInfo.FULL_DAY_FORMAT);
@@ -354,6 +396,12 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
         return scheduledTime;
     }
 
+    /**
+     * Get next desired schedule time based on the previous one and schedule schema
+     * @param scheduledTime     previous schedule time
+     * @param scheduleInfo      schedule schema
+     * @return
+     */
     private Calendar getNextScheduledTime(Calendar scheduledTime, ScheduleInfo scheduleInfo) {
         switch (scheduleInfo.getCycleType()) {
             case MONTHLY:
@@ -377,11 +425,15 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
         return scheduledTime;
     }
 
+    /**
+     * Get a scheduled event via its URI
+     * @param id    target schedule event URI
+     * @return      ScheduledEventRestRep
+     */
     @GET
     @Path("/{id}")
     @Consumes({ MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML })
     public ScheduledEventRestRep getScheduledEvent(@PathParam("id") String id) {
-
         ScheduledEvent scheduledEvent = queryResource(uri(id));
 
         StorageOSUser user = getUserFromContext();
@@ -396,4 +448,125 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
         return scheduledEvent;
     }
 
+    /**
+     * Update a scheduled event for one or a series of future orders.
+     * @param updateParam   including schedule time info
+     * @return                ScheduledEventRestRep
+     */
+    @PUT
+    @Path("/{id}")
+    @Consumes({ MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    public ScheduledEventRestRep updateEvent(@PathParam("id") String id, ScheduledEventUpdateParam updateParam) {
+        ScheduledEvent scheduledEvent = queryResource(uri(id));
+        ArgValidator.checkEntity(scheduledEvent, uri(id), true);
+
+        validateParam(updateParam.getScheduleInfo());
+
+        try {
+            updateScheduledEvent(scheduledEvent, updateParam.getScheduleInfo());
+        } catch (APIException ex){
+            log.error(ex.getMessage(), ex);
+            throw ex;
+        } catch (Exception e) {
+            log.error(e.getMessage(), e);
+        }
+
+        return map(scheduledEvent);
+    }
+
+    /**
+     * Internal main function to update scheduled event.
+     * @param scheduledEvent   target scheduled event
+     * @param scheduleInfo     target schedule schema
+     * @return                   updated scheduledEvent
+     * @throws Exception
+     */
+    private ScheduledEvent updateScheduledEvent(ScheduledEvent scheduledEvent, ScheduleInfo scheduleInfo) throws Exception{
+        CatalogService catalogService = catalogServiceManager.getCatalogServiceById(scheduledEvent.getCatalogServiceId());
+        if (catalogService.getExecutionWindowRequired()) {
+            ExecutionWindow executionWindow = client.findById(catalogService.getDefaultExecutionWindowId().getURI());
+            String msg = match(scheduleInfo, executionWindow);
+            if (!msg.isEmpty()) {
+                throw APIException.badRequests.schduleInfoNotMatchWithExecutionWindow(msg);
+            }
+        }
+
+        Order order = client.orders().findById(scheduledEvent.getLatestOrderId());
+        order.setScheduledTime(convertCalendarToStr(getFirstScheduledTime(scheduleInfo)));
+        client.save(order);
+
+        if (catalogService.getExecutionWindowRequired()) {
+            scheduledEvent.setExecutionWindowId(catalogService.getDefaultExecutionWindowId());
+        } else {
+            scheduledEvent.setExecutionWindowId(new NamedURI(ExecutionWindow.INFINITE, "INFINITE"));
+        }
+        // TODO: update execution window when admin change it in catalog service
+
+        scheduledEvent.setScheduleInfo(new String(org.apache.commons.codec.binary.Base64.encodeBase64(scheduleInfo.serialize()), UTF_8));
+        client.save(scheduledEvent);
+
+        return scheduledEvent;
+    }
+
+    /**
+     * Cancel a scheduled event which should be in APPROVAL or APPROVED status.
+     * @param id    Scheduled Event URI
+     * @return      OK if cancellation completed successfully
+     */
+    @POST
+    @Path("/{id}/cancel")
+    @Consumes({ MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML })
+    public Response cancelScheduledEvent(@PathParam("id") String id) {
+        ScheduledEvent scheduledEvent = queryResource(uri(id));
+        ArgValidator.checkEntity(scheduledEvent, uri(id), true);
+
+        StorageOSUser user = getUserFromContext();
+        verifyAuthorizedInTenantOrg(uri(scheduledEvent.getTenant()), user);
+
+        if(! (scheduledEvent.getEventStatus().equals(ScheduledEventStatus.APPROVAL) ||
+                scheduledEvent.getEventStatus().equals(ScheduledEventStatus.APPROVED) ||
+                scheduledEvent.getEventStatus().equals(ScheduledEventStatus.REJECTED)) ) {
+            throw APIException.badRequests.unexpectedValueForProperty(ScheduledEvent.EVENT_STATUS, "APPROVAL|APPROVED|REJECTED",
+                    scheduledEvent.getEventStatus().name());
+        }
+
+        Order order = client.orders().findById(scheduledEvent.getLatestOrderId());
+        ArgValidator.checkEntity(order, uri(id), true);
+        order.setOrderStatus(OrderStatus.CANCELLED.name());
+        client.save(order);
+
+        scheduledEvent.setEventStatus(ScheduledEventStatus.CANCELLED);
+        client.save(scheduledEvent);
+        return Response.ok().build();
+    }
+
+    /**
+     * Deactivates the scheduled event and its orders
+     *
+     * @param id the URN of a scheduled event to be deactivated
+     * @return OK if deactivation completed successfully
+     * @throws DatabaseException when a DB error occurs
+     */
+    @POST
+    @Path("/{id}/deactivate")
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.TENANT_ADMIN })
+    public Response deactivateOrder(@PathParam("id") String id) throws DatabaseException {
+        ScheduledEvent scheduledEvent = queryResource(uri(id));
+        ArgValidator.checkEntity(scheduledEvent, uri(id), true);
+
+        // deactive all the orders from the scheduled event
+        URIQueryResultList resultList = new URIQueryResultList();
+        _dbClient.queryByConstraint(
+                ContainmentConstraint.Factory.getScheduledEventOrderConstraint(uri(id)), resultList);
+        for (URI uri : resultList) {
+            Order order = _dbClient.queryObject(Order.class, uri);
+            client.delete(order);
+        }
+
+        // deactive the scheduled event
+        client.delete(scheduledEvent);
+        return Response.ok().build();
+    }
 }

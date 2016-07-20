@@ -431,6 +431,7 @@ public class ExportGroupService extends TaskResourceService {
         String type = exportGroup.getType();
         if (exportGroup.forInitiator()) {
             if ((param.getHosts() != null && param.getHosts().hasUpdates())
+                    || (param.getVirtualMachines() != null && param.getVirtualMachines().hasUpdates())
                     || (param.getClusters() != null && param.getClusters().hasUpdates())) {
                 throw APIException.badRequests.invalidParameterOnlyInitiatorsForExportType(type);
             }

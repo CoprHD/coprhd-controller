@@ -4,9 +4,10 @@
  */
 package com.emc.storageos.model.block.export;
 
+import java.net.URI;
+
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
-import java.net.URI;
 
 /**
  * 
@@ -25,6 +26,7 @@ public class ExportUpdateParam {
     private InitiatorsUpdateParam initiators;
     private HostsUpdateParam hosts;
     private ClustersUpdateParam clusters;
+    private VirtualMachinesUpdateParam virtualMachines;
     // Export path parameters can be specified for any included volumes.
     private ExportPathParameters exportPathParameters;
 
@@ -33,11 +35,12 @@ public class ExportUpdateParam {
 
     public ExportUpdateParam(VolumeUpdateParam volumes,
             InitiatorsUpdateParam initiators, HostsUpdateParam hosts,
-            ClustersUpdateParam clusters) {
+            ClustersUpdateParam clusters, VirtualMachinesUpdateParam virtualMachines) {
         this.volumes = volumes;
         this.initiators = initiators;
         this.hosts = hosts;
         this.clusters = clusters;
+        this.virtualMachines = virtualMachines;
     }
 
     /**
@@ -65,6 +68,15 @@ public class ExportUpdateParam {
 
     public void setClusters(ClustersUpdateParam clusters) {
         this.clusters = clusters;
+    }
+
+    @XmlElement(name = "virtual_machine_changes")
+    public VirtualMachinesUpdateParam getVirtualMachines() {
+        return virtualMachines;
+    }
+
+    public void setVirtualMachines(VirtualMachinesUpdateParam virtualMachines) {
+        this.virtualMachines = virtualMachines;
     }
 
     /**
@@ -114,12 +126,12 @@ public class ExportUpdateParam {
         volumes.removeVolume(volumeId);
     }
 
-    @XmlElement(name="path_parameters", required=false)
+    @XmlElement(name = "path_parameters", required = false)
     public ExportPathParameters getExportPathParameters() {
-                return exportPathParameters;
-            }
+        return exportPathParameters;
+    }
 
     public void setExportPathParameters(ExportPathParameters exportPathParameters) {
-                this.exportPathParameters = exportPathParameters;
-            }
+        this.exportPathParameters = exportPathParameters;
+    }
 }

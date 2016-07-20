@@ -1,6 +1,7 @@
 #{extends 'main.html'/}
 #{set navSelected: ['nav.tenantsettings', 'nav.tenants'] /}
 #{set isKeystoneAuthnProviderCreated:controllers.tenant.Tenants.isKeystoneAuthnProviderCreated() /}
+#{sourceSelector /}
 
 #{DataTable.header titleKey:'tenants.list.title' /}
 

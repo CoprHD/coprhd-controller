@@ -8,8 +8,6 @@ package com.emc.storageos.storagedriver.storagecapabilities;
 import java.util.List;
 import java.util.Map;
 
-import com.emc.storageos.storagedriver.storagecapabilities.AutoTieringPolicyCapabilityDefinition.PROPERTY_NAME;
-
 public class CapabilityInstance {
 
     // Capability type of this capability instance
@@ -53,7 +51,7 @@ public class CapabilityInstance {
     public String getPropertyValue(String propertyName) {
         String propValue = null;
         if (properties != null) {
-            List<String> propVals = properties.get(PROPERTY_NAME.POLICY_ID);
+            List<String> propVals = properties.get(propertyName);
             if ((propVals != null) && (!propVals.isEmpty())) {
                 propValue = propVals.get(0);
             }

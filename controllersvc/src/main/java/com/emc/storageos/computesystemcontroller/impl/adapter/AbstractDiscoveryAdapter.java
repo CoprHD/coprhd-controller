@@ -194,7 +194,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
             for (Host host : hosts) {
                 hostIds.add(host.getId());
             }
-            controller.addHostsToExport(hostIds, clusterURI, taskId, oldClusterURI);
+            controller.addHostsToExport(hostIds, clusterURI, taskId, oldClusterURI, false);
         }
     }
 
@@ -207,7 +207,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
             for (Host host : hosts) {
                 hostIds.add(host.getId());
             }
-            controller.removeHostsFromExport(hostIds, clusterURI, taskId);
+            controller.removeHostsFromExport(hostIds, clusterURI, false, taskId);
         }
     }
 

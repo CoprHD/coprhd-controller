@@ -19,7 +19,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import com.emc.storageos.Controller;
-import com.emc.storageos.api.service.impl.resource.EventService;
 import com.emc.storageos.computecontroller.impl.ComputeDeviceController;
 import com.emc.storageos.computesystemcontroller.ComputeSystemController;
 import com.emc.storageos.computesystemcontroller.impl.adapter.ExportGroupState;
@@ -55,6 +54,7 @@ import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
+import com.emc.storageos.util.EventUtil;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.BlockExportController;
@@ -1390,7 +1390,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 // && !NullColumnValueGetter.isNullURI(host.getBootVolumeId())
                 // && export.hasBlockObject(host.getBootVolumeId());
                 // if (!isBootVolumeExport) {
-                EventService.createActionableEvent(_dbClient, host.getTenant(), "Delete host " + hostId, host,
+                EventUtil.createActionableEvent(_dbClient, host.getTenant(), "Delete host " + hostId, host,
                         "detachHostStorage", new Object[] { hostId, true, true }, null, null);
                 // ExportGroupState egh = getExportGroupState(exportGroups, export);
                 // egh.removeHost(host.getId());

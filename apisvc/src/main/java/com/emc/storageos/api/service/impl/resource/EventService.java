@@ -34,12 +34,14 @@ import com.emc.storageos.api.mapper.functions.MapEvent;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.computesystemcontroller.ComputeSystemController;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AggregatedConstraint;
 import com.emc.storageos.db.client.constraint.AggregationQueryResultList;
 import com.emc.storageos.db.client.constraint.Constraint;
 import com.emc.storageos.db.client.model.ActionableEvent;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Host;
+import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.exceptions.DatabaseException;
@@ -303,5 +305,40 @@ public class EventService extends TaggedResource {
     @Override
     protected ResourceTypeEnum getResourceType() {
         return ResourceTypeEnum.EVENT;
+    }
+
+    /**
+     * Creates an actionable event and persists to the database
+     * 
+     * @param dbClient db client
+     * @param tenant the tenant that owns the event
+     * @param description the description of what the event will do
+     * @param resource the resource that owns the event (host, cluster, etc)
+     * @param approveMethod the method to invoke when approving the event
+     * @param approveParameters the parameters to pass to the approve method
+     * @param declineMethod the method to invoke when declining the event
+     * @param declineParameters the parameters to pass to the decline method
+     */
+    public static void createActionableEvent(DbClient dbClient, URI tenant, String description, DataObject resource,
+            String approveMethod, Object[] approveParameters, String declineMethod,
+            Object[] declineParameters) {
+        ActionableEvent event = new ActionableEvent();
+        event.setId(URIUtil.createId(ActionableEvent.class));
+        event.setTenant(tenant);
+        event.setDescription(description);
+        event.setEventStatus(ActionableEvent.Status.pending.name());
+        event.setResource(new NamedURI(resource.getId(), resource.getLabel()));
+        if (approveMethod != null) {
+            com.emc.storageos.db.client.model.ActionableEvent.Method method = new ActionableEvent.Method(
+                    approveMethod, approveParameters);
+            event.setApproveMethod(method.serialize());
+        }
+        if (declineMethod != null) {
+            com.emc.storageos.db.client.model.ActionableEvent.Method method = new ActionableEvent.Method(
+                    declineMethod, declineParameters);
+            event.setDeclineMethod(method.serialize());
+        }
+        event.setLabel("Label [" + description + "]");
+        dbClient.createObject(event);
     }
 }

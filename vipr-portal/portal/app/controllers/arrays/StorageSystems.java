@@ -21,14 +21,17 @@ import com.emc.storageos.model.systems.StorageSystemUpdateRequestParam;
 import com.emc.storageos.model.valid.Endpoint;
 import com.emc.storageos.model.vnas.VirtualNASRestRep;
 import com.emc.vipr.client.Task;
+
 import static com.emc.vipr.client.core.util.ResourceUtils.id;
 import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 import static com.emc.vipr.client.core.util.ResourceUtils.uris;
+
 import com.google.common.collect.Lists;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+
 import controllers.Common;
 import controllers.arrays.StorageProviders.StorageProviderForm;
 import controllers.deadbolt.Restrict;
@@ -37,6 +40,7 @@ import static controllers.security.Security.isProjectAdmin;
 import static controllers.security.Security.isTenantAdmin;
 import controllers.util.FlashException;
 import controllers.util.ViprResourceController;
+
 import java.net.URI;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
@@ -49,6 +53,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+
 import models.BlockProtocols;
 import models.PoolTypes;
 import models.RegistrationStatus;
@@ -62,7 +67,9 @@ import models.datatable.StorageSystemDataTable;
 import models.datatable.StorageSystemDataTable.StorageSystemInfo;
 import models.datatable.VirtualNasServerDataTable;
 import models.datatable.VirtualNasServerDataTable.VirtualNasServerInfo;
+
 import org.apache.commons.lang.StringUtils;
+
 import play.Logger;
 import play.data.binding.As;
 import play.data.validation.Max;
@@ -103,6 +110,10 @@ public class StorageSystems extends ViprResourceController {
     protected static final String NOT_REGISTERED = "StorageSystems.not.registered";
     protected static final String SCALEIO = "scaleio";
     private static final String EXPECTED_GEO_VERSION_FOR_VNAS_SUPPORT = "2.4";
+
+    private static final String VIPR_START_GUIDE = "VIPR_START_GUIDE";
+    private static final String GUIDE_DATA = "GUIDE_DATA";
+    private static final String STORAGE_SYSTEMS = "storage_systems";
 
     private static void addReferenceData() {
         renderArgs.put("storageArrayTypeList", StorageSystemTypes.getStorageTypeOptions());
@@ -267,12 +278,12 @@ public class StorageSystems extends ViprResourceController {
 
 
         //check if checklist is running on this step
-        JsonObject jobject = getCookieAsJson("VIPR_START_GUIDE");
+        JsonObject jobject = getCookieAsJson(VIPR_START_GUIDE);
 
         if (jobject.get("completedSteps").getAsInt() == 3) {
-            JsonObject dataObject = getCookieAsJson("GUIDE_DATA");
+            JsonObject dataObject = getCookieAsJson(GUIDE_DATA);
 
-            JsonArray storage_systems = dataObject.getAsJsonArray("storage_systems");
+            JsonArray storage_systems = dataObject.getAsJsonArray(STORAGE_SYSTEMS);
             if (storage_systems == null) {
                 storage_systems = new JsonArray();
             }
@@ -280,8 +291,8 @@ public class StorageSystems extends ViprResourceController {
             storage.addProperty("id",sp.getResourceId().toString());
             storage.addProperty("name",storageArray.name);
             storage_systems.add(storage);
-            dataObject.add("storage_systems", storage_systems);
-            saveJsonAsCookie("GUIDE_DATA", dataObject);
+            dataObject.add(STORAGE_SYSTEMS, storage_systems);
+            saveJsonAsCookie(GUIDE_DATA, dataObject);
             list();
         }
 

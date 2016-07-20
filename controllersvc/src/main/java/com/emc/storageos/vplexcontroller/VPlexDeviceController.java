@@ -3191,9 +3191,11 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         !exportMask.getExistingInitiators().isEmpty();
 
                 if (existingVolumes || existingInitiators) {
-                    _log.info("ExportMask {} still has non-ViPR-created existing volumes or initiators, "
+                    _log.warn("ExportMask {} still has non-ViPR-created existing volumes or initiators, "
                             + "so ViPR will not remove it from the VPLEX device", exportMask.getMaskName());
-                } else if (exportMask.getInactive()) {
+                } 
+
+                if (exportMask.getInactive()) {
                     _log.warn("ExportMask {} is already inactive, so there's "
                             + "no need to delete it off the VPLEX", exportMask.getMaskName());
                 } else {
@@ -3212,6 +3214,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                                 + "but no errors were encountered.");
                     }
                 }
+
                 _log.info("marking this mask for deletion from ViPR: " + exportMask.getMaskName());
                 _dbClient.markForDeletion(exportMask);
 
@@ -3528,6 +3531,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     }
                     remainingVolumesInMask.removeAll(volumeURIList);
                 }
+
                 _log.info(String.format("exportGroupRemove: mask %s volumes to process: %s", exportMask.getMaskName(),
                         volumeURIList.toString()));
 
@@ -3728,13 +3732,26 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      *            -- ExportMask corresonding to the StorageView
      * @param volumeURIList
      *            -- URI of virtual volumes
+     * @throws Exception 
      */
     private void removeVolumesFromStorageViewAndMask(
-            VPlexApiClient client, ExportMask exportMask, List<URI> volumeURIList) {
+            VPlexApiClient client, ExportMask exportMask, List<URI> volumeURIList) throws Exception {
+
+        // validate the remove volume operation against the export mask initiators
+        List<Initiator> initiators = new ArrayList<Initiator>();
+        Iterator<Initiator> initItr = _dbClient.queryIterativeObjects(Initiator.class, 
+                URIUtil.toURIList(exportMask.getInitiators()), true);
+        while (initItr.hasNext()) {
+            initiators.add(initItr.next());
+        }
+        StorageSystem vplex = _dbClient.queryObject(StorageSystem.class, exportMask.getStorageDevice());
+        validator.removeVolumes(vplex, exportMask.getId(), initiators).validate();
+
         // If no volumes to remove, just return.
         if (volumeURIList.isEmpty()) {
             return;
         }
+
         Map<URI, BlockObject> blockObjectCache = new HashMap<URI, BlockObject>();
         // Determine the virtual volume names.
         List<String> blockObjectNames = new ArrayList<String>();
@@ -4388,6 +4405,11 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     VPlexControllerUtils.getTargetPortToPwwnMap(client),
                     _networkDeviceController);
 
+            // validate the remove storage port operation against the export mask volumes
+            // this is conceptually the same as remove initiators, so will validate with volumes
+            List<URI> volumeURIList = URIUtil.toURIList(exportMask.getVolumes().keySet());
+            validator.vplex().removeInitiators(vplex, exportMask, volumeURIList).validate();
+
             boolean existingInitiators = exportMask.getExistingInitiators() != null &&
                     !exportMask.getExistingInitiators().isEmpty();
 
@@ -4504,6 +4526,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                             initsToRemove.add(init);
                         }
                     }
+
+                    // validate the remove initiator operation against the export mask volumes
+                    List<URI> volumeURIList = URIUtil.toURIList(exportMask.getVolumes().keySet());
+                    validator.vplex().removeInitiators(vplex, exportMask, volumeURIList).validate();
 
                     lastStep = addStepsForRemoveInitiators(
                             vplex, workflow, exportGroup, exportMask, initsToRemove,
@@ -5019,6 +5045,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     _dbClient, storageView, exportMask,
                     VPlexControllerUtils.getTargetPortToPwwnMap(client),
                     _networkDeviceController);
+
+            // validate the remove initiator operation against the export mask volumes
+            List<URI> volumeURIList = URIUtil.toURIList(exportMask.getVolumes().keySet());
+            validator.vplex().removeInitiators(vplex, exportMask, volumeURIList).validate();
 
             boolean existingInitiators = exportMask.getExistingInitiators() != null &&
                     !exportMask.getExistingInitiators().isEmpty();

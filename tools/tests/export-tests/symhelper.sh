@@ -20,17 +20,16 @@
 ## Convenience method for deleting a mask outside of ViPR (including the storage group)
 delete_mask() {
     serial_number=$1
-    sid=${serial_number: -3}
     pattern=$2
 
-    /opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} delete view -name ${pattern}_${sid}
+    /opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} delete view -name ${pattern}
     if [ $? -ne 0 ]; then
 	echo "no mask found."
     fi
 
-    /opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} list -type storage -v | grep ${pattern}_${sid}
+    /opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} list -type storage -v | grep ${pattern}
     if [ $? -ne 0 ]; then
-	echo "SG not found for ${pattern}_${sid}"
+	echo "SG not found for ${pattern}"
     else
 	sg_long_id=`/opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} list -type storage -detail -v | grep ${pattern} | awk -F: '{print $2}' | awk '{print $1}' | sed -e 's/^[[:space:]]*//'`
 
@@ -47,7 +46,6 @@ delete_mask() {
 
 add_volume_to_mask() {
     serial_number=$1
-    sid=${serial_number: -3}
     device_id=$2
     pattern=$3
 
@@ -65,7 +63,7 @@ add_volume_to_mask() {
 
     # Add it to the storage group ViPR knows about
     # TODO: I've seen storage groups sneak in over tests...make sure only storage group is found
-    sg_short_id=`/opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} list -type storage | grep ${pattern}_${sid}_SG | tail -1 | cut -c1-31`
+    sg_short_id=`/opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} list -type storage | grep ${pattern}_SG | tail -1 | cut -c1-31`
     sg_long_id=`/opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} list -type storage -detail -v | grep ${sg_short_id} | awk -F: '{print $2}' | awk '{print $1}' | sed -e 's/^[[:space:]]*//'`
 
     # Add the volume into the storage group we specify with the pattern
@@ -74,45 +72,42 @@ add_volume_to_mask() {
 
 remove_volume_from_mask() {
     serial_number=$1
-    sid=${serial_number: -3}
     device_id=$2
     pattern=$3
 
     # Add it to the storage group ViPR knows about
-    sg_short_id=`/opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} list -type storage | grep ${pattern}_${sid}_SG | tail -1 | cut -c1-31`
+    sg_short_id=`/opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} list -type storage | grep ${pattern}_SG | tail -1 | cut -c1-31`
     sg_long_id=`/opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} list -type storage -detail -v | grep ${sg_short_id} | awk -F: '{print $2}' | awk '{print $1}' | sed -e 's/^[[:space:]]*//'`
     /opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} -type storage -name $sg_long_id remove dev ${device_id}
 }
 
 add_initiator_to_mask() {
     serial_number=$1
-    sid=${serial_number: -3}
     pwwn=$2
     pattern=$3
 
     # Find the initiator group that contains the pattern sent in
-    /opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} list -type initiator | grep ${pattern}_${sid}_IG
+    /opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} list -type initiator | grep ${pattern}_IG
     if [ $? -ne 0 ]; then
-	echo "Initiator group ${pattern}_${sid}_IG was not found.  Not able to add to it."
+	echo "Initiator group ${pattern}_IG was not found.  Not able to add to it."
     else
 	# dd the initiator to the IG, which in turn adds it to the visibility of the mask
-	/opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} -type initiator -name ${pattern}_${sid}_IG add -wwn ${pwwn}
+	/opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} -type initiator -name ${pattern}_IG add -wwn ${pwwn}
     fi
 }
 
 remove_initiator_from_mask() {
     serial_number=$1
-    sid=${serial_number: -3}
     pwwn=$2
     pattern=$3
 
     # Find the initiator group that contains the pattern sent in
-    /opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} list -type initiator | grep ${pattern}_${sid}_IG
+    /opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} list -type initiator | grep ${pattern}_IG
     if [ $? -ne 0 ]; then
-	echo "Initiator group ${pattern}_${sid}_IG was not found.  Not able to add to it."
+	echo "Initiator group ${pattern}_IG was not found.  Not able to add to it."
     else
 	# dd the initiator to the IG, which in turn adds it to the visibility of the mask
-	/opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} -type initiator -name ${pattern}_${sid}_IG remove -wwn ${pwwn}
+	/opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} -type initiator -name ${pattern}_IG remove -wwn ${pwwn}
     fi
 }
 

@@ -2826,7 +2826,7 @@
         rebootRequired : false,
         controlNodeOnly : false,
         value : "", 
-    }
+    },
     {
         key : "controller_file_operations_lock_timeout",
         label : "Timeout in seconds",
@@ -2840,5 +2840,5 @@
         rebootRequired : false,
         controlNodeOnly : false,
         value : "300",
-    },
+    }
 ]

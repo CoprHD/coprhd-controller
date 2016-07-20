@@ -28,7 +28,6 @@ import javax.wbem.CloseableIterator;
 import javax.wbem.WBEMException;
 import javax.wbem.client.WBEMClient;
 
-import com.emc.storageos.volumecontroller.impl.validators.ValidatorFactory;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -86,8 +85,10 @@ import com.emc.storageos.volumecontroller.impl.smis.job.SmisJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisMaskingViewAddVolumeJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisMaskingViewRemoveVolumeJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisSynchSubTaskJob;
-import com.emc.storageos.volumecontroller.impl.smis.vmax.ExportOperationContext.ExportOperationContextOperation;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
+import com.emc.storageos.volumecontroller.impl.utils.ExportOperationContext;
+import com.emc.storageos.volumecontroller.impl.utils.ExportOperationContext.ExportOperationContextOperation;
+import com.emc.storageos.volumecontroller.impl.validators.ValidatorFactory;
 import com.emc.storageos.workflow.WorkflowService;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -360,7 +361,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
              * The idea is to remove orphaned child Groups, after deleting masking view. We're getting
              * the list of childGroups here because once we call deleteMaskingView, the parent group
              * will be automatically deleted.
-             * 
+             *
              * Run Associator Names to get details of child Storage Groups ,and group them based on
              * Fast Policy.
              */
@@ -393,7 +394,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
                 List<URI> volumeURIs = ExportMaskUtils.getVolumeURIs(exportMask);
 
-                validator.exportMaskDelete(storage, exportMask,  volumeURIList, initiatorList).validate();
+                validator.exportMaskDelete(storage, exportMask, volumeURIList, initiatorList).validate();
 
                 if (!deleteMaskingView(storage, exportMaskURI, childGroupsByFast, taskCompleter)) {
                     // Could not delete the MaskingView. Error should be stuffed by the

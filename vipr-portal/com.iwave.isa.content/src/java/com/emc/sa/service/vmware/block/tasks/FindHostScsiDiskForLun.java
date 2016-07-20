@@ -4,14 +4,14 @@
  */
 package com.emc.sa.service.vmware.block.tasks;
 
-import com.emc.sa.util.VolumeWWNUtils;
-import com.emc.storageos.model.block.BlockObjectRestRep;
 import org.apache.commons.lang.StringUtils;
 
 import com.emc.sa.engine.ExecutionTask;
 import com.emc.sa.engine.ExecutionUtils;
-import com.emc.sa.service.vmware.VMwareUtils;
+import com.emc.storageos.model.block.BlockObjectRestRep;
+import com.iwave.ext.linux.util.VolumeWWNUtils;
 import com.iwave.ext.vmware.HostStorageAPI;
+import com.iwave.ext.vmware.VMwareUtils;
 import com.vmware.vim25.HostScsiDisk;
 import com.vmware.vim25.ScsiLunState;
 import com.vmware.vim25.mo.HostSystem;
@@ -67,7 +67,7 @@ public class FindHostScsiDiskForLun extends ExecutionTask<HostScsiDisk> {
 
     private HostScsiDisk getLunDisk() {
         for (HostScsiDisk entry : storageAPI.listScsiDisks()) {
-            if (VolumeWWNUtils.wwnMatches(VMwareUtils.getDiskWwn(entry), volume)) {
+            if (VolumeWWNUtils.wwnMatches(VMwareUtils.getDiskWwn(entry), volume.getWwn())) {
                 return entry;
             }
         }

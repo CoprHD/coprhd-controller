@@ -489,17 +489,13 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
     }
 
     public void processHostChanges(HostStateChange changes) {
-        processHostChanges(Collections.singletonList(changes), Collections.<URI> emptyList());
+        processHostChanges(Collections.singletonList(changes), Collections.<URI> emptyList(), Collections.<URI> emptyList(), false);
     }
 
-    public void processHostChanges(List<HostStateChange> changes, List<URI> deletedHosts) {
-        processHostChanges(changes, deletedHosts, Collections.<URI> emptyList());
-    }
-
-    public void processHostChanges(List<HostStateChange> changes, List<URI> deletedHosts, List<URI> deletedClusters) {
+    public void processHostChanges(List<HostStateChange> changes, List<URI> deletedHosts, List<URI> deletedClusters, boolean isVCenter) {
         String taskId = UUID.randomUUID().toString();
         ComputeSystemController controller = getController(ComputeSystemController.class, null);
-        controller.processHostChanges(changes, deletedHosts, deletedClusters, taskId);
+        controller.processHostChanges(changes, deletedHosts, deletedClusters, isVCenter, taskId);
     }
 
     // TODO: move to AbstractHostDiscoveryAdapter once EsxHostDiscoveryAdatper is moved to extend it

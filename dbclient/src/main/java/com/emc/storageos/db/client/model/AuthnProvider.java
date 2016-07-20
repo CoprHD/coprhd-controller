@@ -26,6 +26,7 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 @DbKeyspace(DbKeyspace.Keyspaces.GLOBAL)
 public class AuthnProvider extends DataObject {
     private static final String EXPECTED_GEO_VERSION_FOR_LDAP_GROUP_SUPPORT = "2.3";
+    private static final String EXPECTED_GEO_VERSION_FOR_TENANTS_SYNCHRONIZATION = "3.5";
 
     private ProvidersType _mode;
     private String _description;
@@ -121,6 +122,7 @@ public class AuthnProvider extends DataObject {
         setChanged("autoRegCoprHDNImportOSProjects");
     }
 
+    @AllowedGeoVersion(version = EXPECTED_GEO_VERSION_FOR_TENANTS_SYNCHRONIZATION)
     @Name("tenantsSynchronizationOptions")
     public StringSet getTenantsSynchronizationOptions() {
         if (_tenantsSynchronizationOptions == null) {

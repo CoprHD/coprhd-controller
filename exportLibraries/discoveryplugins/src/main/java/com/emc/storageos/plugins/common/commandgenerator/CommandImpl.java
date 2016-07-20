@@ -59,7 +59,11 @@ public final class CommandImpl implements Command {
             if (isInvoke) {
                 result = outputarg;
             }
-        } finally {
+        }catch(Exception e)
+        {
+            e.printStackTrace();
+        }
+        finally {
             _instance = null;
         }
         return result;

@@ -21,10 +21,12 @@ import controllers.Common;
 import controllers.deadbolt.Restrict;
 import controllers.deadbolt.Restrictions;
 import controllers.security.Security;
+import controllers.util.Models;
 import controllers.util.ViprResourceController;
 import controllers.util.FlashException;
 import models.RoleAssignmentType;
 import models.Roles;
+import models.TenantSource;
 import models.TenantsSynchronizationOptions;
 import models.datatable.OpenStackTenantsDataTable;
 import models.datatable.TenantRoleAssignmentDataTable;
@@ -41,6 +43,9 @@ import play.data.validation.Validation;
 import play.i18n.Messages;
 import play.mvc.Util;
 import play.mvc.With;
+import play.Logger;
+import play.exceptions.ActionNotFoundException;
+import play.mvc.Controller;
 import util.*;
 import util.datatable.DataTablesSupport;
 
@@ -67,6 +72,8 @@ public class Tenants extends ViprResourceController {
 
     public static void list() {
         TenantsDataTable dataTable = new TenantsDataTable();
+        renderArgs.put("sources", TenantSource.options(TenantSource.TENANTS_SOURCE_ALL, TenantSource.TENANTS_SOURCE_LOCAL, TenantSource.TENANTS_SOURCE_OS));
+        renderArgs.put("currentSource", Models.currentSource());
         if (isKeystoneAuthnProviderCreated()) {
             AuthnProviderRestRep authnProvider = AuthnProviderUtils.getKeystoneAuthProvider();
             authnProviderName = authnProvider.getName();
@@ -82,17 +89,38 @@ public class Tenants extends ViprResourceController {
         render(dataTable);
     }
 
+    public static void selectSource(String source, String url) {
+        Models.setSource(source);
+
+        if (url != null) {
+            try {
+                redirect(Common.toSafeRedirectURL(url));
+            } catch (ActionNotFoundException noAction) {
+                Logger.error(noAction, "Action not found for %s", url);
+                badRequest();
+            }
+        }
+    }
+
     public static void listJson() {
         List<TenantsDataTable.Tenant> tenants = Lists.newArrayList();
         List<TenantOrgRestRep> subtenants;
         UserInfo user = Security.getUserInfo();
+        String source = Models.currentSource();
 
         if (Security.isRootTenantAdmin() || Security.isSecurityAdmin()) {
             TenantOrgRestRep rootTenant = TenantUtils.findRootTenant();
-            tenants.add(new TenantsDataTable.Tenant(rootTenant, ((Security.isRootTenantAdmin() || Security.isSecurityAdmin()))));
+            if (source.equals(TenantSource.getTenantSource(rootTenant.getUserMappings())) ||
+                source.equals(TenantSource.TENANTS_SOURCE_ALL)) {
+                tenants.add(new TenantsDataTable.Tenant(rootTenant, ((Security.isRootTenantAdmin() || Security.isSecurityAdmin()))));
+            }
             subtenants = TenantUtils.getSubTenants(rootTenant.getId());
         } else if (Security.isHomeTenantAdmin()) {
-            tenants.add(new TenantsDataTable.Tenant(TenantUtils.getUserTenant(), true));
+            TenantOrgRestRep userTenant = TenantUtils.getUserTenant();
+            if (source.equals(TenantSource.getTenantSource(userTenant.getUserMappings())) ||
+                source.equals(TenantSource.TENANTS_SOURCE_ALL)) {
+                tenants.add(new TenantsDataTable.Tenant(userTenant, true));
+            }
             subtenants = getViprClient().tenants().getByIds(user.getSubTenants());
         } else {
             subtenants = getViprClient().tenants().getByIds(user.getSubTenants());
@@ -101,7 +129,8 @@ public class Tenants extends ViprResourceController {
         for (TenantOrgRestRep tenant : subtenants) {
             boolean admin = Security.isRootTenantAdmin() || user.hasSubTenantRole(tenant.getId().toString(), Security.TENANT_ADMIN)
                     || Security.isSecurityAdmin();
-            if (admin) {
+            if (admin && (source.equals(TenantSource.getTenantSource(tenant.getUserMappings())) ||
+                          source.equals(TenantSource.TENANTS_SOURCE_ALL)))  {
                 tenants.add(new TenantsDataTable.Tenant(tenant, admin));
             }
         }

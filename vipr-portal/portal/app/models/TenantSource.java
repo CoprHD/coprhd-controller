@@ -19,12 +19,15 @@ package models;
 import com.emc.storageos.model.auth.AuthnProviderRestRep;
 import com.emc.storageos.model.tenant.UserMappingAttributeParam;
 import com.emc.storageos.model.tenant.UserMappingParam;
+import com.google.common.collect.Lists;
 import util.AuthnProviderUtils;
+import util.StringOption;
 
 import java.util.List;
 
 public class TenantSource {
     // Tenants sources
+    public static final String TENANTS_SOURCE_ALL = "All";
     public static final String TENANTS_SOURCE_OS = "OpenStack";
     public static final String TENANTS_SOURCE_LOCAL = "Local";
 
@@ -32,24 +35,49 @@ public class TenantSource {
     public static final String USER_MAPPING_KEY_OS = "tenant_id";
 
     public static String getTenantSource(List<UserMappingParam> userMappings) {
-        String source = TENANTS_SOURCE_LOCAL;
+        if (userMappings == null || userMappings.isEmpty()) {
+            return TENANTS_SOURCE_LOCAL;
+        }
+
+        for (UserMappingParam userMapping : userMappings) {
+            String domain = userMapping.getDomain();
+            if (!domain.equals(getDomainFromKeystoneAuthProvider())) {
+                return TENANTS_SOURCE_LOCAL;
+            }
+        }
+
         for (UserMappingParam userMapping : userMappings) {
             for (UserMappingAttributeParam attribute : userMapping.getAttributes()) {
                 String key = attribute.getKey();
                 if (key.equals(USER_MAPPING_KEY_OS)) {
-                    source = TENANTS_SOURCE_OS;
-                    break;
+                    return TENANTS_SOURCE_OS;
                 }
             }
         }
-        return source;
+        return TENANTS_SOURCE_LOCAL;
     }
 
-    public static String getDomainFromKeystoneAuthProvider() {
+    private static String getDomainFromKeystoneAuthProvider() {
         AuthnProviderRestRep provider = AuthnProviderUtils.getKeystoneAuthProvider();
         if (provider != null) {
             return provider.getDomains().iterator().next();
         }
         return null;
+    }
+
+    public static StringOption option(String type) {
+        return new StringOption(type, getDisplayValue(type));
+    }
+
+    public static List<StringOption> options(String... types) {
+        List<StringOption> options = Lists.newArrayList();
+        for (String type : types) {
+            options.add(option(type));
+        }
+        return options;
+    }
+
+    public static String getDisplayValue(String type) {
+        return StringOption.getDisplayValue(type, "TenantSource");
     }
 }

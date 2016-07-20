@@ -56,28 +56,18 @@ public class TenantsDataTable extends DataTable {
             name = tenant.getName();
             description = tenant.getDescription();
             this.editable = editable;
-            boolean isOnlyDomain = true;
 
             List<String> domains = Lists.newArrayList();
             List<UserMappingParam> userMappings = tenant.getUserMappings();
-            String keystoneDomain = TenantSource.getDomainFromKeystoneAuthProvider();
 
             for (UserMappingParam userMapping : userMappings) {
-                String domain = userMapping.getDomain();
-                domains.add(domain);
-                if (isOnlyDomain && !domain.equals(keystoneDomain)) {
-                    isOnlyDomain = false;
-                }
+                domains.add(userMapping.getDomain());
             }
 
             mappedDomains = StringUtils.join(domains, ", ");
             tags = StringUtils.join(tenant.getTags(), ", ");
 
-            if (userMappings != null && !userMappings.isEmpty() && isOnlyDomain) {
-                source = TenantSource.getTenantSource(userMappings);
-            } else {
-                source = TenantSource.TENANTS_SOURCE_LOCAL;
-            }
+            source = TenantSource.getTenantSource(userMappings);
         }
     }
 }

@@ -42,6 +42,7 @@ import static util.BourneUtil.getViprClient;
 public class Models extends Controller {
 
     public static String TENANT_ID = "currentTenant";
+    public static String SOURCE = "currentSource";
 
     private static final Pattern TYPE_PATTERN = Pattern.compile("urn\\:storageos\\:([^\\:]+)");
 
@@ -79,6 +80,11 @@ public class Models extends Controller {
     }
 
     @Util
+    public static void setSource(String source) {
+        session.put(SOURCE, source);
+    }
+
+    @Util
     public static String currentAdminTenant() {
         String sessionTenant = session.get(TENANT_ID);
         if (sessionTenant != null && canSelectTenant(sessionTenant)) {
@@ -97,6 +103,11 @@ public class Models extends Controller {
             // fallback to the home tenant if nothing else matches
             return info.getTenant();
         }
+    }
+
+    @Util
+    public static String currentSource() {
+        return session.get(SOURCE);
     }
 
     public static String currentTenant() {

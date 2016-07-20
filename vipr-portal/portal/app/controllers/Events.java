@@ -43,8 +43,6 @@ public class Events extends Controller {
     // Currently the backend only shows progresses of 0 or 100, so for show this as the miminum progress
     private static final int MILLISECONDS_IN_12HOURS = 43200000;
 
-    private static EventsDataTable eventsDataTable = new EventsDataTable(true);
-
     private static Comparator orderedEventComparator = new Comparator<EventRestRep>() {
         @Override
         public int compare(EventRestRep o1, EventRestRep o2) {

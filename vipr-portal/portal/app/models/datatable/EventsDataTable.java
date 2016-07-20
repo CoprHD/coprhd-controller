@@ -14,7 +14,6 @@ import play.mvc.Router;
 import util.datatable.DataTable;
 
 public class EventsDataTable extends DataTable {
-    // Currently the backend only shows progresses of 0 or 100, so for show this as the miminum progress
 
     public EventsDataTable() {
         setupTable(false);
@@ -39,22 +38,6 @@ public class EventsDataTable extends DataTable {
         setRowCallback("createRowLink");
     }
 
-    // public static List<Event> fetch(URI resourceId) {
-    // if (resourceId == null) {
-    // return Collections.EMPTY_LIST;
-    // }
-    //
-    // EventRestRep event = EventUtils.getEvent(resourceId);
-    //
-    // List<Task> dataTableTasks = Lists.newArrayList();
-    // if (clientTasks != null) {
-    // for (TaskResourceRep clientTask : clientTasks) {
-    // dataTableTasks.add(new Task(clientTask));
-    // }
-    // }
-    // return dataTableTasks;
-    // }
-
     public static class Event {
         public String name;
         public String rowLink;
@@ -69,10 +52,6 @@ public class EventsDataTable extends DataTable {
         public Event(EventRestRep eventRestRep) {
             load(eventRestRep);
         }
-
-        // public Event(com.emc.vipr.client.T<?> clientTask) {
-        // load(clientTask.getTaskResource());
-        // }
 
         private void load(EventRestRep eventRestRep) {
             this.name = eventRestRep.getName();

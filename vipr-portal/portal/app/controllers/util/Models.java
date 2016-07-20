@@ -4,13 +4,16 @@
  */
 package controllers.util;
 
+import static com.emc.vipr.client.core.util.ResourceUtils.uri;
+import static util.BourneUtil.getViprClient;
+
 import java.net.URI;
 import java.util.Comparator;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.emc.vipr.client.exceptions.ServiceErrorException;
+import models.TenantSource;
 import models.deadbolt.Role;
 import models.security.UserInfo;
 
@@ -20,19 +23,16 @@ import play.Logger;
 import play.mvc.Controller;
 import play.mvc.Util;
 import util.MessagesUtils;
+import util.TenantUtils;
 
 import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.tenant.TenantOrgRestRep;
 import com.emc.vipr.client.core.util.ResourceUtils;
+import com.emc.vipr.client.exceptions.ServiceErrorException;
 import com.emc.vipr.model.catalog.CatalogServiceRestRep;
 import com.emc.vipr.model.catalog.OrderLogRestRep;
 import com.google.common.collect.Lists;
-
 import controllers.security.Security;
-import util.TenantUtils;
-
-import static com.emc.vipr.client.core.util.ResourceUtils.uri;
-import static util.BourneUtil.getViprClient;
 
 /**
  * Utility controller for handling many model-type queries.
@@ -107,7 +107,12 @@ public class Models extends Controller {
 
     @Util
     public static String currentSource() {
-        return session.get(SOURCE);
+            String sessionSource = session.get(SOURCE);
+            if (sessionSource != null) {
+                return sessionSource;
+            } else {
+                return TenantSource.TENANTS_SOURCE_ALL;
+            }
     }
 
     public static String currentTenant() {

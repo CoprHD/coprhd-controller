@@ -328,7 +328,7 @@ setup() {
    runcmd cos allow $VPOOL_BASE block $TENANT
    sleep 60
 
-   if [ "$1" != "test_20" -a "$1" != "test_24" ]
+   if [ "$1" != "test_20" -a "$1" != "test_24" -a "$1" != "aliastest"]
    then
         runcmd volume create ${VOLNAME} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 8
    fi
@@ -1557,6 +1557,24 @@ test_30() {
     runcmd hosts delete $HOST5
 }
 
+# We will verify the ability to set and get Initiator aliases.
+# The pre-requisites are to have the IG already created on the Array with the required initiator in it.
+#
+aliastest() {
+    echot "ALIAS TEST Begins"
+    HOSTALIAS=hostalias-${RANDOM}
+    INITALIAS=DE:AD:BE:EF:DE:AD:BE:EF
+
+    runcmd hosts create ${HOSTALIAS} $TENANT Other ${HOSTALIAS} --port 8111
+    runcmd initiator create ${HOSTALIAS} FC $INITALIAS --node $INITALIAS
+    
+    runcmd initiator aliasget $HOSTALIAS/$INITALIAS $VMAX_NATIVEGUID
+    runcmd initiator aliasset $HOSTALIAS/$INITALIAS $VMAX_NATIVEGUID $HOSTALIAS
+
+    runcmd initiator delete $HOSTALIAS/$INITALIAS
+    runcmd hosts delete $HOSTALIAS
+}
+
 cleanup() {
    for id in `export_group list $PROJECT | grep YES | awk '{print $5}'`
    do
@@ -1680,6 +1698,7 @@ test_27;
 test_28;
 test_29;
 test_30;
+aliastest;
 cleanup;
 finish
 

@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2016 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.volumecontroller.impl.block;
 
 import java.net.URI;
@@ -39,12 +43,12 @@ import com.emc.storageos.workflow.WorkflowStepCompleter;
 import com.emc.storageos.workflow.Workflow.Method;
 
 public class VplexUnityMaskingOrchestrator extends VNXUnityMaskingOrchestrator implements
-    VplexBackEndMaskingOrchestrator, Controller{
+        VplexBackEndMaskingOrchestrator, Controller {
     private static final Logger log = LoggerFactory.getLogger(VplexUnityMaskingOrchestrator.class);
     private boolean simulation = false;
     BlockDeviceController _blockController = null;
     WorkflowService _workflowService = null;
-    
+
     public VplexUnityMaskingOrchestrator() {
 
     }
@@ -65,20 +69,18 @@ public class VplexUnityMaskingOrchestrator extends VNXUnityMaskingOrchestrator i
     public WorkflowService getWorkflowService() {
         return _workflowService;
     }
-    
+
     @Override
     public void setWorkflowService(WorkflowService _workflowService) {
         this._workflowService = _workflowService;
     }
-    
+
     @Override
     public Map<URI, ExportMask> readExistingExportMasks(StorageSystem storage,
             BlockStorageDevice device, List<Initiator> initiators) {
         // This will cause the VPlexBackendManager to generate an ExportMask
         // for the first volume and then reuse it by finding it from the
         // database for subsequent volumes.
-        // Use this , if you really don't care about the # masks created on
-        // theArray
         return new HashMap<URI, ExportMask>();
     }
 
@@ -97,7 +99,7 @@ public class VplexUnityMaskingOrchestrator extends VNXUnityMaskingOrchestrator i
             ExportMaskPlacementDescriptor placementDescriptor) {
         super.suggestExportMasksForPlacement(storage, device, initiators, placementDescriptor);
     }
-    
+
     @Override
     public Set<Map<URI, List<List<StoragePort>>>> getPortGroups(Map<URI, List<StoragePort>> allocatablePorts,
             Map<URI, NetworkLite> networkMap, URI varrayURI, int nInitiatorGroups) {
@@ -112,7 +114,7 @@ public class VplexUnityMaskingOrchestrator extends VNXUnityMaskingOrchestrator i
         }
 
         StoragePortsAllocator allocator = new StoragePortsAllocator();
-      
+
         Map<URI, List<List<StoragePort>>> portGroup = new HashMap<URI, List<List<StoragePort>>>();
         StringSet portNames = new StringSet();
 
@@ -145,7 +147,7 @@ public class VplexUnityMaskingOrchestrator extends VNXUnityMaskingOrchestrator i
     @Override
     public StringSetMap configureZoning(Map<URI, List<List<StoragePort>>> portGroup, Map<String, Map<URI, Set<Initiator>>> initiatorGroup,
             Map<URI, NetworkLite> networkMap, StoragePortsAssigner assigner) {
-        
+
         return VPlexBackEndOrchestratorUtil.configureZoning(portGroup, initiatorGroup, networkMap, assigner);
     }
 
@@ -173,7 +175,7 @@ public class VplexUnityMaskingOrchestrator extends VNXUnityMaskingOrchestrator i
                 return;
             }
 
-            // Protect concurrent operations by locking {host, array} dupple.
+            // Protect concurrent operations by locking {host, array}.
             // Lock will be released when workflow step completes.
             List<String> lockKeys = ControllerLockingUtil.getHostStorageLockKeys(
                     _dbClient, ExportGroupType.Host,
@@ -215,7 +217,7 @@ public class VplexUnityMaskingOrchestrator extends VNXUnityMaskingOrchestrator i
                     .addStepsForCreateVolumesFailed(ex);
             WorkflowStepCompleter.stepFailed(stepId, vplexex);
         }
-        
+
     }
 
     @Override
@@ -241,7 +243,7 @@ public class VplexUnityMaskingOrchestrator extends VNXUnityMaskingOrchestrator i
                 return;
             }
 
-            // Protect concurrent operations by locking {host, array} dupple.
+            // Protect concurrent operations by locking {host, array}.
             // Lock will be released when workflow step completes.
             List<String> lockKeys = ControllerLockingUtil.getHostStorageLockKeys(
                     _dbClient, ExportGroupType.Host,
@@ -275,7 +277,7 @@ public class VplexUnityMaskingOrchestrator extends VNXUnityMaskingOrchestrator i
                     .addStepsForDeleteVolumesFailed(ex);
             WorkflowStepCompleter.stepFailed(stepId, vplexex);
         }
-        
+
     }
 
 }

@@ -449,7 +449,7 @@ public class ExportGroup extends DataObject implements ProjectResource {
      * 
      */
     public enum ExportGroupType {
-        Initiator, Host, Cluster, Exclusive, VirtualMachine
+        Initiator, Host, Cluster, Exclusive
     }
 
     /**
@@ -467,11 +467,6 @@ public class ExportGroup extends DataObject implements ProjectResource {
     public boolean forHost() {
         return _exportGroupType != null &&
                 _exportGroupType.equals(ExportGroupType.Host.name());
-    }
-
-    public boolean forVirtualMachine() {
-        return _exportGroupType != null &&
-                _exportGroupType.equals(ExportGroupType.VirtualMachine.name());
     }
 
     public boolean forInitiator() {

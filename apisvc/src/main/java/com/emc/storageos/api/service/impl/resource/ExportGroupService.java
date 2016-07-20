@@ -347,7 +347,6 @@ public class ExportGroupService extends TaskResourceService {
      * <li>{@link ExportGroup.ExportGroupType#Initiator}: only initiators can be supplied.</li>
      * <li>{@link ExportGroup.ExportGroupType#Host}: only hosts can be supplied.</li>
      * <li>{@link ExportGroup.ExportGroupType#Cluster}: only clusters can be supplied.</li>
-     * <li>{@link ExportGroup.ExportGroupType#VirtualMachine}: only virtual machines can be supplied.</li>
      * </ol>
      *
      * @param param
@@ -361,16 +360,12 @@ public class ExportGroupService extends TaskResourceService {
                 throw APIException.badRequests.invalidParameterOnlyInitiatorsForExportType(type);
             }
         } else if (type.equals(ExportGroupType.Host.name())) {
-            if (hasItems(param.getInitiators()) || hasItems(param.getClusters()) || hasItems(param.getVirtualMachines())) {
+            if (hasItems(param.getInitiators()) || hasItems(param.getClusters())) {
                 throw APIException.badRequests.invalidParameterOnlyHostsForExportType(type);
             }
         } else if (type.equals(ExportGroupType.Cluster.name())) {
             if (hasItems(param.getInitiators()) || hasItems(param.getHosts()) || hasItems(param.getVirtualMachines())) {
                 throw APIException.badRequests.invalidParameterOnlyClustersForExportType(type);
-            }
-        } else if (type.equals(ExportGroupType.VirtualMachine.name())) {
-            if (hasItems(param.getInitiators()) || hasItems(param.getClusters()) || hasItems(param.getHosts())) {
-                throw APIException.badRequests.invalidParameterOnlyVirtualMachinesForExportType(type);
             }
         } else {
             throw APIException.badRequests.invalidParameterValueWithExpected("type", type,

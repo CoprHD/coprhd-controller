@@ -608,9 +608,6 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidParameterOnlyInitiatorsForExportType(String type);
 
-    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException invalidParameterOnlyVirtualMachinesForExportType(String type);
-
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID_RANGE)
     public BadRequestException invalidParameterPercentageExpected(String parameter, int percent);
 

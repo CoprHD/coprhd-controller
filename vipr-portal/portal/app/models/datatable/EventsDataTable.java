@@ -39,12 +39,12 @@ public class EventsDataTable extends DataTable {
         setRowCallback("createRowLink");
     }
 
-    // public static List<Task> fetch(URI resourceId) {
+    // public static List<Event> fetch(URI resourceId) {
     // if (resourceId == null) {
     // return Collections.EMPTY_LIST;
     // }
     //
-    // List<TaskResourceRep> clientTasks = EventUtils.getEvents(resourceId);
+    // EventRestRep event = EventUtils.getEvent(resourceId);
     //
     // List<Task> dataTableTasks = Lists.newArrayList();
     // if (clientTasks != null) {

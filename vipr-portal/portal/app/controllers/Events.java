@@ -9,12 +9,13 @@ import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 import static util.BourneUtil.getViprClient;
 
 import java.net.URI;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 
 import org.apache.commons.lang.StringUtils;
 
-import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.event.EventRestRep;
 import com.emc.storageos.model.event.EventStatsRestRep;
 import com.emc.vipr.client.ViPRCoreClient;
@@ -24,15 +25,12 @@ import controllers.security.Security;
 import controllers.tenant.TenantSelector;
 import controllers.util.Models;
 import models.datatable.EventsDataTable;
-import models.datatable.TaskLogsDataTable;
-import models.datatable.TasksDataTable;
 import play.data.binding.As;
 import play.mvc.Controller;
 import play.mvc.Util;
 import play.mvc.With;
 import util.EventUtils;
 import util.MessagesUtils;
-import util.TaskUtils;
 import util.datatable.DataTablesSupport;
 
 @With(Common.class)
@@ -42,41 +40,28 @@ public class Events extends Controller {
     private static final String APPROVED = "resource.task.approved";
     private static final String DECLINED = "resource.task.declined";
 
-    private static final int NORMAL_DELAY = 3000;
-    private static final int MAX_TASKS = 1000;
-
     // Currently the backend only shows progresses of 0 or 100, so for show this as the miminum progress
-    private static final int MINIMUM_TASK_PROGRESS = 10;
     private static final int MILLISECONDS_IN_12HOURS = 43200000;
 
     private static EventsDataTable eventsDataTable = new EventsDataTable(true);
 
-    // private static Comparator orderedTaskComparitor = new Comparator<EventRestRep>() {
-    // @Override
-    // public int compare(EventRestRep o1, EventRestRep o2) {
-    // if (o1.getStartTime() == null || o2.getStartTime() == null) {
-    // return 1;
-    // }
-    //
-    // return o2.getStartTime().compareTo(o1.getStartTime());
-    // }
-    // };
+    private static Comparator orderedEventComparator = new Comparator<EventRestRep>() {
+        @Override
+        public int compare(EventRestRep o1, EventRestRep o2) {
+            if (o1.getCreationTime() == null || o2.getCreationTime() == null) {
+                return 1;
+            }
 
-    public static void listAll(Boolean systemEvents) {
+            return o2.getCreationTime().compareTo(o1.getCreationTime());
+        }
+    };
+
+    public static void listAll() {
         TenantSelector.addRenderArgs();
 
-        if (systemEvents == null) {
-            systemEvents = Boolean.FALSE;
-        }
-        if (systemEvents && Security.isSystemAdminOrRestrictedSystemAdmin() == false) {
-            forbidden();
-        }
-
-        renderArgs.put("isSystemAdmin", Security.isSystemAdminOrRestrictedSystemAdmin());
-        renderArgs.put("systemEvents", systemEvents);
         renderArgs.put("dataTable", new EventsDataTable(true));
 
-        Common.angularRenderArgs().put("tenantId", systemEvents ? "system" : Models.currentAdminTenant());
+        Common.angularRenderArgs().put("tenantId", Models.currentAdminTenant());
 
         render();
     }
@@ -87,48 +72,31 @@ public class Events extends Controller {
         long minsAgo = new Date().getTime() - MILLISECONDS_IN_12HOURS;
 
         List<EventRestRep> tasks = Lists.newArrayList(); // client.tasks().findCreatedSince(uri(Security.getUserInfo().getTenant()),
- // minsAgo, 5);
+        // minsAgo, 5);
         // if (Security.isSecurityAdmin()) {
         // tasks.addAll(client.tasks().findCreatedSince(SYSTEM_TENANT, minsAgo, 5));
         // }
 
-        // Collections.sort(tasks);
+        Collections.sort(tasks, orderedEventComparator);
 
         renderJSON(toEventSummaries(tasks));
     }
 
-    public static void listAllJson(Long lastUpdated, Boolean systemEvents) {
-
-        if (systemEvents == null) {
-            systemEvents = Boolean.FALSE;
-        }
-        if (systemEvents && Security.isSystemAdminOrRestrictedSystemAdmin() == false) {
-            forbidden();
-        }
-
+    public static void listAllJson(Long lastUpdated) {
         ViPRCoreClient client = getViprClient();
         List<EventRestRep> taskResourceReps = null;
         // if (lastUpdated == null) {
-        if (systemEvents) {
-            taskResourceReps = client.events().getByRefs(client.events().listByTenant(SYSTEM_TENANT));
-        } else {
-            taskResourceReps = client.events().getByRefs(client.events().listByTenant(uri(Models.currentAdminTenant())));
-        }
+        taskResourceReps = client.events().getByRefs(client.events().listByTenant(uri(Models.currentAdminTenant())));
         // } else {
         // // taskResourceReps = taskPoll(lastUpdated, systemTasks);
         // }
 
-        // Collections.sort(taskResourceReps, orderedTaskComparitor);
+        Collections.sort(taskResourceReps, orderedEventComparator);
 
         List<EventsDataTable.Event> events = Lists.newArrayList();
         if (taskResourceReps != null) {
             for (EventRestRep eventRestRep : taskResourceReps) {
                 EventsDataTable.Event event = new EventsDataTable.Event(eventRestRep);
-                // if (Objects.equals(task.state, "pending") ||
-                // Objects.equals(task.state, "queued")) {
-                // task.progress = Math.max(task.progress, MINIMUM_TASK_PROGRESS);
-                // }
-
                 events.add(event);
             }
         }
@@ -184,29 +152,14 @@ public class Events extends Controller {
     // return taskResourceReps;
     // }
 
-    public static void list(String resourceId) {
-        renderArgs.put("dataTable", eventsDataTable);
-        render();
-    }
-
-    public static void listJson(String resourceId) {
-        List<TasksDataTable.Task> tasks = null; // EventsDataTable.fetch(uri(resourceId));
-        renderJSON(DataTablesSupport.createJSON(tasks, params));
-    }
-
-    public static void logsJson(String taskId) {
-        List<TaskLogsDataTable.Log> logs = TaskLogsDataTable.fetch(uri(taskId));
-        renderJSON(DataTablesSupport.createJSON(logs, params));
-    }
-
     public static void itemsJson(@As(",") String[] ids) {
-        List<TasksDataTable.Task> results = Lists.newArrayList();
+        List<EventsDataTable.Event> results = Lists.newArrayList();
         if (ids != null && ids.length > 0) {
             for (String id : ids) {
                 if (StringUtils.isNotBlank(id)) {
-                    TaskResourceRep task = TaskUtils.getTask(uri(id));
-                    if (task != null) {
-                        results.add(new TasksDataTable.Task(task));
+                    EventRestRep event = EventUtils.getEvent(uri(id));
+                    if (event != null) {
+                        results.add(new EventsDataTable.Event(event));
                     }
                 }
             }
@@ -216,13 +169,13 @@ public class Events extends Controller {
 
     public static void details(String eventId) {
         if (StringUtils.isBlank(eventId)) {
-            listAll(false);
+            listAll();
         }
 
         EventRestRep event = EventUtils.getEvent(uri(eventId));
         if (event == null) {
             flash.error(MessagesUtils.get(UNKNOWN, eventId));
-            listAll(false);
+            listAll();
         }
 
         Common.angularRenderArgs().put("event", getEventSummary(event));
@@ -232,32 +185,32 @@ public class Events extends Controller {
 
     public static void detailsJson(String eventId) {
         if (StringUtils.isBlank(eventId)) {
-            notFound("Task [" + eventId + "]");
+            notFound("Event [" + eventId + "]");
         }
 
         EventRestRep event = EventUtils.getEvent(uri(eventId));
         if (event == null) {
-            notFound("Task [" + eventId + "]");
+            notFound("Event [" + eventId + "]");
         }
 
         renderJSON(getEventSummary(event));
     }
 
     @Util
-    public static EventSummary getEventSummary(EventRestRep task) {
-        EventSummary taskSummary = new EventSummary(task);
-        return taskSummary;
+    public static EventSummary getEventSummary(EventRestRep event) {
+        EventSummary eventSummary = new EventSummary(event);
+        return eventSummary;
     }
 
-    private static List<EventSummary> toEventSummaries(List<EventRestRep> tasks) {
-        List<EventSummary> taskSummaries = Lists.newArrayList();
+    private static List<EventSummary> toEventSummaries(List<EventRestRep> events) {
+        List<EventSummary> eventSummaries = Lists.newArrayList();
 
-        for (EventRestRep task : tasks) {
-            EventSummary taskSummary = new EventSummary(task);
-            taskSummaries.add(taskSummary);
+        for (EventRestRep event : events) {
+            EventSummary eventSummary = new EventSummary(event);
+            eventSummaries.add(eventSummary);
         }
 
-        return taskSummaries;
+        return eventSummaries;
     }
 
     public static void deleteEvent(String eventId) {
@@ -265,7 +218,7 @@ public class Events extends Controller {
             getViprClient().events().deactivate(uri(eventId));
             flash.success(MessagesUtils.get(DELETED, eventId));
         }
-        listAll(false);
+        listAll();
     }
 
     public static void approveEvent(String eventId) {

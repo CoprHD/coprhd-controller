@@ -224,7 +224,7 @@ public class StorageScheduler implements Scheduler {
                 if (attributeMap.get(AttributeMatcher.ERROR_MESSAGE) != null) {
                     errorMessage = (StringBuffer) attributeMap.get(AttributeMatcher.ERROR_MESSAGE);
                 }
-                throw APIException.badRequests.noStoragePools(vPool.getLabel(), vArray.getLabel(), errorMessage.toString());
+                throw APIException.badRequests.noStoragePools(vArray.getLabel(), vPool.getLabel(), errorMessage.toString());
             }
 
             // place all mirrors for this storage system in the matched pools

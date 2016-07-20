@@ -227,7 +227,7 @@ public class BucketService extends TaskResourceService {
             if (attributeMap.get(AttributeMatcher.ERROR_MESSAGE) != null) {
                 errorMessage = (StringBuffer) attributeMap.get(AttributeMatcher.ERROR_MESSAGE);
             }
-            throw APIException.badRequests.noStoragePools(vpool.getLabel(), neighborhood.getLabel(), errorMessage.toString());
+            throw APIException.badRequests.noStoragePools(neighborhood.getLabel(), vpool.getLabel(), errorMessage.toString());
         }
 
         // Randomly select a recommended pool

@@ -665,7 +665,7 @@ public class RecoverPointScheduler implements Scheduler {
                     + "There are no storage pools that match the passed vpool parameters and protocols and/or there "
                     + "are no pools that have enough capacity to hold at least one resource of the requested size.", varray.getLabel(),
                     vpool.getLabel()));
-            throw APIException.badRequests.noStoragePools(vpool.getLabel(), varray.getLabel(), errorMessage.toString());
+            throw APIException.badRequests.noStoragePools(varray.getLabel(), vpool.getLabel(), errorMessage.toString());
         }
 
         // Verify that any storage pool(s) requiring a VPLEX front end for data protection have
@@ -809,7 +809,7 @@ public class RecoverPointScheduler implements Scheduler {
             if (attributeMap.get(AttributeMatcher.ERROR_MESSAGE) != null) {
                 errorMessage = (StringBuffer) attributeMap.get(AttributeMatcher.ERROR_MESSAGE);
             }
-            throw APIException.badRequests.noStoragePools(vpool.getLabel(), varray.getLabel(), errorMessage.toString());
+            throw APIException.badRequests.noStoragePools(varray.getLabel(), vpool.getLabel(), errorMessage.toString());
         }
 
         RPRecommendation rpHaRecommendation = new RPRecommendation();

@@ -103,7 +103,7 @@ public class AttributeMatcherFramework implements ApplicationContextAware {
                 _logger.info("Ended execution of {} group matchers .", matcherGroupName);
             }
         } else {
-            errorMessage.append("Vpool does not have matching Storage pool.");
+            errorMessage.append("Virtual pool does not have matching Storage pool.");
             _logger.error(errorMessage.toString());
         }
         return matchedPools;

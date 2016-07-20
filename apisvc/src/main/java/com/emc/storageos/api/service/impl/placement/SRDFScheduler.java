@@ -203,8 +203,8 @@ public class SRDFScheduler implements Scheduler {
             if (attributeMap.get(AttributeMatcher.ERROR_MESSAGE) != null) {
                 errorMessage = (StringBuffer) attributeMap.get(AttributeMatcher.ERROR_MESSAGE);
             }
-            throw APIException.badRequests.noStoragePools(vpool.getLabel(),
-                    varray.getLabel(), errorMessage.toString());
+            throw APIException.badRequests.noStoragePools(varray.getLabel(), vpool.getLabel(),
+                    errorMessage.toString());
         }
 
         // skip StoragePools, which had been used as R2 targets for given consistencyGroup earlier.

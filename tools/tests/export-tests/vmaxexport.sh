@@ -37,7 +37,7 @@
 # -     Add Volume to export
 # -     Remove Volume from export
 #
-set -x
+# set -x
 
 Usage()
 {
@@ -46,29 +46,6 @@ Usage()
     echo ' [delete]: Will exports and volumes'
     exit 2
 }
-
-
-LAST_3DIGITS=""
-SN=""
-NATIVEGUID=""
-SMIS_IP=""
-
-
-if [ "$2" = "vmax2" ]
-	then 
-		LAST_3DIGITS=$VMAX2_ID_3DIGITS
-		SN=$VMAX2_SN
-		NATIVEGUID=$VMAX2_NATIVEGUID
-		SMIS_IP=$VMAX2_SMIS_IP
-	else
-		LAST_3DIGITS=$VMAX_ID_3DIGITS
-		SN=$VMAX_SN
-		NATIVEGUID=$VMAX_NATIVEGUID
-		SMIS_IP=$VMAX_SMIS_IP
-		echo "Export sanity test cases for VMAX3 is not ready"
-		finish
-		# vmax3_setup $3
-	fi;
 
 SANITY_CONFIG_FILE=""
 : ${USE_CLUSTERED_HOSTS=1}
@@ -85,6 +62,28 @@ if [ "$1"x != "x" ]; then
       source $SANITY_CONFIG_FILE
    fi
 fi
+
+
+LAST_3DIGITS=""
+SN=""
+NATIVEGUID=""
+SMIS_IP=""
+
+if [ "$2" = "vmax2" ]
+	then 
+		LAST_3DIGITS=$VMAX2_ID_3DIGITS
+		SN=$VMAX2_SN
+		NATIVEGUID=$VMAX2_NATIVEGUID
+		SMIS_IP=$VMAX2_SMIS_IP
+	else
+		LAST_3DIGITS=$VMAX_ID_3DIGITS
+		SN=$VMAX_SN
+		NATIVEGUID=$VMAX_NATIVEGUID
+		SMIS_IP=$VMAX_SMIS_IP
+		echo "Export sanity test cases for VMAX3 is not ready"
+		exit
+		# vmax3_setup $3
+fi;
 
 VERIFY_EXPORT_COUNT=0
 VERIFY_EXPORT_FAIL_COUNT=0

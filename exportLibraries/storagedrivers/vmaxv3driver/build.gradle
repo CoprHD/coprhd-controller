@@ -1,0 +1,16 @@
+apply plugin: 'java'
+
+group = 'com.emc.storageos.driver.vmaxv3driver'
+version = '1.0-SNAPSHOT'
+description = 'VMAX V3 Southbound SDK driver implementation'
+
+dependencies {
+    compile project(":storagedriver")
+    compile library(slf4j)
+    compile library(log4j)
+    compile library(commons_logging)
+    compile library(httpclient4)
+    compile library(google_gson)
+    compile library(json_sanitizer)
+    testCompile group: 'org.testng', name: 'testng', version:'6.8.7'
+}

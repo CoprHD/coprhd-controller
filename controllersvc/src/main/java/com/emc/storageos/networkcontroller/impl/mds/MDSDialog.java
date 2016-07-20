@@ -1440,8 +1440,8 @@ public class MDSDialog extends SSHDialog {
         String errorString = MDSDialogProperties.getString("MDSDialog.zonesetClone.invalidname.cmd");
         StringBuilder buf = new StringBuilder();
         String newZoneset = generateZonesetCloneName(zonesetToClone);
-        manageZonesetClone(vsanId);
-        _log.info("zoneset clone name : " + newZoneset	);
+        List<String> zonesetClonesToDelete = findZonesetClonesToDelete(vsanId);
+        _log.info("Creating new zoneset clone : " + newZoneset	);
         String payload = MessageFormat.format(MDSDialogProperties.getString("MDSDialog.zonesetClone.cmd"), zonesetToClone, newZoneset, vsanId); //zoneset clone {0} {1} vsan {2}\n
         lastPrompt = sendWaitFor(payload, defaultTimeout, prompts, buf);
         String[] lines = getLines(buf);
@@ -1452,20 +1452,28 @@ public class MDSDialog extends SSHDialog {
         		throw NetworkDeviceControllerException.exceptions.zonesetCloneFailed(newZoneset, line);
         	}
         }
+        
+        //Delete older clones
+        for (String zonesetClone : zonesetClonesToDelete) {
+        	_log.info(String.format("Removing zoneset (clone) %s", zonesetClone));  
+			zonesetNameVsan(zonesetClone, vsanId, true);    	
+        }
+        	
 
         _log.info(MessageFormat.format("Host: {0}, Port: {1} - END zonesetClone",
                 new Object[] { getSession().getSession().getHost(), getSession().getSession().getPort() }));
     }
     
     /**
-     * This routine does some basic management of cloned zonesets on the switch. 
-     * Currently, only one zoneset clone per zoneset per vsan per day is maintained on the switch.
-     * This routine looks for any zoneset clones that contain the same date time-stamp and removes it. 
+     * This routine looks for any zoneset clones that contain the same date time-stamp and add them to the list
+     * of clones to be deleted.
+     * Only one zoneset clone per zoneset per vsan per day is maintained on the switch 
      *  
      * @param vsanId
      * 
      */
-    private void manageZonesetClone(Integer vsanId) {
+    private List<String> findZonesetClonesToDelete(Integer vsanId) {
+    	List<String> zonesetClonesToDelete = new ArrayList<String>();
     	List<Zoneset> zonesets = showZoneset(vsanId, false, null, false, false);
     	    	
     	Calendar cal = Calendar.getInstance();
@@ -1473,12 +1481,13 @@ public class MDSDialog extends SSHDialog {
   	    String dateStr = dateFormat.format(cal.getTime()); 
     	for (Zoneset zoneset : zonesets) {
     		if (zoneset.getName().contains(dateStr) && zoneset.getName().contains("ViPR")) {
-    			_log.info(String.format("Removing zoneset (clone) %s", zoneset.getName()));    			    		
-    			zonesetNameVsan(zoneset.getName(), vsanId, true);    			
+    			_log.info(String.format("Removing zoneset (clone) %s", zoneset.getName()));  
+    			zonesetClonesToDelete.add(zoneset.getName());
     		}
     	}    	
+    	return zonesetClonesToDelete;
     }
-        
+    
     /**
      * Generate a unique name for the zoneset clone.
      * The format of the zoneset clone name is "ViPR-<existing_zone>-MM_dd_yy-HH_mm"

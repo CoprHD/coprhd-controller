@@ -1925,7 +1925,6 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
     removeGuideCookies = function() {
         eraseCookie(cookieKey);
         eraseCookie(dataCookieKey);
-        eraseCookie("guide_varray");
     }
 
     saveGuideCookies = function() {
@@ -2167,9 +2166,13 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
             else if ($scope.completedSteps > 3){
                 $scope.guide_storageArray = "Skipped";
             }
-            varrayCookie = readCookie("guide_varray");
+            varrayCookie = guide_data.varrays;
             if (varrayCookie) {
-                $scope.guide_varray = varrayCookie;
+                $scope.guide_varray = "";
+                jQuery.each(varrayCookie, function() {
+                    if ($scope.guide_varray){$scope.guide_varray += ","}
+                    $scope.guide_varray += this;
+                });
             }
             else if ($scope.completedSteps > 5){
                 $scope.guide_varray = "Skipped";

@@ -7,6 +7,7 @@ package controllers;
 import static com.emc.vipr.client.core.util.ResourceUtils.id;
 import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 import static com.emc.vipr.client.core.util.ResourceUtils.uris;
+import com.google.gson.JsonPrimitive;
 import static controllers.Common.backToReferrer;
 import static controllers.Common.getUserMessage;
 
@@ -114,6 +115,7 @@ public class VirtualArrays extends ViprResourceController {
     private static final String VIPR_START_GUIDE = "VIPR_START_GUIDE";
     private static final String GUIDE_DATA = "GUIDE_DATA";
     private static final String STORAGE_SYSTEMS = "storage_systems";
+    private static final String VARRAYS = "varrays";
 
     /**
      * Simple create and save operation that takes only the name.
@@ -151,7 +153,7 @@ public class VirtualArrays extends ViprResourceController {
 				if (StringUtils.equals(availVarray.getName(), ALL_FLASH_VARRAY)) {
 					existVarrayId = availVarray.getId().toString();
 					isVarrayAvail = true;
-                    response.setCookie("guide_varray", availVarray.getName() );
+                    updateVarrayCookie(availVarray.getName() );
 					break;
 				}
 			}
@@ -210,7 +212,7 @@ public class VirtualArrays extends ViprResourceController {
 
 				VirtualArrayRestRep varray = virtualArray.save();
 				virtualArray.load(varray);
-				response.setCookie("guide_varray", virtualArray.name );
+                updateVarrayCookie(virtualArray.name );
 
 				List<String> ids = Lists.newArrayList();
 				// Read all storage systems
@@ -249,7 +251,9 @@ public class VirtualArrays extends ViprResourceController {
 					virtualArray.name = VARRAY_PREFIX + storagename;
 					VirtualArrayRestRep varray = virtualArray.save();
 					virtualArray.load(varray);
-					response.setCookie("guide_varray", virtualArray.name );
+
+                    updateVarrayCookie(virtualArray.name);
+					//response.setCookie("guide_varray", virtualArray.name );
 
 					addVarrayStorageSystem(virtualArray.id, storageid);
 				}
@@ -271,7 +275,7 @@ public class VirtualArrays extends ViprResourceController {
 							virtualArray.name = VARRAY_PREFIX + storageSystem.getName();
 							VirtualArrayRestRep varray = virtualArray.save();
 							virtualArray.load(varray);
-							response.setCookie("guide_varray", virtualArray.name);
+                            updateVarrayCookie(virtualArray.name);
 
 							addVarrayStorageSystem(virtualArray.id, storageSystem.getId().toString());
 						}
@@ -282,7 +286,7 @@ public class VirtualArrays extends ViprResourceController {
 								virtualArray.name = VARRAY_PREFIX + storageSystem.getName();
 								VirtualArrayRestRep varray = virtualArray.save();
 								virtualArray.load(varray);
-								response.setCookie("guide_varray", virtualArray.name);
+                                updateVarrayCookie(virtualArray.name);
 								addVarrayStorageSystem(virtualArray.id, storageSystem.getId().toString());
 							}
 						}
@@ -351,6 +355,17 @@ public class VirtualArrays extends ViprResourceController {
 			list();
 		}
 	}
+
+    private static void updateVarrayCookie(String virtualArray){
+        JsonObject dataObject = getCookieAsJson(GUIDE_DATA);
+        JsonArray varrays = dataObject.getAsJsonArray(VARRAYS);
+        if (varrays == null) {
+            varrays = new JsonArray();
+        }
+        varrays.add(new JsonPrimitive(virtualArray));
+        dataObject.add(VARRAYS, varrays);
+        saveJsonAsCookie(GUIDE_DATA, dataObject);
+    }
 
 
     /**

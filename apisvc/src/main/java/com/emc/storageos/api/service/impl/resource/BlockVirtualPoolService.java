@@ -254,9 +254,11 @@ public class BlockVirtualPoolService extends VirtualPoolService {
      */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public VirtualPoolList getBlockVirtualPool(@DefaultValue("") @QueryParam(VDC_ID_QUERY_PARAM) String shortVdcId) {
+    public VirtualPoolList getBlockVirtualPool(
+            @DefaultValue("") @QueryParam(TENANT_ID_QUERY_PARAM) String tenantId,
+            @DefaultValue("") @QueryParam(VDC_ID_QUERY_PARAM) String shortVdcId) {
         _geoHelper.verifyVdcId(shortVdcId);
-        return getVirtualPoolList(VirtualPool.Type.block, shortVdcId);
+        return getVirtualPoolList(VirtualPool.Type.block, shortVdcId, tenantId);
     }
 
     /**

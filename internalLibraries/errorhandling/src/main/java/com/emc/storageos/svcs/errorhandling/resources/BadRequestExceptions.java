@@ -1689,6 +1689,9 @@ public interface BadRequestExceptions {
     public BadRequestException failoverCopiesParamCanOnlyBeOne();
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException changeAccessCopiesParamCanOnlyBeOne();
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException swapCopiesParamCanOnlyBeOne();
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
@@ -2196,6 +2199,9 @@ public interface BadRequestExceptions {
     public BadRequestException exportExists(String operatioName, String exportDetails);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException storageDoesNotSupportMulSecRule(String operatioName, String systemType, String exportDetails);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException missingInputTypeFound(String type, String opName);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
@@ -2373,6 +2379,9 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotDeleteAuthnProviderWithUserGroup(final int numResources, final Set<URI> resourceIDs);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException fullCopyInternalError(final String operation);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException invalidFullCopySource(final String copySourceId);
@@ -2818,6 +2827,12 @@ public interface BadRequestExceptions {
     public BadRequestException multipleSetNamesProvided(final String replicaType);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException invalidApplicationCopyOperationInput(final String replicaType);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException invalidCopySetNamesProvided(final String copySetName, final String replicaType);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException noHAVolumeFoundForVPLEX(final String volumeName);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
@@ -2982,6 +2997,9 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException snapshotRestoreNotSupported();
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException unsupportedAccessMode(final String accessMode);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotExpandTargetVirtualVolume(final String label);

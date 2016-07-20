@@ -6,6 +6,7 @@ package com.emc.storageos.vplex.api;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -70,6 +71,7 @@ public class VPlexApiVirtualVolumeManager {
      * @param clusterInfoList A list of VPlexClusterInfo specifying the info for the VPlex
      *            clusters.
      * @param findVirtualVolume If true findVirtualVolume method is called after virtual volume is created.
+     * @param thinEnabled If true, the virtual volume should be created as a thin-enabled virtual volume.
      *
      * @return The information for the created virtual volume.
      *
@@ -78,7 +80,8 @@ public class VPlexApiVirtualVolumeManager {
      */
     VPlexVirtualVolumeInfo createVirtualVolume(List<VolumeInfo> nativeVolumeInfoList,
             boolean isDistributed, boolean discoveryRequired, boolean preserveData,
-            String winningClusterId, List<VPlexClusterInfo> clusterInfoList, boolean findVirtualVolume)
+            String winningClusterId, List<VPlexClusterInfo> clusterInfoList, 
+            boolean findVirtualVolume, boolean thinEnabled)
             throws VPlexApiException {
 
         s_logger.info("Request to create {} virtual volume.",
@@ -160,7 +163,7 @@ public class VPlexApiVirtualVolumeManager {
             }
 
             // Create virtual volume
-            createVirtualVolume(devicePath);
+            createVirtualVolume(devicePath, thinEnabled);
             s_logger.info("Created virtual volume on device {}", devicePath);
 
             VPlexVirtualVolumeInfo virtualVolumeInfo = new VPlexVirtualVolumeInfo();
@@ -175,6 +178,7 @@ public class VPlexApiVirtualVolumeManager {
                 virtualVolumeInfo.setName(volumeNameBuilder.toString());
                 virtualVolumeInfo.addCluster(clusterId);
             }
+
             return virtualVolumeInfo;
         } catch (Exception e) {
             // An error occurred. Clean up any VPLEX artifacts created for
@@ -295,6 +299,11 @@ public class VPlexApiVirtualVolumeManager {
                 s_logger.info("Added {} as a mirror to the device {}", localDevices
                         .get(0).getPath(), sourceDevicePath);
             }
+
+            // update the vplexVolumeInfo object so we can tell if thin-capability changed
+            vplexVolumeInfo = findVirtualVolumeAndUpdateInfo(virtualVolume.getName(), discoveryMgr);
+            virtualVolume.setThinCapable(vplexVolumeInfo.getThinCapable());
+            virtualVolume.setThinEnabled(vplexVolumeInfo.getThinEnabled());
 
             // return mirror device
             return localDevices.get(0);
@@ -448,7 +457,7 @@ public class VPlexApiVirtualVolumeManager {
                     throw vae;
                 }
             }
-        } else {
+        } else if (virtualVolumeName.endsWith(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX)) {
             // Otherwise, perhaps the virtual volume creation failed and
             // the delete is being called to cleanup any intermediate
             // resources in the virtual volume stack.
@@ -722,9 +731,6 @@ public class VPlexApiVirtualVolumeManager {
         Map<VolumeInfo, VPlexStorageVolumeInfo> storageVolumeInfoMap = null;
         VPlexApiDiscoveryManager discoveryMgr = _vplexApiClient.getDiscoveryManager();
 
-        // Find if ITL based search needs to be done - Currently Cinder uses this
-        boolean isITLBasedLookUp = VPlexApiUtils.isITLBasedSearch(nativeVolumeInfoList.get(0));
-
         if (discoveryRequired) {
             s_logger.info("Storage volume discovery is required.");
             int retryCount = 0;
@@ -747,7 +753,7 @@ public class VPlexApiVirtualVolumeManager {
                     s_logger.info("Discovery completed");
 
                     // Get the cluster information.
-                    clusterInfoList.addAll(discoveryMgr.getClusterInfo(false, isITLBasedLookUp));
+                    clusterInfoList.addAll(discoveryMgr.getClusterInfo(false, true));
                     s_logger.info("Retrieved storage volume info for VPlex clusters");
 
                     // Find the back-end storage volumes. If a volume cannot be
@@ -776,7 +782,7 @@ public class VPlexApiVirtualVolumeManager {
 
             // Get the cluster information.
             if (clusterInfoList.isEmpty()) {
-                clusterInfoList.addAll(discoveryMgr.getClusterInfo(false, isITLBasedLookUp));
+                clusterInfoList.addAll(discoveryMgr.getClusterInfo(false, true));
                 s_logger.info("Retrieved storage volume info for VPlex clusters");
             }
 
@@ -1056,10 +1062,11 @@ public class VPlexApiVirtualVolumeManager {
      * Creates a virtual volume for the device with the passed context path.
      *
      * @param devicePath The context path of a local or distributed device.
+     * @param thinEnabled If true, request VPLEX to create the volume as thin-enabled.
      *
      * @throws VPlexApiException When an error occurs creating the virtual volume.
      */
-    private void createVirtualVolume(String devicePath)
+    private void createVirtualVolume(String devicePath, Boolean thinEnabled)
             throws VPlexApiException {
         ClientResponse response = null;
         try {
@@ -1069,6 +1076,9 @@ public class VPlexApiVirtualVolumeManager {
             s_logger.info("Create virtual volume URI is {}", requestURI.toString());
             Map<String, String> argsMap = new HashMap<String, String>();
             argsMap.put(VPlexApiConstants.ARG_DASH_R, devicePath);
+            if (thinEnabled) {
+                argsMap.put(VPlexApiConstants.ARG_THIN_ENABLED, "");
+            }
             JSONObject postDataObject = VPlexApiUtils.createPostData(argsMap, false);
             s_logger.info("Create virtual volume POST data is {}", postDataObject.toString());
             response = _vplexApiClient.post(requestURI, postDataObject.toString());
@@ -1262,7 +1272,7 @@ public class VPlexApiVirtualVolumeManager {
             // If the local device is found, dismantle it.
             s_logger.info("Tearing down local device {}", deviceName);
             dismantleResource(deviceInfo.getPath(), true, true);
-        } else {
+        } else if (deviceName.startsWith(VPlexApiConstants.DEVICE_PREFIX)) {
             // Otherwise delete the extent that may exist for
             // this local device.
             s_logger.info("Destroying extents for local device {}", deviceName);
@@ -1403,21 +1413,16 @@ public class VPlexApiVirtualVolumeManager {
      * @param virtualVolume - Existing non-distributed virtual volume.
      * @param newRemoteVolume - Unclaimed storage volume in remote cluster.
      * @param discoveryRequired - Set if discovery required.
-     * @param rename - true to rename the volume.
      * @param clusterId - Used to set the detach rule for the distributed volume.
      * @return - VPlexVirtualVolumeInfo representing the distributed virtual volume.
      * @throws VPlexApiException
      */
     VPlexVirtualVolumeInfo createDistributedVirtualVolume(VPlexVirtualVolumeInfo virtualVolume,
-            VolumeInfo newRemoteVolume, boolean discoveryRequired, boolean rename, String clusterId,
+            VolumeInfo newRemoteVolume, boolean discoveryRequired, String clusterId,
             String transferSize) throws VPlexApiException {
         // Determine the "local" device
         String virtualVolumeName = virtualVolume.getName();
         String localDeviceName = virtualVolume.getSupportingDevice();
-        if (!virtualVolumeName.equals(localDeviceName + VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX)) {
-            // We don't want to rename if original volume is not following default naming convention.
-            rename = false;
-        }
 
         // Find the storage volumes corresponding to the passed remote
         // volume information, discovery them if required.
@@ -1491,7 +1496,7 @@ public class VPlexApiVirtualVolumeManager {
         }
 
         try {
-            // Find virtual volume and return.
+            // Find virtual volume.
             VPlexVirtualVolumeInfo vvInfo = discoveryMgr.findVirtualVolume(
                     localDevice.getCluster(), virtualVolumeName, false);
 
@@ -1506,24 +1511,42 @@ public class VPlexApiVirtualVolumeManager {
                 setRebuildTransferSize(deviceName, transferSize);
             }
 
-            // Compute updated name and rename the distributed virtual volume.
-            if (rename) {
-                String remoteName = remoteDevice.getName().replaceAll(VPlexApiConstants.DEVICE_PREFIX, "");
-                String newVvName = vvInfo.getName();
-                newVvName = newVvName.replaceFirst(VPlexApiConstants.DEVICE_PREFIX,
-                        VPlexApiConstants.DIST_DEVICE_PREFIX + VPlexApiConstants.DIST_DEVICE_NAME_DELIM);
-                newVvName = newVvName.replaceFirst(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX, "");
-                newVvName = newVvName + VPlexApiConstants.DIST_DEVICE_NAME_DELIM + remoteName
-                        + VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX;
-                vvInfo = renameVPlexResource(vvInfo, newVvName);
-
-                String newDdName = distDeviceInfo.getName();
-                newDdName = newDdName.replaceFirst(VPlexApiConstants.DEVICE_PREFIX,
-                        VPlexApiConstants.DIST_DEVICE_PREFIX + VPlexApiConstants.DIST_DEVICE_NAME_DELIM);
-                newDdName = newDdName + VPlexApiConstants.DIST_DEVICE_NAME_DELIM + remoteName;
-                distDeviceInfo = renameVPlexResource(distDeviceInfo, newDdName);
+            // If the volume is using the default naming convention then when want to update the 
+            // name of the volume and the distributed device to reflect both backend volumes 
+            // used by the newly formed distributed volume. However, if the volume does not conform
+            // to the default naming convention, such as an ingested volume or a volume that has 
+            // it name set via the custom naming configurations, then we want to leave the volume name
+            // alone and simply update the device name, again assuming the previous device named 
+            // conforms to the standard naming convention.
+            if (localDeviceName.length() > VPlexApiConstants.DEVICE_PREFIX.length()) {
+                List<String> claimedVolumeNames = Arrays.asList(localDeviceName.substring(VPlexApiConstants.DEVICE_PREFIX.length()));
+                if (VPlexApiUtils.volumeHasDefaultNamingConvention(virtualVolumeName, localDeviceName, false, claimedVolumeNames)) {
+                    // Update both the volume and supporting device names.
+                    String remoteName = remoteDevice.getName().replaceAll(VPlexApiConstants.DEVICE_PREFIX, "");
+                    String newVvName = vvInfo.getName();
+                    newVvName = newVvName.replaceFirst(VPlexApiConstants.DEVICE_PREFIX,
+                            VPlexApiConstants.DIST_DEVICE_PREFIX + VPlexApiConstants.DIST_DEVICE_NAME_DELIM);
+                    newVvName = newVvName.replaceFirst(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX, "");
+                    newVvName = newVvName + VPlexApiConstants.DIST_DEVICE_NAME_DELIM + remoteName
+                            + VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX;
+                    vvInfo = renameVPlexResource(vvInfo, newVvName);
+    
+                    String newDdName = distDeviceInfo.getName();
+                    newDdName = newDdName.replaceFirst(VPlexApiConstants.DEVICE_PREFIX,
+                            VPlexApiConstants.DIST_DEVICE_PREFIX + VPlexApiConstants.DIST_DEVICE_NAME_DELIM);
+                    newDdName = newDdName + VPlexApiConstants.DIST_DEVICE_NAME_DELIM + remoteName;
+                    distDeviceInfo = renameVPlexResource(distDeviceInfo, newDdName);
+                } else if (VPlexApiUtils.localDeviceHasDefaultNamingConvention(localDeviceName, claimedVolumeNames)) {
+                    // The volume name does not conform, but then supporting device does, so 
+                    // update just the device name.
+                    String newDdName = distDeviceInfo.getName();
+                    newDdName = newDdName.replaceFirst(VPlexApiConstants.DEVICE_PREFIX,
+                            VPlexApiConstants.DIST_DEVICE_PREFIX + VPlexApiConstants.DIST_DEVICE_NAME_DELIM);
+                    String remoteName = remoteDevice.getName().replaceAll(VPlexApiConstants.DEVICE_PREFIX, "");
+                    newDdName = newDdName + VPlexApiConstants.DIST_DEVICE_NAME_DELIM + remoteName;
+                    distDeviceInfo = renameVPlexResource(distDeviceInfo, newDdName);
+                }
             }
-
             return vvInfo;
         } catch (Exception e) {
             // An error occurred. Detach the mirror and clean up the VPLEX artifacts
@@ -2489,4 +2512,53 @@ public class VPlexApiVirtualVolumeManager {
         }
     }
 
+    /**
+     * Sends a request to the VPLEX to turn on thin provisioning for the given
+     * virtual volume. Will return a boolean value indicating whether or not
+     * the request was a success.
+     * 
+     * @param virtualVolumeInfo the virtual volume to update
+     * @return true if the thin-enabled request was a success
+     */
+    public boolean setVirtualVolumeThinEnabled(VPlexVirtualVolumeInfo virtualVolumeInfo) {
+        ClientResponse response = null;
+        try {
+            // set thin enabled to false by default on the out-param until we get a successful response
+            virtualVolumeInfo.setThinEnabled(VPlexApiConstants.FALSE);
+            s_logger.info("Requesting thin-enabled flag set to true on virtual volume " + virtualVolumeInfo.getName());
+            URI requestURI = _vplexApiClient.getBaseURI().resolve(VPlexApiConstants.URI_SET_THIN_ENABLED_VIRTUAL_VOLUME);
+            s_logger.info("Set thin-enabled virtual-volume URI is " + requestURI.toString());
+            Map<String, String> argsMap = new HashMap<String, String>();
+            argsMap.put(VPlexApiConstants.TRUE.toString(), "");
+            argsMap.put(VPlexApiConstants.ARG_VIRTUAL_VOLUMES, virtualVolumeInfo.getPath());
+
+            JSONObject postDataObject = VPlexApiUtils.createPostData(argsMap, false);
+            s_logger.info("Set thin-enabled virtual-volume POST data is " + postDataObject.toString());
+            response = _vplexApiClient.post(requestURI, postDataObject.toString());
+            String responseStr = response.getEntity(String.class);
+            s_logger.info("Set thin-enabled virtual-volume response is " + responseStr);
+            if (response.getStatus() != VPlexApiConstants.SUCCESS_STATUS) {
+                if (response.getStatus() == VPlexApiConstants.ASYNC_STATUS) {
+                    s_logger.info("Set thin-enabled virtual-volume command completing asynchronously");
+                    _vplexApiClient.waitForCompletion(response);
+                } else {
+                    s_logger.info("set-thin-enabled command was not successful on virtual volume " + virtualVolumeInfo.getName());
+                    return false;
+                }
+            }
+            // if it got this far, we can assume thin-enabled and thin-capable are both true
+            virtualVolumeInfo.setThinEnabled(VPlexApiConstants.TRUE);
+            virtualVolumeInfo.setThinCapable(VPlexApiConstants.TRUE);
+            s_logger.info("Successfully executed set-thin-enabled command");
+            return true;
+        } catch (VPlexApiException vae) {
+            throw vae;
+        } catch (Exception e) {
+            throw VPlexApiException.exceptions.failedSettingThinEnabled(virtualVolumeInfo.getName(), e);
+        } finally {
+            if (response != null) {
+                response.close();
+            }
+        }
+    }
 }

@@ -37,6 +37,7 @@ import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
+import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.util.VPlexSrdfUtil;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.TaskCompleter;
@@ -762,7 +763,8 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
     
     @Override
     public String addStepsForAddingVolumesToSRDFTargetCG(Workflow workflow, StorageSystem vplexSystem,
-            List<URI> vplexVolumeURIs, String waitFor) {
+            List<URI> vplexVolumeURIs, String argWaitFor) {
+        String waitFor = argWaitFor;    // to fix Sonar
         StringBuilder volumeList = new StringBuilder();
         for (URI vplexVolumeURI : vplexVolumeURIs) {
             Volume volume = dbClient.queryObject(Volume.class, vplexVolumeURI);
@@ -776,6 +778,10 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
         waitFor = workflow.createStep(null, 
                 "Add VplexVolumes to Target CG: " + volumeList.toString(), waitFor, vplexSystem.getId(), 
                 vplexSystem.getSystemType(), this.getClass(), executeMethod, rollbackMethod, null);
+        
+        // Add a step to set the read-only flag to true (on rollback, revert to false)
+        waitFor = addStepForUpdateConsistencyGroupReadOnlyState(workflow, vplexVolumeURIs, true, 
+                "Set Target CG read-only flag: " + volumeList.toString(), waitFor);
         return waitFor;
     }
     
@@ -1062,6 +1068,111 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
             ServiceError svcError = VPlexApiException.errors.jobFailed(ex);
             WorkflowStepCompleter.stepFailed(stepId, svcError);
             return false;
+        }
+    }
+    
+    /**
+     * Adds a step to the passed workflow to set the consistency group read-only flag to the indicated state.
+     * If the passed volumes have no consistency group, no step is generated.
+     * @param workflow -- Workflow we're configuring
+     * @param vplexVolumeURIs -- List of Vplex Volume URIs in the CG to be set
+     * @param setToReadOnly -- if true set to read only, if false, clear read-only (so is read-write)
+     * @param stepDescription -- Description of step, helpful if lists volumes
+     * @param waitFor -- previous step in the workflow to wait for
+     * @return waitFor -- step id of last step that was created
+     */
+    public String addStepForUpdateConsistencyGroupReadOnlyState(Workflow workflow, 
+            List<URI> vplexVolumeURIs, boolean setToReadOnly,
+            String stepDescription, String argWaitFor) {
+        String waitFor = argWaitFor;    // to fix Sonar
+        if (vplexVolumeURIs.isEmpty()) {
+            return waitFor;
+        }
+        Volume vplexVolume = dbClient.queryObject(Volume.class, vplexVolumeURIs.get(0));
+        // Note that volumes being added to SRDF target CGwill not have consistencyGroup attribute set
+        // here because that CG will not have been created when the workflow is configured.
+        // The CG is used here only for logging purposes.
+        BlockConsistencyGroup cg = null;
+        if (!NullColumnValueGetter.isNullURI(vplexVolume.getConsistencyGroup())) {
+            cg = dbClient.queryObject(BlockConsistencyGroup.class, vplexVolume.getConsistencyGroup());
+        }
+        StorageSystem vplexSystem = dbClient.queryObject(StorageSystem.class, vplexVolume.getStorageController());
+        Workflow.Method readOnlyExecuteMethod = updateConsistencyGroupReadOnlyStateMethod(vplexVolumeURIs, setToReadOnly);
+        Workflow.Method readOnlyRollbackMethod = updateConsistencyGroupReadOnlyStateMethod(vplexVolumeURIs, !setToReadOnly);
+        waitFor = workflow.createStep(null, 
+                String.format("CG: %s: %s", (cg != null ? cg.getLabel() : ""), stepDescription), 
+                waitFor, vplexSystem.getId(), vplexSystem.getSystemType(), this.getClass(), 
+                readOnlyExecuteMethod, readOnlyRollbackMethod, null);
+        return waitFor;
+    }
+    
+    /**
+     * Method to update ConsistencyGroup read-only state, must match args of updateConsistencyGroupReadOnlyState
+     * (except stepId)
+     * @param vplexVolumeURIs -- list of Vplex volume URIs
+     * @param isReadOnly if true set to read-only, if false set to read-write
+     * @return Workflow.Method for updateConsistencyGroupReadOnlyState
+     */
+    public Workflow.Method updateConsistencyGroupReadOnlyStateMethod(
+            List<URI> vplexVolumeURIs, Boolean isReadOnly) {
+        return new Workflow.Method("updateConsistencyGroupReadOnlyState", vplexVolumeURIs, isReadOnly);
+    }
+    
+    /**
+     * Step to call the VPLEX to update the read-only flag on a consistency group.
+     * If the Vplex Api library detects the firmware does not properly handle the flag,
+     * a warning message is put in the SUCCESS status.
+     * @param vplexVolumeURIs -- List of at least some volumes in the consistency group.
+     * @param isReadOnly - if true marks read-only, false read-write
+     * @param stepId - Workflow step id
+     */
+    public void updateConsistencyGroupReadOnlyState(List<URI> vplexVolumeURIs, 
+            Boolean isReadOnly, String stepId) {
+        try {
+            WorkflowStepCompleter.stepExecuting(stepId);
+            // Get the first virtual volume, as all volumes should be in the same CG
+            Volume vplexVolume = dbClient.queryObject(Volume.class, vplexVolumeURIs.get(0));
+            // Get the storage system for the Vplex.
+            StorageSystem vplexSystem = dbClient.queryObject(StorageSystem.class, vplexVolume.getStorageController());
+            // And from that a handle to the VplexApiClient
+            VPlexApiClient client  = getVPlexAPIClient(vplexApiFactory, vplexSystem, dbClient);
+            
+            // From that get the Consistency Group, if there is not one, just return success
+            if (NullColumnValueGetter.isNullURI(vplexVolume.getConsistencyGroup())) {
+                log.info("Volume has no ConsistencyGroup: " + vplexVolume.getLabel());
+                WorkflowStepCompleter.stepSucceded(stepId);
+                return;
+            }
+            BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, 
+                    vplexVolume.getConsistencyGroup());
+            // Get the consistency group parameters.
+            ClusterConsistencyGroupWrapper clusterConsistencyGroup =
+                    getClusterConsistencyGroup(vplexVolume, cg);
+
+            String cgName = clusterConsistencyGroup.getCgName();
+            String clusterName = clusterConsistencyGroup.getClusterName();
+            boolean isDistributed = clusterConsistencyGroup.isDistributed();
+            
+            // Make the call to update the consistency group read-only status
+            
+            client.updateConsistencyGroupReadOnly(cgName, clusterName, isDistributed, isReadOnly);
+            
+            // Complete the step
+            WorkflowStepCompleter.stepSucceded(stepId);
+        
+        } catch (VPlexApiException ex) {
+            if (ServiceCode.VPLEX_API_FIRMWARE_UPDATE_NEEDED.equals(ex.getServiceCode())) {
+                // The firmware doesn't support read-only flag, inform the user, but do not fail.
+                WorkflowStepCompleter.stepSucceeded(stepId, ex.getLocalizedMessage());
+            } else {
+                log.info("Exception setting Consistency Group read-only state: " + ex.getMessage());
+                ServiceError svcError = VPlexApiException.errors.jobFailed(ex);
+                WorkflowStepCompleter.stepFailed(stepId, svcError);
+            }
+        } catch (Exception ex) {
+            log.info("Exception setting Consistency Group read-only state: " + ex.getMessage());
+            ServiceError svcError = VPlexApiException.errors.jobFailed(ex);
+            WorkflowStepCompleter.stepFailed(stepId, svcError);
         }
     }
 }

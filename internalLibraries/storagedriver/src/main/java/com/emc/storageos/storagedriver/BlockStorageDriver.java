@@ -7,6 +7,7 @@ package com.emc.storageos.storagedriver;
 import java.util.List;
 import java.util.Map;
 
+import com.emc.storageos.storagedriver.model.StorageProvider;
 import org.apache.commons.lang.mutable.MutableBoolean;
 import org.apache.commons.lang.mutable.MutableInt;
 
@@ -90,6 +91,14 @@ public interface BlockStorageDriver extends StorageDriver {
      * @return task
      */
     public DriverTask expandVolume(StorageVolume volume, long newCapacity);
+    
+    /**
+     * Stop Management of the storage system
+     * 
+     * @param Storage System to be detached.
+     * @return task
+     */
+    public DriverTask stopManagement(StorageSystem storageSystem);
 
     /**
      * Delete volumes.
@@ -213,6 +222,22 @@ public interface BlockStorageDriver extends StorageDriver {
      * @return task
      */
     public DriverTask deleteConsistencyGroupMirror(List<VolumeMirror> mirrors);
+    
+    /**
+     * Add multiple volumes to a consistency group.
+     * @param Volumes to be added to a consistency group
+     * @param capabilities required for consitency groups.
+     * @return task
+     */
+    public DriverTask addVolumesToConsistencyGroup( List<StorageVolume> volumes, StorageCapabilities capabilities);
+    
+    /**
+     * Removes multiple volumes from a consistency group.
+     * @param volumes to be delete from the consistency group.
+     * @param capabilities for consistency group.
+     * @return task
+     */
+    public DriverTask removeVolumesFromConsistencyGroup( List<StorageVolume> volumes, StorageCapabilities capabilities);
 
     /**
      * Split mirrors
@@ -366,5 +391,13 @@ public interface BlockStorageDriver extends StorageDriver {
      */
     public DriverTask createConsistencyGroupClone(VolumeConsistencyGroup consistencyGroup, List<VolumeClone> clones,
                                                   List<CapabilityInstance> capabilities);
+
+    /**
+     * Validate connection to storage provider.
+     *
+     * @param storageProvider provider to validate connection to.
+     * @return true/false
+     */
+    public boolean validateStorageProviderConnection(StorageProvider storageProvider);
 
 }

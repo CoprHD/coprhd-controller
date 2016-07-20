@@ -11,6 +11,9 @@ import java.net.URI;
  */
 public class VPlexApiConstants {
 
+    // VPLEX firmware version strings for testing availability of certain features
+    public static final String MIN_VERSION_THIN_PROVISIONING = "5.5.1.00.00.00";
+
     // Constants define the headers required when making HTTP requests to the
     // VPlex Management Station using the Element Manager API.
     public static final String USER_NAME_HEADER = "Username";
@@ -76,6 +79,7 @@ public class VPlexApiConstants {
     public static final URI URI_CREATE_LOCAL_DEVICE = URI.create("/vplex/local-device+create");
     public static final URI URI_CREATE_VIRTUAL_VOLUME = URI.create("/vplex/virtual-volume+create");
     public static final URI URI_DESTROY_VIRTUAL_VOLUME = URI.create("/vplex/virtual-volume+destroy");
+    public static final URI URI_SET_THIN_ENABLED_VIRTUAL_VOLUME = URI.create("/vplex/virtual-volume+set-thin-enabled");
     public static final URI URI_CREATE_DIST_DEVICE = URI.create("/vplex/ds+dd+create");
     public static final URI URI_REDISCOVER_ARRAY = URI.create("/vplex/array+re-discover");
     public static final URI URI_DISMANTLE = URI.create("/vplex/advadm+dismantle");
@@ -135,6 +139,7 @@ public class VPlexApiConstants {
     public static final String REBUILD_STATUS_DONE = "done";
     public static final String REBUILD_STATUS_ERROR = "error";
     public static final String ATTRIBUTE_CG_RP_ENABLED = "recoverpoint-enabled";
+    public static final String ATTRIBUTE_CG_READ_ONLY = "read-only";
     public static final String ATTRIBUTE_CG_AUTO_RESUME = "auto-resume-at-loser";
     public static final String ATTRIBUTE_DEVICE_VISIBILITY = "visibility";
     public static final String EXCEPTION_MSG_JSON_KEY = "exception";
@@ -169,9 +174,11 @@ public class VPlexApiConstants {
     public static final String ARG_GEOMETRY_RAIDC = "raid-C";
     public static final String ARG_UNCLAIM = "--unclaim-storage-volumes";
     public static final String ARG_APPC = "--appc";
+    public static final String ARG_THIN_ENABLED = "--thin";
     public static final String ARG_THIN_REBUILD = "--thin-rebuild";
     public static final String ARG_TRANSFER_SIZE = "--transfer-size";
     public static final String ARG_DEVICES = "--devices";
+    public static final String ARG_VIRTUAL_VOLUMES = "--virtual-volumes";
 
     // Constants related to claimed storage volumes.
     public static final String VOLUME_NAME_PREFIX = "V";
@@ -240,8 +247,11 @@ public class VPlexApiConstants {
     // command to complete.
     public static final int MAX_RETRIES = 240;
 
-    // VPlex API null attribute value
+    // VPlex API attribute values
     public static final String NULL_ATT_VAL = "null";
+    public static final String ENABLED = "enabled";
+    public static final String TRUE = "true";
+    public static final String FALSE = "false";
 
     // Type for a system volume that is a logging volume
     public static final String LOGGING_VOLUME_TYPE = "logging-volume";
@@ -313,7 +323,13 @@ public class VPlexApiConstants {
     // VPLEX API error response fragment used to check if
     // the failure were due to duplicate storage view
     public static final String DUPLICATE_STORAGE_VIEW_ERROR_FRAGMENT = "failed with Status 537: Duplicate view";
-
+    
+    // VPLEX API error response fragment used to check Consistency Group read-only flag not supported
+    public static final String CG_READ_ONLY_INVALID_ATTRIBUTE = "Invalid attribute 'read-only'";
+    public static final String CG_CANNOT_MAKE_READ_ONLY = "Cannot make a consistency-group read-only";
+    // Reason given to user
+    public static final String CG_READ_ONLY_ATTRIBUTE_NOT_SUPPORTED = "Consistency Group read-only attribute is not supported";
+    
     // delimiter for cause in VPLEX API error responses
     public static final String CAUSE_DELIM = "cause:";
     

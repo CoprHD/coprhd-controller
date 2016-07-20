@@ -1051,9 +1051,18 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             volumeCreateParam.setVpool(vpool.getId());
             
             boolean createTask = Volume.PersonalityTypes.SOURCE.equals(personality);
-            descriptors.addAll(vplexBlockServiceApiImpl
+            List<VolumeDescriptor> vplexVolumeDescriptors = vplexBlockServiceApiImpl
                     .createVPlexVolumeDescriptors(volumeCreateParam, project, varray, vpool,
-                            vplexRecommendations, task, capabilities, capabilities.getBlockConsistencyGroup(), taskList, volumes, createTask));
+                            vplexRecommendations, task, capabilities, capabilities.getBlockConsistencyGroup(), taskList, volumes, createTask);
+            // Set the compute resource into the VPLEX volume descriptors for RP source
+            // volumes so that the compute resource name can be reflected in the volume 
+            // name if the custom volume naming is configured as such.
+            if ((createTask) && (param.getComputeResource() != null)) {
+                for (VolumeDescriptor vplexVolumeDescriptor : vplexVolumeDescriptors) {
+                    vplexVolumeDescriptor.setComputeResource(param.getComputeResource());
+                }
+            }
+            descriptors.addAll(vplexVolumeDescriptors);            
             vplexVirtualVolume = this.getVPlexVirtualVolume(volumes);
         } else {
             if (Volume.PersonalityTypes.SOURCE.equals(personality)) {
@@ -2743,7 +2752,9 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             storageControllerURI = reqVolume.getStorageController();
         }
 
-        if (RPHelper.isProtectionBasedSnapshot(reqVolume, snapshotType, _dbClient)) {
+        if (reqVolume.getProtectionController() != null
+                && (snapshotType.equalsIgnoreCase(BlockSnapshot.TechnologyType.RP.toString()) || reqVolume
+                        .getPersonality().equals(Volume.PersonalityTypes.TARGET.toString()))) {
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storageControllerURI);
             RPController controller = getController(RPController.class, protectionSystem.getSystemType());
             controller.createSnapshot(protectionSystem.getId(), storageSystem.getId(), snapshotURIs, createInactive, readOnly, taskId);

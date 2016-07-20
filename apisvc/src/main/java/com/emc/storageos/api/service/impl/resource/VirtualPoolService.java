@@ -28,9 +28,12 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.Collection;
+import java.util.Map;
 
 import javax.ws.rs.core.Response;
 
+import com.emc.storageos.db.client.model.*;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,21 +53,8 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.model.Bucket;
-import com.emc.storageos.db.client.model.FileShare;
-import com.emc.storageos.db.client.model.QosSpecification;
-import com.emc.storageos.db.client.model.QuotaOfCinder;
-import com.emc.storageos.db.client.model.StoragePool;
-import com.emc.storageos.db.client.model.StringMap;
-import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.model.StringSetMap;
-import com.emc.storageos.db.client.model.VirtualArray;
-import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.VirtualPool.ProvisioningType;
 import com.emc.storageos.db.client.model.VirtualPool.Type;
-import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.db.client.model.VpoolProtectionVarraySettings;
-import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.BulkIdParam;
@@ -307,7 +297,7 @@ public abstract class VirtualPoolService extends TaggedResource {
      * OR
      * 2) Virtual array should not have virtual pool resources
      * 
-     * @param varrays
+     * @param varrayChanges
      * @param vpool
      */
     protected boolean checkVirtualArraysWithVPoolResources(VirtualArrayAssignmentChanges varrayChanges, VirtualPool vpool) {
@@ -716,10 +706,21 @@ public abstract class VirtualPoolService extends TaggedResource {
         }
     }
 
-    protected VirtualPoolList getVirtualPoolList(VirtualPool.Type type, String shortVdcId) {
+    protected VirtualPoolList getVirtualPoolList(VirtualPool.Type type, String shortVdcId, String tenantId) {
 
         URIQueryResultList vpoolList = new URIQueryResultList();
         VirtualPoolList list = new VirtualPoolList();
+        TenantOrg tenant_input = null;
+
+        // if input tenant is not empty, but user have no access to it, return empty list.
+        if (!StringUtils.isEmpty(tenantId)) {
+            tenant_input = getTenantIfHaveAccess(tenantId);
+            if (tenant_input == null) {
+                return list;
+            }
+        }
+
+
         StorageOSUser user = getUserFromContext();
 
         List<VirtualPool> vpoolObjects = null;
@@ -757,16 +758,39 @@ public abstract class VirtualPoolService extends TaggedResource {
             }
         }
 
-        URI tenant = URI.create(user.getTenantId());
-        for (VirtualPool vpool : vpoolObjects) {
-            if (!_permissionsHelper.userHasGivenRole(user, null, Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR)) {
-                // filter by only authorized to us
-                if (_permissionsHelper.tenantHasUsageACL(tenant, vpool)) {
-                    // this is an allowed VirtualPool, add it to the list
-                    list.getVirtualPool().add(toVirtualPoolResource(vpool));
+        // full list if role is {Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR} AND no tenant restriction from input
+        // else only return the list, which input tenant has access.
+        if (_permissionsHelper.userHasGivenRole(user,
+                null, Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR)) {
+            for (VirtualPool virtualPool : vpoolObjects) {
+                if (tenant_input == null || _permissionsHelper.tenantHasUsageACL(tenant_input.getId(), virtualPool)) {
+                    list.getVirtualPool().add(toVirtualPoolResource(virtualPool));
                 }
+            }
+        } else {
+            // otherwise, filter by only authorized to use
+            URI tenant = null;
+            if (tenant_input == null) {
+                tenant = URI.create(user.getTenantId());
             } else {
-                list.getVirtualPool().add(toVirtualPoolResource(vpool));
+                tenant = tenant_input.getId();
+            }
+
+            for (VirtualPool virtualPool : vpoolObjects) {
+                if (_permissionsHelper.tenantHasUsageACL(tenant, virtualPool)) {
+                    list.getVirtualPool().add(toVirtualPoolResource(virtualPool));
+
+                }
+            }
+
+            // if no tenant specified in request, also adding vpools which sub-tenants of the user have access to.
+            if (tenant_input == null) {
+                List<URI> subtenants = _permissionsHelper.getSubtenantsWithRoles(user);
+                for (VirtualPool virtualPool : vpoolObjects) {
+                    if (_permissionsHelper.tenantHasUsageACL(subtenants, virtualPool)) {
+                        list.getVirtualPool().add(toVirtualPoolResource(virtualPool));
+                    }
+                }
             }
         }
 

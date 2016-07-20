@@ -8,6 +8,7 @@ package com.emc.storageos.db.server.impl;
 import java.net.InetAddress;
 import java.net.URI;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
@@ -32,6 +33,7 @@ import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.shallows.EmptyKeyspaceTracerFactory;
 import com.netflix.astyanax.thrift.AbstractOperationImpl;
 import com.netflix.astyanax.thrift.ddl.ThriftColumnFamilyDefinitionImpl;
+
 import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.gms.Gossiper;
 import org.apache.cassandra.locator.IEndpointSnitch;
@@ -70,6 +72,7 @@ import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.model.LongMap;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.PasswordHistory;
+import com.emc.storageos.db.client.model.StorageSystemType;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VdcVersion;
@@ -81,6 +84,7 @@ import com.emc.storageos.db.common.DbServiceStatusChecker;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.security.password.PasswordUtils;
+import com.google.common.collect.Lists;
 
 /**
  * Utility class for initializing DB schema from model classes
@@ -91,12 +95,13 @@ public class SchemaUtil {
     private static final String DB_BOOTSTRAP_LOCK = "dbbootstrap";
     private static final String VDC_NODE_PREFIX = "node";
     private static final String GEODB_BOOTSTRAP_LOCK = "geodbbootstrap";
+    private static final String STORAGE_SYSTEM_TYPE_INIT_LOCK = "storagesystemtypeinitlock";
 
     private static final int DEFAULT_REPLICATION_FACTOR = 1;
     private static final int MAX_REPLICATION_FACTOR = 5;
     private static final int DBINIT_RETRY_INTERVAL = 5;
     // waiting 5 mins to init schema
-    private static final int DBINIT_RETRY_MAX = 60; 
+    private static final int DBINIT_RETRY_MAX = 60;
 
     private String _clusterName = DbClientContext.LOCAL_CLUSTER_NAME;
     private String _keyspaceName = DbClientContext.LOCAL_KEYSPACE_NAME;
@@ -305,22 +310,25 @@ public class SchemaUtil {
         }
     }
 
-    private boolean checkAndInitSchemaOnActive(KeyspaceDefinition kd, boolean waitForSchema) throws InterruptedException, ConnectionException {
+    private boolean checkAndInitSchemaOnActive(KeyspaceDefinition kd, boolean waitForSchema) throws InterruptedException,
+            ConnectionException {
         _log.info("try scan and setup db ...");
         if (kd == null) {
             _log.info("keyspace not exist yet");
 
             if (waitForSchema) {
                 _log.info("wait for schema from other site");
-            }  else {
+            } else {
                 // fresh install
                 _log.info("setting current version to {} in zk for fresh install", _service.getVersion());
                 setCurrentVersion(_service.getVersion());
 
                 // this must be a new cluster - no schema is present so we create keyspace first
-                Map<String, String> strategyOptions = new HashMap<String, String>(){{
-                    put(_vdcShortId, Integer.toString(getReplicationFactor()));
-                }};
+                Map<String, String> strategyOptions = new HashMap<String, String>() {
+                    {
+                        put(_vdcShortId, Integer.toString(getReplicationFactor()));
+                    }
+                };
                 clientContext.setCassandraStrategyOptions(strategyOptions, true);
             }
         } else {
@@ -332,11 +340,11 @@ public class SchemaUtil {
         if (kd != null) {
             String currentDbSchemaVersion = _coordinator.getCurrentDbSchemaVersion();
             String targetVersion = _service.getVersion();
-            // A known Cassandra behaviour is that schema changes cannot converge if Cassandra nodes arenot in the same 
-            // version(MessagingService.currentVersion). As the result checkCf() will fail with schema disagreement errors. So 
-            //   - During upgrade, we scan and create new column families before db migration starts(see MigrationHandlerImpl.run. 
-            //     All cassandra nodes has been upgraded to same version at that time
-            //   - For each dbsvc startup, we run checkCf only when we are sure it is not in the middle of upgrade.
+            // A known Cassandra behaviour is that schema changes cannot converge if Cassandra nodes arenot in the same
+            // version(MessagingService.currentVersion). As the result checkCf() will fail with schema disagreement errors. So
+            // - During upgrade, we scan and create new column families before db migration starts(see MigrationHandlerImpl.run.
+            // All cassandra nodes has been upgraded to same version at that time
+            // - For each dbsvc startup, we run checkCf only when we are sure it is not in the middle of upgrade.
             _log.info("Current db schema version {}", currentDbSchemaVersion);
             if (StringUtils.isEmpty(currentDbSchemaVersion) || StringUtils.equals(currentDbSchemaVersion, targetVersion)) {
                 checkCf();
@@ -348,7 +356,7 @@ public class SchemaUtil {
         return false;
     }
 
-    private boolean checkAndInitSchemaOnStandby(KeyspaceDefinition kd) throws ConnectionException{
+    private boolean checkAndInitSchemaOnStandby(KeyspaceDefinition kd) throws ConnectionException {
         _log.info("try scan and setup db on standby site ...");
         if (kd == null) {
             _log.info("keyspace not exist yet. Wait {} seconds for schema from active site", DBINIT_RETRY_INTERVAL);
@@ -400,6 +408,7 @@ public class SchemaUtil {
             if (localDataRevision.equals(targetDataRevision)) {
                 if (siteState != SiteState.STANDBY_SYNCING) {
                     _log.info("Change site state to SYNCING and rebuild data from active site");
+                    currentSite.setLastState(siteState);
                     currentSite.setState(SiteState.STANDBY_SYNCING);
                     _coordinator.persistServiceConfiguration(currentSite.toConfiguration());
                 }
@@ -420,7 +429,7 @@ public class SchemaUtil {
         boolean changed = false;
 
         // iterate through all the sites and exclude the paused ones
-        for(Site site : drUtil.listSites()) {
+        for (Site site : drUtil.listSites()) {
             String dcId = drUtil.getCassandraDcId(site);
             if (site.getState().equals(SiteState.STANDBY_PAUSED) && strategyOptions.containsKey(dcId)) {
                 _log.info("Remove dc {} from strategy options", dcId);
@@ -455,7 +464,7 @@ public class SchemaUtil {
 
         _log.info("Add {} to strategy options", dcId);
         strategyOptions.put(dcId, Integer.toString(getReplicationFactor()));
-        
+
         // If we upgrade from pre-yoda versions, the strategy option does not contains active site.
         // we do it once during first add-standby operation on standby site
         Site activeSite = drUtil.getActiveSite();
@@ -501,32 +510,32 @@ public class SchemaUtil {
             }
             return false;
         }
-        
+
         _log.debug("vdcList = {}", _vdcList);
         // on newly added vdc - vdc short id is changed
         if (_vdcList.size() == 1 && !_vdcList.contains(_vdcShortId)) {
             strategyOptions.clear();
         }
-        
+
         // on removed vdc, its strategyOption need be reset
         boolean isDrConfig = drUtil.listSites().size() > 1;
         if (_vdcList.size() == 1 && strategyOptions.size() > 1 && !isDrConfig) {
             strategyOptions.clear();
         }
-        
+
         String dcName = _vdcShortId;
         Site currentSite = null;
-        
+
         try {
             currentSite = drUtil.getLocalSite();
         } catch (Exception e) {
-            //ignore
+            // ignore
         }
-        
+
         if (currentSite != null) {
-            dcName = drUtil.getCassandraDcId(currentSite); 
+            dcName = drUtil.getCassandraDcId(currentSite);
         }
-        
+
         if (strategyOptions.containsKey(dcName)) {
             return false;
         }
@@ -545,7 +554,7 @@ public class SchemaUtil {
         _log.info("Current strategyOptions={}", strategyOptions);
 
         boolean changed = false;
-        changed |= onStandby ? checkStrategyOptionsForDROnStandby(strategyOptions) : checkStrategyOptionsForDROnActive(strategyOptions) ;
+        changed |= onStandby ? checkStrategyOptionsForDROnStandby(strategyOptions) : checkStrategyOptionsForDROnActive(strategyOptions);
         changed |= checkStrategyOptionsForGeo(strategyOptions);
 
         if (changed) {
@@ -790,7 +799,7 @@ public class SchemaUtil {
             throw new IllegalStateException("vdc resource query failed");
         }
     }
-    
+
     private boolean isVdcInfoExist(DbClient dbClient) {
         return queryLocalVdc(dbClient) != null;
     }
@@ -855,7 +864,7 @@ public class SchemaUtil {
         vdc.setLocal(true);
         dbClient.createObject(vdc);
     }
-    
+
     /**
      * initialize PasswordHistory CF
      * 
@@ -884,7 +893,33 @@ public class SchemaUtil {
             }
         }
     }
-    
+
+    public void checkAndInitStorageSystemTypes(DbClient dbClient) {
+        if (onStandby) {
+            _log.info("Skip StorageSystemType CF initialization on standby site");
+            return;
+        }
+        InterProcessLock lock = null;
+        try {
+            lock = _coordinator.getLock(STORAGE_SYSTEM_TYPE_INIT_LOCK);
+            _log.info("StorageSystemType check - waiting for StorageSystemType CF init lock");
+            lock.acquire();
+
+            StorageSystemTypesInitUtils utils = new StorageSystemTypesInitUtils(dbClient);
+            utils.initializeStorageSystemTypes();
+        } catch (Exception e) {
+           _log.warn("Exception happend when trying to acquire lock", e);
+        } finally {
+            if (lock != null) {
+                try {
+                    lock.release();
+                } catch (Exception e) {
+                    _log.error("Fail to release lock", e);
+                }
+            }
+        }
+    }
+
     /**
      * Init the bootstrap info, including:
      * check and setup root tenant or my vdc info, if it doesn't exist
@@ -895,13 +930,13 @@ public class SchemaUtil {
             _log.info("Skip boot strap info initialization on standby site");
             return;
         }
-        
+
         // Only the first VDC need check root tenant
         if (_vdcList != null && _vdcList.size() > 1) {
             _log.info("Skip root tenant check for more than one vdcs. Current number of vdcs: {}", _vdcList.size());
             return;
         }
-        
+
         int retryIntervalSecs = DBINIT_RETRY_INTERVAL;
         boolean done = false;
         boolean wait;
@@ -924,6 +959,7 @@ public class SchemaUtil {
                     // insert local user's password history if not exist for local db
                     insertPasswordHistory(dbClient);
                 }
+
                 done = true;
             } catch (Exception e) {
                 if (e instanceof IllegalStateException) {
@@ -1088,7 +1124,7 @@ public class SchemaUtil {
     public void insertVdcVersion(final DbClient dbClient) {
         insertOrUpdateVdcVersion(dbClient, false);
     }
-    
+
     public void insertOrUpdateVdcVersion(final DbClient dbClient, boolean update) {
         String dbFullVersion = this._service.getVersion();
         String[] parts = StringUtils.split(dbFullVersion, DbConfigConstants.VERSION_PART_SEPERATOR);
@@ -1116,7 +1152,7 @@ public class SchemaUtil {
             dbClient.persistObject(vdcVersion);
         }
     }
-    
+
     private static VdcVersion getVdcVersion(List<VdcVersion> vdcVersions, URI vdcId) {
         if (vdcVersions == null || !vdcVersions.iterator().hasNext()) {
             return null;
@@ -1142,17 +1178,17 @@ public class SchemaUtil {
             for (String cfName : DbSchemaInterceptorImpl.getIgnoreCfList()) {
                 ColumnFamilyDefinition cfd = kd.getColumnFamily(cfName);
                 if (cfd != null) {
-            	    _log.info("drop cf {} from db", cfName);
-            	    String schemaVersion = dropColumnFamily(cfName, context);
+                    _log.info("drop cf {} from db", cfName);
+                    String schemaVersion = dropColumnFamily(cfName, context);
                     clientContext.waitForSchemaAgreement(schemaVersion);
                 }
             }
-        } catch (Exception e){
+        } catch (Exception e) {
             _log.error("drop Cf error ", e);
-       	    return false;
+            return false;
         }
         return true;
-   }
+    }
 
     public void setDrUtil(DrUtil drUtil) {
         this.drUtil = drUtil;

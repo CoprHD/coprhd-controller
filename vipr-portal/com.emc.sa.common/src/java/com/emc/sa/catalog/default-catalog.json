@@ -111,8 +111,12 @@
           "baseService": "CreateVolume"
         },
         {
-          "image": "icon_db_remove.png",
+          "image": "icon_db_unexport_remove.png",
           "baseService": "RemoveBlockStorage"
+        },
+        {
+          "image": "icon_db_remove.png",
+          "baseService": "RemoveUnexportedBlockStorage"
         },
         {
           "image": "icon_db_expand.png",
@@ -242,6 +246,14 @@
           "baseService": "UnexportSnapshot"
         },
         {
+          "image": "icon_host_add_copy.png",
+          "baseService": "ExportContinuousCopy"
+        },
+        {
+          "image": "icon_host_remove_copy.png",
+          "baseService": "UnexportContinuousCopy"
+        },
+        {
           "image": "Service_Add_Journal_Capacity.png",
           "baseService": "AddJournalCapacity"
         },
@@ -367,6 +379,10 @@
         {
           "image": "Service_Failover_File_System.png",
           "baseService": "FailoverFileSystem"
+        },
+        {
+          "image": "Service_Failback_File_System.png",
+          "baseService": "FailbackFileSystem"
         }
       ]
     },

@@ -696,7 +696,7 @@ public class VPlexApiExportManager {
                 // for the initiator.
                 initiatorInfo.updateOnRegistration();
 
-                s_logger.info("Registered initiator", initiatorInfo.getName());
+                s_logger.info(String.format("Successfully registered initiator %s", initiatorInfo.getName()));
             } catch (VPlexApiException vae) {
                 throw vae;
             } catch (Exception e) {

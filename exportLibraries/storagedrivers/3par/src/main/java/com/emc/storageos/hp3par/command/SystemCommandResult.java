@@ -1,8 +1,8 @@
-package com.emc.storageos.hp3par.command;
 /*
  * Copyright 2016 EMC Corporation
  * All Rights Reserved
  */
+package com.emc.storageos.hp3par.command;
 
 public class SystemCommandResult {
     private String name;

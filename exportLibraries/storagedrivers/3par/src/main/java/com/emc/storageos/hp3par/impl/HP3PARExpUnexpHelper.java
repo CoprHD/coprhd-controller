@@ -122,11 +122,7 @@ public class HP3PARExpUnexpHelper {
                 if (!host.startsWith("set:")) {
                     // try with recommended ports
                     for (StoragePort port : recommendedPorts) {
-                        // verify volume and port belong to same storage
-                        if (!vol.getStorageSystemId().equalsIgnoreCase(port.getStorageSystemId())) {
-                            continue;
-                        }
-
+                        // volume and port belong to same storage system
                         String message = String.format(
                                 "3PARDriver:exportVolumesToInitiators using recommendedPorts for "
                                         + "storage system %s, volume %s host %s hlu %s port %s",
@@ -154,6 +150,12 @@ public class HP3PARExpUnexpHelper {
                             task.setStatus(DriverTask.TaskStatus.READY);
                             break;
                         }
+                        
+                        // Make sure this port is not used for earlier export
+                        if (selectedPorts.contains(port)) {
+                            continue;
+                        }
+                        
                         // verify volume and port belong to same storage
                         if (!vol.getStorageSystemId().equalsIgnoreCase(port.getStorageSystemId())) {
                             continue;
@@ -370,13 +372,13 @@ public class HP3PARExpUnexpHelper {
                         // get vlun and port details on this export
                         Integer lun = -1;
                         Position pos = null;
-                        String hostPortId = init.getPort();//host port
-                        hostPortId = hostPortId.replace(":", "");
+                        String portId = init.getPort();
+                        portId = portId.replace(":", "");
 
                         for (VirtualLun vLun:vlunRes.getMembers()) {
 
                             if (volume.getNativeId().compareTo(vLun.getVolumeName()) != 0 || (!vLun.isActive())
-                                    || hostPortId.compareToIgnoreCase(vLun.getRemoteName()) != 0) {
+                                    || portId.compareToIgnoreCase(vLun.getRemoteName()) != 0) {
                                 continue;
                             }
 
@@ -480,126 +482,165 @@ public class HP3PARExpUnexpHelper {
     private String doHostProcessing(List<Initiator> initiators, List<StorageVolume> volumes, 
             Registry driverRegistry) {
         String host = null;
+        String hostArray = null;
+        String clustArray = null;
 
-        for (StorageVolume vol : volumes) {
-            // If required host/cluster should get created in all arrays to which volume belongs
-            String hostArray = null;
-            String clustArray = null;
-
-            try {
-                // all initiators belong to same host
-                if (initiators.get(0).getInitiatorType().equals(Type.Host)) {
-                    // Exclusive-Host export
-                    // Some code is repeated with cluster for simplicity
-                    hostArray = get3parHostname(initiators, vol.getStorageSystemId(), driverRegistry);
-                    if (hostArray == null) {
-                        // create a new host or add initiator to existing host
-                        HP3PARApi hp3parApi = hp3parUtil.getHP3PARDeviceFromNativeId(vol.getStorageSystemId(),
-                                driverRegistry);
-
-                        ArrayList<String> portIds = new ArrayList<>();
-                        for (Initiator init : initiators) {
-                            portIds.add(init.getPort());
-                        }
-
-                        Integer persona = getPersona(initiators.get(0).getHostOsType());
-                        hp3parApi.createHost(initiators.get(0).getHostName(), portIds, persona);
-                        host = initiators.get(0).getHostName();
-                    } else {
-                        host = hostArray;
-                    }
-                    // Host available
-
-                } else if (initiators.get(0).getInitiatorType().equals(Type.Cluster)) {
-                    // Shared-Cluster export
-                    clustArray = initiators.get(0).getClusterName();
-                    HP3PARApi hp3parApi = hp3parUtil.getHP3PARDeviceFromNativeId(vol.getStorageSystemId(),
+        // all volumes belong to same storage system
+        try {
+            // all initiators belong to same host
+            if (initiators.get(0).getInitiatorType().equals(Type.Host)) {
+                // Exclusive-Host export
+                // Some code is repeated with cluster for simplicity
+                hostArray = get3parHostname(initiators, volumes.get(0).getStorageSystemId(), driverRegistry);
+                if (hostArray == null) {
+                    // create a new host or add initiator to existing host
+                    HP3PARApi hp3parApi = hp3parUtil.getHP3PARDeviceFromNativeId(volumes.get(0).getStorageSystemId(),
                             driverRegistry);
 
-                    // Check if host exists, otherwise create
-                    hostArray = get3parHostname(initiators, vol.getStorageSystemId(), driverRegistry);
-                    if (hostArray == null) {
-                        // create a new host or add initiator to existing host
-                        ArrayList<String> portIds = new ArrayList<>();
-                        for (Initiator init : initiators) {
-                            portIds.add(init.getPort());
-                        }
-
-                        Integer persona = getPersona(initiators.get(0).getHostOsType());
-                        hp3parApi.createHost(initiators.get(0).getHostName(), portIds, persona);
-                        hostArray = initiators.get(0).getHostName();
+                    ArrayList<String> portIds = new ArrayList<>();
+                    for (Initiator init : initiators) {
+                        portIds.add(init.getPort());
                     }
 
-                    // only one thread across all nodes should create cluster; 
-                    // TBD: lock acquisition is having issues, synch is used
-                    synchronized (this) {
-                        // Check if cluster exists, otherwise create
-                        HostSetDetailsCommandResult hostsetRes = hp3parApi.getHostSetDetails(clustArray);
-                        if (hostsetRes == null) {
-                            hp3parApi.createHostSet(clustArray, initiators.get(0).getHostName());
-                        } else {
-                            // if this host is not part of the cluster add it
-                            boolean present = false;
-                            for (String setMember:hostsetRes.getSetmembers()) {
-                                if (hostArray.compareTo(setMember) == 0) {
-                                    present = true;
-                                    break;
-                                }
-                            }
-
-                            if (!present) {
-                                // update cluster with this host
-                                hp3parApi.updateHostSet(clustArray, hostArray);
-                            }
-                        }
-
-                        // Cluster available
-                        host = "set:" + clustArray;
-                    }
-
+                    Integer persona = getPersona(initiators.get(0).getHostOsType());
+                    hp3parApi.createHost(initiators.get(0).getHostName(), portIds, persona);
+                    host = initiators.get(0).getHostName();
                 } else {
-                    _log.error("3PARDriver:exportVolumesToInitiators error: Host/Cluster type not supported");
-                    throw new HP3PARException(
-                            "3PARDriver:exportVolumesToInitiators error: Host/Cluster type not supported");
+                    host = hostArray;
                 }
-            } catch (Exception e) {
-                String msg = String.format("3PARDriver: Unable to export, error: %s", e);
-                _log.error(msg);
-                _log.error(CompleteError.getStackTrace(e));
-                return null;
+                // Host available
+
+            } else if (initiators.get(0).getInitiatorType().equals(Type.Cluster)) {
+                // Shared-Cluster export
+                clustArray = initiators.get(0).getClusterName();
+                HP3PARApi hp3parApi = hp3parUtil.getHP3PARDeviceFromNativeId(volumes.get(0).getStorageSystemId(),
+                        driverRegistry);
+
+                // Check if host exists, otherwise create
+                hostArray = get3parHostname(initiators, volumes.get(0).getStorageSystemId(), driverRegistry);
+                if (hostArray == null) {
+                    // create a new host or add initiator to existing host
+                    ArrayList<String> portIds = new ArrayList<>();
+                    for (Initiator init : initiators) {
+                        portIds.add(init.getPort());
+                    }
+
+                    Integer persona = getPersona(initiators.get(0).getHostOsType());
+                    hp3parApi.createHost(initiators.get(0).getHostName(), portIds, persona);
+                    hostArray = initiators.get(0).getHostName();
+                }
+
+                // only one thread across all nodes should create cluster; 
+                // TBD: lock acquisition is having issues, synch is used
+                synchronized (this) {
+                    // Check if cluster exists, otherwise create
+                    HostSetDetailsCommandResult hostsetRes = hp3parApi.getHostSetDetails(clustArray);
+                    if (hostsetRes == null) {
+                        hp3parApi.createHostSet(clustArray, initiators.get(0).getHostName());
+                    } else {
+                        // if this host is not part of the cluster add it
+                        boolean present = false;
+                        for (String setMember:hostsetRes.getSetmembers()) {
+                            if (hostArray.compareTo(setMember) == 0) {
+                                present = true;
+                                break;
+                            }
+                        }
+
+                        if (!present) {
+                            // update cluster with this host
+                            hp3parApi.updateHostSet(clustArray, hostArray);
+                        }
+                    }
+
+                    // Cluster available
+                    host = "set:" + clustArray;
+                }
+
+            } else {
+                _log.error("3PARDriver:exportVolumesToInitiators error: Host/Cluster type not supported");
+                throw new HP3PARException(
+                        "3PARDriver:exportVolumesToInitiators error: Host/Cluster type not supported");
             }
-        } // for each volume
+        } catch (Exception e) {
+            String msg = String.format("3PARDriver: Unable to export, error: %s", e);
+            _log.error(msg);
+            _log.error(CompleteError.getStackTrace(e));
+            return null;
+        }
 
         return host;
+    }
+
+    boolean hostHasAlliSCSIInitiators(List<Initiator> initiators, ArrayList<ISCSIPath> hostScPath) {
+        //get list of iqns in this host
+        ArrayList<String> hostIqns = new ArrayList<>();
+        
+        for (ISCSIPath path:hostScPath) {
+            hostIqns.add(path.getName());
+        }
+        
+        for (Initiator init:initiators) {
+            if (!hostIqns.contains(init.getPort())) {
+                //if any of the initiator is not part of the host
+                return false;
+            }
+        }
+        
+        return true;
+    }
+
+    boolean hostHasAllFcInitiators(List<Initiator> initiators, ArrayList<FcPath> hostFcPath) {
+        //get list of wwns in this host
+        ArrayList<String> hostWWNs = new ArrayList<>();
+        
+        for (FcPath path:hostFcPath) {
+            hostWWNs.add(path.getWwn());
+        }
+        
+        for (Initiator init:initiators) {
+            if (!hostWWNs.contains(init.getPort())) {
+                //if any of the initiator is not part of the host
+                return false;
+            }
+        }
+        
+        return true;
     }
 
     private String search3parHostName(List<Initiator> initiators, HostCommandResult hostRes) {
         String hp3parHost = null;
 
-        // for each host in 3par
+        // for each host in the result
         for(HostMember hostMemb:hostRes.getMembers()) {
             // for each host initiator sent
             for (Initiator init : initiators) {
 
                 // Is initiator FC
-                if (init.getProtocol().toString().compareToIgnoreCase(Protocols.FC.toString()) == 0 ) {
+                if (Protocols.FC.toString().compareToIgnoreCase(init.getProtocol().toString()) == 0 ) {
                     // verify in all FC ports with host
                     for(FcPath fcPath: hostMemb.getFCPaths()) {                         
                         if (SanUtils.formatWWN(fcPath.getWwn()).compareToIgnoreCase(init.getPort()) == 0) {
                             hp3parHost = hostMemb.getName();
-                            _log.info("3PARDriver: get3parHostname initiator {} host {}", init.getPort(),
-                                    hp3parHost);
-                            return hp3parHost;
+                            // Confirm all initiators are present with this host
+                            if (hostHasAllFcInitiators(initiators, hostMemb.getFCPaths())) {
+                                _log.info("3PARDriver: get3parHostname FC initiator {} host {}", init.getPort(),
+                                        hp3parHost);
+                                return hp3parHost;
+                            }
                         }
                     }
-                } else if (init.getProtocol().toString().compareToIgnoreCase(Protocols.iSCSI.toString()) == 0 ){
+                } else if (Protocols.iSCSI.toString().compareToIgnoreCase(init.getProtocol().toString()) == 0 ){
                     // verify in all iSCSI ports with host
                     for (ISCSIPath scsiPath:hostMemb.getiSCSIPaths()) {
                         if (scsiPath.getName().compareToIgnoreCase(init.getPort()) == 0) {
                             hp3parHost = hostMemb.getName();
-                            _log.info("3PARDriver: get3parHostname initiator {} host {}", init.getPort(),
-                                    hp3parHost);
-                            return hp3parHost;
+                            // Confirm all initiators are present with this host
+                            if (hostHasAlliSCSIInitiators(initiators, hostMemb.getiSCSIPaths())) {
+                                _log.info("3PARDriver: get3parHostname iSCSI initiator {} host {}", init.getPort(),
+                                        hp3parHost);
+                                return hp3parHost;
+                            }
                         }
                     }
 

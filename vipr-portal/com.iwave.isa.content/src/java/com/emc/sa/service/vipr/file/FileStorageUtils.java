@@ -642,7 +642,7 @@ public class FileStorageUtils {
 
     public static class Mount {
         @Param
-        public URI hostId;
+        public URI host;
 
         @Param
         public String security;
@@ -656,7 +656,7 @@ public class FileStorageUtils {
 
     public static String createFileSystemExport(URI fileSystemId, String comment, Mount mountList, String subDirectory) {
         return createFileSystemExport(fileSystemId, comment, mountList.security, mountList.permission, DEFAULT_ROOT_USER,
-                mountList.hostId, subDirectory);
+                mountList.host, subDirectory);
     }
 
     private static String createFileSystemExport(URI fileSystemId, String comment, String security, String permission,
@@ -681,7 +681,7 @@ public class FileStorageUtils {
 
         Map<String, Map<String, Set<String>>> rules = Maps.newHashMap();
         for (Mount mount : mountList) {
-            String hostName = BlockStorageUtils.getHost(mount.hostId).getHostName();
+            String hostName = BlockStorageUtils.getHost(mount.host).getHostName();
             if (!rules.containsKey(mount.security)) {
                 Map<String, Set<String>> rule = Maps.newHashMap();
                 rule.put(mount.permission, Sets.newHashSet(hostName));

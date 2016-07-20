@@ -27,6 +27,12 @@ import com.emc.sa.service.vipr.file.FileStorageUtils.Mount;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.model.file.FileShareRestRep;
 
+/**
+ * 
+ * @author yelkaa
+ *
+ */
+
 @Service("LinuxCreateMountNFSExport")
 public class CreateNFSExportAndMountService extends ViPRService {
 
@@ -90,11 +96,11 @@ public class CreateNFSExportAndMountService extends ViPRService {
         }
         // mount the exports
         for (Mount mount : mountList) {
-            Host host = BlockStorageUtils.getHost(mount.hostId);
+            Host host = BlockStorageUtils.getHost(mount.host);
             acquireHostLock(host, null);
-            createNFSExportAndMountHelper.mountExport(fs, mount.hostId, null, mount.mountPath, mount.security, host.getHostName());
+            createNFSExportAndMountHelper.mountExport(fs, mount.host, null, mount.mountPath, mount.security, host.getHostName());
             releaseHostLock(host, null);
-            ExecutionUtils.addAffectedResource(mount.hostId.toString());
+            ExecutionUtils.addAffectedResource(mount.host.toString());
         }
     }
 }

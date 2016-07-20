@@ -4,12 +4,6 @@
  */
 package com.emc.sa.service.linux.file;
 
-import static com.emc.sa.service.ServiceParams.COMMENT;
-import static com.emc.sa.service.ServiceParams.PROJECT;
-import static com.emc.sa.service.ServiceParams.SIZE_IN_GB;
-import static com.emc.sa.service.ServiceParams.VIRTUAL_ARRAY;
-import static com.emc.sa.service.ServiceParams.VIRTUAL_POOL;
-import static com.emc.sa.service.ServiceParams.VOLUME_NAME;
 import static com.emc.sa.service.vipr.ViPRExecutionUtils.logInfo;
 
 import java.net.URI;
@@ -17,7 +11,6 @@ import java.util.List;
 
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.BindingUtils;
-import com.emc.sa.engine.bind.Param;
 import com.emc.sa.service.vipr.file.FileStorageUtils;
 import com.emc.storageos.model.file.FileShareRestRep;
 import com.emc.storageos.model.file.FileSystemExportParam;
@@ -29,19 +22,6 @@ import com.emc.storageos.model.file.FileSystemExportParam;
  */
 
 public class CreateNFSExportAndMountHelper {
-
-    @Param(VIRTUAL_POOL)
-    protected URI virtualPool;
-    @Param(VIRTUAL_ARRAY)
-    protected URI virtualArray;
-    @Param(PROJECT)
-    protected URI project;
-    @Param(COMMENT)
-    protected String comment;
-    @Param(SIZE_IN_GB)
-    protected Double sizeInGb;
-    @Param(VOLUME_NAME)
-    protected String exportName;
 
     public static CreateNFSExportAndMountHelper createHelper() {
         CreateNFSExportAndMountHelper createNFSExportAndMountHelper = new CreateNFSExportAndMountHelper();

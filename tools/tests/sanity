@@ -134,6 +134,12 @@ elif [ ${SS} = "backuprestore" ]; then
 	AUTH=ldap
     fi
     echo AUTH=$AUTH
+elif [ ${SS} = "unityblock" ]; then
+    UNITY_OPTION=${4:-'all'}
+    AUTH=${5:-ldap}
+    EXTRA_PARAM=${6}
+
+    echo "option: " $UNITY_OPTION
 else
     # By default, we're not running quick sanity
     if [ ${SS} = "quick" ]; then
@@ -10553,26 +10559,32 @@ unityblock_setup()
     unityblock_cos_setup
     run cos update block $COS_UNITYBLOCK_CG --storage $UNITY_NATIVEGUID
     
-    if [ "${VPLEXUNITY_TESTS}" = "1" ]; then
+    if [ "${UNITY_OPTION}" = "all" -o "${UNITY_OPTION}" = "vplex" ]; then
         vplexunity_setup
     fi
-    if [ "${RPUNITY_TESTS}" = "1" ]; then
+    if [ "${UNITY_OPTION}" = "all" -o "${UNITY_OPTION}" = "rp" ]; then
         rpunity_setup
     fi
     
 }
 
+# Unity tests command: "sanity sanity.conf viprIP unityblock" test all, including block, VPlex+Unity and RP+Unity
+# "sanity sanity.conf viprIP unityblock vplex" only test VPlex+Unity
+# "sanity sanity.conf viprIP unityblock rp" only test RP+Unity
+# "sanity sanity.conf viprIP unityblock block" only test Unity
 unityblock_tests()
 {
     secho "unity block tests"
 
-    unityblock_base_tests
-    
-    if [ "${VPLEXUNITY_TESTS}" = "1" ]; then
+    if [ "${UNITY_OPTION}" = "all" -o "${UNITY_OPTION}" = "block" ]; then
+        unityblock_base_tests
+    fi
+
+    if [ "${UNITY_OPTION}" = "all" -o "${UNITY_OPTION}" = "vplex" ]; then
         vplexunity_tests
     fi
     
-    if [ "${RPUNITY_TESTS}" = "1" ]; then
+    if [ "${UNITY_OPTION}" = "all" -o "${UNITY_OPTION}" = "rp" ]; then
         rpunity_tests
     fi
 }

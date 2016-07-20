@@ -4,11 +4,15 @@
  */
 package controllers.arrays;
 
+import com.emc.storageos.model.systems.StorageSystemRestRep;
 import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 import static com.emc.vipr.client.core.util.ResourceUtils.uris;
 import static controllers.Common.angularRenderArgs;
 import static controllers.Common.backToReferrer;
 import static controllers.Common.copyRenderArgsToAngular;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 import static util.BourneUtil.getViprClient;
 
 import java.net.URI;
@@ -42,6 +46,8 @@ import util.DefaultStorageProviderPortMap;
 import util.EnumOption;
 import util.MessagesUtils;
 import util.StorageProviderUtils;
+import util.StorageSystemUtils;
+import util.StringOption;
 import util.validation.HostNameOrIpAddress;
 
 @With(Common.class)
@@ -88,6 +94,73 @@ public class StorageProviders extends ViprResourceController {
     private static void itemsJson(List<URI> ids) {
         performItemsJson(StorageProviderUtils.getStorageProviders(ids),
                 new JsonItemOperation());
+    }
+
+    public static void discoveryCheckJson(@As(",") String[] ids) {
+        List<String> failedDiscovery = new ArrayList<String>();
+        for (String id:ids) {
+            StorageProviderRestRep storageProvider = StorageProviderUtils
+                    .getStorageProvider(uri(id));
+            if (storageProvider == null) {
+                //ignore for now
+                continue;
+            }
+            if (!storageProvider.getScanStatus().equals("COMPLETE")){
+                failedDiscovery.add(storageProvider.getName());
+                continue;
+            }
+            Set<NamedRelatedResourceRep> storageSystems = StorageProviderUtils
+                    .getConnectedStorageSystems(uri(id));
+
+            boolean ssFound = false;
+
+            for (NamedRelatedResourceRep storageSystem:storageSystems){
+                StorageSystemRestRep ss = StorageSystemUtils.getStorageSystem(storageSystem.getId());
+                if (ss != null) {
+                    if (!ss.getDiscoveryJobStatus().equals("COMPLETE")) {
+                        continue;
+                    } else {
+                        ssFound = true;
+                    }
+                }
+            }
+
+            if (!ssFound){
+                failedDiscovery.add(storageProvider.getName());
+                continue;
+            }
+        }
+        renderJSON(failedDiscovery);
+
+    }
+
+    public static void getAllFlashStorageSystemsList(@As(",") String[] ids) {
+        List<Map<String,String>> storagesystemslist = new ArrayList<Map<String,String>>();
+        for (String id:ids) {
+            StorageProviderRestRep storageProvider = StorageProviderUtils
+                    .getStorageProvider(uri(id));
+            if (storageProvider == null) {
+                //ignore for now
+                continue;
+            }
+            Set<NamedRelatedResourceRep> storageSystems = StorageProviderUtils
+                    .getConnectedStorageSystems(uri(id));
+
+            for (NamedRelatedResourceRep storageSystem:storageSystems){
+                StorageSystemRestRep ss = StorageSystemUtils.getStorageSystem(storageSystem.getId());
+                if (ss != null) {
+                    for (StringOption option : models.StorageSystemTypes.getAllFlashStorageTypeOptions()){
+                        if (option.id.equals(ss.getSystemType())){
+                            Map<String,String> ssMap = new HashMap<String, String>();
+                            ssMap.put("id",ss.getId().toString());
+                            ssMap.put("name",ss.getName());
+                            storagesystemslist.add(ssMap);
+                        }
+                    }
+                }
+            }
+        }
+        renderJSON(storagesystemslist);
     }
 
     public static void itemDetails(String id) {

@@ -1530,56 +1530,58 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                 break;
             case 4:
                 if(checkCookie(dataCookieKey)){
-                    ssid = "";
+                    providerid = "";
+                    ssid= "";
                     guide_data=angular.fromJson(readCookie(dataCookieKey));
 
                     if(guide_data){
                         arrayCookie = guide_data.storage_systems;
                         if (arrayCookie) {
                             jQuery.each(arrayCookie, function() {
-                                if (ssid){ssid += ","}
-                                ssid += this.id;
+                                if (this.id.indexOf("StorageProvider") > -1){
+                                    if (providerid){providerid += ","}
+                                    providerid += this.id;
+                                } else {
+                                    if (ssid){ssid += ","}
+                                    ssid += this.id;
+                                }
                             });
                         }
                     }
-                    console.log(ssid);
-                    $http.get(routes.StorageProviders_itemsJson({'ids':ssid})).then(function (data) {
-                        failedArray= [];
-                        console.log(data);
+                    var promises = [];
+                    failedArray= [];
+                    promises.push($http.get(routes.StorageProviders_discoveryCheckJson({'ids':providerid})).then(function (data) {
                         if (data.data.length != 0) {
-                            testId = function (ss) {
-                                var promises = ss.map( function (s) {
-                                    if (s.discoveryStatus != "COMPLETE"){
-                                        failedArray.push(s);
-                                        return;
-                                    }
-                                });
-                                $q.all(promises).then(function () {
-                                    console.log("consistency check 1");
-                                    if (failedArray.length > 0) {
-                                        failedNames=[];
-                                        failedArray.forEach( function (failed) {
-                                            ssName = "";
-                                            jQuery.each(arrayCookie, function() {
-                                                if (failed.id == this.id){
-                                                    ssName = this.name;
-                                                    return;
-                                                }
-                                            });
-                                            failedNames.push(ssName);
-                                        });
-                                        $scope.$parent.guideError = "Error: Some Storage Systems failed to discover:\n"+failedNames;
-                                        finishChecking();
-                                    } else {
-                                        console.log("consistency check 3");
-                                        $scope.$parent.completedSteps = 4;
-                                        goToNextStep(true);
-                                    }
-                                });
-                            };
-                            return testId(data.data);
-                        } else {
+                            failedArray=failedArray.concat(data.data)
+                        }
+                    }));
+                    promises.push($http.get(routes.StorageSystems_discoveryCheckJson({'ids':ssid})).then(function (data) {
+                        if (data.data.length != 0) {
+                            failedArray=failedArray.concat(data.data)
+                        }
+                    }));
+                    $q.all(promises).then(function () {
+                        if (failedArray.length > 0) {
+
+                            $scope.$parent.guideError = "Error: Some Storage failed to discover:\n"+failedArray;
                             finishChecking();
+                        } else {
+                            $http.get(routes.StorageProviders_getAllFlashStorageSystemsList({'ids':providerid})).then(function (data) {
+                                arrayCookie = guide_data.storage_systems;
+                                storage_systems=[];
+                                if (arrayCookie) {
+                                    jQuery.each(arrayCookie, function() {
+                                        if (this.id.indexOf("StorageProvider") == -1){
+                                            storage_system = {id:this.id, name:this.name};
+                                            storage_systems.push(storage_system);
+                                        }
+                                    });
+                                    guide_data.storage_systems=storage_systems.concat(data.data);
+                                    createCookie(dataCookieKey,angular.toJson(guide_data),'session');
+                                }
+                                $scope.$parent.completedSteps = 4;
+                                goToNextStep(true);
+                            });
                         }
                     });
                 } else {
@@ -1587,27 +1589,30 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                 }
                 break;
             case 5:
-                $http.get(routes.SanSwitches_list()).then(function (data) {
-                    finished=false;
-                    if (data.data.aaData.length != 0) {
-                        testId = function (sanswitches) {
-                            var promises = sanswitches.map( function (s) {
-                                if (!finished && s.discoveryStatus == "COMPLETE"){
-                                    finished=true;
+                guide_data=angular.fromJson(readCookie(dataCookieKey));
+                $http.get(routes.Networks_getConnectedStorage()).then(function (data) {
+                    failedArray= [];
+                    if (data.data.length != 0) {
+                        arrayCookie = guide_data.storage_systems;
+                        console.log(data.data);
+                        if (arrayCookie) {
+                            jQuery.each(arrayCookie, function() {
+                                console.log(this.id);
+                                if($.inArray(this.id, data.data) == -1){
+                                    failedArray.push(this.name);
+                                }
+                            });
+                            if (failedArray.length > 0) {
+                                $scope.$parent.guideError = "Error: Some Storage not attached to Network:\n"+failedArray;
+                                finishChecking();
+                            } else {
+                                $scope.$parent.completedSteps = 5;
                                     $scope.$parent.optionalStepComplete = true;
-                                    goToNextStep(true);
-                                    finishChecking();
-                                }
-                            });
-                            $q.all(promises).then(function () {
-                                if(!finished) {
-                                    //$scope.$parent.optionalStepComplete = false;
-                                    //goToNextStep(true);
-                                    finishChecking();
-                                }
-                            });
-                        };
-                        return testId(data.data.aaData);
+                                goToNextStep(true);
+                            }
+                        } else {
+                            finishChecking();
+                        }
                     } else {
                         //$scope.$parent.optionalStepComplete = false;
                         //goToNextStep(true);
@@ -1967,50 +1972,58 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                 break;
             case 4:
                 if(checkCookie(dataCookieKey)){
-                    ssid = "";
+                    providerid = "";
+                    ssid= "";
                     guide_data=angular.fromJson(readCookie(dataCookieKey));
 
                     if(guide_data){
                         arrayCookie = guide_data.storage_systems;
                         if (arrayCookie) {
                             jQuery.each(arrayCookie, function() {
-                                if (ssid){ssid += ","}
-                                ssid += this.id;
+                                if (this.id.indexOf("StorageProvider") > -1){
+                                    if (providerid){providerid += ","}
+                                    providerid += this.id;
+                                } else {
+                                    if (ssid){ssid += ","}
+                                    ssid += this.id;
+                                }
                             });
                         }
                     }
-                    console.log(ssid);
-                    $http.get(routes.StorageProviders_itemsJson({'ids':ssid})).then(function (data) {
-                        failedArray= [];
-                        console.log(data);
+                    var promises = [];
+                    failedArray= [];
+                    promises.push($http.get(routes.StorageProviders_discoveryCheckJson({'ids':providerid})).then(function (data) {
                         if (data.data.length != 0) {
-                            testId = function (ss) {
-                                var promises = ss.map( function (s) {
-                                    if (s.discoveryStatus != "COMPLETE"){
-                                        failedArray.push(s);
-                                        return;
-                                    }
-                                });
-                                $q.all(promises).then(function () {
-                                    console.log("consistency check 1");
-                                    if (failedArray.length > 0) {
-                                        failedNames=[];
-                                        failedArray.forEach( function (failed) {
-                                            console.log("consistency check 2");
-                                            failedNames.push(failed.id);
-                                        });
-                                        $scope.$parent.guideError = "Error: Some Storage Systems failed to discover:"+failedNames;
-                                        finishChecking();
-                                    } else {
-                                        console.log("consistency check 3");
-                                        $scope.$parent.completedSteps = 4;
-                                        return checkStep(5);
-                                    }
-                                });
-                            };
-                            return testId(data.data);
-                        } else {
+                            failedArray=failedArray.concat(data.data)
+                        }
+                    }));
+                    promises.push($http.get(routes.StorageSystems_discoveryCheckJson({'ids':ssid})).then(function (data) {
+                        if (data.data.length != 0) {
+                            failedArray=failedArray.concat(data.data)
+                        }
+                    }));
+                    $q.all(promises).then(function () {
+                        if (failedArray.length > 0) {
+
+                            $scope.$parent.guideError = "Error: Some Storage failed to discover:\n"+failedArray;
                             finishChecking();
+                        } else {
+                            $http.get(routes.StorageProviders_getAllFlashStorageSystemsList({'ids':providerid})).then(function (data) {
+                                arrayCookie = guide_data.storage_systems;
+                                storage_systems=[];
+                                if (arrayCookie) {
+                                    jQuery.each(arrayCookie, function() {
+                                        if (this.id.indexOf("StorageProvider") == -1){
+                                            storage_system = {id:this.id, name:this.name};
+                                            storage_systems.push(storage_system);
+                                        }
+                                    });
+                                    guide_data.storage_systems=storage_systems.concat(data.data);
+                                    createCookie(dataCookieKey,angular.toJson(guide_data),'session');
+                                }
+                                $scope.$parent.completedSteps = 4;
+                                return checkStep(5);
+                            });
                         }
                     });
                 } else {
@@ -2018,35 +2031,38 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                 }
                 break;
             case 5:
-                $http.get(routes.SanSwitches_list()).then(function (data) {
-                    finished=false;
-                    if (data.data.aaData.length != 0) {
-                        testId = function (sanswitches) {
-                            var promises = sanswitches.map( function (s) {
-                                if (!finished && s.discoveryStatus == "COMPLETE"){
-                                    finished=true;
-                                    $scope.$parent.completedSteps = 5;
-                                    $scope.$parent.optionalStepComplete = true;
-                                    return checkStep(6);
+                guide_data=angular.fromJson(readCookie(dataCookieKey));
+                $http.get(routes.Networks_getConnectedStorage()).then(function (data) {
+                    failedArray= [];
+                    if (data.data.length != 0) {
+                        arrayCookie = guide_data.storage_systems;
+                        if (arrayCookie) {
+                            jQuery.each(arrayCookie, function() {
+                                console.log(this.id);
+                                if($.inArray(this.id, data.data) == -1){
+                                    failedArray.push(this.name);
                                 }
                             });
-                            $q.all(promises).then(function () {
-                                if(!finished) {
-                                    //$scope.$parent.optionalStepComplete = false;
-                                    //return checkStep(6);
-                                    finishChecking();
-                                }
-                            });
-                        };
-                        return testId(data.data.aaData);
+                            if (failedArray.length > 0) {
+                                $scope.$parent.guideError = "Error: Some Storage not attached to Network:\n"+failedArray;
+                                finishChecking();
+                            } else {
+                                $scope.$parent.completedSteps = 5;
+                                $scope.$parent.optionalStepComplete = true;
+                                return checkStep(6);
+                            }
+                        } else {
+                            finishChecking();
+                        }
                     } else {
                         //$scope.$parent.optionalStepComplete = false;
-                        //return checkStep(6);
+                        //goToNextStep(true);
                         finishChecking();
                     }
                 });
                 break;
             case 6:
+                guide_data=angular.fromJson(readCookie(dataCookieKey));
                 $http.get(routes.VirtualArrays_list()).then(function (data) {
                     finished=false;
                     if (data.data.aaData.length != 0) {

@@ -40,6 +40,7 @@ import controllers.util.ViprResourceController;
 import java.net.URI;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -145,6 +146,24 @@ public class StorageSystems extends ViprResourceController {
             addColumn("actions").setRenderFunction("renderButtonBar");
             sortAllExcept("actions");
         }
+    }
+
+    public static void discoveryCheckJson(@As(",") String[] ids) {
+        List<String> failedDiscovery = new ArrayList<String>();
+        for (String id:ids) {
+            StorageSystemRestRep storageSystem = StorageSystemUtils
+                    .getStorageSystem(id);
+            if (storageSystem == null) {
+                //ignore for now
+                continue;
+            }
+            if (!storageSystem.getDiscoveryJobStatus().equals("COMPLETE")){
+                failedDiscovery.add(storageSystem.getName());
+                continue;
+            }
+        }
+        renderJSON(failedDiscovery);
+
     }
 
     public static void listJson() {

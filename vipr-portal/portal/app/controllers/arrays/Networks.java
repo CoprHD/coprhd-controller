@@ -4,6 +4,7 @@
  */
 package controllers.arrays;
 
+import com.emc.storageos.model.EndpointAliasRestRep;
 import com.emc.storageos.model.host.HostRestRep;
 import com.emc.storageos.model.host.InitiatorRestRep;
 import com.emc.storageos.model.host.IpInterfaceRestRep;
@@ -27,6 +28,8 @@ import controllers.deadbolt.Restrict;
 import controllers.deadbolt.Restrictions;
 import controllers.util.FlashException;
 import controllers.util.ViprResourceController;
+import java.util.ArrayList;
+import java.util.HashSet;
 import models.RegistrationStatus;
 import models.TransportProtocols;
 import models.datatable.NetworkEndpointDataTable;
@@ -147,6 +150,17 @@ public class Networks extends ViprResourceController {
         renderArgs.put(VIRTUAL_ARRAY_PARAM, params.get(VIRTUAL_ARRAY_PARAM));
         renderArgs.put("dataTable", NetworkEndpointDataTable.createDataTable(network.type));
         render("@edit", network);
+    }
+
+    public static void getConnectedStorage() {
+        List<NetworkRestRep> networks = NetworkUtils.getNetworks();
+        Set<String> connectedstoragesystems = new HashSet<String>();
+        for (NetworkRestRep network:networks) {
+            for(StoragePortRestRep port:StoragePortUtils.getStoragePortsByNetwork(network.getId())){
+                connectedstoragesystems.add(port.getStorageDevice().getId().toString());
+            }
+        }
+        renderJSON(connectedstoragesystems);
     }
 
     /**

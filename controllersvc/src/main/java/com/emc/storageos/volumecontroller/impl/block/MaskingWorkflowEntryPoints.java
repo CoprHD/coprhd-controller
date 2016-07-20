@@ -11,7 +11,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import com.emc.storageos.plugins.common.Constants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,6 +25,7 @@ import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.networkcontroller.NetworkFCContext;
 import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
+import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.BlockStorageDevice;
@@ -242,7 +242,6 @@ public class MaskingWorkflowEntryPoints implements Controller {
                     .queryObject(ExportMask.class, exportMaskURI);
             StorageSystem storage = _dbClient
                     .queryObject(StorageSystem.class, storageURI);
-
             getDevice(storage).doExportAddVolumes(storage, exportMask, volumeMap,
                     taskCompleter);
 
@@ -568,5 +567,4 @@ public class MaskingWorkflowEntryPoints implements Controller {
             taskCompleter.error(_dbClient, serviceError);
         }
     }
-
 }

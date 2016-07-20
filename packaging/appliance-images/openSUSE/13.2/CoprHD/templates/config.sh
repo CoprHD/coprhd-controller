@@ -63,6 +63,7 @@ bash /opt/ADG/conf/configure.sh installStorageOS
 bash /opt/ADG/conf/configure.sh installNetwork
 bash /opt/ADG/conf/configure.sh installXorg
 bash /opt/ADG/conf/configure.sh disableStorageOS
+systemctl enable docker
 
 #======================================
 # CoprHD setup

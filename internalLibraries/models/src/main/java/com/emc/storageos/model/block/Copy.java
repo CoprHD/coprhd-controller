@@ -24,9 +24,6 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlRootElement(name = "copy")
 public class Copy implements Serializable {
 
-    /**
-     *
-     */
     private static final long serialVersionUID = -8250892549720042299L;
 
     private String type;
@@ -38,10 +35,16 @@ public class Copy implements Serializable {
     private String copyMode;
     // Format: "yyyy-MM-dd_HH:mm:ss" or datetime in milliseconds
     private String pointInTime;
+    // The desired access mode for the target. Applies to RecoverPoint copies.
+    private String accessMode;
 
     public enum SyncDirection {
         SOURCE_TO_TARGET,
         TARGET_TO_SOURCE
+    }
+
+    public enum ImageAccessMode {
+        DIRECT_ACCESS
     }
 
     public Copy() {
@@ -165,4 +168,12 @@ public class Copy implements Serializable {
         this.pointInTime = pointInTime;
     }
 
+    @XmlElement(name = "accessMode", required = false)
+    public String getAccessMode() {
+        return accessMode;
+    }
+
+    public void setAccessMode(String accessMode) {
+        this.accessMode = accessMode;
+    }
 }

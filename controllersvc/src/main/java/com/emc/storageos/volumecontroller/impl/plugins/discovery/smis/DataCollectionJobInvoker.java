@@ -94,8 +94,13 @@ class DataCollectionJobInvoker {
                 String contextFile = getContextFile(contextkey);
                 if (null == contextFile) {
                     // No entry for context key in configinfo map, default to external device context key
-                    String externalDeviceContextKey = _accessProfile.getProfileName() + "-" + Constants.EXTERNALDEVICE + "-"
-                            + _namespace.toLowerCase();
+                    String externalDeviceContextKey;
+                    if (_accessProfile.getProfileName().equalsIgnoreCase(ControllerServiceImpl.SCANNER)) {
+                        externalDeviceContextKey = _accessProfile.getProfileName() + "-" + Constants.EXTERNALDEVICE;
+                    } else {
+                        externalDeviceContextKey = _accessProfile.getProfileName() + "-" + Constants.EXTERNALDEVICE + "-"
+                                + _namespace.toLowerCase();
+                    }
                     _logger.info("No entry defined for context key: {} . Default to external device context key: {}",
                             contextkey, externalDeviceContextKey);
                     contextkey = externalDeviceContextKey;

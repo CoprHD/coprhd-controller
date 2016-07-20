@@ -8,12 +8,18 @@ import static com.emc.storageos.model.property.PropertyConstants.ENCRYPTEDTEXT;
 import static com.emc.storageos.model.property.PropertyConstants.TEXT;
 import static controllers.Common.flashException;
 
+import java.net.ConnectException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import com.emc.storageos.management.backup.BackupType;
+import com.emc.storageos.management.backup.ExternalServerType;
+import com.emc.storageos.management.backup.util.BackupClient;
+import com.emc.storageos.management.backup.util.CifsClient;
+import com.emc.storageos.management.backup.util.FtpClient;
 import models.properties.BackupPropertyPage;
 import models.properties.ControllerPropertyPage;
 import models.properties.DefaultPropertyPage;
@@ -30,6 +36,7 @@ import models.properties.UpgradePropertyPage;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.math.NumberUtils;
 
+import org.apache.http.auth.AuthenticationException;
 import play.Logger;
 import play.data.validation.Required;
 import play.data.validation.Validation;
@@ -266,6 +273,38 @@ public class ConfigProperties extends Controller {
         else {
             return port;
         }
+    }
+    public static void validateExternalSettings(String serverType, String serverUrl, String serverDomain, String user,
+                                                String password) {
+        BackupClient client;
+        String passwd = PasswordUtil.decryptedValue(password);
+        if (serverType.equalsIgnoreCase(ExternalServerType.CIFS.name())) {
+            if (!serverUrl.startsWith("smb://")) {
+                Validation.addError(null,Messages.get("configProperties.backup.serverType.invalid"));
+                renderJSON(ValidationResponse.collectErrors());
+            }
+            client = new CifsClient(serverUrl, serverDomain, user, passwd);
+        } else {
+            if (!(serverUrl.startsWith("ftp://")|| serverUrl.startsWith("ftps://"))) {
+                Validation.addError(null,Messages.get("configProperties.backup.serverType.invalid"));
+                renderJSON(ValidationResponse.collectErrors());
+            }
+            client = new FtpClient(serverUrl, user, passwd);
+        }
+        try {
+            client.validate();
+        }catch (AuthenticationException e ){
+            Validation.addError(null,Messages.get("configProperties.backup.credential.invalid"),e.getMessage());
+        }catch (ConnectException e) {
+            Validation.addError(null,Messages.get("configProperties.backup.server.invalid"), e.getMessage());
+        }
+
+        if (Validation.hasErrors()) {
+            renderJSON(ValidationResponse.collectErrors());
+        } else {
+            renderJSON(ValidationResponse.valid(Messages.get("configProperties.backup.testSuccessful")));
+        }
+
     }
 
     public static void validateMailSettings(String server, String port, String username, String password, String enableTls,

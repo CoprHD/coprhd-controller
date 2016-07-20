@@ -248,10 +248,16 @@ public class NetworkScheduler {
             if (initiator != null) {
                 URI pairedInitiatorURI = initiator.getPairedInitiator();
                 if (pairedInitiatorURI == null) {
+                    _log.debug(String.format(
+                            "Paiered initiator %s could not be paired with port %s",
+                            initiatorPort, storagePortWwn));
                     return null;
                 }
                 Initiator pairedInitiator = _dbClient.queryObject(Initiator.class, pairedInitiatorURI);
                 if (pairedInitiator == null || pairedInitiator.getInactive()) {
+                    _log.debug(String.format(
+                            "Paired initiator %s could not be paired with port %s",
+                            initiatorPort, storagePortWwn));
                     return null;
                 }
                 NetworkLite pairedIniNet = NetworkUtil.getEndpointNetworkLite(pairedInitiator.getInitiatorPort(), _dbClient);

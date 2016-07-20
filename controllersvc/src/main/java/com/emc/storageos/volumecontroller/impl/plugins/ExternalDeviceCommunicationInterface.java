@@ -353,15 +353,18 @@ public class ExternalDeviceCommunicationInterface extends
         // could be already populated by scan
         if (storageSystem.getSerialNumber() != null) {
             driverStorageSystem.setSerialNumber(storageSystem.getSerialNumber());
+            _log.info("discoverStorageSystem: set serial number to {}", driverStorageSystem.getSerialNumber());
         }
         // could be already populated by scan
         if (storageSystem.getNativeId() != null) {
             driverStorageSystem.setNativeId(storageSystem.getNativeId());
+            _log.info("discoverStorageSystem: set nativeId to {}", driverStorageSystem.getNativeId());
         }
 
         try {
-            _log.info("discoverStorageSystem information for storage system {}, name {} - start",
-                    accessProfile.getSystemId(), driverStorageSystem.getSystemName());
+            _log.info("discoverStorageSystem information for storage system {}, name {}, ip address (), port {} - start",
+                    accessProfile.getSystemId(), driverStorageSystem.getSystemName(), driverStorageSystem.getIpAddress(),
+                    driverStorageSystem.getPortNumber());
             DriverTask task = driver.discoverStorageSystem(driverStorageSystem);
 
             // process discovery results.

@@ -119,6 +119,11 @@ public class StorageProvider extends DataObject {
      * Element manager URL
      */
     private String elementManagerURL;
+    
+    /**
+     * Secondry URL
+     */
+    private String secondryURL;
 
     /**
      * Secondary set of credentials. This is used for example in the
@@ -137,6 +142,16 @@ public class StorageProvider extends DataObject {
     public void setElementManagerURL(String elementManagerURL) {
         this.elementManagerURL = elementManagerURL;
         setChanged("elementManagerURL");
+    }
+    
+    @Name("secondryURL")
+    public String getSecondaryURL() {
+        return secondryURL;
+    }
+
+    public void setSecondaryURL(String secondryURL) {
+        this.secondryURL = secondryURL;
+        setChanged("secondryURL");
     }
 
     @Name("secondaryUsername")

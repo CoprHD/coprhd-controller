@@ -607,7 +607,7 @@ public class ExportGroupService extends TaskResourceService {
      * Check if OpenStack snapshot and throw error
      * since snapshot export is not supported for OpenStack systems.
      *
-     * @param block the block snapshot
+     * @param BLOCK the block snapshot
      */
     private void checkIfOpenStackSnapshot(BlockSnapshot snapshot) {
         if (TechnologyType.NATIVE.toString().equalsIgnoreCase(snapshot.getTechnologyType())) {
@@ -621,7 +621,7 @@ public class ExportGroupService extends TaskResourceService {
     /**
      * Validate the blocksnapshot is active for export, if one is being exported
      *
-     * @param block - BlockSnapshot object to export
+     * @param BLOCK - BlockSnapshot object to export
      */
     private void checkForActiveBlockSnapshot(BlockSnapshot snapshot) {
         if (!TechnologyType.RP.toString().equalsIgnoreCase(snapshot.getTechnologyType())) {

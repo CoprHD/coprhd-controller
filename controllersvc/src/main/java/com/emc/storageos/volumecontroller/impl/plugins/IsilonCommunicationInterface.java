@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.TreeSet;
 
 import org.apache.commons.lang.StringUtils;
 import org.codehaus.jettison.json.JSONException;
@@ -1524,8 +1525,9 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
                         List<UnManagedFileExportRule> unManagedExportRules = new ArrayList<UnManagedFileExportRule>();
                         if (!expIdMap.keySet().isEmpty()) {
+                            List<UnManagedFileExportRule> validExportRules = new ArrayList<UnManagedFileExportRule>();
                             boolean validExportsFound = getUnManagedFSExportMap(unManagedFs, expIdMap, storagePort,
-                                    fs.getPath(), nasServer.getNasName(), isilonApi);
+                                    fs.getPath(), nasServer.getNasName(), isilonApi, validExportRules);
                             if (!validExportsFound) {
                                 // Invalid exports so ignore the FS
                                 String invalidExports = "";
@@ -1538,10 +1540,9 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                                 _dbClient.persistObject(unManagedFs);
                                 continue;
                             }
-                            List<UnManagedFileExportRule> validExportRules = getUnManagedFSExportRules(unManagedFs, expIdMap, storagePort,
-                                    fs.getPath(), nasServer.getNasName(), isilonApi);
                             _log.info("Number of exports discovered for file system {} is {}", unManagedFs.getId(),
                                     validExportRules.size());
+
                             UnManagedFileExportRule existingRule = null;
                             for (UnManagedFileExportRule dbExportRule : validExportRules) {
                                 _log.info("Un Managed File Export Rule : {}", dbExportRule);
@@ -1947,7 +1948,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         try {
             _log.debug("call getIsilonExport for {} ", expId);
             if (expId != null) {
-                exp = isilonApi.getExport(expId.toString(), zoneName);
+                exp = isilonApi.getExport(expId.toString());
                 _log.debug("call getIsilonExport {}", exp.toString());
             }
         } catch (Exception e) {
@@ -2536,7 +2537,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
      * @return boolean
      */
     private boolean getUnManagedFSExportMap(UnManagedFileSystem umfs, HashMap<String, HashSet<Integer>> expIdMap,
-            StoragePort storagePort, String fsPath, String zoneName, IsilonApi isilonApi) {
+            StoragePort storagePort, String fsPath, String zoneName, IsilonApi isilonApi,
+            List<UnManagedFileExportRule> exportRules) {
 
         UnManagedFSExportMap exportMap = new UnManagedFSExportMap();
 
@@ -2548,7 +2550,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             isilonExportIds = expIdMap.get(expMapPath);
             if (isilonExportIds != null && !isilonExportIds.isEmpty()) {
                 validExports = getUnManagedFSExportMap(umfs, isilonExportIds,
-                        storagePort, expMapPath, zoneName, isilonApi);
+                        storagePort, fsPath, zoneName, isilonApi, exportRules);
             } else {
                 validExports = false;
             }
@@ -2577,17 +2579,20 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
      * @return boolean
      */
     private boolean getUnManagedFSExportMap(UnManagedFileSystem umfs, HashSet<Integer> isilonExportIds,
-            StoragePort storagePort, String fsPath, String zoneName, IsilonApi isilonApi) {
+            StoragePort storagePort, String fsPath, String zoneName, IsilonApi isilonApi,
+            List<UnManagedFileExportRule> expRules) {
 
         UnManagedFSExportMap exportMap = new UnManagedFSExportMap();
 
         int generatedExportCount = 0;
 
         ArrayList<IsilonExport> isilonExports = new ArrayList<IsilonExport>();
+        if (expRules == null) {
+            expRules = new ArrayList<UnManagedFileExportRule>();
+        }
 
         if (isilonExportIds != null && isilonExportIds.size() > 1) {
-            _log.info("Ignoring file system {}, Multiple exports found {} ", fsPath, isilonExportIds.size());
-            return false;
+            _log.info("Found multiple export rules for file system path {}, {} ", fsPath, isilonExportIds.size());
         }
 
         for (Integer expId : isilonExportIds) {
@@ -2595,22 +2600,36 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             if (exp == null) {
                 _log.info("Ignoring file system {}, export {} not found", fsPath, expId);
                 return false;
-            } else if (exp.getSecurityFlavors().size() > 1) {
-                _log.info("Ignoring file system {}, multiple security flavors {} found", fsPath, exp.getSecurityFlavors().toString());
-                return false;
             } else if (exp.getPaths().size() > 1) {
-                _log.info("Ignoring file system {}, multiple paths {} found", fsPath, exp.getPaths().toString());
-                return false;
+                for (String expPath : exp.getPaths()) {
+                    if (!expPath.equalsIgnoreCase(fsPath) && !expPath.startsWith(fsPath + "/")) {
+                        _log.warn("Ignoring file system {}, as it contains other export path {}", fsPath, expPath);
+                        return false;
+                    }
+
+                }
             } else {
                 isilonExports.add(exp);
             }
         }
 
         for (IsilonExport exp : isilonExports) {
-            String securityFlavor = exp.getSecurityFlavors().get(0);
-            // Isilon Maps sys to unix and we do this conversion during export from ViPR
-            if (securityFlavor.equalsIgnoreCase(UNIXSECURITY)) {
-                securityFlavor = SYSSECURITY;
+            String securityFlavorList = "";
+            Set<String> orderedList = new TreeSet<String>();
+            // If export has more than one security flavor
+            // store all security flavor separated by comma(,)
+            for (String sec : exp.getSecurityFlavors()) {
+                String securityFlavor = sec;
+                // Isilon Maps sys to unix and we do this conversion during export from ViPR
+                if (sec.equalsIgnoreCase(UNIXSECURITY)) {
+                    securityFlavor = SYSSECURITY;
+                }
+                orderedList.add(securityFlavor);
+            }
+            Iterator<String> secIter = orderedList.iterator();
+            securityFlavorList = secIter.next().toString();
+            while (secIter.hasNext()) {
+                securityFlavorList += "," + secIter.next().toString();
             }
 
             String path = exp.getPaths().get(0);
@@ -2626,37 +2645,52 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
             String resolvedUser = (rootUserMapping != null && (!rootUserMapping.isEmpty())) ? rootUserMapping : mapAllUserMapping;
 
+            // Create Export rule!!
+            UnManagedFileExportRule expRule = new UnManagedFileExportRule();
+            expRule.setExportPath(path);
+            expRule.setSecFlavor(securityFlavorList);
+            expRule.setAnon(resolvedUser);
+            expRule.setDeviceExportId(exp.getId().toString());
+            expRule.setFileSystemId(umfs.getId());
+            expRule.setMountPoint(storagePort.getPortNetworkId() + ":" + path);
+
             if (exp != null && exp.getReadOnlyClients() != null && !exp.getReadOnlyClients().isEmpty()) {
                 UnManagedFSExport unManagedROFSExport = new UnManagedFSExport(
                         exp.getReadOnlyClients(), storagePort.getPortName(), storagePort.getPortName() + ":" + path,
-                        securityFlavor, RO,
+                        securityFlavorList, RO,
                         resolvedUser, NFS, storagePort.getPortName(), path,
                         exp.getPaths().get(0));
                 unManagedROFSExport.setIsilonId(exp.getId().toString());
                 exportMap.put(unManagedROFSExport.getFileExportKey(), unManagedROFSExport);
                 generatedExportCount++;
+
+                expRule.setReadOnlyHosts(new StringSet(exp.getReadOnlyClients()));
             }
 
             if (exp != null && exp.getReadWriteClients() != null && !exp.getReadWriteClients().isEmpty()) {
                 UnManagedFSExport unManagedRWFSExport = new UnManagedFSExport(
                         exp.getReadWriteClients(), storagePort.getPortName(), storagePort.getPortName() + ":" + path,
-                        securityFlavor, RW,
+                        securityFlavorList, RW,
                         resolvedUser, NFS, storagePort.getPortName(), path,
                         exp.getPaths().get(0));
                 unManagedRWFSExport.setIsilonId(exp.getId().toString());
                 exportMap.put(unManagedRWFSExport.getFileExportKey(), unManagedRWFSExport);
                 generatedExportCount++;
+
+                expRule.setReadWriteHosts(new StringSet(exp.getReadWriteClients()));
             }
 
             if (exp != null && exp.getRootClients() != null && !exp.getRootClients().isEmpty()) {
                 UnManagedFSExport unManagedROOTFSExport = new UnManagedFSExport(
                         exp.getRootClients(), storagePort.getPortName(), storagePort.getPortName() + ":" + path,
-                        securityFlavor, ROOT,
+                        securityFlavorList, ROOT,
                         resolvedUser, NFS, storagePort.getPortName(), path,
                         path);
                 unManagedROOTFSExport.setIsilonId(exp.getId().toString());
                 exportMap.put(unManagedROOTFSExport.getFileExportKey(), unManagedROOTFSExport);
                 generatedExportCount++;
+
+                expRule.setRootHosts(new StringSet(exp.getRootClients()));
             }
 
             if (exp.getReadOnlyClients() != null && exp.getReadWriteClients() != null && exp.getRootClients() != null) {
@@ -2668,12 +2702,16 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         // This is a read only export for all hosts
                         UnManagedFSExport unManagedROFSExport = new UnManagedFSExport(
                                 exp.getClients(), storagePort.getPortName(), storagePort.getPortName() + ":" + path,
-                                securityFlavor, RO,
+                                securityFlavorList, RO,
                                 rootUserMapping, NFS, storagePort.getPortName(), path,
                                 path);
                         unManagedROFSExport.setIsilonId(exp.getId().toString());
                         exportMap.put(unManagedROFSExport.getFileExportKey(), unManagedROFSExport);
                         generatedExportCount++;
+
+                        // This is a read only export for all hosts
+                        expRule.setReadOnlyHosts(new StringSet(exp.getClients()));
+
                     } else {
                         // Not read Only case
                         if (exp.getMap_all() != null && exp.getMap_all().getUser() != null
@@ -2681,27 +2719,35 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                             // All hosts with root permission
                             UnManagedFSExport unManagedROOTFSExport = new UnManagedFSExport(
                                     exp.getClients(), storagePort.getPortName(), storagePort.getPortName() + ":" + path,
-                                    securityFlavor, ROOT,
+                                    securityFlavorList, ROOT,
                                     mapAllUserMapping, NFS, storagePort.getPortName(), path,
                                     path);
                             unManagedROOTFSExport.setIsilonId(exp.getId().toString());
                             exportMap.put(unManagedROOTFSExport.getFileExportKey(), unManagedROOTFSExport);
                             generatedExportCount++;
 
+                            // All hosts with root permission
+                            expRule.setRootHosts(new StringSet(exp.getClients()));
+
                         } else if (exp.getMap_all() != null) {
                             // All hosts with RW permission
                             UnManagedFSExport unManagedRWFSExport = new UnManagedFSExport(
                                     exp.getClients(), storagePort.getPortName(), storagePort.getPortName() + ":" + path,
-                                    securityFlavor, RW,
+                                    securityFlavorList, RW,
                                     rootUserMapping, NFS, storagePort.getPortName(), path,
                                     path);
                             unManagedRWFSExport.setIsilonId(exp.getId().toString());
                             exportMap.put(unManagedRWFSExport.getFileExportKey(), unManagedRWFSExport);
                             generatedExportCount++;
+
+                            // All hosts with RW permission
+                            expRule.setReadWriteHosts(new StringSet(exp.getClients()));
                         }
                     }
                 }
             }
+            // Create Export rule for the export!!!
+            expRules.add(expRule);
         }
 
         if (exportMap.values().size() < generatedExportCount) {
@@ -2745,7 +2791,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         ArrayList<IsilonExport> isilonExports = new ArrayList<IsilonExport>();
 
         if (isilonExportIds != null && isilonExportIds.size() > 1) {
-            _log.info("Ignoring file system {}, Multiple exports found {} ", fsPath, isilonExportIds.size());
+            _log.info("Ignoring file system {}, Multiple export rulues found {} ", fsPath, isilonExportIds.size());
         }
 
         for (Integer expId : isilonExportIds) {

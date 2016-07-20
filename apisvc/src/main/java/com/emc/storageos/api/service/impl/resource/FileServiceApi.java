@@ -11,8 +11,12 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.model.file.CifsShareACLUpdateParams;
+import com.emc.storageos.model.file.FileExportUpdateParams;
 import com.emc.storageos.model.file.FileSystemParam;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
+import com.emc.storageos.volumecontroller.FileSMBShare;
+import com.emc.storageos.volumecontroller.FileShareExport;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
@@ -46,7 +50,7 @@ public interface FileServiceApi {
             VirtualArray varray, VirtualPool vpool, TenantOrg tenantOrg,
             DataObject.Flag[] flags, List<Recommendation> recommendations,
             TaskList taskList, String task, VirtualPoolCapabilityValuesWrapper vpoolCapabilities)
-            throws InternalException;
+                    throws InternalException;
 
     /**
      * Delete the passed filesystems for the passed system.
@@ -100,6 +104,90 @@ public interface FileServiceApi {
     public TaskResourceRep createTargetsForExistingSource(FileShare fs, Project project,
             VirtualPool vpool, VirtualArray varray, TaskList taskList, String task, List<Recommendation> recommendations,
             VirtualPoolCapabilityValuesWrapper vpoolCapabilities)
+                    throws InternalException;
+
+    /**
+     * Create CIFS share for the FileSystem
+     * 
+     * @param storageSystem
+     * @param fileSystem
+     * @param smbShare
+     * @param task
+     * @throws InternalException
+     */
+    void share(URI storageSystem, URI fileSystem, FileSMBShare smbShare, String task)
             throws InternalException;
+
+    /**
+     * Create NFS Exports for the FileSystem
+     * 
+     * @param storage
+     * @param fsURI
+     * @param exports
+     * @param opId
+     * @throws InternalException
+     */
+    void export(URI storage, URI fsURI, List<FileShareExport> exports, String opId)
+            throws InternalException;
+
+    /**
+     * Update NFS Exports Rules for the FileSystem
+     * 
+     * @param storage
+     * @param fsURI
+     * @param param
+     * @param opId
+     * @throws InternalException
+     */
+    void updateExportRules(URI storage, URI fsURI, FileExportUpdateParams param, String opId)
+            throws InternalException;
+
+    /**
+     * Update CIFS Share ACLs for the FileSystem
+     * 
+     * @param storage
+     * @param fsURI
+     * @param shareName
+     * @param param
+     * @param opId
+     * @throws InternalException
+     */
+    void updateShareACLs(URI storage, URI fsURI, String shareName, CifsShareACLUpdateParams param, String opId)
+            throws InternalException;
+
+    /**
+     * Create FileSystem Snapshot
+     * 
+     * @param storage
+     * @param snapshot
+     * @param fsURI
+     * @param opId
+     * @throws InternalException
+     */
+    void snapshotFS(URI storage, URI snapshot, URI fsURI, String opId)
+            throws InternalException;
+
+    /**
+     * Delete FileSystem Share
+     * 
+     * @param storage
+     * @param uri
+     * @param fileSMBShare
+     * @param task
+     * @throws InternalException
+     */
+    void deleteShare(URI storage, URI uri, FileSMBShare fileSMBShare, String task) throws InternalException;
+
+    /**
+     * Delete FileSystem Export Rules
+     * 
+     * @param storage
+     * @param uri
+     * @param allDirs
+     * @param subDirs
+     * @param taskId
+     * @throws InternalException
+     */
+    void deleteExportRules(URI storage, URI uri, boolean allDirs, String subDirs, String taskId) throws InternalException;
 
 }

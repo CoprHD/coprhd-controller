@@ -970,10 +970,10 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_NO_PLACEMENT_FOUND)
     public BadRequestException noMatchingStoragePoolsForVpoolAndVarrays(
             final String vpoolLabel, final Set<String> varrayLabel);
-    
+
     @DeclareServiceCode(ServiceCode.API_NO_PLACEMENT_FOUND)
     public BadRequestException noMatchingHighAvailabilityStoragePools(final String vpool, final String varray);
-    
+
     @DeclareServiceCode(ServiceCode.API_NO_PLACEMENT_FOUND)
     public BadRequestException noVplexLocalRecommendationFromSubScheduler(
             final String subScheduler, final String vpool, final String varray);
@@ -1687,6 +1687,9 @@ public interface BadRequestExceptions {
     public BadRequestException failoverCopiesParamCanOnlyBeOne();
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException changeAccessCopiesParamCanOnlyBeOne();
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException swapCopiesParamCanOnlyBeOne();
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
@@ -1839,7 +1842,7 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException cannotAddVolumesToSwappedCG(final String cgName);
-    
+
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException cannotAddVolumesToSwappedReplicationGroup(final String rgName);
 
@@ -2192,6 +2195,9 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException exportExists(String operatioName, String exportDetails);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException storageDoesNotSupportMulSecRule(String operatioName, String systemType, String exportDetails);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException missingInputTypeFound(String type, String opName);
@@ -2819,6 +2825,12 @@ public interface BadRequestExceptions {
     public BadRequestException multipleSetNamesProvided(final String replicaType);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException invalidApplicationCopyOperationInput(final String replicaType);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException invalidCopySetNamesProvided(final String copySetName, final String replicaType);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException noHAVolumeFoundForVPLEX(final String volumeName);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
@@ -2971,26 +2983,28 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException addRecoverPointProtectionRequiresCG();
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException vplexNotSupportedWithSRDFActive();
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException vplexDistributedNotSupportedOnSRDFTarget();
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException srdfNotSupportedOnHighAvailabilityVpool();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException snapshotRestoreNotSupported();
-    
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException unsupportedAccessMode(final String accessMode);
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotExpandTargetVirtualVolume(final String label);
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotExpandSRDFVolumeWithSnapshots(final String label);
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotDeleteSRDFTargetVolume(final String label);
-    
 }

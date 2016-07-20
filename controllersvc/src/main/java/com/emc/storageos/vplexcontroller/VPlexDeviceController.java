@@ -3191,9 +3191,11 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         !exportMask.getExistingInitiators().isEmpty();
 
                 if (existingVolumes || existingInitiators) {
-                    _log.info("ExportMask {} still has non-ViPR-created existing volumes or initiators, "
+                    _log.warn("ExportMask {} still has non-ViPR-created existing volumes or initiators, "
                             + "so ViPR will not remove it from the VPLEX device", exportMask.getMaskName());
-                } else if (exportMask.getInactive()) {
+                } 
+
+                if (exportMask.getInactive()) {
                     _log.warn("ExportMask {} is already inactive, so there's "
                             + "no need to delete it off the VPLEX", exportMask.getMaskName());
                 } else {
@@ -3212,6 +3214,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                                 + "but no errors were encountered.");
                     }
                 }
+
                 _log.info("marking this mask for deletion from ViPR: " + exportMask.getMaskName());
                 _dbClient.markForDeletion(exportMask);
 

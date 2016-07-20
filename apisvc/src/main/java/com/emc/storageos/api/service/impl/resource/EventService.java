@@ -171,6 +171,8 @@ public class EventService extends TaggedResource {
         Host host = queryObject(Host.class, hostId, true);
         URI oldClusterURI = host.getCluster();
         String taskId = UUID.randomUUID().toString();
+        host.setCluster(clusterId);
+        _dbClient.updateObject(host);
 
         ComputeSystemController controller = getController(ComputeSystemController.class, null);
 

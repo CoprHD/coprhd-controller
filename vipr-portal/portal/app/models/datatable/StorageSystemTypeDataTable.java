@@ -13,7 +13,7 @@ public class StorageSystemTypeDataTable extends DataTable {
     public StorageSystemTypeDataTable() {
         addColumn("name").setRenderFunction("renderLink");
         addColumn("storageSystemTypeDisplayName");
-        addColumn("storageSystemTypeType");
+        addColumn("metaType");
         addColumn("isProvider");
         addColumn("portNumber");
         addColumn("sslPortNumber");
@@ -25,7 +25,7 @@ public class StorageSystemTypeDataTable extends DataTable {
         public String id;
         public String name;
         public String storageSystemTypeDisplayName;
-        public String storageSystemTypeType;
+        public String metaType;
         public String portNumber;
         public String sslPortNumber;
         public Boolean useSSL;
@@ -42,7 +42,7 @@ public class StorageSystemTypeDataTable extends DataTable {
             this.id = storageSysType.getStorageTypeId();
             this.name = storageSysType.getStorageTypeName();
             this.storageSystemTypeDisplayName = storageSysType.getStorageTypeDispName();
-            this.storageSystemTypeType = storageSysType.getMetaType();
+            this.metaType = storageSysType.getMetaType();
             this.portNumber = storageSysType.getNonSslPort();
             this.sslPortNumber = storageSysType.getSslPort();
             this.useSSL = storageSysType.getIsDefaultSsl();

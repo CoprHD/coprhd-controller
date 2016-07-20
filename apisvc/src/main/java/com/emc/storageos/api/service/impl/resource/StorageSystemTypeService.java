@@ -93,11 +93,11 @@ public class StorageSystemTypeService extends TaskResourceService {
     @Path("/type/{type}")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
-    public StorageSystemTypeList getStorageSystemTypeType(@PathParam("type") String type) {
+    public StorageSystemTypeList getStorageSystemTypes(@PathParam("type") String type) {
         log.info("GET getStorageSystemType on type: " + type);
 
         if (type != null) {
-            ArgValidator.checkFieldValueFromEnum(type.toUpperCase(), "storageTypeType",
+            ArgValidator.checkFieldValueFromEnum(type.toUpperCase(), "metaType",
                     StorageSystemType.META_TYPE.class);
         }
 
@@ -140,7 +140,7 @@ public class StorageSystemTypeService extends TaskResourceService {
         ArgValidator.checkFieldNotEmpty(addparam.getStorageTypeName(), "storageTypeName");
         checkDuplicateLabel(StorageSystemType.class, addparam.getStorageTypeName());
 
-        ArgValidator.checkFieldNotEmpty(addparam.getStorageTypeType(), "storageTypeType");
+        ArgValidator.checkFieldNotEmpty(addparam.getMetaType(), "metaType");
 
         ArgValidator.checkFieldNotEmpty(addparam.getDriverClassName(), "driverClassName");
 
@@ -156,7 +156,7 @@ public class StorageSystemTypeService extends TaskResourceService {
         ssType.setStorageTypeId(ssTyeUri.toString());
 
         ssType.setStorageTypeName(addparam.getStorageTypeName());
-        ssType.setStorageTypeType(addparam.getStorageTypeType());
+        ssType.setMetaType(addparam.getMetaType());
         ssType.setDriverClassName(addparam.getDriverClassName());
 
         if (addparam.getStorageTypeDispName() != null) {

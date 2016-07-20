@@ -388,7 +388,6 @@ public class InitiatorService extends TaskResourceService {
             ArgValidator.checkFieldLengthMaximum(initiatorAlias.split(EMPTY_INITIATOR_ALIAS)[0], ALIAS_MAX_LIMIT, "alias node name");
             ArgValidator.checkFieldLengthMaximum(initiatorAlias.split(EMPTY_INITIATOR_ALIAS)[1], ALIAS_MAX_LIMIT, "alias port name");
         }
-        // ArgValidator.checkFieldLengthMaximum(initiatorAlias, ALIAS_MAX_LIMIT, "alias");
         if (initiatorAlias.matches(ALIAS_ILLEGAL_CHARACTERS)) {
             String errMsg = String.format(
                     "Supplied Alias: %s has invalid characters", initiatorAlias);

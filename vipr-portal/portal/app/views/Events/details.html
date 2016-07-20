@@ -5,7 +5,7 @@
 
 
 #{breadcrumb.container}
-  #{breadcrumb.item @listAll(event?.tenant == null)}&{'resources.events'}#{/breadcrumb.item}
+  #{breadcrumb.item @listAll()}&{'resources.events'}#{/breadcrumb.item}
   #{breadcrumb.item active:true}#{get 'title'/}#{/breadcrumb.item}
 #{/breadcrumb.container}
 

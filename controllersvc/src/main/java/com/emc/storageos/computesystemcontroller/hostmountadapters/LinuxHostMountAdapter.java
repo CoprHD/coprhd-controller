@@ -32,6 +32,7 @@ public class LinuxHostMountAdapter extends AbstractMountAdapter {
         FileShare fs = dbClient.queryObject(FileShare.class, args.getResId());
         FileExport export = findExport(fs, args.getSubDirectory(), args.getSecurity());
         String fsType = args.getFsType() == null ? "auto" : args.getFsType();
+        String subDirectory = args.getSubDirectory() == null ? "!nodir" : args.getSubDirectory();
         try {
             // verify mount point
             mountUtils.verifyMountPoint(args.getMountPath());
@@ -47,7 +48,7 @@ public class LinuxHostMountAdapter extends AbstractMountAdapter {
         }
         // Set the fs tag containing mount info
         setTag(fs.getId(), mountUtils.generateMountTag(args.getHostId(), args.getMountPath(),
-                args.getSubDirectory(), args.getSecurity()));
+                subDirectory, args.getSecurity()));
     }
 
     @Override
@@ -67,7 +68,7 @@ public class LinuxHostMountAdapter extends AbstractMountAdapter {
     public FileExport findExport(FileShare fs, String subDirectory, String securityType) {
         List<FileExport> exportList = queryDBFSExports(fs);
         dbClient.queryByType(FileShare.class, true);
-        if (subDirectory.equalsIgnoreCase("!nodir") || subDirectory.isEmpty() || subDirectory == null) {
+        if (subDirectory == null || subDirectory.equalsIgnoreCase("!nodir") || subDirectory.isEmpty()) {
             for (FileExport export : exportList) {
                 if (export.getSubDirectory().isEmpty() && securityType.equals(export.getSecurityType())) {
                     return export;

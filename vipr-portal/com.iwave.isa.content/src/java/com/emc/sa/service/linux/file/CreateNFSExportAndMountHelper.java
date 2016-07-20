@@ -35,7 +35,7 @@ public class CreateNFSExportAndMountHelper {
 
     public FileSystemExportParam findExport(FileShareRestRep fs, String subDirectory, String securityType) {
         List<FileSystemExportParam> exportList = FileStorageUtils.getNfsExports(fs.getId());
-        if (subDirectory.equalsIgnoreCase("!nodir")) {
+        if (subDirectory == null || subDirectory.equalsIgnoreCase("!nodir")) {
             for (FileSystemExportParam export : exportList) {
                 if (export.getSubDirectory().isEmpty() && securityType.equals(export.getSecurityType())) {
                     return export;
@@ -50,7 +50,8 @@ public class CreateNFSExportAndMountHelper {
         throw new IllegalArgumentException("no exports found");
     }
 
-    public void mountExport(FileShareRestRep fs, URI hostId, String subDirectory, String mountPath, String securityType, String hostName) {
+    public void mountExport(URI fsId, URI hostId, String subDirectory, String mountPath, String securityType, String hostName) {
+        FileShareRestRep fs = FileStorageUtils.getFileSystem(fsId);
         FileSystemExportParam export = findExport(fs, subDirectory, securityType);
         logInfo("linux.mount.file.export.mount", export.getMountPoint(), mountPath, hostName);
         FileStorageUtils.mountNfsExport(hostId, fs.getId(), subDirectory, mountPath, securityType, "auto");

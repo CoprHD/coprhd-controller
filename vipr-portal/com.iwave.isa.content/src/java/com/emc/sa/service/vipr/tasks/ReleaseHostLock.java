@@ -20,7 +20,7 @@ public class ReleaseHostLock extends ExecutionTask<Void> {
     public ReleaseHostLock(Host host, Cluster cluster) {
         this.host = host;
         this.cluster = cluster;
-        provideDetailArgs(host.getHostName(), host.getId());
+        provideDetailArgs(host.getHostName());
     }
 
     @Override

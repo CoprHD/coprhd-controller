@@ -230,24 +230,24 @@ public class VirtualArrays extends ViprResourceController {
 			// If storage system ids are passed, use them and create virtual arrays
 			JsonObject dataObject = getCookieAsJson(GUIDE_DATA);
 			JsonArray storage_systems = dataObject.getAsJsonArray(STORAGE_SYSTEMS);
-			if(storage_systems != null ) {
-				for(Object storageobject : storage_systems) {
-					JsonObject storage = (JsonObject) storageobject;
-					String storageid = storage.get("id").toString();
-
-					StorageSystemRestRep storageSystem = StorageSystemUtils.getStorageSystem(storageid);
-					String storagename = storageSystem.getName();
-
-					VirtualArrayForm virtualArray = new VirtualArrayForm();
-					virtualArray.name = VARRAY_PREFIX + storagename;
-					VirtualArrayRestRep varray = virtualArray.save();
-					virtualArray.load(varray);
-					response.setCookie("guide_varray", virtualArray.name );
-
-					addVarrayStorageSystem(virtualArray.id, storageid);
-				}
-			}
-			else {
+//			if(storage_systems != null ) {
+//				for(Object storageobject : storage_systems) {
+//					JsonObject storage = (JsonObject) storageobject;
+//					String storageid = storage.get("id").toString();
+//
+//					StorageSystemRestRep storageSystem = StorageSystemUtils.getStorageSystem(storageid);
+//					String storagename = storageSystem.getName();
+//
+//					VirtualArrayForm virtualArray = new VirtualArrayForm();
+//					virtualArray.name = VARRAY_PREFIX + storagename;
+//					VirtualArrayRestRep varray = virtualArray.save();
+//					virtualArray.load(varray);
+//					response.setCookie("guide_varray", virtualArray.name );
+//
+//					addVarrayStorageSystem(virtualArray.id, storageid);
+//				}
+//			}
+//			else {
 				// Create a storage system map that have virtual arrays attached
 				HashMap<String, String> storageSysVarrayMap = new HashMap<String, String>();
 				for (VirtualArrayRestRep availVarray : VirtualArrayUtils.getVirtualArrays()) {
@@ -281,7 +281,7 @@ public class VirtualArrays extends ViprResourceController {
 						}
 					}
 				}
-			}
+//			}
 			list();
 //			// Support three type of varray for mapping VMAX, UNITY, XtremIO
 //			List <String> vmaxids = Lists.newArrayList();

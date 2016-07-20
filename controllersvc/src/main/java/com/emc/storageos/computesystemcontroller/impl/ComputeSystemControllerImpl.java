@@ -1391,7 +1391,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 // && export.hasBlockObject(host.getBootVolumeId());
                 // if (!isBootVolumeExport) {
                 EventUtil.createActionableEvent(_dbClient, host.getTenant(), "Delete host " + hostId, host,
-                        "detachHostStorage", new Object[] { hostId, true, true }, null, null);
+                        "detachHostStorage", new Object[] { hostId, true, true });
                 // ExportGroupState egh = getExportGroupState(exportGroups, export);
                 // egh.removeHost(host.getId());
                 // egh.removeInitiators(hostInitiatorIds);

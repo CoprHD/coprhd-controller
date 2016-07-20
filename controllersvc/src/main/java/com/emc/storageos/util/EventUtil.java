@@ -49,4 +49,20 @@ public class EventUtil {
         dbClient.createObject(event);
     }
 
+    /**
+     * Creates an actionable event and persists to the database
+     * 
+     * @param dbClient db client
+     * @param tenant the tenant that owns the event
+     * @param description the description of what the event will do
+     * @param resource the resource that owns the event (host, cluster, etc)
+     * @param approveMethod the method to invoke when approving the event
+     * @param approveParameters the parameters to pass to the approve method
+     */
+    public static void createActionableEvent(DbClient dbClient, URI tenant, String description, DataObject resource,
+            String approveMethod, Object[] approveParameters) {
+        createActionableEvent(dbClient, tenant, description, resource,
+                approveMethod, approveParameters, null, null);
+    }
+
 }

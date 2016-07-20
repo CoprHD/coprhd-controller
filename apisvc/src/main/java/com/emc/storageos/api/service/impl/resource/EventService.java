@@ -11,6 +11,7 @@ import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URI;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
@@ -33,15 +34,19 @@ import com.emc.storageos.api.mapper.DbObjectMapper;
 import com.emc.storageos.api.mapper.functions.MapEvent;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.computesystemcontroller.ComputeSystemController;
+import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.AggregatedConstraint;
 import com.emc.storageos.db.client.constraint.AggregationQueryResultList;
 import com.emc.storageos.db.client.constraint.Constraint;
 import com.emc.storageos.db.client.model.ActionableEvent;
+import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.TenantOrg;
+import com.emc.storageos.db.client.model.VcenterDataCenter;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
@@ -56,6 +61,7 @@ import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
+import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 @DefaultPermissions(readRoles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN }, writeRoles = {
@@ -139,14 +145,69 @@ public class EventService extends TaggedResource {
         return taskList;
     }
 
-    public TaskResourceRep detachHostStorage(URI hostId, boolean deactivateOnComplete, boolean deactivateBootVolume) {
+    public TaskResourceRep deleteHost(URI hostId) {
         ComputeSystemController computeController = getController(ComputeSystemController.class, null);
-        Host host = _dbClient.queryObject(Host.class, hostId);
+        Host host = queryObject(Host.class, hostId, true);
         String taskId = UUID.randomUUID().toString();
         Operation op = _dbClient.createTaskOpStatus(Host.class, hostId, taskId,
                 ResourceOperationTypeEnum.DELETE_HOST);
-        computeController.detachHostStorage(hostId, deactivateOnComplete, deactivateBootVolume, taskId);
+        computeController.detachHostStorage(hostId, true, true, taskId);
         return toTask(host, taskId, op);
+    }
+
+    public TaskResourceRep deleteCluster(URI clusterId) {
+        String taskId = UUID.randomUUID().toString();
+        Cluster cluster = queryObject(Cluster.class, clusterId, true);
+        Operation op = _dbClient.createTaskOpStatus(Cluster.class, clusterId, taskId,
+                ResourceOperationTypeEnum.DELETE_CLUSTER);
+        ComputeSystemController controller = getController(ComputeSystemController.class, null);
+        controller.detachClusterStorage(clusterId, true, true, taskId);
+        auditOp(OperationTypeEnum.DELETE_CLUSTER, true, op.getStatus(),
+                cluster.auditParameters());
+        return toTask(cluster, taskId, op);
+    }
+
+    public TaskResourceRep hostClusterChange(URI hostId, URI clusterId) {
+        Host host = queryObject(Host.class, hostId, true);
+        URI oldClusterURI = host.getCluster();
+        String taskId = UUID.randomUUID().toString();
+
+        ComputeSystemController controller = getController(ComputeSystemController.class, null);
+
+        if (!NullColumnValueGetter.isNullURI(oldClusterURI)
+                && NullColumnValueGetter.isNullURI(host.getCluster())
+                && ComputeSystemHelper.isClusterInExport(_dbClient, oldClusterURI)) {
+            // Remove host from shared export
+            controller.removeHostsFromExport(Arrays.asList(host.getId()), oldClusterURI, taskId);
+        } else if (NullColumnValueGetter.isNullURI(oldClusterURI)
+                && !NullColumnValueGetter.isNullURI(host.getCluster())
+                && ComputeSystemHelper.isClusterInExport(_dbClient, host.getCluster())) {
+            // Non-clustered host being added to a cluster
+            controller.addHostsToExport(Arrays.asList(host.getId()), host.getCluster(), taskId, oldClusterURI);
+        } else if (!NullColumnValueGetter.isNullURI(oldClusterURI)
+                && !NullColumnValueGetter.isNullURI(host.getCluster())
+                && !oldClusterURI.equals(host.getCluster())
+                && (ComputeSystemHelper.isClusterInExport(_dbClient, oldClusterURI)
+                        || ComputeSystemHelper.isClusterInExport(_dbClient, host.getCluster()))) {
+            // Clustered host being moved to another cluster
+            controller.addHostsToExport(Arrays.asList(host.getId()), host.getCluster(), taskId, oldClusterURI);
+        } else {
+            ComputeSystemHelper.updateInitiatorClusterName(_dbClient, host.getCluster(), host.getId());
+        }
+
+        return new TaskResourceRep();
+    }
+
+    public TaskResourceRep deleteDatacenter(URI id) {
+        VcenterDataCenter dataCenter = queryObject(VcenterDataCenter.class, id, true);
+        String taskId = UUID.randomUUID().toString();
+        Operation op = _dbClient.createTaskOpStatus(VcenterDataCenter.class, dataCenter.getId(), taskId,
+                ResourceOperationTypeEnum.DELETE_VCENTER_DATACENTER_STORAGE);
+        ComputeSystemController controller = getController(ComputeSystemController.class, null);
+        controller.detachDataCenterStorage(dataCenter.getId(), true, taskId);
+        auditOp(OperationTypeEnum.DELETE_VCENTER_DATACENTER, true, null,
+                dataCenter.auditParameters());
+        return toTask(dataCenter, taskId, op);
     }
 
     private Method getMethod(Class clazz, String name) {

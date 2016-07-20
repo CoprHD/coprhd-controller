@@ -29,6 +29,13 @@
                 <entry key="driverprovider" value-ref="storageDriverSimulator"/>
             </map>
         </property>
+        <property name="capabilityDefinitions">
+            <map>
+                <entry key="autoTieringPolicy" ref="autoTieringPolicyCapabilityDefinition"/>
+            </map>
+        </property>
     </bean>
 
+    <bean id="autoTieringPolicyCapabilityDefinition" class="com.emc.storageos.storagedriver.storagecapabilities.AutoTieringPolicyCapabilityDefinition">
+    </bean>
 </beans>

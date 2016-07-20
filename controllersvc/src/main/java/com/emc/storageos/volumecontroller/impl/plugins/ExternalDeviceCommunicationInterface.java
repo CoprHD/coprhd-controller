@@ -24,7 +24,7 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.AutoTieringPolicy;
-import com.emc.storageos.db.client.model.AutoTieringPolicy.ProvisioningType;
+import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.StorageHADomain;
@@ -47,7 +47,8 @@ import com.emc.storageos.storagedriver.model.StoragePool;
 import com.emc.storageos.storagedriver.model.StoragePort;
 import com.emc.storageos.storagedriver.model.StorageProvider;
 import com.emc.storageos.storagedriver.model.StorageSystem;
-import com.emc.storageos.storagedriver.storagecapabilities.AutoTieringPolicyCapability;
+import com.emc.storageos.storagedriver.storagecapabilities.AutoTieringPolicyCapabilityDefinition;
+import com.emc.storageos.storagedriver.storagecapabilities.CapabilityDefinition;
 import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
@@ -68,6 +69,9 @@ public class ExternalDeviceCommunicationInterface extends
     private static final String EXISTING = "existing";
     private Logger _log = LoggerFactory.getLogger(ExternalDeviceCommunicationInterface.class);
     private Map<String, AbstractStorageDriver> drivers;
+    
+    // The common capability definitions supported by the SB SDK.
+    private Map<String, CapabilityDefinition> capabilityDefinitions;
 
     private ExternalDeviceUnManagedVolumeDiscoverer unManagedVolumeDiscoverer;
     private ExternalDeviceUnManagedVolumeDiscoverer unManagedFileSystemDiscoverer;
@@ -82,6 +86,15 @@ public class ExternalDeviceCommunicationInterface extends
     public void setDrivers(Map<String, AbstractStorageDriver> drivers) {
         this.drivers = drivers;
     }
+    
+    /**
+     * Setter for the common capability definitions supported by the SB SDK.
+     * 
+     * @param capabilityDefinitions The map common of capability definitions keyed by their unique id.
+     */
+    public void setCapabilityDefinitions(Map<String, CapabilityDefinition> capabilityDefinitions) {
+        this.capabilityDefinitions = capabilityDefinitions;
+    }    
 
     /**
      * Get device driver based on the driver type.
@@ -426,6 +439,8 @@ public class ExternalDeviceCommunicationInterface extends
         List<com.emc.storageos.db.client.model.StoragePool> allPools = new ArrayList<>();
         List<com.emc.storageos.db.client.model.StoragePool> newPools = new ArrayList<>();
         List<com.emc.storageos.db.client.model.StoragePool> existingPools = new ArrayList<>();
+        List<DataObject> objectsToCreate = new ArrayList<>();
+        List<DataObject> objectsToUpdate = new ArrayList<>();
 
         com.emc.storageos.db.client.model.StorageSystem storageSystem =
                 _dbClient.queryObject(com.emc.storageos.db.client.model.StorageSystem.class, accessProfile.getSystemId());
@@ -486,10 +501,12 @@ public class ExternalDeviceCommunicationInterface extends
                         pool.setInactive(false);
                         pool.setDiscoveryStatus(DiscoveredDataObject.DiscoveryStatus.VISIBLE.name());
                         newPools.add(pool);
+                        objectsToCreate.add(pool);
                     } else if (pools.size() == 1) {
                         _log.info("Pool {} was previously discovered, native GUID {}", storagePool.getNativeId(), poolNativeGuid);
                         pool = pools.get(0);
                         existingPools.add(pool);
+                        objectsToUpdate.add(pool);
                     } else {
                         _log.warn(String.format("There are %d StoragePools with nativeGuid = %s", pools.size(),
                                 poolNativeGuid));
@@ -505,17 +522,31 @@ public class ExternalDeviceCommunicationInterface extends
                     pool.addSupportedRaidLevels(storagePool.getSupportedRaidLevels());
                     
                     
+                    // Get the capabilities specified for the storage pool.
                     List<CapabilityInstance> capabilities = storagePool.getCapabilities();
                     for (CapabilityInstance capability : capabilities) {
-                        if (!AutoTieringPolicyCapability.CAPABILITY_NAME.equals(capability.getName())) {
+                        // Get the capability definition for the capability.
+                        String capabilityDefinitionUid = capability.getCapabilityDefinitionUid();
+                        if ((capabilityDefinitionUid == null) || (capabilityDefinitionUid.isEmpty())) {
+                            // log error message - Capability must have a capability definition uid.
                             continue;
                         }
                         
-                        // We have an auto tiering policy for the pool, so set auto tiering enabled.
-                        pool.setAutoTieringEnabled(true);
+                        // Get the capability definition from the map of supported capability definitions.
+                        CapabilityDefinition capabilityDefinition = capabilityDefinitions.get(capabilityDefinitionUid);
+                        if (capabilityDefinition == null) {
+                            // log info message - Not necessarily an error, just an unsupported storage pool capability so skip it.
+                            continue;
+                        }
                         
-                        // Create or update the aut tiering policy with with this policy id.
-                        createUpdateAutoTierPolicies(storageSystem, pool.getId(), capability);
+                        // Handle auto tiering policy capability.
+                        if (AutoTieringPolicyCapabilityDefinition.CAPABILITY_UID.equals(capabilityDefinitionUid)) {
+                            // We have an auto tiering policy for the pool, so set auto tiering enabled.
+                            pool.setAutoTieringEnabled(true);
+                            
+                            // Create or update the auto tiering policy for this auto tiering policy capability.
+                            createUpdateAutoTierPolicies(storageSystem, pool.getId(), capability, objectsToCreate, objectsToUpdate);
+                        } 
                     }             
                     
                     
@@ -525,10 +556,10 @@ public class ExternalDeviceCommunicationInterface extends
                 _log.info("No of newly discovered pools {}", newPools.size());
                 _log.info("No of existing discovered pools {}", existingPools.size());
 
-                _dbClient.createObject(newPools);
-                _dbClient.updateObject(existingPools);
                 allPools.addAll(newPools);
                 allPools.addAll(existingPools);
+                _dbClient.createObject(objectsToCreate);
+                _dbClient.updateObject(objectsToUpdate);
             } else {
                 String errorMsg = String.format("Failed to discover storage pools for system %s of type %s . \n" +
                                 " Driver task message: %s",
@@ -554,10 +585,11 @@ public class ExternalDeviceCommunicationInterface extends
 
     }
     
-    private void createUpdateAutoTierPolicies(com.emc.storageos.db.client.model.StorageSystem system, URI poolURI, CapabilityInstance capability) {
-        List<String> propValues = capability.getProperty(AutoTieringPolicyCapability.PROPERTY_NAMES.POLICY_ID.name());
-        if (!propValues.isEmpty()) {
-            String policyId = propValues.get(0);
+    private void createUpdateAutoTierPolicies(com.emc.storageos.db.client.model.StorageSystem system, URI poolURI, CapabilityInstance capability,
+            List<DataObject> objectsToCreate, List<DataObject> objecstToUpdate) {
+        
+        String policyId = capability.getPropertyValue(AutoTieringPolicyCapabilityDefinition.PROPERTY_NAME.POLICY_ID.name());
+        if (policyId != null) {
             String nativeGuid = NativeGUIDGenerator.generateAutoTierPolicyNativeGuid(system.getNativeGuid(),
                     policyId, NativeGUIDGenerator.AUTO_TIERING_POLICY);
             AutoTieringPolicy tieringPolicy = checkTieringPolicyExistsInDB(nativeGuid);
@@ -571,17 +603,21 @@ public class ExternalDeviceCommunicationInterface extends
                 tieringPolicy.setSystemType(system.getSystemType());
                 tieringPolicy.setPolicyEnabled(Boolean.TRUE);
                 tieringPolicy.addPool(poolURI.toString());
-                String provisioingType = ProvisioningType.All.name();
-                propValues = capability.getProperty(AutoTieringPolicyCapability.PROPERTY_NAMES.PROVISIONING_TYPE.name());
-                if (!propValues.isEmpty()) {
-                    provisioingType = propValues.get(0);
+                String provisioningType = capability.getPropertyValue(AutoTieringPolicyCapabilityDefinition.PROPERTY_NAME.PROVISIONING_TYPE.name());
+                if (provisioningType != null) {
+                    tieringPolicy.setProvisioningType(provisioningType);
                 }
-                tieringPolicy.setProvisioningType(provisioingType);
-                _dbClient.createObject(tieringPolicy);
+                objectsToCreate.add(tieringPolicy);
             } else {
-                tieringPolicy.addPool(poolURI.toString());
-                _dbClient.updateObject(tieringPolicy);
+                StringSet policyPools = tieringPolicy.getPools();
+                if (!policyPools.contains(poolURI.toString())) {
+                    tieringPolicy.addPool(poolURI.toString());
+                    _dbClient.updateObject(tieringPolicy);
+                    objecstToUpdate.add(tieringPolicy);
+                }
             }
+        } else {
+            // handle
         }
     }
 

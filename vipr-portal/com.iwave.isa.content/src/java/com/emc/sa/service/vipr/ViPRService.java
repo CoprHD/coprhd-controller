@@ -13,13 +13,14 @@ import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.service.AbstractExecutionService;
 import com.emc.sa.model.dao.ModelClient;
 import com.emc.sa.service.vipr.tasks.AcquireHostLock;
+import com.emc.sa.service.vipr.tasks.ReleaseHostLock;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.EncryptionProvider;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.vipr.client.ClientConfig;
-import com.emc.vipr.client.Tasks;
 import com.emc.vipr.client.Task;
+import com.emc.vipr.client.Tasks;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.util.ResourceUtils;
 import com.google.common.collect.Lists;
@@ -86,8 +87,7 @@ public abstract class ViPRService extends AbstractExecutionService {
                     addAffectedResource(id);
                 }
             }
-        }
-        else {
+        } else {
             warn("null resource for task, not adding to affected resources: %s", task);
         }
     }
@@ -139,6 +139,15 @@ public abstract class ViPRService extends AbstractExecutionService {
 
         if (cluster != null) {
             locks.add(cluster.getId().toString());
+        }
+    }
+
+    protected void releaseHostLock(Host host, Cluster cluster) {
+        execute(new ReleaseHostLock(host, cluster));
+        locks.remove(host.getId().toString());
+
+        if (cluster != null) {
+            locks.remove(cluster.getId().toString());
         }
     }
 

@@ -157,4 +157,6 @@ public interface ServiceParams {
     public String MOUNT_PATH = "mountPath";
     public String SECURITY_TYPE = "securityType";
     public String MOUNTED_NFS_EXPORTS = "mountedNFSExports";
+    public String FILESYSTEM_NAME = "fileSystemName";
+    public String MOUNT_LIST = "mountList";
 }

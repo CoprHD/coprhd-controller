@@ -500,7 +500,7 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
 
                 EventUtil.createActionableEvent(dbClient, target.getTenant(),
                         "Host changed cluster to " + (cluster == null ? " no cluster " : cluster.getId()), target, "hostClusterChange",
-                        new Object[] { target.getId(), cluster != null ? cluster.getId() : NullColumnValueGetter.getNullURI() });
+                        new Object[] { target.getId(), cluster != null ? cluster.getId() : NullColumnValueGetter.getNullURI(), true });
             }
 
             if (target.getType() == null ||

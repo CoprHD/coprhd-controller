@@ -167,7 +167,7 @@ public class EventService extends TaggedResource {
         return toTask(cluster, taskId, op);
     }
 
-    public TaskResourceRep hostClusterChange(URI hostId, URI clusterId) {
+    public TaskResourceRep hostClusterChange(URI hostId, URI clusterId, boolean isVcenter) {
         Host host = queryObject(Host.class, hostId, true);
         URI oldClusterURI = host.getCluster();
         String taskId = UUID.randomUUID().toString();
@@ -180,19 +180,19 @@ public class EventService extends TaggedResource {
                 && NullColumnValueGetter.isNullURI(host.getCluster())
                 && ComputeSystemHelper.isClusterInExport(_dbClient, oldClusterURI)) {
             // Remove host from shared export
-            controller.removeHostsFromExport(Arrays.asList(host.getId()), oldClusterURI, taskId);
+            controller.removeHostsFromExport(Arrays.asList(host.getId()), oldClusterURI, isVcenter, taskId);
         } else if (NullColumnValueGetter.isNullURI(oldClusterURI)
                 && !NullColumnValueGetter.isNullURI(host.getCluster())
                 && ComputeSystemHelper.isClusterInExport(_dbClient, host.getCluster())) {
             // Non-clustered host being added to a cluster
-            controller.addHostsToExport(Arrays.asList(host.getId()), host.getCluster(), taskId, oldClusterURI);
+            controller.addHostsToExport(Arrays.asList(host.getId()), host.getCluster(), taskId, oldClusterURI, isVcenter);
         } else if (!NullColumnValueGetter.isNullURI(oldClusterURI)
                 && !NullColumnValueGetter.isNullURI(host.getCluster())
                 && !oldClusterURI.equals(host.getCluster())
                 && (ComputeSystemHelper.isClusterInExport(_dbClient, oldClusterURI)
                         || ComputeSystemHelper.isClusterInExport(_dbClient, host.getCluster()))) {
             // Clustered host being moved to another cluster
-            controller.addHostsToExport(Arrays.asList(host.getId()), host.getCluster(), taskId, oldClusterURI);
+            controller.addHostsToExport(Arrays.asList(host.getId()), host.getCluster(), taskId, oldClusterURI, isVcenter);
         } else {
             ComputeSystemHelper.updateInitiatorClusterName(_dbClient, host.getCluster(), host.getId());
         }

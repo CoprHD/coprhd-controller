@@ -1621,59 +1621,64 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                 });
                 break;
             case 6:
-                $http.get(routes.VirtualArrays_list()).then(function (data) {
-                    finished=false;
-                    if (data.data.aaData.length != 0) {
-                        testId = function (vArrays) {
-                            var promises = vArrays.map( function(vArray) {
-                            return $http.get(routes.VirtualArrays_pools({'id':vArray.id})).then(function (data,$q) {
-                                    if (!finished && data.data.aaData.length != 0){
-                                        if(checkCookie("guide_varray")){
-                                            finished=true;
-                                            goToNextStep(true);
-                                            finishChecking();
-                                        } else {finishChecking();}
-                                    }
-                                });
-                            });
-                            $q.all(promises).then(function () {
-                                if(!finished) {
-                                    finishChecking();
+                guide_data=angular.fromJson(readCookie(dataCookieKey));
+                $http.get(routes.VirtualArrays_getConnectedStorage()).then(function (data) {
+                    failedArray= [];
+                    if (data.data.length != 0) {
+                        arrayCookie = guide_data.storage_systems;
+                        console.log(data.data);
+                        if (arrayCookie) {
+                            jQuery.each(arrayCookie, function() {
+                                console.log(this.id);
+                                if($.inArray(this.id, data.data) == -1){
+                                    failedArray.push(this.name);
                                 }
                             });
-                        };
-                        return testId(data.data.aaData);
+                            if (failedArray.length > 0) {
+                                $scope.$parent.guideError = "Error: Some Storage not attached to Virtual Array:\n"+failedArray;
+                                finishChecking();
+                            } else {
+                                $scope.$parent.completedSteps = 6;
+                                goToNextStep(true);
+                            }
+                        } else {
+                            finishChecking();
+                        }
                     } else {
+                        //$scope.$parent.optionalStepComplete = false;
+                        //goToNextStep(true);
                         finishChecking();
                     }
                 });
                 break;
             case 7:
-                $http.get(routes.BlockVirtualPools_list()).then(function (data) {
-                    finished=false;
-                    if (data.data.aaData.length != 0) {
-                        testId = function (vPools) {
-                            var promises = vPools.map( function(vPool) {
-                            return $http.get(routes.BlockVirtualPools_pools({'id':vPool.id})).then(function (data,$q) {
-
-                                    if (!finished && data.data.aaData.length != 0){
-                                        finished=true;
-                                        goToNextStep(true);
-                                        finishChecking();
-                                    }
-                                });
+                if(checkCookie(dataCookieKey)){
+                    ssid= "";
+                    guide_data=angular.fromJson(readCookie(dataCookieKey));
+                    if(guide_data){
+                        arrayCookie = guide_data.storage_systems;
+                        if (arrayCookie) {
+                            jQuery.each(arrayCookie, function() {
+                                if (ssid){ssid += ","}
+                                ssid += this.id;
                             });
-                            $q.all(promises).then(function () {
-                                if(!finished) {
-                                    finishChecking();
-                                }
-                            });
-                        };
-                        return testId(data.data.aaData);
-                    } else {
-                        finishChecking();
+                        }
                     }
-                });
+                    $http.get(routes.VirtualPools_checkDisconnectedStoragePools({'ids':ssid})).then(function (data) {
+                        failedArray= [];
+                        console.log(data);
+                        if (data.data.length != 0) {
+                            failedArray=failedArray.concat(data.data)
+                            $scope.$parent.guideError = "Error: Some Storage not attached to Virtual Pool:\n"+failedArray;
+                            finishChecking();
+                        } else {
+                            $scope.$parent.completedSteps = 7;
+                            goToNextStep(true);
+                        }
+                    });
+                } else {
+                    finishChecking();
+                }
                 break;
             case 8:
                 $http.get(routes.Projects_list()).then(function (data) {
@@ -1909,10 +1914,12 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
         createCookie(cookieKey,angular.toJson(cookieObject),'session');
     }
 
-    $scope.restartGuide = function () {
-        $scope.$parent.guideDataAvailable = false;
+    $scope.startAddMoreStorage = function () {
         removeGuideCookies();
-        $scope.initializeSteps();
+        $scope.$parent.currentStep = 4;
+        $scope.$parent.completedSteps = 3;
+        $scope.$parent.maxSteps = maxSteps;
+        saveGuideCookies();
     }
 
     removeGuideCookies = function() {
@@ -2063,59 +2070,63 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
                 break;
             case 6:
                 guide_data=angular.fromJson(readCookie(dataCookieKey));
-                $http.get(routes.VirtualArrays_list()).then(function (data) {
-                    finished=false;
-                    if (data.data.aaData.length != 0) {
-                        testId = function (vArrays) {
-                            var promises = vArrays.map( function(vArray) {
-                            return $http.get(routes.VirtualArrays_pools({'id':vArray.id})).then(function (data,$q) {
-                                    if (!finished && data.data.aaData.length != 0){
-                                        if(checkCookie("guide_varray")){
-                                            finished=true;
-                                            $scope.$parent.completedSteps = 6;
-                                            return checkStep(7);
-                                        } else {finishChecking();}
-                                    }
-                                });
-                            });
-                            $q.all(promises).then(function () {
-                                if(!finished) {
-                                    finishChecking();
+                $http.get(routes.VirtualArrays_getConnectedStorage()).then(function (data) {
+                    failedArray= [];
+                    if (data.data.length != 0) {
+                        arrayCookie = guide_data.storage_systems;
+                        console.log(data.data);
+                        if (arrayCookie) {
+                            jQuery.each(arrayCookie, function() {
+                                console.log(this.id);
+                                if($.inArray(this.id, data.data) == -1){
+                                    failedArray.push(this.name);
                                 }
                             });
-                        };
-                        return testId(data.data.aaData);
+                            if (failedArray.length > 0) {
+                                $scope.$parent.guideError = "Error: Some Storage not attached to Virtual Array:\n"+failedArray;
+                                finishChecking();
+                            } else {
+                                $scope.$parent.completedSteps = 6;
+                                checkStep(7);
+                            }
+                        } else {
+                            finishChecking();
+                        }
                     } else {
+                        //$scope.$parent.optionalStepComplete = false;
+                        //goToNextStep(true);
                         finishChecking();
                     }
                 });
                 break;
             case 7:
-                $http.get(routes.BlockVirtualPools_list()).then(function (data) {
-                    finished=false;
-                    if (data.data.aaData.length != 0) {
-                        testId = function (vPools) {
-                            var promises = vPools.map( function(vPool) {
-                            return $http.get(routes.BlockVirtualPools_pools({'id':vPool.id})).then(function (data,$q) {
-
-                                    if (!finished && data.data.aaData.length != 0){
-                                        finished=true;
-                                        $scope.$parent.completedSteps = 7;
-                                        return checkStep(8);
-                                    }
-                                });
+                if(checkCookie(dataCookieKey)){
+                    ssid= "";
+                    guide_data=angular.fromJson(readCookie(dataCookieKey));
+                    if(guide_data){
+                        arrayCookie = guide_data.storage_systems;
+                        if (arrayCookie) {
+                            jQuery.each(arrayCookie, function() {
+                                if (ssid){ssid += ","}
+                                ssid += this.id;
                             });
-                            $q.all(promises).then(function () {
-                                if(!finished) {
-                                    finishChecking();
-                                }
-                            });
-                        };
-                        return testId(data.data.aaData);
-                    } else {
-                        finishChecking();
+                        }
                     }
-                });
+                    $http.get(routes.VirtualPools_checkDisconnectedStoragePools({'ids':ssid})).then(function (data) {
+                        failedArray= [];
+                        console.log(data);
+                        if (data.data.length != 0) {
+                            failedArray=failedArray.concat(data.data)
+                            $scope.$parent.guideError = "Error: Some Storage not attached to Virtual Pool:\n"+failedArray;
+                            finishChecking();
+                        } else {
+                            $scope.$parent.completedSteps = 7;
+                            return checkStep(8);
+                        }
+                    });
+                } else {
+                    finishChecking();
+                }
                 break;
             case 8:
                 $http.get(routes.Projects_list()).then(function (data) {

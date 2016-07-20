@@ -54,6 +54,7 @@ public class StorageSystemTypes {
     public static final String[] FILE_TYPES = { ISILON, VNX_FILE, NETAPP, DATA_DOMAIN, VNXe, UNITY, NETAPPC };
     public static final String[] STORAGE_PROVIDER_TYPES = { SMIS, VNX_BLOCK, HITACHI, VPLEX, OPENSTACK, SCALEIO, SCALEIOAPI, DATA_DOMAIN, IBMXIV, XTREMIO, CEPH };
     public static final String[] NON_SMIS_TYPES = { ISILON, VNX_FILE, NETAPP, XTREMIO, VNXe, UNITY, NETAPPC, ECS };
+    public static final String[] ALL_FLASH_STORAGE_TYPES = { XTREMIO, VMAX, UNITY };
 
     public static boolean isNone(String type) {
         return NONE.equals(type);
@@ -215,9 +216,10 @@ public class StorageSystemTypes {
         List<StringOption> options = new ArrayList<StringOption>(Arrays.asList(StringOption.NONE_OPTION));
         StorageSystemTypeList typeList = StorageSystemTypeUtils.getAllStorageSystemTypes(StorageSystemTypeUtils.ALL_TYPE);
         for (StorageSystemTypeRestRep type : typeList.getStorageSystemTypes()) {
+
             // ignore those whose type is not block
-            if (!StorageSystemTypeUtils.BLOCK_TYPE.equalsIgnoreCase(type.getMetaType())
-                    && !StorageSystemTypeUtils.BLOCK_AND_FILE_TYPE.equalsIgnoreCase(type.getMetaType())) {
+            if (!StorageSystemTypeUtils.BLOCK_TYPE.equalsIgnoreCase(type.getDriverClassName())
+                    && !StorageSystemTypeUtils.BLOCK_AND_FILE_TYPE.equalsIgnoreCase(type.getDriverClassName())) {
                 continue;
             }
             // no need further check for non-SMIS providers
@@ -239,8 +241,8 @@ public class StorageSystemTypes {
         List<StringOption> options = new ArrayList<StringOption>(Arrays.asList(StringOption.NONE_OPTION));
         StorageSystemTypeList typeList = StorageSystemTypeUtils.getAllStorageSystemTypes(StorageSystemTypeUtils.ALL_TYPE);
         for (StorageSystemTypeRestRep type : typeList.getStorageSystemTypes()) {
-            if (!StorageSystemTypeUtils.FILE_TYPE.equalsIgnoreCase(type.getMetaType())
-                    && !StorageSystemTypeUtils.BLOCK_AND_FILE_TYPE.equalsIgnoreCase(type.getMetaType())) {
+            if (!StorageSystemTypeUtils.FILE_TYPE.equalsIgnoreCase(type.getDriverClassName())
+                    && !StorageSystemTypeUtils.BLOCK_AND_FILE_TYPE.equalsIgnoreCase(type.getDriverClassName())) {
                 continue;
             }
             if (type.getIsSmiProvider()) {
@@ -255,7 +257,7 @@ public class StorageSystemTypes {
         List<StringOption> options = new ArrayList<StringOption>(Arrays.asList(StringOption.NONE_OPTION));
         StorageSystemTypeList typeList = StorageSystemTypeUtils.getAllStorageSystemTypes(StorageSystemTypeUtils.ALL_TYPE);
         for (StorageSystemTypeRestRep type : typeList.getStorageSystemTypes()) {
-            if (!StorageSystemTypeUtils.OBJECT_TYPE.equalsIgnoreCase(type.getMetaType())) {
+            if (!StorageSystemTypeUtils.OBJECT_TYPE.equalsIgnoreCase(type.getDriverClassName())) {
                 continue;
             }
             options.add(new StringOption(type.getStorageTypeName(), type.getStorageTypeDispName()));

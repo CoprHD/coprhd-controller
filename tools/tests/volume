@@ -34,7 +34,7 @@ def volume_create(args):
    
     start = time.time()
     tr_list = bourne.volume_create(args.label, project_uri, nh_uri, cos_uri, args.size, isThinVolume, volumeCount,
-                                  args.protocols, args.protection, cons_grp_uri)
+                                  args.protocols, args.protection, cons_grp_uri, args.computeResource)
     total = time.time() - start
     print "Volume create took", "{0:.2f}".format(total), "seconds to complete"
     #print 'Volume_create debug : ' + str(s)
@@ -278,7 +278,7 @@ def volume_change_link(args):
     bourne.connect(args.ip)
     uri = bourne.volume_query(args.name)
     copy_uri = bourne.volume_query(args.copyURI)
-    changelink=bourne.volume_change_link(uri, args.operation, copy_uri, args.type, args.pit)
+    changelink=bourne.volume_change_link(uri, args.operation, copy_uri, args.type, args.am, args.pit)
     print "Volume change link operation completed"
 
 def volume_verify(args):
@@ -412,6 +412,7 @@ create.add_argument('--protocols',      help = 'volume access storage protocols'
 create.add_argument('--protection',     help = 'data protection level for this volume')
 create.add_argument('--consistencyGroup', help = 'add the volume to the specified consistency group for snapshot operations')
 create.add_argument('--thinVolume', help = 'boolean indication if volume is thin or thick')
+create.add_argument('--computeResource', help = 'The name of a host or cluster to which the volume will be exported')
 
 # volume add_journal
 add_journal = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
@@ -508,6 +509,7 @@ change_link.add_argument('name',		help = 'URI or full pathname of volume')
 change_link.add_argument('operation',	help = 'operation: stop, start, failover, failover_test, pause, resume')
 change_link.add_argument('copyURI', help = 'URI of copy to perform operation on')
 change_link.add_argument('type', help = 'type of protection for the source volume')
+change_link.add_argument('--am', help = 'access mode')
 change_link.add_argument('--pit', help = 'any UTC point-in-time formatted as "yyyy-MM-dd_HH:mm:ss" or datetime in milliseconds')
 
 # volume verify

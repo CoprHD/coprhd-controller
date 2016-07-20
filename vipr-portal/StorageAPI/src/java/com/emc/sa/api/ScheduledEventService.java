@@ -552,15 +552,16 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
     @Path("/{id}/deactivate")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.TENANT_ADMIN })
-    public Response deactivateOrder(@PathParam("id") String id) throws DatabaseException {
+    public Response deactivateScheduledEvent(@PathParam("id") String id) throws DatabaseException {
         ScheduledEvent scheduledEvent = queryResource(uri(id));
         ArgValidator.checkEntity(scheduledEvent, uri(id), true);
 
-        // deactive all the orders from the scheduled event
+        // deactivate all the orders from the scheduled event
         URIQueryResultList resultList = new URIQueryResultList();
         _dbClient.queryByConstraint(
                 ContainmentConstraint.Factory.getScheduledEventOrderConstraint(uri(id)), resultList);
         for (URI uri : resultList) {
+            log.info("deleting order: {}", uri);
             Order order = _dbClient.queryObject(Order.class, uri);
             client.delete(order);
         }

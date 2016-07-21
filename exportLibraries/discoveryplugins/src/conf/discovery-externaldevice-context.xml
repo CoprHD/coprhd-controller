@@ -31,7 +31,7 @@
         </property>
         <property name="capabilityDefinitions">
             <map>
-                <entry key="autoTieringPolicy" ref="autoTieringPolicyCapabilityDefinition"/>
+                <entry key="autoTieringPolicy" value-ref="autoTieringPolicyCapabilityDefinition"/>
             </map>
         </property>
     </bean>

@@ -21,6 +21,7 @@ import com.emc.storageos.storagedriver.model.VolumeClone;
 import com.emc.storageos.storagedriver.model.VolumeConsistencyGroup;
 import com.emc.storageos.storagedriver.model.VolumeSnapshot;
 import com.emc.storageos.storagedriver.model.StorageObject.AccessStatus;
+import com.emc.storageos.storagedriver.model.StorageVolume;
 import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
 
 public class HP3PARCGHelper {
@@ -182,7 +183,7 @@ public class HP3PARCGHelper {
 								snap.setWwn(volResult.getWwn());
 								snap.setNativeId(volResult.getName());
 								snap.setDeviceLabel(volResult.getName());
-								snap.setLabel(volResult.getName());
+
 								// snap.setAccessStatus(volResult.getAccessStatus());
 								snap.setDisplayName(volResult.getName());
 
@@ -228,6 +229,9 @@ public class HP3PARCGHelper {
 	public DriverTask deleteConsistencyGroupSnapshot(List<VolumeSnapshot> snapshots, DriverTask task,
 			Registry driverRegistry) {
 
+		String storageSystemId = null;
+		HP3PARApi hp3parApi = null;
+
 		// For each requested CG volume snapshot
 		for (VolumeSnapshot snap : snapshots) {
 			try {
@@ -235,8 +239,12 @@ public class HP3PARCGHelper {
 						"3PARDriver: deleteConsistencyGroupSnapshot for storage system native id {}, volume name {} , native id {} - start",
 						snap.getStorageSystemId(), snap.getDisplayName(), snap.getNativeId());
 
+				String localStorageSystemId = snap.getStorageSystemId();
 				// get Api client
-				HP3PARApi hp3parApi = hp3parUtil.getHP3PARDeviceFromNativeId(snap.getStorageSystemId(), driverRegistry);
+				if (storageSystemId == null || storageSystemId != localStorageSystemId) {
+					storageSystemId = localStorageSystemId;
+					hp3parApi = hp3parUtil.getHP3PARDeviceFromNativeId(localStorageSystemId, driverRegistry);
+				}
 
 				// Delete virtual copy
 				hp3parApi.deleteVirtualCopy(snap.getNativeId());
@@ -335,7 +343,7 @@ public class HP3PARCGHelper {
 				clone.setWwn(volResult.getWwn());
 				clone.setNativeId(volResult.getId());
 				clone.setDeviceLabel(volResult.getName());
-				clone.setLabel(volResult.getName());
+
 				// snap.setAccessStatus(volResult.getAccessStatus());
 				clone.setDisplayName(volResult.getName());
 
@@ -373,5 +381,44 @@ public class HP3PARCGHelper {
 	public void setHp3parUtil(HP3PARUtil hp3parUtil) {
 		this.hp3parUtil = hp3parUtil;
 	}
+
+	public DriverTask addOrRemoveConsistencyGroupVolume(List<StorageVolume> volumes, DriverTask task,
+			Registry driverRegistry, int action) {
+		String storageSystemId = null;
+		HP3PARApi hp3parApi = null;
+
+		for (StorageVolume volume : volumes) {
+			try {
+				_log.info(
+						"3PARDriver: removeConsistencyGroupVolume for storage system  id {}, display name {} , native id {}, device lable id {} , cosistency group id {}",
+						volume.getStorageSystemId(), volume.getDisplayName(), volume.getNativeId(),
+						volume.getDeviceLabel(), volume.getConsistencyGroup());
+
+				String localStorageSystemId = volume.getStorageSystemId();
+				// get Api client
+				if (storageSystemId == null || storageSystemId != localStorageSystemId) {
+					storageSystemId = localStorageSystemId;
+					hp3parApi = hp3parUtil.getHP3PARDeviceFromNativeId(localStorageSystemId, driverRegistry);
+				}
+
+				// update VV Set / Consistency Group
+				hp3parApi.updateVVset(volume.getConsistencyGroup(), volume.getDisplayName(), action);
+
+				task.setStatus(DriverTask.TaskStatus.READY);
+
+			} catch (Exception e) {
+				String msg = String.format(
+						"3PARDriver: Unable to create consistency group name %s in storage system native id is %s; Error: %s.\n",
+						volume.getDisplayName(), volume.getStorageSystemId(), e.getMessage());
+				_log.error(msg);
+				task.setMessage(msg);
+				task.setStatus(DriverTask.TaskStatus.PARTIALLY_FAILED);
+				e.printStackTrace();
+			}
+		}
+
+		return task;
+	}
+
 
 }

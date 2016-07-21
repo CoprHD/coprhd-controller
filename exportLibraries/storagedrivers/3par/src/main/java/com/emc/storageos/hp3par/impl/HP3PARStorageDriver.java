@@ -721,17 +721,19 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 
     @Override
     public DriverTask addVolumesToConsistencyGroup(List<StorageVolume> volumes, StorageCapabilities capabilities) {
-        _log.info("3PARDriver: addVolumesToConsistencyGroup Running");
-        // TODO Auto-generated method stub
-        return null;
+    	int addVolume = 1;
+		DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_ADD_VOLUME_TO_CONSISTENCY_GROUP);
+		return cgHelper.addOrRemoveConsistencyGroupVolume(volumes, task, driverRegistry,addVolume);
+
     }
 
     @Override
-    public DriverTask removeVolumesFromConsistencyGroup(List<StorageVolume> volumes, StorageCapabilities capabilities) {
-        _log.info("3PARDriver: removeVolumesFromConsistencyGroup Running");
-        // TODO Auto-generated method stub
-        return null;
-    }
+	public DriverTask removeVolumesFromConsistencyGroup(List<StorageVolume> volumes, StorageCapabilities capabilities) {
+		DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_REMOVE_VOLUME_FROM_CONSISTENCY_GROUP);
+		int removeVolume = 2;
+		return cgHelper.addOrRemoveConsistencyGroupVolume(volumes, task, driverRegistry, removeVolume);
+
+	}
     
 	public HP3PARIngestHelper getIngestHelper() {
 		return ingestHelper;

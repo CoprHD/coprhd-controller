@@ -9,6 +9,7 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
@@ -36,8 +37,8 @@ public class VplexVolumeValidator extends AbstractVplexValidator {
     private Logger log = LoggerFactory.getLogger(VplexVolumeValidator.class);
     private List<Volume> remediatedVolumes = new ArrayList<Volume>();
 
-    public VplexVolumeValidator(DbClient dbClient, ValidatorLogger logger) {
-        super(dbClient, logger);
+    public VplexVolumeValidator(DbClient dbClient, CoordinatorClient coordinator, ValidatorLogger logger) {
+        super(dbClient, coordinator, logger);
     }
 
     public List<Volume> validateVolumes(StorageSystem storageSystem,

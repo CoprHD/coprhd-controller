@@ -9,6 +9,7 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
@@ -33,8 +34,9 @@ public class VplexExportMaskValidator extends AbstractVplexValidator implements 
     VPlexApiClient client = null;
     String id = null;    // identifying string for ExportMask
 
-    public VplexExportMaskValidator(DbClient dbClient, ValidatorLogger logger, StorageSystem vplex, ExportMask mask) {
-        super(dbClient, logger);
+    public VplexExportMaskValidator(DbClient dbClient, CoordinatorClient coordinator, ValidatorLogger logger, StorageSystem vplex,
+            ExportMask mask) {
+        super(dbClient, coordinator, logger);
         this.vplex = vplex;
         this.mask = mask;
         id = String.format("%s (%s)(%s)", mask.getMaskName(), mask.getNativeId(), mask.getId().toString());

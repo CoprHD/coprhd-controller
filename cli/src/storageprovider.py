@@ -266,6 +266,7 @@ def storageprovider_create(args):
         passwd = common.get_password("storage provider")
     
     secondary_password = None
+    secondary_url = None
     if (args.secondary_username and len(args.secondary_username) > 0):
         secondary_password = common.get_password("secondary password")
 
@@ -278,7 +279,7 @@ def storageprovider_create(args):
                 secondary_url = "https://"+args.hyperScaleHost+":"+args.hyperScalePort;
             else:
                 print "IBM XIV needs HyperScale Host and Port as mandatory"
-        secondary_url = None
+
         res = obj.create(args.name, args.providerip, args.providerport,
                          args.user, passwd, args.usessl, args.interface, args.sio_cli, args.element_manager_url,
                             args.secondary_username, secondary_password, secondary_url)

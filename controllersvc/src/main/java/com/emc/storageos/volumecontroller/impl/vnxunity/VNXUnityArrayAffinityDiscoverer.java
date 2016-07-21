@@ -26,6 +26,8 @@ import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.HostInterface.Protocol;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.common.Constants;
@@ -34,6 +36,7 @@ import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.vnxe.VNXeApiClient;
 import com.emc.storageos.vnxe.VNXeApiClientFactory;
 import com.emc.storageos.vnxe.models.BlockHostAccess;
+import com.emc.storageos.vnxe.models.HostLun;
 import com.emc.storageos.vnxe.models.VNXeBase;
 import com.emc.storageos.vnxe.models.VNXeHost;
 import com.emc.storageos.vnxe.models.VNXeHostInitiator;
@@ -78,10 +81,135 @@ public class VNXUnityArrayAffinityDiscoverer {
         if (hostIdStr != null) {
             // array affinity for a host
             logger.info("Processing host {}", hostIdStr);
+            processHost(system, apiClient, dbClient, hostIdStr);
         } else {
             // array affinity for all hosts
+            logger.info("Processing all hosts");
             processAllHosts(system, apiClient, dbClient, partitionManager);
         }
+    }
+
+    /**
+     * Update preferredPoolIds of a host
+     * @param system
+     * @param apiClient
+     * @param dbClient
+     * @param hostIdStr
+     */
+    private void processHost(StorageSystem system, VNXeApiClient apiClient, DbClient dbClient, String hostIdStr) {
+        Set<String> systemIds = new HashSet<String>();
+        systemIds.add(system.getId().toString());
+
+        try {
+            Host host = dbClient.queryObject(Host.class, URI.create(hostIdStr));
+            if (host != null && !host.getInactive()) {
+                Map<String, String> preferredPoolURIs = getPreferredPoolMap(system, host.getId(), apiClient, dbClient);
+                if (ArrayAffinityDiscoveryUtils.updatePreferredPools(host, systemIds, dbClient, preferredPoolURIs)) {
+                    dbClient.updateObject(host);
+                }
+            }
+        } catch (Exception e) {
+            logger.warn("Exception on updatePreferredSystem", e);
+        }
+    }
+
+    /**
+     * Construct pool to pool type map for a host
+     *
+     * @param system
+     * @param hostId
+     * @param apiClient
+     * @param dbClient
+     * @return pool to pool type map
+     * @throws IOException
+     */
+    private Map<String, String> getPreferredPoolMap(StorageSystem system, URI hostId, VNXeApiClient apiClient, DbClient dbClient)
+            throws IOException {
+        Map<String, String> preferredPoolMap = new HashMap<String, String>();
+        Map<String, StoragePool> pools = getStoragePoolMap(system, dbClient);
+
+        List<Initiator> allInitiators = CustomQueryUtility
+                .queryActiveResourcesByConstraint(dbClient,
+                        Initiator.class, ContainmentConstraint.Factory
+                                .getContainedObjectsConstraint(
+                                        hostId,
+                                        Initiator.class, Constants.HOST));
+        String vnxeHostId = null;
+        for (Initiator initiator : allInitiators) {
+            logger.info("Processing initiator {}", initiator.getLabel());
+            String initiatorId = initiator.getInitiatorPort();
+            if (Protocol.FC.name().equals(initiator.getProtocol())) {
+                initiatorId = initiator.getInitiatorNode() + ":" + initiatorId;
+            }
+
+            // query VNX Unity initiator
+            VNXeHostInitiator vnxeInitiator = apiClient.getInitiatorByWWN(initiatorId);
+            if (vnxeInitiator != null) {
+                VNXeBase parentHost = vnxeInitiator.getParentHost();
+                if (parentHost != null) {
+                    vnxeHostId = parentHost.getId();
+                    break;
+                }
+            }
+        }
+
+        // Get vnxeHost from vnxeHostId
+        VNXeHost vnxeHost = apiClient.getHostById(vnxeHostId);
+        List<VNXeBase> hostLunIds = vnxeHost.getHostLUNs();
+        if (hostLunIds != null && !hostLunIds.isEmpty()) {
+            for (VNXeBase hostLunId : hostLunIds) {
+                HostLun hostLun = apiClient.getHostLun(hostLunId.getId());
+                // get lun from from hostLun
+                VNXeBase lunId = hostLun.getLun();
+                if (lunId != null) {
+                    VNXeLun lun = apiClient.getLun(lunId.getId());
+                    if (lun != null) {
+                        String nativeGuid = NativeGUIDGenerator.generateNativeGuidForVolumeOrBlockSnapShot(
+                                system.getNativeGuid(), lun.getId());
+                        if (DiscoveryUtils.checkStorageVolumeExistsInDB(dbClient, nativeGuid) != null) {
+                            logger.info("Skipping volume {} as it is already managed by ViPR", nativeGuid);
+                        }
+
+                        StoragePool pool = getStoragePoolOfUnManagedObject(lun.getPool().getId(), system, pools);
+                        if (pool != null) {
+                            String exportType = isSharedLun(lun) ? ExportGroup.ExportGroupType.Cluster.name()
+                                    : ExportGroup.ExportGroupType.Host.name();
+                            ArrayAffinityDiscoveryUtils.addPoolToPreferredPoolMap(preferredPoolMap, pool.getId().toString(), exportType);
+                        } else {
+                            logger.error("Skipping volume {} as its storage pool doesn't exist in ViPR",
+                                    lun.getId());
+                        }
+                    }
+                }
+            }
+        }
+
+        return preferredPoolMap;
+    }
+
+    /**
+     * Check if a LUN is shared
+     * @param lun
+     * @return boolean true if the LUN is shared
+     */
+    private boolean isSharedLun(VNXeLun lun) {
+        List<BlockHostAccess> accesses = lun.getHostAccess();
+        int hostCount = 0;
+        if (accesses != null && !accesses.isEmpty()) {
+            for (BlockHostAccess access : accesses) {
+                if (access != null) {
+                    VNXeBase hostId = access.getHost();
+                    if (hostId != null) {
+                        hostCount++;
+                        if (hostCount > 1) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -97,8 +225,8 @@ public class VNXUnityArrayAffinityDiscoverer {
         Map<String, URI> hostIdToHostURIMap = new HashMap<String, URI>();
         Map<String, Set<URI>> volumeToHostsMap = new HashMap<String, Set<URI>>();
 
-        Set<String> serialIds = new HashSet<String>();
-        serialIds.add(system.getSerialNumber());
+        Set<String> systemIds = new HashSet<String>();
+        systemIds.add(system.getId().toString());
 
         try {
             processAllLuns(system, apiClient, dbClient, hostToVolumesMap, volumeToHostsMap, volumeToPoolMap, hostIdToHostURIMap);
@@ -126,7 +254,7 @@ public class VNXUnityArrayAffinityDiscoverer {
                         }
                     }
 
-                    if (ArrayAffinityDiscoveryUtils.updatePreferredPools(host, serialIds, dbClient, preferredPoolMap)) {
+                    if (ArrayAffinityDiscoveryUtils.updatePreferredPools(host, systemIds, dbClient, preferredPoolMap)) {
                         hostsToUpdate.add(host);
                     }
                 }

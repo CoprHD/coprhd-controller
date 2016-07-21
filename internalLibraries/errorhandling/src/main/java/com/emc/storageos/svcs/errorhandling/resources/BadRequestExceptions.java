@@ -1699,6 +1699,9 @@ public interface BadRequestExceptions {
     public BadRequestException failoverCopiesParamCanOnlyBeOne();
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException changeAccessCopiesParamCanOnlyBeOne();
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException swapCopiesParamCanOnlyBeOne();
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
@@ -1851,7 +1854,7 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException cannotAddVolumesToSwappedCG(final String cgName);
-    
+
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException cannotAddVolumesToSwappedReplicationGroup(final String rgName);
 
@@ -3006,12 +3009,14 @@ public interface BadRequestExceptions {
     public BadRequestException snapshotRestoreNotSupported();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException unsupportedAccessMode(final String accessMode);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotExpandTargetVirtualVolume(final String label);
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotExpandSRDFVolumeWithSnapshots(final String label);
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotDeleteSRDFTargetVolume(final String label);
-    
 }

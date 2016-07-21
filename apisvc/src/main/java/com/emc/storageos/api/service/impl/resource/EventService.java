@@ -132,17 +132,19 @@ public class EventService extends TaggedResource {
             _dbClient.updateObject(event);
             taskList.addTask(result);
             return taskList;
-            // TODO add and throw api exceptions for following exceptions
         } catch (SecurityException e) {
-            _log.error(e.getMessage(), e.getStackTrace());
+            _log.error(e.getMessage(), e.getCause());
+            throw APIException.badRequests.errorInvokingEventMethod(event.getId(), eventMethod.getMethodName());
         } catch (IllegalAccessException e) {
-            _log.error(e.getMessage(), e.getStackTrace());
+            _log.error(e.getMessage(), e.getCause());
+            throw APIException.badRequests.errorInvokingEventMethod(event.getId(), eventMethod.getMethodName());
         } catch (IllegalArgumentException e) {
-            _log.error(e.getMessage(), e.getStackTrace());
+            _log.error(e.getMessage(), e.getCause());
+            throw APIException.badRequests.errorInvokingEventMethod(event.getId(), eventMethod.getMethodName());
         } catch (InvocationTargetException e) {
-            _log.error(e.getMessage(), e.getStackTrace());
+            _log.error(e.getMessage(), e.getCause());
+            throw APIException.badRequests.errorInvokingEventMethod(event.getId(), eventMethod.getMethodName());
         }
-        return taskList;
     }
 
     public TaskResourceRep deleteHost(URI hostId) {

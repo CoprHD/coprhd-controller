@@ -646,16 +646,17 @@ public class ExportGroupService extends TaskResourceService {
      * @param newClusters a list to be populated with the updated list of clusters
      * @param newHosts a list to be populated with the updated list of hosts
      * @param newInitiators a list to be populated with the updated list of initiators
+     * @param newVirtualMachines a list to be populated with the updated list of virtual machines
      */
     void validateClientsAndUpdate(ExportGroup exportGroup,
-            Project project, Collection<URI> storageSystems,
+            Project project, Set<URI> storageSystems,
             ExportUpdateParam param, List<URI> newClusters,
-            List<URI> newHosts, List<URI> newInitiators) {
+            List<URI> newHosts, List<URI> newInitiators, List<URI> newVirtualMachines) {
         if (param.getClusters() != null) {
             if (param.getClusters().getRemove() != null) {
                 for (URI uri : param.getClusters().getRemove()) {
                     newClusters.remove(uri);
-                    removeClusterData(uri, newHosts, newInitiators);
+                    removeClusterData(uri, newHosts, newInitiators, newVirtualMachines);
                 }
             }
             if (param.getClusters().getAdd() != null) {
@@ -694,6 +695,34 @@ public class ExportGroupService extends TaskResourceService {
             }
         }
         _log.info("Updated list of hosts: {}", newHosts.toArray());
+
+        // Perform check for virtual machines
+        if (param.getVirtualMachines() != null) {
+            if (param.getVirtualMachines().getRemove() != null) {
+                for (URI uri : param.getVirtualMachines().getRemove()) {
+                    newVirtualMachines.remove(uri);
+                    removeVMData(uri, newInitiators);
+                }
+            }
+            if (param.getVirtualMachines().getAdd() != null) {
+                for (URI uri : param.getVirtualMachines().getAdd()) {
+                    VirtualMachine vm = queryObject(VirtualMachine.class, uri, true);
+                    // If the export type is cluster
+                    if (exportGroup.forCluster()) {
+                        // make sure the host belongs to one of the group's clusters
+                        if (!hasItems(newClusters) || !newClusters.contains(vm.getCluster())) {
+                            throw APIException.badRequests.invalidParameterHostNotInCluster(vm.getHostName());
+                        }
+                    }
+                    validateVMData(vm, exportGroup, storageSystems, project, newInitiators);
+                    if (!newVirtualMachines.contains(uri)) {
+                        newVirtualMachines.add(uri);
+                    }
+                }
+            }
+        }
+        _log.info("Updated list of virtual machines: {}", newHosts.toArray());
+
         if (param.getInitiators() != null) {
             if (param.getInitiators().getRemove() != null) {
                 for (URI uri : param.getInitiators().getRemove()) {
@@ -719,7 +748,8 @@ public class ExportGroupService extends TaskResourceService {
                     validateInitiatorData(initiator, exportGroup);
                     if (exportGroup.forCluster() || exportGroup.forHost()) {
                         if (!newHosts.isEmpty() &&
-                                !newHosts.contains(initiator.getHost())) {
+                                !newHosts.contains(initiator.getHost()) || !newVirtualMachines.isEmpty() &&
+                                !newVirtualMachines.contains(initiator.getVirtualMachine())) {
                             throw APIException.badRequests.invalidParameterExportGroupInitiatorNotInHost(initiator.getId());
                         }
                     }
@@ -890,11 +920,17 @@ public class ExportGroupService extends TaskResourceService {
      * @param newHosts the list of hosts to update
      * @param newInitiators the list of initiators to update
      */
-    private void removeClusterData(URI cluster, List<URI> newHosts, List<URI> newInitiators) {
+    private void removeClusterData(URI cluster, List<URI> newHosts, List<URI> newInitiators, List<URI> newVirtualMachines) {
         List<URI> hostUris = ComputeSystemHelper.getChildrenUris(_dbClient, cluster, Host.class, "cluster");
         for (URI hosturi : hostUris) {
             newHosts.remove(hosturi);
             newInitiators.removeAll(ComputeSystemHelper.getChildrenUris(_dbClient, hosturi, Initiator.class, "host"));
+        }
+
+        List<URI> vmUris = ComputeSystemHelper.getChildrenUris(_dbClient, cluster, VirtualMachine.class, "cluster");
+        for (URI vmuri : vmUris) {
+            newVirtualMachines.remove(vmuri);
+            newInitiators.removeAll(ComputeSystemHelper.getChildrenUris(_dbClient, vmuri, Initiator.class, "virtualMachine"));
         }
     }
 
@@ -909,6 +945,16 @@ public class ExportGroupService extends TaskResourceService {
     }
 
     /**
+     * Updates the list of initiators when a virtual machine is removed.
+     *
+     * @param hosturi the host being removed
+     * @param newInitiators the list of initiators to update
+     */
+    private void removeVMData(URI vmuri, List<URI> newInitiators) {
+        newInitiators.removeAll(ComputeSystemHelper.getChildrenUris(_dbClient, vmuri, Initiator.class, "virtualMachine"));
+    }
+
+    /**
      * Validate that all the initiators to be added to the export group belong to the same host type
      *
      * @param initiators the list of initiators to validate
@@ -916,6 +962,7 @@ public class ExportGroupService extends TaskResourceService {
     private void validateInitiatorHostOS(List<URI> initiators) {
         Set<String> hostTypes = new HashSet<String>();
         List<URI> hostList = new ArrayList<URI>();
+        List<URI> vmList = new ArrayList<URI>();
 
         // Dummy URI used in case we encounter null values
         URI fillerHostURI = NullColumnValueGetter.getNullURI();
@@ -926,24 +973,46 @@ public class ExportGroupService extends TaskResourceService {
                 Initiator ini = queryObject(Initiator.class, initiatorUri, true);
 
                 // If ini.getHost() returns a null value, set hostURI to fillerHostURI
-                URI hostURI = (ini.getHost() == null) ? fillerHostURI : ini.getHost();
+                URI hostURI = null;
+                if ((ini.getHost() == null && ini.getVirtualMachine() == null)) {
+                    hostURI = fillerHostURI;
+                } else {
+                    if (ini.getHost() != null) {
+                        hostURI = ini.getHost();
+                    }
+
+                    if (ini.getVirtualMachine() != null) {
+                        hostURI = ini.getVirtualMachine();
+                    }
+                }
 
                 // If we have already come across this URI implies
                 // that we have checked its host type, so there is
                 // no need to go to the DB again..
-                if (!hostList.isEmpty() && hostList.contains(hostURI)) {
+                if ((!hostList.isEmpty() && hostList.contains(hostURI))
+                        || (!vmList.isEmpty() && vmList.contains(hostURI))) {
                     continue;
                 } else {
                     // add the hostURI to the hostList so that it can
                     // help in the next iteration.
-                    hostList.add(hostURI);
+                    if (URIUtil.isType(hostURI, Host.class)) {
+                        hostList.add(hostURI);
+                    }
+                    if (URIUtil.isType(hostURI, VirtualMachine.class)) {
+                        vmList.add(hostURI);
+                    }
                 }
 
                 if (hostURI == fillerHostURI) {
                     hostTypes.add(String.valueOf(fillerHostURI));
                 } else {
-                    Host host = queryObject(Host.class, hostURI, true);
-                    hostTypes.add(host.getType());
+                    if (URIUtil.isType(hostURI, Host.class)) {
+                        Host host = queryObject(Host.class, hostURI, true);
+                        hostTypes.add(host.getType());
+                    } else if (URIUtil.isType(hostURI, VirtualMachine.class)) {
+                        VirtualMachine vm = queryObject(VirtualMachine.class, hostURI, true);
+                        hostTypes.add(vm.getType());
+                    }
                 }
             }
 

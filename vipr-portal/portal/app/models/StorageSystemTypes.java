@@ -218,8 +218,8 @@ public class StorageSystemTypes {
         for (StorageSystemTypeRestRep type : typeList.getStorageSystemTypes()) {
 
             // ignore those whose type is not block
-            if (!StorageSystemTypeUtils.BLOCK_TYPE.equalsIgnoreCase(type.getDriverClassName())
-                    && !StorageSystemTypeUtils.BLOCK_AND_FILE_TYPE.equalsIgnoreCase(type.getDriverClassName())) {
+            if (!StorageSystemTypeUtils.BLOCK_TYPE.equalsIgnoreCase(type.getMetaType())
+                    && !StorageSystemTypeUtils.BLOCK_AND_FILE_TYPE.equalsIgnoreCase(type.getMetaType())) {
                 continue;
             }
             // no need further check for non-SMIS providers
@@ -241,8 +241,8 @@ public class StorageSystemTypes {
         List<StringOption> options = new ArrayList<StringOption>(Arrays.asList(StringOption.NONE_OPTION));
         StorageSystemTypeList typeList = StorageSystemTypeUtils.getAllStorageSystemTypes(StorageSystemTypeUtils.ALL_TYPE);
         for (StorageSystemTypeRestRep type : typeList.getStorageSystemTypes()) {
-            if (!StorageSystemTypeUtils.FILE_TYPE.equalsIgnoreCase(type.getDriverClassName())
-                    && !StorageSystemTypeUtils.BLOCK_AND_FILE_TYPE.equalsIgnoreCase(type.getDriverClassName())) {
+            if (!StorageSystemTypeUtils.FILE_TYPE.equalsIgnoreCase(type.getMetaType())
+                    && !StorageSystemTypeUtils.BLOCK_AND_FILE_TYPE.equalsIgnoreCase(type.getMetaType())) {
                 continue;
             }
             if (type.getIsSmiProvider()) {
@@ -257,7 +257,7 @@ public class StorageSystemTypes {
         List<StringOption> options = new ArrayList<StringOption>(Arrays.asList(StringOption.NONE_OPTION));
         StorageSystemTypeList typeList = StorageSystemTypeUtils.getAllStorageSystemTypes(StorageSystemTypeUtils.ALL_TYPE);
         for (StorageSystemTypeRestRep type : typeList.getStorageSystemTypes()) {
-            if (!StorageSystemTypeUtils.OBJECT_TYPE.equalsIgnoreCase(type.getDriverClassName())) {
+            if (!StorageSystemTypeUtils.OBJECT_TYPE.equalsIgnoreCase(type.getMetaType())) {
                 continue;
             }
             options.add(new StringOption(type.getStorageTypeName(), type.getStorageTypeDispName()));

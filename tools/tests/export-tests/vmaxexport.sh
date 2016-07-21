@@ -41,7 +41,7 @@
 
 Usage()
 {
-    echo 'Usage: vmaxexport.sh <sanity conf file path> [setup|delete [test1 test2 ...]]'
+    echo 'Usage: vmaxexport.sh <sanity conf file path> [setup|delete vmax2|vmax3 [test1 test2 ...]]'
     echo ' [setup]: Run on a new ViPR database, creates SMIS, host, initiators, vpools, varray, volumes'
     echo ' [delete]: Will exports and volumes'
     exit 2
@@ -62,6 +62,28 @@ if [ "$1"x != "x" ]; then
       source $SANITY_CONFIG_FILE
    fi
 fi
+
+
+LAST_3DIGITS=""
+SN=""
+NATIVEGUID=""
+SMIS_IP=""
+
+if [ "$2" = "vmax2" ]
+	then 
+		LAST_3DIGITS=$VMAX2_ID_3DIGITS
+		SN=$VMAX2_SN
+		NATIVEGUID=$VMAX2_NATIVEGUID
+		SMIS_IP=$VMAX2_SMIS_IP
+	else
+		LAST_3DIGITS=$VMAX_ID_3DIGITS
+		SN=$VMAX_SN
+		NATIVEGUID=$VMAX_NATIVEGUID
+		SMIS_IP=$VMAX_SMIS_IP
+		echo "Export sanity test cases for VMAX3 is not ready"
+		exit
+		# vmax3_setup $3
+fi;
 
 VERIFY_EXPORT_COUNT=0
 VERIFY_EXPORT_FAIL_COUNT=0
@@ -87,13 +109,13 @@ verify_export() {
             cluster_name_if_any="${CLUSTER}"
         fi
     fi
-    masking_view_name="${cluster_name_if_any}${host_name}${VMAX_ID_3DIGITS}"
+    masking_view_name="${cluster_name_if_any}${host_name}${LAST_3DIGITS}"
     if [ "$host_name" = "-exact-" ]; then
         masking_view_name=$export_name
     fi
 
     sleep 10
-    runcmd symhelper.sh $VMAX_SN $masking_view_name $*
+    runcmd symhelper.sh $SN $masking_view_name $*
     if [ $? -ne "0" ]; then
        echo There was a failure
        VERIFY_EXPORT_FAIL_COUNT=`expr $VERIFY_EXPORT_FAIL_COUNT + 1`
@@ -181,16 +203,16 @@ symapi_entry=`grep SYMAPI_SERVER /usr/emc/API/symapi/config/netcnfg | wc -l`
 if [ $symapi_entry -ne 0 ]; then
     sed -e "/SYMAPI_SERVER/d" -i /usr/emc/API/symapi/config/netcnfg
 fi
-echo "SYMAPI_SERVER - TCPIP  $VMAX_SMIS_IP - 2707 ANY" >> /usr/emc/API/symapi/config/netcnfg
+echo "SYMAPI_SERVER - TCPIP  $SMIS_IP - 2707 ANY" >> /usr/emc/API/symapi/config/netcnfg
 echo "Added entry into /usr/emc/API/symapi/config/netcnfg"
 
-echo "Verifying SYMAPI connection to $VMAX_SMIS_IP ..."
+echo "Verifying SYMAPI connection to $SMIS_IP ..."
 symapi_verify="/opt/emc/SYMCLI/bin/symcfg list"
 echo $symapi_verify
 result=`$symapi_verify`
 if [ $? -ne 0 ]; then
     echo "SYMAPI verification failed: $result"
-    echo "Check the setup on $VMAX_SMIS_IP. See if the SYAMPI service is running"
+    echo "Check the setup on $SMIS_IP. See if the SYAMPI service is running"
     exit 1
 fi
 echo $result
@@ -261,20 +283,20 @@ setup() {
     SMISPASS=0
     # do this only once
     echo "Setting up SMIS"
-    runcmd smisprovider create VMAX-PROVIDER $VMAX_SMIS_IP $VMAX_SMIS_PORT admin '#1Password' $VMAX_SMIS_SSL
+    runcmd smisprovider create VMAX-PROVIDER $SMIS_IP $VMAX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX_SMIS_SSL
     runcmd storagedevice discover_all --ignore_error
 
-    runcmd storagepool update $VMAX_NATIVEGUID --type block --volume_type THIN_ONLY
-    runcmd storagepool update $VMAX_NATIVEGUID --type block --volume_type THICK_ONLY
+    runcmd storagepool update $NATIVEGUID --type block --volume_type THIN_ONLY
+    runcmd storagepool update $NATIVEGUID --type block --volume_type THICK_ONLY
 
     runcmd neighborhood create $NH
     runcmd transportzone create $FC_ZONE_A $NH --type FC
 
-    runcmd storagepool update $VMAX_NATIVEGUID --nhadd $NH --type block
-    runcmd storageport update $VMAX_NATIVEGUID FC --tzone $NH/$FC_ZONE_A
+    runcmd storagepool update $NATIVEGUID --nhadd $NH --type block
+    runcmd storageport update $NATIVEGUID FC --tzone $NH/$FC_ZONE_A
 
     seed=`date "+%H%M%S%N"`
-    runcmd storageport update ${VMAX_NATIVEGUID} FC --tzone $NH/$FC_ZONE_A
+    runcmd storageport update ${NATIVEGUID} FC --tzone $NH/$FC_ZONE_A
     runcmd project create $PROJECT --tenant $TENANT 
     echo "Project $PROJECT created."
     echo "Setup ACLs on neighborhood for $TENANT"
@@ -324,7 +346,7 @@ setup() {
 	--max_snapshots 10                     \
 	--neighborhoods $NH                    
 
-   runcmd cos update block $VPOOL_BASE --storage ${VMAX_NATIVEGUID}
+   runcmd cos update block $VPOOL_BASE --storage ${NATIVEGUID}
    runcmd cos allow $VPOOL_BASE block $TENANT
    sleep 60
 
@@ -333,6 +355,7 @@ setup() {
         runcmd volume create ${VOLNAME} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 8
    fi
 }
+
 
 # Verify no masks
 #
@@ -1653,9 +1676,9 @@ then
     setup $2;
 fi;
 
-# If there's a 2nd parameter, take that
+# If there's a 3rd parameter, take that
 # as the name of the test to run
-if [ "$2" != "" ]
+if [ "$3" != "" ]
 then
    shift
    echo Request to run $*

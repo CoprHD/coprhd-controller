@@ -365,6 +365,7 @@ def storageprovider_update(args):
 
     obj = StorageProvider(args.ip, args.port)
     passwd = None
+    secondary_url = None
     if (args.user and len(args.user) > 0):
         passwd = common.get_password("storage provider")
 
@@ -374,7 +375,12 @@ def storageprovider_update(args):
             args.usessl = False
             
         secondary_password = None
-        secondary_url = "https://"+args.hyperScaleHost+":"+args.hyperScalePort;
+        if (args.interface =="ibmxiv") :
+            if(args.hyperScaleHost is not None and args.hyperScalePort is not None) :
+                secondary_url = "https://"+args.hyperScaleHost+":"+args.hyperScalePort;
+            else:
+                print "Needs both HyperScale Host and Port for update. Existing values will not be altered"
+
         if (args.secondary_username and len(args.secondary_username) > 0):
             secondary_password = common.get_password("secondary password")
 

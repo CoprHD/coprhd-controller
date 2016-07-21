@@ -272,10 +272,16 @@ def storageprovider_create(args):
     try:
         if (not args.usessl):
             args.usessl = False
-        secondary_url = "https://"+args.hyperScaleHost+":"+args.hyperScalePort;
+
+        if (args.interface =="ibmxiv") :
+            if(args.hyperScaleHost is not None and args.hyperScalePort is not None) :
+                secondary_url = "https://"+args.hyperScaleHost+":"+args.hyperScalePort;
+            else:
+                print "IBM XIV needs HyperScale Host and Port as mandatory"
+        secondary_url = None
         res = obj.create(args.name, args.providerip, args.providerport,
                          args.user, passwd, args.usessl, args.interface, args.sio_cli, args.element_manager_url,
-                         args.secondary_username, secondary_password, secondary_url)
+                            args.secondary_username, secondary_password, secondary_url)
     except SOSError as e:
         common.format_err_msg_and_raise(
             "create",

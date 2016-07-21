@@ -1,10 +1,14 @@
+/*
+ * Copyright (c) 2016 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.volumecontroller.impl.validators;
 
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 
 /**
- * Top-level factory class for building {@link Validator} instances.
+ * Abstract class to house common plumbing elements of validator factories
  */
 public abstract class AbstractValidatorFactory implements StorageSystemValidatorFactory {
 

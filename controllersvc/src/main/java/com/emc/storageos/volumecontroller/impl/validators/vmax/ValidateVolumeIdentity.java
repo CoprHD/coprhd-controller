@@ -1,19 +1,25 @@
+/*
+ * Copyright (c) 2016 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.volumecontroller.impl.validators.vmax;
 
-import com.emc.storageos.cimadapter.connections.cim.CimConnection;
-import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.model.Volume;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CP_WWN_NAME;
+import static com.google.common.base.Strings.isNullOrEmpty;
+
+import java.util.Collection;
 
 import javax.cim.CIMInstance;
 import javax.cim.CIMObjectPath;
 import javax.cim.CIMProperty;
 import javax.wbem.client.WBEMClient;
-import java.util.Collection;
 
-import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CP_WWN_NAME;
-import static com.google.common.base.Strings.isNullOrEmpty;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.emc.storageos.cimadapter.connections.cim.CimConnection;
+import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.Volume;
 
 /**
  * TODO
@@ -42,7 +48,7 @@ public class ValidateVolumeIdentity extends AbstractVmaxValidator {
 
             checkForDifferences(instance, volume);
         }
-        
+
         return getLogger().hasErrors();
     }
 

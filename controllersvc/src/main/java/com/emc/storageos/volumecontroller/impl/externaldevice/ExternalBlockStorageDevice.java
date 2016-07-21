@@ -217,8 +217,8 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
             task = driver.expandVolume(driverVolume, size);
             if (!isTaskInTerminalState(task.getStatus())) {
                 // If the task is not in a terminal state and will be completed asynchronously
-                // create a job to monitor the progress of the request and update the clone 
-                // volume and call the completer as appropriate based on the result of the request.
+                // create a job to monitor the progress of the request and update the volume and
+                // call the completer as appropriate based on the result of the request.
                 ExpandVolumeExternalDeviceJob job = new ExpandVolumeExternalDeviceJob(
                         storageSystem.getId(), volume.getId(), task.getTaskId(), taskCompleter);
                 ControllerServiceImpl.enqueueJob(new QueueJob(job));

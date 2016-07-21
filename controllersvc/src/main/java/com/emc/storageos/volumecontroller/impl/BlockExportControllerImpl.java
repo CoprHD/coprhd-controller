@@ -103,7 +103,7 @@ public class BlockExportControllerImpl implements BlockExportController {
             List<URI> updatedInitiators, List<URI> updatedVirtualMachines, String opId)
             throws ControllerException {
         blockRMI("exportGroupUpdate", export, addedBlockObjectMap, removedObjectMap,
-                updatedClusters, updatedHosts, updatedInitiators, opId);
+                updatedClusters, updatedHosts, updatedInitiators, updatedVirtualMachines, opId);
     }
 
     /**

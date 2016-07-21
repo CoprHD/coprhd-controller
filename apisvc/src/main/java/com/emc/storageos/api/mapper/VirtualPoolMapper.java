@@ -58,6 +58,7 @@ public class VirtualPoolMapper {
         BlockVirtualPoolRestRep to = new BlockVirtualPoolRestRep();
         to.setDriveType(from.getDriveType());
         to.setAutoTieringPolicyName(from.getAutoTierPolicyName());
+        to.setCompressionEnabled(from.getCompressionEnabled());
         to.setThinVolumePreAllocationPercentage(from.getThinVolumePreAllocationPercentage());
         to.setExpandable(from.getExpandable());
         to.setFastExpansion(from.getFastExpansion());

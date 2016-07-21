@@ -123,6 +123,9 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     private String _frRpoType;
     // File Replication RPO type
     private String _fileReplicationCopyMode;
+    
+    // for all flash vmax3 arrays
+    private Boolean compressionEnabled;
 
     // File Repilcation copies
     private StringMap _fileRemoteCopySettings;
@@ -1504,6 +1507,22 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     public void setMinDataCenters(Integer minDataCenters) {
         this.minDataCenters = (null == minDataCenters || minDataCenters == 0) ? 0 : minDataCenters;
         setChanged("minDataCenters");
+    }
+
+    /**
+     * @return the compressionEnabled
+     */
+    @Name("compressionEnabled")
+    public Boolean getCompressionEnabled() {
+        return compressionEnabled;
+    }
+
+    /**
+     * @param compressionEnabled the compressionEnabled to set
+     */
+    public void setCompressionEnabled(Boolean compressionEnabled) {
+        this.compressionEnabled = compressionEnabled;
+        setChanged("compressionEnabled");
     }
 
     @Name("scheduleSnapshot")

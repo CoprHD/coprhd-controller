@@ -1658,7 +1658,7 @@ then
     setup $2;
 fi;
 
-# If there's a 2nd parameter, take that
+# If there's a 3rd parameter, take that
 # as the name of the test to run
 if [ "$3" != "" ]
 then

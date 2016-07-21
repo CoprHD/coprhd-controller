@@ -18,13 +18,13 @@ import com.emc.aix.model.MultiPathDevice;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.BindingUtils;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
-import com.emc.sa.util.VolumeWWNUtils;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.iwave.ext.linux.model.PowerPathDevice;
+import com.iwave.ext.linux.util.VolumeWWNUtils;
 
 public class UnmountBlockVolumeHelper {
 
@@ -80,7 +80,7 @@ public class UnmountBlockVolumeHelper {
     /** search through the volumes list to find the {@link VolumeSpec} which has the given wwn. */
     private VolumeSpec getVolumeSpecByWwn(String wwn) {
         for (VolumeSpec volume : volumes) {
-            if (VolumeWWNUtils.wwnMatches(wwn, volume.viprVolume)) {
+            if (VolumeWWNUtils.wwnMatches(wwn, volume.viprVolume.getWwn())) {
                 return volume;
             }
         }

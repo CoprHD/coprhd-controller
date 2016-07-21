@@ -7,10 +7,10 @@ package com.emc.sa.service.aix.tasks;
 import java.util.List;
 
 import com.emc.aix.command.ListHDisksCommand;
-import com.emc.sa.util.VolumeWWNUtils;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.iwave.ext.command.CommandException;
 import com.iwave.ext.linux.model.PowerPathDevice;
+import com.iwave.ext.linux.util.VolumeWWNUtils;
 
 public class FindHDiskForVolume extends RetryableCommandTask<String, CommandException> {
 
@@ -26,14 +26,14 @@ public class FindHDiskForVolume extends RetryableCommandTask<String, CommandExce
     protected String tryExecute() {
         List<PowerPathDevice> devices = executeCommand(new ListHDisksCommand(usePowerPath, false));
         for (PowerPathDevice device : devices) {
-            if (VolumeWWNUtils.wwnMatches(device.getWwn(), volume)) {
+            if (VolumeWWNUtils.wwnMatches(device.getWwn(), volume.getWwn())) {
                 return device.getDevice();
             }
         }
 
         devices = executeCommand(new ListHDisksCommand(usePowerPath, true));
         for (PowerPathDevice device : devices) {
-            if (VolumeWWNUtils.wwnMatches(device.getWwn(), volume)) {
+            if (VolumeWWNUtils.wwnMatches(device.getWwn(), volume.getWwn())) {
                 return device.getDevice();
             }
         }

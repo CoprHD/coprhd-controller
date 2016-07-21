@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2016 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.volumecontroller.impl.validators.vplex;
 
 import java.net.URI;
@@ -177,12 +181,18 @@ public class VplexVolumeValidator extends AbstractVplexValidator {
     /**
      * Validates either storage volumes for either distributed or local vplex volumes.
      * 
-     * @param virtualVolume -- Vplex virtual volume
-     * @param volumeId -- identification for log
-     * @param topLevelDeviceName -- top level VPLEX device name
-     * @param distributed -- if true VPLEX distributed, false if VPLEX local
-     * @param clusterName cluster-1 or cluster-2
-     * @param hasMirror -- if true this cluster has a mirror
+     * @param virtualVolume
+     *            -- Vplex virtual volume
+     * @param volumeId
+     *            -- identification for log
+     * @param topLevelDeviceName
+     *            -- top level VPLEX device name
+     * @param distributed
+     *            -- if true VPLEX distributed, false if VPLEX local
+     * @param clusterName
+     *            cluster-1 or cluster-2
+     * @param hasMirror
+     *            -- if true this cluster has a mirror
      * @return failed -- If true a discrepancy was detected
      * 
      */

@@ -424,7 +424,7 @@ public class DbClientImpl implements DbClient {
         if (!cleanList.isEmpty()) {
             boolean retryFailedWriteWithLocalQuorum = shouldRetryFailedWriteWithLocalQuorum(clazz);
             //todo retryFailedWriteWithLocalQuorum
-            RowMutator mutator = new RowMutator(context);
+            RowMutator mutator = new RowMutator(context, retryFailedWriteWithLocalQuorum);
             SoftReference<IndexCleanupList> indexCleanUpRef = new SoftReference<IndexCleanupList>(cleanList);
             _indexCleaner.cleanIndexAsync(mutator, doType, indexCleanUpRef);
         }
@@ -1067,8 +1067,15 @@ public class DbClientImpl implements DbClient {
 
     protected <T extends DataObject> List<URI> insertNewColumns(DbClientContext context, Collection<T> dataobjects) {
         List<URI> objectsToCleanup = new ArrayList<>();
-        // todo retryFailedWriteWithLocalQuorum
-        RowMutator mutator = new RowMutator(context);
+
+        boolean retryFailedWriteWithLocalQuorum = true;
+        Iterator<T> dataObjectIterator = dataobjects.iterator();
+        if (dataObjectIterator.hasNext()) {
+            T dataObject = dataObjectIterator.next();
+            retryFailedWriteWithLocalQuorum = shouldRetryFailedWriteWithLocalQuorum(dataObject.getClass());
+        }
+        
+        RowMutator mutator = new RowMutator(context, retryFailedWriteWithLocalQuorum);
         for (T object : dataobjects) {
             checkGeoVersionForMutation(object);
             DataObjectType doType = TypeMap.getDoType(object.getClass());
@@ -1113,8 +1120,7 @@ public class DbClientImpl implements DbClient {
         }
         if (!cleanList.isEmpty()) {
             boolean retryFailedWriteWithLocalQuorum = shouldRetryFailedWriteWithLocalQuorum(clazz);
-            //todo retry
-            RowMutator cleanupMutator = new RowMutator(getDbClientContext(clazz));
+            RowMutator cleanupMutator = new RowMutator(getDbClientContext(clazz), retryFailedWriteWithLocalQuorum);
             SoftReference<IndexCleanupList> indexCleanUpRef = new SoftReference<IndexCleanupList>(cleanList);
             _indexCleaner.cleanIndex(cleanupMutator, doType, indexCleanUpRef);
         }
@@ -1292,8 +1298,7 @@ public class DbClientImpl implements DbClient {
         }
         if (!removedList.isEmpty()) {
             boolean retryFailedWriteWithLocalQuorum = shouldRetryFailedWriteWithLocalQuorum(clazz);
-            //todo retry
-            RowMutator mutator = new RowMutator(context);
+            RowMutator mutator = new RowMutator(context, retryFailedWriteWithLocalQuorum);
             _indexCleaner.removeColumnAndIndex(mutator, doType, removedList);
         }
     }
@@ -1302,7 +1307,7 @@ public class DbClientImpl implements DbClient {
     public <T extends TimeSeriesSerializer.DataPoint> String insertTimeSeries(
             Class<? extends TimeSeries> tsType, T... data) {
         // time series are always in the local keyspace
-        RowMutator mutator = new RowMutator(getLocalContext());
+        RowMutator mutator = new RowMutator(getLocalContext(), false);
         // todo check batch.lockCurrentTimestamp();
         // quorum is not required since there should be no duplicates
         // for reads, clients should expect read-after-write is
@@ -1329,7 +1334,7 @@ public class DbClientImpl implements DbClient {
         String rowId = type.getRowId(time);
         UUID timeUUID = UUIDGen.getTimeUUID(time.getMillis());
         // time series are always in the local keyspace
-        RowMutator mutator = new RowMutator(getLocalContext());
+        RowMutator mutator = new RowMutator(getLocalContext(), false);
 
         // quorum is not required since there should be no duplicates
         // for reads, clients should expect read-after-write is

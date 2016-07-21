@@ -24,6 +24,8 @@ import org.apache.cassandra.service.StorageProxy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.datastax.driver.core.ConsistencyLevel;
+import com.datastax.driver.core.Host;
 import com.datastax.driver.core.KeyspaceMetadata;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
@@ -34,13 +36,13 @@ import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.WriteType;
 import com.datastax.driver.core.exceptions.ConnectionException;
 import com.datastax.driver.core.exceptions.DriverException;
+import com.emc.storageos.coordinator.client.model.Site;
+import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
 
 public class DbClientContext {
-
-    private static final String CASSANDRA_HOST_STATE_DOWN = "DOWN";
-
+    
     private static final Logger log = LoggerFactory.getLogger(DbClientContext.class);
 
     private static final int DEFAULT_MAX_CONNECTIONS = 64;
@@ -53,8 +55,6 @@ public class DbClientContext {
     private static final int MAX_QUERY_RETRY = 5;
     private static final int QUERY_RETRY_SLEEP_MS = 1000;
     private static final String LOCAL_HOST = "localhost";
-    private static final int DB_THRIFT_PORT = 9160;
-    private static final int GEODB_THRIFT_PORT = 9260;
     private static final String KEYSPACE_NETWORK_TOPOLOGY_STRATEGY = "NetworkTopologyStrategy";
     private static final int DEFAULT_CONSISTENCY_LEVEL_CHECK_SEC = 30;
 
@@ -64,6 +64,11 @@ public class DbClientContext {
     public static final String GEO_KEYSPACE_NAME = "GeoStorageOS";
     public static final long MAX_SCHEMA_WAIT_MS = 60 * 1000 * 10; // 10 minutes
     public static final int SCHEMA_RETRY_SLEEP_MILLIS = 10 * 1000; // 10 seconds
+    
+    private static final String CASSANDRA_HOST_STATE_DOWN = "DOWN";
+    
+    private static final ConsistencyLevel DEFAULT_READ_CONSISTENCY_LEVEL = ConsistencyLevel.LOCAL_QUORUM;
+    private static final ConsistencyLevel DEFAULT_WRITE_CONSISTENCY_LEVEL = ConsistencyLevel.EACH_QUORUM;
 
     private int maxConnections = DEFAULT_MAX_CONNECTIONS;
     private int maxConnectionsPerHost = DEFAULT_MAX_CONNECTIONS_PER_HOST;
@@ -86,9 +91,10 @@ public class DbClientContext {
     private static final int DB_NATIVE_TRANSPORT_PORT = 9042;
     private static final int GEODB_NATIVE_TRANSPORT_PORT = 9043;
     
-    private com.datastax.driver.core.Cluster cassandraCluster;
+    private Cluster cassandraCluster;
     private Session cassandraSession;
     private Map<String, PreparedStatement> prepareStatementMap = new HashMap<String, PreparedStatement>();
+    private ConsistencyLevel writeConsistencyLevel = DEFAULT_WRITE_CONSISTENCY_LEVEL;
     
     public void setCipherSuite(String cipherSuite) {
         this.cipherSuite = cipherSuite;
@@ -228,7 +234,7 @@ public class DbClientContext {
                 .builder()
                 .withRetryPolicy(new ViPRRetryPolicy(10, 1000))
                 .addContactPoints(contactPoints).withPort(getNativeTransportPort()).build();
-        cassandraCluster.getConfiguration().getQueryOptions().setConsistencyLevel(com.datastax.driver.core.ConsistencyLevel.LOCAL_QUORUM);
+        cassandraCluster.getConfiguration().getQueryOptions().setConsistencyLevel(DEFAULT_READ_CONSISTENCY_LEVEL);
         cassandraSession = cassandraCluster.connect("\"" + keyspaceName + "\"");
         
         initDone = true;
@@ -317,10 +323,11 @@ public class DbClientContext {
         return cassandraCluster.getMetadata().getKeyspace("\"" + keyspaceName + "\"");
     }
 
-    public void createCFAsyc(List<String> cqlList) throws InterruptedException, ExecutionException {
+    public void createCFAsync(List<String> cqlList) throws InterruptedException, ExecutionException {
         
         List<ResultSetFuture> futures = new ArrayList<ResultSetFuture>();
         for (String cql : cqlList) {
+            log.info("create table with CQL: {}", cql);
             futures.add(cassandraSession.executeAsync(cql));
         }
 
@@ -514,11 +521,11 @@ public class DbClientContext {
     public Map<String, List<String>> getSchemaVersions() {
         Map<String, List<String>> versions = new HashMap<String, List<String>>();
         try {
-            Set<com.datastax.driver.core.Host> allHostSet = cassandraCluster.getMetadata().getAllHosts();
-            Iterator<com.datastax.driver.core.Host> allHosts = allHostSet.iterator();
+            Set<Host> allHostSet = cassandraCluster.getMetadata().getAllHosts();
+            Iterator<Host> allHosts = allHostSet.iterator();
             
             while (allHosts.hasNext()){
-                com.datastax.driver.core.Host host = allHosts.next();
+                Host host = allHosts.next();
                 if (host.getState().equals(CASSANDRA_HOST_STATE_DOWN)) {
                     allHosts.remove();
                     versions.putIfAbsent(StorageProxy.UNREACHABLE, new LinkedList<String>());
@@ -537,7 +544,7 @@ public class DbClientContext {
             versions.putIfAbsent(localNode.getUUID("schema_version").toString(), new LinkedList<String>());
             versions.get(localNode.getUUID("schema_version").toString()).add(localNode.getInet("broadcast_address").getHostAddress());
             
-        } catch (com.datastax.driver.core.exceptions.ConnectionException e) {
+        } catch (ConnectionException e) {
             throw DatabaseException.retryables.connectionFailed(e);
         }
 
@@ -559,15 +566,15 @@ public class DbClientContext {
     }
 
     private void checkAndResetConsistencyLevel(DrUtil drUtil, String svcName) {
-        // TODO rewrite these codes with Java driver later
-        /*if (isRetryFailedWriteWithLocalQuorum() && drUtil.isMultivdc()) {
+        
+        if (isRetryFailedWriteWithLocalQuorum() && drUtil.isMultivdc()) {
             log.info("Disable retry for write failure in multiple vdc configuration");
             setRetryFailedWriteWithLocalQuorum(false);
             return;
         }
         
-        ConsistencyLevel currentConsistencyLevel = getKeyspace().getConfig().getDefaultWriteConsistencyLevel();
-        if (currentConsistencyLevel.equals(ConsistencyLevel.CL_EACH_QUORUM)) {
+        ConsistencyLevel currentConsistencyLevel = writeConsistencyLevel;
+        if (currentConsistencyLevel == ConsistencyLevel.EACH_QUORUM) {
             log.debug("Write consistency level is EACH_QUORUM. No need adjust");
             return;
         }
@@ -586,8 +593,7 @@ public class DbClientContext {
             }      
         }
         log.info("Service {} of quorum nodes on all standby sites are up. Reset default write consistency level back to EACH_QUORUM", svcName);
-        AstyanaxConfigurationImpl config = (AstyanaxConfigurationImpl)keyspaceContext.getAstyanaxConfiguration();
-        config.setDefaultWriteConsistencyLevel(ConsistencyLevel.CL_EACH_QUORUM);*/
+        writeConsistencyLevel = ConsistencyLevel.EACH_QUORUM;
     }
     
     protected int getNativeTransportPort() {
@@ -608,5 +614,13 @@ public class DbClientContext {
             prepareStatementMap.put(queryString, statement);
         }
         return prepareStatementMap.get(queryString);
+    }
+
+    public ConsistencyLevel getWriteConsistencyLevel() {
+        return writeConsistencyLevel;
+    }
+
+    public void setWriteConsistencyLevel(ConsistencyLevel writeConsistencyLevel) {
+        this.writeConsistencyLevel = writeConsistencyLevel;
     }
 }

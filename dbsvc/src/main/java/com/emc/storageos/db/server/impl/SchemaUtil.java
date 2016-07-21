@@ -593,7 +593,7 @@ public class SchemaUtil {
             }
 
             TableMetadata cfd =  keyspaceMetaData.getTable("\"" + cf.getName() + "\"");
-            _log.info("cfd={}", cfd);
+            _log.debug("cfd={}", cfd);
 
             // The CF's gc_grace_period will be set if it's an index CF
             Integer cfGcGrace = ColumnFamilyDefinition.INDEX_CF_COMPARATOR_NAME.equals(cf.getComparator()) ? indexGcGrace : null;
@@ -618,7 +618,7 @@ public class SchemaUtil {
                 updateTableQueryStrigList.add(generateCreateTableCQL(cf.getName(), gc, compactionStrategy, schema, primaryKey, clientContext.getKeyspaceName()));
                 
                 if (updateTableQueryStrigList.size() >= CREATE_TABLE_CONCURRENT_ASYC_TASK_COUNT) {
-                    clientContext.createCFAsyc(updateTableQueryStrigList);
+                    clientContext.createCFAsync(updateTableQueryStrigList);
                 }
                 
                 waitForSchema = true;
@@ -672,14 +672,14 @@ public class SchemaUtil {
                 if (modified) {
                     if (updateTableQueryStrigList.size() >= CREATE_TABLE_CONCURRENT_ASYC_TASK_COUNT) {
                         updateTableQueryStrigList.add(generateAlterTableCQL(cfd, compactionStrategy, gcGrace, clientContext.getKeyspaceName()));
-                        clientContext.createCFAsyc(updateTableQueryStrigList);
+                        clientContext.createCFAsync(updateTableQueryStrigList);
                     }
                 }
             }
         }
         
         if (updateTableQueryStrigList.size() > 0 ) {
-            clientContext.createCFAsyc(updateTableQueryStrigList);
+            clientContext.createCFAsync(updateTableQueryStrigList);
         }
 
         if (waitForSchema) {

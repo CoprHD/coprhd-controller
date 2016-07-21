@@ -1,4 +1,4 @@
-package com.emc.storageos.volumecontroller.impl.validators.vmax;
+package com.emc.storageos.volumecontroller.impl.validators.smis.vmax;
 
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.StorageSystem;

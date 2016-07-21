@@ -1,7 +1,8 @@
-package com.emc.storageos.volumecontroller.impl.validators.vmax;
+package com.emc.storageos.volumecontroller.impl.validators.smis.vmax;
 
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.volumecontroller.impl.validators.smis.AbstractSMISValidator;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Sets;
@@ -21,7 +22,7 @@ import static com.google.common.collect.Collections2.transform;
  * If any additional differences are detected on the hardware (i.e. SMI-S) side, then a validation error would be
  * logged.
  */
-public abstract class ExportMaskValidator extends AbstractVmaxValidator {
+public abstract class ExportMaskValidator extends AbstractSMISValidator {
 
     private static final Logger log = LoggerFactory.getLogger(ExportMaskValidator.class);
     private static final String NO_MATCH = "<no match>";

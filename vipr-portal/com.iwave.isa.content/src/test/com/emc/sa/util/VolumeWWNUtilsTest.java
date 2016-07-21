@@ -11,6 +11,7 @@ import static org.junit.Assert.assertTrue;
 import org.junit.Test;
 
 import com.emc.storageos.model.block.VolumeRestRep;
+import com.iwave.ext.linux.util.VolumeWWNUtils;
 
 public class VolumeWWNUtilsTest {
 
@@ -19,7 +20,7 @@ public class VolumeWWNUtilsTest {
         VolumeRestRep blockObject = new VolumeRestRep();
         blockObject.setWwn("60060abcdef0123456789abcdef01234");
         String actualWwn = "60060abcdef0123456789abcdef01234";
-        assertTrue(VolumeWWNUtils.wwnMatches(actualWwn, blockObject));
+        assertTrue(VolumeWWNUtils.wwnMatches(actualWwn, blockObject.getWwn()));
     }
 
     @Test
@@ -27,7 +28,7 @@ public class VolumeWWNUtilsTest {
         VolumeRestRep blockObject = new VolumeRestRep();
         blockObject.setWwn("60060abcdef0123456789abcdef01235");
         String actualWwn = "60060abcdef0123456789abcdef01234";
-        assertFalse(VolumeWWNUtils.wwnMatches(actualWwn, blockObject));
+        assertFalse(VolumeWWNUtils.wwnMatches(actualWwn, blockObject.getWwn()));
     }
 
     @Test
@@ -35,7 +36,7 @@ public class VolumeWWNUtilsTest {
         VolumeRestRep blockObject = new VolumeRestRep();
         blockObject.setWwn("514abcdef0123456");
         String actualWwn = "514abcdef0123456";
-        assertTrue(VolumeWWNUtils.wwnMatches(actualWwn, blockObject));
+        assertTrue(VolumeWWNUtils.wwnMatches(actualWwn, blockObject.getWwn()));
     }
 
     @Test
@@ -43,7 +44,7 @@ public class VolumeWWNUtilsTest {
         VolumeRestRep blockObject = new VolumeRestRep();
         blockObject.setWwn("514abcdef0123456");
         String actualWwn = "12345514abcdef0123456";
-        assertTrue(VolumeWWNUtils.wwnMatches(actualWwn, blockObject));
+        assertTrue(VolumeWWNUtils.wwnMatches(actualWwn, blockObject.getWwn()));
     }
 
     @Test
@@ -51,7 +52,7 @@ public class VolumeWWNUtilsTest {
         VolumeRestRep blockObject = new VolumeRestRep();
         blockObject.setWwn("514abcdef0123456");
         String actualWwn = "01030008514abcdef01234560200000e";
-        assertTrue(VolumeWWNUtils.wwnMatches(actualWwn, blockObject));
+        assertTrue(VolumeWWNUtils.wwnMatches(actualWwn, blockObject.getWwn()));
     }
 
     @Test
@@ -60,6 +61,6 @@ public class VolumeWWNUtilsTest {
         // WWN on the block object is less than the PARTIAL_WWN size (16 characters)
         blockObject.setWwn("514abcdef012345");
         String actualWwn = "01030008514abcdef01234560200000e";
-        assertFalse(VolumeWWNUtils.wwnMatches(actualWwn, blockObject));
+        assertFalse(VolumeWWNUtils.wwnMatches(actualWwn, blockObject.getWwn()));
     }
 }

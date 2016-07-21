@@ -41,7 +41,7 @@ public final class LockManagerImpl implements LockManager {
         if (timeout == 0 || timeout == -1) {
             timeoutSeconds = timeout;
         } else {
-            timeoutSeconds = TimeUnit.SECONDS.convert(timeout, unit);
+            timeoutSeconds = unit.toSeconds(timeout);
         }
         // delegate to locking service
         log.info("Attempt to acquire lock. Name {}, timeout {} seconds", lockName, timeoutSeconds);

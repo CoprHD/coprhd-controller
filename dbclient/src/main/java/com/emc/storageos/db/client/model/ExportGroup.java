@@ -187,6 +187,20 @@ public class ExportGroup extends DataObject implements ProjectResource {
         }
     }
 
+    public void addVirtualMachines(List<URI> vms) {
+        if (getVirtualMachines() == null) {
+            setVirtualMachines(new StringSet());
+        }
+        getVirtualMachines().addAll(StringSetUtil.uriListToStringSet(vms));
+    }
+
+    public void removeVirtualMachines(List<URI> vmsToRemove) {
+        StringSet vms = getVirtualMachines();
+        if (vms != null) {
+            vms.removeAll(StringSetUtil.uriListToStringSet(vmsToRemove));
+        }
+    }
+
     public void addClusters(List<URI> clusters) {
         if (getClusters() == null) {
             setClusters(new StringSet());

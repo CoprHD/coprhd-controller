@@ -412,7 +412,7 @@ public class BlockDeviceExportController implements BlockExportController {
                     addedBlockObjects, removedBlockObjects,
                     addedInitiators, removedInitiators,
                     addedHosts, removedHosts,
-                    addedClusters, removedClusters, opId);
+                    addedClusters, removedClusters, addedVirtualMachines, removedVirtualMachines, opId);
 
             _log.info("Received request to update export group. Creating master workflow.");
             workflow = _wfUtils.newWorkflow("exportGroupUpdate", false, opId);

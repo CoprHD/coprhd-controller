@@ -198,7 +198,6 @@ def create_parser(subcommand_parsers, common_parser):
         conflict_handler='resolve',
         help='Creates a storage provider')
     mandatory_args = create_parser.add_argument_group('mandatory arguments')
-    mandatory_args_xiv = create_parser.add_argument_group("Additional mandatory argument for xiv")
     mandatory_args.add_argument('-n', '-name',
                                 help='Name of storage provider',
                                 metavar='<name>',
@@ -242,15 +241,11 @@ def create_parser(subcommand_parsers, common_parser):
                                dest='secondary_username',
                                metavar='<Secondary Username>',
                                help='Specify a secondary username to be used')
-    mandatory_args_xiv.add_argument('-secondary_username',
-                               dest='secondary_username',
-                               metavar='<Secondary Username>',
-                               help='Specify a secondary username to be used')
-    mandatory_args_xiv.add_argument('-hyperScaleHost',
+    create_parser.add_argument('-hyperScaleHost',
                                dest='hyperScaleHost',
                                metavar = '<Hyper Scale Manager Host>',
                                help='Hyper Scale Manager IP')
-    mandatory_args_xiv.add_argument('-hyperScalePort',
+    create_parser.add_argument('-hyperScalePort',
                                dest='hyperScalePort',
                                metavar='<Hyper Scale Manager Port>',
                                help='Hyper Scale Manager Port')

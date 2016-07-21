@@ -4407,7 +4407,11 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             // validate the remove storage port operation against the export mask volumes
             // this is conceptually the same as remove initiators, so will validate with volumes
-            List<URI> volumeURIList = URIUtil.toURIList(exportMask.getVolumes().keySet());
+            List<URI> volumeURIList = (exportMask.getVolumes() != null) ? 
+                    URIUtil.toURIList(exportMask.getVolumes().keySet()) : new ArrayList<URI>();
+            if (volumeURIList.isEmpty()) {
+                _log.warn("volume URI list for validating remove initiators is empty...");
+            }
             validator.vplex().removeInitiators(vplex, exportMask, volumeURIList).validate();
 
             boolean existingInitiators = exportMask.getExistingInitiators() != null &&
@@ -4528,7 +4532,11 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     }
 
                     // validate the remove initiator operation against the export mask volumes
-                    List<URI> volumeURIList = URIUtil.toURIList(exportMask.getVolumes().keySet());
+                    List<URI> volumeURIList = (exportMask.getVolumes() != null) ? 
+                            URIUtil.toURIList(exportMask.getVolumes().keySet()) : new ArrayList<URI>();
+                    if (volumeURIList.isEmpty()) {
+                        _log.warn("volume URI list for validating remove initiators is empty...");
+                    }
                     validator.vplex().removeInitiators(vplex, exportMask, volumeURIList).validate();
 
                     lastStep = addStepsForRemoveInitiators(
@@ -5047,7 +5055,11 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     _networkDeviceController);
 
             // validate the remove initiator operation against the export mask volumes
-            List<URI> volumeURIList = URIUtil.toURIList(exportMask.getVolumes().keySet());
+            List<URI> volumeURIList = (exportMask.getVolumes() != null) ? 
+                    URIUtil.toURIList(exportMask.getVolumes().keySet()) : new ArrayList<URI>();
+            if (volumeURIList.isEmpty()) {
+                _log.warn("volume URI list for validating remove initiators is empty...");
+            }
             validator.vplex().removeInitiators(vplex, exportMask, volumeURIList).validate();
 
             boolean existingInitiators = exportMask.getExistingInitiators() != null &&

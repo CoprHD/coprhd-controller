@@ -300,6 +300,11 @@ public class VPlexApiVirtualVolumeManager {
                         .get(0).getPath(), sourceDevicePath);
             }
 
+            // update the vplexVolumeInfo object so we can tell if thin-capability changed
+            vplexVolumeInfo = findVirtualVolumeAndUpdateInfo(virtualVolume.getName(), discoveryMgr);
+            virtualVolume.setThinCapable(vplexVolumeInfo.getThinCapable());
+            virtualVolume.setThinEnabled(vplexVolumeInfo.getThinEnabled());
+
             // return mirror device
             return localDevices.get(0);
         } catch (Exception e) {
@@ -2518,6 +2523,8 @@ public class VPlexApiVirtualVolumeManager {
     public boolean setVirtualVolumeThinEnabled(VPlexVirtualVolumeInfo virtualVolumeInfo) {
         ClientResponse response = null;
         try {
+            // set thin enabled to false by default on the out-param until we get a successful response
+            virtualVolumeInfo.setThinEnabled(VPlexApiConstants.FALSE);
             s_logger.info("Requesting thin-enabled flag set to true on virtual volume " + virtualVolumeInfo.getName());
             URI requestURI = _vplexApiClient.getBaseURI().resolve(VPlexApiConstants.URI_SET_THIN_ENABLED_VIRTUAL_VOLUME);
             s_logger.info("Set thin-enabled virtual-volume URI is " + requestURI.toString());
@@ -2539,6 +2546,9 @@ public class VPlexApiVirtualVolumeManager {
                     return false;
                 }
             }
+            // if it got this far, we can assume thin-enabled and thin-capable are both true
+            virtualVolumeInfo.setThinEnabled(VPlexApiConstants.TRUE);
+            virtualVolumeInfo.setThinCapable(VPlexApiConstants.TRUE);
             s_logger.info("Successfully executed set-thin-enabled command");
             return true;
         } catch (VPlexApiException vae) {

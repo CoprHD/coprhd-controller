@@ -28,7 +28,7 @@ public class Initiator extends HostInterface implements Comparable<Initiator> {
     // COP-18551: Initiator may be registered to multiple storage systems using different Aliases. VMAX Arrays
     private StringMap initiatorNames;
 
-    private URI pairedInitiator;
+    private URI associatedInitiator;
 
     /**
      * Default Constructor. This is the constructor used by the API.
@@ -162,14 +162,14 @@ public class Initiator extends HostInterface implements Comparable<Initiator> {
         setChanged("clustername");
     }
 
-    @Name("pairedInitiator")
-    public URI getPairedInitiator() {
-        return pairedInitiator;
+    @Name("associatedInitiator")
+    public URI getAssociatedInitiator() {
+        return associatedInitiator;
     }
 
-    public void setPairedInitiator(URI pairedInitiator) {
-        this.pairedInitiator = pairedInitiator;
-        setChanged("pairedInitiator");
+    public void setAssociatedInitiator(URI associatedInitiator) {
+        this.associatedInitiator = associatedInitiator;
+        setChanged("associatedInitiator");
     }
 
     /**

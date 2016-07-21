@@ -342,6 +342,7 @@ public enum OperationTypeEnum {
     CREATE_HOST_INITIATOR("CREATE HOST INITIATOR", "", "operation to create a host initiator."),
     UPDATE_HOST_INITIATOR("UPDATE HOST INITIATOR", "", "operation to update a host initiator."),
     DELETE_HOST_INITIATOR("DELETE HOST INITIATOR", "", "operation to delete a host initiator."),
+    ASSOCIATE_HOST_INITIATOR("ASSOCIATE  HOST INITIATOR", "", "operation to associate a host initiator to another."),
 
     CREATE_HOST_IPINTERFACE("CREATE HOST IPINTERFACE", "", "operation to create a host ip interface."),
     UPDATE_HOST_IPINTERFACE("UPDATE HOST IPINTERFACE", "", "operation to update a host ip interface."),

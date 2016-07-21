@@ -40,6 +40,8 @@ import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DataCollectionJobStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
+import com.emc.storageos.db.client.model.HostInterface;
+import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.TenantOrg;
@@ -48,11 +50,15 @@ import com.emc.storageos.db.client.model.VirtualMachine;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.EndpointUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.db.client.util.WWNUtility;
+import com.emc.storageos.db.client.util.iSCSIUtility;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.model.host.BaseInitiatorParam;
+import com.emc.storageos.model.host.InitiatorCreateParam;
 import com.emc.storageos.model.host.VirtualMachineBulkRep;
 import com.emc.storageos.model.host.VirtualMachineCreateParam;
 import com.emc.storageos.model.host.VirtualMachineParam;
@@ -119,6 +125,54 @@ public class VirtualMachineService extends TaskResourceService {
         }
     }
 
+    @Override
+    protected DataObject queryResource(URI id) {
+        return queryObject(VirtualMachine.class, id, false);
+    }
+
+    @Override
+    protected URI getTenantOwner(URI id) {
+        VirtualMachine virtualMachine = queryObject(VirtualMachine.class, id, false);
+        return virtualMachine.getTenant();
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public Class<VirtualMachine> getResourceClass() {
+        return VirtualMachine.class;
+    }
+
+    @Override
+    protected ResourceTypeEnum getResourceType() {
+        return ResourceTypeEnum.VIRTUAL_MACHINE;
+    }
+
+    @Override
+    public VirtualMachineBulkRep queryBulkResourceReps(List<URI> ids) {
+
+        Iterator<VirtualMachine> _dbIterator =
+                _dbClient.queryIterativeObjects(getResourceClass(), ids);
+        return new VirtualMachineBulkRep(BulkList.wrapping(_dbIterator, MapVirtualMachine.getInstance()));
+    }
+
+    @Override
+    public VirtualMachineBulkRep queryFilteredBulkResourceReps(List<URI> ids) {
+        Iterator<VirtualMachine> _dbIterator =
+                _dbClient.queryIterativeObjects(getResourceClass(), ids);
+        BulkList.ResourceFilter filter = new BulkList.VirtualMachineFilter(getUserFromContext(), _permissionsHelper);
+        return new VirtualMachineBulkRep(BulkList.wrapping(_dbIterator, MapVirtualMachine.getInstance(), filter));
+    }
+
+    @Override
+    protected boolean isZoneLevelResource() {
+        return false;
+    }
+
+    @Override
+    protected boolean isSysAdminReadableResource() {
+        return true;
+    }
+
     /**
      * Gets the information for one virtual machine.
      *
@@ -174,52 +228,55 @@ public class VirtualMachineService extends TaskResourceService {
         return doDiscoverVM(vm);
     }
 
-    @Override
-    protected DataObject queryResource(URI id) {
-        return queryObject(VirtualMachine.class, id, false);
-    }
+    /**
+     * Creates a new initiator for a host.
+     *
+     * @param id the URN of a ViPR Virtual Machine
+     * @param createParam the details of the initiator
+     * @brief Create VM Initiator
+     * @return the details of the host initiator when creation
+     *         is successfully.
+     * @throws DatabaseException when a database error occurs.
+     */
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.TENANT_ADMIN })
+    @Path("/{id}/initiators")
+    public TaskResourceRep createInitiator(@PathParam("id") URI id,
+            InitiatorCreateParam createParam) throws DatabaseException {
+        VirtualMachine vm = queryObject(VirtualMachine.class, id, true);
+        Cluster cluster = null;
+        validateInitiatorData(createParam, null);
+        // create and populate the initiator
+        Initiator initiator = new Initiator();
+        initiator.setHost(id);
+        initiator.setHostName(vm.getHostName());
+        if (!NullColumnValueGetter.isNullURI(vm.getCluster())) {
+            cluster = queryObject(Cluster.class, vm.getCluster(), false);
+            initiator.setClusterName(cluster.getLabel());
+        }
+        initiator.setId(URIUtil.createId(Initiator.class));
+        populateInitiator(initiator, createParam);
 
-    @Override
-    protected URI getTenantOwner(URI id) {
-        VirtualMachine virtualMachine = queryObject(VirtualMachine.class, id, false);
-        return virtualMachine.getTenant();
-    }
+        _dbClient.createObject(initiator);
+        String taskId = UUID.randomUUID().toString();
+        Operation op = _dbClient.createTaskOpStatus(Initiator.class, initiator.getId(), taskId,
+                ResourceOperationTypeEnum.ADD_HOST_INITIATOR);
 
-    @SuppressWarnings("unchecked")
-    @Override
-    public Class<VirtualMachine> getResourceClass() {
-        return VirtualMachine.class;
-    }
+        // if host in use. update export with new initiator
+        if (ComputeSystemHelper.isHostInUse(_dbClient, vm.getId())
+                && (cluster == null || cluster.getAutoExportEnabled())) {
+            ComputeSystemController controller = getController(ComputeSystemController.class, null);
+            controller.addInitiatorsToExport(initiator.getHost(), Arrays.asList(initiator.getId()), taskId);
+        } else {
+            // No updates were necessary, so we can close out the task.
+            _dbClient.ready(Initiator.class, initiator.getId(), taskId);
+        }
 
-    @Override
-    protected ResourceTypeEnum getResourceType() {
-        return ResourceTypeEnum.VIRTUAL_MACHINE;
-    }
-
-    @Override
-    public VirtualMachineBulkRep queryBulkResourceReps(List<URI> ids) {
-
-        Iterator<VirtualMachine> _dbIterator =
-                _dbClient.queryIterativeObjects(getResourceClass(), ids);
-        return new VirtualMachineBulkRep(BulkList.wrapping(_dbIterator, MapVirtualMachine.getInstance()));
-    }
-
-    @Override
-    public VirtualMachineBulkRep queryFilteredBulkResourceReps(List<URI> ids) {
-        Iterator<VirtualMachine> _dbIterator =
-                _dbClient.queryIterativeObjects(getResourceClass(), ids);
-        BulkList.ResourceFilter filter = new BulkList.VirtualMachineFilter(getUserFromContext(), _permissionsHelper);
-        return new VirtualMachineBulkRep(BulkList.wrapping(_dbIterator, MapVirtualMachine.getInstance(), filter));
-    }
-
-    @Override
-    protected boolean isZoneLevelResource() {
-        return false;
-    }
-
-    @Override
-    protected boolean isSysAdminReadableResource() {
-        return true;
+        auditOp(OperationTypeEnum.CREATE_HOST_INITIATOR, true, null,
+                initiator.auditParameters());
+        return toTask(initiator, taskId, op);
     }
 
     /**
@@ -332,6 +389,75 @@ public class VirtualMachineService extends TaskResourceService {
             if (!VirtualMachineConnectionValidator.isVMConnectionValid(vmParam, vm)) {
                 throw APIException.badRequests.invalidHostConnection();
             }
+        }
+    }
+
+    /**
+     * Validates the create/update initiator operation input data.
+     *
+     * @param param the input parameter
+     * @param initiator the initiator being updated in case of update operation.
+     *            This parameter must be null for create operations.n
+     */
+    public void validateInitiatorData(BaseInitiatorParam param, Initiator initiator) {
+        String protocol = param.getProtocol() != null ?
+                param.getProtocol() : (initiator != null ? initiator.getProtocol() : null);
+        String node = param.getNode() != null ? param.getNode() :
+                (initiator != null ? initiator.getInitiatorNode() : null);
+        String port = param.getPort() != null ? param.getPort() :
+                (initiator != null ? initiator.getInitiatorPort() : null);
+        ArgValidator.checkFieldValueWithExpected(param == null
+                || HostInterface.Protocol.FC.toString().equals(protocol)
+                || HostInterface.Protocol.iSCSI.toString().equals(protocol),
+                "protocol", protocol, HostInterface.Protocol.FC, HostInterface.Protocol.iSCSI);
+        // Validate the passed node and port based on the protocol.
+        // Note that for iSCSI the node is optional.
+        if (HostInterface.Protocol.FC.toString().equals(protocol)) {
+            // Make sure the node is passed in the request.
+            ArgValidator.checkFieldNotNull(node, "node");
+            // Make sure the node is passed in the request.
+            ArgValidator.checkFieldNotNull(port, "port");
+            // Make sure the port is a valid WWN.
+            if (!WWNUtility.isValidWWN(port)) {
+                throw APIException.badRequests.invalidWwnForFcInitiatorPort();
+            }
+            // Make sure the node is a valid WWN.
+            if (!WWNUtility.isValidWWN(node)) {
+                throw APIException.badRequests.invalidWwnForFcInitiatorNode();
+            }
+        } else {
+            // Make sure the port is a valid iSCSI port.
+            if (!iSCSIUtility.isValidIQNPortName(port) && !iSCSIUtility.isValidEUIPortName(port)) {
+                throw APIException.badRequests.invalidIscsiInitiatorPort();
+            }
+            if (param.getNode() != null) {
+                throw APIException.badRequests.invalidNodeForiScsiPort();
+            }
+        }
+        // last validate that the initiator port is unique
+        if (initiator == null || (param.getPort() != null &&
+                !param.getPort().equalsIgnoreCase(initiator.getInitiatorPort()))) {
+            checkDuplicateAltId(Initiator.class, "iniport", EndpointUtility.changeCase(param.getPort()),
+                    "initiator", "Initiator Port");
+        }
+    }
+
+    /**
+     * Populates the initiator using values in the parameter
+     *
+     * @param param the initiator creation/update parameter that contains all the attributes
+     * @param the initiator to be to be populated with data.
+     */
+    public void populateInitiator(Initiator initiator, BaseInitiatorParam param) {
+        initiator.setInitiatorPort(param.getPort());
+        initiator.setInitiatorNode(param.getNode());
+        initiator.setProtocol(param.getProtocol());
+
+        // Set label to the initiator port if not specified on create.
+        if (initiator.getLabel() == null && param.getName() == null) {
+            initiator.setLabel(initiator.getInitiatorPort());
+        } else if (param.getName() != null) {
+            initiator.setLabel(param.getName());
         }
     }
 

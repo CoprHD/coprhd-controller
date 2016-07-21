@@ -246,7 +246,7 @@ public class NetworkScheduler {
             Initiator initiator = ExportUtils.getInitiator(initiatorPort, _dbClient);
 
             if (initiator != null) {
-                URI pairedInitiatorURI = initiator.getPairedInitiator();
+                URI pairedInitiatorURI = initiator.getAssociatedInitiator();
                 if (pairedInitiatorURI == null) {
                     _log.debug(String.format(
                             "Paiered initiator %s could not be paired with port %s",

@@ -18,7 +18,7 @@ import com.emc.storageos.model.RelatedResourceRep;
 /**
  * REST Response representing an Host.
  */
-@XmlRootElement(name = "host")
+@XmlRootElement(name = "virtual_machine")
 @XmlAccessorType(XmlAccessType.PROPERTY)
 public class VirtualMachineRestRep extends ComputeSystemRestRep {
 

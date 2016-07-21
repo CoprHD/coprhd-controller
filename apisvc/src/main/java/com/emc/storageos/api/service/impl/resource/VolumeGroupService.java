@@ -158,7 +158,8 @@ public class VolumeGroupService extends TaskResourceService {
             DiscoveredDataObject.Type.xtremio.name(),
             DiscoveredDataObject.Type.scaleio.name(),
             DiscoveredDataObject.Type.rp.name(),
-            DiscoveredDataObject.Type.ibmxiv.name()));
+            DiscoveredDataObject.Type.ibmxiv.name(),
+            DiscoveredDataObject.Type.unity.name()));
 
     private static final Set<String> PENDING_TASK_NAMES = new HashSet<String>(Arrays.asList(
             ResourceOperationTypeEnum.UPDATE_VOLUME_GROUP.getName(), 

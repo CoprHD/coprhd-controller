@@ -145,12 +145,12 @@
             </control-group>
           </div>
         </div>
-        <div ng-if="['${models.StorageSystemTypes.VMAX}','${models.StorageSystemTypes.HITACHI}'].indexOf(vpool.systemType) > -1">
+        <div ng-if="['${models.StorageSystemTypes.DRIVER_SYSTEM}','${models.StorageSystemTypes.VMAX}','${models.StorageSystemTypes.HITACHI}'].indexOf(vpool.systemType) > -1">
           <control-group v-field='vpool.uniqueAutoTierPolicyNames'>
             <boolean-checkbox v-disabled='locked'></boolean-checkbox>
           </control-group>
         </div>
-        <div ng-if="['${models.StorageSystemTypes.VMAX}','${models.StorageSystemTypes.VNX_BLOCK}','${models.StorageSystemTypes.HITACHI}','${models.StorageSystemTypes.VNXe}','${models.StorageSystemTypes.UNITY}'].indexOf(vpool.systemType) > -1">
+        <div ng-if="['${models.StorageSystemTypes.DRIVER_SYSTEM}','${models.StorageSystemTypes.VMAX}','${models.StorageSystemTypes.VNX_BLOCK}','${models.StorageSystemTypes.HITACHI}','${models.StorageSystemTypes.VNXe}','${models.StorageSystemTypes.UNITY}'].indexOf(vpool.systemType) > -1">
           <control-group v-field='vpool.autoTierPolicy'>
             <select-one v-disabled="locked" auto-default options="autoTierPolicyOptions" empty-option="none"></select-one>
           </control-group>

@@ -217,9 +217,9 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
                     props.put(AutoTieringPolicyCapabilityDefinition.PROPERTY_NAME.POLICY_ID.name(), Arrays.asList(policyId));
                     String provisioningType;
                     if (j%2 == 0) {
-                        provisioningType = StoragePool.SupportedResourceType.THIN_ONLY.name();
+                        provisioningType = StoragePool.AutoTieringPolicyProvisioningType.ThinlyProvisioned.name();
                     } else {
-                        provisioningType = StoragePool.SupportedResourceType.THIN_AND_THICK.name();
+                        provisioningType = StoragePool.AutoTieringPolicyProvisioningType.ThicklyProvisioned.name();
                     }
                     props.put(AutoTieringPolicyCapabilityDefinition.PROPERTY_NAME.PROVISIONING_TYPE.name(), Arrays.asList(provisioningType));
                     CapabilityInstance capabilityInstance = new CapabilityInstance(capabilityDefinition.getId(), policyId, props);

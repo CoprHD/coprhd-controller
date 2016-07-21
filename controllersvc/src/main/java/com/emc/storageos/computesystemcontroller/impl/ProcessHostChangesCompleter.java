@@ -28,13 +28,11 @@ public class ProcessHostChangesCompleter extends TaskCompleter {
     private static final long serialVersionUID = 1L;
 
     protected List<HostStateChange> changes;
-    protected List<URI> deletedHosts;
     protected List<URI> deletedClusters;
 
-    public ProcessHostChangesCompleter(List<HostStateChange> changes, List<URI> deletedHosts, List<URI> deletedClusters, String opId) {
+    public ProcessHostChangesCompleter(List<HostStateChange> changes, List<URI> deletedClusters, String opId) {
         super();
         this.changes = changes;
-        this.deletedHosts = deletedHosts;
         this.deletedClusters = deletedClusters;
     }
 
@@ -55,30 +53,28 @@ public class ProcessHostChangesCompleter extends TaskCompleter {
                 }
             }
 
-            for (URI hostId : deletedHosts) {
-                Host host = dbClient.queryObject(Host.class, hostId);
-                // don't delete host if it was provisioned by Vipr
-                if (!NullColumnValueGetter.isNullURI(host.getComputeElement())) {
-                    _logger.info("do not delete provisioned host {} - disassociate it from vcenter", host.getLabel());
-                    host.setVcenterDataCenter(NullColumnValueGetter.getNullURI());
-                    dbClient.persistObject(host);
-                } else if (!NullColumnValueGetter.isNullURI(host.getBootVolumeId())) {
-                    _logger.info("do not delete host with boot volume {} - disassociate it from vcenter", host.getLabel());
-                    host.setVcenterDataCenter(NullColumnValueGetter.getNullURI());
-                    dbClient.persistObject(host);
-                } else {
-                    ComputeSystemHelper.doDeactivateHost(dbClient, host);
-                    _logger.info("Deactivating Host: " + host.getId());
-                }
-            }
+            // for (URI hostId : deletedHosts) {
+            // Host host = dbClient.queryObject(Host.class, hostId);
+            // // don't delete host if it was provisioned by Vipr
+            // if (!NullColumnValueGetter.isNullURI(host.getComputeElement())) {
+            // _logger.info("do not delete provisioned host {} - disassociate it from vcenter", host.getLabel());
+            // host.setVcenterDataCenter(NullColumnValueGetter.getNullURI());
+            // dbClient.persistObject(host);
+            // } else if (!NullColumnValueGetter.isNullURI(host.getBootVolumeId())) {
+            // _logger.info("do not delete host with boot volume {} - disassociate it from vcenter", host.getLabel());
+            // host.setVcenterDataCenter(NullColumnValueGetter.getNullURI());
+            // dbClient.persistObject(host);
+            // } else {
+            // ComputeSystemHelper.doDeactivateHost(dbClient, host);
+            // _logger.info("Deactivating Host: " + host.getId());
+            // }
+            // }
 
             for (URI clusterId : deletedClusters) {
                 Cluster cluster = dbClient.queryObject(Cluster.class, clusterId);
                 List<URI> clusterHosts = ComputeSystemHelper.getChildrenUris(dbClient, clusterId, Host.class, "cluster");
                 // don't delete cluster if auto-exports are disabled or all hosts weren't deleted (ex: hosts provisioned by ViPR)
-                if (!cluster.getAutoExportEnabled()) {
-                    _logger.info("do not delete cluster {} - auto exports are disabled", cluster.getLabel());
-                } else if (!clusterHosts.isEmpty()) {
+                if (!clusterHosts.isEmpty()) {
                     _logger.info("do not delete cluster {} - it still has hosts - disassociate it from vcenter", cluster.getLabel());
                     cluster.setVcenterDataCenter(NullColumnValueGetter.getNullURI());
                     cluster.setExternalId(NullColumnValueGetter.getNullStr());

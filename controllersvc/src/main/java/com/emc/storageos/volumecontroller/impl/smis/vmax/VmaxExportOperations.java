@@ -1782,7 +1782,8 @@ public class VmaxExportOperations implements ExportMaskOperations {
                             while (inits.hasNext()) {
                                 URI init = inits.next();
                                 Initiator obj = _dbClient.queryObject(Initiator.class, init);
-                                if (!exportMask.getUserAddedInitiators().containsKey(portName)) {
+                                if (exportMask.getUserAddedInitiators() == null
+                                        || !exportMask.getUserAddedInitiators().containsKey(portName)) {
                                     exportMask.addToUserCreatedInitiators(obj);
                                     exportMask.addInitiator(obj);
                                     _log.info("Adding managed initiator:{} to mask:{}", obj.getInitiatorPort(),
@@ -1806,7 +1807,8 @@ public class VmaxExportOperations implements ExportMaskOperations {
                             while (volumes.hasNext()) {
                                 URI volume = volumes.next();
                                 Volume obj = _dbClient.queryObject(Volume.class, volume);
-                                if (!exportMask.getUserAddedVolumes().containsKey(normalizedWWN)) {
+                                if (exportMask.getUserAddedInitiators() == null
+                                        || !exportMask.getUserAddedVolumes().containsKey(normalizedWWN)) {
                                     exportMask.addToUserCreatedVolumes(obj);
                                     exportMask.addVolume(volume, entry.getValue());
                                     _log.info("Adding managed wwn:{} to mask:{}", obj.getWWN(), exportMask.getId());

@@ -404,6 +404,29 @@ secho()
 CMD_OUTPUT=/tmp/output.txt
 rm -f ${CMD_OUTPUT}
 
+# A method to run a command that exits on failure.
+run() {
+    cmd=$*
+    echo === $cmd
+    rm -f ${CMD_OUTPUT}
+    if [ "${HIDE_OUTPUT}" = "" -o "${HIDE_OUTPUT}" = "1" ]; then
+	$cmd &> ${CMD_OUTPUT}
+    else
+	$cmd 2>&1
+    fi
+    if [ $? -ne 0 ]; then
+	if [ -f ${CMD_OUTPUT} ]; then
+	    cat ${CMD_OUTPUT}
+	fi
+	echo There was a failure
+	if [ "${docleanup}" = "1" ]; then
+	    cleanup;
+	fi
+	exit;
+    fi
+}
+
+# A method to run a command that continues on failure.
 runcmd() {
     cmd=$*
     echo === $cmd
@@ -413,14 +436,12 @@ runcmd() {
     else
 	$cmd 2>&1
     fi
-    if [ $? -ne "0" ]; then
+    if [ $? -ne 0 ]; then
 	if [ -f ${CMD_OUTPUT} ]; then
 	    cat ${CMD_OUTPUT}
 	fi
 	echo There was a failure
 	VERIFY_EXPORT_FAIL_COUNT=`expr $VERIFY_EXPORT_FAIL_COUNT + 1`
-        #cleanup
-	finish
     fi
 }
 
@@ -441,9 +462,10 @@ fail(){
         echo -e "$cmd succeeded, which \e[91mshould not have happened\e[0m"
 	cat ${CMD_OUTPUT}
         echo '**********************************************************************'
-        exit 1
+	VERIFY_EXPORT_FAIL_COUNT=`expr $VERIFY_EXPORT_FAIL_COUNT + 1`
+    else
+	secho "$cmd failed, which \e[32mis the expected ouput\e[0m"
     fi
-    secho "$cmd failed, which \e[32mis the expected ouput\e[0m"
 }
 
 pwwn()
@@ -581,25 +603,25 @@ vnx_setup() {
     # do this only once
     echo "Setting up SMIS for VNX"
 
-    runcmd smisprovider create VNX-PROVIDER $VNX_SMIS_IP $VNX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VNX_SMIS_SSL
-    runcmd storagedevice discover_all --ignore_error
+    run smisprovider create VNX-PROVIDER $VNX_SMIS_IP $VNX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VNX_SMIS_SSL
+    run storagedevice discover_all --ignore_error
 
-    runcmd storagepool update $VNXB_NATIVEGUID --type block --volume_type THIN_ONLY
-    runcmd storagepool update $VNXB_NATIVEGUID --type block --volume_type THICK_ONLY
+    run storagepool update $VNXB_NATIVEGUID --type block --volume_type THIN_ONLY
+    run storagepool update $VNXB_NATIVEGUID --type block --volume_type THICK_ONLY
 
     setup_varray
 
-    runcmd storagepool update $VNXB_NATIVEGUID --nhadd $NH --type block
-    runcmd storageport update $VNXB_NATIVEGUID FC --tzone $NH/$FC_ZONE_A
+    run storagepool update $VNXB_NATIVEGUID --nhadd $NH --type block
+    run storageport update $VNXB_NATIVEGUID FC --tzone $NH/$FC_ZONE_A
 
     common_setup
 
     seed=`date "+%H%M%S%N"`
-    runcmd storageport update ${VNXB_NATIVEGUID} FC --tzone $NH/$FC_ZONE_A
+    run storageport update ${VNXB_NATIVEGUID} FC --tzone $NH/$FC_ZONE_A
             
     SERIAL_NUMBER=`storagedevice list | grep COMPLETE | awk '{print $2}' | awk -F+ '{print $2}'`
     
-    runcmd cos create block ${VPOOL_BASE}	\
+    run cos create block ${VPOOL_BASE}	\
 	--description Base true                 \
 	--protocols FC 			                \
 	--numpaths 2				            \
@@ -607,7 +629,7 @@ vnx_setup() {
 	--max_snapshots 10                      \
 	--neighborhoods $NH                    
 
-    runcmd cos update block $VPOOL_BASE --storage ${VNXB_NATIVEGUID}
+    run cos update block $VPOOL_BASE --storage ${VNXB_NATIVEGUID}
 }
 
 unity_setup()
@@ -616,13 +638,13 @@ unity_setup()
     storagedevice list
 
     storagepool update $UNITY_NATIVEGUID --type block --volume_type THIN_AND_THICK
-    runcmd transportzone add ${SRDF_VMAXA_VSAN} $UNITY_INIT_PWWN1
-    runcmd transportzone add ${SRDF_VMAXA_VSAN} $UNITY_INIT_PWWN2
-    runcmd storagedevice discover_all
+    run transportzone add ${SRDF_VMAXA_VSAN} $UNITY_INIT_PWWN1
+    run transportzone add ${SRDF_VMAXA_VSAN} $UNITY_INIT_PWWN2
+    run storagedevice discover_all
 
     SERIAL_NUMBER=`storagedevice list | grep COMPLETE | awk '{print $2}' | awk -F+ '{print $2}'`
     
-    runcmd cos create block ${VPOOL_BASE}	\
+    run cos create block ${VPOOL_BASE}	\
 	--description Base true                 \
 	--protocols FC 			                \
 	--numpaths 1				            \
@@ -630,7 +652,7 @@ unity_setup()
 	--max_snapshots 10                      \
 	--neighborhoods $NH                    
 
-    runcmd cos update block $VPOOL_BASE --storage ${UNITY_NATIVEGUID}
+    run cos update block $VPOOL_BASE --storage ${UNITY_NATIVEGUID}
 }
 
 vmax2_setup() {
@@ -638,25 +660,25 @@ vmax2_setup() {
     # do this only once
     echo "Setting up SMIS for VMAX2"
 
-    runcmd smisprovider create VMAX2-PROVIDER $VMAX2_SMIS_IP $VMAX2_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX2_SMIS_SSL
-    runcmd storagedevice discover_all --ignore_error
+    run smisprovider create VMAX2-PROVIDER $VMAX2_SMIS_IP $VMAX2_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX2_SMIS_SSL
+    run storagedevice discover_all --ignore_error
 
-    runcmd storagepool update $VMAX2_NATIVEGUID --type block --volume_type THIN_ONLY
-    runcmd storagepool update $VMAX2_NATIVEGUID --type block --volume_type THICK_ONLY
+    run storagepool update $VMAX2_NATIVEGUID --type block --volume_type THIN_ONLY
+    run storagepool update $VMAX2_NATIVEGUID --type block --volume_type THICK_ONLY
 
     setup_varray
 
-    runcmd storagepool update $VMAX2_NATIVEGUID --nhadd $NH --type block
-    runcmd storageport update $VMAX2_NATIVEGUID FC --tzone $NH/$FC_ZONE_A
+    run storagepool update $VMAX2_NATIVEGUID --nhadd $NH --type block
+    run storageport update $VMAX2_NATIVEGUID FC --tzone $NH/$FC_ZONE_A
 
     common_setup
 
     seed=`date "+%H%M%S%N"`
-    runcmd storageport update ${VMAX2_NATIVEGUID} FC --tzone $NH/$FC_ZONE_A
+    run storageport update ${VMAX2_NATIVEGUID} FC --tzone $NH/$FC_ZONE_A
         
     SERIAL_NUMBER=`storagedevice list | grep COMPLETE | awk '{print $2}' | awk -F+ '{print $2}'`
     
-    runcmd cos create block ${VPOOL_BASE}	\
+    run cos create block ${VPOOL_BASE}	\
 	--description Base true                 \
 	--protocols FC 			                \
 	--numpaths 1				            \
@@ -665,7 +687,7 @@ vmax2_setup() {
 	--expandable true                       \
 	--neighborhoods $NH                    
 
-    runcmd cos update block $VPOOL_BASE --storage ${VMAX2_NATIVEGUID}
+    run cos update block $VPOOL_BASE --storage ${VMAX2_NATIVEGUID}
 }
 
 vmax3_setup() {
@@ -673,25 +695,25 @@ vmax3_setup() {
     # do this only once
     echo "Setting up SMIS for VMAX3"
 
-    runcmd smisprovider create VMAX-PROVIDER $VMAX_SMIS_IP $VMAX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX_SMIS_SSL
-    runcmd storagedevice discover_all --ignore_error
+    run smisprovider create VMAX-PROVIDER $VMAX_SMIS_IP $VMAX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX_SMIS_SSL
+    run storagedevice discover_all --ignore_error
 
-    runcmd storagepool update $VMAX_NATIVEGUID --type block --volume_type THIN_ONLY
-    runcmd storagepool update $VMAX_NATIVEGUID --type block --volume_type THICK_ONLY
+    run storagepool update $VMAX_NATIVEGUID --type block --volume_type THIN_ONLY
+    run storagepool update $VMAX_NATIVEGUID --type block --volume_type THICK_ONLY
 
     setup_varray
 
-    runcmd storagepool update $VMAX_NATIVEGUID --nhadd $NH --type block
-    runcmd storageport update $VMAX_NATIVEGUID FC --tzone $NH/$FC_ZONE_A
+    run storagepool update $VMAX_NATIVEGUID --nhadd $NH --type block
+    run storageport update $VMAX_NATIVEGUID FC --tzone $NH/$FC_ZONE_A
 
     common_setup
 
     seed=`date "+%H%M%S%N"`
-    runcmd storageport update ${VMAX_NATIVEGUID} FC --tzone $NH/$FC_ZONE_A
+    run storageport update ${VMAX_NATIVEGUID} FC --tzone $NH/$FC_ZONE_A
         
     SERIAL_NUMBER=`storagedevice list | grep COMPLETE | awk '{print $2}' | awk -F+ '{print $2}'`
     
-    runcmd cos create block ${VPOOL_BASE}	\
+    run cos create block ${VPOOL_BASE}	\
 	--description Base true                 \
 	--protocols FC 			                \
 	--numpaths 1				            \
@@ -700,7 +722,7 @@ vmax3_setup() {
 	--expandable true                       \
 	--neighborhoods $NH                    
 
-    runcmd cos update block $VPOOL_BASE --storage ${VMAX_NATIVEGUID}
+    run cos update block $VPOOL_BASE --storage ${VMAX_NATIVEGUID}
 }
 
 vplex_sim_setup() {
@@ -709,15 +731,15 @@ vplex_sim_setup() {
     # Discover the Brocade SAN switch.
     secho "Configuring MDS/Cisco Simulator using SSH on: $VPLEX_SIM_MDS_IP"
     FABRIC_SIMULATOR=fabric-sim
-    runcmd networksystem create $FABRIC_SIMULATOR  mds --devip $VPLEX_SIM_MDS_IP --devport 22 --username $VPLEX_SIM_MDS_USER --password $VPLEX_SIM_MDS_PW
+    run networksystem create $FABRIC_SIMULATOR  mds --devip $VPLEX_SIM_MDS_IP --devport 22 --username $VPLEX_SIM_MDS_USER --password $VPLEX_SIM_MDS_PW
 
     # Discover the storage systems 
     secho "Discovering back-end storage arrays using ECOM/SMIS simulator on: $VPLEX_SIM_SMIS_IP..."
-    runcmd smisprovider create $VPLEX_SIM_SMIS_DEV_NAME $VPLEX_SIM_SMIS_IP $VPLEX_VMAX_SMIS_SIM_PORT $VPLEX_SIM_SMIS_USER "$VPLEX_SIM_SMIS_PASSWD" false
+    run smisprovider create $VPLEX_SIM_SMIS_DEV_NAME $VPLEX_SIM_SMIS_IP $VPLEX_VMAX_SMIS_SIM_PORT $VPLEX_SIM_SMIS_USER "$VPLEX_SIM_SMIS_PASSWD" false
 
     secho "Discovering VPLEX using simulator on: ${VPLEX_SIM_IP}..."
-    runcmd storageprovider create $VPLEX_SIM_DEV_NAME $VPLEX_SIM_IP 443 $VPLEX_SIM_USER "$VPLEX_SIM_PASSWD" vplex
-    runcmd storagedevice discover_all
+    run storageprovider create $VPLEX_SIM_DEV_NAME $VPLEX_SIM_IP 443 $VPLEX_SIM_USER "$VPLEX_SIM_PASSWD" vplex
+    run storagedevice discover_all
 
     VPLEX_GUID=$VPLEX_SIM_VPLEX_GUID
     CLUSTER1NET_NAME=$CLUSTER1NET_SIM_NAME
@@ -727,27 +749,27 @@ vplex_sim_setup() {
     FC_ZONE_A=${CLUSTER1NET_NAME}
     secho "Setting up the VPLEX cluster-1 virtual array $VPLEX_VARRAY1"
     # Setup the varrays. $NH contains VPLEX cluster-1 and $NH2 contains VPLEX cluster-2.
-    runcmd neighborhood create $VPLEX_VARRAY1
-    runcmd transportzone assign $FC_ZONE_A $VPLEX_VARRAY1
-    runcmd transportzone create $FC_ZONE_A $VPLEX_VARRAY1 --type FC
-    runcmd storageport update $VPLEX_SIM_VPLEX_GUID FC --group director-1-1-A --addvarrays $NH
-    runcmd storageport update $VPLEX_SIM_VPLEX_GUID FC --group director-1-1-B --addvarrays $NH
+    run neighborhood create $VPLEX_VARRAY1
+    run transportzone assign $FC_ZONE_A $VPLEX_VARRAY1
+    run transportzone create $FC_ZONE_A $VPLEX_VARRAY1 --type FC
+    run storageport update $VPLEX_SIM_VPLEX_GUID FC --group director-1-1-A --addvarrays $NH
+    run storageport update $VPLEX_SIM_VPLEX_GUID FC --group director-1-1-B --addvarrays $NH
     # The arrays are assigned to individual varrays as well.
-    runcmd storageport update $VPLEX_SIM_VMAX1_NATIVEGUID FC --addvarrays $NH
-    runcmd storageport update $VPLEX_SIM_VMAX2_NATIVEGUID FC --addvarrays $NH
-    runcmd storageport update $VPLEX_SIM_VMAX3_NATIVEGUID FC --addvarrays $NH
+    run storageport update $VPLEX_SIM_VMAX1_NATIVEGUID FC --addvarrays $NH
+    run storageport update $VPLEX_SIM_VMAX2_NATIVEGUID FC --addvarrays $NH
+    run storageport update $VPLEX_SIM_VMAX3_NATIVEGUID FC --addvarrays $NH
 
     VPLEX_VARRAY2=$NH2
     FC_ZONE_B=${CLUSTER2NET_NAME}
     secho "Setting up the VPLEX cluster-2 virtual array $VPLEX_VARRAY2"
-    runcmd neighborhood create $VPLEX_VARRAY2
-    runcmd transportzone assign $FC_ZONE_B $VPLEX_VARRAY2
-    runcmd transportzone create $FC_ZONE_B $VPLEX_VARRAY2 --type FC
-    runcmd storageport update $VPLEX_GUID FC --group director-2-1-A --addvarrays $VPLEX_VARRAY2
-    runcmd storageport update $VPLEX_GUID FC --group director-2-1-B --addvarrays $VPLEX_VARRAY2
-    runcmd storageport update $VPLEX_SIM_VMAX4_NATIVEGUID FC --addvarrays $NH2
-    runcmd storageport update $VPLEX_SIM_VMAX5_NATIVEGUID FC --addvarrays $NH2
-    runcmd storageport update $VPLEX_VMAX_NATIVEGUID FC --addvarrays $VPLEX_VARRAY2
+    run neighborhood create $VPLEX_VARRAY2
+    run transportzone assign $FC_ZONE_B $VPLEX_VARRAY2
+    run transportzone create $FC_ZONE_B $VPLEX_VARRAY2 --type FC
+    run storageport update $VPLEX_GUID FC --group director-2-1-A --addvarrays $VPLEX_VARRAY2
+    run storageport update $VPLEX_GUID FC --group director-2-1-B --addvarrays $VPLEX_VARRAY2
+    run storageport update $VPLEX_SIM_VMAX4_NATIVEGUID FC --addvarrays $NH2
+    run storageport update $VPLEX_SIM_VMAX5_NATIVEGUID FC --addvarrays $NH2
+    run storageport update $VPLEX_VMAX_NATIVEGUID FC --addvarrays $VPLEX_VARRAY2
 
     common_setup
 
@@ -756,7 +778,7 @@ vplex_sim_setup() {
     case "$VPLEX_MODE" in 
         local)
             secho "Setting up the virtual pool for local VPLEX provisioning"
-            runcmd cos create block $VPOOL_BASE true                            \
+            run cos create block $VPOOL_BASE true                            \
                              --description 'vpool-for-vplex-local-volumes'      \
                              --protocols FC                                     \
                              --numpaths 2                                       \
@@ -767,13 +789,13 @@ vplex_sim_setup() {
                              --max_mirrors 0                                    \
                              --expandable false 
 
-            runcmd cos update block $VPOOL_BASE --storage $VPLEX_SIM_VMAX1_NATIVEGUID
-            runcmd cos update block $VPOOL_BASE --storage $VPLEX_SIM_VMAX2_NATIVEGUID
-            runcmd cos update block $VPOOL_BASE --storage $VPLEX_SIM_VMAX3_NATIVEGUID
+            run cos update block $VPOOL_BASE --storage $VPLEX_SIM_VMAX1_NATIVEGUID
+            run cos update block $VPOOL_BASE --storage $VPLEX_SIM_VMAX2_NATIVEGUID
+            run cos update block $VPOOL_BASE --storage $VPLEX_SIM_VMAX3_NATIVEGUID
         ;;
         distributed)
             secho "Setting up the virtual pool for distributed VPLEX provisioning"
-            runcmd cos create block $VPOOL_BASE true                                \
+            run cos create block $VPOOL_BASE true                                \
                              --description 'vpool-for-vplex-distributed-volumes'    \
                              --protocols FC                                         \
                              --numpaths 2                                           \
@@ -785,8 +807,8 @@ vplex_sim_setup() {
                              --max_mirrors 0                                        \
                              --expandable false
 
-            runcmd cos update block $VPOOL_BASE --storage $VPLEX_SIM_VMAX4_NATIVEGUID
-            runcmd cos update block $VPOOL_BASE --storage $VPLEX_SIM_VMAX5_NATIVEGUID
+            run cos update block $VPOOL_BASE --storage $VPLEX_SIM_VMAX4_NATIVEGUID
+            run cos update block $VPOOL_BASE --storage $VPLEX_SIM_VMAX5_NATIVEGUID
         ;;
         *)
             secho "Invalid VPLEX_MODE: $VPLEX_MODE (should be 'local' or 'distributed')"
@@ -803,38 +825,38 @@ vplex_setup() {
     fi
 
     secho "Discovering Brocade SAN Switch ..."
-    runcmd networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
+    run networksystem create $BROCADE_NETWORK brocade --smisip $BROCADE_IP --smisport 5988 --smisuser $BROCADE_USER --smispw $BROCADE_PW --smisssl false
     sleep 30
 
     secho "Discovering VPLEX Storage Assets"
     storageprovider show $VPLEX_DEV_NAME &> /dev/null && return $?
-    runcmd storageprovider create $VPLEX_DEV_NAME $VPLEX_IP 443 $VPLEX_USER "$VPLEX_PASSWD" vplex
-    runcmd smisprovider create $VPLEX_VNX1_SMIS_DEV_NAME $VPLEX_VNX1_SMIS_IP 5989 $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" true
-    runcmd smisprovider create $VPLEX_VNX2_SMIS_DEV_NAME $VPLEX_VNX2_SMIS_IP 5989 $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" true
-    runcmd smisprovider create $VPLEX_VMAX_SMIS_DEV_NAME $VPLEX_VMAX_SMIS_IP 5989 $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" true
+    run storageprovider create $VPLEX_DEV_NAME $VPLEX_IP 443 $VPLEX_USER "$VPLEX_PASSWD" vplex
+    run smisprovider create $VPLEX_VNX1_SMIS_DEV_NAME $VPLEX_VNX1_SMIS_IP 5989 $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" true
+    run smisprovider create $VPLEX_VNX2_SMIS_DEV_NAME $VPLEX_VNX2_SMIS_IP 5989 $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" true
+    run smisprovider create $VPLEX_VMAX_SMIS_DEV_NAME $VPLEX_VMAX_SMIS_IP 5989 $VPLEX_SMIS_USER "$VPLEX_SMIS_PASSWD" true
     
-    runcmd storagedevice discover_all
+    run storagedevice discover_all
 
     VPLEX_VARRAY1=$NH
     FC_ZONE_A=${CLUSTER1NET_NAME}
     secho "Setting up the VPLEX cluster-1 virtual array $VPLEX_VARRAY1"
-    runcmd neighborhood create $VPLEX_VARRAY1
-    runcmd transportzone assign $FC_ZONE_A $VPLEX_VARRAY1
-    runcmd transportzone create $FC_ZONE_A $VPLEX_VARRAY1 --type FC
-    runcmd storageport update $VPLEX_GUID FC --group director-1-1-A --addvarrays $VPLEX_VARRAY1
-    runcmd storageport update $VPLEX_GUID FC --group director-1-1-B --addvarrays $VPLEX_VARRAY1
-    runcmd storageport update $VPLEX_VNX1_NATIVEGUID FC --addvarrays $VPLEX_VARRAY1
-    runcmd storageport update $VPLEX_VNX2_NATIVEGUID FC --addvarrays $VPLEX_VARRAY1
+    run neighborhood create $VPLEX_VARRAY1
+    run transportzone assign $FC_ZONE_A $VPLEX_VARRAY1
+    run transportzone create $FC_ZONE_A $VPLEX_VARRAY1 --type FC
+    run storageport update $VPLEX_GUID FC --group director-1-1-A --addvarrays $VPLEX_VARRAY1
+    run storageport update $VPLEX_GUID FC --group director-1-1-B --addvarrays $VPLEX_VARRAY1
+    run storageport update $VPLEX_VNX1_NATIVEGUID FC --addvarrays $VPLEX_VARRAY1
+    run storageport update $VPLEX_VNX2_NATIVEGUID FC --addvarrays $VPLEX_VARRAY1
     
     VPLEX_VARRAY2=$NH2
     FC_ZONE_B=${CLUSTER2NET_NAME}
     secho "Setting up the VPLEX cluster-2 virtual array $VPLEX_VARRAY2"
-    runcmd neighborhood create $VPLEX_VARRAY2
-    runcmd transportzone assign $FC_ZONE_B $VPLEX_VARRAY2
-    runcmd transportzone create $FC_ZONE_B $VPLEX_VARRAY2 --type FC
-    runcmd storageport update $VPLEX_GUID FC --group director-2-1-A --addvarrays $VPLEX_VARRAY2
-    runcmd storageport update $VPLEX_GUID FC --group director-2-1-B --addvarrays $VPLEX_VARRAY2
-    runcmd storageport update $VPLEX_VMAX_NATIVEGUID FC --addvarrays $VPLEX_VARRAY2
+    run neighborhood create $VPLEX_VARRAY2
+    run transportzone assign $FC_ZONE_B $VPLEX_VARRAY2
+    run transportzone create $FC_ZONE_B $VPLEX_VARRAY2 --type FC
+    run storageport update $VPLEX_GUID FC --group director-2-1-A --addvarrays $VPLEX_VARRAY2
+    run storageport update $VPLEX_GUID FC --group director-2-1-B --addvarrays $VPLEX_VARRAY2
+    run storageport update $VPLEX_VMAX_NATIVEGUID FC --addvarrays $VPLEX_VARRAY2
     
     common_setup
 
@@ -843,7 +865,7 @@ vplex_setup() {
     case "$VPLEX_MODE" in 
         local)
             secho "Setting up the virtual pool for local VPLEX provisioning"
-            runcmd cos create block $VPOOL_BASE true                            \
+            run cos create block $VPOOL_BASE true                            \
                              --description 'vpool-for-vplex-local-volumes'      \
                              --protocols FC                                     \
                              --numpaths 2                                       \
@@ -854,12 +876,12 @@ vplex_setup() {
                              --max_mirrors 0                                    \
                              --expandable false 
 
-            runcmd cos update block $VPOOL_BASE --storage $VPLEX_VNX1_NATIVEGUID
-            runcmd cos update block $VPOOL_BASE --storage $VPLEX_VNX2_NATIVEGUID
+            run cos update block $VPOOL_BASE --storage $VPLEX_VNX1_NATIVEGUID
+            run cos update block $VPOOL_BASE --storage $VPLEX_VNX2_NATIVEGUID
         ;;
         distributed)
             secho "Setting up the virtual pool for distributed VPLEX provisioning"
-            runcmd cos create block $VPOOL_BASE true                                \
+            run cos create block $VPOOL_BASE true                                \
                              --description 'vpool-for-vplex-distributed-volumes'    \
                              --protocols FC                                         \
                              --numpaths 2                                           \
@@ -871,8 +893,8 @@ vplex_setup() {
                              --max_mirrors 0                                        \
                              --expandable false
 
-            runcmd cos update block $VPOOL_BASE --storage $VPLEX_VNX1_NATIVEGUID
-            runcmd cos update block $VPOOL_BASE --storage $VPLEX_VMAX_NATIVEGUID
+            run cos update block $VPOOL_BASE --storage $VPLEX_VNX1_NATIVEGUID
+            run cos update block $VPOOL_BASE --storage $VPLEX_VMAX_NATIVEGUID
         ;;
         *)
             secho "Invalid VPLEX_MODE: $VPLEX_MODE (should be 'local' or 'distributed')"
@@ -886,24 +908,24 @@ xio_setup() {
     echo "Setting up XtremIO"
     XTREMIO_NATIVEGUID=XTREMIO+$XTREMIO_3X_SN
     storage_password=$XTREMIO_3X_PASSWD
-    runcmd storageprovider create XIO-PROVIDER $XTREMIO_3X_IP 443 $XTREMIO_3X_USER "$XTREMIO_3X_PASSWD" xtremio
-    runcmd storagedevice discover_all --ignore_error
+    run storageprovider create XIO-PROVIDER $XTREMIO_3X_IP 443 $XTREMIO_3X_USER "$XTREMIO_3X_PASSWD" xtremio
+    run storagedevice discover_all --ignore_error
 
-    runcmd storagepool update $XTREMIO_NATIVEGUID --type block --volume_type THIN_ONLY
+    run storagepool update $XTREMIO_NATIVEGUID --type block --volume_type THIN_ONLY
 
     setup_varray
 
-    runcmd storagepool update $XTREMIO_NATIVEGUID --nhadd $NH --type block
-    runcmd storageport update $XTREMIO_NATIVEGUID FC --tzone $NH/$FC_ZONE_A
+    run storagepool update $XTREMIO_NATIVEGUID --nhadd $NH --type block
+    run storageport update $XTREMIO_NATIVEGUID FC --tzone $NH/$FC_ZONE_A
 
     common_setup
 
     seed=`date "+%H%M%S%N"`
-    runcmd storageport update ${XTREMIO_NATIVEGUID} FC --tzone $NH/$FC_ZONE_A
+    run storageport update ${XTREMIO_NATIVEGUID} FC --tzone $NH/$FC_ZONE_A
 
     SERIAL_NUMBER=`storagedevice list | grep COMPLETE | awk '{print $2}' | awk -F+ '{print $2}'`
     
-    runcmd cos create block ${VPOOL_BASE}	\
+    run cos create block ${VPOOL_BASE}	\
 	--description Base true                 \
 	--protocols FC 			                \
 	--numpaths 1				            \
@@ -911,54 +933,54 @@ xio_setup() {
 	--max_snapshots 10                      \
 	--neighborhoods $NH                    
 
-    runcmd cos update block $VPOOL_BASE --storage ${XTREMIO_NATIVEGUID}
+    run cos update block $VPOOL_BASE --storage ${XTREMIO_NATIVEGUID}
 }
 
 common_setup() {
-    runcmd project create $PROJECT --tenant $TENANT 
+    run project create $PROJECT --tenant $TENANT 
     echo "Project $PROJECT created."
     echo "Setup ACLs on neighborhood for $TENANT"
-    runcmd neighborhood allow $NH $TENANT
+    run neighborhood allow $NH $TENANT
 
-    runcmd transportzone add $NH/${FC_ZONE_A} $H1PI1
-    runcmd transportzone add $NH/${FC_ZONE_A} $H1PI2
-    runcmd transportzone add $NH/${FC_ZONE_A} $H2PI1
-    runcmd transportzone add $NH/${FC_ZONE_A} $H2PI2
-    runcmd transportzone add $NH/${FC_ZONE_A} $H3PI1
-    runcmd transportzone add $NH/${FC_ZONE_A} $H3PI2
+    run transportzone add $NH/${FC_ZONE_A} $H1PI1
+    run transportzone add $NH/${FC_ZONE_A} $H1PI2
+    run transportzone add $NH/${FC_ZONE_A} $H2PI1
+    run transportzone add $NH/${FC_ZONE_A} $H2PI2
+    run transportzone add $NH/${FC_ZONE_A} $H3PI1
+    run transportzone add $NH/${FC_ZONE_A} $H3PI2
 
     if [ "$USE_CLUSTERED_HOSTS" -eq "1" ]; then
-        runcmd cluster create --project ${PROJECT} ${CLUSTER} ${TENANT}
+        run cluster create --project ${PROJECT} ${CLUSTER} ${TENANT}
 
-        runcmd hosts create ${HOST1} $TENANT Windows ${HOST1} --port 8111 --username user --password 'password' --osversion 1.0 --cluster ${TENANT}/${CLUSTER}
-        runcmd initiator create ${HOST1} FC $H1PI1 --node $H1NI1
-        runcmd initiator create ${HOST1} FC $H1PI2 --node $H1NI2
+        run hosts create ${HOST1} $TENANT Windows ${HOST1} --port 8111 --username user --password 'password' --osversion 1.0 --cluster ${TENANT}/${CLUSTER}
+        run initiator create ${HOST1} FC $H1PI1 --node $H1NI1
+        run initiator create ${HOST1} FC $H1PI2 --node $H1NI2
 
-        runcmd hosts create ${HOST2} $TENANT Windows ${HOST2} --port 8111 --username user --password 'password' --osversion 1.0 --cluster ${TENANT}/${CLUSTER}
-        runcmd initiator create ${HOST2} FC $H2PI1 --node $H2NI1
-        runcmd initiator create ${HOST2} FC $H2PI2 --node $H2NI2
+        run hosts create ${HOST2} $TENANT Windows ${HOST2} --port 8111 --username user --password 'password' --osversion 1.0 --cluster ${TENANT}/${CLUSTER}
+        run initiator create ${HOST2} FC $H2PI1 --node $H2NI1
+        run initiator create ${HOST2} FC $H2PI2 --node $H2NI2
 
-        runcmd hosts create ${HOST3} $TENANT Windows ${HOST3} --port 8111 --username user --password 'password' --osversion 1.0 --cluster ${TENANT}/${CLUSTER}
-        runcmd initiator create ${HOST3} FC $H3PI1 --node $H3NI1
-        runcmd initiator create ${HOST3} FC $H3PI2 --node $H3NI2
+        run hosts create ${HOST3} $TENANT Windows ${HOST3} --port 8111 --username user --password 'password' --osversion 1.0 --cluster ${TENANT}/${CLUSTER}
+        run initiator create ${HOST3} FC $H3PI1 --node $H3NI1
+        run initiator create ${HOST3} FC $H3PI2 --node $H3NI2
     else
-        runcmd hosts create ${HOST1} $TENANT Windows ${HOST1} --port 8111 --username user --password 'password' --osversion 1.0
-        runcmd initiator create ${HOST1} FC $H1PI1 --node $H1NI1
-        runcmd initiator create ${HOST1} FC $H1PI2 --node $H1NI2
+        run hosts create ${HOST1} $TENANT Windows ${HOST1} --port 8111 --username user --password 'password' --osversion 1.0
+        run initiator create ${HOST1} FC $H1PI1 --node $H1NI1
+        run initiator create ${HOST1} FC $H1PI2 --node $H1NI2
 
-        runcmd hosts create ${HOST2} $TENANT Windows ${HOST2} --port 8111 --username user --password 'password' --osversion 1.0
-        runcmd initiator create ${HOST2} FC $H2PI1 --node $H2NI1
-        runcmd initiator create ${HOST2} FC $H2PI2 --node $H2NI2
+        run hosts create ${HOST2} $TENANT Windows ${HOST2} --port 8111 --username user --password 'password' --osversion 1.0
+        run initiator create ${HOST2} FC $H2PI1 --node $H2NI1
+        run initiator create ${HOST2} FC $H2PI2 --node $H2NI2
 
-        runcmd hosts create ${HOST3} $TENANT Windows ${HOST3} --port 8111 --username user --password 'password' --osversion 1.0
-        runcmd initiator create ${HOST3} FC $H3PI1 --node $H3NI1
-        runcmd initiator create ${HOST3} FC $H3PI2 --node $H3NI2
+        run hosts create ${HOST3} $TENANT Windows ${HOST3} --port 8111 --username user --password 'password' --osversion 1.0
+        run initiator create ${HOST3} FC $H3PI1 --node $H3NI1
+        run initiator create ${HOST3} FC $H3PI2 --node $H3NI2
     fi
 }
 
 setup_varray() {
-    runcmd neighborhood create $NH
-    runcmd transportzone create $FC_ZONE_A $NH --type FC
+    run neighborhood create $NH
+    run transportzone create $FC_ZONE_A $NH --type FC
 }
 
 setup() {
@@ -1013,21 +1035,21 @@ setup() {
 
     ${SS}_setup
 
-    runcmd cos allow $VPOOL_BASE block $TENANT
+    run cos allow $VPOOL_BASE block $TENANT
     sleep 30
-    runcmd volume create ${VOLNAME} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 2
+    run volume create ${VOLNAME} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 2
 }
 
 set_suspend_on_error() {
-    runcmd syssvc $SANITY_CONFIG_FILE localhost set_prop workflow_suspend_on_error $1
+    run syssvc $SANITY_CONFIG_FILE localhost set_prop workflow_suspend_on_error $1
 }
 
 set_suspend_on_class_method() {
-    runcmd syssvc $SANITY_CONFIG_FILE localhost set_prop workflow_suspend_on_class_method "$1"
+    run syssvc $SANITY_CONFIG_FILE localhost set_prop workflow_suspend_on_class_method "$1"
 }
 
 set_artificial_failure() {
-    runcmd syssvc $SANITY_CONFIG_FILE localhost set_prop artificial_failure "$1"
+    run syssvc $SANITY_CONFIG_FILE localhost set_prop artificial_failure "$1"
 }
 
 # Verify no masks
@@ -1344,7 +1366,7 @@ test_4() {
     task=${answersarray[0]}
     workflow=${answersarray[1]}
 
-    PWWN=1122334411223344
+    PWWN=`randwwn | sed 's/://g'`
 
     # Add another initiator to the mask (done differently per array type)
     arrayhelper add_initiator_to_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
@@ -1426,7 +1448,7 @@ test_5() {
     task=${answersarray[0]}
     workflow=${answersarray[1]}
 
-    PWWN=1122334411223344
+    PWWN=`randwwn | sed 's/://g'`
 
     # Add another initiator to the mask (done differently per array type)
     arrayhelper add_initiator_to_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
@@ -1999,7 +2021,7 @@ test_13() {
     task=${answersarray[0]}
     workflow=${answersarray[1]}
 
-    PWWN=1122334411223344
+    PWWN=`randwwn | sed 's/://g'`
 
     # Add another initiator to the mask (done differently per array type)
     arrayhelper add_initiator_to_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
@@ -2333,7 +2355,7 @@ cleanup() {
    done
    runcmd volume delete --project $PROJECT --wait
    echo There were $VERIFY_EXPORT_COUNT export verifications
-   echo There were $VERIFY_EXPORT_FAIL_COUNT export verification failures/
+   echo There were $VERIFY_EXPORT_FAIL_COUNT export verification failures
 }
 
 # call this to generate a random WWN for exports.
@@ -2447,6 +2469,12 @@ then
     fi
 fi
 
+docleanup=0;
+if [ "$1" = "-cleanup" ]
+then
+    docleanup=1;
+    shift
+fi
 
 # setup required by all runs, even ones where setup was already done.
 prerun_setup;
@@ -2461,19 +2489,18 @@ then
       echo Run $t
       $t
    done
-   exit
-   #cleanup
-   #finish
+else
+   # Passing tests:
+    for num in 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16
+    do
+      test_${num}
+    done
 fi
 
-# Passing tests:
-for num in "0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16"
-do
-  test_${num}
-done
-exit;
+if [ "${docleanup}" = "1" ]; then
+    cleanup;
+fi
 
-# for now, run "delete" separately to clean up your resources.  Once things are stable, we'll turn this back on.
-cleanup;
 finish
+exit;
 

@@ -12,6 +12,7 @@ import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiator;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiatorGroup;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOLunMap;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOObjectInfo;
+import com.emc.storageos.xtremio.restapi.model.response.XtremIOPerformanceResponse;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOPort;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOSystem;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOTag;
@@ -213,6 +214,20 @@ public interface XtremIODiscoveryClient {
      * @throws Exception
      */
     public XtremIOTag getTagDetails(String tagName, String tagEntityType, String clusterName) throws Exception;
+
+    /**
+     * Get the object performance metrics for the given cluster and entity.
+     * Additional parameters are provided in the order
+     *  param-3 name, param-3 value, param-4 name, param-4 value and so on.
+     *
+     * @param clusterName the cluster name
+     * @param entityName the entity name
+     * @param parameters the parameters
+     * @return the xtremio object performance
+     * @throws Exception the exception
+     */
+    public XtremIOPerformanceResponse getXtremIOObjectPerformance(String clusterName,
+            String entityName, String... parameters) throws Exception;
 
     /**
      * Get the snapshot set details for the given name and cluster

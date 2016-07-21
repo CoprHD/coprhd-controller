@@ -10,6 +10,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.apache.commons.httpclient.util.URIUtil;
+import org.apache.commons.lang3.text.StrBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,6 +42,7 @@ import com.emc.storageos.xtremio.restapi.model.response.XtremIOLunMap;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOLunMaps;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOLunMapsInfo;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOObjectInfo;
+import com.emc.storageos.xtremio.restapi.model.response.XtremIOPerformanceResponse;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOPort;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOPorts;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOPortsInfo;
@@ -695,6 +697,25 @@ public class XtremIOV2Client extends XtremIOClient {
                 tagName);
 
         return null;
+    }
+
+    @Override
+    public XtremIOPerformanceResponse getXtremIOObjectPerformance(String clusterName,
+            String entityName, String... parameters) throws Exception {
+        StringBuilder strBuilder = new StringBuilder(XtremIOConstants.XTREMIO_V2_PERFORMANCE_STR);
+        strBuilder.append(XtremIOConstants.getInputClusterString(clusterName));
+        strBuilder.append(XtremIOConstants.getInputAdditionalParamString(XtremIOConstants.ENTITY, entityName));
+        for (int i = 0; i < parameters.length; i = i + 2) {
+            String parameter = parameters[i];
+            String value = parameters[i + 1];
+            strBuilder.append(XtremIOConstants.getInputAdditionalParamString(parameter, value));
+        }
+        String uriString = strBuilder.toString();
+        log.info("Performance URL to query: {}", uriString);
+        ClientResponse response = get(URI.create(uriString));
+        XtremIOPerformanceResponse performanceResponse = getResponseObject(XtremIOPerformanceResponse.class, response);
+        log.info("Returned performance counters size : {}", performanceResponse.getCounters().length);
+        return performanceResponse;
     }
 
     @Override

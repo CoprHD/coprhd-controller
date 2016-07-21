@@ -93,8 +93,6 @@ public class XtremIOCommunicationInterface extends
         } catch (Exception ex) {
             _logger.error("Error collecting statistics", ex);
             throw XtremIOApiException.exceptions.discoveryFailed(accessProfile.getIpAddress());
-        } finally {
-            // TODO check time update, status update, clean up
         }
         _logger.info("End collecting statistics for IP address {}", accessProfile.getIpAddress());
     }

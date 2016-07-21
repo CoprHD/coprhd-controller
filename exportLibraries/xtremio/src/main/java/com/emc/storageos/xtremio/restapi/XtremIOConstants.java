@@ -20,6 +20,7 @@ public class XtremIOConstants {
     public static final String V2_INITIATOR_GROUP_ROOT_FOLDER = "/InitiatorGroup/";
     public static final String UNDERSCORE = "_";
     public static final String EMPTY_STRING = "";
+    public static final String ENTITY = "entity";
 
     public static final String VOLUME_KEY = "volume";
     public static final String SNAPSHOT_KEY = "snapshot";
@@ -37,6 +38,7 @@ public class XtremIOConstants {
     public static final String XTREMIO_INITIATOR_GROUPS_STR = XTREMIO_BASE_STR.concat("/initiator-groups");
     public static final String XTREMIO_LUNMAPS_STR = XTREMIO_BASE_STR.concat("/lun-maps");
     public static final String XTREMIO_XMS_STR = XTREMIO_BASE_STR.concat("/xms");
+    public static final String XTREMIO_PERFORMANCE_STR = XTREMIO_BASE_STR.concat("/performance");
 
     public static final URI XTREMIO_BASE_CLUSTERS_URI = URI.create(XTREMIO_BASE_CLUSTERS_STR);
     public static final URI XTREMIO_VOLUMES_URI = URI.create(XTREMIO_VOLUMES_STR);
@@ -48,6 +50,7 @@ public class XtremIOConstants {
     public static final URI XTREMIO_INITIATOR_GROUPS_URI = URI.create(XTREMIO_INITIATOR_GROUPS_STR);
     public static final URI XTREMIO_LUNMAPS_URI = URI.create(XTREMIO_LUNMAPS_STR);
     public static final URI XTREMIO_XMS_URI = URI.create(XTREMIO_XMS_STR);
+    public static final URI XTREMIO_PERFORMANCE_URI = URI.create(XTREMIO_PERFORMANCE_STR);
 
     // Version 2 API strings and uris
     public static final String XTREMIO_V2_BASE_STR = "/api/json/v2/types";
@@ -63,6 +66,7 @@ public class XtremIOConstants {
     public static final String XTREMIO_V2_TAGS_STR = XTREMIO_V2_BASE_STR.concat("/tags");
     public static final String XTREMIO_V2_XMS_STR = XTREMIO_V2_BASE_STR.concat("/xms");
     public static final String XTREMIO_V2_SNAPSHOT_SET_STR = XTREMIO_V2_BASE_STR.concat("/snapshot-sets");
+    public static final String XTREMIO_V2_PERFORMANCE_STR = XTREMIO_V2_BASE_STR.concat("/performance");
 
     public static final URI XTREMIO_V2_BASE_CLUSTERS_URI = URI.create(XTREMIO_V2_BASE_CLUSTERS_STR);
     public static final URI XTREMIO_V2_VOLUMES_URI = URI.create(XTREMIO_V2_VOLUMES_STR);
@@ -76,10 +80,12 @@ public class XtremIOConstants {
     public static final URI XTREMIO_V2_TAGS_URI = URI.create(XTREMIO_V2_TAGS_STR);
     public static final URI XTREMIO_V2_XMS_URI = URI.create(XTREMIO_V2_XMS_STR);
     public static final URI XTREMIO_V2_SNAPSHOT_SET_URI = URI.create(XTREMIO_V2_SNAPSHOT_SET_STR);
+    public static final URI XTREMIO_V2_PERFORMANCE_URI = URI.create(XTREMIO_V2_PERFORMANCE_STR);
 
     public static final String CAPTION_NOT_UNIQUE = "caption_not_unique";
     public static final String VOLUME_MAPPED = "vol_already_mapped";
     public static final String XTREMIO_INPUT_NAME_STR = "?name=%s";
+    public static final String XTREMIO_INPUT_ADDITIONAL_PARAM_STR = "&%s=%s";
     public static final String XTREMIO_INPUT_CLUSTER_STR = "?cluster-name=%s";
     public static final String XTREMIO_INPUT_NAME_CLUSTER_STR = "?name=%s&cluster-name=%s";
     public static final String XTREMIO_XMS_FILTER_STR = "?prop=restapi-protocol-version";
@@ -94,7 +100,8 @@ public class XtremIOConstants {
         SnapshotSet,
         InitiatorGroup,
         Initiator,
-        Scheduler
+        Scheduler,
+        XEnv
     }
 
     public static String getXIOBaseURI(String ipAddress, int port) {
@@ -103,6 +110,10 @@ public class XtremIOConstants {
 
     public static String getInputNameString(String name) throws Exception {
         return String.format(XTREMIO_INPUT_NAME_STR, URLEncoder.encode(name, "UTF-8"));
+    }
+
+    public static String getInputAdditionalParamString(String paramName, String paramValue) throws Exception {
+        return String.format(XTREMIO_INPUT_ADDITIONAL_PARAM_STR, paramName, URLEncoder.encode(paramValue, "UTF-8"));
     }
 
     public static String getInputClusterString(String clusterName) throws Exception {

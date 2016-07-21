@@ -5,9 +5,10 @@
 
 package com.emc.storageos.db.client.impl;
 
+import java.io.IOException;
+import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -17,13 +18,20 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.policies.RetryPolicy;
+import javax.management.MBeanServerConnection;
+import javax.management.MBeanServerInvocationHandler;
+import javax.management.MalformedObjectNameException;
+import javax.management.ObjectName;
+import javax.management.remote.JMXConnector;
+import javax.management.remote.JMXConnectorFactory;
+import javax.management.remote.JMXServiceURL;
 
 import org.apache.cassandra.service.StorageProxy;
+import org.apache.cassandra.service.StorageServiceMBean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.Host;
 import com.datastax.driver.core.KeyspaceMetadata;
@@ -36,6 +44,8 @@ import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.WriteType;
 import com.datastax.driver.core.exceptions.ConnectionException;
 import com.datastax.driver.core.exceptions.DriverException;
+import com.datastax.driver.core.policies.RetryPolicy;
+import com.datastax.driver.core.policies.RoundRobinPolicy;
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.DrUtil;
@@ -233,6 +243,7 @@ public class DbClientContext {
         cassandraCluster = com.datastax.driver.core.Cluster
                 .builder()
                 .withRetryPolicy(new ViPRRetryPolicy(10, 1000))
+                .withLoadBalancingPolicy(new RoundRobinPolicy())
                 .addContactPoints(contactPoints).withPort(getNativeTransportPort()).build();
         cassandraCluster.getConfiguration().getQueryOptions().setConsistencyLevel(DEFAULT_READ_CONSISTENCY_LEVEL);
         cassandraSession = cassandraCluster.connect("\"" + keyspaceName + "\"");
@@ -312,6 +323,7 @@ public class DbClientContext {
                 .builder()
                 .addContactPoints(contactPoints).withPort(getNativeTransportPort())
                 .withClusterName(clusterName)
+                .withLoadBalancingPolicy(new RoundRobinPolicy())
                 .withRetryPolicy(new ViPRRetryPolicy(10, 1000))
                 .build();
     }
@@ -521,22 +533,17 @@ public class DbClientContext {
     public Map<String, List<String>> getSchemaVersions() {
         Map<String, List<String>> versions = new HashMap<String, List<String>>();
         try {
-            Set<Host> allHostSet = cassandraCluster.getMetadata().getAllHosts();
-            Iterator<Host> allHosts = allHostSet.iterator();
+            List<String> unreachableNodes = getUnreachableNodes();
+            versions.put(StorageProxy.UNREACHABLE, new LinkedList<String>(unreachableNodes));
+            log.info("Unreachable nodes:" + unreachableNodes);
             
-            while (allHosts.hasNext()){
-                Host host = allHosts.next();
-                if (host.getState().equals(CASSANDRA_HOST_STATE_DOWN)) {
-                    allHosts.remove();
-                    versions.putIfAbsent(StorageProxy.UNREACHABLE, new LinkedList<String>());
-                    versions.get(StorageProxy.UNREACHABLE).add(host.getBroadcastAddress().getHostAddress());
-                }
-            }
-
             ResultSet result = cassandraSession.execute("select * from system.peers");
             for (Row row : result) {
-                versions.putIfAbsent(row.getUUID("schema_version").toString(), new LinkedList<String>());
-                versions.get(row.getUUID("schema_version").toString()).add(row.getInet("rpc_address").getHostAddress());
+                String hostAddress = row.getInet("rpc_address").getHostAddress();
+                if (!unreachableNodes.contains(hostAddress)) {
+                    versions.putIfAbsent(row.getUUID("schema_version").toString(), new LinkedList<String>());
+                    versions.get(row.getUUID("schema_version").toString()).add(hostAddress);
+                }
             }
             
             result = cassandraSession.execute("select * from system.local");
@@ -551,7 +558,7 @@ public class DbClientContext {
         log.info("schema versions found: {}", versions);
         return versions;
     }
-    
+
     public Map<String, String> getStrategyOptions() {
         Map<String, String> result = new HashMap<String, String>();
         KeyspaceMetadata keyspaceMetadata = cassandraCluster.getMetadata().getKeyspace("\""+this.getKeyspaceName()+"\"");
@@ -622,5 +629,31 @@ public class DbClientContext {
 
     public void setWriteConsistencyLevel(ConsistencyLevel writeConsistencyLevel) {
         this.writeConsistencyLevel = writeConsistencyLevel;
+    }
+    
+    private List<String> getUnreachableNodes() {
+        Set<Host> hosts = cassandraCluster.getMetadata().getAllHosts(); 
+        int port = getKeyspaceName() == DbClientContext.LOCAL_KEYSPACE_NAME ? 7199 : 7299;
+        String urlFormat = "service:jmx:rmi:///jndi/rmi://%s:%s/jmxrmi";
+        
+        for (Host host : hosts) {
+            try (JMXConnector jmxConnector = JMXConnectorFactory.connect(
+                    new JMXServiceURL(String.format(urlFormat, host, port)))){
+                
+                
+                MBeanServerConnection mbeanServerConnection = jmxConnector.getMBeanServerConnection();
+                
+                ObjectName mbeanName = new ObjectName("org.apache.cassandra.db:type=StorageService");
+                StorageServiceMBean mbeanProxy =
+                    (StorageServiceMBean) MBeanServerInvocationHandler.newProxyInstance(
+                        mbeanServerConnection, mbeanName, StorageServiceMBean.class, true);
+                
+                return mbeanProxy.getUnreachableNodes();
+            } catch (Exception e) {
+                log.error("Failed to get unreachable nodes with error {}", e);
+            }
+        }
+        
+        return new ArrayList<String>(0);
     }
 }

@@ -567,8 +567,8 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
     public String addStepsForRemoveHost(Workflow workflow, String waitFor, List<URI> hostIds, URI clusterId, boolean isVcenter) {
         List<ExportGroup> exportGroups = getSharedExports(clusterId);
-        Collection<URI> exportIds = Collections2.transform(exportGroups, CommonTransformerFunctions.fctnDataObjectToID());
         if (isVcenter) {
+            Collection<URI> exportIds = Collections2.transform(exportGroups, CommonTransformerFunctions.fctnDataObjectToID());
             Map<URI, Collection<URI>> hostExports = Maps.newHashMap();
             for (URI host : hostIds) {
                 hostExports.put(host, exportIds);
@@ -674,14 +674,6 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     public String addStepsForAddHost(Workflow workflow, String waitFor, List<URI> hostIds, URI clusterId, boolean isVcenter) {
         List<Host> hosts = _dbClient.queryObject(Host.class, hostIds);
         List<ExportGroup> exportGroups = getSharedExports(clusterId);
-        Collection<URI> exportIds = Collections2.transform(exportGroups, CommonTransformerFunctions.fctnDataObjectToID());
-        if (isVcenter) {
-            Map<URI, Collection<URI>> hostExports = Maps.newHashMap();
-            for (URI host : hostIds) {
-                hostExports.put(host, exportIds);
-            }
-            waitFor = this.attachAndMountVolumes(hostExports, waitFor, workflow);
-        }
 
         for (ExportGroup eg : exportGroups) {
             List<URI> updatedInitiators = StringSetUtil.stringSetToUriList(eg.getInitiators());
@@ -715,6 +707,16 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                             updatedClusters, updatedHosts, updatedInitiators),
                     null, null);
         }
+
+        if (isVcenter) {
+            Collection<URI> exportIds = Collections2.transform(exportGroups, CommonTransformerFunctions.fctnDataObjectToID());
+            Map<URI, Collection<URI>> hostExports = Maps.newHashMap();
+            for (URI host : hostIds) {
+                hostExports.put(host, exportIds);
+            }
+            waitFor = this.attachAndMountVolumes(hostExports, waitFor, workflow);
+        }
+
         return waitFor;
     }
 

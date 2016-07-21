@@ -9,11 +9,15 @@ import com.emc.storageos.db.client.DbClient;
  */
 public abstract class AbstractValidator implements Validator {
 
-    private ValidatorFactory factory;
+    private AbstractValidatorFactory factory;
     private ValidatorLogger logger;
 
-    public void setFactory(ValidatorFactory factory) {
+    public void setFactory(AbstractValidatorFactory factory) {
         this.factory = factory;
+    }
+
+    public AbstractValidatorFactory getFactory() {
+        return factory;
     }
 
     public ValidatorLogger getLogger() {

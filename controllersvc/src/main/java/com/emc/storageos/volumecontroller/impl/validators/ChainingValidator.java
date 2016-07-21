@@ -1,18 +1,19 @@
 package com.emc.storageos.volumecontroller.impl.validators;
 
-import com.emc.storageos.exceptions.DeviceControllerException;
-import com.google.common.collect.Lists;
+import java.util.List;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.List;
+import com.emc.storageos.exceptions.DeviceControllerException;
+import com.google.common.collect.Lists;
 
 /**
  * Chains multiple {@link Validator} instances with a shared {@link ValidatorLogger}.
  * This class will execute each validation and then check to see if any validation
  * errors occurred, throwing an exception if so.
  */
-public class ChainingValidator implements Validator {
+public class ChainingValidator extends AbstractValidator {
 
     private static final Logger log = LoggerFactory.getLogger(ChainingValidator.class);
 

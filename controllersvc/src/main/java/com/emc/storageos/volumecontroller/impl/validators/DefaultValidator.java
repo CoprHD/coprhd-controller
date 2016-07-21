@@ -1,15 +1,16 @@
 package com.emc.storageos.volumecontroller.impl.validators;
 
-import com.emc.storageos.exceptions.DeviceControllerException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.emc.storageos.exceptions.DeviceControllerException;
 
 /**
  * Uses a single {@link Validator} instance and shares its {@link ValidatorLogger}.
  * This class will perform validation and then check to see if any validation
  * errors occurred, throwing an exception if so.
  */
-public class DefaultValidator implements Validator {
+public class DefaultValidator extends AbstractValidator {
 
     private static final Logger log = LoggerFactory.getLogger(DefaultValidator.class);
 

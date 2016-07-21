@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.ExportMask;
@@ -20,10 +21,23 @@ import com.emc.storageos.db.client.model.Volume;
 public class ValidatorFactory implements StorageSystemValidatorFactory {
 
     private DbClient dbClient;
+    private CoordinatorClient coordinator;
     private Map<String, StorageSystemValidatorFactory> systemFactories;
 
     public void setDbClient(DbClient dbClient) {
         this.dbClient = dbClient;
+    }
+
+    public DbClient getDbClient() {
+        return dbClient;
+    }
+
+    public void setCoordinator(CoordinatorClient coordinator) {
+        this.coordinator = coordinator;
+    }
+
+    public CoordinatorClient getCoordinator() {
+        return coordinator;
     }
 
     public void setSystemFactories(Map<String, StorageSystemValidatorFactory> systemFactories) {
@@ -36,7 +50,8 @@ public class ValidatorFactory implements StorageSystemValidatorFactory {
      * @param uris
      * @param delete
      * @param remediate
-     * @param checks A list of validation checks to be made (of type ValCk).
+     * @param checks
+     *            A list of validation checks to be made (of type ValCk).
      * @return
      */
     public List<URI> volumeURIs(List<URI> uris, boolean delete, boolean remediate, ValCk... checks) {
@@ -139,7 +154,8 @@ public class ValidatorFactory implements StorageSystemValidatorFactory {
     /**
      * Returns the appropriate StorageSystemValidatorFactory based on StorageSystem type.
      *
-     * @param system -- StorageSystem object
+     * @param system
+     *            -- StorageSystem object
      * @return -- StorageSystemValidatorFactory
      */
     private StorageSystemValidatorFactory getSystemValidator(StorageSystem system) {

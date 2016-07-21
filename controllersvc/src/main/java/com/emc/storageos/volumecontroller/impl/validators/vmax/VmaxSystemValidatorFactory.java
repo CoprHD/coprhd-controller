@@ -7,7 +7,6 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
@@ -15,9 +14,9 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.volumecontroller.impl.smis.CIMObjectPathFactory;
 import com.emc.storageos.volumecontroller.impl.smis.SmisCommandHelper;
+import com.emc.storageos.volumecontroller.impl.validators.AbstractValidatorFactory;
 import com.emc.storageos.volumecontroller.impl.validators.ChainingValidator;
 import com.emc.storageos.volumecontroller.impl.validators.DefaultValidator;
-import com.emc.storageos.volumecontroller.impl.validators.StorageSystemValidatorFactory;
 import com.emc.storageos.volumecontroller.impl.validators.ValCk;
 import com.emc.storageos.volumecontroller.impl.validators.Validator;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorLogger;
@@ -30,21 +29,12 @@ import com.google.common.collect.Lists;
  * {@link DefaultValidator} and {@link ChainingValidator} will throw an exception if the logger
  * holds any errors.
  */
-public class VmaxSystemValidatorFactory implements StorageSystemValidatorFactory {
+public class VmaxSystemValidatorFactory extends AbstractValidatorFactory {
 
     private static final Logger log = LoggerFactory.getLogger(VmaxSystemValidatorFactory.class);
 
-    private DbClient dbClient;
     private CIMObjectPathFactory cimPath;
     private SmisCommandHelper helper;
-
-    public DbClient getDbClient() {
-        return dbClient;
-    }
-
-    public void setDbClient(DbClient dbClient) {
-        this.dbClient = dbClient;
-    }
 
     public CIMObjectPathFactory getCimPath() {
         return cimPath;
@@ -80,7 +70,7 @@ public class VmaxSystemValidatorFactory implements StorageSystemValidatorFactory
     @Override
     public Validator removeVolumes(StorageSystem storage, URI exportMaskURI,
             Collection<Initiator> initiators) {
-        ExportMask exportMask = dbClient.queryObject(ExportMask.class, exportMaskURI);  // FIXME
+        ExportMask exportMask = getDbClient().queryObject(ExportMask.class, exportMaskURI); // FIXME
 
         ValidatorLogger sharedLogger = createValidatorLogger();
         AbstractVmaxValidator validator = new InitiatorsValidator(storage, exportMask, initiators);

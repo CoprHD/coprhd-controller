@@ -1503,7 +1503,7 @@ public class MDSDialog extends SSHDialog {
  	   String dateString = dateFormat.format(cal.getTime()); 	
  	   String longName = MDSDialogProperties.getString("MDSDialog.zonesetCloneLongName.cmd");
  	   //NOTE: This is a hook placed to assist QE in trigerring a zoneset clone failure on demand. 
- 	   //This will never be pusblished or documented in any way. 
+ 	   //This will be removed once QE has tested negative cases by forcing clone failures. 
  	   if (!longName.contains("!MDSDialog.zonesetCloneLongName.cmd!")) {
  		   return longName;
  	   }

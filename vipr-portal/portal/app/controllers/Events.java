@@ -36,10 +36,10 @@ import util.datatable.DataTablesSupport;
 
 @With(Common.class)
 public class Events extends Controller {
-    private static final String UNKNOWN = "resource.task.unknown";
-    private static final String DELETED = "resource.task.deleted";
-    private static final String APPROVED = "resource.task.approved";
-    private static final String DECLINED = "resource.task.declined";
+    private static final String UNKNOWN = "resources.event.unknown";
+    private static final String DELETED = "resources.event.deleted";
+    private static final String APPROVED = "resources.event.approved";
+    private static final String DECLINED = "resources.event.declined";
 
     // Currently the backend only shows progresses of 0 or 100, so for show this as the miminum progress
     private static final int MILLISECONDS_IN_12HOURS = 43200000;

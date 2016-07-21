@@ -1,4 +1,15 @@
+/*
+ * Copyright (c) 2016 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.volumecontroller.impl.validators.vmax;
+
+import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnInitiatorToPortName;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CP_INSTANCE_ID;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CP_SE_STORAGE_HARDWARE_ID;
+
+import java.util.Collection;
+import java.util.Set;
 
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
@@ -7,18 +18,11 @@ import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Sets;
 
-import java.util.Collection;
-import java.util.Set;
-
-import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnInitiatorToPortName;
-import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CP_INSTANCE_ID;
-import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CP_SE_STORAGE_HARDWARE_ID;
-
 /**
  * This subclass of {@link ExportMaskValidator} will:
  * 1) Query expected {@link Initiator} instances and transform them into their respective port names.
  * 2) Query SMI-S for SE_StorageHardwareID.InstanceID instance properties associated with the given export mask
- *    and normalize them.
+ * and normalize them.
  */
 public class InitiatorsValidator extends ExportMaskValidator {
 

@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2016 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.volumecontroller.impl.validators.vplex;
 
 import java.net.URI;
@@ -32,7 +36,7 @@ public class VplexExportMaskValidator extends AbstractVplexValidator implements 
     Collection<URI> volumesToValidate = null;
     Collection<Initiator> initiatorsToValidate = null;
     VPlexApiClient client = null;
-    String id = null;    // identifying string for ExportMask
+    String id = null; // identifying string for ExportMask
 
     public VplexExportMaskValidator(DbClient dbClient, CoordinatorClient coordinator, ValidatorLogger logger, StorageSystem vplex,
             ExportMask mask) {
@@ -86,7 +90,8 @@ public class VplexExportMaskValidator extends AbstractVplexValidator implements 
      * Validates the hardware has no additional volumes than were passed in the volumesToValidate list.
      * Uses the virtualVolumeWWNMap to retrieve the volume WWNs and match against hardware.
      * 
-     * @param storageView -- VPlexStorageViewInfo
+     * @param storageView
+     *            -- VPlexStorageViewInfo
      */
     private void validateNoAdditionalVolumes(VPlexStorageViewInfo storageView) {
         List<Volume> volumes = dbClient.queryObject(Volume.class, volumesToValidate);
@@ -115,7 +120,8 @@ public class VplexExportMaskValidator extends AbstractVplexValidator implements 
      * Validate the hardware has no additional initiators than were passed in the initiatorsToValidate list.
      * Uses the Initiator PWWNs in the Storage View to match against initiator port WWN.
      * 
-     * @param storageView -- VPlexStorageViewInfo
+     * @param storageView
+     *            -- VPlexStorageViewInfo
      */
     private void validateNoAdditionalInitiators(VPlexStorageViewInfo storageView) {
         Set<String> storageViewPwwns = new HashSet<String>(storageView.getInitiatorPwwns());

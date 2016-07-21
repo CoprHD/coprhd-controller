@@ -1,4 +1,15 @@
+/*
+ * Copyright (c) 2016 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.volumecontroller.impl.validators.vmax;
+
+import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnBlockObjectToNativeID;
+
+import java.net.URI;
+import java.util.Collection;
+import java.util.List;
+import java.util.Set;
 
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -7,13 +18,6 @@ import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Sets;
-
-import java.net.URI;
-import java.util.Collection;
-import java.util.List;
-import java.util.Set;
-
-import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnBlockObjectToNativeID;
 
 /**
  * This subclass of {@link ExportMaskValidator} will:

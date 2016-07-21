@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2016 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.volumecontroller.impl.validators.xtremio;
 
 import com.emc.storageos.db.client.DbClient;
@@ -21,7 +25,7 @@ public abstract class AbstractXtremIOValidator implements Validator {
     final StorageSystem storage;
     final ExportMask exportMask;
     boolean errorOnMismatch = true;
-    String id = null;    // identifying string for ExportMask
+    String id = null; // identifying string for ExportMask
 
     public AbstractXtremIOValidator(StorageSystem storage, ExportMask exportMask) {
         this.storage = storage;

@@ -590,12 +590,12 @@ public class HP3PARExpUnexpHelper {
         return true;
     }
 
-    boolean hostHasAllFcInitiators(List<Initiator> initiators, ArrayList<FcPath> hostFcPath) {
+    private boolean hostHasAllFcInitiators(List<Initiator> initiators, ArrayList<FcPath> hostFcPath) {
         //get list of wwns in this host
         ArrayList<String> hostWWNs = new ArrayList<>();
         
         for (FcPath path:hostFcPath) {
-            hostWWNs.add(path.getWwn());
+            hostWWNs.add(SanUtils.formatWWN(path.getWwn()));
         }
         
         for (Initiator init:initiators) {

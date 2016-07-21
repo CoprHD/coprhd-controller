@@ -97,14 +97,14 @@ public class VNXUnityArrayAffinityDiscoverer {
      * @param hostIdStr
      */
     private void processHost(StorageSystem system, VNXeApiClient apiClient, DbClient dbClient, String hostIdStr) {
-        Set<String> serialIds = new HashSet<String>();
-        serialIds.add(system.getSerialNumber());
+        Set<String> systemIds = new HashSet<String>();
+        systemIds.add(system.getId().toString());
 
         try {
             Host host = dbClient.queryObject(Host.class, URI.create(hostIdStr));
             if (host != null && !host.getInactive()) {
                 Map<String, String> preferredPoolURIs = getPreferredPoolMap(system, host.getId(), apiClient, dbClient);
-                if (ArrayAffinityDiscoveryUtils.updatePreferredPools(host, serialIds, dbClient, preferredPoolURIs)) {
+                if (ArrayAffinityDiscoveryUtils.updatePreferredPools(host, systemIds, dbClient, preferredPoolURIs)) {
                     dbClient.updateObject(host);
                 }
             }
@@ -225,8 +225,8 @@ public class VNXUnityArrayAffinityDiscoverer {
         Map<String, URI> hostIdToHostURIMap = new HashMap<String, URI>();
         Map<String, Set<URI>> volumeToHostsMap = new HashMap<String, Set<URI>>();
 
-        Set<String> serialIds = new HashSet<String>();
-        serialIds.add(system.getSerialNumber());
+        Set<String> systemIds = new HashSet<String>();
+        systemIds.add(system.getId().toString());
 
         try {
             processAllLuns(system, apiClient, dbClient, hostToVolumesMap, volumeToHostsMap, volumeToPoolMap, hostIdToHostURIMap);
@@ -254,7 +254,7 @@ public class VNXUnityArrayAffinityDiscoverer {
                         }
                     }
 
-                    if (ArrayAffinityDiscoveryUtils.updatePreferredPools(host, serialIds, dbClient, preferredPoolMap)) {
+                    if (ArrayAffinityDiscoveryUtils.updatePreferredPools(host, systemIds, dbClient, preferredPoolMap)) {
                         hostsToUpdate.add(host);
                     }
                 }

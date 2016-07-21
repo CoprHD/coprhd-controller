@@ -795,6 +795,10 @@ cisco_mds_quick_setup_once()
     # Do once - Discover Cisco MDS simulator switch
     secho "Discover Cisco MDS simulator switch"
     run networksystem create CiscoMdsSimulator  mds --devip $SIMULATOR_CISCO_MDS --devport 22 --username $SIMULATOR_CISCO_MDS_USER --password $SIMULATOR_CISCO_MDS_PW
+
+    #Enable zoneset clone
+    run sysyssvc $CONFIG_FILE $BOURNE_IPADDR set_prop controller_mds_clone_zoneset true
+    run sysyssvc $CONFIG_FILE $BOURNE_IPADDR set_prop controller_mds_allow_zoneset_commit true
    
 #    VPLEX_TZ1=$NH/FABRIC_losam082-fabric
 #    VPLEX_TZ2=$NH2/FABRIC_vplex154nbr2

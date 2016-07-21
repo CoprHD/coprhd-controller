@@ -651,6 +651,13 @@ public class ExternalDeviceCommunicationInterface extends
             }
         }
         
+        system.setAutoTieringEnabled(true);
+        _dbClient.updateObject(system);
+        
+        // TBD do I need to make inactive those that no longer exist?
+        // TBD unique names?
+        // TBD system enabled.
+        
         _dbClient.createObject(objectsToCreate);
         _dbClient.updateObject(objectsToUpdate);
     }

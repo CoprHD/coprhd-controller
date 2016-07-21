@@ -22,6 +22,7 @@ import javax.ws.rs.core.Response;
 
 import com.emc.sa.model.dao.ModelClient;
 import com.emc.sa.model.util.ExecutionWindowHelper;
+import com.emc.sa.model.util.ScheduleTimeHelper;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
@@ -289,7 +290,8 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
 
         URI scheduledEventId = URIUtil.createId(ScheduledEvent.class);
         param.getOrderCreateParam().setScheduledEventId(scheduledEventId);
-        param.getOrderCreateParam().setScheduledTime(convertCalendarToStr(getFirstScheduledTime(param.getScheduleInfo())));
+        Calendar firstScheduledTime = ScheduleTimeHelper.getFirstScheduledTime(param.getScheduleInfo());
+        param.getOrderCreateParam().setScheduledTime(ScheduleTimeHelper.convertCalendarToStr(firstScheduledTime));
 
         OrderRestRep restRep = orderService.createOrder(param.getOrderCreateParam());
 
@@ -316,113 +318,6 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
 
         //auditOpSuccess(OperationTypeEnum.CREATE_SCHEDULED_EVENT, order.auditParameters());
         return newObject;
-    }
-
-    /**
-     * Convert a Calendar to a readable time string.
-     * @param cal
-     * @return
-     * @throws Exception
-     */
-    private String convertCalendarToStr(Calendar cal) throws Exception {
-        SimpleDateFormat format = new SimpleDateFormat(ScheduleInfo.FULL_DAYTIME_FORMAT);
-        String formatted = format.format(cal.getTime());
-        log.info("converted calendar time:{}", formatted);
-        return formatted;
-    }
-
-    /**
-     * Get the first desired schedule time based on current time, start time and schedule schema
-     * @param scheduleInfo  schedule schema
-     * @return                calendar for the first desired schedule time
-     * @throws Exception
-     */
-    private Calendar getFirstScheduledTime(ScheduleInfo scheduleInfo) throws Exception{
-
-        DateFormat formatter = new SimpleDateFormat(ScheduleInfo.FULL_DAY_FORMAT);
-        Date date = formatter.parse(scheduleInfo.getStartDate());
-
-        Calendar startTime = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-        startTime.setTimeZone(TimeZone.getTimeZone("UTC"));
-        startTime.setTime(date);
-        startTime.set(Calendar.HOUR_OF_DAY, scheduleInfo.getHourOfDay());
-        startTime.set(Calendar.MINUTE, scheduleInfo.getMinuteOfHour());
-        startTime.set(Calendar.SECOND, 0);
-        log.info("startTime: {}", startTime.toString());
-
-        Calendar currTZTime = Calendar.getInstance();
-        Calendar currTime = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-        currTime.setTimeInMillis(currTZTime.getTimeInMillis());
-        log.info("currTime: {}", currTime.toString());
-
-        Calendar initTime = startTime.before(currTime)? currTime:startTime;
-        log.info("initTime: {}", initTime.toString());
-
-        int year = initTime.get(Calendar.YEAR);
-        int month = initTime.get(Calendar.MONTH);
-        int day = initTime.get(Calendar.DAY_OF_MONTH);
-        int hour = scheduleInfo.getHourOfDay();
-        int min = scheduleInfo.getMinuteOfHour();
-
-        Calendar scheduledTime = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-        startTime.setTimeZone(TimeZone.getTimeZone("UTC"));
-        scheduledTime.set(year, month, day, hour, min, 0);
-
-        switch (scheduleInfo.getCycleType()) {
-            case MONTHLY:
-                day = Integer.valueOf(scheduleInfo.getSectionsInCycle().get(0));
-                scheduledTime.set(Calendar.DAY_OF_MONTH, day);
-                break;
-            case WEEKLY:
-                day = Integer.valueOf(scheduleInfo.getSectionsInCycle().get(0));
-                int daysDiff = (day%7 + 1) - scheduledTime.get(Calendar.DAY_OF_WEEK); // java dayOfWeek starts from Sun.
-                scheduledTime.add(Calendar.DAY_OF_WEEK, daysDiff);
-                break;
-            case DAILY:
-            case HOURLY:
-            case MINUTELY:
-                break;
-            default:
-                log.error("not expected schedule cycle.");
-        }
-
-        log.info("scheduledTime: {}", scheduledTime.toString());
-
-        while (scheduledTime.before(initTime)) {
-            scheduledTime = getNextScheduledTime(scheduledTime, scheduleInfo);
-            log.info("scheduledTime in loop: {}", scheduledTime.toString());
-        }
-
-        return scheduledTime;
-    }
-
-    /**
-     * Get next desired schedule time based on the previous one and schedule schema
-     * @param scheduledTime     previous schedule time
-     * @param scheduleInfo      schedule schema
-     * @return
-     */
-    private Calendar getNextScheduledTime(Calendar scheduledTime, ScheduleInfo scheduleInfo) {
-        switch (scheduleInfo.getCycleType()) {
-            case MONTHLY:
-                scheduledTime.add(Calendar.MONTH, scheduleInfo.getCycleFrequency());
-                break;
-            case WEEKLY:
-                scheduledTime.add(Calendar.WEEK_OF_MONTH, scheduleInfo.getCycleFrequency());
-                break;
-            case DAILY:
-                scheduledTime.add(Calendar.DAY_OF_MONTH, scheduleInfo.getCycleFrequency());
-                break;
-            case HOURLY:
-                scheduledTime.add(Calendar.HOUR_OF_DAY, scheduleInfo.getCycleFrequency());
-                break;
-            case MINUTELY:
-                scheduledTime.add(Calendar.MINUTE, scheduleInfo.getCycleFrequency());
-                break;
-            default:
-                log.error("not expected schedule cycle.");
-        }
-        return scheduledTime;
     }
 
     /**
@@ -493,7 +388,7 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
         }
 
         Order order = client.orders().findById(scheduledEvent.getLatestOrderId());
-        order.setScheduledTime(convertCalendarToStr(getFirstScheduledTime(scheduleInfo)));
+        order.setScheduledTime(ScheduleTimeHelper.getFirstScheduledTime(scheduleInfo));
         client.save(order);
 
         if (catalogService.getExecutionWindowRequired()) {

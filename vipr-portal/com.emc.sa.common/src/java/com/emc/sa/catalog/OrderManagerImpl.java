@@ -17,6 +17,9 @@ import java.util.Map;
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 
+import com.emc.sa.model.util.ScheduleTimeHelper;
+import com.emc.storageos.db.client.model.*;
+import com.emc.storageos.db.client.model.uimodels.*;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,17 +30,6 @@ import com.emc.sa.asset.AssetOptionsManager;
 import com.emc.sa.descriptor.ServiceDescriptor;
 import com.emc.sa.descriptor.ServiceDescriptors;
 import com.emc.sa.descriptor.ServiceField;
-import com.emc.storageos.db.client.model.uimodels.ApprovalRequest;
-import com.emc.storageos.db.client.model.uimodels.ApprovalStatus;
-import com.emc.storageos.db.client.model.uimodels.CatalogService;
-import com.emc.storageos.db.client.model.uimodels.ExecutionLog;
-import com.emc.storageos.db.client.model.uimodels.ExecutionState;
-import com.emc.storageos.db.client.model.uimodels.ExecutionStatus;
-import com.emc.storageos.db.client.model.uimodels.ExecutionTaskLog;
-import com.emc.storageos.db.client.model.uimodels.Order;
-import com.emc.storageos.db.client.model.uimodels.OrderAndParams;
-import com.emc.storageos.db.client.model.uimodels.OrderParameter;
-import com.emc.storageos.db.client.model.uimodels.OrderStatus;
 import com.emc.sa.model.dao.ModelClient;
 import com.emc.sa.model.util.CreationTimeComparator;
 import com.emc.sa.model.util.SortedIndexUtils;
@@ -48,29 +40,6 @@ import com.emc.sa.zookeeper.OrderExecutionQueue;
 import com.emc.sa.zookeeper.OrderMessage;
 import com.emc.sa.zookeeper.OrderNumberSequence;
 import com.emc.storageos.auth.TokenManager;
-import com.emc.storageos.db.client.model.BlockConsistencyGroup;
-import com.emc.storageos.db.client.model.BlockMirror;
-import com.emc.storageos.db.client.model.BlockSnapshot;
-import com.emc.storageos.db.client.model.BlockSnapshotSession;
-import com.emc.storageos.db.client.model.Cluster;
-import com.emc.storageos.db.client.model.DataObject;
-import com.emc.storageos.db.client.model.ExportGroup;
-import com.emc.storageos.db.client.model.FileShare;
-import com.emc.storageos.db.client.model.Host;
-import com.emc.storageos.db.client.model.Network;
-import com.emc.storageos.db.client.model.Project;
-import com.emc.storageos.db.client.model.ProtectionSystem;
-import com.emc.storageos.db.client.model.QuotaDirectory;
-import com.emc.storageos.db.client.model.Snapshot;
-import com.emc.storageos.db.client.model.StoragePool;
-import com.emc.storageos.db.client.model.StorageProvider;
-import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.model.Vcenter;
-import com.emc.storageos.db.client.model.VcenterDataCenter;
-import com.emc.storageos.db.client.model.VirtualArray;
-import com.emc.storageos.db.client.model.VirtualPool;
-import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.db.client.model.VplexMirror;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
@@ -137,6 +106,13 @@ public class OrderManagerImpl implements OrderManager {
         order.setSummary(catalogService.getTitle());
         if (catalogService.getExecutionWindowRequired()) {
             order.setExecutionWindowId(catalogService.getDefaultExecutionWindowId());
+            if (order.getScheduledEventId() == null) {
+                // Not created via new scheduler, so set schedule time to the latest execution window starting time
+                ExecutionWindow executionWindow = client.findById(catalogService.getDefaultExecutionWindowId().getURI());
+                order.setScheduledTime(ScheduleTimeHelper.getScheduledTime(executionWindow));
+            }
+        } else {
+            order.setExecutionWindowId(new NamedURI(ExecutionWindow.INFINITE, "INFINITE"));
         }
         order.setMessage("");
         order.setSubmittedByUserId(user.getUserName());

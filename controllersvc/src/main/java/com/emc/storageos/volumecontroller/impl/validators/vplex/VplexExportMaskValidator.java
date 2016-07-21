@@ -21,6 +21,7 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.util.VPlexUtil;
+import com.emc.storageos.volumecontroller.impl.validators.AbstractValidator;
 import com.emc.storageos.volumecontroller.impl.validators.Validator;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorLogger;
 import com.emc.storageos.vplex.api.VPlexApiClient;
@@ -28,7 +29,7 @@ import com.emc.storageos.vplex.api.VPlexApiFactory;
 import com.emc.storageos.vplex.api.VPlexStorageViewInfo;
 import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
 
-public class VplexExportMaskValidator extends AbstractVplexValidator implements Validator {
+public class VplexExportMaskValidator extends AbstractValidator implements Validator {
     Logger log = LoggerFactory.getLogger(VplexExportMaskValidator.class);
     private StorageSystem vplex;
     private ExportMask mask;
@@ -38,7 +39,7 @@ public class VplexExportMaskValidator extends AbstractVplexValidator implements 
     String id = null; // identifying string for ExportMask
 
     public VplexExportMaskValidator(DbClient dbClient, ValidatorLogger logger, StorageSystem vplex, ExportMask mask) {
-        super(dbClient, logger);
+        setDbClient(dbClient);
         this.vplex = vplex;
         this.mask = mask;
         id = String.format("%s (%s)(%s)", mask.getMaskName(), mask.getNativeId(), mask.getId().toString());

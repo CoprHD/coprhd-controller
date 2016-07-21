@@ -11,8 +11,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.emc.storageos.coordinator.client.service.CoordinatorClient;
-import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
@@ -22,27 +20,9 @@ import com.emc.storageos.db.client.model.Volume;
 /**
  * Top-level factory class for building {@link Validator} instances.
  */
-public class ValidatorFactory implements StorageSystemValidatorFactory {
+public class ValidatorFactory extends AbstractValidatorFactory {
 
-    private DbClient dbClient;
-    private CoordinatorClient coordinator;
     private Map<String, StorageSystemValidatorFactory> systemFactories;
-
-    public void setDbClient(DbClient dbClient) {
-        this.dbClient = dbClient;
-    }
-
-    public DbClient getDbClient() {
-        return dbClient;
-    }
-
-    public void setCoordinator(CoordinatorClient coordinator) {
-        this.coordinator = coordinator;
-    }
-
-    public CoordinatorClient getCoordinator() {
-        return coordinator;
-    }
 
     public void setSystemFactories(Map<String, StorageSystemValidatorFactory> systemFactories) {
         this.systemFactories = systemFactories;
@@ -60,7 +40,7 @@ public class ValidatorFactory implements StorageSystemValidatorFactory {
      */
     public List<URI> volumeURIs(List<URI> uris, boolean delete, boolean remediate, ValCk... checks) {
         List<URI> remediatedURIs = new ArrayList<URI>();
-        List<Volume> volumes = dbClient.queryObject(Volume.class, uris);
+        List<Volume> volumes = getDbClient().queryObject(Volume.class, uris);
         List<Volume> remediatedVolumes = volumes(volumes, delete, remediate, checks);
         for (Volume volume : remediatedVolumes) {
             remediatedURIs.add(volume.getId());
@@ -81,7 +61,7 @@ public class ValidatorFactory implements StorageSystemValidatorFactory {
         }
         // For each Storage System, do the validations
         for (Map.Entry<URI, List<Volume>> entry : systemUriToVolumeList.entrySet()) {
-            StorageSystem system = dbClient.queryObject(StorageSystem.class, entry.getKey());
+            StorageSystem system = getDbClient().queryObject(StorageSystem.class, entry.getKey());
 
             StorageSystemValidatorFactory validator = getSystemValidator(system);
             if (validator != null) {

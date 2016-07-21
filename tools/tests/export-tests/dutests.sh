@@ -413,14 +413,12 @@ runcmd() {
     else
 	$cmd 2>&1
     fi
-    if [ $? -ne "0" ]; then
+    if [ $? -ne 0 ]; then
 	if [ -f ${CMD_OUTPUT} ]; then
 	    cat ${CMD_OUTPUT}
 	fi
 	echo There was a failure
 	VERIFY_EXPORT_FAIL_COUNT=`expr $VERIFY_EXPORT_FAIL_COUNT + 1`
-        #cleanup
-	finish
     fi
 }
 
@@ -1344,7 +1342,7 @@ test_4() {
     task=${answersarray[0]}
     workflow=${answersarray[1]}
 
-    PWWN=1122334411223344
+    PWWN=`randwwn | sed 's/://g'`
 
     # Add another initiator to the mask (done differently per array type)
     arrayhelper add_initiator_to_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
@@ -1426,7 +1424,7 @@ test_5() {
     task=${answersarray[0]}
     workflow=${answersarray[1]}
 
-    PWWN=1122334411223344
+    PWWN=`randwwn | sed 's/://g'`
 
     # Add another initiator to the mask (done differently per array type)
     arrayhelper add_initiator_to_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
@@ -1999,7 +1997,7 @@ test_13() {
     task=${answersarray[0]}
     workflow=${answersarray[1]}
 
-    PWWN=1122334411223344
+    PWWN=`randwwn | sed 's/://g'`
 
     # Add another initiator to the mask (done differently per array type)
     arrayhelper add_initiator_to_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
@@ -2333,7 +2331,7 @@ cleanup() {
    done
    runcmd volume delete --project $PROJECT --wait
    echo There were $VERIFY_EXPORT_COUNT export verifications
-   echo There were $VERIFY_EXPORT_FAIL_COUNT export verification failures/
+   echo There were $VERIFY_EXPORT_FAIL_COUNT export verification failures
 }
 
 # call this to generate a random WWN for exports.
@@ -2447,6 +2445,11 @@ then
     fi
 fi
 
+if [ "$1" = "-cleanup" ]
+then
+    docleanup=1;
+    shift
+fi
 
 # setup required by all runs, even ones where setup was already done.
 prerun_setup;
@@ -2461,19 +2464,19 @@ then
       echo Run $t
       $t
    done
-   exit
-   #cleanup
-   #finish
+else
+   # Passing tests:
+    for num in 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16
+    do
+      test_${num}
+    done
 fi
 
-# Passing tests:
-for num in "0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16"
-do
-  test_${num}
-done
-exit;
+if [ ${docleanup} -eq 1 ]
+then
+    cleanup;
+fi
 
-# for now, run "delete" separately to clean up your resources.  Once things are stable, we'll turn this back on.
-cleanup;
 finish
+exit;
 

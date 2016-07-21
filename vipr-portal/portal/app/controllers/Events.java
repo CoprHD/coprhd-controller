@@ -6,6 +6,7 @@ package controllers;
 
 import static com.emc.vipr.client.core.TasksResources.SYSTEM_TENANT;
 import static com.emc.vipr.client.core.util.ResourceUtils.uri;
+import static controllers.Common.flashException;
 import static util.BourneUtil.getViprClient;
 
 import java.net.URI;
@@ -220,17 +221,27 @@ public class Events extends Controller {
     }
 
     public static void approveEvent(String eventId) {
-        if (StringUtils.isNotBlank(eventId)) {
-            getViprClient().events().approve(uri(eventId));
-            flash.success(MessagesUtils.get(APPROVED, eventId));
+        try {
+            if (StringUtils.isNotBlank(eventId)) {
+                getViprClient().events().approve(uri(eventId));
+                flash.success(MessagesUtils.get(APPROVED, eventId));
+            }
+        } catch (Exception e) {
+            flashException(e);
+            details(eventId);
         }
         details(eventId);
     }
 
     public static void declineEvent(String eventId) {
-        if (StringUtils.isNotBlank(eventId)) {
-            getViprClient().events().decline(uri(eventId));
-            flash.success(MessagesUtils.get(DECLINED, eventId));
+        try {
+            if (StringUtils.isNotBlank(eventId)) {
+                getViprClient().events().decline(uri(eventId));
+                flash.success(MessagesUtils.get(DECLINED, eventId));
+            }
+        } catch (Exception e) {
+            flashException(e);
+            details(eventId);
         }
         details(eventId);
     }

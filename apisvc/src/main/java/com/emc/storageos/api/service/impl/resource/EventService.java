@@ -120,6 +120,10 @@ public class EventService extends TaggedResource {
         byte[] method = approve ? event.getApproveMethod() : event.getDeclineMethod();
         String eventStatus = approve ? ActionableEvent.Status.approved.name() : ActionableEvent.Status.declined.name();
 
+        if (method == null || method.length == 0) {
+            return taskList;
+        }
+
         ActionableEvent.Method eventMethod = ActionableEvent.Method.deserialize(method);
         if (eventMethod == null) {
             return taskList;

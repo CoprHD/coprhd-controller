@@ -3736,9 +3736,28 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                         protectionSet.setProject(vol.getProject().getURI());
                     }
                     vol.setProtectionSet(new NamedURI(protectionSet.getId(), protectionSet.getLabel()));
+
                     if (vol.checkPersonality(Volume.PersonalityTypes.SOURCE.toString())) {
                         vol.setAccessState(Volume.VolumeAccessState.READWRITE.name());
                         vol.setLinkStatus(Volume.LinkStatus.IN_SYNC.name());
+
+                        // Check the CG for an existing source volume. If the CG has an existing
+                        // source volume, we want to mirror the access state and link status for
+                        // all new source volumes.
+                        List<Volume> existingCgSourceVolumes = RPHelper.getCgSourceVolumes(vol.getConsistencyGroup(), _dbClient);
+
+                        if (existingCgSourceVolumes != null) {
+                            for (Volume sourceVolume : existingCgSourceVolumes) {
+                                if (!vol.getId().equals(sourceVolume.getId())) {
+                                    _log.info(String
+                                            .format("Updating source volume %s. Setting access state = %s, link status = %s.  Based on existing CG target volume %s.",
+                                                    vol.getId(), sourceVolume.getAccessState(), sourceVolume.getLinkStatus(),
+                                                    sourceVolume.getId()));
+                                    vol.setAccessState(sourceVolume.getAccessState());
+                                    vol.setLinkStatus(sourceVolume.getLinkStatus());
+                                }
+                            }
+                        }
                     } else if (vol.checkPersonality(Volume.PersonalityTypes.TARGET.toString())) {
                         vol.setAccessState(Volume.VolumeAccessState.NOT_READY.name());
                         vol.setLinkStatus(Volume.LinkStatus.IN_SYNC.name());
@@ -3749,14 +3768,14 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                         // be marked FAILED_OVER and READWRITE.
                         List<Volume> existingCgTargets =
                                 RPHelper.getTargetVolumesForVarray(_dbClient, vol.getConsistencyGroup(), vol.getVirtualArray());
-                        if (existingCgTargets != null && !existingCgTargets.isEmpty() && vol.getRpCopyName() != null) {
+                        if (existingCgTargets != null && vol.getRpCopyName() != null) {
                             for (Volume targetVolume : existingCgTargets) {
                                 // If we have found a target volume that isn't the same and the RP copy matches,
                                 // lets use it to set the access state and link status values.
                                 if (!vol.getId().equals(targetVolume.getId())
                                         && vol.getRpCopyName().equalsIgnoreCase(targetVolume.getRpCopyName())) {
                                     _log.info(String
-                                            .format("Updating volume %s. Setting access state = %s, link status = %s.  Based on existing CG target volume %s.",
+                                            .format("Updating target volume %s. Setting access state = %s, link status = %s.  Based on existing CG target volume %s.",
                                                     vol.getId(), targetVolume.getAccessState(), targetVolume.getLinkStatus(),
                                                     targetVolume.getId()));
                                     vol.setAccessState(targetVolume.getAccessState());

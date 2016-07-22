@@ -59,5 +59,5 @@ public class PathConstants {
     public static final String USER_PREFERENCES = "/user/preferences";
     public static final String ORDER2_PAUSE = ORDER2_URL + "/{id}/pause";
     public static final String ORDER2_RESUME = ORDER2_URL + "/{id}/resume";
-
+    public static final String SCHEDULED_EVENTS_URL = "/catalog/events";
 }

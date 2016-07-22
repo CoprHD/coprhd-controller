@@ -213,7 +213,7 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
             throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.START_DATE);
         }
 
-        if (scheduleInfo.getReoccurrence() < 1 ) {
+        if (scheduleInfo.getReoccurrence() < 0 ) {
             throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.REOCCURRENCE);
         }
 

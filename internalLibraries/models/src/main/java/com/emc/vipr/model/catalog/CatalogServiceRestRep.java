@@ -29,7 +29,8 @@ public class CatalogServiceRestRep extends SortedIndexRestRep {
     private RelatedResourceRep catalogCategory;
     private List<CatalogServiceFieldRestRep> catalogServiceFields;
     private ServiceDescriptorRestRep serviceDescriptor;
-
+    private boolean schedulerAllowed = false; 
+    
     @XmlElement(name = "title")
     public String getTitle() {
         return title;
@@ -131,4 +132,14 @@ public class CatalogServiceRestRep extends SortedIndexRestRep {
     public void setServiceDescriptor(ServiceDescriptorRestRep descriptor) {
         this.serviceDescriptor = descriptor;
     }
+
+    @XmlElement(name = "scheduler_allowed")
+    public boolean isSchedulerAllowed() {
+        return schedulerAllowed;
+    }
+
+    public void setSchedulerAllowed(boolean schedulerAllowed) {
+        this.schedulerAllowed = schedulerAllowed;
+    }
+    
 }

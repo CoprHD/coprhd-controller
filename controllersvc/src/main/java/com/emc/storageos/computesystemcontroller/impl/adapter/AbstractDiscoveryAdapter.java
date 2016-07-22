@@ -27,6 +27,7 @@ import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.ModelClient;
+import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.Host;
@@ -35,6 +36,7 @@ import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.IpInterface;
 import com.emc.storageos.db.client.util.EndpointUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.util.EventUtil;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -493,9 +495,70 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
     }
 
     public void processHostChanges(List<HostStateChange> changes, List<URI> deletedHosts, List<URI> deletedClusters, boolean isVCenter) {
-        String taskId = UUID.randomUUID().toString();
-        ComputeSystemController controller = getController(ComputeSystemController.class, null);
-        controller.processHostChanges(changes, deletedHosts, deletedClusters, isVCenter, taskId);
+
+        log.info("There are " + changes.size() + " changes");
+
+        // Iterate through all host state changes and create states for all of the affected export groups
+        for (HostStateChange change : changes) {
+
+            log.info("HostChange: " + change);
+
+            Host host = dbClient.queryObject(Host.class, change.getHost().getId());
+
+            // For every host change (added/removed initiator, cluster change), get all exports that this host
+            // currently belongs to
+            List<Initiator> newInitiatorObjects = dbClient.queryObject(Initiator.class, change.getNewInitiators());
+            List<Initiator> oldInitiatorObjects = dbClient.queryObject(Initiator.class, change.getOldInitiators());
+
+            if ((change.getOldCluster() == null && host.getCluster() != null) || !change.getOldCluster().equals(host.getCluster())) {
+
+                URI oldClusterURI = change.getOldCluster();
+                Cluster cluster = dbClient.queryObject(Cluster.class, host.getCluster());
+
+                Cluster oldCluster = dbClient.queryObject(Cluster.class, oldClusterURI);
+                EventUtil.createActionableEvent(dbClient, host.getTenant(),
+                        "Host " + host.getLabel() + " changed cluster from " + (oldCluster == null ? "N/A" : oldCluster.getLabel())
+                                + " to " + (cluster == null ? " no cluster " : cluster.getLabel()),
+                        "Host " + host.getLabel() + " will be removed from shared exports for cluster "
+                                + (oldCluster == null ? "N/A" : oldCluster.getLabel()) + " and added to shared exports for cluster "
+                                + (cluster == null ? " N/A " : cluster.getLabel()),
+                        host,
+                        "hostClusterChange",
+                        new Object[] { host.getId(), cluster != null ? cluster.getId() : NullColumnValueGetter.getNullURI(), isVCenter });
+            }
+
+            for (Initiator oldInitiator : oldInitiatorObjects) {
+                EventUtil.createActionableEvent(dbClient, host.getTenant(),
+                        "Host " + host.getLabel() + " removed initiator " + oldInitiator.getInitiatorNode(),
+                        "Initiator " + oldInitiator.getInitiatorNode() + " will be deleted and removed from export groups",
+                        oldInitiator, "removeInitiator", new Object[] { oldInitiator.getId() });
+            }
+            for (Initiator newInitiator : newInitiatorObjects) {
+                EventUtil.createActionableEvent(dbClient, host.getTenant(),
+                        "Host " + host.getLabel() + " added initiator " + newInitiator.getInitiatorNode(),
+                        "Initiator " + newInitiator.getInitiatorNode() + " will be added to export groups",
+                        newInitiator, "addInitiator", new Object[] { newInitiator.getId() });
+            }
+        }
+
+        log.info("Number of deleted hosts: " + deletedHosts.size());
+
+        for (URI deletedHost : deletedHosts) {
+            Host host = dbClient.queryObject(Host.class, deletedHost);
+            EventUtil.createActionableEvent(dbClient, host.getTenant(), "Delete host " + host.getLabel(),
+                    "Host " + host.getLabel() + " will be deleted and storage will be unexported from the host.", host,
+                    "deleteHost", new Object[] { deletedHost });
+        }
+
+        log.info("Number of deleted clusters: " + deletedClusters.size());
+
+        for (URI deletedCluster : deletedClusters) {
+            Cluster cluster = dbClient.queryObject(Cluster.class, deletedCluster);
+            EventUtil.createActionableEvent(dbClient, cluster.getTenant(), "Delete cluster " + cluster.getLabel(), "Cluster "
+                    + cluster.getLabel() + " will be deleted and storage will be unexported from the shared cluster exports.", cluster,
+                    "deleteCluster", new Object[] { deletedCluster });
+        }
+
     }
 
     // TODO: move to AbstractHostDiscoveryAdapter once EsxHostDiscoveryAdatper is moved to extend it

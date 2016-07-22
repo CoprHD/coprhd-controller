@@ -1165,7 +1165,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                     export.getId(), export.getId().toString(),
                     this.getClass(),
                     updateExportGroupMethod(export.getId(), export.getVolumesMap(),
-                            export.getClusters(), export.getHosts(), export.getInitiators(), export.get),
+                            export.getClusters(), export.getHosts(), export.getInitiators(), export.getVirtualMachines()),
                     null, null);
         }
 

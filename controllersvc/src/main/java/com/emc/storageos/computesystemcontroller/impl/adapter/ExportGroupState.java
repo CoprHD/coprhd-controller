@@ -133,6 +133,15 @@ public class ExportGroupState implements Serializable {
     }
 
     /**
+     * Returns clusters for this export group state
+     * 
+     * @return list of virtual machines
+     */
+    public List<URI> getVirtualMachines() {
+        return virtualMachines;
+    }
+
+    /**
      * Returns volumes for this export group state
      * 
      * @return volume map
@@ -151,12 +160,12 @@ public class ExportGroupState implements Serializable {
     }
 
     /**
-     * Returns true is export group state has additions (new hosts, new clusters, new initiators)
+     * Returns true is export group state has additions (new hosts, new clusters, new virtual machines, new initiators)
      * 
      * @return true if adds, otherwise false
      */
     public boolean hasAdds() {
-        return !addedClusters.isEmpty() || !addedHosts.isEmpty() || !addedInitiators.isEmpty();
+        return !addedClusters.isEmpty() || !addedHosts.isEmpty() || !addedInitiators.isEmpty() || !addedVirtualMachines.isEmpty();
     }
 
     /**
@@ -165,7 +174,7 @@ public class ExportGroupState implements Serializable {
      * @return true if removed, otherwise false
      */
     public boolean hasRemoves() {
-        return !removedClusters.isEmpty() || !removedHosts.isEmpty() || !removedInitiators.isEmpty();
+        return !removedClusters.isEmpty() || !removedHosts.isEmpty() || !removedInitiators.isEmpty() || !removedVirtualMachines.isEmpty();
     }
 
     /**
@@ -222,9 +231,28 @@ public class ExportGroupState implements Serializable {
         this.removedClusters.add(id);
     }
 
+    /**
+     * Add virtual machine to the export group state
+     * 
+     * @param id
+     */
+    public void addVirtualMachine(URI id) {
+        this.addedVirtualMachines.add(id);
+    }
+
+    /**
+     * Remove virtual machine from the export group state
+     * 
+     * @param id
+     */
+    public void removeVirtualMachine(URI id) {
+        this.removedVirtualMachines.add(id);
+    }
+
     @Override
     public String toString() {
         return "ExportGroupState: [ExportId: " + this.id + ", Initiators: " + this.initiators + ", Hosts: "
-                + this.hosts + ", Clusters: " + this.clusters + ", Volumes: " + this.volumesMap + "]";
+                + this.hosts + ", Clusters: " + this.clusters + " Virtual Machines: " + this.virtualMachines + ", Volumes: "
+                + this.volumesMap + "]";
     }
 }

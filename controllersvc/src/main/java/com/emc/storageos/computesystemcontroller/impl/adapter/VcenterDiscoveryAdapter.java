@@ -103,19 +103,7 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
                 processor.setRegistrationStatus(vcenter.getRegistrationStatus());
             }
             save(vcenter);
-
-            for (URI deletedHost : deletedHosts) {
-                Host host = dbClient.queryObject(Host.class, deletedHost);
-                EventUtil.createActionableEvent(dbClient, host.getTenant(), "Delete host " + host.getLabel(),
-                        "Host " + host.getLabel() + " will be deleted and storage will be unexported from the host.", host,
-                        "deleteHost", new Object[] { deletedHost });
-            }
-            for (URI deletedCluster : deletedClusters) {
-                Cluster cluster = dbClient.queryObject(Cluster.class, deletedCluster);
-                EventUtil.createActionableEvent(dbClient, cluster.getTenant(), "Delete cluster " + cluster.getLabel(), "Cluster "
-                        + cluster.getLabel() + " will be deleted and storage will be unexported from the shared cluster exports.", cluster,
-                        "deleteCluster", new Object[] { deletedCluster });
-            }
+            processHostChanges(changes, deletedHosts, deletedClusters, true);
         } else {
             processor.setCompatibilityStatus(CompatibilityStatus.INCOMPATIBLE.name());
             save(vcenter);
@@ -500,16 +488,6 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
             }
             if ((oldClusterURI == null && cluster.getId() != null) || !oldClusterURI.equals(cluster.getId())) {
                 info("detected host cluster change to %s", cluster != null ? cluster.getLabel() : NullColumnValueGetter.getNullURI());
-                Cluster oldCluster = dbClient.queryObject(Cluster.class, oldClusterURI);
-                EventUtil.createActionableEvent(dbClient, target.getTenant(),
-                        "Host " + target.getLabel() + " changed cluster from " + (oldCluster == null ? "N/A" : oldCluster.getLabel())
-                                + " to " + (cluster == null ? " no cluster " : cluster.getLabel()),
-                        "Host " + target.getLabel() + " will be removed from shared exports for cluster "
-                                + (oldCluster == null ? "N/A" : oldCluster.getLabel()) + " and added to shared exports for cluster "
-                                + (cluster == null ? " N/A " : cluster.getLabel()),
-                        target,
-                        "hostClusterChange",
-                        new Object[] { target.getId(), cluster != null ? cluster.getId() : NullColumnValueGetter.getNullURI(), true });
             }
 
             if (target.getType() == null ||
@@ -534,19 +512,6 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
 
                 boolean isClusterChanged = !(NullColumnValueGetter.isNullURI(oldClusterURI) ? NullColumnValueGetter.isNullURI(target
                         .getCluster()) : target.getCluster() != null && oldClusterURI.toString().equals(target.getCluster().toString()));
-
-                for (Initiator oldInitiator : oldInitiators) {
-                    EventUtil.createActionableEvent(dbClient, target.getTenant(),
-                            "Host " + target.getLabel() + " removed initiator " + oldInitiator.getInitiatorNode(),
-                            "Initiator " + oldInitiator.getInitiatorNode() + " will be deleted and removed from export groups",
-                            oldInitiator, "removeInitiator", new Object[] { oldInitiator.getId() });
-                }
-                for (Initiator newInitiator : addedInitiators) {
-                    EventUtil.createActionableEvent(dbClient, target.getTenant(),
-                            "Host " + target.getLabel() + " added initiator " + newInitiator.getInitiatorNode(),
-                            "Initiator " + newInitiator.getInitiatorNode() + " will be added to export groups",
-                            newInitiator, "addInitiator", new Object[] { newInitiator.getId() });
-                }
 
                 if (!oldInitiators.isEmpty() || !addedInitiators.isEmpty() || isClusterChanged) {
                     changes.add(new HostStateChange(target, oldClusterURI, oldInitiators, addedInitiators));

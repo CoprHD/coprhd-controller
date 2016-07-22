@@ -216,11 +216,11 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
                 
                 List<CapabilityInstance> capabilities = new ArrayList<>();
                 for (int j = 1; j <= 2; j++) {
-                    String policyId = "Auto-Tier-Policy-" + j;
+                    String policyId = "Auto-Tier-Policy-" + i + j;
                     Map<String, List<String>> props = new HashMap<>();
                     props.put(AutoTieringPolicyCapabilityDefinition.PROPERTY_NAME.POLICY_ID.name(), Arrays.asList(policyId));
                     String provisioningType;
-                    if (j%2 == 0) {
+                    if (i%2 == 0) {
                         provisioningType = StoragePool.AutoTieringPolicyProvisioningType.ThinlyProvisioned.name();
                     } else {
                         provisioningType = StoragePool.AutoTieringPolicyProvisioningType.ThicklyProvisioned.name();

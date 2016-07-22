@@ -24,6 +24,7 @@ import javax.ws.rs.core.*;
 import javax.ws.rs.core.Response.Status;
 import javax.xml.bind.annotation.XmlRootElement;
 
+import com.emc.storageos.auth.openid.OpenIDUtil;
 import com.emc.storageos.auth.saml.SAMLUtil;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.model.password.PasswordChangeParam;
@@ -857,6 +858,60 @@ public class AuthenticationResource {
     }
 
 
+    /**
+     * Authenticates a user with OpenID  in query parameter
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.TEXT_HTML })
+    @Path("oiclogin")
+    public Response openidlogin(@Context HttpServletRequest request,
+                              @Context HttpServletResponse servletResponse,
+                              @QueryParam("code") String code,
+                              @QueryParam("state") String relaystate
+    ) throws IOException {
+
+        // get SAML subject information from artifact
+        String updatedService = relaystate;
+
+        _log.info("get code=" + code);
+        _log.info("get state=" + relaystate);
+
+
+        String username = OpenIDUtil.resolveCode(code);
+
+        StorageOSUserDAO user = new StorageOSUserDAO();
+        user.setUserName(username);
+        TenantOrg rootTenant = _permissionsHelper.getRootTenant();
+        user.setTenantId(rootTenant.getId().toString());
+        user.addGroup("FREDGROUP@SECQE.COM");
+
+        String loginError = null;
+        try {
+
+            if (user != null) {
+                String token = _tokenManager.getToken(user);
+                _log.info("generate token: " + token);
+                if (token == null) {
+                    _log.error("Could not generate token for user: {}", user.getUserName());
+                    return Response.status(Status.INTERNAL_SERVER_ERROR).build();
+                }
+                _log.info("Redirecting to the original service: {}", updatedService);
+
+                // If remember me check box is on, set the expiration time.
+                return buildLoginResponse(updatedService, null, true,
+                        false, new LoginStatus(user.getUserName(), token, true),
+                        request);
+            }
+
+        } catch (Exception e) {
+            loginError = e.getMessage();
+        }
+
+        String formLP = getFormLoginPage(updatedService, null, request.getServerName(),
+                MessageFormat.format(FORM_LOGIN_AUTH_ERROR_ENT, loginError));
+        return Response.ok(formLP).type(MediaType.TEXT_HTML)
+                .cacheControl(_cacheControl).header(HEADER_PRAGMA, HEADER_PRAGMA_VALUE).build();
+    }
 
 
     /**

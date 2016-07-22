@@ -8,6 +8,6 @@ dependencies {
             library(google_gson),
             library(google_gson),
             library(json_sanitizer),
-            library(commons_logging)
-            
+            library(commons_logging),
+            library(spring)
 }

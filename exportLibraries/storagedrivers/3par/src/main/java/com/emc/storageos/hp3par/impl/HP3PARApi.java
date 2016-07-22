@@ -1152,6 +1152,9 @@ public class HP3PARApi {
         String body = null;
         final String path = MessageFormat.format(URI_HOST_DETAILS, name);
 
+        // get existing host wwn/iqn; 
+        // remove existing wwn/iqns in the list to be added 
+        
         try {
             for (String Id:portIdsNew) {
                 if (portIdstr.length() > 1 ) {

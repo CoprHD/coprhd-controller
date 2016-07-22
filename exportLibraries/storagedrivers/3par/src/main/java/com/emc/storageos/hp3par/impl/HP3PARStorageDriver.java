@@ -18,6 +18,8 @@ import org.apache.commons.lang.mutable.MutableBoolean;
 import org.apache.commons.lang.mutable.MutableInt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 import com.emc.storageos.hp3par.command.CPGCommandResult;
 import com.emc.storageos.hp3par.command.CPGMember;
@@ -63,7 +65,9 @@ import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
  */
 public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockStorageDriver {
 
+    private static final String HP3PAR_CONF_FILE = "hp3par-conf.xml";
 	private static final Logger _log = LoggerFactory.getLogger(HP3PARStorageDriver.class);
+	private ApplicationContext parentApplicationContext;
 
 	// Independent functionalities
 	private HP3PARIngestHelper ingestHelper;
@@ -74,6 +78,25 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	private HP3PARCGHelper cgHelper;
 	private HP3PARProvisioningHelper provHelper;
 	private HP3PARExpUnexpHelper expunexpHelper;
+	
+	public HP3PARStorageDriver() {
+        ApplicationContext context = new ClassPathXmlApplicationContext(new String[] {HP3PAR_CONF_FILE}, parentApplicationContext);
+        this.ingestHelper = (HP3PARIngestHelper) context.getBean("3parIngestionHelper");
+        this.hp3parUtil = (HP3PARUtil) context.getBean("hp3parUtil");
+        this.hp3parApiFactory = (HP3PARApiFactory) context.getBean("hp3parApiFactory");
+        this.snapshotHelper = (HP3PARSnapshotHelper) context.getBean("3parSnapshotHelper");
+        this.cloneHelper = (HP3PARCloneHelper) context.getBean("3parCloneHelper");
+        this.cgHelper = (HP3PARCGHelper) context.getBean("3parCGHelper");
+        this.provHelper = (HP3PARProvisioningHelper) context.getBean("3parProvHelper");
+        this.expunexpHelper = (HP3PARExpUnexpHelper) context.getBean("3parExpUnexpHelper");
+        
+	}
+
+	// Injecting HP3PAR parent application context 
+    public void setApplicationContext(ApplicationContext parentApplicationContext) {
+        this.parentApplicationContext = parentApplicationContext;
+    }
+
 	
 	@Override
 	public DriverTask getTask(String taskId) {
@@ -732,70 +755,5 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
         // TODO Auto-generated method stub
         return null;
     }
-    
-	public HP3PARIngestHelper getIngestHelper() {
-		return ingestHelper;
-	}
-
-	public void setIngestHelper(HP3PARIngestHelper ingestHelper) {
-		this.ingestHelper = ingestHelper;
-	}
-
-	public HP3PARApiFactory getHp3parApiFactory() {
-		return hp3parApiFactory;
-	}
-
-	public void setHp3parApiFactory(HP3PARApiFactory hp3parApiFactory) {
-		this.hp3parApiFactory = hp3parApiFactory;
-	}
-
-	public HP3PARSnapshotHelper getSnapshotHelper() {
-		return snapshotHelper;
-	}
-
-	public void setSnapshotHelper(HP3PARSnapshotHelper snapshotHelper) {
-		this.snapshotHelper = snapshotHelper;
-	}
-
-	public HP3PARCloneHelper getCloneHelper() {
-		return cloneHelper;
-	}
-
-	public void setCloneHelper(HP3PARCloneHelper cloneHelper) {
-		this.cloneHelper = cloneHelper;
-	}
-
-	public HP3PARCGHelper getCgHelper() {
-		return cgHelper;
-	}
-
-	public void setCgHelper(HP3PARCGHelper cgHelper) {
-		this.cgHelper = cgHelper;
-	}
-
-	public HP3PARUtil getHp3parUtil() {
-		return hp3parUtil;
-	}
-
-	public void setHp3parUtil(HP3PARUtil hp3parUtil) {
-		this.hp3parUtil = hp3parUtil;
-	}
-
-    public HP3PARProvisioningHelper getProvHelper() {
-        return provHelper;
-    }
-
-    public void setProvHelper(HP3PARProvisioningHelper provHelper) {
-        this.provHelper = provHelper;
-    }
-
-    public HP3PARExpUnexpHelper getExpunexpHelper() {
-        return expunexpHelper;
-    }
-
-    public void setExpunexpHelper(HP3PARExpUnexpHelper expunexpHelper) {
-        this.expunexpHelper = expunexpHelper;
-    }
-
 
 }

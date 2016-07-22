@@ -453,49 +453,8 @@
     -->
     <bean id="storageDriverSimulator" class="com.emc.storageos.driver.driversimulator.StorageDriverSimulator">
     </bean>
-    <bean id="hp3Par" class="com.emc.storageos.hp3par.impl.HP3PARStorageDriver">
-    	<property name="ingestHelper" ref="3parIngestionHelper"></property>
-    	<property name="hp3parApiFactory" ref="hp3parApiFactory"/>
-    	<property name="hp3parUtil" ref="hp3parUtil"/>
-    	<property name="snapshotHelper" ref="3parSnapshotHelper"></property>
-    	<property name="cloneHelper" ref="3parCloneHelper"></property>
-    	<property name="cgHelper" ref="3parCGHelper"></property>
-    	<property name="provHelper" ref="3parProvHelper"/>
-    	<property name="expunexpHelper" ref="3parExpUnexpHelper"/>
-    </bean>
     
-    <bean id="3parIngestionHelper" class="com.emc.storageos.hp3par.impl.HP3PARIngestHelper">
-    	<property name="hp3parUtil" ref="hp3parUtil"></property>
-    </bean>
-
-    <bean id="3parSnapshotHelper" class="com.emc.storageos.hp3par.impl.HP3PARSnapshotHelper">
-    	<property name="hp3parUtil" ref="hp3parUtil"></property>
-    </bean>
-
-    <bean id="3parCloneHelper" class="com.emc.storageos.hp3par.impl.HP3PARCloneHelper">
-    	<property name="hp3parUtil" ref="hp3parUtil"></property>
-    </bean>
-
-    <bean id="3parCGHelper" class="com.emc.storageos.hp3par.impl.HP3PARCGHelper">
-    	<property name="hp3parUtil" ref="hp3parUtil"></property>
-    </bean>
-
-	<bean id="hp3parApiFactory" class="com.emc.storageos.hp3par.connection.HP3PARApiFactory" init-method="init">
-		<property name="connectionTimeoutMs" value="30000"/>
-		<property name="connManagerTimeout" value="60000"/>
-		<property name="socketConnectionTimeoutMs" value="7200000"/>
-	</bean>
-	
-	<bean id="hp3parUtil" class="com.emc.storageos.hp3par.utils.HP3PARUtil">
-		<property name="hp3parApiFactory" ref="hp3parApiFactory"/>
-	</bean>
-	
-	<bean id="3parProvHelper" class="com.emc.storageos.hp3par.impl.HP3PARProvisioningHelper">
-    	<property name="hp3parUtil" ref="hp3parUtil"></property>
-    </bean>
-
-	<bean id="3parExpUnexpHelper" class="com.emc.storageos.hp3par.impl.HP3PARExpUnexpHelper">
-    	<property name="hp3parUtil" ref="hp3parUtil"></property>
+     <bean id="hp3Par" class="com.emc.storageos.hp3par.impl.HP3PARStorageDriver">
     </bean>
 	
     <bean id="externalDeviceExportMaskOperationsHelper" class="com.emc.storageos.volumecontroller.impl.externaldevice.ExternalDeviceExportOperations">
@@ -1705,3 +1664,4 @@
     </bean>
     
 </beans>
+

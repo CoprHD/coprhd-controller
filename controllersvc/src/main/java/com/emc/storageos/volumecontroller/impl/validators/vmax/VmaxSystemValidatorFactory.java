@@ -85,7 +85,7 @@ public class VmaxSystemValidatorFactory implements StorageSystemValidatorFactory
         AbstractVmaxValidator initiators = new InitiatorsValidator(storage, exportMask, initiatorList);
         configureValidators(sharedLogger, volumes, initiators);
 
-        ChainingValidator chain = new ChainingValidator(sharedLogger, "Export Mask");
+        ChainingValidator chain = new ChainingValidator(sharedLogger, getCoordinator(), "Export Mask");
         chain.addValidator(volumes);
         chain.addValidator(initiators);
         return chain;

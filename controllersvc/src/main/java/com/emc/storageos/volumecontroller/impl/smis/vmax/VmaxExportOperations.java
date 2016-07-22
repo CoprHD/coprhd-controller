@@ -1807,7 +1807,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                             while (volumes.hasNext()) {
                                 URI volume = volumes.next();
                                 Volume obj = _dbClient.queryObject(Volume.class, volume);
-                                if (exportMask.getUserAddedInitiators() == null
+                                if (exportMask.getUserAddedVolumes() == null
                                         || !exportMask.getUserAddedVolumes().containsKey(normalizedWWN)) {
                                     exportMask.addToUserCreatedVolumes(obj);
                                     exportMask.addVolume(volume, entry.getValue());

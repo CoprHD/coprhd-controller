@@ -507,9 +507,10 @@ public class DataDomainCommunicationInterface extends ExtendedCommunicationInter
         }
 
         if (match) {
+            StringBuffer errorMessage = new StringBuffer();
             ImplicitPoolMatcher.matchModifiedStoragePoolsWithAllVpool(Arrays.asList(storagePool),
                     _dbClient, _coordinator,
-                    storageSystem.getId());
+                    storageSystem.getId(), errorMessage);
         }
 
         _log.info("discoverPools for storage system {} - complete", storageSystem.getId());

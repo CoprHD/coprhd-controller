@@ -442,8 +442,9 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             allExistingPorts.addAll(notVisiblePorts);
             StoragePortAssociationHelper.updatePortAssociations(allNewPorts, _dbClient);
             StoragePortAssociationHelper.updatePortAssociations(allExistingPorts, _dbClient);
+            StringBuffer errorMessage = new StringBuffer();
             ImplicitPoolMatcher.matchModifiedStoragePoolsWithAllVpool(poolsToMatchWithVpool, _dbClient, _coordinator,
-                    storageSystemId);
+                    storageSystemId, errorMessage);
 
             // Update the virtual nas association with virtual arrays!!!
             // For existing virtual nas ports!!

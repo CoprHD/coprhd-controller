@@ -1302,6 +1302,13 @@ test_3() {
     # Now remove the volume from the storage group (masking view)
     arrayhelper remove_volume_from_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
 
+    ## For VNX, I can see that the provider takes some time to update the volume removed from SG.
+    ## Putting a sleep here only for VNX
+    if [ "${SS}" = "vnx" ]
+    then
+	sleep 120
+    fi
+
     # Delete the volume we created.
     arrayhelper delete_volume ${SERIAL_NUMBER} ${device_id}
 
@@ -1562,6 +1569,13 @@ test_6() {
 
     # Delete the volume we created.
     arrayhelper delete_volume ${SERIAL_NUMBER} ${device_id}
+
+    ## For VNX, I can see that the provider takes some time to update the volume removed from SG.
+    ## Putting a sleep here only for VNX
+    if [ "${SS}" = "vnx" ]
+    then
+	sleep 120
+    fi
 
     # Verify the mask is back to normal
     verify_export ${expname}1 ${HOST1} 2 1

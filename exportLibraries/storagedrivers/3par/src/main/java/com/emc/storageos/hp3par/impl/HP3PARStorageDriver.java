@@ -153,7 +153,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 			storageSystem.setSerialNumber(systemRes.getSerialNumber());
 			storageSystem.setMajorVersion(systemRes.getSystemVersion());
 			storageSystem.setMinorVersion("0"); // as there is no individual portion in 3par api
-
+			
 			// protocols supported
 			List<String> protocols = new ArrayList<String>();
 			protocols.add(Protocols.iSCSI.toString());
@@ -171,6 +171,8 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 			storageSystem.setModel(systemRes.getModel());
 			storageSystem.setProvisioningType(SupportedProvisioningType.THIN_AND_THICK);
 			Set<StorageSystem.SupportedReplication> supportedReplications = new HashSet<>();
+            supportedReplications.add(StorageSystem.SupportedReplication.elementReplica);
+            supportedReplications.add(StorageSystem.SupportedReplication.groupReplica);
 			storageSystem.setSupportedReplications(supportedReplications);
 
 			// Storage object properties

@@ -425,6 +425,16 @@ public class StorageSystemService extends TaskResourceService {
             throw APIException.serviceUnavailable.cannotDeactivateStorageSystemWhileInDiscover(system.getId());
         }
 
+        if (DiscoveredDataObject.DataCollectionJobStatus.IN_PROGRESS.toString().equals(system.getArrayAffinityStatus())
+                || DiscoveredDataObject.DataCollectionJobStatus.SCHEDULED.toString().equals(system.getArrayAffinityStatus())) {
+            throw APIException.serviceUnavailable.cannotDeactivateStorageSystemWhileInArrayAffinityDiscover(system.getId());
+        }
+
+        if (DiscoveredDataObject.DataCollectionJobStatus.IN_PROGRESS.toString().equals(system.getMeteringStatus())
+                || DiscoveredDataObject.DataCollectionJobStatus.SCHEDULED.toString().equals(system.getMeteringStatus())) {
+            throw APIException.serviceUnavailable.cannotDeactivateStorageSystemWhileInMeteringDataCollection(system.getId());
+        }
+
         String taskId = UUID.randomUUID().toString();
         Operation op = _dbClient.createTaskOpStatus(StorageSystem.class, system.getId(),
                 taskId, ResourceOperationTypeEnum.DELETE_STORAGE_SYSTEM);

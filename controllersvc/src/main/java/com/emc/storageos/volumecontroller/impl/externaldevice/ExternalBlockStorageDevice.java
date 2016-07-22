@@ -271,6 +271,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                     StorageVolume driverVolume = new StorageVolume();
                     driverVolume.setStorageSystemId(storageSystem.getNativeId());
                     driverVolume.setNativeId(volume.getNativeId());
+                    driverVolume.setConsistencyGroup(volume.getReplicationGroupInstance());
                     task = driver.deleteVolumes(Collections.unmodifiableList(Collections.singletonList(driverVolume)));
                 }
                 if (task.getStatus() == DriverTask.TaskStatus.READY) {

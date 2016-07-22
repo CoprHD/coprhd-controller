@@ -95,7 +95,7 @@ public class AutoTieringPolicyValidator extends VirtualPoolValidator<BlockVirtua
                         createParam.getSystemType())
                 && !VirtualPool.SystemType.hds.toString().equalsIgnoreCase(
                         createParam.getSystemType())
-                && !createParam.getSystemType().equals("driversystem")) {
+                && !getStorageDriverManager().isDriverManaged(createParam.getSystemType())) {
             throw APIException.badRequests.invalidParameterSystemTypeforAutoTiering();
         }
         if (!VirtualPoolUtil.isAutoTieringPolicyValidForDeviceType(

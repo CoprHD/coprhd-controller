@@ -146,6 +146,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                 driverVolume.setRequestedCapacity(volume.getCapacity());
                 driverVolume.setThinlyProvisioned(volume.getThinlyProvisioned());
                 driverVolume.setDisplayName(volume.getLabel());
+                driverVolume.setAutoTieringPolicyId(ControllerUtils.getAutoTieringPolicyName(volume.getId(), dbClient));
                 if (!NullColumnValueGetter.isNullURI(volume.getConsistencyGroup())) {
                     BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, volume.getConsistencyGroup());
                     driverVolume.setConsistencyGroup(cg.getNativeId());

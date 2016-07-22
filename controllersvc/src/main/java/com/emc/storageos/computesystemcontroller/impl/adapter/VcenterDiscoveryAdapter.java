@@ -535,6 +535,19 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
                 boolean isClusterChanged = !(NullColumnValueGetter.isNullURI(oldClusterURI) ? NullColumnValueGetter.isNullURI(target
                         .getCluster()) : target.getCluster() != null && oldClusterURI.toString().equals(target.getCluster().toString()));
 
+                for (Initiator oldInitiator : oldInitiators) {
+                    EventUtil.createActionableEvent(dbClient, target.getTenant(),
+                            "Host " + target.getLabel() + " removed initiator " + oldInitiator.getInitiatorNode(),
+                            "Initiator " + oldInitiator.getInitiatorNode() + " will be deleted and removed from export groups",
+                            oldInitiator, "removeInitiator", new Object[] { oldInitiator.getId() });
+                }
+                for (Initiator newInitiator : addedInitiators) {
+                    EventUtil.createActionableEvent(dbClient, target.getTenant(),
+                            "Host " + target.getLabel() + " added initiator " + newInitiator.getInitiatorNode(),
+                            "Initiator " + newInitiator.getInitiatorNode() + " will be added to export groups",
+                            newInitiator, "addInitiator", new Object[] { newInitiator.getId() });
+                }
+
                 if (!oldInitiators.isEmpty() || !addedInitiators.isEmpty() || isClusterChanged) {
                     changes.add(new HostStateChange(target, oldClusterURI, oldInitiators, addedInitiators));
                 }

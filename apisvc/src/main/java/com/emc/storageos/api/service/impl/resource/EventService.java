@@ -43,6 +43,7 @@ import com.emc.storageos.db.client.model.ActionableEvent;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Host;
+import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
@@ -165,6 +166,49 @@ public class EventService extends TaggedResource {
                 ResourceOperationTypeEnum.DELETE_HOST);
         computeController.detachHostStorage(hostId, true, true, taskId);
         return toTask(host, taskId, op);
+    }
+
+    public TaskResourceRep addInitiator(URI initiatorId) {
+        Initiator initiator = queryObject(Initiator.class, initiatorId, true);
+        Host host = queryObject(Host.class, initiator.getHost(), true);
+
+        String taskId = UUID.randomUUID().toString();
+        Operation op = _dbClient.createTaskOpStatus(Initiator.class, initiatorId, taskId,
+                ResourceOperationTypeEnum.ADD_HOST_INITIATOR);
+
+        // if host in use. update export with new initiator
+        if (ComputeSystemHelper.isHostInUse(_dbClient, host.getId())) {
+            ComputeSystemController controller = getController(ComputeSystemController.class, null);
+            controller.addInitiatorsToExport(initiator.getHost(), Arrays.asList(initiator.getId()), taskId);
+        } else {
+            // No updates were necessary, so we can close out the task.
+            _dbClient.ready(Initiator.class, initiator.getId(), taskId);
+        }
+
+        auditOp(OperationTypeEnum.CREATE_HOST_INITIATOR, true, null,
+                initiator.auditParameters());
+        return toTask(initiator, taskId, op);
+    }
+
+    public TaskResourceRep removeInitiator(URI initiatorId) {
+        Initiator initiator = queryObject(Initiator.class, initiatorId, true);
+
+        String taskId = UUID.randomUUID().toString();
+        Operation op = _dbClient.createTaskOpStatus(Initiator.class, initiator.getId(), taskId,
+                ResourceOperationTypeEnum.DELETE_INITIATOR);
+
+        if (ComputeSystemHelper.isInitiatorInUse(_dbClient, initiatorId.toString())) {
+            ComputeSystemController controller = getController(ComputeSystemController.class, null);
+            controller.removeInitiatorFromExport(initiator.getHost(), initiator.getId(), taskId);
+        } else {
+            _dbClient.ready(Initiator.class, initiator.getId(), taskId);
+            _dbClient.markForDeletion(initiator);
+        }
+
+        auditOp(OperationTypeEnum.DELETE_HOST_INITIATOR, true, null,
+                initiator.auditParameters());
+
+        return toTask(initiator, taskId, op);
     }
 
     public TaskResourceRep deleteCluster(URI clusterId) {

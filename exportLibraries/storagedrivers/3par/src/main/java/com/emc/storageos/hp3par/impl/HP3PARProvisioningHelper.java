@@ -31,6 +31,7 @@ public class HP3PARProvisioningHelper {
     public DriverTask createVolumes(List<StorageVolume> volumes, StorageCapabilities capabilities, 
             DriverTask task, Registry driverRegistry) {
 
+        int volumesCreated = 0;
         // For each requested volume
         for (StorageVolume volume : volumes) {
             try {
@@ -64,7 +65,7 @@ public class HP3PARProvisioningHelper {
                     hp3parApi.updateVVset(volumeCGName, volume.getNativeId(), addMember);
                 }
 
-                task.setStatus(DriverTask.TaskStatus.READY);
+                volumesCreated++;
                 _log.info("3PARDriver:createVolumes for storage system native id {}, volume name {} - end",
                         volume.getStorageSystemId(), volume.getDisplayName());
             } catch (Exception e) {
@@ -74,11 +75,19 @@ public class HP3PARProvisioningHelper {
                 _log.error(msg);
                 _log.error(CompleteError.getStackTrace(e));
                 task.setMessage(msg);
-                task.setStatus(DriverTask.TaskStatus.PARTIALLY_FAILED);
                 e.printStackTrace();
             }
         } // end for each volume
 
+        if (volumes.size() != 0) {
+            if (volumesCreated == volumes.size()) {
+                task.setStatus(DriverTask.TaskStatus.READY);            
+            } else if (volumesCreated == 0) {
+                task.setStatus(DriverTask.TaskStatus.FAILED);
+            } else {
+                task.setStatus(DriverTask.TaskStatus.PARTIALLY_FAILED);
+            }
+        }
         return task;
     }
 

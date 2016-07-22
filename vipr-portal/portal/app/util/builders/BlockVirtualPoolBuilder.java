@@ -10,9 +10,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
-import models.DriveTypes;
-import models.HighAvailability;
-
 import org.apache.commons.lang.StringUtils;
 
 import com.emc.storageos.model.vpool.BlockVirtualPoolParam;
@@ -29,6 +26,9 @@ import com.emc.storageos.model.vpool.VirtualPoolProtectionVirtualArraySettingsPa
 import com.emc.storageos.model.vpool.VirtualPoolRemoteMirrorProtectionParam;
 import com.emc.storageos.model.vpool.VirtualPoolRemoteProtectionVirtualArraySettingsParam;
 import com.google.common.collect.Sets;
+
+import models.DriveTypes;
+import models.HighAvailability;
 
 public class BlockVirtualPoolBuilder extends VirtualPoolBuilder {
     private final BlockVirtualPoolParam virtualPool;
@@ -74,6 +74,11 @@ public class BlockVirtualPoolBuilder extends VirtualPoolBuilder {
 
     public BlockVirtualPoolBuilder setAutoTieringPolicyName(String autoTieringPolicyName) {
         virtualPool.setAutoTieringPolicyName(StringUtils.trimToNull(autoTieringPolicyName));
+        return this;
+    }
+
+    public BlockVirtualPoolBuilder setCompressionEnabled(boolean compressionEnabled) {
+        virtualPool.setCompressionEnabled(compressionEnabled);
         return this;
     }
 

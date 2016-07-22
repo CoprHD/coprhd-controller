@@ -70,9 +70,9 @@ public class StorageSystemType extends DataObject {
         return metaType;
     }
 
-    public void setStorageTypeType(String storageTypeType) {
-        this.metaType = storageTypeType;
-        setChanged("storageTypeType");
+    public void setMetaType(String metaType) {
+        this.metaType = metaType;
+        setChanged("metaType");
     }
 
     @Name("isSmiProvider")

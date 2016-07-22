@@ -3251,13 +3251,13 @@ resources.event.declined=Declined event %s
 resources.event.deleted=Deleted event %s
 resources.event.unknown=Unknown event %s
 events.eventStatus=Status
-events.name=Description
+events.name=Name
+events.description=Description
 events.resourceId=Resource
 events.creationTime=Created At
 events.event=Event
 events.id=ID
 events.resource=Resource
-events.description=Description
 events.created=Created
 
 resources.tasks=Tasks

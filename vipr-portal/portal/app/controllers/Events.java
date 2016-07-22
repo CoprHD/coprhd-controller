@@ -252,14 +252,14 @@ public class Events extends Controller {
         public URI id;
         public String opId;
         public String name;
-        public String message;
+        public String description;
         public long created;
         public String resourceName;
         public URI resourceId;
 
         public EventSummary(EventRestRep event) {
             id = event.getId();
-            message = event.getDescription();
+            description = event.getDescription();
             name = event.getName();
             created = event.getCreationTime().getTimeInMillis();
             resourceName = event.getResource().getName();

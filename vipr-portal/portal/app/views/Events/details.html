@@ -25,16 +25,16 @@ margin-bottom: 5px;
   
     <div class="form-header">
       <div class="description">
-        <h2>#{icon 'events'/} &{'events.event'}: {{event.message | titleCase}}</h2>
+        <h2>#{icon 'events'/} &{'events.event'}: {{event.name | titleCase}}</h2>
       </div>
       <div style="clear:both"></div>
     </div>  
     
     <div class="pull-right">
 
-          <a class="btn btn-danger" href="@{deleteEvent(event.id)}"><span class="glyphicon glyphicon-trash"></span> &{'resources.events.deleteEvent'}</a><br/>
-          <a class="btn btn-default" href="@{approveEvent(event.id)}"><span class="glyphicon"></span> &{'resources.events.approveEvent'}</a><br/>
-          <a class="btn btn-default" href="@{declineEvent(event.id)}"><span class="glyphicon"></span> &{'resources.events.declineEvent'}</a><br/>
+          <a class="btn btn-success" href="@{approveEvent(event.id)}"><span class="glyphicon"></span> &{'resources.events.approveEvent'}</a><br/>
+          <a class="btn btn-warning" href="@{declineEvent(event.id)}"><span class="glyphicon"></span> &{'resources.events.declineEvent'}</a><br/>
+          <a class="btn btn-danger" href="@{deleteEvent(event.id)}"><span class="glyphicon glyphicon-trash"></span> &{'resources.events.deleteEvent'}</a><br/>          
 
     </div>
     
@@ -49,8 +49,8 @@ margin-bottom: 5px;
       <dt>&{'events.resource'}:</dt>
       <dd><v-resource-link id="{{event.resourceId}}">{{event.resourceName}}</v-resource-link>&nbsp;</dd>
 
-      <dt ng-show="event.message">&{'events.message'}:</dt>
-      <dd ng-show="event.message">{{event.message}}&nbsp;</dd>
+      <dt>&{'events.description'}:</dt>
+      <dd>{{event.description}}&nbsp;</dd>
 
       <dt>&{'events.created'}:</dt>
       <dd id="start">{{getLocalDateTime($('#start'),event.created)}}&nbsp;</dd>

@@ -29,12 +29,12 @@ import com.emc.storageos.api.service.impl.resource.BlockService;
 import com.emc.storageos.api.service.impl.resource.BlockServiceApi;
 import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
 import com.emc.storageos.api.service.impl.resource.utils.CapacityUtils;
+import com.emc.storageos.api.service.impl.resource.utils.CinderApiUtils;
 import com.emc.storageos.api.service.impl.resource.utils.ExportUtils;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.api.service.impl.response.SearchedResRepList;
 import com.emc.storageos.cinder.CinderConstants.ComponentStatus;
 import com.emc.storageos.cinder.CinderConstants.ExportOperations;
-import com.emc.storageos.cinder.model.CinderInitConnectionResponse;
 import com.emc.storageos.cinder.model.Connector;
 import com.emc.storageos.cinder.model.UsageStats;
 import com.emc.storageos.cinder.model.VolumeActionRequest;
@@ -44,9 +44,9 @@ import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
-import com.emc.storageos.db.client.model.HostInterface.Protocol;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.HostInterface;
+import com.emc.storageos.db.client.model.HostInterface.Protocol;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Network;
@@ -71,9 +71,11 @@ import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.db.client.util.iSCSIUtility;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
+import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.export.ITLRestRep;
 import com.emc.storageos.model.block.export.ITLRestRepList;
 import com.emc.storageos.model.search.SearchResultResourceRep;
+import com.emc.storageos.networkcontroller.impl.NetworkAssociationHelper;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.ACL;
@@ -87,9 +89,6 @@ import com.emc.storageos.volumecontroller.BlockExportController;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.emc.storageos.model.TaskResourceRep;
-import com.emc.storageos.networkcontroller.impl.NetworkAssociationHelper;
-import com.emc.storageos.api.service.impl.resource.utils.CinderApiUtils;
 
 @Path("/v2/{tenant_id}/volumes")
 @DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN },
@@ -112,7 +111,7 @@ public class ExportService extends VolumeService {
     public void setNameGenerator(NameGenerator nameGenerator) {
         _nameGenerator = nameGenerator;
     }
-    
+
     private QuotaHelper getQuotaHelper() {
         return QuotaHelper.getInstance(_dbClient, _permissionsHelper);
     }
@@ -125,21 +124,21 @@ public class ExportService extends VolumeService {
      * @prereq none
      * 
      * @param param POST data containing the volume action information.
-     * The different kinds of operations that are part of the export are
-     * Reserve, unreserve, terminate, begin detach, detach, attach, init connection,
-     * extend, set bootable, set Readonly
+     *            The different kinds of operations that are part of the export are
+     *            Reserve, unreserve, terminate, begin detach, detach, attach, init connection,
+     *            extend, set bootable, set Readonly
      * 
-     * os-reserve: reserve a volume for initiating the attach operation.
-     * os-unreserve: unreserve the volume to indicate the attach operation being performed is over.
-     * os-begin_detaching: Initiate the detach operation by setting the status to detaching.
-     * os-detach: Set the detach related status in the db.
-     * os-terminate_connection: detach int hebackend.
-     * os-initialize_connection: create export of the volume to the nova node.
-     * os-attach: perform the mount of the volume that has been exported to the nova instance.
-     * os-extend: extend size of volume.
-     * os-reset_status: reset the status of the volume.
-     * os-set_bootable: set bootable flag on volume.
-     * os-update_readonly_flag: update the volume as readonly.
+     *            os-reserve: reserve a volume for initiating the attach operation.
+     *            os-unreserve: unreserve the volume to indicate the attach operation being performed is over.
+     *            os-begin_detaching: Initiate the detach operation by setting the status to detaching.
+     *            os-detach: Set the detach related status in the db.
+     *            os-terminate_connection: detach int hebackend.
+     *            os-initialize_connection: create export of the volume to the nova node.
+     *            os-attach: perform the mount of the volume that has been exported to the nova instance.
+     *            os-extend: extend size of volume.
+     *            os-reset_status: reset the status of the volume.
+     *            os-set_bootable: set bootable flag on volume.
+     *            os-update_readonly_flag: update the volume as readonly.
      * 
      * @brief Export/Unexport volume
      * @return A reference to a BlockTaskList containing a list of
@@ -187,17 +186,17 @@ public class ExportService extends VolumeService {
         if (input.contains(ExportOperations.OS_INITIALIZE_CONNECTION.getOperation()))
             bInitCon = true;
 
-        if (input.contains(ExportOperations.OS_EXTEND.getOperation())){ // for expand volume
-                //expand size has to be numeric and  null size can't be accepted
-		        // for expand volume verify passed extendsize is in numeric format
-			    // otherwise it will result in Bad Request for improper input
-        		String[] extendStrings =input.split(":");
-        		String sizeString = extendStrings[2].replaceAll("}","");
-        		_log.debug("extend string size value  = {}", sizeString);
-        		if ((sizeString == null) || !isNumeric(sizeString.trim())){
-        			_log.info("Improper extend size ={}",sizeString.trim());
-        			return CinderApiUtils.createErrorResponse(400, "Bad request : improper volume extend size ");   
-        		}
+        if (input.contains(ExportOperations.OS_EXTEND.getOperation())) { // for expand volume
+            // expand size has to be numeric and null size can't be accepted
+            // for expand volume verify passed extendsize is in numeric format
+            // otherwise it will result in Bad Request for improper input
+            String[] extendStrings = input.split(":");
+            String sizeString = extendStrings[2].replaceAll("}", "");
+            _log.debug("extend string size value  = {}", sizeString);
+            if ((sizeString == null) || !isNumeric(sizeString.trim())) {
+                _log.info("Improper extend size ={}", sizeString.trim());
+                return CinderApiUtils.createErrorResponse(400, "Bad request : improper volume extend size ");
+            }
             bExtend = true;
         }
         if (input.contains(ExportOperations.OS_SET_BOOTABLE.getOperation()))
@@ -222,9 +221,9 @@ public class ExportService extends VolumeService {
         Gson gson = new Gson();
         VolumeActionRequest action = gson.fromJson(input, VolumeActionRequest.class);
         Volume vol = findVolume(volumeId, openstackTenantId);
-        if (vol == null){
-        	_log.info("Invalid volume id ={} ",volumeId);
-        	return CinderApiUtils.createErrorResponse(404, "Not Found :  Invaild volume id");
+        if (vol == null) {
+            _log.info("Invalid volume id ={} ", volumeId);
+            return CinderApiUtils.createErrorResponse(404, "Not Found :  Invaild volume id");
         }
 
         // Step 2: Check if the user has rights for volume modification
@@ -240,11 +239,11 @@ public class ExportService extends VolumeService {
 
             if (bIsSuccess) {
                 if (chosenProtocol.equals("iSCSI")) {
-                	return populateIscsiConnectionInfo(vol);
+                    return populateIscsiConnectionInfo(vol);
                 }
                 else if (chosenProtocol.equals("FC")) {
                     return populateFcConnectionInfo(chosenProtocol, vol, action, openstackTenantId);
-                }                
+                }
             }
             else {
                 vol.getExtensions().put("status", "OPENSTACK_ATTACHING_TIMED_OUT");
@@ -278,9 +277,9 @@ public class ExportService extends VolumeService {
             StringMap extensionsMap = getVolExtensions(vol);
 
             if (extensionsMap.containsKey("status") &&
-                   (extensionsMap.get("status").equals(ComponentStatus.DETACHING.getStatus().toLowerCase()) 
-                    || 
-                    extensionsMap.get("status").equals(ComponentStatus.IN_USE.getStatus().toLowerCase()) ) ) {
+                    (extensionsMap.get("status").equals(ComponentStatus.DETACHING.getStatus().toLowerCase())
+                    ||
+                    extensionsMap.get("status").equals(ComponentStatus.IN_USE.getStatus().toLowerCase()))) {
                 extensionsMap.put("status", ComponentStatus.DETACHING.getStatus().toLowerCase());
                 _dbClient.updateObject(vol);
 
@@ -315,9 +314,9 @@ public class ExportService extends VolumeService {
         else if (bReserve) {
             _log.info("IN THE IF CONDITION OF RESERVE");
             if (getVolExtensions(vol).containsKey("status")
-                    && getVolExtensions(vol).get("status").equals(ComponentStatus.ATTACHING.getStatus().toLowerCase())){
-            	_log.debug("Reserved Volume cannot be  reserved again");
-            	return CinderApiUtils.createErrorResponse(400, "Bad request :  volume is already reserved");          	
+                    && getVolExtensions(vol).get("status").equals(ComponentStatus.ATTACHING.getStatus().toLowerCase())) {
+                _log.debug("Reserved Volume cannot be  reserved again");
+                return CinderApiUtils.createErrorResponse(400, "Bad request :  volume is already reserved");
             }
             processReserveRequest(vol, openstackTenantId);
             return Response.status(202).build();
@@ -351,9 +350,9 @@ public class ExportService extends VolumeService {
             _log.info("Extend existing volume size");
 
             if (action.extendVol != null) {
-                if (volumeId == null){
-                	_log.info("Source volume id is empty ");
-                	return CinderApiUtils.createErrorResponse(404, "Not Found :  source volume id is empty");
+                if (volumeId == null) {
+                    _log.info("Source volume id is empty ");
+                    return CinderApiUtils.createErrorResponse(404, "Not Found :  source volume id is empty");
                 }
                 long extend_size = action.extendVol.new_size * GB;
                 if (extend_size <= vol.getCapacity()) {
@@ -361,9 +360,8 @@ public class ExportService extends VolumeService {
                             "expandVolume: VolumeId id: %s, Current size: %d, New size: %d ", volumeId, vol.getCapacity(), extend_size));
                     return CinderApiUtils.createErrorResponse(400, "Bad request :  New size should be larger than old");
                 }
-                
-                
-                //action.extendVol.new_size 
+
+                // action.extendVol.new_size
                 extendExistingVolume(vol, extend_size, openstackTenantId, volumeId);
                 return Response.status(202).build();
             }
@@ -376,17 +374,17 @@ public class ExportService extends VolumeService {
     }
 
     /*
-     * Populate the connection info of the ISCSI volume after completing the 
+     * Populate the connection info of the ISCSI volume after completing the
      * export of volume to the host in ViPR
      */
-    private VolumeAttachResponse populateIscsiConnectionInfo(Volume vol) throws InterruptedException{
+    private VolumeAttachResponse populateIscsiConnectionInfo(Volume vol) throws InterruptedException {
 
         ITLRestRepList listOfItls = ExportUtils.getBlockObjectInitiatorTargets(vol.getId(), _dbClient,
                 isIdEmbeddedInURL(vol.getId()));
-        
-		VolumeAttachResponse objCinderInit = new VolumeAttachResponse();
-		objCinderInit.connection_info = objCinderInit.new ConnectionInfo();
-		objCinderInit.connection_info.data = objCinderInit.new Data();
+
+        VolumeAttachResponse objCinderInit = new VolumeAttachResponse();
+        objCinderInit.connection_info = objCinderInit.new ConnectionInfo();
+        objCinderInit.connection_info.data = objCinderInit.new Data();
         objCinderInit.connection_info.driver_volume_type = "iscsi";
         objCinderInit.connection_info.data.access_mode = "rw";
         objCinderInit.connection_info.data.target_discovered = false;
@@ -408,26 +406,26 @@ public class ExportService extends VolumeService {
 
             return objCinderInit;
         }
-        
+
         return objCinderInit;
     }
 
     /*
-     * Populate the connection info of the FC volume after completing the 
+     * Populate the connection info of the FC volume after completing the
      * export of volume to the host in ViPR
      */
-    private VolumeAttachResponse populateFcConnectionInfo(String chosenProtocol, 														
-														Volume vol,
-														VolumeActionRequest action,
-														String openstackTenantId) throws InterruptedException{
-    	    
-    	// After the exportt ask is complete, sometimes there is a delay in the info being reflected in ITL's. So, we are adding a
+    private VolumeAttachResponse populateFcConnectionInfo(String chosenProtocol,
+            Volume vol,
+            VolumeActionRequest action,
+            String openstackTenantId) throws InterruptedException {
+
+        // After the exportt ask is complete, sometimes there is a delay in the info being reflected in ITL's. So, we are adding a
         // small delay here.
-    	Thread.sleep(100000);
-    	
-    	ITLRestRepList listOfItls = ExportUtils.getBlockObjectInitiatorTargets(vol.getId(), _dbClient,
+        Thread.sleep(100000);
+
+        ITLRestRepList listOfItls = ExportUtils.getBlockObjectInitiatorTargets(vol.getId(), _dbClient,
                 isIdEmbeddedInURL(vol.getId()));
-    	
+
         VolumeAttachResponse objCinderInit = new VolumeAttachResponse();
         objCinderInit.connection_info = objCinderInit.new ConnectionInfo();
         objCinderInit.connection_info.data = objCinderInit.new Data();
@@ -463,9 +461,9 @@ public class ExportService extends VolumeService {
             objCinderInit.connection_info.data.initiator_target_map.put(iter.getInitiatorPort().replace(":", "").toLowerCase(),
                     objCinderInit.connection_info.data.target_wwn);
         }
-        return objCinderInit;            	    	
+        return objCinderInit;
     }
-    
+
     /**
      * This method is used to change the status of volume on administrator request
      * 
@@ -633,9 +631,10 @@ public class ExportService extends VolumeService {
         List<URI> updatedInitiators = StringSetUtil.stringSetToUriList(StringSetUtil.uriListToStringSet(currentURIs));
         List<URI> updatedHosts = StringSetUtil.stringSetToUriList(exportGroup.getHosts());
         List<URI> updatedClusters = StringSetUtil.stringSetToUriList(exportGroup.getClusters());
+        List<URI> updatedVirtualMachines = StringSetUtil.stringSetToUriList(exportGroup.getVirtualMachines());
 
         exportController.exportGroupUpdate(exportGroup.getId(), noUpdatesVolumeMap, noUpdatesVolumeMap,
-                updatedClusters, updatedHosts, updatedInitiators, task);
+                updatedClusters, updatedHosts, updatedInitiators, updatedVirtualMachines, task);
 
         return waitForTaskCompletion(exportGroup.getId(), task);
 
@@ -645,7 +644,6 @@ public class ExportService extends VolumeService {
 
     private TaskResourceRep extendExistingVolume(Volume vol, Long newSize,
             String openstackTenantId, String volumeId) {
-    	
 
         // Check if the volume is on VMAX V3 which doesn't support expansion yet
         StorageSystem storage = _dbClient.queryObject(StorageSystem.class, vol.getStorageController());
@@ -666,7 +664,6 @@ public class ExportService extends VolumeService {
         // Don't operate on ingested volumes
         VolumeIngestionUtil.checkOperationSupportedOnIngestedVolume(vol,
                 ResourceOperationTypeEnum.EXPAND_BLOCK_VOLUME, _dbClient);
-
 
         // Get the new size.
 
@@ -807,10 +804,10 @@ public class ExportService extends VolumeService {
             List<URI> updatedInitiators = initiatorURIs;
             List<URI> updatedHosts = StringSetUtil.stringSetToUriList(exportGroup.getHosts());
             List<URI> updatedClusters = StringSetUtil.stringSetToUriList(exportGroup.getClusters());
-
+            List<URI> updatedVirtualMachines = StringSetUtil.stringSetToUriList(exportGroup.getVirtualMachines());
 
             exportController.exportGroupUpdate(exportGroup.getId(), noUpdatesVolumeMap, noUpdatesVolumeMap,
-                    updatedClusters, updatedHosts, updatedInitiators, task);
+                    updatedClusters, updatedHosts, updatedInitiators, updatedVirtualMachines, task);
         }
         else {
             // Create a new export group with the given list of initiators
@@ -929,7 +926,7 @@ public class ExportService extends VolumeService {
                     initiators.addAll(fc_initiators);
                 }
                 else {
-                    // not found, we don't create dynamically for FC                    
+                    // not found, we don't create dynamically for FC
                     _log.info("FC initiator for wwpn {} not found", fc_port);
                 }
             }
@@ -1050,9 +1047,9 @@ public class ExportService extends VolumeService {
     {
         for (char c : str.toCharArray())
         {
-            if (!Character.isDigit(c)){
-            	_log.info("{} Is Not Numeric",Character.isDigit(c));
-            	return false;
+            if (!Character.isDigit(c)) {
+                _log.info("{} Is Not Numeric", Character.isDigit(c));
+                return false;
             }
         }
         return true;

@@ -6,7 +6,6 @@
 package com.emc.storageos.api.service.impl.resource;
 
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -22,7 +21,6 @@ import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.export.ExportUpdateParam;
-import com.emc.storageos.model.block.export.VolumeParam;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.emc.storageos.util.ExportUtils;
@@ -61,11 +59,11 @@ class CreateExportGroupUpdateSchedulingThread implements Runnable {
         _log.info("Starting scheduling for export group update thread...");
         try {
             Map<URI, Integer> newVolumesMap = exportGroupService.getUpdatedVolumesMap(
-                                                            exportUpdateParam, exportGroup);
+                    exportUpdateParam, exportGroup);
             Map<URI, Map<URI, Integer>> storageMap = exportGroupService.computeAndValidateVolumes(newVolumesMap, exportGroup,
                     exportUpdateParam);
             _log.info("Updated volumes belong to storage systems: {}", Joiner.on(',').join(storageMap.keySet()));
-            
+
             // Convert the storageMap to a list of added and removed Block Objects
             newVolumesMap.clear();
             for (Map.Entry<URI, Map<URI, Integer>> entry : storageMap.entrySet()) {
@@ -76,7 +74,7 @@ class CreateExportGroupUpdateSchedulingThread implements Runnable {
             ExportUtils.getAddedAndRemovedBlockObjects(newVolumesMap, exportGroup, addedBlockObjectsMap, removedBlockObjectsMap);
             _log.info("Added volumes: {}", Joiner.on(',').join(addedBlockObjectsMap.keySet()));
             _log.info("Removed volumes: {}", Joiner.on(',').join(removedBlockObjectsMap.keySet()));
-            
+
             // If ExportPathParameter block is present, and volumes are added, capture ExportPathParameters arguments.
             // This looks weird, but isn't. We use the added volumes from ExportCreateParam instead of addedBlockObjectsMap
             // because the user may want to change the parameters for volumes that are already exported. In this way,
@@ -95,8 +93,9 @@ class CreateExportGroupUpdateSchedulingThread implements Runnable {
             List<URI> newInitiators = StringSetUtil.stringSetToUriList(exportGroup.getInitiators());
             List<URI> newHosts = StringSetUtil.stringSetToUriList(exportGroup.getHosts());
             List<URI> newClusters = StringSetUtil.stringSetToUriList(exportGroup.getClusters());
+            List<URI> newVirtualMachines = StringSetUtil.stringSetToUriList(exportGroup.getVirtualMachines());
             exportGroupService.validateClientsAndUpdate(exportGroup, project, storageMap.keySet(), exportUpdateParam, newClusters,
-                    newHosts, newInitiators);
+                    newHosts, newInitiators, newVirtualMachines);
             _log.info("All clients were successfully validated");
             dbClient.persistObject(exportGroup);
             if (exportPathParam != null) {
@@ -107,7 +106,7 @@ class CreateExportGroupUpdateSchedulingThread implements Runnable {
             BlockExportController exportController = exportGroupService.getExportController();
             _log.info("Submitting export group update request.");
             exportController.exportGroupUpdate(exportGroup.getId(), addedBlockObjectsMap, removedBlockObjectsMap,
-                    newClusters, newHosts, newInitiators, task);
+                    newClusters, newHosts, newInitiators, newVirtualMachines, task);
         } catch (Exception ex) {
             if (ex instanceof ServiceCoded) {
                 dbClient.error(ExportGroup.class, taskRes.getResource().getId(), taskRes.getOpId(), (ServiceCoded) ex);
@@ -137,7 +136,8 @@ class CreateExportGroupUpdateSchedulingThread implements Runnable {
     public static void executeApiTask(ExportGroupService exportGroupService, ExecutorService executorService, DbClient dbClient,
             Project project, ExportGroup exportGroup, ExportUpdateParam exportUpdateParam, String task, TaskResourceRep taskRes) {
 
-        CreateExportGroupUpdateSchedulingThread schedulingThread = new CreateExportGroupUpdateSchedulingThread(dbClient, exportGroupService,
+        CreateExportGroupUpdateSchedulingThread schedulingThread = new CreateExportGroupUpdateSchedulingThread(dbClient,
+                exportGroupService,
                 project, exportGroup, exportUpdateParam, task, taskRes);
         try {
             executorService.execute(schedulingThread);

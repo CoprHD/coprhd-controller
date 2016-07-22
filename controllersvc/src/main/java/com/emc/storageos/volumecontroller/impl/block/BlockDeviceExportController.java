@@ -31,6 +31,7 @@ import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.ProtectionSystem;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.VirtualMachine;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -354,11 +355,11 @@ public class BlockDeviceExportController implements BlockExportController {
     }
 
     @Override
-    public void exportGroupUpdate(URI export, 
-            Map<URI, Integer> addedBlockObjectMap, 
+    public void exportGroupUpdate(URI export,
+            Map<URI, Integer> addedBlockObjectMap,
             Map<URI, Integer> removedBlockObjectMap,
             List<URI> updatedClusters, List<URI> updatedHosts,
-            List<URI> updatedInitiators, String opId)
+            List<URI> updatedInitiators, List<URI> updatedVirtualMachines, String opId)
             throws ControllerException {
         Map<BlockObjectControllerKey, Map<URI, Integer>> addedStorageToBlockObjects =
                 new HashMap<BlockObjectControllerKey, Map<URI, Integer>>();
@@ -370,18 +371,21 @@ public class BlockDeviceExportController implements BlockExportController {
         List<URI> removedHosts = new ArrayList<URI>();
         List<URI> addedClusters = new ArrayList<URI>();
         List<URI> removedClusters = new ArrayList<URI>();
+        List<URI> addedVirtualMachines = new ArrayList<URI>();
+        List<URI> removedVirtualMachines = new ArrayList<URI>();
         Workflow workflow = null;
         try {
             // Do some initial sanitizing of the export parameters
             StringSetUtil.removeDuplicates(updatedClusters);
             StringSetUtil.removeDuplicates(updatedHosts);
             StringSetUtil.removeDuplicates(updatedInitiators);
+            StringSetUtil.removeDuplicates(updatedVirtualMachines);
 
-            computeDiffs(export, 
+            computeDiffs(export,
                     addedBlockObjectMap, removedBlockObjectMap, updatedInitiators,
                     addedStorageToBlockObjects, removedStorageToBlockObjects,
                     addedInitiators, removedInitiators, addedHosts, removedHosts,
-                    addedClusters, removedClusters);
+                    addedClusters, removedClusters, addedVirtualMachines, removedVirtualMachines);
 
             // Generate a flat list of volume/snap objects that will be added
             // to the export update completer so the completer will know what
@@ -408,7 +412,7 @@ public class BlockDeviceExportController implements BlockExportController {
                     addedBlockObjects, removedBlockObjects,
                     addedInitiators, removedInitiators,
                     addedHosts, removedHosts,
-                    addedClusters, removedClusters, opId);
+                    addedClusters, removedClusters, addedVirtualMachines, removedVirtualMachines, opId);
 
             _log.info("Received request to update export group. Creating master workflow.");
             workflow = _wfUtils.newWorkflow("exportGroupUpdate", false, opId);
@@ -451,9 +455,9 @@ public class BlockDeviceExportController implements BlockExportController {
      * 
      * @param expoUri the export group URI
      * @param addedBlockObjectsFromRequest : the map of block objects that were requested to be
-     *            added. (Passed separately to avoid concurrency problem). 
+     *            added. (Passed separately to avoid concurrency problem).
      * @param removedBlockObjectsFromRequest : the map of block objects that wee reqested
-     *              to be removed.
+     *            to be removed.
      * @param newInitiators the updated list of initiators that reflect what needs
      *            to be added and removed from the current list of initiators
      * @param addedBlockObjects a map to be filled with storage-system-to-added-volumed
@@ -465,7 +469,7 @@ public class BlockDeviceExportController implements BlockExportController {
      * @param addedClusters list of clusters to add
      * @param removedClusters list of cluster to remove
      */
-    private void computeDiffs(URI expoUri, 
+    private void computeDiffs(URI expoUri,
             Map<URI, Integer> addedBlockObjectsFromRequest,
             Map<URI, Integer> removedBlockObjectsFromRequest,
             List<URI> newInitiators,
@@ -473,11 +477,12 @@ public class BlockDeviceExportController implements BlockExportController {
             Map<BlockObjectControllerKey, Map<URI, Integer>> removedBlockObjects,
             List<URI> addedInitiators, List<URI> removedInitiators,
             List<URI> addedHosts, List<URI> removedHosts,
-            List<URI> addedClusters, List<URI> removedClusters) {
+            List<URI> addedClusters, List<URI> removedClusters,
+            List<URI> addedVirtualMachines, List<URI> removedVirtualMachines) {
         ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, expoUri);
         Map<URI, Integer> existingMap = StringMapUtil.stringMapToVolumeMap(exportGroup.getVolumes());
         List<URI> existingInitiators = StringSetUtil.stringSetToUriList(exportGroup.getInitiators());
-        
+
         BlockObjectControllerKey controllerKey = null;
 
         // If there are existing volumes, make sure their controller is represented in the
@@ -506,7 +511,7 @@ public class BlockDeviceExportController implements BlockExportController {
         for (URI uri : addedBlockObjectsFromRequest.keySet()) {
             BlockObject bo = BlockObject.fetch(_dbClient, uri);
             URI storageControllerUri = getExportStorageController(bo);
-            
+
             controllerKey = new BlockObjectControllerKey();
             controllerKey.setStorageControllerUri(bo.getStorageController());
             if (!storageControllerUri.equals(bo.getStorageController())) {
@@ -515,10 +520,10 @@ public class BlockDeviceExportController implements BlockExportController {
             // add an entry in each map for the storage system if not already exists
             getOrAddStorageMap(controllerKey, addedBlockObjects).put(uri, addedBlockObjectsFromRequest.get(uri));
             getOrAddStorageMap(controllerKey, removedBlockObjects);
-            
-            _log.info("Block object {} to add to storage: {}",  bo.getId(), controllerKey.getController());
+
+            _log.info("Block object {} to add to storage: {}", bo.getId(), controllerKey.getController());
         }
-        
+
         for (URI uri : removedBlockObjectsFromRequest.keySet()) {
             if (existingMap.containsKey(uri)) {
                 BlockObject bo = BlockObject.fetch(_dbClient, uri);
@@ -529,15 +534,15 @@ public class BlockDeviceExportController implements BlockExportController {
                 if (!storageControllerUri.equals(bo.getStorageController())) {
                     controllerKey.setProtectionControllerUri(storageControllerUri);
                 }
-                
+
                 // add an empty map for the added blocks so that the two maps have the same keyset
-                getOrAddStorageMap(controllerKey,  addedBlockObjects);
-                getOrAddStorageMap(controllerKey,  removedBlockObjects).put(uri, existingMap.get(uri));
-                
+                getOrAddStorageMap(controllerKey, addedBlockObjects);
+                getOrAddStorageMap(controllerKey, removedBlockObjects).put(uri, existingMap.get(uri));
+
                 _log.info("Block object {} to remove from storage: {}", bo.getId(), controllerKey.getController());
             }
         }
-        
+
         // compute the list of initiators to be added and removed
         for (URI uri : newInitiators) {
             if (exportGroup.getInitiators() == null ||
@@ -616,9 +621,14 @@ public class BlockDeviceExportController implements BlockExportController {
                 // starting with the current export group host list minus the hosts we're removing
                 // plus the hosts we're adding as part of this update.
                 Set<URI> updatedHostIds = new HashSet<>();
+                Set<URI> updatedVMIds = new HashSet<>();
                 if (exportGroup.getHosts() != null) {
                     updatedHostIds.addAll(StringSetUtil.stringSetToUriList(exportGroup.getHosts()));
                 }
+                if (exportGroup.getVirtualMachines() != null) {
+                    updatedVMIds.addAll(StringSetUtil.stringSetToUriList(exportGroup.getVirtualMachines()));
+                }
+
                 if (addedHosts != null) {
                     updatedHostIds.addAll(addedHosts);
                 }
@@ -626,10 +636,24 @@ public class BlockDeviceExportController implements BlockExportController {
                     updatedHostIds.removeAll(removedHosts);
                 }
 
+                if (addedVirtualMachines != null) {
+                    updatedVMIds.addAll(addedVirtualMachines);
+                }
+
+                if (removedVirtualMachines != null) {
+                    updatedVMIds.removeAll(removedVirtualMachines);
+                }
+
                 // Load all of the hosts since we need to examine the cluster ID
                 List<Host> updatedHosts = new ArrayList<>();
+                List<VirtualMachine> updatedVirtualMachines = new ArrayList<>();
+
                 if (!updatedHostIds.isEmpty()) {
                     updatedHosts = _dbClient.queryObject(Host.class, updatedHostIds);
+                }
+
+                if (!updatedVMIds.isEmpty()) {
+                    updatedVirtualMachines = _dbClient.queryObject(VirtualMachine.class, updatedVMIds);
                 }
 
                 // See if any clusters need to be removed.
@@ -640,6 +664,16 @@ public class BlockDeviceExportController implements BlockExportController {
                         boolean remove = true;
                         for (Host host : updatedHosts) {
                             if (clusterId.equals(host.getCluster())) {
+                                remove = false;
+                                break;
+                            }
+                        }
+                        if (remove) {
+                            removedClusters.add(clusterId);
+                        }
+                        remove = true;
+                        for (VirtualMachine vm : updatedVirtualMachines) {
+                            if (clusterId.equals(vm.getCluster())) {
                                 remove = false;
                                 break;
                             }
@@ -658,6 +692,13 @@ public class BlockDeviceExportController implements BlockExportController {
                     if ((exportGroup.getClusters() == null || !exportGroup.getClusters().contains(host.getCluster().toString())) &&
                             !addedClusters.contains(host.getCluster())) {
                         addedClusters.add(host.getCluster());
+                    }
+                }
+
+                for (VirtualMachine vm : updatedVirtualMachines) {
+                    if ((exportGroup.getClusters() == null || !exportGroup.getClusters().contains(vm.getCluster().toString())) &&
+                            !addedClusters.contains(vm.getCluster())) {
+                        addedClusters.add(vm.getCluster());
                     }
                 }
 
@@ -706,7 +747,7 @@ public class BlockDeviceExportController implements BlockExportController {
             volume = _dbClient.queryObject(Volume.class, volumeURI);
             URI oldVpoolURI = volume.getVirtualPool();
             List<URI> rollbackList = new ArrayList<URI>();
-            List<Volume>updatedVolumes = new ArrayList<Volume>();
+            List<Volume> updatedVolumes = new ArrayList<Volume>();
             rollbackList.add(volumeURI);
             // Check if it is a VPlex volume, and get backend volumes
             Volume backendSrc = VPlexUtil.getVPLEXBackendVolume(volume, true, _dbClient, false);
@@ -723,7 +764,7 @@ public class BlockDeviceExportController implements BlockExportController {
                     rollbackList.add(backendHa.getId());
                     updatedVolumes.add(backendHa);
                 }
-                
+
             }
             // The VolumeVpoolChangeTaskCompleter will restore the old Virtual Pool in event of error.
             taskCompleter = new VolumeVpoolChangeTaskCompleter(rollbackList, oldVpoolURI, opId);

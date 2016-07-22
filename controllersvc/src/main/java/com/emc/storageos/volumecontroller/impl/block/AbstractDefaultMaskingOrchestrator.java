@@ -68,7 +68,6 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportOrchest
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
-import com.emc.storageos.volumecontroller.placement.ExportPathUpdater;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowException;
 import com.emc.storageos.workflow.WorkflowService;
@@ -80,9 +79,8 @@ import com.google.common.collect.SetMultimap;
 import com.google.common.collect.TreeMultimap;
 
 /**
- * This class has two roles:
- * <li>Provide a place for code that has workflow step generation</li>
- * <li>Provide a place for common code to be used across the MaskingOrchestrators</li>
+ * This class has two roles: <li>Provide a place for code that has workflow step generation</li> <li>Provide a place for common code to be
+ * used across the MaskingOrchestrators</li>
  */
 abstract public class AbstractDefaultMaskingOrchestrator {
     protected static final Logger _log =
@@ -311,10 +309,11 @@ abstract public class AbstractDefaultMaskingOrchestrator {
         List<URI> targets = BlockStorageScheduler.getTargetURIsFromAssignments(assignments);
 
         String maskName = useComputedMaskName() ? getComputedExportMaskName(storage, exportGroup, initiators) : null;
-        
-        //TODO: Bharath - This might NOT be the best way to do this. look into getComputerExportMaskName to see if this can be done differently
+
+        // TODO: Bharath - This might NOT be the best way to do this. look into getComputerExportMaskName to see if this can be done
+        // differently
         if (exportGroup.checkInternalFlags(Flag.RECOVERPOINT_JOURNAL)) {
-        	maskName += "_journal";
+            maskName += "_journal";
         }
 
         ExportMask exportMask = ExportMaskUtils.initializeExportMask(storage, exportGroup,
@@ -1132,7 +1131,7 @@ abstract public class AbstractDefaultMaskingOrchestrator {
             // already taken by a pre-existing volume.
             Integer requestedHLU = volumeMap.get(bo.getId());
             StringMap existingVolumesInMask = exportMask.getExistingVolumes();
-            if (existingVolumesInMask != null &&  requestedHLU.intValue() != ExportGroup.LUN_UNASSIGNED
+            if (existingVolumesInMask != null && requestedHLU.intValue() != ExportGroup.LUN_UNASSIGNED
                     && !ExportGroup.LUN_UNASSIGNED_DECIMAL_STR.equals(requestedHLU.toString())
                     && existingVolumesInMask.containsValue(requestedHLU.toString())) {
                 ExportOrchestrationTask completer = new ExportOrchestrationTask(
@@ -1171,8 +1170,13 @@ abstract public class AbstractDefaultMaskingOrchestrator {
                 Initiator initiator = _dbClient.queryObject(Initiator.class, newExportMaskInitiator);
                 // Not all initiators have hosts, be sure to handle either case.
                 URI hostURI = initiator.getHost();
-                if (hostURI == null) {
+                URI vmURI = initiator.getVirtualMachine();
+                if (hostURI == null && vmURI == null) {
                     hostURI = fillerHostURI;
+                } else {
+                    if (vmURI != null) {
+                        hostURI = vmURI;
+                    }
                 }
                 String hostURIStr = hostURI.toString();
                 List<URI> initiatorSet = hostInitiatorMap.get(hostURIStr);
@@ -1221,7 +1225,7 @@ abstract public class AbstractDefaultMaskingOrchestrator {
                 newSteps.add(previousStep);
             }
         }
-        if (newSteps.isEmpty() && previousStep != null ) {
+        if (newSteps.isEmpty() && previousStep != null) {
             newSteps.add(previousStep);
         }
         return newSteps;
@@ -2060,7 +2064,6 @@ abstract public class AbstractDefaultMaskingOrchestrator {
         _log.info(String.format("maskHasStoragePortsInExportVarray - Returning %s", isMatched));
         return isMatched;
     }
-
 
     /**
      * Check that export mask has at least one valid port from virtual array

@@ -69,7 +69,6 @@ import com.emc.storageos.db.client.model.UCSServiceProfileTemplate;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
-import com.emc.storageos.db.client.util.StringMapUtil;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
@@ -542,9 +541,9 @@ public class UcsComputeDevice implements ComputeDevice {
                         }
                     }
 
-                    blockExportController.exportGroupUpdate(exportGroup.getId(), 
-                            noUpdatesVolumeMap, noUpdatesVolumeMap, 
-                            updatedClusters, updatedHosts, updatedInitiators, task);
+                    blockExportController.exportGroupUpdate(exportGroup.getId(),
+                            noUpdatesVolumeMap, noUpdatesVolumeMap,
+                            updatedClusters, updatedHosts, updatedInitiators, null, task);
 
                     while (true) {
                         Thread.sleep(TASK_STATUS_POLL_FREQUENCY);

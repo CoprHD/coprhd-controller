@@ -97,13 +97,13 @@ public class BlockExportControllerImpl implements BlockExportController {
     }
 
     @Override
-    public void exportGroupUpdate(URI export, 
-            Map<URI, Integer> addedBlockObjectMap, Map<URI, Integer> removedObjectMap, 
+    public void exportGroupUpdate(URI export,
+            Map<URI, Integer> addedBlockObjectMap, Map<URI, Integer> removedObjectMap,
             List<URI> updatedClusters, List<URI> updatedHosts,
-            List<URI> updatedInitiators, String opId)
+            List<URI> updatedInitiators, List<URI> updatedVirtualMachines, String opId)
             throws ControllerException {
         blockRMI("exportGroupUpdate", export, addedBlockObjectMap, removedObjectMap,
-                updatedClusters, updatedHosts, updatedInitiators, opId);
+                updatedClusters, updatedHosts, updatedInitiators, updatedVirtualMachines, opId);
     }
 
     /**

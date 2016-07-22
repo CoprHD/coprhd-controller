@@ -41,6 +41,8 @@ public class ExportUpdateCompleter extends ExportTaskCompleter {
     private List<URI> _removedHosts = new ArrayList<URI>();
     private List<URI> _addedClusters = new ArrayList<URI>();
     private List<URI> _removedClusters = new ArrayList<URI>();
+    private List<URI> _addedVirtualMachines = new ArrayList<URI>();
+    private List<URI> _removedVirtualMachines = new ArrayList<URI>();
 
     /**
      * Constructor for export updates.
@@ -63,6 +65,7 @@ public class ExportUpdateCompleter extends ExportTaskCompleter {
             List<URI> addedInitiators, List<URI> removedInitiators,
             List<URI> addedHosts, List<URI> removedHosts,
             List<URI> addedClusters, List<URI> removedClusters,
+            List<URI> addedVirtualMachines, List<URI> removedVirtualMachines,
             String task) {
         super(ExportGroup.class, egUri, task);
         _addedBlockObjects = addedBlockObjects;
@@ -73,6 +76,8 @@ public class ExportUpdateCompleter extends ExportTaskCompleter {
         _removedHosts = removedHosts;
         _addedClusters = addedClusters;
         _removedClusters = removedClusters;
+        _addedVirtualMachines = addedVirtualMachines;
+        _removedVirtualMachines = removedClusters;
     }
 
     public ExportUpdateCompleter(URI egUri, String task) {
@@ -151,6 +156,14 @@ public class ExportUpdateCompleter extends ExportTaskCompleter {
 
         if (_removedClusters != null) {
             exportGroup.removeClusters(_removedClusters);
+        }
+
+        if (_addedVirtualMachines != null) {
+            exportGroup.addVirtualMachines(_addedVirtualMachines);
+        }
+
+        if (_removedVirtualMachines != null) {
+            exportGroup.removeVirtualMachines(_removedVirtualMachines);
         }
 
         if (_addedBlockObjects != null) {

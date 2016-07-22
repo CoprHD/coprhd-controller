@@ -60,16 +60,16 @@ public class OpenStackSynchronizationTask extends ResourceService {
 
     private ScheduledFuture synchronizationTask;
 
-    public void setInternalTenantSvcClient(InternalTenantSvcClient _internalTenantSvcClient) {
-        this._internalTenantSvcClient = _internalTenantSvcClient;
+    public void setInternalTenantSvcClient(InternalTenantSvcClient internalTenantSvcClient) {
+        this._internalTenantSvcClient = internalTenantSvcClient;
     }
 
     public ScheduledFuture getSynchronizationTask() {
         return synchronizationTask;
     }
 
-    public void setKeystoneUtilsService(KeystoneUtils _keystoneUtilsService) {
-        this._keystoneUtilsService = _keystoneUtilsService;
+    public void setKeystoneUtilsService(KeystoneUtils keystoneUtilsService) {
+        this._keystoneUtilsService = keystoneUtilsService;
     }
 
     public void start(int interval) throws Exception {

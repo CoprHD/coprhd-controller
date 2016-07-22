@@ -19,8 +19,6 @@ public class VolumeClone extends StorageVolume {
     // sourcetype of the clone.
     SourceType sourceType = SourceType.UNKNOWN;
     
-    // clone display name
-    private String label;
 
     public static enum ReplicationState {
         UNKNOWN, SYNCHRONIZED, CREATED, RESYNCED, INACTIVE, DETACHED, RESTORED;
@@ -66,13 +64,4 @@ public class VolumeClone extends StorageVolume {
     public String toString() {
         return getNativeId();
     }
-
-	public void setLabel(String name) {
-		this.label = name;
-		
-	}
-	
-	public String getLabel() {
-		return label;
-	}
 }

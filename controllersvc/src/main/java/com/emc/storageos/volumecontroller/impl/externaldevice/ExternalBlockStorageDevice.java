@@ -271,6 +271,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                     StorageVolume driverVolume = new StorageVolume();
                     driverVolume.setStorageSystemId(storageSystem.getNativeId());
                     driverVolume.setNativeId(volume.getNativeId());
+                    driverVolume.setConsistencyGroup(volume.getReplicationGroupInstance());
                     task = driver.deleteVolumes(Collections.unmodifiableList(Collections.singletonList(driverVolume)));
                 }
                 if (task.getStatus() == DriverTask.TaskStatus.READY) {
@@ -710,8 +711,8 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                     cloneObject.setProvisionedCapacity(driverCloneResult.getProvisionedCapacity());
                     cloneObject.setAllocatedCapacity(driverCloneResult.getAllocatedCapacity());
                     cloneObject.setInactive(false);
-                    if (driverCloneResult.getLabel() != null && !driverCloneResult.getLabel().isEmpty()) {
-                    cloneObject.setLabel(driverCloneResult.getLabel());
+                    if (driverCloneResult.getDeviceLabel() != null && !driverCloneResult.getDeviceLabel().isEmpty()) {
+                    cloneObject.setLabel(driverCloneResult.getDeviceLabel());
                     }
                     cloneObject.setConsistencyGroup(parentVolume.getConsistencyGroup());
                     cloneObjects.add(cloneObject);
@@ -1340,8 +1341,8 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                 BlockSnapshot snapshot = driverSnapshotToSnapshotMap.get(driverSnapshot);
                 snapshot.setNativeId(driverSnapshot.getNativeId());
                 snapshot.setDeviceLabel(driverSnapshot.getDeviceLabel());
-                if (driverSnapshot.getLabel() != null && !driverSnapshot.getLabel().isEmpty()) {
-                	snapshot.setLabel(driverSnapshot.getNativeId());
+                if (driverSnapshot.getDeviceLabel() != null && !driverSnapshot.getDeviceLabel().isEmpty()) {
+                	snapshot.setLabel(driverSnapshot.getDeviceLabel());
                 }
                 snapshot.setIsSyncActive(true);
                 // we use driver snapshot consistency group id as replication group label for group snapshots

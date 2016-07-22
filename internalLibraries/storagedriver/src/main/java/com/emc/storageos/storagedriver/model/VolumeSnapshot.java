@@ -19,7 +19,6 @@ public class VolumeSnapshot extends StorageBlockObject {
     @Deprecated
     private String snapSetId;
    
-   private String label;
 
     // Logical size of a snap on array in bytes. Type: Output.
     private Long provisionedCapacity = 0L;
@@ -71,13 +70,5 @@ public class VolumeSnapshot extends StorageBlockObject {
     public String toString() {
         return getNativeId();
     }
-
-	public void setLabel(String name) {
-		this.label = name;
-	}
-	
-	public String getLabel() {
-		return label;
-	}
 }
 

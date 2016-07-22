@@ -54,6 +54,9 @@ public class HP3PARConstants {
 
     public static final String TASK_TYPE_DELETE_SNAPSHOT_CONSISTENCY_GROUP = "delete-snapshot-consistency-group";
     public static final String TASK_TYPE_DELETE_CLONE_CONSISTENCY_GROUP = "delete-clone-consistency-group";
+    public static final String TASK_TYPE_REMOVE_VOLUME_FROM_CONSISTENCY_GROUP = "remove-volume-from-consistency-group";
+    public static final String TASK_TYPE_ADD_VOLUME_TO_CONSISTENCY_GROUP = "add-volume-to-consistency-group";
+    
 
     public static enum provisioningType
     {

@@ -176,7 +176,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 			storageSystem.setSerialNumber(systemRes.getSerialNumber());
 			storageSystem.setMajorVersion(systemRes.getSystemVersion());
 			storageSystem.setMinorVersion("0"); // as there is no individual portion in 3par api
-
+			
 			// protocols supported
 			List<String> protocols = new ArrayList<String>();
 			protocols.add(Protocols.iSCSI.toString());
@@ -194,6 +194,8 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 			storageSystem.setModel(systemRes.getModel());
 			storageSystem.setProvisioningType(SupportedProvisioningType.THIN_AND_THICK);
 			Set<StorageSystem.SupportedReplication> supportedReplications = new HashSet<>();
+            supportedReplications.add(StorageSystem.SupportedReplication.elementReplica);
+            supportedReplications.add(StorageSystem.SupportedReplication.groupReplica);
 			storageSystem.setSupportedReplications(supportedReplications);
 
 			// Storage object properties
@@ -744,16 +746,18 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 
     @Override
     public DriverTask addVolumesToConsistencyGroup(List<StorageVolume> volumes, StorageCapabilities capabilities) {
-        _log.info("3PARDriver: addVolumesToConsistencyGroup Running");
-        // TODO Auto-generated method stub
-        return null;
+    	int addVolume = 1;
+		DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_ADD_VOLUME_TO_CONSISTENCY_GROUP);
+		return cgHelper.addOrRemoveConsistencyGroupVolume(volumes, task, driverRegistry,addVolume);
+
     }
 
     @Override
-    public DriverTask removeVolumesFromConsistencyGroup(List<StorageVolume> volumes, StorageCapabilities capabilities) {
-        _log.info("3PARDriver: removeVolumesFromConsistencyGroup Running");
-        // TODO Auto-generated method stub
-        return null;
-    }
+	public DriverTask removeVolumesFromConsistencyGroup(List<StorageVolume> volumes, StorageCapabilities capabilities) {
+		DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_REMOVE_VOLUME_FROM_CONSISTENCY_GROUP);
+		int removeVolume = 2;
+		return cgHelper.addOrRemoveConsistencyGroupVolume(volumes, task, driverRegistry, removeVolume);
 
+	}
+    
 }

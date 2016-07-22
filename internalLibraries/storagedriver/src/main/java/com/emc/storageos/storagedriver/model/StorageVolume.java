@@ -27,9 +27,6 @@ public class StorageVolume extends StorageBlockObject {
 
     // thin or thick volume type. Type: Input.
     Boolean thinlyProvisioned = false;
-    
-    // auto tiering policy id.
-    private String autoTieringPolicyId;
 
     public String getStorageSystemId() {
         return storageSystemId;
@@ -85,14 +82,6 @@ public class StorageVolume extends StorageBlockObject {
 
     public void setThinlyProvisioned(Boolean thinlyProvisioned) {
         this.thinlyProvisioned = thinlyProvisioned;
-    }
-
-    public String getAutoTieringPolicyId() {
-        return autoTieringPolicyId;
-    }
-
-    public void setAutoTieringPolicyId(String autoTieringPolicyId) {
-        this.autoTieringPolicyId = autoTieringPolicyId;
     }
 
     @Override

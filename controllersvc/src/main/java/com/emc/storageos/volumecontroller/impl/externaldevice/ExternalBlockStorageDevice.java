@@ -24,6 +24,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.AutoTieringPolicy;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
@@ -52,6 +53,9 @@ import com.emc.storageos.storagedriver.model.StorageVolume;
 import com.emc.storageos.storagedriver.model.VolumeClone;
 import com.emc.storageos.storagedriver.model.VolumeConsistencyGroup;
 import com.emc.storageos.storagedriver.model.VolumeSnapshot;
+import com.emc.storageos.storagedriver.storagecapabilities.AutoTieringPolicyCapabilityDefinition;
+import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
+import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.volumecontroller.ControllerLockingService;
 import com.emc.storageos.volumecontroller.DefaultBlockStorageDevice;
@@ -133,20 +137,23 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                                 VirtualPoolCapabilityValuesWrapper capabilities,
                                 TaskCompleter taskCompleter) throws DeviceControllerException {
 
-        BlockStorageDriver driver = getDriver(storageSystem.getSystemType());
-
         List<StorageVolume> driverVolumes = new ArrayList<>();
         Map<StorageVolume, Volume> driverVolumeToVolumeMap = new HashMap<>();
         Set<URI> consistencyGroups = new HashSet<>();
+        StorageCapabilities storageCapabilities = null;
         try {
             for (Volume volume : volumes) {
+                if (storageCapabilities == null) {
+                    // All volumes to be created should have no auto tiering policy set, or 
+                    // they should have the same policy set.
+                    storageCapabilities = createStorageCapabilitiesForVolumeCreate(volume.getAutoTieringPolicyUri());
+                }
                 StorageVolume driverVolume = new StorageVolume();
                 driverVolume.setStorageSystemId(storageSystem.getNativeId());
                 driverVolume.setStoragePoolId(storagePool.getNativeId());
                 driverVolume.setRequestedCapacity(volume.getCapacity());
                 driverVolume.setThinlyProvisioned(volume.getThinlyProvisioned());
                 driverVolume.setDisplayName(volume.getLabel());
-                driverVolume.setAutoTieringPolicyId(ControllerUtils.getAutoTieringPolicyName(volume.getId(), dbClient));
                 if (!NullColumnValueGetter.isNullURI(volume.getConsistencyGroup())) {
                     BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, volume.getConsistencyGroup());
                     driverVolume.setConsistencyGroup(cg.getNativeId());
@@ -156,7 +163,8 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                 driverVolumeToVolumeMap.put(driverVolume, volume);
             }
             // Call driver
-            DriverTask task = driver.createVolumes(Collections.unmodifiableList(driverVolumes), null);
+            BlockStorageDriver driver = getDriver(storageSystem.getSystemType());
+            DriverTask task = driver.createVolumes(Collections.unmodifiableList(driverVolumes), storageCapabilities);
             // todo: need to implement support for async case.
             if (task.getStatus() == DriverTask.TaskStatus.READY || task.getStatus() == DriverTask.TaskStatus.PARTIALLY_FAILED ) {
 
@@ -182,6 +190,30 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
             ServiceError serviceError = ExternalDeviceException.errors.createVolumesFailed("doCreateVolumes", e.getMessage());
             taskCompleter.error(dbClient, serviceError);
         }
+    }
+    
+    /**
+     * Creates the driver storage capabilities for volume creation.
+     * 
+     * @param autoTieringPolicyURI The URI of the AutoTieringPolicy.
+     * 
+     * @return A reference to a StorageCapabities
+     */
+    private StorageCapabilities createStorageCapabilitiesForVolumeCreate(URI autoTieringPolicyURI) {
+        StorageCapabilities storageCapabilities = new StorageCapabilities();
+        if (!NullColumnValueGetter.isNullURI(autoTieringPolicyURI)) {
+            AutoTieringPolicy autoTieringPolicy = dbClient.queryObject(AutoTieringPolicy.class, autoTieringPolicyURI);
+            if (autoTieringPolicy == null) {
+                throw DeviceControllerException.exceptions.objectNotFound(autoTieringPolicyURI);
+            }
+            AutoTieringPolicyCapabilityDefinition autoTieringCapabilityDefinition = new AutoTieringPolicyCapabilityDefinition();
+            Map<String, List<String>> capabilityProperties = new HashMap<>();
+            capabilityProperties.put(AutoTieringPolicyCapabilityDefinition.PROPERTY_NAME.POLICY_ID.name(), Arrays.asList(autoTieringPolicy.getPolicyName()));
+            capabilityProperties.put(AutoTieringPolicyCapabilityDefinition.PROPERTY_NAME.PROVISIONING_TYPE.name(), Arrays.asList(autoTieringPolicy.getProvisioningType()));
+            CapabilityInstance capabilityInstance = new CapabilityInstance(autoTieringCapabilityDefinition.getId(), autoTieringPolicy.getPolicyName(), capabilityProperties);
+            storageCapabilities.setCommonCapabilitis(Arrays.asList(capabilityInstance));
+        }
+        return storageCapabilities;
     }
 
     @Override

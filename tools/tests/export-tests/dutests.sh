@@ -596,6 +596,7 @@ reset_system_props() {
     set_suspend_on_class_method "none"
     set_suspend_on_error false
     set_artificial_failure "none"
+    set_validation_check true
 }
 
 vnx_setup() {
@@ -994,6 +995,7 @@ setup() {
     # sleep 120
     # Increase allocation percentage
     syssvc $SANITY_CONFIG_FILE localhost set_prop controller_max_thin_pool_subscription_percentage 600
+    syssvc $SANITY_CONFIG_FILE localhost set_prop validation_check true
 
     if [ "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]; then
         which symhelper.sh
@@ -1042,6 +1044,10 @@ setup() {
 
 set_suspend_on_error() {
     run syssvc $SANITY_CONFIG_FILE localhost set_prop workflow_suspend_on_error $1
+}
+
+set_validation_check() {
+    run syssvc $SANITY_CONFIG_FILE localhost set_prop validation_check $1
 }
 
 set_suspend_on_class_method() {
@@ -2359,6 +2365,85 @@ test_16() {
 
     # Delete the volume we created
     arrayhelper delete_volume ${SERIAL_NUMBER} ${device_id}
+}
+
+# DU Prevention Validation Test 17
+#
+# Summary: Delete Export Group: Tests kill switch that allows service to shut off validation
+#
+# Basic Use Case for single host, single volume
+# 1. ViPR creates 1 volume, 1 host export.
+# 2. ViPR asked to delete the export group, but is paused after orchestration
+# 3. Customer creates a volume outside of ViPR and adds the volume to the mask.
+# 4. Delete of export group workflow is resumed
+# 5. Verify the operation succeeds because validation is turned off
+#
+test_17() {
+    echot "Test 17: Tests kill switch to disable export validation checks"
+    expname=${EXPORT_GROUP_NAME}t3
+
+    # Make sure we start clean; no masking view on the array
+    verify_export ${expname}1 ${HOST1} gone
+
+    reset_system_props
+    set_validation_check false
+
+    # Create the mask with the 1 volume
+    runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
+
+    # Turn on suspend of export after orchestration
+    set_suspend_on_class_method ${exportDeleteDeviceStep}
+
+    # Create the volume and inventory-only delete it so we can use it later.
+    HIJACK=du-hijack-volume-${RANDOM}
+
+    # Create another volume that we will inventory-only delete
+    runcmd volume create ${HIJACK} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 1
+
+    # Get the device ID of the volume we created
+    device_id=`get_device_id ${PROJECT}/${HIJACK}`
+
+    runcmd volume delete ${PROJECT}/${HIJACK} --vipronly
+
+    # Run the export group command TODO: Do this more elegantly
+    echo === export_group delete $PROJECT/${expname}1
+    resultcmd=`export_group delete $PROJECT/${expname}1`
+
+    if [ $? -ne 0 ]; then
+	echo "export group command failed outright"
+	exit;
+    fi
+
+    # Show the result of the export group command for now (show the task and WF IDs)
+    echo $resultcmd
+
+    # Parse results (add checks here!  encapsulate!)
+    taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
+    answersarray=($taskworkflow)
+    task=${answersarray[0]}
+    workflow=${answersarray[1]}
+
+    # Add the volume to the mask (done differently per array type)
+    arrayhelper add_volume_to_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
+    
+    # Verify the mask has the new volume in it
+    verify_export ${expname}1 ${HOST1} 2 2
+
+    # Resume the workflow
+    runcmd workflow resume $workflow
+
+    # Follow the task.  It should pass because validation is run but not enforced
+    echo "*** Following the export_group delete task to verify it PASSES because validation is disabled"
+    task follow $task
+
+    # Verify the mask is back to normal
+    verify_export ${expname}1 ${HOST1} gone
+
+    # Delete the volume we created.
+    arrayhelper delete_volume ${SERIAL_NUMBER} ${device_id}
+
+    # Turn off suspend of export after orchestration
+    reset_system_props
 }
 
 cleanup() {

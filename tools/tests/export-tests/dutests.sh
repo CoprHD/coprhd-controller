@@ -419,8 +419,7 @@ run() {
 	    cat ${CMD_OUTPUT}
 	fi
 	echo There was a failure
-	if [ ${docleanup} -eq 1 ]
-	then
+	if [ "${docleanup}" = "1" ]; then
 	    cleanup;
 	fi
 	exit;
@@ -2498,8 +2497,7 @@ else
     done
 fi
 
-if [ ${docleanup} -eq 1 ]
-then
+if [ "${docleanup}" = "1" ]; then
     cleanup;
 fi
 

@@ -37,6 +37,7 @@ import com.emc.storageos.db.client.model.VcenterDataCenter;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.security.authorization.BasePermissionsHelper;
+import com.emc.storageos.util.EventUtil;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -102,7 +103,17 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
                 processor.setRegistrationStatus(vcenter.getRegistrationStatus());
             }
             save(vcenter);
-            processHostChanges(changes, deletedHosts, deletedClusters, true);
+
+            for (URI deletedHost : deletedHosts) {
+                Host host = dbClient.queryObject(Host.class, deletedHost);
+                EventUtil.createActionableEvent(dbClient, host.getTenant(), "Delete host " + deletedHost, host, "deleteHost",
+                        new Object[] { deletedHost });
+            }
+            for (URI deletedCluster : deletedClusters) {
+                Cluster cluster = dbClient.queryObject(Cluster.class, deletedCluster);
+                EventUtil.createActionableEvent(dbClient, cluster.getTenant(), "Delete cluster " + deletedCluster, cluster, "deleteCluster",
+                        new Object[] { deletedCluster });
+            }
         } else {
             processor.setCompatibilityStatus(CompatibilityStatus.INCOMPATIBLE.name());
             save(vcenter);
@@ -194,7 +205,9 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
                 deletedHosts.add(host.getId());
             }
 
-            delete(datacenter);
+            EventUtil.createActionableEvent(dbClient, datacenter.getTenant(), "Delete vcenter datacenter " + datacenter.getLabel(),
+                    datacenter,
+                    "deleteDataCenter", new Object[] { datacenter.getId() });
         }
     }
 
@@ -462,6 +475,7 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
 
         private void discoverHost(Datacenter sourceDatacenter, HostSystem source, String uuid, VcenterDataCenter targetDatacenter,
                 Host target, List<Cluster> clusters, List<HostStateChange> changes) {
+            // TODO check for vcenter datacenter change
             target.setVcenterDataCenter(targetDatacenter.getId());
             target.setTenant(targetDatacenter.getTenant());
             target.setDiscoverable(true);
@@ -481,8 +495,13 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
             if (clusterName != null) {
                 cluster = findModelByLabel(clusters, clusterName);
             }
-            info("setting host cluster to %s", cluster != null ? cluster.getLabel() : NullColumnValueGetter.getNullURI());
-            target.setCluster(cluster != null ? cluster.getId() : NullColumnValueGetter.getNullURI());
+            if ((oldClusterURI == null && cluster.getId() != null) || !oldClusterURI.equals(cluster.getId())) {
+                info("detected host cluster change to %s", cluster != null ? cluster.getLabel() : NullColumnValueGetter.getNullURI());
+
+                EventUtil.createActionableEvent(dbClient, target.getTenant(),
+                        "Host changed cluster to " + (cluster == null ? " no cluster " : cluster.getId()), target, "hostClusterChange",
+                        new Object[] { target.getId(), cluster != null ? cluster.getId() : NullColumnValueGetter.getNullURI() });
+            }
 
             if (target.getType() == null ||
                     StringUtils.equalsIgnoreCase(target.getType(), HostType.Other.toString())) {

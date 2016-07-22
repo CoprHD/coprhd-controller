@@ -1,4 +1,20 @@
+/*
+ * Copyright (c) 2016 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.volumecontroller.impl.validators.smis.vmax;
+
+import static com.google.common.collect.Collections2.transform;
+
+import java.util.Collection;
+import java.util.Set;
+
+import javax.cim.CIMObjectPath;
+import javax.wbem.CloseableIterator;
+import javax.wbem.WBEMException;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -6,16 +22,6 @@ import com.emc.storageos.volumecontroller.impl.validators.smis.AbstractSMISValid
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Sets;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.cim.CIMObjectPath;
-import javax.wbem.CloseableIterator;
-import javax.wbem.WBEMException;
-import java.util.Collection;
-import java.util.Set;
-
-import static com.google.common.collect.Collections2.transform;
 
 /**
  * Abstract template class for comparing a set of ExportMask-related database values against hardware values.

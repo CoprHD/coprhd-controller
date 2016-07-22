@@ -1,5 +1,8 @@
+/*
+ * Copyright (c) 2016 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.volumecontroller.impl.validators.smis;
-
 import java.net.URI;
 import java.util.Collection;
 import java.util.List;

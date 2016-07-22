@@ -70,6 +70,12 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotDeactivateObjectIngestionTask();
 
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException eventCannotBeApproved(final String eventState);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException eventCannotBeDeclined(final String eventState);
+
     @DeclareServiceCode(ServiceCode.API_RESOURCE_BEING_REFERENCED)
     public BadRequestException cannotDeleteProviderWithManagedStorageSystems(final URI systemId);
 

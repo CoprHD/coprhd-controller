@@ -28,8 +28,6 @@ import javax.cim.UnsignedInteger16;
 import javax.wbem.CloseableIterator;
 import javax.wbem.WBEMException;
 
-import com.emc.storageos.volumecontroller.impl.validators.ValidatorFactory;
-import com.google.common.collect.Lists;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -106,7 +104,9 @@ import com.emc.storageos.volumecontroller.impl.smis.job.SmisWaitForGroupSynchron
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisWaitForSynchronizedJob;
 import com.emc.storageos.volumecontroller.impl.utils.ConsistencyGroupUtils;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
+import com.emc.storageos.volumecontroller.impl.validators.ValidatorFactory;
 import com.google.common.base.Joiner;
+import com.google.common.collect.Lists;
 
 /**
  * SMI-S specific block controller implementation.
@@ -610,7 +610,17 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
 
             _helper.callRefreshSystem(storageSystem, null, false);
 
-            validator.deleteVolumes(storageSystem, volumes).validate();
+            if (validator == null) {
+                _log.error("ERROR: VALIDATOR IS NOT SET IN THIS BEAN!!!!  AVOIDING VALIDATOR!!  COP-20450");
+                _log.error("ERROR: VALIDATOR IS NOT SET IN THIS BEAN!!!!  AVOIDING VALIDATOR!!  COP-20450");
+                _log.error("ERROR: VALIDATOR IS NOT SET IN THIS BEAN!!!!  AVOIDING VALIDATOR!!  COP-20450");
+                _log.error("ERROR: VALIDATOR IS NOT SET IN THIS BEAN!!!!  AVOIDING VALIDATOR!!  COP-20450");
+                _log.error("ERROR: VALIDATOR IS NOT SET IN THIS BEAN!!!!  AVOIDING VALIDATOR!!  COP-20450");
+                _log.error("ERROR: VALIDATOR IS NOT SET IN THIS BEAN!!!!  AVOIDING VALIDATOR!!  COP-20450");
+                _log.error("ERROR: VALIDATOR IS NOT SET IN THIS BEAN!!!!  AVOIDING VALIDATOR!!  COP-20450");
+            } else {
+                validator.deleteVolumes(storageSystem, volumes).validate();
+            }
 
             for (Volume volume : volumes) {
                 logMsgBuilder.append(String.format("%nVolume:%s", volume.getLabel()));
@@ -1784,35 +1794,35 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             // Find a provider with reference to the CG
             storage = findProviderFactory.withGroup(storage, groupName).find();
             if (storage != null) {
-            // Check if the CG exists
-            CIMObjectPath cgPath = _cimPath.getReplicationGroupPath(storage, groupName);
-            CIMObjectPath replicationSvc = _cimPath.getControllerReplicationSvcPath(storage);
-            CIMInstance cgPathInstance = _helper.checkExists(storage, cgPath, false, false);
+                // Check if the CG exists
+                CIMObjectPath cgPath = _cimPath.getReplicationGroupPath(storage, groupName);
+                CIMObjectPath replicationSvc = _cimPath.getControllerReplicationSvcPath(storage);
+                CIMInstance cgPathInstance = _helper.checkExists(storage, cgPath, false, false);
 
-            if (cgPathInstance != null) {
-                if (storage.deviceIsType(Type.vnxblock)) {
-                    cleanupAnyGroupBackupSnapshots(storage, cgPath);
-                }
+                if (cgPathInstance != null) {
+                    if (storage.deviceIsType(Type.vnxblock)) {
+                        cleanupAnyGroupBackupSnapshots(storage, cgPath);
+                    }
 
                     if (storage.deviceIsType(Type.vmax) && storage.checkIfVmax3()) {
                         // if deleting snap session replication group, we need to remove the EMCSFSEntries first
                         _helper.removeSFSEntryForReplicaReplicationGroup(storage, replicationSvc, replicationGroupName);
                     }
 
-                if (storage.checkIfVmax3() && replicationGroupName != null) {
-                    // if deleting snap session replication group, we need to remove the EMCSFSEntries first
-                    _helper.removeSFSEntryForReplicaReplicationGroup(storage, replicationSvc, replicationGroupName);
+                    if (storage.checkIfVmax3() && replicationGroupName != null) {
+                        // if deleting snap session replication group, we need to remove the EMCSFSEntries first
+                        _helper.removeSFSEntryForReplicaReplicationGroup(storage, replicationSvc, replicationGroupName);
 
-                    markSnapSessionsInactiveForReplicationGroup(systemURI, consistencyGroupId, replicationGroupName);
+                        markSnapSessionsInactiveForReplicationGroup(systemURI, consistencyGroupId, replicationGroupName);
+                    }
+
+                    // Invoke the deletion of the consistency group
+                    CIMArgument[] inArgs;
+                    CIMArgument[] outArgs = new CIMArgument[5];
+                    inArgs = _helper.getDeleteReplicationGroupInputArguments(storage, groupName);
+                    _helper.invokeMethod(storage, replicationSvc, SmisConstants.DELETE_GROUP, inArgs,
+                            outArgs);
                 }
-
-                // Invoke the deletion of the consistency group
-                CIMArgument[] inArgs;
-                CIMArgument[] outArgs = new CIMArgument[5];
-                inArgs = _helper.getDeleteReplicationGroupInputArguments(storage, groupName);
-                _helper.invokeMethod(storage, replicationSvc, SmisConstants.DELETE_GROUP, inArgs,
-                        outArgs);
-            }
             } else {
                 _log.info("No storage provider available with group {}.  Assume it has already been deleted.");
             }
@@ -3175,9 +3185,12 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
      * The SMI-S version that supports this operation is Version 8.2 onwards.
      * The initiator must be part of the an Initiator Group for the Value to be set
      *
-     * @param storage - StorageSystem object
-     * @param initiator - Initiator Object for which the Alias needs to be set
-     * @param initiatorAlias - User Friendly Name
+     * @param storage
+     *            - StorageSystem object
+     * @param initiator
+     *            - Initiator Object for which the Alias needs to be set
+     * @param initiatorAlias
+     *            - User Friendly Name
      * @throws Exception
      */
     public void doInitiatorAliasSet(StorageSystem storage, Initiator initiator, String initiatorAlias)
@@ -3206,8 +3219,10 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
      * The initiator must be part of the an Initiator Group for the Value to be retrieved
      * If the Alias is not set, an EMPTY string will be returned
      *
-     * @param storage - StorageSystem object
-     * @param initiator - Initiator Object for which the Alias needs to be set
+     * @param storage
+     *            - StorageSystem object
+     * @param initiator
+     *            - Initiator Object for which the Alias needs to be set
      * @return initiatorAlias - User Friendly Name
      * @throws Exception
      */
@@ -3294,7 +3309,9 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     /**
      * This method return true if the SMI-S provider supports initiator alias operations.
      * If not, it will throw an exception
-     * @param storage - StorageSystem object
+     * 
+     * @param storage
+     *            - StorageSystem object
      * @throws Exception
      */
     private void checkIfProviderSupportsAliasOperations(StorageSystem storageSystem) throws Exception {

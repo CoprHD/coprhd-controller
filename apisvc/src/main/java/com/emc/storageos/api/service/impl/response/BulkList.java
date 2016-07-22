@@ -17,6 +17,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
+import com.emc.storageos.db.client.model.ActionableEvent;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.ComputeVirtualPool;
 import com.emc.storageos.db.client.model.DataObject;
@@ -469,6 +470,23 @@ public class BulkList<T> implements List<T> {
             return _permissionsHelper.userHasGivenRole(
                     _user, resource.getId(), Role.TENANT_ADMIN, Role.SECURITY_ADMIN,
                     Role.SYSTEM_ADMIN);
+        }
+    }
+
+    public static class EventFilter
+            extends TenantResourceFilter<ActionableEvent> {
+
+        public EventFilter(StorageOSUser user,
+                PermissionsHelper permissionsHelper) {
+            super(user, permissionsHelper);
+        }
+
+        @Override
+        public boolean isAccessible(ActionableEvent resource) {
+            if (NullColumnValueGetter.isNullURI(resource.getTenant())) {
+                return false;
+            }
+            return isTenantResourceAccessible(resource.getTenant());
         }
     }
 

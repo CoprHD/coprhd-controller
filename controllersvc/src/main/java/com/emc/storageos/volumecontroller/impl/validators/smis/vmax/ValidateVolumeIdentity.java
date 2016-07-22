@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2016 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.volumecontroller.impl.validators.smis.vmax;
 
 import com.emc.storageos.cimadapter.connections.cim.CimConnection;
@@ -44,7 +48,7 @@ public class ValidateVolumeIdentity extends AbstractSMISValidator {
 
             checkForDifferences(instance, volume);
         }
-        
+
         return getLogger().hasErrors();
     }
 

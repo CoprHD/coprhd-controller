@@ -68,6 +68,9 @@ add_volume_to_mask() {
 
     # Add the volume into the storage group we specify with the pattern
     /opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} -type storage -name $sg_long_id add dev ${device_id}
+
+    # Sleep for now to let the provider get up to date.
+    sleep 60
 }
 
 remove_volume_from_mask() {
@@ -79,6 +82,9 @@ remove_volume_from_mask() {
     sg_short_id=`/opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} list -type storage | grep ${pattern}_SG | tail -1 | cut -c1-31`
     sg_long_id=`/opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} list -type storage -detail -v | grep ${sg_short_id} | awk -F: '{print $2}' | awk '{print $1}' | sed -e 's/^[[:space:]]*//'`
     /opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} -type storage -name $sg_long_id remove dev ${device_id}
+
+    # Sleep for now to let the provider get up to date.
+    sleep 60
 }
 
 add_initiator_to_mask() {
@@ -94,6 +100,9 @@ add_initiator_to_mask() {
 	# dd the initiator to the IG, which in turn adds it to the visibility of the mask
 	/opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} -type initiator -name ${pattern}_IG add -wwn ${pwwn}
     fi
+
+    # Sleep for now to let the provider get up to date.
+    sleep 60
 }
 
 remove_initiator_from_mask() {
@@ -109,6 +118,9 @@ remove_initiator_from_mask() {
 	# dd the initiator to the IG, which in turn adds it to the visibility of the mask
 	/opt/emc/SYMCLI/bin/symaccess -sid ${serial_number} -type initiator -name ${pattern}_IG remove -wwn ${pwwn}
     fi
+
+    # Sleep for now to let the provider get up to date.
+    sleep 60
 }
 
 delete_volume() {

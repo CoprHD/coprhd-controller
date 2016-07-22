@@ -3442,11 +3442,21 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             Map<URI, Integer> updatedVolumeMap = new HashMap<URI, Integer>();
             for (BlockObject volume : volumes) {
                 String deviceLabel = volume.getDeviceLabel();
-                volume.setWWN(svInfo.getWWNForStorageViewVolume(volume.getDeviceLabel()));
+                String wwn = svInfo.getWWNForStorageViewVolume(volume.getDeviceLabel());
+                volume.setWWN(wwn);
                 _dbClient.updateObject(volume);
 
                 updatedVolumeMap.put(volume.getId(),
                         svInfo.getHLUForStorageViewVolume(deviceLabel));
+
+                // because this is a managed volume, remove from existing volumes if present.
+                // this may happen in the case where a vipr-managed volume was added manually outside of vipr by the user.
+                if (exportMask.hasExistingVolume(wwn)) {
+                    _log.info("wwn {} has been added to the storage view {} by the user, but it "
+                            + "was already in existing volumes, removing from existing volumes.", 
+                            wwn, exportMask.forDisplay());
+                    exportMask.removeFromExistingVolumes(wwn);
+                }
             }
 
             // We also need to update the volume/lun id map in the export mask
@@ -4193,6 +4203,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 }
 
                 List<PortInfo> initiatorPortInfo = new ArrayList<PortInfo>();
+                List<String> initiatorPortWwns = new ArrayList<String>();
                 for (URI initiatorURI : initiatorURIs) {
                     Initiator initiator = getDataObject(Initiator.class, initiatorURI, _dbClient);
                     // Only add this initiator if it's for the same host as other initiators in mask
@@ -4205,6 +4216,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                             initiator.getLabel(),
                             getVPlexInitiatorType(initiator));
                     initiatorPortInfo.add(portInfo);
+                    initiatorPortWwns.add(initiator.getInitiatorPort());
                 }
 
                 if (!initiatorPortInfo.isEmpty()) {
@@ -4221,6 +4233,17 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         }
                         // Add the initiators to the VPLEX
                         client.addInitiatorsToStorageView(exportMask.getMaskName(), initiatorPortInfo);
+
+                        // because these are now managed initiators, remove from existing initiators if present.
+                        // this may happen in the case where a vipr-managed initiator was added manually outside of vipr by the user.
+                        for (String wwn : initiatorPortWwns) {
+                            if (exportMask.hasExistingInitiator(wwn)) {
+                                _log.info("initiator port {} has been added to the storage view {} by the user, but it "
+                                        + "was already in existing initiators, removing from existing initiators.", 
+                                        wwn, exportMask.forDisplay());
+                                exportMask.removeFromExistingInitiators(wwn);
+                            }
+                        }
                     } finally {
                         if (lockAcquired) {
                             _vplexApiLockManager.releaseLock(lockName);

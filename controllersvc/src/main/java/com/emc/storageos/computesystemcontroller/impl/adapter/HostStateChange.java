@@ -130,7 +130,7 @@ public class HostStateChange implements Serializable {
     @Override
     public String toString() {
         return "HostStateChange: [Host: " + this.host.getLabel() + " with cluster: "
-                + (this.host.getCluster() == null ? "null" : this.host.getCluster()) + ", OldInitiators: " + this.oldInitiators
+                + (this.newCluster == null ? "null" : this.newCluster) + ", OldInitiators: " + this.oldInitiators
                 + ", NewInitators: " + this.newInitiators + ", OldCluster: " + this.oldCluster + "]";
     }
 }

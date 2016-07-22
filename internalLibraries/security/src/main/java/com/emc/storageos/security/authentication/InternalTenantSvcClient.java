@@ -16,6 +16,7 @@
  */
 package com.emc.storageos.security.authentication;
 
+import com.emc.storageos.cinder.CinderConstants;
 import com.emc.storageos.model.project.ProjectElement;
 import com.emc.storageos.model.project.ProjectParam;
 import com.emc.storageos.model.tenant.TenantCreateParam;
@@ -32,6 +33,7 @@ public class InternalTenantSvcClient extends BaseServiceClient {
     private static final String INTERNAL_TENANT_ROOT = "/internal/tenants";
     private static final String INTERNAL_CREATE_TENANT = INTERNAL_TENANT_ROOT;
     private static final String INTERNAL_CREATE_PROJECT = INTERNAL_TENANT_ROOT + "/%s/projects";
+    private static final String INTERNAL_API_PORT = "8443";
 
     final private Logger _log = LoggerFactory.getLogger(InternalTenantSvcClient.class);
 
@@ -44,7 +46,7 @@ public class InternalTenantSvcClient extends BaseServiceClient {
 
     @Override
     public void setServer(String server) {
-        setServiceURI(URI.create("https://" + server + ":8443"));
+        setServiceURI(URI.create(CinderConstants.HTTPS_URL + server + CinderConstants.COLON + INTERNAL_API_PORT));
     }
 
     public TenantOrgRestRep createTenant(TenantCreateParam param) {

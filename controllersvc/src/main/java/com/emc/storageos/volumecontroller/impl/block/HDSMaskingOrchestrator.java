@@ -17,15 +17,19 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
+import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
+import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.VirtualPool;
@@ -47,6 +51,7 @@ import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.workflow.Workflow;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
+import com.google.common.collect.Sets;
 
 /**
  * This class will contain HDS specific masking orchestration implementations.
@@ -185,9 +190,23 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                         initiatorURIs, hostURIs);
                 Map<String, Set<URI>> foundMatches = device.findExportMasks(storage, portNames, false);
                 Set<String> checkMasks = mergeWithExportGroupMaskURIs(exportGroup, foundMatches.values());
+                
+                URIQueryResultList storagePortURIs = new URIQueryResultList();
+                _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getVirtualArrayStoragePortsConstraint(exportGroup.getVirtualArray().toString()),
+                        storagePortURIs);
+                //Get all the storage ports that are in the varray belonging to the storage array
+                Set<StoragePort> storagePortsAssociatedWithVArrayAndStorageArray = _dbClient.queryObject(StoragePort.class, storagePortURIs.stream()
+                        .collect(Collectors.toSet())).stream().filter(storagePort -> storagePort.getStorageDevice().equals(storageURI)).collect(Collectors.toSet());
+                //String set of all the storage port URI's
+                Set<String> storagePortURIsAssociatedWithVArrayAndStorageArray = storagePortsAssociatedWithVArrayAndStorageArray.stream()
+                        .map(StoragePort::getId).map(URI::toString).collect(Collectors.toSet());
+                
                 for (String maskURIStr : checkMasks) {
                     ExportMask exportMask = _dbClient.queryObject(ExportMask.class,
                             URI.create(maskURIStr));
+                    //Check if there are any storage ports in the mask which are part of varray, if not found discard this mask
+                    if(Sets.intersection(storagePortURIsAssociatedWithVArrayAndStorageArray, exportMask.getStoragePorts()).size() == 0)
+                        continue;
                     _log.info(String.format("Checking mask %s", exportMask.getMaskName()));
                     if (!exportMask.getInactive()
                             && exportMask.getStorageDevice().equals(storageURI)) {

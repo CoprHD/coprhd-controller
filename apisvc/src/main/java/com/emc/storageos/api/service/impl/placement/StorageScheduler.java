@@ -580,6 +580,7 @@ public class StorageScheduler implements Scheduler {
             boolean arrayAffinity = VirtualPool.ResourcePlacementPolicyType.array_affinity.name().equals(vpool.getPlacementPolicy());
             if (arrayAffinity && capabilities.getCompute() != null) {
                 capabilities.put(VirtualPoolCapabilityValuesWrapper.ARRAY_AFFINITY, true);
+                provMapBuilder.putAttributeInMap(AttributeMatcher.Attributes.array_affinity.name(), true);
             }
         }
 

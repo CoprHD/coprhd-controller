@@ -31,12 +31,6 @@ public interface ServiceUnavailableExceptions {
     @DeclareServiceCode(ServiceCode.API_SERVICE_UNAVAILABLE)
     public ServiceUnavailableException cannotDeactivateStorageSystemWhileInDiscover(URI id);
 
-    @DeclareServiceCode(ServiceCode.API_SERVICE_UNAVAILABLE)
-    public ServiceUnavailableException cannotDeactivateStorageSystemWhileInArrayAffinityDiscover(URI id);
-
-    @DeclareServiceCode(ServiceCode.API_SERVICE_UNAVAILABLE)
-    public ServiceUnavailableException cannotDeactivateStorageSystemWhileInMeteringDataCollection(URI id);
-
     @DeclareServiceCode(ServiceCode.SYS_CLUSTER_STATE_NOT_STABLE)
     public ServiceUnavailableException clusterStateNotStable();
 

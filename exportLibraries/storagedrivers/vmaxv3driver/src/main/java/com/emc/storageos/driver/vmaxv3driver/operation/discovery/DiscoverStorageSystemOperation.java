@@ -30,10 +30,10 @@ public class DiscoverStorageSystemOperation extends OperationImpl {
     public boolean isMatch(String name, Object... parameters) {
         if ("discoverStorageSystem".equals(name)) {
             this.storageSystem = (StorageSystem) parameters[0];
-            logger.debug("Storage system discovery: nativeId={}, ipAddress={}, portNumber={}, userName={}, " +
-                "password={}, protocols={}, ", storageSystem.getNativeId(), storageSystem.getIpAddress(),
-                storageSystem.getPortNumber(), storageSystem.getUsername(), storageSystem.getPassword(),
-                storageSystem.getProtocols());
+            logger.debug("Storage system discovery: nativeId={}, serialNumber={}, ipAddress={}, portNumber={}, " +
+                "userName={}, password={}, protocols={}, ", storageSystem.getNativeId(),
+                storageSystem.getSerialNumber(), storageSystem.getIpAddress(), storageSystem.getPortNumber(),
+                storageSystem.getUsername(), storageSystem.getPassword(), storageSystem.getProtocols());
             this.setClient(this.storageSystem);
             return true;
         } else {
@@ -45,7 +45,11 @@ public class DiscoverStorageSystemOperation extends OperationImpl {
     public Map<String, Object> execute() {
         Map<String, Object> result = new HashMap<>();
         try {
-            Symmetrix bean = new SloprovisioningSymmetrixGet(this.storageSystem.getNativeId()).perform(this.getClient());
+            String arrayId = this.storageSystem.getSerialNumber();
+            Symmetrix bean = new SloprovisioningSymmetrixGet(arrayId).perform(this.getClient());
+            this.storageSystem.setIsSupportedVersion(true);
+            this.storageSystem.setSystemName(arrayId);
+            this.storageSystem.setNativeId(arrayId);
             this.storageSystem.setFirmwareVersion(bean.getUcode());
             this.storageSystem.setModel(bean.getModel());
             this.storageSystem.setProvisioningType(StorageSystem.SupportedProvisioningType.THIN);

@@ -69,21 +69,12 @@ public class DiscoverStorageProviderOperation extends OperationImpl {
             for (String arrayId : arrayIds) {
                 StorageSystem storageSystem = new StorageSystem();
                 storageSystem.setSystemType(SYSTEM_TYPE);
+                storageSystem.setSerialNumber(arrayId);
                 storageSystem.setSystemName(arrayId);
                 storageSystem.setNativeId(arrayId);
-                storageSystem.setSerialNumber(arrayId);
-                storageSystem.setIpAddress(this.storageProvider.getProviderHost());
-                storageSystem.setPortNumber(this.storageProvider.getPortNumber());
-                storageSystem.setUsername(this.storageProvider.getUsername());
-                storageSystem.setPassword(this.storageProvider.getPassword());
-                List<String> protocols = new ArrayList<>();
-                protocols.add(this.storageProvider.getUseSSL() ? "https" : "http");
-                storageSystem.setProtocols(protocols);
-                storageSystem.setMajorVersion(version);
-                logger.debug("Storage system preparing: nativeId={}, ipAddress={}, portNumber={}, userName={}, " +
-                        "password={}, protocols={}, ", storageSystem.getNativeId(), storageSystem.getIpAddress(),
-                    storageSystem.getPortNumber(), storageSystem.getUsername(), storageSystem.getPassword(),
-                    storageSystem.getProtocols());
+                logger.debug("Storage system preparing: systemType={}, serialNumber={}, systemName={}, " +
+                    "nativeId={}, ", storageSystem.getSystemType(), storageSystem.getSerialNumber(),
+                    storageSystem.getSystemName(), storageSystem.getNativeId());
                 this.storageSystems.add(storageSystem);
             }
             result.put("success", true);

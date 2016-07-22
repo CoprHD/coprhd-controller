@@ -218,7 +218,14 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
             throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.REOCCURRENCE);
         }
 
-        /* TODO: exceptions for edit  */
+        for (String dateException: scheduleInfo.getDateExceptions()) {
+            try {
+                DateFormat formatter = new SimpleDateFormat(ScheduleInfo.FULL_DAY_FORMAT);
+                Date date = formatter.parse(dateException);
+            } catch (Exception e) {
+                throw APIException.badRequests.schduleInfoInvalid(ScheduleInfo.DATE_EXCEPTIONS);
+            }
+        }
     }
 
     /**

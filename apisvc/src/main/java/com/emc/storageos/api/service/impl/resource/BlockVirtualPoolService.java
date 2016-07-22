@@ -192,8 +192,9 @@ public class BlockVirtualPoolService extends VirtualPoolService {
         if (!remoteSettingsMap.isEmpty()) {
             _dbClient.createObject(new ArrayList(remoteSettingsMap.values()));
         }
+        StringBuffer errorMessage = new StringBuffer();
         // update the implicit pools matching with this VirtualPool.
-        ImplicitPoolMatcher.matchVirtualPoolWithAllStoragePools(vpool, _dbClient, _coordinator);
+        ImplicitPoolMatcher.matchVirtualPoolWithAllStoragePools(vpool, _dbClient, _coordinator, errorMessage);
         Set<URI> allSrdfTargetVPools = SRDFUtils.fetchSRDFTargetVirtualPools(_dbClient);
         Set<URI> allRpTargetVPools = RPHelper.fetchRPTargetVirtualPools(_dbClient);
         if (null != vpool.getMatchedStoragePools() || null != vpool.getInvalidMatchedPools()) {
@@ -233,12 +234,12 @@ public class BlockVirtualPoolService extends VirtualPoolService {
         VirtualPool vpool = prepareVirtualPool(param, remoteSettingsMap, protectionSettingsMap, protectionSettings);
         List<URI> storagePoolURIs = _dbClient.queryByType(StoragePool.class, true);
         List<StoragePool> allPools = _dbClient.queryObject(StoragePool.class, storagePoolURIs);
-
+        StringBuffer errorMessage = new StringBuffer();
         List<StoragePool> matchedPools = ImplicitPoolMatcher.getMatchedPoolWithStoragePools(vpool, allPools,
                 protectionSettingsMap,
                 remoteSettingsMap,
                 null,
-                _dbClient, _coordinator, AttributeMatcher.VPOOL_MATCHERS);
+                _dbClient, _coordinator, AttributeMatcher.VPOOL_MATCHERS, errorMessage);
         for (StoragePool pool : matchedPools) {
             poolList.getPools().add(toNamedRelatedResource(pool, pool.getNativeGuid()));
         }
@@ -516,9 +517,9 @@ public class BlockVirtualPoolService extends VirtualPoolService {
 
         // Validate Block VirtualPool update params.
         VirtualPoolUtil.validateBlockVirtualPoolUpdateParams(vpool, param, _dbClient);
-
+        StringBuffer errorMessage = new StringBuffer();
         // invokes implicit pool matching algorithm.
-        ImplicitPoolMatcher.matchVirtualPoolWithAllStoragePools(vpool, _dbClient, _coordinator);
+        ImplicitPoolMatcher.matchVirtualPoolWithAllStoragePools(vpool, _dbClient, _coordinator, errorMessage);
 
         if (null != vpool.getMatchedStoragePools() || null != vpool.getInvalidMatchedPools()) {
             Set<URI> allSrdfTargetVPools = SRDFUtils.fetchSRDFTargetVirtualPools(_dbClient);

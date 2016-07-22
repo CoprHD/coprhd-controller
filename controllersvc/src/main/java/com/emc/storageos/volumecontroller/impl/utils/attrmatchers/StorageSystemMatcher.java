@@ -12,6 +12,7 @@ import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.volumecontroller.AttributeMatcher;
@@ -40,7 +41,8 @@ public class StorageSystemMatcher extends AttributeMatcher {
      */
     @Override
     @SuppressWarnings("unchecked")
-    public List<StoragePool> matchStoragePoolsWithAttributeOn(List<StoragePool> pools, Map<String, Object> attributeMap) {
+    public List<StoragePool> matchStoragePoolsWithAttributeOn(List<StoragePool> pools, Map<String, Object> attributeMap,
+            StringBuffer errorMessage) {
         List<StoragePool> matchedPools = new ArrayList<StoragePool>();
 
         Set<String> systems = (Set<String>) attributeMap.get(Attributes.storage_system
@@ -55,6 +57,11 @@ public class StorageSystemMatcher extends AttributeMatcher {
         }
         _logger.info("{} pools are matching with systems after matching.",
                 matchedPools.size());
+        if (CollectionUtils.isEmpty(matchedPools)) {
+            errorMessage.append(String.format("No matching storage pool for the Storage systems : %s. ", systems));
+            _logger.error(errorMessage.toString());
+        }
+
         return matchedPools;
     }
 

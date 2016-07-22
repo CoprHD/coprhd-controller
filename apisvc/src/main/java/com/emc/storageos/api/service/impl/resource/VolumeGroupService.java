@@ -676,9 +676,9 @@ public class VolumeGroupService extends TaskResourceService {
             
             checkForApplicationPendingTasks(volumeGroup, _dbClient, false);
             
-            // check for xtremio volumes
+            // check for xtremio or Unity volumes
             for (String groupName : arrayGroupNames) {
-                checkForXtremio(CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, Volume.class,
+                checkForXtremioOrUnity(CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, Volume.class,
                         AlternateIdConstraint.Factory.getVolumeReplicationGroupInstanceConstraint(groupName)));
             }
 
@@ -710,7 +710,7 @@ public class VolumeGroupService extends TaskResourceService {
             checkForApplicationPendingTasks(volumeGroup, _dbClient, false);
 
             // make sure there are no xtremio volumes in the application
-            checkForXtremio(volumes);
+            checkForXtremioOrUnity(volumes);
 
             auditOp(OperationTypeEnum.CREATE_VOLUME_GROUP_FULL_COPY, true, AuditLogManager.AUDITOP_BEGIN, volumeGroup.getId().toString(),
                     param.getName(), param.getCount());
@@ -836,7 +836,7 @@ public class VolumeGroupService extends TaskResourceService {
      * 
      * @param volumes
      */
-    private void checkForXtremio(List<Volume> volumes) {
+    private void checkForXtremioOrUnity(List<Volume> volumes) {
         // getVolumeByAssociatedVolumesConstraint
         Set<URI> virtualVolAlreadyChecked = new HashSet<URI>();
         for (Volume volume : volumes) {
@@ -862,6 +862,9 @@ public class VolumeGroupService extends TaskResourceService {
             
             if (ControllerUtils.isXtremIOVolume(checkVolume, _dbClient)) {
                 throw APIException.badRequests.replicaOperationNotAllowedApplicationHasXtremio(ReplicaTypeEnum.FULL_COPY.toString());
+            }
+            if (ControllerUtils.isUnityVolume(checkVolume, _dbClient)) {
+                throw APIException.badRequests.replicaOperationNotAllowedApplicationHasUnity(ReplicaTypeEnum.FULL_COPY.toString());
             }
         }
     }

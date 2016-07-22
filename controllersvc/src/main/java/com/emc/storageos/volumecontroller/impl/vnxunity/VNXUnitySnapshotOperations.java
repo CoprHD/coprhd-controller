@@ -111,13 +111,22 @@ public class VNXUnitySnapshotOperations extends VNXeSnapshotOperation {
             BlockSnapshot snapshotObj = _dbClient.queryObject(BlockSnapshot.class, snapshot);
 
             Volume volume = _dbClient.queryObject(Volume.class, snapshotObj.getParent());
-            TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, volume.getTenant().getURI());
-            String tenantName = tenant.getLabel();
-            String snapLabelToUse =
-                    _nameGenerator.generate(tenantName, snapshotObj.getSnapsetLabel(),
-                            snapshot.toString(), '-', SmisConstants.MAX_SNAPSHOT_NAME_LENGTH);
+            boolean inApplication = false;
+            if (volume.getVolumeGroupIds()!= null && !volume.getVolumeGroupIds().isEmpty()) {
+                inApplication = true;
+            }
             String groupName = volume.getReplicationGroupInstance();
+            String snapLabelToUse = null;
             if (NullColumnValueGetter.isNotNullValue(groupName)) {
+                String snapsetLabel = snapshotObj.getSnapsetLabel();
+                if (inApplication) {
+                    // When in application, it could have more than one CGs in the same application, when creating
+                    // snapshot on the application, the snapset label would be the same for all volumes in the application.
+                    // if we use the same name to create snapshot for multiple CGs, it would fail. 
+                    snapLabelToUse = String.format("%s-%s", snapsetLabel, groupName);
+                } else {
+                    snapLabelToUse =  snapsetLabel;
+                }
                 VNXeApiClient apiClient = getVnxeClient(storage);
                 String cgId = apiClient.getConsistencyGroupIdByName(groupName);
                 VNXeCommandJob job = apiClient.createSnap(cgId, snapLabelToUse, readOnly);

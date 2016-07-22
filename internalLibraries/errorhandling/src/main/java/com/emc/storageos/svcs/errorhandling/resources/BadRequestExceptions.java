@@ -2813,6 +2813,9 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException replicaOperationNotAllowedApplicationHasXtremio(final String replicaType);
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException replicaOperationNotAllowedApplicationHasUnity(final String replicaType);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException replicaOperationNotAllowedOnCGVolumePartOfCopyTypeVolumeGroup(final String volumeGroupName,

@@ -26,6 +26,7 @@ import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.services.util.StorageDriverManager;
 import com.emc.storageos.vnxe.models.StorageResource;
 import com.emc.storageos.volumecontroller.AttributeMatcher;
 import com.google.common.base.Joiner;
@@ -82,8 +83,14 @@ public class AutoTieringPolicyMatcher extends AttributeMatcher {
         } else if (deviceTypes.contains(VirtualPool.SystemType.vnxe.toString())
                    || deviceTypes.contains(VirtualPool.SystemType.unity.toString())) {
             filteredPoolList = getPoolsWithAutoTieringEnabled(pools);
-        } else if (deviceTypes.contains("driversystem")) {
-            filteredPoolList = getAutoTieringPoolsOnExternalSystem(autoTieringPolicyName, attributeMap, pools);            
+        } else  {
+            StorageDriverManager storageDriverManager = (StorageDriverManager) StorageDriverManager.getApplicationContext().getBean(
+                    StorageDriverManager.STORAGE_DRIVER_MANAGER);
+            for (String deviceType : deviceTypes) {
+                if (storageDriverManager.isDriverManaged(deviceType)) {
+                    filteredPoolList = getAutoTieringPoolsOnExternalSystem(autoTieringPolicyName, attributeMap, pools);
+                }
+            }
         }
         _logger.info("Pools Matching Auto Tiering name Ended:{}",
                 Joiner.on("\t").join(getNativeGuidFromPools(filteredPoolList)));

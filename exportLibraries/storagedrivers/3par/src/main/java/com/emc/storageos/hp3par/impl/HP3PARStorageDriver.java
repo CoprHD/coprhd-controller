@@ -79,8 +79,8 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	private HP3PARProvisioningHelper provHelper;
 	private HP3PARExpUnexpHelper expunexpHelper;
 	
-	public HP3PARStorageDriver() {
-        ApplicationContext context = new ClassPathXmlApplicationContext(new String[] {HP3PAR_CONF_FILE}, parentApplicationContext);
+	public void init() {
+	    ApplicationContext context = new ClassPathXmlApplicationContext(new String[] {HP3PAR_CONF_FILE}, parentApplicationContext);
         this.ingestHelper = (HP3PARIngestHelper) context.getBean("3parIngestionHelper");
         this.hp3parUtil = (HP3PARUtil) context.getBean("hp3parUtil");
         this.hp3parApiFactory = (HP3PARApiFactory) context.getBean("hp3parApiFactory");
@@ -89,7 +89,6 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
         this.cgHelper = (HP3PARCGHelper) context.getBean("3parCGHelper");
         this.provHelper = (HP3PARProvisioningHelper) context.getBean("3parProvHelper");
         this.expunexpHelper = (HP3PARExpUnexpHelper) context.getBean("3parExpUnexpHelper");
-        
 	}
 
 	// Injecting HP3PAR parent application context 

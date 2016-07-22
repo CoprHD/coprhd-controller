@@ -29,7 +29,7 @@
         </property>
     </bean>
     
-     <bean id="hp3Par" class="com.emc.storageos.hp3par.impl.HP3PARStorageDriver">
+     <bean id="hp3Par" class="com.emc.storageos.hp3par.impl.HP3PARStorageDriver" init-method="init">
     </bean>
 
 </beans>

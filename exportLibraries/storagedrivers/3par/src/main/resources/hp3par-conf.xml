@@ -6,17 +6,6 @@
 	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
 		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
 		http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.0.xsd">
-
-    <bean id="hp3Par" class="com.emc.storageos.hp3par.impl.HP3PARStorageDriver">
-    	<property name="ingestHelper" ref="3parIngestionHelper"></property>
-    	<property name="hp3parApiFactory" ref="hp3parApiFactory"/>
-    	<property name="hp3parUtil" ref="hp3parUtil"/>
-    	<property name="snapshotHelper" ref="3parSnapshotHelper"></property>
-    	<property name="cloneHelper" ref="3parCloneHelper"></property>
-    	<property name="cgHelper" ref="3parCGHelper"></property>
-    	<property name="provHelper" ref="3parProvHelper"/>
-    	<property name="expunexpHelper" ref="3parExpUnexpHelper"/>
-    </bean>
     
     <bean id="3parIngestionHelper" class="com.emc.storageos.hp3par.impl.HP3PARIngestHelper">
     	<property name="hp3parUtil" ref="hp3parUtil"></property>

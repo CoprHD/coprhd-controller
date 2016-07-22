@@ -232,6 +232,7 @@ public class AuthnConfigurationService extends TaggedResource {
                 String interval = _openStackSynchronizationTask.getIntervalFromTenantSyncSet(provider.getTenantsSynchronizationOptions());
                 // Set default interval time when chosen interval is lower than minimal value.
                 if (Integer.parseInt(interval) < OpenStackSynchronizationTask.MIN_INTERVAL_DELAY) {
+                    _log.debug("Setting default interval time as chosen interval is lower than minimal value.");
                     provider.getTenantsSynchronizationOptions().remove(interval);
                     provider.getTenantsSynchronizationOptions().add(Integer.toString(OpenStackSynchronizationTask.DEFAULT_INTERVAL_DELAY));
                 }
@@ -470,6 +471,7 @@ public class AuthnConfigurationService extends TaggedResource {
 
         // Whenever new interval value is below minimum, then set default interval time for keystone auth provider.
         if (newSynchronizationInterval < OpenStackSynchronizationTask.MIN_INTERVAL_DELAY) {
+            _log.debug("Setting default interval time as chosen interval is lower than minimal value.");
             provider.getTenantsSynchronizationOptions().remove(Integer.toString(newSynchronizationInterval));
             provider.getTenantsSynchronizationOptions().add(Integer.toString(OpenStackSynchronizationTask.DEFAULT_INTERVAL_DELAY));
         }

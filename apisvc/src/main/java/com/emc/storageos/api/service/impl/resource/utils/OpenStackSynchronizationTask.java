@@ -44,10 +44,12 @@ public class OpenStackSynchronizationTask extends ResourceService {
     // Constants
     // Interval delay between each execution in seconds.
     public static final int DEFAULT_INTERVAL_DELAY = 900;
-    // Maximum time for a timeout when awaiting for termination.
+    // Maximum time in seconds for a timeout when awaiting for termination.
     private static final int MAX_TERMINATION_TIME = 120;
     // Minimum interval in seconds.
     public static final int MIN_INTERVAL_DELAY = 10;
+    // The number of threads to keep in the pool
+    public static final int NUMBER_OF_THREADS = 1;
 
     private static final String OPENSTACK = "OpenStack";
 
@@ -75,7 +77,7 @@ public class OpenStackSynchronizationTask extends ResourceService {
     public void start(int interval) throws Exception {
 
         _log.info("Start OpenStack Synchronization Task");
-        _dataCollectionExecutorService = Executors.newScheduledThreadPool(1);
+        _dataCollectionExecutorService = Executors.newScheduledThreadPool(NUMBER_OF_THREADS);
 
         // Schedule task at fixed interval.
         synchronizationTask = _dataCollectionExecutorService.scheduleAtFixedRate(

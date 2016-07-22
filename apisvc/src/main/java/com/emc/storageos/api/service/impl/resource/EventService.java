@@ -353,7 +353,7 @@ public class EventService extends TaggedResource {
         EventRestRep to = new EventRestRep();
         to.setName(from.getLabel());
         to.setDescription(from.getDescription());
-        to.setStatus(from.getEventStatus());
+        to.setEventStatus(from.getEventStatus());
         to.setResource(toNamedRelatedResource(from.getResource()));
         to.setTenant(toRelatedResource(ResourceTypeEnum.TENANT, from.getTenant()));
         DbObjectMapper.mapDataObjectFields(from, to);

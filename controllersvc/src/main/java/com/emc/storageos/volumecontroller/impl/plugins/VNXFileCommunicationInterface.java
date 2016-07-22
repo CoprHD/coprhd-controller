@@ -1577,12 +1577,20 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                 // Update UnManagedFilesystem
                 _dbClient.updateAndReindexObject(existingUnManagedFileSystems);
             }
-
+            
+            ArrayList<String> umfsIds = new ArrayList<String>();
+            
+            String NATIVE_ID = UnManagedFileSystem.SupportedFileSystemInformation.NATIVE_ID.toString();
+            
+            for(UnManagedFileSystem umfsTemp : unManagedFileSystems){
+                umfsIds.add(umfsTemp.getFileSystemInformation().get(NATIVE_ID).toString());
+            }
+            
             // discovery succeeds
             detailedStatusMessage = String.format("Discovery completed successfully for VNXFile: %s",
                     storageSystemId.toString());
             // Discovering unmanaged quota directories
-            discoverUmanagedFileQuotaDirectory(profile);
+            discoverUmanagedFileQuotaDirectory(profile, umfsIds);
             
         } catch (Exception e) {
             if (storageSystem != null) {
@@ -1605,7 +1613,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         }
     }
     
-    private void discoverUmanagedFileQuotaDirectory(AccessProfile profile) throws Exception {
+    private void discoverUmanagedFileQuotaDirectory(AccessProfile profile, List umfsIds) throws Exception {
         URI storageSystemId = profile.getSystemId();
 
         StorageSystem storageSystem = _dbClient.queryObject(
@@ -3075,23 +3083,30 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     }
     
     
-    private List<VNXQuotaTree> getAllQuotaTrees(final StorageSystem system)
+    private List<VNXQuotaTree> getAllQuotaTrees(final StorageSystem system, List<String> umfsIds)
             throws VNXException {
 
         List<VNXQuotaTree> quotaTrees = null;
-
-        try {
-            _discExecutor.execute((Namespace) _discNamespaces.getNsList().get(
-                    "vnxallquotas"));
-
-            quotaTrees = (ArrayList<VNXQuotaTree>) _discExecutor.getKeyMap()
-                    .get(VNXFileConstants.QUOTA_DIR_LIST);
-        } catch (BaseCollectionException e) {
-            throw new VNXException("Get QuotaTrees op failed", e);
+        
+        for(String umfsId : umfsIds){
+            
+            _discExecutor.getKeyMap().put(VNXFileConstants.FILESYSTEM_ID,umfsId);
+                try {
+                    _discExecutor.execute((Namespace) _discNamespaces.getNsList().get(
+                            "vnxallquotas"));
+        
+                    quotaTrees = (ArrayList<VNXQuotaTree>) _discExecutor.getKeyMap()
+                            .get(VNXFileConstants.QUOTA_DIR_LIST);
+                } catch (BaseCollectionException e) {
+                    throw new VNXException("Get QuotaTrees op failed", e);
+                }
+        
         }
 
         return quotaTrees;
     }
+    
+    
 
     private void associateExportWithFS(UnManagedFileSystem vnxufs,
             String exportPath, Map<String, String> fsExportInfo, String mountPath, StoragePort storagePort) {

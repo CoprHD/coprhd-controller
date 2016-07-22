@@ -193,7 +193,11 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
                 pool.setMinimumThickVolumeSize(1000L);
                 pool.setMaximumThinVolumeSize(5000000L);
                 pool.setMinimumThinVolumeSize(1000L);
-                pool.setSupportedResourceType(StoragePool.SupportedResourceType.THIN_AND_THICK);
+                if (i%2 == 0) {
+                    pool.setSupportedResourceType(StoragePool.SupportedResourceType.THIN_ONLY);
+                } else {
+                    pool.setSupportedResourceType(StoragePool.SupportedResourceType.THICK_ONLY);
+                }
 
                 pool.setSubscribedCapacity(5000000L);
                 pool.setFreeCapacity(45000000L);

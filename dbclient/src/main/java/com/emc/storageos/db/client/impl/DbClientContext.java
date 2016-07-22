@@ -42,6 +42,7 @@ import com.datastax.driver.core.WriteType;
 import com.datastax.driver.core.exceptions.ConnectionException;
 import com.datastax.driver.core.exceptions.DriverException;
 import com.datastax.driver.core.policies.RetryPolicy;
+import com.datastax.driver.core.policies.RoundRobinPolicy;
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.DrUtil;
@@ -99,7 +100,7 @@ public class DbClientContext {
     
     private Cluster cassandraCluster;
     private Session cassandraSession;
-    private Map<String, PreparedStatement> prepareStatementMap;
+    private Map<String, PreparedStatement> prepareStatementMap = new HashMap<String, PreparedStatement>();
     private ConsistencyLevel writeConsistencyLevel = DEFAULT_WRITE_CONSISTENCY_LEVEL;
     
     public void setCipherSuite(String cipherSuite) {
@@ -239,6 +240,7 @@ public class DbClientContext {
         cassandraCluster = com.datastax.driver.core.Cluster
                 .builder()
                 .withRetryPolicy(new ViPRRetryPolicy(10, 1000))
+                .withLoadBalancingPolicy(new RoundRobinPolicy())
                 .addContactPoints(contactPoints).withPort(getNativeTransportPort()).build();
         cassandraCluster.getConfiguration().getQueryOptions().setConsistencyLevel(DEFAULT_READ_CONSISTENCY_LEVEL);
         cassandraSession = cassandraCluster.connect("\"" + keyspaceName + "\"");
@@ -318,6 +320,7 @@ public class DbClientContext {
                 .builder()
                 .addContactPoints(contactPoints).withPort(getNativeTransportPort())
                 .withClusterName(clusterName)
+                .withLoadBalancingPolicy(new RoundRobinPolicy())
                 .withRetryPolicy(new ViPRRetryPolicy(10, 1000))
                 .build();
     }
@@ -633,7 +636,6 @@ public class DbClientContext {
         for (Host host : hosts) {
             try (JMXConnector jmxConnector = JMXConnectorFactory.connect(
                     new JMXServiceURL(String.format(urlFormat, host, port)))){
-                
                 
                 MBeanServerConnection mbeanServerConnection = jmxConnector.getMBeanServerConnection();
                 

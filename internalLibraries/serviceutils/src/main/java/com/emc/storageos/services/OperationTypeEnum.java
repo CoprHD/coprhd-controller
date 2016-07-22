@@ -344,6 +344,12 @@ public enum OperationTypeEnum {
     DELETE_HOST_INITIATOR("DELETE HOST INITIATOR", "", "operation to delete a host initiator."),
     ASSOCIATE_HOST_INITIATOR("ASSOCIATE  HOST INITIATOR", "", "operation to associate a host initiator to another."),
 
+    CREATE_VIRTUAL_MACHINE_INITIATOR("CREATE VIRTUAL MACHINE INITIATOR", "", "operation to create a virtual machine initiator."),
+    UPDATE_VIRTUAL_MACHINE_INITIATOR("UPDATE VIRTUAL MACHINE INITIATOR", "", "operation to update a virtual machine initiator."),
+    DELETE_VIRTUAL_MACHINE_INITIATOR("DELETE VIRTUAL MACHINE INITIATOR", "", "operation to delete a virtual machine initiator."),
+    ASSOCIATE_VIRTUAL_MACHINE_INITIATOR("ASSOCIATE  VIRTUAL MACHINE INITIATOR", "",
+            "operation to associate a virtual machine initiator to another."),
+
     CREATE_HOST_IPINTERFACE("CREATE HOST IPINTERFACE", "", "operation to create a host ip interface."),
     UPDATE_HOST_IPINTERFACE("UPDATE HOST IPINTERFACE", "", "operation to update a host ip interface."),
     DELETE_HOST_IPINTERFACE("DELETE HOST IPINTERFACE", "", "operation to delete a host ip interface."),

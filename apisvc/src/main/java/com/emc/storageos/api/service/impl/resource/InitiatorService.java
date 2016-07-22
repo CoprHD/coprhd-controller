@@ -44,6 +44,7 @@ import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.VirtualMachine;
 import com.emc.storageos.db.client.util.EndpointUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
@@ -170,7 +171,7 @@ public class InitiatorService extends TaskResourceService {
      * @throws DatabaseException when a DB error occurs
      */
     @PUT
-    @Path("/{id}/{associatedId}")
+    @Path("/{id}/associate/{associatedId}")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.TENANT_ADMIN })
     public InitiatorRestRep associateInitiator(@PathParam("id") URI id, @PathParam("associatedId") URI associatedId
@@ -182,11 +183,10 @@ public class InitiatorService extends TaskResourceService {
         {
             initiator.setAssociatedInitiator(associatedId);
             pairInitiator.setAssociatedInitiator(id);
-            _dbClient.createObject(initiator);
-            auditOp(OperationTypeEnum.UPDATE_HOST_INITIATOR, true, null,
-                    initiator.auditParameters());
             _dbClient.updateObject(initiator);
             _dbClient.updateObject(pairInitiator);
+            auditOp(OperationTypeEnum.UPDATE_HOST_INITIATOR, true, null,
+                    initiator.auditParameters());
 
         }
         return map(queryObject(Initiator.class, id, false));

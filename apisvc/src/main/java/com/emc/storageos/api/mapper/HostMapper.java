@@ -38,7 +38,14 @@ import com.emc.storageos.model.host.vcenter.VcenterRestRep;
 
 public class HostMapper {
     public static void mapHostInterfaceFields(HostInterface from, HostInterfaceRestRep to) {
-        to.setHost(toRelatedResource(ResourceTypeEnum.HOST, from.getHost()));
+        URI host = from.getHost();
+        if (host != null) {
+            to.setHost(toRelatedResource(ResourceTypeEnum.HOST, from.getHost()));
+        }
+        URI vm = from.getVirtualMachine();
+        if (vm != null) {
+            to.setVirtualMachine(toRelatedResource(ResourceTypeEnum.VIRTUAL_MACHINE, from.getVirtualMachine()));
+        }
         to.setProtocol(from.getProtocol());
         to.setRegistrationStatus(from.getRegistrationStatus());
     }
@@ -105,7 +112,7 @@ public class HostMapper {
 
             }
         }
-        
+
         if (exportPathParams != null && !exportPathParams.isEmpty()) {
             for (ExportPathParams pathParam : exportPathParams) {
                 ExportPathParametersRep pathParamRep = map(pathParam);
@@ -207,7 +214,7 @@ public class HostMapper {
         to.setCascadeTenancy(from.getCascadeTenancy());
         return to;
     }
-    
+
     public static ExportPathParametersRep map(ExportPathParams from) {
         if (from == null) {
             return null;

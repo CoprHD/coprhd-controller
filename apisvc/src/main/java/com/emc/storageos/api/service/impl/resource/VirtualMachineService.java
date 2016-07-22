@@ -40,6 +40,7 @@ import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DataCollectionJobStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
+import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.HostInterface;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Operation;
@@ -250,7 +251,7 @@ public class VirtualMachineService extends TaskResourceService {
         validateInitiatorData(createParam, null);
         // create and populate the initiator
         Initiator initiator = new Initiator();
-        initiator.setHost(id);
+        initiator.setVirtualMachine(id);
         initiator.setHostName(vm.getHostName());
         if (!NullColumnValueGetter.isNullURI(vm.getCluster())) {
             cluster = queryObject(Cluster.class, vm.getCluster(), false);
@@ -262,7 +263,7 @@ public class VirtualMachineService extends TaskResourceService {
         _dbClient.createObject(initiator);
         String taskId = UUID.randomUUID().toString();
         Operation op = _dbClient.createTaskOpStatus(Initiator.class, initiator.getId(), taskId,
-                ResourceOperationTypeEnum.ADD_HOST_INITIATOR);
+                ResourceOperationTypeEnum.ADD_VIRTUAL_MACHINE_INITIATOR);
 
         // if host in use. update export with new initiator
         if (ComputeSystemHelper.isHostInUse(_dbClient, vm.getId())

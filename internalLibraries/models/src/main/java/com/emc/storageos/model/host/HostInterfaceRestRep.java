@@ -14,11 +14,13 @@ import com.emc.storageos.model.RelatedResourceRep;
  * 
  * Please refer IpInterfaceRestRep
  * Please refer com.emc.storageos.model.host.InitiatorRestRep
+ * 
  * @author elalih
  * 
  */
 public abstract class HostInterfaceRestRep extends DataObjectRestRep {
     private RelatedResourceRep host;
+    private RelatedResourceRep virtualMachine;
     private String protocol;
     private String registrationStatus;
 
@@ -28,6 +30,19 @@ public abstract class HostInterfaceRestRep extends DataObjectRestRep {
     public HostInterfaceRestRep(RelatedResourceRep host, String protocol) {
         this.host = host;
         this.protocol = protocol;
+    }
+
+    /**
+     * The virtual machine where the interface belongs.
+     * 
+     */
+    @XmlElement(name = "virtual_machine")
+    public RelatedResourceRep getVirtualMachine() {
+        return virtualMachine;
+    }
+
+    public void setVirtualMachine(RelatedResourceRep virtualMachine) {
+        this.virtualMachine = virtualMachine;
     }
 
     /**
@@ -60,8 +75,8 @@ public abstract class HostInterfaceRestRep extends DataObjectRestRep {
      * The host interface registration status.
      * Only registered hosts can be used for provisioning operations.
      * Valid values:
-     *   UNREGISTERED
-     *   REGISTERED
+     * UNREGISTERED
+     * REGISTERED
      */
     @XmlElement(name = "registration_status")
     public String getRegistrationStatus() {

@@ -281,19 +281,19 @@ public class HostService extends TaskResourceService {
                     && NullColumnValueGetter.isNullURI(host.getCluster())
                     && ComputeSystemHelper.isClusterInExport(_dbClient, oldClusterURI)) {
                 // Remove host from shared export
-                controller.removeHostsFromExport(Arrays.asList(host.getId()), oldClusterURI, taskId);
+                controller.removeHostsFromExport(Arrays.asList(host.getId()), oldClusterURI, false, taskId);
             } else if (NullColumnValueGetter.isNullURI(oldClusterURI)
                     && !NullColumnValueGetter.isNullURI(host.getCluster())
                     && ComputeSystemHelper.isClusterInExport(_dbClient, host.getCluster())) {
                 // Non-clustered host being added to a cluster
-                controller.addHostsToExport(Arrays.asList(host.getId()), host.getCluster(), taskId, oldClusterURI);
+                controller.addHostsToExport(Arrays.asList(host.getId()), host.getCluster(), taskId, oldClusterURI, false);
             } else if (!NullColumnValueGetter.isNullURI(oldClusterURI)
                     && !NullColumnValueGetter.isNullURI(host.getCluster())
                     && !oldClusterURI.equals(host.getCluster())
                     && (ComputeSystemHelper.isClusterInExport(_dbClient, oldClusterURI)
                             || ComputeSystemHelper.isClusterInExport(_dbClient, host.getCluster()))) {
                 // Clustered host being moved to another cluster
-                controller.addHostsToExport(Arrays.asList(host.getId()), host.getCluster(), taskId, oldClusterURI);
+                controller.addHostsToExport(Arrays.asList(host.getId()), host.getCluster(), taskId, oldClusterURI, false);
             } else {
                 ComputeSystemHelper.updateInitiatorClusterName(_dbClient, host.getCluster(), host.getId());
             }
@@ -843,7 +843,7 @@ public class HostService extends TaskResourceService {
             if (ComputeSystemHelper.isClusterInExport(_dbClient, host.getCluster())) {
                 String taskId = UUID.randomUUID().toString();
                 ComputeSystemController controller = getController(ComputeSystemController.class, null);
-                controller.addHostsToExport(Arrays.asList(host.getId()), host.getCluster(), taskId, null);
+                controller.addHostsToExport(Arrays.asList(host.getId()), host.getCluster(), taskId, null, false);
             } else {
                 ComputeSystemHelper.updateInitiatorClusterName(_dbClient, host.getCluster(), host.getId());
             }

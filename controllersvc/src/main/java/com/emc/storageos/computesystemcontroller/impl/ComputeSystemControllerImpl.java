@@ -436,7 +436,8 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     }
 
     @Override
-    public void addHostsToExport(List<URI> hostIds, URI clusterId, String taskId, URI oldCluster) throws ControllerException {
+    public void addHostsToExport(List<URI> hostIds, URI clusterId, String taskId, URI oldCluster, boolean isVcenter)
+            throws ControllerException {
         TaskCompleter completer = null;
         try {
             completer = new HostCompleter(hostIds, false, taskId);
@@ -444,12 +445,12 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             String waitFor = null;
 
             if (!NullColumnValueGetter.isNullURI(oldCluster)) {
-                waitFor = addStepsForRemoveHost(workflow, waitFor, hostIds, oldCluster);
+                waitFor = addStepsForRemoveHost(workflow, waitFor, hostIds, oldCluster, isVcenter);
             }
 
             waitFor = addStepForUpdatingInitiatorClusterName(workflow, waitFor, hostIds, clusterId);
 
-            waitFor = addStepsForAddHost(workflow, waitFor, hostIds, clusterId);
+            waitFor = addStepsForAddHost(workflow, waitFor, hostIds, clusterId, isVcenter);
 
             workflow.executePlan(completer, "Success", null, null, null, null);
         } catch (Exception ex) {
@@ -461,14 +462,14 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     }
 
     @Override
-    public void removeHostsFromExport(List<URI> hostIds, URI clusterId, String taskId) throws ControllerException {
+    public void removeHostsFromExport(List<URI> hostIds, URI clusterId, boolean isVcenter, String taskId) throws ControllerException {
         TaskCompleter completer = null;
         try {
             completer = new HostCompleter(hostIds, false, taskId);
             Workflow workflow = _workflowService.getNewWorkflow(this, REMOVE_HOST_STORAGE_WF_NAME, true, taskId, null);
             String waitFor = null;
 
-            waitFor = addStepsForRemoveHost(workflow, waitFor, hostIds, clusterId);
+            waitFor = addStepsForRemoveHost(workflow, waitFor, hostIds, clusterId, isVcenter);
 
             waitFor = addStepForUpdatingInitiatorClusterName(workflow, waitFor, hostIds, clusterId);
 
@@ -564,8 +565,17 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         return waitFor;
     }
 
-    public String addStepsForRemoveHost(Workflow workflow, String waitFor, List<URI> hostIds, URI clusterId) {
-        for (ExportGroup export : getSharedExports(clusterId)) {
+    public String addStepsForRemoveHost(Workflow workflow, String waitFor, List<URI> hostIds, URI clusterId, boolean isVcenter) {
+        List<ExportGroup> exportGroups = getSharedExports(clusterId);
+        if (isVcenter) {
+            Collection<URI> exportIds = Collections2.transform(exportGroups, CommonTransformerFunctions.fctnDataObjectToID());
+            Map<URI, Collection<URI>> hostExports = Maps.newHashMap();
+            for (URI host : hostIds) {
+                hostExports.put(host, exportIds);
+            }
+            waitFor = this.unmountAndDetachVolumes(hostExports, waitFor, workflow);
+        }
+        for (ExportGroup export : exportGroups) {
             waitFor = addStepsForRemoveHostFromExport(workflow, waitFor, hostIds, export.getId());
         }
         return waitFor;
@@ -661,9 +671,11 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         return waitFor;
     }
 
-    public String addStepsForAddHost(Workflow workflow, String waitFor, List<URI> hostIds, URI clusterId) {
+    public String addStepsForAddHost(Workflow workflow, String waitFor, List<URI> hostIds, URI clusterId, boolean isVcenter) {
         List<Host> hosts = _dbClient.queryObject(Host.class, hostIds);
-        for (ExportGroup eg : getSharedExports(clusterId)) {
+        List<ExportGroup> exportGroups = getSharedExports(clusterId);
+
+        for (ExportGroup eg : exportGroups) {
             List<URI> updatedInitiators = StringSetUtil.stringSetToUriList(eg.getInitiators());
             List<URI> updatedHosts = StringSetUtil.stringSetToUriList(eg.getHosts());
             List<URI> updatedClusters = StringSetUtil.stringSetToUriList(eg.getClusters());
@@ -695,6 +707,16 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                             updatedClusters, updatedHosts, updatedInitiators),
                     null, null);
         }
+
+        if (isVcenter) {
+            Collection<URI> exportIds = Collections2.transform(exportGroups, CommonTransformerFunctions.fctnDataObjectToID());
+            Map<URI, Collection<URI>> hostExports = Maps.newHashMap();
+            for (URI host : hostIds) {
+                hostExports.put(host, exportIds);
+            }
+            waitFor = this.attachAndMountVolumes(hostExports, waitFor, workflow);
+        }
+
         return waitFor;
     }
 
@@ -1282,9 +1304,9 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             String waitFor = null;
 
             // Map of host -> export groups for capturing removals from the export groups
-            Map<URI, List<URI>> detachvCenterHostExportMap = Maps.newHashMap();
+            Map<URI, Collection<URI>> detachvCenterHostExportMap = Maps.newHashMap();
             // Map of host -> export groups for capturing additions to the export groups
-            Map<URI, List<URI>> attachvCenterHostExportMap = Maps.newHashMap();
+            Map<URI, Collection<URI>> attachvCenterHostExportMap = Maps.newHashMap();
 
             Map<URI, ExportGroupState> exportGroups = Maps.newHashMap();
             _log.info("There are " + changes.size() + " changes");
@@ -1390,8 +1412,9 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 // && !NullColumnValueGetter.isNullURI(host.getBootVolumeId())
                 // && export.hasBlockObject(host.getBootVolumeId());
                 // if (!isBootVolumeExport) {
-                EventUtil.createActionableEvent(_dbClient, host.getTenant(), "Delete host " + hostId, host,
-                        "detachHostStorage", new Object[] { hostId, true, true });
+                EventUtil.createActionableEvent(_dbClient, host.getTenant(), "Delete host " + host.getLabel(),
+                        "Host " + host.getLabel() + " will be deleted and storage will be unexported from the host.",
+                        host, "detachHostStorage", new Object[] { hostId, true, true });
                 // ExportGroupState egh = getExportGroupState(exportGroups, export);
                 // egh.removeHost(host.getId());
                 // egh.removeInitiators(hostInitiatorIds);
@@ -1457,7 +1480,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
      * @param workflow the workflow to create the step
      * @return the step id
      */
-    private String unmountAndDetachVolumes(Map<URI, List<URI>> vCenterHostExportMap, String waitFor, Workflow workflow) {
+    private String unmountAndDetachVolumes(Map<URI, Collection<URI>> vCenterHostExportMap, String waitFor, Workflow workflow) {
         if (vCenterHostExportMap == null) {
             return waitFor;
         }
@@ -1490,7 +1513,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
      * @param workflow the workflow to create the step
      * @return the step id
      */
-    private String attachAndMountVolumes(Map<URI, List<URI>> vCenterHostExportMap, String waitFor, Workflow workflow) {
+    private String attachAndMountVolumes(Map<URI, Collection<URI>> vCenterHostExportMap, String waitFor, Workflow workflow) {
         if (vCenterHostExportMap == null) {
             return waitFor;
         }
@@ -1523,7 +1546,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
      * @param hostId the host id
      * @param export the export group id
      */
-    private void addVcenterHost(Map<URI, List<URI>> vCenterHostExportMap, URI hostId, URI export) {
+    private void addVcenterHost(Map<URI, Collection<URI>> vCenterHostExportMap, URI hostId, URI export) {
         if (vCenterHostExportMap != null) {
             if (!vCenterHostExportMap.containsKey(hostId)) {
                 vCenterHostExportMap.put(hostId, Lists.newArrayList());

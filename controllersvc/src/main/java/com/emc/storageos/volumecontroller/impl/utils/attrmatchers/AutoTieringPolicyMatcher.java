@@ -83,10 +83,12 @@ public class AutoTieringPolicyMatcher extends AttributeMatcher {
         } else if (deviceTypes.contains(VirtualPool.SystemType.vnxe.toString())
                    || deviceTypes.contains(VirtualPool.SystemType.unity.toString())) {
             filteredPoolList = getPoolsWithAutoTieringEnabled(pools);
-        } else  {
-            StorageDriverManager storageDriverManager = (StorageDriverManager) StorageDriverManager.getApplicationContext().getBean(
-                    StorageDriverManager.STORAGE_DRIVER_MANAGER);
-            for (String deviceType : deviceTypes) {
+        } else {
+            Iterator<String> deviceTypesIter = deviceTypes.iterator();
+            if (deviceTypesIter.hasNext()) {
+                String deviceType = deviceTypes.iterator().next();
+                StorageDriverManager storageDriverManager = (StorageDriverManager) StorageDriverManager.getApplicationContext().getBean(
+                        StorageDriverManager.STORAGE_DRIVER_MANAGER);
                 if (storageDriverManager.isDriverManaged(deviceType)) {
                     filteredPoolList = getAutoTieringPoolsOnExternalSystem(autoTieringPolicyName, attributeMap, pools);
                 }

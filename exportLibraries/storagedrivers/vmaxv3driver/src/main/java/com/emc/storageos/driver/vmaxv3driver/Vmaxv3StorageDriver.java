@@ -11,7 +11,6 @@ import com.emc.storageos.driver.vmaxv3driver.base.OperationFactoryImpl;
 import com.emc.storageos.storagedriver.DefaultStorageDriver;
 import com.emc.storageos.storagedriver.DriverTask;
 import com.emc.storageos.storagedriver.RegistrationData;
-import com.emc.storageos.storagedriver.model.StorageHostComponent;
 import com.emc.storageos.storagedriver.model.StorageObject;
 import com.emc.storageos.storagedriver.model.StoragePool;
 import com.emc.storageos.storagedriver.model.StoragePort;
@@ -129,12 +128,27 @@ public class Vmaxv3StorageDriver extends DefaultStorageDriver {
 
     /**
      * Defined in the "DiscoveryDriver" interface.
+     *
+     * @param storageProvider
+     * @param storageSystems
+     * @return
+     */
+    @Override
+    public DriverTask discoverStorageProvider(StorageProvider storageProvider, List<StorageSystem> storageSystems) {
+        logger.debug("Vmaxv3StorageDriver.discoverStorageProvider: storageProvider={}, storageSystems={}",
+            storageProvider, storageSystems);
+        return this.execute("discoverStorageProvider", storageProvider, storageSystems);
+    }
+
+    /**
+     * Defined in the "DiscoveryDriver" interface.
      * 
      * @param storageSystem
      * @return
      */
     @Override
     public DriverTask discoverStorageSystem(StorageSystem storageSystem) {
+        logger.debug("Vmaxv3StorageDriver.discoverStorageSystem: storageSystem={}", storageSystem);
         return this.execute("discoverStorageSystem", storageSystem);
     }
 
@@ -147,6 +161,8 @@ public class Vmaxv3StorageDriver extends DefaultStorageDriver {
      */
     @Override
     public DriverTask discoverStoragePools(StorageSystem storageSystem, List<StoragePool> storagePools) {
+        logger.debug("Vmaxv3StorageDriver.discoverStoragePools: storageSystem={}, storagePools={}",
+            storageSystem, storagePools);
         return this.execute("discoverStoragePools", storageSystem, storagePools);
     }
 
@@ -159,30 +175,8 @@ public class Vmaxv3StorageDriver extends DefaultStorageDriver {
      */
     @Override
     public DriverTask discoverStoragePorts(StorageSystem storageSystem, List<StoragePort> storagePorts) {
+        logger.debug("Vmaxv3StorageDriver.discoverStoragePorts: storageSystem={}, storagePorts={}",
+            storageSystem, storagePorts);
         return this.execute("discoverStoragePorts", storageSystem, storagePorts);
-    }
-
-    /**
-     * Defined in the "DiscoveryDriver" interface.
-     * 
-     * @param storageSystem
-     * @param embeddedStorageHostComponents
-     * @return
-     */
-    @Override
-    public DriverTask discoverStorageHostComponents(StorageSystem storageSystem, List<StorageHostComponent> embeddedStorageHostComponents) {
-        return this.execute("discoverStorageHostComponents", storageSystem, embeddedStorageHostComponents);
-    }
-
-    /**
-     * Defined in the "DiscoveryDriver" interface.
-     * 
-     * @param storageProvider
-     * @param storageSystems
-     * @return
-     */
-    @Override
-    public DriverTask discoverStorageProvider(StorageProvider storageProvider, List<StorageSystem> storageSystems) {
-        return this.execute("discoverStorageProvider", storageProvider, storageSystems);
     }
 }

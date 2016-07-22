@@ -50,6 +50,7 @@ import com.emc.storageos.vnxe.models.LunGroupModifyParam;
 import com.emc.storageos.vnxe.models.LunModifyParam;
 import com.emc.storageos.vnxe.models.LunParam;
 import com.emc.storageos.vnxe.models.LunSnapCreateParam;
+import com.emc.storageos.vnxe.models.MetricRealTimeQueryCreateParam;
 import com.emc.storageos.vnxe.models.ModifyFileSystemParam;
 import com.emc.storageos.vnxe.models.ModifyHostLUNsParam;
 import com.emc.storageos.vnxe.models.NfsShareCreateForSnapParam;
@@ -127,6 +128,7 @@ import com.emc.storageos.vnxe.requests.LogoutRequest;
 import com.emc.storageos.vnxe.requests.LunGroupRequests;
 import com.emc.storageos.vnxe.requests.LunGroupSnapRequests;
 import com.emc.storageos.vnxe.requests.LunSnapRequests;
+import com.emc.storageos.vnxe.requests.MetricRealTimeQueryRequest;
 import com.emc.storageos.vnxe.requests.NasServerListRequest;
 import com.emc.storageos.vnxe.requests.NfsServerListRequest;
 import com.emc.storageos.vnxe.requests.NfsShareRequests;
@@ -2854,5 +2856,15 @@ public class VNXeApiClient {
     public boolean checkLunExists(String lunId) {
         BlockLunRequests req = new BlockLunRequests(_khClient);
         return req.checkLunExists(lunId);
+    }
+
+    public void createMetricRealTimeQuery() {
+        MetricRealTimeQueryCreateParam param = new MetricRealTimeQueryCreateParam();
+        param.setInterval(60);
+        List<String> paths = new ArrayList<String>();
+        paths.add("sp.*.fibreChannel.fePort.*.reads");
+        param.setPaths(paths);
+        MetricRealTimeQueryRequest req = new MetricRealTimeQueryRequest(_khClient);
+        req.createMetricRealTimeQuery(param);
     }
 }

@@ -63,7 +63,7 @@ public class EventUtil {
      */
     public static void createActionableEvent(DbClient dbClient, URI tenant, String name, String description,
             DataObject resource, String approveMethod, Object[] approveParameters) {
-        createActionableEvent(dbClient, tenant, null, description,
+        createActionableEvent(dbClient, tenant, name, description,
                 resource, approveMethod, approveParameters, null, null);
     }
 

@@ -145,7 +145,7 @@
             </control-group>
           </div>
         </div>
-        <div ng-if="['${models.StorageSystemTypes.DRIVER_SYSTEM}','${models.StorageSystemTypes.VMAX}','${models.StorageSystemTypes.HITACHI}'].indexOf(vpool.systemType) > -1">
+        <div ng-if="['${models.StorageSystemTypes.VMAX}','${models.StorageSystemTypes.HITACHI}'].indexOf(vpool.systemType) > -1">
           <control-group v-field='vpool.uniqueAutoTierPolicyNames'>
             <boolean-checkbox v-disabled='locked'></boolean-checkbox>
           </control-group>

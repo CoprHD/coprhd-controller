@@ -46,7 +46,7 @@ public class SystemTypeValidator extends VirtualPoolValidator<VirtualPoolCommonP
                             updateParam.getSystemType())
                     && !VirtualPool.SystemType.vnxe.toString().equalsIgnoreCase(updateParam.getSystemType())
                     && !VirtualPool.SystemType.unity.toString().equalsIgnoreCase(updateParam.getSystemType())
-                    && !updateParam.getSystemType().equals("driversystem")) {
+                    && !getStorageDriverManager().isDriverManaged(updateParam.getSystemType())) {
                 throw APIException.badRequests.invalidParameterSystemTypeforAutoTiering();
             }
         }

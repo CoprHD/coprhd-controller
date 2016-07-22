@@ -423,7 +423,6 @@ public class DbClientImpl implements DbClient {
         
         if (!cleanList.isEmpty()) {
             boolean retryFailedWriteWithLocalQuorum = shouldRetryFailedWriteWithLocalQuorum(clazz);
-            //todo retryFailedWriteWithLocalQuorum
             RowMutator mutator = new RowMutator(context, retryFailedWriteWithLocalQuorum);
             SoftReference<IndexCleanupList> indexCleanUpRef = new SoftReference<IndexCleanupList>(cleanList);
             _indexCleaner.cleanIndexAsync(mutator, doType, indexCleanUpRef);

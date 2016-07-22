@@ -5,8 +5,6 @@
 
 package com.emc.storageos.db.client.impl;
 
-import java.io.IOException;
-import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -20,7 +18,6 @@ import java.util.concurrent.TimeUnit;
 
 import javax.management.MBeanServerConnection;
 import javax.management.MBeanServerInvocationHandler;
-import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 import javax.management.remote.JMXConnector;
 import javax.management.remote.JMXConnectorFactory;
@@ -45,7 +42,6 @@ import com.datastax.driver.core.WriteType;
 import com.datastax.driver.core.exceptions.ConnectionException;
 import com.datastax.driver.core.exceptions.DriverException;
 import com.datastax.driver.core.policies.RetryPolicy;
-import com.datastax.driver.core.policies.RoundRobinPolicy;
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.DrUtil;
@@ -103,7 +99,7 @@ public class DbClientContext {
     
     private Cluster cassandraCluster;
     private Session cassandraSession;
-    private Map<String, PreparedStatement> prepareStatementMap = new HashMap<String, PreparedStatement>();
+    private Map<String, PreparedStatement> prepareStatementMap;
     private ConsistencyLevel writeConsistencyLevel = DEFAULT_WRITE_CONSISTENCY_LEVEL;
     
     public void setCipherSuite(String cipherSuite) {
@@ -243,11 +239,10 @@ public class DbClientContext {
         cassandraCluster = com.datastax.driver.core.Cluster
                 .builder()
                 .withRetryPolicy(new ViPRRetryPolicy(10, 1000))
-                .withLoadBalancingPolicy(new RoundRobinPolicy())
                 .addContactPoints(contactPoints).withPort(getNativeTransportPort()).build();
         cassandraCluster.getConfiguration().getQueryOptions().setConsistencyLevel(DEFAULT_READ_CONSISTENCY_LEVEL);
         cassandraSession = cassandraCluster.connect("\"" + keyspaceName + "\"");
-        
+        prepareStatementMap = new HashMap<String, PreparedStatement>();
         initDone = true;
     }
 
@@ -323,7 +318,6 @@ public class DbClientContext {
                 .builder()
                 .addContactPoints(contactPoints).withPort(getNativeTransportPort())
                 .withClusterName(clusterName)
-                .withLoadBalancingPolicy(new RoundRobinPolicy())
                 .withRetryPolicy(new ViPRRetryPolicy(10, 1000))
                 .build();
     }

@@ -105,7 +105,7 @@ public class MountUtils {
         checkExistingMountPoints(mountPoint);
     }
 
-    protected void checkExistingMountPoints(String mountPoint) {
+    protected void checkExistingMountPoints(String mountPoint) throws InternalException {
         ListMountPointsCommand command = new ListMountPointsCommand();
         cli.executeCommand(command);
         Map<String, MountPoint> mountPoints = command.getResults();

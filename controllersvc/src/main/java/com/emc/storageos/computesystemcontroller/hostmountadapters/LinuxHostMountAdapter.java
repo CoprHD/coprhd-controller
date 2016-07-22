@@ -4,8 +4,6 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.emc.storageos.coordinator.client.service.CoordinatorClient;
-import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.FSExportMap;
@@ -20,15 +18,12 @@ public class LinuxHostMountAdapter extends AbstractMountAdapter {
 
     MountUtils mountUtils;
 
-    public LinuxHostMountAdapter(DbClient _dbClient, CoordinatorClient _coordinator, Host host) {
-        setCoordinator(_coordinator);
-        setDbClient(_dbClient);
+    public LinuxHostMountAdapter(Host host) {
         mountUtils = new MountUtils(host);
     }
 
     @Override
     public void doMount(HostDeviceInputOutput args) throws InternalException {
-
         FileShare fs = dbClient.queryObject(FileShare.class, args.getResId());
         FileExport export = findExport(fs, args.getSubDirectory(), args.getSecurity());
         String fsType = args.getFsType() == null ? "auto" : args.getFsType();
@@ -52,7 +47,7 @@ public class LinuxHostMountAdapter extends AbstractMountAdapter {
     }
 
     @Override
-    public void doUnmount(HostDeviceInputOutput args) {
+    public void doUnmount(HostDeviceInputOutput args) throws InternalException {
         // unmount the Export
         mountUtils.unmountPath(args.getMountPath());
         // remove from fstab

@@ -256,6 +256,7 @@ public class Events extends Controller {
         public long created;
         public String resourceName;
         public URI resourceId;
+        public String eventStatus;
 
         public EventSummary(EventRestRep event) {
             id = event.getId();
@@ -264,6 +265,7 @@ public class Events extends Controller {
             created = event.getCreationTime().getTimeInMillis();
             resourceName = event.getResource().getName();
             resourceId = event.getResource().getId();
+            eventStatus = event.getEventStatus();
         }
     }
 }

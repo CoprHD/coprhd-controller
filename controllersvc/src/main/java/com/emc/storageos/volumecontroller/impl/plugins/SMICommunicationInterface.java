@@ -286,12 +286,6 @@ public class SMICommunicationInterface extends ExtendedCommunicationInterfaceImp
             executor.setKeyMap(_keyMap);
             executor.execute((Namespace) namespaces.getNsList().get(SCAN));
             
-            // Validate Secondary URL for its availability
-            if (Type.ibmxiv.name().equals(accessProfile.getSystemType())) {
-                validateManagementURL(providerObj.getSecondaryURL(), providerObj.getSecondaryUsername(),
-                        providerObj.getSecondaryPassword());
-            }
-
             // scan succeeds
             detailedStatusMessage = String.format("Scan job completed successfully for " +
                     "SMISProvider: %s", providerURI.toString());
@@ -522,16 +516,5 @@ public class SMICommunicationInterface extends ExtendedCommunicationInterfaceImp
     private boolean isSMIS8XProvider(String providerVersion) {
         String provStr[] = providerVersion.split(Constants.SMIS_DOT_REGEX);
         return Integer.parseInt(provStr[0]) >= 8;
-    }
-    
-    /**
-     * Validates the Management URL (Secondary URL) of a StorageProvider
-     * @param restURL Secondary URL - Management URL
-     * @param username User Name
-     * @param password Password
-     * @throws Exception If validation fails or if the specified URL is not reachable
-     */
-    protected void validateManagementURL(final String restURL, final String username, final String password) throws Exception {
-        // Do nothing here for SMIS
     }
 }

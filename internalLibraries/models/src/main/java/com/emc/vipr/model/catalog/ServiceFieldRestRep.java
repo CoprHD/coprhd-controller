@@ -68,7 +68,6 @@ public class ServiceFieldRestRep extends ServiceItemRestRep {
     
     @XmlElement(name = "dynamic_help")
     public String getDynamicHelp() {
-        //return getDynamicHelpType(dynamicHelp);
         return dynamicHelp;
     }
 
@@ -161,13 +160,5 @@ public class ServiceFieldRestRep extends ServiceItemRestRep {
         }
 
         return assetFields;
-    }
-    
-    public String getDynamicHelpType(String help) {
-        if (help != null && !help.isEmpty() && help.length() > ASSET_TYPE_PREFIX.length()) {
-            return help.substring(ASSET_TYPE_PREFIX.length(), help.length());
-        }
-        
-        return "";
     }
 }

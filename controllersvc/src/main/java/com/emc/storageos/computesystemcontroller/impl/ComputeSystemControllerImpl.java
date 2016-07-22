@@ -453,6 +453,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             List<URI> updatedInitiators = StringSetUtil.stringSetToUriList(export.getInitiators());
             List<URI> updatedHosts = StringSetUtil.stringSetToUriList(export.getHosts());
             List<URI> updatedClusters = StringSetUtil.stringSetToUriList(export.getClusters());
+            List<URI> updatedVirtualMachines = StringSetUtil.stringSetToUriList(export.getVirtualMachines());
             Map<URI, Integer> updatedVolumesMap = StringMapUtil.stringMapToVolumeMap(export.getVolumes());
 
             List<Initiator> validInitiator = ComputeSystemHelper.validatePortConnectivity(_dbClient, export, initiators);
@@ -472,7 +473,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                             export.getId(), export.getId().toString(),
                             this.getClass(),
                             updateExportGroupMethod(export.getId(), updatedVolumesMap,
-                                    updatedClusters, updatedHosts, updatedInitiators),
+                                    updatedClusters, updatedHosts, updatedInitiators, updatedVirtualMachines),
                             null, null);
                 }
             }
@@ -489,6 +490,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             List<URI> updatedInitiators = StringSetUtil.stringSetToUriList(export.getInitiators());
             List<URI> updatedHosts = StringSetUtil.stringSetToUriList(export.getHosts());
             List<URI> updatedClusters = StringSetUtil.stringSetToUriList(export.getClusters());
+            List<URI> updatedVirtualMachines = StringSetUtil.stringSetToUriList(export.getVirtualMachines());
             Map<URI, Integer> updatedVolumesMap = StringMapUtil.stringMapToVolumeMap(export.getVolumes());
 
             // Only update if the list as changed
@@ -502,7 +504,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                         this.getClass(),
                         updateExportGroupMethod(export.getId(), updatedInitiators.isEmpty() ? new HashMap<URI, Integer>()
                                 : updatedVolumesMap,
-                                updatedClusters, updatedHosts, updatedInitiators),
+                                updatedClusters, updatedHosts, updatedInitiators, updatedVirtualMachines),
                         null, null);
             }
         }
@@ -522,6 +524,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             List<URI> updatedInitiators = StringSetUtil.stringSetToUriList(export.getInitiators());
             List<URI> updatedHosts = StringSetUtil.stringSetToUriList(export.getHosts());
             List<URI> updatedClusters = StringSetUtil.stringSetToUriList(export.getClusters());
+            List<URI> updatedVirtualMachines = StringSetUtil.stringSetToUriList(export.getVirtualMachines());
             Map<URI, Integer> updatedVolumesMap = StringMapUtil.stringMapToVolumeMap(export.getVolumes());
 
             for (URI hostId : hostIds) {
@@ -538,7 +541,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                     export.getId(), export.getId().toString(),
                     this.getClass(),
                     updateExportGroupMethod(export.getId(), updatedInitiators.isEmpty() ? new HashMap<URI, Integer>() : updatedVolumesMap,
-                            updatedClusters, updatedHosts, updatedInitiators),
+                            updatedClusters, updatedHosts, updatedInitiators, updatedVirtualMachines),
                     null, null);
         }
         return waitFor;
@@ -562,6 +565,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             List<URI> updatedInitiators = StringSetUtil.stringSetToUriList(export.getInitiators());
             List<URI> updatedHosts = StringSetUtil.stringSetToUriList(export.getHosts());
             List<URI> updatedClusters = StringSetUtil.stringSetToUriList(export.getClusters());
+            List<URI> updatedVirtualMachines = StringSetUtil.stringSetToUriList(export.getVirtualMachines());
             Map<URI, Integer> updatedVolumesMap = StringMapUtil.stringMapToVolumeMap(export.getVolumes());
 
             // 1. Add all hosts in clusters that are not in the cluster's export groups
@@ -596,7 +600,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                     export.getId(), export.getId().toString(),
                     this.getClass(),
                     updateExportGroupMethod(export.getId(), updatedInitiators.isEmpty() ? new HashMap<URI, Integer>() : updatedVolumesMap,
-                            updatedClusters, updatedHosts, updatedInitiators),
+                            updatedClusters, updatedHosts, updatedInitiators, updatedVirtualMachines),
                     null, null);
         }
         return waitFor;
@@ -608,6 +612,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             List<URI> updatedInitiators = StringSetUtil.stringSetToUriList(eg.getInitiators());
             List<URI> updatedHosts = StringSetUtil.stringSetToUriList(eg.getHosts());
             List<URI> updatedClusters = StringSetUtil.stringSetToUriList(eg.getClusters());
+            List<URI> updatedVirtualMachines = StringSetUtil.stringSetToUriList(eg.getVirtualMachines());
             Map<URI, Integer> updatedVolumesMap = StringMapUtil.stringMapToVolumeMap(eg.getVolumes());
 
             // add host reference to export group
@@ -633,7 +638,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                     eg.getId(), eg.getId().toString(),
                     this.getClass(),
                     updateExportGroupMethod(eg.getId(), updatedVolumesMap,
-                            updatedClusters, updatedHosts, updatedInitiators),
+                            updatedClusters, updatedHosts, updatedInitiators, updatedVirtualMachines),
                     null, null);
         }
         return waitFor;
@@ -735,6 +740,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             List<URI> updatedInitiators = StringSetUtil.stringSetToUriList(export.getInitiators());
             List<URI> updatedHosts = StringSetUtil.stringSetToUriList(export.getHosts());
             List<URI> updatedClusters = StringSetUtil.stringSetToUriList(export.getClusters());
+            List<URI> updatedVirtualMachines = StringSetUtil.stringSetToUriList(export.getVirtualMachines());
             Map<URI, Integer> updatedVolumesMap = StringMapUtil.stringMapToVolumeMap(export.getVolumes());
 
             updatedHosts.remove(hostId);
@@ -761,7 +767,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                         this.getClass(),
                         updateExportGroupMethod(export.getId(), updatedInitiators.isEmpty() ? new HashMap<URI, Integer>()
                                 : updatedVolumesMap,
-                                updatedClusters, updatedHosts, updatedInitiators),
+                                updatedClusters, updatedHosts, updatedInitiators, updatedVirtualMachines),
                         null, null);
             }
         }
@@ -769,20 +775,20 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     }
 
     public Workflow.Method updateExportGroupMethod(URI exportGroupURI, Map<URI, Integer> newVolumesMap,
-            Collection<URI> newClusters, Collection<URI> newHosts, Collection<URI> newInitiators) {
+            Collection<URI> newClusters, Collection<URI> newHosts, Collection<URI> newInitiators, Collection<URI> newVirtualMachines) {
         return new Workflow.Method("updateExportGroup", exportGroupURI, newVolumesMap,
-                newClusters, newHosts, newInitiators);
+                newClusters, newHosts, newInitiators, newVirtualMachines);
     }
 
     public void updateExportGroup(URI exportGroup, Map<URI, Integer> newVolumesMap,
-            List<URI> newClusters, List<URI> newHosts, List<URI> newInitiators, String stepId) {
+            List<URI> newClusters, List<URI> newHosts, List<URI> newInitiators, List<URI> newVirtualMachines, String stepId) {
         Map<URI, Integer> addedBlockObjects = new HashMap<URI, Integer>();
         Map<URI, Integer> removedBlockObjects = new HashMap<URI, Integer>();
         ExportGroup exportGroupObject = _dbClient.queryObject(ExportGroup.class, exportGroup);
         ExportUtils.getAddedAndRemovedBlockObjects(newVolumesMap, exportGroupObject, addedBlockObjects, removedBlockObjects);
         BlockExportController blockController = getController(BlockExportController.class, BlockExportController.EXPORT);
         blockController.exportGroupUpdate(exportGroup, addedBlockObjects, removedBlockObjects, newClusters,
-                newHosts, newInitiators, stepId);
+                newHosts, newInitiators, newVirtualMachines, stepId);
     }
 
     public Workflow.Method updateFileShareMethod(URI deviceId, String systemType, URI fileShareId, FileShareExport export) {
@@ -868,6 +874,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             List<URI> updatedInitiators = StringSetUtil.stringSetToUriList(export.getInitiators());
             List<URI> updatedHosts = StringSetUtil.stringSetToUriList(export.getHosts());
             List<URI> updatedClusters = StringSetUtil.stringSetToUriList(export.getClusters());
+            List<URI> updatedVirtualMachines = StringSetUtil.stringSetToUriList(export.getVirtualMachines());
             Map<URI, Integer> updatedVolumesMap = StringMapUtil.stringMapToVolumeMap(export.getVolumes());
 
             updatedClusters.remove(clusterId);
@@ -891,7 +898,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                         export.getId(), export.getId().toString(),
                         this.getClass(),
                         updateExportGroupMethod(export.getId(), updatedVolumesMap,
-                                updatedClusters, updatedHosts, updatedInitiators),
+                                updatedClusters, updatedHosts, updatedInitiators, updatedVirtualMachines),
                         null, null);
             }
         }
@@ -1132,11 +1139,13 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             export.getAddDiff(StringSetUtil.stringSetToUriList(exportGroup.getInitiators()),
                     StringSetUtil.stringSetToUriList(exportGroup.getHosts()),
                     StringSetUtil.stringSetToUriList(exportGroup.getClusters()),
+                    StringSetUtil.stringSetToUriList(exportGroup.getVirtualMachines()),
                     StringMapUtil.stringMapToVolumeMap(exportGroup.getVolumes()));
         } else {
             export.getRemoveDiff(StringSetUtil.stringSetToUriList(exportGroup.getInitiators()),
                     StringSetUtil.stringSetToUriList(exportGroup.getHosts()),
                     StringSetUtil.stringSetToUriList(exportGroup.getClusters()),
+                    StringSetUtil.stringSetToUriList(exportGroup.getVirtualMachines()),
                     StringMapUtil.stringMapToVolumeMap(exportGroup.getVolumes()));
 
         }
@@ -1156,7 +1165,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                     export.getId(), export.getId().toString(),
                     this.getClass(),
                     updateExportGroupMethod(export.getId(), export.getVolumesMap(),
-                            export.getClusters(), export.getHosts(), export.getInitiators()),
+                            export.getClusters(), export.getHosts(), export.getInitiators(), export.get),
                     null, null);
         }
 

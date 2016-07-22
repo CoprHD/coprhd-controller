@@ -26,10 +26,13 @@ public class ExportGroupState implements Serializable {
     private final Collection<URI> addedInitiators;
     private final Collection<URI> addedHosts;
     private final Collection<URI> addedClusters;
+    private final Collection<URI> addedVirtualMachines;
+    private final Collection<URI> removedVirtualMachines;
     private Map<URI, Integer> volumesMap;
     private List<URI> initiators;
     private List<URI> hosts;
     private List<URI> clusters;
+    private List<URI> virtualMachines;
 
     /**
      * Create an export group state with an id.
@@ -46,6 +49,9 @@ public class ExportGroupState implements Serializable {
 
         this.addedClusters = Lists.newArrayList();
         this.removedClusters = Lists.newArrayList();
+
+        this.addedVirtualMachines = Lists.newArrayList();
+        this.removedVirtualMachines = Lists.newArrayList();
     }
 
     /**
@@ -54,17 +60,20 @@ public class ExportGroupState implements Serializable {
      * @param initiators list of initiators in the export
      * @param hosts list of hosts in the export
      * @param clusters list of clusters in the export
+     * @param virtualMachines list of virtual machines in the export
      * @param volumesMap list of volumes in the export
      */
     public void getRemoveDiff(List<URI> initiators, List<URI> hosts, List<URI> clusters,
-            Map<URI, Integer> volumesMap) {
+            List<URI> virtualMachines, Map<URI, Integer> volumesMap) {
         this.initiators = initiators;
         this.hosts = hosts;
         this.clusters = clusters;
+        this.virtualMachines = virtualMachines;
         this.volumesMap = volumesMap;
         this.initiators.removeAll(this.removedInitiators);
         this.hosts.removeAll(this.removedHosts);
         this.clusters.removeAll(this.removedClusters);
+        this.virtualMachines.removeAll(this.removedVirtualMachines);
     }
 
     /**
@@ -73,23 +82,27 @@ public class ExportGroupState implements Serializable {
      * @param initiators list of initiators in the export
      * @param hosts list of hosts in the export
      * @param clusters list of clusters in the export
+     * @param virtualMachines list of virtual machines in the export
      * @param volumesMap list of volumes in the export
      */
     public void getAddDiff(List<URI> initiators, List<URI> hosts, List<URI> clusters,
-            Map<URI, Integer> volumesMap) {
+            List<URI> virtualMachines, Map<URI, Integer> volumesMap) {
         this.initiators = initiators;
         this.hosts = hosts;
         this.clusters = clusters;
+        this.virtualMachines = virtualMachines;
         this.volumesMap = volumesMap;
 
         // remove what should no longer be in the export group
         this.initiators.removeAll(this.removedInitiators);
         this.hosts.removeAll(this.removedHosts);
         this.clusters.removeAll(this.removedClusters);
+        this.virtualMachines.removeAll(this.removedVirtualMachines);
 
         this.initiators.addAll(this.addedInitiators);
         this.hosts.addAll(this.addedHosts);
         this.clusters.addAll(this.addedClusters);
+        this.virtualMachines.addAll(this.addedVirtualMachines);
     }
 
     /**

@@ -46,7 +46,7 @@ public class EventUtil {
                     declineMethod, declineParameters);
             event.setDeclineMethod(method.serialize());
         }
-        event.setLabel("Label [" + description + "]");
+        event.setLabel(name);
         dbClient.createObject(event);
     }
 

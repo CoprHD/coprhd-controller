@@ -26,6 +26,7 @@ public class HostStateChange implements Serializable {
     protected Collection<URI> oldInitiators;
     protected Collection<URI> newInitiators;
     protected URI oldCluster;
+    protected URI newCluster;
 
     /**
      * Create a new host state
@@ -35,12 +36,13 @@ public class HostStateChange implements Serializable {
      * @param oldInitiators list of removed initiators
      * @param addedInitiators list of new initiators
      */
-    public HostStateChange(Host target, URI oldClusterURI, Collection<Initiator> oldInitiators,
+    public HostStateChange(Host target, URI oldClusterURI, URI newClusterURI, Collection<Initiator> oldInitiators,
             Collection<Initiator> addedInitiators) {
         this.host = target;
         this.oldInitiators = Sets.newHashSet();
         this.newInitiators = Sets.newHashSet();
         this.oldCluster = oldClusterURI;
+        this.newCluster = newClusterURI;
         Collection<URI> oldInitiatorIds = Lists.newArrayList(Collections2.transform(oldInitiators,
                 CommonTransformerFunctions.fctnDataObjectToID()));
         Collection<URI> addedInitiatorIds = Lists.newArrayList(Collections2.transform(addedInitiators,
@@ -116,6 +118,16 @@ public class HostStateChange implements Serializable {
         return this.oldCluster;
     }
 
+    /**
+     * Return new cluster id
+     * 
+     * @return new cluster id
+     */
+    public URI getNewCluster() {
+        return this.newCluster;
+    }
+
+    @Override
     public String toString() {
         return "HostStateChange: [Host: " + this.host.getLabel() + " with cluster: "
                 + (this.host.getCluster() == null ? "null" : this.host.getCluster()) + ", OldInitiators: " + this.oldInitiators

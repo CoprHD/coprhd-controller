@@ -486,9 +486,6 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
             if (clusterName != null) {
                 cluster = findModelByLabel(clusters, clusterName);
             }
-            if ((oldClusterURI == null && cluster.getId() != null) || !oldClusterURI.equals(cluster.getId())) {
-                info("detected host cluster change to %s", cluster != null ? cluster.getLabel() : NullColumnValueGetter.getNullURI());
-            }
 
             if (target.getType() == null ||
                     StringUtils.equalsIgnoreCase(target.getType(), HostType.Other.toString())) {
@@ -510,11 +507,12 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
                 List<Initiator> addedInitiators = new ArrayList<Initiator>();
                 discoverConnectedHostInitiators(source, target, oldInitiators, addedInitiators);
 
-                boolean isClusterChanged = !(NullColumnValueGetter.isNullURI(oldClusterURI) ? NullColumnValueGetter.isNullURI(target
-                        .getCluster()) : target.getCluster() != null && oldClusterURI.toString().equals(target.getCluster().toString()));
+                boolean isClusterChanged = !(NullColumnValueGetter.isNullURI(oldClusterURI)
+                        ? NullColumnValueGetter.isNullURI(cluster.getId())
+                        : cluster.getId() != null && oldClusterURI.toString().equals(cluster.getId().toString()));
 
                 if (!oldInitiators.isEmpty() || !addedInitiators.isEmpty() || isClusterChanged) {
-                    changes.add(new HostStateChange(target, oldClusterURI, oldInitiators, addedInitiators));
+                    changes.add(new HostStateChange(target, oldClusterURI, cluster.getId(), oldInitiators, addedInitiators));
                 }
             }
             else {

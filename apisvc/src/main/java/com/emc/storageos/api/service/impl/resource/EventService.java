@@ -121,11 +121,17 @@ public class EventService extends TaggedResource {
         String eventStatus = approve ? ActionableEvent.Status.approved.name() : ActionableEvent.Status.declined.name();
 
         if (method == null || method.length == 0) {
+            _log.info("Method is null or empty for event " + event.getId());
+            event.setEventStatus(eventStatus);
+            _dbClient.updateObject(event);
             return taskList;
         }
 
         ActionableEvent.Method eventMethod = ActionableEvent.Method.deserialize(method);
         if (eventMethod == null) {
+            _log.info("Event method is null or empty for event " + event.getId());
+            event.setEventStatus(eventStatus);
+            _dbClient.updateObject(event);
             return taskList;
         }
 

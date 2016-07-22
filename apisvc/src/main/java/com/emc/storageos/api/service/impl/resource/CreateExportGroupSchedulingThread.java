@@ -86,7 +86,7 @@ class CreateExportGroupSchedulingThread implements Runnable {
                 exportGroupService.addBlockObjectsToPathParamMap(volumeMap.keySet(), exportPathParam.getId(), exportGroup);
                 exportGroupService._dbClient.createObject(exportPathParam);
             }
-            this.exportGroupService._dbClient.persistObject(exportGroup);
+            this.exportGroupService._dbClient.updateObject(exportGroup);
 
             // If initiators list is empty or storage map is empty, there's no work to do (yet).
             if (storageMap.isEmpty() || affectedInitiators.isEmpty()) {

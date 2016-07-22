@@ -1751,7 +1751,7 @@ public class ExportGroupService extends TaskResourceService {
             _dbClient.markForDeletion(exportGroup);
         } else {
             op = initTaskStatus(exportGroup, task, Operation.Status.pending, ResourceOperationTypeEnum.DELETE_EXPORT_GROUP);
-            _dbClient.persistObject(exportGroup);
+            _dbClient.updateObject(exportGroup);
 
             BlockExportController exportController = getExportController();
             exportController.exportGroupDelete(exportGroup.getId(), task);

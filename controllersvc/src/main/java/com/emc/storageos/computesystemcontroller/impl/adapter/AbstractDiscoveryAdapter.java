@@ -510,7 +510,8 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
             List<Initiator> newInitiatorObjects = dbClient.queryObject(Initiator.class, change.getNewInitiators());
             List<Initiator> oldInitiatorObjects = dbClient.queryObject(Initiator.class, change.getOldInitiators());
 
-            if ((change.getOldCluster() == null && host.getCluster() != null) || !change.getOldCluster().equals(host.getCluster())) {
+            if ((change.getOldCluster() == null && change.getNewCluster() != null)
+                    || !change.getOldCluster().equals(change.getNewCluster())) {
 
                 URI oldClusterURI = change.getOldCluster();
                 Cluster cluster = dbClient.queryObject(Cluster.class, host.getCluster());

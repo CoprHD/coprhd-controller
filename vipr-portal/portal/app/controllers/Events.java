@@ -6,6 +6,7 @@ package controllers;
 
 import static com.emc.vipr.client.core.TasksResources.SYSTEM_TENANT;
 import static com.emc.vipr.client.core.util.ResourceUtils.uri;
+import static controllers.Common.flashException;
 import static util.BourneUtil.getViprClient;
 
 import java.net.URI;
@@ -35,10 +36,10 @@ import util.datatable.DataTablesSupport;
 
 @With(Common.class)
 public class Events extends Controller {
-    private static final String UNKNOWN = "resource.task.unknown";
-    private static final String DELETED = "resource.task.deleted";
-    private static final String APPROVED = "resource.task.approved";
-    private static final String DECLINED = "resource.task.declined";
+    private static final String UNKNOWN = "resources.event.unknown";
+    private static final String DELETED = "resources.event.deleted";
+    private static final String APPROVED = "resources.event.approved";
+    private static final String DECLINED = "resources.event.declined";
 
     // Currently the backend only shows progresses of 0 or 100, so for show this as the miminum progress
     private static final int MILLISECONDS_IN_12HOURS = 43200000;
@@ -220,17 +221,27 @@ public class Events extends Controller {
     }
 
     public static void approveEvent(String eventId) {
-        if (StringUtils.isNotBlank(eventId)) {
-            getViprClient().events().approve(uri(eventId));
-            flash.success(MessagesUtils.get(APPROVED, eventId));
+        try {
+            if (StringUtils.isNotBlank(eventId)) {
+                getViprClient().events().approve(uri(eventId));
+                flash.success(MessagesUtils.get(APPROVED, eventId));
+            }
+        } catch (Exception e) {
+            flashException(e);
+            details(eventId);
         }
         details(eventId);
     }
 
     public static void declineEvent(String eventId) {
-        if (StringUtils.isNotBlank(eventId)) {
-            getViprClient().events().decline(uri(eventId));
-            flash.success(MessagesUtils.get(DECLINED, eventId));
+        try {
+            if (StringUtils.isNotBlank(eventId)) {
+                getViprClient().events().decline(uri(eventId));
+                flash.success(MessagesUtils.get(DECLINED, eventId));
+            }
+        } catch (Exception e) {
+            flashException(e);
+            details(eventId);
         }
         details(eventId);
     }
@@ -241,18 +252,20 @@ public class Events extends Controller {
         public URI id;
         public String opId;
         public String name;
-        public String message;
+        public String description;
         public long created;
         public String resourceName;
         public URI resourceId;
+        public String eventStatus;
 
         public EventSummary(EventRestRep event) {
             id = event.getId();
-            message = event.getDescription();
+            description = event.getDescription();
             name = event.getName();
             created = event.getCreationTime().getTimeInMillis();
             resourceName = event.getResource().getName();
             resourceId = event.getResource().getId();
+            eventStatus = event.getEventStatus();
         }
     }
 }

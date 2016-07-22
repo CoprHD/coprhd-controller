@@ -43,6 +43,7 @@ import com.emc.storageos.db.client.model.ActionableEvent;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Host;
+import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
@@ -120,8 +121,18 @@ public class EventService extends TaggedResource {
         byte[] method = approve ? event.getApproveMethod() : event.getDeclineMethod();
         String eventStatus = approve ? ActionableEvent.Status.approved.name() : ActionableEvent.Status.declined.name();
 
+        if (method == null || method.length == 0) {
+            _log.info("Method is null or empty for event " + event.getId());
+            event.setEventStatus(eventStatus);
+            _dbClient.updateObject(event);
+            return taskList;
+        }
+
         ActionableEvent.Method eventMethod = ActionableEvent.Method.deserialize(method);
         if (eventMethod == null) {
+            _log.info("Event method is null or empty for event " + event.getId());
+            event.setEventStatus(eventStatus);
+            _dbClient.updateObject(event);
             return taskList;
         }
 
@@ -132,17 +143,19 @@ public class EventService extends TaggedResource {
             _dbClient.updateObject(event);
             taskList.addTask(result);
             return taskList;
-            // TODO add and throw api exceptions for following exceptions
         } catch (SecurityException e) {
-            _log.error(e.getMessage(), e.getStackTrace());
+            _log.error(e.getMessage(), e.getCause());
+            throw APIException.badRequests.errorInvokingEventMethod(event.getId(), eventMethod.getMethodName());
         } catch (IllegalAccessException e) {
-            _log.error(e.getMessage(), e.getStackTrace());
+            _log.error(e.getMessage(), e.getCause());
+            throw APIException.badRequests.errorInvokingEventMethod(event.getId(), eventMethod.getMethodName());
         } catch (IllegalArgumentException e) {
-            _log.error(e.getMessage(), e.getStackTrace());
+            _log.error(e.getMessage(), e.getCause());
+            throw APIException.badRequests.errorInvokingEventMethod(event.getId(), eventMethod.getMethodName());
         } catch (InvocationTargetException e) {
-            _log.error(e.getMessage(), e.getStackTrace());
+            _log.error(e.getMessage(), e.getCause());
+            throw APIException.badRequests.errorInvokingEventMethod(event.getId(), eventMethod.getMethodName());
         }
-        return taskList;
     }
 
     public TaskResourceRep deleteHost(URI hostId) {
@@ -153,6 +166,49 @@ public class EventService extends TaggedResource {
                 ResourceOperationTypeEnum.DELETE_HOST);
         computeController.detachHostStorage(hostId, true, true, taskId);
         return toTask(host, taskId, op);
+    }
+
+    public TaskResourceRep addInitiator(URI initiatorId) {
+        Initiator initiator = queryObject(Initiator.class, initiatorId, true);
+        Host host = queryObject(Host.class, initiator.getHost(), true);
+
+        String taskId = UUID.randomUUID().toString();
+        Operation op = _dbClient.createTaskOpStatus(Initiator.class, initiatorId, taskId,
+                ResourceOperationTypeEnum.ADD_HOST_INITIATOR);
+
+        // if host in use. update export with new initiator
+        if (ComputeSystemHelper.isHostInUse(_dbClient, host.getId())) {
+            ComputeSystemController controller = getController(ComputeSystemController.class, null);
+            controller.addInitiatorsToExport(initiator.getHost(), Arrays.asList(initiator.getId()), taskId);
+        } else {
+            // No updates were necessary, so we can close out the task.
+            _dbClient.ready(Initiator.class, initiator.getId(), taskId);
+        }
+
+        auditOp(OperationTypeEnum.CREATE_HOST_INITIATOR, true, null,
+                initiator.auditParameters());
+        return toTask(initiator, taskId, op);
+    }
+
+    public TaskResourceRep removeInitiator(URI initiatorId) {
+        Initiator initiator = queryObject(Initiator.class, initiatorId, true);
+
+        String taskId = UUID.randomUUID().toString();
+        Operation op = _dbClient.createTaskOpStatus(Initiator.class, initiator.getId(), taskId,
+                ResourceOperationTypeEnum.DELETE_INITIATOR);
+
+        if (ComputeSystemHelper.isInitiatorInUse(_dbClient, initiatorId.toString())) {
+            ComputeSystemController controller = getController(ComputeSystemController.class, null);
+            controller.removeInitiatorFromExport(initiator.getHost(), initiator.getId(), taskId);
+        } else {
+            _dbClient.ready(Initiator.class, initiator.getId(), taskId);
+            _dbClient.markForDeletion(initiator);
+        }
+
+        auditOp(OperationTypeEnum.DELETE_HOST_INITIATOR, true, null,
+                initiator.auditParameters());
+
+        return toTask(initiator, taskId, op);
     }
 
     public TaskResourceRep deleteCluster(URI clusterId) {
@@ -167,7 +223,7 @@ public class EventService extends TaggedResource {
         return toTask(cluster, taskId, op);
     }
 
-    public TaskResourceRep hostClusterChange(URI hostId, URI clusterId) {
+    public TaskResourceRep hostClusterChange(URI hostId, URI clusterId, boolean isVcenter) {
         Host host = queryObject(Host.class, hostId, true);
         URI oldClusterURI = host.getCluster();
         String taskId = UUID.randomUUID().toString();
@@ -180,19 +236,19 @@ public class EventService extends TaggedResource {
                 && NullColumnValueGetter.isNullURI(host.getCluster())
                 && ComputeSystemHelper.isClusterInExport(_dbClient, oldClusterURI)) {
             // Remove host from shared export
-            controller.removeHostsFromExport(Arrays.asList(host.getId()), oldClusterURI, taskId);
+            controller.removeHostsFromExport(Arrays.asList(host.getId()), oldClusterURI, isVcenter, taskId);
         } else if (NullColumnValueGetter.isNullURI(oldClusterURI)
                 && !NullColumnValueGetter.isNullURI(host.getCluster())
                 && ComputeSystemHelper.isClusterInExport(_dbClient, host.getCluster())) {
             // Non-clustered host being added to a cluster
-            controller.addHostsToExport(Arrays.asList(host.getId()), host.getCluster(), taskId, oldClusterURI);
+            controller.addHostsToExport(Arrays.asList(host.getId()), host.getCluster(), taskId, oldClusterURI, isVcenter);
         } else if (!NullColumnValueGetter.isNullURI(oldClusterURI)
                 && !NullColumnValueGetter.isNullURI(host.getCluster())
                 && !oldClusterURI.equals(host.getCluster())
                 && (ComputeSystemHelper.isClusterInExport(_dbClient, oldClusterURI)
                         || ComputeSystemHelper.isClusterInExport(_dbClient, host.getCluster()))) {
             // Clustered host being moved to another cluster
-            controller.addHostsToExport(Arrays.asList(host.getId()), host.getCluster(), taskId, oldClusterURI);
+            controller.addHostsToExport(Arrays.asList(host.getId()), host.getCluster(), taskId, oldClusterURI, isVcenter);
         } else {
             ComputeSystemHelper.updateInitiatorClusterName(_dbClient, host.getCluster(), host.getId());
         }
@@ -341,7 +397,7 @@ public class EventService extends TaggedResource {
         EventRestRep to = new EventRestRep();
         to.setName(from.getLabel());
         to.setDescription(from.getDescription());
-        to.setStatus(from.getEventStatus());
+        to.setEventStatus(from.getEventStatus());
         to.setResource(toNamedRelatedResource(from.getResource()));
         to.setTenant(toRelatedResource(ResourceTypeEnum.TENANT, from.getTenant()));
         DbObjectMapper.mapDataObjectFields(from, to);

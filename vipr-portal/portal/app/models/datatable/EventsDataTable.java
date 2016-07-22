@@ -26,7 +26,7 @@ public class EventsDataTable extends DataTable {
     private void setupTable(boolean addResourceColumn) {
         addColumn("systemName").hidden();
         addColumn("id").hidden().setSearchable(false);
-        addColumn("description");
+        addColumn("name");
         addColumn("eventStatus");
         if (addResourceColumn) {
             addColumn("resourceId").setSearchable(false).setRenderFunction("render.taskResource");
@@ -59,7 +59,7 @@ public class EventsDataTable extends DataTable {
                 this.creationTime = eventRestRep.getCreationTime().getTimeInMillis();
             }
             this.id = eventRestRep.getId().toString();
-            this.eventStatus = eventRestRep.getStatus();
+            this.eventStatus = eventRestRep.getEventStatus();
             if (eventRestRep.getResource() != null && eventRestRep.getResource().getId() != null) {
                 this.resourceId = eventRestRep.getResource().getId().toString();
                 this.resourceType = ResourceType.fromResourceId(this.resourceId).toString();

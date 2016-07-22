@@ -1690,6 +1690,7 @@
     <bean id="vnxValidatorFactory" class="com.emc.storageos.volumecontroller.impl.validators.smis.vnx.VnxSystemValidatorFactory">
         <property name="helper" ref="vnxSmisCommandHelper"/>
         <property name="dbClient" ref="dbclient"/>
+        <property name="coordinator" ref="coordinator"/>
         <property name="cimPath" ref="vnxCIMObjectPathFactoryAdapter"/>
     </bean>
 

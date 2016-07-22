@@ -44,7 +44,7 @@ public class OpenStackSynchronizationTask extends ResourceService {
     // Constants
     // Interval delay between each execution in seconds.
     public static final int DEFAULT_INTERVAL_DELAY = 900;
-    // Maximum time for a timeout when awaiting for termination.
+    // Maximum time in seconds for a timeout when awaiting for termination.
     private static final int MAX_TERMINATION_TIME = 120;
     // Minimum interval in seconds.
     public static final int MIN_INTERVAL_DELAY = 10;

@@ -392,15 +392,15 @@
       "description": "file.linux.description",
       "services": [
         {
-          "image": "Service_Change_File_Virtual_Pool.png",
+          "image": "Service_Linux_Mount_NFS_Export.png",
           "baseService": "LinuxMountNFSExport"
         },
         {
-          "image": "Service_Change_File_Virtual_Pool.png",
+          "image": "Service_Linux_Unmount_NFS_Export.png",
           "baseService": "LinuxUnmountNFSExport"
         },
         {
-          "image": "Service_Change_File_Virtual_Pool.png",
+          "image": "Service_Linux_Create_Mount_NFS_Export.png",
           "baseService": "LinuxCreateMountNFSExport"
         }
             

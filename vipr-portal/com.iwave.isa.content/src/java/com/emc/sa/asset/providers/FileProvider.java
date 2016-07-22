@@ -453,23 +453,23 @@ public class FileProvider extends BaseAssetOptionsProvider {
 
             debug("getting failbackFileTargets (protectedFileSystem=%s)", protectedFileSystem);
             FileShareRestRep file = client.fileSystems().get(protectedFileSystem);
-            
+
             FileProtectionRestRep protection = file.getProtection();
-            if (protection != null) { 
+            if (protection != null) {
                 List<VirtualArrayRelatedResourceRep> targets = protection.getTargetFileSystems();
                 for (VirtualArrayRelatedResourceRep target : targets) {
                     FileShareRestRep fileshare = client.fileSystems().get(target.getId());
                     options.add(new AssetOption(fileshare.getId(), fileshare.getName()));
                 }
             }
-            
+
             AssetOptionsUtils.sortOptionsByLabel(options);
             return options;
         }
 
         return Lists.newArrayList();
     }
-    
+
     @Asset("unprotectedFilesystem")
     @AssetDependencies({ "project" })
     public List<AssetOption> getUnprotectedFileSystems(AssetOptionsContext ctx, URI project) {
@@ -835,9 +835,11 @@ public class FileProvider extends BaseAssetOptionsProvider {
         for (Map.Entry<String, MountInfo> entry : mountTagMap.entrySet()) {
             if (entry.getValue().getHostId().equals(host)) {
                 options.add(new AssetOption(entry.getKey() + ";" + entry.getValue().getFsId(),
-                        entry.getValue().getSecurityType() + ";" + api(ctx).fileSystems().get(entry.getValue().getFsId()).getName()
+                        entry.getValue().getSecurityType() + ";"
+                                + api(ctx).fileSystems().get(entry.getValue().getFsId()).getName()
                                 + (entry.getValue().getSubDirectory().equalsIgnoreCase("!nodir") ? ""
-                                        : ("/" + entry.getValue().getSubDirectory()))));
+                                        : ("/" + entry.getValue().getSubDirectory()))
+                                + entry.getValue().getMountPath()));
             }
         }
         AssetOptionsUtils.sortOptionsByLabel(options);

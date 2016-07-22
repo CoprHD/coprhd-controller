@@ -106,13 +106,15 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
 
             for (URI deletedHost : deletedHosts) {
                 Host host = dbClient.queryObject(Host.class, deletedHost);
-                EventUtil.createActionableEvent(dbClient, host.getTenant(), "Delete host " + deletedHost, host, "deleteHost",
-                        new Object[] { deletedHost });
+                EventUtil.createActionableEvent(dbClient, host.getTenant(), "Delete host " + host.getLabel(),
+                        "Host " + host.getLabel() + " will be deleted and storage will be unexported from the host.", host,
+                        "deleteHost", new Object[] { deletedHost });
             }
             for (URI deletedCluster : deletedClusters) {
                 Cluster cluster = dbClient.queryObject(Cluster.class, deletedCluster);
-                EventUtil.createActionableEvent(dbClient, cluster.getTenant(), "Delete cluster " + deletedCluster, cluster, "deleteCluster",
-                        new Object[] { deletedCluster });
+                EventUtil.createActionableEvent(dbClient, cluster.getTenant(), "Delete cluster " + cluster.getLabel(), "Cluster "
+                        + cluster.getLabel() + " will be deleted and storage will be unexported from the shared cluster exports.", cluster,
+                        "deleteCluster", new Object[] { deletedCluster });
             }
         } else {
             processor.setCompatibilityStatus(CompatibilityStatus.INCOMPATIBLE.name());
@@ -206,8 +208,9 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
             }
 
             EventUtil.createActionableEvent(dbClient, datacenter.getTenant(), "Delete vcenter datacenter " + datacenter.getLabel(),
-                    datacenter,
-                    "deleteDataCenter", new Object[] { datacenter.getId() });
+                    "Datacenter " + datacenter.getLabel()
+                            + " will be deleted and storage will be unexported from clusters and hosts in this datacenter",
+                    datacenter, "deleteDataCenter", new Object[] { datacenter.getId() });
         }
     }
 
@@ -497,9 +500,15 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
             }
             if ((oldClusterURI == null && cluster.getId() != null) || !oldClusterURI.equals(cluster.getId())) {
                 info("detected host cluster change to %s", cluster != null ? cluster.getLabel() : NullColumnValueGetter.getNullURI());
-
+                Cluster oldCluster = dbClient.queryObject(Cluster.class, oldClusterURI);
                 EventUtil.createActionableEvent(dbClient, target.getTenant(),
-                        "Host changed cluster to " + (cluster == null ? " no cluster " : cluster.getId()), target, "hostClusterChange",
+                        "Host " + target.getLabel() + " changed cluster from " + (oldCluster == null ? "N/A" : oldCluster.getLabel())
+                                + " to " + (cluster == null ? " no cluster " : cluster.getLabel()),
+                        "Host " + target.getLabel() + " will be removed from shared exports for cluster "
+                                + (oldCluster == null ? "N/A" : oldCluster.getLabel()) + " and added to shared exports for cluster "
+                                + (cluster == null ? " N/A " : cluster.getLabel()),
+                        target,
+                        "hostClusterChange",
                         new Object[] { target.getId(), cluster != null ? cluster.getId() : NullColumnValueGetter.getNullURI(), true });
             }
 

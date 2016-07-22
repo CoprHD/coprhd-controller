@@ -19,6 +19,7 @@ public class EventUtil {
      * 
      * @param dbClient db client
      * @param tenant the tenant that owns the event
+     * @param name the name of the event
      * @param description the description of what the event will do
      * @param resource the resource that owns the event (host, cluster, etc)
      * @param approveMethod the method to invoke when approving the event
@@ -26,9 +27,9 @@ public class EventUtil {
      * @param declineMethod the method to invoke when declining the event
      * @param declineParameters the parameters to pass to the decline method
      */
-    public static void createActionableEvent(DbClient dbClient, URI tenant, String description, DataObject resource,
-            String approveMethod, Object[] approveParameters, String declineMethod,
-            Object[] declineParameters) {
+    public static void createActionableEvent(DbClient dbClient, URI tenant, String name, String description,
+            DataObject resource, String approveMethod, Object[] approveParameters,
+            String declineMethod, Object[] declineParameters) {
         ActionableEvent event = new ActionableEvent();
         event.setId(URIUtil.createId(ActionableEvent.class));
         event.setTenant(tenant);
@@ -54,15 +55,16 @@ public class EventUtil {
      * 
      * @param dbClient db client
      * @param tenant the tenant that owns the event
+     * @param name the name of the event
      * @param description the description of what the event will do
      * @param resource the resource that owns the event (host, cluster, etc)
      * @param approveMethod the method to invoke when approving the event
      * @param approveParameters the parameters to pass to the approve method
      */
-    public static void createActionableEvent(DbClient dbClient, URI tenant, String description, DataObject resource,
-            String approveMethod, Object[] approveParameters) {
-        createActionableEvent(dbClient, tenant, description, resource,
-                approveMethod, approveParameters, null, null);
+    public static void createActionableEvent(DbClient dbClient, URI tenant, String name, String description,
+            DataObject resource, String approveMethod, Object[] approveParameters) {
+        createActionableEvent(dbClient, tenant, null, description,
+                resource, approveMethod, approveParameters, null, null);
     }
 
 }

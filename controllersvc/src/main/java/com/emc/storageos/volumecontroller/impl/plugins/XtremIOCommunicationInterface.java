@@ -92,7 +92,7 @@ public class XtremIOCommunicationInterface extends
             metricsCollector.collectMetrics(storageSystem, _dbClient);
         } catch (Exception ex) {
             _logger.error("Error collecting statistics", ex);
-            throw XtremIOApiException.exceptions.discoveryFailed(accessProfile.getIpAddress());
+            throw XtremIOApiException.exceptions.meteringFailed(accessProfile.getIpAddress());
         }
         _logger.info("End collecting statistics for IP address {}", accessProfile.getIpAddress());
     }

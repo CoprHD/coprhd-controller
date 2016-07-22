@@ -20,7 +20,6 @@ public class XtremIOConstants {
     public static final String V2_INITIATOR_GROUP_ROOT_FOLDER = "/InitiatorGroup/";
     public static final String UNDERSCORE = "_";
     public static final String EMPTY_STRING = "";
-    public static final String ENTITY = "entity";
 
     public static final String VOLUME_KEY = "volume";
     public static final String SNAPSHOT_KEY = "snapshot";
@@ -93,6 +92,19 @@ public class XtremIOConstants {
     public static final String XTREMIO_REGULAR_TYPE = "regular";
     public static final String XTREMIO_READ_ONLY_TYPE = "readonly";
     public static final int XTREMIO_MAX_VOL_LENGTH = 55;
+
+    // Performance query
+    public static final String ENTITY = "entity";
+    public static final String DATE_FORMAT = "yyyy-MM-dd HH:mm:ss";
+    public static final String TO_TIME = "to-time";
+    public static final String FROM_TIME = "from-time";
+    public static final String GRANULARITY = "granularity";
+    public static final String ONE_MINUTE = "one_minute";
+    public static final String TEN_MINUTES = "ten_minutes";
+    public static final String ONE_HOUR = "one_hour";
+    public static final String ONE_DAY = "one_day";
+    public static final String AVG_CPU_USAGE = "avg__cpu_usage";
+    public static final String NAME = "name";
 
     public static enum XTREMIO_ENTITY_TYPE {
         ConsistencyGroup,

@@ -54,7 +54,8 @@ public class AutoTieringPolicyValidator extends VirtualPoolValidator<BlockVirtua
                     && !VirtualPool.SystemType.unity.toString().equalsIgnoreCase(
                             updateParam.getSystemType())
                     && !VirtualPool.SystemType.hds.toString().equalsIgnoreCase(
-                            updateParam.getSystemType())) {
+                            updateParam.getSystemType())
+                    && !updateParam.getSystemType().equals("driversystem")) {
                 throw APIException.badRequests.invalidParameterSystemTypeforAutoTiering();
             }
             if (!VirtualPoolUtil.isAutoTieringPolicyValidForDeviceType(
@@ -93,7 +94,8 @@ public class AutoTieringPolicyValidator extends VirtualPoolValidator<BlockVirtua
                 && !VirtualPool.SystemType.unity.toString().equalsIgnoreCase(
                         createParam.getSystemType())
                 && !VirtualPool.SystemType.hds.toString().equalsIgnoreCase(
-                        createParam.getSystemType())) {
+                        createParam.getSystemType())
+                && !createParam.getSystemType().equals("driversystem")) {
             throw APIException.badRequests.invalidParameterSystemTypeforAutoTiering();
         }
         if (!VirtualPoolUtil.isAutoTieringPolicyValidForDeviceType(

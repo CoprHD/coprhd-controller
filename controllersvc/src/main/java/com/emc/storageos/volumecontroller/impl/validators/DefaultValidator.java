@@ -25,13 +25,15 @@ public class DefaultValidator implements Validator {
     // situation and they need to disable the feature.
     private static final String VALIDATION_CHECK_PROPERTY = "validation_check";
 
+    private CoordinatorClient coordinator;
     private Validator validator;
     private ValidatorLogger logger;
     private String type;
 
-    public DefaultValidator(Validator validator, ValidatorLogger logger, String type) {
+    public DefaultValidator(Validator validator, CoordinatorClient coordinator, ValidatorLogger logger, String type) {
         this.validator = validator;
         this.logger = logger;
+        this.coordinator = coordinator;
         this.type = type;
     }
 
@@ -41,12 +43,16 @@ public class DefaultValidator implements Validator {
             validator.validate();
         } catch (Exception e) {
             log.error("Exception occurred during validation: ", e);
-            throw DeviceControllerException.exceptions.unexpectedCondition(e.getMessage());
+            if (DefaultValidator.validationEnabled(coordinator)) {
+                throw DeviceControllerException.exceptions.unexpectedCondition(e.getMessage());
+            }
         }
 
         if (logger.hasErrors()) {
-            throw DeviceControllerException.exceptions.validationError(
-                    type, logger.getMsgs().toString(), ValidatorLogger.CONTACT_EMC_SUPPORT);
+            if (DefaultValidator.validationEnabled(coordinator)) {
+                throw DeviceControllerException.exceptions.validationError(
+                        type, logger.getMsgs().toString(), ValidatorLogger.CONTACT_EMC_SUPPORT);
+            }
         }
 
         return true;
@@ -63,7 +69,10 @@ public class DefaultValidator implements Validator {
         if (coordinator != null) {
             return Boolean.valueOf(ControllerUtils
                     .getPropertyValueFromCoordinator(coordinator, VALIDATION_CHECK_PROPERTY));
+        } else {
+            log.error("Bean wiring error: Coordinator not set in validator, therefore validation will default to true.");
         }
+
         return true;
     }
 }

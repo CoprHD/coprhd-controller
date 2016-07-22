@@ -11,6 +11,7 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.ExportMask;
@@ -33,6 +34,7 @@ public class XtremioSystemValidatorFactory implements StorageSystemValidatorFact
     private DbClient dbClient;
     private XtremIOClientFactory clientFactory;
     private ValidatorLogger logger;
+    private CoordinatorClient coordinator;
 
     public DbClient getDbClient() {
         return dbClient;
@@ -40,6 +42,14 @@ public class XtremioSystemValidatorFactory implements StorageSystemValidatorFact
 
     public void setDbClient(DbClient dbClient) {
         this.dbClient = dbClient;
+    }
+
+    public void setCoordinator(CoordinatorClient coordinator) {
+        this.coordinator = coordinator;
+    }
+
+    public CoordinatorClient getCoordinator() {
+        return coordinator;
     }
 
     public XtremIOClientFactory getClientFactory() {

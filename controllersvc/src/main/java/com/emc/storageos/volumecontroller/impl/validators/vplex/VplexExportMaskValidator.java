@@ -22,6 +22,7 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.util.VPlexUtil;
+import com.emc.storageos.volumecontroller.impl.validators.DefaultValidator;
 import com.emc.storageos.volumecontroller.impl.validators.Validator;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorLogger;
 import com.emc.storageos.vplex.api.VPlexApiClient;
@@ -74,8 +75,10 @@ public class VplexExportMaskValidator extends AbstractVplexValidator implements 
                 return false;
             }
             log.info("Unexpected exception validating ExportMask: " + ex.getMessage(), ex);
-            throw DeviceControllerException.exceptions.unexpectedCondition(
-                    "Unexpected exception validating ExportMask: " + ex.getMessage());
+            if (DefaultValidator.validationEnabled(coordinator)) {
+                throw DeviceControllerException.exceptions.unexpectedCondition(
+                        "Unexpected exception validating ExportMask: " + ex.getMessage());
+            }
         }
         if (logger.hasErrors()) {
             throw DeviceControllerException.exceptions.validationError(

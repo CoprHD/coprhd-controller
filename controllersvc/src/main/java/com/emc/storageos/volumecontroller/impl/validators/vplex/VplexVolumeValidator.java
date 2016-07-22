@@ -22,6 +22,7 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.util.VPlexDrillDownParser;
 import com.emc.storageos.util.VPlexDrillDownParser.NodeType;
 import com.emc.storageos.util.VPlexUtil;
+import com.emc.storageos.volumecontroller.impl.validators.DefaultValidator;
 import com.emc.storageos.volumecontroller.impl.validators.ValCk;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorLogger;
 import com.emc.storageos.vplex.api.VPlexApiClient;
@@ -117,8 +118,10 @@ public class VplexVolumeValidator extends AbstractVplexValidator {
                     }
                 }
             } catch (VPlexApiException ex) {
-                log.info("Unable to determine if VPLEX device reused: " + volumeId, ex);
-                throw ex;
+                log.error("Unable to determine if VPLEX device reused: " + volumeId, ex);
+                if (DefaultValidator.validationEnabled(coordinator)) {
+                    throw ex;
+                }
             }
             if (!delete) {
                 // If we didn't log an error above indicating that the volume was reused,

@@ -1626,7 +1626,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
         try {
             // Retrieve all the qtree info.
-            List<VNXQuotaTree> qtrees = getAllQuotaTrees(storageSystem);
+            List<VNXQuotaTree> qtrees = getAllQuotaTrees(storageSystem,umfsIds);
             //List<VNXFileSystem> vnxFileSystems = getAllFileSystem(storageSystem);
                 List<UnManagedFileQuotaDirectory> unManagedFileQuotaDirectories = new ArrayList<>();
                 List<UnManagedFileQuotaDirectory> existingUnManagedFileQuotaDirectories = new ArrayList<>();

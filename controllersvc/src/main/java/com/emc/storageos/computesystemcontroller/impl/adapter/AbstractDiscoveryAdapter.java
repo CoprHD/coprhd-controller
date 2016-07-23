@@ -514,7 +514,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
                     || !change.getOldCluster().equals(change.getNewCluster())) {
 
                 URI oldClusterURI = change.getOldCluster();
-                Cluster cluster = dbClient.queryObject(Cluster.class, host.getCluster());
+                Cluster cluster = dbClient.queryObject(Cluster.class, change.getNewCluster());
 
                 Cluster oldCluster = dbClient.queryObject(Cluster.class, oldClusterURI);
                 EventUtil.createActionableEvent(dbClient, host.getTenant(),

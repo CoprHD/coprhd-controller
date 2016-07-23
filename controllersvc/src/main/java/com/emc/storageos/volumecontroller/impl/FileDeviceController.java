@@ -3999,28 +3999,6 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     }
 
     /**
-     * Common method used to create Controller methods that would be executed by workflow service
-     * 
-     * @param workflow
-     * @param stepGroup
-     * @param waitFor - String
-     * @param methodName - Name of the method to be executed
-     * @param stepId - String unique id of the step
-     * @param stepDescription - String description of the step
-     * @param storage - URI of the StorageSystem
-     * @param args - Parameters of the method that has to be excecuted by workflow
-     * @return waitForStep
-     */
-    public String createMethod(Workflow workflow, String stepGroup, String waitFor, String methodName, String stepId,
-            String stepDescription, URI storage, Object[] args) {
-        StorageSystem system = _dbClient.queryObject(StorageSystem.class, storage);
-        Workflow.Method method = new Workflow.Method(methodName, args);
-        String waitForStep = workflow.createStep(stepGroup, stepDescription, waitFor, storage, system.getSystemType(), getClass(), method,
-                null, stepId);
-        return waitForStep;
-    }
-
-    /**
      * Acquire Work flow Distributed Owner Lock for a Step.
      * This method is used to acquire lock at a particular work flow step.Currently we are acquiring lock only for VNXFILE.
      * This lock would be released after the step completion (either failure or success).

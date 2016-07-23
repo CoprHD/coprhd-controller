@@ -119,7 +119,8 @@ public class FileShareExport implements Serializable {
      * @param mountPath
      */
     public FileShareExport(List<String> clients, String securityType, String permissions, String rootUserMapping,
-            String protocol, String storagePortName, String storagePort, String path, String mountPath, String subDirectory, String comments) {
+            String protocol, String storagePortName, String storagePort, String path, String mountPath, String subDirectory,
+            String comments) {
         _clients = clients;
         for (String secType : securityType.split(SEC_SEPARATOR)) {
             if (_securityType == null) {
@@ -215,6 +216,14 @@ public class FileShareExport implements Serializable {
 
     public String getSubDirectory() {
         return _subDirectory;
+    }
+
+    public void setPath(String path) {
+        this._path = path;
+    }
+
+    public void setMountPath(String mountPath) {
+        this._mountPath = mountPath;
     }
 
     public FileExport getFileExport() {

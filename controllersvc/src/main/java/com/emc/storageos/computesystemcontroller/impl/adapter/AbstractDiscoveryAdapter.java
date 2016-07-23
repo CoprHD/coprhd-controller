@@ -511,21 +511,32 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
             List<Initiator> oldInitiatorObjects = dbClient.queryObject(Initiator.class, change.getOldInitiators());
 
             if ((change.getOldCluster() == null && change.getNewCluster() != null)
-                    || !change.getOldCluster().equals(change.getNewCluster())) {
+                    || (change.getOldCluster() != null && change.getNewCluster() == null)
+                    || (!change.getOldCluster().equals(change.getNewCluster()))) {
+
+                Cluster cluster = null;
+                if (!NullColumnValueGetter.isNullURI(change.getNewCluster())) {
+                    cluster = dbClient.queryObject(Cluster.class, change.getNewCluster());
+                }
 
                 URI oldClusterURI = change.getOldCluster();
-                Cluster cluster = dbClient.queryObject(Cluster.class, change.getNewCluster());
+                Cluster oldCluster = null;
+                if (!NullColumnValueGetter.isNullURI(oldClusterURI)) {
+                    oldCluster = dbClient.queryObject(Cluster.class, oldClusterURI);
+                }
 
-                Cluster oldCluster = dbClient.queryObject(Cluster.class, oldClusterURI);
-                EventUtil.createActionableEvent(dbClient, host.getTenant(),
-                        "Host " + host.getLabel() + " changed cluster from " + (oldCluster == null ? "N/A" : oldCluster.getLabel())
-                                + " to " + (cluster == null ? " no cluster " : cluster.getLabel()),
-                        "Host " + host.getLabel() + " will be removed from shared exports for cluster "
-                                + (oldCluster == null ? "N/A" : oldCluster.getLabel()) + " and added to shared exports for cluster "
-                                + (cluster == null ? " N/A " : cluster.getLabel()),
-                        host,
-                        "hostClusterChange",
-                        new Object[] { host.getId(), cluster != null ? cluster.getId() : NullColumnValueGetter.getNullURI(), isVCenter });
+                if (cluster != null || oldCluster != null) {
+                    EventUtil.createActionableEvent(dbClient, host.getTenant(),
+                            "Host " + host.getLabel() + " changed cluster from " + (oldCluster == null ? "N/A" : oldCluster.getLabel())
+                                    + " to " + (cluster == null ? " no cluster " : cluster.getLabel()),
+                            "Host " + host.getLabel() + " will be removed from shared exports for cluster "
+                                    + (oldCluster == null ? "N/A" : oldCluster.getLabel()) + " and added to shared exports for cluster "
+                                    + (cluster == null ? " N/A " : cluster.getLabel()),
+                            host,
+                            "hostClusterChange",
+                            new Object[] { host.getId(), cluster != null ? cluster.getId() : NullColumnValueGetter.getNullURI(),
+                                    isVCenter });
+                }
             }
 
             for (Initiator oldInitiator : oldInitiatorObjects) {

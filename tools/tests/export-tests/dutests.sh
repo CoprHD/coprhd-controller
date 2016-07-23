@@ -163,6 +163,11 @@ arrayhelper() {
 	device_id=$3
 	arrayhelper_delete_volume $operation $serial_number $device_id
 	;;
+    delete_mask)
+        pattern=$4
+	masking_view_name=`get_masking_view_name no-op ${pattern}`
+	arrayhelper_delete_mask $operation $serial_number $masking_view_name
+	;;
     verify_export)
 	masking_view_name=$3
 	shift 3
@@ -274,6 +279,34 @@ arrayhelper_delete_volume() {
 	 ;;
     vplex)
          runcmd vplexhelper.sh $operation $device_id
+	 ;;
+    default)
+         echo "ERROR: Invalid platform specified in storage_type: $storage_type"
+	 exit
+	 ;;
+    esac
+}
+
+# Call the appropriate storage array helper script to perform delete mask
+# outside of the controller.
+#
+arrayhelper_delete_mask() {
+    operation=$1
+    serial_number=$2
+    pattern=$3
+
+    case $SS in
+    vmax2|vmax3)
+         runcmd symhelper.sh $operation $serial_number $pattern
+	 ;;
+    vnx)
+         runcmd navihelper.sh $operation $array_ip $pattern
+	 ;;
+    xio)
+         runcmd xiohelper.sh $operation $pattern
+	 ;;
+    vplex)
+         runcmd vplexhelper.sh $operation $pattern
 	 ;;
     default)
          echo "ERROR: Invalid platform specified in storage_type: $storage_type"
@@ -2434,7 +2467,14 @@ test_17() {
 
     # Follow the task.  It should pass because validation is run but not enforced
     echo "*** Following the export_group delete task to verify it PASSES because validation is disabled"
-    task follow $task
+    runcmd task follow $task
+
+    if [ "${SS}" = "xio" ]; then
+        # XIO will still protect the lun mapping due to the additional volume, leaving it behind
+	verify_export ${expname}1 ${HOST1} 2 1
+	# Delete the lun mapping
+	arrayhelper delete_mask ${SERIAL_NUMBER} ${expname}1 ${HOST1}
+    fi
 
     # Verify the mask is back to normal
     verify_export ${expname}1 ${HOST1} gone

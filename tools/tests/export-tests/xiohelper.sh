@@ -12,10 +12,18 @@
 #        ./xiohelper.sh add_volume_to_mask <DEVICE_ID> <NAME_PATTERN>
 #        ./xiohelper.sh remove_volume_from_mask <DEVICE_ID> <NAME_PATTERN>
 #        ./xiohelper.sh delete_volume <DEVICE_ID>
+#        ./xiohelper.sh delete_mask <NAME_PAATTERN>
 #        ./xiohelper.sh add_initiator_to_mask <PWWN> <NAME_PATTERN>
 #        ./xiohelper.sh remove_initiator_from_mask <PWWN> <NAME_PATTERN>
 #
 #set -x
+
+## Convenience method for deleting a mask outside of ViPR (including the storage group)
+delete_mask() {
+    pattern=$1
+    java -Dproperty.file=${tools_file} -jar ${tools_jar} -arrays xtremio -method delete_mask -params "${pattern}" 
+    echo "Deleted lun mapping/initiator group ${pattern}"
+}
 
 add_volume_to_mask() {
     device_id=$1
@@ -124,9 +132,12 @@ elif [ "$1" = "remove_initiator_from_mask" ]; then
 elif [ "$1" = "delete_volume" ]; then
     shift
     delete_volume $1 $2
+elif [ "$1" = "delete_mask" ]; then
+    shift
+    delete_mask $1
 elif [ "$1" = "verify_export" ]; then
     shift
     verify_export $*
 else
-    echo "Usage: $0 [add_volume_to_mask | remove_volume_from_mask | add_initiator_to_mask | remove_initiator_from_mask | delete_volume | verify_export] {params}"
+    echo "Usage: $0 [delete_mask | add_volume_to_mask | remove_volume_from_mask | add_initiator_to_mask | remove_initiator_from_mask | delete_volume | verify_export] {params}"
 fi

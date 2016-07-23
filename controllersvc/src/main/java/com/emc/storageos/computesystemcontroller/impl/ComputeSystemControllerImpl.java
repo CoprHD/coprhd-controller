@@ -54,7 +54,6 @@ import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
-import com.emc.storageos.util.EventUtil;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.BlockExportController;
@@ -1283,24 +1282,24 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         TaskCompleter completer = null;
         try {
 
-            // Iterator<URI> it = deletedHosts.iterator();
-            // while (it.hasNext()) {
-            // URI deletedHost = it.next();
-            // Host host = _dbClient.queryObject(Host.class, deletedHost);
-            // if (!NullColumnValueGetter.isNullURI(host.getCluster())) {
-            // Cluster cluster = _dbClient.queryObject(Cluster.class, host.getCluster());
-            // if (ComputeSystemHelper.isHostInUse(_dbClient, host.getId()) && !cluster.getAutoExportEnabled()) {
-            // _log.info(String.format("Unable to delete host %s. Belongs to cluster %s which has auto export disabled.",
-            // host.getId(),
-            // cluster.getId()));
-            // it.remove();
-            // }
-            // }
-            // }
+            // Check all deleted hosts and remove them from the list if auto export is disabled for the cluster
+            Iterator<URI> it = deletedHosts.iterator();
+            while (it.hasNext()) {
+                URI deletedHost = it.next();
+                Host host = _dbClient.queryObject(Host.class, deletedHost);
+                if (!NullColumnValueGetter.isNullURI(host.getCluster())) {
+                    Cluster cluster = _dbClient.queryObject(Cluster.class, host.getCluster());
+                    if (ComputeSystemHelper.isHostInUse(_dbClient, host.getId()) && !cluster.getAutoExportEnabled()) {
+                        _log.info(String.format("Unable to delete host %s. Belongs to cluster %s which has auto export disabled.",
+                                host.getId(),
+                                cluster.getId()));
+                        it.remove();
+                    }
+                }
+            }
 
-            completer = new ProcessHostChangesCompleter(changes, deletedClusters, taskId);
-
-            Workflow workflow = _workflowService.getNewWorkflow(this, HOST_CHANGES_WF_NAME, true, taskId, null);
+            completer = new ProcessHostChangesCompleter(changes, deletedHosts, deletedClusters, taskId);
+            Workflow workflow = _workflowService.getNewWorkflow(this, HOST_CHANGES_WF_NAME, true, taskId);
             String waitFor = null;
 
             // Map of host -> export groups for capturing removals from the export groups
@@ -1320,8 +1319,12 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 URI currentCluster = change.getHost().getCluster();
                 URI oldCluster = change.getOldCluster();
 
-                // For every host change (added/removed initiator, cluster change), get all exports that this host
-                // currently belongs to
+                Cluster oldClusterRef = !NullColumnValueGetter.isNullURI(oldCluster) ? _dbClient.queryObject(Cluster.class, oldCluster)
+                        : null;
+                Cluster currentClusterRef = !NullColumnValueGetter.isNullURI(currentCluster) ? _dbClient.queryObject(Cluster.class,
+                        currentCluster) : null;
+
+                // For every host change (added/removed initiator, cluster change), get all exports that this host currently belongs to
                 List<Initiator> hostInitiators = ComputeSystemHelper.queryInitiators(_dbClient, hostId);
                 Collection<URI> hostInitiatorIds = Collections2.transform(hostInitiators, CommonTransformerFunctions.fctnDataObjectToID());
                 List<Initiator> newInitiatorObjects = _dbClient.queryObject(Initiator.class, change.getNewInitiators());
@@ -1335,9 +1338,13 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                                 newInitiatorObjects);
                         Collection<URI> validInitiatorIds = Collections2.transform(validInitiators,
                                 CommonTransformerFunctions.fctnDataObjectToID());
-                        // TODO add event for changed initiators
-                        egh.addInitiators(validInitiatorIds);
-                        egh.removeInitiators(change.getOldInitiators());
+                        if (currentClusterRef == null || currentClusterRef.getAutoExportEnabled()) {
+                            egh.addInitiators(validInitiatorIds);
+                            egh.removeInitiators(change.getOldInitiators());
+                        } else {
+                            // prevent old initiators from being deleted by completer
+                            change.getOldInitiators().clear();
+                        }
                     }
                 }
 
@@ -1366,7 +1373,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                             && !NullColumnValueGetter.isNullURI(currentCluster)
                             && !oldCluster.equals(currentCluster)
                             && (ComputeSystemHelper.isClusterInExport(_dbClient, oldCluster)
-                                    || ComputeSystemHelper.isClusterInExport(_dbClient, currentCluster));
+                            || ComputeSystemHelper.isClusterInExport(_dbClient, currentCluster));
 
                     if (isAddedToCluster || isMovedToDifferentCluster) {
                         for (ExportGroup export : getSharedExports(currentCluster)) {
@@ -1402,24 +1409,23 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             for (URI hostId : deletedHosts) {
 
                 Host host = _dbClient.queryObject(Host.class, hostId);
-                // List<Initiator> hostInitiators = ComputeSystemHelper.queryInitiators(_dbClient, host.getId());
-                // Collection<URI> hostInitiatorIds = Collections2.transform(hostInitiators,
-                // CommonTransformerFunctions.fctnDataObjectToID());
+                List<Initiator> hostInitiators = ComputeSystemHelper.queryInitiators(_dbClient, host.getId());
+                Collection<URI> hostInitiatorIds = Collections2.transform(hostInitiators, CommonTransformerFunctions.fctnDataObjectToID());
 
-                // for (ExportGroup export : getExportGroups(host.getId(), hostInitiators)) {
-                // do not unexport volumes from exclusive or initiator exports if the host has a boot volume id
-                // boolean isBootVolumeExport = (export.forHost() || export.forInitiator())
-                // && !NullColumnValueGetter.isNullURI(host.getBootVolumeId())
-                // && export.hasBlockObject(host.getBootVolumeId());
-                // if (!isBootVolumeExport) {
-                EventUtil.createActionableEvent(_dbClient, host.getTenant(), "Delete host " + host.getLabel(),
-                        "Host " + host.getLabel() + " will be deleted and storage will be unexported from the host.",
-                        host, "detachHostStorage", new Object[] { hostId, true, true });
-                // ExportGroupState egh = getExportGroupState(exportGroups, export);
-                // egh.removeHost(host.getId());
-                // egh.removeInitiators(hostInitiatorIds);
-                // }
-                // }
+                // Iterate over all export groups that contain reference to the host or its initiators. Update the affected export groups
+                // state.
+                for (ExportGroup export : getExportGroups(host.getId(), hostInitiators)) {
+                    // do not unexport volumes from exclusive or initiator exports if the host has a boot volume id
+                    boolean isBootVolumeExport = (export.forHost() || export.forInitiator())
+                            && !NullColumnValueGetter.isNullURI(host.getBootVolumeId())
+                            && export.hasBlockObject(host.getBootVolumeId());
+                    if (!isBootVolumeExport) {
+                        ExportGroupState egh = getExportGroupState(exportGroups, export);
+                        egh.removeHost(host.getId());
+                        egh.removeInitiators(hostInitiatorIds);
+                    }
+                }
+
             }
 
             _log.info("Number of deleted clusters: " + deletedClusters.size());

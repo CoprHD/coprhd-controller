@@ -1299,7 +1299,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             }
 
             completer = new ProcessHostChangesCompleter(changes, deletedHosts, deletedClusters, taskId);
-            Workflow workflow = _workflowService.getNewWorkflow(this, HOST_CHANGES_WF_NAME, true, taskId);
+            Workflow workflow = _workflowService.getNewWorkflow(this, HOST_CHANGES_WF_NAME, true, taskId, null);
             String waitFor = null;
 
             // Map of host -> export groups for capturing removals from the export groups

@@ -65,6 +65,9 @@ import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
+/**
+ * A service that provides APIs for viewing, approving, declining and removing actionable events.
+ */
 @DefaultPermissions(readRoles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN }, writeRoles = {
         Role.TENANT_ADMIN }, readAcls = { ACL.ANY })
 @Path("/vdc/events")
@@ -115,6 +118,13 @@ public class EventService extends TaggedResource {
         return executeEventMethod(event, true);
     }
 
+    /**
+     * Executes an actionable event method
+     * 
+     * @param event the event to execute
+     * @param approve if true, the action is to approve, if false the action is to decline
+     * @return list of tasks
+     */
     public TaskList executeEventMethod(ActionableEvent event, boolean approve) {
         TaskList taskList = new TaskList();
 
@@ -158,6 +168,13 @@ public class EventService extends TaggedResource {
         }
     }
 
+    /**
+     * Method to delete a host.
+     * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
+     * 
+     * @param hostId the host to delete
+     * @return task for deleting a host
+     */
     public TaskResourceRep deleteHost(URI hostId) {
         ComputeSystemController computeController = getController(ComputeSystemController.class, null);
         Host host = queryObject(Host.class, hostId, true);
@@ -168,6 +185,13 @@ public class EventService extends TaggedResource {
         return toTask(host, taskId, op);
     }
 
+    /**
+     * Method to add an initiator to existing exports for a host.
+     * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
+     * 
+     * @param initiatorId the initiator to add
+     * @return task for adding an initiator
+     */
     public TaskResourceRep addInitiator(URI initiatorId) {
         Initiator initiator = queryObject(Initiator.class, initiatorId, true);
         Host host = queryObject(Host.class, initiator.getHost(), true);
@@ -190,6 +214,13 @@ public class EventService extends TaggedResource {
         return toTask(initiator, taskId, op);
     }
 
+    /**
+     * Method to remove an initiator from existing exports for a host.
+     * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
+     * 
+     * @param initiatorId the initiator to remove
+     * @return task for removing an initiator
+     */
     public TaskResourceRep removeInitiator(URI initiatorId) {
         Initiator initiator = queryObject(Initiator.class, initiatorId, true);
 
@@ -211,6 +242,13 @@ public class EventService extends TaggedResource {
         return toTask(initiator, taskId, op);
     }
 
+    /**
+     * Method to delete a cluster and unexport shared exports for the cluster.
+     * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
+     * 
+     * @param clusterId the cluster to delete
+     * @return task for deleting a cluster
+     */
     public TaskResourceRep deleteCluster(URI clusterId) {
         String taskId = UUID.randomUUID().toString();
         Cluster cluster = queryObject(Cluster.class, clusterId, true);
@@ -223,6 +261,15 @@ public class EventService extends TaggedResource {
         return toTask(cluster, taskId, op);
     }
 
+    /**
+     * Method to move a host to a new cluster and update shared exports.
+     * 
+     * @param hostId the host that is moving clusters
+     * @param clusterId the cluster the host is moving to
+     * @param isVcenter if true, vcenter api operations will be executed against the host to detach/unmount and attach/mount disks and
+     *            datastores
+     * @return task for updating export groups
+     */
     public TaskResourceRep hostClusterChange(URI hostId, URI clusterId, boolean isVcenter) {
         Host host = queryObject(Host.class, hostId, true);
         URI oldClusterURI = host.getCluster();
@@ -256,6 +303,13 @@ public class EventService extends TaggedResource {
         return new TaskResourceRep();
     }
 
+    /**
+     * Method to delete a vcenter datacenter
+     * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
+     * 
+     * @param id the id of the datacenter
+     * @return task for deleting a datacenter
+     */
     public TaskResourceRep deleteDatacenter(URI id) {
         VcenterDataCenter dataCenter = queryObject(VcenterDataCenter.class, id, true);
         String taskId = UUID.randomUUID().toString();
@@ -268,6 +322,13 @@ public class EventService extends TaggedResource {
         return toTask(dataCenter, taskId, op);
     }
 
+    /**
+     * Returns a reference to a method for the given class with the given name
+     * 
+     * @param clazz class which the method belongs
+     * @param name the name of the method
+     * @return method or null if it doesn't exist
+     */
     private Method getMethod(Class clazz, String name) {
         for (Method method : clazz.getMethods()) {
             if (method.getName().equalsIgnoreCase(name)) {
@@ -390,6 +451,12 @@ public class EventService extends TaggedResource {
         return new EventStatsRestRep(pending, approved, declined);
     }
 
+    /**
+     * Maps an actionable event to a restful response
+     * 
+     * @param from the database event
+     * @return restful response object
+     */
     public static EventRestRep map(ActionableEvent from) {
         if (from == null) {
             return null;

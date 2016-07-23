@@ -12,7 +12,6 @@ import static util.BourneUtil.getViprClient;
 import java.net.URI;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Date;
 import java.util.List;
 
 import org.apache.commons.lang.StringUtils;
@@ -34,15 +33,16 @@ import util.EventUtils;
 import util.MessagesUtils;
 import util.datatable.DataTablesSupport;
 
+/**
+ * The UI controller for actionable events
+ *
+ */
 @With(Common.class)
 public class Events extends Controller {
     private static final String UNKNOWN = "resources.event.unknown";
     private static final String DELETED = "resources.event.deleted";
     private static final String APPROVED = "resources.event.approved";
     private static final String DECLINED = "resources.event.declined";
-
-    // Currently the backend only shows progresses of 0 or 100, so for show this as the miminum progress
-    private static final int MILLISECONDS_IN_12HOURS = 43200000;
 
     private static Comparator orderedEventComparator = new Comparator<EventRestRep>() {
         @Override
@@ -65,36 +65,15 @@ public class Events extends Controller {
         render();
     }
 
-    public static void getRecentTasks() {
-        ViPRCoreClient client = getViprClient();
-
-        long minsAgo = new Date().getTime() - MILLISECONDS_IN_12HOURS;
-
-        List<EventRestRep> tasks = Lists.newArrayList(); // client.tasks().findCreatedSince(uri(Security.getUserInfo().getTenant()),
-        // minsAgo, 5);
-        // if (Security.isSecurityAdmin()) {
-        // tasks.addAll(client.tasks().findCreatedSince(SYSTEM_TENANT, minsAgo, 5));
-        // }
-
-        Collections.sort(tasks, orderedEventComparator);
-
-        renderJSON(toEventSummaries(tasks));
-    }
-
     public static void listAllJson(Long lastUpdated) {
         ViPRCoreClient client = getViprClient();
-        List<EventRestRep> taskResourceReps = null;
-        // if (lastUpdated == null) {
-        taskResourceReps = client.events().getByRefs(client.events().listByTenant(uri(Models.currentAdminTenant())));
-        // } else {
-        // // taskResourceReps = taskPoll(lastUpdated, systemTasks);
-        // }
+        List<EventRestRep> eventResourceReps = client.events().getByRefs(client.events().listByTenant(uri(Models.currentAdminTenant())));
 
-        Collections.sort(taskResourceReps, orderedEventComparator);
+        Collections.sort(eventResourceReps, orderedEventComparator);
 
         List<EventsDataTable.Event> events = Lists.newArrayList();
-        if (taskResourceReps != null) {
-            for (EventRestRep eventRestRep : taskResourceReps) {
+        if (eventResourceReps != null) {
+            for (EventRestRep eventRestRep : eventResourceReps) {
                 EventsDataTable.Event event = new EventsDataTable.Event(eventRestRep);
                 events.add(event);
             }
@@ -119,37 +98,6 @@ public class Events extends Controller {
         EventStatsRestRep stats = client.events().getStatsByTenant(tenantId);
         renderJSON(stats);
     }
-
-    // private static List<TaskResourceRep> tasksLongPoll(Long lastUpdated, Boolean systemTasks) {
-    // while (true) {
-    // List<TaskResourceRep> taskResourceReps = taskPoll(lastUpdated, systemTasks);
-    // if (!taskResourceReps.isEmpty()) {
-    // return taskResourceReps;
-    // }
-    //
-    // // Pause and check again
-    // int delay = NORMAL_DELAY;
-    // Logger.debug("No update for tasks, waiting for %s ms", delay);
-    // await(delay);
-    // }
-    // }
-
-    // private static List<EventResourceRep> taskPoll(Long lastUpdated, Boolean systemTasks) {
-    // List<EventRestRep> eventReps = Lists.newArrayList();
-    // ViPRCoreClient client = getViprClient();
-    //
-    // URI tenant = null;
-    // if (systemTasks) {
-    // tenant = SYSTEM_TENANT;
-    // } else {
-    // tenant = uri(Models.currentAdminTenant());
-    // }
-    //
-    // for (EventRestRep item : client.events().findCreatedSince(tenant, lastUpdated, FETCH_ALL)) {
-    // eventReps.add(item);
-    // }
-    // return taskResourceReps;
-    // }
 
     public static void itemsJson(@As(",") String[] ids) {
         List<EventsDataTable.Event> results = Lists.newArrayList();

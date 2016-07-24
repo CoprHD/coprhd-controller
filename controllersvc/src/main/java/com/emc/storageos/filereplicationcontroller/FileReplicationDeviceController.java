@@ -40,7 +40,6 @@ import com.emc.storageos.volumecontroller.impl.file.FileMirrorDetachTaskComplete
 import com.emc.storageos.volumecontroller.impl.file.FileMirrorRollbackCompleter;
 import com.emc.storageos.volumecontroller.impl.file.MirrorFileCreateTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.file.MirrorFileFailbackTaskCompleter;
-import com.emc.storageos.volumecontroller.impl.file.MirrorFileFailoverTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.file.MirrorFileModifyRPOTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.file.MirrorFilePauseTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.file.MirrorFileRefreshTaskCompleter;
@@ -441,17 +440,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
         }
         TaskCompleter completer = null;
         try {
-            if (opType.equalsIgnoreCase("failover")) {
-
-                for (String target : targetfileUris) {
-                    FileShare targetFileShare = dbClient.queryObject(FileShare.class, URI.create(target));
-                    completer = new MirrorFileFailoverTaskCompleter(FileShare.class, combined, opId);
-                    completer.setNotifyWorkflow(false);
-                    StorageSystem systemTarget = dbClient.queryObject(StorageSystem.class, targetFileShare.getStorageDevice());
-                    getRemoteMirrorDevice(systemTarget).doFailoverLink(systemTarget, targetFileShare, completer, null);
-                }
-
-            } else if (opType.equalsIgnoreCase("pause")) {
+            if (opType.equalsIgnoreCase("pause")) {
                 completer = new MirrorFilePauseTaskCompleter(FileShare.class, combined, opId);
                 for (String target : targetfileUris) {
                     FileShare targetFileShare = dbClient.queryObject(FileShare.class, URI.create(target));

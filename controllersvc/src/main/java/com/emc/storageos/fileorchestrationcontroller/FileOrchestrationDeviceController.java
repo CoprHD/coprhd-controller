@@ -587,8 +587,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             Workflow workflow = _workflowService.getNewWorkflow(this, DELETE_FILESYSTEM_EXPORT_RULES_WF_NAME, false, opId);
             String exportdeleteStep = workflow.createStepId();
             Object[] args = new Object[] { storage, uri, allDirs, subDirs };
-            _fileDeviceController.createMethod(workflow, null, DELETE_FILESYSTEM_EXPORT_RULES, exportdeleteStep, stepDescription,
-                    storage, args);
+            _fileDeviceController.createMethod(workflow, null, DELETE_FILESYSTEM_EXPORT_RULES, exportdeleteStep, stepDescription, storage,
+                    args);
             workflow.executePlan(completer, successMessage);
         } catch (Exception ex) {
             s_logger.error("Could not delete export rules for filesystem/Snapshot: " + uri + " " + fileObj.getLabel(), ex);
@@ -1047,9 +1047,14 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                         }
                     }
                     if (!isSecFlvPresentOnTarget) {
-                        ExportRule exportRule = sourceExportRule;
+                        ExportRule exportRule = new ExportRule();
                         exportRule.setFsID(targetFileShare.getId());
                         exportRule.setExportPath(targetFileShare.getPath());
+                        exportRule.setAnon(sourceExportRule.getAnon());
+                        exportRule.setReadOnlyHosts(sourceExportRule.getReadOnlyHosts());
+                        exportRule.setRootHosts(sourceExportRule.getRootHosts());
+                        exportRule.setReadWriteHosts(sourceExportRule.getReadWriteHosts());
+                        exportRule.setSecFlavor(sourceExportRule.getSecFlavor());
                         exportRulesToAdd.add(exportRule);
                     }
 
@@ -1062,11 +1067,16 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                         }
                     }
                     if (!isSecFlvPresentOnTarget) {
-                        ExportRule exportRule = sourceExportRule;
+                        ExportRule exportRule = new ExportRule();
                         exportRule.setFsID(targetFileShare.getId());
                         ArrayList<String> subdirName = new ArrayList<String>();
                         subdirName.add(sourceExportRule.getExportPath().split(sourceFileShare.getPath())[1]);
                         exportRule.setExportPath(targetFileShare.getPath() + subdirName.get(0));
+                        exportRule.setAnon(sourceExportRule.getAnon());
+                        exportRule.setReadOnlyHosts(sourceExportRule.getReadOnlyHosts());
+                        exportRule.setRootHosts(sourceExportRule.getRootHosts());
+                        exportRule.setReadWriteHosts(sourceExportRule.getReadWriteHosts());
+                        exportRule.setSecFlavor(sourceExportRule.getSecFlavor());
                         exportRulesToAdd.add(exportRule);
                     }
                 }
@@ -1096,7 +1106,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
                         }
                     }
                     if (!isSecFlvPresentOnSource) {
-                        exportRulesToAdd.add(targetExportRule);
+                        exportRulesToDelete.add(targetExportRule);
                     }
                 }
             }
@@ -1153,12 +1163,12 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             if (!exportRulesToDelete.isEmpty()) {
                 ExportRules deleteExportRules = new ExportRules();
                 deleteExportRules.setExportRules(exportRulesToDelete);
-                params.setExportRulesToAdd(deleteExportRules);
+                params.setExportRulesToDelete(deleteExportRules);
             }
             if (!exportRulesToModify.isEmpty()) {
                 ExportRules modifyExportRules = new ExportRules();
                 modifyExportRules.setExportRules(exportRulesToModify);
-                params.setExportRulesToAdd(modifyExportRules);
+                params.setExportRulesToModify(modifyExportRules);
             }
 
             String stepDescription = String.format("Replicating Source File System Export Rules On Target Cluster : %s", params.toString());
@@ -1290,5 +1300,4 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         }
         return exportRules;
     }
-
 }

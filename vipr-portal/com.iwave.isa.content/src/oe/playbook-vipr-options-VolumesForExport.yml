@@ -6,8 +6,6 @@
   - fail: msg="Failed to get options for Export for Volume.  No project defined"
     when: ProjectForExport is undefined
 
-  - debug: msg="Finding Volumes for Export by project {{ProjectForExport}}"  #"
-
   - name: Logging in to ViPR
     include: playbook-vipr-login.yml
 
@@ -28,9 +26,9 @@
     set_fact: unexp_vol_ids="{{unexp_vol_ids_result.results|selectattr('ansible_facts','defined')|map(attribute='ansible_facts.unexp_vol_ids_items')|list}}"
     when: unexp_vol_ids_result.results is defined
 
-#  - name: Use all volumes if none are exported
-#    set_fact: unexp_vol_ids="{{vol_ids}}"
-#    when: (vol_ids is defined) and (exp_vol_ids is undefined)
+  - name: Use empty list if none are exported
+    set_fact: unexp_vol_ids="[]"
+    when: unexp_vol_ids is undefined
 
   - name: Log unexported volume IDs found
     debug: var=unexp_vol_ids

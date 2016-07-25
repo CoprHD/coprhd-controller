@@ -513,6 +513,31 @@ setup_yaml() {
     printf 'array:\n  %s:\n  - ip: %s:%s\n    id: %s\n    username: %s\n    password: %s\n    version: %s' "$storage_type" "$storage_ip" "$storage_port" "$SERIAL_NUMBER" "$storage_user" "$storage_password" "$storage_version" >> $tools_file
 }
 
+setup_provider() {
+    DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+    tools_file="${DIR}/preExistingConfig.properties"
+    if [ -f "$tools_file" ]; then
+	echo "stale $tools_file found. Deleting it."
+	rm $tools_file
+    fi
+
+    if [ "${storage_password}" = "" ]; then
+	echo "storage_password is not set.  Cannot make a valid tools.yml file without a storage_password"
+	exit;
+    fi
+
+    # create the yml file to be used for array tooling
+    touch $tools_file
+    storage_type=`storagedevice list | grep COMPLETE | grep ${sstype} | awk '{print $1}'`
+    storage_name=`storagedevice list | grep COMPLETE | grep ${sstype} | awk '{print $2}'`
+    storage_version=`storagedevice show ${storage_name} | grep firmware_version | awk '{print $2}' | cut -d '"' -f2`
+    storage_ip=`storagedevice show ${storage_name} | grep smis_provider_ip | awk '{print $2}' | cut -d '"' -f2`
+    storage_port=`storagedevice show ${storage_name} | grep smis_port_number | awk '{print $2}' | cut -d ',' -f1`
+    storage_user=`storagedevice show ${storage_name} | grep smis_user_name | awk '{print $2}' | cut -d '"' -f2`
+    ##update tools.yml file with the array details
+    printf 'provider.ip=%s\nprovider.cisco_ip=1.1.1.1\nprovider.username=%s\nprovider.password=%s\nprovider.port=%s" "$storage_ip" "$storage_user" "$storage_password" >> $tools_file
+}
+
 login() {
     echo "Tenant is ${TENANT}";
     security login $SYSADMIN $SYSADMIN_PASSWORD
@@ -2565,6 +2590,9 @@ then
     setup
     if [ "$SS" = "xio" -o "$SS" = "vplex" ]; then
 	setup_yaml;
+    fi
+    if [ "$SS" = "vmax2" -o "$SS" = "vmax3" -o "$SS" = "vnx" ]; then
+	setup_provider;
     fi
 fi
 

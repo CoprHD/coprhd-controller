@@ -941,12 +941,8 @@ public interface BadRequestExceptions {
     public BadRequestException noIntiatorsConnectedToVolumes();
 
     @DeclareServiceCode(ServiceCode.API_NO_PLACEMENT_FOUND)
-    public BadRequestException noMatchingRecoverPointProtectionPools(final String varrayLabel,
-            final String vPoolLabel, final Set<String> varrayLabels);
-
-    @DeclareServiceCode(ServiceCode.API_NO_PLACEMENT_FOUND)
     public BadRequestException noMatchingRecoverPointStoragePoolsForVpoolAndVarrays(
-            final String vpoolLabel, final Set<String> varrayLabels);
+            final String vpoolLabel, final Set<String> varrayLabels, String errorMessage);
 
     @DeclareServiceCode(ServiceCode.API_NO_PLACEMENT_FOUND)
     public BadRequestException noMatchingStoragePoolsForVpoolAndVarray(final String vpoolLabel,
@@ -954,7 +950,7 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_NO_PLACEMENT_FOUND)
     public BadRequestException noMatchingStoragePoolsForVpoolAndVarrayForClones(final String vpoolLabel,
-            final String varrayLabel, final URI volumeId);
+            final String varrayLabel, final URI volumeId, String errorMessage);
 
     @DeclareServiceCode(ServiceCode.API_NO_PLACEMENT_FOUND)
     public BadRequestException noStoragePoolsForVpoolInVarray(final String varrayLabel, final String vpoolLabel);
@@ -968,11 +964,7 @@ public interface BadRequestExceptions {
             final String vpoolLabel, final Set<String> varrayLabels);
 
     @DeclareServiceCode(ServiceCode.API_NO_PLACEMENT_FOUND)
-    public BadRequestException noMatchingStoragePoolsForVpoolAndVarrays(
-            final String vpoolLabel, final Set<String> varrayLabel);
-
-    @DeclareServiceCode(ServiceCode.API_NO_PLACEMENT_FOUND)
-    public BadRequestException noMatchingHighAvailabilityStoragePools(final String vpool, final String varray);
+    public BadRequestException noMatchingHighAvailabilityStoragePools(final String vpool, final String varray, final String errorMessage);
 
     @DeclareServiceCode(ServiceCode.API_NO_PLACEMENT_FOUND)
     public BadRequestException noVplexLocalRecommendationFromSubScheduler(
@@ -1687,6 +1679,9 @@ public interface BadRequestExceptions {
     public BadRequestException failoverCopiesParamCanOnlyBeOne();
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException changeAccessCopiesParamCanOnlyBeOne();
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException swapCopiesParamCanOnlyBeOne();
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
@@ -1839,7 +1834,7 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException cannotAddVolumesToSwappedCG(final String cgName);
-    
+
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException cannotAddVolumesToSwappedReplicationGroup(final String rgName);
 
@@ -2994,12 +2989,17 @@ public interface BadRequestExceptions {
     public BadRequestException snapshotRestoreNotSupported();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException unsupportedAccessMode(final String accessMode);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotExpandTargetVirtualVolume(final String label);
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotExpandSRDFVolumeWithSnapshots(final String label);
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotDeleteSRDFTargetVolume(final String label);
-    
+
+    @DeclareServiceCode(ServiceCode.API_NO_PLACEMENT_FOUND)
+    public BadRequestException noStoragePools(final String varrayLabel, final String vpoolLabel, final String errorMessage);
 }

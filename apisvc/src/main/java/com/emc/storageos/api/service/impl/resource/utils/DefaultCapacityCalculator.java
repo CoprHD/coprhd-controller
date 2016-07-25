@@ -24,7 +24,8 @@ public class DefaultCapacityCalculator implements CapacityCalculator {
      */
     @Override
     public Boolean capacitiesCanMatch(String storageSystemType) {
-        if (this.systemType.equalsIgnoreCase(DiscoveredDataObject.Type.vnxblock.toString())) {
+        if (this.systemType.equalsIgnoreCase(DiscoveredDataObject.Type.vnxblock.toString()) ||
+                this.systemType.equalsIgnoreCase(DiscoveredDataObject.Type.unity.toString())) {
             return true;
         }
         return false;

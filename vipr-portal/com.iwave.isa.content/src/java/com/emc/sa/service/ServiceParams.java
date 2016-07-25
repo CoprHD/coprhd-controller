@@ -65,6 +65,7 @@ public interface ServiceParams {
     public String FAILBACK_TARGET_FILE = "failbackTargetFile";
     public String IMAGE_TO_ACCESS = "imageToAccess";
     public String POINT_IN_TIME = "pointInTime";
+    public String DIRECT_ACCESS = "directAccess";
     public String NUMBER_OF_VOLUMES = "numberOfVolumes";
     public String NUMBER_OF_HOSTS = "numberOfHosts";
     public String COUNT = "count";

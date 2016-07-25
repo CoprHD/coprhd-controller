@@ -396,7 +396,7 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
     }
 
     @Override
-    public DriverTask deleteVolumes(List<StorageVolume> volumes) {
+    public DriverTask deleteVolume(StorageVolume volume) {
 
         String taskType = "delete-storage-volumes";
         String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
@@ -404,7 +404,7 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
         task.setStatus(DriverTask.TaskStatus.READY);
 
         _log.info("StorageDriver: deleteVolumes information for storage system {}, volume nativeIds {} - end",
-                volumes.get(0).getStorageSystemId(), volumes.toString());
+                volume.getStorageSystemId(), volume.toString());
         return task;
     }
     
@@ -474,14 +474,14 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
     }
 
     @Override
-    public DriverTask deleteVolumeSnapshot(List<VolumeSnapshot> snapshots) {
+    public DriverTask deleteVolumeSnapshot(VolumeSnapshot snapshot) {
         String taskType = "delete-volume-snapshot";
         String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
         DriverTask task = new DriverSimulatorTask(taskId);
         task.setStatus(DriverTask.TaskStatus.READY);
         String msg = String.format("StorageDriver: deleteVolumSnapshot for storage system %s, " +
                         "snapshots nativeId %s - end",
-                snapshots.get(0).getStorageSystemId(), snapshots.toString());
+                snapshot.getStorageSystemId(), snapshot.toString());
         _log.info(msg);
         task.setMessage(msg);
         return task;
@@ -540,14 +540,14 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
 
 
     @Deprecated
-    public DriverTask deleteVolumeClone(List<VolumeClone> clones) {
+    public DriverTask deleteVolumeClone(VolumeClone clone) {
         String taskType = "delete-volume-clone";
         String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
         DriverTask task = new DriverSimulatorTask(taskId);
         task.setStatus(DriverTask.TaskStatus.READY);
         String msg = String.format("StorageDriver: deleteVolumeClone for storage system %s, " +
                         "clones nativeId %s - end",
-                clones.get(0).getStorageSystemId(), clones.toString());
+                clone.getStorageSystemId(), clone.toString());
         _log.info(msg);
         task.setMessage(msg);
         return task;
@@ -559,7 +559,7 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
     }
 
     @Override
-    public DriverTask deleteVolumeMirror(List<VolumeMirror> mirrors) {
+    public DriverTask deleteVolumeMirror(VolumeMirror mirror) {
         return null;
     }
 

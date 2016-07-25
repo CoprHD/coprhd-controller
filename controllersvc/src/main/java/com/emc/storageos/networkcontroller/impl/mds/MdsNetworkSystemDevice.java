@@ -1899,7 +1899,6 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
 
             dialog = setUpDialog(networkSystem);
             for (String endpointWwn : endpointsWwn) {
-            	_log.info("get zone for pwwn=" + endpointWwn);
                 Collection<String> zoneNames = dialog.showZoneNamesForPwwn(endpointWwn, vsanId, true);
                 List<Zone> zones = dialog.showZones(zoneNames, true);
                 zoneMap.put(endpointWwn, zones);

@@ -2114,12 +2114,7 @@ public class MDSDialog extends SSHDialog {
             for (String zoneName : zoneNames) {
             	//it's ivr zone 
             	if (zoneName.startsWith(IVR_ZONENAME_PREFIX)) {
-            		_log.info("zone=" + zoneName + " is an ivr zone");
-            		zone = showIvrZone(zoneName.substring(IVR_ZONENAME_PREFIX.length()));
-            		_log.info("ivr zone name:" + zone.getName());
-            		for (ZoneMember member : zone.getMembers()) {
-            			_log.info("zone member address=" + member.getAddress());
-            		}
+            	    zone = showIvrZone(zoneName.substring(IVR_ZONENAME_PREFIX.length()));
             	} else {
                     zone = showZone(zoneName, aliasDatabase, excludeAliases);
             	}

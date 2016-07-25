@@ -618,7 +618,7 @@ public class SchemaUtil {
                 updateTableQueryStrigList.add(generateCreateTableCQL(cf.getName(), gc, compactionStrategy, schema, primaryKey, clientContext.getKeyspaceName()));
                 
                 if (updateTableQueryStrigList.size() >= CREATE_TABLE_CONCURRENT_ASYC_TASK_COUNT) {
-                    clientContext.createCFAsync(updateTableQueryStrigList);
+                    clientContext.createCF(updateTableQueryStrigList);
                 }
                 
                 waitForSchema = true;
@@ -672,14 +672,14 @@ public class SchemaUtil {
                 if (modified) {
                     if (updateTableQueryStrigList.size() >= CREATE_TABLE_CONCURRENT_ASYC_TASK_COUNT) {
                         updateTableQueryStrigList.add(generateAlterTableCQL(cfd, compactionStrategy, gcGrace, clientContext.getKeyspaceName()));
-                        clientContext.createCFAsync(updateTableQueryStrigList);
+                        clientContext.createCF(updateTableQueryStrigList);
                     }
                 }
             }
         }
         
         if (updateTableQueryStrigList.size() > 0 ) {
-            clientContext.createCFAsync(updateTableQueryStrigList);
+            clientContext.createCF(updateTableQueryStrigList);
         }
 
         if (waitForSchema) {

@@ -6,6 +6,7 @@
 package com.emc.storageos.db.client.impl;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -31,7 +32,9 @@ import org.slf4j.LoggerFactory;
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.Host;
+import com.datastax.driver.core.HostDistance;
 import com.datastax.driver.core.KeyspaceMetadata;
+import com.datastax.driver.core.PoolingOptions;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
@@ -204,6 +207,7 @@ public class DbClientContext {
         String svcName = hostSupplier.getDbSvcName();
         log.info("Initializing hosts for {}", svcName);
         List<CassandraHost> hosts = hostSupplier.get();
+        
         if ((hosts != null) && (hosts.isEmpty())) {
             throw new IllegalStateException(String.format("DbClientContext.init() : host list in hostsupplier for %s is empty", svcName));
         } else {
@@ -232,13 +236,19 @@ public class DbClientContext {
                 }
             }, 60, DEFAULT_CONSISTENCY_LEVEL_CHECK_SEC, TimeUnit.SECONDS);
         }
-        // init java driver
+        
+        PoolingOptions poolingOptions = new PoolingOptions();
+        poolingOptions.setMaxRequestsPerConnection(HostDistance.LOCAL, maxConnections);
+        poolingOptions.setMaxConnectionsPerHost(HostDistance.LOCAL, maxConnectionsPerHost);
+        poolingOptions.setPoolTimeoutMillis(DEFAULT_CONN_TIMEOUT);
+        
         String[] contactPoints = new String[hosts.size()];
         for (int i = 0; i < hosts.size(); i++) {
             contactPoints[i] = hosts.get(i).getHost();
         }
         cassandraCluster = com.datastax.driver.core.Cluster
                 .builder()
+                .withPoolingOptions(poolingOptions)
                 .withRetryPolicy(new ViPRRetryPolicy(10, 1000))
                 .withLoadBalancingPolicy(new RoundRobinPolicy())
                 .addContactPoints(contactPoints).withPort(getNativeTransportPort()).build();
@@ -332,7 +342,7 @@ public class DbClientContext {
         return cassandraCluster.getMetadata().getKeyspace("\"" + keyspaceName + "\"");
     }
 
-    public void createCFAsync(List<String> cqlList) throws InterruptedException, ExecutionException {
+    public void createCF(List<String> cqlList) throws InterruptedException, ExecutionException {
         
         List<ResultSetFuture> futures = new ArrayList<ResultSetFuture>();
         for (String cql : cqlList) {
@@ -650,6 +660,6 @@ public class DbClientContext {
             }
         }
         
-        return new ArrayList<String>(0);
+        return Collections.emptyList();
     }
 }

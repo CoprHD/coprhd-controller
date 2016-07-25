@@ -186,9 +186,7 @@ public class VirtualArrays extends ViprResourceController {
 							if(StringUtils.equals(XTREMIO, storageSystem.getSystemType())) {
 								ids.add(storageSystem.getId().toString());
 							}
-                            if(StringUtils.equals(VMAX, storageSystem.getSystemType())) {
-                                ids.add(storageSystem.getId().toString());
-                            }
+
 							if( StringUtils.equals(UNITY, storageSystem.getSystemType()) || StringUtils.equals(VMAX, storageSystem.getSystemType())) {
 								String modelType = storageSystem.getModel();
 								if(modelType != null && modelType.endsWith(SUFFIX_ALL_FLASH) ) {
@@ -221,9 +219,7 @@ public class VirtualArrays extends ViprResourceController {
 					if(StringUtils.equals(XTREMIO, storageSystem.getSystemType())) {
 						ids.add(storageSystem.getId().toString());
 					}
-                    if(StringUtils.equals(VMAX, storageSystem.getSystemType())) {
-                        ids.add(storageSystem.getId().toString());
-                    }
+
 					if( StringUtils.equals(UNITY, storageSystem.getSystemType()) || StringUtils.equals(VMAX, storageSystem.getSystemType())) {
 						String modelType = storageSystem.getModel();
 						if(modelType != null && modelType.endsWith(SUFFIX_ALL_FLASH) ) {
@@ -242,10 +238,8 @@ public class VirtualArrays extends ViprResourceController {
 			if(storage_systems != null ) {
 				for(Object storageobject : storage_systems) {
 					JsonObject storage = (JsonObject) storageobject;
-					String storageid = storage.get("id").toString();
-
-					StorageSystemRestRep storageSystem = StorageSystemUtils.getStorageSystem(storageid);
-					String storagename = storageSystem.getName();
+					String storageid = storage.get("id").getAsString();
+					String storagename = storage.get("name").getAsString();
 
 					VirtualArrayForm virtualArray = new VirtualArrayForm();
 					virtualArray.name = VARRAY_PREFIX + storagename;
@@ -253,7 +247,6 @@ public class VirtualArrays extends ViprResourceController {
 					virtualArray.load(varray);
 
                     updateVarrayCookie(virtualArray.name);
-					//response.setCookie("guide_varray", virtualArray.name );
 
 					addVarrayStorageSystem(virtualArray.id, storageid);
 				}

@@ -537,11 +537,14 @@ public class KeystoneUtils {
      */
     public TenantOrg getCoprhdTenantWithOpenstackId(String id) {
 
-        List<TenantOrg> tenants = getCoprhdTenantsWithOpenStackId();
+        if (id != null && !id.isEmpty()) {
+            List<TenantOrg> tenants = getCoprhdTenantsWithOpenStackId();
 
-        for (TenantOrg tenant : tenants) {
-            if (getCoprhdTenantUserMapping(tenant).contains(id)) {
-                return tenant;
+            for (TenantOrg tenant : tenants) {
+                String userMapping = getCoprhdTenantUserMapping(tenant);
+                if (userMapping != null && userMapping.contains(id)) {
+                    return tenant;
+                }
             }
         }
 

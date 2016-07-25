@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.volumecontroller.impl.validators.DefaultValidator;
 import com.emc.storageos.volumecontroller.impl.validators.smis.AbstractSMISValidator;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -48,8 +49,14 @@ public abstract class ExportMaskValidator extends AbstractSMISValidator {
         log.info("Validating export mask: {}", exportMask.getId());
         getLogger().setLog(log);
 
-        // Refresh the provider's view of the storage system
-        getHelper().callRefreshSystem(storage);
+        // We want the latest info, but in most customer cases, array configurations don't change every 5 minutes.
+        // By default we do not want to refresh and cause additional performance issues.
+        // But in the case of automated test suites where we combine in-controller and out-of-controller operations,
+        // we have tighter tolerances and need to run refresh.
+        if (DefaultValidator.validationRefreshEnabled(getCoordinator())) {
+            // Refresh the provider's view of the storage system
+            getHelper().callRefreshSystem(storage);
+        }
 
         Set<String> database = getDatabaseResources();
         Set<String> hardware = getHardwareResources();

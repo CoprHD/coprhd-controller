@@ -13,9 +13,13 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+
+import javax.cim.CIMArgument;
+import javax.cim.CIMObjectPath;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,11 +49,16 @@ import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.VolumeURIHLU;
 import com.emc.storageos.volumecontroller.impl.smis.ExportMaskOperations;
+import com.emc.storageos.volumecontroller.impl.smis.SmisCommandHelper;
+import com.emc.storageos.volumecontroller.impl.smis.vmax.VmaxExportOperationContext;
+import com.emc.storageos.volumecontroller.impl.utils.ExportOperationContext;
+import com.emc.storageos.volumecontroller.impl.utils.ExportOperationContext.ExportOperationContextOperation;
 import com.emc.storageos.volumecontroller.impl.validators.ValidatorFactory;
 import com.emc.storageos.volumecontroller.impl.validators.xtremio.XtremIOExportMaskInitiatorsValidator;
 import com.emc.storageos.volumecontroller.impl.validators.xtremio.XtremIOExportMaskValidator;
 import com.emc.storageos.volumecontroller.impl.validators.xtremio.XtremIOExportMaskVolumesValidator;
 import com.emc.storageos.volumecontroller.impl.xtremio.prov.utils.XtremIOProvUtils;
+import com.emc.storageos.workflow.WorkflowService;
 import com.emc.storageos.xtremio.restapi.XtremIOClient;
 import com.emc.storageos.xtremio.restapi.XtremIOConstants;
 import com.emc.storageos.xtremio.restapi.XtremIOConstants.XTREMIO_ENTITY_TYPE;
@@ -169,6 +178,10 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
 
             runLunMapCreationAlgorithm(storage, exportMask, volumeURIHLUs, initiatorList, null, client, xioClusterName, initiatorToIGMap,
                     null, taskCompleter);
+
+            ExportOperationContext.insertContextOperation(taskCompleter,
+                    XtremIOExportOperationContext.OPERATION_ADD_LUN_MAP_TO_INITIATOR_GROUP,
+                    exportMask, volumeURIHLUs, initiatorList);
         } catch (final Exception ex) {
             _log.error("Problem in addVolumes: ", ex);
             ServiceError serviceError = DeviceControllerErrors.xtremio
@@ -196,7 +209,15 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                 throw new DeviceControllerException("Invalid ExportMask URI: " + exportMaskURI);
             }
 
-            runLunMapDeletionAlgorithm(storage, exportMask, volumeUris, initiatorList, taskCompleter);
+            // Get the context from the task completer, in case this is a rollback.
+            ExportOperationContext context = (ExportOperationContext) WorkflowService.getInstance().loadStepData(taskCompleter.getOpId());
+            if (context != null) {
+                exportMaskRollback(storage, context, taskCompleter);
+                taskCompleter.ready(dbClient);
+                return;
+            } else {
+                runLunMapDeletionAlgorithm(storage, exportMask, volumeUris, initiatorList, taskCompleter);
+            }
         } catch (final Exception ex) {
             _log.error("Problem in removeVolumes: ", ex);
             ServiceError serviceError = DeviceControllerErrors.xtremio
@@ -640,7 +661,8 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
 
                         /**
                          * i) If Cluster export:
-                         * If there are additional initiators other than the requested ones (Single IG with all cluster initiators)
+                         * If there are additional initiators other than the requested ones (Single IG with all cluster
+                         * initiators)
                          * - - - remove initiator from IG,
                          * - - - Note: If initiators are of RP (CTRL-13622), always delete LunMap.
                          * - ii) Host export:
@@ -814,7 +836,8 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
             } catch (Exception e) {
                 // assume initiator already part of another group look for
                 // port_address_not_unique
-                // CTRL-5956 - Few Initiators cannot be registered on XtremIO Array, throw exception even if one initiator registration
+                // CTRL-5956 - Few Initiators cannot be registered on XtremIO Array, throw exception even if one
+                // initiator registration
                 // fails.
                 _log.warn("Initiator {} already available or not able to register the same on Array. Rediscover the Array and try again.",
                         remainingInitiator.getInitiatorPort());
@@ -1117,5 +1140,34 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
     @Override
     public Map<URI, Integer> getExportMaskHLUs(StorageSystem storage, ExportMask exportMask) {
         return Collections.emptyMap();
+    }
+
+    /**
+     * Export mask operation rollback method.
+     *
+     * @param storage
+     *            storage device
+     * @param taskCompleter
+     *            task completer
+     */
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    private void exportMaskRollback(StorageSystem storage, ExportOperationContext context, TaskCompleter taskCompleter) throws Exception {
+        // Go through each operation and roll it back.
+        if (context.getOperations() != null) {
+            ListIterator li = context.getOperations().listIterator(context.getOperations().size());
+            while (li.hasPrevious()) {
+                ExportOperationContextOperation operation = (ExportOperationContextOperation) li.previous();
+                try {
+                    switch (operation.getOperation()) {
+                        case XtremIOExportOperationContext.OPERATION_ADD_LUN_MAP_TO_INITIATOR_GROUP:
+                            
+                            break;
+                        default:
+                    }
+                } catch (Exception e) {
+                    _log.error("Exception caught while running rollback", e);
+                }
+            }
+        }
     }
 }

@@ -4184,9 +4184,9 @@ public class FileService extends TaskResourceService {
         if (allDirs && !mountList.isEmpty()) {
             return true;
         }
-        if (!allDirs && subDir != null && !subDir.isEmpty()) {
+        if (!(allDirs || mountList.isEmpty())) {
             for (MountInfo mount : mountList) {
-                if (mount.getSubDirectory() == subDir) {
+                if ((mount.getSubDirectory() == "!nodir" && subDir == null) || mount.getSubDirectory() == subDir) {
                     return true;
                 }
             }

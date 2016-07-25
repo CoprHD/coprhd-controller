@@ -18,29 +18,25 @@ public class LinuxHostMountAdapter extends AbstractMountAdapter {
 
     MountUtils mountUtils;
 
-    public LinuxHostMountAdapter(Host host) {
-        mountUtils = new MountUtils(host);
+    public LinuxHostMountAdapter() {
+
     }
 
     @Override
     public void doMount(HostDeviceInputOutput args) throws InternalException {
+        mountUtils = new MountUtils(dbClient.queryObject(Host.class, args.getHostId()));
         FileShare fs = dbClient.queryObject(FileShare.class, args.getResId());
         FileExport export = findExport(fs, args.getSubDirectory(), args.getSecurity());
         String fsType = args.getFsType() == null ? "auto" : args.getFsType();
         String subDirectory = args.getSubDirectory() == null ? "!nodir" : args.getSubDirectory();
-        try {
-            // verify mount point
-            mountUtils.verifyMountPoint(args.getMountPath());
-            // Create directory
-            mountUtils.createDirectory(args.getMountPath());
-            // Add to the /etc/fstab to allow the os to mount on restart
-            mountUtils.addToFSTab(args.getMountPath(), export.getMountPoint(), fsType, "nolock,sec=" + args.getSecurity());
-            // Mount the device
-            mountUtils.mountPath(args.getMountPath());
-        } catch (InternalException e) {
-            throw e;
-
-        }
+        // verify mount point
+        mountUtils.verifyMountPoint(args.getMountPath());
+        // Create directory
+        mountUtils.createDirectory(args.getMountPath());
+        // Add to the /etc/fstab to allow the os to mount on restart
+        mountUtils.addToFSTab(args.getMountPath(), export.getMountPoint(), fsType, "nolock,sec=" + args.getSecurity());
+        // Mount the device
+        mountUtils.mountPath(args.getMountPath());
         // Set the fs tag containing mount info
         setTag(fs.getId(), mountUtils.generateMountTag(args.getHostId(), args.getMountPath(),
                 subDirectory, args.getSecurity()));
@@ -48,6 +44,7 @@ public class LinuxHostMountAdapter extends AbstractMountAdapter {
 
     @Override
     public void doUnmount(HostDeviceInputOutput args) throws InternalException {
+        mountUtils = new MountUtils(dbClient.queryObject(Host.class, args.getHostId()));
         // unmount the Export
         mountUtils.unmountPath(args.getMountPath());
         // remove from fstab

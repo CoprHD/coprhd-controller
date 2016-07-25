@@ -56,7 +56,7 @@ public class StorageProviders extends ViprResourceController {
     protected static final String DISCOVERY_STARTED = "SMISProviders.introspection";
     private static final int SAVE_WAIT_MILLIS = 300000;
     private static final String HTTPS = "https";
-    private static final String HYPERSCALEPORT = "8443";
+    private static final String HYPERSCALEPORT = "8443"; //hardcode to be removed in next check-in
 
     private static void addReferenceData() {
         renderArgs.put("interfaceTypeOptions", StorageProviderTypes.getProviderOption());

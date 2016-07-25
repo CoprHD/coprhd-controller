@@ -573,9 +573,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             Set<String> orderedSecTypes = new TreeSet<String>();
             for (String securityType : fileExport.getSecurityType().split(",")) {
                 securityType = securityType.trim();
-                if (securityType.equals(FileShareExport.SecurityTypes.sys.name())) {
-                    securityType = "unix";
-                }
                 orderedSecTypes.add(securityType);
                 // strCSSecurityType = strCSSecurityType + (strCSSecurityType.isEmpty() ? securityType : "," + securityType);
             }

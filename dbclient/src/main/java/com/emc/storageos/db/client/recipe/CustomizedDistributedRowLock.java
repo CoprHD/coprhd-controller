@@ -181,7 +181,7 @@ public class CustomizedDistributedRowLock<K> {
             try {
                 long curTimeMicros = getCurrentTimeMicros();
 
-                RowMutator mutator = new RowMutator(context);
+                RowMutator mutator = new RowMutator(context, false);
                 mutator.setWriteCL(consistencyLevel);
                 fillLockMutation(mutator, curTimeMicros, ttl);
                 mutator.execute();
@@ -248,7 +248,7 @@ public class CustomizedDistributedRowLock<K> {
      */
     public void release() throws Exception {
         if (!locksToDelete.isEmpty() || lockColumn != null) {
-            RowMutator mutator = new RowMutator(context);
+            RowMutator mutator = new RowMutator(context, false);
             mutator.setWriteCL(consistencyLevel);
             fillReleaseMutation(mutator, false);
             mutator.execute();
@@ -375,7 +375,7 @@ public class CustomizedDistributedRowLock<K> {
     public Map<String, Long> releaseLocks(boolean force) throws Exception {
         Map<String, Long> locksToDelete = readLockColumns();
 
-        RowMutator mutator = new RowMutator(context);
+        RowMutator mutator = new RowMutator(context, false);
         mutator.setWriteCL(consistencyLevel);
         long now = getCurrentTimeMicros();
         for (Entry<String, Long> c : locksToDelete.entrySet()) {

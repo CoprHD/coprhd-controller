@@ -136,7 +136,7 @@ public class GlobalLockImpl implements GlobalLockItf {
         _log.info("{} is acquiring global lock {} ...", localOwner, _name);
         boolean bLockAcquired = false;
 
-        RowMutator mutator = new RowMutator(_context);
+        RowMutator mutator = new RowMutator(_context, false);
         try {
             Map<String, ByteBuffer> columns = _cpDistRowlock.acquireLockAndReadRow();
 
@@ -225,7 +225,7 @@ public class GlobalLockImpl implements GlobalLockItf {
 
         boolean bLockReleased = false;
 
-        RowMutator mutator = new RowMutator(_context);
+        RowMutator mutator = new RowMutator(_context, false);
         try {
             Map<String, ByteBuffer> columns = _cpDistRowlock.acquireLockAndReadRow();
 

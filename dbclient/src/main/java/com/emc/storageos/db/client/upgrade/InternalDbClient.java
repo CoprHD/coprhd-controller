@@ -70,8 +70,7 @@ public class InternalDbClient extends DbClientImpl {
         while (!batch.isEmpty()) {
             Map<String, List<CompositeColumnName>> removeList = queryRowsWithAColumn(context, batch, doType.getCF().getName(), columnField);
             boolean retryFailedWriteWithLocalQuorum = shouldRetryFailedWriteWithLocalQuorum(clazz);
-            //todo retry
-            RowMutator mutator = new RowMutator(context);
+            RowMutator mutator = new RowMutator(context, retryFailedWriteWithLocalQuorum);
             _indexCleaner.removeOldIndex(mutator, doType, removeList, indexCf);
             batch = getNextBatch(recIt);
         }
@@ -118,7 +117,7 @@ public class InternalDbClient extends DbClientImpl {
 
     public void persistSchemaRecord(SchemaRecord record) throws DatabaseException {
         try {
-            RowMutator mutator = new RowMutator(getLocalContext());
+            RowMutator mutator = new RowMutator(getLocalContext(), false);
             SchemaRecordType type = TypeMap.getSchemaRecordType();
             type.serialize(mutator, record);
         } catch (DriverException e) {
@@ -242,8 +241,7 @@ public class InternalDbClient extends DbClientImpl {
                     // only that we need to specify the keyspace explicitly here
                     // also we shouldn't overwrite the creation time
                     boolean retryFailedWriteWithLocalQuorum = shouldRetryFailedWriteWithLocalQuorum(clazz);
-                    //todo retry
-                    RowMutator mutator = new RowMutator(geoContext);
+                    RowMutator mutator = new RowMutator(geoContext, retryFailedWriteWithLocalQuorum);
                     doType.serialize(mutator, obj);
                     mutator.execute();
                 } catch (final InstantiationException e) {
@@ -333,7 +331,7 @@ public class InternalDbClient extends DbClientImpl {
 
                     if (objects.size() == DEFAULT_PAGE_SIZE) {
                         boolean retryFailedWriteWithLocalQuorum = shouldRetryFailedWriteWithLocalQuorum(clazz);
-                        RowMutator mutator = new RowMutator(context);
+                        RowMutator mutator = new RowMutator(context, retryFailedWriteWithLocalQuorum);
                         _indexCleaner.removeColumnAndIndex(mutator, doType, removedList);
                         updateObject(objects);
                         objects.clear();
@@ -360,7 +358,7 @@ public class InternalDbClient extends DbClientImpl {
 
             if (!objects.isEmpty()) {
                 boolean retryFailedWriteWithLocalQuorum = shouldRetryFailedWriteWithLocalQuorum(clazz);
-                RowMutator mutator = new RowMutator(context);
+                RowMutator mutator = new RowMutator(context, retryFailedWriteWithLocalQuorum);
                 _indexCleaner.removeColumnAndIndex(mutator, doType, removedList);
                 updateObject(objects);
             }

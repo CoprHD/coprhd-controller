@@ -8,11 +8,15 @@ import com.datastax.driver.core.BatchStatement;
 import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.PreparedStatement;
+import com.datastax.driver.core.exceptions.ConnectionException;
+import com.datastax.driver.core.exceptions.NoHostAvailableException;
+import com.datastax.driver.core.exceptions.QueryExecutionException;
 import com.datastax.driver.core.querybuilder.Delete;
 import com.datastax.driver.core.utils.UUIDs;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.ScopedLabel;
 import com.emc.storageos.db.exceptions.DatabaseException;
+
 import org.apache.cassandra.serializers.BooleanSerializer;
 import org.apache.cassandra.serializers.DoubleSerializer;
 import org.apache.cassandra.serializers.FloatSerializer;
@@ -38,8 +42,9 @@ public class RowMutator {
     private DbClientContext context;
     private BatchStatement atomicBatch;
     private UUID timeUUID;
+    private boolean retryFailedWriteWithLocalQuorum = false;
+    private ConsistencyLevel writeCL = null;
 
-    private ConsistencyLevel writeCL = ConsistencyLevel.EACH_QUORUM; // default
     private final int defaultTTL = 0;
 
     private static final String updateRecordFormat = "UPDATE \"%s\" SET value = ? WHERE key = ? AND column1 = ? AND column2 = ? AND column3 = ? AND column4 = ?";
@@ -48,10 +53,12 @@ public class RowMutator {
     private static final String insertSchemaRecordFormat = "INSERT INTO \"%s\" (key, column1, value) VALUES(?, ?, ?)";
     private static final String insertGlobalLockFormat = "INSERT INTO \"%s\" (key, column1, value) VALUES(?, ?, ?) USING TTL ?";
 
-    public RowMutator(DbClientContext context) {
+    public RowMutator(DbClientContext context, boolean retryWithLocalQuorum) {
         this.context = context;
         this.atomicBatch = new BatchStatement();
         this.timeUUID = UUIDs.timeBased();
+        this.retryFailedWriteWithLocalQuorum = retryWithLocalQuorum;
+        this.writeCL = context.getWriteConsistencyLevel();
         /*
          * will consider codeRegistry later.
          * CodecRegistry codecRegistry = CodecRegistry.DEFAULT_INSTANCE;
@@ -118,8 +125,25 @@ public class RowMutator {
 
     public void execute() {
         atomicBatch.setConsistencyLevel(writeCL);
-        context.getSession().execute(atomicBatch);
-        //todo executeWithRetry
+        
+        try {
+            context.getSession().execute(atomicBatch);
+        } catch (QueryExecutionException | ConnectionException | NoHostAvailableException e) {
+            // change consistency level and retry once with LOCAL_QUORUM
+            log.warn("can't execute row mutator in consistency level {} with exception {} ", 
+                    atomicBatch.getConsistencyLevel(), e);
+            
+            ConsistencyLevel currentConsistencyLevel = atomicBatch.getConsistencyLevel();
+            if (retryFailedWriteWithLocalQuorum && currentConsistencyLevel.equals(ConsistencyLevel.EACH_QUORUM)) {
+                atomicBatch.setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM);
+                context.getSession().execute(atomicBatch);
+                
+                log.info("Reduce write consistency level to LOCAL_QUORUM");
+                context.setWriteConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM);
+            } else {
+                throw e;
+            }
+        }
     }
     
     public void insertTimeSeriesColumn(String tableName, String rowKey, UUID uuid, Object val, Integer ttl) {
@@ -197,13 +221,12 @@ public class RowMutator {
 
         return blobVal;
     }
-
-    public void setWriteCL(ConsistencyLevel writeCL) {
-        this.writeCL = writeCL;
-    }
-
+    
     public UUID getTimeUUID() {
         return timeUUID;
     }
-
+    
+    public void setWriteCL(ConsistencyLevel writeCL) {
+        this.writeCL = writeCL;
+    }
 }

@@ -5,42 +5,54 @@
 
 package com.emc.storageos.db.client.impl;
 
-import java.util.Collection;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.policies.RetryPolicy;
+import javax.management.MBeanServerConnection;
+import javax.management.MBeanServerInvocationHandler;
+import javax.management.ObjectName;
+import javax.management.remote.JMXConnector;
+import javax.management.remote.JMXConnectorFactory;
+import javax.management.remote.JMXServiceURL;
+
 import org.apache.cassandra.service.StorageProxy;
+import org.apache.cassandra.service.StorageServiceMBean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.ConsistencyLevel;
+import com.datastax.driver.core.Host;
+import com.datastax.driver.core.HostDistance;
 import com.datastax.driver.core.KeyspaceMetadata;
+import com.datastax.driver.core.PoolingOptions;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.Statement;
-import com.datastax.driver.core.TableMetadata;
 import com.datastax.driver.core.WriteType;
 import com.datastax.driver.core.exceptions.ConnectionException;
 import com.datastax.driver.core.exceptions.DriverException;
+import com.datastax.driver.core.policies.RetryPolicy;
+import com.datastax.driver.core.policies.RoundRobinPolicy;
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
 
 public class DbClientContext {
-
-    private static final String CASSANDRA_HOST_STATE_DOWN = "DOWN";
-
+    
     private static final Logger log = LoggerFactory.getLogger(DbClientContext.class);
 
     private static final int DEFAULT_MAX_CONNECTIONS = 64;
@@ -53,8 +65,6 @@ public class DbClientContext {
     private static final int MAX_QUERY_RETRY = 5;
     private static final int QUERY_RETRY_SLEEP_MS = 1000;
     private static final String LOCAL_HOST = "localhost";
-    private static final int DB_THRIFT_PORT = 9160;
-    private static final int GEODB_THRIFT_PORT = 9260;
     private static final String KEYSPACE_NETWORK_TOPOLOGY_STRATEGY = "NetworkTopologyStrategy";
     private static final int DEFAULT_CONSISTENCY_LEVEL_CHECK_SEC = 30;
 
@@ -64,6 +74,11 @@ public class DbClientContext {
     public static final String GEO_KEYSPACE_NAME = "GeoStorageOS";
     public static final long MAX_SCHEMA_WAIT_MS = 60 * 1000 * 10; // 10 minutes
     public static final int SCHEMA_RETRY_SLEEP_MILLIS = 10 * 1000; // 10 seconds
+    
+    private static final String CASSANDRA_HOST_STATE_DOWN = "DOWN";
+    
+    private static final ConsistencyLevel DEFAULT_READ_CONSISTENCY_LEVEL = ConsistencyLevel.LOCAL_QUORUM;
+    private static final ConsistencyLevel DEFAULT_WRITE_CONSISTENCY_LEVEL = ConsistencyLevel.EACH_QUORUM;
 
     private int maxConnections = DEFAULT_MAX_CONNECTIONS;
     private int maxConnectionsPerHost = DEFAULT_MAX_CONNECTIONS_PER_HOST;
@@ -86,9 +101,10 @@ public class DbClientContext {
     private static final int DB_NATIVE_TRANSPORT_PORT = 9042;
     private static final int GEODB_NATIVE_TRANSPORT_PORT = 9043;
     
-    private com.datastax.driver.core.Cluster cassandraCluster;
+    private Cluster cassandraCluster;
     private Session cassandraSession;
     private Map<String, PreparedStatement> prepareStatementMap = new HashMap<String, PreparedStatement>();
+    private ConsistencyLevel writeConsistencyLevel = DEFAULT_WRITE_CONSISTENCY_LEVEL;
     
     public void setCipherSuite(String cipherSuite) {
         this.cipherSuite = cipherSuite;
@@ -191,6 +207,7 @@ public class DbClientContext {
         String svcName = hostSupplier.getDbSvcName();
         log.info("Initializing hosts for {}", svcName);
         List<CassandraHost> hosts = hostSupplier.get();
+        
         if ((hosts != null) && (hosts.isEmpty())) {
             throw new IllegalStateException(String.format("DbClientContext.init() : host list in hostsupplier for %s is empty", svcName));
         } else {
@@ -219,18 +236,25 @@ public class DbClientContext {
                 }
             }, 60, DEFAULT_CONSISTENCY_LEVEL_CHECK_SEC, TimeUnit.SECONDS);
         }
-        // init java driver
+        
+        PoolingOptions poolingOptions = new PoolingOptions();
+        poolingOptions.setMaxRequestsPerConnection(HostDistance.LOCAL, maxConnections);
+        poolingOptions.setMaxConnectionsPerHost(HostDistance.LOCAL, maxConnectionsPerHost);
+        poolingOptions.setPoolTimeoutMillis(DEFAULT_CONN_TIMEOUT);
+        
         String[] contactPoints = new String[hosts.size()];
         for (int i = 0; i < hosts.size(); i++) {
             contactPoints[i] = hosts.get(i).getHost();
         }
         cassandraCluster = com.datastax.driver.core.Cluster
                 .builder()
+                .withPoolingOptions(poolingOptions)
                 .withRetryPolicy(new ViPRRetryPolicy(10, 1000))
+                .withLoadBalancingPolicy(new RoundRobinPolicy())
                 .addContactPoints(contactPoints).withPort(getNativeTransportPort()).build();
-        cassandraCluster.getConfiguration().getQueryOptions().setConsistencyLevel(com.datastax.driver.core.ConsistencyLevel.LOCAL_QUORUM);
+        cassandraCluster.getConfiguration().getQueryOptions().setConsistencyLevel(DEFAULT_READ_CONSISTENCY_LEVEL);
         cassandraSession = cassandraCluster.connect("\"" + keyspaceName + "\"");
-        
+        prepareStatementMap = new HashMap<String, PreparedStatement>();
         initDone = true;
     }
 
@@ -306,6 +330,7 @@ public class DbClientContext {
                 .builder()
                 .addContactPoints(contactPoints).withPort(getNativeTransportPort())
                 .withClusterName(clusterName)
+                .withLoadBalancingPolicy(new RoundRobinPolicy())
                 .withRetryPolicy(new ViPRRetryPolicy(10, 1000))
                 .build();
     }
@@ -317,52 +342,20 @@ public class DbClientContext {
         return cassandraCluster.getMetadata().getKeyspace("\"" + keyspaceName + "\"");
     }
 
-    public void createCF(String cfName, int gcPeriod, String compactionStrategy, String schema, String primaryKey) {
-        String createCF = String.format("CREATE TABLE \"%s\".\"%s\" (%s,PRIMARY KEY (%s)) WITH COMPACT STORAGE AND " +
-                                "speculative_retry = 'NONE' AND "+
-                                "compaction = { 'class' : '%s' }",
-                        keyspaceName, cfName, schema, primaryKey, compactionStrategy);
-        if (gcPeriod != 0) {
-            createCF +=" AND gc_grace_seconds = ";
-            createCF += gcPeriod;
+    public void createCF(List<String> cqlList) throws InterruptedException, ExecutionException {
+        
+        List<ResultSetFuture> futures = new ArrayList<ResultSetFuture>();
+        for (String cql : cqlList) {
+            log.info("create table with CQL: {}", cql);
+            futures.add(cassandraSession.executeAsync(cql));
         }
-        createCF +=";";
 
-        log.info("createCF={}", createCF);
-
-        cassandraSession.execute(createCF);
+        for (ResultSetFuture future : futures) {
+            future.get();
+        }
     }
 
-    public void updateTable(TableMetadata cfd, String compactionStrategy, int gcGrace) {
-        if (compactionStrategy == null && gcGrace <=0) {
-            throw new IllegalArgumentException("compactionStrategy should not be null or gcGrace should >0");
-        }
-
-        String updateTable= String.format("ALTER TABLE \"%s\".\"%s\" with ", keyspaceName, cfd.getName());
-        StringBuilder builder = new StringBuilder(updateTable);
-
-        if (compactionStrategy != null) {
-            builder.append("compaction = { 'class' : '");
-            builder.append(compactionStrategy);
-            builder.append("' }");
-        }
-
-        if (gcGrace > 0) {
-            if (compactionStrategy != null) {
-                builder.append(" AND ");
-            }else {
-                builder.append(" gc_grace_seconds=");
-                builder.append(gcGrace);
-            }
-        }
-
-        builder.append(";");
-
-        String alterStatement = builder.toString();
-        log.info("alter statement={}", alterStatement);
-
-        cassandraSession.execute(alterStatement);
-    }
+    
 
     /**
      * Initialize the cluster context and cluster instances.
@@ -547,22 +540,17 @@ public class DbClientContext {
     public Map<String, List<String>> getSchemaVersions() {
         Map<String, List<String>> versions = new HashMap<String, List<String>>();
         try {
-            Set<com.datastax.driver.core.Host> allHostSet = cassandraCluster.getMetadata().getAllHosts();
-            Iterator<com.datastax.driver.core.Host> allHosts = allHostSet.iterator();
+            List<String> unreachableNodes = getUnreachableNodes();
+            versions.put(StorageProxy.UNREACHABLE, new LinkedList<String>(unreachableNodes));
+            log.info("Unreachable nodes:" + unreachableNodes);
             
-            while (allHosts.hasNext()){
-                com.datastax.driver.core.Host host = allHosts.next();
-                if (host.getState().equals(CASSANDRA_HOST_STATE_DOWN)) {
-                    allHosts.remove();
-                    versions.putIfAbsent(StorageProxy.UNREACHABLE, new LinkedList<String>());
-                    versions.get(StorageProxy.UNREACHABLE).add(host.getBroadcastAddress().getHostAddress());
-                }
-            }
-
             ResultSet result = cassandraSession.execute("select * from system.peers");
             for (Row row : result) {
-                versions.putIfAbsent(row.getUUID("schema_version").toString(), new LinkedList<String>());
-                versions.get(row.getUUID("schema_version").toString()).add(row.getInet("rpc_address").getHostAddress());
+                String hostAddress = row.getInet("rpc_address").getHostAddress();
+                if (!unreachableNodes.contains(hostAddress)) {
+                    versions.putIfAbsent(row.getUUID("schema_version").toString(), new LinkedList<String>());
+                    versions.get(row.getUUID("schema_version").toString()).add(hostAddress);
+                }
             }
             
             result = cassandraSession.execute("select * from system.local");
@@ -570,14 +558,14 @@ public class DbClientContext {
             versions.putIfAbsent(localNode.getUUID("schema_version").toString(), new LinkedList<String>());
             versions.get(localNode.getUUID("schema_version").toString()).add(localNode.getInet("broadcast_address").getHostAddress());
             
-        } catch (com.datastax.driver.core.exceptions.ConnectionException e) {
+        } catch (ConnectionException e) {
             throw DatabaseException.retryables.connectionFailed(e);
         }
 
         log.info("schema versions found: {}", versions);
         return versions;
     }
-    
+
     public Map<String, String> getStrategyOptions() {
         Map<String, String> result = new HashMap<String, String>();
         KeyspaceMetadata keyspaceMetadata = cassandraCluster.getMetadata().getKeyspace("\""+this.getKeyspaceName()+"\"");
@@ -592,15 +580,15 @@ public class DbClientContext {
     }
 
     private void checkAndResetConsistencyLevel(DrUtil drUtil, String svcName) {
-        // TODO rewrite these codes with Java driver later
-        /*if (isRetryFailedWriteWithLocalQuorum() && drUtil.isMultivdc()) {
+        
+        if (isRetryFailedWriteWithLocalQuorum() && drUtil.isMultivdc()) {
             log.info("Disable retry for write failure in multiple vdc configuration");
             setRetryFailedWriteWithLocalQuorum(false);
             return;
         }
         
-        ConsistencyLevel currentConsistencyLevel = getKeyspace().getConfig().getDefaultWriteConsistencyLevel();
-        if (currentConsistencyLevel.equals(ConsistencyLevel.CL_EACH_QUORUM)) {
+        ConsistencyLevel currentConsistencyLevel = writeConsistencyLevel;
+        if (currentConsistencyLevel == ConsistencyLevel.EACH_QUORUM) {
             log.debug("Write consistency level is EACH_QUORUM. No need adjust");
             return;
         }
@@ -619,8 +607,7 @@ public class DbClientContext {
             }      
         }
         log.info("Service {} of quorum nodes on all standby sites are up. Reset default write consistency level back to EACH_QUORUM", svcName);
-        AstyanaxConfigurationImpl config = (AstyanaxConfigurationImpl)keyspaceContext.getAstyanaxConfiguration();
-        config.setDefaultWriteConsistencyLevel(ConsistencyLevel.CL_EACH_QUORUM);*/
+        writeConsistencyLevel = ConsistencyLevel.EACH_QUORUM;
     }
     
     protected int getNativeTransportPort() {
@@ -641,5 +628,38 @@ public class DbClientContext {
             prepareStatementMap.put(queryString, statement);
         }
         return prepareStatementMap.get(queryString);
+    }
+
+    public ConsistencyLevel getWriteConsistencyLevel() {
+        return writeConsistencyLevel;
+    }
+
+    public void setWriteConsistencyLevel(ConsistencyLevel writeConsistencyLevel) {
+        this.writeConsistencyLevel = writeConsistencyLevel;
+    }
+    
+    private List<String> getUnreachableNodes() {
+        Set<Host> hosts = cassandraCluster.getMetadata().getAllHosts(); 
+        int port = getKeyspaceName() == DbClientContext.LOCAL_KEYSPACE_NAME ? 7199 : 7299;
+        String urlFormat = "service:jmx:rmi:///jndi/rmi://%s:%s/jmxrmi";
+        
+        for (Host host : hosts) {
+            try (JMXConnector jmxConnector = JMXConnectorFactory.connect(
+                    new JMXServiceURL(String.format(urlFormat, host, port)))){
+                
+                MBeanServerConnection mbeanServerConnection = jmxConnector.getMBeanServerConnection();
+                
+                ObjectName mbeanName = new ObjectName("org.apache.cassandra.db:type=StorageService");
+                StorageServiceMBean mbeanProxy =
+                    (StorageServiceMBean) MBeanServerInvocationHandler.newProxyInstance(
+                        mbeanServerConnection, mbeanName, StorageServiceMBean.class, true);
+                
+                return mbeanProxy.getUnreachableNodes();
+            } catch (Exception e) {
+                log.error("Failed to get unreachable nodes with error {}", e);
+            }
+        }
+        
+        return Collections.emptyList();
     }
 }

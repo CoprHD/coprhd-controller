@@ -2238,10 +2238,8 @@ public class DbClientTest extends DbsvcTestBase {
             this._indexCleaner = new NoBgIndexCleaner();
         }
 
-        /*This method is never used and superclass hasn't method with same signature
-        TODO will remove when this test passed
         @Override
-        protected <T extends DataObject> List<URI> insertNewColumns(Keyspace ks, Collection<T> dataobjects)
+        protected <T extends DataObject> List<URI> insertNewColumns(DbClientContext context, Collection<T> dataobjects)
                 throws DatabaseException {
             StepLock stepLock = this.threadStepLock == null ? null : this.threadStepLock.get();
             if (stepLock != null) {
@@ -2249,13 +2247,13 @@ public class DbClientTest extends DbsvcTestBase {
             }
 
             try {
-                return super.insertNewColumns(ks, dataobjects);
+                return super.insertNewColumns(context, dataobjects);
             } finally {
                 if (stepLock != null) {
                     stepLock.ackStep(StepLock.Step.InsertNewColumns);
                 }
             }
-        }*/
+        }
 
         @Override
         protected <T extends DataObject> Map<String, List<CompositeColumnName>> fetchNewest(Class<? extends T> clazz, DbClientContext context,

@@ -472,7 +472,7 @@ public abstract class CommandHandler {
         public void process(DBClient _client) throws Exception {
             _context = _client.getGeoDbContext();
             _cf = TypeMap.getGlobalLockType().getCf();
-            RowMutator mutator = new RowMutator(_context);
+            RowMutator mutator = new RowMutator(_context, false);
 
             if (cmd.equalsIgnoreCase(CMD_CREATE)) {
                 try {

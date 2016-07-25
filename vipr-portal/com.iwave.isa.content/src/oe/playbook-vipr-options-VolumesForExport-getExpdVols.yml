@@ -1,6 +1,6 @@
 
   - name: Get exports for this project
-    set_fact: path="/block/exports/search.json?project={{ProjectForExport}}"
+    set_fact: path="/block/exports/search.json?host={{HostForExport}}"
 
   - name: Set method to GET
     set_fact: method="GET"

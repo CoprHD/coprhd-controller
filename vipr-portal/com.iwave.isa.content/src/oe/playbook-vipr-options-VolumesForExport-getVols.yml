@@ -1,0 +1,21 @@
+  - name: Get Volumes IDs for this Project
+    set_fact: path="/block/volumes/search.json?project={{ProjectForExport}}"
+
+  - include: playbook-rest-request.yml
+
+  - name: Extract Volume IDs from restResults
+    set_fact: vol_id_item="{{item.id}}"
+    with_items: "{{ restResult.json.resource }}"
+    register: vol_ids_result
+
+  - name: Make a list of Volume IDs
+    set_fact: vol_ids="{{vol_ids_result.results|selectattr('ansible_facts','defined')|map(attribute='ansible_facts.vol_id_item')|list}}"
+    when: vol_ids_result.results is defined
+
+  - name: Return empty list if no volumes found
+    set_fact: vol_ids="[]"
+    when: vol_ids is undefined
+
+  - name: Log volume IDs found
+    debug: var=vol_ids
+

@@ -1,0 +1,72 @@
+
+  - name: Get exports for this project
+    set_fact: path="/block/exports/search.json?project={{ProjectForExport}}"
+
+  - name: Set method to GET
+    set_fact: method="GET"
+
+  - name: Make RSET request for exports for this project
+    include: playbook-rest-request.yml
+
+  - name: Get REST response
+    set_fact: restResult_json_resource="{{restResult.json.resource}}"
+
+  - name: Use empty response if nothing returned
+    set_fact: restResult_json_resource="[]"
+    when: (restResult.json.resource is undefined) or (restResult.json.resource|length < 1)
+
+  - name: Extract Export IDs from search results
+    set_fact: exp_id_item="{{item.id}}"
+    with_items: "{{ restResult_json_resource }}" 
+    register: exp_ids_result
+
+  - name: Make a list of Export IDs
+    set_fact: exp_ids="{{exp_ids_result.results|selectattr('ansible_facts','defined')|map(attribute='ansible_facts.exp_id_item')|list}}"
+    when: exp_ids_result.results is defined
+
+  - name: Set resource path to get exports using those IDs
+    set_fact: path="/block/exports/bulk.json"
+    when: exp_ids is defined
+
+  - name: Set method to POST
+    set_fact: method="POST"
+    when: exp_ids is defined
+
+  - name: Make body with export IDs
+    set_fact: body="{"id":{{ exp_ids}}}"
+    when: (exp_ids is defined) and (exp_ids|length > 0)
+
+  - name: use empty id list if no IDs returned
+    set_fact: body="{\"id\":[]}"
+    when: (exp_isd is defined) and (exp_ids|length < 1)
+
+  - name: Make REST request to get exports by ID
+    include: playbook-rest-request.yml
+    when: exp_ids is defined
+
+  - name: Get exports from response
+    set_fact: restResult_json_exportgroup="{{restResult.json.exportgroup}}"
+    when: restResult.json.exportgroup is defined
+
+  - name: Use empty response if nothing returned
+    set_fact: restResult_json_exportgroup="[]"
+    when: (restResult.json.exportgroup is undefined) or (restResult.json.exportgroup|length < 1)
+
+  - name:  Extract exported volumes from restResults 
+    set_fact: exp_host_clstr_vols_item="{{item.1.id}}"
+    with_subelements: 
+      - "{{ restResult_json_exportgroup }}"
+      - volumes
+    register: exp_host_clstr_vols_result
+
+  - name: Make list of exported volumes
+    set_fact: exp_vol_ids="{{exp_host_clstr_vols_result.results|selectattr('ansible_facts','defined')|map(attribute='ansible_facts.exp_host_clstr_vols_item')|list}}"
+    when: exp_host_clstr_vols_result.results is defined
+
+  - name: Return empty list if no exported volumes found
+    set_fact: exp_vol_ids="[]"
+    when: exp_vol_ids is undefined
+
+  - name: Log exported volume IDs found
+    debug: var=exp_vol_ids
+

@@ -17,7 +17,7 @@ import com.emc.storageos.model.DataObjectRestRep;
 public class StorageSystemTypeRestRep extends DataObjectRestRep {
 
     private String storageTypeName;
-    private String storageTypeType;
+    private String metaType;
     private String storageTypeId;
     private boolean isSmiProvider = false;
     private boolean isDefaultSsl = false;
@@ -61,13 +61,13 @@ public class StorageSystemTypeRestRep extends DataObjectRestRep {
     /**
      * Storage System Type type, example file, block and object
      */
-    @XmlElement(name = "storage_type_type")
-    public String getStorageTypeType() {
-        return storageTypeType;
+    @XmlElement(name = "meta_type")
+    public String getMetaType() {
+        return metaType;
     }
 
-    public void setStorageTypeType(String storageType) {
-        this.storageTypeType = storageType;
+    public void setMetaType(String metaType) {
+        this.metaType = metaType;
     }
 
     /**
@@ -200,7 +200,7 @@ public class StorageSystemTypeRestRep extends DataObjectRestRep {
         builder.append(", storage_type_name=");
         builder.append(storageTypeName);
         builder.append(", storage_type_type=");
-        builder.append(storageTypeType);
+        builder.append(metaType);
         builder.append(", isSmiProvider=");
         builder.append(isSmiProvider);
         builder.append(", isDefaultSsl=");

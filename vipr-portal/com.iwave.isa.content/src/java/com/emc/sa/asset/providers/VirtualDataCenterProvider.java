@@ -393,9 +393,9 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
 
 	private List<String> getStorageSystemType(AssetOptionsContext ctx, String storagetype) {
 		List<String> storagesystemtypes = new ArrayList<String>();
-		StorageSystemTypeList storagetypelist = api(ctx).storageSystemType().listStorageSystemTypeTypes("all");
+		StorageSystemTypeList storagetypelist = api(ctx).storageSystemType().listStorageSystemTypes("all");
 		for (StorageSystemTypeRestRep storagetypeRest : storagetypelist.getStorageSystemTypes()) {
-			if (storagetypeRest.getStorageTypeType().equals(storagetype)) {
+			if (storagetypeRest.getMetaType().equals(storagetype)) {
 				storagesystemtypes.add(storagetypeRest.getStorageTypeName());
 			}
 		}

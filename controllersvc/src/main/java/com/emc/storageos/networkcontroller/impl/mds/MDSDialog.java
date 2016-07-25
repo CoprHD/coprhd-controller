@@ -2137,7 +2137,6 @@ public class MDSDialog extends SSHDialog {
         StringBuilder buf = new StringBuilder();
         String payload = MessageFormat.format(MDSDialogProperties.getString("MDSDialog.ivr.show.zoneName.cmd"), zoneName);
 
-	_log.info("showIvrZone command=" + payload);
         sendWaitFor(payload, defaultTimeout, prompts, buf);
         String[] lines = getLines(buf);
         ZoneMember member = null;
@@ -2156,7 +2155,6 @@ public class MDSDialog extends SSHDialog {
             }
         }
         return zone;
-    	
     }
     /**
      * Get Zone and its members for given zone name. Besure to resolve device alias if present.

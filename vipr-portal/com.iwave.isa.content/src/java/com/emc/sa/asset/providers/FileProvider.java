@@ -839,7 +839,7 @@ public class FileProvider extends BaseAssetOptionsProvider {
                                 + api(ctx).fileSystems().get(entry.getValue().getFsId()).getName()
                                 + (entry.getValue().getSubDirectory().equalsIgnoreCase("!nodir") ? ""
                                         : ("/" + entry.getValue().getSubDirectory()))
-                                + entry.getValue().getMountPath()));
+                                + ";" + entry.getValue().getMountPath()));
             }
         }
         AssetOptionsUtils.sortOptionsByLabel(options);

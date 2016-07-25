@@ -350,7 +350,7 @@ setup() {
    runcmd cos allow $VPOOL_BASE block $TENANT
    sleep 60
 
-   if [ "$1" != "test_20" -a "$1" != "test_24" -a "$1" != "aliastest"]
+   if [ "$1" != "test_20" -a "$1" != "test_24" -a "$1" != "aliastest" ]
    then
         runcmd volume create ${VOLNAME} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 8
    fi

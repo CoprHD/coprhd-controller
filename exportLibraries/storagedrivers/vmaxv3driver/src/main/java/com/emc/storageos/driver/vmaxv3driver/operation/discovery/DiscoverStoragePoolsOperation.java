@@ -44,7 +44,7 @@ public class DiscoverStoragePoolsOperation extends OperationImpl {
             if (this.StoragePools == null) {
                 this.StoragePools = new ArrayList<>();
             }
-            this.setClient(this.storageSystem);
+            this.setClient(this.getRegistry(), this.storageSystem.getNativeId());
             return true;
         } else {
             return false;

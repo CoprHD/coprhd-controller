@@ -36,9 +36,9 @@ public class OperationFactoryImpl implements OperationFactory {
         for(Class<? extends Operation> clazz : this.operationClasses) {
             try {
                 Operation operation = clazz.newInstance();
+                operation.setRegistry(registry);
+                operation.setLockManager(lockManager);
                 if(operation.isMatch(name, parameters)) {
-                    operation.setRegistry(registry);
-                    operation.setLockManager(lockManager);
                     return operation;
                 }
             } catch (Exception e) {

@@ -5,6 +5,9 @@
 
 package com.emc.storageos.driver.vmaxv3driver.base;
 
+import com.emc.storageos.driver.vmaxv3driver.Vmaxv3Constants;
+import com.emc.storageos.driver.vmaxv3driver.registry.AccessInfo;
+import com.emc.storageos.driver.vmaxv3driver.registry.RegistryHandler;
 import com.emc.storageos.driver.vmaxv3driver.util.rest.RestClient;
 import com.emc.storageos.storagedriver.LockManager;
 import com.emc.storageos.storagedriver.Registry;
@@ -57,6 +60,24 @@ public abstract class OperationImpl implements Operation {
         String userName = storageSystemInput.getUsername();
         String password = storageSystemInput.getPassword();
         RestClient client = new RestClient(scheme, hostName, port, userName, password);
+        this.setClient(client);
+    }
+
+    /**
+     * This method is used to create RestClient instance by using access information in
+     * the Registry.
+     * @param registry
+     * @param arrayId
+     */
+    protected void setClient(Registry registry, String arrayId) {
+        RegistryHandler handler = new RegistryHandler(registry);
+        AccessInfo item = handler.getAccessInfo(arrayId);
+        if (item == null) {
+            throw new IllegalStateException(String.format("Cannot get %s driver '%s' array access info from Registry.",
+                Vmaxv3Constants.DRIVER_NAME, arrayId));
+        }
+        RestClient client = new RestClient(item.getScheme(), item.getHost(), item.getPort(),
+            item.getUsername(), item.getPassword());
         this.setClient(client);
     }
 

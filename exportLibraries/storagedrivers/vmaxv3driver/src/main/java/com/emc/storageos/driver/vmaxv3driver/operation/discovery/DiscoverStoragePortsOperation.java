@@ -48,7 +48,7 @@ public class DiscoverStoragePortsOperation extends OperationImpl {
             if (this.storagePorts == null) {
                 this.storagePorts = new ArrayList<>();
             }
-            this.setClient(this.storageSystem);
+            this.setClient(this.getRegistry(), this.storageSystem.getNativeId());
             return true;
         } else {
             return false;

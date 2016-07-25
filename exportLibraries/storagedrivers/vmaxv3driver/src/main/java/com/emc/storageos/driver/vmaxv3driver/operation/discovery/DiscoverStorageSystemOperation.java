@@ -6,8 +6,10 @@
 package com.emc.storageos.driver.vmaxv3driver.operation.discovery;
 
 import com.emc.storageos.driver.vmaxv3driver.base.OperationImpl;
+import com.emc.storageos.driver.vmaxv3driver.registry.RegistryHandler;
 import com.emc.storageos.driver.vmaxv3driver.rest.SloprovisioningSymmetrixGet;
 import com.emc.storageos.driver.vmaxv3driver.rest.bean.Symmetrix;
+import com.emc.storageos.driver.vmaxv3driver.util.rest.RestClient;
 import com.emc.storageos.storagedriver.model.StorageSystem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,6 +47,7 @@ public class DiscoverStorageSystemOperation extends OperationImpl {
     public Map<String, Object> execute() {
         Map<String, Object> result = new HashMap<>();
         try {
+            // 1. Get the storage system information and set the discovery info into the storage system bean.
             String arrayId = this.storageSystem.getSerialNumber();
             Symmetrix bean = new SloprovisioningSymmetrixGet(arrayId).perform(this.getClient());
             this.storageSystem.setIsSupportedVersion(true);
@@ -57,6 +60,11 @@ public class DiscoverStorageSystemOperation extends OperationImpl {
             if (this.storageSystem.getDeviceLabel() == null) {
                 this.storageSystem.setDeviceLabel(bean.getSymmetrixId());
             }
+            // 2. Save/update the storage system access information into the Registry for later operations.
+            RestClient client = this.getClient();
+            new RegistryHandler(this.getRegistry()).setAccessInfo(arrayId, client.getScheme(),
+                client.getHost(), client.getPort(), client.getUser(), client.getPassword());
+            // 3. Return result.
             result.put("success", true);
         } catch (Exception e) {
             logger.error(e.getMessage(), e);

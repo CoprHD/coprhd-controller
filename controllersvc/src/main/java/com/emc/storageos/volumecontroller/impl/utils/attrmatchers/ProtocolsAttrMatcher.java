@@ -16,20 +16,21 @@ import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProtocol;
+import com.emc.storageos.db.client.model.StorageProtocol.Block;
 import com.emc.storageos.db.client.model.StorageProtocol.File;
+import com.emc.storageos.db.client.model.StorageProtocol.Transport;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
-import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
-import com.emc.storageos.db.client.model.StorageProtocol.Block;
-import com.emc.storageos.db.client.model.StorageProtocol.Transport;
 import com.emc.storageos.db.client.model.VirtualPool.SystemType;
 import com.emc.storageos.db.client.util.EndpointUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -49,7 +50,8 @@ public class ProtocolsAttrMatcher extends AttributeMatcher {
             .getLogger(ProtocolsAttrMatcher.class);
 
     @Override
-    public List<StoragePool> matchStoragePoolsWithAttributeOn(List<StoragePool> allPools, Map<String, Object> attributeMap) {
+    public List<StoragePool> matchStoragePoolsWithAttributeOn(List<StoragePool> allPools, Map<String, Object> attributeMap,
+            StringBuffer errorMessage) {
         List<StoragePool> matchedPools = new ArrayList<StoragePool>();
         @SuppressWarnings("unchecked")
         Set<String> protocolsRequested = (Set<String>) attributeMap.get(Attributes.protocols.toString());
@@ -73,6 +75,12 @@ public class ProtocolsAttrMatcher extends AttributeMatcher {
         }
         getNetworkMatchingPoolsForVnxe(matchedPools, protocolsRequested, attributeMap);
         _logger.info("Pools Matching Protocols Ended: {}", Joiner.on("\t").join(getNativeGuidFromPools(matchedPools)));
+
+        if (CollectionUtils.isEmpty(matchedPools)) {
+            errorMessage.append(String.format("No matching storage pool found for the protocols %s. ", protocolsRequested));
+            _logger.error(errorMessage.toString());
+        }
+
         return matchedPools;
     }
 

@@ -32,7 +32,7 @@ public class StorageSystemType {
 		return client.get(StorageSystemTypeRestRep.class, PathConstants.STORAGE_SYSTEM_TYPE_URL + "/" + uuid);
 	}
 
-	public StorageSystemTypeList listStorageSystemTypeTypes(String type) {
+	public StorageSystemTypeList listStorageSystemTypes(String type) {
 		return client.get(StorageSystemTypeList.class,
 				PathConstants.STORAGE_SYSTEM_TYPE_URL + "/type/" + type);
 	}

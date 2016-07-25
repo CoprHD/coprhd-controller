@@ -421,6 +421,10 @@ public interface SmisConstants {
     static final String INITIATOR_ALIAS_SET = "EMCInitiatorAliasSet";
     static final String INITIATOR_ALIAS_GET = "EMCInitiatorAliasGet";
 
+    // Compression
+    static final String CP_EMC_DISABLE_COMPRESSION = "EMCDisableCompression";
+    static final String CP_EMC_COMPRESSION = "EMCCompression";
+
     // Array of Property String (PS) constants
     static final String[] PS_HOST_IO = new String[] {
             SmisConstants.EMC_MAX_BANDWIDTH, SmisConstants.EMC_MAX_IO,

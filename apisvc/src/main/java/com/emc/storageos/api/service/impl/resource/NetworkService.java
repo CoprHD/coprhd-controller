@@ -69,6 +69,7 @@ import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
@@ -610,7 +611,13 @@ public class NetworkService extends TaggedResource {
                             EndpointUtility.isValidEndpoint(endpoint, EndpointType.WWN)) {
                         throw APIException.badRequests.invalidEndpointExpectedNonFC(endpoint);
                     }
-                    addedEp.add(endpoint);
+                    if (!addedEp.contains(endpoint)) {
+                        addedEp.add(endpoint);
+                        String associatedEndpoint = getAssociatedInitiatorPortEndpoint(endpoint);
+                        if (!addedEp.contains(associatedEndpoint)) {
+                            addedEp.add(associatedEndpoint);
+                        }
+                    }
                 }
             }
             // get the endpoints current networks as some may exist in other networks
@@ -624,6 +631,22 @@ public class NetworkService extends TaggedResource {
             handleRemoveFromOldNetworks(networkMap, network);
         }
         return addedEp;
+    }
+
+    private String getAssociatedInitiatorPortEndpoint(String endpoint) {
+
+        String associatedEndpoint = null;
+        Initiator initiator = ExportUtils.getInitiator(endpoint, _dbClient);
+        if (initiator != null && !initiator.getInactive() && initiator.getAssociatedInitiator() != null) {
+            URI associatedInitiatorURI = initiator.getAssociatedInitiator();
+            if (associatedInitiatorURI != null) {
+                Initiator associatedInitiator = _dbClient.queryObject(Initiator.class, associatedInitiatorURI);
+                if (associatedInitiator != null && !associatedInitiator.getInactive()) {
+                    associatedEndpoint = associatedInitiator.getInitiatorPort();
+                }
+            }
+        }
+        return associatedEndpoint;
     }
 
     /**
@@ -643,7 +666,15 @@ public class NetworkService extends TaggedResource {
         for (String str : remEps) {
             if (network.getEndpointsMap() != null &&
                     network.getEndpointsMap().containsKey(EndpointUtility.changeCase(str))) {
-                removedEp.add(str);
+                if (!removedEp.contains(str)) {
+                    removedEp.add(str);
+                    String associatedEndpoint = getAssociatedInitiatorPortEndpoint(EndpointUtility.changeCase(str));
+                    if (associatedEndpoint != null) {
+                        if (!removedEp.contains(associatedEndpoint)) {
+                            removedEp.add(associatedEndpoint);
+                        }
+                    }
+                }
             }
         }
         // make sure the end points are not discovered in the current network

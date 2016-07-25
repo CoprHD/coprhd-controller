@@ -2936,6 +2936,9 @@ public interface BadRequestExceptions {
     public BadRequestException associatedPolicyTenantMismatch(URI fp, URI fs);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException associateInitiatorMismatch(URI in, URI pIn);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotFindAssociatedPolicy(URI fp);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)

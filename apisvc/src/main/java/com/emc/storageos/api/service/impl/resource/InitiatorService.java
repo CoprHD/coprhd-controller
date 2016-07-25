@@ -44,7 +44,6 @@ import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.model.VirtualMachine;
 import com.emc.storageos.db.client.util.EndpointUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
@@ -69,6 +68,7 @@ import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.BlockController;
 
 /**
@@ -175,12 +175,16 @@ public class InitiatorService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.TENANT_ADMIN })
     public InitiatorRestRep associateInitiator(@PathParam("id") URI id, @PathParam("associatedId") URI associatedId
-            ) throws DatabaseException {
+            ) throws InternalException {
 
+        if (id.compareTo(associatedId) == 0) {
+            APIException.badRequests.associateInitiatorMismatch(id, associatedId);
+        }
         Initiator initiator = queryObject(Initiator.class, id, true);
         Initiator pairInitiator = queryObject(Initiator.class, associatedId, true);
         if (pairInitiator != null && initiator != null)
         {
+
             initiator.setAssociatedInitiator(associatedId);
             pairInitiator.setAssociatedInitiator(id);
             _dbClient.updateObject(initiator);

@@ -252,6 +252,9 @@ public class VirtualMachineService extends TaskResourceService {
         // create and populate the initiator
         Initiator initiator = new Initiator();
         initiator.setVirtualMachine(id);
+
+        // TODO amit s clean up. ..host added to avoid exception
+        initiator.setHost(id);
         initiator.setHostName(vm.getHostName());
         if (!NullColumnValueGetter.isNullURI(vm.getCluster())) {
             cluster = queryObject(Cluster.class, vm.getCluster(), false);

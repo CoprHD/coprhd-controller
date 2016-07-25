@@ -55,6 +55,8 @@ import com.emc.storageos.storagedriver.model.VolumeConsistencyGroup;
 import com.emc.storageos.storagedriver.model.VolumeSnapshot;
 import com.emc.storageos.storagedriver.storagecapabilities.AutoTieringPolicyCapabilityDefinition;
 import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
+import com.emc.storageos.storagedriver.storagecapabilities.CommonStorageCapabilities;
+import com.emc.storageos.storagedriver.storagecapabilities.DataStorageServiceOption;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.volumecontroller.ControllerLockingService;
@@ -211,7 +213,10 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
             capabilityProperties.put(AutoTieringPolicyCapabilityDefinition.PROPERTY_NAME.POLICY_ID.name(), Arrays.asList(autoTieringPolicy.getPolicyName()));
             capabilityProperties.put(AutoTieringPolicyCapabilityDefinition.PROPERTY_NAME.PROVISIONING_TYPE.name(), Arrays.asList(autoTieringPolicy.getProvisioningType()));
             CapabilityInstance capabilityInstance = new CapabilityInstance(autoTieringCapabilityDefinition.getId(), autoTieringPolicy.getPolicyName(), capabilityProperties);
-            storageCapabilities.setCommonCapabilitis(Arrays.asList(capabilityInstance));
+            DataStorageServiceOption serviceOption = new DataStorageServiceOption(Arrays.asList(capabilityInstance));
+            CommonStorageCapabilities commonCapabilities = new CommonStorageCapabilities();
+            commonCapabilities.setDataStorage(Arrays.asList(serviceOption));
+            storageCapabilities.setCommonCapabilitis(commonCapabilities);
         }
         return storageCapabilities;
     }

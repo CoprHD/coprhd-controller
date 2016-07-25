@@ -4,29 +4,27 @@
  */
 package com.emc.storageos.storagedriver.storagecapabilities;
 
-import java.util.List;
-
 /**
  * Describes all categories of storage capabilities.
  */
 public class StorageCapabilities {
 
-    private List<CapabilityInstance> commonCapabilities;
-    private List<CapabilityInstance> customCapabilities;
+    private CommonStorageCapabilities commonCapabilities;
+    private CustomStorageCapabilities customCapabilities;
 
-    public List<CapabilityInstance> getCommonCapabilitis() {
+    public CommonStorageCapabilities getCommonCapabilitis() {
         return commonCapabilities;
     }
 
-    public void setCommonCapabilitis(List<CapabilityInstance> commonCapabilities) {
+    public void setCommonCapabilitis(CommonStorageCapabilities commonCapabilities) {
         this.commonCapabilities = commonCapabilities;
     }
 
-    public List<CapabilityInstance> getCustomCapabilities() {
+    public CustomStorageCapabilities getCustomCapabilities() {
         return customCapabilities;
     }
 
-    public void setCustomCapabilities(List<CapabilityInstance> customCapabilities) {
+    public void setCustomCapabilities(CustomStorageCapabilities customCapabilities) {
         this.customCapabilities = customCapabilities;
     }
 }

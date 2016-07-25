@@ -1,20 +1,21 @@
+/*
+ * Copyright (c) 2016 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.util;
 
 import java.util.Properties;
 
 import org.apache.log4j.PropertyConfigurator;
-import org.junit.Before;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
 import com.emc.storageos.volumecontroller.impl.Dispatcher;
 import com.emc.storageos.volumecontroller.impl.Main;
 import com.emc.storageos.volumecontroller.impl.utils.AttributeMatcherFramework;
-import com.emc.storageos.volumecontroller.placement.StoragePortsAllocatorTest;
 import com.emc.storageos.workflow.WorkflowService;
 
 /**

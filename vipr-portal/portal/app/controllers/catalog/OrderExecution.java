@@ -5,6 +5,8 @@
 package controllers.catalog;
 
 import static com.emc.vipr.client.core.util.ResourceUtils.uri;
+
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -26,6 +28,9 @@ import com.emc.vipr.model.catalog.CatalogServiceFieldRestRep;
 import com.emc.vipr.model.catalog.CatalogServiceRestRep;
 import com.emc.vipr.model.catalog.OrderCreateParam;
 import com.emc.vipr.model.catalog.Parameter;
+import com.emc.vipr.model.catalog.ScheduleCycleType;
+import com.emc.vipr.model.catalog.ScheduleInfo;
+import com.emc.vipr.model.catalog.ScheduledEventCreateParam;
 import com.emc.vipr.model.catalog.ServiceDescriptorRestRep;
 import com.emc.vipr.model.catalog.ServiceFieldGroupRestRep;
 import com.emc.vipr.model.catalog.ServiceFieldRestRep;
@@ -250,4 +255,54 @@ public class OrderExecution extends Controller {
         }
         return parameter;
     }
+    
+    protected static ScheduledEventCreateParam createScheduledOrder(OrderCreateParam orderParam) {
+        if (!isSchedulerEnabled()) {
+            return null;
+        }
+        ScheduleInfo scheduleInfo = new ScheduleInfo();
+        String cycleFrequency = params.get("schedulerCycleFrequency");
+        scheduleInfo.setCycleFrequency(Integer.parseInt(cycleFrequency));
+
+        String cycleType = params.get("schedulerCycleType");
+        ScheduleCycleType cycleTypeEnum = ScheduleCycleType.valueOf(cycleType);
+        scheduleInfo.setCycleType(cycleTypeEnum);
+        List<String> sectionsInCycleList = Lists.newArrayList();
+        if (cycleTypeEnum == ScheduleCycleType.WEEKLY) {
+            String sectionsInCycle = params.get("schedulerDayOfWeek");
+            sectionsInCycleList.add(sectionsInCycle);
+        } else if(cycleTypeEnum == ScheduleCycleType.MONTHLY) {
+            String sectionsInCycle = params.get("schedulerDayOfMonth");
+            sectionsInCycleList.add(sectionsInCycle);
+        }
+        scheduleInfo.setSectionsInCycle(sectionsInCycleList);
+        
+        String startDate = params.get("schedulerStartDate");
+        scheduleInfo.setStartDate(startDate);
+        String startTime = params.get("schedulerStartTime");
+        String pair[] = startTime.split(":");
+        scheduleInfo.setHourOfDay(Integer.parseInt(pair[0]));
+        scheduleInfo.setMinuteOfHour(Integer.parseInt(pair[1]));
+        
+        String recurrence = params.get("schedulerRecurrence");
+        int recurrenceNum = Integer.parseInt(recurrence);
+        if (recurrenceNum == -1) {
+            String range = params.get("schedulerRangeOfRecurrence");
+            recurrenceNum = Integer.parseInt(range);
+        }
+        scheduleInfo.setReoccurrence(recurrenceNum);
+        scheduleInfo.setDurationLength(3600);
+        ScheduledEventCreateParam eventParam = new ScheduledEventCreateParam();
+        eventParam.setOrderCreateParam(orderParam);
+        eventParam.setScheduleInfo(scheduleInfo);
+        return eventParam;
+    }
+    
+    protected static boolean isSchedulerEnabled() {
+        if (params._contains("schedulerEnabled")) {
+             return Boolean.valueOf(params.get("schedulerEnabled"));
+        }
+        return false;
+    }
+
 }

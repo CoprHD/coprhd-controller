@@ -257,6 +257,13 @@
       }%
       #{Form.selectOneControlGroup field:field /}
     #{/field}
+    
+    #{field 'service.schedulerAllowed'}
+      %{
+        field.helpTextKey = "service.schedulerAllowed.helpText"
+      }%
+      #{Form.booleanCheckBoxControlGroup field:field /}
+    #{/field}
   </fieldset>
 
   #{field 'service.aclEntries'}

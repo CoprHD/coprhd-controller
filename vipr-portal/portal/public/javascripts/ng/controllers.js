@@ -209,6 +209,31 @@ angular.module("portalApp").controller({
           $scope[value.name] = value;
         });
         
+        // Set default values for scheduler
+        $scope.schedulerHourOfDay = '01';
+        $scope.schedulerMinuteOfHour = '0';
+        $scope.schedulerCycleFrequency = 1;
+        $scope.schedulerCycleType = "DAILY";
+        $scope.schedulerRangeOfRecurrence = 1;
+        $scope.schedulerRecurrence = 1;
+        $scope.schedulerDayOfWeek = 1
+        $scope.schedulerDayOfMonth = 1
+        current = new Date().getTime();                
+        $scope.schedulerStartDate = formatDate(current, "YYYY-MM-DD");
+        $scope.schedulerStartTime = '00:00';
+        
+        $scope.isSchedulerEnabled = function() {
+           return $scope.schedulerEnabled;
+        };
+        
+        $scope.enableScheduler = function() {
+           // intialize data time picker if necessary
+           setTimeout(function() {
+              $('div.bfh-datepicker').each(function () {
+                 var $datepicker = $(this)
+                 $datepicker.bfhdatepicker($datepicker.data())
+               })}, 0);
+        };
         $scope.disableSubmitButton = function() {
                 // find all the required fields, and all the password verify fields
         	var passwordVerifyFields = [];

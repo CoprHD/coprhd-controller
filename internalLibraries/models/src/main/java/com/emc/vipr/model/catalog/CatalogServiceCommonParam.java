@@ -25,7 +25,8 @@ public class CatalogServiceCommonParam {
     private Integer maxSize;
     private URI catalogCategory;
     private List<CatalogServiceFieldParam> catalogServiceFields;
-
+    private Boolean schedulerAllowed;
+    
     @XmlElement(name = "catalog_category")
     public URI getCatalogCategory() {
         return catalogCategory;
@@ -130,6 +131,15 @@ public class CatalogServiceCommonParam {
 
     public void setCatalogServiceFields(List<CatalogServiceFieldParam> catalogServiceFields) {
         this.catalogServiceFields = catalogServiceFields;
+    }
+
+    @XmlElement(name = "scheduler_allowed")
+    public Boolean getSchedulerAllowed() {
+        return schedulerAllowed;
+    }
+
+    public void setSchedulerAllowed(Boolean schedulerAllowed) {
+        this.schedulerAllowed = schedulerAllowed;
     }
 
 }

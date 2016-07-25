@@ -81,7 +81,11 @@ public class CatalogServiceMapper {
                 to.getCatalogServiceFields().add(catalogServiceFieldRestRep);
             }
         }
-
+        
+        if (from.getSchedulerAllowed() != null) {
+            to.setSchedulerAllowed(from.getSchedulerAllowed());
+        }
+        
         return to;
     }
 
@@ -127,6 +131,10 @@ public class CatalogServiceMapper {
         // Reset the order index if the service is moved to a different category
         if (object.getCatalogCategoryId() == null || param.getCatalogCategory().equals(object.getCatalogCategoryId().getURI()) == false) {
             object.setSortedIndex(null);
+        }
+        
+        if (param.getSchedulerAllowed() != null) {
+            object.setSchedulerAllowed(param.getSchedulerAllowed());
         }
     }
 

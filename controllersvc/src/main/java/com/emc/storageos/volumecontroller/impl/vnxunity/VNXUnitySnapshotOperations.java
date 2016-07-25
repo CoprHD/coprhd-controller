@@ -4,6 +4,8 @@
  */
 package com.emc.storageos.volumecontroller.impl.vnxunity;
 
+import static com.emc.storageos.db.client.constraint.AlternateIdConstraint.Factory.getVolumesByAssociatedId;
+
 import java.net.URI;
 import java.util.List;
 
@@ -11,9 +13,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.DataObject.Flag;
+import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
@@ -114,6 +119,18 @@ public class VNXUnitySnapshotOperations extends VNXeSnapshotOperation {
             boolean inApplication = false;
             if (volume.getVolumeGroupIds()!= null && !volume.getVolumeGroupIds().isEmpty()) {
                 inApplication = true;
+            } else if (volume.checkInternalFlags(Flag.INTERNAL_OBJECT)){
+                // Check if it is VPLEX backend volume and if the vplex volume is in an application
+                final List<Volume> vplexVolumes = CustomQueryUtility
+                        .queryActiveResourcesByConstraint(_dbClient, Volume.class,
+                                getVolumesByAssociatedId(volume.getId().toString()));
+
+                for (Volume vplexVolume : vplexVolumes) {
+                    if (vplexVolume.getVolumeGroupIds()!= null && !vplexVolume.getVolumeGroupIds().isEmpty()) {
+                        inApplication = true;
+                        break;
+                    }
+                }
             }
             String groupName = volume.getReplicationGroupInstance();
             String snapLabelToUse = null;

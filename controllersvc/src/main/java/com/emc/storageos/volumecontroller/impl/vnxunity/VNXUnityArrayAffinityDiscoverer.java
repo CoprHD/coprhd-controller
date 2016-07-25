@@ -168,6 +168,7 @@ public class VNXUnityArrayAffinityDiscoverer {
                                 system.getNativeGuid(), lun.getId());
                         if (DiscoveryUtils.checkStorageVolumeExistsInDB(dbClient, nativeGuid) != null) {
                             logger.info("Skipping volume {} as it is already managed by ViPR", nativeGuid);
+                            continue;
                         }
 
                         StoragePool pool = getStoragePoolOfUnManagedObject(lun.getPool().getId(), system, pools);
@@ -297,6 +298,7 @@ public class VNXUnityArrayAffinityDiscoverer {
                         system.getNativeGuid(), lun.getId());
                 if (DiscoveryUtils.checkStorageVolumeExistsInDB(dbClient, nativeGuid) != null) {
                     logger.info("Skipping volume {} as it is already managed by ViPR", nativeGuid);
+                    continue;
                 }
 
                 StoragePool pool = getStoragePoolOfUnManagedObject(lun.getPool().getId(), system, pools);

@@ -4,6 +4,7 @@
  */
 package com.emc.sa.engine.scheduler;
 
+import com.emc.sa.model.util.ScheduledTimeComparator;
 import com.emc.storageos.db.client.model.uimodels.ExecutionWindow;
 import com.emc.storageos.db.client.model.uimodels.Order;
 import com.emc.storageos.db.client.model.uimodels.OrderStatus;
@@ -13,7 +14,8 @@ import com.emc.sa.model.util.LastUpdatedComparator;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -25,7 +27,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 @Component
 public class SchedulerDataManager {
-    private static final Logger LOG = Logger.getLogger(SchedulerDataManager.class);
+    private static final Logger LOG = LoggerFactory.getLogger(SchedulerDataManager.class);
 
     /** The lock for accessing shared data. */
     private final Lock lock = new ReentrantLock();
@@ -39,6 +41,8 @@ public class SchedulerDataManager {
     private Map<URI, ExecutionWindow> activeWindows = Maps.newHashMap();
     /** The set of currently processing orders. */
     private Set<URI> activeOrders = Sets.newHashSet();
+
+    private boolean enableInfiniteExecutionWindow = true;
 
     /**
      * Gets all execution windows from the database.
@@ -89,7 +93,7 @@ public class SchedulerDataManager {
         while (windows.isEmpty()) {
             lock.lock();
             try {
-                if (activeWindows.isEmpty()) {
+                if (activeWindows.isEmpty() || enableInfiniteExecutionWindow == false) {
                     hasActiveWindows.await();
                 }
                 windows.putAll(activeWindows);
@@ -212,20 +216,50 @@ public class SchedulerDataManager {
      *             if the thread is interrupted.
      */
     protected Order tryGetNextScheduledOrder() throws InterruptedException {
-        // This will wait for an execution window to become active
+        // It would include normal active window and special INFINITE execution window
         Map<URI, ExecutionWindow> windows = waitForActiveWindows();
 
         // Pull all orders from the database and match orders to tenant and execution windows
         List<Order> orders = getAllScheduledOrders();
         lock.lock();
         try {
-            // Get the tenants that are currently active within execution windows
-            Set<String> activeTenants = getTenants(windows.values());
+            Set<String> activeTenants = new HashSet<String>();
+            if (windows.size() != 0) {
+                // Get the tenants that are currently active within execution windows
+                activeTenants = getTenants(windows.values());
+            }
+
             for (Order order : orders) {
-                boolean matchesTenant = activeTenants.contains(order.getTenant());
-                if (matchesTenant && !isLocked(order) && canRunInWindow(order, windows)) {
-                    if (lockOrder(order)) {
-                        return order;
+                if (order.getExecutionWindowId().getURI().equals(ExecutionWindow.INFINITE)) {
+                    // order is not subject to normal execution window but the special INFINITE window.
+
+                    // check if the order is expired
+                    if (isExpiredOrder(order, null))
+                        continue;
+
+                    // lock a order
+                    if (!isLocked(order)) {
+                        if (lockOrder(order)) {
+                            return order;
+                        }
+                    }
+                } else {
+                    // order is subject to normal execution window
+                    if (windows.size() == 0) {
+                        continue;
+                    }
+
+                    // check if the order is expired
+                    ExecutionWindow window = models.findById(order.getExecutionWindowId().getURI());
+                    if (isExpiredOrder(order, window))
+                        continue;
+
+                    // lock a order if tenant is active and window is matched.
+                    boolean matchesTenant = activeTenants.contains(order.getTenant());
+                    if (matchesTenant && !isLocked(order) && canRunInWindow(order, windows)) {
+                        if (lockOrder(order)) {
+                            return order;
+                        }
                     }
                 }
             }
@@ -305,7 +339,7 @@ public class SchedulerDataManager {
      */
     protected List<Order> getAllScheduledOrders() {
         List<Order> orders = models.orders().findByOrderStatus(OrderStatus.SCHEDULED);
-        Collections.sort(orders, LastUpdatedComparator.OLDEST);
+        Collections.sort(orders, ScheduledTimeComparator.OLDEST);
         return orders;
     }
 
@@ -331,5 +365,17 @@ public class SchedulerDataManager {
         else {
             return false;
         }
+    }
+
+    private boolean isExpiredOrder(Order order, ExecutionWindow window) {
+        ExecutionWindowHelper windowHelper = new ExecutionWindowHelper(window);
+        if (windowHelper.isExpired(order.getScheduledTime())) {
+            order.setOrderStatus(OrderStatus.ERROR.name());
+            // TODO: trigger next one for REOCCURRENCE event
+            LOG.info("order {} has expired.", order.getId());
+            models.save(order);
+            return true;
+        }
+        return false;
     }
 }

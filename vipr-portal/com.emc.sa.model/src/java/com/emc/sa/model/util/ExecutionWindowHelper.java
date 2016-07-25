@@ -11,9 +11,14 @@ import java.util.TimeZone;
 import com.emc.storageos.db.client.model.uimodels.ExecutionWindow;
 import com.emc.storageos.db.client.model.uimodels.ExecutionWindowLengthType;
 import com.emc.storageos.db.client.model.uimodels.ExecutionWindowType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ExecutionWindowHelper {
+    private static final Logger log = LoggerFactory.getLogger(ExecutionWindowHelper.class);
     private ExecutionWindow window;
+
+    static final int INFINITE_WINDOW_ORDER_EXECUTION_TIMEOUT = 1; // 1 hour
 
     public ExecutionWindowHelper(ExecutionWindow window) {
         this.window = window;
@@ -32,6 +37,30 @@ public class ExecutionWindowHelper {
         Calendar endTime = getWindowEndTime(startTime);
         boolean duringWindow = (fromDate.compareTo(startTime) >= 0) && (fromDate.compareTo(endTime) < 0);
         return duringWindow;
+    }
+
+    /**
+     * Check if order's scheduled time + schedule window already expire.
+     * @param fromDate
+     * @return
+     */
+    public boolean isExpired(Calendar fromDate) {
+        boolean expired = false;
+
+        fromDate = inUTC(fromDate);
+        Calendar endTime = (Calendar) fromDate.clone();
+        if (window == null) {
+            endTime.add(Calendar.HOUR_OF_DAY, INFINITE_WINDOW_ORDER_EXECUTION_TIMEOUT);
+        } else {
+            endTime.add(getWindowLengthCalendarField(), window.getExecutionWindowLength());
+        }
+        log.info("endTime: {}", endTime);
+
+        Calendar currTime = Calendar.getInstance();
+        log.info("currTime: {}", currTime);
+
+        expired = currTime.compareTo(endTime) > 0;
+        return expired;
     }
 
     public Calendar calculateCurrentOrNext() {

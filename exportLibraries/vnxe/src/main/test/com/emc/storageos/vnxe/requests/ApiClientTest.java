@@ -122,7 +122,7 @@ public class ApiClientTest {
         }
     }
 
-    // @Test
+    @Test
     public void createLun() {
         String name = "vipr-lun1";
         VNXeCommandJob job = apiClient.createLun(name, "pool_1", 2000000000L, true, null);
@@ -360,7 +360,7 @@ public class ApiClientTest {
         System.out.println(id);
     }
 
-    @Test
+    // @Test
     public void modifyHlu() {
         apiClient.modifyHostLunHlu("Host_20", "Host_20_sv_189_prod", 0);
 

@@ -104,10 +104,8 @@ public class HP3PARSnapshotHelper {
 		return task;
 	}
 
-	public DriverTask deleteVolumeSnapshot(List<VolumeSnapshot> snapshots, DriverTask task, Registry driverRegistry) {
+	public DriverTask deleteVolumeSnapshot(VolumeSnapshot snap, DriverTask task, Registry driverRegistry) {
 
-		// For each requested volume snapshot (in one or more 3par system)
-		for (VolumeSnapshot snap : snapshots) {
 			try {
 				_log.info(
 						"3PARDriver: deleteVolumeSnapshot for storage system native id {}, snapshot name {} , native id {} - start",
@@ -131,7 +129,6 @@ public class HP3PARSnapshotHelper {
 				task.setStatus(DriverTask.TaskStatus.PARTIALLY_FAILED);
 				e.printStackTrace();
 			}
-		} // end for each delete snapshot
 
 		return task;
 	}

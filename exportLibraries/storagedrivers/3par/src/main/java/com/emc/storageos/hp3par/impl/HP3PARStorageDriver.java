@@ -406,10 +406,10 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
      * Remove the list of volumes from array
      */
 	@Override
-	public DriverTask deleteVolumes(List<StorageVolume> volumes) {
+	public DriverTask deleteVolume(StorageVolume volume) {
 		DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_DELETE_STORAGE_VOLUMES);
 
-		return provHelper.deleteVolumes(volumes, task, this.driverRegistry);
+		return provHelper.deleteVolumes(volume, task, this.driverRegistry);
 	}
 
 	@Override
@@ -461,7 +461,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	}
 
 	@Override
-	public DriverTask deleteVolumeSnapshot(List<VolumeSnapshot> snapshots) {
+	public DriverTask deleteVolumeSnapshot(VolumeSnapshot snapshots) {
 
 		DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_DELETE_SNAPSHOT_VOLUMES);
 
@@ -509,7 +509,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	}
 
 	@Override
-	public DriverTask deleteVolumeClone(List<VolumeClone> clones) {
+	public DriverTask deleteVolumeClone(VolumeClone clones) {
 
 		DriverTask task = createDriverTask(HP3PARConstants.TASK_TYPE_DELETE_CLONE_VOLUMES);
 
@@ -533,7 +533,7 @@ public class HP3PARStorageDriver extends AbstractStorageDriver implements BlockS
 	}
 
 	@Override
-	public DriverTask deleteVolumeMirror(List<VolumeMirror> mirrors) {
+	public DriverTask deleteVolumeMirror(VolumeMirror mirrors) {
 		_log.error("3PARDriver: deleteVolumeMirror not supported ");
 		// TODO Auto-generated method stub
 		return null;

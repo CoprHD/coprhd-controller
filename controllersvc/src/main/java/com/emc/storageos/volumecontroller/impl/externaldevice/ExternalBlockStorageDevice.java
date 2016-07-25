@@ -196,6 +196,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
             // Prepare driver volume
             StorageVolume driverVolume = new StorageVolume();
             driverVolume.setNativeId(volume.getNativeId());
+            driverVolume.setDeviceLabel(volume.getDeviceLabel());
             driverVolume.setStorageSystemId(storageSystem.getNativeId());
             driverVolume.setStoragePoolId(storagePool.getNativeId());
             driverVolume.setRequestedCapacity(volume.getCapacity());
@@ -261,9 +262,10 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                     VolumeClone driverClone = new VolumeClone();
                     driverClone.setStorageSystemId(storageSystem.getNativeId());
                     driverClone.setNativeId(volume.getNativeId());
+                    driverClone.setDeviceLabel(volume.getDeviceLabel());
                     driverClone.setParentId(sourceVolume.getNativeId());
                     driverClone.setConsistencyGroup(volume.getReplicationGroupInstance());
-                    task = driver.deleteVolumeClone(Collections.unmodifiableList(Collections.singletonList(driverClone)));
+                    task = driver.deleteVolumeClone(driverClone);
                 } else {
                     // this is regular volume
                     _log.info("Deleting volume on storage system {}, volume: {} .",
@@ -271,8 +273,8 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                     StorageVolume driverVolume = new StorageVolume();
                     driverVolume.setStorageSystemId(storageSystem.getNativeId());
                     driverVolume.setNativeId(volume.getNativeId());
-                    driverVolume.setConsistencyGroup(volume.getReplicationGroupInstance());
-                    task = driver.deleteVolumes(Collections.unmodifiableList(Collections.singletonList(driverVolume)));
+                    driverVolume.setDeviceLabel(volume.getDeviceLabel());
+                    task = driver.deleteVolume(driverVolume);
                 }
                 if (task.getStatus() == DriverTask.TaskStatus.READY) {
                     volume.setInactive(true);
@@ -1386,11 +1388,9 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
             driverSnapshot.setNativeId(blockSnapshot.getNativeId());
             driverSnapshot.setParentId(parent.getNativeId());
             driverSnapshot.setConsistencyGroup(blockSnapshot.getReplicationGroupInstance());
-            List<VolumeSnapshot> driverSnapshots = new ArrayList<>();
-            driverSnapshots.add(driverSnapshot);
             // call driver
             BlockStorageDriver driver = getDriver(storageSystem.getSystemType());
-            DriverTask task = driver.deleteVolumeSnapshot(Collections.unmodifiableList(driverSnapshots));
+            DriverTask task = driver.deleteVolumeSnapshot(driverSnapshot);
             // todo: need to implement support for async case.
             if (task.getStatus() == DriverTask.TaskStatus.READY) {
                 // update snapshots

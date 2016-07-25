@@ -119,13 +119,11 @@ public class HP3PARCloneHelper {
 		return task;
 	}
 
-	public DriverTask deleteVolumeClone(List<VolumeClone> clones, DriverTask task, Registry driverRegistry) {
+	public DriverTask deleteVolumeClone(VolumeClone clone, DriverTask task, Registry driverRegistry) {
 
 		String storageSystemId = null;
 		HP3PARApi hp3parApi = null;
 
-		// For each requested volume snapshot (in one or more 3par system)
-		for (VolumeClone clone : clones) {
 			try {
 				_log.info(
 						"3PARDriver: deleteVolumeClone for storage system native id {}, volume clone name {} , native id {} - start",
@@ -154,7 +152,6 @@ public class HP3PARCloneHelper {
 				task.setStatus(DriverTask.TaskStatus.PARTIALLY_FAILED);
 				e.printStackTrace();
 			}
-		} // end for each delete clone
 
 		return task;
 	}

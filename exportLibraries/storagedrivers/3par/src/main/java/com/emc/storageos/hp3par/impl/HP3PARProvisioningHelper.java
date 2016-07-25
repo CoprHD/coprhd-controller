@@ -135,10 +135,8 @@ public class HP3PARProvisioningHelper {
         return task;
     }
 
-    public DriverTask deleteVolumes(List<StorageVolume> volumes, DriverTask task, Registry driverRegistry) {
+    public DriverTask deleteVolumes(StorageVolume volume, DriverTask task, Registry driverRegistry) {
 
-        // For each requested volume (in one or more 3par system)
-        for (StorageVolume volume : volumes) {
             try {
                 _log.info("3PARDriver:deleteVolumes for storage system native id {}, volume name {} - start",
                         volume.getStorageSystemId(), volume.getDisplayName());
@@ -172,8 +170,6 @@ public class HP3PARProvisioningHelper {
                 task.setStatus(DriverTask.TaskStatus.PARTIALLY_FAILED);
                 e.printStackTrace();
             }
-        } // end for each volume
-
         return task;
     }
 

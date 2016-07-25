@@ -255,6 +255,7 @@ URI_BLOCK_CONSISTENCY_GROUP_SNAPSHOT_SESSION_LIST       = URI_BLOCK_CONSISTENCY_
 
 URI_BLOCK_CONSISTENCY_GROUP_PROTECTION_BASE       = URI_BLOCK_CONSISTENCY_GROUP + "/protection/continuous-copies"
 URI_BLOCK_CONSISTENCY_GROUP_SWAP                  = URI_BLOCK_CONSISTENCY_GROUP_PROTECTION_BASE + "/swap"
+URI_BLOCK_CONSISTENCY_GROUP_ACCESS_MODE           = URI_BLOCK_CONSISTENCY_GROUP_PROTECTION_BASE + "/accessmode"
 URI_BLOCK_CONSISTENCY_GROUP_FAILOVER              = URI_BLOCK_CONSISTENCY_GROUP_PROTECTION_BASE + "/failover"
 URI_BLOCK_CONSISTENCY_GROUP_FAILOVER_CANCEL       = URI_BLOCK_CONSISTENCY_GROUP_PROTECTION_BASE + "/failover-cancel"
 
@@ -353,6 +354,8 @@ URI_INITIATORS                  = URI_SERVICES_BASE   + '/compute/initiators'
 URI_INITIATOR                   = URI_SERVICES_BASE   + '/compute/initiators/{0}'
 URI_INITIATOR_REGISTER          = URI_SERVICES_BASE   + '/compute/initiators/{0}/register'
 URI_INITIATOR_DEREGISTER        = URI_SERVICES_BASE   + '/compute/initiators/{0}/deregister'
+URI_INITIATOR_ALIASGET          = URI_SERVICES_BASE   + "/compute/initiators/{0}/alias/{1}"
+URI_INITIATOR_ALIASSET          = URI_SERVICES_BASE   + "/compute/initiators/{0}/alias"
 URI_INITIATORS_BULKGET          = URI_SERVICES_BASE   + '/compute/initiators/bulk'
 URI_IPINTERFACES                = URI_SERVICES_BASE   + '/compute/ip-interfaces'
 URI_IPINTERFACE                 = URI_SERVICES_BASE   + '/compute/ip-interfaces/{0}'
@@ -3807,7 +3810,7 @@ class Bourne:
         result = self.api_sync_2(tr['resource']['id'], tr['op_id'], self.volume_show_task)
         return result
 
-    def volume_change_link(self, uri, operation, copy_uri, type, pit):
+    def volume_change_link(self, uri, operation, copy_uri, type, am, pit):
         copies_param = dict()
         copy = dict()
         copy_entries = []
@@ -3817,6 +3820,9 @@ class Bourne:
 
         if (pit):
             copy['pointInTime'] = pit
+
+        if (am):
+            copy['accessMode'] = am
 
         copy_entries.append(copy)
         copies_param['copy'] = copy_entries
@@ -4260,6 +4266,31 @@ class Bourne:
         o = self.api('POST', URI_BLOCK_CONSISTENCY_GROUP_SWAP.format(group), copies_param )
         self.assert_is_dict(o)
         
+        if ('task' in o):
+            tasks = []
+            for task in o['task']:
+                s = self.api_sync_2(task['resource']['id'], task['op_id'], self.block_consistency_group_show_task)
+                tasks.append(s)
+            s = tasks
+        else:
+            s = o['details']
+
+        return s
+
+    def block_consistency_group_accessmode(self, group, copyType, targetVarray, am):
+        copies_param = dict()
+        copy = dict()
+        copy_entries = []
+
+        copy['type'] = copyType
+        copy['copyID'] = targetVarray
+        copy['accessMode'] = am
+        copy_entries.append(copy)
+        copies_param['copy'] = copy_entries
+
+        o = self.api('POST', URI_BLOCK_CONSISTENCY_GROUP_ACCESS_MODE.format(group), copies_param )
+        self.assert_is_dict(o)
+
         if ('task' in o):
             tasks = []
             for task in o['task']:
@@ -8368,6 +8399,17 @@ class Bourne:
     def initiator_deregister(self, name):
         uri = self.initiator_query(name)
         return self.api('POST', URI_INITIATOR_DEREGISTER.format(uri))
+
+    def initiator_aliasget(self, name, systemuri):
+        uri = self.initiator_query(name)
+        return self.api('GET', URI_INITIATOR_ALIASGET.format(uri,systemuri))
+
+    def initiator_aliasset(self, name, systemuri, alias):
+        uri = self.initiator_query(name)
+        params = {'system_uri': systemuri,
+                  'initiator_alias': alias
+                   }
+        return self.api('PUT', URI_INITIATOR_ALIASSET.format(uri), params)
 
     #
     # Compute Resources - host ipinterface

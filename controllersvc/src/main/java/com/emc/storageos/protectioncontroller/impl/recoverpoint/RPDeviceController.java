@@ -84,6 +84,7 @@ import com.emc.storageos.locking.LockRetryException;
 import com.emc.storageos.locking.LockTimeoutValue;
 import com.emc.storageos.locking.LockType;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
+import com.emc.storageos.model.block.Copy;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.protectioncontroller.RPController;
 import com.emc.storageos.recoverpoint.exceptions.RecoverPointException;
@@ -270,6 +271,19 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     protected final static String CONTROLLER_SVC = "controllersvc";
     protected final static String CONTROLLER_SVC_VER = "1";
     private static final Logger _log = LoggerFactory.getLogger(RPDeviceController.class);
+
+    // RP OP constants
+    private static final String STOP = "stop";
+    private static final String START = "start";
+    private static final String SYNC = "sync";
+    private static final String PAUSE = "pause";
+    private static final String RESUME = "resume";
+    private static final String FAILOVER_TEST = "failover-test";
+    private static final String FAILOVER = "failover";
+    private static final String FAILOVER_CANCEL = "failover-cancel";
+    private static final String SWAP = "swap";
+    private static final String FAILOVER_TEST_CANCEL = "failover-test-cancel";
+    private static final String CHANGE_ACCESS_MODE = "change-access-mode";
 
     private static DbClient _dbClient = null;
     protected CoordinatorClient _coordinator;
@@ -2916,7 +2930,6 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         return true;
     }
 
-
     /**
      * Workflow rollback step method for enabling an image access
      *
@@ -3881,6 +3894,28 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     } else if (vol.checkPersonality(Volume.PersonalityTypes.TARGET.toString())) {
                         vol.setAccessState(Volume.VolumeAccessState.NOT_READY.name());
                         vol.setLinkStatus(Volume.LinkStatus.IN_SYNC.name());
+
+                        // Check the CG for an existing target volume corresponding to the same RP copy
+                        // as this volume and mirror its access state and link statues. If the target
+                        // copy happens to be in direct access mode, it's important that the new volume
+                        // be marked FAILED_OVER and READWRITE.
+                        List<Volume> existingCgTargets =
+                                RPHelper.getTargetVolumesForVarray(_dbClient, vol.getConsistencyGroup(), vol.getVirtualArray());
+                        if (existingCgTargets != null && !existingCgTargets.isEmpty() && vol.getRpCopyName() != null) {
+                            for (Volume targetVolume : existingCgTargets) {
+                                // If we have found a target volume that isn't the same and the RP copy matches,
+                                // lets use it to set the access state and link status values.
+                                if (!vol.getId().equals(targetVolume.getId())
+                                        && vol.getRpCopyName().equalsIgnoreCase(targetVolume.getRpCopyName())) {
+                                    _log.info(String
+                                            .format("Updating volume %s. Setting access state = %s, link status = %s.  Based on existing CG target volume %s.",
+                                                    vol.getId(), targetVolume.getAccessState(), targetVolume.getLinkStatus(),
+                                                    targetVolume.getId()));
+                                    vol.setAccessState(targetVolume.getAccessState());
+                                    vol.setLinkStatus(targetVolume.getLinkStatus());
+                    }
+                            }
+                        }
                     }
                     _dbClient.updateObject(vol);
                     protectionSetVolumes.add(vol.getId().toString());
@@ -4233,7 +4268,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * @see com.emc.storageos.volumecontroller.RPController#stopProtection(java.net.URI, java.net.URI, java.lang.String)
      */
     @Override
-    public void performProtectionOperation(URI protectionDevice, URI id, URI copyID, String pointInTime, String op,
+    public void performProtectionOperation(URI protectionDevice, URI id, URI copyID, String pointInTime, String imageAccessMode, String op,
             String task)
                     throws ControllerException {
         RPCGProtectionTaskCompleter taskCompleter = null;
@@ -4260,18 +4295,18 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             RecoverPointVolumeProtectionInfo volumeProtectionInfo = rp.getProtectionInfoForVolume(RPHelper.getRPWWn(
                     protectionVolume.getId(), _dbClient));
 
-            if (op.equals("stop")) {
+            if (op.equals(STOP)) {
                 taskCompleter.setOperationTypeEnum(OperationTypeEnum.STOP_RP_LINK);
                 rp.disableProtection(volumeProtectionInfo);
                 setProtectionSetStatus(volumeProtectionInfo, ProtectionStatus.DISABLED.toString(), rpSystem);
                 _log.info("doStopProtection {} - complete", rpSystem.getId());
                 taskCompleter.ready(_dbClient, _locker);
-            } else if (op.equals("start")) {
+            } else if (op.equals(START)) {
                 taskCompleter.setOperationTypeEnum(OperationTypeEnum.START_RP_LINK);
                 rp.enableProtection(volumeProtectionInfo);
                 setProtectionSetStatus(volumeProtectionInfo, ProtectionStatus.ENABLED.toString(), rpSystem);
                 taskCompleter.ready(_dbClient, _locker);
-            } else if (op.equals("sync")) {
+            } else if (op.equals(SYNC)) {
                 taskCompleter.setOperationTypeEnum(OperationTypeEnum.SYNC_RP_LINK);
                 Set<String> volumeWWNs = new HashSet<String>();
                 volumeWWNs.add(RPHelper.getRPWWn(protectionVolume.getId(), _dbClient));
@@ -4285,23 +4320,23 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 } else {
                     taskCompleter.ready(_dbClient, _locker);
                 }
-            } else if (op.equals("pause")) {
+            } else if (op.equals(PAUSE)) {
                 taskCompleter.setOperationTypeEnum(OperationTypeEnum.PAUSE_RP_LINK);
                 rp.pauseTransfer(volumeProtectionInfo);
                 setProtectionSetStatus(volumeProtectionInfo, ProtectionStatus.PAUSED.toString(), rpSystem);
                 taskCompleter.ready(_dbClient, _locker);
-            } else if (op.equals("resume")) {
+            } else if (op.equals(RESUME)) {
                 taskCompleter.setOperationTypeEnum(OperationTypeEnum.RESUME_RP_LINK);
                 rp.resumeTransfer(volumeProtectionInfo);
                 setProtectionSetStatus(volumeProtectionInfo, ProtectionStatus.ENABLED.toString(), rpSystem);
                 taskCompleter.ready(_dbClient, _locker);
-            } else if (op.equals("failover-test")) {
+            } else if (op.equals(FAILOVER_TEST)) {
                 taskCompleter.setOperationTypeEnum(OperationTypeEnum.FAILOVER_TEST_RP_LINK);
                 RPCopyRequestParams copyParams = new RPCopyRequestParams();
                 copyParams.setCopyVolumeInfo(volumeProtectionInfo);
                 rp.failoverCopyTest(copyParams);
                 taskCompleter.ready(_dbClient, _locker);
-            } else if (op.equals("failover")) {
+            } else if (op.equals(FAILOVER)) {
                 // If the "protectionVolume" is a source personality volume, we're probably dealing with a failover
                 // cancel.
                 if (protectionVolume.getLinkStatus() != null &&
@@ -4348,7 +4383,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     updatePostFailover(protectionVolume);
                     taskCompleter.ready(_dbClient, _locker);
                 }
-            } else if (op.equals("failover-cancel")) {
+            } else if (op.equals(FAILOVER_CANCEL)) {
                 // If the "protectionVolume" is a source personality volume, we're probably dealing with a failover
                 // cancel.
                 taskCompleter.setOperationTypeEnum(OperationTypeEnum.FAILOVER_CANCEL_RP_LINK);
@@ -4381,20 +4416,25 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                                                         "performFailoverOperation: source volume specified for failover where target volume specified is not in failover state"));
                     }
                 }
-            } else if (op.equals("swap")) {
+            } else if (op.equals(SWAP)) {
                 taskCompleter.setOperationTypeEnum(OperationTypeEnum.SWAP_RP_VOLUME);
                 RPCopyRequestParams copyParams = new RPCopyRequestParams();
                 copyParams.setCopyVolumeInfo(volumeProtectionInfo);
                 rp.swapCopy(copyParams);
                 protectionVolume = updatePostSwapPersonalities(protectionVolume);
+                rp.setCopyAsProduction(copyParams);
 
                 // if metropoint:
                 // 1. delete the standby CDP copy
                 // 2. add back the standby production copy
                 // 3. add back the standby CDP copy
                 if (RPHelper.isMetroPointVolume(_dbClient, protectionVolume)) {
-
-                    _log.info(String.format(
+                    // If the standby production copy does not exist, it means we are in a swapped state and need
+                    // to reconstruct the standby production copy during swap-back. If the standby production
+                    // copy exists, we can skip all the CG reconstruction steps.
+                    if (!rp.doesStandbyProdCopyExist(volumeProtectionInfo)) {
+                        _log.info(String
+                                .format(
                             "Adding back standby production copy after swap back to original VPlex Metro for Metropoint volume %s (%s)",
                             protectionVolume.getLabel(), protectionVolume.getId().toString()));
 
@@ -4493,13 +4533,39 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                         }
                     }
                 }
+                }
                 taskCompleter.ready(_dbClient, _locker);
-            } else if (op.equals("failover-test-cancel")) {
+            } else if (op.equals(FAILOVER_TEST_CANCEL)) {
                 taskCompleter.setOperationTypeEnum(OperationTypeEnum.FAILOVER_TEST_CANCEL_RP_LINK);
                 RPCopyRequestParams copyParams = new RPCopyRequestParams();
                 copyParams.setCopyVolumeInfo(volumeProtectionInfo);
                 rp.failoverCopyTestCancel(copyParams);
                 taskCompleter.ready(_dbClient, _locker);
+            } else if (op.equals(CHANGE_ACCESS_MODE)) {
+                taskCompleter.setOperationTypeEnum(OperationTypeEnum.CHANGE_RP_IMAGE_ACCESS_MODE);
+                RPCopyRequestParams copyParams = new RPCopyRequestParams();
+                copyParams.setCopyVolumeInfo(volumeProtectionInfo);
+                copyParams.setImageAccessMode(imageAccessMode);
+                if (imageAccessMode != null) {
+                    rp.updateImageAccessMode(copyParams);
+
+                    // RecoverPoint will remove all bookmarks on any copy set to direct access mode. We need to remove any
+                    // BlockSnapshot objects that reference the target copy being set to direct access mode.
+                    if (Copy.ImageAccessMode.DIRECT_ACCESS.name().equalsIgnoreCase(imageAccessMode)) {
+                        _log.info(String
+                                .format(
+                                        "Updated imaged access mode for copy %s at %s to DIRECT_ACCESS. Removing all bookmarks associated with that copy and site.",
+                                        volumeProtectionInfo.getRpCopyName(), volumeProtectionInfo.getRpSiteName()));
+                        // Wait for RP to remove copy snapshots
+                        Thread.sleep(5000);
+                        RPHelper.cleanupSnapshots(_dbClient, rpSystem);
+                    }
+
+                    taskCompleter.ready(_dbClient, _locker);
+            } else {
+                    taskCompleter.error(_dbClient, _locker,
+                            DeviceControllerErrors.recoverpoint.imageAccessModeNotSupported(imageAccessMode));
+                }
             } else {
                 taskCompleter.error(_dbClient, _locker, DeviceControllerErrors.recoverpoint.methodNotSupported());
             }
@@ -4765,11 +4831,16 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         }
     }
 
-    /* (non-Javadoc)
-     * @see com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationInterface#addStepsForPreCreateReplica(com.emc.storageos.workflow.Workflow, java.lang.String, java.util.List, java.lang.String)
+    /*
+     * (non-Javadoc)
+     *
+     * @see
+     * com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationInterface#addStepsForPreCreateReplica(com.emc.storageos.workflow
+     * .Workflow, java.lang.String, java.util.List, java.lang.String)
      */
     @Override
-    public String addStepsForPreCreateReplica(Workflow workflow, String waitFor, List<VolumeDescriptor> volumeDescriptors, String taskId) throws InternalException {
+    public String addStepsForPreCreateReplica(Workflow workflow, String waitFor, List<VolumeDescriptor> volumeDescriptors, String taskId)
+            throws InternalException {
               
         _log.info("Adding steps for create replica");
         return addStepsForPreOrPostCreateReplica(workflow, waitFor, volumeDescriptors, true, taskId);
@@ -4784,6 +4855,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     
     /**
      * adds steps for either pre-create copy or post-create copy for recoverpoint protected volumes
+     *
      * @param workflow
      * @param waitFor
      * @param volumeDescriptors
@@ -4821,12 +4893,15 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     if (!NullColumnValueGetter.isNullNamedURI(snapshotSession.getParent())) {
                         parentIds.add(snapshotSession.getParent().getURI());
                     } else if (!NullColumnValueGetter.isNullValue(snapshotSession.getReplicationGroupInstance())){
-                        List<Volume> volsInRG = ControllerUtils.getVolumesPartOfRG(snapshotSession.getStorageController(), snapshotSession.getReplicationGroupInstance(), _dbClient);
+                        List<Volume> volsInRG = ControllerUtils.getVolumesPartOfRG(snapshotSession.getStorageController(),
+                                snapshotSession.getReplicationGroupInstance(), _dbClient);
                         for (Volume vol : volsInRG) {
                             parentIds.add(vol.getId());
                         }
                     } else {
-                        _log.warn(String.format("Skipping BlockSnapshotSession object with null parent and null replicationGroupInstance: %s", snapshotSession.getId().toString()));
+                        _log.warn(String.format(
+                                "Skipping BlockSnapshotSession object with null parent and null replicationGroupInstance: %s",
+                                snapshotSession.getId().toString()));
                     }
                     clazz = BlockSnapshotSession.class;
                 }
@@ -4893,9 +4968,11 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 String bookmarkName = VIPR_SNAPSHOT_PREFIX + (new Random()).nextInt();
             
                 // Step 1 - Create a RP bookmark
-                String rpWaitFor = addCreateBookmarkStep(workflow, new ArrayList<URI>(), protectionSystem, bookmarkName, volumeWWNs, false, waitFor);
+                String rpWaitFor = addCreateBookmarkStep(workflow, new ArrayList<URI>(), protectionSystem, bookmarkName, volumeWWNs, false,
+                        waitFor);
     
-                // Lock CG for the duration of the workflow so enable and disable can complete before another workflow tries to enable image access
+                // Lock CG for the duration of the workflow so enable and disable can complete before another workflow tries to enable image
+                // access
                 List<String> locks = new ArrayList<String>();
                 String lockName = generateRPLockCG(_dbClient, aSrcVolume.getId());
                 if (null != lockName) {
@@ -4904,10 +4981,12 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 }
     
                 // Step 2 - Enable image access
-                return addEnableImageAccessForCreateReplicaStep(workflow, protectionSystem, clazz, new ArrayList<URI>(copyList), bookmarkName, volumeWWNs, rpWaitFor);
+                return addEnableImageAccessForCreateReplicaStep(workflow, protectionSystem, clazz, new ArrayList<URI>(copyList),
+                        bookmarkName, volumeWWNs, rpWaitFor);
             
             } else {
-                return addDisableImageAccessForCreateReplicaStep(workflow, protectionSystem, clazz, new ArrayList<URI>(copyList), volumeWWNs, waitFor);
+                return addDisableImageAccessForCreateReplicaStep(workflow, protectionSystem, clazz, new ArrayList<URI>(copyList),
+                        volumeWWNs, waitFor);
             }
         }
         
@@ -5720,10 +5799,12 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * @return
      * @throws InternalException
      */
-    private String addEnableImageAccessForCreateReplicaStep(Workflow workflow, ProtectionSystem rpSystem, Class<? extends DataObject> clazz, List<URI> copyList,
+    private String addEnableImageAccessForCreateReplicaStep(Workflow workflow, ProtectionSystem rpSystem,
+            Class<? extends DataObject> clazz, List<URI> copyList,
             String bookmarkName, Set<String> volumeWWNs, String waitFor) throws InternalException {
         String stepId = workflow.createStepId();
-        Workflow.Method enableImageAccessExecuteMethod = new Workflow.Method(METHOD_ENABLE_IMAGE_ACCESS_CREATE_REPLICA_STEP, rpSystem.getId(),
+        Workflow.Method enableImageAccessExecuteMethod = new Workflow.Method(METHOD_ENABLE_IMAGE_ACCESS_CREATE_REPLICA_STEP,
+                rpSystem.getId(),
                 clazz, copyList, bookmarkName, volumeWWNs);
         Workflow.Method enableImageAccessExecutionRollbackMethod = new Workflow.Method(METHOD_DISABLE_IMAGE_ACCESS_CREATE_REPLICA_STEP,
                 rpSystem.getId(), clazz, copyList, volumeWWNs);
@@ -5749,7 +5830,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * @return
      * @throws ControllerException
      */
-    public boolean enableImageAccessForCreateReplicaStep(URI protectionDevice, Class<? extends DataObject> clazz, List<URI> copyList, String bookmarkName,
+    public boolean enableImageAccessForCreateReplicaStep(URI protectionDevice, Class<? extends DataObject> clazz, List<URI> copyList,
+            String bookmarkName,
             Set<String> volumeWWNs, String opId)
             throws ControllerException {
         TaskCompleter completer = null;
@@ -5813,11 +5895,13 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * @return
      * @throws InternalException
      */
-    private String addDisableImageAccessForCreateReplicaStep(Workflow workflow, ProtectionSystem rpSystem, Class<? extends DataObject> clazz, List<URI> copyList,
+    private String addDisableImageAccessForCreateReplicaStep(Workflow workflow, ProtectionSystem rpSystem,
+            Class<? extends DataObject> clazz, List<URI> copyList,
             Set<String> volumeWWNs, String waitFor) throws InternalException {
         String stepId = workflow.createStepId();
 
-        Workflow.Method disableImageAccessExecuteMethod = new Workflow.Method(METHOD_DISABLE_IMAGE_ACCESS_CREATE_REPLICA_STEP, rpSystem.getId(),
+        Workflow.Method disableImageAccessExecuteMethod = new Workflow.Method(METHOD_DISABLE_IMAGE_ACCESS_CREATE_REPLICA_STEP,
+                rpSystem.getId(),
                 clazz, copyList, volumeWWNs);
 
         workflow.createStep(STEP_DISABLE_IMAGE_ACCESS, String.format("Disable image access for bookmark"), waitFor, rpSystem.getId(),
@@ -5837,7 +5921,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * @param opId
      * @throws ControllerException
      */
-    public void disableImageAccessForCreateReplicaStep(URI protectionDevice, Class<? extends DataObject> clazz, List<URI> copyList, Set<String> volumeWWNs,
+    public void disableImageAccessForCreateReplicaStep(URI protectionDevice, Class<? extends DataObject> clazz, List<URI> copyList,
+            Set<String> volumeWWNs,
             String opId) throws ControllerException {
         TaskCompleter completer = null;
         try {
@@ -6928,7 +7013,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
                 // if there are any target clones or snapshots, need to create a bookmark and enable image access
                 List<Volume> existingVols = CustomQueryUtility.queryActiveResourcesByConstraint(
-                        _dbClient, Volume.class, AlternateIdConstraint.Factory.getVolumeByReplicationGroupInstance(targetReplicationGroupName));
+                        _dbClient, Volume.class,
+                        AlternateIdConstraint.Factory.getVolumeByReplicationGroupInstance(targetReplicationGroupName));
                 for (Volume existingVol : existingVols) {
                     if (existingVol.getFullCopies() != null && !existingVol.getFullCopies().isEmpty()) {
                         existingSnapOrClone = true;
@@ -6956,9 +7042,11 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 String bookmarkName = VIPR_SNAPSHOT_PREFIX + (new Random()).nextInt();
             
                 // Step 1 - Create a RP bookmark
-                String rpWaitFor = addCreateBookmarkStep(workflow, new ArrayList<URI>(), protectionSystem, bookmarkName, volumeWWNs, false, waitFor);
+                String rpWaitFor = addCreateBookmarkStep(workflow, new ArrayList<URI>(), protectionSystem, bookmarkName, volumeWWNs, false,
+                        waitFor);
     
-                // Lock CG for the duration of the workflow so enable and disable can complete before another workflow tries to enable image access
+                // Lock CG for the duration of the workflow so enable and disable can complete before another workflow tries to enable image
+                // access
                 List<String> locks = new ArrayList<String>();
                 String lockName = generateRPLockCG(_dbClient, aSrcVolume.getId());
                 if (null != lockName) {
@@ -6967,7 +7055,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 }
     
                 // Step 2 - Enable image access
-                waitFor = addEnableImageAccessForCreateReplicaStep(workflow, protectionSystem, null, new ArrayList<URI>(), bookmarkName, volumeWWNs, rpWaitFor);
+                waitFor = addEnableImageAccessForCreateReplicaStep(workflow, protectionSystem, null, new ArrayList<URI>(), bookmarkName,
+                        volumeWWNs, rpWaitFor);
             }
             
             // add steps for add source and remove vols
@@ -6977,7 +7066,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             waitFor = _blockDeviceController.addStepsForUpdateApplication(workflow, addTargetVols, null, waitFor, taskId);
 
             if (existingSnapOrClone) {
-                waitFor = addDisableImageAccessForCreateReplicaStep(workflow, protectionSystem, null, new ArrayList<URI>(), volumeWWNs, waitFor);
+                waitFor = addDisableImageAccessForCreateReplicaStep(workflow, protectionSystem, null, new ArrayList<URI>(), volumeWWNs,
+                        waitFor);
             }
 
             if (!vplexVolumes.isEmpty()) {
@@ -7247,8 +7337,12 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         return lockName;
     }
 
-    /* (non-Javadoc)
-     * @see com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationInterface#addStepsForCreateFullCopy(com.emc.storageos.workflow.Workflow, java.lang.String, java.util.List, java.lang.String)
+    /*
+     * (non-Javadoc)
+     *
+     * @see
+     * com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationInterface#addStepsForCreateFullCopy(com.emc.storageos.workflow.Workflow
+     * , java.lang.String, java.util.List, java.lang.String)
      */
     @Override
     public String addStepsForCreateFullCopy(Workflow workflow, String waitFor, List<VolumeDescriptor> volumeDescriptors, String taskId)

@@ -123,7 +123,8 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
     /**
      * Removes discovered IP interfaces from its host and ignores manually created IP interfaces
      * 
-     * @param ipInterfaces list of IP interfaces
+     * @param ipInterfaces
+     *            list of IP interfaces
      */
     protected void removeDiscoveredInterfaces(Iterable<IpInterface> ipInterfaces) {
         updateManuallyCreatedInterfaces(ipInterfaces);
@@ -142,7 +143,8 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
      * are true. During next discovery, any discovered interfaces will have isManualCreation
      * value set to false.
      * 
-     * @param ipInterfaces list of IP interfaces
+     * @param ipInterfaces
+     *            list of IP interfaces
      */
     protected void updateManuallyCreatedInterfaces(Iterable<IpInterface> ipInterfaces) {
         for (IpInterface ipInterface : ipInterfaces) {
@@ -216,7 +218,8 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
     /**
      * Removes discovered initiators from its host and ignores manually created initiators
      * 
-     * @param initiators list of initiators
+     * @param initiators
+     *            list of initiators
      */
     protected void removeDiscoveredInitiators(Iterable<Initiator> initiators) {
         Iterable<Initiator> discoveredInitiators = Iterables.filter(initiators, new Predicate<Initiator>() {
@@ -257,8 +260,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
             initiator = new Initiator();
             initiator.setInitiatorPort(port);
             initiator.setLabel(EndpointUtility.changeCase(port));
-        }
-        else {
+        } else {
             initiators.remove(initiator);
         }
         initiator.setIsManualCreation(false);
@@ -288,15 +290,15 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
                 throw new IllegalArgumentException(e);
             }
             model.setLabel(label);
-        }
-        else {
+        } else {
             models.remove(model);
         }
         return model;
     }
 
     /**
-     * Finds a matching value in the list of IpInterfaces by ipAddress, or creates one if none is found. If a match is found in
+     * Finds a matching value in the list of IpInterfaces by ipAddress, or creates one if none is found. If a match is
+     * found in
      * the list, it will be removed from the list before returning.
      * 
      * @param models
@@ -321,8 +323,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
     protected void save(DataObject model) {
         if (model.getCreationTime() == null) {
             debug("Creating %s: %s", model.getClass().getSimpleName(), toString(model));
-        }
-        else {
+        } else {
             debug("Updating %s: %s", model.getClass().getSimpleName(), toString(model));
         }
         modelClient.save(model);
@@ -350,8 +351,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
     protected void error(String message, Object... args) {
         if (args != null && args.length > 0) {
             getLog().error(String.format(message, args));
-        }
-        else {
+        } else {
             getLog().error(message);
         }
     }
@@ -359,8 +359,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
     protected void warn(Throwable t, String message, Object... args) {
         if (args != null && args.length > 0) {
             getLog().warn(String.format(message, args), t);
-        }
-        else {
+        } else {
             getLog().warn(message, t);
         }
     }
@@ -368,8 +367,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
     protected void warn(String message, Object... args) {
         if (args != null && args.length > 0) {
             getLog().warn(String.format(message, args));
-        }
-        else {
+        } else {
             getLog().warn(message);
         }
     }
@@ -378,8 +376,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
         if (getLog().isInfoEnabled()) {
             if (args != null && args.length > 0) {
                 getLog().info(String.format(message, args));
-            }
-            else {
+            } else {
                 getLog().info(message);
             }
         }
@@ -389,8 +386,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
         if (getLog().isDebugEnabled()) {
             if (args != null && args.length > 0) {
                 getLog().debug(String.format(message, args));
-            }
-            else {
+            } else {
                 getLog().debug(message);
             }
         }
@@ -424,8 +420,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
         if (StringUtils.isNotBlank(initiator.getInitiatorNode())) {
             return String.format("%s:%s [%s]", initiator.getInitiatorNode(), initiator.getInitiatorPort(),
                     initiator.getProtocol());
-        }
-        else {
+        } else {
             return String.format("%s [%s]", initiator.getInitiatorPort(), initiator.getProtocol());
         }
     }
@@ -435,14 +430,11 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
         Throwable rootCause = getRootCause(t);
         if (rootCause instanceof UnknownHostException) {
             return "Unknown host: " + rootCause.getMessage();
-        }
-        else if (rootCause instanceof ConnectException) {
+        } else if (rootCause instanceof ConnectException) {
             return "Error connecting: " + rootCause.getMessage();
-        }
-        else if (rootCause instanceof NoRouteToHostException) {
+        } else if (rootCause instanceof NoRouteToHostException) {
             return "No route to host: " + rootCause.getMessage();
-        }
-        else if (rootCause instanceof SSLException) {
+        } else if (rootCause instanceof SSLException) {
             return "SSL error: " + rootCause.getMessage();
         }
         return getClosestErrorMessage(t);
@@ -480,8 +472,10 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
     /**
      * Looks up controller dependency for given hardware
      * 
-     * @param clazz controller interface
-     * @param hw hardware name
+     * @param clazz
+     *            controller interface
+     * @param hw
+     *            hardware name
      * @param <T>
      * @return
      */
@@ -512,7 +506,8 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
 
             if ((change.getOldCluster() == null && change.getNewCluster() != null)
                     || (change.getOldCluster() != null && change.getNewCluster() == null)
-                    || (!change.getOldCluster().equals(change.getNewCluster()))) {
+                    || (change.getOldCluster() != null && change.getNewCluster() != null
+                            && !change.getOldCluster().equals(change.getNewCluster()))) {
 
                 Cluster cluster = null;
                 if (!NullColumnValueGetter.isNullURI(change.getNewCluster())) {

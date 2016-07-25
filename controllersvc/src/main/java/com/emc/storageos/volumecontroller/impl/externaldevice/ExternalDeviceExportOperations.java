@@ -206,7 +206,7 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
             List<URI> volumeUris = new ArrayList<>();
             StringMap maskVolumes = exportMask.getVolumes();
             if (maskVolumes != null) {
-                for (String vol : maskVolumes.values()) {
+                for (String vol : maskVolumes.keySet()) {
                     URI volumeURI = URI.create(vol);
                     volumeUris.add(volumeURI);
                 }

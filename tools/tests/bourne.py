@@ -635,7 +635,7 @@ class Bourne:
     def test_firewall(self, ipaddr):
         testfirewall=os.getenv('TEST_APPLIANCE', 'yes')
         if (testfirewall == 'yes'):
-            self.test_firewall_port(ipaddr, 9160, False)
+            self.test_firewall_port(ipaddr, 9042, False)
             self.test_firewall_port(ipaddr, 9083, True)
             self.test_firewall_port(ipaddr, 9998, True)
 

@@ -46,7 +46,7 @@ public class DataStorageServiceOption extends ServiceOption {
      * 
      * @param capabilities The data service option capabilities.
      */
-    public void getCapabilities(List<CapabilityInstance> capabilities) {
+    public void setCapabilities(List<CapabilityInstance> capabilities) {
         this.capabilities = capabilities;
     }
 }

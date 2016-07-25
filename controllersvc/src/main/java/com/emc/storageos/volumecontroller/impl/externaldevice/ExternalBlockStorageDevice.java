@@ -146,8 +146,8 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
         try {
             for (Volume volume : volumes) {
                 if (storageCapabilities == null) {
-                    // All volumes to be created should have no auto tiering policy set, or 
-                    // they should have the same policy set.
+                    // All volumes created in a request will have the same capabilities.
+                    // Currently, only auto tiering policy is the only capability supported.
                     storageCapabilities = createStorageCapabilitiesForVolumeCreate(volume.getAutoTieringPolicyUri());
                 }
                 StorageVolume driverVolume = new StorageVolume();
@@ -197,28 +197,58 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
     /**
      * Creates the driver storage capabilities for volume creation.
      * 
-     * @param autoTieringPolicyURI The URI of the AutoTieringPolicy.
+     * @param autoTieringPolicyURI The URI of the AutoTieringPolicy or null.
      * 
      * @return A reference to a StorageCapabities
      */
     private StorageCapabilities createStorageCapabilitiesForVolumeCreate(URI autoTieringPolicyURI) {
         StorageCapabilities storageCapabilities = new StorageCapabilities();
+        addAutoTieringPolicyCapability(storageCapabilities, autoTieringPolicyURI);
+        return storageCapabilities;
+    }
+    
+    /**
+     * Create the auto tiering policy capability and add it to the passed
+     * storage capabilities
+     * 
+     * @param storageCapabilities A reference to all storage capabilities.
+     * @param autoTieringPolicyURI The URI of the AutoTieringPolicy or null.
+     */
+    private void addAutoTieringPolicyCapability(StorageCapabilities storageCapabilities, URI autoTieringPolicyURI) {
         if (!NullColumnValueGetter.isNullURI(autoTieringPolicyURI)) {
             AutoTieringPolicy autoTieringPolicy = dbClient.queryObject(AutoTieringPolicy.class, autoTieringPolicyURI);
             if (autoTieringPolicy == null) {
                 throw DeviceControllerException.exceptions.objectNotFound(autoTieringPolicyURI);
             }
+
+            // Create the auto tiering policy capability.
             AutoTieringPolicyCapabilityDefinition autoTieringCapabilityDefinition = new AutoTieringPolicyCapabilityDefinition();
             Map<String, List<String>> capabilityProperties = new HashMap<>();
             capabilityProperties.put(AutoTieringPolicyCapabilityDefinition.PROPERTY_NAME.POLICY_ID.name(), Arrays.asList(autoTieringPolicy.getPolicyName()));
             capabilityProperties.put(AutoTieringPolicyCapabilityDefinition.PROPERTY_NAME.PROVISIONING_TYPE.name(), Arrays.asList(autoTieringPolicy.getProvisioningType()));
-            CapabilityInstance capabilityInstance = new CapabilityInstance(autoTieringCapabilityDefinition.getId(), autoTieringPolicy.getPolicyName(), capabilityProperties);
-            DataStorageServiceOption serviceOption = new DataStorageServiceOption(Arrays.asList(capabilityInstance));
-            CommonStorageCapabilities commonCapabilities = new CommonStorageCapabilities();
-            commonCapabilities.setDataStorage(Arrays.asList(serviceOption));
-            storageCapabilities.setCommonCapabilitis(commonCapabilities);
-        }
-        return storageCapabilities;
+            CapabilityInstance autoTieringCapability = new CapabilityInstance(autoTieringCapabilityDefinition.getId(), autoTieringPolicy.getPolicyName(), capabilityProperties);
+
+            // Get the common capabilities for the passed storage capabilities.
+            // If null, create and set it.
+            CommonStorageCapabilities commonCapabilities = storageCapabilities.getCommonCapabilitis();
+            if (commonCapabilities == null) {
+                commonCapabilities = new CommonStorageCapabilities();
+                storageCapabilities.setCommonCapabilitis(commonCapabilities);
+            }
+            
+            // Get the data storage service options for the common capabilities.
+            // If null, create it and set it.
+            List<DataStorageServiceOption> dataStorageSvcOptions = commonCapabilities.getDataStorage();
+            if (dataStorageSvcOptions == null) {
+                dataStorageSvcOptions = new ArrayList<>();
+                commonCapabilities.setDataStorage(dataStorageSvcOptions);
+            }
+            
+            // Create a new data storage service option for the auto tiering policy capability
+            // and add it to the list.
+            DataStorageServiceOption dataStorageSvcOption = new DataStorageServiceOption(Arrays.asList(autoTieringCapability));
+            dataStorageSvcOptions.add(dataStorageSvcOption);
+        }        
     }
 
     @Override

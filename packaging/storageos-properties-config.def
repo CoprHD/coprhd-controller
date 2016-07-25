@@ -1819,7 +1819,7 @@
     {
         key : "controller_mds_clone_zoneset",
         label : "Clone Cisco Zonesets",
-        description : "Clone Cisco zoneset before committing zoning changes",
+        description : "Clone Cisco zoneset before committing zoning changes. Creating zoneset clones will increase the size of the zoneDB. Manual removal of zoneset clones might be required if the zoneDB size grows close to the allowed limits for zoneDB.",
         type : "string",
         allowedValues : ( "true", "false" ),
         userConfigurable : true,

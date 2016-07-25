@@ -5,6 +5,10 @@
     when: (body is defined) and
           ((method is undefined) or (method == "none"))
 
+  - name: defaulting undefined REST method to GET
+    set_fact: method="GET"
+    when: (method is undefined) or (method == "none")
+
     # make REST request
   - name: REST Request
     uri:

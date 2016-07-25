@@ -246,7 +246,8 @@ ETCFILES_COMMON = \
      $(ETCDIR)/ansible_scripts/playbook-vipr-options-VolumesForExport.yml \
      $(ETCDIR)/ansible_scripts/playbook-vipr-options-varrays.yml \
      $(ETCDIR)/ansible_scripts/playbook-vipr-options-sio-mdm-pri-locate.yml \
-     $(ETCDIR)/systemd/system/oe.service 
+     $(ETCDIR)/systemd/system/oe.service \
+     $(ETCDIR)/systemd/system/docker.service.d/docker.conf
 
 SYSTEMD_DIR = ${BUILD_BASE}/etc/systemd/system
 SYSTEMD_TMPL = $(SYSTEMD_DIR)/storageos-template.service
@@ -363,6 +364,13 @@ $(ETCDIR)/oe/%: oe/%
 	$(ATSIGN)$(SED_SCRIPT) <$(<) >$(@)
 	$(ATSIGN)$(CHMOD) 755 $(@)
 
+$(ETCDIR)/docker.service.d/%: docker.service.d/%
+	@echo "sed etc/$(<)"
+	@$(RM) $(@)
+	@$(MKDIR) $(@D)
+	$(ATSIGN)$(SED_SCRIPT) <$(<) >$(@)
+	$(ATSIGN)$(CHMOD) 755 $(@)
+
 $(ETCDIR)/rabbitmq/%: rabbitmq/%
 	@echo "sed etc/$(<)"
 	@$(RM) $(@)
@@ -370,7 +378,6 @@ $(ETCDIR)/rabbitmq/%: rabbitmq/%
 	$(ATSIGN)$(SED_SCRIPT) <$(<) >$(@)
 	$(ATSIGN)$(CHMOD) 644 $(@)
 
- 
 $(ETCDIR)/ansible_scripts/%: ansible_scripts/%
 	@echo "sed etc/$(<)"
 	@$(RM) $(@)

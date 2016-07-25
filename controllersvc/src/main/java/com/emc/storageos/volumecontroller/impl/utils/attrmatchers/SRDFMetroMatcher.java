@@ -16,6 +16,7 @@ import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.db.client.model.RemoteDirectorGroup.SupportedCopyModes;
 import com.emc.storageos.db.client.model.StoragePool;
@@ -35,8 +36,14 @@ public class SRDFMetroMatcher extends AttributeMatcher {
             .getLogger(SRDFMetroMatcher.class);
 
     @Override
-    public List<StoragePool> matchStoragePoolsWithAttributeOn(List<StoragePool> pools, Map<String, Object> attributeMap) {
-        return filterPoolsForSRDFActiveMode(pools);
+    public List<StoragePool> matchStoragePoolsWithAttributeOn(List<StoragePool> pools, Map<String, Object> attributeMap,
+            StringBuffer errorMessage) {
+        List<StoragePool> matchedPools = filterPoolsForSRDFActiveMode(pools);
+        if (CollectionUtils.isEmpty(matchedPools)) {
+            errorMessage.append("No matching storage pool found for SRDF ACTIVE pair creation, the backend arrays are not SRDF capable ");
+            _logger.error(errorMessage.toString());
+        }
+        return matchedPools;
     }
 
     @Override

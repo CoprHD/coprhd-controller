@@ -68,9 +68,10 @@ public class InMemoryLockManagerImpl implements LockManager {
     }
 
     @Override
-    public synchronized void releaseLock(String lockName) {
+    public synchronized boolean releaseLock(String lockName) {
 
         locks.remove(lockName);
         notifyAll();
+        return true;
     }
 }

@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.volumecontroller.impl.validators.smis;
 
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.volumecontroller.impl.smis.CIMObjectPathFactory;
 import com.emc.storageos.volumecontroller.impl.smis.SmisCommandHelper;
@@ -34,13 +35,16 @@ public abstract class AbstractSMISValidator implements Validator {
     /*
      * Convenience delegation methods for external dependencies.
      */
-
     public CIMObjectPathFactory getCimPath() {
         return factory.getCimPath();
     }
 
     public DbClient getDbClient() {
         return factory.getDbClient();
+    }
+
+    public CoordinatorClient getCoordinator() {
+        return factory.getCoordinator();
     }
 
     public SmisCommandHelper getHelper() {

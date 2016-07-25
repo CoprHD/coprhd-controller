@@ -199,23 +199,20 @@ public class BlockService extends TaskResourceService {
 
     // Protection operations that are allowed with /block/volumes/{id}/protection/continuous-copies/
     public static enum ProtectionOp {
-        FAILOVER("failover", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_FAILOVER), FAILOVER_TEST("failover-test",
-                ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_FAILOVER_TEST), FAILOVER_TEST_CANCEL("failover-test-cancel",
-                        ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_FAILOVER_TEST_CANCEL), FAILOVER_CANCEL("failover-cancel",
-                                ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_FAILOVER_CANCEL), SWAP("swap",
-                                        ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_SWAP), SYNC("sync",
-                                                ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_SYNC), START("start",
-                                                        ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_START), STOP("stop",
-                                                                ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_STOP), PAUSE("pause",
-                                                                        ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_PAUSE), SUSPEND(
-                                                                                "suspend",
-                                                                                ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_SUSPEND), RESUME(
-                                                                                        "resume",
-                                                                                        ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_RESUME), CHANGE_COPY_MODE(
-                                                                                                "change-copy-mode",
-                                                                                                ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_CHANGE_COPY_MODE), UNKNOWN(
-                                                                                                        "unknown",
-                                                                                                        ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION);
+        FAILOVER("failover", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_FAILOVER),
+        FAILOVER_TEST("failover-test", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_FAILOVER_TEST),
+        FAILOVER_TEST_CANCEL("failover-test-cancel", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_FAILOVER_TEST_CANCEL),
+        FAILOVER_CANCEL("failover-cancel", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_FAILOVER_CANCEL),
+        SWAP("swap", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_SWAP),
+        SYNC("sync", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_SYNC),
+        START("start", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_START),
+        STOP("stop", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_STOP),
+        PAUSE("pause", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_PAUSE),
+        SUSPEND("suspend", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_SUSPEND),
+        RESUME("resume", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_RESUME),
+        CHANGE_COPY_MODE("change-copy-mode", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_CHANGE_COPY_MODE),
+        CHANGE_ACCESS_MODE("change-access-mode", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_CHANGE_ACCESS_MODE),
+        UNKNOWN("unknown", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION);
 
         private final String op;
         private final ResourceOperationTypeEnum resourceType;
@@ -406,7 +403,7 @@ public class BlockService extends TaskResourceService {
                 if (!URIUtil.isValid(copyID)) {
                     copyID = null;
                 }
-                taskResp = performProtectionAction(id, copyID, copy.getPointInTime(), ProtectionOp.START.getRestOp());
+                taskResp = performProtectionAction(id, copy, ProtectionOp.START.getRestOp());
                 taskList.getTaskList().add(taskResp);
                 // If copyID is null, we have already started all copies
                 if (copyID == null) {
@@ -497,7 +494,7 @@ public class BlockService extends TaskResourceService {
 
             // If copyID is null all copies are stopped
             if (copy.getType().equalsIgnoreCase(TechnologyType.RP.toString())) {
-                taskResp = performProtectionAction(id, copyID, copy.getPointInTime(), ProtectionOp.STOP.getRestOp());
+                taskResp = performProtectionAction(id, copy, ProtectionOp.STOP.getRestOp());
                 taskList.getTaskList().add(taskResp);
             } else if (!vplexVolume && copy.getType().equalsIgnoreCase(TechnologyType.NATIVE.toString())) {
                 taskList = stopMirrors(id, copyID);
@@ -1432,8 +1429,7 @@ public class BlockService extends TaskResourceService {
         ArgValidator.checkFieldNotEmpty(copy.getType(), "type");
 
         if (copy.getType().equalsIgnoreCase(TechnologyType.RP.toString())) {
-            taskResp = performProtectionAction(id, copy.getCopyID(), copy.getPointInTime(),
-                    ProtectionOp.FAILOVER_TEST.getRestOp());
+            taskResp = performProtectionAction(id, copy, ProtectionOp.FAILOVER_TEST.getRestOp());
             taskList.getTaskList().add(taskResp);
         } else if (copy.getType().equalsIgnoreCase(TechnologyType.SRDF.toString())) {
             id = VPlexSrdfUtil.getSrdfIdFromVolumeId(_dbClient, id);
@@ -1483,7 +1479,7 @@ public class BlockService extends TaskResourceService {
         ArgValidator.checkFieldNotEmpty(copy.getType(), "type");
 
         if (copy.getType().equalsIgnoreCase(TechnologyType.RP.toString())) {
-            taskResp = performProtectionAction(id, copy.getCopyID(), copy.getPointInTime(), ProtectionOp.SWAP.getRestOp());
+            taskResp = performProtectionAction(id, copy, ProtectionOp.SWAP.getRestOp());
             taskList.getTaskList().add(taskResp);
         } else if (copy.getType().equalsIgnoreCase(TechnologyType.SRDF.toString())) {
             id = VPlexSrdfUtil.getSrdfIdFromVolumeId(_dbClient, id);
@@ -1532,8 +1528,7 @@ public class BlockService extends TaskResourceService {
         ArgValidator.checkFieldNotEmpty(copy.getType(), "type");
 
         if (copy.getType().equalsIgnoreCase(TechnologyType.RP.toString())) {
-            taskResp = performProtectionAction(id, copy.getCopyID(), copy.getPointInTime(),
-                    ProtectionOp.FAILOVER_CANCEL.getRestOp());
+            taskResp = performProtectionAction(id, copy, ProtectionOp.FAILOVER_CANCEL.getRestOp());
             taskList.getTaskList().add(taskResp);
         } else if (copy.getType().equalsIgnoreCase(TechnologyType.SRDF.toString())) {
             id = VPlexSrdfUtil.getSrdfIdFromVolumeId(_dbClient, id);
@@ -1596,8 +1591,7 @@ public class BlockService extends TaskResourceService {
         ArgValidator.checkFieldUriType(copy.getCopyID(), Volume.class, "id");
         ArgValidator.checkFieldNotEmpty(copy.getType(), "type");
         if (copy.getType().equalsIgnoreCase(TechnologyType.RP.toString())) {
-            taskResp = performProtectionAction(id, copy.getCopyID(), copy.getPointInTime(),
-                    ProtectionOp.FAILOVER_TEST_CANCEL.getRestOp());
+            taskResp = performProtectionAction(id, copy, ProtectionOp.FAILOVER_TEST_CANCEL.getRestOp());
             taskList.getTaskList().add(taskResp);
         } else if (copy.getType().equalsIgnoreCase(TechnologyType.SRDF.toString())) {
             id = VPlexSrdfUtil.getSrdfIdFromVolumeId(_dbClient, id);
@@ -1661,8 +1655,7 @@ public class BlockService extends TaskResourceService {
 
         ArgValidator.checkFieldNotEmpty(copy.getType(), "type");
         if (copy.getType().equalsIgnoreCase(TechnologyType.RP.toString())) {
-            taskResp = performProtectionAction(id, copy.getCopyID(), copy.getPointInTime(),
-                    ProtectionOp.FAILOVER.getRestOp());
+            taskResp = performProtectionAction(id, copy, ProtectionOp.FAILOVER.getRestOp());
             taskList.getTaskList().add(taskResp);
         } else if (copy.getType().equalsIgnoreCase(TechnologyType.SRDF.toString())) {
             id = VPlexSrdfUtil.getSrdfIdFromVolumeId(_dbClient, id);
@@ -1727,7 +1720,7 @@ public class BlockService extends TaskResourceService {
                 if (!URIUtil.isValid(copyID)) {
                     copyID = null;
                 }
-                taskResp = performProtectionAction(id, copyID, copy.getPointInTime(), ProtectionOp.SYNC.getRestOp());
+                taskResp = performProtectionAction(id, copy, ProtectionOp.SYNC.getRestOp());
                 taskList.getTaskList().add(taskResp);
                 // If copyID is null, we have already synced all copies
                 if (copyID == null) {
@@ -1802,6 +1795,68 @@ public class BlockService extends TaskResourceService {
                 throw APIException.badRequests.invalidSRDFCopyMode(volume.getNativeId());
             }
 
+        }
+
+        return taskList;
+    }
+
+    /**
+     * Request to change the access mode on the provided copy.
+     *
+     * NOTE: This is an asynchronous operation.
+     *
+     * Currently only supported for RecoverPoint protected volumes. If volume is SRDF protected,
+     * then we do nothing and return the task.
+     *
+     * @prereq none
+     *
+     * @param id the URN of a ViPR Source volume
+     * @param param Copy to change access mode on
+     *
+     * @brief Changes the access mode for a copy.
+     * @return TaskList
+     *
+     * @throws ControllerException
+     */
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/protection/continuous-copies/accessmode")
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
+    public TaskList changeAccessMode(@PathParam("id") URI id, CopiesParam param) throws ControllerException {
+
+        TaskResourceRep taskResp = null;
+        TaskList taskList = new TaskList();
+
+        // Validate the source volume URI
+        ArgValidator.checkFieldUriType(id, Volume.class, "id");
+        boolean vplexVolume = checkIfVolumeIsForVplex(id);
+
+        // Validate the list of copies
+        ArgValidator.checkFieldNotEmpty(param.getCopies(), "copies");
+
+        List<Copy> copies = param.getCopies();
+
+        if (copies.size() != 1) {
+            // Change access mode operations can only be performed on a single copy
+            throw APIException.badRequests.changeAccessCopiesParamCanOnlyBeOne();
+        }
+
+        Copy copy = copies.get(0);
+        if (vplexVolume && copy.getType().equalsIgnoreCase(TechnologyType.NATIVE.toString())) {
+            throw APIException.badRequests.actionNotApplicableForVplexVolumeMirrors(ProtectionOp.CHANGE_ACCESS_MODE.getRestOp());
+        }
+
+        ArgValidator.checkFieldNotEmpty(copy.getType(), "type");
+        ArgValidator.checkFieldNotEmpty(copy.getAccessMode(), "accessMode");
+        if (copy.getType().equalsIgnoreCase(TechnologyType.RP.toString())) {
+            taskResp = performProtectionAction(id, copy, ProtectionOp.CHANGE_ACCESS_MODE.getRestOp());
+            taskList.getTaskList().add(taskResp);
+        } else if (copy.getType().equalsIgnoreCase(TechnologyType.SRDF.toString())) {
+            _log.warn("Changing access mode is currently not supported for SRDF.  Returning empty task list (no-op).");
+            return taskList;
+        } else {
+            throw APIException.badRequests.invalidCopyType(copy.getType());
         }
 
         return taskList;
@@ -2584,7 +2639,7 @@ public class BlockService extends TaskResourceService {
             ArgValidator.checkFieldNotEmpty(copy.getType(), "type");
 
             if (copy.getType().equalsIgnoreCase(TechnologyType.RP.toString())) {
-                taskResp = performProtectionAction(id, copyID, copy.getPointInTime(), ProtectionOp.PAUSE.getRestOp());
+                taskResp = performProtectionAction(id, copy, ProtectionOp.PAUSE.getRestOp());
                 taskList.getTaskList().add(taskResp);
             } else if (!vplexVolume && copy.getType().equalsIgnoreCase(TechnologyType.NATIVE.toString())) {
                 TaskList pauseTaskList = pauseMirrors(id, copy.getSync(), copyID);
@@ -2662,7 +2717,7 @@ public class BlockService extends TaskResourceService {
 
             // If copyID is null all copies are paused
             if (copy.getType().equalsIgnoreCase(TechnologyType.RP.toString())) {
-                taskResp = performProtectionAction(id, copyID, copy.getPointInTime(), ProtectionOp.RESUME.getRestOp());
+                taskResp = performProtectionAction(id, copy, ProtectionOp.RESUME.getRestOp());
                 taskList.getTaskList().add(taskResp);
             } else if (!vplexVolume && copy.getType().equalsIgnoreCase(TechnologyType.NATIVE.toString())) {
                 TaskList resumeTaskList = resumeMirrors(id, copyID);
@@ -2969,15 +3024,21 @@ public class BlockService extends TaskResourceService {
      * @return task resource rep
      * @throws InternalException
      */
-    private TaskResourceRep performProtectionAction(URI id, URI copyID, String pointInTime, String op)
+    private TaskResourceRep performProtectionAction(URI id, Copy copy, String op)
             throws InternalException {
-        ArgValidator.checkFieldUriType(copyID, Volume.class, "copyID");
+        ArgValidator.checkFieldUriType(copy.getCopyID(), Volume.class, "copyID");
         // Get the volume associated with the URI
         Volume volume = queryVolumeResource(id);
-        Volume copyVolume = queryVolumeResource(copyID);
+        Volume copyVolume = queryVolumeResource(copy.getCopyID());
 
         ArgValidator.checkEntity(volume, id, true);
-        ArgValidator.checkEntity(copyVolume, copyID, true);
+        ArgValidator.checkEntity(copyVolume, copy.getCopyID(), true);
+
+        // Catch any attempts to use an invalid access mode
+        if (op.equalsIgnoreCase(ProtectionOp.CHANGE_ACCESS_MODE.getRestOp()) &&
+                !Copy.ImageAccessMode.DIRECT_ACCESS.name().equalsIgnoreCase(copy.getAccessMode())) {
+            throw APIException.badRequests.unsupportedAccessMode(copy.getAccessMode());
+        }
 
         if (isNullURI(volume.getProtectionController())) {
             throw new ServiceCodeException(ServiceCode.IO_ERROR,
@@ -3007,7 +3068,8 @@ public class BlockService extends TaskResourceService {
 
         RPController controller = getController(RPController.class, system.getSystemType());
 
-        controller.performProtectionOperation(system.getId(), id, copyID, pointInTime, op, task);
+        controller.performProtectionOperation(system.getId(), id, copy.getCopyID(), copy.getPointInTime(), copy.getAccessMode(), op,
+                task);
         /*
          * auditOp(OperationTypeEnum.PERFORM_PROTECTION_ACTION, true, AuditLogManager.AUDITOP_BEGIN,
          * op, copyID.toString(), id.toString(), system.getId().toString());
@@ -4168,7 +4230,8 @@ public class BlockService extends TaskResourceService {
                 || DiscoveredDataObject.Type.vnxblock.name().equals(systemType)
                 || DiscoveredDataObject.Type.hds.name().equals(systemType)
                 || DiscoveredDataObject.Type.xtremio.name().equals(systemType)
-                || DiscoveredDataObject.Type.ibmxiv.name().equals(systemType)) {
+                || DiscoveredDataObject.Type.ibmxiv.name().equals(systemType)
+                || DiscoveredDataObject.Type.unity.name().equals(systemType)) {
             if (VirtualPool.vPoolSpecifiesHighAvailability(newVpool)) {
                 // VNX/VMAX import to VPLEX cases
                 notSuppReasonBuff.setLength(0);

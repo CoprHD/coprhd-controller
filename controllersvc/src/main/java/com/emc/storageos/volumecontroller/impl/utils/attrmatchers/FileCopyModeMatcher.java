@@ -11,6 +11,7 @@ import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.db.client.model.RemoteDirectorGroup.SupportedCopyModes;
 import com.emc.storageos.db.client.model.StoragePool;
@@ -36,7 +37,8 @@ public class FileCopyModeMatcher extends AttributeMatcher {
 
     @Override
     protected List<StoragePool> matchStoragePoolsWithAttributeOn(
-            List<StoragePool> allPools, Map<String, Object> attributeMap) {
+            List<StoragePool> allPools, Map<String, Object> attributeMap,
+            StringBuffer errorMessage) {
 
         _logger.info("Pools matching file replication copy mode  Started :  {} ",
                 Joiner.on("\t").join(getNativeGuidFromPools(allPools)));
@@ -66,6 +68,11 @@ public class FileCopyModeMatcher extends AttributeMatcher {
             if (pool.getSupportedCopyTypes() != null && pool.getSupportedCopyTypes().contains(copyType)) {
                 matchedPools.add(pool);
             }
+        }
+        
+        if(CollectionUtils.isEmpty(matchedPools)){
+            errorMessage.append(String.format("No matching storage pool found for copy mode %s and copy type %s. ", copyMode, copyType));
+            _logger.error(errorMessage.toString());
         }
         _logger.info("Pools matching file replication copy mode  Ended: {}", Joiner.on("\t").join(getNativeGuidFromPools(matchedPools)));
         return matchedPools;

@@ -56,6 +56,7 @@ import com.emc.storageos.util.ConnectivityUtil.StorageSystemType;
 import com.emc.storageos.util.NetworkLite;
 import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.util.VPlexUtil;
+import com.emc.storageos.volumecontroller.AttributeMatcher;
 import com.emc.storageos.volumecontroller.RPProtectionRecommendation;
 import com.emc.storageos.volumecontroller.RPProtectionRecommendation.PlacementProgress;
 import com.emc.storageos.volumecontroller.RPRecommendation;
@@ -64,7 +65,6 @@ import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.VPlexRecommendation;
 import com.emc.storageos.volumecontroller.impl.utils.AttributeMatcherFramework;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
-import com.emc.storageos.volumecontroller.impl.utils.attrmatchers.CapacityMatcher;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.Lists;
@@ -644,14 +644,19 @@ public class RecoverPointScheduler implements Scheduler {
 
         _log.info(String.format("Fetching candidate pools for %s - %s volumes of size %s GB %n",
                 capabilities.getResourceCount(), personality, SizeUtil.translateSize(capabilities.getSize(), SizeUtil.SIZE_GB)));
-
+        Map<String, Object> attributeMap = new HashMap<String, Object>();
         // Determine if the source vpool specifies VPlex Protection
         if (VirtualPool.vPoolSpecifiesHighAvailability(vpool)) {
             candidateStoragePools =
                     this.getMatchingPools(varray, vpool, haVarray, haVpool,
-                            capabilities);
+                            capabilities, attributeMap);
         } else {
-            candidateStoragePools = blockScheduler.getMatchingPools(varray, vpool, capabilities);
+            candidateStoragePools = blockScheduler.getMatchingPools(varray, vpool, capabilities, attributeMap);
+        }
+        
+        StringBuffer errorMessage = new StringBuffer();
+        if (attributeMap.get(AttributeMatcher.ERROR_MESSAGE) != null) {
+            errorMessage = (StringBuffer) attributeMap.get(AttributeMatcher.ERROR_MESSAGE);
         }
 
         if (candidateStoragePools == null || candidateStoragePools.isEmpty()) {
@@ -660,7 +665,7 @@ public class RecoverPointScheduler implements Scheduler {
                     + "There are no storage pools that match the passed vpool parameters and protocols and/or there "
                     + "are no pools that have enough capacity to hold at least one resource of the requested size.", varray.getLabel(),
                     vpool.getLabel()));
-            throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(vpool.getLabel(), varray.getLabel());
+            throw APIException.badRequests.noStoragePools(varray.getLabel(), vpool.getLabel(), errorMessage.toString());
         }
 
         // Verify that any storage pool(s) requiring a VPLEX front end for data protection have
@@ -682,12 +687,14 @@ public class RecoverPointScheduler implements Scheduler {
      * @param haVpool - HA Virtual Pool, in case of VPLEX HA
      * @param project - Project
      * @param capabilities - Virtual Pool capabilities
+     * @param attributeMap - Contains attribute map instances
      * @return List of storage pools matching the above criteria and has visibility to a VPLEX storage system
      */
     private List<StoragePool> getMatchingPools(VirtualArray varray, VirtualPool vpool, VirtualArray haVarray, VirtualPool haVpool,
-            VirtualPoolCapabilityValuesWrapper capabilities) {
+            VirtualPoolCapabilityValuesWrapper capabilities, Map<String, Object> attributeMap) {
         List<StoragePool> candidateStoragePools = new ArrayList<StoragePool>();
-        Map<String, List<StoragePool>> vplexPoolMapForVarray = getVplexMatchingPools(varray, vpool, haVarray, haVpool, capabilities);
+        Map<String, List<StoragePool>> vplexPoolMapForVarray = getVplexMatchingPools(varray, vpool, haVarray, haVpool, capabilities,
+                attributeMap);
         // Add all the appropriately matched source storage pools
         if (vplexPoolMapForVarray != null) {
             for (Map.Entry<String, List<StoragePool>> entry : vplexPoolMapForVarray.entrySet()) {
@@ -706,24 +713,25 @@ public class RecoverPointScheduler implements Scheduler {
         return candidateStoragePools;
     }
        
-    /** 
-     * Determines the available VPLEX visible storage pools. 
+    /**
+     * Determines the available VPLEX visible storage pools.
      * 
      * @param srcVarray - Source Virtual Array
      * @param srcVpool - Source Virtual Pool
      * @param haVarray - HA Virtual Array, in case of VPLEX HA
      * @param haVpool - HA Virtual Pool, in case of VPLEX HA
      * @param capabilities - Virtual Pool capabilities
+     * @param attributeMap - Contains attribute map instances
      * @return List of storage pools matching the above criteria and has visibility to a VPLEX storage system
      */
     private Map<String, List<StoragePool>> getVplexMatchingPools(VirtualArray srcVarray, VirtualPool srcVpool,
             VirtualArray haVarray, VirtualPool haVpool,
-            VirtualPoolCapabilityValuesWrapper capabilities) {
+            VirtualPoolCapabilityValuesWrapper capabilities, Map<String, Object> attributeMap) {
 
         _log.info(String.format("RP Placement : Get matching pools for Varray[%s] and Vpool[%s]...",
                 srcVarray.getLabel(), srcVpool.getLabel()));
         List<StoragePool> allMatchingPools = vplexScheduler.getMatchingPools(srcVarray, null,
-                srcVpool, capabilities);
+                srcVpool, capabilities, attributeMap);
 
         _log.info("RP Placement : Get VPlex systems for placement...");
         // TODO Fixing CTRL-3360 since it's a blocker, will revisit this after. This VPLEX
@@ -789,13 +797,19 @@ public class RecoverPointScheduler implements Scheduler {
 
         VirtualArray haVarray = vplexScheduler.getHaVirtualArray(varray, project, vpool);
         VirtualPool haVpool = vplexScheduler.getHaVirtualPool(varray, project, vpool);
-        Map<String, List<StoragePool>> vplexPoolMapForSrcVarray = getVplexMatchingPools(varray, vpool, haVarray, haVpool, capabilities);
+        Map<String, Object> attributeMap = new HashMap<String, Object>();
+        Map<String, List<StoragePool>> vplexPoolMapForSrcVarray = getVplexMatchingPools(varray, vpool, haVarray, haVpool, capabilities,
+                attributeMap);
 
         Recommendation haRecommendation = findVPlexHARecommendations(varray, vpool, haVarray, haVpool,
                 project, capabilities, vplexPoolMapForSrcVarray);
         if (haRecommendation == null) {
             _log.error("No HA Recommendations could be created.");
-            throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(vpool.getLabel(), varray.getLabel());
+            StringBuffer errorMessage = new StringBuffer();
+            if (attributeMap.get(AttributeMatcher.ERROR_MESSAGE) != null) {
+                errorMessage = (StringBuffer) attributeMap.get(AttributeMatcher.ERROR_MESSAGE);
+            }
+            throw APIException.badRequests.noStoragePools(varray.getLabel(), vpool.getLabel(), errorMessage.toString());
         }
 
         RPRecommendation rpHaRecommendation = new RPRecommendation();
@@ -1004,9 +1018,9 @@ public class RecoverPointScheduler implements Scheduler {
                 // resource of the requested size.
                 VirtualArray vplexHaVarray = dbClient.queryObject(VirtualArray.class,
                         URI.create(vplexHaVarrayId));
-
+                Map<String, Object> attributeMap = new HashMap<String, Object>();
                 List<StoragePool> allMatchingPoolsForHaVarray = vplexScheduler.getMatchingPools(
-                        vplexHaVarray, null, haVpool, capabilities);
+                        vplexHaVarray, null, haVpool, capabilities, attributeMap);
                 _log.info(String.format("Found %s matching pools for HA varray", allMatchingPoolsForHaVarray.size()));
 
                 // Now from the list of candidate pools, we only want pools

@@ -565,6 +565,19 @@ public class VPlexControllerUtils {
                 initiatorsToRemove.removeAll(discoveredInitiators);
             }
 
+            // if init is in userAddedInitiators now, but also in existing initiators,
+            // we should remove it from existing initiators
+            List<String> initiatorsToRemoveFromExisting = new ArrayList<String>();
+            for (String initWwn : discoveredInitiators) {
+                Initiator managedInitiator = ExportUtils.getInitiator(Initiator.toPortNetworkId(initWwn), dbClient);
+                if ((exportMask.hasUserInitiator(initWwn) || exportMask.hasInitiator(managedInitiator.getId().toString()))
+                        && exportMask.hasExistingInitiator(initWwn)) {
+                    log.info("existing initiators contain id {}, but it is also in "
+                            + "user added inits, removing from existing inits", initWwn);
+                    initiatorsToRemoveFromExisting.add(initWwn);
+                }
+            }
+
             if (exportMask.getInitiators() != null &&
                     !exportMask.getInitiators().isEmpty()) {
                 initiatorIdsToRemove.addAll(Collections2.transform(exportMask.getInitiators(),
@@ -577,20 +590,31 @@ public class VPlexControllerUtils {
                 }
             }
 
-            removeInitiators = !initiatorsToRemove.isEmpty() || !initiatorIdsToRemove.isEmpty();
+            removeInitiators = !initiatorsToRemove.isEmpty() || !initiatorIdsToRemove.isEmpty()
+                    || !initiatorsToRemoveFromExisting.isEmpty();
 
             // Check the volumes and update the lists as necessary
             Map<String, Integer> volumesToAdd = ExportMaskUtils.diffAndFindNewVolumes(exportMask, discoveredVolumes);
             boolean addVolumes = !volumesToAdd.isEmpty();
 
             boolean removeVolumes = false;
-            List<String> volumesToRemove = new ArrayList<String>();
+            List<String> volumesToRemoveFromExisting = new ArrayList<String>();
             if (exportMask.getExistingVolumes() != null &&
                     !exportMask.getExistingVolumes().isEmpty()) {
-                volumesToRemove.addAll(exportMask.getExistingVolumes().keySet());
-                volumesToRemove.removeAll(discoveredVolumes.keySet());
-                removeVolumes = !volumesToRemove.isEmpty();
+                volumesToRemoveFromExisting.addAll(exportMask.getExistingVolumes().keySet());
+                volumesToRemoveFromExisting.removeAll(discoveredVolumes.keySet());
             }
+
+            // if volume is in userAddedVolumes now, but also in existing volumes,
+            // we should remove it from existing volumes
+            for (String wwn : discoveredVolumes.keySet()) {
+                if (exportMask.hasUserCreatedVolume(wwn) && exportMask.hasExistingVolume(wwn)) {
+                    log.info("existing volumes contain wwn {}, but it is also in "
+                            + "user added volumes, removing from existing volumes", wwn);
+                    volumesToRemoveFromExisting.add(wwn);
+                }
+            }
+            removeVolumes = !volumesToRemoveFromExisting.isEmpty();
 
             // Grab the storage ports that have been allocated for this
             // existing mask and update them.
@@ -627,13 +651,14 @@ public class VPlexControllerUtils {
             }
 
             builder.append(
-                    String.format("ExportMask refresh: %s initiators; add:{%s} remove:{%s}%n",
+                    String.format("ExportMask refresh: %s initiators; add:{%s} remove:{%s} removeFromExistingOnly:{%s}%n",
                             name, Joiner.on(',').join(initiatorsToAdd),
-                            Joiner.on(',').join(initiatorsToRemove)));
+                            Joiner.on(',').join(initiatorsToRemove), 
+                            Joiner.on(',').join(initiatorsToRemoveFromExisting)));
             builder.append(
-                    String.format("ExportMask refresh: %s volumes; add:{%s} remove:{%s}%n",
+                    String.format("ExportMask refresh: %s volumes; add:{%s} removeFromExistingOnly:{%s}%n",
                             name, Joiner.on(',').join(volumesToAdd.keySet()),
-                            Joiner.on(',').join(volumesToRemove)));
+                            Joiner.on(',').join(volumesToRemoveFromExisting)));
             builder.append(
                     String.format("ExportMask refresh: %s ports; add:{%s} remove:{%s}%n",
                             name, Joiner.on(',').join(storagePortsToAdd),
@@ -645,6 +670,8 @@ public class VPlexControllerUtils {
                 builder.append("ExportMask refresh: There are changes to mask, " +
                         "updating it...\n");
                 exportMask.removeFromExistingInitiators(initiatorsToRemove);
+                // keeping this separate from initiatorsToRemove because we don't want a zoning update
+                exportMask.removeFromExistingInitiators(initiatorsToRemoveFromExisting);
                 if (initiatorIdsToRemove != null && !initiatorIdsToRemove.isEmpty()) {
                     exportMask.removeInitiators(dbClient.queryObject(Initiator.class, initiatorIdsToRemove));
                 }
@@ -653,7 +680,7 @@ public class VPlexControllerUtils {
                 exportMask.addToUserCreatedInitiators(userAddedInitiators);
                 exportMask.addToExistingInitiatorsIfAbsent(initiatorsToAdd);
                 exportMask.addInitiators(initiatorIdsToAdd);
-                exportMask.removeFromExistingVolumes(volumesToRemove);
+                exportMask.removeFromExistingVolumes(volumesToRemoveFromExisting);
                 exportMask.addToExistingVolumesIfAbsent(volumesToAdd);
                 exportMask.getStoragePorts().addAll(storagePortsToAdd);
                 exportMask.getStoragePorts().removeAll(storagePortsToRemove);

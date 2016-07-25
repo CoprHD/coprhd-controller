@@ -11,6 +11,7 @@ import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.volumecontroller.AttributeMatcher;
@@ -33,16 +34,23 @@ public class CoSTypeAttributeMatcher extends AttributeMatcher {
      * @return list of pools matching.
      */
     @Override
-    public List<StoragePool> matchStoragePoolsWithAttributeOn(List<StoragePool> pools, Map<String, Object> attributeMap) {
+    public List<StoragePool> matchStoragePoolsWithAttributeOn(List<StoragePool> pools, Map<String, Object> attributeMap,
+            StringBuffer errorMessage) {
         _logger.info("Pools Matching VPool Type Started: {}", Joiner.on("\t").join(getNativeGuidFromPools(pools)));
         List<StoragePool> matchedPools = new ArrayList<StoragePool>();
         Iterator<StoragePool> poolIterator = pools.iterator();
+        String vpoolType = attributeMap.get(Attributes.vpool_type.toString()).toString();
         while (poolIterator.hasNext()) {
             StoragePool pool = poolIterator.next();
+            
             if (null != pool
-                    && pool.getPoolServiceType().contains(attributeMap.get(Attributes.vpool_type.toString()).toString())) {
+                    && pool.getPoolServiceType().contains(vpoolType)) {
                 matchedPools.add(pool);
             }
+        }
+        if (CollectionUtils.isEmpty(matchedPools)) {
+            errorMessage.append(String.format("No matching pools found with Virtual Pool Type attribute : %s. ", vpoolType));
+            _logger.error(errorMessage.toString());
         }
         _logger.info("Pools Matching VPoolType Ended: {}", Joiner.on("\t").join(getNativeGuidFromPools(matchedPools)));
         return matchedPools;

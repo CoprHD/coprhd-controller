@@ -328,7 +328,7 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
     /**
      * Convert a Calendar to a readable time string.
      * @param cal
-     * @return
+     * @return String time with format: "yyyy-MM-dd HH:mm:ss"
      * @throws Exception
      */
     private String convertCalendarToStr(Calendar cal) throws Exception {

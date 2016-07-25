@@ -50,7 +50,7 @@ public class ScheduleInfo implements Serializable {
     //    For YEARLY: e.g. set [02/29, 07/31] meanning hourOfDay:minuteOfHour at Feb 29th and Jul 31th of the year
     private List<String> sectionsInCycle;    // singe sub section for now
 
-    private String startDate;  // the start date. Format: "yyyy/MM/dd"
+    private String startDate;  // the start date. Format: "yyyy-MM-dd"
 
     // number of recurrence (0 for Indefinitely, 1 for ONCE event, others for limited recurrences)
     private Integer reoccurrence;     // [0..)
@@ -58,7 +58,7 @@ public class ScheduleInfo implements Serializable {
     private String endDate;  // the end date; not used for now
 
     // date exceptions for the schedule policy
-    // date format: "yyyy/MM/dd HH:mm:ss"
+    // date format: "yyyy-MM-dd HH:mm:ss"
     private List<String> dateExceptions;
 
     @XmlElement(name = HOUR_OF_DAY)

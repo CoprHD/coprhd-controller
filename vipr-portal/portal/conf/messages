@@ -2030,6 +2030,7 @@ storageArrayPools.status=Status
 storageArrayPools.driveTypes=Drive Types
 storageArrayPools.volumeTypes=Resource Types
 storageArrayPools.freeCapacity=Free
+storageArrayPools.compressionEnabled=Compression Enabled
 storageArrayPools.subscribedCapacity=Subscribed
 storageArrayPools.totalCapacity=Total
 storageArrayPools.protocols=Protocols

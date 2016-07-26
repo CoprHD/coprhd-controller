@@ -630,6 +630,7 @@ reset_system_props() {
     set_suspend_on_error false
     set_artificial_failure "none"
     set_validation_check true
+    set_validation_refresh true
 }
 
 vnx_setup() {
@@ -1081,6 +1082,10 @@ set_suspend_on_error() {
 
 set_validation_check() {
     run syssvc $SANITY_CONFIG_FILE localhost set_prop validation_check $1
+}
+
+set_validation_refresh() {
+    run syssvc $SANITY_CONFIG_FILE localhost set_prop refresh_provider_on_validation $1
 }
 
 set_suspend_on_class_method() {

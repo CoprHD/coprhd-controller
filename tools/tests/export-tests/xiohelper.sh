@@ -88,8 +88,6 @@ verify_export() {
 
     num_inits=`grep -Po '(?<="numberOfInitiators":")[^"]*' ${TMPFILE1}`
     num_luns=`grep -Po '(?<="numberOfVolumes":")[^"]*' ${TMPFILE1}`
-    echo "num_inits is ${num_inits}"
-    echo "num_luns is ${num_luns}"
     failed=false
 
     if [ ${num_inits} -ne ${NUM_INITIATORS} ]

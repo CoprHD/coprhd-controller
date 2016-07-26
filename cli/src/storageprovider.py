@@ -244,10 +244,10 @@ def create_parser(subcommand_parsers, common_parser):
     create_parser.add_argument('-hyperScaleHost',
                                dest='hyperScaleHost',
                                metavar = '<Hyper Scale Manager Host>',
-                               help='Hyper Scale Manager IP')
+                               help='Hyper Scale Manager Host, fully qualified domain name or IP')
     create_parser.add_argument('-hyperScalePort',
                                dest='hyperScalePort',
-                               metavar='<Hyper Scale Manager Port>',
+                               metavar='<Hyper Scale Manager REST Server Port>',
                                help='Hyper Scale Manager Port')
     create_parser.set_defaults(func=storageprovider_create)
 
@@ -278,7 +278,7 @@ def storageprovider_create(args):
             if(args.hyperScaleHost is not None and args.hyperScalePort is not None) :
                 secondary_url = "https://"+args.hyperScaleHost+":"+args.hyperScalePort;
             else:
-                print "IBM XIV needs HyperScale Host and Port as mandatory"
+                common.format_err_msg_and_raise ("create","storageprovider","IBM XIV needs HyperScale Host and Port as mandatory",SOSError.NOT_FOUND_ERR)
 
         res = obj.create(args.name, args.providerip, args.providerport,
                          args.user, passwd, args.usessl, args.interface, args.sio_cli, args.element_manager_url,
@@ -347,11 +347,11 @@ def update_parser(subcommand_parsers, common_parser):
     update_parser.add_argument('-hyperScaleHost',
                                dest='hyperScaleHost',
                                metavar = '<secondary_url>',
-                               help='Hyper Scale Manager IP')
+                               help='Hyper Scale Manager Host, Fully qualified domain name or IP')
     update_parser.add_argument('-hyperScalePort',
                                dest='hyperScalePort',
                                metavar='<secondary_url>',
-                               help='Hyper Scale Manager Port')
+                               help='Hyper Scale Manager REST Server Port')
     update_parser.set_defaults(func=storageprovider_update)
 
 
@@ -379,7 +379,7 @@ def storageprovider_update(args):
             if(args.hyperScaleHost is not None and args.hyperScalePort is not None) :
                 secondary_url = "https://"+args.hyperScaleHost+":"+args.hyperScalePort;
             else:
-                print "Needs both HyperScale Host and Port for update. Existing values will not be altered"
+                common.format_err_msg_and_raise ("create","storageprovider","IBM XIV needs HyperScale Host and Port as mandatory",SOSError.NOT_FOUND_ERR)
 
         if (args.secondary_username and len(args.secondary_username) > 0):
             secondary_password = common.get_password("secondary password")

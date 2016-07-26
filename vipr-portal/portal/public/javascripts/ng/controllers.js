@@ -1503,6 +1503,25 @@ angular.module("portalApp").controller('wizardController', function($rootScope, 
 
     }
 
+    $scope.configStorage = function() {
+
+        $scope.$parent.currentStep = 1;
+        $scope.$parent.completedSteps = 0;
+        $scope.$parent.maxSteps = maxSteps;
+        $scope.$parent.guideDataAvailable = false;
+        $scope.$parent.optionalStepComplete = false;
+
+        cookieObject = {};
+        cookieArray = [];
+        arrayObject = {};
+        arrayObject.id = "urn:storageos:StorageSystem:6bd3aa0a-939a-4826-9da5-984f2572ffc2:vdc1";
+        cookieArray.push(arrayObject);
+        cookieObject.storage_systems = cookieArray;
+        createCookie("GUIDE_DATA",angular.toJson(cookieObject),'session');
+
+        checkStep(4);
+    }
+
     $scope.completeStep = function(step) {
 
         finishChecking = function(){

@@ -62,6 +62,7 @@
                     <div class="center-block ">
                         <div class="action-btn text-center">
                             <button ng-show="completedSteps == 2" name="singlebutton" class="btn btn-primary" ng-click="completeStep();">&{'gettingStarted.landing.initial'}</button>
+                            <button name="singlebutton" class="btn btn-primary" ng-click="configStorage();">Configure</button>
 
                             <button ng-show="completedSteps >= 3  && completedSteps < maxSteps" name="singlebutton" class="btn btn-primary" ng-click="showStep(completedSteps+1);">&{'gettingStarted.landing.partial'}</button>
 

@@ -22,6 +22,7 @@ public class ServiceFieldRestRep extends ServiceItemRestRep {
     private boolean omitNone;
     private String initialValue;
     private String select;
+    private String dynamicHelp;
     private boolean lockable;
     private Integer min;
     private Integer max;
@@ -63,6 +64,15 @@ public class ServiceFieldRestRep extends ServiceItemRestRep {
 
     public void setSelect(String select) {
         this.select = select;
+    }
+    
+    @XmlElement(name = "dynamic_help")
+    public String getDynamicHelp() {
+        return dynamicHelp;
+    }
+
+    public void setDynamicHelp(String dynamicHelp) {
+        this.dynamicHelp = dynamicHelp;
     }
 
     @XmlElement(name = "lockable")
@@ -151,5 +161,4 @@ public class ServiceFieldRestRep extends ServiceItemRestRep {
 
         return assetFields;
     }
-
 }

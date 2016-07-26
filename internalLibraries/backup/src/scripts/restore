@@ -159,7 +159,7 @@ check_standby() {
     fi
 
     # Restore is not allowed if there are standby sites
-    site_ids=$(/etc/systool --getprops | grep "site_ids=")
+    site_ids=$(/etc/systool --getprops | grep "\<site_ids\>=")
     site_ids=${site_ids#*=}
     ids=(${site_ids//,/ })
     number_of_sites=${#ids[@]}
@@ -180,19 +180,20 @@ if [ "$1" == "--help" -o "$1" == "-h" -o "$1" == "-help" ]; then
     exit 0
 fi
 
-check_standby
 
-RESTORE_DIR="/data/restore-`date +%s`"
+RESTORE_ORIGIN="/data/restore-`date +%s`"
 NODE_COUNT=`/etc/systool --getprops | awk -F '=' '/\<node_count\>/ {print $2}'`
 LOCAL_NODE=`/etc/systool --getprops | awk -F '=' '/\<node_id\>/ {print $2}'`
 
 if [ -d "$1" ] ; then
-    RESTORE_DIR="$1" 
+    RESTORE_ORIGIN="$1" 
 else
     BACKUP_ZIP=$(readlink -f "$1")
 fi
 
 trap clean_up EXIT
+
+check_standby
 
 validate_parameters
 
@@ -204,4 +205,4 @@ do
     $cmd
 done
 
-${DIR}/restore-internal.sh "${RESTORE_DIR}" "${ROOT_PASSWORD}" "${RESTORE_GEO_FROM_SCRATCH}"
+${DIR}/restore-internal.sh "${RESTORE_ORIGIN}" "${ROOT_PASSWORD}" "${RESTORE_GEO_FROM_SCRATCH}"

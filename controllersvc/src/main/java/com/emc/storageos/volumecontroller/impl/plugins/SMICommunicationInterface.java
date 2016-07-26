@@ -285,7 +285,7 @@ public class SMICommunicationInterface extends ExtendedCommunicationInterfaceImp
             _keyMap.put(Constants.SYSTEMCACHE, accessProfile.getCache());
             executor.setKeyMap(_keyMap);
             executor.execute((Namespace) namespaces.getNsList().get(SCAN));
-
+            
             // scan succeeds
             detailedStatusMessage = String.format("Scan job completed successfully for " +
                     "SMISProvider: %s", providerURI.toString());

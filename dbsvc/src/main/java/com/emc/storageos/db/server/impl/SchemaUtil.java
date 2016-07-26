@@ -619,6 +619,7 @@ public class SchemaUtil {
                 
                 if (updateTableQueryStrigList.size() >= CREATE_TABLE_CONCURRENT_ASYC_TASK_COUNT) {
                     clientContext.createCF(updateTableQueryStrigList);
+                    updateTableQueryStrigList.clear();
                 }
                 
                 waitForSchema = true;
@@ -670,15 +671,16 @@ public class SchemaUtil {
                 }
 
                 if (modified) {
+                    updateTableQueryStrigList.add(generateAlterTableCQL(cfd, compactionStrategy, gcGrace, clientContext.getKeyspaceName()));
                     if (updateTableQueryStrigList.size() >= CREATE_TABLE_CONCURRENT_ASYC_TASK_COUNT) {
-                        updateTableQueryStrigList.add(generateAlterTableCQL(cfd, compactionStrategy, gcGrace, clientContext.getKeyspaceName()));
                         clientContext.createCF(updateTableQueryStrigList);
+                        updateTableQueryStrigList.clear();
                     }
                 }
             }
         }
         
-        if (updateTableQueryStrigList.size() > 0 ) {
+        if (!updateTableQueryStrigList.isEmpty() ) {
             clientContext.createCF(updateTableQueryStrigList);
         }
 

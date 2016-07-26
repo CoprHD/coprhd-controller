@@ -2048,7 +2048,7 @@ public class FileService extends TaskResourceService {
         ArgValidator.checkEntity(fs, id, isIdEmbeddedInURL(id));
 
         List<MountInfo> unmountList = isExportMounted(id, subDir, param);
-        if (!(unmount || unmountList.isEmpty())) {
+        if (!(unmount || unmountList.isEmpty()) && unmountList != null) {
             throw APIException.badRequests.cannotDeleteDuetoExistingMounts();
         }
 
@@ -4199,35 +4199,49 @@ public class FileService extends TaskResourceService {
         List<MountInfo> mountList = getAllMounts(fsId);
         List<MountInfo> unmountList = new ArrayList<MountInfo>();
         List<ExportRule> exportList = new ArrayList<ExportRule>();
-        exportList.addAll(param.getExportRulesToDelete().getExportRules());
-        Map<ExportRule, List<String>> filteredExports = filterExportRules(exportList, getExportRules(fsId, false, subDir));
-        for (MountInfo mount : mountList) {
-            String hostname = _dbClient.queryObject(Host.class, mount.getHostId()).getHostName();
-            for (Entry<ExportRule, List<String>> rule : filteredExports.entrySet()) {
-                List<String> hosts = new ArrayList<String>();
-                hosts.addAll(rule.getKey().getReadOnlyHosts());
-                hosts.addAll(rule.getKey().getReadWriteHosts());
-                hosts.addAll(rule.getKey().getRootHosts());
-                if (hosts.contains(hostname) && rule.getKey().getSecFlavor() == mount.getSecurityType()
-                        && ((mount.getSubDirectory() == "!nodir" && subDir == null) || mount.getSubDirectory() == subDir)) {
-                    unmountList.add(mount);
-                }
-            }
-        }
-        exportList.clear();
-        exportList.addAll(param.getExportRulesToModify().getExportRules());
-        filteredExports = filterExportRules(exportList, getExportRules(fsId, false, subDir));
-        for (MountInfo mount : mountList) {
-            String hostname = _dbClient.queryObject(Host.class, mount.getHostId()).getHostName();
-            if ((mount.getSubDirectory() == "!nodir" && subDir == null) || mount.getSubDirectory() == subDir) {
-                for (Entry<ExportRule, List<String>> rule : filteredExports.entrySet()) {
-                    if (rule.getValue().contains(hostname) && rule.getKey().getSecFlavor() == mount.getSecurityType()
-                            && ((mount.getSubDirectory() == "!nodir" && subDir == null) || mount.getSubDirectory() == subDir)) {
-                        unmountList.add(mount);
+        Map<ExportRule, List<String>> filteredExports = null;
+        if (param.getExportRulesToDelete() != null) {
+            exportList.addAll(param.getExportRulesToDelete().getExportRules());
+            filteredExports = filterExportRules(exportList, getExportRules(fsId, false, subDir));
+            for (MountInfo mount : mountList) {
+                if (("!nodir".equalsIgnoreCase(mount.getSubDirectory()) && (subDir == null || subDir.isEmpty()))
+                        || mount.getSubDirectory() == subDir) {
+                    String hostname = _dbClient.queryObject(Host.class, mount.getHostId()).getHostName();
+                    for (Entry<ExportRule, List<String>> rule : filteredExports.entrySet()) {
+                        List<String> hosts = new ArrayList<String>();
+                        if (rule.getKey().getReadOnlyHosts() != null) {
+                            hosts.addAll(rule.getKey().getReadOnlyHosts());
+                        }
+                        if (rule.getKey().getReadWriteHosts() != null) {
+                            hosts.addAll(rule.getKey().getReadWriteHosts());
+                        }
+                        if (rule.getKey().getRootHosts() != null) {
+                            hosts.addAll(rule.getKey().getRootHosts());
+                        }
+                        if (hosts.contains(hostname) && rule.getKey().getSecFlavor() == mount.getSecurityType()) {
+                            unmountList.add(mount);
+                        }
                     }
                 }
             }
         }
+        if (param.getExportRulesToModify() != null) {
+            exportList.clear();
+            exportList.addAll(param.getExportRulesToModify().getExportRules());
+            filteredExports = filterExportRules(exportList, getExportRules(fsId, false, subDir));
+            for (MountInfo mount : mountList) {
+                String hostname = _dbClient.queryObject(Host.class, mount.getHostId()).getHostName();
+                if (("!nodir".equalsIgnoreCase(mount.getSubDirectory()) && (subDir == null || subDir.isEmpty()))
+                        || mount.getSubDirectory() == subDir) {
+                    for (Entry<ExportRule, List<String>> rule : filteredExports.entrySet()) {
+                        if (rule.getValue().contains(hostname) && rule.getKey().getSecFlavor() == mount.getSecurityType()) {
+                            unmountList.add(mount);
+                        }
+                    }
+                }
+            }
+        }
+
         return unmountList;
     }
 
@@ -4286,15 +4300,26 @@ public class FileService extends TaskResourceService {
         Map<ExportRule, List<String>> filteredExports = new HashMap<ExportRule, List<String>>();
         for (ExportRule newExport : newExportList) {
             for (ExportRule oldExport : existingExportList) {
-                if (newExport.getExportPath().equalsIgnoreCase(oldExport.getExportPath())
-                        && newExport.getSecFlavor().equalsIgnoreCase(oldExport.getSecFlavor())) {
+                if (newExport.getSecFlavor().equalsIgnoreCase(oldExport.getSecFlavor())) {
                     List<String> hosts = new ArrayList<String>();
-                    hosts.addAll(oldExport.getReadOnlyHosts());
-                    hosts.addAll(oldExport.getReadWriteHosts());
-                    hosts.addAll(oldExport.getRootHosts());
-                    hosts.removeAll(newExport.getReadOnlyHosts());
-                    hosts.removeAll(newExport.getReadWriteHosts());
-                    hosts.removeAll(newExport.getRootHosts());
+                    if (oldExport.getReadOnlyHosts() != null) {
+                        hosts.addAll(oldExport.getReadOnlyHosts());
+                    }
+                    if (oldExport.getReadWriteHosts() != null) {
+                        hosts.addAll(oldExport.getReadWriteHosts());
+                    }
+                    if (oldExport.getRootHosts() != null) {
+                        hosts.addAll(oldExport.getRootHosts());
+                    }
+                    if (newExport.getReadOnlyHosts() != null) {
+                        hosts.removeAll(newExport.getReadOnlyHosts());
+                    }
+                    if (newExport.getReadWriteHosts() != null) {
+                        hosts.removeAll(newExport.getReadWriteHosts());
+                    }
+                    if (newExport.getRootHosts() != null) {
+                        hosts.removeAll(newExport.getRootHosts());
+                    }
                     filteredExports.put(oldExport, hosts);
                 }
             }

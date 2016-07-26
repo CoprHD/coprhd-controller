@@ -1438,9 +1438,9 @@ public class MDSDialog extends SSHDialog {
         }
         SSHPrompt[] prompts = { SSHPrompt.MDS_CONFIG };
         String errorString = MDSDialogProperties.getString("MDSDialog.zonesetClone.invalidname.cmd");
-        StringBuilder buf = new StringBuilder();        
-        List<String> zonesetClonesToDelete = findZonesetClonesToDelete(vsanId);
+        StringBuilder buf = new StringBuilder();      
         String newZoneset = generateZonesetCloneName(zonesetToClone);
+        List<String> zonesetClonesToDelete = findZonesetClonesToDelete(vsanId, newZoneset);
         _log.info("Creating new zoneset clone : " + newZoneset	);
         String payload = MessageFormat.format(MDSDialogProperties.getString("MDSDialog.zonesetClone.cmd"), zonesetToClone, newZoneset, vsanId); //zoneset clone {0} {1} vsan {2}\n
         lastPrompt = sendWaitFor(payload, defaultTimeout, prompts, buf);
@@ -1472,12 +1472,12 @@ public class MDSDialog extends SSHDialog {
      * @param vsanId
      * 
      */
-    private List<String> findZonesetClonesToDelete(Integer vsanId) {
+    private List<String> findZonesetClonesToDelete(Integer vsanId, String newZoneset) {
     	List<String> zonesetClonesToDelete = new ArrayList<String>();
     	List<Zoneset> zonesets = showZoneset(vsanId, false, null, false, false);
     	    	
     	Calendar cal = Calendar.getInstance();
-  	   	DateFormat dateFormat = new SimpleDateFormat("MM_dd_yy");
+  	   	DateFormat dateFormat = new SimpleDateFormat("MMddyy");
   	    String dateStr = dateFormat.format(cal.getTime()); 
     	for (Zoneset zoneset : zonesets) {
     		if (zoneset.getName().contains(dateStr) && zoneset.getName().contains("ViPR")) {
@@ -1507,7 +1507,7 @@ public class MDSDialog extends SSHDialog {
     	 
     	//get current date time with Calendar()
  	   Calendar cal = Calendar.getInstance();
- 	   DateFormat dateFormat = new SimpleDateFormat("MM_dd_yy-HH_mm");
+ 	   DateFormat dateFormat = new SimpleDateFormat("MMddyy-HHmmss");
  	   String dateString = dateFormat.format(cal.getTime()); 	
  	   String longName = MDSDialogProperties.getString("MDSDialog.zonesetCloneLongName.cmd");
  	   //NOTE: This is a hook placed to assist QE in trigerring a zoneset clone failure on demand. 

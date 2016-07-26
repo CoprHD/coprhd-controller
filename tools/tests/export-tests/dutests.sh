@@ -215,7 +215,7 @@ arrayhelper_volume_mask_operation() {
          runcmd symhelper.sh $operation $serial_number $device_id $pattern
 	 ;;
     vnx)
-         runcmd navihelper.sh $operation $array_ip $device_id $pattern
+         runcmd navihelper.sh $operation $serial_number $array_ip $device_id $pattern
 	 ;;
     xio)
          runcmd xiohelper.sh $operation $device_id $pattern
@@ -244,7 +244,7 @@ arrayhelper_initiator_mask_operation() {
          runcmd symhelper.sh $operation $serial_number $pwwn $pattern
 	 ;;
     vnx)
-         runcmd navihelper.sh $operation $array_ip $pwwn $pattern
+         runcmd navihelper.sh $operation $serial_number $array_ip $pwwn $pattern
 	 ;;
     xio)
          runcmd xiohelper.sh $operation $pwwn $pattern
@@ -890,7 +890,7 @@ vplex_sim_setup() {
 
 vplex_setup() {
     storage_password=${VPLEX_PASSWD}
-    if [ "${SIM}" -eq 1 ]; then
+    if [ "${SIM}" = "1" ]; then
 	vplex_sim_setup
 	return
     fi

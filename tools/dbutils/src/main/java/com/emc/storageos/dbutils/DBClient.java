@@ -1213,18 +1213,39 @@ public class DBClient {
     }
 
     public boolean rebuildIndex(String id, String cfName) {
+        return rebuildIndex(URI.create(id), getClassFromCFName(cfName));
+    }
+    
+    public boolean rebuildIndex(String cfName) {
+        boolean runResult = true;
+        Class cfClazz = getClassFromCFName(cfName);
+        List<URI> objUris = getColumnUris(cfClazz, false);
+        //todo check this CF first, and then found inconsistency records and do the cleanup
+        for (URI id : objUris) {
+            boolean eachResult = rebuildIndex(id, cfClazz);
+            if (runResult && !eachResult) {
+                runResult = eachResult; // mark some error happens
+            }
+        }
+        return runResult;
+    }
+    
+    public boolean rebuildIndex(URI id, Class clazz) {
         boolean runResult = false;
         try {
-            DataObject queryObject = queryObject(URI.create(id), getClassFromCFName(cfName) );
-            if(queryObject != null) {
+            DataObject queryObject = queryObject(id, clazz);
+            if (queryObject != null) {
                 BeanUtils.copyProperties(queryObject, queryObject);
                 _dbClient.updateObject(queryObject);
-                System.out.println(String.format("Successfully rebuild index for %s in cf %s", id, cfName));
+                String msg = String.format("Successfully rebuild index for %s in cf %s", id, clazz);
+                System.out.println(msg);
+                log.info(msg);
                 runResult = true;
             }
         } catch (Exception e) {
-            System.err.println(String.format("Error when rebuilding index for %s in cf %s", id, cfName));
-            e.printStackTrace();
+            String msg = String.format("Error when rebuilding index for %s in cf %s", id, clazz);
+            System.err.println(msg);
+            log.error(msg, e);
         }
         return runResult;
     }

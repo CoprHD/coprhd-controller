@@ -93,6 +93,7 @@ public enum OperationTypeEnum {
     FAILOVER_CANCEL_RP_LINK("RPLinkFailedOverCanceled", "RPLinkFailOverCancelFailed", "RP Link Fail Over Cancel"),
     FAILOVER_TEST_RP_LINK("RPLinkTestFailedOver", "RPLinkTestFailOverFailed", "RP Link Test Fail Over"),
     FAILOVER_TEST_CANCEL_RP_LINK("RPLinkTestCancelFailedOver", "RPLinkTestCancelFailOverFailed", "RP Link Test Cancel Fail Over"),
+    CHANGE_RP_IMAGE_ACCESS_MODE("RPImageAccessModeChanged", "RPImageAccessModeChangeFailed", "RP Image Access Mode Change"),
 
     CREATE_VOLUME_MIRROR("VolumeMirrorCreated", "VolumeMirrorCreateFailed", "VolumeMirror Create"),
     DEACTIVATE_VOLUME_MIRROR("VolumeMirrorDeactivated", "VolumeMirrorDeactivateFailed", "VolumeMirror Deactivate"),

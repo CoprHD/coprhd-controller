@@ -231,6 +231,8 @@ public enum ResourceOperationTypeEnum {
     PERFORM_PROTECTION_ACTION_RESUME("PERFORM PROTECTION ACTION RESUME", "resume the replication link between source and target"),
     PERFORM_PROTECTION_ACTION_CHANGE_COPY_MODE("PERFORM PROTECTION ACTION CHANGE COPY MODE",
             "change copy mode for the replication link between source and target"),
+    PERFORM_PROTECTION_ACTION_CHANGE_ACCESS_MODE("PERFORM PROTECTION ACTION CHANGE ACCESS MODE",
+            "change copy access mode for the replication copy"),
     CREATE_AUTHPROVIDER("CREATE AUTH PROVIDER", "create an authentication provider"),
     UPDATE_AUTHPROVIDER("UPDATE AUTH PROVIDER", "update an authentication provider"),
     DELETE_AUTHPROVIDER("DELETE AUTH PROVIDER", "delete an authentication provider"),
@@ -359,7 +361,7 @@ public enum ResourceOperationTypeEnum {
 
     /**
      * The name of the resource operation
-     * 
+     *
      */
     @XmlElement
     public String getName() {

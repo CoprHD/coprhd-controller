@@ -11,11 +11,13 @@ import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePool.PoolServiceType;
 import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.util.SizeUtil;
 import com.emc.storageos.volumecontroller.AttributeMatcher;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.google.common.base.Joiner;
@@ -48,7 +50,8 @@ public class CapacityMatcher extends AttributeMatcher {
     }
 
     @Override
-    protected List<StoragePool> matchStoragePoolsWithAttributeOn(List<StoragePool> pools, Map<String, Object> attributeMap) {
+    protected List<StoragePool> matchStoragePoolsWithAttributeOn(List<StoragePool> pools, Map<String, Object> attributeMap,
+            StringBuffer errorMessage) {
         _log.info("Pools Matching capacity  Started:" + Joiner.on("\t").join(getNativeGuidFromPools(pools)));
         List<StoragePool> filteredPoolList = new ArrayList<StoragePool>(pools);
         Long resourceSize = (Long) attributeMap.get(Attributes.size.toString());
@@ -73,6 +76,16 @@ public class CapacityMatcher extends AttributeMatcher {
             if (!poolMatchesCapacity(pool, requiredCapacity, resourceSize, true, supportsThinProvisioning, thinVolumePreAllocationSize)) {
                 filteredPoolList.remove(pool);
             }
+        }
+
+        if (CollectionUtils.isEmpty(filteredPoolList)) {
+            
+            errorMessage.append(String.format(
+                    "No matching storage pool  with %s GB free capacity found. "
+                            + "Consider increasing Utilization Threshold for the system storage pools in the virtual pool, "
+                            + "or adding storage pools to the vPool",
+                    SizeUtil.translateSize(requiredCapacity, SizeUtil.SIZE_GB)));
+            _log.error(errorMessage.toString());
         }
         _log.info("Pools Matching capacity Ended :" + Joiner.on("\t").join(getNativeGuidFromPools(filteredPoolList)));
         return filteredPoolList;

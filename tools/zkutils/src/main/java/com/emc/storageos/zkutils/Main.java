@@ -52,7 +52,7 @@ public class Main {
             + "7. If rollback is not successfully triggered or finished, check zkutils.log\n"
             + "   and syssvc.log for troubleshooting.\n\n"
             + "8. After rollback is successfully done, trigger failover immediately on this\n"
-            + "   DR Standby. Original Active should not come back again.\n"
+            + "   DR Standby. Original Active should not be brought back again.\n"
             + "****************************************************************************\n";
 
     private static LockCmdHandler lockCmdHandler;

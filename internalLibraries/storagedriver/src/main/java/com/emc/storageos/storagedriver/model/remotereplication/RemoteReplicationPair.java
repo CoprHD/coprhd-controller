@@ -18,13 +18,15 @@ public class RemoteReplicationPair {
     // Device nativeId of replication pair. Type: Input/Output.
     private String nativeId;
 
-    // Native id of remote replication group parent (if applicable). Type: Output.
-    private String replicationGroupNativeId;
-
-    // Native id of remote replication set for this pair. Type: Output.
+    // Native id of remote replication set for this pair. Type: Input.
     private String replicationSetNativeId;
 
-    private RemoteReplicationSet.ReplicationMode replicationMode;
+    /**
+     * Native id of existing remote replication group of this pair (if applicable). Type: Input.
+     */
+    private String replicationGroupNativeId;
+
+    private CapabilityInstance replicationMode;
     private RemoteReplicationSet.ReplicationState replicationState;
     private RemoteReplicationElement sourceElement;
     private RemoteReplicationElement targetElement;

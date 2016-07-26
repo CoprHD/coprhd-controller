@@ -30,7 +30,7 @@ public class RemoteReplicationGroup extends DataObject {
     private String targetSystemGuid;
 
     // replication mode of this group
-    RemoteReplicationSet.ReplicationMode replicationMode;
+    String replicationMode;
 
     // replication state of this group
     RemoteReplicationSet.ReplicationState replicationState;
@@ -89,11 +89,11 @@ public class RemoteReplicationGroup extends DataObject {
     }
 
     @Name("replicationMode")
-    public RemoteReplicationSet.ReplicationMode getReplicationMode() {
+    public String getReplicationMode() {
         return replicationMode;
     }
 
-    public void setReplicationMode(RemoteReplicationSet.ReplicationMode replicationMode) {
+    public void setReplicationMode(String replicationMode) {
         this.replicationMode = replicationMode;
         setChanged("replicationMode");
     }

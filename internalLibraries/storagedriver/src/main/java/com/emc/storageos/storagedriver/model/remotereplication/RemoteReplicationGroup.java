@@ -6,7 +6,9 @@ package com.emc.storageos.storagedriver.model.remotereplication;
 
 import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Describes consistency remote replication group on device.
@@ -20,13 +22,23 @@ public class RemoteReplicationGroup {
 
     private String displayName;
     private String replicationSetNativeId;
-    private RemoteReplicationSet.ReplicationMode replicationMode;
+    private CapabilityInstance replicationMode;
     private RemoteReplicationSet.ReplicationState replicationState;
+    /**
+     * Defines if group consistency for link operations is enforced
+     */
+    private boolean isGroupConsistencyEnforced;
+
+    /**
+     * Defines types of group elements for which replication link operations are supported.
+     */
+    private Set<RemoteReplicationSet.ReplicationLinkGranularity> supportedReplicationLinkGranularity = new HashSet<>();
+
     private String sourceSystemNativeId;
     private String targetSystemNativeId;
 
     /**
-     * Device specific capabilities.
+     * Device specific capabilities. For example, device specific replication modes.
      */
     private List<CapabilityInstance> capabilities;
 

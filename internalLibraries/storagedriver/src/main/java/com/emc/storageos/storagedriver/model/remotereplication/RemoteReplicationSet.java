@@ -38,8 +38,8 @@ public class RemoteReplicationSet {
     private Map<String, Set<ReplicationRole>> systemMap = new HashMap<>();
 
     /**
-     * Defines replication set elements for which link
-     * management operations can be done.
+     * Defines types of replication set elements for which link
+     * management operations are supported.
      */
     public enum ReplicationLinkGranularity {
         SET,
@@ -48,27 +48,17 @@ public class RemoteReplicationSet {
     }
 
     /**
-     * Replication link granularity supported by this set.
+     * Defines types of set elements for which replication link operations are supported.
      */
     private Set<ReplicationLinkGranularity> supportedReplicationLinkGranularity = new HashSet<>();
 
     /**
-     * Defines replication modes.
-     */
-    public enum ReplicationMode {
-        SYNC,
-        ASYNC,
-        PERIODIC,
-        ASYNC_WRITE_ORDER_CONSISTENT
-    }
-
-    /**
      * Defines replication modes supported for elements of this set.
      */
-    private Set<ReplicationMode> supportedReplicationModes;
+    private Set<CapabilityInstance> supportedReplicationModes;
 
     // When replication link operations are supported on the SET level, defines link mode.
-    private ReplicationMode replicationMode;
+    private CapabilityInstance replicationMode;
 
     /**
      * State of replication link.
@@ -108,7 +98,7 @@ public class RemoteReplicationSet {
     private Set<RemoteReplicationGroup> replicationGroups;
 
     /**
-     * Device specific capabilities.
+     * Device specific capabilities of this replication set.
      */
     private List<CapabilityInstance> capabilities;
 
@@ -145,19 +135,19 @@ public class RemoteReplicationSet {
         this.supportedReplicationLinkGranularity = supportedReplicationLinkGranularity;
     }
 
-    public Set<ReplicationMode> getSupportedReplicationModes() {
+    public Set<CapabilityInstance> getSupportedReplicationModes() {
         return supportedReplicationModes;
     }
 
-    public void setSupportedReplicationModes(Set<ReplicationMode> supportedReplicationModes) {
+    public void setSupportedReplicationModes(Set<CapabilityInstance> supportedReplicationModes) {
         this.supportedReplicationModes = supportedReplicationModes;
     }
 
-    public ReplicationMode getReplicationMode() {
+    public CapabilityInstance getReplicationMode() {
         return replicationMode;
     }
 
-    public void setReplicationMode(ReplicationMode replicationMode) {
+    public void setReplicationMode(CapabilityInstance replicationMode) {
         this.replicationMode = replicationMode;
     }
 

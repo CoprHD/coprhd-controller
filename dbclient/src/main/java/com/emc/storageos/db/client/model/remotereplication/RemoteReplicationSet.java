@@ -33,7 +33,7 @@ public class RemoteReplicationSet extends DataObject {
     }
 
     // Map of guid of storage system to its role in the replication set.
-    private StringSetMap systemToRolesMap = new StringSetMap();
+    private StringSetMap systemToRolesMap;
 
     public enum ReplicationLinkGranularity {
         SET,
@@ -42,7 +42,7 @@ public class RemoteReplicationSet extends DataObject {
     }
 
     // Defines levels of remote replication objects for which device supports replication link operations.
-    private StringSet supportedReplicationLinkGranularity = new StringSet();
+    private StringSet supportedReplicationLinkGranularity;
 
     public enum ReplicationMode {
         SYNC,
@@ -54,10 +54,10 @@ public class RemoteReplicationSet extends DataObject {
     /**
      * Defines replication modes supported for elements of this set.
      */
-    private Set<ReplicationMode> supportedReplicationModes;
+    private StringSet supportedReplicationModes;
 
     // When replication link operations are supported on the SET level, defines link mode.
-    private ReplicationMode replicationMode;
+    private String replicationMode;
 
     public enum ReplicationState {
         ACTIVE,
@@ -144,11 +144,11 @@ public class RemoteReplicationSet extends DataObject {
     }
 
     @Name("supportedReplicationModes")
-    public Set<ReplicationMode> getSupportedReplicationModes() {
+    public StringSet getSupportedReplicationModes() {
         return supportedReplicationModes;
     }
 
-    public void setSupportedReplicationModes(Set<ReplicationMode> supportedReplicationModes) {
+    public void setSupportedReplicationModes(StringSet supportedReplicationModes) {
         this.supportedReplicationModes = supportedReplicationModes;
         setChanged("supportedReplicationModes");
     }
@@ -174,11 +174,11 @@ public class RemoteReplicationSet extends DataObject {
     }
 
     @Name("replicationMode")
-    public ReplicationMode getReplicationMode() {
+    public String getReplicationMode() {
         return replicationMode;
     }
 
-    public void setReplicationMode(ReplicationMode replicationMode) {
+    public void setReplicationMode(String replicationMode) {
         this.replicationMode = replicationMode;
         setChanged("replicationMode");
     }

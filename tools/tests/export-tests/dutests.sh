@@ -532,6 +532,8 @@ setup_yaml() {
     sstype=${SS:0:3}
     if [ "${SS}" = "xio" ]; then
 	sstype="xtremio"
+    elif [ "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]; then
+	sstype="vmax"
     fi
 
     # create the yml file to be used for array tooling

@@ -1438,9 +1438,9 @@ public class MDSDialog extends SSHDialog {
         }
         SSHPrompt[] prompts = { SSHPrompt.MDS_CONFIG };
         String errorString = MDSDialogProperties.getString("MDSDialog.zonesetClone.invalidname.cmd");
-        StringBuilder buf = new StringBuilder();
-        String newZoneset = generateZonesetCloneName(zonesetToClone);
+        StringBuilder buf = new StringBuilder();        
         List<String> zonesetClonesToDelete = findZonesetClonesToDelete(vsanId);
+        String newZoneset = generateZonesetCloneName(zonesetToClone);
         _log.info("Creating new zoneset clone : " + newZoneset	);
         String payload = MessageFormat.format(MDSDialogProperties.getString("MDSDialog.zonesetClone.cmd"), zonesetToClone, newZoneset, vsanId); //zoneset clone {0} {1} vsan {2}\n
         lastPrompt = sendWaitFor(payload, defaultTimeout, prompts, buf);
@@ -1481,7 +1481,7 @@ public class MDSDialog extends SSHDialog {
   	    String dateStr = dateFormat.format(cal.getTime()); 
     	for (Zoneset zoneset : zonesets) {
     		if (zoneset.getName().contains(dateStr) && zoneset.getName().contains("ViPR")) {
-    			_log.info(String.format("Removing zoneset (clone) %s", zoneset.getName()));  
+    			_log.info(String.format("Identified zoneset (clone) %s to be removed", zoneset.getName()));  
     			zonesetClonesToDelete.add(zoneset.getName());
     		}
     	}    	
@@ -1497,6 +1497,14 @@ public class MDSDialog extends SSHDialog {
      * @return
      */
     private String generateZonesetCloneName(String zonesetToClone) {
+    	//Sleep for one second to make sure that the new zoneset clone name doesnt clash with something existing 
+    	//if there were multiple operations all happenning at the same time
+    	 try {
+             Thread.sleep(1000);         // sleep one second
+         } catch (InterruptedException ex) {
+             _log.warn(ex.getLocalizedMessage());
+         }
+    	 
     	//get current date time with Calendar()
  	   Calendar cal = Calendar.getInstance();
  	   DateFormat dateFormat = new SimpleDateFormat("MM_dd_yy-HH_mm");

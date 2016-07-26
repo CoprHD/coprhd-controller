@@ -2312,7 +2312,7 @@ vplex_setup_once()
 
 	# Setup the varrays. $NH contains VPLEX cluster-1 and $NH2 contains VPLEX cluster-2.
 	run storageport update $VPLEX_GUID FC --group director-1-1-A --addvarrays $NH
-	run torageport update $VPLEX_GUID FC --group director-1-1-B --addvarrays $NH
+	run storageport update $VPLEX_GUID FC --group director-1-1-B --addvarrays $NH
 	run storageport update $VPLEX_GUID FC --group director-2-1-A --addvarrays $NH2
 	run storageport update $VPLEX_GUID FC --group director-2-1-B --addvarrays $NH2
 	# The arrays are assigned to individual varrays as well.

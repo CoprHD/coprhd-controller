@@ -432,6 +432,9 @@ public class AuthenticationResource {
         }
 
         String formLP = getFormLoginPage(service, source, httpRequest.getServerName(), loginError);
+
+        _log.info("NICK -------------- Accessed");
+        _log.info("NICK -------------- "+_cachedLoginPagePart2);
         if (formLP != null) {
             return Response.ok(formLP).type(MediaType.TEXT_HTML)
                     .cacheControl(_cacheControl).header(HEADER_PRAGMA, HEADER_PRAGMA_VALUE).build();
@@ -976,8 +979,10 @@ public class AuthenticationResource {
         }
 
         sbFinal.append("\" ");
-        _cachedLoginPagePart2 =  _cachedLoginPagePart2.replaceAll(FORM_LOGIN_BANNER, _passwordUtils.getConfigProperty("system_login_banner")).replaceAll("\\n","<br>");
-        sbFinal.append(error == null ? _cachedLoginPagePart2 : _cachedLoginPagePart2.replaceAll(FORM_LOGIN_HTML_ENT, error + "$1"));
+        _log.info("NICK -------------- "+_cachedLoginPagePart2);
+        String _cachedLoginPagePart2Tmp =  _cachedLoginPagePart2.replaceAll(FORM_LOGIN_BANNER, _passwordUtils.getConfigProperty("system_login_banner")).replaceAll("\\n","<br>");
+        _log.info("NICK -------------- "+_cachedLoginPagePart2Tmp);
+        sbFinal.append(error == null ? _cachedLoginPagePart2Tmp : _cachedLoginPagePart2Tmp.replaceAll(FORM_LOGIN_HTML_ENT, error + "$1"));
         return sbFinal.toString();
 
     }

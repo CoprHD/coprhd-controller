@@ -19,9 +19,11 @@ import com.emc.storageos.hp3par.command.CPGCommandResult;
 import com.emc.storageos.hp3par.command.CPGMember;
 import com.emc.storageos.hp3par.command.ConsistencyGroupResult;
 import com.emc.storageos.hp3par.command.ConsistencyGroupsListResult;
+import com.emc.storageos.hp3par.command.FcPath;
 import com.emc.storageos.hp3par.command.HostCommandResult;
 import com.emc.storageos.hp3par.command.HostMember;
 import com.emc.storageos.hp3par.command.HostSetDetailsCommandResult;
+import com.emc.storageos.hp3par.command.ISCSIPath;
 import com.emc.storageos.hp3par.command.PortCommandResult;
 import com.emc.storageos.hp3par.command.PortStatisticsCommandResult;
 import com.emc.storageos.hp3par.command.Privileges;
@@ -35,6 +37,7 @@ import com.emc.storageos.hp3par.command.VolumeDetailsCommandResult;
 import com.emc.storageos.hp3par.connection.RESTClient;
 import com.emc.storageos.hp3par.utils.CompleteError;
 import com.emc.storageos.hp3par.utils.HP3PARConstants;
+import com.emc.storageos.hp3par.utils.SanUtils;
 import com.emc.storageos.storagedriver.model.VolumeClone;
 import com.google.gson.Gson;
 import com.google.json.JsonSanitizer;
@@ -1151,12 +1154,38 @@ public class HP3PARApi {
         String portIdstr = "[";
         String body = null;
         final String path = MessageFormat.format(URI_HOST_DETAILS, name);
-
-        // get existing host wwn/iqn; 
-        // remove existing wwn/iqns in the list to be added 
+        ArrayList<String> portIdsNewFiltered = new ArrayList<>();
+        ArrayList<String> existingFc = new ArrayList<>();
         
         try {
-            for (String Id:portIdsNew) {
+            // get existing host wwn/iqn;
+            HostMember hostMemb = getHostDetails(name);
+
+            if (portIdsNew.get(0).startsWith("iqn") == false) {
+                for (FcPath fcPath:hostMemb.getFCPaths()) {
+                    existingFc.add(SanUtils.cleanWWN(fcPath.getWwn()));
+                }
+
+                // remove existing wwn/iqns in the list to be added
+                for (String portId:portIdsNew) {
+                    if (existingFc.contains(portId) == false) {
+                        portIdsNewFiltered.add(portId);
+                    }
+                }
+            } else {
+                for (ISCSIPath scPath:hostMemb.getiSCSIPaths()) {
+                    existingFc.add(scPath.getName());
+                }
+
+                // remove existing wwn/iqns in the list to be added
+                for (String portId:portIdsNew) {
+                    if (existingFc.contains(portId) == false) {
+                        portIdsNewFiltered.add(portId);
+                    }
+                }                
+            }
+            
+            for (String Id:portIdsNewFiltered) {
                 if (portIdstr.length() > 1 ) {
                     portIdstr = portIdstr.concat(",");
                 }
@@ -1164,7 +1193,7 @@ public class HP3PARApi {
             }
             portIdstr = portIdstr.concat("]");
 
-            if (portIdsNew.get(0).startsWith("iqn") == false) {
+            if (portIdsNewFiltered.get(0).startsWith("iqn") == false) {
                 body = "{\"FCWWNs\":" + portIdstr + ", \"pathOperation\":1}";
             } else {
                 body = "{\"iSCSINames\":" + portIdstr + ", \"pathOperation\":1\"}";

@@ -67,10 +67,11 @@ public class DiscoverStoragePoolsOperation extends OperationImpl {
             for (String srpId : srpIds) {
                 Srp item = new SloprovisioningSymmetrixSrpGet(storageSystemId, srpId).perform(this.getClient());
                 StoragePool storagePool = new StoragePool();
-                storagePool.setStorageSystemId(storageSystemId);
                 storagePool.setNativeId(srpId);
-                storagePool.setDeviceLabel(srpId);
                 storagePool.setDisplayName(srpId);
+                storagePool.setDeviceLabel(srpId);
+                storagePool.setPoolName(srpId);
+                storagePool.setStorageSystemId(storageSystemId);
                 // Parse the needed attributes and set them into the returned bean.
                 storagePool.setProtocols(this.getSupportedProtocols(storageSystemId));
                 storagePool.setTotalCapacity(item.getTotal_usable_cap_gb().longValue());

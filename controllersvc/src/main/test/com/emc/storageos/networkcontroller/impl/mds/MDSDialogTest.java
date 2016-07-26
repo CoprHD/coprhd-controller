@@ -18,14 +18,15 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.model.FCEndpoint;
 import com.emc.storageos.networkcontroller.SSHSession;
 import com.emc.storageos.networkcontroller.exceptions.NetworkDeviceControllerException;
+import com.emc.storageos.services.util.EnvConfig;
 import com.emc.storageos.volumecontroller.ControllerException;
 
 public class MDSDialogTest {
 
     private static final String UNIT_TEST_CONFIG_FILE = "sanity";
-    private static final String ipaddress = "10.247.96.216" ; //EnvConfig.get(UNIT_TEST_CONFIG_FILE, "brocade.host.ipaddress");
-    private static final String username = "root"; //EnvConfig.get(UNIT_TEST_CONFIG_FILE, "brocade.host.username");
-    private static final String password = "dangerous" ; //EnvConfig.get(UNIT_TEST_CONFIG_FILE, "brocade.host.password");
+    private static final String ipaddress = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "brocade.host.ipaddress");
+    private static final String username = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "brocade.host.username");
+    private static final String password = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "brocade.host.password");
     static String vsanId = "13";
     static Integer sshport = 22;
     

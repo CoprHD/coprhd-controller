@@ -52,7 +52,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
     private static final String IS_THIN_VOLUME_PRE_ALLOCATION_ENABLED = "isThinVolumePreAllocationEnabled";
     private static final String THIN_VOLUME_PRE_ALLOCATION_PERCENTAGE = "thinVolumePreAllocationPercentage";
     private static final String AUTO_TIER_POLICY_NAME = "autoTierPolicyName";
-    private static final String VMAX_AF_COMPRESSION = "vmaxAFCompression";
+    private static final String VMAX_COMPRESSION_ENABLED = "compressionEnabled";
     private static final String UNIQUE_AUTO_TIERING_POLICY_NAMES = "uniquePolicyNames";
     private static final String DRIVE_TYPE = "driveType";
     private static final String ARRAY_INFO = "arrayInfo";
@@ -94,11 +94,11 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
     private static final String STANDBY_JOURNAL_VPOOL = "standbyJournalVpool";
 
     private static final String[] INCLUDED_AUTO_TIERING_POLICY_LIMITS_COMPRESSION_CHANGE = new String[] { AUTO_TIER_POLICY_NAME,
-            HOST_IO_LIMIT_BANDWIDTH, HOST_IO_LIMIT_IOPS, VMAX_AF_COMPRESSION };
+            HOST_IO_LIMIT_BANDWIDTH, HOST_IO_LIMIT_IOPS, VMAX_COMPRESSION_ENABLED };
 
     private static final String[] EXCLUDED_AUTO_TIERING_POLICY_LIMITS_CHANGE = new String[] {
             AUTO_TIER_POLICY_NAME, HOST_IO_LIMIT_BANDWIDTH, HOST_IO_LIMIT_IOPS, 
-            VMAX_AF_COMPRESSION, ARRAY_INFO,
+            VMAX_COMPRESSION_ENABLED, ARRAY_INFO,
             UNIQUE_AUTO_TIERING_POLICY_NAMES, ASSIGNED_STORAGE_POOLS,
             USE_MATCHED_POOLS, THIN_VOLUME_PRE_ALLOCATION_PERCENTAGE };
 
@@ -635,7 +635,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
         // protocols, provisioningType, and arrayInfo. However,
         // there will be other benign changes that can occur.
         String[] exclude = new String[] { PROTOCOLS, PROVISIONING_TYPE, ARRAY_INFO,
-                DRIVE_TYPE, AUTO_TIER_POLICY_NAME, HOST_IO_LIMIT_IOPS, HOST_IO_LIMIT_BANDWIDTH, VMAX_AF_COMPRESSION, MATCHED_POOLS, INVALID_MATCHED_POOLS,
+                DRIVE_TYPE, AUTO_TIER_POLICY_NAME, HOST_IO_LIMIT_IOPS, HOST_IO_LIMIT_BANDWIDTH, VMAX_COMPRESSION_ENABLED, MATCHED_POOLS, INVALID_MATCHED_POOLS,
                 ASSIGNED_STORAGE_POOLS, LABEL, DESCRIPTION, STATUS, TAGS,
                 CREATION_TIME, NON_DISRUPTIVE_EXPANSION };
 
@@ -758,7 +758,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
                 REF_VPOOL, MIRROR_VPOOL, HIGH_AVAILABILITY, PROTECTION_VARRAY_SETTINGS,
                 FAST_EXPANSION, ACLS, INACTIVE,
                 NUM_PATHS, PATHS_PER_INITIATOR, MIN_PATHS,
-                AUTO_TIER_POLICY_NAME, HOST_IO_LIMIT_BANDWIDTH, HOST_IO_LIMIT_IOPS, VMAX_AF_COMPRESSION };
+                AUTO_TIER_POLICY_NAME, HOST_IO_LIMIT_BANDWIDTH, HOST_IO_LIMIT_IOPS, VMAX_COMPRESSION_ENABLED };
         Map<String, Change> changes = analyzeChanges(currentVpool, newVpool, include, null, null);
         if (!changes.isEmpty()) {
             notSuppReasonBuff.append("These target virtual pool differences are invalid: ");

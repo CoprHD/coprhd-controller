@@ -320,6 +320,7 @@ public class ScheduledEventService extends CatalogTaggedResourceService {
             newObject.setExecutionWindowId(new NamedURI(ExecutionWindow.INFINITE, "INFINITE"));
         }
         newObject.setLatestOrderId(restRep.getId());
+        newObject.setOrderCommonParam(new String(org.apache.commons.codec.binary.Base64.encodeBase64(param.getOrderCreateParam().serialize()), UTF_8));
 
         client.save(newObject);
 

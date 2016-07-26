@@ -23,6 +23,7 @@ public class ScheduledEvent extends DataObject implements TenantDataObject {
     public static final String LATEST_ORDER_ID = "latestOrderId";
     public static final String EXECUTION_WINDOW_ID = "executionWindowId";
     public static final String CATALOG_SERVICE_ID = "catalogServiceId";
+    public static final String ORDER_COMMON_PARAM = "orderCommonParam";
 
     public static final String TENANT = TenantDataObject.TENANT_COLUMN_NAME;
 
@@ -42,6 +43,8 @@ public class ScheduledEvent extends DataObject implements TenantDataObject {
     private URI catalogServiceId;           // the associated catalog service Id
 
     private String tenant;                   // the owner tenant
+
+    private String orderCommonParam;        // common order related params
 
     @Name(EVENT_TYPE)
     public ScheduledEventType getEventType() {
@@ -111,5 +114,15 @@ public class ScheduledEvent extends DataObject implements TenantDataObject {
     public void setTenant(String tenant) {
         this.tenant = tenant;
         setChanged(TENANT);
+    }
+
+    @Name(ORDER_COMMON_PARAM)
+    public String getOrderCommonParam() {
+        return orderCommonParam;
+    }
+
+    public void setOrderCommonParam(String orderCommonParam) {
+        this.orderCommonParam = orderCommonParam;
+        setChanged(ORDER_COMMON_PARAM);
     }
 }

@@ -108,6 +108,7 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.util.ExportUtils;
+import com.emc.storageos.util.InvokeTestFailure;
 import com.emc.storageos.util.VPlexSrdfUtil;
 import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.util.VersionChecker;
@@ -3366,6 +3367,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
             ExportMask exportMask = getDataObject(ExportMask.class, exportMaskURI, _dbClient);
 
+            _log.info("attempting to fail if failure_001_early_in_add_volume_to_mask is set");
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_001);
+
             // TODO: Bharath/RPTEAM - I dont think the below call to zoneExportAddVolumes is necessary here(i have just
             // commented it for
             // now, because i am no expert in this
@@ -3464,6 +3468,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             _log.info("Updating volume/lun map in export mask {}", exportMask.getId());
             exportMask.addVolumes(updatedVolumeMap);
             _dbClient.updateObject(exportMask);
+
+            _log.info("attempting to fail if failure_002_late_in_add_volume_to_mask is set");
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_002);
 
             completer.ready(_dbClient);
         } catch (VPlexApiException vae) {
@@ -4233,6 +4240,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         }
                         // Add the initiators to the VPLEX
                         client.addInitiatorsToStorageView(exportMask.getMaskName(), initiatorPortInfo);
+
+                        _log.info("attempting to fail if failure_003_late_in_add_initiator_to_mask is set");
+                        InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_003);
 
                         // because these are now managed initiators, remove from existing initiators if present.
                         // this may happen in the case where a vipr-managed initiator was added manually outside of vipr by the user.

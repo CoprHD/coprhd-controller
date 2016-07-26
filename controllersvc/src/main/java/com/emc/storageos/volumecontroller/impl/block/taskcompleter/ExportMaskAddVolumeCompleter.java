@@ -25,8 +25,8 @@ import com.emc.storageos.util.ExportUtils;
 @SuppressWarnings("serial")
 public class ExportMaskAddVolumeCompleter extends ExportTaskCompleter {
     private static final org.slf4j.Logger _log = LoggerFactory.getLogger(ExportMaskAddVolumeCompleter.class);
-    private List<URI> _volumes;
-    private Map<URI, Integer> _volumeMap;
+    private final List<URI> _volumes;
+    private final Map<URI, Integer> _volumeMap;
 
     public ExportMaskAddVolumeCompleter(URI egUri, URI emUri, Map<URI, Integer> volumes,
             String task) {
@@ -41,14 +41,14 @@ public class ExportMaskAddVolumeCompleter extends ExportTaskCompleter {
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded) throws DeviceControllerException {
         try {
             ExportGroup exportGroup = dbClient.queryObject(ExportGroup.class, getId());
-            ExportMask exportMask = (getMask() != null) ?
-                    dbClient.queryObject(ExportMask.class, getMask()) : null;
+            ExportMask exportMask = (getMask() != null) ? dbClient.queryObject(ExportMask.class, getMask()) : null;
             for (URI volumeURI : _volumes) {
                 BlockObject volume = BlockObject.fetch(dbClient, volumeURI);
                 _log.info(String.format("Done ExportMaskAddVolume - Id: %s, OpId: %s, status: %s",
                         getId().toString(), getOpId(), status.name()));
 
                 if (exportMask != null && status == Operation.Status.ready) {
+                    exportMask.removeFromExistingVolumes(volume);
                     exportMask.addToUserCreatedVolumes(volume);
                 }
             }

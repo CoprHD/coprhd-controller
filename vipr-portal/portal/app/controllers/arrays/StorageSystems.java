@@ -114,6 +114,7 @@ public class StorageSystems extends ViprResourceController {
     private static final String VIPR_START_GUIDE = "VIPR_START_GUIDE";
     private static final String GUIDE_DATA = "GUIDE_DATA";
     private static final String STORAGE_SYSTEMS = "storage_systems";
+    private static final String GUIDE_VISIBLE = "guideVisible";
 
     private static void addReferenceData() {
         renderArgs.put("storageArrayTypeList", StorageSystemTypes.getStorageTypeOptions());
@@ -205,10 +206,20 @@ public class StorageSystems extends ViprResourceController {
     }
 
     public static void create() {
-        addReferenceData();
+    	// Check add is called from guide wizard, yes only AFA
+       	JsonObject jobject = getCookieAsJson(VIPR_START_GUIDE);
+       	String isGuideAdd = null;
+       	if (jobject != null) {
+       		isGuideAdd = jobject.get(GUIDE_VISIBLE).getAsString();
+       	}
+       	if( isGuideAdd != null && StringUtils.equalsIgnoreCase(isGuideAdd, "true")) {
+       		addReferenceDataAllFlash();
+       	}
+       	else {
+       		addReferenceData();
+       	}
         StorageSystemForm storageArray = new StorageSystemForm();
-        // put all "initial create only" defaults here rather than field
-        // initializers
+        // put all "initial create only" defaults here rather than field initializers
         storageArray.type = StorageSystemTypes.VMAX;
         storageArray.useSSL = true;
         storageArray.userName = "";

@@ -568,7 +568,7 @@ setup_provider() {
     storage_port=`storagedevice show ${storage_name} | grep smis_port_number | awk '{print $2}' | cut -d ',' -f1`
     storage_user=`storagedevice show ${storage_name} | grep smis_user_name | awk '{print $2}' | cut -d '"' -f2`
     ##update tools.yml file with the array details
-    printf 'provider.ip=%s\nprovider.cisco_ip=1.1.1.1\nprovider.username=%s\nprovider.password=%s\nprovider.port=%s" "$storage_ip" "$storage_user" "$storage_password" >> $tools_file
+    printf 'provider.ip=%s\nprovider.cisco_ip=1.1.1.1\nprovider.username=%s\nprovider.password=%s\nprovider.port=%s' "$storage_ip" "$storage_user" "$storage_password" >> $tools_file
 }
 
 login() {
@@ -606,6 +606,9 @@ login() {
 }
 
 prerun_setup() {
+    # Convenience, clean up known artifacts
+    cleanup_previous_run_artifacts
+
     if [ "${SS}" = "vnx" ]
     then
 	array_ip=${VNXB_IP}
@@ -2525,6 +2528,22 @@ cleanup() {
    runcmd volume delete --project $PROJECT --wait
    echo There were $VERIFY_EXPORT_COUNT export verifications
    echo There were $VERIFY_EXPORT_FAIL_COUNT export verification failures
+}
+
+# Clean up any exports or volumes from previous runs, but not the volumes you need to run tests
+cleanup_previous_run_artifacts() {
+   for id in `export_group list $PROJECT | grep YES | awk '{print $5}'`
+   do
+      echo "Deleting old export group: ${id}"
+      runcmd export_group delete ${id} > /dev/null
+   done
+
+   for id in `volume list $PROJECT | grep YES | grep hijack | awk '{print $5}'`
+   do
+      echo "Deleting old volume: ${id}"
+      runcmd volume delete ${id} --wait > /dev/null
+   done
+
 }
 
 # call this to generate a random WWN for exports.

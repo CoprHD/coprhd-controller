@@ -822,7 +822,7 @@ vplex_sim_setup() {
                              --neighborhoods $VPLEX_VARRAY1                     \
                              --max_snapshots 1                                  \
                              --max_mirrors 0                                    \
-                             --expandable false 
+                             --expandable true 
 
             run cos update block $VPOOL_BASE --storage $VPLEX_SIM_VMAX1_NATIVEGUID
             run cos update block $VPOOL_BASE --storage $VPLEX_SIM_VMAX2_NATIVEGUID
@@ -840,7 +840,7 @@ vplex_sim_setup() {
                              --haNeighborhood $VPLEX_VARRAY2                        \
                              --max_snapshots 1                                      \
                              --max_mirrors 0                                        \
-                             --expandable false
+                             --expandable true
 
             run cos update block $VPOOL_BASE --storage $VPLEX_SIM_VMAX4_NATIVEGUID
             run cos update block $VPOOL_BASE --storage $VPLEX_SIM_VMAX5_NATIVEGUID
@@ -909,7 +909,7 @@ vplex_setup() {
                              --neighborhoods $VPLEX_VARRAY1                     \
                              --max_snapshots 1                                  \
                              --max_mirrors 0                                    \
-                             --expandable false 
+                             --expandable true 
 
             run cos update block $VPOOL_BASE --storage $VPLEX_VNX1_NATIVEGUID
             run cos update block $VPOOL_BASE --storage $VPLEX_VNX2_NATIVEGUID
@@ -926,7 +926,7 @@ vplex_setup() {
                              --haNeighborhood $VPLEX_VARRAY2                        \
                              --max_snapshots 1                                      \
                              --max_mirrors 0                                        \
-                             --expandable false
+                             --expandable true
 
             run cos update block $VPOOL_BASE --storage $VPLEX_VNX1_NATIVEGUID
             run cos update block $VPOOL_BASE --storage $VPLEX_VMAX_NATIVEGUID
@@ -2018,7 +2018,11 @@ test_12() {
     fail volume expand ${PROJECT}/${volname} 2GB
 
     # Now try to create a snapshot off of the volume, it should fail
-    fail blocksnapshot create ${PROJECT}/${volname} snap1
+    if [ "$SS" = "vplex" ]; then
+        echo "Skipping snapshot create test for Vplex because AbstractSnapshotOperations has no knowledge of Vplex volume"
+    else
+        fail blocksnapshot create ${PROJECT}/${volname} ${volname}-snap1
+    fi
 
     # Inventory-only delete the volume
     volume delete ${PROJECT}/${volname} --vipronly

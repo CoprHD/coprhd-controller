@@ -226,6 +226,9 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
         List<URI> volUris = VolumeDescriptor.getVolumeURIs(volumes);
         VolumeWorkflowCompleter completer = new VolumeWorkflowCompleter(volUris, taskId);
         try {
+            // Validate the volume identities before proceeding
+            validator.volumeURIs(volUris, true, true, ValCk.ID, ValCk.VPLEX);
+            
             // Generate the Workflow.
             Workflow workflow = _workflowService.getNewWorkflow(this,
                     EXPAND_VOLUMES_WF_NAME, true, taskId, null);

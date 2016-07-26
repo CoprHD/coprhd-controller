@@ -404,7 +404,7 @@ listen_address: localhost
 # Whether to start the native transport server.
 # Please note that the address on which the native transport is bound is the
 # same as the rpc_address. The port however is different and specified below.
-# start_native_transport: true
+start_native_transport: true
 # port for the CQL native transport to listen for clients on
 # For security reasons, you should not expose this port to the internet.  Firewall it if needed.
 native_transport_port: 9042
@@ -427,7 +427,7 @@ native_transport_port: 9042
 # native_transport_max_concurrent_connections_per_ip: -1
 
 # Whether to start the thrift rpc server.
-start_rpc: true
+start_rpc: false
 
 # The address or interface to bind the Thrift RPC service and native transport
 # server to.
@@ -452,7 +452,7 @@ rpc_address: localhost
 # rpc_interface_prefer_ipv6: false
 
 # port for Thrift to listen for clients on
-rpc_port: 9160
+# rpc_port: 9160
 
 # RPC address to broadcast to drivers and other Cassandra nodes. This cannot
 # be set to 0.0.0.0. If left blank, this will be set to the value of

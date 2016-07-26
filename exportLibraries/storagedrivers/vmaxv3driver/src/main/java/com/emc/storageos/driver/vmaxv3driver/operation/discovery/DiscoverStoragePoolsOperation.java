@@ -10,6 +10,8 @@ import com.emc.storageos.driver.vmaxv3driver.rest.SloprovisioningSymmetrixDirect
 import com.emc.storageos.driver.vmaxv3driver.rest.SloprovisioningSymmetrixSrpGet;
 import com.emc.storageos.driver.vmaxv3driver.rest.SloprovisioningSymmetrixSrpList;
 import com.emc.storageos.driver.vmaxv3driver.rest.bean.Srp;
+import com.emc.storageos.driver.vmaxv3driver.util.CapUnit;
+import com.emc.storageos.driver.vmaxv3driver.util.DriverUtil;
 import com.emc.storageos.storagedriver.model.StoragePool;
 import com.emc.storageos.storagedriver.model.StorageSystem;
 import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
@@ -74,10 +76,16 @@ public class DiscoverStoragePoolsOperation extends OperationImpl {
                 storagePool.setStorageSystemId(storageSystemId);
                 // Parse the needed attributes and set them into the returned bean.
                 storagePool.setProtocols(this.getSupportedProtocols(storageSystemId));
-                storagePool.setTotalCapacity(item.getTotal_usable_cap_gb().longValue());
-                storagePool.setFreeCapacity(item.getTotal_usable_cap_gb().longValue() -
-                    item.getTotal_allocated_cap_gb().longValue());
-                storagePool.setSubscribedCapacity(item.getTotal_subscribed_cap_gb().longValue());
+                logger.debug("Discovering storage pool '{}' capability: getTotal_usable_cap_gb={}, " +
+                    "getTotal_allocated_cap_gb={}, getTotal_subscribed_cap_gb={}", storageSystemId,
+                    item.getTotal_usable_cap_gb(), item.getTotal_allocated_cap_gb(), item.getTotal_subscribed_cap_gb());
+                storagePool.setTotalCapacity(DriverUtil.convert2KB(CapUnit.GB, item.getTotal_usable_cap_gb()));
+                storagePool.setFreeCapacity(DriverUtil.convert2KB(CapUnit.GB, item.getTotal_usable_cap_gb()) -
+                    DriverUtil.convert2KB(CapUnit.GB, item.getTotal_allocated_cap_gb()));
+                storagePool.setSubscribedCapacity(DriverUtil.convert2KB(CapUnit.GB, item.getTotal_subscribed_cap_gb()));
+                logger.debug("Discovered storage pool '{}' capability: getTotalCapacity={}, " +
+                    "getFreeCapacity={}, getSubscribedCapacity={}", storageSystemId,
+                    storagePool.getTotalCapacity(), storagePool.getFreeCapacity(), storagePool.getSubscribedCapacity());
                 storagePool.setOperationalStatus(StoragePool.PoolOperationalStatus.READY);
                 // Keep blank since no API to get according to Evgeny's reply.
                 storagePool.setSupportedRaidLevels(null);

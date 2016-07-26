@@ -1104,7 +1104,7 @@ public class SchemaUtil {
     }
     
     private String generateCreateTableCQL(String cfName, int gcPeriod, String compactionStrategy, String schema, String primaryKey, String keyspaceName) {
-        StringBuilder createCF = new StringBuilder(String.format("CREATE TABLE \"%s\".\"%s\" (%s,PRIMARY KEY (%s)) WITH COMPACT STORAGE AND " +
+        StringBuilder createCF = new StringBuilder(String.format("CREATE TABLE IF NOT EXISTS \"%s\".\"%s\" (%s,PRIMARY KEY (%s)) WITH COMPACT STORAGE AND " +
                                 "speculative_retry = 'NONE' AND "+
                                 "compaction = { 'class' : '%s' }",
                         keyspaceName, cfName, schema, primaryKey, compactionStrategy));

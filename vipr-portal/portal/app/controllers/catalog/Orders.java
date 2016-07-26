@@ -522,6 +522,10 @@ public class Orders extends OrderExecution {
                 return false;
             }
         }
+
+        public ScheduledEventRestRep getScheduledEvent() {
+            return scheduledEvent;
+        }
     }
 
     public static final Comparator<ResourceDetails> RESOURCE_COMPARATOR = new Comparator<ResourceDetails>() {

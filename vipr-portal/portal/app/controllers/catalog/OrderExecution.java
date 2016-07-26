@@ -261,33 +261,33 @@ public class OrderExecution extends Controller {
             return null;
         }
         ScheduleInfo scheduleInfo = new ScheduleInfo();
-        String cycleFrequency = params.get("schedulerCycleFrequency");
+        String cycleFrequency = params.get("scheduler.cycleFrequency");
         scheduleInfo.setCycleFrequency(Integer.parseInt(cycleFrequency));
 
-        String cycleType = params.get("schedulerCycleType");
+        String cycleType = params.get("scheduler.cycleType");
         ScheduleCycleType cycleTypeEnum = ScheduleCycleType.valueOf(cycleType);
         scheduleInfo.setCycleType(cycleTypeEnum);
         List<String> sectionsInCycleList = Lists.newArrayList();
         if (cycleTypeEnum == ScheduleCycleType.WEEKLY) {
-            String sectionsInCycle = params.get("schedulerDayOfWeek");
+            String sectionsInCycle = params.get("scheduler.dayOfWeek");
             sectionsInCycleList.add(sectionsInCycle);
         } else if(cycleTypeEnum == ScheduleCycleType.MONTHLY) {
-            String sectionsInCycle = params.get("schedulerDayOfMonth");
+            String sectionsInCycle = params.get("scheduler.dayOfMonth");
             sectionsInCycleList.add(sectionsInCycle);
         }
         scheduleInfo.setSectionsInCycle(sectionsInCycleList);
         
-        String startDate = params.get("schedulerStartDate");
+        String startDate = params.get("scheduler.startDate");
         scheduleInfo.setStartDate(startDate);
-        String startTime = params.get("schedulerStartTime");
+        String startTime = params.get("scheduler.startTime");
         String pair[] = startTime.split(":");
         scheduleInfo.setHourOfDay(Integer.parseInt(pair[0]));
         scheduleInfo.setMinuteOfHour(Integer.parseInt(pair[1]));
         
-        String recurrence = params.get("schedulerRecurrence");
+        String recurrence = params.get("scheduler.recurrence");
         int recurrenceNum = Integer.parseInt(recurrence);
         if (recurrenceNum == -1) {
-            String range = params.get("schedulerRangeOfRecurrence");
+            String range = params.get("scheduler.rangeOfRecurrence");
             recurrenceNum = Integer.parseInt(range);
         }
         scheduleInfo.setReoccurrence(recurrenceNum);

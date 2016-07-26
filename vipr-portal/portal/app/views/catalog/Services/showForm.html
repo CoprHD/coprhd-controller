@@ -98,7 +98,21 @@
           </div>
   
    		  #{if service.schedulerAllowed}
-  		    #{Services.scheduler /}
+   		    <collapse title="&{'scheduler.title'}">
+   		          <div class="form-group">
+				     <label class="control-label col-sm-3" for="schedulerEnabled">&{"scheduler.enabled"}:</label>
+				     <div class="col-sm-6 controls">
+					     <div class="row col-gap-sm">
+					        <div class="col-xs-3">
+					        	<input type="checkbox" id="schedulerEnabled" name="schedulerEnabled" value="{{schedulerEnabled}}" ng-model="schedulerEnabled" 
+					        	  ng-change="enableScheduler()"/>
+					        </div>
+					     </div>
+				     </div>
+				   </div>
+				   
+  		       	   #{Services.scheduler /}
+  		    </collapse> 
   		  #{/if}
   		  
           <div ng-show="serviceDescriptor.destructive" class="alert alert-warning">

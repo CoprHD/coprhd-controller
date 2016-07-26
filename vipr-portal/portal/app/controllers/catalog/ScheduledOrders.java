@@ -5,6 +5,7 @@
 package controllers.catalog;
 
 import static com.emc.vipr.client.core.util.ResourceUtils.uri;
+import static controllers.Common.angularRenderArgs;
 
 import java.util.Calendar;
 import java.util.List;
@@ -16,6 +17,7 @@ import org.apache.commons.lang.StringUtils;
 
 import play.Logger;
 import play.data.binding.As;
+import play.data.validation.Validation;
 import play.mvc.Controller;
 import play.mvc.Util;
 import play.mvc.With;
@@ -26,12 +28,16 @@ import util.datatable.DataTablesSupport;
 
 import com.emc.vipr.model.catalog.ExecutionWindowRestRep;
 import com.emc.vipr.model.catalog.OrderRestRep;
+import com.emc.vipr.model.catalog.ScheduleCycleType;
+import com.emc.vipr.model.catalog.ScheduleInfo;
 import com.google.common.collect.Lists;
 
 import controllers.Common;
+import controllers.catalog.Orders.OrderDetails;
 import controllers.deadbolt.Restrict;
 import controllers.deadbolt.Restrictions;
 import controllers.tenant.TenantSelector;
+import controllers.util.FlashException;
 import controllers.util.Models;
 
 @With(Common.class)
@@ -95,5 +101,71 @@ public class ScheduledOrders extends Controller {
 
     public static void showOrder(String orderId) {
         redirect("Orders.receipt", orderId);
+    }
+    
+    @FlashException("list")
+    public static void edit(String id) {
+        OrderDetails details = new OrderDetails(id);
+        ScheduleEventForm form = new ScheduleEventForm(details);
+        angularRenderArgs().put("scheduler", form);
+        render(form);
+    }
+    
+    @FlashException(keep = true, referrer = { "edit" })
+    public static void save(ScheduleEventForm scheduler) {
+        scheduler.validate("scheduler");
+        Logger.info(scheduler.startDate);
+        if (Validation.hasErrors()) {
+            Common.handleError();
+        }
+        list();
+    }
+    
+    public static class ScheduleEventForm {
+        public String id;
+        public String name;
+        public String startDate;
+        public String startTime;
+        public Integer recurrence;
+        public Integer rangeOfRecurrence;
+        public String cycleType;
+        public Integer cycleFrequency;
+        public Integer dayOfMonth;
+        public Integer dayOfWeek;
+        
+        public ScheduleEventForm(OrderDetails details) {
+            id = details.order.getId().toString();
+            if (details.order.getScheduledEventId() != null) {
+                ScheduleInfo schedulerInfo = details.getScheduledEvent().getScheduleInfo();
+                startDate = schedulerInfo.getStartDate();
+                startTime = String.format("%02d:%02d", schedulerInfo.getHourOfDay(), schedulerInfo.getMinuteOfHour());
+                recurrence = schedulerInfo.getReoccurrence();
+                if (recurrence > 1) {
+                    rangeOfRecurrence = recurrence;
+                    recurrence = -1;
+                } else {
+                    rangeOfRecurrence = 1;
+                }
+                
+                cycleType = schedulerInfo.getCycleType().toString();
+                cycleFrequency = schedulerInfo.getCycleFrequency();
+                if (schedulerInfo.getCycleType() == ScheduleCycleType.MONTHLY) {
+                    dayOfMonth = Integer.parseInt(schedulerInfo.getSectionsInCycle().get(0));
+                    dayOfWeek = 1;
+                } else if (schedulerInfo.getCycleType() == ScheduleCycleType.WEEKLY) {
+                    dayOfWeek = Integer.parseInt(schedulerInfo.getSectionsInCycle().get(0));
+                    dayOfMonth = 1;
+                } else {
+                    dayOfMonth = 1;
+                    dayOfWeek = 1;
+                }
+            }
+        }
+        public ScheduleEventForm() {
+            
+        }
+        public void validate(String fieldName) {
+            Validation.valid(fieldName, this);
+        }
     }
 }

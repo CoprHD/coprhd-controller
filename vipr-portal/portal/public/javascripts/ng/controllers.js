@@ -210,20 +210,23 @@ angular.module("portalApp").controller({
         });
         
         // Set default values for scheduler
-        $scope.schedulerHourOfDay = '01';
-        $scope.schedulerMinuteOfHour = '0';
-        $scope.schedulerCycleFrequency = 1;
-        $scope.schedulerCycleType = "DAILY";
-        $scope.schedulerRangeOfRecurrence = 1;
-        $scope.schedulerRecurrence = 1;
-        $scope.schedulerDayOfWeek = 1
-        $scope.schedulerDayOfMonth = 1
+        $scope.scheduler = []
+        $scope.scheduler.cycleFrequency = 1;
+        $scope.scheduler.cycleType = "DAILY";
+        $scope.scheduler.rangeOfRecurrence = 10;
+        $scope.scheduler.recurrence = 1;
+        $scope.scheduler.dayOfWeek = 1
+        $scope.scheduler.dayOfMonth = 1
         current = new Date().getTime();                
-        $scope.schedulerStartDate = formatDate(current, "YYYY-MM-DD");
-        $scope.schedulerStartTime = '00:00';
+        $scope.scheduler.startDate = formatDate(current, "YYYY-MM-DD");
+        $scope.scheduler.startTime = '00:00';
         
         $scope.isSchedulerEnabled = function() {
            return $scope.schedulerEnabled;
+        };
+        
+        $scope.isRecurring = function() {
+           return $scope.scheduler.recurrence != 1;
         };
         
         $scope.enableScheduler = function() {
@@ -1413,3 +1416,14 @@ angular.module("portalApp").controller("ConfigBackupCtrl", function($scope) {
         return 0;
     }
 });
+
+angular.module("portalApp").controller("schedulerEditCtrl", function($scope) {
+    $scope.isSchedulerEnabled = function() {
+       return true;
+    };
+    
+    $scope.isRecurring = function() {
+       return $scope.scheduler.recurrence != 1;
+    };
+});
+

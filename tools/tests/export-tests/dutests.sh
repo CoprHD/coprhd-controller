@@ -532,8 +532,6 @@ setup_yaml() {
     sstype=${SS:0:3}
     if [ "${SS}" = "xio" ]; then
 	sstype="xtremio"
-    elif [ "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]; then
-	sstype="vmax"
     fi
 
     # create the yml file to be used for array tooling
@@ -559,6 +557,11 @@ setup_provider() {
     if [ "${storage_password}" = "" ]; then
 	echo "storage_password is not set.  Cannot make a valid ${toos_file} file without a storage_password"
 	exit;
+    fi
+
+    sstype=${SS}
+    if [ "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]; then
+	sstype="vmax"
     fi
 
     # create the yml file to be used for array tooling

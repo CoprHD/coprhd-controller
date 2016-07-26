@@ -13,27 +13,8 @@ import java.net.URI;
 import java.util.List;
 import java.util.Set;
 
-import jobs.vipr.AutoTierPolicyNamesCall;
-import jobs.vipr.ConnectedBlockVirtualPoolsCall;
-import jobs.vipr.ConnectedVirtualArraysCall;
-import jobs.vipr.MatchingBlockStoragePoolsCall;
-import models.ConnectivityTypes;
-import models.HighAvailability;
-import models.ProtectionSystemTypes;
-import models.SizeUnit;
-import models.StorageSystemTypes;
-
 import org.apache.commons.lang.BooleanUtils;
 import org.apache.commons.lang.StringUtils;
-
-import play.Logger;
-import play.data.validation.Max;
-import play.data.validation.Min;
-import play.data.validation.Validation;
-import play.i18n.Messages;
-import util.VirtualPoolUtils;
-import util.builders.BlockVirtualPoolBuilder;
-import util.builders.BlockVirtualPoolUpdateBuilder;
 
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.vpool.BlockVirtualPoolProtectionParam;
@@ -49,6 +30,24 @@ import com.emc.vipr.client.core.util.ResourceUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.gson.Gson;
+
+import jobs.vipr.AutoTierPolicyNamesCall;
+import jobs.vipr.ConnectedBlockVirtualPoolsCall;
+import jobs.vipr.ConnectedVirtualArraysCall;
+import jobs.vipr.MatchingBlockStoragePoolsCall;
+import models.ConnectivityTypes;
+import models.HighAvailability;
+import models.ProtectionSystemTypes;
+import models.SizeUnit;
+import models.StorageSystemTypes;
+import play.Logger;
+import play.data.validation.Max;
+import play.data.validation.Min;
+import play.data.validation.Validation;
+import play.i18n.Messages;
+import util.VirtualPoolUtils;
+import util.builders.BlockVirtualPoolBuilder;
+import util.builders.BlockVirtualPoolUpdateBuilder;
 
 public class BlockVirtualPoolForm extends VirtualPoolCommonForm<BlockVirtualPoolRestRep> {
     @Min(0)
@@ -66,6 +65,7 @@ public class BlockVirtualPoolForm extends VirtualPoolCommonForm<BlockVirtualPool
     public Set<String> raidLevels;
     public Boolean uniqueAutoTierPolicyNames;
     public String autoTierPolicy;
+    public Boolean enableCompression;
     @Min(0)
     @Max(100)
     public Integer thinPreAllocationPercent;
@@ -218,6 +218,7 @@ public class BlockVirtualPoolForm extends VirtualPoolCommonForm<BlockVirtualPool
         initiatorPaths = virtualPool.getPathsPerInitiator();
         driveType = virtualPool.getDriveType();
         autoTierPolicy = virtualPool.getAutoTieringPolicyName();
+        enableCompression = virtualPool.getCompressionEnabled();
         expandable = virtualPool.getExpandable();
         fastExpansion = virtualPool.getFastExpansion();
         multiVolumeConsistency = virtualPool.getMultiVolumeConsistent();
@@ -371,6 +372,7 @@ public class BlockVirtualPoolForm extends VirtualPoolCommonForm<BlockVirtualPool
         builder.setPathsPerInitiator(defaultInt(initiatorPaths, 1));
         builder.setDriveType(driveType);
         builder.setAutoTieringPolicyName(autoTierPolicy);
+        builder.setCompressionEnabled(defaultBoolean(enableCompression));
         builder.setExpandable(defaultBoolean(expandable));
         builder.setFastExpansion(defaultBoolean(fastExpansion));
         builder.setMultiVolumeConsistency(defaultBoolean(multiVolumeConsistency));
@@ -447,6 +449,7 @@ public class BlockVirtualPoolForm extends VirtualPoolCommonForm<BlockVirtualPool
             builder.setMaxPaths(defaultInt(maxPaths, 1));
             builder.setPathsPerInitiator(defaultInt(initiatorPaths, 1));
             builder.setAutoTieringPolicyName(autoTierPolicy);
+            builder.setCompressionEnabled(defaultBoolean(enableCompression));
             builder.setDriveType(driveType);
             builder.setExpandable(defaultBoolean(expandable));
             builder.setFastExpansion(defaultBoolean(fastExpansion));

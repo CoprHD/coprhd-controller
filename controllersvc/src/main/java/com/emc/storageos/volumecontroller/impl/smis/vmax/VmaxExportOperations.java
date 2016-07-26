@@ -1947,15 +1947,19 @@ public class VmaxExportOperations implements ExportMaskOperations {
         // Flag to indicate whether or not we need to use the EMCForce flag on this operation.
         // We currently use this flag when dealing with RP Volumes as they are tagged for RP and the
         // operation on these volumes would fail otherwise.
+        boolean setOnce = false;
         boolean forceFlag = false;
+        boolean disableCompression = false;
         for (VolumeURIHLU volURIHlu : volumeURIHLUs) {
             volumeNames[index++] = _helper.getBlockObjectNativeId(volURIHlu.getVolumeURI());
             if (null == policyName && storage.checkIfVmax3()) {
                 policyName = _helper.getVMAX3FastSettingForVolume(volURIHlu.getVolumeURI(), volURIHlu.getAutoTierPolicyName());
             }
             // The force flag only needs to be set once
-            if (!forceFlag) {
+            if (!setOnce) {
+                setOnce = true;
                 forceFlag = ExportUtils.useEMCForceFlag(_dbClient, volURIHlu.getVolumeURI());
+                disableCompression = _helper.disableVMAX3Compression(volURIHlu.getVolumeURI(), storage);
             }
         }
         CIMArgument[] inArgs = null;
@@ -1968,7 +1972,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
 
             String[] tokens = policyName.split(Constants.SMIS_PLUS_REGEX);
             inArgs = _helper.getCreateVolumeGroupInputArguments(storage, truncatedGroupName, tokens[0], tokens[2], tokens[1],
-                    addVolumes ? volumeNames : null);
+                    addVolumes ? volumeNames : null, disableCompression);
         } else {
             inArgs = _helper.getCreateVolumeGroupInputArguments(storage, truncatedGroupName, addVolumes ? volumeNames : null);
         }

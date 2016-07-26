@@ -21,6 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.model.FCEndpoint;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.networkcontroller.SSHDialog;
 import com.emc.storageos.networkcontroller.SSHPrompt;
 import com.emc.storageos.networkcontroller.SSHSession;
@@ -2220,8 +2221,7 @@ public class MDSDialog extends SSHDialog {
     /**
      * Populate routedEndpoints based on ivr zone information.
      * 
-     * @param routedEndpoints
-     * @return
+     * @param routedEndpoints a IN/OUT parameters which is a map of fabricWwn to endpoint set
      */
     public void populateConnectionByIvrZone(Map<String, Set<String>> routedEndpoints) {
     	List<IvrZone> ivrZones = this.showIvrZones(false);
@@ -2230,7 +2230,7 @@ public class MDSDialog extends SSHDialog {
     			Integer vsanId = zoneMember.getVsanId();
     			Map<Integer, String> idWwnMap = getVsanWwns(vsanId);
     			String fabricWwn = idWwnMap.get(vsanId);
-    			if (fabricWwn == null) {
+    			if (NullColumnValueGetter.isNullValue(fabricWwn)) {
     				continue;
     			}
                 Set<String> netRoutedEndpoints = routedEndpoints.get(fabricWwn.toUpperCase());
@@ -2244,6 +2244,13 @@ public class MDSDialog extends SSHDialog {
     	}
     }
     
+    /**
+     * Get pwwns from ivr zone members excludes specific one.
+     * 
+     * @param ivrZoneMember
+     * @param pwwn which should be excluded
+     * @return otherPwwns pwwn set except spcific pwwn
+     */
     private Set<String> getOtherMemberPwwn(List<IvrZoneMember> ivrZoneMembers, String pwwn) {
     	Set<String> otherPwwns = new HashSet<String>();
     	for (IvrZoneMember member : ivrZoneMembers) {

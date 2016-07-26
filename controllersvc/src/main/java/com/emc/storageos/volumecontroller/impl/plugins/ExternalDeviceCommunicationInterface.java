@@ -310,8 +310,7 @@ public class ExternalDeviceCommunicationInterface extends
             }
         } catch (BaseCollectionException bEx) {
             _completer.error(_dbClient, bEx);
-        } catch (Exception ex) {
-            _completer.error(_dbClient, null);
+            throw bEx;
         }
     }
 

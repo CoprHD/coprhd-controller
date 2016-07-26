@@ -15,15 +15,22 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import com.emc.storageos.storagedriver.DefaultStorageDriver;
 import org.apache.commons.lang.mutable.MutableBoolean;
 import org.apache.commons.lang.mutable.MutableInt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeansException;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
 
-import com.emc.storageos.storagedriver.AbstractStorageDriver;
+import com.emc.storageos.driver.driversimulator.operations.CreateGroupCloneSimulatorOperation;
+import com.emc.storageos.driver.driversimulator.operations.CreateVolumeCloneSimulatorOperation;
+import com.emc.storageos.driver.driversimulator.operations.DriverSimulatorOperation;
+import com.emc.storageos.driver.driversimulator.operations.ExpandVolumeSimulatorOperation;
+import com.emc.storageos.driver.driversimulator.operations.RestoreFromCloneSimulatorOperation;
+import com.emc.storageos.driver.driversimulator.operations.RestoreFromSnapshotSimulatorOperation;
 import com.emc.storageos.storagedriver.BlockStorageDriver;
-import com.emc.storageos.storagedriver.DefaultDriverTask;
+import com.emc.storageos.storagedriver.DefaultStorageDriver;
 import com.emc.storageos.storagedriver.DriverTask;
 import com.emc.storageos.storagedriver.HostExportInfo;
 import com.emc.storageos.storagedriver.RegistrationData;
@@ -47,7 +54,7 @@ import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
 public class StorageDriverSimulator extends DefaultStorageDriver implements BlockStorageDriver {
 
     private static final Logger _log = LoggerFactory.getLogger(StorageDriverSimulator.class);
-    private static final String DRIVER_NAME = "SimulatorDriver";
+    public static final String DRIVER_NAME = "SimulatorDriver";
     private static final int NUMBER_OF_VOLUME_PAGES = 3;
     private static final int NUMBER_OF_VOLUMES_ON_PAGE = 2;
     private static final int NUMBER_OF_CLONES_FOR_VOLUME = 2;
@@ -56,7 +63,12 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
     private static final boolean SNAPS_IN_CG = true;
     private static final boolean CLONES_IN_CG = true;
     private static final boolean GENERATE_EXPORT_DATA = true;
+    private static final String SIMULATOR_CONF_FILE = "simulator-conf.xml";
+    private static final String CONFIG_BEAN_NAME = "simulatorConfig";
 
+    private ApplicationContext parentApplicationContext;
+    private SimulatorConfiguration simulatorConfig;
+    private Map<String, DriverSimulatorOperation> taskOperationMap = new HashMap<String, DriverSimulatorOperation>();
     private static Integer portIndex = 0;
     private static Map<String, Integer> systemNameToPortIndexName = new HashMap<>();
 
@@ -89,9 +101,18 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
         hostToInitiatorPortIdMap.put(pageToHostMap.get(1).get(0), new ArrayList<>(Arrays.asList("50:06:01:61:36:68:09:81", "50:06:01:61:36:68:09:82")));
         hostToInitiatorPortIdMap.put(pageToHostMap.get(2).get(0), new ArrayList<>(Arrays.asList("50:06:01:61:36:68:10:81", "50:06:01:61:36:68:10:82")));
     }
-
+    
     //StorageDriver implementation
 
+    public StorageDriverSimulator() {
+        ApplicationContext context = new ClassPathXmlApplicationContext(new String[] {SIMULATOR_CONF_FILE}, parentApplicationContext);
+        simulatorConfig = (SimulatorConfiguration) context.getBean(CONFIG_BEAN_NAME);
+    }
+    
+    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+        this.parentApplicationContext = applicationContext;
+    }
+    
     @Override
     public RegistrationData getRegistrationData() {
         RegistrationData registrationData = new RegistrationData("driverSimulator", "driversystem", null);
@@ -100,7 +121,30 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
 
     @Override
     public DriverTask getTask(String taskId) {
-        return null;
+        if (!taskOperationMap.containsKey(taskId)) {
+            _log.error("Invalid task Id {}", taskId);
+            return null;
+        }
+        
+        DriverSimulatorOperation taskOperation = taskOperationMap.get(taskId);
+        if (taskOperation.getLookupCount() < simulatorConfig.getMaxAsynchronousLookups()) {            
+            taskOperation.incrementLookupCount();
+            _log.info("This is lookup {} for task {}", taskOperation.getLookupCount(), taskId);
+        } else {
+            taskOperationMap.remove(taskId);
+            if (simulatorConfig.getSimulateFailures()) {
+                _log.info("Simulating asynchronous failure for task {} of type {}", taskId, taskOperation.getType());
+                String errorMsg = taskOperation.getFailureMessage();
+                taskOperation.doFailure(errorMsg);
+            } else {
+                _log.info("Simulating asynchronous success for task {} of type {}", taskId, taskOperation.getType());
+                taskOperation.updateOnAsynchronousSuccess();
+                String successMsg = taskOperation.getSuccessMessage();
+                taskOperation.doSuccess(successMsg);
+            }
+        }
+        
+        return taskOperation.getDriverTask();
     }
 
     @Override
@@ -359,18 +403,19 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
 
     @Override
     public DriverTask expandVolume(StorageVolume volume, long newCapacity) {
-        String taskType = "expand-storage-volumes";
-        String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
-        volume.setRequestedCapacity(newCapacity);
-        volume.setProvisionedCapacity(newCapacity);
-        volume.setAllocatedCapacity(newCapacity);
-        DriverTask task = new DriverSimulatorTask(taskId);
-        task.setStatus(DriverTask.TaskStatus.READY);
-
-        _log.info("StorageDriver: expandVolume information for storage system {}, volume nativeId {}," +
-                        " new capacity {} - end",
-                volume.getStorageSystemId(), volume.toString(), volume.getRequestedCapacity());
-        return task;
+        ExpandVolumeSimulatorOperation expandVolumeSimulatorOperation = new ExpandVolumeSimulatorOperation(volume, newCapacity);
+        if (simulatorConfig.getSimulateAsynchronousResponses()) {
+            DriverTask driverTask = expandVolumeSimulatorOperation.getDriverTask();
+            taskOperationMap.put(driverTask.getTaskId(), expandVolumeSimulatorOperation);
+            return driverTask;
+        } else if (simulatorConfig.getSimulateFailures()) {
+            String failMsg = expandVolumeSimulatorOperation.getFailureMessage();
+            return expandVolumeSimulatorOperation.doFailure(failMsg);
+        } else {
+            expandVolumeSimulatorOperation.updateVolumeInfo(volume, newCapacity);
+            String successMsg = expandVolumeSimulatorOperation.getSuccessMessage(volume);
+            return expandVolumeSimulatorOperation.doSuccess(successMsg);
+        }
     }
 
     @Override
@@ -439,16 +484,18 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
 
     @Override
     public DriverTask restoreSnapshot(List<VolumeSnapshot> snapshots) {
-        String taskType = "restore-snapshot";
-        String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
-        DriverTask task = new DriverSimulatorTask(taskId);
-        task.setStatus(DriverTask.TaskStatus.READY);
-        String msg = String.format("StorageDriver: restoreSnapshot for storage system %s, " +
-                        "snapshots nativeId %s, snap group %s - end",
-                snapshots.get(0).getStorageSystemId(), snapshots.toString(), snapshots.get(0).getConsistencyGroup());
-        _log.info(msg);
-        task.setMessage(msg);
-        return task;
+        RestoreFromSnapshotSimulatorOperation restoreSnapshotSimulatorOperation = new RestoreFromSnapshotSimulatorOperation(snapshots);
+        if (simulatorConfig.getSimulateAsynchronousResponses()) {
+            DriverTask driverTask = restoreSnapshotSimulatorOperation.getDriverTask();
+            taskOperationMap.put(driverTask.getTaskId(), restoreSnapshotSimulatorOperation);
+            return driverTask;
+        } else if (simulatorConfig.getSimulateFailures()) {
+            String failMsg = restoreSnapshotSimulatorOperation.getFailureMessage();
+            return restoreSnapshotSimulatorOperation.doFailure(failMsg);
+        } else {
+            String successMsg = restoreSnapshotSimulatorOperation.getSuccessMessage(snapshots);
+            return restoreSnapshotSimulatorOperation.doSuccess(successMsg);
+        }        
     }
 
     @Override
@@ -467,24 +514,19 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
 
     @Override
     public DriverTask createVolumeClone(List<VolumeClone> clones, StorageCapabilities capabilities) {
-        for (VolumeClone clone : clones) {
-            clone.setNativeId("clone-" + clone.getParentId() + clone.getDisplayName());
-            clone.setWwn(String.format("%s%s", clone.getStorageSystemId(), clone.getNativeId()));
-            clone.setReplicationState(VolumeClone.ReplicationState.SYNCHRONIZED);
-            clone.setProvisionedCapacity(clone.getRequestedCapacity());
-            clone.setAllocatedCapacity(clone.getRequestedCapacity());
-            clone.setDeviceLabel(clone.getNativeId());
+        CreateVolumeCloneSimulatorOperation createCloneSimulatorOperation = new CreateVolumeCloneSimulatorOperation(clones);
+        if (simulatorConfig.getSimulateAsynchronousResponses()) {
+            DriverTask driverTask = createCloneSimulatorOperation.getDriverTask();
+            taskOperationMap.put(driverTask.getTaskId(), createCloneSimulatorOperation);
+            return driverTask;
+        } else if (simulatorConfig.getSimulateFailures()) {
+            String failMsg = createCloneSimulatorOperation.getFailureMessage();
+            return createCloneSimulatorOperation.doFailure(failMsg);
+        } else {
+            createCloneSimulatorOperation.updateCloneInfo(clones);
+            String successMsg = createCloneSimulatorOperation.getSuccessMessage(clones);
+            return createCloneSimulatorOperation.doSuccess(successMsg);
         }
-        String taskType = "create-volume-clone";
-        String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
-        DriverTask task = new DriverSimulatorTask(taskId);
-        task.setStatus(DriverTask.TaskStatus.READY);
-
-        String msg = String.format("StorageDriver: createVolumeClone information for storage system %s, clone nativeIds %s - end",
-                clones.get(0).getStorageSystemId(), clones.toString());
-        _log.info(msg);
-        task.setMessage(msg);
-        return task;
     }
 
     @Override
@@ -503,17 +545,19 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
 
     @Override
     public DriverTask restoreFromClone(List<VolumeClone> clones) {
-        String taskType = "restore-volume-clones";
-        String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
-        DriverTask task = new DriverSimulatorTask(taskId);
-        task.setStatus(DriverTask.TaskStatus.READY);
-        String msg = String.format("StorageDriver: restoreFromClone : clones %s ", clones);
-        for (VolumeClone clone : clones) {
-            clone.setReplicationState(VolumeClone.ReplicationState.RESTORED);
-        }
-        _log.info(msg);
-        task.setMessage(msg);
-        return task;
+        RestoreFromCloneSimulatorOperation restoreCloneSimulatorOperation = new RestoreFromCloneSimulatorOperation(clones);
+        if (simulatorConfig.getSimulateAsynchronousResponses()) {
+            DriverTask driverTask = restoreCloneSimulatorOperation.getDriverTask();
+            taskOperationMap.put(driverTask.getTaskId(), restoreCloneSimulatorOperation);
+            return driverTask;
+        } else if (simulatorConfig.getSimulateFailures()) {
+            String failMsg = restoreCloneSimulatorOperation.getFailureMessage();
+            return restoreCloneSimulatorOperation.doFailure(failMsg);
+        } else {
+            restoreCloneSimulatorOperation.updateCloneInfo(clones);
+            String successMsg = restoreCloneSimulatorOperation.getSuccessMessage(clones);
+            return restoreCloneSimulatorOperation.doSuccess(successMsg);
+        }        
     }
 
 
@@ -702,27 +746,20 @@ public class StorageDriverSimulator extends DefaultStorageDriver implements Bloc
 
     @Override
     public DriverTask createConsistencyGroupClone(VolumeConsistencyGroup consistencyGroup, List<VolumeClone> clones, List<CapabilityInstance> capabilities) {
-        String cloneTimestamp = Long.toString(System.currentTimeMillis());
-        for (VolumeClone clone : clones) {
-            clone.setNativeId("clone-" + clone.getParentId() + clone.getDisplayName());
-            clone.setWwn(String.format("%s%s", clone.getStorageSystemId(), clone.getNativeId()));
-            clone.setReplicationState(VolumeClone.ReplicationState.SYNCHRONIZED);
-            clone.setDeviceLabel(clone.getNativeId());
-            clone.setProvisionedCapacity(clone.getRequestedCapacity());
-            clone.setAllocatedCapacity(clone.getRequestedCapacity());
-            clone.setConsistencyGroup(consistencyGroup.getNativeId() + "_clone-" + cloneTimestamp);
+        CreateGroupCloneSimulatorOperation createCloneSimulatorOperation = new CreateGroupCloneSimulatorOperation(consistencyGroup, clones);
+        if (simulatorConfig.getSimulateAsynchronousResponses()) {
+            DriverTask driverTask = createCloneSimulatorOperation.getDriverTask();
+            taskOperationMap.put(driverTask.getTaskId(), createCloneSimulatorOperation);
+            return driverTask;
+        } else if (simulatorConfig.getSimulateFailures()) {
+            String failMsg = createCloneSimulatorOperation.getFailureMessage();
+            return createCloneSimulatorOperation.doFailure(failMsg);
+        } else {
+            createCloneSimulatorOperation.updateGroupCloneInfo(consistencyGroup, clones);
+            String successMsg = createCloneSimulatorOperation.getSuccessMessage(clones);
+            return createCloneSimulatorOperation.doSuccess(successMsg);
         }
-        String taskType = "create-group-clone";
-        String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
-        DriverTask task = new DriverSimulatorTask(taskId);
-        task.setStatus(DriverTask.TaskStatus.READY);
-        task.setMessage("Created clones for consistency group " + clones.get(0).getConsistencyGroup());
-
-        _log.info("StorageDriver: createGroupClone information for storage system {}, clones nativeIds {} - end",
-                clones.get(0).getStorageSystemId(), clones.toString());
-        return task;
     }
-
 
     @Override
     public DriverTask getStorageVolumes(StorageSystem storageSystem, List<StorageVolume> storageVolumes, MutableInt token) {

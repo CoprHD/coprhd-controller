@@ -2353,6 +2353,7 @@ storagePools.name=Name
 storagePools.storageSystem=Storage System
 storagePools.driveTypes=Drive Types
 storagePools.volumeTypes=Provisioning
+storagePools.compressionEnabled=Compression Enabled
 storagePools.freeCapacity=Free
 storagePools.subscribedCapacity=Subscribed
 storagePools.totalCapacity=Total

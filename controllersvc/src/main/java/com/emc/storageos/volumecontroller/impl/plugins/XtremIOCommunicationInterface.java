@@ -285,6 +285,7 @@ public class XtremIOCommunicationInterface extends
             xioSystemPool.setPoolServiceType(PoolServiceType.block.name());
             xioSystemPool.setFreeCapacity(system.getTotalCapacity() - system.getUsedCapacity());
             xioSystemPool.setTotalCapacity(system.getTotalCapacity());
+            xioSystemPool.setSubscribedCapacity(system.getSubscribedCapacity());
             if ((xioSystemPool.getStorageDevice() == null) || !xioSystemPool.getStorageDevice().equals(systemInDB.getId())) {
                 xioSystemPool.setStorageDevice(systemInDB.getId());
             }

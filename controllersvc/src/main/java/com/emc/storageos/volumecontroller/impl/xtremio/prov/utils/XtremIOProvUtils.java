@@ -67,7 +67,8 @@ public class XtremIOProvUtils {
             for (XtremIOSystem system : systems) {
                 if (system.getSerialNumber().equalsIgnoreCase(storageSystem.getSerialNumber())) {
                     storagePool.setFreeCapacity(system.getTotalCapacity() - system.getUsedCapacity());
-                    dbClient.persistObject(storagePool);
+                    storagePool.setSubscribedCapacity(system.getSubscribedCapacity());
+                    dbClient.updateObject(storagePool);
                     break;
                 }
             }

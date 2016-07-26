@@ -10,6 +10,7 @@ import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -26,7 +27,8 @@ public class SoftLimitMatcher extends AttributeMatcher {
     }
 
     @Override
-    protected List<StoragePool> matchStoragePoolsWithAttributeOn(List<StoragePool> allPools, Map<String, Object> attributeMap) {
+    protected List<StoragePool> matchStoragePoolsWithAttributeOn(List<StoragePool> allPools, Map<String, Object> attributeMap,
+            StringBuffer errorMessage) {
         List<StoragePool> filteredPools = new ArrayList<StoragePool>();
         _logger.info("started matching pools with soft limit.");
         for (StoragePool pool : allPools) {
@@ -36,6 +38,12 @@ public class SoftLimitMatcher extends AttributeMatcher {
                 filteredPools.add(pool);
             }
         }
+
+        if (CollectionUtils.isEmpty(filteredPools)) {
+            errorMessage.append("No matching storage pool found with support soft limit. ");
+            _logger.error(errorMessage.toString());
+        }
+
         return filteredPools;
     }
 

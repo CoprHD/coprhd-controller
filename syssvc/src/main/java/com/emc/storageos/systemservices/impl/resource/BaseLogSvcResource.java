@@ -39,6 +39,7 @@ public abstract class BaseLogSvcResource {
             add("nginx_access");
             add("nginx_error");
             add("bkutils");
+	    add("oesvc");
         }
     };
 

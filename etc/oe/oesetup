@@ -1,7 +1,13 @@
 #!/bin/sh
 #clean zk
+#restart rsyslogd for OE logging
+service rsyslog restart
+
+#reload docker daemon to have rootfs mount path in /data/docker
 systemctl daemon-reload
 systemctl restart docker
+
+#Load OE docker images
 echo "Loading Docker images"
 docker load </etc/oe/mongo.tar
 echo "mongo loaded"
@@ -10,87 +16,126 @@ echo "on-http loaded"
 docker load</etc/oe/on-taskgraph.tar
 echo "on-taskgraph loaded"
 docker load</etc/oe/rabbitmq.tar
-echo "Tagging Docker images"
-docker tag 194d37572641 oe-onhttp:latest
-docker tag cc347a0eb08b oe-ontaskgraph:latest
-docker tag 5f8abd26760c rabbitmq:management
-docker tag a55d8a328b43 mongo:latest
+
+#helper method to get nodecount
+_get_ovf_property() {
+    [ -n "$1" ] && sed -n "s/^${1}=\(.*\)/\1/p" '/etc/ovfenv.properties'
+}
+nodeCount=$(_get_ovf_property 'node_count')
+echo "Node count is"
+echo $nodeCount
+
+#Start OE Containers
 echo "Starting Docker OE containers"
-docker run --privileged=true --restart=always --net="host" --name docker_mongo_1 -d mongo:latest mongod --replSet "myrs"
+
+if [[ $nodeCount == "1" ]]
+then
+	docker run --privileged=true --restart=always --net="host" --name docker_mongo_1 -d mongo:latest mongod
+else
+	#start with replica set
+	docker run --privileged=true --restart=always --net="host" --name docker_mongo_1 -d mongo:latest mongod --replSet "myrs"
+fi
 echo "Started Mongo"
+
+#helper method to setup mongo replica set
+_setup_mongo_replset() {
+	mongoid="$(docker ps -aqf name=mongo)"
+	echo "All mongo instances are up";
+        docker exec -i $mongoid mongo --eval "rs.initiate()"
+        docker exec -i $mongoid mongo --eval "rs.add(\"vipr2\")"
+        docker exec -i $mongoid mongo --eval "rs.add(\"vipr3\")"
+	if [[ $nodeCount == "5" ]]
+	then
+		docker exec -i $mongoid mongo --eval "rs.add(\"vipr4\")"
+		docker exec -i $mongoid mongo --eval "rs.add(\"vipr5\")"
+	fi
+        docker exec -i $mongoid mongo --eval "rs.status()"
+        docker exec -i $mongoid mongo --eval "rs.slaveOk()"
+        echo "set /mongo Done" >script
+        /opt/storageos/bin/zkCli.sh < script
+}
+
 echo "Setup Mongo ReplicaSet only on Primary"
-mongoid="$(docker ps -aqf name=mongo)"
-echo "$mongoid"
 hostname=$(hostname)
 echo "$hostname"
-if [ "$hostname" = "vipr1" ]; then
-        echo "create /mongo vipr1" > script
-        /opt/storageos/bin/zkCli.sh < script
-        echo "Wait for other mongo instances to be up and running"
-        stable=0;
-        echo "get /mongo" >script
-        while [ $stable != "1" ]
-        do
-                echo "wait again"
-                sleep 1m
-                /opt/storageos/bin/zkCli.sh < script > zkstatus
-                zkgetstatus="$(sed -n '/get \/mongo/ { s///; :a; n; p; ba; }' zkstatus)"
-                if [[ $zkgetstatus == *"vipr2"* ]]
-                then
-                        if [[ $zkgetstatus == *"vipr3"* ]]
-                        then
-                                echo "All mongo instances are up";
-                                docker exec -i $mongoid mongo --eval "rs.initiate()"
-                                docker exec -i $mongoid mongo --eval "rs.add(\"vipr2\")"
-                                docker exec -i $mongoid mongo --eval "rs.add(\"vipr3\")"
-                                docker exec -i $mongoid mongo --eval "rs.status()"
-                                docker exec -i $mongoid mongo --eval "rs.slaveOk()"
-                                stable=1
-                                echo "set /mongo Done" >script
-                                /opt/storageos/bin/zkCli.sh < script
-                        fi
-                fi
-        done
-else
-        echo "get /mongo" >script
-        stable=0
-        while [ $stable != 1 ]
-        do
-                /opt/storageos/bin/zkCli.sh < script > zkstatus
-                zkgetstatus="$(sed -n '/get \/mongo/ { s///; :a; n; p; ba; }' zkstatus)"
-                if [[ $zkgetstatus == *"vipr1"* ]]
-                then
-                        echo "set /mongo $hostname$zkgetstatus" >script
-                        /opt/storageos/bin/zkCli.sh < script
-                        stable=1
-                else
-                        sleep 1m
-                fi
 
-        done
-        echo "get /mongo" >script
-        stable=0;
-        while [ $stable != "1" ]
-        do
-                sleep 1m
-                echo "wait for all replica set features"
-                /opt/storageos/bin/zkCli.sh < script > zkstatus
-                zkgetstatus="$(sed -n '/get \/mongo/ { s///; :a; n; p; ba; }' zkstatus)"
-                if [[ $zkgetstatus == *"Done"* ]]
-                then
-                        echo "Setup ia all UP"
-                        docker exec -i $mongoid mongo --eval "rs.slaveOk()"
-                        stable=1
-                fi
-        done
+# Vipr1 always initiates the mongo replicaset feature, so it is the master to start with. But after the cluster is up master can failover to other node
+# during boot vipr1 creates the zknode and writes its hostname("vipr1") to zknode /mongo then waits for other nodes to join
+# nodes other than vipr1 reads the zknode /mongo and appends their hostname to zknode if present else waits for vipr1 to create a zknode
+# Once Vipr1 sees all the hostname of the nodes in the cluter it starts the mongo repl set
+# after setting up replicaset vipr1 writes "Done" to the zknode and then can do other operations
+# nodes other than vipr1 once see Done status for zknode can proceed for other operations
+
+if [ $nodeCount != "1" ] 
+then
+	if [ "$hostname" = "vipr1" ]; then
+        	echo "create /mongo vipr1" > script
+        	/opt/storageos/bin/zkCli.sh < script
+        	echo "Wait for other mongo instances to be up and running"
+        	stable=0;
+        	echo "get /mongo" >script
+        	while [ $stable != "1" ]
+        	do
+                	echo "wait again"
+                	sleep 1m
+                	/opt/storageos/bin/zkCli.sh < script > zkstatus
+                	zkgetstatus="$(sed -n '/get \/mongo/ { s///; :a; n; p; ba; }' zkstatus)"
+			if [[ $nodeCount == "3" && $zkgetstatus == *"vipr2"* && $zkgetstatus == *"vipr3"* ]]
+			then
+				_setup_mongo_replset $nodeCount
+                                stable=1
+                	fi
+			if [[ $nodeCount == "5" && $zkgetstatus == *"vipr2"* && $zkgetstatus == *"vipr3"* && $zkgetstatus == *"vipr4"* && $zkgetstatus == *"vipr5"* ]]
+			then
+				_setup_mongo_replset $nodeCount
+				stable=1
+			fi
+        	done
+                echo "set /mongo Done" >script
+                /opt/storageos/bin/zkCli.sh < script
+	else
+        	echo "get /mongo" >script
+        	stable=0
+        	while [ $stable != 1 ]
+        	do
+                	/opt/storageos/bin/zkCli.sh < script > zkstatus
+                	zkgetstatus="$(sed -n '/get \/mongo/ { s///; :a; n; p; ba; }' zkstatus)"
+                	if [[ $zkgetstatus == *"vipr1"* ]]
+                	then
+                        	echo "set /mongo $hostname$zkgetstatus" >script
+                        	/opt/storageos/bin/zkCli.sh < script
+                        	stable=1
+               		else
+                        	sleep 1m
+                	fi
+
+        	done
+        	echo "get /mongo" >script
+        	stable=0;
+        	while [ $stable != "1" ]
+        	do
+                	sleep 1m
+                	echo "wait for all replica set features"
+                	/opt/storageos/bin/zkCli.sh < script > zkstatus
+                	zkgetstatus="$(sed -n '/get \/mongo/ { s///; :a; n; p; ba; }' zkstatus)"
+                	if [[ $zkgetstatus == *"Done"* ]]
+                	then
+                        	echo "Setup is all UP"
+                        	docker exec -i $mongoid mongo --eval "rs.slaveOk()"
+                        	stable=1
+                	fi
+        	done
+	fi
 fi
 
+#Start OE containers
 docker run --privileged=true --restart=always --net="host" --name docker_rabbitmq_1 -d -v /etc/rabbitmq/rabbitmq.config:/etc/rabbitmq/rabbitmq.config -v /etc/rabbitmq/.erlang.cookie:/var/lib/rabbitmq/.erlang.cookie rabbitmq:management
 echo "Started Rabbitmq" 
-docker run --privileged=true --net="host" --restart=always --name docker_on-http_1 -d -v /etc/monorail:/opt/monorail oe-onhttp:latest
+docker run --privileged=true --net="host" --restart=always --name docker_on-http_1 -d -v /etc/monorail:/opt/monorail --log-driver=syslog oe-onhttp:latest
 echo "started on-http"
-docker run --privileged=true --net="host" --restart=always --name docker_on-taskgraph_1 -d -v /etc/monorail:/opt/monorail -v /etc/ansible_scripts:/root/ansible-work oe-ontaskgraph:latest
+docker run --privileged=true --net="host" --restart=always --name docker_on-taskgraph_1 -d -v /etc/monorail:/opt/monorail -v /etc/ansible_scripts:/root/ansible-work --log-driver=syslog oe-ontaskgraph:latest
 echo "OE deployment Done"
+
 echo "Sleep for 1m before loading WF"
 sleep 2m
 cd /etc/ansible_scripts

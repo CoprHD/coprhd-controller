@@ -180,6 +180,7 @@ ETCFILES_COMMON = \
      $(ETCDIR)/oe/on-taskgraph.tar \
      $(ETCDIR)/oe/on-http.tar \
      $(ETCDIR)/oe/oesetup \
+    $(ETCDIR)/rsyslog.d/docker-log.conf \
      $(ETCDIR)/ansible_scripts/ansibleAllTask \
      $(ETCDIR)/ansible_scripts/ansibleViPRVpoolsGetTask \
      $(ETCDIR)/ansible_scripts/ansibleViPRVolumesForExportGetWF \
@@ -356,6 +357,13 @@ $(ETCDIR)/monorail/%: monorail/%
 	@$(MKDIR) $(@D)
 	$(ATSIGN)$(SED_SCRIPT) <$(<) >$(@)
 	$(ATSIGN)$(CHMOD) 644 $(@)
+
+$(ETCDIR)/rsyslog.d/%: rsyslog.d/%
+	@echo "sed etc/$(<)"
+	@$(RM) $(@)
+	@$(MKDIR) $(@D)
+	$(ATSIGN)$(SED_SCRIPT) <$(<) >$(@)
+	$(ATSIGN)$(CHMOD) 755 $(@)
 
 $(ETCDIR)/oe/%: oe/%
 	@echo "sed etc/$(<)"

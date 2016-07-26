@@ -208,6 +208,7 @@ fi
 %config /etc/monorail/config.json
 %config /etc/monorail/hosts
 %config /etc/monorail/hosts-template
+%config /etc/rsyslog.d/docker-log.conf
 %config /etc/rabbitmq/rabbitmq-template.config
 %config /etc/rabbitmq/rabbitmq.config
  %config /etc/oe/mongo.tar

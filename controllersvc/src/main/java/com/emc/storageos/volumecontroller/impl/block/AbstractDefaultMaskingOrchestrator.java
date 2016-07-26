@@ -1171,10 +1171,11 @@ abstract public class AbstractDefaultMaskingOrchestrator {
                 // Not all initiators have hosts, be sure to handle either case.
                 URI hostURI = initiator.getHost();
                 URI vmURI = initiator.getVirtualMachine();
-                if (hostURI == null && vmURI == null) {
+                if (NullColumnValueGetter.isNullURI(hostURI) &&
+                        NullColumnValueGetter.isNullURI(vmURI)) {
                     hostURI = fillerHostURI;
                 } else {
-                    if (vmURI != null) {
+                    if (!NullColumnValueGetter.isNullURI(vmURI)) {
                         hostURI = vmURI;
                     }
                 }

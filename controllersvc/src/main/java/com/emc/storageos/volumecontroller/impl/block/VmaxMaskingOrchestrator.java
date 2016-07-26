@@ -1977,9 +1977,10 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 // Not all initiators have hosts, be sure to handle either case.
                 URI hostURI = initiator.getHost();
                 URI vmURI = initiator.getVirtualMachine();
-                if (vmURI == null && hostURI == null) {
+                if (NullColumnValueGetter.isNullURI(vmURI) &&
+                        NullColumnValueGetter.isNullURI(hostURI)) {
                     hostURI = fillerHostURI;
-                } else if (vmURI != null) {
+                } else if (!NullColumnValueGetter.isNullURI(vmURI)) {
                     hostURI = vmURI;
                 }
 

@@ -44,7 +44,7 @@ public class VirtualMachineMapper {
             to.setHost(toRelatedResource(ResourceTypeEnum.HOST, host));
         }
         if (vm != null) {
-            to.setHost(toRelatedResource(ResourceTypeEnum.HOST, vm));
+            to.setVirtualMachine(toRelatedResource(ResourceTypeEnum.VIRTUAL_MACHINE, vm));
         }
         to.setProtocol(from.getProtocol());
         to.setRegistrationStatus(from.getRegistrationStatus());

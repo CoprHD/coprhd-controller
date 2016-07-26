@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.api.service.impl.resource;
 
+import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
 import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 import static com.emc.storageos.api.mapper.VirtualMachineMapper.map;
 
@@ -35,7 +36,9 @@ import com.emc.storageos.api.service.impl.resource.utils.VirtualMachineConnectio
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.computesystemcontroller.ComputeSystemController;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
+import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DataCollectionJobStatus;
@@ -45,10 +48,12 @@ import com.emc.storageos.db.client.model.HostInterface;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
 import com.emc.storageos.db.client.model.VirtualMachine;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.EndpointUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.WWNUtility;
@@ -60,6 +65,7 @@ import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.host.BaseInitiatorParam;
 import com.emc.storageos.model.host.InitiatorCreateParam;
+import com.emc.storageos.model.host.InitiatorList;
 import com.emc.storageos.model.host.VirtualMachineBulkRep;
 import com.emc.storageos.model.host.VirtualMachineCreateParam;
 import com.emc.storageos.model.host.VirtualMachineParam;
@@ -78,9 +84,8 @@ import com.emc.storageos.volumecontroller.ControllerException;
  * interfaces by authorized users.
  *
  */
-@DefaultPermissions(readRoles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN },
-        writeRoles = { Role.TENANT_ADMIN },
-        readAcls = { ACL.ANY })
+@DefaultPermissions(readRoles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN }, writeRoles = {
+        Role.TENANT_ADMIN }, readAcls = { ACL.ANY })
 @Path("/compute/virtualmachines")
 public class VirtualMachineService extends TaskResourceService {
 
@@ -151,15 +156,13 @@ public class VirtualMachineService extends TaskResourceService {
     @Override
     public VirtualMachineBulkRep queryBulkResourceReps(List<URI> ids) {
 
-        Iterator<VirtualMachine> _dbIterator =
-                _dbClient.queryIterativeObjects(getResourceClass(), ids);
+        Iterator<VirtualMachine> _dbIterator = _dbClient.queryIterativeObjects(getResourceClass(), ids);
         return new VirtualMachineBulkRep(BulkList.wrapping(_dbIterator, MapVirtualMachine.getInstance()));
     }
 
     @Override
     public VirtualMachineBulkRep queryFilteredBulkResourceReps(List<URI> ids) {
-        Iterator<VirtualMachine> _dbIterator =
-                _dbClient.queryIterativeObjects(getResourceClass(), ids);
+        Iterator<VirtualMachine> _dbIterator = _dbClient.queryIterativeObjects(getResourceClass(), ids);
         BulkList.ResourceFilter filter = new BulkList.VirtualMachineFilter(getUserFromContext(), _permissionsHelper);
         return new VirtualMachineBulkRep(BulkList.wrapping(_dbIterator, MapVirtualMachine.getInstance(), filter));
     }
@@ -254,7 +257,7 @@ public class VirtualMachineService extends TaskResourceService {
         initiator.setVirtualMachine(id);
 
         // TODO amit s clean up. ..host added to avoid exception
-        initiator.setHost(id);
+        initiator.setHost(URIUtil.NULL_URI);
         initiator.setHostName(vm.getHostName());
         if (!NullColumnValueGetter.isNullURI(vm.getCluster())) {
             cluster = queryObject(Cluster.class, vm.getCluster(), false);
@@ -361,29 +364,21 @@ public class VirtualMachineService extends TaskResourceService {
         }
 
         // Find out if the host should be discoverable by checking input and current values
-        Boolean discoverable = vmParam.getDiscoverable() == null ?
-                (vm == null ? Boolean.FALSE : vm.getDiscoverable()) :
-                vmParam.getDiscoverable();
+        Boolean discoverable = vmParam.getDiscoverable() == null ? (vm == null ? Boolean.FALSE : vm.getDiscoverable())
+                : vmParam.getDiscoverable();
 
         // If discoverable, ensure username and password are set in the current host or parameters
         if (discoverable != null && discoverable) {
-            String username = vmParam.getUserName() == null ?
-                    (vm == null ? null : vm.getUsername()) :
-                    vmParam.getUserName();
-            String password = vmParam.getPassword() == null ?
-                    (vm == null ? null : vm.getPassword()) :
-                    vmParam.getPassword();
+            String username = vmParam.getUserName() == null ? (vm == null ? null : vm.getUsername()) : vmParam.getUserName();
+            String password = vmParam.getPassword() == null ? (vm == null ? null : vm.getPassword()) : vmParam.getPassword();
             ArgValidator.checkFieldNotNull(username, "username");
             ArgValidator.checkFieldNotNull(password, "password");
 
-            VirtualMachine.HostType hostType = VirtualMachine.HostType.valueOf(vmParam.getType() == null ?
-                    (vm == null ? null : vm.getType()) :
-                    vmParam.getType());
+            VirtualMachine.HostType hostType = VirtualMachine.HostType
+                    .valueOf(vmParam.getType() == null ? (vm == null ? null : vm.getType()) : vmParam.getType());
 
             if (hostType != null && hostType == VirtualMachine.HostType.Windows) {
-                Integer portNumber = vmParam.getPortNumber() == null ?
-                        (vm == null ? null : vm.getPortNumber()) :
-                        vmParam.getPortNumber();
+                Integer portNumber = vmParam.getPortNumber() == null ? (vm == null ? null : vm.getPortNumber()) : vmParam.getPortNumber();
 
                 ArgValidator.checkFieldNotNull(portNumber, "port_number");
             }
@@ -397,6 +392,109 @@ public class VirtualMachineService extends TaskResourceService {
     }
 
     /**
+     * Deactivates the host and all its interfaces.
+     *
+     * @param id the URN of a ViPR Host to be deactivated
+     * @param detachStorage
+     *            if true, will first detach storage.
+     * @param detachStorageDeprecated
+     *            Deprecated. Use detachStorage instead.
+     * @param deactivateBootVolume
+     *            if true, and if the host was provisioned by ViPR the associated boot volume (if exists) will be deactivated
+     * @brief Deactivate Host
+     * @return OK if deactivation completed successfully
+     * @throws DatabaseException when a DB error occurs
+     */
+    @POST
+    @Path("/{id}/deactivate")
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.TENANT_ADMIN })
+    public TaskResourceRep deactivateVirtualMachine(@PathParam("id") URI id,
+            @DefaultValue("false") @QueryParam("detach_storage") boolean detachStorage,
+            @DefaultValue("false") @QueryParam("detach-storage") boolean detachStorageDeprecated,
+            @DefaultValue("true") @QueryParam("deactivate_boot_volume") boolean deactivateBootVolume) throws DatabaseException {
+        VirtualMachine vm = queryVirtualMachine(_dbClient, id);
+        ArgValidator.checkEntity(vm, id, true);
+        boolean hasPendingTasks = vmPendingTasks(id);
+        if (hasPendingTasks) {
+            throw APIException.badRequests.resourceCannotBeDeleted("Virtual Machine  with another operation in progress");
+        }
+        Cluster cluster = null;
+        if (!NullColumnValueGetter.isNullURI(vm.getCluster())) {
+            cluster = _dbClient.queryObject(Cluster.class, vm.getCluster());
+        }
+        boolean isVMInUse = ComputeSystemHelper.isVirtualMachineInUse(_dbClient, vm.getId());
+
+        if (isVMInUse && cluster != null && !cluster.getAutoExportEnabled()) {
+            throw APIException.badRequests.resourceInClusterWithAutoExportDisabled(VirtualMachine.class.getSimpleName(), id);
+        } else if (isVMInUse && !(detachStorage || detachStorageDeprecated)) {
+            throw APIException.badRequests.resourceHasActiveReferences(VirtualMachine.class.getSimpleName(), id);
+        } else {
+            String taskId = UUID.randomUUID().toString();
+            Operation op = _dbClient.createTaskOpStatus(VirtualMachine.class, vm.getId(), taskId,
+                    ResourceOperationTypeEnum.DELETE_VIRTUAL_MACHINE);
+            ComputeSystemController controller = getController(ComputeSystemController.class, null);
+            controller.detachHostStorage(vm.getId(), true, deactivateBootVolume, taskId);
+            vm.setProvisioningStatus(VirtualMachine.ProvisioningJobStatus.IN_PROGRESS.toString());
+            _dbClient.createObject(vm);
+            auditOp(OperationTypeEnum.DELETE_VIRTUAL_MACHINE, true, op.getStatus(),
+                    vm.auditParameters());
+            return toTask(vm, taskId, op);
+        }
+    }
+
+    /**
+     * Gets the id and name for all the initiators of a vm.
+     *
+     * @param id the URN of a ViPR VirtualMachine
+     * @brief List VirtualMachine Initiators
+     * @return a list of initiators that belong to the VirtualMachine
+     * @throws DatabaseException when a DB error occurs
+     */
+    @GET
+    @Path("/{id}/initiators")
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    public InitiatorList getInitiators(@PathParam("id") URI id) throws DatabaseException {
+        VirtualMachine vm = queryObject(VirtualMachine.class, id, false);
+        // check the user permissions
+        verifyAuthorizedInTenantOrg(vm.getTenant(), getUserFromContext());
+        // get the initiators
+        InitiatorList list = new InitiatorList();
+        List<NamedElementQueryResultList.NamedElement> dataObjects = listChildren(id, Initiator.class, "iniport", "virtualMachine");
+        for (NamedElementQueryResultList.NamedElement dataObject : dataObjects) {
+            list.getInitiators().add(toNamedRelatedResource(ResourceTypeEnum.INITIATOR,
+                    dataObject.getId(), dataObject.getName()));
+        }
+        return list;
+    }
+
+    /**
+     * Returns the instance of VirtualMachine for the given id. Throws {@link DatabaseException} when id is not a valid URI. Throws
+     * {@link NotFoundException} when the VirtualMachine has
+     * been delete.
+     *
+     * @param dbClient an instance of {@link DbClient}
+     * @param id the URN of a ViPR VirtualMachine to be fetched.
+     * @return the instance of VirtualMachine for the given id.
+     * @throws DatabaseException when a DB error occurs
+     */
+    protected VirtualMachine queryVirtualMachine(DbClient dbClient, URI id) throws DatabaseException {
+        return queryObject(VirtualMachine.class, id, false);
+    }
+
+    private boolean vmPendingTasks(URI id) {
+        boolean hasPendingTasks = false;
+        List<Task> taskList = TaskUtils.findResourceTasks(_dbClient, id);
+        for (Task task : taskList) {
+            if (task.isPending()) {
+                hasPendingTasks = true;
+                break;
+            }
+        }
+        return hasPendingTasks;
+    }
+
+    /**
      * Validates the create/update initiator operation input data.
      *
      * @param param the input parameter
@@ -404,12 +502,9 @@ public class VirtualMachineService extends TaskResourceService {
      *            This parameter must be null for create operations.n
      */
     public void validateInitiatorData(BaseInitiatorParam param, Initiator initiator) {
-        String protocol = param.getProtocol() != null ?
-                param.getProtocol() : (initiator != null ? initiator.getProtocol() : null);
-        String node = param.getNode() != null ? param.getNode() :
-                (initiator != null ? initiator.getInitiatorNode() : null);
-        String port = param.getPort() != null ? param.getPort() :
-                (initiator != null ? initiator.getInitiatorPort() : null);
+        String protocol = param.getProtocol() != null ? param.getProtocol() : (initiator != null ? initiator.getProtocol() : null);
+        String node = param.getNode() != null ? param.getNode() : (initiator != null ? initiator.getInitiatorNode() : null);
+        String port = param.getPort() != null ? param.getPort() : (initiator != null ? initiator.getInitiatorPort() : null);
         ArgValidator.checkFieldValueWithExpected(param == null
                 || HostInterface.Protocol.FC.toString().equals(protocol)
                 || HostInterface.Protocol.iSCSI.toString().equals(protocol),
@@ -530,8 +625,8 @@ public class VirtualMachineService extends TaskResourceService {
         }
 
         if (param.getVcenterDataCenter() != null) {
-            vm.setVcenterDataCenter(NullColumnValueGetter.isNullURI(param.getVcenterDataCenter()) ?
-                    NullColumnValueGetter.getNullURI() : param.getVcenterDataCenter());
+            vm.setVcenterDataCenter(NullColumnValueGetter.isNullURI(param.getVcenterDataCenter()) ? NullColumnValueGetter.getNullURI()
+                    : param.getVcenterDataCenter());
         }
         Cluster cluster = null;
         // make sure virtual machine data is consistent with the cluster

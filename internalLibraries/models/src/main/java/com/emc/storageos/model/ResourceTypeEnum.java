@@ -45,7 +45,7 @@ public enum ResourceTypeEnum {
     WORKFLOW("workflow", "/vdc/workflows"),
     WORKFLOW_STEP("workflow_step", "/vdc/workflows/steps"),
     HOST("host", "/compute/hosts"),
-    VIRTUAL_MACHINE("virtual_machine", "/compute/virtualmachines"),
+    VIRTUAL_MACHINE("virtualMachine", "/compute/virtualmachines"),
     VCENTER("vcenter", "/compute/vcenters"),
     CLUSTER("cluster", "/compute/clusters"),
     INITIATOR("initiator", "/compute/initiators"),
@@ -83,7 +83,7 @@ public enum ResourceTypeEnum {
     SCHEDULE_POLICY("schedule_policy", "/schedule-policies"),
     STORAGE_SYSTEM_TYPE("storage_system_type", "/vdc/storage-system-types"),
     OBJECT_NAMESPACE("object_namespaces", "/vdc/object-namespaces");
-    
+
     private final String type;
     private final String service;
 
@@ -115,6 +115,7 @@ public enum ResourceTypeEnum {
     }
 
     private static final Map<String, ResourceTypeEnum> resourceMap = new HashMap<String, ResourceTypeEnum>();
+
     static {
         for (ResourceTypeEnum res : values()) {
             resourceMap.put(res.type, res);

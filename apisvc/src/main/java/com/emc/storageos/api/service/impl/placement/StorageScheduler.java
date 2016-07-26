@@ -676,7 +676,8 @@ public class StorageScheduler implements Scheduler {
         _portMetricsProcessor.computeStoragePoolsAvgPortMetrics(poolList);
 
         // sort the arrays, first by host/cluster's preference, then by array's average port metrics
-        Collections.sort(candidateSystems, new StorageSystemMetricComparator(arrayToHostWeightMap));
+        // then by free capacity and capacity utilization
+        Collections.sort(candidateSystems, new StorageSystemArrayAffinityComparator(arrayToHostWeightMap, candidatePoolMap));
         _log.info("ArrayAffinity - sorted candidate systems {}",
                 Joiner.on(',').join(Collections2.transform(candidateSystems, CommonTransformerFunctions.fctnDataObjectToID())));
 
@@ -748,6 +749,7 @@ public class StorageScheduler implements Scheduler {
             // then secondaryPools
             if (!secondaryPools.isEmpty()) {
                 _log.info("ArrayAffinity - secondary pools {}", Joiner.on(',').join(secondaryPools));
+                // send both preferred and non preferred pools for the system
                 List<Recommendation> recommendations = getRecommendedPools(varrayId, availablePools, capabilities, false);
                 if (!recommendations.isEmpty()) {
                     return recommendations;
@@ -1268,20 +1270,25 @@ public class StorageScheduler implements Scheduler {
 
     /**
      * Sort storage systems in descending order of its hosts count (first order),
-     * and in ascending order of its average port usage metrics (second order)
+     * and in ascending order of its average port usage metrics (second order),
+     * and in descending order by system's candidate pools' overall free capacity (third order),
+     * and in ascending order by ratio of system's candidate pools' overall subscribed capacity to overall total capacity (fourth order)
      */
-    private class StorageSystemMetricComparator implements Comparator<StorageSystem> {
-        private Map<URI, Double> _arrayToHostWeight;
-        public StorageSystemMetricComparator(Map<URI, Double> arrayToHostWeight) {
-            _arrayToHostWeight = arrayToHostWeight;
+    private class StorageSystemArrayAffinityComparator implements Comparator<StorageSystem> {
+        private Map<URI, Double> arrayToHostWeight;
+        private Map<URI, List<StoragePool>> candidatePoolMap;
+
+        public StorageSystemArrayAffinityComparator(Map<URI, Double> arrayToHostWeight, Map<URI, List<StoragePool>> candidatePoolMap) {
+            this.arrayToHostWeight = arrayToHostWeight;
+            this.candidatePoolMap = candidatePoolMap;
         }
 
         @Override
         public int compare(StorageSystem sys1, StorageSystem sys2) {
             int result = 0;
-            if (_arrayToHostWeight != null && !_arrayToHostWeight.isEmpty()) {
-                Double sys1HostWeight = _arrayToHostWeight.get(sys1.getId()) == null ? 0.0 : _arrayToHostWeight.get(sys1.getId());
-                Double sys2HostWeight = _arrayToHostWeight.get(sys2.getId()) == null ? 0.0 : _arrayToHostWeight.get(sys2.getId());
+            if (arrayToHostWeight != null && !arrayToHostWeight.isEmpty()) {
+                Double sys1HostWeight = arrayToHostWeight.get(sys1.getId()) == null ? 0.0 : arrayToHostWeight.get(sys1.getId());
+                Double sys2HostWeight = arrayToHostWeight.get(sys2.getId()) == null ? 0.0 : arrayToHostWeight.get(sys2.getId());
                 result = Double.compare(sys2HostWeight, sys1HostWeight);
             }
 
@@ -1291,7 +1298,55 @@ public class StorageScheduler implements Scheduler {
                 result = Double.compare(sys1Metric, sys2Metric);
             }
 
+            if (result == 0) {
+                Long sys1FreeCapacity = getFreeCapacityForSystemPools(candidatePoolMap.get(sys1.getId()));
+                Long sys2FreeCapacity = getFreeCapacityForSystemPools(candidatePoolMap.get(sys2.getId()));
+                result = Long.compare(sys2FreeCapacity, sys1FreeCapacity);
+            }
+
+            if (result == 0) {
+                Long sys1SubscribedCapacity = getSubscribedCapacityForSystemPools(candidatePoolMap.get(sys1.getId()));
+                Long sys2SubscribedCapacity = getSubscribedCapacityForSystemPools(candidatePoolMap.get(sys2.getId()));
+                Long sys1TotalCapacity = getTotalCapacityForSystemPools(candidatePoolMap.get(sys1.getId()));
+                Long sys2TotalCapacity = getTotalCapacityForSystemPools(candidatePoolMap.get(sys2.getId()));
+                result = Double.compare(sys1SubscribedCapacity.doubleValue() / sys1TotalCapacity,
+                        sys2SubscribedCapacity.doubleValue() / sys2TotalCapacity);
+            }
+
             return result;
+        }
+
+        /**
+         * Gets the overall free capacity for the given candidate pools of a system.
+         */
+        private long getFreeCapacityForSystemPools(List<StoragePool> pools) {
+            long freeCapacity = 0;
+            for (StoragePool pool : pools) {
+                freeCapacity += pool.getFreeCapacity();
+            }
+            return freeCapacity;
+        }
+
+        /**
+         * Gets the overall subscribed capacity for the given candidate pools of a system.
+         */
+        private Long getSubscribedCapacityForSystemPools(List<StoragePool> pools) {
+            long subscribedCapacity = 0;
+            for (StoragePool pool : pools) {
+                subscribedCapacity += pool.getSubscribedCapacity();
+            }
+            return subscribedCapacity;
+        }
+
+        /**
+         * Gets the overall total capacity for the given candidate pools of a system.
+         */
+        private long getTotalCapacityForSystemPools(List<StoragePool> pools) {
+            long totalCapacity = 0;
+            for (StoragePool pool : pools) {
+                totalCapacity += pool.getTotalCapacity();
+            }
+            return totalCapacity;
         }
     }
 

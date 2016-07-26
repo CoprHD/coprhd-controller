@@ -51,6 +51,7 @@ import assetoptions
 import catalog
 import executionwindow
 import order
+import event
 import task
 import socket
 import storageprovider
@@ -146,6 +147,7 @@ catalog.catalog_parser(module_parsers, common_parser)
 executionwindow.executionwindow_parser(module_parsers, common_parser)
 order.order_parser(module_parsers, common_parser)
 task.task_parser(module_parsers, common_parser)
+event.event_parser(module_parsers, common_parser)
 virtualpool.vpool_parser(module_parsers, common_parser)
 tenant.tenant_parser(module_parsers, common_parser)
 project.project_parser(module_parsers, common_parser)

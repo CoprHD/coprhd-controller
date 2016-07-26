@@ -22,7 +22,7 @@ public class EventRestRep extends DataObjectRestRep {
 
     private String description;
     private NamedRelatedResourceRep resource;
-    private String status;
+    private String eventStatus;
 
     private RelatedResourceRep tenant;
 
@@ -56,12 +56,12 @@ public class EventRestRep extends DataObjectRestRep {
         this.resource = resource;
     }
 
-    @XmlElement(name = "status")
-    public String getStatus() {
-        return status;
+    @XmlElement(name = "event_status")
+    public String getEventStatus() {
+        return eventStatus;
     }
 
-    public void setStatus(String status) {
-        this.status = status;
+    public void setEventStatus(String status) {
+        this.eventStatus = status;
     }
 }

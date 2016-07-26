@@ -15,12 +15,13 @@ import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
-import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.model.VirtualPool.SupportedDriveTypes;
 import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.VirtualPool.SupportedDriveTypes;
 import com.emc.storageos.volumecontroller.AttributeMatcher;
 import com.google.common.base.Joiner;
 
@@ -44,7 +45,8 @@ public class DriveTypeMatcher extends ConditionalAttributeMatcher {
 
     @Override
     protected List<StoragePool> matchStoragePoolsWithAttributeOn(
-            List<StoragePool> allPools, Map<String, Object> attributeMap) {
+            List<StoragePool> allPools, Map<String, Object> attributeMap,
+            StringBuffer errorMessage) {
         List<StoragePool> filteredPools = new ArrayList<StoragePool>();
         String desiredInitialDriveType = attributeMap.get(Attributes.drive_type.toString()).toString();
         _logger.info("Drive Type Matcher Started : {}, {}", desiredInitialDriveType,
@@ -66,6 +68,11 @@ public class DriveTypeMatcher extends ConditionalAttributeMatcher {
             } else {
                 _logger.info("Ignoring pool {} as it does not support Drive types.", pool.getNativeGuid());
             }
+        }
+
+        if (CollectionUtils.isEmpty(filteredPools)) {
+            errorMessage.append(String.format("No matching storage pool found for the drive type %s. ", desiredInitialDriveType));
+            _logger.error(errorMessage.toString());
         }
         _logger.info("Drive Type Matcher Ended : {}, {}", desiredInitialDriveType,
                 Joiner.on("\t").join(getNativeGuidFromPools(filteredPools)));

@@ -163,6 +163,11 @@ arrayhelper() {
 	device_id=$3
 	arrayhelper_delete_volume $operation $serial_number $device_id
 	;;
+    delete_mask)
+        pattern=$4
+	masking_view_name=`get_masking_view_name no-op ${pattern}`
+	arrayhelper_delete_mask $operation $serial_number $masking_view_name
+	;;
     verify_export)
 	masking_view_name=$3
 	shift 3
@@ -274,6 +279,34 @@ arrayhelper_delete_volume() {
 	 ;;
     vplex)
          runcmd vplexhelper.sh $operation $device_id
+	 ;;
+    default)
+         echo "ERROR: Invalid platform specified in storage_type: $storage_type"
+	 exit
+	 ;;
+    esac
+}
+
+# Call the appropriate storage array helper script to perform delete mask
+# outside of the controller.
+#
+arrayhelper_delete_mask() {
+    operation=$1
+    serial_number=$2
+    pattern=$3
+
+    case $SS in
+    vmax2|vmax3)
+         runcmd symhelper.sh $operation $serial_number $pattern
+	 ;;
+    vnx)
+         runcmd navihelper.sh $operation $array_ip $pattern
+	 ;;
+    xio)
+         runcmd xiohelper.sh $operation $pattern
+	 ;;
+    vplex)
+         runcmd vplexhelper.sh $operation $pattern
 	 ;;
     default)
          echo "ERROR: Invalid platform specified in storage_type: $storage_type"
@@ -513,6 +546,36 @@ setup_yaml() {
     printf 'array:\n  %s:\n  - ip: %s:%s\n    id: %s\n    username: %s\n    password: %s\n    version: %s' "$storage_type" "$storage_ip" "$storage_port" "$SERIAL_NUMBER" "$storage_user" "$storage_password" "$storage_version" >> $tools_file
 }
 
+setup_provider() {
+    DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+    tools_file="${DIR}/preExistingConfig.properties"
+    if [ -f "$tools_file" ]; then
+	echo "stale $tools_file found. Deleting it."
+	rm $tools_file
+    fi
+
+    if [ "${storage_password}" = "" ]; then
+	echo "storage_password is not set.  Cannot make a valid ${toos_file} file without a storage_password"
+	exit;
+    fi
+
+    sstype=${SS}
+    if [ "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]; then
+	sstype="vmax"
+    fi
+
+    # create the yml file to be used for array tooling
+    touch $tools_file
+    storage_type=`storagedevice list | grep COMPLETE | grep ${sstype} | awk '{print $1}'`
+    storage_name=`storagedevice list | grep COMPLETE | grep ${sstype} | awk '{print $2}'`
+    storage_version=`storagedevice show ${storage_name} | grep firmware_version | awk '{print $2}' | cut -d '"' -f2`
+    storage_ip=`storagedevice show ${storage_name} | grep smis_provider_ip | awk '{print $2}' | cut -d '"' -f2`
+    storage_port=`storagedevice show ${storage_name} | grep smis_port_number | awk '{print $2}' | cut -d ',' -f1`
+    storage_user=`storagedevice show ${storage_name} | grep smis_user_name | awk '{print $2}' | cut -d '"' -f2`
+    ##update provider properties file with the array details
+    printf 'provider.ip=%s\nprovider.cisco_ip=1.1.1.1\nprovider.username=%s\nprovider.password=%s\nprovider.port=%s\n' "$storage_ip" "$storage_user" "$storage_password" "$storage_port" >> $tools_file
+}
+
 login() {
     echo "Tenant is ${TENANT}";
     security login $SYSADMIN $SYSADMIN_PASSWORD
@@ -548,6 +611,9 @@ login() {
 }
 
 prerun_setup() {
+    # Convenience, clean up known artifacts
+    cleanup_previous_run_artifacts
+
     if [ "${SS}" = "vnx" ]
     then
 	array_ip=${VNXB_IP}
@@ -597,12 +663,14 @@ reset_system_props() {
     set_suspend_on_error false
     set_artificial_failure "none"
     set_validation_check true
+    set_validation_refresh true
 }
 
 vnx_setup() {
     SMISPASS=0
     # do this only once
     echo "Setting up SMIS for VNX"
+    storage_password=$SMIS_PASSWD
 
     run smisprovider create VNX-PROVIDER $VNX_SMIS_IP $VNX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VNX_SMIS_SSL
     run storagedevice discover_all --ignore_error
@@ -660,6 +728,7 @@ vmax2_setup() {
     SMISPASS=0
     # do this only once
     echo "Setting up SMIS for VMAX2"
+    storage_password=$SMIS_PASSWD
 
     run smisprovider create VMAX2-PROVIDER $VMAX2_SMIS_IP $VMAX2_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX2_SMIS_SSL
     run storagedevice discover_all --ignore_error
@@ -695,6 +764,7 @@ vmax3_setup() {
     SMISPASS=0
     # do this only once
     echo "Setting up SMIS for VMAX3"
+    storage_password=$SMIS_PASSWD
 
     run smisprovider create VMAX-PROVIDER $VMAX_SMIS_IP $VMAX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX_SMIS_SSL
     run storagedevice discover_all --ignore_error
@@ -1048,6 +1118,10 @@ set_suspend_on_error() {
 
 set_validation_check() {
     run syssvc $SANITY_CONFIG_FILE localhost set_prop validation_check $1
+}
+
+set_validation_refresh() {
+    run syssvc $SANITY_CONFIG_FILE localhost set_prop refresh_provider_on_validation $1
 }
 
 set_suspend_on_class_method() {
@@ -2434,7 +2508,14 @@ test_17() {
 
     # Follow the task.  It should pass because validation is run but not enforced
     echo "*** Following the export_group delete task to verify it PASSES because validation is disabled"
-    task follow $task
+    runcmd task follow $task
+
+    if [ "${SS}" = "xio" ]; then
+        # XIO will still protect the lun mapping due to the additional volume, leaving it behind
+	verify_export ${expname}1 ${HOST1} 2 1
+	# Delete the lun mapping
+	arrayhelper delete_mask ${SERIAL_NUMBER} ${expname}1 ${HOST1}
+    fi
 
     # Verify the mask is back to normal
     verify_export ${expname}1 ${HOST1} gone
@@ -2455,6 +2536,22 @@ cleanup() {
    runcmd volume delete --project $PROJECT --wait
    echo There were $VERIFY_EXPORT_COUNT export verifications
    echo There were $VERIFY_EXPORT_FAIL_COUNT export verification failures
+}
+
+# Clean up any exports or volumes from previous runs, but not the volumes you need to run tests
+cleanup_previous_run_artifacts() {
+   for id in `export_group list $PROJECT | grep YES | awk '{print $5}'`
+   do
+      echo "Deleting old export group: ${id}"
+      runcmd export_group delete ${id} > /dev/null
+   done
+
+   for id in `volume list $PROJECT | grep YES | grep hijack | awk '{print $5}'`
+   do
+      echo "Deleting old volume: ${id}"
+      runcmd volume delete ${id} --wait > /dev/null
+   done
+
 }
 
 # call this to generate a random WWN for exports.
@@ -2565,6 +2662,9 @@ then
     setup
     if [ "$SS" = "xio" -o "$SS" = "vplex" ]; then
 	setup_yaml;
+    fi
+    if [ "$SS" = "vmax2" -o "$SS" = "vmax3" -o "$SS" = "vnx" ]; then
+	setup_provider;
     fi
 fi
 

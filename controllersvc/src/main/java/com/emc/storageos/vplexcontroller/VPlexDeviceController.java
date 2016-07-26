@@ -108,6 +108,7 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.util.ExportUtils;
+import com.emc.storageos.util.InvokeTestFailure;
 import com.emc.storageos.util.VPlexSrdfUtil;
 import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.util.VersionChecker;
@@ -3366,6 +3367,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
             ExportMask exportMask = getDataObject(ExportMask.class, exportMaskURI, _dbClient);
 
+            _log.info("attempting to fail if failure_001_early_in_add_volume_to_mask is set");
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_001);
+
             // TODO: Bharath/RPTEAM - I dont think the below call to zoneExportAddVolumes is necessary here(i have just
             // commented it for
             // now, because i am no expert in this
@@ -3442,11 +3446,21 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             Map<URI, Integer> updatedVolumeMap = new HashMap<URI, Integer>();
             for (BlockObject volume : volumes) {
                 String deviceLabel = volume.getDeviceLabel();
-                volume.setWWN(svInfo.getWWNForStorageViewVolume(volume.getDeviceLabel()));
+                String wwn = svInfo.getWWNForStorageViewVolume(volume.getDeviceLabel());
+                volume.setWWN(wwn);
                 _dbClient.updateObject(volume);
 
                 updatedVolumeMap.put(volume.getId(),
                         svInfo.getHLUForStorageViewVolume(deviceLabel));
+
+                // because this is a managed volume, remove from existing volumes if present.
+                // this may happen in the case where a vipr-managed volume was added manually outside of vipr by the user.
+                if (exportMask.hasExistingVolume(wwn)) {
+                    _log.info("wwn {} has been added to the storage view {} by the user, but it "
+                            + "was already in existing volumes, removing from existing volumes.", 
+                            wwn, exportMask.forDisplay());
+                    exportMask.removeFromExistingVolumes(wwn);
+                }
             }
 
             // We also need to update the volume/lun id map in the export mask
@@ -3454,6 +3468,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             _log.info("Updating volume/lun map in export mask {}", exportMask.getId());
             exportMask.addVolumes(updatedVolumeMap);
             _dbClient.updateObject(exportMask);
+
+            _log.info("attempting to fail if failure_002_late_in_add_volume_to_mask is set");
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_002);
 
             completer.ready(_dbClient);
         } catch (VPlexApiException vae) {
@@ -4193,6 +4210,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 }
 
                 List<PortInfo> initiatorPortInfo = new ArrayList<PortInfo>();
+                List<String> initiatorPortWwns = new ArrayList<String>();
                 for (URI initiatorURI : initiatorURIs) {
                     Initiator initiator = getDataObject(Initiator.class, initiatorURI, _dbClient);
                     // Only add this initiator if it's for the same host as other initiators in mask
@@ -4205,6 +4223,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                             initiator.getLabel(),
                             getVPlexInitiatorType(initiator));
                     initiatorPortInfo.add(portInfo);
+                    initiatorPortWwns.add(initiator.getInitiatorPort());
                 }
 
                 if (!initiatorPortInfo.isEmpty()) {
@@ -4221,6 +4240,20 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         }
                         // Add the initiators to the VPLEX
                         client.addInitiatorsToStorageView(exportMask.getMaskName(), initiatorPortInfo);
+
+                        _log.info("attempting to fail if failure_003_late_in_add_initiator_to_mask is set");
+                        InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_003);
+
+                        // because these are now managed initiators, remove from existing initiators if present.
+                        // this may happen in the case where a vipr-managed initiator was added manually outside of vipr by the user.
+                        for (String wwn : initiatorPortWwns) {
+                            if (exportMask.hasExistingInitiator(wwn)) {
+                                _log.info("initiator port {} has been added to the storage view {} by the user, but it "
+                                        + "was already in existing initiators, removing from existing initiators.", 
+                                        wwn, exportMask.forDisplay());
+                                exportMask.removeFromExistingInitiators(wwn);
+                            }
+                        }
                     } finally {
                         if (lockAcquired) {
                             _vplexApiLockManager.releaseLock(lockName);

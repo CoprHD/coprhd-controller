@@ -7,7 +7,6 @@ package com.emc.storageos.volumecontroller.impl.utils.attrmatchers;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -15,18 +14,15 @@ import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.model.StringMap;
-import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.volumecontroller.AttributeMatcher;
-import com.emc.storageos.volumecontroller.impl.utils.AttributeMapBuilder;
-import com.emc.storageos.volumecontroller.impl.utils.AttributeMatcherFramework;
-import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolPreCreateParamAttributeMapBuilder;
 import com.google.common.base.Joiner;
 
 /**
@@ -43,7 +39,8 @@ public class VPlexHighAvailabilityMatcher extends AttributeMatcher {
      * {@inheritDoc}
      */
     @Override
-    public List<StoragePool> matchStoragePoolsWithAttributeOn(List<StoragePool> allPools, Map<String, Object> attributeMap) {
+    public List<StoragePool> matchStoragePoolsWithAttributeOn(List<StoragePool> allPools, Map<String, Object> attributeMap,
+            StringBuffer errorMessage) {
         _logger.info("Pools Matching ha attribute Started:{}", Joiner.on("\t").join(getNativeGuidFromPools(allPools)));
         List<StoragePool> matchedPools = new ArrayList<StoragePool>();
 
@@ -175,6 +172,10 @@ public class VPlexHighAvailabilityMatcher extends AttributeMatcher {
         _logger.info("Pools Matching ha attribute Matcher Ended:{}",
                 Joiner.on("\t").join(getNativeGuidFromPools(matchedPools)));
 
+        if (CollectionUtils.isEmpty(matchedPools)) {
+            errorMessage.append("No matching stoarge pool found for VPLEX high availability. ");
+            _logger.error(errorMessage.toString());
+        }
         return matchedPools;
     }
 

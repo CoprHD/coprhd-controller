@@ -24,6 +24,7 @@ public class DefaultValidator implements Validator {
     // This may be a dangerous thing to do, so we see this as a "kill switch" when service is in a desperate
     // situation and they need to disable the feature.
     private static final String VALIDATION_CHECK_PROPERTY = "validation_check";
+    private static final String VALIDATION_REFRESH_CHECK_PROPERTY = "refresh_provider_on_validation";
 
     private CoordinatorClient coordinator;
     private Validator validator;
@@ -74,5 +75,25 @@ public class DefaultValidator implements Validator {
         }
 
         return true;
+    }
+
+    /**
+     * Check to see if we should perform refresh sys of provider.
+     * Usually this is only done when you are running automated suites where the provider may
+     * be out of sync with outside-of-controller operations.
+     * 
+     * @param coordinator
+     *            coordinator for system properties
+     * @return true if the validation ref system check is on.
+     */
+    public static boolean validationRefreshEnabled(CoordinatorClient coordinator) {
+        if (coordinator != null) {
+            return Boolean.valueOf(ControllerUtils
+                    .getPropertyValueFromCoordinator(coordinator, VALIDATION_REFRESH_CHECK_PROPERTY));
+        } else {
+            log.error("Bean wiring error: Coordinator not set in validator, therefore validation will default to false.");
+        }
+
+        return false;
     }
 }

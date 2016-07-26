@@ -43,6 +43,7 @@ import com.emc.storageos.db.client.model.ActionableEvent;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Host;
+import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
@@ -64,6 +65,9 @@ import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
+/**
+ * A service that provides APIs for viewing, approving, declining and removing actionable events.
+ */
 @DefaultPermissions(readRoles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN }, writeRoles = {
         Role.TENANT_ADMIN }, readAcls = { ACL.ANY })
 @Path("/vdc/events")
@@ -114,14 +118,31 @@ public class EventService extends TaggedResource {
         return executeEventMethod(event, true);
     }
 
+    /**
+     * Executes an actionable event method
+     * 
+     * @param event the event to execute
+     * @param approve if true, the action is to approve, if false the action is to decline
+     * @return list of tasks
+     */
     public TaskList executeEventMethod(ActionableEvent event, boolean approve) {
         TaskList taskList = new TaskList();
 
         byte[] method = approve ? event.getApproveMethod() : event.getDeclineMethod();
         String eventStatus = approve ? ActionableEvent.Status.approved.name() : ActionableEvent.Status.declined.name();
 
+        if (method == null || method.length == 0) {
+            _log.info("Method is null or empty for event " + event.getId());
+            event.setEventStatus(eventStatus);
+            _dbClient.updateObject(event);
+            return taskList;
+        }
+
         ActionableEvent.Method eventMethod = ActionableEvent.Method.deserialize(method);
         if (eventMethod == null) {
+            _log.info("Event method is null or empty for event " + event.getId());
+            event.setEventStatus(eventStatus);
+            _dbClient.updateObject(event);
             return taskList;
         }
 
@@ -132,19 +153,28 @@ public class EventService extends TaggedResource {
             _dbClient.updateObject(event);
             taskList.addTask(result);
             return taskList;
-            // TODO add and throw api exceptions for following exceptions
         } catch (SecurityException e) {
-            _log.error(e.getMessage(), e.getStackTrace());
+            _log.error(e.getMessage(), e.getCause());
+            throw APIException.badRequests.errorInvokingEventMethod(event.getId(), eventMethod.getMethodName());
         } catch (IllegalAccessException e) {
-            _log.error(e.getMessage(), e.getStackTrace());
+            _log.error(e.getMessage(), e.getCause());
+            throw APIException.badRequests.errorInvokingEventMethod(event.getId(), eventMethod.getMethodName());
         } catch (IllegalArgumentException e) {
-            _log.error(e.getMessage(), e.getStackTrace());
+            _log.error(e.getMessage(), e.getCause());
+            throw APIException.badRequests.errorInvokingEventMethod(event.getId(), eventMethod.getMethodName());
         } catch (InvocationTargetException e) {
-            _log.error(e.getMessage(), e.getStackTrace());
+            _log.error(e.getMessage(), e.getCause());
+            throw APIException.badRequests.errorInvokingEventMethod(event.getId(), eventMethod.getMethodName());
         }
-        return taskList;
     }
 
+    /**
+     * Method to delete a host.
+     * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
+     * 
+     * @param hostId the host to delete
+     * @return task for deleting a host
+     */
     public TaskResourceRep deleteHost(URI hostId) {
         ComputeSystemController computeController = getController(ComputeSystemController.class, null);
         Host host = queryObject(Host.class, hostId, true);
@@ -155,6 +185,70 @@ public class EventService extends TaggedResource {
         return toTask(host, taskId, op);
     }
 
+    /**
+     * Method to add an initiator to existing exports for a host.
+     * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
+     * 
+     * @param initiatorId the initiator to add
+     * @return task for adding an initiator
+     */
+    public TaskResourceRep addInitiator(URI initiatorId) {
+        Initiator initiator = queryObject(Initiator.class, initiatorId, true);
+        Host host = queryObject(Host.class, initiator.getHost(), true);
+
+        String taskId = UUID.randomUUID().toString();
+        Operation op = _dbClient.createTaskOpStatus(Initiator.class, initiatorId, taskId,
+                ResourceOperationTypeEnum.ADD_HOST_INITIATOR);
+
+        // if host in use. update export with new initiator
+        if (ComputeSystemHelper.isHostInUse(_dbClient, host.getId())) {
+            ComputeSystemController controller = getController(ComputeSystemController.class, null);
+            controller.addInitiatorsToExport(initiator.getHost(), Arrays.asList(initiator.getId()), taskId);
+        } else {
+            // No updates were necessary, so we can close out the task.
+            _dbClient.ready(Initiator.class, initiator.getId(), taskId);
+        }
+
+        auditOp(OperationTypeEnum.CREATE_HOST_INITIATOR, true, null,
+                initiator.auditParameters());
+        return toTask(initiator, taskId, op);
+    }
+
+    /**
+     * Method to remove an initiator from existing exports for a host.
+     * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
+     * 
+     * @param initiatorId the initiator to remove
+     * @return task for removing an initiator
+     */
+    public TaskResourceRep removeInitiator(URI initiatorId) {
+        Initiator initiator = queryObject(Initiator.class, initiatorId, true);
+
+        String taskId = UUID.randomUUID().toString();
+        Operation op = _dbClient.createTaskOpStatus(Initiator.class, initiator.getId(), taskId,
+                ResourceOperationTypeEnum.DELETE_INITIATOR);
+
+        if (ComputeSystemHelper.isInitiatorInUse(_dbClient, initiatorId.toString())) {
+            ComputeSystemController controller = getController(ComputeSystemController.class, null);
+            controller.removeInitiatorFromExport(initiator.getHost(), initiator.getId(), taskId);
+        } else {
+            _dbClient.ready(Initiator.class, initiator.getId(), taskId);
+            _dbClient.markForDeletion(initiator);
+        }
+
+        auditOp(OperationTypeEnum.DELETE_HOST_INITIATOR, true, null,
+                initiator.auditParameters());
+
+        return toTask(initiator, taskId, op);
+    }
+
+    /**
+     * Method to delete a cluster and unexport shared exports for the cluster.
+     * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
+     * 
+     * @param clusterId the cluster to delete
+     * @return task for deleting a cluster
+     */
     public TaskResourceRep deleteCluster(URI clusterId) {
         String taskId = UUID.randomUUID().toString();
         Cluster cluster = queryObject(Cluster.class, clusterId, true);
@@ -167,7 +261,16 @@ public class EventService extends TaggedResource {
         return toTask(cluster, taskId, op);
     }
 
-    public TaskResourceRep hostClusterChange(URI hostId, URI clusterId) {
+    /**
+     * Method to move a host to a new cluster and update shared exports.
+     * 
+     * @param hostId the host that is moving clusters
+     * @param clusterId the cluster the host is moving to
+     * @param isVcenter if true, vcenter api operations will be executed against the host to detach/unmount and attach/mount disks and
+     *            datastores
+     * @return task for updating export groups
+     */
+    public TaskResourceRep hostClusterChange(URI hostId, URI clusterId, boolean isVcenter) {
         Host host = queryObject(Host.class, hostId, true);
         URI oldClusterURI = host.getCluster();
         String taskId = UUID.randomUUID().toString();
@@ -180,19 +283,19 @@ public class EventService extends TaggedResource {
                 && NullColumnValueGetter.isNullURI(host.getCluster())
                 && ComputeSystemHelper.isClusterInExport(_dbClient, oldClusterURI)) {
             // Remove host from shared export
-            controller.removeHostsFromExport(Arrays.asList(host.getId()), oldClusterURI, taskId);
+            controller.removeHostsFromExport(Arrays.asList(host.getId()), oldClusterURI, isVcenter, taskId);
         } else if (NullColumnValueGetter.isNullURI(oldClusterURI)
                 && !NullColumnValueGetter.isNullURI(host.getCluster())
                 && ComputeSystemHelper.isClusterInExport(_dbClient, host.getCluster())) {
             // Non-clustered host being added to a cluster
-            controller.addHostsToExport(Arrays.asList(host.getId()), host.getCluster(), taskId, oldClusterURI);
+            controller.addHostsToExport(Arrays.asList(host.getId()), host.getCluster(), taskId, oldClusterURI, isVcenter);
         } else if (!NullColumnValueGetter.isNullURI(oldClusterURI)
                 && !NullColumnValueGetter.isNullURI(host.getCluster())
                 && !oldClusterURI.equals(host.getCluster())
                 && (ComputeSystemHelper.isClusterInExport(_dbClient, oldClusterURI)
                         || ComputeSystemHelper.isClusterInExport(_dbClient, host.getCluster()))) {
             // Clustered host being moved to another cluster
-            controller.addHostsToExport(Arrays.asList(host.getId()), host.getCluster(), taskId, oldClusterURI);
+            controller.addHostsToExport(Arrays.asList(host.getId()), host.getCluster(), taskId, oldClusterURI, isVcenter);
         } else {
             ComputeSystemHelper.updateInitiatorClusterName(_dbClient, host.getCluster(), host.getId());
         }
@@ -200,6 +303,13 @@ public class EventService extends TaggedResource {
         return new TaskResourceRep();
     }
 
+    /**
+     * Method to delete a vcenter datacenter
+     * NOTE: In order to maintain backwards compatibility, do not change the signature of this method.
+     * 
+     * @param id the id of the datacenter
+     * @return task for deleting a datacenter
+     */
     public TaskResourceRep deleteDatacenter(URI id) {
         VcenterDataCenter dataCenter = queryObject(VcenterDataCenter.class, id, true);
         String taskId = UUID.randomUUID().toString();
@@ -212,6 +322,13 @@ public class EventService extends TaggedResource {
         return toTask(dataCenter, taskId, op);
     }
 
+    /**
+     * Returns a reference to a method for the given class with the given name
+     * 
+     * @param clazz class which the method belongs
+     * @param name the name of the method
+     * @return method or null if it doesn't exist
+     */
     private Method getMethod(Class clazz, String name) {
         for (Method method : clazz.getMethods()) {
             if (method.getName().equalsIgnoreCase(name)) {
@@ -334,6 +451,12 @@ public class EventService extends TaggedResource {
         return new EventStatsRestRep(pending, approved, declined);
     }
 
+    /**
+     * Maps an actionable event to a restful response
+     * 
+     * @param from the database event
+     * @return restful response object
+     */
     public static EventRestRep map(ActionableEvent from) {
         if (from == null) {
             return null;
@@ -341,7 +464,7 @@ public class EventService extends TaggedResource {
         EventRestRep to = new EventRestRep();
         to.setName(from.getLabel());
         to.setDescription(from.getDescription());
-        to.setStatus(from.getEventStatus());
+        to.setEventStatus(from.getEventStatus());
         to.setResource(toNamedRelatedResource(from.getResource()));
         to.setTenant(toRelatedResource(ResourceTypeEnum.TENANT, from.getTenant()));
         DbObjectMapper.mapDataObjectFields(from, to);

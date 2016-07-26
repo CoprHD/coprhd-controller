@@ -4,6 +4,7 @@
  */
 package controllers.security;
 
+import com.emc.storageos.auth.OpenAMUtil;
 import com.emc.storageos.auth.saml.SAMLUtil;
 import com.emc.vipr.client.exceptions.ViPRHttpException;
 import com.google.common.collect.Lists;
@@ -299,6 +300,13 @@ public class Security extends Controller {
                 if (request.params._contains("using-idp")) {
                     url = SAMLUtil.generateSAMLRequest() + "&RelayState=" + service;
                     //url = String.format("http://lglw9040.lss.emc.com:8080/openam/SSORedirect/metaAlias/idp?SAMLRequest=%s", samlrequest);
+                    Logger.info("Redirecting to IDP login page %s", url);
+                } else if (request.params._contains("using-op")) {
+                    //url = OpenAMUtil.getOpenIDAuthEndpoint(null) + "&state=" + service;
+                    String parameters = "response_type=code&scope=openid memberOf&client_id=vipr&redirect_uri=https://lglw1104.lss.emc.com:4443/oiclogin&state=" + service;
+                    url = "http://lglou242.lss.emc.com:8080/openam/oauth2/authorize?" + parameters;
+
+
                     Logger.info("Redirecting to IDP login page %s", url);
                 } else {
                     url = String.format("https://%s:%s/formlogin?service=%s&src=portal", request.domain, authSvcPort, service);

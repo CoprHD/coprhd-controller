@@ -1317,6 +1317,10 @@ public class AuthenticationResource {
      */
     private URI getServiceURL(String service, String serverName)
             throws UnsupportedEncodingException, URISyntaxException {
+        if (service == null) {
+            service = "";
+        }
+
         String serviceDecoded = URLDecoder.decode(service, UTF8_ENCODING);
         _log.debug("Original service = " + serviceDecoded);
         serviceDecoded = SecurityUtils.stripXSS(serviceDecoded);

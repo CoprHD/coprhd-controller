@@ -9,6 +9,7 @@ import com.emc.storageos.auth.OpenAMUtil;
 import com.emc.storageos.auth.SSLUtil;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
@@ -30,11 +31,21 @@ public class OpenIDUtil {
 
     private static final Logger _log = LoggerFactory.getLogger(OpenIDUtil.class);
 
-    private static String CLIENT_ID = "MyClientID";
+    private static SSLConnectionSocketFactory sslsf = SSLUtil.getSocketFactory(true);
+
+    private static CloseableHttpClient httpclient = HttpClients.custom()
+            .setSSLSocketFactory(sslsf)
+            .disableRedirectHandling()
+            .build();
+
+    private static HttpClientContext context = HttpClientContext.create();
+
+    private static String CLIENT_ID = "vipr";
     private static String CLIENT_PASSOWORD = "password";
-    private static String REDIRECT_URL = "http://lglou242.lss.emc.com:8080/sample-client/oIDc/openidc.htm";
+    private static String REDIRECT_URL = "https://lglw1104.lss.emc.com:4443/oiclogin";
     private static String AUTH_END_POINT = "http://lglou242.lss.emc.com:8080/openam/oauth2/authorize";
     private static String TOKEN_END_POINT = "http://lglou242.lss.emc.com:8080/openam/oauth2/access_token";
+    private static String USERINFO_END_POINT = "http://lglou242.lss.emc.com:8080/openam/oauth2/userinfo";
 
 
     /**
@@ -45,13 +56,6 @@ public class OpenIDUtil {
      */
     public static String resolveCode(String code) {
 
-        SSLConnectionSocketFactory sslsf = SSLUtil.getSocketFactory(true);
-
-        CloseableHttpClient httpclient = HttpClients.custom()
-                .setSSLSocketFactory(sslsf)
-                .disableRedirectHandling()
-                .build();
-        HttpClientContext context = HttpClientContext.create();
         String username = null;
         try {
 
@@ -68,40 +72,49 @@ public class OpenIDUtil {
             resolveCodeRequest.setEntity(entity);
 
             System.out.println("Executing request " + resolveCodeRequest.getRequestLine());
+            _log.info("Executing request " + resolveCodeRequest.getRequestLine());
 
             CloseableHttpResponse response = httpclient.execute(resolveCodeRequest, context);
             try {
                 String body = EntityUtils.toString(response.getEntity());
                 System.out.println(body);
+                _log.info(body);
 
-                JSONObject result = new JSONObject(body);
+                String accessToken = getAccessCode(body);
 
-                String token = (String)result.get("id_token");
-                token = token.split("\\.")[1];
-                String tokenStr = new String(new Base64().decode(token));
-                System.out.println(tokenStr);
+                getUserInfo(accessToken);
 
-                JSONObject id_token = new JSONObject(tokenStr);
-                username = (String)id_token.get("sub");
+                return getUserName(body);
             } finally {
                 response.close();
             }
 
         } catch (Exception ex) {
-            System.out.println("exception resolve artifact: " + ex.getMessage());
+            System.out.println("exception resolve code: " + ex.getMessage());
         }
         return username;
     }
 
+    private static String getUserName(String codeResponse) throws Exception {
+
+        JSONObject result = new JSONObject(codeResponse);
+
+        String token = (String)result.get("id_token");
+        token = token.split("\\.")[1];
+        String tokenStr = new String(new Base64().decode(token));
+        System.out.println(tokenStr);
+        _log.info(tokenStr);
+
+        JSONObject id_token = new JSONObject(tokenStr);
+        return (String)id_token.get("sub");
+    }
+
+    private static String getAccessCode(String codeResponse) throws Exception {
+        JSONObject result = new JSONObject(codeResponse);
+        return (String)result.get("access_token");
+    }
+
     public static void passwordGrantType() {
-
-        SSLConnectionSocketFactory sslsf = SSLUtil.getSocketFactory(true);
-
-        CloseableHttpClient httpclient = HttpClients.custom()
-                .setSSLSocketFactory(sslsf)
-                .disableRedirectHandling()
-                .build();
-        HttpClientContext context = HttpClientContext.create();
 
         try {
 
@@ -133,16 +146,45 @@ public class OpenIDUtil {
     }
 
 
+    public static void getUserInfo(String accessToken) {
+        try {
+
+            HttpPost resolveCodeRequest = new HttpPost(USERINFO_END_POINT);
+
+            resolveCodeRequest.addHeader("Authorization", "Bearer " + accessToken);
+
+//            String requestBody = "scope=profile%20email%20cn%20memberOf%20isMemberOf";
+            String requestBody = "scope=email";
+            HttpEntity entity = new ByteArrayEntity(requestBody.getBytes("UTF-8"));
+            resolveCodeRequest.setEntity(entity);
+
+            System.out.println("Executing request " + resolveCodeRequest.getRequestLine());
+
+            CloseableHttpResponse response = httpclient.execute(resolveCodeRequest, context);
+            try {
+                String body = EntityUtils.toString(response.getEntity());
+                System.out.println(body);
+
+            } finally {
+                response.close();
+            }
+
+        } catch (Exception ex) {
+            System.out.println("exception resolve artifact: " + ex.getMessage());
+        }
+    }
+
+
 
     public static void main(String[] args) {
 
-        passwordGrantType();
+//        passwordGrantType();
 
-//        String openamToken = OpenAMUtil.login("lglou242.lss.emc.com", "fred", "Password1");
-//
-//        String code = OpenAMUtil.authorizationCodeFlow(openamToken, "lglou242.lss.emc.com", REDIRECT_URL, CLIENT_ID);
-//        System.out.println(code);
-//        String username = resolveCode(code);
-//        System.out.println(username);
+        String openamToken = OpenAMUtil.login("lglou242.lss.emc.com", "scott", "Password1");
+
+        String code = OpenAMUtil.authorizationCodeFlow(openamToken, "lglou242.lss.emc.com", REDIRECT_URL, CLIENT_ID);
+        System.out.println(code);
+        String username = resolveCode(code);
+        System.out.println(username);
     }
 }

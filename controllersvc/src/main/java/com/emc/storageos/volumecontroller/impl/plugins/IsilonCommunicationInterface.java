@@ -1561,7 +1561,6 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                                     unManagedExportRules.add(dbExportRule);
                                 } else {
                                     existingRule.setInactive(true);
-                                    // _dbClient.persistObject(existingRule);
                                     oldUnManagedExportRules.add(existingRule);
                                     unManagedExportRules.add(dbExportRule);
                                 }

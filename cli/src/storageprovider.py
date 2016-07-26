@@ -248,7 +248,7 @@ def create_parser(subcommand_parsers, common_parser):
     create_parser.add_argument('-hyperScalePort',
                                dest='hyperScalePort',
                                metavar='<Hyper Scale Manager REST Server Port>',
-                               help='Hyper Scale Manager Port')
+                               help='Hyper Scale Manager REST Server Port')
     create_parser.set_defaults(func=storageprovider_create)
 
 

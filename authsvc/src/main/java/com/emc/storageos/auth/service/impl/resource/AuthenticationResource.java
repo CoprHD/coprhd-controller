@@ -91,7 +91,6 @@ public class AuthenticationResource {
     private static final String FORM_SUCCESS_ENT = "<div class=\"alert alert-success\">{0}</div>";
     private static final String FORM_INFO_ENT = "<div class=\"alert alert-info\">{0}</div>";
     private static final String FORM_LOGIN_BAD_CREDS_ERROR = "Invalid Username or Password";
-    private static final String FORM_LOGIN_BANNER = "login_banner";
 
     private static final String FORM_NOT_MATCH_CONFIRM_PASSWORD = "password don't match confirm password";  // NOSONAR
                                                                                                            // ("Variable NAME contains substring password, but no sensitive information in the value.")
@@ -99,6 +98,11 @@ public class AuthenticationResource {
     private static final String FORM_INVALID_AUTH_TOKEN_ERROR = "Remote VDC token has either expired or was issued to a local user that is restricted to their home VDC only.  Please relogin.";
     private static final String FORM_LOGIN_POST_NO_SERVICE_ERROR = "The POST request to formlogin does not have service query parameter";
     private static final String SERVICE_URL_FORMAT_ERROR = "The provided service URI has invalid format";
+
+    private static final String LOGIN_BANNER_KEY = "system_login_banner";
+    private static final String FORM_LOGIN_BANNER = "login_banner";
+    private static final String DEFAULT_BANNER_HTML = "<span class=\"glyphicon glyphicon-warning-sign \"></span><span style=\"font-weight: bold;\"> Authorized Users Only.</span><br>If you are not an authorized user, please leave this page.";
+
 
     private static String _cachedLoginPagePart1;
     private static String _cachedLoginPagePart2;
@@ -108,6 +112,7 @@ public class AuthenticationResource {
 
     private static String HEADER_PRAGMA = "Pragma";
     private static String HEADER_PRAGMA_VALUE = "no-cache";
+
 
     private static CacheControl _cacheControl = null;
     @Autowired
@@ -433,8 +438,6 @@ public class AuthenticationResource {
 
         String formLP = getFormLoginPage(service, source, httpRequest.getServerName(), loginError);
 
-        _log.info("NICK -------------- Accessed");
-        _log.info("NICK -------------- "+_cachedLoginPagePart2);
         if (formLP != null) {
             return Response.ok(formLP).type(MediaType.TEXT_HTML)
                     .cacheControl(_cacheControl).header(HEADER_PRAGMA, HEADER_PRAGMA_VALUE).build();
@@ -979,9 +982,15 @@ public class AuthenticationResource {
         }
 
         sbFinal.append("\" ");
-        _log.info("NICK -------------- "+_cachedLoginPagePart2);
-        String _cachedLoginPagePart2Tmp =  _cachedLoginPagePart2.replaceAll(FORM_LOGIN_BANNER, _passwordUtils.getConfigProperty("system_login_banner")).replaceAll("\\n","<br>");
-        _log.info("NICK -------------- "+_cachedLoginPagePart2Tmp);
+        String loginBannerString = _passwordUtils.getConfigProperty(LOGIN_BANNER_KEY);
+        String defaultBannerProp = _passwordUtils.getDefaultProperties().getProperty(LOGIN_BANNER_KEY);
+        String _cachedLoginPagePart2Tmp = "";
+        if (defaultBannerProp.equals(loginBannerString)) {
+            _cachedLoginPagePart2Tmp = _cachedLoginPagePart2.replaceAll(FORM_LOGIN_BANNER, DEFAULT_BANNER_HTML);
+        } else {
+            _cachedLoginPagePart2Tmp = _cachedLoginPagePart2.replaceAll(FORM_LOGIN_BANNER, loginBannerString).replaceAll("\\\\n", "<br>");
+        }
+
         sbFinal.append(error == null ? _cachedLoginPagePart2Tmp : _cachedLoginPagePart2Tmp.replaceAll(FORM_LOGIN_HTML_ENT, error + "$1"));
         return sbFinal.toString();
 
@@ -1022,6 +1031,15 @@ public class AuthenticationResource {
         String passwordRuleInfo = MessageFormat.format(FORM_INFO_ENT, getPasswordChangePromptRule());
         _log.info("password rule info: \n" + passwordRuleInfo);
         String newPart2 = _cachedChangePasswordPagePart2.replaceAll(FORM_LOGIN_HTML_ENT, passwordRuleInfo + "$1");
+
+        String loginBannerString = _passwordUtils.getConfigProperty(LOGIN_BANNER_KEY);
+        String defaultBannerProp = _passwordUtils.getDefaultProperties().getProperty(LOGIN_BANNER_KEY);
+        if (defaultBannerProp.equals(loginBannerString)) {
+            newPart2 = newPart2.replaceAll(FORM_LOGIN_BANNER, DEFAULT_BANNER_HTML);
+        } else {
+            newPart2 = newPart2.replaceAll(FORM_LOGIN_BANNER, loginBannerString).replaceAll("\\\\n", "<br>");
+        }
+
         sbFinal.append(error == null ? newPart2 : newPart2.replaceAll(FORM_LOGIN_HTML_ENT, error + "$1"));
         return sbFinal.toString();
     }

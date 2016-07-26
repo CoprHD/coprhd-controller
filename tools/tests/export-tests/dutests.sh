@@ -557,7 +557,7 @@ setup_provider() {
     fi
 
     if [ "${storage_password}" = "" ]; then
-	echo "storage_password is not set.  Cannot make a valid tools.yml file without a storage_password"
+	echo "storage_password is not set.  Cannot make a valid ${toos_file} file without a storage_password"
 	exit;
     fi
 
@@ -569,8 +569,8 @@ setup_provider() {
     storage_ip=`storagedevice show ${storage_name} | grep smis_provider_ip | awk '{print $2}' | cut -d '"' -f2`
     storage_port=`storagedevice show ${storage_name} | grep smis_port_number | awk '{print $2}' | cut -d ',' -f1`
     storage_user=`storagedevice show ${storage_name} | grep smis_user_name | awk '{print $2}' | cut -d '"' -f2`
-    ##update tools.yml file with the array details
-    printf 'provider.ip=%s\nprovider.cisco_ip=1.1.1.1\nprovider.username=%s\nprovider.password=%s\nprovider.port=%s' "$storage_ip" "$storage_user" "$storage_password" >> $tools_file
+    ##update provider properties file with the array details
+    printf 'provider.ip=%s\nprovider.cisco_ip=1.1.1.1\nprovider.username=%s\nprovider.password=%s\nprovider.port=%s\n' "$storage_ip" "$storage_user" "$storage_password" "$storage_port" >> $tools_file
 }
 
 login() {
@@ -667,6 +667,7 @@ vnx_setup() {
     SMISPASS=0
     # do this only once
     echo "Setting up SMIS for VNX"
+    storage_password=$SMIS_PASSWD
 
     run smisprovider create VNX-PROVIDER $VNX_SMIS_IP $VNX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VNX_SMIS_SSL
     run storagedevice discover_all --ignore_error
@@ -724,6 +725,7 @@ vmax2_setup() {
     SMISPASS=0
     # do this only once
     echo "Setting up SMIS for VMAX2"
+    storage_password=$SMIS_PASSWD
 
     run smisprovider create VMAX2-PROVIDER $VMAX2_SMIS_IP $VMAX2_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX2_SMIS_SSL
     run storagedevice discover_all --ignore_error
@@ -759,6 +761,7 @@ vmax3_setup() {
     SMISPASS=0
     # do this only once
     echo "Setting up SMIS for VMAX3"
+    storage_password=$SMIS_PASSWD
 
     run smisprovider create VMAX-PROVIDER $VMAX_SMIS_IP $VMAX_SMIS_PORT $SMIS_USER "$SMIS_PASSWD" $VMAX_SMIS_SSL
     run storagedevice discover_all --ignore_error

@@ -525,11 +525,7 @@
                     <property name="coordinator" ref="coordinator"/>
                     <property name="statRetriever" ref="statRetriever"/>
                 </bean>
-                <bean class="com.emc.storageos.api.service.impl.resource.ProjectService">
-                    <property name="dbClient" ref="dbclient"/>
-                    <property name="coordinator" ref="coordinator"/>
-                    <property name="customConfigHandler" ref="customConfigHandler" />
-                </bean>
+                <ref bean="projectService"/>
                 <ref bean="fileService"/>
                 <ref bean="bucketService"/>
                 <bean class="com.emc.storageos.api.service.impl.resource.InternalFileResource">

@@ -644,6 +644,25 @@ public class WorkflowService implements WorkflowController {
      *            - Keep rolling back even if there's a rollback error
      * @param taskId
      *            -- Orchestration taskId from API service.
+     * @param completer
+     *            task completer
+     * @return Workflow
+     */
+    public Workflow getNewWorkflow(Controller controller, String method, Boolean rollbackContOnError, String taskId) {
+        return getNewWorkflow(controller, method, rollbackContOnError, taskId, null, null);
+    }
+
+    /**
+     * Get a new workflow that is associated with a taskId.
+     * 
+     * @param controller
+     *            -- Orchestration controller.
+     * @param method
+     *            -- Orchestration method.
+     * @param rollbackContOnError
+     *            - Keep rolling back even if there's a rollback error
+     * @param taskId
+     *            -- Orchestration taskId from API service.
      * @param workflowURI
      *            -- If non-null, will use the passed URI parameter for the workflowURI
      * @return Workflow

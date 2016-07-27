@@ -1151,7 +1151,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             if (!WorkflowService.getInstance().hasWorkflowBeenCreated(taskId, workflowKey)) {
                 // Generate the Workflow.
                 workflow = _workflowService.getNewWorkflow(this,
-                        EXPORT_ORCHESTRATOR_WF_NAME, true, taskId, null);
+                        EXPORT_ORCHESTRATOR_WF_NAME, true, taskId);
 
                 String waitFor = null; // the wait for key returned by previous call
 
@@ -2765,7 +2765,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             String newToken = UUID.randomUUID().toString();
 
             // Set up workflow steps.
-            Workflow workflow = _workflowService.getNewWorkflow(this, "exportGroupCreate", true, newToken, null);
+            Workflow workflow = _workflowService.getNewWorkflow(this, "exportGroupCreate", true, newToken);
 
             // Tasks 1: Activate the bookmarks
             //
@@ -2996,7 +2996,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             String newToken = UUID.randomUUID().toString();
 
             // Set up workflow steps.
-            Workflow workflow = _workflowService.getNewWorkflow(this, "exportGroupDelete", true, newToken, null);
+            Workflow workflow = _workflowService.getNewWorkflow(this, "exportGroupDelete", true, newToken);
 
             // Task 1: deactivate the bookmarks
             //
@@ -3331,7 +3331,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             String newToken = UUID.randomUUID().toString();
 
             // Set up workflow steps.
-            Workflow workflow = _workflowService.getNewWorkflow(this, "exportGroupAddVolume", true, newToken, null);
+            Workflow workflow = _workflowService.getNewWorkflow(this, "exportGroupAddVolume", true, newToken);
 
             // Tasks 1: Activate the bookmark
             //
@@ -3434,7 +3434,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             String newToken = UUID.randomUUID().toString();
 
             // Set up workflow steps.
-            Workflow workflow = _workflowService.getNewWorkflow(this, "exportRemoveVolume", true, newToken, null);
+            Workflow workflow = _workflowService.getNewWorkflow(this, "exportRemoveVolume", true, newToken);
 
             // Task 1: deactivate the bookmark
             //
@@ -4156,7 +4156,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         }
 
         try {
-            Workflow workflow = _workflowService.getNewWorkflow(this, "updateReplicationMode", false, task, null);
+            Workflow workflow = _workflowService.getNewWorkflow(this, "updateReplicationMode", false, task);
 
             ProtectionSystem protectionSystem = _dbClient.queryObject(ProtectionSystem.class, protectionDevice);
 
@@ -4796,7 +4796,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             // is not unique.
             String newToken = UUID.randomUUID().toString();
             // Set up workflow steps.
-            Workflow workflow = _workflowService.getNewWorkflow(this, "createSnapshot", true, newToken, null);
+            Workflow workflow = _workflowService.getNewWorkflow(this, "createSnapshot", true, newToken);
 
             // Step 1 - Create a RP bookmark
             String waitFor = addCreateBookmarkStep(workflow, snapshotList, system, snapshotName, volumeWWNs, rpBookmarkOnly, null);
@@ -7031,7 +7031,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
             // Get a new workflow to execute the volume group update.
             Workflow workflow = _workflowService.getNewWorkflow(this, BlockDeviceController.UPDATE_VOLUMES_FOR_APPLICATION_WS_NAME, false,
-                    taskId, null);
+                    taskId);
 
             // create the completer add the steps and execute the plan.
             completer = new VolumeGroupUpdateTaskCompleter(applicationId, addVolumeSet, removeVolumeSet, impactedCGs, taskId);

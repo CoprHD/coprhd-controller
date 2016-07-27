@@ -96,7 +96,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         try {
             // Generate the Workflow.
             workflow = _workflowService.getNewWorkflow(this,
-                    CREATE_FILESYSTEMS_WF_NAME, false, taskId, null);
+                    CREATE_FILESYSTEMS_WF_NAME, false, taskId);
             String waitFor = null; // the wait for key returned by previous call
 
             s_logger.info("Generating steps for create FileSystem");
@@ -154,7 +154,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         try {
             // Generate the Workflow.
             workflow = _workflowService.getNewWorkflow(this,
-                    CREATE_MIRROR_FILESYSTEMS_WF_NAME, false, taskId, null);
+                    CREATE_MIRROR_FILESYSTEMS_WF_NAME, false, taskId);
             String waitFor = null; // the wait for key returned by previous call
 
             s_logger.info("Generating steps for creating mirror filesystems...");
@@ -207,7 +207,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         try {
             // Generate the Workflow.
             workflow = _workflowService.getNewWorkflow(this,
-                    DELETE_FILESYSTEMS_WF_NAME, false, taskId, null);
+                    DELETE_FILESYSTEMS_WF_NAME, false, taskId);
 
             // Call the FileReplicationDeviceController to add its delete methods if there are Mirror FileShares.
             waitFor = _fileReplicationDeviceController.addStepsForDeleteFileSystems(workflow,
@@ -255,7 +255,7 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
         try {
             // Generate the Workflow.
             workflow = _workflowService.getNewWorkflow(this,
-                    EXPAND_FILESYSTEMS_WF_NAME, false, taskId, null);
+                    EXPAND_FILESYSTEMS_WF_NAME, false, taskId);
             // Next, call the FileDeviceController to add its delete methods.
             waitFor = _fileDeviceController.addStepsForExpandFileSystems(workflow, waitFor, fileDescriptors, taskId);
 

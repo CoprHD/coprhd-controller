@@ -432,7 +432,7 @@ public class UcsComputeDevice implements ComputeDevice {
         LOGGER.info("Host ID: " + host.getId());
         try {
             Workflow workflow = workflowService.getNewWorkflow(this, CREATE_HOST_WORKFLOW, true,
-                    taskCompleter.getOpId(), null);
+                    taskCompleter.getOpId());
 
             String sptDn = getSptDNFromVCP(computeSystem, vcp);
 

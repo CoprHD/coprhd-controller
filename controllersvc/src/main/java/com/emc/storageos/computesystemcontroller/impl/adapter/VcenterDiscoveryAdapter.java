@@ -466,7 +466,7 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
 
         private void discoverHost(Datacenter sourceDatacenter, HostSystem source, String uuid, VcenterDataCenter targetDatacenter,
                 Host target, List<Cluster> clusters, List<HostStateChange> changes) {
-            // TODO check for vcenter datacenter change
+            // TODO check for vcenter datacenter change COP-24240
             target.setVcenterDataCenter(targetDatacenter.getId());
             target.setTenant(targetDatacenter.getTenant());
             target.setDiscoverable(true);

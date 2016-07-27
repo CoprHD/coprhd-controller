@@ -14,6 +14,8 @@ import com.emc.storageos.db.client.model.NamedURI;
 
 public class EventUtil {
 
+    private EventUtil() {};
+    
     /**
      * Creates an actionable event and persists to the database
      * 

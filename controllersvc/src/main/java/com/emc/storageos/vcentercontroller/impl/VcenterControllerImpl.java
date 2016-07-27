@@ -4,6 +4,14 @@
  */
 package com.emc.storageos.vcentercontroller.impl;
 
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.Cluster;
@@ -27,13 +35,6 @@ import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowService;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
 
 public class VcenterControllerImpl implements VcenterController {
 
@@ -260,7 +261,7 @@ public class VcenterControllerImpl implements VcenterController {
 
             completer = new VcenterClusterCompleter(vcenterDataCenterId, task._opId, OperationTypeEnum.CREATE_UPDATE_VCENTER_CLUSTER,
                     "VCENTER_CONTROLLER");
-            Workflow workflow = _workflowService.getNewWorkflow(this, "CREATE_UPDATE_VCENTER_CLUSTER_WORKFLOW", true, task._opId, null);
+            Workflow workflow = _workflowService.getNewWorkflow(this, "CREATE_UPDATE_VCENTER_CLUSTER_WORKFLOW", true, task._opId);
             String clusterStep = workflow.createStep("CREATE_UPDATE_VCENTER_CLUSTER_STEP",
                     String.format("vCenter cluster operation in vCenter datacenter %s", vcenterDataCenterId), null,
                     vcenterDataCenterId, vcenterDataCenterId.toString(),

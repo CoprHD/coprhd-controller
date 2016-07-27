@@ -14,6 +14,8 @@ import com.emc.storageos.model.event.EventRestRep;
 
 public class EventMapper {
 
+    private EventMapper() {};
+    
     public static EventRestRep map(ActionableEvent from) {
         if (from == null) {
             return null;

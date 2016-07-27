@@ -155,8 +155,9 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
             for (Volume volume : volumes) {
                 if (storageCapabilities == null) {
                     // All volumes created in a request will have the same capabilities.
-                    // Currently, only auto tiering policy is the only capability supported.
-                    storageCapabilities = createStorageCapabilitiesForVolumeCreate(volume.getAutoTieringPolicyUri());
+                    // Currently, auto tiering policy is the only capability supported.
+                    storageCapabilities = new StorageCapabilities();
+                    addAutoTieringPolicyCapability(storageCapabilities, volume.getAutoTieringPolicyUri());
                 }
                 StorageVolume driverVolume = new StorageVolume();
                 driverVolume.setStorageSystemId(storageSystem.getNativeId());
@@ -200,19 +201,6 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
             ServiceError serviceError = ExternalDeviceException.errors.createVolumesFailed("doCreateVolumes", e.getMessage());
             taskCompleter.error(dbClient, serviceError);
         }
-    }
-    
-    /**
-     * Creates the driver storage capabilities for volume creation.
-     * 
-     * @param autoTieringPolicyURI The URI of the AutoTieringPolicy or null.
-     * 
-     * @return A reference to a StorageCapabities
-     */
-    private StorageCapabilities createStorageCapabilitiesForVolumeCreate(URI autoTieringPolicyURI) {
-        StorageCapabilities storageCapabilities = new StorageCapabilities();
-        addAutoTieringPolicyCapability(storageCapabilities, autoTieringPolicyURI);
-        return storageCapabilities;
     }
     
     /**

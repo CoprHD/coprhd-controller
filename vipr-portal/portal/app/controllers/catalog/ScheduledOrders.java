@@ -21,6 +21,7 @@ import play.data.validation.Validation;
 import play.mvc.Controller;
 import play.mvc.Util;
 import play.mvc.With;
+import util.CatalogServiceUtils;
 import util.ExecutionWindowUtils;
 import util.OrderUtils;
 import util.datatable.DataTableParams;
@@ -106,6 +107,8 @@ public class ScheduledOrders extends Controller {
     @FlashException("list")
     public static void edit(String id) {
         OrderDetails details = new OrderDetails(id);
+        details.catalogService = CatalogServiceUtils.getCatalogService(details.order.getCatalogService());
+        
         ScheduleEventForm form = new ScheduleEventForm(details);
         angularRenderArgs().put("scheduler", form);
         render(form);
@@ -132,9 +135,11 @@ public class ScheduledOrders extends Controller {
         public Integer cycleFrequency;
         public Integer dayOfMonth;
         public Integer dayOfWeek;
+        public Boolean recurringAllowed;
         
         public ScheduleEventForm(OrderDetails details) {
             id = details.order.getId().toString();
+            recurringAllowed = details.catalogService.isRecurringAllowed();
             if (details.order.getScheduledEventId() != null) {
                 ScheduleInfo schedulerInfo = details.getScheduledEvent().getScheduleInfo();
                 startDate = schedulerInfo.getStartDate();

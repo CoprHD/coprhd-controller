@@ -82,8 +82,8 @@ public class CatalogServiceMapper {
             }
         }
         
-        if (from.getSchedulerAllowed() != null) {
-            to.setSchedulerAllowed(from.getSchedulerAllowed());
+        if (from.getRecurringAllowed() != null) {
+            to.setRecurringAllowed(from.getRecurringAllowed());
         }
         
         return to;
@@ -134,7 +134,7 @@ public class CatalogServiceMapper {
         }
         
         if (param.getSchedulerAllowed() != null) {
-            object.setSchedulerAllowed(param.getSchedulerAllowed());
+            object.setRecurringAllowed(param.getSchedulerAllowed());
         }
     }
 

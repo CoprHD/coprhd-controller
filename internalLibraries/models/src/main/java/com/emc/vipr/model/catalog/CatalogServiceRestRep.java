@@ -29,7 +29,7 @@ public class CatalogServiceRestRep extends SortedIndexRestRep {
     private RelatedResourceRep catalogCategory;
     private List<CatalogServiceFieldRestRep> catalogServiceFields;
     private ServiceDescriptorRestRep serviceDescriptor;
-    private boolean schedulerAllowed = false; 
+    private boolean recurringAllowed = false; 
     
     @XmlElement(name = "title")
     public String getTitle() {
@@ -133,13 +133,13 @@ public class CatalogServiceRestRep extends SortedIndexRestRep {
         this.serviceDescriptor = descriptor;
     }
 
-    @XmlElement(name = "scheduler_allowed")
-    public boolean isSchedulerAllowed() {
-        return schedulerAllowed;
+    @XmlElement(name = "recurring_allowed")
+    public boolean isRecurringAllowed() {
+        return recurringAllowed;
     }
 
-    public void setSchedulerAllowed(boolean schedulerAllowed) {
-        this.schedulerAllowed = schedulerAllowed;
+    public void setRecurringAllowed(boolean schedulerAllowed) {
+        this.recurringAllowed = schedulerAllowed;
     }
     
 }

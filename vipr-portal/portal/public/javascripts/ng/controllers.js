@@ -226,7 +226,11 @@ angular.module("portalApp").controller({
         };
         
         $scope.isRecurring = function() {
-           return $scope.scheduler.recurrence != 1;
+           return $scope.isRecurringAllowed() && $scope.scheduler.recurrence != 1;
+        };
+        
+        $scope.isRecurringAllowed = function() {
+           return $scope.service.recurringAllowed;
         };
         
         $scope.enableScheduler = function() {
@@ -1423,7 +1427,11 @@ angular.module("portalApp").controller("schedulerEditCtrl", function($scope) {
     };
     
     $scope.isRecurring = function() {
-       return $scope.scheduler.recurrence != 1;
+       return $scope.isRecurringAllowed() && $scope.scheduler.recurrence != 1;
+    };
+    
+    $scope.isRecurringAllowed = function() {
+       return $scope.scheduler.recurringAllowed;
     };
 });
 

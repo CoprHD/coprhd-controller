@@ -613,7 +613,7 @@ public class EditCatalog extends ServiceCatalog {
             if (service.getDefaultExecutionWindow() != null) {
                 this.defaultExecutionWindowId = service.getDefaultExecutionWindow().getId().toString();
             }
-            this.schedulerAllowed = service.isSchedulerAllowed();
+            this.schedulerAllowed = service.isRecurringAllowed();
             this.serviceFields.clear();
 
             List<CatalogServiceFieldRestRep> catalogServiceFields = service.getCatalogServiceFields();
@@ -736,7 +736,7 @@ public class EditCatalog extends ServiceCatalog {
             service.setApprovalRequired(this.approvalRequired);
             service.setExecutionWindowRequired(this.executionWindowRequired);
             service.setMaxSize(this.maxSize != null ? this.maxSize : 0);
-            service.setSchedulerAllowed(this.schedulerAllowed);
+            service.setRecurringAllowed(this.schedulerAllowed);
             // if (this.defaultExecutionWindowId != null) {
             // ExecutionWindowRestRep executionWindow = ExecutionWindowUtils.getExecutionWindow(uri(this.defaultExecutionWindowId));
             // if (executionWindow != null) {

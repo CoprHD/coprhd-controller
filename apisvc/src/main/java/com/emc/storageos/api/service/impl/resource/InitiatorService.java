@@ -177,6 +177,7 @@ public class InitiatorService extends TaskResourceService {
     @PUT
     @Path("/{id}/associate/{associatedId}")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.TENANT_ADMIN })
     public InitiatorRestRep associateInitiator(@PathParam("id") URI id,
             @PathParam("associatedId") URI associatedId) throws InternalException {
 
@@ -184,9 +185,7 @@ public class InitiatorService extends TaskResourceService {
             APIException.badRequests.associateInitiatorMismatch(id, associatedId);
         }
         Initiator initiator = queryObject(Initiator.class, id, true);
-        verifyUserPermisions(initiator);
         Initiator pairInitiator = queryObject(Initiator.class, associatedId, true);
-        verifyUserPermisions(pairInitiator);
         if (pairInitiator != null && initiator != null) {
             initiator.setAssociatedInitiator(associatedId);
             pairInitiator.setAssociatedInitiator(id);

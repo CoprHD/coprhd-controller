@@ -23,6 +23,7 @@ import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.IpInterface;
 import com.emc.storageos.db.client.model.Vcenter;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.block.export.ExportBlockParam;
@@ -39,12 +40,12 @@ import com.emc.storageos.model.host.vcenter.VcenterRestRep;
 public class HostMapper {
     public static void mapHostInterfaceFields(HostInterface from, HostInterfaceRestRep to) {
         URI host = from.getHost();
-        if (host != null) {
-            to.setHost(toRelatedResource(ResourceTypeEnum.HOST, from.getHost()));
+        if (!NullColumnValueGetter.isNullURI(host)) {
+            to.setHost(toRelatedResource(ResourceTypeEnum.HOST, host));
         }
         URI vm = from.getVirtualMachine();
-        if (vm != null) {
-            to.setVirtualMachine(toRelatedResource(ResourceTypeEnum.VIRTUAL_MACHINE, from.getVirtualMachine()));
+        if (!NullColumnValueGetter.isNullURI(vm)) {
+            to.setVirtualMachine(toRelatedResource(ResourceTypeEnum.VIRTUAL_MACHINE, vm));
         }
         to.setProtocol(from.getProtocol());
         to.setRegistrationStatus(from.getRegistrationStatus());
@@ -60,6 +61,10 @@ public class HostMapper {
         to.setHostName(from.getHostName());
         to.setInitiatorNode(from.getInitiatorNode());
         to.setInitiatorPort(from.getInitiatorPort());
+        URI associatedInitiator = from.getAssociatedInitiator();
+        if (associatedInitiator != null) {
+            to.setAssociatedInitiator(toRelatedResource(ResourceTypeEnum.INITIATOR, associatedInitiator));
+        }
         return to;
     }
 

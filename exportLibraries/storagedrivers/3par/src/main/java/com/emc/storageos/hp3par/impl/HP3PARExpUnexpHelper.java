@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang.mutable.MutableBoolean;
 import org.slf4j.Logger;
@@ -27,6 +28,7 @@ import com.emc.storageos.hp3par.utils.HP3PARConstants;
 import com.emc.storageos.hp3par.utils.HP3PARUtil;
 import com.emc.storageos.hp3par.utils.SanUtils;
 import com.emc.storageos.storagedriver.DriverTask;
+import com.emc.storageos.storagedriver.LockManager;
 import com.emc.storageos.storagedriver.Registry;
 import com.emc.storageos.storagedriver.model.Initiator;
 import com.emc.storageos.storagedriver.model.StoragePort;
@@ -91,12 +93,12 @@ public class HP3PARExpUnexpHelper {
     public DriverTask exportVolumesToInitiators(List<Initiator> initiators, List<StorageVolume> volumes,
             Map<String, String> volumeToHLUMap, List<StoragePort> recommendedPorts, List<StoragePort> availablePorts,
             StorageCapabilities capabilities, MutableBoolean usedRecommendedPorts, List<StoragePort> selectedPorts,
-            DriverTask task, Registry driverRegistry) {
+            DriverTask task, Registry driverRegistry, LockManager driverLockManager) {
         
         _log.info("3PARDriver:exportVolumesToInitiators enter");
 
         String host = null;
-        host = doHostProcessing(initiators, volumes, driverRegistry);
+        host = doHostProcessing(initiators, volumes, driverRegistry, driverLockManager);
         if (host == null ) {
             task.setMessage("exportVolumesToInitiators error: Processing hosts, Unable to export");
             task.setStatus(DriverTask.TaskStatus.FAILED);
@@ -190,8 +192,8 @@ public class HP3PARExpUnexpHelper {
                       Hence requests coming for rest of the individual host exports should gracefully exit
                      */
 
-                    //TBD: lock to be used once issue is resolved
-                    synchronized(this) {
+                    String lockName = volumes.get(0).getStorageSystemId() + vol + host;
+                    if (driverLockManager.acquireLock(lockName, 8, TimeUnit.MINUTES)) {
                         /*
                           If this is the first request key gets created with export operation. 
                           other requests will gracefully exit. key will be removed in unexport.
@@ -308,6 +310,7 @@ public class HP3PARExpUnexpHelper {
                             }
                         } // doExport
 
+                        driverLockManager.releaseLock(lockName);
                     }
                     
                 } // end cluster export
@@ -480,7 +483,7 @@ public class HP3PARExpUnexpHelper {
 
 
     private String doHostProcessing(List<Initiator> initiators, List<StorageVolume> volumes, 
-            Registry driverRegistry) {
+            Registry driverRegistry, LockManager driverLockManager) {
         String host = null;
         String hostArray = null;
         String clustArray = null;
@@ -531,8 +534,8 @@ public class HP3PARExpUnexpHelper {
                 }
 
                 // only one thread across all nodes should create cluster; 
-                // TBD: lock acquisition is having issues, synch is used
-                synchronized (this) {
+                String lockName = volumes.get(0).getStorageSystemId() + hostArray;
+                if (driverLockManager.acquireLock(lockName, 6, TimeUnit.MINUTES)) {
                     // Check if cluster exists, otherwise create
                     HostSetDetailsCommandResult hostsetRes = hp3parApi.getHostSetDetails(clustArray);
                     if (hostsetRes == null) {
@@ -555,7 +558,12 @@ public class HP3PARExpUnexpHelper {
 
                     // Cluster available
                     host = "set:" + clustArray;
-                }
+                    driverLockManager.releaseLock(lockName);
+                } else {
+                    _log.error("3PARDriver:doHostProcessing error: could not acquire thread lock to create cluster");
+                    throw new HP3PARException(
+                            "3PARDriver:doHostProcessing error: could not acquire thread lock to create cluster");
+                } //lock
 
             } else {
                 _log.error("3PARDriver:exportVolumesToInitiators error: Host/Cluster type not supported");

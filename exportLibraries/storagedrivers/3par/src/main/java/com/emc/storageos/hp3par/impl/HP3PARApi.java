@@ -949,7 +949,7 @@ public class HP3PARApi {
     }
 
     // Request is for creating the cluster with only one host
-    public HostSetDetailsCommandResult createHostSet(String clustName, String hostName) throws Exception {
+    public void createHostSet(String clustName, String hostName) throws Exception {
         _log.info("3PARDriver:createHostSet enter");
         ClientResponse clientResp = null;
         String body = "{\"name\": \"" + clustName + "\", \"setmembers\": [\"" + hostName + "\"]}";
@@ -963,11 +963,8 @@ public class HP3PARApi {
                 String errResp = getResponseDetails(clientResp);
                 throw new HP3PARException(errResp);
             } else {
-                String responseString = clientResp.getEntity(String.class);
+                String responseString = getHeaderFieldValue(clientResp, "Location");
                 _log.info("3PARDriver:createHostSet 3PAR response is {}", responseString);
-                HostSetDetailsCommandResult hostsetResult = new Gson().fromJson(sanitize(responseString),
-                        HostSetDetailsCommandResult.class);
-                return hostsetResult;
             }
         } catch (Exception e) {
             throw e;

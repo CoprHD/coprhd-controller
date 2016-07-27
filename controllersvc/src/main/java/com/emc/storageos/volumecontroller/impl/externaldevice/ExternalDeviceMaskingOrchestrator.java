@@ -194,8 +194,7 @@ public class ExternalDeviceMaskingOrchestrator extends AbstractMaskingFirstOrche
 
             // For each export mask in export group, invoke add Volumes if export Mask belongs to the storage array
             // of added volumes. Export group may have export masks for the same array but for different compute
-            // resources
-            // (hosts or clusters).
+            // resources (hosts or clusters).
             for (ExportMask exportMask : exportMasks) {
                 if (exportMask.getStorageDevice().equals(storageURI)) {
                     _log.info("export_volume_add: adding volume to an existing export");
@@ -227,9 +226,8 @@ public class ExternalDeviceMaskingOrchestrator extends AbstractMaskingFirstOrche
         } else {
             // This is the case when export group does not have export mask for storage array where the volumes belongs.
             // In this case we will create new export masks for the storage array and each compute resource in the
-            // export group.
-            // Essentially for every existing mask we will add a new mask for the array and initiators in the existing
-            // mask.
+            // export group. Essentially for every existing mask we will add a new mask for the array and initiators in
+            // the existing mask.
             if (exportGroup.getInitiators() != null
                     && !exportGroup.getInitiators().isEmpty()) {
                 _log.info("export_volume_add: adding volume, creating a new export mask");

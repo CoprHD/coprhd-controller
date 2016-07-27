@@ -114,15 +114,11 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         URI storageURI = storage.getId();
         List<URI> newTargetURIs = new ArrayList<>();
 
-        // TODO DUPP:
-        // Make sure the caller to this method (the caller that assembles the steps) adds the initiator list to
-        // send down here. (then remove the log)
         List<Initiator> initiators = null;
         if (initiatorURIs != null && !initiatorURIs.isEmpty()) {
             initiators = _dbClient.queryObject(Initiator.class, initiatorURIs);
-        } else {
-            _log.error("ERROR Poka Yoke: add the initiatorURIs to the call that assembles this step.");
         }
+
         // Allocate any new ports that are required for the initiators
         // and update the zoning map in the exportMask.
         Collection<URI> volumeURIs = (exportMask.getVolumes() == null) ? newVolumeURIs
@@ -298,7 +294,8 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                                 Integer hlu = volumeMap.get(boURI);
                                 volumesToAdd.put(thisVol, hlu);
                             }
-                            // Check if the volume is present in existing volumes. If yes, move it to user created volumes
+                            // Check if the volume is present in existing volumes. If yes, move it to user created
+                            // volumes
                             if (bo != null && exportMask.hasExistingVolume(bo.getWWN())) {
                                 exportMask.removeFromExistingVolumes(bo);
                                 exportMask.addToUserCreatedVolumes(bo);
@@ -478,12 +475,12 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
      * @throws Exception
      */
     @Override
-    public boolean determineExportGroupCreateSteps(Workflow workflow, String previousStep,
+    public boolean determineExportGroupCreateSteps(Workflow workflow, String waitFor,
             BlockStorageDevice device, StorageSystem storage, ExportGroup exportGroup,
             List<URI> initiatorURIs, Map<URI, Integer> volumeMap, boolean zoningStepNeeded, String token) throws Exception {
         // If we didn't create any workflows by the end of this method, we can return an appropriate exception (instead
-        // of the Task just
-        // hanging)
+        // of the Task just hanging)
+        String previousStep = waitFor;
         boolean flowCreated = false;
         Map<String, URI> portNameToInitiatorURI = new HashMap<String, URI>();
         List<URI> volumeURIs = new ArrayList<URI>();

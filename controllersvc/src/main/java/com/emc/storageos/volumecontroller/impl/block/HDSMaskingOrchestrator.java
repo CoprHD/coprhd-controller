@@ -349,15 +349,17 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         List<URI> hostURIs = new ArrayList<URI>();
         List<String> portNames = new ArrayList<String>();
         // Only update the ports of a mask that we created.
-        // TODO DUPP:
+
+        // TODO COP-22395:
         // Make sure the caller to this method (the caller that assembles the steps) adds the initiator list to
         // send down here. (then remove the log)
         List<Initiator> initiators = null;
         if (initiatorURIs != null && !initiatorURIs.isEmpty()) {
             initiators = _dbClient.queryObject(Initiator.class, initiatorURIs);
         } else {
-            _log.error("ERROR Poka Yoke: add the initiatorURIs to the call that assembles this step.");
+            _log.warn("Internal warning: Need to add the initiatorURIs to the call that assembles this step for validation to occur.");
         }
+
         // Populate the port WWN/IQNs (portNames) and the
         // mapping of the WWN/IQNs to Initiator URIs
         processInitiators(exportGroup, initiatorURIs, portNames, portNameToInitiatorURI, hostURIs);

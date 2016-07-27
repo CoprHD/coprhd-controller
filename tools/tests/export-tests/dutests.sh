@@ -1061,8 +1061,6 @@ setup() {
     security add_authn_provider ldap ldap://${LOCAL_LDAP_SERVER_IP} cn=manager,dc=viprsanity,dc=com secret ou=ViPR,dc=viprsanity,dc=com uid=%U CN Local_Ldap_Provider VIPRSANITY.COM ldapViPR* SUBTREE --group_object_classes groupOfNames,groupOfUniqueNames,posixGroup,organizationalRole --group_member_attributes member,uniqueMember,memberUid,roleOccupant
     tenant create $TENANT VIPRSANITY.COM OU VIPRSANITY.COM
     echo "Tenant $TENANT created."
-    # Why is this sleep here?  can we do a retry loop instead?  I don't have 2 minutes to spare.  :)
-    # sleep 120
     # Increase allocation percentage
     syssvc $SANITY_CONFIG_FILE localhost set_prop controller_max_thin_pool_subscription_percentage 600
     syssvc $SANITY_CONFIG_FILE localhost set_prop validation_check true
@@ -1382,13 +1380,6 @@ test_3() {
     # Now remove the volume from the storage group (masking view)
     arrayhelper remove_volume_from_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
 
-    ## For VNX, I can see that the provider takes some time to update the volume removed from SG.
-    ## Putting a sleep here only for VNX
-    if [ "${SS}" = "vnx" ]
-    then
-	sleep 120
-    fi
-
     # Delete the volume we created.
     arrayhelper delete_volume ${SERIAL_NUMBER} ${device_id}
 
@@ -1649,13 +1640,6 @@ test_6() {
 
     # Delete the volume we created.
     arrayhelper delete_volume ${SERIAL_NUMBER} ${device_id}
-
-    ## For VNX, I can see that the provider takes some time to update the volume removed from SG.
-    ## Putting a sleep here only for VNX
-    if [ "${SS}" = "vnx" ]
-    then
-	sleep 120
-    fi
 
     # Verify the mask is back to normal
     verify_export ${expname}1 ${HOST1} 2 1
@@ -2525,6 +2509,188 @@ test_17() {
 
     # Turn off suspend of export after orchestration
     reset_system_props
+}
+
+# Export Test 18
+#
+# Summary: Remove Volume: Tests an volume sneaking into a masking view outside of ViPR.  Should not fail.
+#
+# Basic Use Case for single host, single volume
+# 1. ViPR creates 2 volumes, 1 host export.
+# 2. ViPR asked to remove the volume from the export group, but is paused after orchestration
+# 3. Customer adds a different volume to the export mask outside of ViPR
+# 4. Removal of volume workflow is resumed
+# 5. Verify the operation fails.
+# 6. Remove the volume from the mask outside of ViPR.
+# 7. Attempt operation again, succeeds.
+#
+test_18() {
+    echot "Test 18: Remove Volume allows removal of the volume when other volume sneaks into the mask"
+    expname=${EXPORT_GROUP_NAME}t18
+
+    # Make sure we start clean; no masking view on the array
+    verify_export ${expname}1 ${HOST1} gone
+
+    reset_system_props
+
+    # Create the mask with the 1 volume
+    runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec "${PROJECT}/${VOLNAME}-1,${PROJECT}/${VOLNAME}-2" --hosts "${HOST1}"
+
+    verify_export ${expname}1 ${HOST1} 2 2
+
+    HIJACK=du-hijack-volume-${RANDOM}
+
+    # Create another volume that we will inventory-only delete
+    runcmd volume create ${HIJACK} ${PROJECT} ${NH} ${VPOOL_BASE} 1GB --count 1
+
+    # Get the device ID of the volume we created
+    device_id=`get_device_id ${PROJECT}/${HIJACK}`
+
+    runcmd volume delete ${PROJECT}/${HIJACK} --vipronly
+
+    # Turn on suspend of export after orchestration
+    set_suspend_on_class_method ${exportRemoveVolumesOrchStep}
+
+    # Run the export group command TODO: Do this more elegantly
+    echo === export_group update $PROJECT/${expname}1 --remVols ${PROJECT}/${VOLNAME}-2
+    resultcmd=`export_group update $PROJECT/${expname}1 --remVols ${PROJECT}/${VOLNAME}-2`
+
+    if [ $? -ne 0 ]; then
+	echo "export group command failed outright"
+	exit;
+    fi
+
+    # Show the result of the export group command for now (show the task and WF IDs)
+    echo $resultcmd
+
+    # Parse results (add checks here!  encapsulate!)
+    taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
+    answersarray=($taskworkflow)
+    task=${answersarray[0]}
+    workflow=${answersarray[1]}
+
+    # Add an unrelated initiator to the mask (done differently per array type)
+    arrayhelper add_volume_to_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
+    
+    # Verify the mask has the new initiator in it
+    verify_export ${expname}1 ${HOST1} 2 3
+
+    # Resume the workflow
+    runcmd workflow resume $workflow
+
+    # Follow the task.  It should fail because of Poka Yoke validation
+    echo "*** Following the export_group update task to verify it succeeds despite unrelated volume"
+    runcmd task follow $task
+
+    # Verify the mask is back to normal
+    verify_export ${expname}1 ${HOST1} 2 2
+
+    # Now remove the initiator from the export mask
+    arrayhelper remove_volume_from_mask ${SERIAL_NUMBER} ${device_id} ${HOST1}
+
+    # Delete the volume we created.
+    arrayhelper delete_volume ${SERIAL_NUMBER} ${device_id}
+
+    # Verify the mask is back to normal
+    verify_export ${expname}1 ${HOST1} 2 1
+
+    # Turn off suspend of export after orchestration
+    set_suspend_on_class_method "none"
+
+    # Delete the export group
+    runcmd export_group delete $PROJECT/${expname}1
+
+    # Make sure the mask is gone
+    verify_export ${expname}1 ${HOST1} gone
+}
+
+# DU Prevention Validation Test 19
+#
+# Summary: Remove Initiator: Tests to make sure unrelated initiator don't prevent removal of initiator
+#
+# Basic Use Case for single host, single volume
+# 1. ViPR creates 1 volume, 1 host export.
+# 2. ViPR asked to remove an initiator from the export group, but is paused after orchestration
+# 3. Customer creates a volume outside of ViPR and adds the volume to the mask.
+# 4. Remove initiator workflow is resumed
+# 5. Verify the operation fails.
+# 6. Remove the volume from the mask outside of ViPR.
+# 7. Attempt operation again, succeeds.
+#
+test_19() {
+    echot "Test 19: Remove Initiator removes initiator when extra initiators are seen by it"
+    expname=${EXPORT_GROUP_NAME}t19
+
+    # Make sure we start clean; no masking view on the array
+    verify_export ${expname}1 ${HOST1} gone
+
+    reset_system_props
+
+    # Create the mask with the 1 volume
+    runcmd export_group create $PROJECT ${expname}1 $NH --type Host --volspec ${PROJECT}/${VOLNAME}-1 --hosts "${HOST1}"
+
+    # Verify the mask has been created
+    verify_export ${expname}1 ${HOST1} 2 1
+
+    # Turn on suspend of export after orchestration
+    set_suspend_on_class_method ${exportRemoveInitiatorsOrchStep}
+
+    # Run the export group command TODO: Do this more elegantly
+    echo === export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}
+    resultcmd=`export_group update $PROJECT/${expname}1 --remInits ${HOST1}/${H1PI1}`
+
+    if [ $? -ne 0 ]; then
+	echo "export group command failed outright"
+	exit;
+    fi
+
+    # Show the result of the export group command for now (show the task and WF IDs)
+    echo $resultcmd
+
+    # Parse results (add checks here!  encapsulate!)
+    taskworkflow=`echo $resultcmd | awk -F, '{print $2 $3}'`
+    answersarray=($taskworkflow)
+    task=${answersarray[0]}
+    workflow=${answersarray[1]}
+
+    PWWN=`randwwn | sed 's/://g'`
+
+    # Add another initiator to the mask (done differently per array type)
+    arrayhelper add_initiator_to_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
+    
+    # Verify the mask has the new volume in it
+    verify_export ${expname}1 ${HOST1} 3 2
+
+    # Resume the workflow
+    runcmd workflow resume $workflow
+
+    # Follow the task.  It should succeed
+    echo "*** Following the export_group update task to verify it passes despite extra initiator"
+    runcmd task follow $task
+
+    # Verify the mask is back to normal
+    verify_export ${expname}1 ${HOST1} 2 1
+
+    # Remove initiator from the mask (done differently per array type)
+    arrayhelper remove_initiator_from_mask ${SERIAL_NUMBER} ${PWWN} ${HOST1}
+
+    # Verify the mask is back to normal
+    verify_export ${expname}1 ${HOST1} 1 1
+
+    # Turn off suspend of export after orchestration
+    set_suspend_on_class_method "none"
+
+    # Try the export operation again
+    runcmd export_group update $PROJECT/${expname}1 --addInits ${HOST1}/${H1PI1}
+
+    # Verify the mask is back to normal
+    verify_export ${expname}1 ${HOST1} 2 1
+
+    # Delete the export group
+    runcmd export_group delete $PROJECT/${expname}1
+
+    # Make sure it really did kill off the mask
+    verify_export ${expname}1 ${HOST1} gone
 }
 
 cleanup() {

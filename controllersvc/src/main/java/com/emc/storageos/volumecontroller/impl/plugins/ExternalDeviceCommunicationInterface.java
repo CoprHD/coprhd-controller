@@ -339,6 +339,7 @@ public class ExternalDeviceCommunicationInterface extends
                 _dbClient.queryObject(com.emc.storageos.db.client.model.StorageSystem.class, accessProfile.getSystemId());
 
         driverStorageSystem.setSystemName(storageSystem.getLabel());
+        driverStorageSystem.setDisplayName(storageSystem.getLabel());
 
         // could be already populated by scan
         if (storageSystem.getSerialNumber() != null) {

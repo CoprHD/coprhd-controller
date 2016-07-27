@@ -37,6 +37,7 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.AutoTieringPolicy.VnxFastPolicy;
+import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StoragePort;
@@ -55,6 +56,7 @@ import com.emc.storageos.recoverpoint.utils.WwnUtils;
 import com.emc.storageos.recoverpoint.utils.WwnUtils.FORMAT;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.util.ExportUtils;
+import com.emc.storageos.util.InvokeTestFailure;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.VolumeURIHLU;
@@ -278,12 +280,43 @@ public class VnxExportOperations implements ExportMaskOperations {
             if (initiatorList != null) {
                 _log.info("addVolumes: initiators impacted: {}", Joiner.on(',').join(initiatorList));
             }
+            // Determine if the volume is already in the masking view.
+            // If so, log and remove from volumes we need to process.
+            ExportMask mask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
+            CIMInstance maskingView = _helper.getLunMaskingProtocolController(storage, mask);
+            Map<String, Integer> discoveredVolumes = new HashMap<String, Integer>();
+            if (maskingView != null) {
+                WBEMClient client = _helper.getConnection(storage).getCimClient();
+                // Get volumes for the masking instance
+                discoveredVolumes = _helper.getVolumesFromLunMaskingInstance(client, maskingView);
+            }
 
-            CIMObjectPath[] protocolControllers = createOrGrowStorageGroup(storage, exportMaskURI, volumeURIHLUs, null, null,
+            List<VolumeURIHLU> removeURIs = new ArrayList<>();
+            for (VolumeURIHLU volumeUriHLU : volumeURIHLUs) {
+                BlockObject bo = BlockObject.fetch(_dbClient, volumeUriHLU.getVolumeURI());
+                if (discoveredVolumes.keySet().contains(bo.getNativeId())) {
+                    _log.info("Found volume {} is already associated with masking view.  Assuming this is from a previous operation.",
+                            bo.getLabel());
+                    removeURIs.add(volumeUriHLU);
+                }
+            }
+
+            // Create the new array of volumes that don't exist yet in the masking view.
+            VolumeURIHLU[] addVolumeURIHLUs = new VolumeURIHLU[volumeURIHLUs.length - removeURIs.size()];
+            int index = 0;
+            for (VolumeURIHLU volumeUriHLU : volumeURIHLUs) {
+                if (!removeURIs.contains(volumeUriHLU)) {
+                    addVolumeURIHLUs[index++] = volumeUriHLU;
+                }
+            }
+
+            CIMObjectPath[] protocolControllers = createOrGrowStorageGroup(storage, exportMaskURI, addVolumeURIHLUs, null, null,
                     taskCompleter);
             CimConnection cimConnection = _helper.getConnection(storage);
             ExportMaskOperationsHelper.populateDeviceNumberFromProtocolControllers(_dbClient, cimConnection, exportMaskURI,
-                    volumeURIHLUs, protocolControllers, taskCompleter);
+                    addVolumeURIHLUs, protocolControllers, taskCompleter);
+            // Test mechanism to invoke a failure. No-op on production systems.
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_002);
             taskCompleter.ready(_dbClient);
         } catch (Exception e) {
             _log.error("Unexpected error: addVolumes failed.", e);
@@ -368,7 +401,26 @@ public class VnxExportOperations implements ExportMaskOperations {
             _log.info("addInitiators: initiators : {}", Joiner.on(',').join(initiatorList));
             _log.info("addInitiators: targets : {}", Joiner.on(",").join(targets));
 
-            createOrGrowStorageGroup(storage, exportMaskURI, null, initiatorList, targets, taskCompleter);
+            // Determine if the initiator is already in the masking view.
+            // If so, log and remove from initiators we need to process.
+            ExportMask mask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
+            CIMInstance maskingView = _helper.getLunMaskingProtocolController(storage, mask);
+            List<String> discoveredPorts = new ArrayList<String>();
+            if (maskingView != null) {
+                WBEMClient client = _helper.getConnection(storage).getCimClient();
+                // Get initiators for the masking instance
+                discoveredPorts = _helper.getInitiatorsFromLunMaskingInstance(client, maskingView);
+            }
+            List<Initiator> initiatorsToAdd = new ArrayList<Initiator>();
+            for (Initiator initiator : initiatorList) {
+                String portName = Initiator.normalizePort(initiator.getInitiatorPort());
+                if (!discoveredPorts.contains(portName)) {
+                    initiatorsToAdd.add(initiator);
+                }
+            }
+            createOrGrowStorageGroup(storage, exportMaskURI, null, initiatorsToAdd, targets, taskCompleter);
+            // Test mechanism to invoke a failure. No-op on production systems.
+            InvokeTestFailure.internalOnlyInvokeTestFailure(InvokeTestFailure.ARTIFICIAL_FAILURE_003);
             taskCompleter.ready(_dbClient);
         } catch (Exception e) {
             _log.error("Unexpected error: addInitiators failed.", e);
@@ -407,7 +459,9 @@ public class VnxExportOperations implements ExportMaskOperations {
                 _log.info("removeInitiators: volumes : {}", Joiner.on(',').join(volumeURIList));
             }
             _log.info("removeInitiators: initiators : {}", Joiner.on(',').join(initiatorList));
-            _log.info("removeInitiators: targets : {}", Joiner.on(',').join(targets));
+            if (targets != null) {
+                _log.info("removeInitiators: targets : {}", Joiner.on(',').join(targets));
+            }
 
             ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
             validator.removeInitiators(storage, exportMask, volumeURIList).validate();

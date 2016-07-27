@@ -8,12 +8,12 @@
 # Script to help manage storage system outside of ViPR.
 # Used to perform various operations.
 #
-# Usage: ./xiohelper.sh verify-export <SERIAL_NUMBER> <NAME_PATTERN> <NUMBER_OF_INITIATORS_EXPECTED> <NUMBER_OF_LUNS_EXPECTED>
-#        ./xiohelper.sh add_volume_to_mask <SERIAL_NUMBER> <DEVICE_ID> <NAME_PATTERN>
-#        ./xiohelper.sh remove_volume_from_mask <SERIAL_NUMBER> <DEVICE_ID> <NAME_PATTERN>
-#        ./xiohelper.sh delete_volume <SERIAL_NUMBER> <DEVICE_ID>
-#        ./xiohelper.sh add_initiator_to_mask <SERIAL_NUMBER> <PWWN> <NAME_PATTERN>
-#        ./xiohelper.sh remove_initiator_from_mask <SERIAL_NUMBER> <PWWN> <NAME_PATTERN>
+# Usage: ./symhelper.sh verify-export <SERIAL_NUMBER> <NAME_PATTERN> <NUMBER_OF_INITIATORS_EXPECTED> <NUMBER_OF_LUNS_EXPECTED>
+#        ./symhelper.sh add_volume_to_mask <SERIAL_NUMBER> <DEVICE_ID> <NAME_PATTERN>
+#        ./symhelper.sh remove_volume_from_mask <SERIAL_NUMBER> <DEVICE_ID> <NAME_PATTERN>
+#        ./symhelper.sh delete_volume <SERIAL_NUMBER> <DEVICE_ID>
+#        ./symhelper.sh add_initiator_to_mask <SERIAL_NUMBER> <PWWN> <NAME_PATTERN>
+#        ./symhelper.sh remove_initiator_from_mask <SERIAL_NUMBER> <PWWN> <NAME_PATTERN>
 #
 #set -x
 

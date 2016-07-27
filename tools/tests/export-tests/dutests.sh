@@ -215,7 +215,7 @@ arrayhelper_volume_mask_operation() {
          runcmd symhelper.sh $operation $serial_number $device_id $pattern
 	 ;;
     vnx)
-         runcmd navihelper.sh $operation $array_ip $device_id $pattern
+         runcmd navihelper.sh $operation $serial_number $array_ip $device_id $pattern
 	 ;;
     xio)
          runcmd xiohelper.sh $operation $device_id $pattern
@@ -244,7 +244,7 @@ arrayhelper_initiator_mask_operation() {
          runcmd symhelper.sh $operation $serial_number $pwwn $pattern
 	 ;;
     vnx)
-         runcmd navihelper.sh $operation $array_ip $pwwn $pattern
+         runcmd navihelper.sh $operation $serial_number $array_ip $pwwn $pattern
 	 ;;
     xio)
          runcmd xiohelper.sh $operation $pwwn $pattern
@@ -557,6 +557,11 @@ setup_provider() {
     if [ "${storage_password}" = "" ]; then
 	echo "storage_password is not set.  Cannot make a valid ${toos_file} file without a storage_password"
 	exit;
+    fi
+
+    sstype=${SS}
+    if [ "${SS}" = "vmax2" -o "${SS}" = "vmax3" ]; then
+	sstype="vmax"
     fi
 
     # create the yml file to be used for array tooling
@@ -885,7 +890,7 @@ vplex_sim_setup() {
 
 vplex_setup() {
     storage_password=${VPLEX_PASSWD}
-    if [ "${SIM}" -eq 1 ]; then
+    if [ "${SIM}" = "1" ]; then
 	vplex_sim_setup
 	return
     fi

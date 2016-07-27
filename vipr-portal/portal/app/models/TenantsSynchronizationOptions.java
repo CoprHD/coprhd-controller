@@ -26,6 +26,9 @@ public class TenantsSynchronizationOptions {
     public static final String DELETION = "DELETION";
     public static final String INTERVAL = "";
 
+    private TenantsSynchronizationOptions(){
+    }
+
     public static boolean isAutomaticAddition(String type) {
         return ADDITION.equals(type);
     }

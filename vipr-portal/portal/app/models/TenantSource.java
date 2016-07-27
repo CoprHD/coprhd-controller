@@ -34,6 +34,9 @@ public class TenantSource {
     // User Mapping keys
     public static final String USER_MAPPING_KEY_OS = "tenant_id";
 
+    private TenantSource(){
+    }
+
     public static String getTenantSource(List<UserMappingParam> userMappings) {
         if (userMappings == null || userMappings.isEmpty()) {
             return TENANTS_SOURCE_LOCAL;

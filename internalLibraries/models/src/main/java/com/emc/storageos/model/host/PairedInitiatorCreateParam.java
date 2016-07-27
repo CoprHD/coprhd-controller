@@ -16,7 +16,7 @@ public class PairedInitiatorCreateParam
 
     BaseInitiatorParam firstInitiator;
 
-    BaseInitiatorParam seconedInitiator;
+    BaseInitiatorParam secondInitiator;
 
     @XmlElement(name = "first_initiator", required = true)
     public BaseInitiatorParam getFirstInitiator() {
@@ -27,13 +27,13 @@ public class PairedInitiatorCreateParam
         this.firstInitiator = firstInitiator;
     }
 
-    @XmlElement(name = "seconed_initiator", required = true)
-    public BaseInitiatorParam getSeconedInitiator() {
-        return seconedInitiator;
+    @XmlElement(name = "second_initiator", required = true)
+    public BaseInitiatorParam getSecondInitiator() {
+        return secondInitiator;
     }
 
-    public void setSeconedInitiator(BaseInitiatorParam seconedInitiator) {
-        this.seconedInitiator = seconedInitiator;
+    public void setSecondInitiator(BaseInitiatorParam secondInitiator) {
+        this.secondInitiator = secondInitiator;
     }
 
 }

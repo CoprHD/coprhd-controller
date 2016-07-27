@@ -27,6 +27,7 @@ import com.emc.storageos.computesystemcontroller.impl.adapter.VcenterDiscoveryAd
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
 import com.emc.storageos.db.client.model.BlockObject;
@@ -44,6 +45,7 @@ import com.emc.storageos.db.client.model.ScopedLabel;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Vcenter;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
+import com.emc.storageos.db.client.model.VirtualMachine;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -264,7 +266,13 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             }
         }
         // Get all exports that reference the host (may not contain host initiators)
-        List<ExportGroup> hostExports = ComputeSystemHelper.findExportsByHost(_dbClient, hostId.toString());
+        List<ExportGroup> hostExports = null;
+        if (URIUtil.isType(hostId, Host.class)) {
+            hostExports = ComputeSystemHelper.findExportsByHost(_dbClient, hostId.toString());
+        }
+        if (URIUtil.isType(hostId, VirtualMachine.class)) {
+            hostExports = ComputeSystemHelper.findExportsByVirtualMachine(_dbClient, hostId.toString());
+        }
         for (ExportGroup export : hostExports) {
             exports.put(export.getId(), export);
         }
@@ -498,7 +506,13 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
     public String addStepsForAddInitiators(Workflow workflow, String waitFor, URI hostId, Collection<URI> inits) {
         List<Initiator> initiators = _dbClient.queryObject(Initiator.class, inits);
-        List<ExportGroup> exportGroups = ComputeSystemHelper.findExportsByHost(_dbClient, hostId.toString());
+        List<ExportGroup> exportGroups = null;
+        if (URIUtil.isType(hostId, Host.class)) {
+            exportGroups = ComputeSystemHelper.findExportsByHost(_dbClient, hostId.toString());
+        }
+        if (URIUtil.isType(hostId, VirtualMachine.class)) {
+            exportGroups = ComputeSystemHelper.findExportsByVirtualMachine(_dbClient, hostId.toString());
+        }
 
         for (ExportGroup export : exportGroups) {
             List<URI> updatedInitiators = StringSetUtil.stringSetToUriList(export.getInitiators());
@@ -1250,7 +1264,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     @Override
     public void processHostChanges(List<HostStateChange> changes, List<URI> deletedHosts, List<URI> deletedClusters, boolean isVCenter,
             String taskId)
-                    throws ControllerException {
+            throws ControllerException {
         TaskCompleter completer = null;
         try {
 

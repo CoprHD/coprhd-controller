@@ -276,7 +276,7 @@ public class ComputeSystemHelper {
     public static boolean isVirtualMachineInUse(DbClient dbClient, URI hostId) {
         List<Initiator> initiators =
                 CustomQueryUtility.queryActiveResourcesByConstraint(dbClient, Initiator.class,
-                        ContainmentConstraint.Factory.getContainedObjectsConstraint(hostId, Initiator.class, "host"));
+                        ContainmentConstraint.Factory.getContainedObjectsConstraint(hostId, Initiator.class, "virtualMachine"));
         for (Initiator initiator : initiators) {
             if (isInitiatorInUse(dbClient, initiator.getId().toString())) {
                 return true;
@@ -287,7 +287,7 @@ public class ComputeSystemHelper {
             return true;
         }
 
-        return !findExportsByHost(dbClient, hostId.toString()).isEmpty();
+        return !findExportsByVirtualMachine(dbClient, hostId.toString()).isEmpty();
     }
 
     /**
@@ -377,9 +377,17 @@ public class ComputeSystemHelper {
      * @return list of ip endpoints for a given host
      */
     public static List<String> getIpInterfaceEndpoints(DbClient dbClient, URI hostId) {
+        String linkedField = null;
+        if (URIUtil.isType(hostId, Host.class)) {
+            linkedField = "host";
+        }
+
+        if (URIUtil.isType(hostId, VirtualMachine.class)) {
+            linkedField = "virtualMachine";
+        }
         List<IpInterface> ipInterfaces =
                 CustomQueryUtility.queryActiveResourcesByConstraint(dbClient, IpInterface.class,
-                        ContainmentConstraint.Factory.getContainedObjectsConstraint(hostId, IpInterface.class, "host"));
+                        ContainmentConstraint.Factory.getContainedObjectsConstraint(hostId, IpInterface.class, linkedField));
         List<String> endpoints = new ArrayList<String>();
         for (IpInterface ipInterface : ipInterfaces) {
             endpoints.add(ipInterface.getIpAddress());
@@ -433,6 +441,14 @@ public class ComputeSystemHelper {
         return exportGroups;
     }
 
+    public static List<ExportGroup> findExportsByVirtualMachine(DbClient dbClient, String id) {
+        List<ExportGroup> exportGroups = CustomQueryUtility.queryActiveResourcesByConstraint(
+                dbClient, ExportGroup.class,
+                AlternateIdConstraint.Factory.getConstraint(
+                        ExportGroup.class, "virtualMachines", id));
+        return exportGroups;
+    }
+
     public static List<ExportGroup> findExportsByInitiator(DbClient dbClient, String id) {
         List<ExportGroup> exportGroups = CustomQueryUtility.queryActiveResourcesByConstraint(
                 dbClient, ExportGroup.class,
@@ -442,14 +458,26 @@ public class ComputeSystemHelper {
     }
 
     public static List<FileShare> getFileSharesByHost(DbClient dbClient, URI hostId) {
-        Host host = dbClient.queryObject(Host.class, hostId);
+        URI tenant = null;
+        URI project = null;
+        if (URIUtil.isType(hostId, Host.class)) {
+            Host host = dbClient.queryObject(Host.class, hostId);
+            project = host.getProject();
+            tenant = host.getTenant();
+        }
 
-        if (!NullColumnValueGetter.isNullURI(host.getProject())) {
+        if (URIUtil.isType(hostId, VirtualMachine.class)) {
+            VirtualMachine vm = dbClient.queryObject(VirtualMachine.class, hostId);
+            project = vm.getProject();
+            tenant = vm.getTenant();
+        }
+
+        if (!NullColumnValueGetter.isNullURI(project)) {
             return CustomQueryUtility.queryActiveResourcesByRelation(
-                    dbClient, host.getProject(), FileShare.class, "project");
-        } else if (!NullColumnValueGetter.isNullURI(host.getTenant())) {
+                    dbClient, project, FileShare.class, "project");
+        } else if (!NullColumnValueGetter.isNullURI(tenant)) {
             return CustomQueryUtility.queryActiveResourcesByRelation(
-                    dbClient, host.getTenant(), FileShare.class, "tenant");
+                    dbClient, tenant, FileShare.class, "tenant");
         }
         return new ArrayList<FileShare>();
     }

@@ -277,7 +277,7 @@ public class VirtualMachineService extends TaskResourceService {
         if (ComputeSystemHelper.isHostInUse(_dbClient, vm.getId())
                 && (cluster == null || cluster.getAutoExportEnabled())) {
             ComputeSystemController controller = getController(ComputeSystemController.class, null);
-            controller.addInitiatorsToExport(initiator.getHost(), Arrays.asList(initiator.getId()), taskId);
+            controller.addInitiatorsToExport(initiator.getVirtualMachine(), Arrays.asList(initiator.getId()), taskId);
         } else {
             // No updates were necessary, so we can close out the task.
             _dbClient.ready(Initiator.class, initiator.getId(), taskId);
@@ -308,10 +308,10 @@ public class VirtualMachineService extends TaskResourceService {
         VirtualMachine vm = queryObject(VirtualMachine.class, id, true);
         Cluster cluster = null;
         validateInitiatorData(createParam.getFirstInitiator(), null);
-        validateInitiatorData(createParam.getSeconedInitiator(), null);
+        validateInitiatorData(createParam.getSecondInitiator(), null);
         // create and populate the initiator
         Initiator firstInitiator = new Initiator();
-        Initiator seconedInitiator = new Initiator();
+        Initiator secondInitiator = new Initiator();
         firstInitiator.setVirtualMachine(id);
 
         firstInitiator.setHost(URIUtil.NULL_URI);
@@ -323,18 +323,18 @@ public class VirtualMachineService extends TaskResourceService {
         firstInitiator.setId(URIUtil.createId(Initiator.class));
         populateInitiator(firstInitiator, createParam.getFirstInitiator());
 
-        seconedInitiator.setVirtualMachine(id);
-        seconedInitiator.setHost(URIUtil.NULL_URI);
-        seconedInitiator.setHostName(vm.getHostName());
+        secondInitiator.setVirtualMachine(id);
+        secondInitiator.setHost(URIUtil.NULL_URI);
+        secondInitiator.setHostName(vm.getHostName());
         if (!NullColumnValueGetter.isNullURI(vm.getCluster())) {
             cluster = queryObject(Cluster.class, vm.getCluster(), false);
-            seconedInitiator.setClusterName(cluster.getLabel());
+            secondInitiator.setClusterName(cluster.getLabel());
         }
-        seconedInitiator.setId(URIUtil.createId(Initiator.class));
-        populateInitiator(seconedInitiator, createParam.getFirstInitiator());
+        secondInitiator.setId(URIUtil.createId(Initiator.class));
+        populateInitiator(secondInitiator, createParam.getFirstInitiator());
 
         _dbClient.createObject(firstInitiator);
-        _dbClient.createObject(seconedInitiator);
+        _dbClient.createObject(secondInitiator);
 
         String taskId = UUID.randomUUID().toString();
         Operation op = _dbClient.createTaskOpStatus(Initiator.class, firstInitiator.getId(), taskId,
@@ -344,7 +344,8 @@ public class VirtualMachineService extends TaskResourceService {
         if (ComputeSystemHelper.isHostInUse(_dbClient, vm.getId())
                 && (cluster == null || cluster.getAutoExportEnabled())) {
             ComputeSystemController controller = getController(ComputeSystemController.class, null);
-            controller.addInitiatorsToExport(firstInitiator.getHost(), Arrays.asList(firstInitiator.getId()), taskId);
+            controller.addInitiatorsToExport(firstInitiator.getVirtualMachine(),
+                    Arrays.asList(firstInitiator.getId(), secondInitiator.getId()), taskId);
         } else {
             // No updates were necessary, so we can close out the task.
             _dbClient.ready(Initiator.class, firstInitiator.getId(), taskId);

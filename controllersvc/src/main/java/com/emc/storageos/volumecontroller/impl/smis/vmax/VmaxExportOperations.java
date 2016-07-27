@@ -791,6 +791,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 VolumeURIHLU[] volumeURIHLUArray = null;
 
                 // Even though policy and limits info are already in volumURIHLU, let's still extract to a holder for easy access
+                // Is it safe to not touch the below variable as it seems to be used by non VMAX3 cases only?
                 StorageGroupPolicyLimitsParam volumePolicyLimitsParam = new StorageGroupPolicyLimitsParam(Constants.NONE);
                 if (null != volumesByStorageGroupEntry.getValue()) {
                     volumeURIHLUArray = volumesByStorageGroupEntry.getValue().toArray(new VolumeURIHLU[0]);

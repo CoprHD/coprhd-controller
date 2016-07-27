@@ -11,9 +11,9 @@ import java.util.Map;
 
 import org.apache.commons.lang.text.StrBuilder;
 
-import com.emc.sa.util.VolumeWWNUtils;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.google.common.collect.Maps;
+import com.iwave.ext.linux.util.VolumeWWNUtils;
 import com.iwave.ext.windows.model.wmi.DiskDrive;
 import com.iwave.ext.windows.winrm.WinRMException;
 
@@ -52,7 +52,7 @@ public class FindDisksForVolumes extends WindowsExecutionTask<Map<BlockObjectRes
             String wwid = getTargetSystem().getWwid(disk);
             logDebug("find.disks.volumes.wwid", wwid, disk.getDeviceId());
             for (BlockObjectRestRep volume : volumes) {
-                if (VolumeWWNUtils.wwnMatches(wwid, volume)) {
+                if (VolumeWWNUtils.wwnMatches(wwid, volume.getWwn())) {
                     logInfo("find.disks.volumes.wwid", wwid, disk.getSerialNumber());
                     results.put(volume, disk);
                     break;

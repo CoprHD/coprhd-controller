@@ -5,11 +5,12 @@
 package com.emc.sa.service.linux.tasks;
 
 import java.util.List;
-import com.emc.sa.util.VolumeWWNUtils;
+
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.iwave.ext.linux.command.ListMultiPathEntriesCommand;
 import com.iwave.ext.linux.model.MultiPathEntry;
 import com.iwave.ext.linux.model.PathInfo;
+import com.iwave.ext.linux.util.VolumeWWNUtils;
 
 public class FindMultiPathEntryForVolume extends LinuxExecutionTask<MultiPathEntry> {
     /** Linux multipath entries prefix WWNs with a number 3 */
@@ -45,7 +46,7 @@ public class FindMultiPathEntryForVolume extends LinuxExecutionTask<MultiPathEnt
         for (MultiPathEntry entry : multipathEntries) {
             String entryWwn = stripWwnPrefix(entry.getWwid());
             logDebug("FindMultiPathEntryForVolume.checking", entry.getName(), entryWwn, blockVolume.getWwn());
-            if (VolumeWWNUtils.wwnMatches(entryWwn, volume)) {
+            if (VolumeWWNUtils.wwnMatches(entryWwn, volume.getWwn())) {
                 return entry;
             }
         }

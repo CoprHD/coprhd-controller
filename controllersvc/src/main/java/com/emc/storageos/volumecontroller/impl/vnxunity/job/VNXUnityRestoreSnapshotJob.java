@@ -59,6 +59,7 @@ public class VNXUnityRestoreSnapshotJob extends VNXeJob {
 
             URI snapId = getTaskCompleter().getId();
             BlockSnapshot snapshotObj = dbClient.queryObject(BlockSnapshot.class, snapId);
+            URI projectUri = snapshotObj.getProject().getURI();
             StorageSystem storage = dbClient.queryObject(StorageSystem.class, getStorageSystemUri());
             if (_status == JobStatus.SUCCESS && snapshotObj != null) {
                 VNXeApiClient vnxeApiClient = getVNXeClient(jobContext);
@@ -78,7 +79,7 @@ public class VNXUnityRestoreSnapshotJob extends VNXeJob {
                         BlockObject parent = BlockObject.fetch(dbClient, snapshot.getParent().getURI());
                         
                         String label = String.format("%s-%s", setLabel, count++);
-                        final BlockSnapshot newSnap = initSnapshot(parent, label, setLabel);
+                        final BlockSnapshot newSnap = initSnapshot(parent, label, setLabel, projectUri);
                         newSnap.setOpStatus(new OpStatusMap());
                         snapshotList.add(newSnap);
                         volumeToSnapMap.put(parent.getNativeId(), newSnap);
@@ -92,7 +93,7 @@ public class VNXUnityRestoreSnapshotJob extends VNXeJob {
                     }
                 } else {
                     Volume vol = dbClient.queryObject(Volume.class, snapshotObj.getParent());
-                    final BlockSnapshot newSnap = initSnapshot(vol, backupSnap.getName(), backupSnap.getName());
+                    final BlockSnapshot newSnap = initSnapshot(vol, backupSnap.getName(), backupSnap.getName(), projectUri);
                     createSnapshot(newSnap, backupSnap, storage, dbClient);
                 }
 
@@ -137,7 +138,8 @@ public class VNXUnityRestoreSnapshotJob extends VNXeJob {
      * @param setLabel The set of snapshots label
      * @return
      */
-    private BlockSnapshot initSnapshot(final BlockObject blockObj, final String label, final String setLabel) {
+    private BlockSnapshot initSnapshot(final BlockObject blockObj, final String label, final String setLabel, 
+            final URI projectUri) {
         BlockSnapshot createdSnap = new BlockSnapshot();
         createdSnap.setId(URIUtil.createId(BlockSnapshot.class));
         createdSnap.setConsistencyGroup(blockObj.getConsistencyGroup());
@@ -149,11 +151,9 @@ public class VNXUnityRestoreSnapshotJob extends VNXeJob {
         createdSnap.setProtocol(new StringSet());
         createdSnap.getProtocol().addAll(blockObj.getProtocol());
         if (blockObj instanceof Volume ) {
-            Volume vol = (Volume) blockObj;
-            createdSnap.setProject(new NamedURI(vol.getProject().getURI(), label));
+            createdSnap.setProject(new NamedURI(projectUri, label));
         } else if (blockObj instanceof BlockSnapshot) {
-            BlockSnapshot snap = (BlockSnapshot) blockObj;
-            createdSnap.setProject(new NamedURI(snap.getProject().getURI(), label));
+            createdSnap.setProject(new NamedURI(projectUri, label));
         }
         createdSnap.setSnapsetLabel(ResourceOnlyNameGenerator.removeSpecialCharsForName(setLabel,
                 SmisConstants.MAX_SNAPSHOT_NAME_LENGTH));

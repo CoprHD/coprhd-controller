@@ -582,6 +582,17 @@ public class ExternalDeviceCommunicationInterface extends
                             break;
                         }
                     }
+
+                    // Verify that discovered port has mandatory identifier "portNetworkId"
+                    if (driverPort.getPortNetworkId() == null) {
+                        if (storagePort == null) {
+                            _log.error("No portNetworkId for new discovered port {}, skip discovery of this port.", portNativeGuid);
+                        } else {
+                            _log.error("No portNetworkId for previously discovered port {}, skip discovery of this port.", portNativeGuid);
+                        }
+                        continue;
+                    }
+
                     if (storagePort == null) {
                         // New port processing
                         storagePort = new com.emc.storageos.db.client.model.StoragePort();

@@ -316,7 +316,8 @@ class Authentication(object):
                                     searchkey, groupattr, name, domains,
                                     whitelist, searchscope, description,
                                     disable, validatecertificate, maxpagesize,
-                                    groupobjectclasses, groupmemberattributes, autoRegCoprHDNImportOSProjects):
+                                    groupobjectclasses, groupmemberattributes,
+                                    autoRegCoprHDNImportOSProjects, tenantssynchronizationoptions):
         '''
         Makes REST API call to add authentication provider
         specified user after validation.
@@ -371,6 +372,11 @@ class Authentication(object):
             groupmemberattributes_array = []
             groupmemberattributes_array = groupmemberattributes.split(',')
             parms['group_member_attribute'] = groupmemberattributes_array
+
+        if(autoRegCoprHDNImportOSProjects == 'true' and tenantssynchronizationoptions is not None and tenantssynchronizationoptions is not ""):
+            tenantssynchronizationoptions_array = []
+            tenantssynchronizationoptions_array = tenantssynchronizationoptions.split(',')
+            parms['tenants_synchronization_options'] = tenantssynchronizationoptions_array
 
         body = json.dumps(parms)
 
@@ -494,7 +500,8 @@ class Authentication(object):
                                        validatecertificate, maxpagesize,
                                        add_groupobjectclasses, remove_groupobjectclasses,
                                        add_groupmemberattributes, remove_groupmemberattributes,
-                                       force_groupattributeupdate, autoRegCoprHDNImportOSProjects):
+                                       force_groupattributeupdate, autoRegCoprHDNImportOSProjects,
+                                       add_tenantssynchronizationoptions, remove_tenantssynchronizationoptions):
         '''
         Makes REST API call to generate the cookiefile for the
         specified user after validation.
@@ -509,6 +516,7 @@ class Authentication(object):
         whitelist = dict()
         groupobjectclasses = dict()
         groupmemberattributes = dict()
+        tenantssynchronizationoptions = dict()
 
         urls['add'] = []
         if(add_urls is not None):
@@ -570,6 +578,18 @@ class Authentication(object):
                 if(iter1 is not ""):
                     groupmemberattributes['add'].append(iter1)
 
+        tenantssynchronizationoptions['add'] = []
+        if (add_tenantssynchronizationoptions is not None):
+            for iter1 in add_tenantssynchronizationoptions:
+                if (iter1 is not ""):
+                    tenantssynchronizationoptions['add'].append(iter1)
+
+        tenantssynchronizationoptions['remove'] = []
+        if (remove_tenantssynchronizationoptions is not None):
+            for iter1 in remove_tenantssynchronizationoptions:
+                if (iter1 is not ""):
+                    tenantssynchronizationoptions['remove'].append(iter1)
+
         '''for domain in add_domains:
                 domainlist.append({'domain': domain})
             domains['add'] = domainlist #add_domains'''
@@ -598,6 +618,10 @@ class Authentication(object):
 
         if(maxpagesize is not None):
             parms['max_page_size'] = maxpagesize
+
+        if((len(tenantssynchronizationoptions['add']) > 0) or (len(tenantssynchronizationoptions['remove']) > 0)):
+            tenantssynchronizationoptions = self.cleanup_dict(tenantssynchronizationoptions)
+            parms['tenants_synchronization_options_changes'] = tenantssynchronizationoptions
 
         if((len(urls['add']) > 0) or (len(urls['remove']) > 0)):
             urls = self.cleanup_dict(urls)
@@ -1011,6 +1035,7 @@ def add_keystone_provider(config, sectioniter, obj, mode):
     groupattr = config.get(sectioniter, 'groupattr')
     domains = config.get(sectioniter, 'domains')
     autoReg = config.get(sectioniter, 'autoreg-coprhd-import-osprojects')
+    syncOptions = config.get(sectioniter, 'tenants-sync-options')
 
     if((url is "") or (managerdn is "") or (name is "") or
                 (description is "")):
@@ -1027,7 +1052,7 @@ def add_keystone_provider(config, sectioniter, obj, mode):
                 mode, url, None, managerdn, passwd_user, None,
                 None, None, groupattr, name, domains, None,
                 None, description, disable, None,
-                None, None, None, autoReg)
+                None, None, None, autoReg, syncOptions)
 
 
 def add_other_provider(config, sectioniter, obj, mode):
@@ -1163,6 +1188,8 @@ def update_keystone_provider(config, sectioniter, mode, obj):
     add_domains = config.get(sectioniter, 'add-domains')
     remove_domains = config.get(sectioniter, 'remove-domains')
     autoReg = config.get(sectioniter, 'autoreg-coprhd-import-osprojects')
+    add_tenantssynchronizationoptions = config.get(sectioniter, "add-tenants-sync-options")
+    remove_tenantssynchronizationoptions = config.get(sectioniter, "remove-tenants-sync-options")
     groupattr = get_attribute_value(config, sectioniter, 'groupattr')
     defined_and_valid_value('disable', disable,
                             Authentication.BOOL_VALS)
@@ -1177,7 +1204,9 @@ def update_keystone_provider(config, sectioniter, mode, obj):
                 remove_domains.split(','), None,
                 None, None, description,
                 disable, None, None, None,
-                None, None, None, False, autoReg)
+                None, None, None, False, autoReg,
+                add_tenantssynchronizationoptions.split(','),
+                remove_tenantssynchronizationoptions.split(','))
 
 
 def update_other_providers(config, sectioniter, mode, obj):

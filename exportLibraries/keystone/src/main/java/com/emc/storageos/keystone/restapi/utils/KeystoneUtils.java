@@ -50,7 +50,7 @@ public class KeystoneUtils {
     public static final String TENANT_ID = "tenant_id";
     public static final String VALUES = "values";
     // Default excluded option for OSTenant.
-    private static final boolean DEFAULT_EXCLUDED_TENANT_OPTION = false;
+    private static final boolean DEFAULT_EXCLUDED_TENANT_OPTION = true;
 
     private KeystoneRestClientFactory _keystoneApiFactory;
     private Properties _ovfProperties;

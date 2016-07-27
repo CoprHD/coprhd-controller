@@ -156,4 +156,16 @@ public interface FileOrchestrationController extends Controller {
      */
     void failoverFileSystem(URI fsURI, StoragePort nfsPort, StoragePort cifsPort, String taskId)
             throws ControllerException;
+
+    /**
+     * Failback to Source FS from Target FS.
+     * 
+     * @param fsURI - URI of the Source File System that has to be failed back from target.
+     * @param nfsPort - NFS Export StoragePort for source File System
+     * @param cifsPort - CIFS Share StoragePort for source File System
+     * @param taskId
+     * @throws ControllerException
+     */
+    void failbackFileSystem(URI fsURI, StoragePort nfsPort, StoragePort cifsPort, String taskId)
+            throws ControllerException;
 }

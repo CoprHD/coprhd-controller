@@ -89,6 +89,11 @@ public class FileOrchestrationControllerImpl implements FileOrchestrationControl
         execOrchestration("failoverFileSystem", fsURI, nfsPort, cifsPort, taskId);
     }
 
+    @Override
+    public void failbackFileSystem(URI fsURI, StoragePort nfsPort, StoragePort cifsPort, String taskId) throws ControllerException {
+        execOrchestration("failbackFileSystem", fsURI, nfsPort, cifsPort, taskId);
+    }
+
     // getter and setter methods
     public FileOrchestrationController getController() {
         return _controller;

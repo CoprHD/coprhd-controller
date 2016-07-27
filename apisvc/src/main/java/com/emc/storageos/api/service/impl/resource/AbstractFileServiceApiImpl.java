@@ -281,4 +281,11 @@ public abstract class AbstractFileServiceApiImpl<T> implements FileServiceApi {
                 FileOrchestrationController.FILE_ORCHESTRATION_DEVICE);
         controller.failoverFileSystem(fsURI, nfsPort, cifsPort, taskId);
     }
+
+    @Override
+    public void failbackFileShare(URI fsURI, StoragePort nfsPort, StoragePort cifsPort, String taskId) {
+        FileOrchestrationController controller = getController(FileOrchestrationController.class,
+                FileOrchestrationController.FILE_ORCHESTRATION_DEVICE);
+        controller.failbackFileSystem(fsURI, nfsPort, cifsPort, taskId);
+    }
 }

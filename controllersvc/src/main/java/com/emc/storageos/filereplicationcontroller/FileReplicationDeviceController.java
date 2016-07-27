@@ -447,8 +447,6 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
                     getRemoteMirrorDevice(system).doSuspendLink(system, targetFileShare, completer);
                 }
 
-            } else if (opType.equalsIgnoreCase("failback")) {
-                doFailBackMirrorSessionWF(system, fileShare, targetfileUris, opId);
             } else if (opType.equalsIgnoreCase("resume")) {
                 completer = new MirrorFileResumeTaskCompleter(FileShare.class, combined, opId);
                 for (String target : targetfileUris) {
@@ -533,12 +531,15 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
     private static final String RESYNC_MIRROR_FILESHARE_STEP_DESC = "resync MirrorFileShare Link";
     private static final String START_MIRROR_FILESHARE_STEP_DES = "start MirrorFileShare Link";
 
-    public void doFailBackMirrorSessionWF(StorageSystem primarysystem, FileShare sourceFileShare,
-            List<String> targetfileUris, String taskId) {
+    public void doFailBackMirrorSessionWF(URI systemURI, URI fsURI, String taskId) {
         log.info("start doFailBackMirrorSession operation");
         TaskCompleter taskCompleter = null;
+        FileShare sourceFileShare = dbClient.queryObject(FileShare.class, fsURI);
+        StorageSystem primarysystem = dbClient.queryObject(StorageSystem.class, systemURI);
         try {
 
+            List<String> targetfileUris = new ArrayList<String>();
+            targetfileUris.addAll(sourceFileShare.getMirrorfsTargets());
             // Generate the Workflow.
             Workflow workflow = workflowService.getNewWorkflow(this,
                     FAILBACK_MIRROR_FILESHARE_WF_NAME, false, taskId);

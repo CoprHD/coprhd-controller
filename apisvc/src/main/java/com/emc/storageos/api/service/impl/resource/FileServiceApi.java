@@ -202,4 +202,16 @@ public interface FileServiceApi {
      */
     public void failoverFileShare(URI fsURI, StoragePort nfsPort, StoragePort cifsPort, String taskId)
             throws InternalException;
+
+    /**
+     * Fail Back to source File System.
+     * 
+     * @param fsURI
+     * @param nfsPort
+     * @param cifsPort
+     * @param taskId
+     * @throws InternalException
+     */
+    public void failbackFileShare(URI fsURI, StoragePort nfsPort, StoragePort cifsPort, String taskId)
+            throws InternalException;
 }

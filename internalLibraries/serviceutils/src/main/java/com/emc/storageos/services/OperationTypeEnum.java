@@ -346,6 +346,8 @@ public enum OperationTypeEnum {
     ASSOCIATE_HOST_INITIATOR("ASSOCIATE  HOST INITIATOR", "", "operation to associate a host initiator to another."),
 
     CREATE_VIRTUAL_MACHINE_INITIATOR("CREATE VIRTUAL MACHINE INITIATOR", "", "operation to create a virtual machine initiator."),
+    CREATE_VIRTUAL_MACHINE_PAIRED_INITIATOR("CREATE VIRTUAL MACHINE PAIRED INITIATOR", "",
+            "operation to create a virtual machine initiator pair."),
     UPDATE_VIRTUAL_MACHINE_INITIATOR("UPDATE VIRTUAL MACHINE INITIATOR", "", "operation to update a virtual machine initiator."),
     DELETE_VIRTUAL_MACHINE_INITIATOR("DELETE VIRTUAL MACHINE INITIATOR", "", "operation to delete a virtual machine initiator."),
     ASSOCIATE_VIRTUAL_MACHINE_INITIATOR("ASSOCIATE  VIRTUAL MACHINE INITIATOR", "",

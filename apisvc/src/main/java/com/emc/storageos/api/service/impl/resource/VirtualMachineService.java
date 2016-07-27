@@ -66,6 +66,7 @@ import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.host.BaseInitiatorParam;
 import com.emc.storageos.model.host.InitiatorCreateParam;
 import com.emc.storageos.model.host.InitiatorList;
+import com.emc.storageos.model.host.PairedInitiatorCreateParam;
 import com.emc.storageos.model.host.VirtualMachineBulkRep;
 import com.emc.storageos.model.host.VirtualMachineCreateParam;
 import com.emc.storageos.model.host.VirtualMachineParam;
@@ -251,6 +252,7 @@ public class VirtualMachineService extends TaskResourceService {
             InitiatorCreateParam createParam) throws DatabaseException {
         VirtualMachine vm = queryObject(VirtualMachine.class, id, true);
         Cluster cluster = null;
+
         validateInitiatorData(createParam, null);
         // create and populate the initiator
         Initiator initiator = new Initiator();
@@ -284,6 +286,73 @@ public class VirtualMachineService extends TaskResourceService {
         auditOp(OperationTypeEnum.CREATE_HOST_INITIATOR, true, null,
                 initiator.auditParameters());
         return toTask(initiator, taskId, op);
+    }
+
+    /**
+     * Creates a new paired initiator for a host.
+     *
+     * @param id the URN of a ViPR Virtual Machine
+     * @param createParam the details of the initiator
+     * @brief Create VM Initiator
+     * @return the details of the host initiator when creation
+     *         is successfully.
+     * @throws DatabaseException when a database error occurs.
+     */
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.TENANT_ADMIN })
+    @Path("/{id}/pair-initiators")
+    public TaskResourceRep createPairedInitiator(@PathParam("id") URI id,
+            PairedInitiatorCreateParam createParam) throws DatabaseException {
+        VirtualMachine vm = queryObject(VirtualMachine.class, id, true);
+        Cluster cluster = null;
+        validateInitiatorData(createParam.getFirstInitiator(), null);
+        validateInitiatorData(createParam.getSeconedInitiator(), null);
+        // create and populate the initiator
+        Initiator firstInitiator = new Initiator();
+        Initiator seconedInitiator = new Initiator();
+        firstInitiator.setVirtualMachine(id);
+
+        firstInitiator.setHost(URIUtil.NULL_URI);
+        firstInitiator.setHostName(vm.getHostName());
+        if (!NullColumnValueGetter.isNullURI(vm.getCluster())) {
+            cluster = queryObject(Cluster.class, vm.getCluster(), false);
+            firstInitiator.setClusterName(cluster.getLabel());
+        }
+        firstInitiator.setId(URIUtil.createId(Initiator.class));
+        populateInitiator(firstInitiator, createParam.getFirstInitiator());
+
+        seconedInitiator.setVirtualMachine(id);
+        seconedInitiator.setHost(URIUtil.NULL_URI);
+        seconedInitiator.setHostName(vm.getHostName());
+        if (!NullColumnValueGetter.isNullURI(vm.getCluster())) {
+            cluster = queryObject(Cluster.class, vm.getCluster(), false);
+            seconedInitiator.setClusterName(cluster.getLabel());
+        }
+        seconedInitiator.setId(URIUtil.createId(Initiator.class));
+        populateInitiator(seconedInitiator, createParam.getFirstInitiator());
+
+        _dbClient.createObject(firstInitiator);
+        _dbClient.createObject(seconedInitiator);
+
+        String taskId = UUID.randomUUID().toString();
+        Operation op = _dbClient.createTaskOpStatus(Initiator.class, firstInitiator.getId(), taskId,
+                ResourceOperationTypeEnum.ADD_VIRTUAL_MACHINE_INITIATOR);
+
+        // if host in use. update export with new initiator
+        if (ComputeSystemHelper.isHostInUse(_dbClient, vm.getId())
+                && (cluster == null || cluster.getAutoExportEnabled())) {
+            ComputeSystemController controller = getController(ComputeSystemController.class, null);
+            controller.addInitiatorsToExport(firstInitiator.getHost(), Arrays.asList(firstInitiator.getId()), taskId);
+        } else {
+            // No updates were necessary, so we can close out the task.
+            _dbClient.ready(Initiator.class, firstInitiator.getId(), taskId);
+        }
+
+        auditOp(OperationTypeEnum.CREATE_HOST_INITIATOR, true, null,
+                firstInitiator.auditParameters());
+        return toTask(firstInitiator, taskId, op);
     }
 
     /**

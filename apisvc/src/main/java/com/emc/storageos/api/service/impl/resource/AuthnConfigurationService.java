@@ -495,7 +495,7 @@ public class AuthnConfigurationService extends TaggedResource {
         if (provider.getAutoRegCoprHDNImportOSProjects() && !isAutoRegistered) {
             _keystoneUtils.registerCoprhdInKeystone(provider.getManagerDN(), provider.getServerUrls(), provider.getManagerPassword());
         }
-        if (isAutoRegistered && synchronizationInterval != syncInterval) {
+        if (isAutoRegistered && synchronizationInterval != syncInterval && _openStackSynchronizationTask.getSynchronizationTask() != null) {
             _openStackSynchronizationTask.rescheduleTask(syncInterval);
         }
         auditOp(OperationTypeEnum.UPDATE_AUTHPROVIDER, true, null,

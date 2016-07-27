@@ -281,7 +281,6 @@ render.registrationStatus = function(o, val) {
     }
 }
 
-
 render.allocationDisqualified = function (o,val) {
     return (val) ? '<span class="glyphicon glyphicon-thumbs-down"></span>' : '<span class="glyphicon glyphicon-thumbs-up"></span>';
 }

@@ -1526,15 +1526,16 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 // Get the context from the task completer, in case this is a rollback.
                 ExportOperationContext context = (ExportOperationContext) WorkflowService.getInstance().loadStepData(
                         taskCompleter.getOpId());
+
+                ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
+                validator.removeInitiators(storage, exportMask, volumeURIList).validate();
+
                 if (context != null) {
                     exportMaskRollback(storage, context, taskCompleter);
                 } else {
                     CIMArgument[] inArgs;
                     CIMArgument[] outArgs;
                     _log.info("Removing initiators ...");
-
-                    ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
-                    validator.removeInitiators(storage, exportMask, volumeURIList).validate();
 
                     // Create a mapping of the InitiatorPort String to Initiator.
                     Map<String, Initiator> nameToInitiator = new HashMap<String, Initiator>();

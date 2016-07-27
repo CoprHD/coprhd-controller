@@ -487,18 +487,38 @@ public class InitiatorService extends TaskResourceService {
             URI id = resrep.getId();
 
             Initiator ini = _permissionsHelper.getObjectById(id, Initiator.class);
-            if (ini == null || ini.getHost() == null) {
+            if (ini == null) {
                 return false;
             }
 
-            Host obj = _permissionsHelper.getObjectById(ini.getHost(), Host.class);
-            if (obj == null) {
+            if (NullColumnValueGetter.isNullURI(ini.getHost()) &&
+                    NullColumnValueGetter.isNullURI(ini.getVirtualMachine())) {
                 return false;
             }
-            if (obj.getTenant().toString().equals(_user.getTenantId())) {
+
+            URI tenantURI = null;
+            if (!NullColumnValueGetter.isNullURI(ini.getHost())) {
+                Host host = _permissionsHelper.getObjectById(ini.getHost(), Host.class);
+                if (host == null) {
+                    return false;
+                }
+                tenantURI = host.getTenant();
+            } else {
+                VirtualMachine vm = _permissionsHelper.getObjectById(ini.getVirtualMachine(), VirtualMachine.class);
+                if (vm == null) {
+                    return false;
+                }
+                tenantURI = vm.getTenant();
+            }
+
+            if (tenantURI == null) {
+                return false;
+            }
+
+            if (tenantURI.toString().equals(_user.getTenantId())) {
                 return true;
             }
-            ret = isTenantAccessible(obj.getTenant());
+            ret = isTenantAccessible(tenantURI);
             return ret;
         }
     }

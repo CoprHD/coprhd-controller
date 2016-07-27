@@ -188,7 +188,7 @@ public class Tenants extends ViprResourceController {
     }
     public static boolean isKeystoneAuthnProviderCreated() {
         AuthnProviderRestRep authnProvider = AuthnProviderUtils.getKeystoneAuthProvider();
-        if (authnProvider != null && authnProvider.getAutoRegCoprHDNImportOSProjects() == true) {
+        if (authnProvider != null && authnProvider.getAutoRegCoprHDNImportOSProjects()) {
             return true;
         }
         return false;

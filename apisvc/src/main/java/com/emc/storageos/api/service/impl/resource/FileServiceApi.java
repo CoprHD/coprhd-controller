@@ -197,10 +197,11 @@ public interface FileServiceApi {
      * @param fsURI
      * @param nfsPort
      * @param cifsPort
+     * @param replicateConfiguration
      * @param taskId
      * @throws InternalException
      */
-    public void failoverFileShare(URI fsURI, StoragePort nfsPort, StoragePort cifsPort, String taskId)
+    public void failoverFileShare(URI fsURI, StoragePort nfsPort, StoragePort cifsPort, boolean replicateConfiguration, String taskId)
             throws InternalException;
 
     /**
@@ -209,9 +210,10 @@ public interface FileServiceApi {
      * @param fsURI
      * @param nfsPort
      * @param cifsPort
+     * @param replicateConfiguration
      * @param taskId
      * @throws InternalException
      */
-    public void failbackFileShare(URI fsURI, StoragePort nfsPort, StoragePort cifsPort, String taskId)
+    public void failbackFileShare(URI fsURI, StoragePort nfsPort, StoragePort cifsPort, boolean replicateConfiguration, String taskId)
             throws InternalException;
 }

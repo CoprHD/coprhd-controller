@@ -3097,22 +3097,24 @@ public class FileService extends TaskResourceService {
         Operation op = _dbClient.createTaskOpStatus(FileShare.class, id, task, ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILOVER);
         op.setDescription("Filesystem Failover");
 
-        List<String> targetfileUris = new ArrayList<String>();
-        targetfileUris.addAll(fs.getMirrorfsTargets());
-        FileShare targetFileShare = _dbClient.queryObject(FileShare.class, URI.create(targetfileUris.get(0)));
+        boolean replicateConfiguration = param.getCopies().get(0).getReplicationSettingParam().isReplicateConfiguration();
+        if (replicateConfiguration) {
+            List<String> targetfileUris = new ArrayList<String>();
+            targetfileUris.addAll(fs.getMirrorfsTargets());
+            FileShare targetFileShare = _dbClient.queryObject(FileShare.class, URI.create(targetfileUris.get(0)));
 
-        SMBShareMap smbShareMap = fs.getSMBFileShares();
-        if (smbShareMap != null) {
-            storageportCIFS = _fileScheduler.placeFileShareExport(targetFileShare, StorageProtocol.File.CIFS.name(), null);
+            SMBShareMap smbShareMap = fs.getSMBFileShares();
+            if (smbShareMap != null) {
+                storageportCIFS = _fileScheduler.placeFileShareExport(targetFileShare, StorageProtocol.File.CIFS.name(), null);
+            }
+            FSExportMap nfsExportMap = fs.getFsExports();
+            if (nfsExportMap != null) {
+                storageportNFS = _fileScheduler.placeFileShareExport(targetFileShare, StorageProtocol.File.NFS.name(), null);
+            }
         }
-        FSExportMap nfsExportMap = fs.getFsExports();
-        if (nfsExportMap != null) {
-            storageportNFS = _fileScheduler.placeFileShareExport(targetFileShare, StorageProtocol.File.NFS.name(), null);
-        }
-
         FileServiceApi fileServiceApi = getFileShareServiceImpl(fs, _dbClient);
         try {
-            fileServiceApi.failoverFileShare(id, storageportNFS, storageportCIFS, task);
+            fileServiceApi.failoverFileShare(id, storageportNFS, storageportCIFS, replicateConfiguration, task);
         } catch (InternalException e) {
             if (_log.isErrorEnabled()) {
                 _log.error("", e);
@@ -3185,22 +3187,25 @@ public class FileService extends TaskResourceService {
         Operation op = _dbClient.createTaskOpStatus(FileShare.class, id, task, ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILBACK);
         op.setDescription("Filesystem Failback");
 
-        List<String> targetfileUris = new ArrayList<String>();
-        targetfileUris.addAll(sourceFileShare.getMirrorfsTargets());
-        FileShare targetFileShare = _dbClient.queryObject(FileShare.class, URI.create(targetfileUris.get(0)));
+        boolean replicateConfiguration = param.getCopies().get(0).getReplicationSettingParam().isReplicateConfiguration();
 
-        SMBShareMap smbShareMap = targetFileShare.getSMBFileShares();
-        if (smbShareMap != null) {
-            storageportCIFS = _fileScheduler.placeFileShareExport(sourceFileShare, StorageProtocol.File.CIFS.name(), null);
-        }
-        FSExportMap nfsExportMap = targetFileShare.getFsExports();
-        if (nfsExportMap != null) {
-            storageportNFS = _fileScheduler.placeFileShareExport(sourceFileShare, StorageProtocol.File.NFS.name(), null);
-        }
+        if (replicateConfiguration) {
+            List<String> targetfileUris = new ArrayList<String>();
+            targetfileUris.addAll(sourceFileShare.getMirrorfsTargets());
+            FileShare targetFileShare = _dbClient.queryObject(FileShare.class, URI.create(targetfileUris.get(0)));
 
+            SMBShareMap smbShareMap = targetFileShare.getSMBFileShares();
+            if (smbShareMap != null) {
+                storageportCIFS = _fileScheduler.placeFileShareExport(sourceFileShare, StorageProtocol.File.CIFS.name(), null);
+            }
+            FSExportMap nfsExportMap = targetFileShare.getFsExports();
+            if (nfsExportMap != null) {
+                storageportNFS = _fileScheduler.placeFileShareExport(sourceFileShare, StorageProtocol.File.NFS.name(), null);
+            }
+        }
         FileServiceApi fileServiceApi = getFileShareServiceImpl(sourceFileShare, _dbClient);
         try {
-            fileServiceApi.failbackFileShare(sourceFileShare.getId(), storageportNFS, storageportCIFS, task);
+            fileServiceApi.failbackFileShare(sourceFileShare.getId(), storageportNFS, storageportCIFS, replicateConfiguration, task);
         } catch (InternalException e) {
             if (_log.isErrorEnabled()) {
                 _log.error("", e);

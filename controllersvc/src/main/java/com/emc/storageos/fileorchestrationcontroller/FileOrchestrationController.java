@@ -151,10 +151,11 @@ public interface FileOrchestrationController extends Controller {
      * @param fsURI - URI of the Source File System that has to be failed over.
      * @param nfsPort - NFS Export StoragePort for target File System
      * @param cifsPort - CIFS Share StoragePort for target File System
+     * @param replicateConfiguration
      * @param taskId
      * @throws ControllerException
      */
-    void failoverFileSystem(URI fsURI, StoragePort nfsPort, StoragePort cifsPort, String taskId)
+    void failoverFileSystem(URI fsURI, StoragePort nfsPort, StoragePort cifsPort, boolean replicateConfiguration, String taskId)
             throws ControllerException;
 
     /**
@@ -163,9 +164,10 @@ public interface FileOrchestrationController extends Controller {
      * @param fsURI - URI of the Source File System that has to be failed back from target.
      * @param nfsPort - NFS Export StoragePort for source File System
      * @param cifsPort - CIFS Share StoragePort for source File System
+     * @param replicateConfiguration
      * @param taskId
      * @throws ControllerException
      */
-    void failbackFileSystem(URI fsURI, StoragePort nfsPort, StoragePort cifsPort, String taskId)
+    void failbackFileSystem(URI fsURI, StoragePort nfsPort, StoragePort cifsPort, boolean replicateConfiguration, String taskId)
             throws ControllerException;
 }

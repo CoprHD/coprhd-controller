@@ -602,7 +602,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     }
 
     @Override
-    public void failbackFileSystem(URI fsURI, StoragePort nfsPort, StoragePort cifsPort, String taskId) throws ControllerException {
+    public void failbackFileSystem(URI fsURI, StoragePort nfsPort, StoragePort cifsPort, boolean replicateConfiguration, String taskId)
+            throws ControllerException {
         FileWorkflowCompleter completer = new FileWorkflowCompleter(fsURI, taskId);
         Workflow workflow = null;
         String stepDescription = null;
@@ -624,51 +625,52 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             String waitForFailback = _fileReplicationDeviceController.createMethod(workflow, null, null,
                     FAILBACK_FILE_SYSTEM_METHOD, failbackStep, stepDescription, systemSource.getId(), args);
 
-            // Replicate NFS export and rules to Target Cluster.
-            FSExportMap nfsExportMap = targetFileShare.getFsExports();
+            if (replicateConfiguration) {
+                // Replicate NFS export and rules to Target Cluster.
+                FSExportMap nfsExportMap = targetFileShare.getFsExports();
 
-            if (nfsExportMap != null && nfsPort != null) {
+                if (nfsExportMap != null && nfsPort != null) {
 
-                stepDescription = "Replicating Target File System NFS Exports To Source Cluster";
-                Workflow.Method replicateNFSExportMethod = new Workflow.Method(REPLICATE_FILESYSTEM_NFS_EXPORT_METHOD,
-                        systemSource.getId(), targetFileShare.getId(), nfsPort);
-                String replicateNFSExportStep = workflow.createStepId();
+                    stepDescription = "Replicating Target File System NFS Exports To Source Cluster";
+                    Workflow.Method replicateNFSExportMethod = new Workflow.Method(REPLICATE_FILESYSTEM_NFS_EXPORT_METHOD,
+                            systemSource.getId(), targetFileShare.getId(), nfsPort);
+                    String replicateNFSExportStep = workflow.createStepId();
 
-                String waitForExport = workflow.createStep(null, stepDescription, waitForFailback, systemSource.getId(),
-                        systemSource.getSystemType(), getClass(), replicateNFSExportMethod, null, replicateNFSExportStep);
+                    String waitForExport = workflow.createStep(null, stepDescription, waitForFailback, systemSource.getId(),
+                            systemSource.getSystemType(), getClass(), replicateNFSExportMethod, null, replicateNFSExportStep);
 
-                stepDescription = "Replicating Target File System NFS Export Rules To Source Cluster";
-                Workflow.Method replicateNFSExportRulesMethod = new Workflow.Method(REPLICATE_FILESYSTEM_NFS_EXPORT_RULE_METHOD,
-                        systemSource.getId(), targetFileShare.getId());
-                String replicateNFSExportRulesStep = workflow.createStepId();
+                    stepDescription = "Replicating Target File System NFS Export Rules To Source Cluster";
+                    Workflow.Method replicateNFSExportRulesMethod = new Workflow.Method(REPLICATE_FILESYSTEM_NFS_EXPORT_RULE_METHOD,
+                            systemSource.getId(), targetFileShare.getId());
+                    String replicateNFSExportRulesStep = workflow.createStepId();
 
-                workflow.createStep(null, stepDescription, waitForExport, systemSource.getId(), systemSource.getSystemType(),
-                        getClass(), replicateNFSExportRulesMethod, null, replicateNFSExportRulesStep);
+                    workflow.createStep(null, stepDescription, waitForExport, systemSource.getId(), systemSource.getSystemType(),
+                            getClass(), replicateNFSExportRulesMethod, null, replicateNFSExportRulesStep);
+                }
+                // Replicate CIFS shares and ACLs from Target File System to Source.
+
+                SMBShareMap smbShareMap = targetFileShare.getSMBFileShares();
+
+                if (smbShareMap != null && cifsPort != null) {
+
+                    stepDescription = "Replicating Target File System CIFS Shares To Source Cluster";
+                    Workflow.Method replicateCIFSShareMethod = new Workflow.Method(REPLICATE_FILESYSTEM_CIFS_SHARES_METHOD,
+                            systemSource.getId(), targetFileShare.getId(), cifsPort);
+                    String replicateCIFSShareStep = workflow.createStepId();
+
+                    String waitForShare = workflow.createStep(null, stepDescription, waitForFailback, systemSource.getId(),
+                            systemSource.getSystemType(), getClass(), replicateCIFSShareMethod, null,
+                            replicateCIFSShareStep);
+
+                    stepDescription = "Replicating Target File System CIFS Share ACLs To Source Cluster";
+                    Workflow.Method replicateCIFSShareACLsMethod = new Workflow.Method(REPLICATE_FILESYSTEM_CIFS_SHARE_ACLS_METHOD,
+                            systemSource.getId(), targetFileShare.getId());
+                    String replicateCIFSShareACLsStep = workflow.createStepId();
+
+                    workflow.createStep(null, stepDescription, waitForShare, systemSource.getId(), systemSource.getSystemType(),
+                            getClass(), replicateCIFSShareACLsMethod, null, replicateCIFSShareACLsStep);
+                }
             }
-            // Replicate CIFS shares and ACLs from Target File System to Source.
-
-            SMBShareMap smbShareMap = targetFileShare.getSMBFileShares();
-
-            if (smbShareMap != null && cifsPort != null) {
-
-                stepDescription = "Replicating Target File System CIFS Shares To Source Cluster";
-                Workflow.Method replicateCIFSShareMethod = new Workflow.Method(REPLICATE_FILESYSTEM_CIFS_SHARES_METHOD,
-                        systemSource.getId(), targetFileShare.getId(), cifsPort);
-                String replicateCIFSShareStep = workflow.createStepId();
-
-                String waitForShare = workflow.createStep(null, stepDescription, waitForFailback, systemSource.getId(),
-                        systemSource.getSystemType(), getClass(), replicateCIFSShareMethod, null,
-                        replicateCIFSShareStep);
-
-                stepDescription = "Replicating Target File System CIFS Share ACLs To Source Cluster";
-                Workflow.Method replicateCIFSShareACLsMethod = new Workflow.Method(REPLICATE_FILESYSTEM_CIFS_SHARE_ACLS_METHOD,
-                        systemSource.getId(), targetFileShare.getId());
-                String replicateCIFSShareACLsStep = workflow.createStepId();
-
-                workflow.createStep(null, stepDescription, waitForShare, systemSource.getId(), systemSource.getSystemType(),
-                        getClass(), replicateCIFSShareACLsMethod, null, replicateCIFSShareACLsStep);
-            }
-
             String successMessage = "Failback FileSystem successful for: " + sourceFileShare.getLabel();
             workflow.executePlan(completer, successMessage);
         } catch (Exception ex) {
@@ -681,7 +683,8 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
     }
 
     @Override
-    public void failoverFileSystem(URI fsURI, StoragePort nfsPort, StoragePort cifsPort, String taskId) throws ControllerException {
+    public void failoverFileSystem(URI fsURI, StoragePort nfsPort, StoragePort cifsPort, boolean replicateConfiguration, String taskId)
+            throws ControllerException {
 
         FileWorkflowCompleter completer = new FileWorkflowCompleter(fsURI, taskId);
         Workflow workflow = null;
@@ -706,46 +709,47 @@ public class FileOrchestrationDeviceController implements FileOrchestrationContr
             String waitForFailover = _fileReplicationDeviceController.createMethod(workflow, null, null,
                     FAILOVER_FILE_SYSTEM_METHOD, failoverStep, stepDescription, systemTarget.getId(), args);
 
-            // Replicate CIFS shares and ACLs to Target Cluster.
-            SMBShareMap smbShareMap = sourceFileShare.getSMBFileShares();
+            if (replicateConfiguration) {
+                // Replicate CIFS shares and ACLs to Target Cluster.
+                SMBShareMap smbShareMap = sourceFileShare.getSMBFileShares();
 
-            if (smbShareMap != null && cifsPort != null) {
+                if (smbShareMap != null && cifsPort != null) {
 
-                stepDescription = "Replicating Source File System CIFS Shares To Target Cluster";
-                Workflow.Method replicateCIFSShareMethod = new Workflow.Method(REPLICATE_FILESYSTEM_CIFS_SHARES_METHOD,
-                        systemTarget.getId(), fsURI, cifsPort);
-                String replicateCIFSShareStep = workflow.createStepId();
-                String waitForShare = workflow.createStep(null, stepDescription, waitForFailover, systemTarget.getId(),
-                        systemTarget.getSystemType(), getClass(), replicateCIFSShareMethod, null, replicateCIFSShareStep);
+                    stepDescription = "Replicating Source File System CIFS Shares To Target Cluster";
+                    Workflow.Method replicateCIFSShareMethod = new Workflow.Method(REPLICATE_FILESYSTEM_CIFS_SHARES_METHOD,
+                            systemTarget.getId(), fsURI, cifsPort);
+                    String replicateCIFSShareStep = workflow.createStepId();
+                    String waitForShare = workflow.createStep(null, stepDescription, waitForFailover, systemTarget.getId(),
+                            systemTarget.getSystemType(), getClass(), replicateCIFSShareMethod, null, replicateCIFSShareStep);
 
-                stepDescription = "Replicating Source File System CIFS Share ACls To Target Cluster";
-                Workflow.Method replicateCIFSShareACLsMethod = new Workflow.Method(REPLICATE_FILESYSTEM_CIFS_SHARE_ACLS_METHOD,
-                        systemTarget.getId(), fsURI);
-                String replicateCIFSShareACLsStep = workflow.createStepId();
-                workflow.createStep(null, stepDescription, waitForShare, systemTarget.getId(),
-                        systemTarget.getSystemType(), getClass(), replicateCIFSShareACLsMethod, null, replicateCIFSShareACLsStep);
+                    stepDescription = "Replicating Source File System CIFS Share ACls To Target Cluster";
+                    Workflow.Method replicateCIFSShareACLsMethod = new Workflow.Method(REPLICATE_FILESYSTEM_CIFS_SHARE_ACLS_METHOD,
+                            systemTarget.getId(), fsURI);
+                    String replicateCIFSShareACLsStep = workflow.createStepId();
+                    workflow.createStep(null, stepDescription, waitForShare, systemTarget.getId(),
+                            systemTarget.getSystemType(), getClass(), replicateCIFSShareACLsMethod, null, replicateCIFSShareACLsStep);
+                }
+
+                // Replicate NFS export and rules to Target Cluster.
+                FSExportMap nfsExportMap = sourceFileShare.getFsExports();
+
+                if (nfsExportMap != null && nfsPort != null) {
+
+                    stepDescription = "Replicating Source File System NFS Exports To Target Cluster";
+                    Workflow.Method replicateNFSExportMethod = new Workflow.Method(REPLICATE_FILESYSTEM_NFS_EXPORT_METHOD,
+                            systemTarget.getId(), fsURI, nfsPort);
+                    String replicateNFSExportStep = workflow.createStepId();
+                    String waitForExport = workflow.createStep(null, stepDescription, waitForFailover, systemTarget.getId(),
+                            systemTarget.getSystemType(), getClass(), replicateNFSExportMethod, null, replicateNFSExportStep);
+
+                    stepDescription = "Replicating Source File System NFS Export Rules To Target Cluster";
+                    Workflow.Method replicateNFSExportRulesMethod = new Workflow.Method(REPLICATE_FILESYSTEM_NFS_EXPORT_RULE_METHOD,
+                            systemTarget.getId(), fsURI);
+                    String replicateNFSExportRulesStep = workflow.createStepId();
+                    workflow.createStep(null, stepDescription, waitForExport, systemTarget.getId(), systemTarget.getSystemType(),
+                            getClass(), replicateNFSExportRulesMethod, null, replicateNFSExportRulesStep);
+                }
             }
-
-            // Replicate NFS export and rules to Target Cluster.
-            FSExportMap nfsExportMap = sourceFileShare.getFsExports();
-
-            if (nfsExportMap != null && nfsPort != null) {
-
-                stepDescription = "Replicating Source File System NFS Exports To Target Cluster";
-                Workflow.Method replicateNFSExportMethod = new Workflow.Method(REPLICATE_FILESYSTEM_NFS_EXPORT_METHOD,
-                        systemTarget.getId(), fsURI, nfsPort);
-                String replicateNFSExportStep = workflow.createStepId();
-                String waitForExport = workflow.createStep(null, stepDescription, waitForFailover, systemTarget.getId(),
-                        systemTarget.getSystemType(), getClass(), replicateNFSExportMethod, null, replicateNFSExportStep);
-
-                stepDescription = "Replicating Source File System NFS Export Rules To Target Cluster";
-                Workflow.Method replicateNFSExportRulesMethod = new Workflow.Method(REPLICATE_FILESYSTEM_NFS_EXPORT_RULE_METHOD,
-                        systemTarget.getId(), fsURI);
-                String replicateNFSExportRulesStep = workflow.createStepId();
-                workflow.createStep(null, stepDescription, waitForExport, systemTarget.getId(), systemTarget.getSystemType(),
-                        getClass(), replicateNFSExportRulesMethod, null, replicateNFSExportRulesStep);
-            }
-
             String successMessage = "Failover FileSystem successful for: " + sourceFileShare.getLabel();
             workflow.executePlan(completer, successMessage);
         } catch (Exception ex) {

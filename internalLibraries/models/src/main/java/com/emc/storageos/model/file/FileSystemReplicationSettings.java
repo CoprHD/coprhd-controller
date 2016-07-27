@@ -13,6 +13,7 @@ public class FileSystemReplicationSettings implements Serializable {
     private static final long serialVersionUID = 1L;
     private Long rpoValue;
     private String rpoType;
+    private boolean replicateConfiguration = true;
 
     public enum ReplicationRPOType {
         MINUTES, HOURS, DAYS
@@ -49,6 +50,21 @@ public class FileSystemReplicationSettings implements Serializable {
 
     public void setRpoType(String rpoType) {
         this.rpoType = rpoType;
+    }
+
+    /**
+     * Whether to replicate File System configurations i.e CIFS shares, NFS Exports at the time of failover/failback.
+     * Default value is TRUE.
+     * 
+     * @return
+     */
+    @XmlElement(name = "replicate_configuration")
+    public boolean isReplicateConfiguration() {
+        return this.replicateConfiguration;
+    }
+
+    public void setReplicateConfiguration(boolean replicateConfiguration) {
+        this.replicateConfiguration = replicateConfiguration;
     }
 
 }

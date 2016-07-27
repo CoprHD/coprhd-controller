@@ -23,7 +23,7 @@ public class IndexCleanupList implements IndexColumnList {
 
     private static final Logger _log = LoggerFactory.getLogger(IndexCleanupList.class);
 
-    public static final CompositeColumnName INACTIVE_COLUMN = new CompositeColumnName(DataObject.INACTIVE_FIELD_NAME);
+    public static final CompositeColumnName INACTIVE_COLUMN = new CompositeColumnName(DataObject.INACTIVE_FIELD_NAME, "", "");
 
     private Map<String, List<CompositeColumnName>> _cleanupList;
     //CompositeColumnName regards fields(_one, _two, _three) as keys to compare

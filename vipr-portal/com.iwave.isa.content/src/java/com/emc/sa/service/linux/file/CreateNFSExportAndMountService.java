@@ -94,9 +94,9 @@ public class CreateNFSExportAndMountService extends ViPRService {
         // mount the exports
         for (Mount mount : mountList) {
             Host host = BlockStorageUtils.getHost(mount.host);
-            // acquireHostLock(host, null);
+            acquireHostLock(host, null);
             createNFSExportAndMountHelper.mountExport(fileSystemId, mount.host, null, mount.mountPath, mount.security, host.getHostName());
-            // releaseHostLock(host, null);
+            releaseHostLock(host, null);
             ExecutionUtils.addAffectedResource(mount.host.toString());
         }
     }

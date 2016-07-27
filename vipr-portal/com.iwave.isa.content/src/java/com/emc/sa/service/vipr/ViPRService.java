@@ -152,7 +152,7 @@ public abstract class ViPRService extends AbstractExecutionService {
     protected void acquireHostLock(Host host, Cluster cluster) {
         execute(new AcquireHostLock(host, cluster));
         locks.add(host.getId().toString());
-
+        logDebug("Locks that already exist:", locks);
         if (cluster != null) {
             locks.add(cluster.getId().toString());
         }
@@ -161,7 +161,7 @@ public abstract class ViPRService extends AbstractExecutionService {
     protected void releaseHostLock(Host host, Cluster cluster) {
         execute(new ReleaseHostLock(host, cluster));
         locks.remove(host.getId().toString());
-
+        logDebug("Locks that already exist:", locks);
         if (cluster != null) {
             locks.remove(cluster.getId().toString());
         }

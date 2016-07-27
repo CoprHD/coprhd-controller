@@ -4205,20 +4205,10 @@ public class FileService extends TaskResourceService {
             filteredExports = filterExportRules(exportList, getExportRules(fsId, false, subDir));
             for (MountInfo mount : mountList) {
                 if (("!nodir".equalsIgnoreCase(mount.getSubDirectory()) && (subDir == null || subDir.isEmpty()))
-                        || mount.getSubDirectory() == subDir) {
+                        || mount.getSubDirectory().equals(subDir)) {
                     String hostname = _dbClient.queryObject(Host.class, mount.getHostId()).getHostName();
                     for (Entry<ExportRule, List<String>> rule : filteredExports.entrySet()) {
-                        List<String> hosts = new ArrayList<String>();
-                        if (rule.getKey().getReadOnlyHosts() != null) {
-                            hosts.addAll(rule.getKey().getReadOnlyHosts());
-                        }
-                        if (rule.getKey().getReadWriteHosts() != null) {
-                            hosts.addAll(rule.getKey().getReadWriteHosts());
-                        }
-                        if (rule.getKey().getRootHosts() != null) {
-                            hosts.addAll(rule.getKey().getRootHosts());
-                        }
-                        if (hosts.contains(hostname) && rule.getKey().getSecFlavor() == mount.getSecurityType()) {
+                        if (rule.getValue().contains(hostname) && rule.getKey().getSecFlavor().equals(mount.getSecurityType())) {
                             unmountList.add(mount);
                         }
                     }
@@ -4232,9 +4222,9 @@ public class FileService extends TaskResourceService {
             for (MountInfo mount : mountList) {
                 String hostname = _dbClient.queryObject(Host.class, mount.getHostId()).getHostName();
                 if (("!nodir".equalsIgnoreCase(mount.getSubDirectory()) && (subDir == null || subDir.isEmpty()))
-                        || mount.getSubDirectory() == subDir) {
+                        || mount.getSubDirectory().equals(subDir)) {
                     for (Entry<ExportRule, List<String>> rule : filteredExports.entrySet()) {
-                        if (rule.getValue().contains(hostname) && rule.getKey().getSecFlavor() == mount.getSecurityType()) {
+                        if (rule.getValue().contains(hostname) && rule.getKey().getSecFlavor().equals(mount.getSecurityType())) {
                             unmountList.add(mount);
                         }
                     }
@@ -4298,6 +4288,7 @@ public class FileService extends TaskResourceService {
 
     private Map<ExportRule, List<String>> filterExportRules(List<ExportRule> newExportList, List<ExportRule> existingExportList) {
         Map<ExportRule, List<String>> filteredExports = new HashMap<ExportRule, List<String>>();
+        _log.info("filtering export rules");
         for (ExportRule newExport : newExportList) {
             for (ExportRule oldExport : existingExportList) {
                 if (newExport.getSecFlavor().equalsIgnoreCase(oldExport.getSecFlavor())) {

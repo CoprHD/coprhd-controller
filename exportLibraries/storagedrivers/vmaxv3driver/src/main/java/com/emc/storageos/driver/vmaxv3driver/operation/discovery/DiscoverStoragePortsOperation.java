@@ -89,7 +89,14 @@ public class DiscoverStoragePortsOperation extends OperationImpl {
                         storagePort.setPortNetworkId(DriverUtil.formatWwn(((SymmetrixPortFc) item).getIdentifier()));
                     } else if(item instanceof SymmetrixPortIscsi) {
                         storagePort.setTransportType(StoragePort.TransportType.IP);
-                        storagePort.setPortNetworkId(((SymmetrixPortIscsi) item).getIdentifier());
+                        String identifier = ((SymmetrixPortIscsi) item).getIdentifier();
+                        /*
+                         For some iSCSI ports, their "identifier" field is empty which makes the port discovery fail for
+                         this field is needed in the "StoragePortAssociationHelper.runUpdatePortAssociationsProcess()"
+                         method in "ExternalDeviceCommunicationInterface.discover()". To workaround this issue, set the
+                         "portNetworkId" field with "portName" instead of "identifier".
+                         */
+                        storagePort.setPortNetworkId(identifier == null || identifier.isEmpty() ? portName: identifier);
                     }
                     storagePort.setNetworkId(null); // Keep blank since no API to get. HP3PAR driver doesn't set either.
                     storagePort.setPortSpeed(null);

@@ -58,6 +58,13 @@
 
   - include: playbook-rest-request.yml
 
+  - name: Log contents to publish to Ansible result file
+    debug: msg='Writing ansible result to {{ ansibleResultFile }} with contents {{ restResult.content }}' #'
+
+  - name: Publish REST results out to Ansible file if available
+    lineinfile: dest='{{ ansibleResultFile }}' line=' {{ restResult.content }}' create='yes'
+    when: restResult.content is defined
+
   - name: Call script to wait for ViPR tasks
     include: playbook-vipr-waitfortasks.yml
 

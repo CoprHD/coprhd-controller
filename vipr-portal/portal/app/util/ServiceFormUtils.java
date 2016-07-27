@@ -127,6 +127,7 @@ public class ServiceFormUtils {
         AssetFieldDescriptor assetField = new AssetFieldDescriptor();
         assetField.assetType = field.getAssetType();
         assetField.select = field.getSelect();
+        assetField.dynamicHelp = field.getDynamicHelp();
         assetField.fieldsWeDependOn = dependencies;
         // Will be calculated after all asset field descriptors are created
         assetField.fieldsThatDependOnUs = Lists.newArrayList();
@@ -206,5 +207,6 @@ public class ServiceFormUtils {
         public List<String> fieldsWeDependOn;
         public String assetType;
         public String select;
+        public String dynamicHelp;
     }
 }

@@ -67,7 +67,7 @@ public class OpenAMUtil {
             httpPost.addHeader("Content-Type", "application/x-www-form-urlencoded");
             httpPost.addHeader("Cookie", "iPlanetDirectoryPro=" + openamToken);
 
-            String payload = "response_type=code&scope=openid%20isMemberOf%20memberOf%20profile%20uid%20email&client_id="+ clientId
+            String payload = "response_type=code&scope=openid%20memberOf&client_id="+ clientId
                     +"&redirect_uri="+ redirect_url +"&save_consent=1&decision=Allow";
             HttpEntity entity = new ByteArrayEntity(payload.getBytes("UTF-8"));
             httpPost.setEntity(entity);

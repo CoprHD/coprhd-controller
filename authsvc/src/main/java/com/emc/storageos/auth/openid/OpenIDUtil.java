@@ -80,7 +80,7 @@ public class OpenIDUtil {
                 System.out.println(body);
                 _log.info(body);
 
-                String accessToken = getAccessCode(body);
+                String accessToken = getAccessToken(body);
 
                 getUserInfo(accessToken);
 
@@ -109,7 +109,7 @@ public class OpenIDUtil {
         return (String)id_token.get("sub");
     }
 
-    private static String getAccessCode(String codeResponse) throws Exception {
+    private static String getAccessToken(String codeResponse) throws Exception {
         JSONObject result = new JSONObject(codeResponse);
         return (String)result.get("access_token");
     }
@@ -125,7 +125,7 @@ public class OpenIDUtil {
             resolveCodeRequest.addHeader("Authorization", basicAuth);
             resolveCodeRequest.addHeader("Content-Type", "application/x-www-form-urlencoded");
 
-            String requestBody = "grant_type=password&username=fred&password=Password1&scope=openid";
+            String requestBody = "grant_type=password&username=fred&password=Password1&scope=openid%20memberOf";
             HttpEntity entity = new ByteArrayEntity(requestBody.getBytes("UTF-8"));
             resolveCodeRequest.setEntity(entity);
 
@@ -135,6 +135,10 @@ public class OpenIDUtil {
             try {
                 String body = EntityUtils.toString(response.getEntity());
                 System.out.println(body);
+
+                String accessToken = getAccessToken(body);
+                System.out.println("access token: " + accessToken);
+                getUserInfo(accessToken);
 
             } finally {
                 response.close();
@@ -178,13 +182,13 @@ public class OpenIDUtil {
 
     public static void main(String[] args) {
 
-//        passwordGrantType();
+        passwordGrantType();
 
-        String openamToken = OpenAMUtil.login("lglou242.lss.emc.com", "scott", "Password1");
-
-        String code = OpenAMUtil.authorizationCodeFlow(openamToken, "lglou242.lss.emc.com", REDIRECT_URL, CLIENT_ID);
-        System.out.println(code);
-        String username = resolveCode(code);
-        System.out.println(username);
+//        String openamToken = OpenAMUtil.login("lglou242.lss.emc.com", "scott", "Password1");
+//
+//        String code = OpenAMUtil.authorizationCodeFlow(openamToken, "lglou242.lss.emc.com", REDIRECT_URL, CLIENT_ID);
+//        System.out.println(code);
+//        String username = resolveCode(code);
+//        System.out.println(username);
     }
 }
